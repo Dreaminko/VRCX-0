@@ -1156,9 +1156,13 @@ mod tests {
         assert!(!should_send_vrchat_lifecycle(Some(false), false));
     }
 
+    fn instant_past_epoch_safe(headroom: Duration) -> Instant {
+        Instant::now() + headroom
+    }
+
     #[test]
     fn send_attempts_back_off_between_retries() {
-        let now = Instant::now();
+        let now = instant_past_epoch_safe(SEND_RETRY_BACKOFF);
 
         assert!(attempt_due(None, now));
         assert!(!attempt_due(Some(now), now));
@@ -1171,7 +1175,7 @@ mod tests {
 
     #[test]
     fn heartbeat_waits_for_interval_after_initial_baseline() {
-        let now = Instant::now();
+        let now = instant_past_epoch_safe(HEARTBEAT_INTERVAL);
 
         assert!(!is_heartbeat_due(None, now));
         assert!(!is_heartbeat_due(Some(now), now));
