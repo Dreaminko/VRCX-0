@@ -65,6 +65,7 @@ import type {
     BoolConfigPreferenceKey,
     IntConfigPreferenceKey,
     IntConfigPreferenceOptions,
+    ProxyPreferenceOptions,
     ProxyServerPreferenceOptions,
     StringConfigPreferenceKey
 } from './preferencesTypes';
@@ -373,7 +374,7 @@ export async function setIntConfigPreference(
 
 export async function setProxyServerPreference(
     value: string,
-    { restart = true }: ProxyServerPreferenceOptions = {}
+    { restart = false }: ProxyServerPreferenceOptions = {}
 ) {
     const nextProxyServer = String(value ?? '').trim();
     await storageRepository.setString('VRCX_ProxyServer', nextProxyServer);
@@ -383,6 +384,23 @@ export async function setProxyServerPreference(
         await commands.appRestartApplication();
     }
     return nextProxyServer;
+}
+
+export async function setProxyEnabledPreference(
+    value: boolean,
+    { restart = false }: ProxyPreferenceOptions = {}
+) {
+    const proxyEnabled = value === true;
+    await storageRepository.setString(
+        'VRCX_ProxyEnabled',
+        String(proxyEnabled)
+    );
+    patchPreferences({ proxyEnabled });
+    publishPreferenceChanged('VRCX_ProxyEnabled', proxyEnabled);
+    if (restart) {
+        await commands.appRestartApplication();
+    }
+    return proxyEnabled;
 }
 
 export async function setTablePageSizesPreference(value: unknown) {

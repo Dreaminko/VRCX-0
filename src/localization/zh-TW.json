@@ -5514,7 +5514,17 @@
             "header": "代理伺服器設定",
             "description": "輸入代理伺服器地址和連接埠",
             "close": "關閉",
-            "restart": "儲存並重新啟動"
+            "restart": "儲存並重新啟動",
+            "enabled": "啟用代理",
+            "enabled_description": "啟用但未填寫位址時，VRCX-0 會直連，代理開關保持開啟。",
+            "address": "代理位址",
+            "address_description": "留空表示保持代理開關開啟，但網路邏輯走直連。",
+            "test": "測試",
+            "configure": "設定",
+            "configure_empty": "設定位址",
+            "saved_restart_required": "代理設定已儲存，重新啟動 VRCX-0 後網路代理變更生效。",
+            "test_success": "代理測試成功（HTTP {status}）。",
+            "test_failed": "代理測試失敗：{message}"
         },
         "redeem": {
             "header": "兌換代碼",
@@ -6121,7 +6131,12 @@
         "mutual_graph_fetching": "正在拉取共同好友",
         "mutual_graph_progress": "共同好友關係圖譜取得進度",
         "start_background_mode": "切換到背景模式",
-        "start_background_mode_tooltip": "切換到背景模式"
+        "start_background_mode_tooltip": "切換到背景模式",
+        "modify_proxy_address": "修改代理位址",
+        "proxy_disabled": "代理已關閉",
+        "proxy_enabled_direct": "代理已啟用，目前直連",
+        "proxy_enabled_server": "代理已啟用：{proxy}",
+        "proxy_network_issue": "代理已啟用，網路請求失敗"
     },
     "component": {
         "favorite_action_menu": {

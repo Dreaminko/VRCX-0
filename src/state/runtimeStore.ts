@@ -499,6 +499,7 @@ const initialState: RuntimeStoreState = {
         updaterOpen: false,
         changelogOpen: false,
         keyboardShortcutsOpen: false,
+        proxySettingsOpen: false,
         registryBackupOpen: false,
         appLauncherOpen: false,
         launchOptionsOpen: false,

@@ -5506,7 +5506,17 @@
             "header": "プロキシ設定",
             "description": "プロキシサーバーのアドレスとポートを入力してください。127.0.0.1:7890、http://127.0.0.1:7890、socks5://127.0.0.1:7890 に対応しています。",
             "close": "閉じる",
-            "restart": "保存して再起動"
+            "restart": "保存して再起動",
+            "enabled": "Enable proxy",
+            "enabled_description": "When enabled with no address, VRCX-0 connects directly and keeps the proxy switch on.",
+            "address": "Proxy address",
+            "address_description": "Leave blank to connect directly while keeping the proxy switch enabled.",
+            "test": "Test",
+            "configure": "Configure",
+            "configure_empty": "Configure address",
+            "saved_restart_required": "Proxy settings saved. Restart VRCX-0 to apply network proxy changes.",
+            "test_success": "Proxy test succeeded (HTTP {status}).",
+            "test_failed": "Proxy test failed: {message}"
         },
         "redeem": {
             "header": "コードを引き換え",
@@ -6113,7 +6123,12 @@
         "mutual_graph_fetching": "共通フレンドを取得中",
         "mutual_graph_progress": "共通フレンドグラフの取得進捗",
         "start_background_mode": "バックグラウンドモードへ切り替える",
-        "start_background_mode_tooltip": "バックグラウンドモードへ切り替えます"
+        "start_background_mode_tooltip": "バックグラウンドモードへ切り替えます",
+        "modify_proxy_address": "Modify proxy address",
+        "proxy_disabled": "Proxy disabled",
+        "proxy_enabled_direct": "Proxy enabled, connecting directly",
+        "proxy_enabled_server": "Proxy enabled: {proxy}",
+        "proxy_network_issue": "Proxy enabled, network request failed"
     },
     "component": {
         "favorite_action_menu": {

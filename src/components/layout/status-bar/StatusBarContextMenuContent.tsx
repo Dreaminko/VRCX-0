@@ -4,6 +4,7 @@ import {
     ContextMenuCheckboxItem,
     ContextMenuContent,
     ContextMenuGroup,
+    ContextMenuItem,
     ContextMenuRadioGroup,
     ContextMenuRadioItem,
     ContextMenuSeparator,
@@ -20,6 +21,7 @@ import type {
 type StatusBarContextMenuContentProps = {
     clockCount: number;
     onSetClockCountValue: (nextValue: number) => unknown;
+    onOpenProxySettings: () => unknown;
     onToggleVisibility: (
         key: StatusBarVisibilityKey,
         checked: boolean
@@ -34,7 +36,6 @@ const VISIBILITY_MENU_ITEMS: Array<readonly [StatusBarVisibilityKey, string]> =
         ['steamvr', 'status_bar.steamvr'],
         ['instanceQueue', 'status_bar.instance_queue'],
         ['mutualGraph', 'status_bar.mutual_graph'],
-        ['proxy', 'status_bar.proxy'],
         ['ws', 'status_bar.realtime_connection'],
         ['uptime', 'status_bar.app_uptime_short'],
         ['zoom', 'status_bar.zoom'],
@@ -43,6 +44,7 @@ const VISIBILITY_MENU_ITEMS: Array<readonly [StatusBarVisibilityKey, string]> =
 
 export function StatusBarContextMenuContent({
     clockCount,
+    onOpenProxySettings,
     onSetClockCountValue,
     onToggleVisibility,
     visibility
@@ -51,6 +53,10 @@ export function StatusBarContextMenuContent({
 
     return (
         <ContextMenuContent className="w-52">
+            <ContextMenuItem onSelect={onOpenProxySettings}>
+                {t('status_bar.modify_proxy_address')}
+            </ContextMenuItem>
+            <ContextMenuSeparator />
             <ContextMenuGroup>
                 {VISIBILITY_MENU_ITEMS.map(([key, label]) => (
                     <ContextMenuCheckboxItem

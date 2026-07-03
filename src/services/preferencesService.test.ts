@@ -143,6 +143,7 @@ import {
     setIntConfigPreference,
     setHmdNotificationActivityFiltersPreference,
     setNotificationLayoutPreference,
+    setProxyEnabledPreference,
     setProxyServerPreference,
     setRecentActionCooldownMinutesPreference,
     setStringConfigPreference,
@@ -774,11 +775,55 @@ describe('preferencesService characterization', () => {
         expect(usePreferencesStore.getState().discordActive).toBe(true);
     });
 
-    it('persists proxy server without restarting when requested', async () => {
+    it('loads legacy proxy enabled state from a non-empty proxy address', async () => {
+        mocks.storageGetString.mockImplementation(
+            (key: string, fallback = '') => {
+                if (key === 'VRCX_ProxyServer') {
+                    return Promise.resolve('127.0.0.1:7890');
+                }
+                return Promise.resolve(String(fallback ?? ''));
+            }
+        );
+
+        const snapshot = await loadPreferenceSnapshot();
+
+        expect(snapshot.proxyEnabled).toBe(true);
+        expect(snapshot.proxyServer).toBe('127.0.0.1:7890');
+    });
+
+    it('honors explicit disabled proxy state even with a configured address', async () => {
+        mocks.storageGetString.mockImplementation(
+            (key: string, fallback = '') => {
+                if (key === 'VRCX_ProxyEnabled') {
+                    return Promise.resolve('false');
+                }
+                if (key === 'VRCX_ProxyServer') {
+                    return Promise.resolve('127.0.0.1:7890');
+                }
+                return Promise.resolve(String(fallback ?? ''));
+            }
+        );
+
+        const snapshot = await loadPreferenceSnapshot();
+
+        expect(snapshot.proxyEnabled).toBe(false);
+        expect(snapshot.proxyServer).toBe('127.0.0.1:7890');
+    });
+
+    it('persists proxy enabled separately without restarting by default', async () => {
+        await expect(setProxyEnabledPreference(true)).resolves.toBe(true);
+
+        expect(mocks.storageSetString).toHaveBeenCalledWith(
+            'VRCX_ProxyEnabled',
+            'true'
+        );
+        expect(mocks.appRestartApplication).not.toHaveBeenCalled();
+        expect(usePreferencesStore.getState().proxyEnabled).toBe(true);
+    });
+
+    it('persists proxy server without restarting by default', async () => {
         await expect(
-            setProxyServerPreference('  http://127.0.0.1:8888  ', {
-                restart: false
-            })
+            setProxyServerPreference('  http://127.0.0.1:8888  ')
         ).resolves.toBe('http://127.0.0.1:8888');
 
         expect(mocks.storageSetString).toHaveBeenCalledWith(

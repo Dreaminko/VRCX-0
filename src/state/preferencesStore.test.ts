@@ -47,6 +47,20 @@ describe('preferencesStore normalizers', () => {
         ).toBe(true);
     });
 
+    it('keeps proxy enabled separate from the proxy address', () => {
+        expect(DEFAULT_PREFERENCES.proxyEnabled).toBe(false);
+        expect(normalizePreferenceSnapshot({}).proxyEnabled).toBe(false);
+        expect(
+            normalizePreferenceSnapshot({
+                proxyEnabled: true,
+                proxyServer: ''
+            })
+        ).toMatchObject({
+            proxyEnabled: true,
+            proxyServer: ''
+        });
+    });
+
     it('keeps custom font selector fields round-trippable', () => {
         expect(DEFAULT_PREFERENCES.customFontPrimary).toBe('');
         expect(DEFAULT_PREFERENCES.customFontSecondary).toBe('');

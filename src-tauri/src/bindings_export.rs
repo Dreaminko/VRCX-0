@@ -79,6 +79,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::background_mode::app__get_backend_runtime_frontend_session_snapshot,
             commands::application::background_mode::app__ensure_main_window,
             commands::application::telemetry::app__telemetry_record_event,
+            commands::application::proxy::app__proxy_settings_test,
             commands::application::mcp_server::app__mcp_server_status,
             commands::application::mcp_server::app__mcp_server_set_enabled,
             commands::application::mcp_server::app__mcp_server_set_allow_vrchat_writes,

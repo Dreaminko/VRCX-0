@@ -5514,7 +5514,17 @@
             "header": "代理服务器设置",
             "description": "输入代理地址和端口。支持 Socks5 和 http(s)协议",
             "close": "关闭",
-            "restart": "保存并重启"
+            "restart": "保存并重启",
+            "enabled": "启用代理",
+            "enabled_description": "启用但未填写地址时，VRCX-0 会直连，代理开关保持开启。",
+            "address": "代理地址",
+            "address_description": "留空表示保持代理开关开启，但网络逻辑走直连。",
+            "test": "测试",
+            "configure": "配置",
+            "configure_empty": "配置地址",
+            "saved_restart_required": "代理设置已保存，重启 VRCX-0 后网络代理变更生效。",
+            "test_success": "代理测试成功（HTTP {status}）。",
+            "test_failed": "代理测试失败：{message}"
         },
         "redeem": {
             "header": "兑换码兑换",
@@ -6121,7 +6131,12 @@
         "mutual_graph_fetching": "正在拉取共同好友",
         "mutual_graph_progress": "共同好友图谱获取进度",
         "start_background_mode": "切换到后台模式",
-        "start_background_mode_tooltip": "切换到后台模式"
+        "start_background_mode_tooltip": "切换到后台模式",
+        "modify_proxy_address": "修改代理地址",
+        "proxy_disabled": "代理已关闭",
+        "proxy_enabled_direct": "代理已启用，当前直连",
+        "proxy_enabled_server": "代理已启用：{proxy}",
+        "proxy_network_issue": "代理已启用，网络请求失败"
     },
     "component": {
         "favorite_action_menu": {

@@ -64,7 +64,6 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     openYoutubeApiDialog: SettingsCallback;
     promptAutoClearVrcxCacheFrequency: SettingsCallback;
     promptAutoLoginDelaySeconds: SettingsCallback;
-    promptProxySettings: SettingsCallback;
     prefs: SettingsPrefs;
     refreshCacheSize: SettingsCallback;
     refreshConfigTreeData: SettingsCallback;
@@ -107,6 +106,7 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     setNotificationTtsTestVisible: SettingsCallback<[boolean]>;
     setPrefs: SetSettingsPrefs;
     setPurgeDialogOpen: SettingsCallback<[boolean]>;
+    setProxyEnabledPreference: SettingsCallback<[boolean]>;
     setRecentActionCooldownEnabledPreference: SettingsCallback<[boolean]>;
     setRecentActionCooldownMinutesPreference: SettingsCallback<[number]>;
     setSaveInstanceEmojiPreference: SettingsCallback<[boolean]>;
@@ -188,7 +188,6 @@ export function buildSettingsPageStateSections({
     prefs,
     promptAutoClearVrcxCacheFrequency,
     promptAutoLoginDelaySeconds,
-    promptProxySettings,
     purgeAvatarFeedData,
     purgeDialogOpen,
     purgeInProgress,
@@ -252,6 +251,7 @@ export function buildSettingsPageStateSections({
     setPrefs,
     setPurgeDialogOpen,
     setPurgePeriod,
+    setProxyEnabledPreference,
     setRecentActionCooldownEnabledPreference,
     setRecentActionCooldownMinutesPreference,
     setSaveInstanceEmojiPreference,
@@ -313,10 +313,10 @@ export function buildSettingsPageStateSections({
             prefs,
             savePreferenceValue,
             saveBoolPreference,
+            setProxyEnabledPreference,
             setStartAtWindowsStartupPreference,
             setStartAsMinimizedPreference,
             setCloseToTrayPreference,
-            promptProxySettings,
             promptAutoLoginDelaySeconds
         },
         interface: {

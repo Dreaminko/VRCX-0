@@ -250,6 +250,11 @@ export const commands = {
     async appTelemetryRecordEvent(event: TelemetryClientEvent): Promise<null> {
         return await TAURI_INVOKE('app__telemetry_record_event', { event });
     },
+    async appProxySettingsTest(
+        input: ProxySettingsTestInput
+    ): Promise<ProxySettingsTestResult> {
+        return await TAURI_INVOKE('app__proxy_settings_test', { input });
+    },
     async appMcpServerStatus(): Promise<McpServerStatus> {
         return await TAURI_INVOKE('app__mcp_server_status');
     },
@@ -3771,6 +3776,11 @@ export type PrintFavoriteState = {
     favoriteIds: string[];
     maxFavorites: number;
     warning: CleanupWarning | null;
+};
+export type ProxySettingsTestInput = { proxy?: string };
+export type ProxySettingsTestResult = {
+    normalizedProxy: string | null;
+    status: number;
 };
 export type RawJson = JsonValue;
 export type RealtimeCurrentUserProjection = {

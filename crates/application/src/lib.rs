@@ -157,6 +157,7 @@ pub use process_monitor::{
     GameProcessEvent, GameProcessEventSink, GameProcessMonitorActions, GameProcessStatus,
     ProcessMonitor,
 };
+pub use proxy::{test_proxy_connectivity, ProxySettingsTestResult};
 pub use realtime::{
     is_friend_event_type, FriendBaselineResult, FriendProjection, FriendProjectionPatch,
     PendingOfflineTimerAction, RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput,

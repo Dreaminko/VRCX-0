@@ -8,6 +8,7 @@ import {
 import { forwardRef, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { ProxySettingsEditor } from '@/components/proxy/ProxySettingsEditor';
 import { cn } from '@/lib/utils';
 import {
     MAX_ZOOM_LEVEL,
@@ -18,6 +19,7 @@ import type { VrcStatusState } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Popover,
+    PopoverAnchor,
     PopoverContent,
     PopoverDescription,
     PopoverHeader,
@@ -36,6 +38,7 @@ import { Slider } from '@/ui/shadcn/slider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { StatusDot, StatusSegment } from './StatusBarParts';
+import { resolveProxyIndicatorState } from './statusBarProxy';
 import type {
     DurationValueProps,
     StatusBarFooterProps,
@@ -261,6 +264,8 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
             instanceQueue,
             mutualGraph,
             nowPlaying,
+            proxyEditor,
+            proxyEnabled,
             proxyServer,
             runtimeGameState,
             runtimeTransport,
@@ -277,7 +282,13 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
             onOpenMediaLink,
             onOpenStatusPage,
             onStartBackgroundMode,
-            onPromptProxySettings,
+            onProxyDraftEnabledChange,
+            onProxyDraftServerChange,
+            onProxyEditorOpenChange,
+            onProxySave,
+            onProxySaveAndRestart,
+            onProxyTest,
+            onToggleProxyEnabled,
             onSetClockPopoverValue,
             onSetZoomLevel,
             onStepZoomLevel,
@@ -303,6 +314,11 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
         const vrcStatusIsMajor = ['major', 'critical'].includes(
             vrcStatusIndicator
         );
+        const proxyIndicator = resolveProxyIndicatorState({
+            enabled: proxyEnabled,
+            server: proxyServer,
+            hasNetworkIssue: Boolean(proxyEnabled && vrcStatus.error)
+        });
 
         useEffect(() => {
             if (!zoomPopoverOpen) {
@@ -749,28 +765,66 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                 </TooltipContent>
                             </Tooltip>
                         ) : null}
-                        {visibility.proxy && proxyServer ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Proxy settings"
-                                        className={cn(
-                                            '-ml-px h-6 w-7 rounded-none border-l',
-                                            'text-muted-foreground hover:text-muted-foreground'
-                                        )}
-                                        onClick={onPromptProxySettings}
-                                    >
-                                        <NetworkIcon data-icon="icon" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                    {`Proxy: ${proxyServer}`}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : null}
+                        <Popover
+                            open={proxyEditor.open}
+                            onOpenChange={onProxyEditorOpenChange}
+                        >
+                            <PopoverAnchor asChild>
+                                <span className="-ml-px inline-flex h-6 shrink-0 border-l">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={t(
+                                                    'status_bar.proxy'
+                                                )}
+                                                className={cn(
+                                                    'size-6 rounded-none',
+                                                    proxyIndicator.className
+                                                )}
+                                                onClick={onToggleProxyEnabled}
+                                            >
+                                                <NetworkIcon data-icon="icon" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                            {t(
+                                                proxyIndicator.tooltipKey,
+                                                proxyIndicator.tooltipValues
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </span>
+                            </PopoverAnchor>
+                            <PopoverContent
+                                side="top"
+                                align="end"
+                                className="w-96"
+                            >
+                                <PopoverHeader>
+                                    <PopoverTitle>
+                                        {t('prompt.proxy_settings.header')}
+                                    </PopoverTitle>
+                                    <PopoverDescription>
+                                        {t('prompt.proxy_settings.description')}
+                                    </PopoverDescription>
+                                </PopoverHeader>
+                                <ProxySettingsEditor
+                                    enabled={proxyEditor.enabled}
+                                    idPrefix="status-bar-proxy-settings"
+                                    saving={proxyEditor.saving}
+                                    server={proxyEditor.server}
+                                    testing={proxyEditor.testing}
+                                    onEnabledChange={onProxyDraftEnabledChange}
+                                    onSave={onProxySave}
+                                    onSaveAndRestart={onProxySaveAndRestart}
+                                    onServerChange={onProxyDraftServerChange}
+                                    onTest={onProxyTest}
+                                />
+                            </PopoverContent>
+                        </Popover>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button

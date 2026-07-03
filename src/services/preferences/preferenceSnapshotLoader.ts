@@ -76,6 +76,17 @@ async function seedHmdNotificationsDefault() {
     await commands.appVrOverlayConfigReload();
 }
 
+function resolveProxyEnabled(
+    rawEnabled: unknown,
+    proxyServer: unknown
+): boolean {
+    const enabledText = String(rawEnabled ?? '').trim();
+    if (enabledText) {
+        return ['true', '1', 'yes', 'on'].includes(enabledText.toLowerCase());
+    }
+    return String(proxyServer ?? '').trim() !== '';
+}
+
 export async function loadPreferenceSnapshot() {
     await seedHmdNotificationsDefault();
     const [
@@ -162,6 +173,7 @@ export async function loadPreferenceSnapshot() {
         dtHour12,
         trustColor,
         currentCulture,
+        proxyEnabledRaw,
         proxyServer,
         tablePageSize,
         tablePageSizes,
@@ -282,6 +294,7 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('dtHour12', false),
         configRepository.getObject('VRCX_trustColor', null),
         commands.appSystemCulture().catch(() => navigator.language || 'en-gb'),
+        storageRepository.getString('VRCX_ProxyEnabled', ''),
         storageRepository.getString('VRCX_ProxyServer', ''),
         configRepository.getInt('VRCX_tablePageSize', DEFAULT_TABLE_PAGE_SIZE),
         configRepository.getArray(
@@ -479,6 +492,7 @@ export async function loadPreferenceSnapshot() {
         trustColor: normalizeTrustColors(trustColor),
         navPanelWidth: normalizeNavWidth(navPanelWidth),
         navIsCollapsed: Boolean(navIsCollapsed),
+        proxyEnabled: resolveProxyEnabled(proxyEnabledRaw, proxyServer),
         proxyServer: proxyServer || '',
         tablePageSize: normalizeTablePageSize(tablePageSize),
         tablePageSizes: normalizeTablePageSizes(tablePageSizes),

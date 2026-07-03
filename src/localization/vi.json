@@ -1519,7 +1519,17 @@
             "header": "Proxy Settings",
             "description": "Enter proxy server address and port",
             "close": "Đóng",
-            "restart": "Restart"
+            "restart": "Restart",
+            "enabled": "Enable proxy",
+            "enabled_description": "When enabled with no address, VRCX-0 connects directly and keeps the proxy switch on.",
+            "address": "Proxy address",
+            "address_description": "Leave blank to connect directly while keeping the proxy switch enabled.",
+            "test": "Test",
+            "configure": "Configure",
+            "configure_empty": "Configure address",
+            "saved_restart_required": "Proxy settings saved. Restart VRCX-0 to apply network proxy changes.",
+            "test_success": "Proxy test succeeded (HTTP {status}).",
+            "test_failed": "Proxy test failed: {message}"
         },
         "table_entries_settings": {
             "header": "Kích thước bảng tối đa",
@@ -1725,5 +1735,12 @@
     },
     "app": {
         "routes": {}
+    },
+    "status_bar": {
+        "modify_proxy_address": "Modify proxy address",
+        "proxy_disabled": "Proxy disabled",
+        "proxy_enabled_direct": "Proxy enabled, connecting directly",
+        "proxy_enabled_server": "Proxy enabled: {proxy}",
+        "proxy_network_issue": "Proxy enabled, network request failed"
     }
 }

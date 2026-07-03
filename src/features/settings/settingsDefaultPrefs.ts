@@ -105,6 +105,7 @@ export function createDefaultSettingsPrefs() {
         isStartAsMinimizedState: false,
         isCloseToTray: false,
         navIsCollapsed: false,
+        proxyEnabled: false,
         proxyServer: '',
         tablePageSize: 20,
         tablePageSizes: [...TABLE_PAGE_SIZE_DEFAULTS],
