@@ -106,9 +106,6 @@
         "vite": "^8.1.0",
         "vitest": "^4.1.9"
     },
-    "overrides": {
-        "@radix-ui/react-dismissable-layer": "1.1.12"
-    },
     "engines": {
         "node": ">=24.10.0",
         "npm": ">=11.5.0"
