@@ -6,6 +6,7 @@ import {
     parseHmdOverlayActivityFilterProfile,
     parseOverlayActivityFilterProfile
 } from '@/shared/constants/overlayActivityFilters';
+import { MINUTES_PER_DAY } from '@/shared/constants/time';
 import { normalizeTrustColors } from '@/shared/utils/trustColors';
 import {
     DEFAULT_PREFERENCES,
@@ -378,7 +379,7 @@ export async function loadPreferenceSnapshot() {
     const normalizedRecentActionCooldownMinutes = Number.isFinite(
         recentActionCooldownMinutes
     )
-        ? recentActionCooldownMinutes
+        ? Math.min(MINUTES_PER_DAY, Math.max(1, recentActionCooldownMinutes))
         : 60;
     applyTableDensityClass(resolvedTableDensity);
     applyDataTableStripedClass(dataTableStriped);

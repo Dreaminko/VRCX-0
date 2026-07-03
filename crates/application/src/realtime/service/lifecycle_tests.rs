@@ -11,7 +11,7 @@ mod tests {
     use vrcx_0_persistence::config as config_store;
     use vrcx_0_persistence::favorites::favorite_add;
     use vrcx_0_persistence::notifications::{notification_list_query, NotificationListQueryInput};
-    use vrcx_0_persistence::realtime::NotificationV2Update;
+    use vrcx_0_persistence::realtime::{NotificationV2Update, RealtimePersistenceBatch};
     use vrcx_0_persistence::storage::StorageService;
     use vrcx_0_persistence::worlds::world_cache_upsert;
     use vrcx_0_persistence::DatabaseService;
@@ -26,7 +26,8 @@ mod tests {
     };
 
     use super::super::types::{
-        ActiveRealtimeContext, RealtimeHostRuntimeMessageSink, RealtimeHostRuntimeState,
+        ActiveRealtimeContext, PendingFriendBaseline, RealtimeHostRuntimeMessageSink,
+        RealtimeHostRuntimeState,
     };
     use super::super::*;
 
@@ -1208,6 +1209,46 @@ mod tests {
     }
 
     #[test]
+    fn friend_projection_clears_feed_entries_when_persistence_fails() -> Result<()> {
+        let (_dir, runtime, active_session) =
+            runtime_with_active_session("friend-persist-failure-clears-feed")?;
+        let feed_entry = json!({
+            "created_at": "2026-06-21T00:00:00.000Z",
+            "type": "NewFeedType",
+            "userId": "usr_friend",
+            "displayName": "Friend"
+        });
+
+        runtime.apply_friend_output(RealtimeFriendOutput {
+            owner_user_id: active_session.user_id,
+            projection: FriendProjection {
+                generation: 7,
+                feed_entries: vec![feed_entry.clone()],
+                ..FriendProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                feed_entries: vec![feed_entry],
+                ..RealtimePersistenceBatch::default()
+            },
+            ..RealtimeFriendOutput::default()
+        });
+
+        let events = runtime.deps.event_bus.take_events_for_test();
+        let projection = events
+            .iter()
+            .find(|event| event.name == "realtimeFriendProjection")
+            .expect("friend projection should still be emitted after persistence failure");
+        assert_eq!(
+            projection.payload["feedEntries"].as_array().unwrap().len(),
+            0
+        );
+        assert!(events.iter().all(|event| {
+            event.name != "backendRuntimeTelemetry" || event.payload["kind"] != "wsPersisted"
+        }));
+        Ok(())
+    }
+
+    #[test]
     fn connected_after_reconnect_without_snapshot_resumes_queued_friend_events() -> Result<()> {
         let (_dir, runtime, active_session) = runtime_with_active_session("reconnect-drain")?;
         let active = runtime
@@ -1315,6 +1356,25 @@ mod tests {
             Some(active.generation),
             friends_by_id,
         )?;
+        {
+            let mut state = runtime.state.lock().unwrap();
+            state.pending_friend_baseline = Some(PendingFriendBaseline {
+                session: active_session.clone(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".to_string(),
+                        display_name: "Polluted Baseline".to_string(),
+                        state: "offline".to_string(),
+                        state_bucket: "offline".to_string(),
+                        location: "offline".to_string(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+            });
+        }
 
         let sink = RealtimeHostRuntimeMessageSink {
             runtime: Arc::clone(&runtime),
@@ -1326,6 +1386,22 @@ mod tests {
             "reconnecting",
         );
         assert!(runtime.state.lock().unwrap().friend_messages_paused);
+        sink.handle_realtime_ws_message(
+            active.generation,
+            active.session_generation,
+            &active_session,
+            &RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-location",
+                    "content": {
+                        "userId": "usr_friend",
+                        "location": "wrld_2:456"
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-06-08T10:05:00Z".into(),
+            },
+        );
         sink.handle_realtime_transport_status(
             active.generation,
             active.session_generation,
@@ -1337,7 +1413,14 @@ mod tests {
         let snapshot = runtime.friend_snapshot().unwrap();
         let friend = snapshot.friends_by_id.get("usr_friend").unwrap();
         assert_eq!(friend.state_bucket, "online");
-        assert_eq!(friend.location, "wrld_1:123");
+        assert_eq!(friend.display_name, "Friend");
+        assert_eq!(friend.location, "wrld_2:456");
+        assert!(runtime
+            .state
+            .lock()
+            .unwrap()
+            .pending_friend_baseline
+            .is_some());
         Ok(())
     }
 

@@ -478,4 +478,62 @@ mod tests {
             .unwrap();
         assert_eq!(fired.projection.patches[0].state_bucket, "offline");
     }
+
+    #[test]
+    fn pending_offline_existing_event_does_not_replace_timer_or_target_state() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_1:123".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let RealtimeFriendApplyResult::Output(first) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-active",
+                    "content": { "userId": "usr_friend" }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("friend-active should schedule pending timer");
+        };
+        let PendingOfflineTimerAction::Schedule { token, .. } = first.timer_action else {
+            panic!("online->active should schedule pending timer");
+        };
+
+        let repeated = runtime.apply_ws_message(&RealtimeWsMessagePayload {
+            json: json!({
+                "type": "friend-offline",
+                "content": { "userId": "usr_friend" }
+            }),
+            raw: "{}".into(),
+            received_at: "2026-05-15T00:00:10Z".into(),
+        });
+
+        assert!(matches!(repeated, RealtimeFriendApplyResult::Ignored));
+        let fired = runtime
+            .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
+            .unwrap();
+        assert_eq!(fired.projection.patches[0].state_bucket, "active");
+        assert_eq!(fired.projection.patches[0].patch["state"], json!("active"));
+    }
 }

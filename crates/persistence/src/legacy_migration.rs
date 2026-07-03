@@ -168,6 +168,10 @@ mod tests {
         Ok(())
     }
 
+    fn read_file(path: &Path) -> Result<Vec<u8>, Error> {
+        Ok(std::fs::read(path)?)
+    }
+
     #[test]
     fn copies_legacy_vrcx_data_into_empty_vrcx0_targets() -> Result<(), Error> {
         let dir = TestDir::new("legacy-copy");
@@ -202,6 +206,46 @@ mod tests {
             std::fs::read_to_string(&paths.config_file)?,
             r#"{"VRCX_CloseToTray":"true"}"#
         );
+        Ok(())
+    }
+
+    #[test]
+    fn copying_legacy_vrcx_data_never_mutates_source_files() -> Result<(), Error> {
+        let dir = TestDir::new("legacy-source-unchanged");
+        let paths = dir.app_paths();
+        let legacy_dir = dir.path.join("VRCX");
+        let legacy_db = legacy_dir.join("VRCX.sqlite3");
+        let legacy_shm = sidecar_path(&legacy_db, "shm");
+        let legacy_wal = sidecar_path(&legacy_db, "wal");
+        let legacy_config = legacy_dir.join("VRCX.json");
+
+        write_file(&legacy_db, b"legacy-db")?;
+        write_file(&legacy_shm, b"legacy-shm")?;
+        write_file(&legacy_wal, b"legacy-wal")?;
+        write_file(&legacy_config, br#"{"VRCX_CloseToTray":"true"}"#)?;
+        let before = [
+            read_file(&legacy_db)?,
+            read_file(&legacy_shm)?,
+            read_file(&legacy_wal)?,
+            read_file(&legacy_config)?,
+        ];
+
+        copy_legacy_vrcx_data(
+            &paths,
+            &LegacyVrcxSource {
+                db_path: legacy_db.clone(),
+                config_path: Some(legacy_config.clone()),
+                version: 16,
+            },
+        )?;
+
+        let after = [
+            read_file(&legacy_db)?,
+            read_file(&legacy_shm)?,
+            read_file(&legacy_wal)?,
+            read_file(&legacy_config)?,
+        ];
+        assert_eq!(after, before);
         Ok(())
     }
 
@@ -263,6 +307,103 @@ mod tests {
             r#"{"VRCX_CloseToTray":"true"}"#
         );
         assert!(!migration_flag.exists());
+        Ok(())
+    }
+
+    #[test]
+    fn pending_legacy_migration_survives_partial_failure_and_can_retry() -> Result<(), Error> {
+        let dir = TestDir::new("legacy-pending-retry");
+        let paths = dir.app_paths();
+        let migration_flag = paths.app_data.join("pending_vrcx_migration");
+        let legacy_dir = dir.path.join("VRCX");
+        let legacy_db = legacy_dir.join("VRCX.sqlite3");
+        let legacy_config = legacy_dir.join("VRCX.json");
+        let bad_config_source = legacy_dir.join("bad-config-dir");
+
+        write_file(&legacy_db, b"legacy-db")?;
+        std::fs::create_dir_all(&bad_config_source)?;
+        write_file(&paths.db_file, b"precreated-db")?;
+        write_file(&paths.config_file, b"precreated-config")?;
+        write_file(&migration_flag, b"1")?;
+
+        let failed = consume_pending_legacy_migration_with_discovery(&paths, || {
+            (
+                Some(LegacyVrcxSource {
+                    db_path: legacy_db.clone(),
+                    config_path: Some(bad_config_source.clone()),
+                    version: 16,
+                }),
+                LegacyVrcxMigrationStatus::unavailable(),
+            )
+        });
+        assert!(failed.is_err());
+        assert!(migration_flag.exists());
+
+        std::fs::remove_dir_all(&bad_config_source)?;
+        write_file(&legacy_config, br#"{"VRCX_CloseToTray":"true"}"#)?;
+
+        consume_pending_legacy_migration_with_discovery(&paths, || {
+            (
+                Some(LegacyVrcxSource {
+                    db_path: legacy_db,
+                    config_path: Some(legacy_config),
+                    version: 16,
+                }),
+                LegacyVrcxMigrationStatus::unavailable(),
+            )
+        })?;
+
+        assert_eq!(std::fs::read(&paths.db_file)?, b"legacy-db");
+        assert_eq!(
+            std::fs::read_to_string(&paths.config_file)?,
+            r#"{"VRCX_CloseToTray":"true"}"#
+        );
+        assert!(!migration_flag.exists());
+        Ok(())
+    }
+
+    #[test]
+    fn completed_legacy_migration_is_idempotent_without_pending_flag() -> Result<(), Error> {
+        let dir = TestDir::new("legacy-complete-idempotent");
+        let paths = dir.app_paths();
+        let migration_flag = paths.app_data.join("pending_vrcx_migration");
+        let legacy_dir = dir.path.join("VRCX");
+        let legacy_db = legacy_dir.join("VRCX.sqlite3");
+        let legacy_config = legacy_dir.join("VRCX.json");
+
+        write_file(&legacy_db, b"legacy-db-v1")?;
+        write_file(&legacy_config, br#"{"value":"v1"}"#)?;
+        write_file(&migration_flag, b"1")?;
+        consume_pending_legacy_migration_with_discovery(&paths, || {
+            (
+                Some(LegacyVrcxSource {
+                    db_path: legacy_db.clone(),
+                    config_path: Some(legacy_config.clone()),
+                    version: 16,
+                }),
+                LegacyVrcxMigrationStatus::unavailable(),
+            )
+        })?;
+        assert!(!migration_flag.exists());
+
+        write_file(&legacy_db, b"legacy-db-v2")?;
+        write_file(&legacy_config, br#"{"value":"v2"}"#)?;
+        consume_pending_legacy_migration_with_discovery(&paths, || {
+            (
+                Some(LegacyVrcxSource {
+                    db_path: legacy_db,
+                    config_path: Some(legacy_config),
+                    version: 16,
+                }),
+                LegacyVrcxMigrationStatus::unavailable(),
+            )
+        })?;
+
+        assert_eq!(std::fs::read(&paths.db_file)?, b"legacy-db-v1");
+        assert_eq!(
+            std::fs::read_to_string(&paths.config_file)?,
+            r#"{"value":"v1"}"#
+        );
         Ok(())
     }
 

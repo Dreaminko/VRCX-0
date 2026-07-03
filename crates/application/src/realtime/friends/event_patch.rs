@@ -999,4 +999,35 @@ mod tests {
         assert_eq!(patch["$travelingToLocation"]["tag"], json!("offline"));
         assert_eq!(patch["$travelingToLocation"]["isOffline"], json!(true));
     }
+
+    #[test]
+    fn event_user_patch_strips_state_and_state_bucket_uses_trust_gate() {
+        let content = json!({
+            "userId": "usr_friend",
+            "user": {
+                "id": "usr_friend",
+                "displayName": "Friend",
+                "state": "online"
+            }
+        });
+
+        let patch = event_user_patch(&content, "usr_friend").expect("user patch");
+        assert_eq!(patch["id"], json!("usr_friend"));
+        assert_eq!(patch["displayName"], json!("Friend"));
+        assert!(patch.get("state").is_none());
+
+        let previous = json!({
+            "id": "usr_friend",
+            "state": "active",
+            "stateBucket": "active"
+        });
+        assert_eq!(
+            resolve_state_bucket(&content, &patch, Some(&previous), false, "offline"),
+            "active"
+        );
+        assert_eq!(
+            resolve_state_bucket(&content, &patch, Some(&previous), true, "offline"),
+            "online"
+        );
+    }
 }
