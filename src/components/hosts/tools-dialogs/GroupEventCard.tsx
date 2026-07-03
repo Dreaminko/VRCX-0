@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { formatDateFilter, formatDateTime } from '@/lib/dateTime';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import vrchatToolsRepository from '@/repositories/vrchatToolsRepository';
+import { copyTextToClipboard } from '@/services/clipboardService';
 import { openGroupDialog } from '@/services/dialogService';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import {
@@ -91,19 +92,14 @@ async function copyEventLink(event: any, t: any) {
     if (!groupId || !eventId) {
         return;
     }
-    try {
-        await navigator.clipboard.writeText(
-            vrchatGroupCalendarUrl(groupId, eventId)
-        );
-        toast.success(t('dialog.group_calendar.event_card.copied_event_link'));
-    } catch (error) {
-        toast.error(
+    await copyTextToClipboard(vrchatGroupCalendarUrl(groupId, eventId), {
+        successMessage: t('dialog.group_calendar.event_card.copied_event_link'),
+        errorMessage: (error) =>
             userFacingErrorMessage(
                 error,
                 t('host.tools_dialogs.toast.failed_to_copy_event_link')
             )
-        );
-    }
+    });
 }
 
 function getEventBannerUrl(event: any, groupProfile: any) {

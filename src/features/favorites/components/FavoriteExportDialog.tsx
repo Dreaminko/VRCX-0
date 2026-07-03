@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
+import { copyTextToClipboard } from '@/services/clipboardService';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
@@ -81,20 +81,17 @@ function FavoriteExportDialog({
     }
 
     async function copyExportContent() {
-        try {
-            await navigator.clipboard.writeText(content);
-            toast.success(
-                t('view.favorite.success.copied_favorite_export_data')
-            );
-        } catch (error) {
-            toast.error(
+        await copyTextToClipboard(content, {
+            successMessage: t(
+                'view.favorite.success.copied_favorite_export_data'
+            ),
+            errorMessage: (error) =>
                 error instanceof Error
                     ? error.message
                     : t(
                           'view.favorites.toast.failed_to_copy_favorite_export_data'
                       )
-            );
-        }
+        });
     }
 
     return (

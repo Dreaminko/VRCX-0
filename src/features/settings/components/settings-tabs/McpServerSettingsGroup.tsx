@@ -8,6 +8,7 @@ import {
     type ClientConfigSnippets,
     type McpServerStatus
 } from '@/platform/tauri/bindings';
+import { copyTextToClipboard } from '@/services/clipboardService';
 import { Button } from '@/ui/shadcn/button';
 import { Input } from '@/ui/shadcn/input';
 import { Switch } from '@/ui/shadcn/switch';
@@ -153,16 +154,12 @@ export function McpServerSettingsGroup() {
         if (!value) {
             return;
         }
-        try {
-            await navigator.clipboard.writeText(value);
-            toast.success(
-                t('view.settings.integrations.mcp_server.copied', {
-                    target: t(labelKey)
-                })
-            );
-        } catch (error: unknown) {
-            toast.error(String(error));
-        }
+        await copyTextToClipboard(value, {
+            successMessage: t('view.settings.integrations.mcp_server.copied', {
+                target: t(labelKey)
+            }),
+            errorMessage: (error) => String(error)
+        });
     }
 
     return (

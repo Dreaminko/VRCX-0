@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import { InstanceInviteDialog } from '@/components/dialogs/InstanceInviteDialog';
 import { cn } from '@/lib/utils';
-import { copyTextToClipboard } from '@/services/entityMediaService';
+import { copyTextToClipboard } from '@/services/clipboardService';
 import {
     attachRunningVrchat,
     launchVrchat,
@@ -253,12 +253,11 @@ export function LaunchDialogHost() {
         if (!value) {
             return;
         }
-        await copyTextToClipboard(value);
-        toast.success(
-            t('host.launch_dialog.dynamic.value_copied', {
+        await copyTextToClipboard(value, {
+            successMessage: t('host.launch_dialog.dynamic.value_copied', {
                 value: label
             })
-        );
+        });
     }
 
     async function runAction(key: any, action: any) {

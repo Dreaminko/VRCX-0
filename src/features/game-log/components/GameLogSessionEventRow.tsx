@@ -11,10 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { AffinityBadge } from '@/components/affinity/AffinityBadge';
 import { formatDateFilter, timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
-import {
-    copyTextToClipboard,
-    openExternalLink
-} from '@/services/entityMediaService';
+import { copyTextToClipboard } from '@/services/clipboardService';
+import { openExternalLink } from '@/services/entityMediaService';
 import { normalizeString as normalizeId } from '@/shared/utils/string';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -327,7 +325,14 @@ function VideoActivityRow({ event }: any) {
                 <ContextMenuGroup>
                     <ContextMenuItem
                         onSelect={() => {
-                            copyTextToClipboard(event?.videoUrl || videoLabel);
+                            void copyTextToClipboard(
+                                event?.videoUrl || videoLabel,
+                                {
+                                    successMessage: t(
+                                        'view.game_log.success.copied_game_log_detail'
+                                    )
+                                }
+                            );
                         }}
                     >
                         <CopyIcon data-icon="inline-start" />

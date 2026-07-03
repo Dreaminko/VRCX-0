@@ -63,7 +63,7 @@ vi.mock('@/components/location/useLocationPreviousInstancesDialog', () => ({
     })
 }));
 
-vi.mock('@/services/entityMediaService', () => ({
+vi.mock('@/services/clipboardService', () => ({
     copyTextToClipboard: mocks.copyTextToClipboard
 }));
 

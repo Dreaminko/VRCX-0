@@ -9,19 +9,19 @@ import {
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import { useKnownUserFact } from '@/domain/users/useKnownUser';
 import { formatDateFilter } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import userProfileRepository from '@/repositories/userProfileRepository';
+import { copyTextToClipboard } from '@/services/clipboardService';
 import {
     openGroupDialog,
     openUserDialog,
     openWorldDialog
 } from '@/services/dialogService';
-import { copyTextToClipboard, userImage } from '@/services/entityMediaService';
+import { userImage } from '@/services/entityMediaService';
 import {
     parseLocation,
     resolveFriendPresenceLocation
@@ -75,8 +75,7 @@ async function copyFeedText(text: unknown, successMessage: string) {
     if (!value) {
         return;
     }
-    await copyTextToClipboard(value);
-    toast.success(successMessage);
+    await copyTextToClipboard(value, { successMessage });
 }
 
 function FeedUserLink({

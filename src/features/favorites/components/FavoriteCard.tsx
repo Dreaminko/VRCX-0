@@ -9,16 +9,15 @@ import {
 } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 
 import { Location } from '@/components/Location';
 import { cn } from '@/lib/utils';
+import { copyTextToClipboard } from '@/services/clipboardService';
 import {
     openAvatarDialog,
     openUserDialog,
     openWorldDialog
 } from '@/services/dialogService';
-import { copyTextToClipboard } from '@/services/entityMediaService';
 import { checkCanInvite } from '@/shared/utils/invite';
 import {
     parseLocation,
@@ -199,8 +198,9 @@ const FavoriteCard = memo(function FavoriteCard({
         if (!item.id) {
             return;
         }
-        await copyTextToClipboard(item.id);
-        toast.success(t('message.world.id_copied'));
+        await copyTextToClipboard(item.id, {
+            successMessage: t('message.world.id_copied')
+        });
     };
     const handleCardKeyDown = (event: any) => {
         if (!openHandler || (event.key !== 'Enter' && event.key !== ' ')) {
