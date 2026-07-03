@@ -129,17 +129,8 @@ export default defineConfig(({ mode }) => {
                 'react-router-dom',
                 '@tanstack/react-query',
                 'zustand',
-                'lucide-react',
-                'tailwindcss',
-                'graphology',
-                'graphology-communities-louvain',
-                'graphology-layout-forceatlas2',
-                'graphology-layout-noverlap',
-                'sigma',
-                '@sigma/edge-curve',
-                '@sigma/node-border'
-            ],
-            holdUntilCrawlEnd: false
+                'lucide-react'
+            ]
         },
         define: {
             VERSION: JSON.stringify(version),
