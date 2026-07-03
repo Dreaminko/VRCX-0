@@ -1,7 +1,7 @@
 use chrono::Utc;
 use sea_query::{Expr, ExprTrait, Order, Query, SqliteQueryBuilder};
 
-use crate::common::{ident, row_string, ParamsBuilder};
+use crate::common::{ident, row_i64, row_string, ParamsBuilder};
 use crate::database::DatabaseService;
 use crate::Error;
 
@@ -58,16 +58,19 @@ fn last_location_sql() -> String {
 fn join_leave_entries_for_location_range_sql() -> String {
     Query::select()
         .columns([
+            ident(COL_ID),
             ident(COL_CREATED_AT),
             ident(COL_TYPE),
             ident(COL_DISPLAY_NAME),
             ident(COL_USER_ID),
+            ident(COL_TIME),
         ])
         .from(ident(TABLE_JOIN_LEAVE))
         .and_where(Expr::col(ident(COL_LOCATION)).eq(Expr::cust("@location")))
         .and_where(Expr::col(ident(COL_CREATED_AT)).gte(Expr::cust("@afterDate")))
         .and_where(Expr::col(ident(COL_CREATED_AT)).lte(Expr::cust("@beforeDate")))
         .order_by(ident(COL_CREATED_AT), Order::Asc)
+        .order_by(ident(COL_ID), Order::Asc)
         .to_string(SqliteQueryBuilder)
 }
 
@@ -202,10 +205,12 @@ pub fn get_join_leave_entries_for_location_range(
         .execute(&join_leave_entries_for_location_range_sql(), &args)?
         .into_iter()
         .map(|row| GameLogJoinLeaveSnapshot {
-            created_at: row_string(&row, 0),
-            event_type: row_string(&row, 1),
-            display_name: row_string(&row, 2),
-            user_id: row_string(&row, 3),
+            id: row_i64(&row, 0),
+            created_at: row_string(&row, 1),
+            event_type: row_string(&row, 2),
+            display_name: row_string(&row, 3),
+            user_id: row_string(&row, 4),
+            time: row_i64(&row, 5),
         })
         .collect())
 }
@@ -295,6 +300,18 @@ pub fn get_game_log_externals(db: &DatabaseService) -> Result<Vec<GameLogExterna
             location: row_string(&row, 4),
         })
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn join_leave_range_sql_orders_same_timestamp_rows_by_id() {
+        let sql = join_leave_entries_for_location_range_sql();
+
+        assert!(sql.contains("ORDER BY \"created_at\" ASC, \"id\" ASC"));
+    }
 }
 
 pub fn game_log_location_table_exists(db: &DatabaseService) -> Result<bool, Error> {

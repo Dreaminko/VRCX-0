@@ -116,8 +116,10 @@ pub struct GameLogLocationSnapshot {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GameLogJoinLeaveSnapshot {
+    pub id: i64,
     pub created_at: String,
     pub event_type: String,
     pub display_name: String,
     pub user_id: String,
+    pub time: i64,
 }

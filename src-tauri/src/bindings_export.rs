@@ -154,6 +154,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::player_list::app__player_list_location_get,
             commands::local::player_list::app__player_list_latest_location_get,
             commands::local::player_list::app__player_list_join_leave_rows,
+            commands::local::player_list::app__player_list_current_snapshot,
             commands::local::player_list::app__instance_activity_dates_get,
             commands::local::player_list::app__instance_activity_rows_get,
             commands::local::player_list::app__world_summaries_get,

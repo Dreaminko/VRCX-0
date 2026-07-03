@@ -12,6 +12,20 @@ use crate::events::AssistantEmitter;
 use crate::playbook;
 use crate::session::{ActiveTurn, Message, Role, SessionStore, TurnStatus};
 
+const ROW_DETAIL_COUNT_FIELDS: &[(&str, &str, &str)] = &[
+    ("distinctFriends", "friend", "friends"),
+    ("onlineEvents", "online event", "online events"),
+    ("totalMinutes", "minute", "minutes"),
+    ("coDays", "day together", "days together"),
+    ("instances", "instance", "instances"),
+    ("encounterCount", "encounter", "encounters"),
+    ("encounterDays", "encounter day", "encounter days"),
+    ("changeCount", "change", "changes"),
+    ("overlapMinutes", "overlap minute", "overlap minutes"),
+    ("sharedInstances", "shared instance", "shared instances"),
+    ("stayMinutes", "minute", "minutes"),
+];
+
 const MAX_TOOL_ROUNDS: usize = 6;
 const HISTORY_LIMIT: usize = 8;
 const KNOWN_REFERENCES_LIMIT: usize = 12;
@@ -111,7 +125,8 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
     let mut collected: Vec<Entity> = Vec::new();
     let mut final_answer = String::new();
     let mut used_tools = false;
-    let mut last_tool_summary: Option<String> = None;
+    let mut last_success_tool_summary: Option<String> = None;
+    let mut last_error_tool_summary: Option<String> = None;
     let mut dispatched_tools = HashSet::new();
 
     for _round in 0..MAX_TOOL_ROUNDS {
@@ -174,11 +189,11 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
                     "assistant: tool call failed"
                 );
             }
-            if resolved.ok {
-                if let Some(summary) = resolved.fact_summary.clone() {
-                    last_tool_summary = Some(summary);
-                }
-            }
+            remember_resolved_tool_summary(
+                &resolved,
+                &mut last_success_tool_summary,
+                &mut last_error_tool_summary,
+            );
             collected.extend(resolved.entities.iter().cloned());
             ctx.emitter
                 .tool_result(&call.id, resolved.ok, &resolved.summary, &resolved.entities);
@@ -211,9 +226,14 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
         return;
     }
 
-    if final_answer.trim().is_empty()
-        && !apply_tool_summary_fallback(&mut final_answer, last_tool_summary)
-    {
+    if final_answer.trim().is_empty() {
+        let fallback_summary = last_success_tool_summary.or(last_error_tool_summary);
+        if apply_tool_summary_fallback(&mut final_answer, fallback_summary) {
+            ctx.emitter.delta(&final_answer);
+        }
+    }
+
+    if final_answer.trim().is_empty() {
         return finish_error(
             &ctx,
             "no_answer",
@@ -417,7 +437,7 @@ struct ResolvedTool {
     ok: bool,
     content: String,
     summary: String,
-    fact_summary: Option<String>,
+    fallback_summary: Option<String>,
     entities: Vec<Entity>,
 }
 
@@ -435,32 +455,70 @@ fn resolve_tool_outcome(outcome: Result<ToolCallOutcome, vrcx_0_mcp::McpError>) 
                 })
                 .unwrap_or_default();
             let content = tool_content(&result);
-            let fact_summary = tool_fact_summary(&result, &content);
-            let summary = truncate(if let Some(summary) = fact_summary.as_deref() {
-                summary
-            } else if result.text.is_empty() {
-                &content
-            } else {
-                &result.text
+            let brief_summary = tool_fact_summary(&result, &content).or_else(|| {
+                result
+                    .structured
+                    .as_ref()
+                    .and_then(brief_summary_from_value)
             });
+            let summary = truncate(
+                brief_summary
+                    .as_deref()
+                    .unwrap_or(if result.text.is_empty() {
+                        &content
+                    } else {
+                        &result.text
+                    }),
+            );
+            let fallback_summary = (!summary.trim().is_empty()).then(|| summary.clone());
             ResolvedTool {
                 ok: !result.is_error,
                 content,
                 summary,
-                fact_summary,
+                fallback_summary,
                 entities,
             }
         }
         Err(error) => {
             let message = format!("tool error: {error}");
+            let summary = truncate(&message);
             ResolvedTool {
                 ok: false,
                 content: message.clone(),
-                summary: truncate(&message),
-                fact_summary: None,
+                summary: summary.clone(),
+                fallback_summary: Some(summary),
                 entities: Vec::new(),
             }
         }
+    }
+}
+
+fn remember_resolved_tool_summary(
+    resolved: &ResolvedTool,
+    last_success_tool_summary: &mut Option<String>,
+    last_error_tool_summary: &mut Option<String>,
+) {
+    remember_tool_summary(
+        resolved.ok,
+        resolved.fallback_summary.as_deref(),
+        last_success_tool_summary,
+        last_error_tool_summary,
+    );
+}
+
+fn remember_tool_summary(
+    ok: bool,
+    summary: Option<&str>,
+    last_success_tool_summary: &mut Option<String>,
+    last_error_tool_summary: &mut Option<String>,
+) {
+    let Some(summary) = summary.map(str::trim).filter(|summary| !summary.is_empty()) else {
+        return;
+    };
+    if ok {
+        *last_success_tool_summary = Some(summary.to_string());
+    } else {
+        *last_error_tool_summary = Some(summary.to_string());
     }
 }
 
@@ -471,7 +529,7 @@ fn duplicate_tool_call_result(tool_name: &str) -> ResolvedTool {
             "VRCX-0 skipped a duplicate call to `{tool_name}` with the same arguments in this turn. Use the previous tool result and compose the answer now."
         ),
         summary: "Skipped duplicate tool call; use the previous result.".into(),
-        fact_summary: None,
+        fallback_summary: None,
         entities: Vec::new(),
     }
 }
@@ -580,6 +638,144 @@ fn summary_from_value(value: &Value) -> Option<String> {
         .map(str::trim)
         .filter(|summary| !summary.is_empty())
         .map(ToOwned::to_owned)
+}
+
+fn brief_summary_from_value(value: &Value) -> Option<String> {
+    summary_from_value(value)
+        .or_else(|| disambiguation_summary(value))
+        .or_else(|| not_found_summary(value))
+        .or_else(|| rows_summary(value))
+}
+
+fn disambiguation_summary(value: &Value) -> Option<String> {
+    if !value
+        .get("needsDisambiguation")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return None;
+    }
+    let query = string_field(value, "query");
+    let names = value
+        .get("candidates")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|candidate| string_field(candidate, "displayName"))
+        .take(5)
+        .collect::<Vec<_>>();
+    let query_text = query
+        .as_deref()
+        .map(|query| format!(" for \"{query}\""))
+        .unwrap_or_default();
+    if names.is_empty() {
+        Some(format!(
+            "Multiple local users matched{query_text}; ask the user to choose one."
+        ))
+    } else {
+        Some(format!(
+            "Multiple local users matched{query_text}; ask the user to choose one: {}.",
+            names.join(", ")
+        ))
+    }
+}
+
+fn not_found_summary(value: &Value) -> Option<String> {
+    if !value
+        .get("notFound")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return None;
+    }
+    let query = string_field(value, "query");
+    Some(match query {
+        Some(query) => format!("No local-history user matched \"{query}\"."),
+        None => "No local-history user matched the query.".into(),
+    })
+}
+
+fn rows_summary(value: &Value) -> Option<String> {
+    let rows = value.get("rows").and_then(Value::as_array)?;
+    if rows.is_empty() {
+        return Some("The tool returned no matching rows.".into());
+    }
+    let row_word = if rows.len() == 1 { "row" } else { "rows" };
+    let Some(first) = rows.first() else {
+        return Some(format!("The tool returned {} {row_word}.", rows.len()));
+    };
+    let Some(label) = row_label(first) else {
+        return Some(format!("The tool returned {} {row_word}.", rows.len()));
+    };
+    let details = row_detail_fragments(first);
+    if details.is_empty() {
+        Some(format!(
+            "The tool returned {} {row_word}. Top result: {label}.",
+            rows.len()
+        ))
+    } else {
+        Some(format!(
+            "The tool returned {} {row_word}. Top result: {label} ({}).",
+            rows.len(),
+            details.join(", ")
+        ))
+    }
+}
+
+fn row_label(row: &Value) -> Option<String> {
+    [
+        "label",
+        "displayName",
+        "worldName",
+        "matchedName",
+        "userId",
+        "worldId",
+        "bucket",
+    ]
+    .iter()
+    .find_map(|key| string_field(row, key))
+}
+
+fn row_detail_fragments(row: &Value) -> Vec<String> {
+    let mut details = Vec::new();
+    if let Some(value) = string_field(row, "typicalOnlineWindow") {
+        details.push(format!("usually online around {value}"));
+    }
+    for (key, singular, plural) in ROW_DETAIL_COUNT_FIELDS {
+        push_count_detail(&mut details, row, key, singular, plural);
+    }
+    details.truncate(3);
+    details
+}
+
+fn push_count_detail(
+    details: &mut Vec<String>,
+    row: &Value,
+    key: &str,
+    singular: &str,
+    plural: &str,
+) {
+    if let Some(value) = number_field(row, key) {
+        let noun = if value == 1 { singular } else { plural };
+        details.push(format!("{value} {noun}"));
+    }
+}
+
+fn string_field(value: &Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn number_field(value: &Value, key: &str) -> Option<i64> {
+    value.get(key).and_then(|value| {
+        value
+            .as_i64()
+            .or_else(|| value.as_u64().and_then(|value| i64::try_from(value).ok()))
+    })
 }
 
 fn apply_tool_summary_fallback(
@@ -1002,8 +1198,81 @@ mod tests {
 
         assert!(apply_tool_summary_fallback(
             &mut final_answer,
-            resolved.fact_summary
+            resolved.fallback_summary
         ));
         assert_eq!(final_answer, "Alice is your top companion.");
+    }
+
+    #[test]
+    fn duplicate_tool_call_summary_does_not_replace_real_fallback_summary() {
+        let resolved = resolve_tool_outcome(Ok(ToolCallOutcome {
+            is_error: false,
+            text: String::new(),
+            structured: Some(serde_json::json!({
+                "summary": "Alice is your top companion.",
+                "rows": []
+            })),
+        }));
+        let duplicate = duplicate_tool_call_result("get_copresence_summary");
+        let mut last_success_tool_summary = None;
+        let mut last_error_tool_summary = None;
+        let mut final_answer = String::new();
+
+        remember_resolved_tool_summary(
+            &resolved,
+            &mut last_success_tool_summary,
+            &mut last_error_tool_summary,
+        );
+        remember_resolved_tool_summary(
+            &duplicate,
+            &mut last_success_tool_summary,
+            &mut last_error_tool_summary,
+        );
+
+        assert!(apply_tool_summary_fallback(
+            &mut final_answer,
+            last_success_tool_summary.or(last_error_tool_summary)
+        ));
+        assert_eq!(final_answer, "Alice is your top companion.");
+    }
+
+    #[test]
+    fn tool_without_top_level_summary_builds_readable_fallback_summary() {
+        let resolved = resolve_tool_outcome(Ok(ToolCallOutcome {
+            is_error: false,
+            text: String::new(),
+            structured: Some(serde_json::json!({
+                "rows": [{
+                    "label": "21:00",
+                    "distinctFriends": 3,
+                    "onlineEvents": 9,
+                    "topFriends": []
+                }],
+                "caveats": []
+            })),
+        }));
+        let mut final_answer = String::new();
+
+        assert!(apply_tool_summary_fallback(
+            &mut final_answer,
+            resolved.fallback_summary
+        ));
+        assert_eq!(
+            final_answer,
+            "The tool returned 1 row. Top result: 21:00 (3 friends, 9 online events)."
+        );
+    }
+
+    #[test]
+    fn empty_final_answer_can_fall_back_to_tool_error_summary() {
+        let resolved =
+            resolve_tool_outcome(Err(vrcx_0_mcp::McpError::Custom("db unavailable".into())));
+        let mut final_answer = String::new();
+
+        assert!(apply_tool_summary_fallback(
+            &mut final_answer,
+            resolved.fallback_summary
+        ));
+        assert_eq!(final_answer, "tool error: db unavailable");
     }
 }

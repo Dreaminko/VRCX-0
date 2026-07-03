@@ -654,6 +654,17 @@ export const commands = {
             startedAt
         });
     },
+    async appPlayerListCurrentSnapshot(
+        currentUserId: string,
+        currentLocation: string,
+        currentLocationStartedAt: string
+    ): Promise<PlayerListSnapshotOutput> {
+        return await TAURI_INVOKE('app__player_list_current_snapshot', {
+            currentUserId,
+            currentLocation,
+            currentLocationStartedAt
+        });
+    },
     async appInstanceActivityDatesGet(userId: string): Promise<string[]> {
         return await TAURI_INVOKE('app__instance_activity_dates_get', {
             userId
@@ -3714,6 +3725,29 @@ export type PlayerJoinLeaveOutput = {
     displayName: string;
     userId: string;
     time: number;
+};
+export type PlayerListSnapshotContext = {
+    createdAt: string;
+    location: string;
+    worldId: string;
+    worldName: string;
+    time: number;
+    groupName: string;
+    source: string;
+    playerCount?: number | null;
+    observedPlayerEventCount?: number | null;
+    playerFactsKnown?: boolean | null;
+};
+export type PlayerListSnapshotOutput = {
+    context: PlayerListSnapshotContext;
+    players: PlayerListSnapshotPlayer[];
+};
+export type PlayerListSnapshotPlayer = {
+    id: string;
+    userId: string;
+    displayName: string;
+    joinedAt: string;
+    joinedAtMs: number;
 };
 export type PlayerLocationOutput = {
     createdAt: string;
