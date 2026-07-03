@@ -6828,6 +6828,7 @@ dependencies = [
 name = "vrcx-0-headless"
 version = "0.1.0"
 dependencies = [
+ "rpassword",
  "rustls",
  "serde_json",
  "tokio",
@@ -6958,7 +6959,6 @@ name = "vrcx-0-runtime-host"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "rpassword",
  "iana-time-zone",
  "serde",
  "serde_json",

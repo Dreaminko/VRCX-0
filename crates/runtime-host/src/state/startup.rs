@@ -79,7 +79,7 @@ impl RuntimeHostState {
     pub async fn start_backend_runtime(
         &self,
         mode: BackendRuntimeMode,
-        force_cli_login: bool,
+        cli_login_prompt: Option<Arc<dyn CliLoginPrompt>>,
     ) -> Result<BackendRuntimeSnapshot> {
         let Some(_start_guard) = BackendStartGuard::try_acquire(&self.backend_starting) else {
             return Ok(self.backend_runtime.snapshot());
@@ -110,8 +110,8 @@ impl RuntimeHostState {
 
         self.backend_runtime.set_authenticating();
         let auth_scope = self.runtime_context.auth_scope.snapshot();
-        let auth_result = if force_cli_login {
-            self.authenticate_cli_interactive().await
+        let auth_result = if let Some(prompt) = cli_login_prompt {
+            self.authenticate_cli_interactive(prompt).await
         } else if auth_scope.active {
             current_user_from_cookie(
                 self.web.as_ref(),

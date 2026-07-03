@@ -264,30 +264,44 @@ pub(super) fn string_field(value: &serde_json::Value, key: &str) -> Option<Strin
         .filter(|value| !value.is_empty())
 }
 
+pub struct CliTwoFactorChoice {
+    pub method: String,
+    pub code: String,
+}
+
+pub trait CliLoginPrompt: Send + Sync + 'static {
+    fn prompt_username(&self) -> std::io::Result<String>;
+    fn prompt_password(&self) -> std::io::Result<String>;
+    fn prompt_two_factor(&self, methods: &[String]) -> std::io::Result<CliTwoFactorChoice>;
+}
+
+async fn run_blocking_prompt<T, F>(f: F) -> std::result::Result<T, NonInteractiveAuthError>
+where
+    F: FnOnce() -> std::io::Result<T> + Send + 'static,
+    T: Send + 'static,
+{
+    tokio::task::spawn_blocking(f)
+        .await
+        .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))?
+        .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))
+}
+
 impl RuntimeHostState {
     pub(super) async fn authenticate_cli_interactive(
         &self,
+        prompt: Arc<dyn CliLoginPrompt>,
     ) -> std::result::Result<AuthenticatedRuntimeSession, NonInteractiveAuthError> {
         let endpoint = String::new();
 
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        let prompt_username = Arc::clone(&prompt);
+        let username = run_blocking_prompt(move || prompt_username.prompt_username()).await?;
 
-        print!("Username/Email: ");
-        std::io::Write::flush(&mut std::io::stdout())
-            .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
-
-        let mut username = String::new();
-        std::io::stdin()
-            .read_line(&mut username)
-            .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
-        let username = username.trim().to_string();
-
-        let password = rpassword::prompt_password("Password: ")
-            .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
+        let prompt_password = Arc::clone(&prompt);
+        let password = run_blocking_prompt(move || prompt_password.prompt_password()).await?;
 
         let (_, request) = vrcx_0_application::vrchat_api::auth::login_basic_input(
             endpoint.clone(),
-            username.clone(),
+            username,
             password,
             "Username is required.",
             "Password is required.",
@@ -308,102 +322,86 @@ impl RuntimeHostState {
             .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
 
         if response.status == 200 && current_user_json.get("requiresTwoFactorAuth").is_some() {
-            let methods = current_user_json["requiresTwoFactorAuth"]
+            let mut methods: Vec<String> = current_user_json["requiresTwoFactorAuth"]
                 .as_array()
-                .cloned()
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(|value| value.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
                 .unwrap_or_default();
 
-            if !methods.is_empty() {
-                let mut methods_str: Vec<String> = methods
-                    .into_iter()
-                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                    .collect();
-
-                methods_str.sort_by_key(|m| match m.as_str() {
-                    "totp" => 0,
-                    "emailOtp" => 1,
-                    "otp" => 2,
-                    _ => 3,
-                });
-
-                println!("2FA is required. Select an authentication method:");
-                for (i, method) in methods_str.iter().enumerate() {
-                    println!("{}: {}", i + 1, method);
-                }
-                print!("Selection [1]: ");
-                std::io::Write::flush(&mut std::io::stdout())
-                    .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
-
-                let mut selection = String::new();
-                std::io::stdin()
-                    .read_line(&mut selection)
-                    .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
-                let selection = selection.trim();
-                let method_idx = if selection.is_empty() {
-                    0
-                } else {
-                    selection.parse::<usize>().unwrap_or(1).saturating_sub(1)
-                };
-
-                let selected_method = methods_str.get(method_idx).unwrap_or(&methods_str[0]);
-
-                let code = rpassword::prompt_password(format!("Enter {} code: ", selected_method))
-                    .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
-
-                let verify_req = match selected_method.as_str() {
-                    "emailOtp" => vrcx_0_application::vrchat_api::auth::email_otp_verify_input(
-                        endpoint.clone(),
-                        code,
-                    ),
-                    "otp" => vrcx_0_application::vrchat_api::auth::otp_verify_input(
-                        endpoint.clone(),
-                        code,
-                    ),
-                    _ => vrcx_0_application::vrchat_api::auth::totp_verify_input(
-                        endpoint.clone(),
-                        code,
-                    ),
-                };
-
-                let verify_response = self
-                    .web
-                    .execute_api(
-                        verify_req,
-                        vrcx_0_vrchat_client::http_api::ApiScope::Vrchat,
-                        self.db.as_ref(),
-                    )
-                    .await
-                    .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
-
-                if verify_response.status != 200 {
-                    return Err(NonInteractiveAuthError::Failed(format!(
-                        "2FA verification failed with HTTP {}",
-                        verify_response.status
-                    )));
-                }
-
-                let user_req =
-                    vrcx_0_application::vrchat_api::auth::current_user_get_input(endpoint.clone());
-                let user_response = self
-                    .web
-                    .execute_api(
-                        user_req,
-                        vrcx_0_vrchat_client::http_api::ApiScope::Vrchat,
-                        self.db.as_ref(),
-                    )
-                    .await
-                    .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
-
-                if user_response.status != 200 {
-                    return Err(NonInteractiveAuthError::Failed(format!(
-                        "Failed to fetch user profile after 2FA: HTTP {}",
-                        user_response.status
-                    )));
-                }
-
-                current_user_json = serde_json::from_str(&user_response.data)
-                    .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
+            if methods.is_empty() {
+                return Err(NonInteractiveAuthError::Failed(
+                    "2FA is required but no supported method was returned.".into(),
+                ));
             }
+
+            methods.sort_by_key(|m| match m.as_str() {
+                "totp" => 0,
+                "emailOtp" => 1,
+                "otp" => 2,
+                _ => 3,
+            });
+
+            let prompt_2fa = Arc::clone(&prompt);
+            let choice =
+                run_blocking_prompt(move || prompt_2fa.prompt_two_factor(&methods)).await?;
+
+            let verify_req = match choice.method.as_str() {
+                "emailOtp" => vrcx_0_application::vrchat_api::auth::email_otp_verify_input(
+                    endpoint.clone(),
+                    choice.code,
+                ),
+                "otp" => vrcx_0_application::vrchat_api::auth::otp_verify_input(
+                    endpoint.clone(),
+                    choice.code,
+                ),
+                _ => vrcx_0_application::vrchat_api::auth::totp_verify_input(
+                    endpoint.clone(),
+                    choice.code,
+                ),
+            };
+
+            let verify_response = self
+                .web
+                .execute_api(
+                    verify_req,
+                    vrcx_0_vrchat_client::http_api::ApiScope::Vrchat,
+                    self.db.as_ref(),
+                )
+                .await
+                .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
+
+            if verify_response.status != 200 {
+                return Err(NonInteractiveAuthError::Failed(format!(
+                    "2FA verification failed with HTTP {}",
+                    verify_response.status
+                )));
+            }
+
+            let user_req =
+                vrcx_0_application::vrchat_api::auth::current_user_get_input(endpoint.clone());
+            let user_response = self
+                .web
+                .execute_api(
+                    user_req,
+                    vrcx_0_vrchat_client::http_api::ApiScope::Vrchat,
+                    self.db.as_ref(),
+                )
+                .await
+                .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
+
+            if user_response.status != 200 {
+                return Err(NonInteractiveAuthError::Failed(format!(
+                    "Failed to fetch user profile after 2FA: HTTP {}",
+                    user_response.status
+                )));
+            }
+
+            current_user_json = serde_json::from_str(&user_response.data)
+                .map_err(|e| NonInteractiveAuthError::Failed(e.to_string()))?;
         } else if response.status != 200 {
             let error_msg = auth_response_error_message(
                 &response,

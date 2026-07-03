@@ -21,7 +21,9 @@ use vrcx_0_host::app_paths::resolve_app_data_dir;
 use vrcx_0_host::error_log::{
     append_headless_error_log, default_app_data_dir, ErrorLogWriter, HEADLESS_ERROR_LOG_FILE,
 };
-use vrcx_0_runtime_host::{RuntimeHostOptions, RuntimeHostState};
+use vrcx_0_runtime_host::{
+    CliLoginPrompt, CliTwoFactorChoice, RuntimeHostOptions, RuntimeHostState,
+};
 
 fn main() -> ExitCode {
     build_adaptive_tokio_runtime().block_on(async_main())
@@ -44,6 +46,8 @@ async fn async_main() -> ExitCode {
 
     let args: Vec<String> = std::env::args().collect();
     let force_login = args.iter().any(|arg| arg == "--login" || arg == "-l");
+    let cli_login_prompt: Option<Arc<dyn CliLoginPrompt>> =
+        force_login.then(|| Arc::new(StdinLoginPrompt) as Arc<dyn CliLoginPrompt>);
 
     let app_data_dir = match resolve_app_data_dir() {
         Ok(resolution) => {
@@ -88,7 +92,7 @@ async fn async_main() -> ExitCode {
         .set_executor(TokioRuntimeTaskExecutor);
 
     match state
-        .start_backend_runtime(BackendRuntimeMode::Headless, force_login)
+        .start_backend_runtime(BackendRuntimeMode::Headless, cli_login_prompt)
         .await
     {
         Ok(_) => {}
@@ -150,6 +154,48 @@ fn product_app_version() -> String {
                 .map(ToOwned::to_owned)
         })
         .unwrap_or_else(|| env!("CARGO_PKG_VERSION").into())
+}
+
+struct StdinLoginPrompt;
+
+impl CliLoginPrompt for StdinLoginPrompt {
+    fn prompt_username(&self) -> std::io::Result<String> {
+        print!("Username/Email: ");
+        std::io::Write::flush(&mut std::io::stdout())?;
+        let mut username = String::new();
+        std::io::stdin().read_line(&mut username)?;
+        Ok(username.trim().to_string())
+    }
+
+    fn prompt_password(&self) -> std::io::Result<String> {
+        rpassword::prompt_password("Password: ")
+    }
+
+    fn prompt_two_factor(&self, methods: &[String]) -> std::io::Result<CliTwoFactorChoice> {
+        println!("2FA is required. Select an authentication method:");
+        for (index, method) in methods.iter().enumerate() {
+            println!("{}: {}", index + 1, method);
+        }
+        print!("Selection [1]: ");
+        std::io::Write::flush(&mut std::io::stdout())?;
+
+        let mut selection = String::new();
+        std::io::stdin().read_line(&mut selection)?;
+        let selection = selection.trim();
+        let method_index = if selection.is_empty() {
+            0
+        } else {
+            selection.parse::<usize>().unwrap_or(1).saturating_sub(1)
+        };
+
+        let method = methods
+            .get(method_index)
+            .or_else(|| methods.first())
+            .cloned()
+            .unwrap_or_default();
+        let code = rpassword::prompt_password(format!("Enter {method} code: "))?;
+        Ok(CliTwoFactorChoice { method, code })
+    }
 }
 
 fn init_tls_crypto_provider() {

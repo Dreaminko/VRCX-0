@@ -71,6 +71,7 @@ mod services;
 mod startup;
 
 use auth_session::{string_field, BackendSocialBaseline};
+pub use auth_session::{CliLoginPrompt, CliTwoFactorChoice};
 use background::{
     background_capability_session, background_capability_session_matches, emit_background_error,
     emit_background_info, emit_background_info_if_changed, gui_maintenance_runtime_mode,
