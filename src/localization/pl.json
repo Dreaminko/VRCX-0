@@ -459,6 +459,9 @@
                 "hmd_notifications": {
                     "header": "Powiadomienia w goglach",
                     "hmd_notifications": "Powiadomienia w goglach",
+                    "start_when": "Uruchom, gdy",
+                    "start_when_steamvr": "Po uruchomieniu SteamVR",
+                    "start_when_vrchat_vr_mode": "Po uruchomieniu VRChat",
                     "position": "Pozycja",
                     "position_bottom": "Na dole",
                     "position_top": "Na górze",

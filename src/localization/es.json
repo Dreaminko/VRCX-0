@@ -1897,6 +1897,9 @@
                 "hmd_notifications": {
                     "header": "Notificaciones del visor",
                     "hmd_notifications": "Notificaciones del visor",
+                    "start_when": "Iniciar cuando",
+                    "start_when_steamvr": "Se inicie SteamVR",
+                    "start_when_vrchat_vr_mode": "Se inicie VRChat",
                     "position": "Posición",
                     "position_bottom": "Abajo",
                     "position_top": "Arriba",

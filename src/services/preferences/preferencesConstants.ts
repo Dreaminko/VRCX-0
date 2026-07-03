@@ -40,6 +40,7 @@ export const WRIST_OVERLAY_RUNTIME_CONFIG_KEYS = new Set([
     'wristOverlayShowDevices',
     'wristOverlayShowBatteryPercent',
     'hmdNotificationsEnabled',
+    'hmdNotificationStartMode',
     'hmdNotificationTimeout',
     'hmdNotificationOpacity',
     'hmdNotificationPosition'

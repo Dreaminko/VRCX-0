@@ -1910,6 +1910,9 @@
                 "hmd_notifications": {
                     "header": "Уведомления в шлеме",
                     "hmd_notifications": "Уведомления в шлеме",
+                    "start_when": "Запускать, когда",
+                    "start_when_steamvr": "При запуске SteamVR",
+                    "start_when_vrchat_vr_mode": "При запуске VRChat",
                     "position": "Позиция",
                     "position_bottom": "Снизу",
                     "position_top": "Сверху",

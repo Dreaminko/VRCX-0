@@ -14,6 +14,7 @@ import {
     normalizeFeedTimeDisplayMode,
     normalizeFeedHiddenUsers,
     normalizeHmdNotificationPosition,
+    normalizeOverlayStartMode,
     normalizeTableLimits,
     normalizeTablePageSize,
     normalizeTablePageSizes,
@@ -138,6 +139,7 @@ export async function loadPreferenceSnapshot() {
         notificationTimeout,
         notificationOpacity,
         hmdNotificationsEnabled,
+        hmdNotificationStartMode,
         hmdNotificationTimeout,
         hmdNotificationOpacity,
         hmdNotificationPosition,
@@ -260,6 +262,7 @@ export async function loadPreferenceSnapshot() {
         getIntConfigWithLegacy('notificationTimeout', 3000),
         getIntConfigWithLegacy('notificationOpacity', 100),
         configRepository.getBool('hmdNotificationsEnabled', false),
+        configRepository.getString('hmdNotificationStartMode', 'vrchatVrMode'),
         configRepository.getInt('hmdNotificationTimeout', 5000),
         configRepository.getInt('hmdNotificationOpacity', 100),
         configRepository.getString('hmdNotificationPosition', 'bottom'),
@@ -448,6 +451,9 @@ export async function loadPreferenceSnapshot() {
             ? notificationOpacity
             : 100,
         hmdNotificationsEnabled: Boolean(hmdNotificationsEnabled),
+        hmdNotificationStartMode: normalizeOverlayStartMode(
+            hmdNotificationStartMode
+        ),
         hmdNotificationTimeout: Number.isFinite(hmdNotificationTimeout)
             ? Math.min(30000, Math.max(1000, hmdNotificationTimeout))
             : 5000,

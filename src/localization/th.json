@@ -334,6 +334,9 @@
                 "hmd_notifications": {
                     "header": "การแจ้งเตือนในเฮดเซ็ต",
                     "hmd_notifications": "การแจ้งเตือนในเฮดเซ็ต",
+                    "start_when": "เริ่มเมื่อ",
+                    "start_when_steamvr": "เมื่อ SteamVR เริ่ม",
+                    "start_when_vrchat_vr_mode": "เมื่อ VRChat เริ่ม",
                     "position": "ตำแหน่ง",
                     "position_bottom": "ด้านล่าง",
                     "position_top": "ด้านบน",

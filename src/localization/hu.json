@@ -225,6 +225,9 @@
                 "hmd_notifications": {
                     "header": "Headset értesítések",
                     "hmd_notifications": "Headset értesítések",
+                    "start_when": "Indítás feltétele",
+                    "start_when_steamvr": "SteamVR indulásakor",
+                    "start_when_vrchat_vr_mode": "VRChat indulásakor",
                     "position": "Pozíció",
                     "position_bottom": "Lent",
                     "position_top": "Fent",

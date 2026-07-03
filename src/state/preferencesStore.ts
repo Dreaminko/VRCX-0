@@ -48,7 +48,8 @@ export type DefaultLaunchModePreference = 'vr' | 'desktop';
 export type WeekStartsOnPreference = 0 | 1 | 6;
 export type WristOverlayHandPreference = 'left' | 'right' | 'both';
 export type WristOverlaySizePreference = 'compact' | 'normal' | 'large';
-export type WristOverlayStartModePreference = 'steamvr' | 'vrchatVrMode';
+export type OverlayStartModePreference = 'steamvr' | 'vrchatVrMode';
+export type WristOverlayStartModePreference = OverlayStartModePreference;
 export type WristOverlayButtonPreference = 'grip' | 'menu';
 export type HmdNotificationPositionPreference =
     | 'top'
@@ -183,10 +184,16 @@ export function normalizeWristOverlaySize(
     return value === 'compact' || value === 'large' ? value : 'normal';
 }
 
+export function normalizeOverlayStartMode(
+    value: unknown
+): OverlayStartModePreference {
+    return value === 'steamvr' ? 'steamvr' : 'vrchatVrMode';
+}
+
 export function normalizeWristOverlayStartMode(
     value: unknown
 ): WristOverlayStartModePreference {
-    return value === 'steamvr' ? 'steamvr' : 'vrchatVrMode';
+    return normalizeOverlayStartMode(value);
 }
 
 export function normalizeWristOverlayButton(
@@ -358,6 +365,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     notificationTimeout: 3000,
     notificationOpacity: 100,
     hmdNotificationsEnabled: false,
+    hmdNotificationStartMode: 'vrchatVrMode',
     hmdNotificationTimeout: 5000,
     hmdNotificationOpacity: 100,
     hmdNotificationPosition: 'bottom',
@@ -526,6 +534,9 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
             fallback: 100
         }),
         hmdNotificationsEnabled: normalizeBool(next.hmdNotificationsEnabled),
+        hmdNotificationStartMode: normalizeOverlayStartMode(
+            next.hmdNotificationStartMode
+        ),
         hmdNotificationTimeout: normalizeBoundedInt(
             next.hmdNotificationTimeout,
             {

@@ -1906,6 +1906,9 @@
                 "hmd_notifications": {
                     "header": "ヘッドセット通知",
                     "hmd_notifications": "ヘッドセット通知",
+                    "start_when": "開始タイミング",
+                    "start_when_steamvr": "SteamVR 起動時",
+                    "start_when_vrchat_vr_mode": "VRChat 起動時",
                     "position": "位置",
                     "position_bottom": "下",
                     "position_top": "上",

@@ -1910,6 +1910,9 @@
                 "hmd_notifications": {
                     "header": "HMD Notifications",
                     "hmd_notifications": "HMD Notifications",
+                    "start_when": "Start When",
+                    "start_when_steamvr": "SteamVR Starts",
+                    "start_when_vrchat_vr_mode": "VRChat Starts",
                     "position": "Position",
                     "position_bottom": "Bottom",
                     "position_top": "Top",

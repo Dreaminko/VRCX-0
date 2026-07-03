@@ -19,6 +19,7 @@ import { SettingsTabContent } from '../SettingsViewParts';
 type SettingsVrPrefs = Record<string, unknown> & {
     hmdNotificationOpacity?: number;
     hmdNotificationPosition?: string;
+    hmdNotificationStartMode?: string;
     hmdNotificationTimeout?: number;
     hmdNotificationsEnabled?: boolean;
     imageNotifications?: boolean;
@@ -43,6 +44,7 @@ type SettingsVrTabProps = {
     onImageNotificationsChange: (checked: boolean) => unknown;
     onHmdNotificationOpacityChange: (value: unknown) => unknown;
     onHmdNotificationPositionChange: (value: string) => unknown;
+    onHmdNotificationStartModeChange: (value: string) => unknown;
     onHmdNotificationTimeoutSecondsChange: (value: unknown) => unknown;
     onHmdNotificationsEnabledChange: (checked: boolean) => unknown;
     onNotificationOpacityChange: (value: unknown) => unknown;
@@ -77,6 +79,7 @@ export function SettingsVrTab({
     onHmdNotificationTimeoutSecondsChange,
     onHmdNotificationOpacityChange,
     onHmdNotificationPositionChange,
+    onHmdNotificationStartModeChange,
     onOpenHmdNotificationFiltersDialog,
     onWristOverlayEnabledChange,
     onWristOverlayStartModeChange,
@@ -245,6 +248,41 @@ export function SettingsVrTab({
                         checked={hmdNotificationsEnabled}
                         onCheckedChange={onHmdNotificationsEnabledChange}
                     />
+                </Field>
+
+                <Field
+                    label={t('view.settings.vr.hmd_notifications.start_when')}
+                    controlId="settings-hmd-notification-start-mode"
+                    disabled={!hmdNotificationsEnabled}
+                >
+                    <Select
+                        value={String(
+                            prefs.hmdNotificationStartMode || 'vrchatVrMode'
+                        )}
+                        disabled={!hmdNotificationsEnabled}
+                        onValueChange={onHmdNotificationStartModeChange}
+                    >
+                        <SelectTrigger
+                            id="settings-hmd-notification-start-mode"
+                            className="w-56"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem value="steamvr">
+                                    {t(
+                                        'view.settings.vr.hmd_notifications.start_when_steamvr'
+                                    )}
+                                </SelectItem>
+                                <SelectItem value="vrchatVrMode">
+                                    {t(
+                                        'view.settings.vr.hmd_notifications.start_when_vrchat_vr_mode'
+                                    )}
+                                </SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
                 </Field>
 
                 <Field

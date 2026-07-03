@@ -1910,6 +1910,9 @@
                 "hmd_notifications": {
                     "header": "头显通知",
                     "hmd_notifications": "头显通知",
+                    "start_when": "启动时机",
+                    "start_when_steamvr": "SteamVR 启动时",
+                    "start_when_vrchat_vr_mode": "VRChat 启动时",
                     "position": "位置",
                     "position_bottom": "下方",
                     "position_top": "上方",

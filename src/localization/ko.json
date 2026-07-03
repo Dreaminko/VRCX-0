@@ -1880,6 +1880,9 @@
                 "hmd_notifications": {
                     "header": "헤드셋 알림",
                     "hmd_notifications": "헤드셋 알림",
+                    "start_when": "시작 조건",
+                    "start_when_steamvr": "SteamVR 시작 시",
+                    "start_when_vrchat_vr_mode": "VRChat 시작 시",
                     "position": "위치",
                     "position_bottom": "아래",
                     "position_top": "위",

@@ -1897,6 +1897,9 @@
                 "hmd_notifications": {
                     "header": "Notificações do headset",
                     "hmd_notifications": "Notificações do headset",
+                    "start_when": "Iniciar Quando",
+                    "start_when_steamvr": "SteamVR Iniciar",
+                    "start_when_vrchat_vr_mode": "VRChat Iniciar",
                     "position": "Posição",
                     "position_bottom": "Embaixo",
                     "position_top": "Em cima",

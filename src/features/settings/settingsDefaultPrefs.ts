@@ -71,6 +71,7 @@ export function createDefaultSettingsPrefs() {
         notificationTimeout: 3000,
         notificationOpacity: 100,
         hmdNotificationsEnabled: false,
+        hmdNotificationStartMode: 'vrchatVrMode',
         hmdNotificationTimeout: 5000,
         hmdNotificationOpacity: 100,
         hmdNotificationPosition: 'bottom',

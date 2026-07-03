@@ -53,6 +53,7 @@ pub const VR_OVERLAY_DARK_BACKGROUND_CONFIG_KEY: &str = "wristOverlayDarkBackgro
 pub const VR_OVERLAY_SHOW_DEVICES_CONFIG_KEY: &str = "wristOverlayShowDevices";
 pub const VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY: &str = "wristOverlayShowBatteryPercent";
 pub const HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY: &str = "hmdNotificationsEnabled";
+pub const HMD_NOTIFICATION_START_MODE_CONFIG_KEY: &str = "hmdNotificationStartMode";
 pub const HMD_NOTIFICATION_TIMEOUT_CONFIG_KEY: &str = "hmdNotificationTimeout";
 pub const HMD_NOTIFICATION_OPACITY_CONFIG_KEY: &str = "hmdNotificationOpacity";
 pub const HMD_NOTIFICATION_POSITION_CONFIG_KEY: &str = "hmdNotificationPosition";
@@ -117,6 +118,7 @@ impl HmdNotificationPosition {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct HmdNotificationConfig {
     enabled: bool,
+    start_mode: WristOverlayStartMode,
     timeout_ms: u64,
     opacity_percent: u8,
     position: HmdNotificationPosition,
@@ -126,6 +128,7 @@ impl Default for HmdNotificationConfig {
     fn default() -> Self {
         Self {
             enabled: false,
+            start_mode: WristOverlayStartMode::VrchatVrMode,
             timeout_ms: 5_000,
             opacity_percent: 100,
             position: HmdNotificationPosition::Bottom,
@@ -189,6 +192,18 @@ struct WristSurfaceRuntimeConfig {
 struct VrOverlayFrameInput {
     config: VrOverlayRuntimeConfig,
     devices: Vec<VrDeviceSnapshot>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct ActiveOverlaySurfaces {
+    wrist: bool,
+    hmd: bool,
+}
+
+impl ActiveOverlaySurfaces {
+    fn any(self) -> bool {
+        self.wrist || self.hmd
+    }
 }
 
 #[derive(Clone)]
@@ -312,7 +327,7 @@ impl VrOverlayRuntime {
         config: VrOverlayRuntimeConfig,
         frame_producer_factory: VrOverlayFrameProducerFactory,
     ) -> Self {
-        let service_configs = overlay_surface_configs(false, config);
+        let service_configs = overlay_surface_configs(ActiveOverlaySurfaces::default(), config);
         let service = if context.is_some() {
             HostVrOverlayService::new_with_preference(service_configs, config.backend)
         } else {
@@ -358,7 +373,7 @@ impl VrOverlayRuntime {
             let mut next_device_refresh = Instant::now();
             while !stop_token.is_stop_requested() {
                 std::thread::sleep(WRIST_FRAME_REFRESH_INTERVAL);
-                if !runtime.has_enabled_surface() {
+                if !runtime.has_active_surface() {
                     continue;
                 }
                 let now = Instant::now();
@@ -391,8 +406,8 @@ impl VrOverlayRuntime {
         self.enabled.load(Ordering::Acquire)
     }
 
-    fn has_enabled_surface(&self) -> bool {
-        self.enabled.load(Ordering::Acquire) || self.current_runtime_config().hmd.enabled
+    fn has_active_surface(&self) -> bool {
+        self.active_surfaces(self.current_runtime_config()).any()
     }
 
     pub fn snapshot(&self) -> VrOverlayRuntimeSnapshot {
@@ -430,8 +445,9 @@ impl VrOverlayRuntime {
     }
 
     fn ingest_hmd_delivery(self: &Arc<Self>, delivery: OverlayActivityDelivery) {
-        let hmd_config = self.current_runtime_config().hmd;
-        if !delivery.hmd || !hmd_config.enabled {
+        let config = self.current_runtime_config();
+        let hmd_config = config.hmd;
+        if !delivery.hmd || !self.is_hmd_surface_active(config) {
             return;
         }
         let entry = delivery.entry;
@@ -640,18 +656,13 @@ impl VrOverlayRuntime {
                 self.commit_runtime_config(next_config, clear_devices);
                 config = next_config;
             }
-            let wrist_enabled = self.enabled.load(Ordering::Acquire);
             let game_running = self.game_running.load(Ordering::Acquire);
             let vr_mode = self.vr_mode.load(Ordering::Acquire);
-            let wrist_active = wrist_enabled
-                && match config.start_mode {
-                    WristOverlayStartMode::SteamVr => true,
-                    WristOverlayStartMode::VrchatVrMode => game_running && vr_mode,
-                };
-            let hmd_active = config.hmd.enabled;
-            let surface_enabled = wrist_active || hmd_active;
-            if surface_enabled {
-                let configs = overlay_surface_configs(wrist_active, config);
+            let steamvr_running = self.steamvr_running.load(Ordering::Acquire);
+            let active_surfaces =
+                self.active_surfaces_for_state(config, game_running, vr_mode, steamvr_running);
+            if active_surfaces.any() {
+                let configs = overlay_surface_configs(active_surfaces, config);
                 if let Err(error) = manager.set_surface_configs(configs) {
                     tracing::warn!(
                         error = %error,
@@ -662,16 +673,16 @@ impl VrOverlayRuntime {
                 self.clear_hmd_toasts();
             }
             let eligibility = VrOverlayEligibility {
-                enabled: surface_enabled,
+                enabled: active_surfaces.any(),
                 backend_available: self.backend_available,
                 game_running,
                 vr_mode,
-                steamvr_running: self.steamvr_running.load(Ordering::Acquire),
+                steamvr_running,
                 start_mode: WristOverlayStartMode::SteamVr,
             };
             manager.reconcile(eligibility);
             if eligibility.can_run() && manager.is_running() {
-                if wrist_active {
+                if active_surfaces.wrist {
                     self.refresh_devices_if_needed(
                         &mut manager,
                         refresh_devices,
@@ -681,7 +692,7 @@ impl VrOverlayRuntime {
                 } else {
                     self.release_frame_producer();
                 }
-                if hmd_active {
+                if active_surfaces.hmd {
                     self.push_hmd_frame(&mut manager, config, Instant::now());
                 } else {
                     self.clear_hmd_toasts();
@@ -689,6 +700,46 @@ impl VrOverlayRuntime {
             } else {
                 self.release_frame_producer();
             }
+        }
+    }
+
+    fn is_hmd_surface_active(&self, config: VrOverlayRuntimeConfig) -> bool {
+        self.active_surfaces(config).hmd
+    }
+
+    fn active_surfaces(&self, config: VrOverlayRuntimeConfig) -> ActiveOverlaySurfaces {
+        self.active_surfaces_for_state(
+            config,
+            self.game_running.load(Ordering::Acquire),
+            self.vr_mode.load(Ordering::Acquire),
+            self.steamvr_running.load(Ordering::Acquire),
+        )
+    }
+
+    fn active_surfaces_for_state(
+        &self,
+        config: VrOverlayRuntimeConfig,
+        game_running: bool,
+        vr_mode: bool,
+        steamvr_running: bool,
+    ) -> ActiveOverlaySurfaces {
+        ActiveOverlaySurfaces {
+            wrist: surface_active_for_start_mode(
+                self.enabled.load(Ordering::Acquire),
+                config.start_mode,
+                self.backend_available,
+                steamvr_running,
+                game_running,
+                vr_mode,
+            ),
+            hmd: surface_active_for_start_mode(
+                config.hmd.enabled,
+                config.hmd.start_mode,
+                self.backend_available,
+                steamvr_running,
+                game_running,
+                vr_mode,
+            ),
         }
     }
 
@@ -1069,15 +1120,36 @@ fn hmd_instance_key(entry: &OverlayActivityEntry) -> Option<String> {
     .map(str::to_string)
 }
 
+fn start_mode_allows(start_mode: WristOverlayStartMode, game_running: bool, vr_mode: bool) -> bool {
+    match start_mode {
+        WristOverlayStartMode::SteamVr => true,
+        WristOverlayStartMode::VrchatVrMode => game_running && vr_mode,
+    }
+}
+
+fn surface_active_for_start_mode(
+    enabled: bool,
+    start_mode: WristOverlayStartMode,
+    backend_available: bool,
+    steamvr_running: bool,
+    game_running: bool,
+    vr_mode: bool,
+) -> bool {
+    enabled
+        && backend_available
+        && steamvr_running
+        && start_mode_allows(start_mode, game_running, vr_mode)
+}
+
 fn overlay_surface_configs(
-    wrist_enabled: bool,
+    active_surfaces: ActiveOverlaySurfaces,
     config: VrOverlayRuntimeConfig,
 ) -> Vec<OverlaySurfaceConfig> {
     let mut configs = Vec::new();
-    if wrist_enabled {
+    if active_surfaces.wrist {
         configs.extend(wrist_surface_configs(config));
     }
-    if config.hmd.enabled {
+    if active_surfaces.hmd {
         configs.push(hmd_surface_config(config.hmd.position));
     }
     configs
@@ -1209,6 +1281,10 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
     let hmd_enabled = config
         .get_bool(HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY, false)
         .unwrap_or(false);
+    let hmd_start_mode = config
+        .get_string(HMD_NOTIFICATION_START_MODE_CONFIG_KEY, "vrchatVrMode")
+        .map(|value| WristOverlayStartMode::from_config(&value))
+        .unwrap_or_default();
     let hmd_timeout_ms = config
         .get_raw(HMD_NOTIFICATION_TIMEOUT_CONFIG_KEY)
         .ok()
@@ -1242,6 +1318,7 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
         hand,
         hmd: HmdNotificationConfig {
             enabled: hmd_enabled,
+            start_mode: hmd_start_mode,
             timeout_ms: hmd_timeout_ms,
             opacity_percent: hmd_opacity_percent,
             position: hmd_position,
@@ -1583,6 +1660,65 @@ mod tests {
         record_process_status(&runtime, false, false, false);
         assert!(!runtime.is_running());
         assert_eq!(dropped.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn hmd_default_start_mode_waits_for_vrchat_vr_mode() {
+        let created = Arc::new(AtomicUsize::new(0));
+        let dropped = Arc::new(AtomicUsize::new(0));
+        let config = VrOverlayRuntimeConfig {
+            hmd: HmdNotificationConfig {
+                enabled: true,
+                ..HmdNotificationConfig::default()
+            },
+            ..VrOverlayRuntimeConfig::default()
+        };
+        let runtime = VrOverlayRuntime::new_for_test_with_config_and_frame_producer_factory(
+            true,
+            config,
+            counting_frame_producer_factory(Arc::clone(&created), Arc::clone(&dropped)),
+        );
+
+        record_process_status(&runtime, false, true, false);
+        assert!(!runtime.is_running());
+
+        record_process_status(&runtime, true, true, true);
+        assert!(!runtime.is_running());
+
+        runtime.set_vr_mode(true);
+        assert!(runtime.is_running());
+        assert_eq!(created.load(Ordering::SeqCst), 0);
+
+        record_process_status(&runtime, false, true, true);
+        assert!(!runtime.is_running());
+        assert_eq!(created.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn hmd_steamvr_start_mode_runs_with_steamvr_without_vrchat_vr_mode() {
+        let created = Arc::new(AtomicUsize::new(0));
+        let dropped = Arc::new(AtomicUsize::new(0));
+        let config = VrOverlayRuntimeConfig {
+            hmd: HmdNotificationConfig {
+                enabled: true,
+                start_mode: WristOverlayStartMode::SteamVr,
+                ..HmdNotificationConfig::default()
+            },
+            ..VrOverlayRuntimeConfig::default()
+        };
+        let runtime = VrOverlayRuntime::new_for_test_with_config_and_frame_producer_factory(
+            true,
+            config,
+            counting_frame_producer_factory(Arc::clone(&created), Arc::clone(&dropped)),
+        );
+
+        record_process_status(&runtime, false, true, false);
+        assert!(runtime.is_running());
+        assert_eq!(created.load(Ordering::SeqCst), 0);
+
+        record_process_status(&runtime, false, false, false);
+        assert!(!runtime.is_running());
+        assert_eq!(created.load(Ordering::SeqCst), 0);
     }
 
     #[test]

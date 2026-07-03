@@ -143,6 +143,13 @@ export function SettingsVrSection({ vr }: SettingsVrSectionProps) {
                 saveHmdNotificationTimeoutSeconds
             }
             onHmdNotificationOpacityChange={saveHmdNotificationOpacity}
+            onHmdNotificationStartModeChange={(value: string) => {
+                saveStringPreference(
+                    'hmdNotificationStartMode',
+                    'hmdNotificationStartMode',
+                    value
+                );
+            }}
             onHmdNotificationPositionChange={(value: string) => {
                 saveStringPreference(
                     'hmdNotificationPosition',

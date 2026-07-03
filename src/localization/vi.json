@@ -225,6 +225,9 @@
                 "hmd_notifications": {
                     "header": "Thông báo trong kính VR",
                     "hmd_notifications": "Thông báo trong kính VR",
+                    "start_when": "Khởi động khi",
+                    "start_when_steamvr": "Khi SteamVR khởi động",
+                    "start_when_vrchat_vr_mode": "Khi VRChat khởi động",
                     "position": "Vị trí",
                     "position_bottom": "Dưới",
                     "position_top": "Trên",

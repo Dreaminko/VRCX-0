@@ -231,6 +231,9 @@
                 "hmd_notifications": {
                     "header": "Oznámení v headsetu",
                     "hmd_notifications": "Oznámení v headsetu",
+                    "start_when": "Spustit při",
+                    "start_when_steamvr": "Spuštění SteamVR",
+                    "start_when_vrchat_vr_mode": "Spuštění VRChat",
                     "position": "Pozice",
                     "position_bottom": "Dole",
                     "position_top": "Nahoře",

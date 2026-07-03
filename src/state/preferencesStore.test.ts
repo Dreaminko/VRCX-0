@@ -286,6 +286,7 @@ describe('preferencesStore normalizers', () => {
             wristOverlayShowBatteryPercent: 'true',
             wristOverlayHidePrivateWorlds: 'true',
             hmdNotificationsEnabled: 'true',
+            hmdNotificationStartMode: 'steamvr',
             hmdNotificationTimeout: 999999,
             hmdNotificationOpacity: -1,
             hmdNotificationPosition: 'right',
@@ -354,6 +355,7 @@ describe('preferencesStore normalizers', () => {
             wristOverlayShowBatteryPercent: true,
             wristOverlayHidePrivateWorlds: true,
             hmdNotificationsEnabled: true,
+            hmdNotificationStartMode: 'steamvr',
             hmdNotificationTimeout: 30000,
             hmdNotificationOpacity: 0,
             hmdNotificationPosition: 'right',
@@ -397,10 +399,12 @@ describe('preferencesStore normalizers', () => {
         expect(
             normalizePreferenceSnapshot({
                 wristOverlayStartMode: 'invalid',
+                hmdNotificationStartMode: 'invalid',
                 wristOverlayButton: 'trigger'
             })
         ).toMatchObject({
             wristOverlayStartMode: 'vrchatVrMode',
+            hmdNotificationStartMode: 'vrchatVrMode',
             wristOverlayButton: 'grip'
         });
     });
