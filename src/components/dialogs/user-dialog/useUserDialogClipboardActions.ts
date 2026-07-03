@@ -7,9 +7,13 @@ import { openDiscordProfile as openShellDiscordProfile } from '@/services/shellI
 export function useUserDialogClipboardActions() {
     const { t } = useTranslation();
 
-    async function copyUserText(text: any, label: any) {
-        await copyTextToClipboard(text);
-        toast.success(t('dialog.user.dynamic.value_copied', { value: label }));
+    function copyUserText(text: string, label: string) {
+        return copyTextToClipboard(text, {
+            onCopied: () =>
+                toast.success(
+                    t('dialog.user.dynamic.value_copied', { value: label })
+                )
+        });
     }
 
     async function openDiscordProfile(discordId: any) {

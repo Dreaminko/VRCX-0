@@ -404,14 +404,21 @@ export function UserDialogHeaderSection(props: any) {
                             variant="inline"
                         />
                         {onTitleClick ? (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
-                                onClick={onTitleClick}
-                            >
-                                {profileTitle}
-                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
+                                        onClick={onTitleClick}
+                                    >
+                                        {profileTitle}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {t('common.actions.copy')}
+                                </TooltipContent>
+                            </Tooltip>
                         ) : (
                             <span className="min-w-0 break-words">
                                 {profileTitle}

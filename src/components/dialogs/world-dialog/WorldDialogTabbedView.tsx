@@ -855,9 +855,13 @@ export function WorldDialogTabbedView({
             ? Math.round((Number(world.favorites) / Number(world.visits)) * 100)
             : 0;
 
-    async function copyWorldText(text: any, label: any) {
-        await copyTextToClipboard(text);
-        toast.success(t('dialog.world.dynamic.value_copied', { value: label }));
+    function copyWorldText(text: string, label: string) {
+        return copyTextToClipboard(text, {
+            onCopied: () =>
+                toast.success(
+                    t('dialog.world.dynamic.value_copied', { value: label })
+                )
+        });
     }
 
     const headerModel: any = {

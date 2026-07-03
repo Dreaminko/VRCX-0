@@ -195,6 +195,7 @@ function AvatarDialogOverviewSection({
     onCopyAvatarUrl,
     onOpenAvatarUrl
 }: any) {
+    const { t } = useTranslation();
     const imageClickable = Boolean(
         (imageUrl || avatar.imageUrl) && onImageClick
     );
@@ -229,17 +230,22 @@ function AvatarDialogOverviewSection({
             }
         >
             <div className="flex min-w-0 flex-col gap-2">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={!avatar.name}
-                    className="hover:text-primary h-auto min-w-0 justify-start overflow-hidden p-0 text-left text-lg leading-tight font-semibold whitespace-normal disabled:pointer-events-none disabled:opacity-100"
-                    onClick={avatar.name ? onTitleClick : undefined}
-                >
-                    <span className="line-clamp-2 min-w-0 break-words">
-                        {avatar.name || avatarFallbackLabel}
-                    </span>
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={!avatar.name}
+                            className="hover:text-primary h-auto min-w-0 justify-start overflow-hidden p-0 text-left text-lg leading-tight font-semibold whitespace-normal disabled:pointer-events-none disabled:opacity-100"
+                            onClick={avatar.name ? onTitleClick : undefined}
+                        >
+                            <span className="line-clamp-2 min-w-0 break-words">
+                                {avatar.name || avatarFallbackLabel}
+                            </span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('common.actions.copy')}</TooltipContent>
+                </Tooltip>
                 {avatar.authorName ? (
                     <Button
                         type="button"

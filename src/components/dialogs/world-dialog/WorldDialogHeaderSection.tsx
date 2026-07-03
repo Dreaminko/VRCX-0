@@ -495,17 +495,26 @@ export function WorldDialogOverviewSection(props: any) {
                     {isHomeWorld ? (
                         <HomeIcon className="mt-0.5 size-5 shrink-0" />
                     ) : null}
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        disabled={!world.name}
-                        className="hover:text-primary h-auto min-w-0 flex-1 justify-start overflow-hidden p-0 text-left text-lg leading-tight font-semibold whitespace-normal disabled:pointer-events-none disabled:opacity-100"
-                        onClick={world.name ? onCopyWorldName : undefined}
-                    >
-                        <span className="line-clamp-2 min-w-0 break-all">
-                            {world.name || 'World'}
-                        </span>
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                disabled={!world.name}
+                                className="hover:text-primary h-auto min-w-0 flex-1 justify-start overflow-hidden p-0 text-left text-lg leading-tight font-semibold whitespace-normal disabled:pointer-events-none disabled:opacity-100"
+                                onClick={
+                                    world.name ? onCopyWorldName : undefined
+                                }
+                            >
+                                <span className="line-clamp-2 min-w-0 break-all">
+                                    {world.name || 'World'}
+                                </span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            {t('common.actions.copy')}
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
                 {world.authorName ? (
                     <Button

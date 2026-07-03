@@ -168,14 +168,21 @@ export function GroupDialogHeaderSection(props: any) {
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     <CardTitle className="flex min-w-0 flex-wrap items-center gap-1.5 text-lg leading-tight">
                         {onCopyGroupName && group.name ? (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
-                                onClick={onCopyGroupName}
-                            >
-                                {groupTitle}
-                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
+                                        onClick={onCopyGroupName}
+                                    >
+                                        {groupTitle}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {t('common.actions.copy')}
+                                </TooltipContent>
+                            </Tooltip>
                         ) : (
                             <span className="min-w-0 break-words">
                                 {groupTitle}
