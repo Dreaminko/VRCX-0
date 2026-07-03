@@ -148,7 +148,7 @@ function FontFamilyPreferenceField({
                             )}
                             <DropdownMenuRadioItem
                                 value="custom"
-                                onSelect={() => {
+                                onClick={() => {
                                     if (prefs.appFontFamily === 'custom') {
                                         openCustomFontDialogAfterMenuClose();
                                     }

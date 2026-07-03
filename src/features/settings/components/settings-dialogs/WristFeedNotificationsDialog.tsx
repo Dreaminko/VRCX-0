@@ -656,7 +656,7 @@ function FavoriteGroupMenu({
                         onCheckedChange={(checked) =>
                             onToggleAll(Boolean(checked))
                         }
-                        onSelect={(event) => event.preventDefault()}
+                        onClick={(event) => event.preventDefault()}
                     >
                         {t(
                             'dialog.wrist_feed_notifications.favorite_groups.all_groups'
@@ -669,7 +669,7 @@ function FavoriteGroupMenu({
                             key={group.key}
                             checked={selectedGroups.includes(group.key)}
                             onCheckedChange={() => onToggleGroup(group.key)}
-                            onSelect={(event) => event.preventDefault()}
+                            onClick={(event) => event.preventDefault()}
                         >
                             {group.label}
                         </DropdownMenuCheckboxItem>

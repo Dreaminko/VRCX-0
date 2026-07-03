@@ -205,9 +205,7 @@ function DashboardInstanceSettingsMenu({
                                 key={column.key}
                                 checked={activeColumns.includes(column.key)}
                                 disabled={column.required}
-                                onSelect={(event: any) =>
-                                    event.preventDefault()
-                                }
+                                onClick={(event) => event.preventDefault()}
                                 onCheckedChange={() =>
                                     configUpdater(
                                         getNextColumnConfig(

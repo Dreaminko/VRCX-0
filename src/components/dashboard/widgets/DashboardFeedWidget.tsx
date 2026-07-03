@@ -326,7 +326,7 @@ export function DashboardFeedWidgetView({
                                 config,
                                 filterType
                             )}
-                            onSelect={(event) => event.preventDefault()}
+                            onClick={(event) => event.preventDefault()}
                             onCheckedChange={() =>
                                 configUpdater(
                                     getNextDashboardWidgetFilterConfig(
@@ -345,7 +345,7 @@ export function DashboardFeedWidgetView({
                 <DropdownMenuGroup>
                     <DropdownMenuCheckboxItem
                         checked={showType}
-                        onSelect={(event) => event.preventDefault()}
+                        onClick={(event) => event.preventDefault()}
                         onCheckedChange={(checked) =>
                             configUpdater({
                                 ...config,

@@ -323,7 +323,7 @@ export function useTitleBarActions(
                         <ContextMenuContent className="w-48">
                             <ContextMenuGroup>
                                 <ContextMenuItem
-                                    onSelect={() => {
+                                    onClick={() => {
                                         markAllNotificationsRead();
                                     }}
                                 >

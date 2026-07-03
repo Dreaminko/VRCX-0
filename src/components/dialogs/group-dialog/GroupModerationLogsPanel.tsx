@@ -240,7 +240,7 @@ export function GroupModerationLogsTable({
                                         checked={selectedEventTypes.includes(
                                             eventType
                                         )}
-                                        onSelect={(event) =>
+                                        onClick={(event) =>
                                             event.preventDefault()
                                         }
                                         onCheckedChange={() =>

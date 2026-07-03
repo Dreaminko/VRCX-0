@@ -317,7 +317,7 @@ function VideoActivityRow({ event }: any) {
                     <>
                         <ContextMenuGroup>
                             <ContextMenuItem
-                                onSelect={() => {
+                                onClick={() => {
                                     openExternalLink(event.videoUrl);
                                 }}
                             >
@@ -330,7 +330,7 @@ function VideoActivityRow({ event }: any) {
                 ) : null}
                 <ContextMenuGroup>
                     <ContextMenuItem
-                        onSelect={() => {
+                        onClick={() => {
                             void copyTextToClipboard(
                                 event?.videoUrl || videoLabel,
                                 {

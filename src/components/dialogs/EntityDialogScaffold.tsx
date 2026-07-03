@@ -253,7 +253,7 @@ function EntityDialogTabs({ value, onValueChange, tabs, children }: any) {
                     <TabsTrigger
                         key={tab.value}
                         value={tab.value}
-                        className="text-muted-foreground after:bg-primary hover:text-foreground data-[state=active]:text-primary h-11 flex-none rounded-none border-0 bg-transparent px-3 shadow-none after:bottom-0 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                        className="text-muted-foreground after:bg-primary hover:text-foreground data-active:text-primary h-11 flex-none rounded-none border-0 bg-transparent px-3 shadow-none after:bottom-0 data-active:bg-transparent data-active:shadow-none"
                     >
                         {tab.label}
                     </TabsTrigger>
@@ -275,7 +275,7 @@ function EntityDialogTabContent({
             value={value}
             keepMounted={forceMount || undefined}
             className={cn(
-                'm-0 min-h-0 flex-1 overflow-auto pt-4 data-[state=inactive]:hidden',
+                'm-0 min-h-0 flex-1 overflow-auto pt-4 data-hidden:hidden',
                 className
             )}
         >
@@ -373,18 +373,18 @@ function EntityActionItem({
     destructive = false,
     disabled = false,
     shortcut = null,
-    onSelect
+    onClick
 }: any) {
     return (
         <DropdownMenuItem
             disabled={disabled}
             variant={destructive ? 'destructive' : 'default'}
-            onSelect={(event) => {
+            onClick={(event) => {
                 if (disabled) {
                     event.preventDefault();
                     return;
                 }
-                onSelect?.(event);
+                onClick?.(event);
             }}
         >
             {Icon ? <Icon /> : null}

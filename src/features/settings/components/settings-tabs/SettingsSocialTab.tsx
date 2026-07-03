@@ -405,7 +405,7 @@ export function SettingsSocialTab({ social }: SettingsSocialTabProps) {
                                                     checked={localFavoriteFriendsGroups.includes(
                                                         group.value
                                                     )}
-                                                    onSelect={(event) =>
+                                                    onClick={(event) =>
                                                         event.preventDefault()
                                                     }
                                                     onCheckedChange={(
@@ -434,7 +434,7 @@ export function SettingsSocialTab({ social }: SettingsSocialTabProps) {
                                                     checked={localFavoriteFriendsGroups.includes(
                                                         group.value
                                                     )}
-                                                    onSelect={(event) =>
+                                                    onClick={(event) =>
                                                         event.preventDefault()
                                                     }
                                                     onCheckedChange={(

@@ -162,7 +162,7 @@ export function VrchatLogTable({
                             />
                             <ContextMenuContent>
                                 <ContextMenuItem
-                                    onSelect={() => {
+                                    onClick={() => {
                                         copyText(entryToText(entry));
                                     }}
                                 >
@@ -170,7 +170,7 @@ export function VrchatLogTable({
                                     {t('view.tools.vrchat_log.copy_entry')}
                                 </ContextMenuItem>
                                 <ContextMenuItem
-                                    onSelect={() => {
+                                    onClick={() => {
                                         copyText(entryMessageText(entry));
                                     }}
                                 >
@@ -180,7 +180,7 @@ export function VrchatLogTable({
                                 <ContextMenuSeparator />
                                 <ContextMenuItem
                                     disabled={!selectedCount || isCopying}
-                                    onSelect={copySelectedEntries}
+                                    onClick={copySelectedEntries}
                                 >
                                     <ClipboardCopyIcon />
                                     {t('view.tools.vrchat_log.copy_selected')}

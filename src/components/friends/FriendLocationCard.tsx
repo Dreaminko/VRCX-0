@@ -508,14 +508,14 @@ export function FriendLocationCard({
                 <ContextMenuGroup>
                     <ContextMenuItem
                         disabled={!canOpenUser}
-                        onSelect={onOpenUser}
+                        onClick={onOpenUser}
                     >
                         <UserIcon />
                         {t('table.playerList.user')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canOpenWorld}
-                        onSelect={onOpenWorld}
+                        onClick={onOpenWorld}
                     >
                         <GlobeIcon />
                         {resolvedWorldActionLabel}
@@ -525,7 +525,7 @@ export function FriendLocationCard({
                 <ContextMenuGroup>
                     <ContextMenuItem
                         disabled={!canUseFriendLocation}
-                        onSelect={() => {
+                        onClick={() => {
                             onLaunchLocation?.();
                         }}
                     >
@@ -534,7 +534,7 @@ export function FriendLocationCard({
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canUseFriendLocation}
-                        onSelect={() => {
+                        onClick={() => {
                             onSelfInviteLocation?.();
                         }}
                     >
@@ -546,7 +546,7 @@ export function FriendLocationCard({
                 <ContextMenuGroup>
                     <ContextMenuItem
                         disabled={!canSendInvite}
-                        onSelect={() => {
+                        onClick={() => {
                             onSendInvite?.();
                         }}
                     >
@@ -554,7 +554,7 @@ export function FriendLocationCard({
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canRequestInvite}
-                        onSelect={() => {
+                        onClick={() => {
                             onRequestInvite?.();
                         }}
                     >
@@ -562,7 +562,7 @@ export function FriendLocationCard({
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canBoop}
-                        onSelect={() => {
+                        onClick={() => {
                             onSendBoop?.();
                         }}
                     >

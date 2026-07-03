@@ -417,7 +417,8 @@ export function FavoriteActionMenu({
                         <DropdownMenuGroup>
                             <DropdownMenuItem
                                 variant="destructive"
-                                onSelect={(event) => {
+                                closeOnClick={false}
+                                onClick={(event) => {
                                     event.preventDefault();
                                     deleteFavorite();
                                 }}
@@ -438,7 +439,8 @@ export function FavoriteActionMenu({
                                 <DropdownMenuItem
                                     key={String(group.key ?? '')}
                                     disabled={isFull}
-                                    onSelect={(event) => {
+                                    closeOnClick={false}
+                                    onClick={(event) => {
                                         event.preventDefault();
                                         addFavorite(group);
                                     }}
@@ -469,7 +471,7 @@ export function FavoriteActionMenu({
                                 <DropdownMenuCheckboxItem
                                     key={groupName}
                                     checked={isLocalFavorite}
-                                    onSelect={(event) => event.preventDefault()}
+                                    onClick={(event) => event.preventDefault()}
                                     onCheckedChange={() => {
                                         if (isLocalFavorite) {
                                             removeLocalFavoriteFromGroup(

@@ -484,7 +484,7 @@ export function LaunchDialogHost() {
                                 >
                                     <DropdownMenuGroup>
                                         <DropdownMenuItem
-                                            onSelect={() => {
+                                            onClick={() => {
                                                 runAction(
                                                     alternateLaunchKey,
                                                     () =>

@@ -53,7 +53,7 @@ export function StatusBarContextMenuContent({
 
     return (
         <ContextMenuContent className="w-52">
-            <ContextMenuItem onSelect={onOpenProxySettings}>
+            <ContextMenuItem onClick={onOpenProxySettings}>
                 {t('status_bar.modify_proxy_address')}
             </ContextMenuItem>
             <ContextMenuSeparator />
@@ -62,7 +62,7 @@ export function StatusBarContextMenuContent({
                     <ContextMenuCheckboxItem
                         key={key}
                         checked={Boolean(visibility[key])}
-                        onSelect={(event) => event.preventDefault()}
+                        onClick={(event) => event.preventDefault()}
                         onCheckedChange={(checked) =>
                             onToggleVisibility(key, checked)
                         }

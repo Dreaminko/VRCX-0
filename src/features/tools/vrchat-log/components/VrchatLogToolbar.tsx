@@ -188,7 +188,8 @@ export function VrchatLogToolbar({
                         <DropdownMenuGroup>
                             <DropdownMenuItem
                                 disabled={!selectedCategories.length}
-                                onSelect={(event) => {
+                                closeOnClick={false}
+                                onClick={(event) => {
                                     event.preventDefault();
                                     setSelectedCategories([]);
                                 }}
@@ -206,7 +207,7 @@ export function VrchatLogToolbar({
                                             checked={selectedCategories.includes(
                                                 option
                                             )}
-                                            onSelect={(event) =>
+                                            onClick={(event) =>
                                                 event.preventDefault()
                                             }
                                             onCheckedChange={(checked) =>

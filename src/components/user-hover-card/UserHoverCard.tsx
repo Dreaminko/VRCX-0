@@ -20,7 +20,7 @@ import { UserHoverCardContent } from './UserHoverCardContent';
 import { getHoverOpenSuppressionDeadline } from './userHoverCardSuppression';
 
 const MODAL_OVERLAY_SELECTOR =
-    '[data-slot="dialog-overlay"][data-state="open"],[data-slot="alert-dialog-overlay"][data-state="open"],[data-slot="sheet-overlay"][data-state="open"]';
+    '[data-slot="dialog-overlay"][data-open],[data-slot="alert-dialog-overlay"][data-open],[data-slot="sheet-overlay"][data-open]';
 const MODAL_CONTENT_SELECTOR =
     '[data-slot="dialog-content"],[data-slot="alert-dialog-content"],[data-slot="sheet-content"]';
 
@@ -125,7 +125,7 @@ export function UserHoverCard({
             <HoverCardContent
                 className={cn(
                     'w-72 overflow-hidden p-0',
-                    scrollClosed && 'data-[state=closed]:!animate-none'
+                    scrollClosed && 'data-closed:!animate-none'
                 )}
                 side={side}
                 align={align}

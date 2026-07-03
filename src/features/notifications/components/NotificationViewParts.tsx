@@ -170,7 +170,7 @@ export function NotificationTypeFilterDropdown({
                                     )
                                 );
                             }}
-                            onSelect={(event) => event.preventDefault()}
+                            onClick={(event) => event.preventDefault()}
                         >
                             {getTypeLabel(type)}
                         </DropdownMenuCheckboxItem>

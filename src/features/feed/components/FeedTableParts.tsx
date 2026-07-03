@@ -223,7 +223,7 @@ function FeedUserLink({
                 <ContextMenuGroup>
                     <ContextMenuItem
                         disabled={!userId}
-                        onSelect={() =>
+                        onClick={() =>
                             openUserDialog({
                                 userId,
                                 title: userLabel,
@@ -236,7 +236,7 @@ function FeedUserLink({
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!worldTarget}
-                        onSelect={() =>
+                        onClick={() =>
                             openWorldDialog({
                                 worldId: worldDialogTarget,
                                 title: friend?.worldName || worldTarget
@@ -248,7 +248,7 @@ function FeedUserLink({
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!groupTarget}
-                        onSelect={() =>
+                        onClick={() =>
                             openGroupDialog({
                                 groupId: groupTarget,
                                 title: undefined
@@ -263,7 +263,7 @@ function FeedUserLink({
                 <ContextMenuGroup>
                     <ContextMenuItem
                         disabled={!canUseFriendLocation}
-                        onSelect={() => {
+                        onClick={() => {
                             actions.launchFeedFriendLocation(location);
                         }}
                     >
@@ -272,7 +272,7 @@ function FeedUserLink({
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canUseFriendLocation}
-                        onSelect={() => {
+                        onClick={() => {
                             actions.selfInviteFeedFriendLocation(location);
                         }}
                     >
@@ -286,7 +286,7 @@ function FeedUserLink({
                         disabled={
                             isCurrentUser || !actions.canSendInviteFromFeed
                         }
-                        onSelect={() => {
+                        onClick={() => {
                             actions.sendFeedFriendInvite(actionTarget);
                         }}
                     >
@@ -295,7 +295,7 @@ function FeedUserLink({
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={isCurrentUser || !canRequestInvite}
-                        onSelect={() => {
+                        onClick={() => {
                             actions.requestFeedFriendInvite(actionTarget);
                         }}
                     >
@@ -304,7 +304,7 @@ function FeedUserLink({
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={isCurrentUser || !actions.canBoopFromFeed}
-                        onSelect={() => {
+                        onClick={() => {
                             actions.sendFeedFriendBoop(actionTarget);
                         }}
                     >
@@ -317,7 +317,7 @@ function FeedUserLink({
                     {!isCurrentUser ? (
                         <ContextMenuItem
                             disabled={!userId}
-                            onSelect={() => {
+                            onClick={() => {
                                 if (!userId) {
                                     return;
                                 }
@@ -338,7 +338,7 @@ function FeedUserLink({
                     ) : null}
                     <ContextMenuItem
                         disabled={!displayName}
-                        onSelect={() => {
+                        onClick={() => {
                             copyFeedText(
                                 displayName,
                                 t('view.feed.dynamic.value_copied', {

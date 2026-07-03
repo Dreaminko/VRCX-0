@@ -264,7 +264,7 @@ function WorldOverviewActions(props: any) {
                 <EntityActionItem
                     icon={RefreshCwIcon}
                     disabled={actionStatus === 'refresh'}
-                    onSelect={onRefresh}
+                    onClick={onRefresh}
                 >
                     {t('common.actions.refresh')}
                 </EntityActionItem>
@@ -272,21 +272,21 @@ function WorldOverviewActions(props: any) {
                 <EntityActionItem
                     icon={FlagIcon}
                     disabled={actionStatus === 'new-instance'}
-                    onSelect={onNewInstance}
+                    onClick={onNewInstance}
                 >
                     {t('dialog.world.actions.new_instance')}
                 </EntityActionItem>
                 <EntityActionItem
                     icon={MessageSquareIcon}
                     disabled={actionStatus === 'new-instance'}
-                    onSelect={onNewInstanceSelfInvite}
+                    onClick={onNewInstanceSelfInvite}
                 >
                     {t(newInstanceFollowUpLabelKey)}
                 </EntityActionItem>
                 <EntityActionItem
                     icon={HomeIcon}
                     disabled={!canUpdateHome || actionStatus === 'home'}
-                    onSelect={onHome}
+                    onClick={onHome}
                 >
                     {t(
                         isHomeWorld
@@ -297,7 +297,7 @@ function WorldOverviewActions(props: any) {
                 <EntityActionItem
                     icon={HistoryIcon}
                     disabled={!previousInstances.length}
-                    onSelect={() => onChangeTab('visit-history')}
+                    onClick={() => onChangeTab('visit-history')}
                 >
                     {t('dialog.world.actions.show_previous_instances')}
                 </EntityActionItem>
@@ -311,21 +311,21 @@ function WorldOverviewActions(props: any) {
                             <EntityActionItem
                                 icon={PencilIcon}
                                 disabled={actionStatus === 'save-world'}
-                                onSelect={onEditDetails}
+                                onClick={onEditDetails}
                             >
                                 {t('dialog.world.actions.edit_details')}
                             </EntityActionItem>
                             <EntityActionItem
                                 icon={ImageIcon}
                                 disabled={actionStatus === 'image-upload'}
-                                onSelect={onChangeImage}
+                                onClick={onChangeImage}
                             >
                                 {t('dialog.world.actions.change_image')}
                             </EntityActionItem>
                             <EntityActionItem
                                 icon={SettingsIcon}
                                 disabled={actionStatus === 'save-world'}
-                                onSelect={onChangeTags}
+                                onClick={onChangeTags}
                             >
                                 {t(
                                     'dialog.world.actions.change_warnings_settings_tags'
@@ -334,7 +334,7 @@ function WorldOverviewActions(props: any) {
                             <EntityActionItem
                                 icon={LinkIcon}
                                 disabled={actionStatus === 'save-world'}
-                                onSelect={onChangeAllowedDomains}
+                                onClick={onChangeAllowedDomains}
                             >
                                 {t(
                                     'dialog.world.actions.change_allowed_video_player_domains'
@@ -343,7 +343,7 @@ function WorldOverviewActions(props: any) {
                             {packageUrl ? (
                                 <EntityActionItem
                                     icon={DownloadIcon}
-                                    onSelect={onOpenPackage}
+                                    onClick={onOpenPackage}
                                 >
                                     {t('dialog.world.actions.download_package')}
                                 </EntityActionItem>
@@ -352,7 +352,7 @@ function WorldOverviewActions(props: any) {
                             <EntityActionItem
                                 icon={EyeIcon}
                                 disabled={actionStatus === 'publish-world'}
-                                onSelect={onPublication}
+                                onClick={onPublication}
                             >
                                 {isPublished
                                     ? t('dialog.world.actions.unpublish')
@@ -372,14 +372,14 @@ function WorldOverviewActions(props: any) {
                                 <>
                                     <EntityActionItem
                                         icon={FolderOpenIcon}
-                                        onSelect={onOpenCache}
+                                        onClick={onOpenCache}
                                     >
                                         {t('dialog.world.actions.open_cache')}
                                     </EntityActionItem>
                                     <EntityActionItem
                                         icon={Trash2Icon}
                                         disabled={actionStatus === 'cache'}
-                                        onSelect={onDeleteCache}
+                                        onClick={onDeleteCache}
                                     >
                                         {t(
                                             'dialog.world.actions.delete_cache_tooltip'
@@ -393,7 +393,7 @@ function WorldOverviewActions(props: any) {
                                     disabled={
                                         actionStatus === 'persistent-data'
                                     }
-                                    onSelect={onDeletePersistentData}
+                                    onClick={onDeletePersistentData}
                                 >
                                     {t(
                                         'dialog.world.actions.delete_persistent_data'
@@ -410,7 +410,7 @@ function WorldOverviewActions(props: any) {
                             icon={Trash2Icon}
                             destructive
                             disabled={actionStatus === 'delete'}
-                            onSelect={onDelete}
+                            onClick={onDelete}
                         >
                             {t('common.actions.delete')}
                         </EntityActionItem>

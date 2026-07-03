@@ -53,7 +53,7 @@ function CollapsedFolderDropdownEntry({
         return (
             <DropdownMenuGroup>
                 <DropdownMenuItem
-                    onSelect={() => {
+                    onClick={() => {
                         onSelect(entry);
                     }}
                 >
@@ -73,7 +73,7 @@ function CollapsedFolderDropdownEntry({
             <DropdownMenuSubContent side="right" align="start" className="w-48">
                 <DropdownMenuGroup>
                     <DropdownMenuItem
-                        onSelect={() => {
+                        onClick={() => {
                             onSelect(entry);
                         }}
                     >
@@ -88,7 +88,7 @@ function CollapsedFolderDropdownEntry({
                 {isDashboard ? (
                     <DropdownMenuGroup>
                         <DropdownMenuItem
-                            onSelect={() => {
+                            onClick={() => {
                                 onEditDashboard(entry);
                             }}
                         >
@@ -97,7 +97,7 @@ function CollapsedFolderDropdownEntry({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             variant="destructive"
-                            onSelect={() => {
+                            onClick={() => {
                                 onDeleteDashboard(entry);
                             }}
                         >
@@ -110,7 +110,7 @@ function CollapsedFolderDropdownEntry({
                     <DropdownMenuGroup>
                         <DropdownMenuItem
                             variant="destructive"
-                            onSelect={() => {
+                            onClick={() => {
                                 onUnpinTool(entry);
                             }}
                         >

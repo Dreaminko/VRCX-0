@@ -349,7 +349,7 @@ const FavoriteCard = memo(function FavoriteCard({
                         onPointerDown={stopCardInteraction}
                     >
                         <DropdownMenuGroup>
-                            <DropdownMenuItem onSelect={() => openHandler?.()}>
+                            <DropdownMenuItem onClick={() => openHandler?.()}>
                                 {t('common.actions.view_details')}
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
@@ -362,7 +362,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                             !isFriendOnline ||
                                             !onFriendRequestInvite
                                         }
-                                        onSelect={() =>
+                                        onClick={() =>
                                             onFriendRequestInvite?.(item)
                                         }
                                     >
@@ -376,7 +376,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                             !canSendInvite ||
                                             !onFriendInvite
                                         }
-                                        onSelect={() => onFriendInvite?.(item)}
+                                        onClick={() => onFriendInvite?.(item)}
                                     >
                                         {t('dialog.user.actions.invite')}
                                     </DropdownMenuItem>
@@ -386,7 +386,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                             !canBoop ||
                                             !onFriendBoop
                                         }
-                                        onSelect={() => onFriendBoop?.(item)}
+                                        onClick={() => onFriendBoop?.(item)}
                                     >
                                         {t('dialog.user.actions.send_boop')}
                                     </DropdownMenuItem>
@@ -398,7 +398,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                             !canUseFriendLocation ||
                                             !onFriendLaunch
                                         }
-                                        onSelect={() => onFriendLaunch?.(item)}
+                                        onClick={() => onFriendLaunch?.(item)}
                                     >
                                         {t('dialog.launch.open_ingame')}
                                     </DropdownMenuItem>
@@ -407,7 +407,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                             !canUseFriendLocation ||
                                             !onFriendSelfInvite
                                         }
-                                        onSelect={() =>
+                                        onClick={() =>
                                             onFriendSelfInvite?.(item)
                                         }
                                     >
@@ -420,13 +420,13 @@ const FavoriteCard = memo(function FavoriteCard({
                             <DropdownMenuGroup>
                                 <DropdownMenuItem
                                     disabled={!onWorldNewInstance}
-                                    onSelect={() => onWorldNewInstance?.(item)}
+                                    onClick={() => onWorldNewInstance?.(item)}
                                 >
                                     {t('dialog.world.actions.new_instance')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     disabled={!onWorldSelfInvite}
-                                    onSelect={() => onWorldSelfInvite?.(item)}
+                                    onClick={() => onWorldSelfInvite?.(item)}
                                 >
                                     {t(worldFollowUpActionLabelKey)}
                                 </DropdownMenuItem>
@@ -435,7 +435,7 @@ const FavoriteCard = memo(function FavoriteCard({
                         {canCopyUnavailableWorldId ? (
                             <DropdownMenuGroup>
                                 <DropdownMenuItem
-                                    onSelect={() => {
+                                    onClick={() => {
                                         copyWorldId();
                                     }}
                                 >
@@ -447,7 +447,7 @@ const FavoriteCard = memo(function FavoriteCard({
                             <DropdownMenuGroup>
                                 <DropdownMenuItem
                                     disabled={!canSelectAvatar}
-                                    onSelect={() => onAvatarSelect?.(item)}
+                                    onClick={() => onAvatarSelect?.(item)}
                                 >
                                     {t('dialog.avatar.actions.select')}
                                 </DropdownMenuItem>
@@ -459,7 +459,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                 <DropdownMenuGroup>
                                     <DropdownMenuItem
                                         variant="destructive"
-                                        onSelect={() => {
+                                        onClick={() => {
                                             if (canRemoveLocal) {
                                                 onRemoveLocal(item);
                                                 return;

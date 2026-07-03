@@ -182,7 +182,7 @@ function ToolItem({
                     <DropdownMenuContent align="end" className="w-52">
                         <DropdownMenuGroup>
                             <DropdownMenuItem
-                                onSelect={() => {
+                                onClick={() => {
                                     if (isQuickAccess) {
                                         onRemoveQuickAccess?.();
                                     } else {
@@ -201,7 +201,7 @@ function ToolItem({
                                 <DropdownMenuSeparator />
                                 <DropdownMenuGroup>
                                     <DropdownMenuItem
-                                        onSelect={() => {
+                                        onClick={() => {
                                             if (isPinned) {
                                                 onUnpin?.();
                                             } else {

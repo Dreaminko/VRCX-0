@@ -74,7 +74,7 @@ export function ModerationTypeFilterDropdown({
                                       );
                                 onChange(sanitizeTypes(next));
                             }}
-                            onSelect={(event) => event.preventDefault()}
+                            onClick={(event) => event.preventDefault()}
                         >
                             {getTypeLabel(type)}
                         </DropdownMenuCheckboxItem>

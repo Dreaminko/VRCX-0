@@ -416,7 +416,7 @@ export function InstanceInviteDialog({
                                         (group: any) => (
                                             <DropdownMenuItem
                                                 key={group.key}
-                                                onSelect={() =>
+                                                onClick={() =>
                                                     addUserIds(group.userIds)
                                                 }
                                             >
@@ -434,7 +434,7 @@ export function InstanceInviteDialog({
                                         (group: any) => (
                                             <DropdownMenuItem
                                                 key={group.key}
-                                                onSelect={() =>
+                                                onClick={() =>
                                                     addUserIds(group.userIds)
                                                 }
                                             >

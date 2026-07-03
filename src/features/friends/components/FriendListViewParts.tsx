@@ -50,7 +50,7 @@ export function FriendListSearchFilterDropdown({ value, onChange }: any) {
                         <DropdownMenuCheckboxItem
                             key={filter.id}
                             checked={activeFilters.has(filter.id)}
-                            onSelect={(event) => event.preventDefault()}
+                            onClick={(event) => event.preventDefault()}
                             onCheckedChange={(checked) => {
                                 const next = new Set(activeFilters);
                                 if (checked) {

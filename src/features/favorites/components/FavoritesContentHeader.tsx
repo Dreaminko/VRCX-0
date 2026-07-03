@@ -139,7 +139,7 @@ function FavoritesContentHeader({
                                     {remoteMoveTargets.map((target) => (
                                         <DropdownMenuItem
                                             key={`remote:${target.key}`}
-                                            onSelect={() =>
+                                            onClick={() =>
                                                 onMoveSelection(target)
                                             }
                                         >
@@ -154,7 +154,7 @@ function FavoritesContentHeader({
                                     {localMoveTargets.map((target) => (
                                         <DropdownMenuItem
                                             key={`local:${target.key}`}
-                                            onSelect={() =>
+                                            onClick={() =>
                                                 onMoveSelection(target)
                                             }
                                         >

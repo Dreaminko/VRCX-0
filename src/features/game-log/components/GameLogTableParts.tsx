@@ -145,9 +145,7 @@ function TypeFilterDropdown({
             />
             <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuGroup>
-                    <DropdownMenuItem
-                        onSelect={() => onSelectedTypesChange([])}
-                    >
+                    <DropdownMenuItem onClick={() => onSelectedTypesChange([])}>
                         {t('view.search.avatar.all')}
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -157,7 +155,7 @@ function TypeFilterDropdown({
                         <DropdownMenuCheckboxItem
                             key={type}
                             checked={selectedTypes.includes(type)}
-                            onSelect={(event) => event.preventDefault()}
+                            onClick={(event) => event.preventDefault()}
                             onCheckedChange={(checked) => {
                                 onSelectedTypesChange(
                                     checked

@@ -47,7 +47,7 @@ export function SearchUserTabPanel({
         <TabsContent
             value="user"
             keepMounted
-            className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+            className="m-0 flex min-h-0 flex-1 flex-col data-hidden:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
                 <FieldGroup
@@ -129,7 +129,7 @@ export function SearchWorldTabPanel({
         <TabsContent
             value="world"
             keepMounted
-            className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+            className="m-0 flex min-h-0 flex-1 flex-col data-hidden:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
                 <div className="mb-4 flex w-full shrink-0 justify-end gap-2">
@@ -209,7 +209,7 @@ export function SearchAvatarTabPanel({
         <TabsContent
             value="avatar"
             keepMounted
-            className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+            className="m-0 flex min-h-0 flex-1 flex-col data-hidden:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
                 <div className="mb-3 flex shrink-0 items-center justify-end gap-2">
@@ -286,7 +286,7 @@ export function SearchGroupTabPanel({ isLoading, results, pagination }: any) {
         <TabsContent
             value="group"
             keepMounted
-            className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+            className="m-0 flex min-h-0 flex-1 flex-col data-hidden:hidden"
         >
             <div className="min-h-0 flex-1 overflow-y-auto" style={{ flex: 9 }}>
                 {isLoading ? (

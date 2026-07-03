@@ -79,17 +79,12 @@ export function AvatarActionMenuItems({
     const releaseAction: MyAvatarAction =
         avatar?.releaseStatus === 'public' ? 'makePrivate' : 'makePublic';
 
-    const stopMenuClick = (event: MouseEvent) => {
-        event.stopPropagation();
-    };
-
     const handleAction = (action: MyAvatarAction) => {
         onAction(action, avatar);
     };
 
     const actionItemProps = (action: MyAvatarAction) => ({
-        onClick: stopMenuClick,
-        onSelect: (event: Event) => {
+        onClick: (event: MouseEvent) => {
             event.stopPropagation();
             handleAction(action);
         }
@@ -377,7 +372,7 @@ export function MyAvatarGridCard({
                                         type="button"
                                         variant="secondary"
                                         size="icon-xs"
-                                        className="absolute top-1 right-1 opacity-0 shadow-sm transition-opacity group-focus-within/card:opacity-100 group-hover/card:opacity-100 data-[state=open]:opacity-100"
+                                        className="absolute top-1 right-1 opacity-0 shadow-sm transition-opacity group-focus-within/card:opacity-100 group-hover/card:opacity-100 data-popup-open:opacity-100"
                                         aria-label={t(
                                             'view.my_avatars.action.open_avatar_actions'
                                         )}

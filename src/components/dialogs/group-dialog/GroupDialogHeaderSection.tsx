@@ -230,7 +230,7 @@ export function GroupDialogHeaderSection(props: any) {
                     <EntityActionItem
                         icon={RefreshCwIcon}
                         disabled={actionStatus === 'refresh'}
-                        onSelect={onRefresh}
+                        onClick={onRefresh}
                     >
                         {t('common.actions.refresh')}
                     </EntityActionItem>
@@ -238,7 +238,7 @@ export function GroupDialogHeaderSection(props: any) {
                         <>
                             <EntityActionItem
                                 icon={Share2Icon}
-                                onSelect={() => {
+                                onClick={() => {
                                     onCopyGroupUrl();
                                 }}
                             >
@@ -246,13 +246,13 @@ export function GroupDialogHeaderSection(props: any) {
                             </EntityActionItem>
                             <EntityActionItem
                                 icon={ExternalLinkIcon}
-                                onSelect={onOpenGroupPage}
+                                onClick={onOpenGroupPage}
                             >
                                 {t('common.actions.open_link')}
                             </EntityActionItem>
                             <EntityActionItem
                                 icon={CopyIcon}
-                                onSelect={() => {
+                                onClick={() => {
                                     onCopyGroupId();
                                 }}
                             >
@@ -269,7 +269,7 @@ export function GroupDialogHeaderSection(props: any) {
                                     actionStatus === 'represent' ||
                                     isPrivateGroup
                                 }
-                                onSelect={onRepresentToggle}
+                                onClick={onRepresentToggle}
                             >
                                 {t(
                                     isRepresenting
@@ -284,7 +284,7 @@ export function GroupDialogHeaderSection(props: any) {
                                         : BellIcon
                                 }
                                 disabled={actionStatus === 'member-props'}
-                                onSelect={onSubscribeToggle}
+                                onClick={onSubscribeToggle}
                             >
                                 {t(
                                     isSubscribedToAnnouncements
@@ -298,7 +298,7 @@ export function GroupDialogHeaderSection(props: any) {
                                     disabled={
                                         remoteStatus.members === 'running'
                                     }
-                                    onSelect={() => {
+                                    onClick={() => {
                                         onInviteUserToGroup();
                                     }}
                                 >
@@ -309,7 +309,7 @@ export function GroupDialogHeaderSection(props: any) {
                                 <EntityActionItem
                                     icon={TicketIcon}
                                     disabled={remoteStatus.posts === 'running'}
-                                    onSelect={() => {
+                                    onClick={() => {
                                         onCreateGroupPost();
                                     }}
                                 >
@@ -319,7 +319,7 @@ export function GroupDialogHeaderSection(props: any) {
                             {canModerateGroup ? (
                                 <EntityActionItem
                                     icon={SettingsIcon}
-                                    onSelect={onOpenModeration}
+                                    onClick={onOpenModeration}
                                 >
                                     {t('dialog.group.actions.moderation_tools')}
                                 </EntityActionItem>
@@ -401,7 +401,7 @@ export function GroupDialogHeaderSection(props: any) {
                                 icon={LogOutIcon}
                                 destructive
                                 disabled={actionStatus === 'leave'}
-                                onSelect={onLeave}
+                                onClick={onLeave}
                             >
                                 {t('dialog.group.actions.leave')}
                             </EntityActionItem>
@@ -413,7 +413,7 @@ export function GroupDialogHeaderSection(props: any) {
                                 icon={isBlocked ? ShieldIcon : ShieldOffIcon}
                                 destructive={isBlocked}
                                 disabled={actionStatus === 'block'}
-                                onSelect={onBlockToggle}
+                                onClick={onBlockToggle}
                             >
                                 {t(
                                     isBlocked

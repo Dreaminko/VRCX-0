@@ -781,7 +781,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                                                     <>
                                                         <ContextMenuGroup>
                                                             <ContextMenuItem
-                                                                onSelect={() =>
+                                                                onClick={() =>
                                                                     setTabVisibilityFromMenu(
                                                                         item
                                                                             .layoutItem
@@ -799,7 +799,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                                                 ) : null}
                                                 <ContextMenuGroup>
                                                     <ContextMenuItem
-                                                        onSelect={() =>
+                                                        onClick={() =>
                                                             setCustomTabsDialogOpen(
                                                                 true
                                                             )
@@ -851,7 +851,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                     </div>
                     <TabsContent
                         value="friends"
-                        className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                        className="mt-1 min-h-0 flex-1 overflow-hidden data-hidden:hidden"
                     >
                         <FriendsSidebar
                             prefs={prefs}
@@ -863,7 +863,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                     {groupsTabVisible ? (
                         <TabsContent
                             value="groups"
-                            className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                            className="mt-1 min-h-0 flex-1 overflow-hidden data-hidden:hidden"
                         >
                             <GroupsSidebar />
                         </TabsContent>
@@ -879,7 +879,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                             <TabsContent
                                 key={item.id}
                                 value={item.id}
-                                className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                                className="mt-1 min-h-0 flex-1 overflow-hidden data-hidden:hidden"
                             >
                                 <FriendsSidebar
                                     prefs={prefs}

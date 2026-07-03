@@ -69,7 +69,7 @@ function DashboardEntryAction({
                     {isDashboard ? (
                         <>
                             <DropdownMenuItem
-                                onSelect={() => {
+                                onClick={() => {
                                     onEditDashboard(entry);
                                 }}
                             >
@@ -78,7 +78,7 @@ function DashboardEntryAction({
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 variant="destructive"
-                                onSelect={() => {
+                                onClick={() => {
                                     onDeleteDashboard(entry);
                                 }}
                             >
@@ -90,7 +90,7 @@ function DashboardEntryAction({
                     {isTool ? (
                         <DropdownMenuItem
                             variant="destructive"
-                            onSelect={() => {
+                            onClick={() => {
                                 onUnpinTool(entry);
                             }}
                         >
@@ -127,7 +127,7 @@ function NavItemContextMenu({
                 {hasNotifications ? (
                     <ContextMenuGroup>
                         <ContextMenuItem
-                            onSelect={() => {
+                            onClick={() => {
                                 onMarkAllRead();
                             }}
                         >
@@ -139,7 +139,7 @@ function NavItemContextMenu({
                 {showCreateDashboard ? (
                     <ContextMenuGroup>
                         <ContextMenuItem
-                            onSelect={() => {
+                            onClick={() => {
                                 onCreateDashboard();
                             }}
                         >
@@ -150,7 +150,7 @@ function NavItemContextMenu({
                 {isDashboard ? (
                     <ContextMenuGroup>
                         <ContextMenuItem
-                            onSelect={() => {
+                            onClick={() => {
                                 onEditDashboard(entry);
                             }}
                         >
@@ -158,7 +158,7 @@ function NavItemContextMenu({
                         </ContextMenuItem>
                         <ContextMenuItem
                             variant="destructive"
-                            onSelect={() => {
+                            onClick={() => {
                                 onDeleteDashboard(entry);
                             }}
                         >
@@ -170,7 +170,7 @@ function NavItemContextMenu({
                 {isTool ? (
                     <ContextMenuGroup>
                         <ContextMenuItem
-                            onSelect={() => {
+                            onClick={() => {
                                 onUnpinTool(entry);
                             }}
                         >
@@ -180,7 +180,7 @@ function NavItemContextMenu({
                 ) : null}
                 {isTool ? <ContextMenuSeparator /> : null}
                 <ContextMenuGroup>
-                    <ContextMenuItem onSelect={onOpenCustomNav}>
+                    <ContextMenuItem onClick={onOpenCustomNav}>
                         {t('nav_menu.custom_nav.header')}
                     </ContextMenuItem>
                 </ContextMenuGroup>

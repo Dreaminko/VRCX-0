@@ -362,7 +362,7 @@ function GroupInstanceRow({ instance, currentUserId, friendsMap }: any) {
                 <ContextMenuGroup>
                     <ContextMenuItem
                         disabled={!canUseInstanceAction}
-                        onSelect={() => {
+                        onClick={() => {
                             launchInstance();
                         }}
                     >
@@ -370,7 +370,7 @@ function GroupInstanceRow({ instance, currentUserId, friendsMap }: any) {
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canUseInstanceAction}
-                        onSelect={() => {
+                        onClick={() => {
                             sendSelfInvite();
                         }}
                     >

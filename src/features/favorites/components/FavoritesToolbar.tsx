@@ -223,11 +223,11 @@ function FavoritesToolbar({
                         </FieldGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            <DropdownMenuItem onSelect={onImport}>
+                            <DropdownMenuItem onClick={onImport}>
                                 <UploadIcon data-icon="inline-start" />
                                 {t('view.favorite.import')}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={onExport}>
+                            <DropdownMenuItem onClick={onExport}>
                                 <DownloadIcon data-icon="inline-start" />
                                 {t('view.favorite.export')}
                             </DropdownMenuItem>

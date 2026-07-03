@@ -341,14 +341,14 @@ export function DashboardGameLogWidget({
             />
             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuGroup>
-                    {GAME_LOG_FILTER_TYPES.map((filterType: any) => (
+                    {GAME_LOG_FILTER_TYPES.map((filterType) => (
                         <DropdownMenuCheckboxItem
                             key={filterType}
                             checked={isDashboardWidgetFilterActive(
                                 config,
                                 filterType
                             )}
-                            onSelect={(event: any) => event.preventDefault()}
+                            onClick={(event) => event.preventDefault()}
                             onCheckedChange={() =>
                                 configUpdater(
                                     getNextDashboardWidgetFilterConfig(
@@ -367,8 +367,8 @@ export function DashboardGameLogWidget({
                 <DropdownMenuGroup>
                     <DropdownMenuCheckboxItem
                         checked={showDetail}
-                        onSelect={(event: any) => event.preventDefault()}
-                        onCheckedChange={(checked: any) =>
+                        onClick={(event) => event.preventDefault()}
+                        onCheckedChange={(checked) =>
                             configUpdater({
                                 ...config,
                                 showDetail: Boolean(checked)

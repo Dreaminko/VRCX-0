@@ -172,7 +172,7 @@ export function UserSocialStatusDialog({
                                                     ) => (
                                                         <DropdownMenuItem
                                                             key={`${status}:${index}`}
-                                                            onSelect={() => {
+                                                            onClick={() => {
                                                                 setDraft(
                                                                     (
                                                                         current: any
