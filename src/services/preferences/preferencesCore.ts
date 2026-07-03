@@ -48,10 +48,7 @@ export function applyDataTableStripedClass(enabled: boolean) {
 }
 
 export function applyReducedMotionAndBlurClass(enabled: boolean) {
-    document.documentElement.classList.toggle(
-        'reduced-motion-and-blur',
-        enabled
-    );
+    document.documentElement.classList.toggle('reduce-effects', enabled);
 }
 
 export function patchPreferences(patch: Partial<PreferencesSnapshot>) {

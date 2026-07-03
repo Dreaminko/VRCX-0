@@ -320,7 +320,7 @@
                     "sort_instance_users_by": "Példány felhasználóinak rendezése",
                     "sort_instance_users_by_time": "idő",
                     "sort_instance_users_by_alphabet": "betűrend",
-                    "reduced_motion_and_blur": "Mozgás és elmosás csökkentése",
+                    "reduced_motion_and_blur": "Effektek csökkentése",
                     "reduced_motion_and_blur_description": "Kikapcsolja az animációkat, átmeneteket és a háttér elmosását a jobb teljesítményért gyengébb gépeken."
                 },
                 "timedate": {

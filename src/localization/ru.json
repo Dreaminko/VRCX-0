@@ -2178,7 +2178,7 @@
                     "table_page_sizes_error": "Размер страницы должен составлять от 1 до 1 000",
                     "show_notification_icon_dot": "Лоток-уведомление",
                     "striped_data_table_mode": "Разделенные столы",
-                    "reduced_motion_and_blur": "Уменьшить анимацию и размытие",
+                    "reduced_motion_and_blur": "Уменьшить эффекты",
                     "reduced_motion_and_blur_description": "Отключает анимации, переходы и размытие фона для повышения производительности на слабых устройствах.",
                     "accessible_status_indicators": "Доступные показатели состояния",
                     "accessible_status_indicators_description": "Используйте формы в дополнение к цвету, чтобы отличать статусы.",

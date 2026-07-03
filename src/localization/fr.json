@@ -2165,7 +2165,7 @@
                     "table_page_sizes_error": "La taille de page doit être un nombre compris entre 1 et 1000",
                     "show_notification_icon_dot": "Pastille de notification dans la barre des tâches",
                     "striped_data_table_mode": "Tableaux à lignes alternées",
-                    "reduced_motion_and_blur": "Réduire les animations et le flou",
+                    "reduced_motion_and_blur": "Réduire les effets",
                     "reduced_motion_and_blur_description": "Désactive les animations, les transitions et le flou d’arrière-plan pour améliorer les performances sur les appareils peu puissants.",
                     "accessible_status_indicators": "Indicateurs de statut accessibles",
                     "accessible_status_indicators_description": "Utiliser des formes en plus de la couleur pour distinguer les statuts.",

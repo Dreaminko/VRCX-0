@@ -320,7 +320,7 @@
                     "sort_instance_users_by": "Sắp xếp người dùng trong world instance theo",
                     "sort_instance_users_by_time": "Thời gian",
                     "sort_instance_users_by_alphabet": "Bảng chữ cái",
-                    "reduced_motion_and_blur": "Giảm chuyển động và làm mờ",
+                    "reduced_motion_and_blur": "Giảm hiệu ứng",
                     "reduced_motion_and_blur_description": "Tắt hiệu ứng chuyển động, chuyển cảnh và làm mờ nền để cải thiện hiệu năng trên máy cấu hình thấp."
                 },
                 "timedate": {

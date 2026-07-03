@@ -336,7 +336,7 @@
                     "sort_instance_users_by": "Řadit uživatele v instanci podle",
                     "sort_instance_users_by_time": "času",
                     "sort_instance_users_by_alphabet": "abecedně",
-                    "reduced_motion_and_blur": "Omezit pohyb a rozmazání",
+                    "reduced_motion_and_blur": "Omezit efekty",
                     "reduced_motion_and_blur_description": "Vypne animace, přechody a rozmazání pozadí pro lepší výkon na slabších zařízeních."
                 },
                 "timedate": {

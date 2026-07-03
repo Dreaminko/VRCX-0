@@ -645,7 +645,7 @@ describe('preferencesService characterization', () => {
 
         expect(classes.has('is-compact-table')).toBe(true);
         expect(classes.has('is-striped-table')).toBe(true);
-        expect(classes.has('reduced-motion-and-blur')).toBe(true);
+        expect(classes.has('reduce-effects')).toBe(true);
         expect(classes.has('accessible-status-indicators')).toBe(true);
         expect(usePreferencesStore.getState()).toMatchObject({
             tableDensity: 'compact',
