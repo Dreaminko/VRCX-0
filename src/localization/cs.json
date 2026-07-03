@@ -402,6 +402,10 @@
                         "when_to_display": "When to display",
                         "desktop_notification_while_afk": "Desktop Notifications While AFK"
                     },
+                    "webhook": {
+                        "auth_events_enabled": "Posílat oznámení o selhání automatického přihlášení",
+                        "auth_events_description": "Pošle oznámení, když VRCX-0 nedokáže automaticky obnovit přerušené přihlášení na pozadí."
+                    },
                     "text_to_speech": {
                         "header": "Text-To-Speech",
                         "when_to_play": "Notification TTS. When to play",

@@ -377,6 +377,10 @@
                         "when_to_display": "Khi nào hiển thị",
                         "desktop_notification_while_afk": "Desktop Notifications While AFK"
                     },
+                    "webhook": {
+                        "auth_events_enabled": "Gửi thông báo lỗi đăng nhập tự động",
+                        "auth_events_description": "Gửi thông báo khi VRCX-0 không thể tự động khôi phục đăng nhập nền bị ngắt."
+                    },
                     "text_to_speech": {
                         "header": "Text-To-Speech",
                         "when_to_play": "Thông báo TTS. khi nào báo",

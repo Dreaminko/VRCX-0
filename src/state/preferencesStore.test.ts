@@ -35,6 +35,18 @@ describe('preferencesStore normalizers', () => {
         ).toBe(true);
     });
 
+    it('keeps auth recovery webhook events enabled by default', () => {
+        expect(DEFAULT_PREFERENCES.webhookAuthEventsEnabled).toBe(true);
+        expect(normalizePreferenceSnapshot({}).webhookAuthEventsEnabled).toBe(
+            true
+        );
+        expect(
+            normalizePreferenceSnapshot({
+                webhookAuthEventsEnabled: false
+            }).webhookAuthEventsEnabled
+        ).toBe(false);
+    });
+
     it('keeps reduced motion and blur disabled by default', () => {
         expect(DEFAULT_PREFERENCES.reducedMotionAndBlur).toBe(false);
         expect(normalizePreferenceSnapshot({}).reducedMotionAndBlur).toBe(

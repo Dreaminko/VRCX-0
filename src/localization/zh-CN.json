@@ -2320,6 +2320,8 @@
                     "webhook": {
                         "header": "Webhook 通知",
                         "enabled": "启用 Webhook 投递",
+                        "auth_events_enabled": "自动登录失败时发送通知",
+                        "auth_events_description": "当 VRCX-0 后台掉线后无法自动重新登录时发送通知。",
                         "url": "Webhook URL",
                         "url_placeholder": "https://example.com/webhook",
                         "format": "载荷格式",

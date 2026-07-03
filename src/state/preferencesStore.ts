@@ -362,6 +362,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     hmdNotificationOpacity: 100,
     hmdNotificationPosition: 'bottom',
     webhookEnabled: false,
+    webhookAuthEventsEnabled: true,
     webhookUrl: '',
     webhookFormat: 'generic',
     wristOverlayEnabled: false,
@@ -545,6 +546,7 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
             next.hmdNotificationPosition
         ),
         webhookEnabled: normalizeBool(next.webhookEnabled),
+        webhookAuthEventsEnabled: normalizeBool(next.webhookAuthEventsEnabled),
         webhookUrl: String(next.webhookUrl || ''),
         webhookFormat: next.webhookFormat === 'discord' ? 'discord' : 'generic',
         wristOverlayEnabled: normalizeBool(next.wristOverlayEnabled),

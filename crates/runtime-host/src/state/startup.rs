@@ -141,6 +141,13 @@ impl RuntimeHostState {
             }
         };
 
+        self.start_authenticated_runtime_session(session).await
+    }
+
+    pub(super) async fn start_authenticated_runtime_session(
+        &self,
+        session: AuthenticatedRuntimeSession,
+    ) -> Result<BackendRuntimeSnapshot> {
         self.runtime_context
             .auth_scope
             .set(&session.user_id, &session.endpoint);

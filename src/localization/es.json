@@ -2307,6 +2307,8 @@
                     "webhook": {
                         "header": "Notificaciones por webhook",
                         "enabled": "Activar el envío por webhook",
+                        "auth_events_enabled": "Enviar notificaciones de fallo del inicio de sesión automático",
+                        "auth_events_description": "Envía una notificación cuando VRCX-0 no puede restaurar automáticamente una sesión en segundo plano interrumpida.",
                         "url": "URL del webhook",
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Formato del payload",

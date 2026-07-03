@@ -2316,6 +2316,8 @@
                     "webhook": {
                         "header": "Webhook 通知",
                         "enabled": "Webhook 配信を有効化",
+                        "auth_events_enabled": "自動ログイン失敗時に通知を送信",
+                        "auth_events_description": "VRCX-0 がバックグラウンドで切断されたログインを自動復旧できなかったときに通知を送信します。",
                         "url": "Webhook URL",
                         "url_placeholder": "https://example.com/webhook",
                         "format": "ペイロード形式",

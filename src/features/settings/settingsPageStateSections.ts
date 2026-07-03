@@ -17,6 +17,11 @@ import {
     translationProviderOptions
 } from './settingsOptions';
 import { normalizeCheckedState } from './settingsValues';
+import type { AvatarProviderConfig } from './useAvatarProviderConfig';
+import type {
+    SettingsDiscordPrefs,
+    SettingsIntegrationPrefs
+} from './useSettingsIntegrations';
 
 export type SettingsPagePrefs = ReturnType<typeof createDefaultSettingsPrefs> &
     Record<string, unknown>;
@@ -42,14 +47,17 @@ type SetSettingsPrefs = SettingsCallback<
 export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     activeSettingsTab: string;
     appDataDirState?: SettingsAppDataDirState | null;
+    avatarProviderConfig: AvatarProviderConfig;
     cacheStatsVisible: boolean;
     clearVrcxCache: SettingsCallback;
     commit: SettingsCallback<
         [action: SettingsAction, optimistic?: () => unknown]
     >;
     deleteAllScreenshotMetadata: SettingsCallback;
+    discordPrefs: SettingsDiscordPrefs;
     handleCropInstancePrintsChange: SettingsCallback<[boolean]>;
     handleGameLogDisabledChange: SettingsCallback<[boolean]>;
+    integrationPrefs: SettingsIntegrationPrefs;
     loading: boolean;
     migrateLegacyVrcxData: SettingsCallback;
     normalizeRecentActionCooldownMinutes: (value: unknown) => number;
@@ -122,6 +130,7 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     setHmdNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setTranslationApiEnabledPreference: SettingsCallback<[boolean]>;
     setVrNotificationsDialogOpen: SettingsCallback<[boolean]>;
+    setWebhookNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setWristFeedNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setYoutubeApiEnabledPreference: SettingsCallback<[boolean]>;
     setZoomInput: SettingsCallback<[unknown]>;

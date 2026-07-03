@@ -75,6 +75,7 @@ export function createDefaultSettingsPrefs() {
         hmdNotificationOpacity: 100,
         hmdNotificationPosition: 'bottom',
         webhookEnabled: false,
+        webhookAuthEventsEnabled: true,
         webhookUrl: '',
         webhookFormat: 'generic',
         webhookFields:

@@ -2320,6 +2320,8 @@
                     "webhook": {
                         "header": "Webhook 通知",
                         "enabled": "啟用 Webhook 傳送功能",
+                        "auth_events_enabled": "自動登入失敗時傳送通知",
+                        "auth_events_description": "當 VRCX-0 背景中斷後無法自動重新登入時傳送通知。",
                         "url": "Webhook 網址",
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Payload 格式",

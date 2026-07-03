@@ -2307,6 +2307,8 @@
                     "webhook": {
                         "header": "Notifications par webhook",
                         "enabled": "Activer l'envoi par webhook",
+                        "auth_events_enabled": "Envoyer des notifications d'échec de connexion automatique",
+                        "auth_events_description": "Envoie une notification lorsque VRCX-0 ne peut pas rétablir automatiquement une connexion en arrière-plan interrompue.",
                         "url": "URL du webhook",
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Format de la charge utile",

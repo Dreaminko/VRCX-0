@@ -46,6 +46,7 @@ impl TauriRuntimeEventSink {
 impl RuntimeEventSink for TauriRuntimeEventSink {
     fn emit(&self, event: &str, payload: serde_json::Value) {
         log_gui_background_runtime_info(&self.app_handle, event, &payload);
+        handle_runtime_auth_failure_recovery(&self.app_handle, event, &payload);
         handle_runtime_auth_failure_notification(&self.app_handle, event, &payload);
         let frontend_event = match event {
             "runtimeGameLogEvent" => "addGameLogEvent",
@@ -112,6 +113,24 @@ fn handle_runtime_auth_failure_notification(
     let user_id = snapshot.auth_user_id.trim().to_string();
     let notification_key = format!("{user_id}\n{reason}");
     show_auth_failure_notification_once(app_handle, &state, &notification_key);
+}
+
+fn handle_runtime_auth_failure_recovery(
+    app_handle: &tauri::AppHandle,
+    event: &str,
+    payload: &serde_json::Value,
+) {
+    if event != "realtimeWsStatus" || json_string_field(payload, "status") != "authFailure" {
+        return;
+    }
+    let reason = json_string_field(payload, "reason");
+    let app_handle = app_handle.clone();
+    tauri::async_runtime::spawn(async move {
+        let Some(state) = app_handle.try_state::<AppState>() else {
+            return;
+        };
+        state.recover_background_auth_after_failure(reason).await;
+    });
 }
 
 fn should_show_runtime_auth_failure_notification(

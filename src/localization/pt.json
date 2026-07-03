@@ -2307,6 +2307,8 @@
                     "webhook": {
                         "header": "Notificações por Webhook",
                         "enabled": "Ativar Envio por Webhook",
+                        "auth_events_enabled": "Enviar notificações de falha do login automático",
+                        "auth_events_description": "Envia uma notificação quando o VRCX-0 não consegue restaurar automaticamente um login em segundo plano interrompido.",
                         "url": "URL do Webhook",
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Formato do Payload",

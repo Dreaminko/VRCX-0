@@ -646,6 +646,10 @@
                         "when_to_display": "Kiedy wyświetlać",
                         "desktop_notification_while_afk": "Powiadomienia na pulpicie podczas AFK"
                     },
+                    "webhook": {
+                        "auth_events_enabled": "Wysyłaj powiadomienia o niepowodzeniu automatycznego logowania",
+                        "auth_events_description": "Wysyła powiadomienie, gdy VRCX-0 nie może automatycznie przywrócić zerwanego logowania w tle."
+                    },
                     "text_to_speech": {
                         "header": "Tekst-na-mowę",
                         "when_to_play": "Kiedy odtwarzać powiadomienia jako tekst-na-mowę",

@@ -80,9 +80,18 @@ type WebhookPayloadFieldsDialogProps = {
     onWebhookFieldsChange(value: string): void;
 };
 
+type WebhookSettingsPrefs = Record<string, unknown> & {
+    webhookAuthEventsEnabled?: boolean;
+    webhookEnabled?: boolean;
+    webhookFields?: unknown;
+    webhookFormat?: string;
+    webhookUrl?: string;
+};
+
 type WebhookSettingsGroupProps = {
-    prefs: any;
+    prefs: WebhookSettingsPrefs;
     onWebhookEnabledChange(value: boolean): void;
+    onWebhookAuthEventsEnabledChange(value: boolean): void;
     onWebhookUrlDraftChange(value: string): void;
     onWebhookUrlBlur(value: string): void;
     onWebhookFormatChange(value: string): void;
@@ -136,6 +145,7 @@ function updateWebhookFields(
 export function WebhookSettingsGroup({
     prefs,
     onWebhookEnabledChange,
+    onWebhookAuthEventsEnabledChange,
     onWebhookUrlDraftChange,
     onWebhookUrlBlur,
     onWebhookFormatChange,
@@ -144,6 +154,9 @@ export function WebhookSettingsGroup({
     onTestWebhook
 }: WebhookSettingsGroupProps) {
     const { t } = useTranslation();
+    const webhookControlsEnabled =
+        Boolean(prefs.webhookEnabled) ||
+        Boolean(prefs.webhookAuthEventsEnabled);
 
     return (
         <SettingsGroup
@@ -164,6 +177,20 @@ export function WebhookSettingsGroup({
 
             <Field
                 label={t(
+                    'view.settings.notifications.notifications.webhook.auth_events_enabled'
+                )}
+                description={t(
+                    'view.settings.notifications.notifications.webhook.auth_events_description'
+                )}
+            >
+                <Switch
+                    checked={Boolean(prefs.webhookAuthEventsEnabled)}
+                    onCheckedChange={onWebhookAuthEventsEnabledChange}
+                />
+            </Field>
+
+            <Field
+                label={t(
                     'view.settings.notifications.notifications.webhook.url'
                 )}
                 controlId="settings-webhook-url"
@@ -172,7 +199,7 @@ export function WebhookSettingsGroup({
                     id="settings-webhook-url"
                     className="w-full max-w-lg"
                     value={prefs.webhookUrl || ''}
-                    disabled={!prefs.webhookEnabled}
+                    disabled={!webhookControlsEnabled}
                     placeholder={t(
                         'view.settings.notifications.notifications.webhook.url_placeholder'
                     )}
@@ -191,7 +218,7 @@ export function WebhookSettingsGroup({
             >
                 <Select
                     value={prefs.webhookFormat || 'generic'}
-                    disabled={!prefs.webhookEnabled}
+                    disabled={!webhookControlsEnabled}
                     onValueChange={onWebhookFormatChange}
                 >
                     <div className="flex items-center gap-2">
@@ -259,7 +286,7 @@ export function WebhookSettingsGroup({
                     type="button"
                     variant="outline"
                     disabled={
-                        !prefs.webhookEnabled ||
+                        !webhookControlsEnabled ||
                         !String(prefs.webhookUrl || '').trim()
                     }
                     onClick={onTestWebhook}
@@ -432,7 +459,13 @@ function WebhookPayloadFieldsDialog({
     );
 }
 
-function WebhookExampleBlock({ title, value }: any) {
+function WebhookExampleBlock({
+    title,
+    value
+}: {
+    title: string;
+    value: string;
+}) {
     return (
         <section className="flex min-w-0 flex-col gap-2">
             <div className="text-sm font-medium">{title}</div>

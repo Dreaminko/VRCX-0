@@ -142,6 +142,7 @@ export async function loadPreferenceSnapshot() {
         hmdNotificationOpacity,
         hmdNotificationPosition,
         webhookEnabled,
+        webhookAuthEventsEnabled,
         webhookUrl,
         webhookFormat,
         wristOverlayEnabled,
@@ -263,6 +264,7 @@ export async function loadPreferenceSnapshot() {
         configRepository.getInt('hmdNotificationOpacity', 100),
         configRepository.getString('hmdNotificationPosition', 'bottom'),
         configRepository.getBool('webhookEnabled', false),
+        configRepository.getBool('webhookAuthEventsEnabled', true),
         configRepository.getString('webhookUrl', ''),
         configRepository.getString('webhookFormat', 'generic'),
         configRepository.getBool('wristOverlayEnabled', false),
@@ -456,6 +458,7 @@ export async function loadPreferenceSnapshot() {
             hmdNotificationPosition
         ),
         webhookEnabled: Boolean(webhookEnabled),
+        webhookAuthEventsEnabled: Boolean(webhookAuthEventsEnabled),
         webhookUrl: String(webhookUrl || ''),
         webhookFormat: webhookFormat === 'discord' ? 'discord' : 'generic',
         wristOverlayEnabled: Boolean(wristOverlayEnabled),

@@ -377,6 +377,10 @@
                         "when_to_display": "Mikor jelenjen meg",
                         "desktop_notification_while_afk": "Asztali értesítések AFK módban"
                     },
+                    "webhook": {
+                        "auth_events_enabled": "Automatikus bejelentkezési hiba értesítéseinek küldése",
+                        "auth_events_description": "Értesítést küld, amikor a VRCX-0 nem tudja automatikusan helyreállítani a megszakadt háttérbeli bejelentkezést."
+                    },
                     "text_to_speech": {
                         "header": "Szövegfelolvasás",
                         "when_to_play": "Értesítés felolvasása. Mikor játssza le",

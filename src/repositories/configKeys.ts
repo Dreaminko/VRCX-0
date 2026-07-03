@@ -160,6 +160,7 @@ export const ConfigKeys = defineConfigKeys({
     hmdNotificationOpacity: { type: 'int', default: 100 },
     hmdNotificationPosition: { type: 'string', default: 'bottom' },
     webhookEnabled: { type: 'bool', default: false },
+    webhookAuthEventsEnabled: { type: 'bool', default: true },
     webhookUrl: { type: 'string', default: '' },
     webhookFormat: { type: 'string', default: 'generic' },
     webhookFields: {

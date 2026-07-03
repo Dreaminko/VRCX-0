@@ -13,17 +13,51 @@ impl RuntimeHostState {
             ));
         }
 
+        self.authenticate_non_interactive_saved_user(last_user, None, snapshot)
+            .await
+    }
+
+    pub(super) async fn authenticate_non_interactive_for_saved_user(
+        &self,
+        user_id: &str,
+        endpoint: &str,
+    ) -> std::result::Result<AuthenticatedRuntimeSession, NonInteractiveAuthError> {
+        let user_id = user_id.trim();
+        if user_id.is_empty() {
+            return Err(NonInteractiveAuthError::Failed(
+                "No saved account is available for background login recovery.".into(),
+            ));
+        }
+        let snapshot = saved_snapshot(self.runtime_context.config())
+            .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))?;
+        self.authenticate_non_interactive_saved_user(
+            user_id.to_string(),
+            Some(endpoint.to_string()),
+            snapshot,
+        )
+        .await
+    }
+
+    async fn authenticate_non_interactive_saved_user(
+        &self,
+        user_id: String,
+        endpoint_override: Option<String>,
+        snapshot: serde_json::Value,
+    ) -> std::result::Result<AuthenticatedRuntimeSession, NonInteractiveAuthError> {
         let raw_saved_credentials = self
             .runtime_context
             .config()
             .get_json(SAVED_CREDENTIALS_KEY, serde_json::json!({}))
             .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))?;
-        let saved_record = raw_saved_credentials.get(&last_user).cloned();
-        let endpoint = saved_record
+        let saved_record = raw_saved_credentials.get(&user_id).cloned();
+        let saved_endpoint = saved_record
             .as_ref()
             .and_then(|record| record.get("loginParams"))
             .and_then(|login_params| string_field(login_params, "endpoint"))
             .unwrap_or_default();
+        let endpoint = endpoint_override
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or(saved_endpoint);
         let websocket = saved_record
             .as_ref()
             .and_then(|record| record.get("loginParams"))
@@ -33,7 +67,7 @@ impl RuntimeHostState {
         match probe_current_user_from_cookie(
             self.web.as_ref(),
             self.db.as_ref(),
-            last_user.clone(),
+            user_id.clone(),
             endpoint.clone(),
             websocket.clone(),
             false,
@@ -68,7 +102,7 @@ impl RuntimeHostState {
                 match probe_current_user_from_cookie(
                     self.web.as_ref(),
                     self.db.as_ref(),
-                    last_user.clone(),
+                    user_id.clone(),
                     endpoint.clone(),
                     websocket.clone(),
                     true,
@@ -111,7 +145,7 @@ impl RuntimeHostState {
             self.web.as_ref(),
             self.db.as_ref(),
             SavedCredentialLoginStartInput {
-                user_id: last_user.clone(),
+                user_id: user_id.clone(),
                 endpoint: endpoint.clone(),
             },
         )
@@ -119,7 +153,7 @@ impl RuntimeHostState {
         .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))?;
         if response.status == 403 {
             return Err(NonInteractiveAuthError::SessionInvalidated {
-                user_id: last_user.clone(),
+                user_id: user_id.clone(),
                 reason: auth_response_error_message(
                     &response,
                     format!(

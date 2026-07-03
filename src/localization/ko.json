@@ -2251,6 +2251,8 @@
                     "webhook": {
                         "header": "Webhook Notifications",
                         "enabled": "Enable Webhook Delivery",
+                        "auth_events_enabled": "자동 로그인 실패 시 알림 보내기",
+                        "auth_events_description": "VRCX-0이 백그라운드에서 끊어진 로그인을 자동으로 복구하지 못했을 때 알림을 보냅니다.",
                         "url": "Webhook URL",
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Payload Format",

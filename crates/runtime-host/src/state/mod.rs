@@ -63,6 +63,7 @@ use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
 mod auth_session;
 mod background;
+mod background_auth;
 mod background_ticks;
 mod capabilities;
 mod frontend_session;
@@ -178,6 +179,7 @@ pub struct RuntimeHostState {
     pub legacy_vrcx_migration_status: LegacyVrcxMigrationStatus,
     pub launched_from_autostart: bool,
     backend_starting: AtomicBool,
+    background_auth_recovery_running: Arc<AtomicBool>,
     registry_backup_maintenance_running: Arc<AtomicBool>,
     background_capabilities_running: Arc<AtomicBool>,
     background_group_instances_refresh_running: Arc<AtomicBool>,
@@ -347,6 +349,7 @@ impl RuntimeHostState {
             legacy_vrcx_migration_status,
             launched_from_autostart,
             backend_starting: AtomicBool::new(false),
+            background_auth_recovery_running: Arc::new(AtomicBool::new(false)),
             registry_backup_maintenance_running: Arc::new(AtomicBool::new(false)),
             background_capabilities_running: Arc::new(AtomicBool::new(false)),
             background_group_instances_refresh_running: Arc::new(AtomicBool::new(false)),

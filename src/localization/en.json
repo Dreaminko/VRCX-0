@@ -2320,6 +2320,8 @@
                     "webhook": {
                         "header": "Webhook Notifications",
                         "enabled": "Enable Webhook Delivery",
+                        "auth_events_enabled": "Send Automatic Login Failure Notifications",
+                        "auth_events_description": "Send a notification when VRCX-0 cannot automatically restore a dropped background login.",
                         "url": "Webhook URL",
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Payload Format",
