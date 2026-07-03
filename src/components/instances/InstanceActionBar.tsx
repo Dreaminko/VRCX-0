@@ -62,9 +62,7 @@ function ActionButton({
 
     return (
         <Tooltip>
-            <TooltipTrigger asChild>
-                <span>{button}</span>
-            </TooltipTrigger>
+            <TooltipTrigger render={<span>{button}</span>} />
             <TooltipContent>{label}</TooltipContent>
         </Tooltip>
     );
@@ -170,7 +168,7 @@ function InstanceInfoTooltip({
 
     return (
         <Tooltip>
-            <TooltipTrigger asChild>{children}</TooltipTrigger>
+            <TooltipTrigger render={children} />
             <TooltipContent className="max-w-sm text-xs">
                 <div className="flex flex-col gap-1.5">
                     {instance?.closedAt ? (

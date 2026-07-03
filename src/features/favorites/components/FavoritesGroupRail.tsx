@@ -56,18 +56,20 @@ function GroupMenu({
     if (group.source === 'history') {
         return (
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        type="button"
-                        size="icon-xs"
-                        variant="ghost"
-                        className="rounded-full"
-                        aria-label={t('common.actions.configure')}
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <EllipsisIcon data-icon="inline-start" />
-                    </Button>
-                </DropdownMenuTrigger>
+                <DropdownMenuTrigger
+                    render={
+                        <Button
+                            type="button"
+                            size="icon-xs"
+                            variant="ghost"
+                            className="rounded-full"
+                            aria-label={t('common.actions.configure')}
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <EllipsisIcon data-icon="inline-start" />
+                        </Button>
+                    }
+                />
                 <DropdownMenuContent
                     side="right"
                     align="start"
@@ -89,18 +91,20 @@ function GroupMenu({
     if (group.source === 'remote') {
         return (
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        type="button"
-                        size="icon-xs"
-                        variant="ghost"
-                        className="rounded-full"
-                        aria-label={t('common.actions.configure')}
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <MoreHorizontalIcon data-icon="inline-start" />
-                    </Button>
-                </DropdownMenuTrigger>
+                <DropdownMenuTrigger
+                    render={
+                        <Button
+                            type="button"
+                            size="icon-xs"
+                            variant="ghost"
+                            className="rounded-full"
+                            aria-label={t('common.actions.configure')}
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <MoreHorizontalIcon data-icon="inline-start" />
+                        </Button>
+                    }
+                />
                 <DropdownMenuContent
                     side="right"
                     align="start"
@@ -154,18 +158,20 @@ function GroupMenu({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    size="icon-xs"
-                    variant="ghost"
-                    className="rounded-full"
-                    aria-label={t('common.actions.configure')}
-                    onClick={(event) => event.stopPropagation()}
-                >
-                    <EllipsisIcon data-icon="inline-start" />
-                </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        size="icon-xs"
+                        variant="ghost"
+                        className="rounded-full"
+                        aria-label={t('common.actions.configure')}
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <EllipsisIcon data-icon="inline-start" />
+                    </Button>
+                }
+            />
             <DropdownMenuContent side="right" align="start" className="w-48">
                 <DropdownMenuGroup>
                     <DropdownMenuItem onSelect={() => onLocalRename(group)}>

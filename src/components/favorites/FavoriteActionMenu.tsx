@@ -374,32 +374,34 @@ export function FavoriteActionMenu({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    size={iconOnly ? 'icon-lg' : 'sm'}
-                    variant={
-                        iconOnly
-                            ? 'outline'
-                            : remoteFavorite
-                              ? 'default'
-                              : 'outline'
-                    }
-                    disabled={actionStatus !== 'idle'}
-                    aria-label={triggerLabel}
-                    title={triggerLabel}
-                >
-                    {actionStatus !== 'idle' ? (
-                        <Spinner data-icon="inline-start" />
-                    ) : (
-                        <HeartIcon
-                            data-icon="inline-start"
-                            className={favorited ? 'fill-current' : ''}
-                        />
-                    )}
-                    {iconOnly ? null : triggerLabel}
-                </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        size={iconOnly ? 'icon-lg' : 'sm'}
+                        variant={
+                            iconOnly
+                                ? 'outline'
+                                : remoteFavorite
+                                  ? 'default'
+                                  : 'outline'
+                        }
+                        disabled={actionStatus !== 'idle'}
+                        aria-label={triggerLabel}
+                        title={triggerLabel}
+                    >
+                        {actionStatus !== 'idle' ? (
+                            <Spinner data-icon="inline-start" />
+                        ) : (
+                            <HeartIcon
+                                data-icon="inline-start"
+                                className={favorited ? 'fill-current' : ''}
+                            />
+                        )}
+                        {iconOnly ? null : triggerLabel}
+                    </Button>
+                }
+            />
             <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuLabel>
                     {t('view.favorite.label.vrchat_favorites')}

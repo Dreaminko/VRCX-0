@@ -323,23 +323,25 @@ const FavoriteCard = memo(function FavoriteCard({
                 />
             ) : hasCardActions ? (
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            type="button"
-                            size="icon-sm"
-                            variant="ghost"
-                            className="rounded-full"
-                            aria-label={t('common.actions.configure')}
-                            disabled={removing}
-                            onClick={stopCardInteraction}
-                        >
-                            {removing ? (
-                                <Spinner data-icon="inline-start" />
-                            ) : (
-                                <MoreHorizontalIcon data-icon="inline-start" />
-                            )}
-                        </Button>
-                    </DropdownMenuTrigger>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                type="button"
+                                size="icon-sm"
+                                variant="ghost"
+                                className="rounded-full"
+                                aria-label={t('common.actions.configure')}
+                                disabled={removing}
+                                onClick={stopCardInteraction}
+                            >
+                                {removing ? (
+                                    <Spinner data-icon="inline-start" />
+                                ) : (
+                                    <MoreHorizontalIcon data-icon="inline-start" />
+                                )}
+                            </Button>
+                        }
+                    />
                     <DropdownMenuContent
                         align="end"
                         onClick={stopCardInteraction}

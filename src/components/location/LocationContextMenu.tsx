@@ -44,11 +44,13 @@ export function LocationContextMenu({
     return (
         <>
             <ContextMenu>
-                <ContextMenuTrigger asChild>
-                    <span className="inline-flex max-w-full min-w-0">
-                        {children}
-                    </span>
-                </ContextMenuTrigger>
+                <ContextMenuTrigger
+                    render={
+                        <span className="inline-flex max-w-full min-w-0">
+                            {children}
+                        </span>
+                    }
+                />
                 <ContextMenuContent className="w-56">
                     <ContextMenuGroup>
                         <ContextMenuItem

@@ -50,22 +50,24 @@ export function TitleBarButton({
 }: any) {
     return (
         <Tooltip>
-            <TooltipTrigger asChild>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size={size}
-                    aria-label={label}
-                    className={cn(
-                        'text-muted-foreground hover:bg-muted/40 hover:text-foreground',
-                        className
-                    )}
-                    onClick={onClick}
-                    {...props}
-                >
-                    {children}
-                </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size={size}
+                        aria-label={label}
+                        className={cn(
+                            'text-muted-foreground hover:bg-muted/40 hover:text-foreground',
+                            className
+                        )}
+                        onClick={onClick}
+                        {...props}
+                    >
+                        {children}
+                    </Button>
+                }
+            />
             <TooltipContent>{label}</TooltipContent>
         </Tooltip>
     );
@@ -271,29 +273,31 @@ export function useTitleBarActions(
             ) : null}
             <div className="flex min-w-0 shrink items-center gap-1">
                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="xs"
-                            aria-label={formatTitleBarShortcutLabel(
-                                quickSearchLabel,
-                                quickSearchShortcutLabel
-                            )}
-                            className="bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground h-6 min-w-7 justify-start rounded-md border-0 px-2 shadow-none min-[640px]:w-44 min-[960px]:w-56"
-                            onClick={openQuickSearch}
-                        >
-                            <SearchIcon data-icon="inline-start" />
-                            <span className="hidden min-w-0 truncate min-[640px]:block">
-                                {quickSearchLabel}
-                            </span>
-                            <KeyboardShortcut
-                                keys={[isMacHost ? 'Meta' : 'Mod', 'K']}
-                                kbdClassName={SHORTCUT_KBD_CLASS}
-                                className="ml-auto hidden gap-0.5 min-[760px]:inline-flex"
-                            />
-                        </Button>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                        render={
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="xs"
+                                aria-label={formatTitleBarShortcutLabel(
+                                    quickSearchLabel,
+                                    quickSearchShortcutLabel
+                                )}
+                                className="bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground h-6 min-w-7 justify-start rounded-md border-0 px-2 shadow-none min-[640px]:w-44 min-[960px]:w-56"
+                                onClick={openQuickSearch}
+                            >
+                                <SearchIcon data-icon="inline-start" />
+                                <span className="hidden min-w-0 truncate min-[640px]:block">
+                                    {quickSearchLabel}
+                                </span>
+                                <KeyboardShortcut
+                                    keys={[isMacHost ? 'Meta' : 'Mod', 'K']}
+                                    kbdClassName={SHORTCUT_KBD_CLASS}
+                                    className="ml-auto hidden gap-0.5 min-[760px]:inline-flex"
+                                />
+                            </Button>
+                        }
+                    />
                     <TooltipContent>
                         {formatTitleBarShortcutLabel(
                             quickSearchLabel,
@@ -315,9 +319,7 @@ export function useTitleBarActions(
             {notificationActionVisible ? (
                 vrcUnseenNotificationCount > 0 ? (
                     <ContextMenu>
-                        <ContextMenuTrigger asChild>
-                            {notificationButton}
-                        </ContextMenuTrigger>
+                        <ContextMenuTrigger render={notificationButton} />
                         <ContextMenuContent className="w-48">
                             <ContextMenuGroup>
                                 <ContextMenuItem

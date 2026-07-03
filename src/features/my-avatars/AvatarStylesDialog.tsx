@@ -313,7 +313,9 @@ export function AvatarStylesDialog({
                             value={primaryStyle || CLEAR_STYLE_VALUE}
                             onValueChange={(value) =>
                                 setPrimaryStyle(
-                                    value === CLEAR_STYLE_VALUE ? '' : value
+                                    value === CLEAR_STYLE_VALUE
+                                        ? ''
+                                        : (value ?? '')
                                 )
                             }
                         >
@@ -349,7 +351,9 @@ export function AvatarStylesDialog({
                             value={secondaryStyle || CLEAR_STYLE_VALUE}
                             onValueChange={(value) =>
                                 setSecondaryStyle(
-                                    value === CLEAR_STYLE_VALUE ? '' : value
+                                    value === CLEAR_STYLE_VALUE
+                                        ? ''
+                                        : (value ?? '')
                                 )
                             }
                         >

@@ -168,18 +168,20 @@ function NavMenuFolderItem({
             >
                 <SidebarMenuItem>
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuButton
-                                isActive={Boolean(isActive)}
-                                tooltip={label}
-                            >
-                                <NotifiedNavIcon
-                                    entry={item}
-                                    isNotified={isNotified}
-                                />
-                                <span>{label}</span>
-                            </SidebarMenuButton>
-                        </DropdownMenuTrigger>
+                        <DropdownMenuTrigger
+                            render={
+                                <SidebarMenuButton
+                                    isActive={Boolean(isActive)}
+                                    tooltip={label}
+                                >
+                                    <NotifiedNavIcon
+                                        entry={item}
+                                        isNotified={isNotified}
+                                    />
+                                    <span>{label}</span>
+                                </SidebarMenuButton>
+                            }
+                        />
                         <DropdownMenuContent
                             side="right"
                             align="start"
@@ -316,7 +318,7 @@ function NavMenuEntryItem({
         >
             <SidebarMenuItem>
                 <SidebarMenuButton
-                    asChild={Boolean(itemPath)}
+                    render={itemPath ? <NavLink to={itemPath} /> : undefined}
                     isActive={item.index === activeIndex}
                     tooltip={labelForEntry(item, t)}
                     className={
@@ -332,29 +334,11 @@ function NavMenuEntryItem({
                               }
                     }
                 >
-                    {itemPath ? (
-                        <NavLink to={itemPath}>
-                            <NotifiedNavIcon
-                                entry={item}
-                                isNotified={isNavItemNotified(
-                                    item,
-                                    notifiedKeys
-                                )}
-                            />
-                            <span>{labelForEntry(item, t)}</span>
-                        </NavLink>
-                    ) : (
-                        <>
-                            <NotifiedNavIcon
-                                entry={item}
-                                isNotified={isNavItemNotified(
-                                    item,
-                                    notifiedKeys
-                                )}
-                            />
-                            <span>{labelForEntry(item, t)}</span>
-                        </>
-                    )}
+                    <NotifiedNavIcon
+                        entry={item}
+                        isNotified={isNavItemNotified(item, notifiedKeys)}
+                    />
+                    <span>{labelForEntry(item, t)}</span>
                 </SidebarMenuButton>
                 <DashboardEntryAction
                     entry={item}

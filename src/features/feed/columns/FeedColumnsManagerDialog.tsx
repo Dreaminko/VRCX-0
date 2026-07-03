@@ -313,7 +313,8 @@ export function FeedColumnsManagerDialog({
                                     value={resolveScopeSelectValue(
                                         selectedColumn.friendScope
                                     )}
-                                    onValueChange={(value) => {
+                                    onValueChange={(rawValue) => {
+                                        const value = rawValue ?? '';
                                         if (value === 'all') {
                                             updateSelectedColumn({
                                                 friendScope:
@@ -392,7 +393,8 @@ export function FeedColumnsManagerDialog({
                                     value={resolveExcludedFavoriteGroupSelectValue(
                                         selectedColumn.friendScope
                                     )}
-                                    onValueChange={(value) => {
+                                    onValueChange={(rawValue) => {
+                                        const value = rawValue ?? '';
                                         if (value === 'exclude-all') {
                                             updateSelectedColumn({
                                                 friendScope:
@@ -585,11 +587,13 @@ export function FeedColumnsManagerDialog({
                         <RotateCcwIcon data-icon="inline-start" />
                         {t('view.feed.columns.restore_preset')}
                     </Button>
-                    <DialogClose asChild>
-                        <Button type="button">
-                            {t('common.actions.save')}
-                        </Button>
-                    </DialogClose>
+                    <DialogClose
+                        render={
+                            <Button type="button">
+                                {t('common.actions.save')}
+                            </Button>
+                        }
+                    />
                 </DialogFooter>
             </DialogContent>
             <AlertDialog

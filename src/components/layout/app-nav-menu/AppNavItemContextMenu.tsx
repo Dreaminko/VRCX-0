@@ -63,7 +63,7 @@ function DashboardEntryAction({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+            <DropdownMenuTrigger render={trigger} />
             <DropdownMenuContent side="right" align="start" className="w-48">
                 <DropdownMenuGroup>
                     {isDashboard ? (
@@ -122,7 +122,7 @@ function NavItemContextMenu({
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+            <ContextMenuTrigger render={children} />
             <ContextMenuContent className="w-56">
                 {hasNotifications ? (
                     <ContextMenuGroup>

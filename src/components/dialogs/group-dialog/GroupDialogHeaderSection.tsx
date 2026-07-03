@@ -169,16 +169,18 @@ export function GroupDialogHeaderSection(props: any) {
                     <CardTitle className="flex min-w-0 flex-wrap items-center gap-1.5 text-lg leading-tight">
                         {onCopyGroupName && group.name ? (
                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
-                                        onClick={onCopyGroupName}
-                                    >
-                                        {groupTitle}
-                                    </Button>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                    render={
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
+                                            onClick={onCopyGroupName}
+                                        >
+                                            {groupTitle}
+                                        </Button>
+                                    }
+                                />
                                 <TooltipContent>
                                     {t('common.actions.copy')}
                                 </TooltipContent>
@@ -200,20 +202,22 @@ export function GroupDialogHeaderSection(props: any) {
                     ) : null}
                     {group.ownerId ? (
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="text-muted-foreground hover:text-primary h-auto max-w-full justify-start gap-1 p-0 text-xs font-normal"
-                                    onClick={onOpenOwner}
-                                >
-                                    <UserIcon data-icon="inline-start" />
-                                    <span className="truncate">
-                                        {t('dialog.group.label.owner')}{' '}
-                                        {ownerLinkLabel}
-                                    </span>
-                                </Button>
-                            </TooltipTrigger>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="text-muted-foreground hover:text-primary h-auto max-w-full justify-start gap-1 p-0 text-xs font-normal"
+                                        onClick={onOpenOwner}
+                                    >
+                                        <UserIcon data-icon="inline-start" />
+                                        <span className="truncate">
+                                            {t('dialog.group.label.owner')}{' '}
+                                            {ownerLinkLabel}
+                                        </span>
+                                    </Button>
+                                }
+                            />
                             <TooltipContent>
                                 {t(
                                     'dialog.group.action.open_group_owner_profile'

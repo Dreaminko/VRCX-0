@@ -112,14 +112,16 @@ function GroupAnnouncementPanel({ group, onPreviewImage, onOpenUser }: any) {
             <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                 {roleNames.length ? (
                     <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Badge variant="outline" className="max-w-full">
-                                <EyeIcon data-icon="inline-start" />
-                                <span className="truncate">
-                                    {roleNames.join(', ')}
-                                </span>
-                            </Badge>
-                        </TooltipTrigger>
+                        <TooltipTrigger
+                            render={
+                                <Badge variant="outline" className="max-w-full">
+                                    <EyeIcon data-icon="inline-start" />
+                                    <span className="truncate">
+                                        {roleNames.join(', ')}
+                                    </span>
+                                </Badge>
+                            }
+                        />
                         <TooltipContent>{roleNames.join(', ')}</TooltipContent>
                     </Tooltip>
                 ) : null}
@@ -594,7 +596,9 @@ export function GroupDialogTabPanels(props: any) {
                     </Button>
                     <Select
                         value={memberSort}
-                        onValueChange={onMemberSortChange}
+                        onValueChange={(value) =>
+                            onMemberSortChange(value ?? '')
+                        }
                         disabled={remoteStatus.members === 'running'}
                     >
                         <SelectTrigger size="sm" className="w-44">
@@ -621,7 +625,9 @@ export function GroupDialogTabPanels(props: any) {
                     </Select>
                     <Select
                         value={memberRoleId || 'all'}
-                        onValueChange={onMemberRoleChange}
+                        onValueChange={(value) =>
+                            onMemberRoleChange(value ?? '')
+                        }
                         disabled={remoteStatus.members === 'running'}
                     >
                         <SelectTrigger size="sm" className="w-48">

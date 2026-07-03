@@ -736,18 +736,20 @@ export function InstanceHistoryPage({
                         open={targetPickerOpen}
                         onOpenChange={setTargetPickerOpen}
                     >
-                        <PopoverTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="max-w-xl min-w-64 flex-1 justify-between"
-                            >
-                                <span className="truncate">
-                                    {activeUserLabel}
-                                </span>
-                                <ChevronsUpDownIcon className="text-muted-foreground size-4" />
-                            </Button>
-                        </PopoverTrigger>
+                        <PopoverTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="max-w-xl min-w-64 flex-1 justify-between"
+                                >
+                                    <span className="truncate">
+                                        {activeUserLabel}
+                                    </span>
+                                    <ChevronsUpDownIcon className="text-muted-foreground size-4" />
+                                </Button>
+                            }
+                        />
                         <PopoverContent align="start" className="w-96 p-2">
                             <div className="flex flex-col gap-2">
                                 <Input
@@ -803,11 +805,11 @@ export function InstanceHistoryPage({
                         </Button>
                     ) : null}
                     <ToggleGroup
-                        type="single"
-                        value={mode}
-                        onValueChange={(value: string) => {
-                            if (value) {
-                                changeMode(value);
+                        value={mode ? [mode] : []}
+                        onValueChange={(value) => {
+                            const next = value[0];
+                            if (next) {
+                                changeMode(next);
                             }
                         }}
                         className="shrink-0"

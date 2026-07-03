@@ -63,7 +63,10 @@ function FavoritesToolbar({
 
     return (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <Select value={sortValue} onValueChange={onSortValueChange}>
+            <Select
+                value={sortValue}
+                onValueChange={(value) => onSortValueChange(value ?? '')}
+            >
                 <SelectTrigger size="sm" className="min-w-48">
                     <span className="flex items-center gap-2">
                         <ArrowUpDownIcon className="size-4" />
@@ -153,17 +156,19 @@ function FavoritesToolbar({
                 </Button>
 
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            type="button"
-                            size="icon-sm"
-                            variant="ghost"
-                            className="rounded-full"
-                            aria-label={t('common.actions.configure')}
-                        >
-                            <EllipsisIcon data-icon="inline-start" />
-                        </Button>
-                    </DropdownMenuTrigger>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                type="button"
+                                size="icon-sm"
+                                variant="ghost"
+                                className="rounded-full"
+                                aria-label={t('common.actions.configure')}
+                            >
+                                <EllipsisIcon data-icon="inline-start" />
+                            </Button>
+                        }
+                    />
                     <DropdownMenuContent align="end" className="w-56">
                         <FieldGroup
                             className="gap-3 px-3 py-2"
@@ -184,7 +189,11 @@ function FavoritesToolbar({
                                     step={CARD_SCALE_SLIDER.step}
                                     value={[cardScale]}
                                     onValueChange={(value) =>
-                                        onCardScaleChange(value[0])
+                                        onCardScaleChange(
+                                            Array.isArray(value)
+                                                ? value[0]
+                                                : value
+                                        )
                                     }
                                 />
                             </Field>
@@ -203,7 +212,11 @@ function FavoritesToolbar({
                                     step={CARD_SPACING_SLIDER.step}
                                     value={[cardSpacing]}
                                     onValueChange={(value) =>
-                                        onCardSpacingChange(value[0])
+                                        onCardSpacingChange(
+                                            Array.isArray(value)
+                                                ? value[0]
+                                                : value
+                                        )
                                     }
                                 />
                             </Field>

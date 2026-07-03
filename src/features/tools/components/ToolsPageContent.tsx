@@ -162,21 +162,23 @@ function ToolItem({
                 </Button>
             ) : (
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            type="button"
-                            size="icon-xs"
-                            variant="ghost"
-                            className="text-muted-foreground absolute top-2 right-2 size-7"
-                            aria-label={actionsLabel}
-                            onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                            }}
-                        >
-                            <MoreHorizontalIcon data-icon="inline-start" />
-                        </Button>
-                    </DropdownMenuTrigger>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                type="button"
+                                size="icon-xs"
+                                variant="ghost"
+                                className="text-muted-foreground absolute top-2 right-2 size-7"
+                                aria-label={actionsLabel}
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }}
+                            >
+                                <MoreHorizontalIcon data-icon="inline-start" />
+                            </Button>
+                        }
+                    />
                     <DropdownMenuContent align="end" className="w-52">
                         <DropdownMenuGroup>
                             <DropdownMenuItem

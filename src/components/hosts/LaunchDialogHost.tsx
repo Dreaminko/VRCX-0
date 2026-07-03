@@ -462,20 +462,22 @@ export function LaunchDialogHost() {
                                     : primaryLabel}
                             </Button>
                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        disabled={
-                                            !canUseResolvedInstance ||
-                                            Boolean(busy)
-                                        }
-                                        className="border-primary-foreground/25 rounded-l-none border-l"
-                                        aria-label={'More launch options'}
-                                    >
-                                        <MoreHorizontalIcon data-icon="inline-start" />
-                                    </Button>
-                                </DropdownMenuTrigger>
+                                <DropdownMenuTrigger
+                                    render={
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            disabled={
+                                                !canUseResolvedInstance ||
+                                                Boolean(busy)
+                                            }
+                                            className="border-primary-foreground/25 rounded-l-none border-l"
+                                            aria-label={'More launch options'}
+                                        >
+                                            <MoreHorizontalIcon data-icon="inline-start" />
+                                        </Button>
+                                    }
+                                />
                                 <DropdownMenuContent
                                     align="end"
                                     className="w-48"

@@ -53,7 +53,9 @@ export function VrchatLogToolbar({
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                     <Select
                         value={selectedFileName}
-                        onValueChange={setSelectedFileName}
+                        onValueChange={(value) =>
+                            setSelectedFileName(value ?? '')
+                        }
                         disabled={isFilesLoading || !files.length}
                     >
                         <SelectTrigger className="h-9 max-w-[760px] min-w-[360px] flex-1">
@@ -165,21 +167,23 @@ export function VrchatLogToolbar({
                 </div>
 
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="h-9 min-w-44 justify-between"
-                        >
-                            <span className="truncate">
-                                {categoryButtonLabel}
-                            </span>
-                            <ChevronRightIcon
-                                data-icon="inline-end"
-                                className="text-muted-foreground rotate-90"
-                            />
-                        </Button>
-                    </DropdownMenuTrigger>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="h-9 min-w-44 justify-between"
+                            >
+                                <span className="truncate">
+                                    {categoryButtonLabel}
+                                </span>
+                                <ChevronRightIcon
+                                    data-icon="inline-end"
+                                    className="text-muted-foreground rotate-90"
+                                />
+                            </Button>
+                        }
+                    />
                     <DropdownMenuContent align="end" className="w-72">
                         <DropdownMenuGroup>
                             <DropdownMenuItem

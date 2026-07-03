@@ -108,7 +108,10 @@ export function TranslationApiDialog({
                         <Select
                             value={translationDraft.bioLanguage || 'en'}
                             onValueChange={(value) =>
-                                setTranslationDraftValue('bioLanguage', value)
+                                setTranslationDraftValue(
+                                    'bioLanguage',
+                                    value ?? ''
+                                )
                             }
                         >
                             <SelectTrigger
@@ -137,7 +140,7 @@ export function TranslationApiDialog({
                             onValueChange={(value) => {
                                 setTranslationDraftValue(
                                     'translationAPIType',
-                                    value
+                                    value ?? ''
                                 );
                                 if (
                                     value === 'openai' &&
@@ -191,7 +194,7 @@ export function TranslationApiDialog({
                                     onValueChange={(value) => {
                                         setTranslationDraftValue(
                                             'translationEndpointId',
-                                            value
+                                            value ?? ''
                                         );
                                         const endpoint = endpoints.find(
                                             (item) => item.id === value
@@ -207,7 +210,7 @@ export function TranslationApiDialog({
                                                 endpoint.models[0]
                                             );
                                         }
-                                        fetchTranslationModels(value);
+                                        fetchTranslationModels(value ?? '');
                                     }}
                                 >
                                     <SelectTrigger
@@ -247,7 +250,7 @@ export function TranslationApiDialog({
                                         onValueChange={(value) =>
                                             setTranslationDraftValue(
                                                 'translationAPIModel',
-                                                value
+                                                value ?? ''
                                             )
                                         }
                                         onOpenChange={(open) => {

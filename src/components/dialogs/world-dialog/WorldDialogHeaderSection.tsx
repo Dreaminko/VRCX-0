@@ -121,19 +121,23 @@ function WorldOverviewFacts({
                             {compactWorldId(world.id)}
                         </span>
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    aria-label={t('dialog.world.info.copy_id')}
-                                    size="icon-xs"
-                                    variant="ghost"
-                                    onClick={() => {
-                                        onCopyWorldId?.();
-                                    }}
-                                >
-                                    <CopyIcon data-icon="inline-start" />
-                                </Button>
-                            </TooltipTrigger>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        aria-label={t(
+                                            'dialog.world.info.copy_id'
+                                        )}
+                                        size="icon-xs"
+                                        variant="ghost"
+                                        onClick={() => {
+                                            onCopyWorldId?.();
+                                        }}
+                                    >
+                                        <CopyIcon data-icon="inline-start" />
+                                    </Button>
+                                }
+                            />
                             <TooltipContent>
                                 {t('dialog.world.info.copy_id')}
                             </TooltipContent>
@@ -151,35 +155,43 @@ function WorldOverviewFacts({
                             {compactUrl(worldUrl)}
                         </span>
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    aria-label={t('common.actions.open_link')}
-                                    size="icon-xs"
-                                    variant="ghost"
-                                    onClick={onOpenWorldPage}
-                                >
-                                    <ExternalLinkIcon data-icon="inline-start" />
-                                </Button>
-                            </TooltipTrigger>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        aria-label={t(
+                                            'common.actions.open_link'
+                                        )}
+                                        size="icon-xs"
+                                        variant="ghost"
+                                        onClick={onOpenWorldPage}
+                                    >
+                                        <ExternalLinkIcon data-icon="inline-start" />
+                                    </Button>
+                                }
+                            />
                             <TooltipContent>
                                 {t('common.actions.open_link')}
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    aria-label={t('dialog.world.info.copy_url')}
-                                    size="icon-xs"
-                                    variant="ghost"
-                                    onClick={() => {
-                                        onCopyWorldUrl?.();
-                                    }}
-                                >
-                                    <CopyIcon data-icon="inline-start" />
-                                </Button>
-                            </TooltipTrigger>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        aria-label={t(
+                                            'dialog.world.info.copy_url'
+                                        )}
+                                        size="icon-xs"
+                                        variant="ghost"
+                                        onClick={() => {
+                                            onCopyWorldUrl?.();
+                                        }}
+                                    >
+                                        <CopyIcon data-icon="inline-start" />
+                                    </Button>
+                                }
+                            />
                             <TooltipContent>
                                 {t('dialog.world.info.copy_url')}
                             </TooltipContent>
@@ -496,21 +508,23 @@ export function WorldDialogOverviewSection(props: any) {
                         <HomeIcon className="mt-0.5 size-5 shrink-0" />
                     ) : null}
                     <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                disabled={!world.name}
-                                className="hover:text-primary h-auto min-w-0 flex-1 justify-start overflow-hidden p-0 text-left text-lg leading-tight font-semibold whitespace-normal disabled:pointer-events-none disabled:opacity-100"
-                                onClick={
-                                    world.name ? onCopyWorldName : undefined
-                                }
-                            >
-                                <span className="line-clamp-2 min-w-0 break-all">
-                                    {world.name || 'World'}
-                                </span>
-                            </Button>
-                        </TooltipTrigger>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled={!world.name}
+                                    className="hover:text-primary h-auto min-w-0 flex-1 justify-start overflow-hidden p-0 text-left text-lg leading-tight font-semibold whitespace-normal disabled:pointer-events-none disabled:opacity-100"
+                                    onClick={
+                                        world.name ? onCopyWorldName : undefined
+                                    }
+                                >
+                                    <span className="line-clamp-2 min-w-0 break-all">
+                                        {world.name || 'World'}
+                                    </span>
+                                </Button>
+                            }
+                        />
                         <TooltipContent>
                             {t('common.actions.copy')}
                         </TooltipContent>
@@ -610,25 +624,27 @@ export function WorldDialogOverviewSection(props: any) {
                             {visibleDescription}
                         </div>
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    size="icon-xs"
-                                    variant="ghost"
-                                    className="absolute top-0 right-0"
-                                    disabled={descriptionTranslationLoading}
-                                    aria-label={descriptionActionLabel}
-                                    onClick={() => {
-                                        toggleDescriptionTranslation();
-                                    }}
-                                >
-                                    {descriptionTranslationLoading ? (
-                                        <Spinner data-icon="inline-start" />
-                                    ) : (
-                                        <LanguagesIcon data-icon="inline-start" />
-                                    )}
-                                </Button>
-                            </TooltipTrigger>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        size="icon-xs"
+                                        variant="ghost"
+                                        className="absolute top-0 right-0"
+                                        disabled={descriptionTranslationLoading}
+                                        aria-label={descriptionActionLabel}
+                                        onClick={() => {
+                                            toggleDescriptionTranslation();
+                                        }}
+                                    >
+                                        {descriptionTranslationLoading ? (
+                                            <Spinner data-icon="inline-start" />
+                                        ) : (
+                                            <LanguagesIcon data-icon="inline-start" />
+                                        )}
+                                    </Button>
+                                }
+                            />
                             <TooltipContent>
                                 {descriptionActionLabel}
                             </TooltipContent>

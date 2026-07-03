@@ -92,7 +92,9 @@ export function SettingsNotificationsTab({
                 >
                     <Select
                         value={prefs.notificationLayout}
-                        onValueChange={onNotificationLayoutChange}
+                        onValueChange={(value) =>
+                            onNotificationLayoutChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-notification-layout"
@@ -184,7 +186,9 @@ export function SettingsNotificationsTab({
                 >
                     <Select
                         value={prefs.desktopToast}
-                        onValueChange={onDesktopToastChange}
+                        onValueChange={(value) =>
+                            onDesktopToastChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-desktop-toast"
@@ -255,7 +259,9 @@ export function SettingsNotificationsTab({
                 >
                     <Select
                         value={prefs.notificationTTS}
-                        onValueChange={onNotificationTtsModeChange}
+                        onValueChange={(value) =>
+                            onNotificationTtsModeChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-notification-tts"
@@ -289,7 +295,9 @@ export function SettingsNotificationsTab({
                             prefs.notificationTTS === 'Never' ||
                             !ttsVoices.length
                         }
-                        onValueChange={onNotificationTtsVoiceChange}
+                        onValueChange={(value) =>
+                            onNotificationTtsVoiceChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-notification-tts-voice"

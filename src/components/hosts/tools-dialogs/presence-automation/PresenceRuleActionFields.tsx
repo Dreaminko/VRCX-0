@@ -67,7 +67,7 @@ export function PresenceRuleActionFields({
                     <Select
                         value={status || 'no-change'}
                         disabled={disabled}
-                        onValueChange={onStatusChange}
+                        onValueChange={(value) => onStatusChange(value ?? '')}
                     >
                         <SelectTrigger id={statusId}>
                             <SelectValue />

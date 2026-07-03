@@ -303,7 +303,9 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                 >
                     <Select
                         value={prefs.defaultLaunchMode}
-                        onValueChange={onDefaultLaunchModeChange}
+                        onValueChange={(value) =>
+                            onDefaultLaunchModeChange(value ?? '')
+                        }
                     >
                         <SelectTrigger className="w-44">
                             <SelectValue />

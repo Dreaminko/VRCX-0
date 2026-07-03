@@ -1,5 +1,5 @@
 import { ChevronDownIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
@@ -20,12 +20,7 @@ import {
     InputGroupButton,
     InputGroupInput
 } from '@/ui/shadcn/input-group';
-import {
-    Popover,
-    PopoverAnchor,
-    PopoverContent,
-    PopoverTrigger
-} from '@/ui/shadcn/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import {
     Select,
     SelectContent,
@@ -137,6 +132,7 @@ export function WorldNewInstanceDialog({
     });
     const [legacySeed, setLegacySeed] = useState('00001');
     const [displayNamePresetsOpen, setDisplayNamePresetsOpen] = useState(false);
+    const displayNameAnchorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (open && request?.defaults) {
@@ -507,23 +503,21 @@ export function WorldNewInstanceDialog({
                                     open={displayNamePresetsOpen}
                                     onOpenChange={setDisplayNamePresetsOpen}
                                 >
-                                    <PopoverAnchor asChild>
-                                        <InputGroup>
-                                            <InputGroupInput
-                                                id="world-instance-display-name"
-                                                value={form.displayName}
-                                                disabled={Boolean(
-                                                    request?.created
-                                                )}
-                                                onChange={(event) =>
-                                                    patchDisplayName(
-                                                        event.target.value
-                                                    )
-                                                }
-                                            />
-                                            {displayNamePresets.length ? (
-                                                <InputGroupAddon align="inline-end">
-                                                    <PopoverTrigger asChild>
+                                    <InputGroup ref={displayNameAnchorRef}>
+                                        <InputGroupInput
+                                            id="world-instance-display-name"
+                                            value={form.displayName}
+                                            disabled={Boolean(request?.created)}
+                                            onChange={(event) =>
+                                                patchDisplayName(
+                                                    event.target.value
+                                                )
+                                            }
+                                        />
+                                        {displayNamePresets.length ? (
+                                            <InputGroupAddon align="inline-end">
+                                                <PopoverTrigger
+                                                    render={
                                                         <InputGroupButton
                                                             size="icon-xs"
                                                             aria-label={t(
@@ -535,14 +529,15 @@ export function WorldNewInstanceDialog({
                                                         >
                                                             <ChevronDownIcon data-icon="inline-start" />
                                                         </InputGroupButton>
-                                                    </PopoverTrigger>
-                                                </InputGroupAddon>
-                                            ) : null}
-                                        </InputGroup>
-                                    </PopoverAnchor>
+                                                    }
+                                                />
+                                            </InputGroupAddon>
+                                        ) : null}
+                                    </InputGroup>
                                     {displayNamePresets.length ? (
                                         <PopoverContent
                                             align="start"
+                                            anchor={displayNameAnchorRef}
                                             className="w-80 p-1"
                                         >
                                             <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">

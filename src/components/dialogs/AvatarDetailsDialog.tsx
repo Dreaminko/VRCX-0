@@ -322,7 +322,7 @@ export function AvatarDetailsDialog({
                                 disabled={controlsDisabled}
                                 onValueChange={(value) =>
                                     setPrimaryStyle(
-                                        value === noneValue ? '' : value
+                                        value === noneValue ? '' : (value ?? '')
                                     )
                                 }
                             >
@@ -359,7 +359,7 @@ export function AvatarDetailsDialog({
                                 disabled={controlsDisabled}
                                 onValueChange={(value) =>
                                     setSecondaryStyle(
-                                        value === noneValue ? '' : value
+                                        value === noneValue ? '' : (value ?? '')
                                     )
                                 }
                             >

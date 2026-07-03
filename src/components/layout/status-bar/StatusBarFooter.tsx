@@ -5,7 +5,7 @@ import {
     NetworkIcon,
     PlusIcon
 } from 'lucide-react';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ProxySettingsEditor } from '@/components/proxy/ProxySettingsEditor';
@@ -19,7 +19,6 @@ import type { VrcStatusState } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Popover,
-    PopoverAnchor,
     PopoverContent,
     PopoverDescription,
     PopoverHeader,
@@ -295,6 +294,7 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
         } = footer;
         const { t } = useTranslation();
         const [zoomPopoverOpen, setZoomPopoverOpen] = useState(false);
+        const proxyAnchorRef = useRef<HTMLSpanElement>(null);
         const instanceQueueActive = Boolean(
             instanceQueue?.active && instanceQueue?.instanceLocation
         );
@@ -521,20 +521,22 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                         />
                         {visibility.ws ? (
                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div className="-ml-px flex h-6 shrink-0 items-center gap-1.5 border-x px-2">
-                                        <StatusDot
-                                            active={Boolean(
-                                                runtimeTransport.websocketConnected
-                                            )}
-                                        />
-                                        <span className="text-muted-foreground text-xs">
-                                            {t(
-                                                'status_bar.realtime_connection'
-                                            )}
-                                        </span>
-                                    </div>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                    render={
+                                        <div className="-ml-px flex h-6 shrink-0 items-center gap-1.5 border-x px-2">
+                                            <StatusDot
+                                                active={Boolean(
+                                                    runtimeTransport.websocketConnected
+                                                )}
+                                            />
+                                            <span className="text-muted-foreground text-xs">
+                                                {t(
+                                                    'status_bar.realtime_connection'
+                                                )}
+                                            </span>
+                                        </div>
+                                    }
+                                />
                                 <TooltipContent className="flex max-w-xs flex-col gap-1 text-xs">
                                     <span>
                                         {t('view.login.field.websocket')}{' '}
@@ -583,23 +585,25 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                           onSetClockPopoverValue(index, open)
                                       }
                                   >
-                                      <PopoverTrigger asChild>
-                                          <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              className="text-muted-foreground hover:text-muted-foreground h-6 gap-1.5 rounded-none border-r px-2 text-xs font-normal tabular-nums"
-                                          >
-                                              <ClockIcon
-                                                  data-icon="inline-start"
-                                                  className="text-muted-foreground"
-                                              />
-                                              <ClockValue
-                                                  formatter={formatClock}
-                                                  offset={clock.offset}
-                                              />
-                                          </Button>
-                                      </PopoverTrigger>
+                                      <PopoverTrigger
+                                          render={
+                                              <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="text-muted-foreground hover:text-muted-foreground h-6 gap-1.5 rounded-none border-r px-2 text-xs font-normal tabular-nums"
+                                              >
+                                                  <ClockIcon
+                                                      data-icon="inline-start"
+                                                      className="text-muted-foreground"
+                                                  />
+                                                  <ClockValue
+                                                      formatter={formatClock}
+                                                      offset={clock.offset}
+                                                  />
+                                              </Button>
+                                          }
+                                      />
                                       <PopoverContent
                                           side="top"
                                           align="center"
@@ -661,24 +665,26 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                 open={zoomPopoverOpen}
                                 onOpenChange={setZoomPopoverOpen}
                             >
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        aria-label={t(
-                                            'status_bar.zoom_tooltip'
-                                        )}
-                                        className="text-muted-foreground hover:text-muted-foreground h-6 gap-1.5 rounded-none border-r px-2 text-xs font-normal"
-                                    >
-                                        <span className="text-muted-foreground">
-                                            {t('status_bar.zoom')}
-                                        </span>
-                                        <span className="text-muted-foreground tabular-nums">
-                                            {zoomLabel}
-                                        </span>
-                                    </Button>
-                                </PopoverTrigger>
+                                <PopoverTrigger
+                                    render={
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            aria-label={t(
+                                                'status_bar.zoom_tooltip'
+                                            )}
+                                            className="text-muted-foreground hover:text-muted-foreground h-6 gap-1.5 rounded-none border-r px-2 text-xs font-normal"
+                                        >
+                                            <span className="text-muted-foreground">
+                                                {t('status_bar.zoom')}
+                                            </span>
+                                            <span className="text-muted-foreground tabular-nums">
+                                                {zoomLabel}
+                                            </span>
+                                        </Button>
+                                    }
+                                />
                                 <PopoverContent
                                     side="top"
                                     align="end"
@@ -734,7 +740,11 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                         step={ZOOM_STEP}
                                         value={[zoomLevel]}
                                         onValueChange={(value) =>
-                                            onSetZoomLevel(value[0])
+                                            onSetZoomLevel(
+                                                Array.isArray(value)
+                                                    ? value[0]
+                                                    : value
+                                            )
                                         }
                                     />
                                     <div className="text-muted-foreground flex justify-between text-[11px] tabular-nums">
@@ -746,19 +756,23 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                         ) : null}
                         {visibility.uptime ? (
                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div className="-ml-px flex h-6 items-center gap-1.5 border-r px-2">
-                                        <span className="text-muted-foreground">
-                                            {t('status_bar.app_uptime_short')}
-                                        </span>
-                                        <span className="text-muted-foreground tabular-nums">
-                                            <AppUptimeValue
-                                                formatter={formatAppUptime}
-                                                startedAtMs={appStartedAt}
-                                            />
-                                        </span>
-                                    </div>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                    render={
+                                        <div className="-ml-px flex h-6 items-center gap-1.5 border-r px-2">
+                                            <span className="text-muted-foreground">
+                                                {t(
+                                                    'status_bar.app_uptime_short'
+                                                )}
+                                            </span>
+                                            <span className="text-muted-foreground tabular-nums">
+                                                <AppUptimeValue
+                                                    formatter={formatAppUptime}
+                                                    startedAtMs={appStartedAt}
+                                                />
+                                            </span>
+                                        </div>
+                                    }
+                                />
                                 <TooltipContent>
                                     {t('status_bar.app_uptime')}
                                 </TooltipContent>
@@ -769,10 +783,13 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                 open={proxyEditor.open}
                                 onOpenChange={onProxyEditorOpenChange}
                             >
-                                <PopoverAnchor asChild>
-                                    <span className="-ml-px inline-flex h-6 shrink-0 border-l">
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
+                                <span
+                                    ref={proxyAnchorRef}
+                                    className="-ml-px inline-flex h-6 shrink-0 border-l"
+                                >
+                                    <Tooltip>
+                                        <TooltipTrigger
+                                            render={
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
@@ -792,19 +809,20 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                                 >
                                                     <NetworkIcon data-icon="icon" />
                                                 </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs">
-                                                {t(
-                                                    proxyIndicator.tooltipKey,
-                                                    proxyIndicator.tooltipValues
-                                                )}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </span>
-                                </PopoverAnchor>
+                                            }
+                                        />
+                                        <TooltipContent className="max-w-xs">
+                                            {t(
+                                                proxyIndicator.tooltipKey,
+                                                proxyIndicator.tooltipValues
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </span>
                                 <PopoverContent
                                     side="top"
                                     align="end"
+                                    anchor={proxyAnchorRef}
                                     className="w-96"
                                 >
                                     <PopoverHeader>
@@ -837,23 +855,25 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                             </Popover>
                         ) : null}
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label={t(
-                                        'status_bar.start_background_mode'
-                                    )}
-                                    className={cn(
-                                        '-ml-px size-6 shrink-0 rounded-none border-l',
-                                        'text-muted-foreground hover:text-muted-foreground'
-                                    )}
-                                    onClick={onStartBackgroundMode}
-                                >
-                                    <Minimize2Icon data-icon="icon" />
-                                </Button>
-                            </TooltipTrigger>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={t(
+                                            'status_bar.start_background_mode'
+                                        )}
+                                        className={cn(
+                                            '-ml-px size-6 shrink-0 rounded-none border-l',
+                                            'text-muted-foreground hover:text-muted-foreground'
+                                        )}
+                                        onClick={onStartBackgroundMode}
+                                    >
+                                        <Minimize2Icon data-icon="icon" />
+                                    </Button>
+                                }
+                            />
                             <TooltipContent>
                                 {t('status_bar.start_background_mode_tooltip')}
                             </TooltipContent>

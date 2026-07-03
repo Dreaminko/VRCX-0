@@ -56,7 +56,7 @@ export function UserDialogMutualTab({
                 </span>
                 <Select
                     value={mutualSort}
-                    onValueChange={setMutualSort}
+                    onValueChange={(value) => setMutualSort(value ?? '')}
                     disabled={remoteStatus.mutual === 'running'}
                 >
                     <SelectTrigger size="sm" className="w-36">
@@ -118,7 +118,7 @@ export function UserDialogWorldsTab({
                 </span>
                 <Select
                     value={worldSort}
-                    onValueChange={changeWorldSort}
+                    onValueChange={(value) => changeWorldSort(value ?? '')}
                     disabled={remoteStatus.worlds === 'running'}
                 >
                     <SelectTrigger size="sm" className="w-32">
@@ -149,7 +149,7 @@ export function UserDialogWorldsTab({
                 </span>
                 <Select
                     value={worldOrder}
-                    onValueChange={changeWorldOrder}
+                    onValueChange={(value) => changeWorldOrder(value ?? '')}
                     disabled={remoteStatus.worlds === 'running'}
                 >
                     <SelectTrigger size="sm" className="w-36">
@@ -254,7 +254,9 @@ export function UserDialogAvatarsTab({
                         </span>
                         <Select
                             value={avatarSort}
-                            onValueChange={changeAvatarSort}
+                            onValueChange={(value) =>
+                                changeAvatarSort(value ?? '')
+                            }
                             disabled={remoteStatus.avatars === 'running'}
                         >
                             <SelectTrigger size="sm" className="w-36">
@@ -283,7 +285,9 @@ export function UserDialogAvatarsTab({
                         </span>
                         <Select
                             value={avatarReleaseStatus}
-                            onValueChange={changeAvatarReleaseStatus}
+                            onValueChange={(value) =>
+                                changeAvatarReleaseStatus(value ?? '')
+                            }
                             disabled={remoteStatus.avatars === 'running'}
                         >
                             <SelectTrigger size="sm" className="w-32">
@@ -352,18 +356,20 @@ export function UserDialogInstanceHistoryTab({
                 className="flex-1"
                 headerActions={
                     <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon-sm"
-                                disabled={!userId}
-                                aria-label={openFullLabel}
-                                onClick={openFullHistory}
-                            >
-                                <Maximize2Icon className="size-4" />
-                            </Button>
-                        </TooltipTrigger>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon-sm"
+                                    disabled={!userId}
+                                    aria-label={openFullLabel}
+                                    onClick={openFullHistory}
+                                >
+                                    <Maximize2Icon className="size-4" />
+                                </Button>
+                            }
+                        />
                         <TooltipContent>{openFullLabel}</TooltipContent>
                     </Tooltip>
                 }

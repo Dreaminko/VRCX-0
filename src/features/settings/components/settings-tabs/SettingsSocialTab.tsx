@@ -248,20 +248,22 @@ export function SettingsSocialTab({ social }: SettingsSocialTabProps) {
                             open={hiddenUserPickerOpen}
                             onOpenChange={setHiddenUserPickerOpen}
                         >
-                            <PopoverTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-64 justify-between"
-                                >
-                                    <span className="truncate">
-                                        {t(
-                                            'view.settings.social.hidden_feed.add'
-                                        )}
-                                    </span>
-                                    <ChevronsUpDownIcon className="text-muted-foreground size-4" />
-                                </Button>
-                            </PopoverTrigger>
+                            <PopoverTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-64 justify-between"
+                                    >
+                                        <span className="truncate">
+                                            {t(
+                                                'view.settings.social.hidden_feed.add'
+                                            )}
+                                        </span>
+                                        <ChevronsUpDownIcon className="text-muted-foreground size-4" />
+                                    </Button>
+                                }
+                            />
                             <PopoverContent align="start" className="w-96 p-2">
                                 <div className="flex flex-col gap-2">
                                     <Input
@@ -375,21 +377,23 @@ export function SettingsSocialTab({ social }: SettingsSocialTabProps) {
                     )}
                 >
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-56 justify-between"
-                            >
-                                <span className="truncate">
-                                    {favoriteGroupLabel}
-                                </span>
-                                <ChevronDownIcon
-                                    data-icon="inline-end"
-                                    className="opacity-50"
-                                />
-                            </Button>
-                        </DropdownMenuTrigger>
+                        <DropdownMenuTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-56 justify-between"
+                                >
+                                    <span className="truncate">
+                                        {favoriteGroupLabel}
+                                    </span>
+                                    <ChevronDownIcon
+                                        data-icon="inline-end"
+                                        className="opacity-50"
+                                    />
+                                </Button>
+                            }
+                        />
                         <DropdownMenuContent align="end" className="w-56">
                             {favoriteFriendGroupOptions.length ? (
                                 <>

@@ -177,34 +177,36 @@ function GameLogEntryContent({ row, showDetail }: any) {
             );
             return (
                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div className="flex min-w-0 items-center">
-                            <PlayIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
-                            {row?.videoId ? (
-                                <span className="text-muted-foreground mr-1 shrink-0">
-                                    {row.videoId}:
-                                </span>
-                            ) : null}
-                            {canOpenVideo ? (
-                                <Button
-                                    type="button"
-                                    variant="link"
-                                    className="text-muted-foreground h-auto min-w-0 justify-start p-0 text-left font-normal"
-                                    onClick={() => {
-                                        openExternalLink(row.videoUrl);
-                                    }}
-                                >
-                                    <span className="truncate">
+                    <TooltipTrigger
+                        render={
+                            <div className="flex min-w-0 items-center">
+                                <PlayIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
+                                {row?.videoId ? (
+                                    <span className="text-muted-foreground mr-1 shrink-0">
+                                        {row.videoId}:
+                                    </span>
+                                ) : null}
+                                {canOpenVideo ? (
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        className="text-muted-foreground h-auto min-w-0 justify-start p-0 text-left font-normal"
+                                        onClick={() => {
+                                            openExternalLink(row.videoUrl);
+                                        }}
+                                    >
+                                        <span className="truncate">
+                                            {videoLabel}
+                                        </span>
+                                    </Button>
+                                ) : (
+                                    <span className="text-muted-foreground min-w-0 truncate">
                                         {videoLabel}
                                     </span>
-                                </Button>
-                            ) : (
-                                <span className="text-muted-foreground min-w-0 truncate">
-                                    {videoLabel}
-                                </span>
-                            )}
-                        </div>
-                    </TooltipTrigger>
+                                )}
+                            </div>
+                        }
+                    />
                     <TooltipContent>
                         {row?.videoId
                             ? `${row.videoId}: ${videoLabel}`
@@ -325,16 +327,18 @@ export function DashboardGameLogWidget({
     const showDetail = Boolean(config.showDetail);
     const settingsMenu = configUpdater ? (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={'Widget settings'}
-                >
-                    <SettingsIcon data-icon="inline-start" />
-                </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={'Widget settings'}
+                    >
+                        <SettingsIcon data-icon="inline-start" />
+                    </Button>
+                }
+            />
             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuGroup>
                     {GAME_LOG_FILTER_TYPES.map((filterType: any) => (
@@ -459,13 +463,15 @@ export function DashboardGameLogWidget({
                                     key={`${row.type || 'gamelog'}-${row.created_at || index}-${index}`}
                                 >
                                     <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <TableCell className="text-muted-foreground w-24 align-top text-xs tabular-nums">
-                                                {formatWidgetTime(
-                                                    row.created_at
-                                                )}
-                                            </TableCell>
-                                        </TooltipTrigger>
+                                        <TooltipTrigger
+                                            render={
+                                                <TableCell className="text-muted-foreground w-24 align-top text-xs tabular-nums">
+                                                    {formatWidgetTime(
+                                                        row.created_at
+                                                    )}
+                                                </TableCell>
+                                            }
+                                        />
                                         <TooltipContent>
                                             {formatWidgetExactTime(
                                                 row.created_at

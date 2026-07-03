@@ -273,7 +273,7 @@ function EntityDialogTabContent({
     return (
         <TabsContent
             value={value}
-            forceMount={forceMount || undefined}
+            keepMounted={forceMount || undefined}
             className={cn(
                 'm-0 min-h-0 flex-1 overflow-auto pt-4 data-[state=inactive]:hidden',
                 className
@@ -340,24 +340,26 @@ function EntityActionDropdown({
 }: any) {
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    size="icon-lg"
-                    variant={dangerous ? 'destructive' : 'outline'}
-                    aria-label={'Open entity actions'}
-                    className="relative"
-                >
-                    {busy ? (
-                        <Spinner data-icon="inline-start" />
-                    ) : (
-                        <MoreHorizontalIcon data-icon="inline-start" />
-                    )}
-                    {indicator ? (
-                        <span className="bg-primary absolute top-1.5 right-1.5 size-2 rounded-full" />
-                    ) : null}
-                </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        size="icon-lg"
+                        variant={dangerous ? 'destructive' : 'outline'}
+                        aria-label={'Open entity actions'}
+                        className="relative"
+                    >
+                        {busy ? (
+                            <Spinner data-icon="inline-start" />
+                        ) : (
+                            <MoreHorizontalIcon data-icon="inline-start" />
+                        )}
+                        {indicator ? (
+                            <span className="bg-primary absolute top-1.5 right-1.5 size-2 rounded-full" />
+                        ) : null}
+                    </Button>
+                }
+            />
             <DropdownMenuContent align="end" className="min-w-56">
                 <DropdownMenuGroup>{children}</DropdownMenuGroup>
             </DropdownMenuContent>

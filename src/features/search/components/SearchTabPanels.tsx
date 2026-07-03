@@ -46,7 +46,7 @@ export function SearchUserTabPanel({
     return (
         <TabsContent
             value="user"
-            forceMount
+            keepMounted
             className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
@@ -128,7 +128,7 @@ export function SearchWorldTabPanel({
     return (
         <TabsContent
             value="world"
-            forceMount
+            keepMounted
             className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
@@ -208,7 +208,7 @@ export function SearchAvatarTabPanel({
     return (
         <TabsContent
             value="avatar"
-            forceMount
+            keepMounted
             className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
@@ -285,7 +285,7 @@ export function SearchGroupTabPanel({ isLoading, results, pagination }: any) {
     return (
         <TabsContent
             value="group"
-            forceMount
+            keepMounted
             className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
         >
             <div className="min-h-0 flex-1 overflow-y-auto" style={{ flex: 9 }}>

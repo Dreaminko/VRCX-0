@@ -217,8 +217,11 @@ export function InstanceHistoryList({
                         <div className="flex shrink-0 items-center">
                             <Select
                                 value={activeSortKey}
-                                onValueChange={(value: string) =>
-                                    onSortSelect(value as SortField, sortDesc)
+                                onValueChange={(value) =>
+                                    onSortSelect(
+                                        (value ?? '') as SortField,
+                                        sortDesc
+                                    )
                                 }
                             >
                                 <SelectTrigger
@@ -354,9 +357,9 @@ export function InstanceHistoryList({
                     <div className="text-muted-foreground flex items-center gap-2 text-sm">
                         <Select
                             value={String(pageSize)}
-                            onValueChange={(value: string) =>
+                            onValueChange={(value) =>
                                 onPageSizeChange(
-                                    Number.parseInt(value, 10) || 10
+                                    Number.parseInt(value ?? '', 10) || 10
                                 )
                             }
                         >

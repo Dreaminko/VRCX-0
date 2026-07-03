@@ -136,7 +136,9 @@ function FavoriteExportDialog({
                 <div className="flex flex-wrap items-center gap-2">
                     <Select
                         value={remoteGroupKey}
-                        onValueChange={setRemoteGroupKey}
+                        onValueChange={(value) =>
+                            setRemoteGroupKey(value ?? '')
+                        }
                     >
                         <SelectTrigger size="sm" className="min-w-52">
                             <SelectValue
@@ -169,7 +171,7 @@ function FavoriteExportDialog({
                     </Select>
                     <Select
                         value={localGroupKey}
-                        onValueChange={setLocalGroupKey}
+                        onValueChange={(value) => setLocalGroupKey(value ?? '')}
                     >
                         <SelectTrigger size="sm" className="min-w-52">
                             <SelectValue

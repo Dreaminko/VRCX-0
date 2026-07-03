@@ -181,7 +181,7 @@ export function BoopEmojiDialog({
                                     setEmojiId(
                                         value === noDefaultEmojiValue
                                             ? ''
-                                            : value
+                                            : (value ?? '')
                                     );
                                 }}
                             >

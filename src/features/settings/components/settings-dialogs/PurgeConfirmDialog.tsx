@@ -79,7 +79,9 @@ export function PurgeConfirmDialog({
                     >
                         <Select
                             value={purgePeriod}
-                            onValueChange={setPurgePeriod}
+                            onValueChange={(value) =>
+                                setPurgePeriod(value ?? '')
+                            }
                         >
                             <SelectTrigger
                                 id="settings-purge-period"

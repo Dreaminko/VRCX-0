@@ -108,26 +108,28 @@ function FontFamilyPreferenceField({
     return (
         <Field label={t('view.settings.appearance.appearance.font_family')}>
             <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="min-w-44 justify-between font-normal"
-                    >
-                        <span className="truncate">
-                            {getFontDropdownDisplayText(
-                                t,
-                                prefs,
-                                showCjkFontPack
-                            )}
-                        </span>
-                        <ChevronDownIcon
-                            data-icon="inline-end"
-                            className="opacity-50"
-                        />
-                    </Button>
-                </DropdownMenuTrigger>
+                <DropdownMenuTrigger
+                    render={
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="min-w-44 justify-between font-normal"
+                        >
+                            <span className="truncate">
+                                {getFontDropdownDisplayText(
+                                    t,
+                                    prefs,
+                                    showCjkFontPack
+                                )}
+                            </span>
+                            <ChevronDownIcon
+                                data-icon="inline-end"
+                                className="opacity-50"
+                            />
+                        </Button>
+                    }
+                />
                 <DropdownMenuContent align="end">
                     <DropdownMenuGroup>
                         <DropdownMenuRadioGroup

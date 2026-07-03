@@ -1,7 +1,7 @@
 import type { RowData, Table } from '@tanstack/react-table';
 import type { TFunction } from 'i18next';
 import { Settings2Icon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
@@ -68,16 +68,18 @@ export function TableColumnVisibilityMenu<TData extends RowData>({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-sm"
-                    aria-label={resolvedLabel}
-                >
-                    <Settings2Icon data-icon="icon" />
-                </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label={resolvedLabel}
+                    >
+                        <Settings2Icon data-icon="icon" />
+                    </Button>
+                }
+            />
             <DropdownMenuContent
                 align="end"
                 className="max-h-96 w-72 overflow-y-auto"
@@ -166,7 +168,7 @@ export function TableColumnHeaderContextMenu<TData extends RowData>({
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+            <ContextMenuTrigger render={children as ReactElement} />
             <ContextMenuContent className={className}>
                 {columns.length ? (
                     <ContextMenuGroup>

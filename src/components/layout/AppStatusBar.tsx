@@ -775,9 +775,7 @@ export function AppStatusBar() {
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger asChild>
-                <StatusBarFooter footer={footer} />
-            </ContextMenuTrigger>
+            <ContextMenuTrigger render={<StatusBarFooter footer={footer} />} />
             <StatusBarContextMenuContent
                 clockCount={clockCount}
                 onOpenProxySettings={openProxyEditorWithToast}

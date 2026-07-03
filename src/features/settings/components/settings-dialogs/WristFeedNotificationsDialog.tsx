@@ -501,7 +501,8 @@ function OverlayActivityFilterDialog({
                                                     value={rule.scope}
                                                     onValueChange={(scope) =>
                                                         updateTypeRule(type, {
-                                                            scope: scope as OverlayActivityScope
+                                                            scope: (scope ??
+                                                                '') as OverlayActivityScope
                                                         })
                                                     }
                                                 >
@@ -586,11 +587,13 @@ function OverlayActivityFilterDialog({
                         {t('dialog.wrist_feed_notifications.reset_recommended')}
                     </Button>
                     <div className="flex gap-2">
-                        <DialogClose asChild>
-                            <Button type="button" variant="outline">
-                                {t('common.actions.cancel')}
-                            </Button>
-                        </DialogClose>
+                        <DialogClose
+                            render={
+                                <Button type="button" variant="outline">
+                                    {t('common.actions.cancel')}
+                                </Button>
+                            }
+                        />
                         <Button
                             type="button"
                             onClick={saveDraft}
@@ -628,17 +631,19 @@ function FavoriteGroupMenu({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="justify-between"
-                    disabled={disabled}
-                >
-                    <span className="min-w-0 truncate">{summary}</span>
-                    <ChevronDownIcon data-icon="inline-end" />
-                </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="justify-between"
+                        disabled={disabled}
+                    >
+                        <span className="min-w-0 truncate">{summary}</span>
+                        <ChevronDownIcon data-icon="inline-end" />
+                    </Button>
+                }
+            />
             <DropdownMenuContent align="end" className="w-72">
                 <DropdownMenuLabel>
                     {t(

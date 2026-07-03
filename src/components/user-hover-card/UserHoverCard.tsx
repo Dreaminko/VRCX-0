@@ -3,6 +3,7 @@ import {
     useRef,
     useState,
     type ComponentProps,
+    type ReactElement,
     type ReactNode
 } from 'react';
 
@@ -96,11 +97,11 @@ export function UserHoverCard({
                 }
                 setOpen(next);
             }}
-            openDelay={openDelay}
-            closeDelay={closeDelay}
         >
             <HoverCardTrigger
-                asChild
+                delay={openDelay}
+                closeDelay={closeDelay}
+                render={children as ReactElement}
                 onPointerOverCapture={(event) => {
                     if (
                         !event.currentTarget.closest(MODAL_CONTENT_SELECTOR) &&
@@ -120,9 +121,7 @@ export function UserHoverCard({
                     );
                     setOpen(false);
                 }}
-            >
-                {children}
-            </HoverCardTrigger>
+            />
             <HoverCardContent
                 className={cn(
                     'w-72 overflow-hidden p-0',

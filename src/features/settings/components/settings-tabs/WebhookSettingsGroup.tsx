@@ -219,7 +219,9 @@ export function WebhookSettingsGroup({
                 <Select
                     value={prefs.webhookFormat || 'generic'}
                     disabled={!webhookControlsEnabled}
-                    onValueChange={onWebhookFormatChange}
+                    onValueChange={(value) =>
+                        onWebhookFormatChange(value ?? '')
+                    }
                 >
                     <div className="flex items-center gap-2">
                         <SelectTrigger
@@ -319,12 +321,14 @@ function WebhookPayloadFieldsDialog({
 
     return (
         <Dialog>
-            <DialogTrigger asChild>
-                <Button type="button" variant="outline" size="sm">
-                    <CircleHelpIcon data-icon="inline-start" />
-                    {t('common.actions.configure')}
-                </Button>
-            </DialogTrigger>
+            <DialogTrigger
+                render={
+                    <Button type="button" variant="outline" size="sm">
+                        <CircleHelpIcon data-icon="inline-start" />
+                        {t('common.actions.configure')}
+                    </Button>
+                }
+            />
             <DialogContent className="flex max-h-[calc(100vh-4rem)] min-h-0 flex-col sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>

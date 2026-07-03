@@ -337,7 +337,9 @@ function DevKitPanelInner() {
                                 </div>
                                 <Select
                                     value={i18nTargetLang}
-                                    onValueChange={setI18nTargetLang}
+                                    onValueChange={(value) =>
+                                        setI18nTargetLang(value ?? '')
+                                    }
                                     disabled={i18nWatchEnabled}
                                 >
                                     <SelectTrigger className="h-7 text-xs">

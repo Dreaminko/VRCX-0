@@ -226,7 +226,9 @@ export function SettingsVrTab({
                             max={100}
                             step={1}
                             onValueChange={(value) =>
-                                onNotificationOpacityChange(value?.[0])
+                                onNotificationOpacityChange(
+                                    Array.isArray(value) ? value[0] : value
+                                )
                             }
                         />
                         <span className="text-muted-foreground w-10 text-right text-sm">
@@ -260,7 +262,9 @@ export function SettingsVrTab({
                             prefs.hmdNotificationStartMode || 'vrchatVrMode'
                         )}
                         disabled={!hmdNotificationsEnabled}
-                        onValueChange={onHmdNotificationStartModeChange}
+                        onValueChange={(value) =>
+                            onHmdNotificationStartModeChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-hmd-notification-start-mode"
@@ -295,7 +299,9 @@ export function SettingsVrTab({
                             prefs.hmdNotificationPosition || 'bottom'
                         )}
                         disabled={!hmdNotificationsEnabled}
-                        onValueChange={onHmdNotificationPositionChange}
+                        onValueChange={(value) =>
+                            onHmdNotificationPositionChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-hmd-notification-position"
@@ -369,7 +375,9 @@ export function SettingsVrTab({
                             step={1}
                             disabled={!hmdNotificationsEnabled}
                             onValueChange={(value) =>
-                                onHmdNotificationOpacityChange(value?.[0])
+                                onHmdNotificationOpacityChange(
+                                    Array.isArray(value) ? value[0] : value
+                                )
                             }
                         />
                         <span className="text-muted-foreground w-10 text-right text-sm">
@@ -413,7 +421,9 @@ export function SettingsVrTab({
                     <Select
                         value={prefs.wristOverlayStartMode}
                         disabled={!wristOverlayEnabled}
-                        onValueChange={onWristOverlayStartModeChange}
+                        onValueChange={(value) =>
+                            onWristOverlayStartModeChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-wrist-overlay-start-mode"
@@ -446,7 +456,9 @@ export function SettingsVrTab({
                     <Select
                         value={prefs.wristOverlayButton}
                         disabled={!wristOverlayEnabled}
-                        onValueChange={onWristOverlayButtonChange}
+                        onValueChange={(value) =>
+                            onWristOverlayButtonChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-wrist-overlay-button"
@@ -479,7 +491,9 @@ export function SettingsVrTab({
                     <Select
                         value={prefs.wristOverlayHand}
                         disabled={!wristOverlayEnabled}
-                        onValueChange={onWristOverlayHandChange}
+                        onValueChange={(value) =>
+                            onWristOverlayHandChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-wrist-overlay-hand"
@@ -517,7 +531,9 @@ export function SettingsVrTab({
                     <Select
                         value={prefs.wristOverlaySize}
                         disabled={!wristOverlayEnabled}
-                        onValueChange={onWristOverlaySizeChange}
+                        onValueChange={(value) =>
+                            onWristOverlaySizeChange(value ?? '')
+                        }
                     >
                         <SelectTrigger
                             id="settings-wrist-overlay-size"

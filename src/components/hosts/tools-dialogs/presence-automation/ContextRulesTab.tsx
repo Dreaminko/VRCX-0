@@ -171,7 +171,7 @@ function LegacyStatusEditor({
                     <Select
                         value={status}
                         disabled={disabled}
-                        onValueChange={onStatusChange}
+                        onValueChange={(value) => onStatusChange(value ?? '')}
                     >
                         <SelectTrigger aria-label={label}>
                             <SelectValue />
@@ -401,7 +401,7 @@ export function ContextRulesTab({
                                     onValueChange={(value) =>
                                         update(selectedRule.id, (current) => ({
                                             ...current,
-                                            preset: value
+                                            preset: value ?? ''
                                         }))
                                     }
                                 >

@@ -145,7 +145,10 @@ function NavIconSelect({
     const normalizedIcon = normalizeNavIconKey(value, fallbackIcon);
 
     return (
-        <Select value={normalizedIcon} onValueChange={onValueChange}>
+        <Select
+            value={normalizedIcon}
+            onValueChange={(value) => onValueChange(value ?? '')}
+        >
             <SelectTrigger size="sm" className="w-32" aria-label={ariaLabel}>
                 <SelectValue />
             </SelectTrigger>

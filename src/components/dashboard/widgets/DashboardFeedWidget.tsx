@@ -305,16 +305,18 @@ export function DashboardFeedWidgetView({
     const showType = Boolean(config.showType);
     const settingsMenu = configUpdater ? (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={'Widget settings'}
-                >
-                    <SettingsIcon data-icon="inline-start" />
-                </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={'Widget settings'}
+                    >
+                        <SettingsIcon data-icon="inline-start" />
+                    </Button>
+                }
+            />
             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuGroup>
                     {FEED_FILTER_TYPES.map((filterType) => (
@@ -436,11 +438,15 @@ export function DashboardFeedWidgetView({
                         {annotatedRows.map((row) => (
                             <TableRow key={getFeedRowKey(row)}>
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <TableCell className="text-muted-foreground w-24 align-top text-xs tabular-nums">
-                                            {formatWidgetTime(row.created_at)}
-                                        </TableCell>
-                                    </TooltipTrigger>
+                                    <TooltipTrigger
+                                        render={
+                                            <TableCell className="text-muted-foreground w-24 align-top text-xs tabular-nums">
+                                                {formatWidgetTime(
+                                                    row.created_at
+                                                )}
+                                            </TableCell>
+                                        }
+                                    />
                                     <TooltipContent>
                                         {formatWidgetExactTime(row.created_at)}
                                     </TooltipContent>

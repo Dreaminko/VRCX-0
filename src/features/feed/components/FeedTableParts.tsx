@@ -161,58 +161,64 @@ function FeedUserLink({
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger asChild>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    className={cn(
-                        'hover:text-primary h-auto max-w-full justify-start self-start text-left font-medium',
-                        showAvatar && 'gap-2',
-                        className
-                    )}
-                    disabled={!userId}
-                    onClick={() =>
-                        openUserDialog({
-                            userId,
-                            title: userLabel,
-                            seedData: displayUser || null
-                        })
-                    }
-                >
-                    {showAvatar ? (
-                        <Avatar
-                            size="default"
-                            style={{
-                                height: avatarSize,
-                                width: avatarSize
-                            }}
-                        >
-                            {imageUrl ? (
-                                <AvatarImage src={imageUrl} alt="" />
-                            ) : null}
-                            <AvatarFallback
-                                className={cn(
-                                    avatarSize >= 40 ? 'text-xs' : 'text-[10px]'
-                                )}
-                            >
-                                <UserIcon
-                                    className={
-                                        avatarSize >= 40 ? 'size-4' : 'size-3.5'
-                                    }
-                                />
-                            </AvatarFallback>
-                        </Avatar>
-                    ) : null}
-                    <span
+            <ContextMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
                         className={cn(
-                            'truncate',
-                            showAvatar ? 'min-w-0 flex-1' : 'max-w-full'
+                            'hover:text-primary h-auto max-w-full justify-start self-start text-left font-medium',
+                            showAvatar && 'gap-2',
+                            className
                         )}
+                        disabled={!userId}
+                        onClick={() =>
+                            openUserDialog({
+                                userId,
+                                title: userLabel,
+                                seedData: displayUser || null
+                            })
+                        }
                     >
-                        {userLabel}
-                    </span>
-                </Button>
-            </ContextMenuTrigger>
+                        {showAvatar ? (
+                            <Avatar
+                                size="default"
+                                style={{
+                                    height: avatarSize,
+                                    width: avatarSize
+                                }}
+                            >
+                                {imageUrl ? (
+                                    <AvatarImage src={imageUrl} alt="" />
+                                ) : null}
+                                <AvatarFallback
+                                    className={cn(
+                                        avatarSize >= 40
+                                            ? 'text-xs'
+                                            : 'text-[10px]'
+                                    )}
+                                >
+                                    <UserIcon
+                                        className={
+                                            avatarSize >= 40
+                                                ? 'size-4'
+                                                : 'size-3.5'
+                                        }
+                                    />
+                                </AvatarFallback>
+                            </Avatar>
+                        ) : null}
+                        <span
+                            className={cn(
+                                'truncate',
+                                showAvatar ? 'min-w-0 flex-1' : 'max-w-full'
+                            )}
+                        >
+                            {userLabel}
+                        </span>
+                    </Button>
+                }
+            />
             <ContextMenuContent className="w-56">
                 <ContextMenuGroup>
                     <ContextMenuItem

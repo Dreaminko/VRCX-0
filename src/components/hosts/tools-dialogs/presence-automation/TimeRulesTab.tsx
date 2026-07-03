@@ -348,7 +348,7 @@ export function TimeRulesTab({
                             {t(`${I18N_ROOT}.run_every_day_hint`)}
                         </FieldDescription>
                         <ToggleGroup
-                            type="multiple"
+                            multiple
                             variant="outline"
                             size="sm"
                             spacing={1}
