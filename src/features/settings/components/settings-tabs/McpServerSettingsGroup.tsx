@@ -117,6 +117,13 @@ export function McpServerSettingsGroup() {
         });
     }
 
+    function setMcpAllowLanConnections(checked: boolean) {
+        void runMcpCommand(
+            () => commands.appMcpServerSetAllowLanConnections(checked),
+            { toastError: true }
+        );
+    }
+
     function setMcpAllowVrchatWrites(checked: boolean) {
         void runMcpCommand(
             () => commands.appMcpServerSetAllowVrchatWrites(checked),
@@ -177,6 +184,21 @@ export function McpServerSettingsGroup() {
                     checked={Boolean(mcpStatus?.enabled)}
                     disabled={mcpBusy}
                     onCheckedChange={setMcpEnabled}
+                />
+            </Field>
+
+            <Field
+                label={t(
+                    'view.settings.integrations.mcp_server.allow_lan_connections'
+                )}
+                description={t(
+                    'view.settings.integrations.mcp_server.allow_lan_connections_description'
+                )}
+            >
+                <Switch
+                    checked={Boolean(mcpStatus?.allowLanConnections)}
+                    disabled={mcpBusy}
+                    onCheckedChange={setMcpAllowLanConnections}
                 />
             </Field>
 

@@ -268,6 +268,13 @@ export const commands = {
             enabled
         });
     },
+    async appMcpServerSetAllowLanConnections(
+        enabled: boolean
+    ): Promise<McpServerStatus> {
+        return await TAURI_INVOKE('app__mcp_server_set_allow_lan_connections', {
+            enabled
+        });
+    },
     async appMcpServerSetPort(port: number): Promise<McpServerStatus> {
         return await TAURI_INVOKE('app__mcp_server_set_port', { port });
     },
@@ -3478,6 +3485,7 @@ export type MaintenanceTableSizesOutput = {
 export type McpServerState = 'disabled' | 'running';
 export type McpServerStatus = {
     enabled: boolean;
+    allowLanConnections: boolean;
     allowVrchatWrites: boolean;
     state: McpServerState;
     port: number | null;

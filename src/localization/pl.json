@@ -452,7 +452,8 @@
                 "wrist_overlay": "Nakładka nadgarstka",
                 "discord_presence": "Status Discord",
                 "pictures": "Obrazki",
-                "advanced": "Zaawansowane"
+                "advanced": "Zaawansowane",
+                "integrations": "Integrations"
             },
             "vr": {
                 "hmd_notifications": {
@@ -711,6 +712,42 @@
                 "pictures": {
                     "auto_delete_old_prints": "Automatycznie usuwaj stare odbitki",
                     "auto_delete_prints_from_vrc": "Usuwaj stare odbitki z VRC po osiągnięciu ich limitu"
+                }
+            },
+            "integrations": {
+                "header": "Integrations",
+                "mcp_server": {
+                    "header": "VRCX-0 MCP Server",
+                    "description": "Expose local VRCX-0 social facts to trusted MCP clients. By default, it only listens on localhost.",
+                    "enable": "Enable MCP server",
+                    "enable_description": "Starts an HTTP MCP server protected by a bearer token. Localhost-only access is the default.",
+                    "allow_vrchat_writes": "Allow VRChat account writes",
+                    "allow_vrchat_writes_description": "When off, favorite-to-VRChat tool calls are forced to dry-run. Turn on to let AI write favorites to your real VRChat account. Resets to off each time the server starts.",
+                    "allow_lan_connections": "Allow LAN connections",
+                    "allow_lan_connections_description": "Listen on all IPv4 interfaces so other devices on your local network can connect with this computer's IP address and the bearer token. Keep off on untrusted networks.",
+                    "port_label": "Server port",
+                    "port_description": "Changing it restarts the server. If 8798 is taken, pick a free port and re-copy the client config.",
+                    "port_apply": "Apply",
+                    "port_invalid": "Port must be between 1024 and 65535",
+                    "status_label": "Status",
+                    "port_active_connections": "Port {port}; active connections {count}",
+                    "client_config": "Client Config",
+                    "client_config_description": "Pick the option for your client. Claude Code: a one-time `claude mcp add` terminal command. Generic (HTTP): a JSON config for a direct HTTP connection — no extra tools. Generic (mcp-remote): a JSON config that tunnels via a Node.js proxy for clients without native HTTP (e.g. Claude Desktop); needs Node.js in PATH. When LAN connections are enabled, copied configs use `YOUR-LAN-IP`; replace it with this computer's local IP before using them from another device.",
+                    "copy_claude_code": "Claude Code",
+                    "copy_mcp_remote": "Generic (mcp-remote)",
+                    "copy_generic": "Generic (HTTP)",
+                    "security_note": "Client configs contain a plain-text token. Only share them with tools or devices you trust.",
+                    "rotate_token": "Rotate Token",
+                    "rotate_token_description": "Old client configs stop working after rotation.",
+                    "token_rotated": "MCP token rotated",
+                    "copied": "{target} config copied",
+                    "status": {
+                        "loading": "Loading",
+                        "disabled": "Stopped",
+                        "starting": "Starting",
+                        "running": "Running",
+                        "stopping": "Stopping"
+                    }
                 }
             },
             "advanced": {
