@@ -48,6 +48,7 @@ type UserOption = {
 type SettingsSocialTabProps = {
     social: {
         prefs: {
+            hideUnfriends: boolean;
             recentActionCooldownEnabled: boolean;
             recentActionCooldownMinutes: string | number;
         };
@@ -58,6 +59,7 @@ type SettingsSocialTabProps = {
         localFavoriteFriendsGroups: string[];
         feedHiddenUsers?: string[];
         onAddFeedHiddenUser(userId: string): unknown;
+        onHideUnfriendsChange(checked: unknown): unknown;
         onRemoveFeedHiddenUser(userId: string): unknown;
         onRecentActionCooldownEnabledChange(checked: boolean): unknown;
         onRecentActionCooldownMinutesChange(value: string): unknown;
@@ -83,6 +85,7 @@ export function SettingsSocialTab({ social }: SettingsSocialTabProps) {
         localFavoriteFriendsGroups,
         feedHiddenUsers = [],
         onAddFeedHiddenUser,
+        onHideUnfriendsChange,
         onRemoveFeedHiddenUser,
         onRecentActionCooldownEnabledChange,
         onRecentActionCooldownMinutesChange,
@@ -217,6 +220,20 @@ export function SettingsSocialTab({ social }: SettingsSocialTabProps) {
                             />
                         ) : null}
                     </div>
+                </Field>
+            </SettingsGroup>
+            <SettingsGroup
+                title={t('view.settings.appearance.friend_log.header')}
+            >
+                <Field
+                    label={t(
+                        'view.settings.appearance.friend_log.hide_unfriends'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.hideUnfriends}
+                        onCheckedChange={onHideUnfriendsChange}
+                    />
                 </Field>
             </SettingsGroup>
             <SettingsGroup title={t('view.settings.social.hidden_feed.header')}>

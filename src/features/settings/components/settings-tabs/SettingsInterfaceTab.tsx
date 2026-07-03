@@ -37,7 +37,6 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
         onFeedTimeDisplayModeChange,
         onHideUserNotesChange,
         onHideUserMemosChange,
-        onHideUnfriendsChange,
         onRandomUserColoursChange,
         onResetTrustColors,
         onSaveTrustColor,
@@ -85,7 +84,6 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
                 onFeedTimeDisplayModeChange={onFeedTimeDisplayModeChange}
                 onHideUserNotesChange={onHideUserNotesChange}
                 onHideUserMemosChange={onHideUserMemosChange}
-                onHideUnfriendsChange={onHideUnfriendsChange}
             />
             <SettingsInterfaceUserColorsCard
                 prefs={prefs}

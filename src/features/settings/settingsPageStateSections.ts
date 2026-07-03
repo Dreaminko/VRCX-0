@@ -483,13 +483,6 @@ export function buildSettingsPageStateSections({
                     !normalizeCheckedState(checked)
                 );
             },
-            onHideUnfriendsChange: (checked: unknown) => {
-                saveBoolPreference(
-                    'hideUnfriends',
-                    'hideUnfriends',
-                    normalizeCheckedState(checked)
-                );
-            },
             onRandomUserColoursChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
@@ -718,6 +711,13 @@ export function buildSettingsPageStateSections({
             setRecentActionCooldownMinutesPreference,
             toggleLocalFavoriteFriendsGroup,
             setPrefs,
+            onHideUnfriendsChange: (checked: unknown) => {
+                saveBoolPreference(
+                    'hideUnfriends',
+                    'hideUnfriends',
+                    normalizeCheckedState(checked)
+                );
+            },
             onRecentActionCooldownEnabledChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue(

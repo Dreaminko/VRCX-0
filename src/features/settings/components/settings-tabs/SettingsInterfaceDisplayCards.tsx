@@ -33,8 +33,7 @@ export function SettingsInterfaceDisplayCards({
     onWeekStartsOnChange,
     onFeedTimeDisplayModeChange,
     onHideUserNotesChange,
-    onHideUserMemosChange,
-    onHideUnfriendsChange
+    onHideUserMemosChange
 }: any) {
     const { t } = useTranslation();
     return (
@@ -274,21 +273,6 @@ export function SettingsInterfaceDisplayCards({
                     <Switch
                         checked={!prefs.hideUserMemos}
                         onCheckedChange={onHideUserMemosChange}
-                    />
-                </Field>
-            </SettingsGroup>
-
-            <SettingsGroup
-                title={t('view.settings.appearance.friend_log.header')}
-            >
-                <Field
-                    label={t(
-                        'view.settings.appearance.friend_log.hide_unfriends'
-                    )}
-                >
-                    <Switch
-                        checked={prefs.hideUnfriends}
-                        onCheckedChange={onHideUnfriendsChange}
                     />
                 </Field>
             </SettingsGroup>
