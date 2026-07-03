@@ -2176,6 +2176,8 @@
                     "table_page_sizes_error": "Page size must be a number between 1 and 1000",
                     "show_notification_icon_dot": "Tray Notification Dot",
                     "striped_data_table_mode": "Striped Tables",
+                    "reduced_motion_and_blur": "Reduced Motion and Blur",
+                    "reduced_motion_and_blur_description": "Turn off animations, transitions, and background blur for better performance on lower-end devices.",
                     "accessible_status_indicators": "Accessible Status Indicators",
                     "accessible_status_indicators_description": "Use shapes in addition to color to distinguish statuses.",
                     "use_official_status_colors": "Use Official Status Colors",

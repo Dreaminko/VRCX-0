@@ -47,6 +47,7 @@ import {
     appLanguageChanged,
     applyAccessibleStatusClass,
     applyDataTableStripedClass,
+    applyReducedMotionAndBlurClass,
     applyTableDensityClass,
     normalizePreferenceKey,
     normalizeStringList,
@@ -333,6 +334,8 @@ export async function setBoolConfigPreference(
             dateIsoFormat: enabled,
             dateHour12: state.dateHour12
         });
+    } else if (normalizedKey === 'reducedMotionAndBlur') {
+        applyReducedMotionAndBlurClass(enabled);
     }
     patchPreferenceValue(key, enabled);
     publishPreferenceChanged(key, enabled);

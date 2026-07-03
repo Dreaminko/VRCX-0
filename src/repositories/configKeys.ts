@@ -81,6 +81,7 @@ export const ConfigKeys = defineConfigKeys({
     compactTableMode: { type: 'bool', default: false },
     dataTableStriped: { type: 'bool', default: false },
     tableDensity: { type: 'string', default: null },
+    reducedMotionAndBlur: { type: 'bool', default: false },
     tablePageSize: { type: 'int', default: null },
     randomUserColours: { type: 'bool', default: false },
     backgroundImageEnabled: { type: 'bool', default: false },

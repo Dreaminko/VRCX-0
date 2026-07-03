@@ -202,7 +202,8 @@ export function SettingsInterfaceAppearanceCard({
     onZoomBlur,
     onTableDensityChange,
     onDataTableStripedChange,
-    onAccessibleStatusIndicatorsChange
+    onAccessibleStatusIndicatorsChange,
+    onReducedMotionAndBlurChange
 }: any) {
     const { t } = useTranslation();
 
@@ -292,6 +293,20 @@ export function SettingsInterfaceAppearanceCard({
                 <Switch
                     checked={prefs.dataTableStriped}
                     onCheckedChange={onDataTableStripedChange}
+                />
+            </Field>
+
+            <Field
+                label={t(
+                    'view.settings.appearance.appearance.reduced_motion_and_blur'
+                )}
+                description={t(
+                    'view.settings.appearance.appearance.reduced_motion_and_blur_description'
+                )}
+            >
+                <Switch
+                    checked={prefs.reducedMotionAndBlur}
+                    onCheckedChange={onReducedMotionAndBlurChange}
                 />
             </Field>
 

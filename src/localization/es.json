@@ -2163,6 +2163,8 @@
                     "table_page_sizes_error": "El tamaño de página debe ser un número entre 1 y 1000",
                     "show_notification_icon_dot": "Punto de notificación en la bandeja",
                     "striped_data_table_mode": "Tablas con franjas",
+                    "reduced_motion_and_blur": "Reducir movimiento y desenfoque",
+                    "reduced_motion_and_blur_description": "Desactiva las animaciones, transiciones y el desenfoque de fondo para mejorar el rendimiento en equipos menos potentes.",
                     "accessible_status_indicators": "Indicadores de Estado accesibles",
                     "accessible_status_indicators_description": "Usa formas además del color para distinguir los estados.",
                     "use_official_status_colors": "Usar colores de Estado oficiales",

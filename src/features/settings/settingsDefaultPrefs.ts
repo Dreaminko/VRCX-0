@@ -28,6 +28,7 @@ export function createDefaultSettingsPrefs() {
         notificationLayout: 'notification-center',
         dataTableStriped: false,
         tableDensity: 'standard',
+        reducedMotionAndBlur: false,
         accessibleStatusIndicators: false,
         showNewDashboardButton: false,
         recentActionCooldownEnabled: false,

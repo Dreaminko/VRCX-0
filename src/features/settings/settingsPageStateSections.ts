@@ -380,6 +380,14 @@ export function buildSettingsPageStateSections({
                     setAccessibleStatusIndicatorsPreference(enabled)
                 );
             },
+            onReducedMotionAndBlurChange: (checked: unknown) => {
+                const enabled = normalizeCheckedState(checked);
+                saveBoolPreference(
+                    'reducedMotionAndBlur',
+                    'reducedMotionAndBlur',
+                    enabled
+                );
+            },
             onShowInstanceIdInLocationChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(

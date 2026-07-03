@@ -467,7 +467,9 @@
                     "sort_favorite_by_date": "дате",
                     "sort_instance_users_by": "Сортировать игроков по",
                     "sort_instance_users_by_time": "времени",
-                    "sort_instance_users_by_alphabet": "алфавиту"
+                    "sort_instance_users_by_alphabet": "алфавиту",
+                    "reduced_motion_and_blur": "Уменьшить анимацию и размытие",
+                    "reduced_motion_and_blur_description": "Отключает анимации, переходы и размытие фона для повышения производительности на слабых устройствах."
                 },
                 "timedate": {
                     "header": "Время/Дата",

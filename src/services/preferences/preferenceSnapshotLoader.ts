@@ -48,6 +48,7 @@ import {
 import {
     applyAccessibleStatusClass,
     applyDataTableStripedClass,
+    applyReducedMotionAndBlurClass,
     applyTableDensityClass,
     getBoolConfigWithLegacy,
     getIntConfigWithLegacy,
@@ -85,6 +86,7 @@ export async function loadPreferenceSnapshot() {
         dataTableStriped,
         tableDensity,
         compactTableMode,
+        reducedMotionAndBlur,
         accessibleStatusIndicators,
         showNewDashboardButton,
         recentActionCooldownEnabled,
@@ -204,6 +206,7 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('dataTableStriped', false),
         configRepository.getString('tableDensity', null),
         configRepository.getBool('compactTableMode', false),
+        configRepository.getBool('reducedMotionAndBlur', false),
         configRepository.getBool('VRCX_accessibleStatusIndicators', false),
         configRepository.getBool('showNewDashboardButton', true),
         configRepository.getBool('recentActionCooldownEnabled', false),
@@ -361,6 +364,7 @@ export async function loadPreferenceSnapshot() {
         : 60;
     applyTableDensityClass(resolvedTableDensity);
     applyDataTableStripedClass(dataTableStriped);
+    applyReducedMotionAndBlurClass(reducedMotionAndBlur);
     applyAccessibleStatusClass(accessibleStatusIndicators);
     applyTrustColorClasses(trustColor);
     configureRecentActionCooldown({
@@ -380,6 +384,7 @@ export async function loadPreferenceSnapshot() {
         notificationLayout: notificationLayout || DEFAULT_NOTIFICATION_LAYOUT,
         dataTableStriped: Boolean(dataTableStriped),
         tableDensity: resolvedTableDensity,
+        reducedMotionAndBlur: Boolean(reducedMotionAndBlur),
         accessibleStatusIndicators: Boolean(accessibleStatusIndicators),
         showNewDashboardButton: Boolean(showNewDashboardButton),
         recentActionCooldownEnabled: Boolean(recentActionCooldownEnabled),

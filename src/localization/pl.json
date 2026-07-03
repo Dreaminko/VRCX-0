@@ -570,7 +570,9 @@
                     "sort_instance_users_by": "Sortuj użytkowników instancji wg",
                     "sort_instance_users_by_time": "czas",
                     "sort_instance_users_by_alphabet": "alfabetycznie",
-                    "show_notification_icon_dot": "Pokaż kropkę powiadomień w zasobniku"
+                    "show_notification_icon_dot": "Pokaż kropkę powiadomień w zasobniku",
+                    "reduced_motion_and_blur": "Ogranicz animacje i rozmycie",
+                    "reduced_motion_and_blur_description": "Wyłącza animacje, przejścia i rozmycie tła, aby poprawić wydajność na słabszych urządzeniach."
                 },
                 "timedate": {
                     "header": "Czas/Data",

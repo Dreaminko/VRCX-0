@@ -315,6 +315,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     notificationLayout: 'notification-center',
     dataTableStriped: false,
     tableDensity: 'standard',
+    reducedMotionAndBlur: false,
     accessibleStatusIndicators: false,
     showNewDashboardButton: true,
     recentActionCooldownEnabled: false,
@@ -449,6 +450,7 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
                 : 'notification-center',
         dataTableStriped: normalizeBool(next.dataTableStriped),
         tableDensity: normalizeTableDensity(next.tableDensity),
+        reducedMotionAndBlur: normalizeBool(next.reducedMotionAndBlur),
         accessibleStatusIndicators: normalizeBool(
             next.accessibleStatusIndicators
         ),

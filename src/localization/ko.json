@@ -2103,6 +2103,8 @@
                     "table_page_sizes_error": "페이지 크기는 1에서 1000 사이의 숫자여야 합니다.",
                     "show_notification_icon_dot": "트레이 알림 점",
                     "striped_data_table_mode": "스트라이프 테이블",
+                    "reduced_motion_and_blur": "동작 및 흐림 줄이기",
+                    "reduced_motion_and_blur_description": "애니메이션, 전환, 배경 흐림 효과를 꺼서 저사양 기기의 성능을 개선합니다.",
                     "accessible_status_indicators": "접근 가능한 상태 표시기",
                     "accessible_status_indicators_description": "상태를 구분하려면 색상 외에 모양을 사용하세요.",
                     "use_official_status_colors": "공식 상태 색상 사용",

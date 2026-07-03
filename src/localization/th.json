@@ -438,7 +438,9 @@
                     "sort_favorite_by_date": "วันที่",
                     "sort_instance_users_by": "เรียงผู้ใช้ในอินสแตนซ์ตาม",
                     "sort_instance_users_by_time": "เวลา",
-                    "sort_instance_users_by_alphabet": "ตัวอักษร"
+                    "sort_instance_users_by_alphabet": "ตัวอักษร",
+                    "reduced_motion_and_blur": "ลดการเคลื่อนไหวและเบลอ",
+                    "reduced_motion_and_blur_description": "ปิดแอนิเมชัน การเปลี่ยนภาพ และการเบลอพื้นหลัง เพื่อประสิทธิภาพที่ดีขึ้นบนเครื่องสเปกต่ำ"
                 },
                 "timedate": {
                     "header": "เวลา/วันที่",

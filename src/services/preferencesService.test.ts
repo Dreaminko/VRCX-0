@@ -156,6 +156,7 @@ import {
 function assertPreferenceSetterTypes() {
     setBoolConfigPreference('notificationIconDot', true);
     setBoolConfigPreference('VRCX_notificationIconDot', false);
+    setBoolConfigPreference('reducedMotionAndBlur', true);
     setStringConfigPreference('desktopToast', 'Always');
     setStringConfigPreference('VRCX_tableDensity', 'compact');
     setIntConfigPreference('notificationTimeout', '3000');
@@ -643,14 +644,17 @@ describe('preferencesService characterization', () => {
 
         await setTableDensityPreference('compact');
         await setDataTableStripedPreference(true);
+        await setBoolConfigPreference('reducedMotionAndBlur', true);
         await setAccessibleStatusIndicatorsPreference(true);
 
         expect(classes.has('is-compact-table')).toBe(true);
         expect(classes.has('is-striped-table')).toBe(true);
+        expect(classes.has('reduced-motion-and-blur')).toBe(true);
         expect(classes.has('accessible-status-indicators')).toBe(true);
         expect(usePreferencesStore.getState()).toMatchObject({
             tableDensity: 'compact',
             dataTableStriped: true,
+            reducedMotionAndBlur: true,
             accessibleStatusIndicators: true
         });
     });

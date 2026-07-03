@@ -23,6 +23,7 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
         onTableDensityChange,
         onDataTableStripedChange,
         onAccessibleStatusIndicatorsChange,
+        onReducedMotionAndBlurChange,
         onShowInstanceIdInLocationChange,
         onAgeGatedInstancesVisibleChange,
         onHideNicknamesChange,
@@ -60,6 +61,7 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
                 onAccessibleStatusIndicatorsChange={
                     onAccessibleStatusIndicatorsChange
                 }
+                onReducedMotionAndBlurChange={onReducedMotionAndBlurChange}
             />
             <SettingsInterfaceThemesCard />
             <SettingsInterfaceDisplayCards

@@ -35,6 +35,18 @@ describe('preferencesStore normalizers', () => {
         ).toBe(true);
     });
 
+    it('keeps reduced motion and blur disabled by default', () => {
+        expect(DEFAULT_PREFERENCES.reducedMotionAndBlur).toBe(false);
+        expect(normalizePreferenceSnapshot({}).reducedMotionAndBlur).toBe(
+            false
+        );
+        expect(
+            normalizePreferenceSnapshot({
+                reducedMotionAndBlur: 'true'
+            }).reducedMotionAndBlur
+        ).toBe(true);
+    });
+
     it('keeps custom font selector fields round-trippable', () => {
         expect(DEFAULT_PREFERENCES.customFontPrimary).toBe('');
         expect(DEFAULT_PREFERENCES.customFontSecondary).toBe('');
@@ -233,6 +245,7 @@ describe('preferencesStore normalizers', () => {
             notificationLayout: 'table',
             dataTableStriped: 'true',
             tableDensity: 'tiny',
+            reducedMotionAndBlur: 'true',
             recentActionCooldownMinutes: '9999',
             autoLoginDelaySeconds: '99',
             weekStartsOn: 2,
@@ -295,6 +308,7 @@ describe('preferencesStore normalizers', () => {
             notificationLayout: 'table',
             dataTableStriped: true,
             tableDensity: 'standard',
+            reducedMotionAndBlur: true,
             recentActionCooldownMinutes: 1440,
             autoLoginDelaySeconds: 10,
             weekStartsOn: 1,
