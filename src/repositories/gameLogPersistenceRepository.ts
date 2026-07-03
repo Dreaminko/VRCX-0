@@ -19,6 +19,11 @@ type GameLogUserIdentity = {
     displayName?: unknown;
 };
 
+type GameLogPreviousInstancesOptions = {
+    dateFrom?: unknown;
+    dateTo?: unknown;
+};
+
 type GameLogWorldCacheEntry = {
     worldName: string;
     expiresAt: number;
@@ -438,8 +443,13 @@ const gameLog = {
         }
     },
 
-    async getPreviousInstancesByUserId(input: GameLogUserIdentity) {
+    async getPreviousInstancesByUserId(
+        input: GameLogUserIdentity,
+        options: GameLogPreviousInstancesOptions = {}
+    ) {
         const normalizedUserId = normalizeGameLogIdentifier(input?.id);
+        const dateFrom = normalizeGameLogIdentifier(options.dateFrom);
+        const dateTo = normalizeGameLogIdentifier(options.dateTo);
         var groupingTimeTolerance = HOUR_MS;
         var data = new Set<PreviousInstanceGroup>();
         var currentGroup: PreviousInstanceGroup | undefined;
@@ -449,9 +459,20 @@ const gameLog = {
             return data;
         }
 
-        const rows = await queryGameLogRows('previousInstancesByUserIdRows', {
+        const queryParams: GameLogParams = {
             userId: normalizedUserId
-        });
+        };
+        if (dateFrom) {
+            queryParams.dateFrom = dateFrom;
+        }
+        if (dateTo) {
+            queryParams.dateTo = dateTo;
+        }
+
+        const rows = await queryGameLogRows(
+            'previousInstancesByUserIdRows',
+            queryParams
+        );
         for (const row of rows) {
             const created_at_iso = row.created_at;
             const created_at_ts = row.createdAtTs;

@@ -559,44 +559,60 @@ pub fn game_log_query(db: &DatabaseService, query: GameLogQueryInput) -> Result<
         }
         "previousInstancesByUserIdRows" => {
             let user_id = query_param_string(&params, "userId");
+            let date_from = query_param_string(&params, "dateFrom");
+            let date_to = query_param_string(&params, "dateTo");
             if user_id.is_empty() {
                 return Ok(Value::Array(Vec::new()));
             }
+            let mut clauses = vec!["jl.user_id = @user_id"];
+            let mut db_params = ParamsBuilder::new().set("user_id", user_id);
+            if !date_from.is_empty() {
+                clauses.push("jl.created_at >= @date_from");
+                db_params = db_params.set("date_from", date_from);
+            }
+            if !date_to.is_empty() {
+                clauses.push("jl.created_at <= @date_to");
+                db_params = db_params.set("date_to", date_to);
+            }
+            let where_clause = clauses.join(" AND ");
             Ok(Value::Array(
-                db
-                    .execute(
-                        "WITH grouped_locations AS (
-                            SELECT DISTINCT location, world_name, group_name
-                            FROM gamelog_location
+                db.execute(
+                    &format!(
+                        "SELECT jl.created_at,
+                               strftime('%s', jl.created_at) * 1000 created_at_ts,
+                               jl.location,
+                               jl.time,
+                               gl.world_name,
+                               gl.group_name,
+                               jl.id,
+                               jl.type
+                        FROM gamelog_join_leave jl
+                        INNER JOIN gamelog_location gl ON gl.id = (
+                            SELECT gl2.id
+                            FROM gamelog_location gl2
+                            WHERE gl2.location = jl.location
+                            ORDER BY gl2.id DESC
+                            LIMIT 1
                         )
-                        SELECT gamelog_join_leave.created_at,
-                               strftime('%s', gamelog_join_leave.created_at) * 1000 created_at_ts,
-                               gamelog_join_leave.location,
-                               gamelog_join_leave.time,
-                               grouped_locations.world_name,
-                               grouped_locations.group_name,
-                               gamelog_join_leave.id,
-                               gamelog_join_leave.type
-                        FROM gamelog_join_leave
-                        INNER JOIN grouped_locations ON gamelog_join_leave.location = grouped_locations.location
-                        WHERE user_id = @user_id
-                        ORDER BY gamelog_join_leave.id ASC",
-                        &ParamsBuilder::new().set("user_id", user_id).build(),
-                    )?
-                    .into_iter()
-                    .map(|row| {
-                        json!({
-                            "created_at": row_json(&row, 0),
-                            "createdAtTs": row_json(&row, 1),
-                            "location": row_json(&row, 2),
-                            "time": row_json(&row, 3),
-                            "worldName": row_json(&row, 4),
-                            "groupName": row_json(&row, 5),
-                            "eventId": row_json(&row, 6),
-                            "eventType": row_json(&row, 7)
-                        })
+                        WHERE {where_clause}
+                        ORDER BY jl.id ASC"
+                    ),
+                    &db_params.build(),
+                )?
+                .into_iter()
+                .map(|row| {
+                    json!({
+                        "created_at": row_json(&row, 0),
+                        "createdAtTs": row_json(&row, 1),
+                        "location": row_json(&row, 2),
+                        "time": row_json(&row, 3),
+                        "worldName": row_json(&row, 4),
+                        "groupName": row_json(&row, 5),
+                        "eventId": row_json(&row, 6),
+                        "eventType": row_json(&row, 7)
                     })
-                    .collect(),
+                })
+                .collect(),
             ))
         }
         "previousInstancesByWorldId" => {

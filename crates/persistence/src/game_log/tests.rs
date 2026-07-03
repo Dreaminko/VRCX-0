@@ -328,6 +328,177 @@ fn local_query_negative_limits_are_clamped_to_zero() -> Result<(), Error> {
 }
 
 #[test]
+fn previous_instances_by_user_id_uses_latest_location_metadata() -> Result<(), Error> {
+    let test_db = test_db("store-gamelog-previous-instances-user-location")?;
+    let db = &test_db.db;
+    let target_user_id = "usr_target";
+    let matched_location = "wrld_match:1";
+    let missing_location = "wrld_missing:1";
+
+    insert_location(
+        db,
+        &GameLogLocationEntry {
+            created_at: "2026-05-14T09:00:00.000Z".into(),
+            location: matched_location.into(),
+            world_id: "wrld_match".into(),
+            world_name: "Old World".into(),
+            time: 0,
+            group_name: "old-group".into(),
+        },
+    )?;
+    insert_location(
+        db,
+        &GameLogLocationEntry {
+            created_at: "2026-05-14T10:00:00.000Z".into(),
+            location: matched_location.into(),
+            world_id: "wrld_match".into(),
+            world_name: "New World".into(),
+            time: 0,
+            group_name: "new-group".into(),
+        },
+    )?;
+    insert_location(
+        db,
+        &GameLogLocationEntry {
+            created_at: "2026-05-14T10:30:00.000Z".into(),
+            location: "wrld_other:1".into(),
+            world_id: "wrld_other".into(),
+            world_name: "Other World".into(),
+            time: 0,
+            group_name: "".into(),
+        },
+    )?;
+
+    insert_join_leave(
+        db,
+        &GameLogJoinLeaveEntry {
+            created_at: "2026-05-14T10:01:00.000Z".into(),
+            event_type: "OnPlayerJoined".into(),
+            display_name: "Target".into(),
+            location: matched_location.into(),
+            user_id: target_user_id.into(),
+            world_name: "New World".into(),
+            time: 0,
+        },
+    )?;
+    insert_join_leave(
+        db,
+        &GameLogJoinLeaveEntry {
+            created_at: "2026-05-14T10:02:00.000Z".into(),
+            event_type: "OnPlayerLeft".into(),
+            display_name: "Target".into(),
+            location: missing_location.into(),
+            user_id: target_user_id.into(),
+            world_name: "".into(),
+            time: 120,
+        },
+    )?;
+    insert_join_leave(
+        db,
+        &GameLogJoinLeaveEntry {
+            created_at: "2026-05-14T10:03:00.000Z".into(),
+            event_type: "OnPlayerJoined".into(),
+            display_name: "Other".into(),
+            location: "wrld_match:1".into(),
+            user_id: "usr_other".into(),
+            world_name: "New World".into(),
+            time: 0,
+        },
+    )?;
+
+    let result = game_log_query(
+        db,
+        GameLogQueryInput {
+            kind: "previousInstancesByUserIdRows".into(),
+            params: RawJson::from(json!({
+                "userId": target_user_id
+            })),
+        },
+    )?;
+
+    let rows = result.as_array().cloned().unwrap_or_default();
+    assert_eq!(rows.len(), 1);
+    let row = &rows[0];
+    assert_eq!(row.get("location"), Some(&json!(matched_location)));
+    assert_eq!(row.get("worldName"), Some(&json!("New World")));
+    assert_eq!(row.get("groupName"), Some(&json!("new-group")));
+    assert_eq!(row.get("eventType"), Some(&json!("OnPlayerJoined")));
+    Ok(())
+}
+
+#[test]
+fn previous_instances_by_user_id_filters_by_date_range() -> Result<(), Error> {
+    let test_db = test_db("store-gamelog-previous-user-date-range")?;
+    let db = &test_db.db;
+    let target_user_id = "usr_target";
+    let matched_location = "wrld_match:123";
+
+    insert_location(
+        db,
+        &GameLogLocationEntry {
+            created_at: "2026-05-14T10:00:00.000Z".into(),
+            location: matched_location.into(),
+            world_id: "wrld_match".into(),
+            world_name: "Matched World".into(),
+            time: 0,
+            group_name: "".into(),
+        },
+    )?;
+
+    for created_at in [
+        "2026-05-13T23:59:59.999Z",
+        "2026-05-14T10:01:00.000Z",
+        "2026-05-15T00:00:00.001Z",
+    ] {
+        insert_join_leave(
+            db,
+            &GameLogJoinLeaveEntry {
+                created_at: created_at.into(),
+                event_type: "OnPlayerJoined".into(),
+                display_name: "Target".into(),
+                location: matched_location.into(),
+                user_id: target_user_id.into(),
+                world_name: "Matched World".into(),
+                time: 0,
+            },
+        )?;
+    }
+    insert_join_leave(
+        db,
+        &GameLogJoinLeaveEntry {
+            created_at: "2026-05-14T12:00:00.000Z".into(),
+            event_type: "OnPlayerLeft".into(),
+            display_name: "Target".into(),
+            location: "wrld_missing:123".into(),
+            user_id: target_user_id.into(),
+            world_name: "".into(),
+            time: 120,
+        },
+    )?;
+
+    let result = game_log_query(
+        db,
+        GameLogQueryInput {
+            kind: "previousInstancesByUserIdRows".into(),
+            params: RawJson::from(json!({
+                "userId": target_user_id,
+                "dateFrom": "2026-05-14T00:00:00.000Z",
+                "dateTo": "2026-05-15T00:00:00.000Z"
+            })),
+        },
+    )?;
+
+    let rows = result.as_array().cloned().unwrap_or_default();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(
+        rows[0].get("created_at"),
+        Some(&json!("2026-05-14T10:01:00.000Z"))
+    );
+    assert_eq!(rows[0].get("location"), Some(&json!(matched_location)));
+    Ok(())
+}
+
+#[test]
 fn sessions_events_fetch_all_in_window_regardless_of_location() -> Result<(), Error> {
     let test_db = test_db("store-gamelog-sessions-events-window")?;
     let db = &test_db.db;
