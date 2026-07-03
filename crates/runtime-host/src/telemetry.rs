@@ -553,8 +553,8 @@ impl TelemetryRuntime {
         TelemetryConfigSnapshot {
             background_mode_enabled: self.config_bool("backgroundModeEnabled", false),
             wrist_overlay_enabled: self.config_bool("wristOverlayEnabled", false),
-            xs_notifications: self.config_bool("xsNotifications", true),
-            ovrt_hud_notifications: self.config_bool("ovrtHudNotifications", true),
+            xs_notifications: self.config_bool("xsNotifications", false),
+            ovrt_hud_notifications: self.config_bool("ovrtHudNotifications", false),
             ovrt_wrist_notifications: self.config_bool("ovrtWristNotifications", false),
             discord_active: self.config_bool("discordActive", false),
             mcp_server_enabled: self.config_bool("mcpServerEnabled", false),

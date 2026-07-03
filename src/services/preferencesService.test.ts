@@ -387,6 +387,14 @@ describe('preferencesService characterization', () => {
 
     it('seeds hmdNotificationsEnabled off when external overlay forwarding is on', async () => {
         mocks.has.mockResolvedValue(false);
+        mocks.getRawValue.mockImplementation((key: string) =>
+            Promise.resolve(key === 'xsNotifications' ? 'true' : null)
+        );
+        mocks.getBool.mockImplementation((key: string, fallback = false) =>
+            Promise.resolve(
+                key === 'xsNotifications' ? true : Boolean(fallback)
+            )
+        );
 
         await loadPreferenceSnapshot();
 
@@ -398,20 +406,7 @@ describe('preferencesService characterization', () => {
     });
 
     it('seeds hmdNotificationsEnabled on when all external overlay forwarding is off', async () => {
-        const forwardingKeys = [
-            'xsNotifications',
-            'ovrtHudNotifications',
-            'ovrtWristNotifications'
-        ];
         mocks.has.mockResolvedValue(false);
-        mocks.getRawValue.mockImplementation((key: string) =>
-            Promise.resolve(forwardingKeys.includes(key) ? 'false' : null)
-        );
-        mocks.getBool.mockImplementation((key: string, fallback = false) =>
-            Promise.resolve(
-                forwardingKeys.includes(key) ? false : Boolean(fallback)
-            )
-        );
 
         await loadPreferenceSnapshot();
 

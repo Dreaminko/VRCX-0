@@ -63,8 +63,8 @@ async function seedHmdNotificationsDefault() {
     }
     const [xsNotifications, ovrtHudNotifications, ovrtWristNotifications] =
         await Promise.all([
-            getBoolConfigWithLegacy('xsNotifications', true),
-            getBoolConfigWithLegacy('ovrtHudNotifications', true),
+            getBoolConfigWithLegacy('xsNotifications', false),
+            getBoolConfigWithLegacy('ovrtHudNotifications', false),
             getBoolConfigWithLegacy('ovrtWristNotifications', false)
         ]);
     const externalOverlayEnabled =
@@ -240,8 +240,8 @@ export async function loadPreferenceSnapshot() {
         configRepository.getString('notificationTTS', 'Never'),
         configRepository.getBool('notificationTTSNickName', false),
         configRepository.getString('notificationTTSVoice', '0'),
-        getBoolConfigWithLegacy('xsNotifications', true),
-        getBoolConfigWithLegacy('ovrtHudNotifications', true),
+        getBoolConfigWithLegacy('xsNotifications', false),
+        getBoolConfigWithLegacy('ovrtHudNotifications', false),
         getBoolConfigWithLegacy('ovrtWristNotifications', false),
         getBoolConfigWithLegacy('imageNotifications', true),
         getIntConfigWithLegacy('notificationTimeout', 3000),
