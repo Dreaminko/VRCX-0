@@ -18,8 +18,14 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
     );
 }
 
-function SelectValue({ ...props }: SelectPrimitive.Value.Props) {
-    return <SelectPrimitive.Value data-slot="select-value" {...props} />;
+function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+    return (
+        <SelectPrimitive.Value
+            data-slot="select-value"
+            className={cn('flex flex-1 text-left', className)}
+            {...props}
+        />
+    );
 }
 
 function SelectTrigger({
@@ -57,8 +63,7 @@ function SelectContent({
     sideOffset = 4,
     align = 'center',
     alignOffset = 0,
-    alignItemWithTrigger = false,
-    style,
+    alignItemWithTrigger = true,
     ...props
 }: SelectPrimitive.Popup.Props &
     Pick<
@@ -80,22 +85,13 @@ function SelectContent({
                     data-slot="select-content"
                     data-align-trigger={alignItemWithTrigger}
                     className={cn(
-                        'dark text-popover-foreground ring-foreground/10 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 bg-popover/70 **:data-[slot$=-item]:focus:bg-foreground/10 **:data-[slot$=-item]:data-highlighted:bg-foreground/10 **:data-[slot$=-separator]:bg-foreground/5 **:data-[slot$=-trigger]:focus:bg-foreground/10 **:data-[slot$=-trigger]:aria-expanded:bg-foreground/10! **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground! relative z-50 max-h-(--select-content-max-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) animate-none! overflow-x-hidden overflow-y-auto rounded-lg shadow-md ring-1 duration-100 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 data-[align-trigger=true]:animate-none',
+                        'cn-menu-target cn-menu-translucent bg-popover text-popover-foreground ring-foreground/10 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg shadow-md ring-1 duration-100 data-[align-trigger=true]:animate-none',
                         className
                     )}
-                    style={
-                        {
-                            '--select-content-max-height':
-                                'min(32rem, calc(100vh - 4rem), var(--available-height))',
-                            ...style
-                        } as React.CSSProperties
-                    }
                     {...props}
                 >
                     <SelectScrollUpButton />
-                    <SelectPrimitive.List className="p-1">
-                        {children}
-                    </SelectPrimitive.List>
+                    <SelectPrimitive.List>{children}</SelectPrimitive.List>
                     <SelectScrollDownButton />
                 </SelectPrimitive.Popup>
             </SelectPrimitive.Positioner>
