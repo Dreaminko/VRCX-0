@@ -8,8 +8,17 @@ import { cn } from '@/lib/utils';
 
 const titleBarCollisionPadding = { top: 40, right: 8, bottom: 8, left: 8 };
 
-function DropdownMenu({ ...props }: DropdownMenuPrimitive.Root.Props) {
-    return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
+function DropdownMenu({
+    modal = false,
+    ...props
+}: DropdownMenuPrimitive.Root.Props) {
+    return (
+        <DropdownMenuPrimitive.Root
+            data-slot="dropdown-menu"
+            modal={modal}
+            {...props}
+        />
+    );
 }
 
 function DropdownMenuPortal({ ...props }: DropdownMenuPrimitive.Portal.Props) {

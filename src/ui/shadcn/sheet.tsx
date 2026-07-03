@@ -9,10 +9,15 @@ import { preserveAppTitleBarOnOpenChange } from '@/lib/overlay-titlebar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 
-function Sheet({ onOpenChange, ...props }: SheetPrimitive.Root.Props) {
+function Sheet({
+    onOpenChange,
+    modal = 'trap-focus',
+    ...props
+}: SheetPrimitive.Root.Props) {
     return (
         <SheetPrimitive.Root
             data-slot="sheet"
+            modal={modal}
             onOpenChange={(open, eventDetails) => {
                 if (preserveAppTitleBarOnOpenChange(open, eventDetails)) {
                     return;

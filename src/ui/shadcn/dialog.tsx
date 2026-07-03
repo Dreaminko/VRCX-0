@@ -7,10 +7,15 @@ import { preserveAppTitleBarOnOpenChange } from '@/lib/overlay-titlebar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 
-function Dialog({ onOpenChange, ...props }: DialogPrimitive.Root.Props) {
+function Dialog({
+    onOpenChange,
+    modal = 'trap-focus',
+    ...props
+}: DialogPrimitive.Root.Props) {
     return (
         <DialogPrimitive.Root
             data-slot="dialog"
+            modal={modal}
             onOpenChange={(open, eventDetails) => {
                 if (preserveAppTitleBarOnOpenChange(open, eventDetails)) {
                     return;
