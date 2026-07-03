@@ -120,17 +120,7 @@ export default defineConfig(({ mode }) => {
             }
         },
         optimizeDeps: {
-            include: [
-                '@base-ui/react',
-                'i18next',
-                'radix-ui',
-                'react',
-                'react-dom',
-                'react-router-dom',
-                '@tanstack/react-query',
-                'zustand',
-                'lucide-react'
-            ]
+            entries: []
         },
         define: {
             VERSION: JSON.stringify(version),
