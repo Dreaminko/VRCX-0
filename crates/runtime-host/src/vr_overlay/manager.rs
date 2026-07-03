@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use vrcx_0_host::vr_overlay::{OverlaySurfaceConfig, VrDeviceSnapshot};
-use vrcx_0_vr_overlay::RgbaFrame;
+use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
 use super::{
     eligibility::VrOverlayEligibility,
@@ -93,8 +93,32 @@ where
         self.service.update_frame(frame)
     }
 
+    pub fn update_surface_frame(
+        &mut self,
+        surface_id: &OverlaySurfaceId,
+        frame: RgbaFrame,
+    ) -> Result<(), String> {
+        self.service.update_surface_frame(surface_id, frame)
+    }
+
     pub fn show(&mut self) -> Result<(), String> {
         self.service.show()
+    }
+
+    pub fn show_surface(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        self.service.show_surface(surface_id)
+    }
+
+    pub fn hide_surface(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        self.service.hide_surface(surface_id)
+    }
+
+    pub fn set_surface_alpha(
+        &mut self,
+        surface_id: &OverlaySurfaceId,
+        alpha: f32,
+    ) -> Result<(), String> {
+        self.service.set_surface_alpha(surface_id, alpha)
     }
 
     pub fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String> {

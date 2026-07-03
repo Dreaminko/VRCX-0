@@ -5,6 +5,8 @@
         "en": {
             "notifications.has_joined": "has joined",
             "notifications.has_left": "has left",
+            "notifications.joined_with_others": "and {count} more joined",
+            "notifications.left_with_others": "and {count} more left",
             "notifications.is_joining": "is joining",
             "notifications.gps": "is in {location}",
             "notifications.online": "has logged in",
@@ -64,6 +66,8 @@
         "zh-CN": {
             "notifications.has_joined": "加入了房间",
             "notifications.has_left": "离开了房间",
+            "notifications.joined_with_others": "和另外 {count} 人加入了房间",
+            "notifications.left_with_others": "和另外 {count} 人离开了房间",
             "notifications.is_joining": "正在加入房间",
             "notifications.gps": "现在位于 {location}",
             "notifications.online": "上线了",
@@ -123,6 +127,8 @@
         "zh-TW": {
             "notifications.has_joined": "已加入",
             "notifications.has_left": "已離開",
+            "notifications.joined_with_others": "和另外 {count} 人已加入",
+            "notifications.left_with_others": "和另外 {count} 人已離開",
             "notifications.is_joining": "正在加入",
             "notifications.gps": "位於 {location}",
             "notifications.online": "已登入",
@@ -182,6 +188,8 @@
         "ja": {
             "notifications.has_joined": "が参加しました",
             "notifications.has_left": "が退出しました",
+            "notifications.joined_with_others": "と他{count}人が参加しました",
+            "notifications.left_with_others": "と他{count}人が退出しました",
             "notifications.is_joining": "が参加しようとしています",
             "notifications.gps": "は {location} にいます",
             "notifications.online": "はログインしました",
@@ -241,6 +249,8 @@
         "ko": {
             "notifications.has_joined": "가입했습니다",
             "notifications.has_left": "떠났다",
+            "notifications.joined_with_others": "외 {count}명이 참가했습니다",
+            "notifications.left_with_others": "외 {count}명이 떠났습니다",
             "notifications.is_joining": "합류 중",
             "notifications.gps": "{location}에 있습니다",
             "notifications.online": "로그인했습니다",

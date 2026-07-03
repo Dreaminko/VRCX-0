@@ -119,6 +119,7 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     setStartAsMinimizedPreference: SettingsCallback<[boolean]>;
     setStartAtWindowsStartupPreference: SettingsCallback<[boolean]>;
     setTableDensityPreference: SettingsCallback<[unknown]>;
+    setHmdNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setTranslationApiEnabledPreference: SettingsCallback<[boolean]>;
     setVrNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setWristFeedNotificationsDialogOpen: SettingsCallback<[boolean]>;
@@ -157,6 +158,7 @@ export function buildSettingsPageStateSections({
     customFontOptionsLoading,
     deleteAllScreenshotMetadata,
     desktopNotificationsDialogOpen,
+    hmdNotificationsDialogOpen,
     discordPrefs,
     favoriteFriendGroupOptions,
     feedFilterDialogOpen,
@@ -212,6 +214,7 @@ export function buildSettingsPageStateSections({
     saveDesktopNotificationActivityFilters,
     saveDiscordBoolPreference,
     saveFontFamilyPreference,
+    saveHmdNotificationActivityFilters,
     saveIntegrationBoolPreference,
     saveInterfaceZoomLevel,
     saveNotificationTtsMode,
@@ -240,6 +243,7 @@ export function buildSettingsPageStateSections({
     setDataTableStripedPreference,
     setDesktopNotificationsDialogOpen,
     setFeedFilterDialogOpen,
+    setHmdNotificationsDialogOpen,
     setIntConfigPreference,
     setIntegrationValue,
     setNotificationLayoutPreference,
@@ -753,6 +757,7 @@ export function buildSettingsPageStateSections({
         vr: {
             prefs,
             setVrNotificationsDialogOpen,
+            setHmdNotificationsDialogOpen,
             setWristFeedNotificationsDialogOpen,
             savePreferenceValue,
             saveStringPreference,
@@ -854,6 +859,8 @@ export function buildSettingsPageStateSections({
             setWristFeedNotificationsDialogOpen,
             vrNotificationsDialogOpen,
             setVrNotificationsDialogOpen,
+            hmdNotificationsDialogOpen,
+            setHmdNotificationsDialogOpen,
             desktopNotificationsDialogOpen,
             setDesktopNotificationsDialogOpen,
             webhookNotificationsDialogOpen,
@@ -862,6 +869,9 @@ export function buildSettingsPageStateSections({
             saveOverlayActivityFilters,
             vrNotificationActivityFilters: prefs.vrNotificationActivityFilters,
             saveVrNotificationActivityFilters,
+            hmdNotificationActivityFilters:
+                prefs.hmdNotificationActivityFilters,
+            saveHmdNotificationActivityFilters,
             desktopNotificationActivityFilters:
                 prefs.desktopNotificationActivityFilters,
             saveDesktopNotificationActivityFilters,

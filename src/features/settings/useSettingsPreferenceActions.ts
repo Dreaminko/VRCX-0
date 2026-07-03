@@ -146,6 +146,9 @@ type SettingsPreferenceActionsDeps = {
     setVrNotificationActivityFiltersPreference: (
         value: unknown
     ) => Promise<PreferencesSnapshot['vrNotificationActivityFilters']>;
+    setHmdNotificationActivityFiltersPreference: (
+        value: unknown
+    ) => Promise<PreferencesSnapshot['hmdNotificationActivityFilters']>;
     setDesktopNotificationActivityFiltersPreference: (
         value: unknown
     ) => Promise<PreferencesSnapshot['desktopNotificationActivityFilters']>;
@@ -183,6 +186,7 @@ type FontPreferencesInput = Partial<{
 
 type ActivityFilterSurfaceField =
     | 'vrNotificationActivityFilters'
+    | 'hmdNotificationActivityFilters'
     | 'desktopNotificationActivityFilters'
     | 'webhookActivityFilters';
 
@@ -239,6 +243,7 @@ export function useSettingsPreferenceActions({
     setTablePageSizesDialogOpen,
     setTrustColorPreference,
     setVrNotificationActivityFiltersPreference,
+    setHmdNotificationActivityFiltersPreference,
     setDesktopNotificationActivityFiltersPreference,
     setWebhookActivityFiltersPreference,
     setWristOverlayEnabledPreference,
@@ -735,6 +740,10 @@ export function useSettingsPreferenceActions({
         'vrNotificationActivityFilters',
         setVrNotificationActivityFiltersPreference
     );
+    const saveHmdNotificationActivityFilters = makeSaveActivityFilterSurface(
+        'hmdNotificationActivityFilters',
+        setHmdNotificationActivityFiltersPreference
+    );
     const saveDesktopNotificationActivityFilters =
         makeSaveActivityFilterSurface(
             'desktopNotificationActivityFilters',
@@ -820,6 +829,7 @@ export function useSettingsPreferenceActions({
         toggleLocalFavoriteFriendsGroup,
         saveOverlayActivityFilters,
         saveVrNotificationActivityFilters,
+        saveHmdNotificationActivityFilters,
         saveDesktopNotificationActivityFilters,
         saveWebhookActivityFilters,
         saveWristOverlayEnabled,

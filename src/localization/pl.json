@@ -454,6 +454,20 @@
                 "pictures": "Obrazki",
                 "advanced": "Zaawansowane"
             },
+            "vr": {
+                "hmd_notifications": {
+                    "header": "Powiadomienia w goglach",
+                    "hmd_notifications": "Powiadomienia w goglach",
+                    "position": "Pozycja",
+                    "position_bottom": "Na dole",
+                    "position_top": "Na górze",
+                    "position_left": "Po lewej",
+                    "position_right": "Po prawej",
+                    "timeout": "Czas wyświetlania",
+                    "opacity": "Nieprzezroczystość",
+                    "filters": "Filtry powiadomień w goglach"
+                }
+            },
             "social": {
                 "hidden_feed": {
                     "header": "Ukryci użytkownicy w Feed",
@@ -832,6 +846,10 @@
         }
     },
     "dialog": {
+        "hmd_notifications": {
+            "title": "Filtry powiadomień w goglach",
+            "description": "Wybierz, które powiadomienia mają być wyświetlane w goglach."
+        },
         "user": {
             "status": {
                 "active": "Aktywne",

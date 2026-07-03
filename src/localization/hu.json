@@ -220,6 +220,20 @@
                 "discord_presence": "Discord jelenlét",
                 "advanced": "Haladó"
             },
+            "vr": {
+                "hmd_notifications": {
+                    "header": "Headset értesítések",
+                    "hmd_notifications": "Headset értesítések",
+                    "position": "Pozíció",
+                    "position_bottom": "Lent",
+                    "position_top": "Fent",
+                    "position_left": "Balra",
+                    "position_right": "Jobbra",
+                    "timeout": "Megjelenítési idő",
+                    "opacity": "Átlátszatlanság",
+                    "filters": "Headset értesítési szűrők"
+                }
+            },
             "social": {
                 "hidden_feed": {
                     "header": "Rejtett Feed-felhasználók",
@@ -497,6 +511,10 @@
         }
     },
     "dialog": {
+        "hmd_notifications": {
+            "title": "Headset értesítési szűrők",
+            "description": "Válaszd ki, mely értesítések jelenjenek meg a headsetben."
+        },
         "user": {
             "status": {
                 "active": "Aktív",

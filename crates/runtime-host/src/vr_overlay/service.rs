@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use vrcx_0_host::vr_overlay::{
     OverlayActorHandle, OverlayCommandError, OverlayServiceCommand, OverlayServicePhase,
     OverlaySurfaceConfig, VrDeviceSnapshot,
@@ -47,7 +49,27 @@ impl OverlayBackendPreference {
 pub trait VrOverlayServiceControl {
     fn start(&mut self) -> Result<(), OverlayServiceStartError>;
     fn update_frame(&mut self, frame: RgbaFrame) -> Result<(), String>;
+    fn update_surface_frame(
+        &mut self,
+        _surface_id: &OverlaySurfaceId,
+        frame: RgbaFrame,
+    ) -> Result<(), String> {
+        self.update_frame(frame)
+    }
     fn show(&mut self) -> Result<(), String>;
+    fn show_surface(&mut self, _surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        self.show()
+    }
+    fn hide_surface(&mut self, _surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        Ok(())
+    }
+    fn set_surface_alpha(
+        &mut self,
+        _surface_id: &OverlaySurfaceId,
+        _alpha: f32,
+    ) -> Result<(), String> {
+        Ok(())
+    }
     fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String>;
     fn set_surface_configs(&mut self, configs: Vec<OverlaySurfaceConfig>) -> Result<(), String>;
     fn set_backend_preference(&mut self, _preference: OverlayBackendPreference) {}
@@ -66,6 +88,7 @@ pub struct HostVrOverlayService {
     preference: OverlayBackendPreference,
     active_backend: Option<&'static str>,
     last_frame: Option<RgbaFrame>,
+    last_surface_frames: HashMap<OverlaySurfaceId, RgbaFrame>,
     frame_dirty: bool,
 }
 
@@ -106,6 +129,7 @@ impl HostVrOverlayService {
             preference: OverlayBackendPreference::Auto,
             active_backend: None,
             last_frame: None,
+            last_surface_frames: HashMap::new(),
             frame_dirty: true,
         }
     }
@@ -219,6 +243,86 @@ impl VrOverlayServiceControl for HostVrOverlayService {
         Ok(())
     }
 
+    fn update_surface_frame(
+        &mut self,
+        surface_id: &OverlaySurfaceId,
+        frame: RgbaFrame,
+    ) -> Result<(), String> {
+        if !self.surface_ids.contains(surface_id) {
+            return Err(format!(
+                "overlay surface '{}' is not registered",
+                surface_id.as_str()
+            ));
+        }
+        if self.last_surface_frames.get(surface_id) == Some(&frame) {
+            return Ok(());
+        }
+        let actor = self
+            .actor
+            .as_ref()
+            .ok_or_else(|| "overlay actor is not started".to_string())?;
+        actor
+            .send(OverlayServiceCommand::UpdateFrame {
+                surface_id: surface_id.clone(),
+                frame: frame.clone(),
+            })
+            .map_err(|error| error.to_string())?;
+        self.last_surface_frames.insert(surface_id.clone(), frame);
+        Ok(())
+    }
+
+    fn show_surface(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        if !self.surface_ids.contains(surface_id) {
+            return Err(format!(
+                "overlay surface '{}' is not registered",
+                surface_id.as_str()
+            ));
+        }
+        let actor = self
+            .actor
+            .as_ref()
+            .ok_or_else(|| "overlay actor is not started".to_string())?;
+        actor
+            .send(OverlayServiceCommand::Show(surface_id.clone()))
+            .map_err(|error| error.to_string())
+    }
+
+    fn hide_surface(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        if !self.surface_ids.contains(surface_id) {
+            return Ok(());
+        }
+        let actor = self
+            .actor
+            .as_ref()
+            .ok_or_else(|| "overlay actor is not started".to_string())?;
+        actor
+            .send(OverlayServiceCommand::Hide(surface_id.clone()))
+            .map_err(|error| error.to_string())
+    }
+
+    fn set_surface_alpha(
+        &mut self,
+        surface_id: &OverlaySurfaceId,
+        alpha: f32,
+    ) -> Result<(), String> {
+        if !self.surface_ids.contains(surface_id) {
+            return Err(format!(
+                "overlay surface '{}' is not registered",
+                surface_id.as_str()
+            ));
+        }
+        let actor = self
+            .actor
+            .as_ref()
+            .ok_or_else(|| "overlay actor is not started".to_string())?;
+        actor
+            .send(OverlayServiceCommand::SetAlpha {
+                surface_id: surface_id.clone(),
+                alpha,
+            })
+            .map_err(|error| error.to_string())
+    }
+
     fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String> {
         let actor = self
             .actor
@@ -260,11 +364,15 @@ impl VrOverlayServiceControl for HostVrOverlayService {
             )?;
             self.configs = configs;
             self.surface_ids = registered_surface_ids;
+            self.last_surface_frames
+                .retain(|surface_id, _| self.surface_ids.contains(surface_id));
             self.frame_dirty = true;
             return Ok(());
         }
         self.configs = configs;
         self.surface_ids = surface_ids;
+        self.last_surface_frames
+            .retain(|surface_id, _| self.surface_ids.contains(surface_id));
         self.frame_dirty = true;
         Ok(())
     }
@@ -292,6 +400,7 @@ impl VrOverlayServiceControl for HostVrOverlayService {
             let _ = actor.send(OverlayServiceCommand::Stop);
         }
         self.last_frame = None;
+        self.last_surface_frames.clear();
         self.active_backend = None;
         self.frame_dirty = true;
     }

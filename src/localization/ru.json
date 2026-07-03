@@ -354,6 +354,20 @@
                 "pictures": "Фотографии",
                 "advanced": "Расширенные"
             },
+            "vr": {
+                "hmd_notifications": {
+                    "header": "Уведомления в шлеме",
+                    "hmd_notifications": "Уведомления в шлеме",
+                    "position": "Позиция",
+                    "position_bottom": "Снизу",
+                    "position_top": "Сверху",
+                    "position_left": "Слева",
+                    "position_right": "Справа",
+                    "timeout": "Длительность показа",
+                    "opacity": "Непрозрачность",
+                    "filters": "Фильтры уведомлений в шлеме"
+                }
+            },
             "social": {
                 "hidden_feed": {
                     "header": "Скрытые пользователи Feed",
@@ -606,6 +620,10 @@
         }
     },
     "dialog": {
+        "hmd_notifications": {
+            "title": "Фильтры уведомлений в шлеме",
+            "description": "Выберите, какие уведомления показывать в шлеме."
+        },
         "user": {
             "status": {
                 "active": "Активный",

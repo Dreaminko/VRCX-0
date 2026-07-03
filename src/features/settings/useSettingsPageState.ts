@@ -158,6 +158,8 @@ export function useSettingsPageState() {
     ] = useState(false);
     const [vrNotificationsDialogOpen, setVrNotificationsDialogOpen] =
         useState(false);
+    const [hmdNotificationsDialogOpen, setHmdNotificationsDialogOpen] =
+        useState(false);
     const [desktopNotificationsDialogOpen, setDesktopNotificationsDialogOpen] =
         useState(false);
     const [webhookNotificationsDialogOpen, setWebhookNotificationsDialogOpen] =
@@ -260,6 +262,7 @@ export function useSettingsPageState() {
         resetSharedFeedFilters,
         saveOverlayActivityFilters,
         saveVrNotificationActivityFilters,
+        saveHmdNotificationActivityFilters,
         saveDesktopNotificationActivityFilters,
         saveWebhookActivityFilters,
         saveWristOverlayEnabled,
@@ -406,6 +409,7 @@ export function useSettingsPageState() {
         handleGameLogDisabledChange,
         integrationPrefs,
         integrationStatus,
+        hmdNotificationsDialogOpen,
         llmEndpoints,
         locale,
         localFavoriteFriendGroupOptions,
@@ -458,6 +462,7 @@ export function useSettingsPageState() {
         saveNotificationTtsVoice,
         saveOverlayActivityFilters,
         savePreferenceValue,
+        saveHmdNotificationActivityFilters,
         saveStringPreference,
         saveTableLimitsDialog,
         saveTranslationApiConfig,
@@ -479,6 +484,7 @@ export function useSettingsPageState() {
         setCustomFontDraft,
         setDataTableStripedPreference,
         setDesktopNotificationsDialogOpen,
+        setHmdNotificationsDialogOpen,
         setFeedFilterDialogOpen,
         setIntConfigPreference,
         setIntegrationValue,

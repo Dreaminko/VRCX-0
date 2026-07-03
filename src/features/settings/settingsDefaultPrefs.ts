@@ -12,6 +12,7 @@ import { TRUST_COLOR_DEFAULTS } from '@/shared/utils/trustColors';
 import {
     DEFAULT_TRANSLATION_ENDPOINT,
     DEFAULT_TRANSLATION_MODEL,
+    DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_OVERLAY_ACTIVITY_FILTERS,
     DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
@@ -68,6 +69,10 @@ export function createDefaultSettingsPrefs() {
         imageNotifications: true,
         notificationTimeout: 3000,
         notificationOpacity: 100,
+        hmdNotificationsEnabled: false,
+        hmdNotificationTimeout: 5000,
+        hmdNotificationOpacity: 100,
+        hmdNotificationPosition: 'bottom',
         webhookEnabled: false,
         webhookUrl: '',
         webhookFormat: 'generic',
@@ -113,6 +118,8 @@ export function createDefaultSettingsPrefs() {
         ),
         overlayActivityFilters: DEFAULT_OVERLAY_ACTIVITY_FILTERS,
         vrNotificationActivityFilters: DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
+        hmdNotificationActivityFilters:
+            DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
         desktopNotificationActivityFilters:
             DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
         webhookActivityFilters: DEFAULT_WEBHOOK_ACTIVITY_FILTERS,

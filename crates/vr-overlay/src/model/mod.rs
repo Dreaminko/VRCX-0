@@ -12,4 +12,4 @@ pub use feed::{FeedKind, FeedLine, FeedRelation, FeedSeverity};
 pub use footer::OverlayFooter;
 pub use frame::RgbaFrame;
 pub use geometry::{OverlaySize, Rect};
-pub use surface::{OverlaySurfaceId, OverlaySurfaceKind};
+pub use surface::{OverlaySurfaceId, OverlaySurfaceKind, MAIN_SURFACE_ID};

@@ -5,8 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { buildFeedFavoriteGroupOptions } from '@/features/feed/feedColumnScope';
 import { commands } from '@/platform/tauri/bindings';
 import {
+    DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_OVERLAY_ACTIVITY_FILTER_PROFILE,
     defaultOverlayActivityFilterProfileFromDefinitions,
+    hmdDefaultOverlayActivityFilterProfileFromDefinitions,
     normalizeOverlayActivityFilterProfile,
     normalizeOverlayActivityFilterProfileWithDefinitions,
     normalizeOverlayActivityFilters,
@@ -80,6 +82,10 @@ type OverlayActivityFilterDialogProps = {
     titleKey: string;
     descriptionKey: string;
     value: OverlayActivityFilterProfilePreference;
+    defaultProfileFromDefinitions?: (
+        definitions: OverlayActivityTypeDefinition[]
+    ) => OverlayActivityFilterProfilePreference;
+    fallbackDefaultProfile?: OverlayActivityFilterProfilePreference;
     onSave(
         value: OverlayActivityFilterProfilePreference,
         definitions: OverlayActivityTypeDefinition[]
@@ -174,6 +180,28 @@ export function DesktopNotificationsDialog({
     );
 }
 
+export function HmdNotificationsDialog({
+    open,
+    onOpenChange,
+    value,
+    onSave
+}: VrNotificationsDialogProps) {
+    return (
+        <OverlayActivityFilterDialog
+            open={open}
+            onOpenChange={onOpenChange}
+            titleKey="dialog.hmd_notifications.title"
+            descriptionKey="dialog.hmd_notifications.description"
+            value={value}
+            defaultProfileFromDefinitions={
+                hmdDefaultOverlayActivityFilterProfileFromDefinitions
+            }
+            fallbackDefaultProfile={DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS}
+            onSave={onSave}
+        />
+    );
+}
+
 export function WebhookNotificationsDialog({
     open,
     onOpenChange,
@@ -198,6 +226,8 @@ function OverlayActivityFilterDialog({
     titleKey,
     descriptionKey,
     value,
+    defaultProfileFromDefinitions,
+    fallbackDefaultProfile,
     onSave
 }: OverlayActivityFilterDialogProps) {
     const { t } = useTranslation();
@@ -354,16 +384,14 @@ function OverlayActivityFilterDialog({
     }
 
     function resetRecommended() {
-        setDraft(
-            normalizeDraft(
-                activityDefinitions.length
-                    ? defaultOverlayActivityFilterProfileFromDefinitions(
-                          activityDefinitions
-                      )
-                    : DEFAULT_OVERLAY_ACTIVITY_FILTER_PROFILE,
-                activityDefinitions
-            )
-        );
+        const defaultProfile = activityDefinitions.length
+            ? (
+                  defaultProfileFromDefinitions ??
+                  defaultOverlayActivityFilterProfileFromDefinitions
+              )(activityDefinitions)
+            : (fallbackDefaultProfile ??
+              DEFAULT_OVERLAY_ACTIVITY_FILTER_PROFILE);
+        setDraft(normalizeDraft(defaultProfile, activityDefinitions));
     }
 
     const selectedCategoryTypes = rawTypesByCategory[selectedCategory] || [];

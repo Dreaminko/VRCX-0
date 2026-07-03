@@ -1907,6 +1907,18 @@
                 "vr_notifications": {
                     "header": "VR Overlay Notifications"
                 },
+                "hmd_notifications": {
+                    "header": "HMD Notifications",
+                    "hmd_notifications": "HMD Notifications",
+                    "position": "Position",
+                    "position_bottom": "Bottom",
+                    "position_top": "Top",
+                    "position_left": "Left",
+                    "position_right": "Right",
+                    "timeout": "Timeout",
+                    "opacity": "Opacity",
+                    "filters": "HMD Notification Filters"
+                },
                 "wrist_overlay": {
                     "header": "Wrist Overlay",
                     "wrist_feed_overlay": "Wrist Feed Overlay",
@@ -4849,6 +4861,10 @@
             "title": "VR Overlay Notification Filters",
             "description": "Choose which runtime notifications are sent to XSOverlay and OVR Toolkit while SteamVR is running."
         },
+        "hmd_notifications": {
+            "title": "HMD Notification Filters",
+            "description": "Choose which runtime notifications appear inside the headset."
+        },
         "desktop_notifications": {
             "title": "Desktop Notification Filters",
             "description": "Choose which activities trigger desktop (OS) notifications. The desktop notification condition above still applies."
@@ -5726,6 +5742,8 @@
     "notifications": {
         "has_joined": "has joined",
         "has_left": "has left",
+        "joined_with_others": "and {count} more joined",
+        "left_with_others": "and {count} more left",
         "is_joining": "is joining",
         "gps": "is in {location}",
         "online_location": "has logged in to {location}",

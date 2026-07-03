@@ -1907,6 +1907,18 @@
                 "vr_notifications": {
                     "header": "VR 叠加通知"
                 },
+                "hmd_notifications": {
+                    "header": "头显通知",
+                    "hmd_notifications": "头显通知",
+                    "position": "位置",
+                    "position_bottom": "下方",
+                    "position_top": "上方",
+                    "position_left": "左侧",
+                    "position_right": "右侧",
+                    "timeout": "显示时长",
+                    "opacity": "不透明度",
+                    "filters": "头显通知过滤"
+                },
                 "wrist_overlay": {
                     "header": "手腕叠加界面",
                     "wrist_feed_overlay": "手腕动态叠加界面",
@@ -4849,6 +4861,10 @@
             "title": "VR 叠加界面通知过滤器",
             "description": "选择在 SteamVR 运行时哪些通知会发送到 XSOverlay 和 OVR Toolkit。"
         },
+        "hmd_notifications": {
+            "title": "头显通知过滤",
+            "description": "选择哪些通知会显示在头显视野内。"
+        },
         "desktop_notifications": {
             "title": "桌面通知过滤器",
             "description": "选择哪些活动会触发桌面（系统）通知。上方的桌面通知显示条件依然生效。"
@@ -5726,6 +5742,8 @@
     "notifications": {
         "has_joined": "加入了房间",
         "has_left": "离开了房间",
+        "joined_with_others": "和另外 {count} 人加入了房间",
+        "left_with_others": "和另外 {count} 人离开了房间",
         "is_joining": "正在加入房间",
         "gps": "现在位于 {location}",
         "online_location": "在 {location} 上线了",

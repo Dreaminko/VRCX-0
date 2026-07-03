@@ -220,6 +220,20 @@
                 "discord_presence": "Hiển thị trên Discord",
                 "advanced": "Nâng cao"
             },
+            "vr": {
+                "hmd_notifications": {
+                    "header": "Thông báo trong kính VR",
+                    "hmd_notifications": "Thông báo trong kính VR",
+                    "position": "Vị trí",
+                    "position_bottom": "Dưới",
+                    "position_top": "Trên",
+                    "position_left": "Trái",
+                    "position_right": "Phải",
+                    "timeout": "Thời gian hiển thị",
+                    "opacity": "Độ mờ đục",
+                    "filters": "Bộ lọc thông báo trong kính VR"
+                }
+            },
             "social": {
                 "hidden_feed": {
                     "header": "Người dùng bị ẩn trong Feed",
@@ -497,6 +511,10 @@
         }
     },
     "dialog": {
+        "hmd_notifications": {
+            "title": "Bộ lọc thông báo trong kính VR",
+            "description": "Chọn thông báo sẽ hiển thị trong kính VR."
+        },
         "user": {
             "status": {
                 "active": "Active",

@@ -329,6 +329,20 @@
                 "pictures": "รูปภาพ",
                 "advanced": "ขั้นสูง"
             },
+            "vr": {
+                "hmd_notifications": {
+                    "header": "การแจ้งเตือนในเฮดเซ็ต",
+                    "hmd_notifications": "การแจ้งเตือนในเฮดเซ็ต",
+                    "position": "ตำแหน่ง",
+                    "position_bottom": "ด้านล่าง",
+                    "position_top": "ด้านบน",
+                    "position_left": "ด้านซ้าย",
+                    "position_right": "ด้านขวา",
+                    "timeout": "ระยะเวลาแสดงผล",
+                    "opacity": "ความทึบแสง",
+                    "filters": "ตัวกรองการแจ้งเตือนในเฮดเซ็ต"
+                }
+            },
             "social": {
                 "hidden_feed": {
                     "header": "ผู้ใช้ที่ซ่อนใน Feed",
@@ -672,6 +686,10 @@
         }
     },
     "dialog": {
+        "hmd_notifications": {
+            "title": "ตัวกรองการแจ้งเตือนในเฮดเซ็ต",
+            "description": "เลือกการแจ้งเตือนที่จะแสดงในเฮดเซ็ต"
+        },
         "user": {
             "status": {
                 "active": "กำลังใช้งาน",

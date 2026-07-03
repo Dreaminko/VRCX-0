@@ -3,6 +3,7 @@ import configRepository from '@/repositories/configRepository';
 import storageRepository from '@/repositories/storageRepository';
 import {
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
+    parseHmdOverlayActivityFilterProfile,
     parseOverlayActivityFilterProfile
 } from '@/shared/constants/overlayActivityFilters';
 import { normalizeTrustColors } from '@/shared/utils/trustColors';
@@ -12,6 +13,7 @@ import {
     normalizeDefaultLaunchMode,
     normalizeFeedTimeDisplayMode,
     normalizeFeedHiddenUsers,
+    normalizeHmdNotificationPosition,
     normalizeTableLimits,
     normalizeTablePageSize,
     normalizeTablePageSizes,
@@ -54,7 +56,27 @@ import {
     setDocumentLanguage
 } from './preferencesCore';
 
+async function seedHmdNotificationsDefault() {
+    if (await configRepository.has('hmdNotificationsEnabled')) {
+        return;
+    }
+    const [xsNotifications, ovrtHudNotifications, ovrtWristNotifications] =
+        await Promise.all([
+            getBoolConfigWithLegacy('xsNotifications', true),
+            getBoolConfigWithLegacy('ovrtHudNotifications', true),
+            getBoolConfigWithLegacy('ovrtWristNotifications', false)
+        ]);
+    const externalOverlayEnabled =
+        xsNotifications || ovrtHudNotifications || ovrtWristNotifications;
+    await configRepository.setBool(
+        'hmdNotificationsEnabled',
+        !externalOverlayEnabled
+    );
+    await commands.appVrOverlayConfigReload();
+}
+
 export async function loadPreferenceSnapshot() {
+    await seedHmdNotificationsDefault();
     const [
         navIsCollapsed,
         navPanelWidth,
@@ -102,6 +124,10 @@ export async function loadPreferenceSnapshot() {
         imageNotifications,
         notificationTimeout,
         notificationOpacity,
+        hmdNotificationsEnabled,
+        hmdNotificationTimeout,
+        hmdNotificationOpacity,
+        hmdNotificationPosition,
         webhookEnabled,
         webhookUrl,
         webhookFormat,
@@ -144,6 +170,7 @@ export async function loadPreferenceSnapshot() {
         sharedFeedFilters,
         overlayActivityFilters,
         vrNotificationActivityFilters,
+        hmdNotificationActivityFilters,
         desktopNotificationActivityFilters,
         webhookActivityFilters,
         feedTimeDisplayMode,
@@ -216,6 +243,10 @@ export async function loadPreferenceSnapshot() {
         getBoolConfigWithLegacy('imageNotifications', true),
         getIntConfigWithLegacy('notificationTimeout', 3000),
         getIntConfigWithLegacy('notificationOpacity', 100),
+        configRepository.getBool('hmdNotificationsEnabled', false),
+        configRepository.getInt('hmdNotificationTimeout', 5000),
+        configRepository.getInt('hmdNotificationOpacity', 100),
+        configRepository.getString('hmdNotificationPosition', 'bottom'),
         configRepository.getBool('webhookEnabled', false),
         configRepository.getString('webhookUrl', ''),
         configRepository.getString('webhookFormat', 'generic'),
@@ -270,6 +301,7 @@ export async function loadPreferenceSnapshot() {
         ),
         configRepository.getString('overlayActivityFilters', ''),
         configRepository.getString('vrNotificationActivityFilters', ''),
+        configRepository.getString('hmdNotificationActivityFilters', ''),
         configRepository.getString('desktopNotificationActivityFilters', ''),
         configRepository.getString('webhookActivityFilters', ''),
         configRepository.getString('feedTimeDisplayMode', 'relative'),
@@ -395,6 +427,16 @@ export async function loadPreferenceSnapshot() {
         notificationOpacity: Number.isFinite(notificationOpacity)
             ? notificationOpacity
             : 100,
+        hmdNotificationsEnabled: Boolean(hmdNotificationsEnabled),
+        hmdNotificationTimeout: Number.isFinite(hmdNotificationTimeout)
+            ? Math.min(30000, Math.max(1000, hmdNotificationTimeout))
+            : 5000,
+        hmdNotificationOpacity: Number.isFinite(hmdNotificationOpacity)
+            ? Math.min(100, Math.max(0, hmdNotificationOpacity))
+            : 100,
+        hmdNotificationPosition: normalizeHmdNotificationPosition(
+            hmdNotificationPosition
+        ),
         webhookEnabled: Boolean(webhookEnabled),
         webhookUrl: String(webhookUrl || ''),
         webhookFormat: webhookFormat === 'discord' ? 'discord' : 'generic',
@@ -447,6 +489,9 @@ export async function loadPreferenceSnapshot() {
         ),
         vrNotificationActivityFilters: parseOverlayActivityFilterProfile(
             vrNotificationActivityFilters
+        ),
+        hmdNotificationActivityFilters: parseHmdOverlayActivityFilterProfile(
+            hmdNotificationActivityFilters
         ),
         desktopNotificationActivityFilters: parseOverlayActivityFilterProfile(
             desktopNotificationActivityFilters

@@ -42,6 +42,8 @@ const overlayLocales = ['en', 'zh-CN', 'zh-TW', 'ja', 'ko'];
 const notificationKeys = [
     'has_joined',
     'has_left',
+    'joined_with_others',
+    'left_with_others',
     'is_joining',
     'gps',
     'online',

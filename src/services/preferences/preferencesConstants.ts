@@ -38,7 +38,11 @@ export const WRIST_OVERLAY_RUNTIME_CONFIG_KEYS = new Set([
     'wristOverlayHidePrivateWorlds',
     'wristOverlayDarkBackground',
     'wristOverlayShowDevices',
-    'wristOverlayShowBatteryPercent'
+    'wristOverlayShowBatteryPercent',
+    'hmdNotificationsEnabled',
+    'hmdNotificationTimeout',
+    'hmdNotificationOpacity',
+    'hmdNotificationPosition'
 ]);
 export const LEGACY_OVERLAY_NOTIFICATION_KEYS = Object.freeze({
     xsNotifications: 'VRCX-0_xsNotifications',

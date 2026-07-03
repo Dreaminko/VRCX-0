@@ -1903,6 +1903,18 @@
                 "vr_notifications": {
                     "header": "VR オーバーレイ通知"
                 },
+                "hmd_notifications": {
+                    "header": "ヘッドセット通知",
+                    "hmd_notifications": "ヘッドセット通知",
+                    "position": "位置",
+                    "position_bottom": "下",
+                    "position_top": "上",
+                    "position_left": "左",
+                    "position_right": "右",
+                    "timeout": "表示時間",
+                    "opacity": "不透明度",
+                    "filters": "ヘッドセット通知フィルター"
+                },
                 "wrist_overlay": {
                     "header": "手首のオーバーレイ",
                     "wrist_feed_overlay": "手首フィードオーバーレイ",
@@ -4844,6 +4856,10 @@
             "title": "VR オーバーレイ通知フィルター",
             "description": "SteamVR の実行中に XSOverlay と OVR Toolkit へ送る通知を選択します。"
         },
+        "hmd_notifications": {
+            "title": "ヘッドセット通知フィルター",
+            "description": "ヘッドセット内に表示する通知を選択します。"
+        },
         "desktop_notifications": {
             "title": "デスクトップ通知フィルター",
             "description": "どのアクティビティでデスクトップ（OS）通知を表示するかを選択します。上記のデスクトップ通知の条件も引き続き適用されます。"
@@ -5718,6 +5734,8 @@
     "notifications": {
         "has_joined": "が参加しました",
         "has_left": "が退出しました",
+        "joined_with_others": "と他{count}人が参加しました",
+        "left_with_others": "と他{count}人が退出しました",
         "is_joining": "が参加しようとしています",
         "gps": "は {location} にいます",
         "online_location": "が {location} にログインしました",

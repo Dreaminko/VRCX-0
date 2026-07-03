@@ -31,6 +31,12 @@ fn overlay_actor_serializes_commands_until_stop() {
         .send(OverlayServiceCommand::Show(wrist_surface_id()))
         .expect("show overlay");
     actor
+        .send(OverlayServiceCommand::SetAlpha {
+            surface_id: wrist_surface_id(),
+            alpha: 0.42,
+        })
+        .expect("set alpha");
+    actor
         .send(OverlayServiceCommand::Hide(wrist_surface_id()))
         .expect("hide overlay");
     actor
@@ -44,6 +50,7 @@ fn overlay_actor_serializes_commands_until_stop() {
             "register:wrist",
             "frame:wrist:16x8",
             "show:wrist",
+            "alpha:wrist:0.42",
             "hide:wrist",
             "stop"
         ]
@@ -222,6 +229,14 @@ impl OverlayBackend for RecordingBackend {
             .lock()
             .unwrap()
             .push(format!("hide:{}", surface_id.as_str()));
+        Ok(())
+    }
+
+    fn set_alpha(&mut self, surface_id: &OverlaySurfaceId, alpha: f32) -> Result<(), String> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push(format!("alpha:{}:{alpha:.2}", surface_id.as_str()));
         Ok(())
     }
 

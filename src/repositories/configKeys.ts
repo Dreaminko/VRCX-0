@@ -154,6 +154,10 @@ export const ConfigKeys = defineConfigKeys({
     imageNotifications: { type: 'bool', default: true },
     notificationTimeout: { type: 'int', default: 3000 },
     notificationOpacity: { type: 'int', default: 100 },
+    hmdNotificationsEnabled: { type: 'bool', default: false },
+    hmdNotificationTimeout: { type: 'int', default: 5000 },
+    hmdNotificationOpacity: { type: 'int', default: 100 },
+    hmdNotificationPosition: { type: 'string', default: 'bottom' },
     webhookEnabled: { type: 'bool', default: false },
     webhookUrl: { type: 'string', default: '' },
     webhookFormat: { type: 'string', default: 'generic' },
@@ -165,6 +169,7 @@ export const ConfigKeys = defineConfigKeys({
     vrNotificationActivityFilters: { type: 'string', default: '' },
     desktopNotificationActivityFilters: { type: 'string', default: '' },
     webhookActivityFilters: { type: 'string', default: '' },
+    hmdNotificationActivityFilters: { type: 'string', default: '' },
 
     // ── Settings - Overlay ───────────────────────────
     wristOverlayEnabled: { type: 'bool', default: false },

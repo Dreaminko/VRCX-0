@@ -1894,6 +1894,18 @@
                 "vr_notifications": {
                     "header": "Notificações de VR"
                 },
+                "hmd_notifications": {
+                    "header": "Notificações do headset",
+                    "hmd_notifications": "Notificações do headset",
+                    "position": "Posição",
+                    "position_bottom": "Embaixo",
+                    "position_top": "Em cima",
+                    "position_left": "Esquerda",
+                    "position_right": "Direita",
+                    "timeout": "Duração",
+                    "opacity": "Opacidade",
+                    "filters": "Filtros de notificações do headset"
+                },
                 "wrist_overlay": {
                     "header": "Overlay de Pulso",
                     "wrist_feed_overlay": "Overlay de Feed no Pulso",
@@ -4835,6 +4847,10 @@
         "vr_notifications": {
             "title": "Filtros de Notificação do Overlay de VR",
             "description": "Escolha quais notificações em tempo real são enviadas ao XSOverlay e ao OVR Toolkit enquanto o SteamVR está em execução."
+        },
+        "hmd_notifications": {
+            "title": "Filtros de notificações do headset",
+            "description": "Escolha quais notificações aparecem dentro do headset."
         },
         "desktop_notifications": {
             "title": "Filtros de Notificação da Área de Trabalho",

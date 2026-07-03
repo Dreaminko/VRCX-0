@@ -3675,6 +3675,7 @@ export type OverlayActivityTypeDefinition = {
     category: OverlayActivityCategory;
     allowedScopes: OverlayActivityScope[];
     defaultScope: OverlayActivityScope;
+    hmdDefaultScope: OverlayActivityScope;
     aliases: string[];
 };
 export type ParsedLocation = {

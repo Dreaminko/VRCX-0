@@ -226,6 +226,20 @@
                 "discord_presence": "Discord Presence",
                 "advanced": "Pokročilé"
             },
+            "vr": {
+                "hmd_notifications": {
+                    "header": "Oznámení v headsetu",
+                    "hmd_notifications": "Oznámení v headsetu",
+                    "position": "Pozice",
+                    "position_bottom": "Dole",
+                    "position_top": "Nahoře",
+                    "position_left": "Vlevo",
+                    "position_right": "Vpravo",
+                    "timeout": "Doba zobrazení",
+                    "opacity": "Neprůhlednost",
+                    "filters": "Filtry oznámení v headsetu"
+                }
+            },
             "social": {
                 "hidden_feed": {
                     "header": "Skrytí uživatelé ve Feedu",
@@ -541,6 +555,10 @@
         }
     },
     "dialog": {
+        "hmd_notifications": {
+            "title": "Filtry oznámení v headsetu",
+            "description": "Vyberte, která oznámení se zobrazí v headsetu."
+        },
         "user": {
             "status": {
                 "active": "Active",

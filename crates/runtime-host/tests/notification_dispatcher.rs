@@ -106,6 +106,7 @@ fn delivery(desktop: bool, vr: bool, webhook: bool) -> OverlayActivityDelivery {
         },
         desktop,
         vr,
+        hmd: false,
         webhook,
     }
 }

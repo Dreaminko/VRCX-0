@@ -535,6 +535,7 @@ mod tests {
             },
             desktop: false,
             vr: false,
+            hmd: false,
             webhook: true,
         }
     }

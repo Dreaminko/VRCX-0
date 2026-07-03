@@ -161,6 +161,42 @@ describe('preferencesStore normalizers', () => {
             scope: 'selectedFavorites',
             favoriteGroupKeys: ['group_future']
         });
+        expect(filters.hmd.types.OnPlayerJoined).toEqual({
+            scope: 'friends',
+            favoriteGroupKeys: 'all'
+        });
+        expect(filters.hmd.types.Online).toEqual({
+            scope: 'allFavorites',
+            favoriteGroupKeys: 'all'
+        });
+        expect(filters.hmd.types.VideoPlay).toEqual({
+            scope: 'off',
+            favoriteGroupKeys: 'all'
+        });
+    });
+
+    it('uses HMD defaults for standalone HMD activity filter snapshots', () => {
+        const malformed = normalizePreferenceSnapshot({
+            hmdNotificationActivityFilters: '{bad json'
+        }).hmdNotificationActivityFilters.types;
+        const empty = normalizePreferenceSnapshot({
+            hmdNotificationActivityFilters: {}
+        }).hmdNotificationActivityFilters.types;
+
+        for (const types of [malformed, empty]) {
+            expect(types.OnPlayerJoined).toEqual({
+                scope: 'friends',
+                favoriteGroupKeys: 'all'
+            });
+            expect(types.Online).toEqual({
+                scope: 'allFavorites',
+                favoriteGroupKeys: 'all'
+            });
+            expect(types.VideoPlay).toEqual({
+                scope: 'off',
+                favoriteGroupKeys: 'all'
+            });
+        }
     });
 
     it('migrates legacy shared wrist filters when overlay activity filters are missing', () => {
@@ -210,6 +246,10 @@ describe('preferencesStore normalizers', () => {
             wristOverlayShowDevices: 'true',
             wristOverlayShowBatteryPercent: 'true',
             wristOverlayHidePrivateWorlds: 'true',
+            hmdNotificationsEnabled: 'true',
+            hmdNotificationTimeout: 999999,
+            hmdNotificationOpacity: -1,
+            hmdNotificationPosition: 'right',
             tableLimits: {
                 maxTableSize: 5,
                 searchLimit: 999999
@@ -273,6 +313,10 @@ describe('preferencesStore normalizers', () => {
             wristOverlayShowDevices: true,
             wristOverlayShowBatteryPercent: true,
             wristOverlayHidePrivateWorlds: true,
+            hmdNotificationsEnabled: true,
+            hmdNotificationTimeout: 30000,
+            hmdNotificationOpacity: 0,
+            hmdNotificationPosition: 'right',
             translationAPIType: 'openai',
             translationAPIEndpoint: DEFAULT_PREFERENCES.translationAPIEndpoint,
             translationAPIModel: DEFAULT_PREFERENCES.translationAPIModel,

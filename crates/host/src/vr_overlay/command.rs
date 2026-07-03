@@ -15,6 +15,10 @@ pub enum OverlayServiceCommand {
     },
     Show(OverlaySurfaceId),
     Hide(OverlaySurfaceId),
+    SetAlpha {
+        surface_id: OverlaySurfaceId,
+        alpha: f32,
+    },
     Stop,
 }
 

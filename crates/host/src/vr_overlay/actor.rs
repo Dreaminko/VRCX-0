@@ -33,6 +33,9 @@ pub trait OverlayBackend: Send + 'static {
     ) -> Result<(), String>;
     fn show(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String>;
     fn hide(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String>;
+    fn set_alpha(&mut self, _surface_id: &OverlaySurfaceId, _alpha: f32) -> Result<(), String> {
+        Ok(())
+    }
     fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String>;
     fn tick(&mut self) {}
     fn stop(&mut self);
@@ -218,6 +221,9 @@ where
             .map_err(|error| record_backend_error(status, error)),
         OverlayServiceCommand::Hide(surface_id) => backend
             .hide(&surface_id)
+            .map_err(|error| record_backend_error(status, error)),
+        OverlayServiceCommand::SetAlpha { surface_id, alpha } => backend
+            .set_alpha(&surface_id, alpha)
             .map_err(|error| record_backend_error(status, error)),
         OverlayServiceCommand::Stop => {
             backend.stop();

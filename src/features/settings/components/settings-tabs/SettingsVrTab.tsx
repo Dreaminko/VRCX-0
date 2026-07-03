@@ -17,6 +17,10 @@ import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 
 type SettingsVrPrefs = Record<string, unknown> & {
+    hmdNotificationOpacity?: number;
+    hmdNotificationPosition?: string;
+    hmdNotificationTimeout?: number;
+    hmdNotificationsEnabled?: boolean;
     imageNotifications?: boolean;
     notificationOpacity?: number;
     notificationTimeout?: number;
@@ -37,8 +41,13 @@ type SettingsVrPrefs = Record<string, unknown> & {
 type SettingsVrTabProps = {
     prefs: SettingsVrPrefs;
     onImageNotificationsChange: (checked: boolean) => unknown;
+    onHmdNotificationOpacityChange: (value: unknown) => unknown;
+    onHmdNotificationPositionChange: (value: string) => unknown;
+    onHmdNotificationTimeoutSecondsChange: (value: unknown) => unknown;
+    onHmdNotificationsEnabledChange: (checked: boolean) => unknown;
     onNotificationOpacityChange: (value: unknown) => unknown;
     onNotificationTimeoutSecondsChange: (value: unknown) => unknown;
+    onOpenHmdNotificationFiltersDialog: () => unknown;
     onOpenVrNotificationFiltersDialog: () => unknown;
     onOpenWristFeedNotificationsDialog: () => unknown;
     onOvrtHudNotificationsChange: (checked: boolean) => unknown;
@@ -64,6 +73,11 @@ export function SettingsVrTab({
     onNotificationTimeoutSecondsChange,
     onNotificationOpacityChange,
     onOpenVrNotificationFiltersDialog,
+    onHmdNotificationsEnabledChange,
+    onHmdNotificationTimeoutSecondsChange,
+    onHmdNotificationOpacityChange,
+    onHmdNotificationPositionChange,
+    onOpenHmdNotificationFiltersDialog,
     onWristOverlayEnabledChange,
     onWristOverlayStartModeChange,
     onWristOverlayButtonChange,
@@ -76,6 +90,7 @@ export function SettingsVrTab({
     onOpenWristFeedNotificationsDialog
 }: SettingsVrTabProps) {
     const { t } = useTranslation();
+    const hmdNotificationsEnabled = Boolean(prefs.hmdNotificationsEnabled);
     const wristOverlayEnabled = Boolean(prefs.wristOverlayEnabled);
     const vrDeviceStatusEnabled =
         wristOverlayEnabled && Boolean(prefs.wristOverlayShowDevices);
@@ -89,6 +104,18 @@ export function SettingsVrTab({
         ? Math.min(
               100,
               Math.max(0, Math.round(Number(prefs.notificationOpacity)))
+          )
+        : 100;
+    const hmdNotificationTimeoutSeconds = Math.max(
+        1,
+        Math.floor(Number(prefs.hmdNotificationTimeout || 0) / 1000)
+    );
+    const hmdNotificationOpacity = Number.isFinite(
+        Number(prefs.hmdNotificationOpacity)
+    )
+        ? Math.min(
+              100,
+              Math.max(0, Math.round(Number(prefs.hmdNotificationOpacity)))
           )
         : 100;
 
@@ -203,6 +230,128 @@ export function SettingsVrTab({
                             {notificationOpacity}%
                         </span>
                     </div>
+                </Field>
+            </SettingsGroup>
+
+            <SettingsGroup
+                title={t('view.settings.vr.hmd_notifications.header')}
+            >
+                <Field
+                    label={t(
+                        'view.settings.vr.hmd_notifications.hmd_notifications'
+                    )}
+                >
+                    <Switch
+                        checked={hmdNotificationsEnabled}
+                        onCheckedChange={onHmdNotificationsEnabledChange}
+                    />
+                </Field>
+
+                <Field
+                    label={t('view.settings.vr.hmd_notifications.position')}
+                    controlId="settings-hmd-notification-position"
+                    disabled={!hmdNotificationsEnabled}
+                >
+                    <Select
+                        value={String(
+                            prefs.hmdNotificationPosition || 'bottom'
+                        )}
+                        disabled={!hmdNotificationsEnabled}
+                        onValueChange={onHmdNotificationPositionChange}
+                    >
+                        <SelectTrigger
+                            id="settings-hmd-notification-position"
+                            className="w-56"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem value="bottom">
+                                    {t(
+                                        'view.settings.vr.hmd_notifications.position_bottom'
+                                    )}
+                                </SelectItem>
+                                <SelectItem value="top">
+                                    {t(
+                                        'view.settings.vr.hmd_notifications.position_top'
+                                    )}
+                                </SelectItem>
+                                <SelectItem value="left">
+                                    {t(
+                                        'view.settings.vr.hmd_notifications.position_left'
+                                    )}
+                                </SelectItem>
+                                <SelectItem value="right">
+                                    {t(
+                                        'view.settings.vr.hmd_notifications.position_right'
+                                    )}
+                                </SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </Field>
+
+                <Field
+                    label={t('view.settings.vr.hmd_notifications.timeout')}
+                    controlId="settings-hmd-notification-timeout"
+                    disabled={!hmdNotificationsEnabled}
+                >
+                    <div className="flex items-center justify-end gap-2">
+                        <Input
+                            id="settings-hmd-notification-timeout"
+                            type="number"
+                            min={1}
+                            max={30}
+                            step={1}
+                            value={hmdNotificationTimeoutSeconds}
+                            disabled={!hmdNotificationsEnabled}
+                            className="w-24"
+                            onChange={(event) =>
+                                onHmdNotificationTimeoutSecondsChange(
+                                    event.target.value
+                                )
+                            }
+                        />
+                        <span className="text-muted-foreground w-8 text-sm">
+                            s
+                        </span>
+                    </div>
+                </Field>
+
+                <Field
+                    label={t('view.settings.vr.hmd_notifications.opacity')}
+                    disabled={!hmdNotificationsEnabled}
+                >
+                    <div className="flex w-56 max-w-full items-center justify-end gap-3">
+                        <Slider
+                            value={[hmdNotificationOpacity]}
+                            min={0}
+                            max={100}
+                            step={1}
+                            disabled={!hmdNotificationsEnabled}
+                            onValueChange={(value) =>
+                                onHmdNotificationOpacityChange(value?.[0])
+                            }
+                        />
+                        <span className="text-muted-foreground w-10 text-right text-sm">
+                            {hmdNotificationOpacity}%
+                        </span>
+                    </div>
+                </Field>
+
+                <Field
+                    label={t('view.settings.vr.hmd_notifications.filters')}
+                    disabled={!hmdNotificationsEnabled}
+                >
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!hmdNotificationsEnabled}
+                        onClick={onOpenHmdNotificationFiltersDialog}
+                    >
+                        {t('common.actions.configure')}
+                    </Button>
                 </Field>
             </SettingsGroup>
 

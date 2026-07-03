@@ -1,3 +1,4 @@
+use std::collections::{HashMap, VecDeque};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
@@ -7,8 +8,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Local, Timelike};
 use serde::Serialize;
 use vrcx_0_application::{
-    GameLogEvent, GameLogEventSink, GameProcessEvent, GameProcessEventSink, OverlayActivitySink,
-    OverlayActivitySnapshot, TaskSupervisor,
+    GameLogEvent, GameLogEventSink, GameProcessEvent, GameProcessEventSink,
+    OverlayActivityActorRelation, OverlayActivityDelivery, OverlayActivityEntry,
+    OverlayActivitySink, OverlayActivitySnapshot, TaskSupervisor, WebClient,
 };
 use vrcx_0_core::log_watcher::GameLogEventKind;
 use vrcx_0_host::vr_overlay::{
@@ -16,10 +18,12 @@ use vrcx_0_host::vr_overlay::{
 };
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_vr_overlay::{
-    build_wrist_scene, new_shared_overlay_font_system, OverlayRenderer, OverlaySize,
-    OverlaySurfaceId, RgbaFrame, TextMeasurer, TinySkiaRenderer,
+    build_main_scene, build_wrist_scene, new_shared_overlay_font_system, AvatarBitmap,
+    MainSurfaceModel, OverlayRenderer, OverlaySize, OverlaySurfaceId, RgbaFrame, TextMeasurer,
+    TinySkiaRenderer, MAIN_SURFACE_ID,
 };
 
+use crate::notification::user_image::UserImageCache;
 use crate::RuntimeHostContext;
 
 use super::{
@@ -28,6 +32,7 @@ use super::{
     localization::OverlayLocale,
     manager::VrOverlayManager,
     service::{HostVrOverlayService, OverlayBackendPreference},
+    surfaces::main::{build_main_surface_model, HmdToastView, MainOverlayFrameInput},
     WristOverlayFrameInput, WristOverlayRenderOptions, WristOverlaySizePreset, WristRuntimeFooter,
 };
 
@@ -47,10 +52,20 @@ pub const VR_OVERLAY_HIDE_PRIVATE_WORLDS_CONFIG_KEY: &str = "wristOverlayHidePri
 pub const VR_OVERLAY_DARK_BACKGROUND_CONFIG_KEY: &str = "wristOverlayDarkBackground";
 pub const VR_OVERLAY_SHOW_DEVICES_CONFIG_KEY: &str = "wristOverlayShowDevices";
 pub const VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY: &str = "wristOverlayShowBatteryPercent";
+pub const HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY: &str = "hmdNotificationsEnabled";
+pub const HMD_NOTIFICATION_TIMEOUT_CONFIG_KEY: &str = "hmdNotificationTimeout";
+pub const HMD_NOTIFICATION_OPACITY_CONFIG_KEY: &str = "hmdNotificationOpacity";
+pub const HMD_NOTIFICATION_POSITION_CONFIG_KEY: &str = "hmdNotificationPosition";
 const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
 const DATE_TIME_HOUR12_CONFIG_KEY: &str = "dtHour12";
 const WRIST_DEVICE_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WRIST_FRAME_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
+const HMD_TOAST_CAPACITY: usize = 3;
+const HMD_JOIN_LEAVE_MERGE_WINDOW: Duration = Duration::from_secs(4);
+const HMD_AVATAR_SIZE: u32 = 96;
+const HMD_AVATAR_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
+const HMD_AVATAR_SUCCESS_TTL: Duration = Duration::from_secs(15 * 60);
+const HMD_AVATAR_FAILURE_TTL: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum WristOverlayHand {
@@ -70,12 +85,61 @@ impl WristOverlayHand {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum HmdNotificationPosition {
+    Top,
+    #[default]
+    Bottom,
+    Left,
+    Right,
+}
+
+impl HmdNotificationPosition {
+    fn from_config(value: &str) -> Self {
+        match value.trim() {
+            "top" => Self::Top,
+            "left" => Self::Left,
+            "right" => Self::Right,
+            _ => Self::Bottom,
+        }
+    }
+
+    fn as_device_hint(self) -> &'static str {
+        match self {
+            Self::Top => "hmd:top",
+            Self::Bottom => "hmd:bottom",
+            Self::Left => "hmd:left",
+            Self::Right => "hmd:right",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct HmdNotificationConfig {
+    enabled: bool,
+    timeout_ms: u64,
+    opacity_percent: u8,
+    position: HmdNotificationPosition,
+}
+
+impl Default for HmdNotificationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            timeout_ms: 5_000,
+            opacity_percent: 100,
+            position: HmdNotificationPosition::Bottom,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct VrOverlayRuntimeConfig {
     start_mode: WristOverlayStartMode,
     backend: OverlayBackendPreference,
     button: OverlayActivationButton,
     hand: WristOverlayHand,
+    hmd: HmdNotificationConfig,
     render: WristOverlayRenderOptions,
     locale: OverlayLocale,
     dt_hour12: bool,
@@ -88,6 +152,7 @@ impl Default for VrOverlayRuntimeConfig {
             backend: OverlayBackendPreference::Auto,
             button: OverlayActivationButton::Grip,
             hand: WristOverlayHand::Left,
+            hmd: HmdNotificationConfig::default(),
             render: WristOverlayRenderOptions::default(),
             locale: OverlayLocale::default(),
             dt_hour12: false,
@@ -101,6 +166,8 @@ impl VrOverlayRuntimeConfig {
             button: self.button,
             hand: self.hand,
             size: self.render.size,
+            hmd_enabled: self.hmd.enabled,
+            hmd_position: self.hmd.position,
         }
     }
 
@@ -115,11 +182,22 @@ struct WristSurfaceRuntimeConfig {
     button: OverlayActivationButton,
     hand: WristOverlayHand,
     size: WristOverlaySizePreset,
+    hmd_enabled: bool,
+    hmd_position: HmdNotificationPosition,
 }
 
 struct VrOverlayFrameInput {
     config: VrOverlayRuntimeConfig,
     devices: Vec<VrDeviceSnapshot>,
+}
+
+#[derive(Clone)]
+struct HmdToastState {
+    entry: OverlayActivityEntry,
+    expires_at: Instant,
+    last_updated_at: Instant,
+    avatar: Option<AvatarBitmap>,
+    merge_count: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
@@ -143,9 +221,13 @@ pub struct VrOverlayRuntime {
     context: Option<Arc<RuntimeHostContext>>,
     config: Mutex<VrOverlayRuntimeConfig>,
     devices: Mutex<Vec<VrDeviceSnapshot>>,
+    hmd_toasts: Mutex<VecDeque<HmdToastState>>,
+    avatar_bitmap_cache: Arc<AvatarBitmapCache>,
+    user_image_cache: Arc<UserImageCache>,
     manager: Mutex<VrOverlayManager<HostVrOverlayService>>,
     frame_producer_factory: VrOverlayFrameProducerFactory,
     frame_producer: Mutex<Option<Box<dyn VrOverlayFrameProducer>>>,
+    main_frame_renderer: Mutex<Option<RuntimeMainFrameRenderer>>,
 }
 
 #[derive(Clone)]
@@ -162,6 +244,10 @@ impl VrOverlayActivitySink {
 impl OverlayActivitySink for VrOverlayActivitySink {
     fn emit_overlay_activity_snapshot(&self, _snapshot: OverlayActivitySnapshot) {
         self.runtime.reconcile_current();
+    }
+
+    fn emit_overlay_activity_delivery(&self, delivery: OverlayActivityDelivery) {
+        self.runtime.ingest_hmd_delivery(delivery);
     }
 }
 
@@ -226,10 +312,11 @@ impl VrOverlayRuntime {
         config: VrOverlayRuntimeConfig,
         frame_producer_factory: VrOverlayFrameProducerFactory,
     ) -> Self {
+        let service_configs = overlay_surface_configs(false, config);
         let service = if context.is_some() {
-            HostVrOverlayService::new_with_preference(wrist_surface_configs(config), config.backend)
+            HostVrOverlayService::new_with_preference(service_configs, config.backend)
         } else {
-            HostVrOverlayService::new_noop(wrist_surface_configs(config))
+            HostVrOverlayService::new_noop(service_configs)
         };
         Self {
             enabled: AtomicBool::new(false),
@@ -242,8 +329,12 @@ impl VrOverlayRuntime {
             manager: Mutex::new(VrOverlayManager::new(service)),
             config: Mutex::new(config),
             devices: Mutex::new(Vec::new()),
+            hmd_toasts: Mutex::new(VecDeque::new()),
+            avatar_bitmap_cache: Arc::new(AvatarBitmapCache::new()),
+            user_image_cache: Arc::new(UserImageCache::new()),
             frame_producer_factory,
             frame_producer: Mutex::new(None),
+            main_frame_renderer: Mutex::new(None),
         }
     }
 
@@ -253,7 +344,7 @@ impl VrOverlayRuntime {
         }
         self.enabled.store(enabled, Ordering::Release);
         self.reconcile_current_with_device_refresh(true);
-        if !enabled {
+        if !enabled && !self.current_runtime_config().hmd.enabled {
             self.release_frame_producer();
         }
     }
@@ -267,7 +358,7 @@ impl VrOverlayRuntime {
             let mut next_device_refresh = Instant::now();
             while !stop_token.is_stop_requested() {
                 std::thread::sleep(WRIST_FRAME_REFRESH_INTERVAL);
-                if !runtime.is_enabled() {
+                if !runtime.has_enabled_surface() {
                     continue;
                 }
                 let now = Instant::now();
@@ -298,6 +389,10 @@ impl VrOverlayRuntime {
 
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Acquire)
+    }
+
+    fn has_enabled_surface(&self) -> bool {
+        self.enabled.load(Ordering::Acquire) || self.current_runtime_config().hmd.enabled
     }
 
     pub fn snapshot(&self) -> VrOverlayRuntimeSnapshot {
@@ -334,6 +429,201 @@ impl VrOverlayRuntime {
         self.reconcile_current_with_device_refresh(true);
     }
 
+    fn ingest_hmd_delivery(self: &Arc<Self>, delivery: OverlayActivityDelivery) {
+        let hmd_config = self.current_runtime_config().hmd;
+        if !delivery.hmd || !hmd_config.enabled {
+            return;
+        }
+        let entry = delivery.entry;
+        let now = Instant::now();
+        let timeout = Duration::from_millis(hmd_config.timeout_ms);
+        let changed = self.enqueue_hmd_toast(entry.clone(), now, timeout);
+        if !changed {
+            return;
+        }
+        self.spawn_avatar_fetch(&entry);
+        self.reconcile_current();
+    }
+
+    fn enqueue_hmd_toast(
+        &self,
+        entry: OverlayActivityEntry,
+        now: Instant,
+        timeout: Duration,
+    ) -> bool {
+        let Ok(mut queue) = self.hmd_toasts.lock() else {
+            return false;
+        };
+        prune_expired_hmd_toasts(&mut queue, now);
+        if let Some(existing) = queue
+            .iter_mut()
+            .rev()
+            .find(|toast| should_merge_hmd_toast(toast, &entry, now))
+        {
+            existing.entry = entry;
+            existing.merge_count = existing.merge_count.saturating_add(1);
+            existing.expires_at = now + timeout;
+            existing.last_updated_at = now;
+            return true;
+        }
+        while queue.len() >= HMD_TOAST_CAPACITY {
+            queue.pop_front();
+        }
+        queue.push_back(HmdToastState {
+            entry,
+            expires_at: now + timeout,
+            last_updated_at: now,
+            avatar: None,
+            merge_count: 1,
+        });
+        true
+    }
+
+    fn clear_hmd_toasts(&self) {
+        if let Ok(mut queue) = self.hmd_toasts.lock() {
+            queue.clear();
+        }
+    }
+
+    fn push_hmd_frame(
+        &self,
+        manager: &mut VrOverlayManager<HostVrOverlayService>,
+        config: VrOverlayRuntimeConfig,
+        now: Instant,
+    ) {
+        let surface_id = OverlaySurfaceId::new(MAIN_SURFACE_ID);
+        let toasts = self.hmd_toast_views(now);
+        if toasts.is_empty() {
+            if let Err(error) = manager.hide_surface(&surface_id) {
+                tracing::warn!(error = %error, "failed to hide HMD overlay surface");
+            }
+            return;
+        }
+        let frame = match self.render_hmd_frame(toasts, config.locale) {
+            Ok(frame) => frame,
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to render HMD overlay frame");
+                return;
+            }
+        };
+        if let Err(error) = manager.update_surface_frame(&surface_id, frame) {
+            tracing::warn!(error = %error, "failed to update HMD overlay frame");
+            return;
+        }
+        if let Err(error) =
+            manager.set_surface_alpha(&surface_id, f32::from(config.hmd.opacity_percent) / 100.0)
+        {
+            tracing::warn!(error = %error, "failed to set HMD overlay alpha");
+        }
+        if let Err(error) = manager.show_surface(&surface_id) {
+            tracing::warn!(error = %error, "failed to show HMD overlay surface");
+        }
+    }
+
+    fn hmd_toast_views(&self, now: Instant) -> Vec<HmdToastView> {
+        let Ok(mut queue) = self.hmd_toasts.lock() else {
+            return Vec::new();
+        };
+        prune_expired_hmd_toasts(&mut queue, now);
+        queue
+            .iter()
+            .map(|toast| HmdToastView {
+                entry: toast.entry.clone(),
+                avatar: toast.avatar.clone(),
+                merge_count: toast.merge_count,
+            })
+            .collect()
+    }
+
+    fn render_hmd_frame(
+        &self,
+        toasts: Vec<HmdToastView>,
+        locale: OverlayLocale,
+    ) -> Result<RgbaFrame, String> {
+        let model = build_main_surface_model(MainOverlayFrameInput { toasts, locale });
+        self.main_frame_renderer
+            .lock()
+            .map_err(|_| "HMD frame renderer lock poisoned".to_string())?
+            .get_or_insert_with(RuntimeMainFrameRenderer::new)
+            .render(&model)
+    }
+
+    fn spawn_avatar_fetch(self: &Arc<Self>, entry: &OverlayActivityEntry) {
+        let Some(context) = self.context.as_ref().cloned() else {
+            return;
+        };
+        let source_id = entry.source_id.trim().to_string();
+        if source_id.is_empty() {
+            return;
+        }
+        let actor_user_id = entry.actor_user_id.trim().to_string();
+        let initial_image_url = entry.content.image_url.trim().to_string();
+        if initial_image_url.is_empty() && !actor_user_id.starts_with("usr_") {
+            return;
+        }
+        let allow_user_icon = context
+            .config()
+            .get_bool("displayVRCPlusIconsAsAvatar", true)
+            .unwrap_or(true);
+        let user_image_cache = Arc::clone(&self.user_image_cache);
+        let avatar_cache = Arc::clone(&self.avatar_bitmap_cache);
+        let runtime = Arc::clone(self);
+        let tasks = context.tasks.clone();
+        tasks.spawn(async move {
+            let image_url = if initial_image_url.is_empty() {
+                let auth = context.auth_scope.snapshot();
+                if actor_user_id == auth.current_user_id {
+                    return;
+                }
+                user_image_cache
+                    .resolve(
+                        context.web.as_ref(),
+                        context.db.as_ref(),
+                        &auth.endpoint,
+                        &actor_user_id,
+                        allow_user_icon,
+                    )
+                    .await
+                    .unwrap_or_default()
+            } else {
+                initial_image_url
+            };
+            if image_url.trim().is_empty() {
+                return;
+            }
+            let Some(bitmap) = avatar_cache
+                .resolve(context.web.as_ref(), image_url.trim())
+                .await
+            else {
+                return;
+            };
+            runtime.update_hmd_avatar(&source_id, bitmap);
+        });
+    }
+
+    fn update_hmd_avatar(&self, source_id: &str, avatar: AvatarBitmap) {
+        let updated = {
+            let Ok(mut queue) = self.hmd_toasts.lock() else {
+                return;
+            };
+            let Some(toast) = queue
+                .iter_mut()
+                .find(|toast| toast.entry.source_id == source_id)
+            else {
+                return;
+            };
+            if toast.avatar.as_ref() == Some(&avatar) {
+                false
+            } else {
+                toast.avatar = Some(avatar);
+                true
+            }
+        };
+        if updated {
+            self.reconcile_current();
+        }
+    }
+
     pub fn reconcile_current(&self) {
         self.reconcile_current_with_device_refresh(false);
     }
@@ -346,43 +636,56 @@ impl VrOverlayRuntime {
                 if config.backend != next_config.backend {
                     manager.set_backend_preference(next_config.backend);
                 }
-                let surface_config_changed =
-                    config.surface_config_key() != next_config.surface_config_key();
                 let clear_devices = config.should_clear_device_snapshot_for(next_config);
-                if surface_config_changed {
-                    match manager.set_surface_configs(wrist_surface_configs(next_config)) {
-                        Ok(()) => {
-                            self.commit_runtime_config(next_config, clear_devices);
-                            config = next_config;
-                        }
-                        Err(error) => {
-                            tracing::warn!(
-                                error = %error,
-                                "failed to apply VR overlay runtime config"
-                            );
-                        }
-                    }
-                } else {
-                    self.commit_runtime_config(next_config, clear_devices);
-                    config = next_config;
+                self.commit_runtime_config(next_config, clear_devices);
+                config = next_config;
+            }
+            let wrist_enabled = self.enabled.load(Ordering::Acquire);
+            let game_running = self.game_running.load(Ordering::Acquire);
+            let vr_mode = self.vr_mode.load(Ordering::Acquire);
+            let wrist_active = wrist_enabled
+                && match config.start_mode {
+                    WristOverlayStartMode::SteamVr => true,
+                    WristOverlayStartMode::VrchatVrMode => game_running && vr_mode,
+                };
+            let hmd_active = config.hmd.enabled;
+            let surface_enabled = wrist_active || hmd_active;
+            if surface_enabled {
+                let configs = overlay_surface_configs(wrist_active, config);
+                if let Err(error) = manager.set_surface_configs(configs) {
+                    tracing::warn!(
+                        error = %error,
+                        "failed to apply VR overlay surface config"
+                    );
                 }
+            } else {
+                self.clear_hmd_toasts();
             }
             let eligibility = VrOverlayEligibility {
-                enabled: self.enabled.load(Ordering::Acquire),
+                enabled: surface_enabled,
                 backend_available: self.backend_available,
-                game_running: self.game_running.load(Ordering::Acquire),
-                vr_mode: self.vr_mode.load(Ordering::Acquire),
+                game_running,
+                vr_mode,
                 steamvr_running: self.steamvr_running.load(Ordering::Acquire),
-                start_mode: config.start_mode,
+                start_mode: WristOverlayStartMode::SteamVr,
             };
             manager.reconcile(eligibility);
             if eligibility.can_run() && manager.is_running() {
-                self.refresh_devices_if_needed(
-                    &mut manager,
-                    refresh_devices,
-                    config.render.show_devices,
-                );
-                self.push_wrist_frame(&mut manager, config);
+                if wrist_active {
+                    self.refresh_devices_if_needed(
+                        &mut manager,
+                        refresh_devices,
+                        config.render.show_devices,
+                    );
+                    self.push_wrist_frame(&mut manager, config);
+                } else {
+                    self.release_frame_producer();
+                }
+                if hmd_active {
+                    self.push_hmd_frame(&mut manager, config, Instant::now());
+                } else {
+                    self.clear_hmd_toasts();
+                }
             } else {
                 self.release_frame_producer();
             }
@@ -479,8 +782,14 @@ impl VrOverlayRuntime {
             }
         };
 
-        if let Err(error) = manager.update_frame(frame) {
-            tracing::warn!(error = %error, "failed to update wrist overlay frame");
+        for surface_id in wrist_surface_ids(config.hand) {
+            if let Err(error) = manager.update_surface_frame(&surface_id, frame.clone()) {
+                tracing::warn!(
+                    error = %error,
+                    surface_id = surface_id.as_str(),
+                    "failed to update wrist overlay frame"
+                );
+            }
         }
     }
 
@@ -554,28 +863,254 @@ impl VrOverlayFrameProducer for StaticWristFrameProducer {
     }
 }
 
-fn wrist_surface_configs(config: VrOverlayRuntimeConfig) -> Vec<OverlaySurfaceConfig> {
-    let mut configs = Vec::new();
-    if matches!(config.hand, WristOverlayHand::Left | WristOverlayHand::Both) {
-        configs.push(wrist_surface_config(
-            "wrist-left",
-            "left-hand",
-            config.render.size,
-            config.button,
-        ));
+struct RuntimeMainFrameRenderer {
+    text: TextMeasurer,
+    renderer: TinySkiaRenderer,
+}
+
+impl RuntimeMainFrameRenderer {
+    fn new() -> Self {
+        let font_system = new_shared_overlay_font_system();
+        Self {
+            text: TextMeasurer::with_font_system(Arc::clone(&font_system)),
+            renderer: TinySkiaRenderer::with_font_system(font_system),
+        }
     }
-    if matches!(
-        config.hand,
-        WristOverlayHand::Right | WristOverlayHand::Both
-    ) {
-        configs.push(wrist_surface_config(
-            "wrist-right",
-            "right-hand",
-            config.render.size,
-            config.button,
-        ));
+
+    fn render(&mut self, model: &MainSurfaceModel) -> Result<RgbaFrame, String> {
+        self.renderer
+            .render(&build_main_scene(model, &mut self.text))
+            .map_err(|error| error.to_string())
+    }
+}
+
+#[derive(Default)]
+struct AvatarBitmapCache {
+    success: Mutex<HashMap<String, (AvatarBitmap, Instant)>>,
+    failures: Mutex<HashMap<String, Instant>>,
+    inflight: Mutex<HashMap<String, std::sync::Weak<tokio::sync::Mutex<()>>>>,
+}
+
+impl AvatarBitmapCache {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    async fn resolve(&self, web: &WebClient, url: &str) -> Option<AvatarBitmap> {
+        let url = url.trim();
+        if url.is_empty() {
+            return None;
+        }
+        if let Some(bitmap) = self.cached(url) {
+            return Some(bitmap);
+        }
+        if self.recently_failed(url) {
+            return None;
+        }
+        let inflight = self.inflight_lock(url);
+        let _guard = inflight.lock().await;
+        if let Some(bitmap) = self.cached(url) {
+            return Some(bitmap);
+        }
+        if self.recently_failed(url) {
+            return None;
+        }
+        let bitmap = self.fetch_and_decode(web, url).await;
+        match bitmap {
+            Some(bitmap) => {
+                self.store_success(url, bitmap.clone());
+                Some(bitmap)
+            }
+            None => {
+                self.store_failure(url);
+                None
+            }
+        }
+    }
+
+    async fn fetch_and_decode(&self, web: &WebClient, url: &str) -> Option<AvatarBitmap> {
+        let fetcher = web.image_fetcher().ok()?;
+        let bytes = tokio::time::timeout(HMD_AVATAR_FETCH_TIMEOUT, fetcher.fetch_image(url))
+            .await
+            .ok()?
+            .ok()?;
+        decode_avatar_bitmap(&bytes)
+    }
+
+    fn cached(&self, url: &str) -> Option<AvatarBitmap> {
+        let mut success = self
+            .success
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let (bitmap, at) = success.get(url)?;
+        if at.elapsed() >= HMD_AVATAR_SUCCESS_TTL {
+            success.remove(url);
+            return None;
+        }
+        Some(bitmap.clone())
+    }
+
+    fn recently_failed(&self, url: &str) -> bool {
+        self.failures
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .get(url)
+            .is_some_and(|at| at.elapsed() < HMD_AVATAR_FAILURE_TTL)
+    }
+
+    fn store_success(&self, url: &str, bitmap: AvatarBitmap) {
+        let mut success = self
+            .success
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        success.retain(|_, (_, at)| at.elapsed() < HMD_AVATAR_SUCCESS_TTL);
+        success.insert(url.to_string(), (bitmap, Instant::now()));
+    }
+
+    fn store_failure(&self, url: &str) {
+        let mut failures = self
+            .failures
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        failures.retain(|_, at| at.elapsed() < HMD_AVATAR_FAILURE_TTL);
+        failures.insert(url.to_string(), Instant::now());
+    }
+
+    fn inflight_lock(&self, url: &str) -> Arc<tokio::sync::Mutex<()>> {
+        let mut inflight = self
+            .inflight
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        if let Some(existing) = inflight.get(url).and_then(std::sync::Weak::upgrade) {
+            return existing;
+        }
+        inflight.retain(|_, weak| weak.strong_count() > 0);
+        let guard = Arc::new(tokio::sync::Mutex::new(()));
+        inflight.insert(url.to_string(), Arc::downgrade(&guard));
+        guard
+    }
+}
+
+fn decode_avatar_bitmap(bytes: &[u8]) -> Option<AvatarBitmap> {
+    let resized = image::load_from_memory(bytes)
+        .ok()?
+        .resize_to_fill(
+            HMD_AVATAR_SIZE,
+            HMD_AVATAR_SIZE,
+            image::imageops::FilterType::Lanczos3,
+        )
+        .to_rgba8();
+    let mut rgba = resized.into_raw();
+    apply_circular_avatar_mask(&mut rgba, HMD_AVATAR_SIZE, HMD_AVATAR_SIZE);
+    Some(AvatarBitmap {
+        width: HMD_AVATAR_SIZE,
+        height: HMD_AVATAR_SIZE,
+        rgba: Arc::<[u8]>::from(rgba),
+    })
+}
+
+fn apply_circular_avatar_mask(rgba: &mut [u8], width: u32, height: u32) {
+    let center_x = (width as f32 - 1.0) / 2.0;
+    let center_y = (height as f32 - 1.0) / 2.0;
+    let radius = width.min(height) as f32 / 2.0;
+    let radius_sq = radius * radius;
+    for y in 0..height {
+        for x in 0..width {
+            let dx = x as f32 - center_x;
+            let dy = y as f32 - center_y;
+            if dx * dx + dy * dy <= radius_sq {
+                continue;
+            }
+            let alpha_index = ((y * width + x) * 4 + 3) as usize;
+            if let Some(alpha) = rgba.get_mut(alpha_index) {
+                *alpha = 0;
+            }
+        }
+    }
+}
+
+fn prune_expired_hmd_toasts(queue: &mut VecDeque<HmdToastState>, now: Instant) {
+    queue.retain(|toast| toast.expires_at > now);
+}
+
+fn should_merge_hmd_toast(
+    existing: &HmdToastState,
+    entry: &OverlayActivityEntry,
+    now: Instant,
+) -> bool {
+    let existing_instance_key = hmd_instance_key(&existing.entry);
+    let entry_instance_key = hmd_instance_key(entry);
+    existing.last_updated_at + HMD_JOIN_LEAVE_MERGE_WINDOW >= now
+        && is_mergeable_hmd_activity(&existing.entry)
+        && is_mergeable_hmd_activity(entry)
+        && existing.entry.activity_type == entry.activity_type
+        && existing_instance_key.is_some()
+        && existing_instance_key == entry_instance_key
+}
+
+fn is_mergeable_hmd_activity(entry: &OverlayActivityEntry) -> bool {
+    entry.actor_relation == OverlayActivityActorRelation::None
+        && matches!(
+            entry.activity_type.as_str(),
+            "OnPlayerJoined" | "OnPlayerLeft"
+        )
+}
+
+fn hmd_instance_key(entry: &OverlayActivityEntry) -> Option<String> {
+    [
+        entry.content.location.as_str(),
+        entry.content.display_location.as_str(),
+        entry.content.world_id.as_str(),
+        entry.content.world_name.as_str(),
+    ]
+    .into_iter()
+    .map(str::trim)
+    .find(|value| !value.is_empty())
+    .map(str::to_string)
+}
+
+fn overlay_surface_configs(
+    wrist_enabled: bool,
+    config: VrOverlayRuntimeConfig,
+) -> Vec<OverlaySurfaceConfig> {
+    let mut configs = Vec::new();
+    if wrist_enabled {
+        configs.extend(wrist_surface_configs(config));
+    }
+    if config.hmd.enabled {
+        configs.push(hmd_surface_config(config.hmd.position));
     }
     configs
+}
+
+fn wrist_surface_configs(config: VrOverlayRuntimeConfig) -> Vec<OverlaySurfaceConfig> {
+    wrist_surface_ids(config.hand)
+        .into_iter()
+        .map(|surface_id| {
+            let device_hint = if surface_id.as_str() == "wrist-right" {
+                "right-hand"
+            } else {
+                "left-hand"
+            };
+            wrist_surface_config(
+                surface_id.as_str(),
+                device_hint,
+                config.render.size,
+                config.button,
+            )
+        })
+        .collect()
+}
+
+fn wrist_surface_ids(hand: WristOverlayHand) -> Vec<OverlaySurfaceId> {
+    let mut surface_ids = Vec::new();
+    if matches!(hand, WristOverlayHand::Left | WristOverlayHand::Both) {
+        surface_ids.push(OverlaySurfaceId::new("wrist-left"));
+    }
+    if matches!(hand, WristOverlayHand::Right | WristOverlayHand::Both) {
+        surface_ids.push(OverlaySurfaceId::new("wrist-right"));
+    }
+    surface_ids
 }
 
 fn wrist_surface_config(
@@ -592,6 +1127,18 @@ fn wrist_surface_config(
             device_hint: device_hint.to_string(),
         },
         activation_button: button,
+    }
+}
+
+fn hmd_surface_config(position: HmdNotificationPosition) -> OverlaySurfaceConfig {
+    OverlaySurfaceConfig {
+        surface_id: OverlaySurfaceId::new(MAIN_SURFACE_ID),
+        size: OverlaySize::new(960, 528),
+        physical_width_meters: 0.95,
+        placement: OverlayPlacement::TrackedDeviceRelative {
+            device_hint: position.as_device_hint().to_string(),
+        },
+        activation_button: OverlayActivationButton::Grip,
     }
 }
 
@@ -659,6 +1206,27 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
     let show_battery_percent = config
         .get_bool(VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY, false)
         .unwrap_or(false);
+    let hmd_enabled = config
+        .get_bool(HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY, false)
+        .unwrap_or(false);
+    let hmd_timeout_ms = config
+        .get_raw(HMD_NOTIFICATION_TIMEOUT_CONFIG_KEY)
+        .ok()
+        .flatten()
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .unwrap_or(5_000)
+        .clamp(1_000, 30_000);
+    let hmd_opacity_percent = config
+        .get_raw(HMD_NOTIFICATION_OPACITY_CONFIG_KEY)
+        .ok()
+        .flatten()
+        .and_then(|value| value.trim().parse::<u8>().ok())
+        .unwrap_or(100)
+        .min(100);
+    let hmd_position = config
+        .get_string(HMD_NOTIFICATION_POSITION_CONFIG_KEY, "bottom")
+        .map(|value| HmdNotificationPosition::from_config(&value))
+        .unwrap_or_default();
     let locale = config
         .get_string(APP_LANGUAGE_CONFIG_KEY, "en")
         .map(|value| OverlayLocale::from_config(&value))
@@ -672,6 +1240,12 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
         backend,
         button,
         hand,
+        hmd: HmdNotificationConfig {
+            enabled: hmd_enabled,
+            timeout_ms: hmd_timeout_ms,
+            opacity_percent: hmd_opacity_percent,
+            position: hmd_position,
+        },
         render: WristOverlayRenderOptions {
             size,
             hide_private_worlds,
@@ -806,6 +1380,151 @@ mod tests {
     }
 
     #[test]
+    fn hmd_toast_queue_caps_at_three_and_drops_oldest() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let now = Instant::now();
+        for index in 0..4 {
+            runtime.enqueue_hmd_toast(
+                hmd_entry(
+                    &format!("source-{index}"),
+                    "Status",
+                    OverlayActivityActorRelation::Favorite,
+                    "wrld_a:123",
+                ),
+                now + Duration::from_millis(index),
+                Duration::from_secs(5),
+            );
+        }
+
+        let toasts = runtime.hmd_toast_views(now + Duration::from_secs(1));
+
+        assert_eq!(toasts.len(), 3);
+        assert_eq!(toasts[0].entry.source_id, "source-1");
+        assert_eq!(toasts[2].entry.source_id, "source-3");
+    }
+
+    #[test]
+    fn hmd_toast_queue_merges_non_friend_join_leave_by_instance_only() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let now = Instant::now();
+        runtime.enqueue_hmd_toast(
+            hmd_entry(
+                "join-1",
+                "OnPlayerJoined",
+                OverlayActivityActorRelation::None,
+                "wrld_a:123",
+            ),
+            now,
+            Duration::from_secs(5),
+        );
+        runtime.enqueue_hmd_toast(
+            hmd_entry(
+                "join-2",
+                "OnPlayerJoined",
+                OverlayActivityActorRelation::None,
+                "wrld_a:123",
+            ),
+            now + Duration::from_secs(2),
+            Duration::from_secs(5),
+        );
+        runtime.enqueue_hmd_toast(
+            hmd_entry(
+                "friend-join",
+                "OnPlayerJoined",
+                OverlayActivityActorRelation::Friend,
+                "wrld_a:123",
+            ),
+            now + Duration::from_secs(3),
+            Duration::from_secs(5),
+        );
+
+        let toasts = runtime.hmd_toast_views(now + Duration::from_secs(3));
+
+        assert_eq!(toasts.len(), 2);
+        assert_eq!(toasts[0].merge_count, 2);
+        assert_eq!(toasts[0].entry.source_id, "join-2");
+        assert_eq!(toasts[1].merge_count, 1);
+        assert_eq!(toasts[1].entry.source_id, "friend-join");
+    }
+
+    #[test]
+    fn hmd_toast_queue_does_not_merge_join_leave_without_instance_key() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let now = Instant::now();
+        runtime.enqueue_hmd_toast(
+            hmd_entry(
+                "join-1",
+                "OnPlayerJoined",
+                OverlayActivityActorRelation::None,
+                "",
+            ),
+            now,
+            Duration::from_secs(5),
+        );
+        runtime.enqueue_hmd_toast(
+            hmd_entry(
+                "join-2",
+                "OnPlayerJoined",
+                OverlayActivityActorRelation::None,
+                "",
+            ),
+            now + Duration::from_secs(2),
+            Duration::from_secs(5),
+        );
+
+        let toasts = runtime.hmd_toast_views(now + Duration::from_secs(3));
+
+        assert_eq!(toasts.len(), 2);
+        assert_eq!(toasts[0].merge_count, 1);
+        assert_eq!(toasts[0].entry.source_id, "join-1");
+        assert_eq!(toasts[1].merge_count, 1);
+        assert_eq!(toasts[1].entry.source_id, "join-2");
+    }
+
+    #[test]
+    fn hmd_toast_queue_does_not_merge_join_leave_across_instances() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let now = Instant::now();
+        runtime.enqueue_hmd_toast(
+            hmd_entry(
+                "join-1",
+                "OnPlayerJoined",
+                OverlayActivityActorRelation::None,
+                "wrld_a:123",
+            ),
+            now,
+            Duration::from_secs(5),
+        );
+        runtime.enqueue_hmd_toast(
+            hmd_entry(
+                "join-2",
+                "OnPlayerJoined",
+                OverlayActivityActorRelation::None,
+                "wrld_b:456",
+            ),
+            now + Duration::from_secs(2),
+            Duration::from_secs(5),
+        );
+
+        let toasts = runtime.hmd_toast_views(now + Duration::from_secs(3));
+
+        assert_eq!(toasts.len(), 2);
+        assert_eq!(toasts[0].entry.source_id, "join-1");
+        assert_eq!(toasts[1].entry.source_id, "join-2");
+    }
+
+    #[test]
+    fn circular_avatar_mask_makes_corners_transparent() {
+        let mut rgba = vec![255; (HMD_AVATAR_SIZE * HMD_AVATAR_SIZE * 4) as usize];
+        apply_circular_avatar_mask(&mut rgba, HMD_AVATAR_SIZE, HMD_AVATAR_SIZE);
+
+        assert_eq!(rgba[3], 0);
+        let center_alpha =
+            (((HMD_AVATAR_SIZE / 2) * HMD_AVATAR_SIZE + HMD_AVATAR_SIZE / 2) * 4 + 3) as usize;
+        assert_eq!(rgba[center_alpha], 255);
+    }
+
+    #[test]
     fn frame_producer_is_created_only_while_runtime_can_render_and_released_when_ineligible() {
         let created = Arc::new(AtomicUsize::new(0));
         let dropped = Arc::new(AtomicUsize::new(0));
@@ -900,6 +1619,39 @@ mod tests {
                 game_changed,
             })
             .expect("record process status");
+    }
+
+    fn hmd_entry(
+        source_id: &str,
+        activity_type: &str,
+        relation: OverlayActivityActorRelation,
+        location: &str,
+    ) -> OverlayActivityEntry {
+        OverlayActivityEntry {
+            sequence: 1,
+            source_id: source_id.to_string(),
+            activity_type: activity_type.to_string(),
+            category: vrcx_0_application::OverlayActivityCategory::CurrentInstance,
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            actor_user_id: "usr_actor".to_string(),
+            actor_display_name: source_id.to_string(),
+            content: vrcx_0_application::OverlayActivityContent {
+                title: vrcx_0_application::OverlayActivityText {
+                    key: String::new(),
+                    fallback: source_id.to_string(),
+                    params: serde_json::json!({}),
+                },
+                body: vrcx_0_application::OverlayActivityText {
+                    key: String::new(),
+                    fallback: activity_type.to_string(),
+                    params: serde_json::json!({}),
+                },
+                location: location.to_string(),
+                ..vrcx_0_application::OverlayActivityContent::default()
+            },
+            actor_relation: relation,
+            payload: serde_json::json!({}),
+        }
     }
 
     struct CountingFrameProducer {

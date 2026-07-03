@@ -1877,6 +1877,18 @@
                 "vr_notifications": {
                     "header": "VR 오버레이 알림"
                 },
+                "hmd_notifications": {
+                    "header": "헤드셋 알림",
+                    "hmd_notifications": "헤드셋 알림",
+                    "position": "위치",
+                    "position_bottom": "아래",
+                    "position_top": "위",
+                    "position_left": "왼쪽",
+                    "position_right": "오른쪽",
+                    "timeout": "표시 시간",
+                    "opacity": "불투명도",
+                    "filters": "헤드셋 알림 필터"
+                },
                 "wrist_overlay": {
                     "header": "손목 오버레이",
                     "wrist_feed_notifications": "손목 오버레이 알림 필터"
@@ -4776,6 +4788,10 @@
             "title": "VR 오버레이 알림 필터",
             "description": "SteamVR가 실행 중일 때 XSOverlay 및 OVR Toolkit으로 보낼 알림을 선택합니다."
         },
+        "hmd_notifications": {
+            "title": "헤드셋 알림 필터",
+            "description": "헤드셋에 표시할 알림을 선택하세요."
+        },
         "desktop_notifications": {
             "title": "데스크톱 알림 필터",
             "description": "어떤 활동이 데스크톱(OS) 알림을 표시할지 선택합니다. 위의 데스크톱 알림 조건도 계속 적용됩니다."
@@ -5636,6 +5652,8 @@
     "notifications": {
         "has_joined": "가입했습니다",
         "has_left": "떠났다",
+        "joined_with_others": "외 {count}명이 참가했습니다",
+        "left_with_others": "외 {count}명이 떠났습니다",
         "is_joining": "합류 중",
         "online": "로그인했습니다",
         "offline": "로그아웃했습니다",

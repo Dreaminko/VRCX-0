@@ -13,7 +13,7 @@ use openvr::{
     tracked_device_index, ApplicationType, Context, Overlay, TrackedControllerRole,
     TrackedDeviceClass, TrackedDeviceIndex, TrackingUniverseOrigin, MAX_TRACKED_DEVICE_COUNT,
 };
-use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
+use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame, MAIN_SURFACE_ID};
 
 use super::{
     actor::OverlayBackend,
@@ -24,7 +24,9 @@ use super::{
     },
 };
 
-const VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_secs(2);
+const WRIST_VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_secs(2);
+const MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_millis(100);
+const SURFACE_FADE_DURATION: Duration = Duration::from_millis(240);
 
 pub struct OpenVrOverlayBackend {
     context: Option<Context>,
@@ -41,6 +43,17 @@ struct OpenVrSurface {
     active: bool,
     pending_frame: Option<RgbaFrame>,
     last_visible_frame_upload_at: Option<Instant>,
+    current_alpha: f32,
+    target_alpha: f32,
+    fade: Option<SurfaceFade>,
+    hide_after_fade: bool,
+}
+
+#[derive(Clone, Copy)]
+struct SurfaceFade {
+    from: f32,
+    to: f32,
+    started_at: Instant,
 }
 
 #[derive(Clone)]
@@ -117,6 +130,10 @@ impl OverlayBackend for OpenVrOverlayBackend {
                 active: true,
                 pending_frame: None,
                 last_visible_frame_upload_at: None,
+                current_alpha: 1.0,
+                target_alpha: 1.0,
+                fade: None,
+                hide_after_fade: false,
             },
         );
         self.apply_config(&config)
@@ -139,7 +156,8 @@ impl OverlayBackend for OpenVrOverlayBackend {
                 let can_upload = surface
                     .last_visible_frame_upload_at
                     .map(|last| {
-                        now.saturating_duration_since(last) >= VISIBLE_FRAME_UPLOAD_INTERVAL
+                        now.saturating_duration_since(last)
+                            >= visible_frame_upload_interval(surface_id)
                     })
                     .unwrap_or(true);
                 if !can_upload {
@@ -166,11 +184,42 @@ impl OverlayBackend for OpenVrOverlayBackend {
     }
 
     fn show(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        if surface_fades(surface_id) {
+            return self.show_with_fade(surface_id);
+        }
         self.set_visibility(surface_id, true)
     }
 
     fn hide(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        if surface_fades(surface_id) {
+            return self.hide_with_fade(surface_id);
+        }
         self.set_visibility(surface_id, false)
+    }
+
+    fn set_alpha(&mut self, surface_id: &OverlaySurfaceId, alpha: f32) -> Result<(), String> {
+        let alpha = alpha.clamp(0.0, 1.0);
+        let apply_now = {
+            let surface = self.surfaces.get_mut(surface_id).ok_or_else(|| {
+                format!(
+                    "overlay surface '{}' is not registered",
+                    surface_id.as_str()
+                )
+            })?;
+            surface.target_alpha = alpha;
+            match surface.fade.as_mut() {
+                Some(fade) if !surface.hide_after_fade => {
+                    fade.to = alpha;
+                    false
+                }
+                Some(_) => false,
+                None => true,
+            }
+        };
+        if !apply_now {
+            return Ok(());
+        }
+        self.apply_alpha(surface_id, alpha)
     }
 
     fn unregister_surface(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
@@ -201,6 +250,9 @@ impl OverlayBackend for OpenVrOverlayBackend {
         if let Err(error) = self.update_button_visibility() {
             tracing::warn!(error = %error, "failed to update VR overlay button visibility");
         }
+        if let Err(error) = self.advance_fades() {
+            tracing::warn!(error = %error, "failed to advance VR overlay fade");
+        }
     }
 
     fn stop(&mut self) {
@@ -211,6 +263,24 @@ impl OverlayBackend for OpenVrOverlayBackend {
         self.surfaces.clear();
         self.overlay = None;
         self.context = None;
+    }
+}
+
+fn surface_fades(surface_id: &OverlaySurfaceId) -> bool {
+    surface_id.as_str() == MAIN_SURFACE_ID
+}
+
+fn surface_uses_wrist_policy(config: &OverlaySurfaceConfig) -> bool {
+    match &config.placement {
+        OverlayPlacement::TrackedDeviceRelative { device_hint } => !device_hint.starts_with("hmd"),
+    }
+}
+
+fn visible_frame_upload_interval(surface_id: &OverlaySurfaceId) -> Duration {
+    if surface_id.as_str() == MAIN_SURFACE_ID {
+        MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL
+    } else {
+        WRIST_VISIBLE_FRAME_UPLOAD_INTERVAL
     }
 }
 
@@ -229,7 +299,7 @@ impl OpenVrOverlayBackend {
         let candidates = self
             .surfaces
             .iter()
-            .filter(|(_, surface)| surface.active)
+            .filter(|(_, surface)| surface.active && surface_uses_wrist_policy(&surface.config))
             .map(|(surface_id, surface)| SurfaceUpdateCandidate {
                 surface_id: surface_id.clone(),
                 handle: surface.handle,
@@ -256,7 +326,7 @@ impl OpenVrOverlayBackend {
                         .set_transform_tracked_device_relative(
                             candidate.handle,
                             device,
-                            &wrist_transform(&candidate.config.placement),
+                            &surface_transform(&candidate.config.placement),
                         )
                         .map_err(|error| format!("set overlay transform failed: {error:?}"))?;
                     tracing::debug!(
@@ -322,7 +392,7 @@ impl OpenVrOverlayBackend {
                     .set_transform_tracked_device_relative(
                         handle,
                         device,
-                        &wrist_transform(&config.placement),
+                        &surface_transform(&config.placement),
                     )
                     .map_err(|error| format!("set overlay transform failed: {error:?}"))?;
                 Some(device)
@@ -393,6 +463,99 @@ impl OpenVrOverlayBackend {
             if let Some(surface) = self.surfaces.get_mut(surface_id) {
                 surface.last_visible_frame_upload_at = None;
             }
+        }
+        Ok(())
+    }
+
+    fn show_with_fade(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        let (already_visible, target_alpha) = {
+            let surface = self.surfaces.get(surface_id).ok_or_else(|| {
+                format!(
+                    "overlay surface '{}' is not registered",
+                    surface_id.as_str()
+                )
+            })?;
+            (
+                surface.visible && !surface.hide_after_fade,
+                surface.target_alpha,
+            )
+        };
+        if already_visible {
+            return Ok(());
+        }
+        self.apply_alpha(surface_id, 0.0)?;
+        self.set_visibility(surface_id, true)?;
+        if let Some(surface) = self.surfaces.get_mut(surface_id) {
+            surface.hide_after_fade = false;
+            surface.fade = Some(SurfaceFade {
+                from: surface.current_alpha,
+                to: target_alpha,
+                started_at: Instant::now(),
+            });
+        }
+        Ok(())
+    }
+
+    fn hide_with_fade(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        let surface = self.surfaces.get_mut(surface_id).ok_or_else(|| {
+            format!(
+                "overlay surface '{}' is not registered",
+                surface_id.as_str()
+            )
+        })?;
+        if !surface.visible || surface.hide_after_fade {
+            return Ok(());
+        }
+        surface.hide_after_fade = true;
+        surface.fade = Some(SurfaceFade {
+            from: surface.current_alpha,
+            to: 0.0,
+            started_at: Instant::now(),
+        });
+        Ok(())
+    }
+
+    fn advance_fades(&mut self) -> Result<(), String> {
+        let now = Instant::now();
+        let mut alpha_updates = Vec::new();
+        let mut hide_updates = Vec::new();
+        for (surface_id, surface) in &mut self.surfaces {
+            let Some(fade) = surface.fade else {
+                continue;
+            };
+            let progress = (now.saturating_duration_since(fade.started_at).as_secs_f32()
+                / SURFACE_FADE_DURATION.as_secs_f32())
+            .clamp(0.0, 1.0);
+            let alpha = fade.from + (fade.to - fade.from) * progress;
+            alpha_updates.push((surface_id.clone(), alpha));
+            if progress >= 1.0 {
+                surface.fade = None;
+                if surface.hide_after_fade {
+                    surface.hide_after_fade = false;
+                    hide_updates.push(surface_id.clone());
+                }
+            }
+        }
+        for (surface_id, alpha) in alpha_updates {
+            self.apply_alpha(&surface_id, alpha)?;
+        }
+        for surface_id in hide_updates {
+            self.set_visibility(&surface_id, false)?;
+        }
+        Ok(())
+    }
+
+    fn apply_alpha(&mut self, surface_id: &OverlaySurfaceId, alpha: f32) -> Result<(), String> {
+        let handle = self.surface_handle(surface_id)?;
+        let overlay = self
+            .overlay
+            .as_mut()
+            .ok_or_else(|| "OpenVR overlay is not started".to_string())?;
+        overlay
+            .set_opacity(handle, alpha)
+            .map_err(|error| format!("set overlay alpha failed: {error:?}"))?;
+        if let Some(surface) = self.surfaces.get_mut(surface_id) {
+            surface.current_alpha = alpha;
         }
         Ok(())
     }
@@ -493,6 +656,7 @@ fn resolve_device(
                 "right-hand" => Some(TrackedControllerRole::RightHand),
                 "left-hand" => Some(TrackedControllerRole::LeftHand),
                 "hmd" | "head" => return Ok(tracked_device_index::HMD),
+                value if value.starts_with("hmd:") => return Ok(tracked_device_index::HMD),
                 _ => return Err(format!("unknown tracked device hint '{device_hint}'")),
             };
             resolve_controller_device(system, role.unwrap())
@@ -614,7 +778,7 @@ fn tracked_device_diagnostics(system: &openvr::System) -> String {
     }
 }
 
-fn wrist_transform(placement: &OverlayPlacement) -> Matrix3x4 {
+fn surface_transform(placement: &OverlayPlacement) -> Matrix3x4 {
     match placement {
         OverlayPlacement::TrackedDeviceRelative { device_hint } if device_hint == "left-hand" => {
             Matrix3x4([
@@ -630,12 +794,31 @@ fn wrist_transform(placement: &OverlayPlacement) -> Matrix3x4 {
                 [1.0, 0.0, 0.0, 0.06],
             ])
         }
+        OverlayPlacement::TrackedDeviceRelative { device_hint }
+            if device_hint.starts_with("hmd") =>
+        {
+            hmd_transform(device_hint)
+        }
         OverlayPlacement::TrackedDeviceRelative { .. } => Matrix3x4([
             [1.0, 0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.035],
             [0.0, 0.0, 1.0, 0.055],
         ]),
     }
+}
+
+fn hmd_transform(device_hint: &str) -> Matrix3x4 {
+    let (x, y) = match device_hint {
+        "hmd:top" => (0.0, 0.38),
+        "hmd:left" => (-0.52, -0.12),
+        "hmd:right" => (0.52, -0.12),
+        _ => (0.0, -0.38),
+    };
+    Matrix3x4([
+        [1.0, 0.0, 0.0, x],
+        [0.0, 1.0, 0.0, y],
+        [0.0, 0.0, 1.0, -1.15],
+    ])
 }
 
 fn snapshot_openvr_devices(system: &openvr::System) -> Vec<VrDeviceSnapshot> {
