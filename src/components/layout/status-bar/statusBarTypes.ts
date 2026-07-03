@@ -97,7 +97,6 @@ export type StatusBarFooterModel = {
     onProxySave: () => unknown;
     onProxySaveAndRestart: () => unknown;
     onProxyTest: () => unknown;
-    onToggleProxyEnabled: () => unknown;
     onSetClockPopoverValue: (index: number, open: boolean) => unknown;
     onSetZoomLevel: (nextZoom: number) => unknown;
     onStartBackgroundMode: () => unknown;

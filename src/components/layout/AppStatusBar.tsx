@@ -11,10 +11,7 @@ import {
     startMutualGraphFetchStatusPolling,
     wasMutualGraphFetchStartedInThisSession
 } from '@/services/mutualGraphFetchService';
-import {
-    loadPreferenceSnapshot,
-    setProxyEnabledPreference
-} from '@/services/preferencesService';
+import { loadPreferenceSnapshot } from '@/services/preferencesService';
 import {
     proxySettingsErrorMessage,
     saveProxySettingsPreferences,
@@ -638,24 +635,6 @@ export function AppStatusBar() {
         openProxyEditorWithToast();
     }
 
-    async function toggleProxyEnabled() {
-        try {
-            if (!preferencesHydrated) {
-                await loadPreferenceSnapshot();
-            }
-            const nextEnabled = !usePreferencesStore.getState().proxyEnabled;
-            await setProxyEnabledPreference(nextEnabled);
-            toast.success(t('prompt.proxy_settings.saved_restart_required'));
-        } catch (error) {
-            toast.error(
-                proxySettingsErrorMessage(error) ||
-                    t(
-                        'component.app_status_bar.toast.failed_to_update_proxy_settings'
-                    )
-            );
-        }
-    }
-
     async function saveProxyEditor(restart: boolean) {
         setProxySaving(true);
         try {
@@ -788,7 +767,6 @@ export function AppStatusBar() {
             saveProxyEditor(true);
         },
         onProxyTest: testProxyEditor,
-        onToggleProxyEnabled: toggleProxyEnabled,
         onSetClockPopoverValue: setClockPopoverValue,
         onSetZoomLevel: setQueuedZoomLevel,
         onStepZoomLevel: stepQueuedZoomLevel,
