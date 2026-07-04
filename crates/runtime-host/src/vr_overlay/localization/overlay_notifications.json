@@ -160,7 +160,7 @@
             "notifications.blocked_player_left": "被封鎖的用戶已離開",
             "notifications.muted_player_joined": "被靜音的用戶已加入",
             "notifications.muted_player_left": "被靜音的用戶已離開",
-            "overlay.footer.players": "{count} 位玩家",
+            "overlay.footer.players": "{count} 位用戶",
             "overlay.footer.instance_duration": "停留 {duration}",
             "overlay.generic_instance_location": "一個房間",
             "overlay.access.public": "公開",
