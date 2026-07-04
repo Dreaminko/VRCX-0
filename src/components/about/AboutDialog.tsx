@@ -131,7 +131,7 @@ function ContributorNode({
                         type="button"
                         className={cn(
                             'animate-in fade-in slide-in-from-bottom-2 fill-mode-both rounded-full transition-transform duration-200 hover:z-10 hover:scale-110 motion-reduce:animate-none',
-                            index % 2 === 1 && 'mt-3'
+                            index % 2 === 1 && 'mt-2'
                         )}
                         style={{ animationDelay: `${index * 45}ms` }}
                         onClick={() => {
@@ -160,14 +160,14 @@ function AboutContributorsWall({ open }: { open: boolean }) {
     const contributors = contributorsQuery.data ?? [];
 
     return (
-        <div className="flex min-h-11 flex-wrap items-start justify-center gap-2.5">
+        <div className="flex min-h-11 flex-wrap items-start justify-center gap-2">
             {contributorsQuery.isPending
                 ? Array.from({ length: 10 }, (_, index) => (
                       <Skeleton
                           key={index}
                           className={cn(
                               'size-11 rounded-full',
-                              index % 2 === 1 && 'mt-3'
+                              index % 2 === 1 && 'mt-2'
                           )}
                       />
                   ))
@@ -262,8 +262,8 @@ export function AboutVrcxDialog({
                     </div>
                 </div>
 
-                <FieldSeparator className="[&>[data-slot=field-separator-content]]:bg-popover my-5">
-                    <span className="text-[10.5px] font-medium tracking-[0.2em] uppercase">
+                <FieldSeparator className="[&>[data-slot=field-separator-content]]:bg-popover my-5 [&>[data-slot=separator]]:opacity-55">
+                    <span className="text-muted-foreground/75 text-[10px] font-medium tracking-[0.18em] uppercase">
                         {t('view.about.contributors')}
                     </span>
                 </FieldSeparator>
@@ -287,8 +287,8 @@ export function AboutVrcxDialog({
                     </Button>
                 </div>
 
-                <FieldSeparator className="[&>[data-slot=field-separator-content]]:bg-popover mt-7 mb-4">
-                    <span className="text-[10.5px] font-medium tracking-[0.2em] uppercase">
+                <FieldSeparator className="[&>[data-slot=field-separator-content]]:bg-popover mt-7 mb-4 [&>[data-slot=separator]]:opacity-55">
+                    <span className="text-muted-foreground/75 text-[10px] font-medium tracking-[0.18em] uppercase">
                         {t('support_vrcx.title')}
                     </span>
                 </FieldSeparator>
@@ -303,8 +303,16 @@ export function AboutVrcxDialog({
                                 <Button
                                     key={key}
                                     type="button"
-                                    variant="outline"
+                                    variant={
+                                        key === 'github-sponsors'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
                                     size="sm"
+                                    className={cn(
+                                        key !== 'github-sponsors' &&
+                                            'text-muted-foreground hover:text-foreground'
+                                    )}
                                     onClick={() => {
                                         openExternalLink(href);
                                     }}
@@ -331,8 +339,9 @@ export function AboutVrcxDialog({
                     </Button>
                     <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
+                        className="text-muted-foreground/70 hover:text-foreground h-7 px-2 text-[11.5px] font-medium"
                         onClick={onOpenLicenses}
                     >
                         {t('app_menu.open_source_licenses')}

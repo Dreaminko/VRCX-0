@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { AboutVrcxDialog } from '@/components/about/AboutVrcxDialog';
+import { AboutVrcxDialog } from '@/components/about/AboutDialog';
 import { OpenSourceNoticeDialog } from '@/features/settings/components/OpenSourceNoticeDialog';
 import { cn } from '@/lib/utils';
 import { commands } from '@/platform/tauri/bindings';

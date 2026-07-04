@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { AboutVrcxDialog } from '@/components/about/AboutVrcxDialog';
+import { AboutVrcxDialog } from '@/components/about/AboutDialog';
 import { useDirectAccessAction } from '@/components/layout/directAccessAction';
 import { useRightSidePanelVisibility } from '@/components/layout/useRightSidePanelVisibility';
 import { QuickSearchDialog } from '@/components/sidebar/QuickSearchDialog';
