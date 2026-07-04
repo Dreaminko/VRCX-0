@@ -26,6 +26,7 @@ mod rows;
 mod sql;
 
 #[cfg(test)]
+#[path = "../../../tests/game_log/local_queries/tests.rs"]
 mod tests;
 
 use rows::{

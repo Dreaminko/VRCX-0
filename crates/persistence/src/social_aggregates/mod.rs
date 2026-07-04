@@ -44,4 +44,5 @@ pub use types::{
 pub use worlds::{favorite_local, search_worlds_visited};
 
 #[cfg(test)]
+#[path = "../../tests/social_aggregates/tests.rs"]
 mod tests;
