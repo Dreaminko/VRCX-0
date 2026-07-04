@@ -26,8 +26,14 @@ mod rows;
 mod sql;
 
 #[cfg(test)]
-#[path = "../../../tests/game_log/local_queries/tests.rs"]
-mod tests;
+#[path = "../../../tests/game_log/local_queries/aggregate_stats_tests.rs"]
+mod aggregate_stats_tests;
+#[cfg(test)]
+#[path = "../../../tests/game_log/local_queries/recent_lookup_tests.rs"]
+mod recent_lookup_tests;
+#[cfg(test)]
+#[path = "../../../tests/game_log/local_queries/support.rs"]
+mod test_support;
 
 use rows::{
     game_log_base_columns, game_log_batch_for_kind, game_log_filter_flags,
