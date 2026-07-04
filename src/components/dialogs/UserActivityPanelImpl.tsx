@@ -242,6 +242,20 @@ export function UserActivityPanel({
                         </span>
                         <Select
                             value={selectedPeriod}
+                            items={[
+                                {
+                                    value: '90',
+                                    label: t('dialog.user.activity.period_90')
+                                },
+                                {
+                                    value: '30',
+                                    label: t('dialog.user.activity.period_30')
+                                },
+                                {
+                                    value: '7',
+                                    label: t('dialog.user.activity.period_7')
+                                }
+                            ]}
                             onValueChange={(value) => {
                                 changePeriod(value ?? '');
                             }}

@@ -177,6 +177,18 @@ export function BoopEmojiDialog({
                         <div className="flex flex-wrap items-center gap-2">
                             <Select
                                 value={selectedDefaultEmojiId}
+                                items={[
+                                    {
+                                        value: noDefaultEmojiValue,
+                                        label: t(
+                                            'view.notification.action.clear_selection'
+                                        )
+                                    },
+                                    ...photonEmojiRows.map((row) => ({
+                                        value: row.id,
+                                        label: row.name
+                                    }))
+                                ]}
                                 onValueChange={(value) => {
                                     setEmojiId(
                                         value === noDefaultEmojiValue

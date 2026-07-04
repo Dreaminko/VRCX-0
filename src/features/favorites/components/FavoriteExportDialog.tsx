@@ -29,6 +29,13 @@ import {
     getFavoriteExportFieldOptions
 } from '../favoritesExport';
 
+type FavoriteExportGroupOption = {
+    capacity?: number;
+    count: number;
+    key: string;
+    label: string;
+};
+
 function FavoriteExportDialog({
     open,
     onOpenChange,
@@ -136,6 +143,24 @@ function FavoriteExportDialog({
                 <div className="flex flex-wrap items-center gap-2">
                     <Select
                         value={remoteGroupKey}
+                        items={[
+                            {
+                                value: EXPORT_ALL_VALUE,
+                                label: t(
+                                    'view.favorite.label.all_vrchat_favorites'
+                                )
+                            },
+                            ...remoteGroups.map(
+                                (group: FavoriteExportGroupOption) => ({
+                                    value: group.key,
+                                    label: `${group.label} (${
+                                        group.capacity
+                                            ? `${group.count}/${group.capacity}`
+                                            : group.count
+                                    })`
+                                })
+                            )
+                        ]}
                         onValueChange={(value) =>
                             setRemoteGroupKey(value ?? '')
                         }
@@ -171,6 +196,18 @@ function FavoriteExportDialog({
                     </Select>
                     <Select
                         value={localGroupKey}
+                        items={[
+                            {
+                                value: EXPORT_NONE_VALUE,
+                                label: t('view.favorite.empty.no_local_group')
+                            },
+                            ...localGroups.map(
+                                (group: FavoriteExportGroupOption) => ({
+                                    value: group.key,
+                                    label: `${group.label} (${group.count})`
+                                })
+                            )
+                        ]}
                         onValueChange={(value) => setLocalGroupKey(value ?? '')}
                     >
                         <SelectTrigger size="sm" className="min-w-52">

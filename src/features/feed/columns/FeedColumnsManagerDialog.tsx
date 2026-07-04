@@ -313,6 +313,26 @@ export function FeedColumnsManagerDialog({
                                     value={resolveScopeSelectValue(
                                         selectedColumn.friendScope
                                     )}
+                                    items={[
+                                        {
+                                            value: 'all',
+                                            label: t(
+                                                'view.feed.columns.all_friends'
+                                            )
+                                        },
+                                        {
+                                            value: 'favorites-all',
+                                            label: t(
+                                                'view.feed.columns.all_favorites'
+                                            )
+                                        },
+                                        {
+                                            value: 'favorites-selected',
+                                            label: t(
+                                                'view.feed.columns.selected_favorites'
+                                            )
+                                        }
+                                    ]}
                                     onValueChange={(rawValue) => {
                                         const value = rawValue ?? '';
                                         if (value === 'all') {
@@ -393,6 +413,26 @@ export function FeedColumnsManagerDialog({
                                     value={resolveExcludedFavoriteGroupSelectValue(
                                         selectedColumn.friendScope
                                     )}
+                                    items={[
+                                        {
+                                            value: 'exclude-none',
+                                            label: t(
+                                                'view.feed.columns.exclude_none'
+                                            )
+                                        },
+                                        {
+                                            value: 'exclude-all',
+                                            label: t(
+                                                'view.feed.columns.exclude_all_favorites'
+                                            )
+                                        },
+                                        {
+                                            value: 'exclude-selected',
+                                            label: t(
+                                                'view.feed.columns.exclude_selected_favorites'
+                                            )
+                                        }
+                                    ]}
                                     onValueChange={(rawValue) => {
                                         const value = rawValue ?? '';
                                         if (value === 'exclude-all') {

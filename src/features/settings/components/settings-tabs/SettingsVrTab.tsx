@@ -66,6 +66,43 @@ type SettingsVrTabProps = {
     onXsNotificationsChange: (checked: boolean) => unknown;
 };
 
+const hmdStartModeOptions = [
+    ['steamvr', 'view.settings.vr.hmd_notifications.start_when_steamvr'],
+    [
+        'vrchatVrMode',
+        'view.settings.vr.hmd_notifications.start_when_vrchat_vr_mode'
+    ]
+] as const;
+
+const hmdPositionOptions = [
+    ['bottom', 'view.settings.vr.hmd_notifications.position_bottom'],
+    ['top', 'view.settings.vr.hmd_notifications.position_top'],
+    ['left', 'view.settings.vr.hmd_notifications.position_left'],
+    ['right', 'view.settings.vr.hmd_notifications.position_right']
+] as const;
+
+const wristStartModeOptions = [
+    ['steamvr', 'view.settings.vr.wrist_overlay.start_when_steamvr'],
+    ['vrchatVrMode', 'view.settings.vr.wrist_overlay.start_when_vrchat_vr_mode']
+] as const;
+
+const wristButtonOptions = [
+    ['grip', 'view.settings.vr.wrist_overlay.overlay_button_grip'],
+    ['menu', 'view.settings.vr.wrist_overlay.overlay_button_menu']
+] as const;
+
+const wristHandOptions = [
+    ['left', 'view.settings.vr.wrist_overlay.display_on_left'],
+    ['right', 'view.settings.vr.wrist_overlay.display_on_right'],
+    ['both', 'view.settings.vr.wrist_overlay.display_on_both']
+] as const;
+
+const wristSizeOptions = [
+    ['compact', 'view.settings.vr.wrist_overlay.size_compact'],
+    ['normal', 'view.settings.vr.wrist_overlay.size_normal'],
+    ['large', 'view.settings.vr.wrist_overlay.size_large']
+] as const;
+
 export function SettingsVrTab({
     prefs,
     onXsNotificationsChange,
@@ -261,6 +298,10 @@ export function SettingsVrTab({
                         value={String(
                             prefs.hmdNotificationStartMode || 'vrchatVrMode'
                         )}
+                        items={hmdStartModeOptions.map(([value, labelKey]) => ({
+                            value,
+                            label: t(labelKey)
+                        }))}
                         disabled={!hmdNotificationsEnabled}
                         onValueChange={(value) =>
                             onHmdNotificationStartModeChange(value ?? '')
@@ -274,16 +315,13 @@ export function SettingsVrTab({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="steamvr">
-                                    {t(
-                                        'view.settings.vr.hmd_notifications.start_when_steamvr'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="vrchatVrMode">
-                                    {t(
-                                        'view.settings.vr.hmd_notifications.start_when_vrchat_vr_mode'
-                                    )}
-                                </SelectItem>
+                                {hmdStartModeOptions.map(
+                                    ([value, labelKey]) => (
+                                        <SelectItem key={value} value={value}>
+                                            {t(labelKey)}
+                                        </SelectItem>
+                                    )
+                                )}
                             </SelectGroup>
                         </SelectContent>
                     </Select>
@@ -298,6 +336,10 @@ export function SettingsVrTab({
                         value={String(
                             prefs.hmdNotificationPosition || 'bottom'
                         )}
+                        items={hmdPositionOptions.map(([value, labelKey]) => ({
+                            value,
+                            label: t(labelKey)
+                        }))}
                         disabled={!hmdNotificationsEnabled}
                         onValueChange={(value) =>
                             onHmdNotificationPositionChange(value ?? '')
@@ -311,26 +353,11 @@ export function SettingsVrTab({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="bottom">
-                                    {t(
-                                        'view.settings.vr.hmd_notifications.position_bottom'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="top">
-                                    {t(
-                                        'view.settings.vr.hmd_notifications.position_top'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="left">
-                                    {t(
-                                        'view.settings.vr.hmd_notifications.position_left'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="right">
-                                    {t(
-                                        'view.settings.vr.hmd_notifications.position_right'
-                                    )}
-                                </SelectItem>
+                                {hmdPositionOptions.map(([value, labelKey]) => (
+                                    <SelectItem key={value} value={value}>
+                                        {t(labelKey)}
+                                    </SelectItem>
+                                ))}
                             </SelectGroup>
                         </SelectContent>
                     </Select>
@@ -420,6 +447,12 @@ export function SettingsVrTab({
                 >
                     <Select
                         value={prefs.wristOverlayStartMode}
+                        items={wristStartModeOptions.map(
+                            ([value, labelKey]) => ({
+                                value,
+                                label: t(labelKey)
+                            })
+                        )}
                         disabled={!wristOverlayEnabled}
                         onValueChange={(value) =>
                             onWristOverlayStartModeChange(value ?? '')
@@ -433,16 +466,13 @@ export function SettingsVrTab({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="steamvr">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.start_when_steamvr'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="vrchatVrMode">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.start_when_vrchat_vr_mode'
-                                    )}
-                                </SelectItem>
+                                {wristStartModeOptions.map(
+                                    ([value, labelKey]) => (
+                                        <SelectItem key={value} value={value}>
+                                            {t(labelKey)}
+                                        </SelectItem>
+                                    )
+                                )}
                             </SelectGroup>
                         </SelectContent>
                     </Select>
@@ -455,6 +485,10 @@ export function SettingsVrTab({
                 >
                     <Select
                         value={prefs.wristOverlayButton}
+                        items={wristButtonOptions.map(([value, labelKey]) => ({
+                            value,
+                            label: t(labelKey)
+                        }))}
                         disabled={!wristOverlayEnabled}
                         onValueChange={(value) =>
                             onWristOverlayButtonChange(value ?? '')
@@ -468,16 +502,11 @@ export function SettingsVrTab({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="grip">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.overlay_button_grip'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="menu">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.overlay_button_menu'
-                                    )}
-                                </SelectItem>
+                                {wristButtonOptions.map(([value, labelKey]) => (
+                                    <SelectItem key={value} value={value}>
+                                        {t(labelKey)}
+                                    </SelectItem>
+                                ))}
                             </SelectGroup>
                         </SelectContent>
                     </Select>
@@ -490,6 +519,10 @@ export function SettingsVrTab({
                 >
                     <Select
                         value={prefs.wristOverlayHand}
+                        items={wristHandOptions.map(([value, labelKey]) => ({
+                            value,
+                            label: t(labelKey)
+                        }))}
                         disabled={!wristOverlayEnabled}
                         onValueChange={(value) =>
                             onWristOverlayHandChange(value ?? '')
@@ -503,21 +536,11 @@ export function SettingsVrTab({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="left">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.display_on_left'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="right">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.display_on_right'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="both">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.display_on_both'
-                                    )}
-                                </SelectItem>
+                                {wristHandOptions.map(([value, labelKey]) => (
+                                    <SelectItem key={value} value={value}>
+                                        {t(labelKey)}
+                                    </SelectItem>
+                                ))}
                             </SelectGroup>
                         </SelectContent>
                     </Select>
@@ -530,6 +553,10 @@ export function SettingsVrTab({
                 >
                     <Select
                         value={prefs.wristOverlaySize}
+                        items={wristSizeOptions.map(([value, labelKey]) => ({
+                            value,
+                            label: t(labelKey)
+                        }))}
                         disabled={!wristOverlayEnabled}
                         onValueChange={(value) =>
                             onWristOverlaySizeChange(value ?? '')
@@ -543,21 +570,11 @@ export function SettingsVrTab({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="compact">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.size_compact'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="normal">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.size_normal'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="large">
-                                    {t(
-                                        'view.settings.vr.wrist_overlay.size_large'
-                                    )}
-                                </SelectItem>
+                                {wristSizeOptions.map(([value, labelKey]) => (
+                                    <SelectItem key={value} value={value}>
+                                        {t(labelKey)}
+                                    </SelectItem>
+                                ))}
                             </SelectGroup>
                         </SelectContent>
                     </Select>

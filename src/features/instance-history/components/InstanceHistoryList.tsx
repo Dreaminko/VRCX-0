@@ -217,6 +217,10 @@ export function InstanceHistoryList({
                         <div className="flex shrink-0 items-center">
                             <Select
                                 value={activeSortKey}
+                                items={SORT_FIELDS.map((field) => ({
+                                    value: field,
+                                    label: sortFieldLabel[field]
+                                }))}
                                 onValueChange={(value) =>
                                     onSortSelect(
                                         (value ?? '') as SortField,

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import { formatDateFilter } from '@/lib/dateTime';
+import type { VrchatLogFileOutput } from '@/platform/tauri/bindings';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
@@ -57,6 +58,13 @@ export function VrchatLogToolbar({
                             setSelectedFileName(value ?? '')
                         }
                         disabled={isFilesLoading || !files.length}
+                        items={files.map((file: VrchatLogFileOutput) => ({
+                            value: file.fileName,
+                            label: fileLabel(
+                                file,
+                                t('view.tools.vrchat_log.latest')
+                            )
+                        }))}
                     >
                         <SelectTrigger className="h-9 max-w-[760px] min-w-[360px] flex-1">
                             <SelectValue

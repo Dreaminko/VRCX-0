@@ -73,6 +73,17 @@ const WEBHOOK_PAYLOAD_FIELDS: Array<[string, string]> = [
 
 const DEFAULT_WEBHOOK_FIELDS = WEBHOOK_PAYLOAD_FIELDS.map(([field]) => field);
 
+const webhookFormatOptions = [
+    [
+        'generic',
+        'view.settings.notifications.notifications.webhook.format_generic'
+    ],
+    [
+        'discord',
+        'view.settings.notifications.notifications.webhook.format_discord'
+    ]
+] as const;
+
 type WebhookPayloadFieldsDialogProps = {
     webhookEnabled: boolean;
     webhookFormat: string;
@@ -218,6 +229,10 @@ export function WebhookSettingsGroup({
             >
                 <Select
                     value={prefs.webhookFormat || 'generic'}
+                    items={webhookFormatOptions.map(([value, labelKey]) => ({
+                        value,
+                        label: t(labelKey)
+                    }))}
                     disabled={!webhookControlsEnabled}
                     onValueChange={(value) =>
                         onWebhookFormatChange(value ?? '')
@@ -232,16 +247,13 @@ export function WebhookSettingsGroup({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="generic">
-                                    {t(
-                                        'view.settings.notifications.notifications.webhook.format_generic'
-                                    )}
-                                </SelectItem>
-                                <SelectItem value="discord">
-                                    {t(
-                                        'view.settings.notifications.notifications.webhook.format_discord'
-                                    )}
-                                </SelectItem>
+                                {webhookFormatOptions.map(
+                                    ([value, labelKey]) => (
+                                        <SelectItem key={value} value={value}>
+                                            {t(labelKey)}
+                                        </SelectItem>
+                                    )
+                                )}
                             </SelectGroup>
                         </SelectContent>
                     </div>

@@ -319,6 +319,16 @@ export function AvatarDetailsDialog({
                             </FieldLabel>
                             <Select
                                 value={primaryStyle || noneValue}
+                                items={[
+                                    {
+                                        value: noneValue,
+                                        label: t('dialog.avatar.label.none')
+                                    },
+                                    ...styleNames.map((styleNameValue) => ({
+                                        value: styleNameValue,
+                                        label: styleNameValue
+                                    }))
+                                ]}
                                 disabled={controlsDisabled}
                                 onValueChange={(value) =>
                                     setPrimaryStyle(
@@ -356,6 +366,16 @@ export function AvatarDetailsDialog({
                             </FieldLabel>
                             <Select
                                 value={secondaryStyle || noneValue}
+                                items={[
+                                    {
+                                        value: noneValue,
+                                        label: t('dialog.avatar.label.none')
+                                    },
+                                    ...styleNames.map((styleNameValue) => ({
+                                        value: styleNameValue,
+                                        label: styleNameValue
+                                    }))
+                                ]}
                                 disabled={controlsDisabled}
                                 onValueChange={(value) =>
                                     setSecondaryStyle(

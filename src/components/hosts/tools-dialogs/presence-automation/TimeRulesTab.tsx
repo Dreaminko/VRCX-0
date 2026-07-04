@@ -282,6 +282,10 @@ export function TimeRulesTab({
                                     'high'
                                 )}
                                 disabled={disabled}
+                                items={priorityOptions.map((option) => ({
+                                    value: option.value,
+                                    label: t(option.labelKey)
+                                }))}
                                 onValueChange={(value) =>
                                     update(selectedRule.id, (current) => ({
                                         ...current,

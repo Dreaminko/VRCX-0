@@ -615,6 +615,14 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                               </label>
                                               <Select
                                                   value={String(clock.offset)}
+                                                  items={timezoneOptions.map(
+                                                      (option) => ({
+                                                          value: String(
+                                                              option.value
+                                                          ),
+                                                          label: option.label
+                                                      })
+                                                  )}
                                                   onValueChange={(offset) =>
                                                       onUpdateClockTimezone(
                                                           index,

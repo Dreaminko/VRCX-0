@@ -499,6 +499,14 @@ function OverlayActivityFilterDialog({
                                             <div className="grid w-full gap-2 sm:w-56">
                                                 <Select
                                                     value={rule.scope}
+                                                    items={definition.allowedScopes.map(
+                                                        (scope) => ({
+                                                            value: scope,
+                                                            label: t(
+                                                                `dialog.wrist_feed_notifications.scopes.${scope}`
+                                                            )
+                                                        })
+                                                    )}
                                                     onValueChange={(scope) =>
                                                         updateTypeRule(type, {
                                                             scope: (scope ??

@@ -313,6 +313,10 @@ export function RegistryBackupDialog({ open, onOpenChange }: any) {
                         value={selectedKey}
                         onValueChange={(value) => setSelectedKey(value ?? '')}
                         disabled={loading || backups.length === 0}
+                        items={backups.map((backup) => ({
+                            value: backup.key,
+                            label: formatBackupLabel(backup, t)
+                        }))}
                     >
                         <SelectTrigger>
                             <SelectValue

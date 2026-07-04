@@ -70,17 +70,24 @@ const groupAccessTypeOptions = [
     }
 ];
 
+type InstanceGroupOption = {
+    displayName?: unknown;
+    groupId?: unknown;
+    id?: unknown;
+    name?: unknown;
+};
+
 function normalizeText(value: any) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function groupIdForOption(group: any) {
+function groupIdForOption(group?: InstanceGroupOption | null) {
     return normalizeText(group?.groupId || group?.id);
 }
 
-function groupLabel(group: any) {
+function groupLabel(group?: InstanceGroupOption | null) {
     const groupId = groupIdForOption(group);
     return normalizeText(group?.name || group?.displayName) || groupId;
 }
@@ -258,6 +265,13 @@ export function WorldNewInstanceDialog({
         return (
             <Select
                 value={form.groupId}
+                items={visibleGroupOptions.map((group: InstanceGroupOption) => {
+                    const groupId = groupIdForOption(group);
+                    return {
+                        value: groupId,
+                        label: groupLabel(group)
+                    };
+                })}
                 disabled={disabled}
                 onValueChange={patchGroupId}
             >
@@ -315,6 +329,10 @@ export function WorldNewInstanceDialog({
                                 </FieldLabel>
                                 <Select
                                     value={form.accessType}
+                                    items={accessTypeOptions.map((option) => ({
+                                        value: option.value,
+                                        label: t(option.labelKey)
+                                    }))}
                                     disabled={Boolean(request?.created)}
                                     onValueChange={(value) =>
                                         patchForm({ accessType: value })
@@ -345,6 +363,10 @@ export function WorldNewInstanceDialog({
                                 </FieldLabel>
                                 <Select
                                     value={form.region}
+                                    items={regionOptions.map((region) => ({
+                                        value: region.value,
+                                        label: t(region.labelKey)
+                                    }))}
                                     disabled={Boolean(request?.created)}
                                     onValueChange={(value) =>
                                         patchForm({ region: value })
@@ -388,6 +410,12 @@ export function WorldNewInstanceDialog({
                                         </FieldLabel>
                                         <Select
                                             value={form.groupAccessType}
+                                            items={groupAccessTypeOptions.map(
+                                                (option) => ({
+                                                    value: option.value,
+                                                    label: t(option.labelKey)
+                                                })
+                                            )}
                                             disabled={Boolean(request?.created)}
                                             onValueChange={(value) =>
                                                 patchForm({
@@ -575,6 +603,10 @@ export function WorldNewInstanceDialog({
                                 </FieldLabel>
                                 <Select
                                     value={form.accessType}
+                                    items={accessTypeOptions.map((option) => ({
+                                        value: option.value,
+                                        label: t(option.labelKey)
+                                    }))}
                                     onValueChange={(value) =>
                                         patchForm({ accessType: value })
                                     }
@@ -604,6 +636,10 @@ export function WorldNewInstanceDialog({
                                 </FieldLabel>
                                 <Select
                                     value={form.region}
+                                    items={regionOptions.map((region) => ({
+                                        value: region.value,
+                                        label: t(region.labelKey)
+                                    }))}
                                     onValueChange={(value) =>
                                         patchForm({ region: value })
                                     }
@@ -682,6 +718,12 @@ export function WorldNewInstanceDialog({
                                         </FieldLabel>
                                         <Select
                                             value={form.groupAccessType}
+                                            items={groupAccessTypeOptions.map(
+                                                (option) => ({
+                                                    value: option.value,
+                                                    label: t(option.labelKey)
+                                                })
+                                            )}
                                             onValueChange={(value) =>
                                                 patchForm({
                                                     groupAccessType: value

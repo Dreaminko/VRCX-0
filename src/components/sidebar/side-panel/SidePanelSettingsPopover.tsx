@@ -112,6 +112,16 @@ function SortSelect({
     return (
         <Select
             value={value || '__none__'}
+            items={[
+                {
+                    value: '__none__',
+                    label: t('dialog.gallery_select.none')
+                },
+                ...sortOptions.map(([option, labelKey]) => ({
+                    value: option,
+                    label: t(labelKey)
+                }))
+            ]}
             disabled={disabled}
             onValueChange={(nextValue) =>
                 onChange(normalizeSortSelectValue(nextValue ?? ''))

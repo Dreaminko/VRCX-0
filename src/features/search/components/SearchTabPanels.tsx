@@ -25,6 +25,11 @@ import {
     WorldCard
 } from './SearchResultParts';
 
+type WorldCategoryOption = {
+    index: number;
+    name: string;
+};
+
 export function SearchUserTabPanel({
     searchUserByBio,
     onSearchUserByBioChange,
@@ -147,6 +152,12 @@ export function SearchWorldTabPanel({
                     </Field>
                     <Select
                         value={selectedWorldCategory}
+                        items={worldCategories.map(
+                            (row: WorldCategoryOption) => ({
+                                value: String(row.index),
+                                label: row.name
+                            })
+                        )}
                         onValueChange={onWorldCategoryChange}
                     >
                         <SelectTrigger size="sm">
@@ -216,6 +227,12 @@ export function SearchAvatarTabPanel({
                     {avatarProviderList.length > 0 ? (
                         <Select
                             value={selectedAvatarProvider}
+                            items={avatarProviderList
+                                .filter(Boolean)
+                                .map((provider: string) => ({
+                                    value: provider,
+                                    label: provider
+                                }))}
                             onValueChange={onAvatarProviderChange}
                         >
                             <SelectTrigger size="sm">

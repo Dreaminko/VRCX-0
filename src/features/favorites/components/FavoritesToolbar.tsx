@@ -65,6 +65,26 @@ function FavoritesToolbar({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <Select
                 value={sortValue}
+                items={[
+                    {
+                        value: 'name',
+                        label: t('view.search.avatar.sort_name')
+                    },
+                    {
+                        value: 'date',
+                        label: t('view.favorite.label.sort_by_date')
+                    },
+                    ...(kind === 'world'
+                        ? [
+                              {
+                                  value: 'players',
+                                  label: t(
+                                      'view.favorite.label.sort_by_players'
+                                  )
+                              }
+                          ]
+                        : [])
+                ]}
                 onValueChange={(value) => onSortValueChange(value ?? '')}
             >
                 <SelectTrigger size="sm" className="min-w-48">

@@ -141,6 +141,12 @@ export function TranslationApiDialog({
                     >
                         <Select
                             value={translationDraft.translationAPIType}
+                            items={translationProviderOptions.map(
+                                ([value, labelKey]) => ({
+                                    value,
+                                    label: t(labelKey)
+                                })
+                            )}
                             onValueChange={(value) => {
                                 setTranslationDraftValue(
                                     'translationAPIType',
@@ -194,6 +200,10 @@ export function TranslationApiDialog({
                                         translationDraft.translationEndpointId ||
                                         undefined
                                     }
+                                    items={endpoints.map((endpoint) => ({
+                                        value: endpoint.id,
+                                        label: endpoint.name
+                                    }))}
                                     disabled={!endpoints.length}
                                     onValueChange={(value) => {
                                         setTranslationDraftValue(
@@ -251,6 +261,10 @@ export function TranslationApiDialog({
                                             translationDraft.translationAPIModel ||
                                             modelOptions[0]
                                         }
+                                        items={modelOptions.map((model) => ({
+                                            value: model,
+                                            label: model
+                                        }))}
                                         onValueChange={(value) =>
                                             setTranslationDraftValue(
                                                 'translationAPIModel',

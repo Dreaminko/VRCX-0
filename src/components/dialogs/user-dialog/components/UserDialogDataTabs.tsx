@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel';
-import { userDialogMutualFriendSortingOptions } from '@/shared/constants/user';
+import {
+    userDialogMutualFriendSortingOptions,
+    userDialogWorldOrderOptions,
+    userDialogWorldSortingOptions
+} from '@/shared/constants/user';
 import { useDialogStore } from '@/state/dialogStore';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -58,6 +62,12 @@ export function UserDialogMutualTab({
                     value={mutualSort}
                     onValueChange={(value) => setMutualSort(value ?? '')}
                     disabled={remoteStatus.mutual === 'running'}
+                    items={Object.values(
+                        userDialogMutualFriendSortingOptions
+                    ).map((option) => ({
+                        value: option.value,
+                        label: t(option.name)
+                    }))}
                 >
                     <SelectTrigger size="sm" className="w-36">
                         <SelectValue />
@@ -120,6 +130,12 @@ export function UserDialogWorldsTab({
                     value={worldSort}
                     onValueChange={(value) => changeWorldSort(value ?? '')}
                     disabled={remoteStatus.worlds === 'running'}
+                    items={Object.values(userDialogWorldSortingOptions).map(
+                        (option) => ({
+                            value: option.value,
+                            label: t(option.name)
+                        })
+                    )}
                 >
                     <SelectTrigger size="sm" className="w-32">
                         <SelectValue />
@@ -151,6 +167,12 @@ export function UserDialogWorldsTab({
                     value={worldOrder}
                     onValueChange={(value) => changeWorldOrder(value ?? '')}
                     disabled={remoteStatus.worlds === 'running'}
+                    items={Object.values(userDialogWorldOrderOptions).map(
+                        (option) => ({
+                            value: option.value,
+                            label: t(option.name)
+                        })
+                    )}
                 >
                     <SelectTrigger size="sm" className="w-36">
                         <SelectValue />
@@ -258,6 +280,24 @@ export function UserDialogAvatarsTab({
                                 changeAvatarSort(value ?? '')
                             }
                             disabled={remoteStatus.avatars === 'running'}
+                            items={[
+                                {
+                                    value: 'name',
+                                    label: t('dialog.user.avatars.sort_by_name')
+                                },
+                                {
+                                    value: 'update',
+                                    label: t(
+                                        'dialog.user.avatars.sort_by_update'
+                                    )
+                                },
+                                {
+                                    value: 'createdAt',
+                                    label: t(
+                                        'dialog.user.avatars.sort_by_uploaded'
+                                    )
+                                }
+                            ]}
                         >
                             <SelectTrigger size="sm" className="w-36">
                                 <SelectValue />
@@ -289,6 +329,20 @@ export function UserDialogAvatarsTab({
                                 changeAvatarReleaseStatus(value ?? '')
                             }
                             disabled={remoteStatus.avatars === 'running'}
+                            items={[
+                                {
+                                    value: 'all',
+                                    label: t('dialog.user.avatars.all')
+                                },
+                                {
+                                    value: 'public',
+                                    label: t('dialog.user.avatars.public')
+                                },
+                                {
+                                    value: 'private',
+                                    label: t('dialog.user.avatars.private')
+                                }
+                            ]}
                         >
                             <SelectTrigger size="sm" className="w-32">
                                 <SelectValue />

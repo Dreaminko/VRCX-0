@@ -42,6 +42,11 @@ import {
 import { GroupInstanceRows } from './GroupInstanceRows';
 import { RowList } from './GroupRowList';
 
+type GroupRoleOption = {
+    id?: string;
+    name?: string;
+};
+
 function GroupBannerFallback() {
     return (
         <Skeleton className="text-muted-foreground flex aspect-[6/1] w-full items-center justify-center rounded-md">
@@ -596,6 +601,24 @@ export function GroupDialogTabPanels(props: any) {
                     </Button>
                     <Select
                         value={memberSort}
+                        items={[
+                            {
+                                value: 'joinedAt:desc',
+                                label: t('dialog.group.success.joined_newest')
+                            },
+                            {
+                                value: 'joinedAt:asc',
+                                label: t('dialog.group.success.joined_oldest')
+                            },
+                            {
+                                value: 'user.displayName:asc',
+                                label: t('dialog.group.label.name_a_z')
+                            },
+                            {
+                                value: 'user.displayName:desc',
+                                label: t('dialog.group.label.name_z_a')
+                            }
+                        ]}
                         onValueChange={(value) =>
                             onMemberSortChange(value ?? '')
                         }
@@ -625,6 +648,16 @@ export function GroupDialogTabPanels(props: any) {
                     </Select>
                     <Select
                         value={memberRoleId || 'all'}
+                        items={[
+                            {
+                                value: 'all',
+                                label: t('dialog.group.label.all_roles')
+                            },
+                            ...roles.map((role: GroupRoleOption) => ({
+                                value: role.id || role.name,
+                                label: role.name || 'Role'
+                            }))
+                        ]}
                         onValueChange={(value) =>
                             onMemberRoleChange(value ?? '')
                         }

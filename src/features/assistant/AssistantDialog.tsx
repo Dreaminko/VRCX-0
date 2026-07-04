@@ -334,6 +334,12 @@ export function AssistantDialog() {
                                                 runtimeSelection.endpointId ||
                                                 undefined
                                             }
+                                            items={endpoints.map(
+                                                (endpoint) => ({
+                                                    value: endpoint.id,
+                                                    label: endpoint.name
+                                                })
+                                            )}
                                             disabled={!endpoints.length}
                                             onValueChange={(value) =>
                                                 updateEndpoint(value ?? '')
@@ -379,6 +385,12 @@ export function AssistantDialog() {
                                                     runtimeSelection.model ||
                                                     undefined
                                                 }
+                                                items={modelOptions.map(
+                                                    (model) => ({
+                                                        value: model,
+                                                        label: model
+                                                    })
+                                                )}
                                                 onValueChange={(model) =>
                                                     updateRuntimeSelection({
                                                         model
@@ -433,6 +445,14 @@ export function AssistantDialog() {
                                             value={
                                                 runtimeSelection.playbookMode
                                             }
+                                            items={PLAYBOOK_MODES.map(
+                                                (mode) => ({
+                                                    value: mode,
+                                                    label: t(
+                                                        `assistant.settings.playbook_mode_${mode}`
+                                                    )
+                                                })
+                                            )}
                                             onValueChange={(value) =>
                                                 updateRuntimeSelection({
                                                     playbookMode:
