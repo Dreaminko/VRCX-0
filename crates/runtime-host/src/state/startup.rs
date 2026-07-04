@@ -172,6 +172,10 @@ impl RuntimeHostState {
             }
         };
         self.set_backend_frontend_session(&session);
+        if let Some(snapshot) = &social_baseline.favorite_groups_snapshot {
+            self.vr_overlay_runtime
+                .update_friends_panel_favorite_groups_from_baseline(snapshot);
+        }
         self.runtime_context
             .overlay_activity
             .set_favorite_groups(OverlayFavoriteGroups::from_map(

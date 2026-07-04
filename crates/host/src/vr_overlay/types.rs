@@ -68,45 +68,6 @@ pub enum OverlayHand {
     Right,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct OverlayPanelBinding {
-    pub hand: OverlayHand,
-    pub button: OverlayActivationButton,
-    pub panel_id: String,
-    #[serde(default)]
-    pub double_click: bool,
-    #[serde(default = "default_double_click_window_ms")]
-    pub double_click_window_ms: u64,
-}
-
-impl Default for OverlayPanelBinding {
-    fn default() -> Self {
-        Self {
-            hand: OverlayHand::Left,
-            button: OverlayActivationButton::Menu,
-            panel_id: "dummy".to_string(),
-            double_click: true,
-            double_click_window_ms: default_double_click_window_ms(),
-        }
-    }
-}
-
-pub fn default_overlay_panel_bindings() -> Vec<OverlayPanelBinding> {
-    vec![OverlayPanelBinding::default()]
-}
-
-pub fn parse_overlay_panel_bindings_or_default(raw: &str) -> Vec<OverlayPanelBinding> {
-    serde_json::from_str::<Vec<OverlayPanelBinding>>(raw)
-        .ok()
-        .filter(|bindings| !bindings.is_empty())
-        .unwrap_or_else(default_overlay_panel_bindings)
-}
-
-const fn default_double_click_window_ms() -> u64 {
-    350
-}
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct OverlayInputEvent {

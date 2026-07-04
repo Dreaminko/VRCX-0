@@ -16,8 +16,8 @@ use super::{
     noop::NoopOverlayBackend,
     status::{OverlayServicePhase, OverlayServiceStatus},
     types::{
-        BackendStartError, OverlayInputEvent, OverlayInputEventSink, OverlayPanelBinding,
-        OverlaySurfaceConfig, VrDeviceSnapshot,
+        BackendStartError, OverlayInputEvent, OverlayInputEventSink, OverlaySurfaceConfig,
+        VrDeviceSnapshot,
     },
 };
 
@@ -35,7 +35,6 @@ pub enum TickOutcome {
 
 pub trait OverlayBackend: Send + 'static {
     fn set_input_event_sink(&mut self, _sink: OverlayInputEventSink) {}
-    fn set_panel_bindings(&mut self, _bindings: Vec<OverlayPanelBinding>) {}
     fn set_interaction_active(&mut self, _active: bool) {}
     fn start(&mut self) -> Result<(), BackendStartError>;
     fn register_surface(&mut self, config: OverlaySurfaceConfig) -> Result<(), String>;
@@ -207,7 +206,6 @@ fn command_name(command: &OverlayServiceCommand) -> &'static str {
         OverlayServiceCommand::Show(_) => "show",
         OverlayServiceCommand::Hide(_) => "hide",
         OverlayServiceCommand::SetAlpha { .. } => "set_alpha",
-        OverlayServiceCommand::SetPanelBindings(_) => "set_panel_bindings",
         OverlayServiceCommand::SetInteractionActive(_) => "set_interaction_active",
         OverlayServiceCommand::Stop => "stop",
     }
@@ -223,7 +221,6 @@ fn command_timeout(command: &OverlayServiceCommand) -> Duration {
         | OverlayServiceCommand::Show(_)
         | OverlayServiceCommand::Hide(_)
         | OverlayServiceCommand::SetAlpha { .. }
-        | OverlayServiceCommand::SetPanelBindings(_)
         | OverlayServiceCommand::SetInteractionActive(_)
         | OverlayServiceCommand::Stop => OVERLAY_COMMAND_TIMEOUT,
     }
@@ -404,10 +401,6 @@ where
         OverlayServiceCommand::SetAlpha { surface_id, alpha } => backend
             .set_alpha(&surface_id, alpha)
             .map_err(|error| record_backend_error(status, error)),
-        OverlayServiceCommand::SetPanelBindings(bindings) => {
-            backend.set_panel_bindings(bindings);
-            Ok(())
-        }
         OverlayServiceCommand::SetInteractionActive(active) => {
             *interaction_active = active;
             backend.set_interaction_active(active);

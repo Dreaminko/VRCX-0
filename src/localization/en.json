@@ -1653,6 +1653,12 @@
                     "opacity": "Opacity",
                     "filters": "HMD Notification Filters"
                 },
+                "interactive_panel": {
+                    "header": "Interactive Friends Panel",
+                    "enabled": "Interactive friends panel",
+                    "summon_hint": "Summon gesture",
+                    "openvr_required": "Hold the right-hand grip for about 2 seconds to summon it. Requires the SteamVR/OpenVR overlay backend; OpenXR does not provide the interactive panel."
+                },
                 "wrist_overlay": {
                     "header": "Wrist Overlay",
                     "wrist_feed_overlay": "Wrist Feed Overlay",

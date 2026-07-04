@@ -245,4 +245,15 @@ describe('preferenceSnapshotLoader', () => {
             'compact'
         );
     });
+
+    it('loads the interactive VR panel switch as a default-on setting', async () => {
+        const snapshot = await loadPreferenceSnapshot();
+
+        expect(mocks.getBool).toHaveBeenCalledWith(
+            'vrOverlayPanelEnabled',
+            true
+        );
+        expect(snapshot.vrOverlayPanelEnabled).toBe(true);
+        expect(usePreferencesStore.getState().vrOverlayPanelEnabled).toBe(true);
+    });
 });

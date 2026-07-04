@@ -17,16 +17,17 @@ use openvr::{
 };
 use vrcx_0_vr_overlay::{
     grab_follow_transform, ray_quad_intersection, recenter_transform, OverlayQuadSize,
-    OverlaySurfaceId, OverlayTransform, Ray3, RgbaFrame, UvPoint, MAIN_SURFACE_ID,
+    OverlaySurfaceId, OverlayTransform, Ray3, RgbaFrame, UvPoint, FRIENDS_PANEL_ID,
+    FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 
 use super::{
     actor::{OverlayBackend, TickOutcome},
     policy::WristVisibilityPolicy,
     types::{
-        default_overlay_panel_bindings, BackendStartError, OverlayActivationButton, OverlayHand,
-        OverlayInputEvent, OverlayInputEventSink, OverlayInputKind, OverlayPanelBinding,
-        OverlayPlacement, OverlaySurfaceConfig, VrDeviceSnapshot, VrDeviceStatus,
+        BackendStartError, OverlayActivationButton, OverlayHand, OverlayInputEvent,
+        OverlayInputEventSink, OverlayInputKind, OverlayPlacement, OverlaySurfaceConfig,
+        VrDeviceSnapshot, VrDeviceStatus,
     },
 };
 
@@ -41,6 +42,9 @@ const SCROLL_AXIS_THRESHOLD: f32 = 0.55;
 const GRIP_AXIS_PRESS_THRESHOLD: f32 = 0.6;
 const SCROLL_REPEAT_INTERVAL: Duration = Duration::from_millis(120);
 const HOVER_UV_EPSILON: f32 = 0.01;
+const SUMMON_HOLD_DURATION: Duration = Duration::from_secs(2);
+const PANEL_SUMMON_HAND: OverlayHand = OverlayHand::Right;
+const PANEL_SUMMON_PANEL_ID: &str = FRIENDS_PANEL_ID;
 
 pub struct OpenVrOverlayBackend {
     context: Option<Context>,
@@ -48,7 +52,7 @@ pub struct OpenVrOverlayBackend {
     system: Option<System>,
     surfaces: HashMap<OverlaySurfaceId, OpenVrSurface>,
     input_events: OverlayInputEventSink,
-    panel_binding_states: Vec<PanelBindingState>,
+    panel_summon_state: PanelSummonGestureState,
     controller_states: HashMap<OverlayHand, ControllerInputState>,
     grab_state: Option<GrabState>,
 }
@@ -75,11 +79,10 @@ struct SurfaceFade {
     started_at: Instant,
 }
 
-#[derive(Clone, Debug)]
-struct PanelBindingState {
-    binding: OverlayPanelBinding,
-    was_pressed: bool,
-    last_press_at: Option<Instant>,
+#[derive(Clone, Debug, Default)]
+struct PanelSummonGestureState {
+    pressed_since: Option<Instant>,
+    emitted: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -191,10 +194,7 @@ impl OpenVrOverlayBackend {
             system: None,
             surfaces: HashMap::new(),
             input_events: OverlayInputEventSink::default(),
-            panel_binding_states: default_overlay_panel_bindings()
-                .into_iter()
-                .map(PanelBindingState::new)
-                .collect(),
+            panel_summon_state: PanelSummonGestureState::default(),
             controller_states: HashMap::new(),
             grab_state: None,
         }
@@ -210,10 +210,6 @@ impl Default for OpenVrOverlayBackend {
 impl OverlayBackend for OpenVrOverlayBackend {
     fn set_input_event_sink(&mut self, sink: OverlayInputEventSink) {
         self.input_events = sink;
-    }
-
-    fn set_panel_bindings(&mut self, bindings: Vec<OverlayPanelBinding>) {
-        self.panel_binding_states = bindings.into_iter().map(PanelBindingState::new).collect();
     }
 
     fn start(&mut self) -> Result<(), BackendStartError> {
@@ -409,16 +405,6 @@ impl OverlayBackend for OpenVrOverlayBackend {
     }
 }
 
-impl PanelBindingState {
-    fn new(binding: OverlayPanelBinding) -> Self {
-        Self {
-            binding,
-            was_pressed: false,
-            last_press_at: None,
-        }
-    }
-}
-
 fn surface_fades(surface_id: &OverlaySurfaceId) -> bool {
     surface_id.as_str() == MAIN_SURFACE_ID
 }
@@ -611,7 +597,7 @@ impl OpenVrOverlayBackend {
             update_panel_summon_events(
                 system,
                 &poses,
-                &mut self.panel_binding_states,
+                &mut self.panel_summon_state,
                 &self.input_events,
             );
 
@@ -1054,55 +1040,58 @@ fn device_button_pressed(
 fn update_panel_summon_events(
     system: &openvr::System,
     poses: &openvr::TrackedDevicePoses,
-    binding_states: &mut [PanelBindingState],
+    state: &mut PanelSummonGestureState,
     input_events: &OverlayInputEventSink,
 ) {
     let Some(hmd_transform) = pose_transform(poses, tracked_device_index::HMD) else {
         return;
     };
     let now = Instant::now();
-    for binding_state in binding_states {
-        let Some(device) = controller_device_for_hand(system, binding_state.binding.hand) else {
-            binding_state.was_pressed = false;
-            continue;
-        };
-        let pressed = device_button_pressed(system, device, binding_state.binding.button);
-        let rising_edge = pressed && !binding_state.was_pressed;
-        binding_state.was_pressed = pressed;
-        if !rising_edge {
-            continue;
-        }
-
-        let should_emit = if binding_state.binding.double_click {
-            let within_window = binding_state
-                .last_press_at
-                .map(|last| {
-                    now.saturating_duration_since(last).as_millis()
-                        <= binding_state.binding.double_click_window_ms as u128
-                })
-                .unwrap_or(false);
-            binding_state.last_press_at = Some(now);
-            within_window
-        } else {
-            true
-        };
-        if !should_emit {
-            continue;
-        }
-        binding_state.last_press_at = None;
-        let transform = recenter_transform(
-            hmd_transform,
-            DEFAULT_PANEL_RECENTER_DISTANCE_METERS,
-            DEFAULT_PANEL_RECENTER_VERTICAL_OFFSET_METERS,
-        );
-        input_events.push(OverlayInputEvent {
-            surface_id: surface_id_for_panel_id(&binding_state.binding.panel_id),
-            panel_id: binding_state.binding.panel_id.clone(),
-            hand: binding_state.binding.hand,
-            uv: UvPoint::new(0.5, 0.5),
-            kind: OverlayInputKind::Summon { transform },
-        });
+    let pressed = panel_summon_grip_pressed(system);
+    if !update_panel_summon_hold(state, pressed, now) {
+        return;
     }
+    let transform = recenter_transform(
+        hmd_transform,
+        DEFAULT_PANEL_RECENTER_DISTANCE_METERS,
+        DEFAULT_PANEL_RECENTER_VERTICAL_OFFSET_METERS,
+    );
+    input_events.push(OverlayInputEvent {
+        surface_id: surface_id_for_panel_id(PANEL_SUMMON_PANEL_ID),
+        panel_id: PANEL_SUMMON_PANEL_ID.to_string(),
+        hand: PANEL_SUMMON_HAND,
+        uv: UvPoint::new(0.5, 0.5),
+        kind: OverlayInputKind::Summon { transform },
+    });
+}
+
+fn panel_summon_grip_pressed(system: &openvr::System) -> bool {
+    let Some(device) = controller_device_for_hand(system, PANEL_SUMMON_HAND) else {
+        return false;
+    };
+    let Some(controller_state) = system.controller_state(device) else {
+        return false;
+    };
+    let tracking_system_name = string_property(system, device, TrackingSystemName_String);
+    grip_pressed_for_state(&controller_state, tracking_system_name.as_deref())
+}
+
+fn update_panel_summon_hold(
+    state: &mut PanelSummonGestureState,
+    pressed: bool,
+    now: Instant,
+) -> bool {
+    if !pressed {
+        state.pressed_since = None;
+        state.emitted = false;
+        return false;
+    }
+    let pressed_since = *state.pressed_since.get_or_insert(now);
+    if state.emitted || now.saturating_duration_since(pressed_since) < SUMMON_HOLD_DURATION {
+        return false;
+    }
+    state.emitted = true;
+    true
 }
 
 fn overlay_button_mask(button: OverlayActivationButton, tracking_system_name: Option<&str>) -> u64 {
@@ -1468,14 +1457,17 @@ fn pointer_miss_uv() -> UvPoint {
 }
 
 fn surface_id_for_panel_id(panel_id: &str) -> OverlaySurfaceId {
-    if panel_id == "dummy" {
-        OverlaySurfaceId::new("interactive-dummy")
+    if matches!(panel_id, FRIENDS_PANEL_ID | LEGACY_DUMMY_PANEL_ID) {
+        OverlaySurfaceId::new(FRIENDS_PANEL_SURFACE_ID)
     } else {
         OverlaySurfaceId::new(format!("interactive-{panel_id}"))
     }
 }
 
 fn panel_id_for_surface(surface_id: &OverlaySurfaceId) -> String {
+    if surface_id.as_str() == FRIENDS_PANEL_SURFACE_ID {
+        return FRIENDS_PANEL_ID.to_string();
+    }
     surface_id
         .as_str()
         .strip_prefix("interactive-")
@@ -1714,6 +1706,50 @@ mod tests {
         let mut axis_state = controller_state();
         axis_state.axis[2].x = 0.8;
         assert!(grip_pressed_for_state(&axis_state, Some("lighthouse")));
+    }
+
+    #[test]
+    fn panel_summon_uses_fixed_right_hand_friends_grip_hold() {
+        assert_eq!(PANEL_SUMMON_HAND, OverlayHand::Right);
+        assert_eq!(PANEL_SUMMON_PANEL_ID, FRIENDS_PANEL_ID);
+        assert_eq!(SUMMON_HOLD_DURATION, Duration::from_secs(2));
+    }
+
+    #[test]
+    fn panel_summon_hold_emits_once_and_resets_after_release() {
+        let started = Instant::now();
+        let mut state = PanelSummonGestureState::default();
+
+        assert!(!update_panel_summon_hold(&mut state, false, started));
+        assert!(!update_panel_summon_hold(&mut state, true, started));
+        assert!(!update_panel_summon_hold(
+            &mut state,
+            true,
+            started + SUMMON_HOLD_DURATION - Duration::from_millis(1)
+        ));
+        assert!(update_panel_summon_hold(
+            &mut state,
+            true,
+            started + SUMMON_HOLD_DURATION
+        ));
+        assert!(!update_panel_summon_hold(
+            &mut state,
+            true,
+            started + SUMMON_HOLD_DURATION + Duration::from_secs(1)
+        ));
+
+        assert!(!update_panel_summon_hold(
+            &mut state,
+            false,
+            started + SUMMON_HOLD_DURATION + Duration::from_secs(2)
+        ));
+        let restarted = started + SUMMON_HOLD_DURATION + Duration::from_secs(3);
+        assert!(!update_panel_summon_hold(&mut state, true, restarted));
+        assert!(update_panel_summon_hold(
+            &mut state,
+            true,
+            restarted + SUMMON_HOLD_DURATION
+        ));
     }
 
     #[test]

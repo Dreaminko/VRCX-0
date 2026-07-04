@@ -192,6 +192,12 @@
                     "timeout": "Thời gian hiển thị",
                     "opacity": "Độ mờ đục",
                     "filters": "Bộ lọc thông báo trong kính VR"
+                },
+                "interactive_panel": {
+                    "header": "Bảng bạn bè tương tác",
+                    "enabled": "Bật bảng bạn bè tương tác",
+                    "summon_hint": "Cử chỉ gọi bảng",
+                    "openvr_required": "Giữ Grip tay phải khoảng 2 giây để gọi bảng. Cần backend lớp phủ SteamVR/OpenVR; OpenXR hiện chưa cung cấp bảng tương tác."
                 }
             },
             "social": {

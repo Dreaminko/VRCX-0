@@ -249,6 +249,7 @@ impl RuntimeHostState {
             .unwrap_or_else(|| serde_json::json!({}));
         let friends_by_id_map =
             serde_json::from_value::<HashMap<String, FriendRecord>>(friends_by_id.clone())?;
+        let mut favorite_groups_snapshot = None;
         let favorite_groups = match build_favorites_baseline(
             deps,
             SocialFavoritesBaselineInput {
@@ -260,10 +261,11 @@ impl RuntimeHostState {
         )
         .await
         {
-            Ok(output) => output
-                .snapshot
-                .map(|snapshot| favorite_group_membership_from_snapshot(snapshot.into_value()))
-                .unwrap_or_default(),
+            Ok(output) => output.snapshot.map_or_else(HashMap::new, |snapshot| {
+                let value = snapshot.into_value();
+                favorite_groups_snapshot = Some(value.clone());
+                favorite_group_membership_from_snapshot(value)
+            }),
             Err(error) => {
                 tracing::warn!(
                     error = %error,
@@ -275,6 +277,7 @@ impl RuntimeHostState {
         Ok(BackendSocialBaseline {
             friends_by_id: friends_by_id_map,
             favorite_groups,
+            favorite_groups_snapshot,
         })
     }
 }
@@ -283,6 +286,7 @@ impl RuntimeHostState {
 pub(super) struct BackendSocialBaseline {
     pub(super) friends_by_id: HashMap<String, FriendRecord>,
     pub(super) favorite_groups: HashMap<String, Vec<String>>,
+    pub(super) favorite_groups_snapshot: Option<serde_json::Value>,
 }
 
 pub(super) fn string_field(value: &serde_json::Value, key: &str) -> Option<String> {

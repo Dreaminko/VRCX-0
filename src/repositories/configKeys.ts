@@ -175,6 +175,7 @@ export const ConfigKeys = defineConfigKeys({
     hmdNotificationActivityFilters: { type: 'string', default: '' },
 
     // ── Settings - Overlay ───────────────────────────
+    vrOverlayPanelEnabled: { type: 'bool', default: true },
     wristOverlayEnabled: { type: 'bool', default: false },
     wristOverlayStartMode: { type: 'string', default: 'vrchatVrMode' },
     wristOverlayButton: { type: 'string', default: 'grip' },

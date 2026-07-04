@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
@@ -10,20 +10,25 @@ use serde::Serialize;
 use vrcx_0_application::{
     GameLogEvent, GameLogEventSink, GameProcessEvent, GameProcessEventSink,
     OverlayActivityActorRelation, OverlayActivityDelivery, OverlayActivityEntry,
-    OverlayActivitySink, OverlayActivitySnapshot, TaskSupervisor, WebClient,
+    OverlayActivitySink, OverlayActivitySnapshot, RealtimeFriendSnapshot, TaskSupervisor,
+    WebClient,
 };
+use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_core::location::world_id_from_location;
 use vrcx_0_core::log_watcher::GameLogEventKind;
 use vrcx_0_host::vr_overlay::{
-    default_overlay_panel_bindings, parse_overlay_panel_bindings_or_default,
-    OverlayActivationButton, OverlayInputEvent, OverlayInputKind, OverlayPanelBinding,
-    OverlayPlacement, OverlaySurfaceConfig, VrDeviceSnapshot,
+    OverlayActivationButton, OverlayInputEvent, OverlayInputKind, OverlayPlacement,
+    OverlaySurfaceConfig, VrDeviceSnapshot,
 };
 use vrcx_0_persistence::config::ConfigRepository;
+use vrcx_0_persistence::favorites::favorite_list;
+use vrcx_0_persistence::memos::{memo_list_user_notes, memo_list_users};
 use vrcx_0_vr_overlay::{
-    build_dummy_panel_scene, build_main_scene, build_wrist_scene, new_shared_overlay_font_system,
-    AvatarBitmap, DummyPanelAction, DummyPanelModel, MainSurfaceModel, OverlayRenderer,
-    OverlaySize, OverlaySurfaceId, OverlayTransform, RgbaFrame, TextMeasurer, TinySkiaRenderer,
-    INTERACTIVE_DUMMY_SURFACE_ID, MAIN_SURFACE_ID,
+    build_friends_panel_scene, build_main_scene, build_wrist_scene, new_shared_overlay_font_system,
+    AvatarBitmap, FavoriteFriendsPanelModel, FriendPanelAction, FriendPanelRow,
+    FriendPanelStatusTone, FriendPanelTab, MainSurfaceModel, OverlayRenderer, OverlaySize,
+    OverlaySurfaceId, OverlayTransform, RgbaFrame, TextMeasurer, TinySkiaRenderer,
+    FRIENDS_PANEL_ID, FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 
 use crate::notification::user_image::UserImageCache;
@@ -32,7 +37,7 @@ use crate::RuntimeHostContext;
 use super::{
     build_wrist_surface_model,
     eligibility::{VrOverlayEligibility, WristOverlayStartMode},
-    localization::OverlayLocale,
+    localization::{OverlayLocale, OverlayLocalizer},
     manager::VrOverlayManager,
     service::{HostVrOverlayService, OverlayBackendPreference},
     surfaces::main::{build_main_surface_model, HmdToastView, MainOverlayFrameInput},
@@ -44,6 +49,7 @@ trait VrOverlayFrameProducer: Send {
 }
 
 type VrOverlayFrameProducerFactory = Box<dyn Fn() -> Box<dyn VrOverlayFrameProducer> + Send + Sync>;
+type FriendsPanelSnapshotProvider = Arc<dyn Fn() -> Option<RealtimeFriendSnapshot> + Send + Sync>;
 
 pub const VR_OVERLAY_ENABLED_CONFIG_KEY: &str = "wristOverlayEnabled";
 pub const VR_OVERLAY_BACKEND_CONFIG_KEY: &str = "wristOverlayBackend";
@@ -55,7 +61,8 @@ pub const VR_OVERLAY_HIDE_PRIVATE_WORLDS_CONFIG_KEY: &str = "wristOverlayHidePri
 pub const VR_OVERLAY_DARK_BACKGROUND_CONFIG_KEY: &str = "wristOverlayDarkBackground";
 pub const VR_OVERLAY_SHOW_DEVICES_CONFIG_KEY: &str = "wristOverlayShowDevices";
 pub const VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY: &str = "wristOverlayShowBatteryPercent";
-pub const VR_OVERLAY_PANEL_BINDINGS_CONFIG_KEY: &str = "vrOverlayPanelBindings";
+pub const VR_OVERLAY_PANEL_ENABLED_CONFIG_KEY: &str = "vrOverlayPanelEnabled";
+pub const VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY: &str = "vrOverlayFriendsPanelGroup";
 pub const HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY: &str = "hmdNotificationsEnabled";
 pub const HMD_NOTIFICATION_START_MODE_CONFIG_KEY: &str = "hmdNotificationStartMode";
 pub const HMD_NOTIFICATION_TIMEOUT_CONFIG_KEY: &str = "hmdNotificationTimeout";
@@ -65,7 +72,8 @@ const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
 const DATE_TIME_HOUR12_CONFIG_KEY: &str = "dtHour12";
 const WRIST_DEVICE_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WRIST_FRAME_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
-const INTERACTIVE_PANEL_FRAME_REFRESH_INTERVAL: Duration = Duration::from_millis(16);
+const FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL: Duration = Duration::from_millis(100);
+const FRIENDS_PANEL_SPINNER_PHASE_STEP: f32 = 0.1;
 const INTERACTIVE_INPUT_DRAIN_INTERVAL: Duration = Duration::from_millis(30);
 const HMD_TOAST_CAPACITY: usize = 3;
 const HMD_JOIN_LEAVE_MERGE_WINDOW: Duration = Duration::from_secs(4);
@@ -148,6 +156,7 @@ pub(super) struct VrOverlayRuntimeConfig {
     backend: OverlayBackendPreference,
     button: OverlayActivationButton,
     hand: WristOverlayHand,
+    panel_enabled: bool,
     hmd: HmdNotificationConfig,
     render: WristOverlayRenderOptions,
     locale: OverlayLocale,
@@ -161,6 +170,7 @@ impl Default for VrOverlayRuntimeConfig {
             backend: OverlayBackendPreference::Auto,
             button: OverlayActivationButton::Grip,
             hand: WristOverlayHand::Left,
+            panel_enabled: true,
             hmd: HmdNotificationConfig::default(),
             render: WristOverlayRenderOptions::default(),
             locale: OverlayLocale::default(),
@@ -200,17 +210,25 @@ struct VrOverlayFrameInput {
     devices: Vec<VrDeviceSnapshot>,
 }
 
+#[derive(Clone, Default)]
+struct FriendsPanelNoteMemoCache {
+    owner_user_id: String,
+    notes_by_user_id: HashMap<String, String>,
+    memos_by_user_id: HashMap<String, String>,
+    valid: bool,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct ActiveOverlaySurfaces {
     wrist: bool,
     hmd: bool,
     panel_listener: bool,
-    dummy_panel: bool,
+    friends_panel: bool,
 }
 
 impl ActiveOverlaySurfaces {
     fn any(self) -> bool {
-        self.wrist || self.hmd || self.panel_listener || self.dummy_panel
+        self.wrist || self.hmd || self.panel_listener || self.friends_panel
     }
 }
 
@@ -224,7 +242,7 @@ struct OverlayInputProcessOutcome {
 struct InteractivePanelRuntimeState {
     visible: bool,
     transform: OverlayTransform,
-    model: DummyPanelModel,
+    model: FavoriteFriendsPanelModel,
     focused: bool,
 }
 
@@ -233,7 +251,7 @@ impl Default for InteractivePanelRuntimeState {
         Self {
             visible: false,
             transform: OverlayTransform::identity(),
-            model: DummyPanelModel::default(),
+            model: FavoriteFriendsPanelModel::default(),
             focused: false,
         }
     }
@@ -269,7 +287,13 @@ pub struct VrOverlayRuntime {
     backend_available: bool,
     context: Option<Arc<RuntimeHostContext>>,
     config: Mutex<VrOverlayRuntimeConfig>,
-    panel_bindings: Mutex<Vec<OverlayPanelBinding>>,
+    friends_panel_snapshot_provider: Mutex<Option<FriendsPanelSnapshotProvider>>,
+    friends_panel_favorite_groups: Mutex<FavoriteFriendGroupsSnapshot>,
+    friends_panel_avatars: Arc<Mutex<HashMap<String, AvatarBitmap>>>,
+    friends_panel_avatar_fetches: Arc<Mutex<HashSet<String>>>,
+    friends_panel_world_resolves: Arc<Mutex<HashSet<String>>>,
+    friends_panel_note_memo_cache: Mutex<FriendsPanelNoteMemoCache>,
+    friends_panel_model_dirty: Arc<AtomicBool>,
     devices: Mutex<Vec<VrDeviceSnapshot>>,
     hmd_toasts: Mutex<VecDeque<HmdToastState>>,
     interactive_panel: Mutex<InteractivePanelRuntimeState>,
@@ -281,7 +305,7 @@ pub struct VrOverlayRuntime {
     frame_producer_factory: VrOverlayFrameProducerFactory,
     frame_producer: Mutex<Option<Box<dyn VrOverlayFrameProducer>>>,
     main_frame_renderer: Mutex<Option<RuntimeMainFrameRenderer>>,
-    dummy_panel_renderer: Mutex<TinySkiaRenderer>,
+    friends_panel_renderer: Mutex<TinySkiaRenderer>,
 }
 
 #[derive(Clone)]
@@ -297,6 +321,9 @@ impl VrOverlayActivitySink {
 
 impl OverlayActivitySink for VrOverlayActivitySink {
     fn emit_overlay_activity_snapshot(&self, _snapshot: OverlayActivitySnapshot) {
+        self.runtime
+            .friends_panel_model_dirty
+            .store(true, Ordering::Release);
         self.runtime.reconcile_current();
     }
 
@@ -308,13 +335,11 @@ impl OverlayActivitySink for VrOverlayActivitySink {
 impl VrOverlayRuntime {
     pub fn new(context: Arc<RuntimeHostContext>) -> Self {
         let config = load_runtime_config(context.config());
-        let panel_bindings = load_panel_bindings(context.config());
         let producer_context = Arc::clone(&context);
         Self::new_with_frame_producer_factory(
             HostVrOverlayService::backend_available(),
             Some(context.clone()),
             config,
-            panel_bindings,
             Box::new(move || {
                 Box::new(RuntimeWristFrameProducer::new(Arc::clone(
                     &producer_context,
@@ -332,7 +357,6 @@ impl VrOverlayRuntime {
             backend_available,
             None,
             VrOverlayRuntimeConfig::default(),
-            default_overlay_panel_bindings(),
             Box::new(|| Box::<StaticWristFrameProducer>::default()),
         )
     }
@@ -359,7 +383,6 @@ impl VrOverlayRuntime {
             backend_available,
             None,
             config,
-            default_overlay_panel_bindings(),
             frame_producer_factory,
         )
     }
@@ -368,7 +391,6 @@ impl VrOverlayRuntime {
         backend_available: bool,
         context: Option<Arc<RuntimeHostContext>>,
         config: VrOverlayRuntimeConfig,
-        panel_bindings: Vec<OverlayPanelBinding>,
         frame_producer_factory: VrOverlayFrameProducerFactory,
     ) -> Self {
         let service_configs = Vec::new();
@@ -390,7 +412,13 @@ impl VrOverlayRuntime {
             running_mirror: AtomicBool::new(false),
             active_backend_mirror: Mutex::new(None),
             config: Mutex::new(config),
-            panel_bindings: Mutex::new(panel_bindings),
+            friends_panel_snapshot_provider: Mutex::new(None),
+            friends_panel_favorite_groups: Mutex::new(FavoriteFriendGroupsSnapshot::default()),
+            friends_panel_avatars: Arc::new(Mutex::new(HashMap::new())),
+            friends_panel_avatar_fetches: Arc::new(Mutex::new(HashSet::new())),
+            friends_panel_world_resolves: Arc::new(Mutex::new(HashSet::new())),
+            friends_panel_note_memo_cache: Mutex::new(FriendsPanelNoteMemoCache::default()),
+            friends_panel_model_dirty: Arc::new(AtomicBool::new(false)),
             devices: Mutex::new(Vec::new()),
             hmd_toasts: Mutex::new(VecDeque::new()),
             interactive_panel: Mutex::new(InteractivePanelRuntimeState::default()),
@@ -399,7 +427,7 @@ impl VrOverlayRuntime {
             frame_producer_factory,
             frame_producer: Mutex::new(None),
             main_frame_renderer: Mutex::new(None),
-            dummy_panel_renderer: Mutex::new(TinySkiaRenderer::new()),
+            friends_panel_renderer: Mutex::new(TinySkiaRenderer::new()),
         }
     }
 
@@ -444,6 +472,69 @@ impl VrOverlayRuntime {
         });
     }
 
+    pub(crate) fn set_friends_panel_snapshot_provider<F>(&self, provider: F)
+    where
+        F: Fn() -> Option<RealtimeFriendSnapshot> + Send + Sync + 'static,
+    {
+        if let Ok(mut current) = self.friends_panel_snapshot_provider.lock() {
+            *current = Some(Arc::new(provider));
+        }
+    }
+
+    pub(crate) fn update_friends_panel_favorite_groups_from_baseline(
+        &self,
+        snapshot: &serde_json::Value,
+    ) {
+        let next = favorite_friend_groups_snapshot_from_baseline(snapshot);
+        if let Ok(mut current) = self.friends_panel_favorite_groups.lock() {
+            *current = next;
+        }
+        self.friends_panel_model_dirty
+            .store(true, Ordering::Release);
+        if self
+            .interactive_panel
+            .lock()
+            .map(|panel| panel.visible)
+            .unwrap_or(false)
+        {
+            self.rebuild_visible_friends_panel_model();
+            self.reconcile_current();
+        }
+    }
+
+    pub(crate) fn clear_friends_panel_session_state(&self) {
+        if let Ok(mut current) = self.friends_panel_favorite_groups.lock() {
+            *current = FavoriteFriendGroupsSnapshot::default();
+        }
+        if let Ok(mut avatars) = self.friends_panel_avatars.lock() {
+            avatars.clear();
+        }
+        self.clear_friends_panel_note_memo_cache();
+        self.friends_panel_model_dirty
+            .store(true, Ordering::Release);
+        if self
+            .interactive_panel
+            .lock()
+            .map(|panel| panel.visible)
+            .unwrap_or(false)
+        {
+            self.rebuild_visible_friends_panel_model();
+            self.reconcile_current();
+        }
+    }
+
+    pub fn invalidate_friends_panel_note_memo_cache(&self) {
+        self.clear_friends_panel_note_memo_cache();
+        self.friends_panel_model_dirty
+            .store(true, Ordering::Release);
+    }
+
+    fn clear_friends_panel_note_memo_cache(&self) {
+        if let Ok(mut cache) = self.friends_panel_note_memo_cache.lock() {
+            *cache = FriendsPanelNoteMemoCache::default();
+        }
+    }
+
     pub fn is_backend_available(&self) -> bool {
         self.backend_available
     }
@@ -469,16 +560,306 @@ impl VrOverlayRuntime {
         self.active_surfaces(self.current_runtime_config()).any()
     }
 
+    fn rebuild_visible_friends_panel_model(&self) {
+        let (selected, spinner_phase) = match self.interactive_panel.lock() {
+            Ok(panel) if panel.visible => (
+                Some(panel.model.selected_tab_key.clone()),
+                panel.model.spinner_phase,
+            ),
+            _ => return,
+        };
+        let model = self.build_current_friends_panel_model(selected, spinner_phase);
+        if let Ok(mut panel) = self.interactive_panel.lock() {
+            if panel.visible {
+                panel.model = model;
+            }
+        }
+    }
+
+    fn build_current_friends_panel_model(
+        &self,
+        selected_group_key: Option<String>,
+        spinner_phase: f32,
+    ) -> FavoriteFriendsPanelModel {
+        let selected_group_key =
+            selected_group_key.unwrap_or_else(|| self.load_friends_panel_selected_group());
+        let friend_snapshot = self.current_friends_panel_snapshot();
+        let favorite_groups = self.current_friends_panel_favorite_groups();
+        let (notes_by_user_id, memos_by_user_id) =
+            self.current_friends_panel_note_memo_maps(&friend_snapshot);
+        let world_names_by_id = self.current_friends_panel_world_names(&friend_snapshot);
+        let avatars_by_user_id = self
+            .friends_panel_avatars
+            .lock()
+            .map(|avatars| avatars.clone())
+            .unwrap_or_default();
+        build_friends_panel_model(FriendsPanelModelInput {
+            selected_group_key,
+            friend_snapshot,
+            favorite_groups,
+            notes_by_user_id,
+            memos_by_user_id,
+            world_names_by_id,
+            avatars_by_user_id,
+            locale: self.current_runtime_config().locale,
+            spinner_phase,
+        })
+    }
+
+    fn current_friends_panel_snapshot(&self) -> Option<RealtimeFriendSnapshot> {
+        let provider = self
+            .friends_panel_snapshot_provider
+            .lock()
+            .ok()
+            .and_then(|provider| provider.clone());
+        provider.and_then(|provider| provider())
+    }
+
+    fn current_friends_panel_favorite_groups(&self) -> FavoriteFriendGroupsSnapshot {
+        let current = self
+            .friends_panel_favorite_groups
+            .lock()
+            .map(|groups| groups.clone())
+            .unwrap_or_default();
+        if !current.groups.is_empty() {
+            return current;
+        }
+        let Some(context) = &self.context else {
+            return current;
+        };
+        local_favorite_friend_groups_from_db(context.db.as_ref()).unwrap_or_default()
+    }
+
+    fn current_friends_panel_note_memo_maps(
+        &self,
+        snapshot: &Option<RealtimeFriendSnapshot>,
+    ) -> (HashMap<String, String>, HashMap<String, String>) {
+        let Some(context) = &self.context else {
+            return (HashMap::new(), HashMap::new());
+        };
+        let owner_user_id = snapshot
+            .as_ref()
+            .map(|snapshot| snapshot.current_user_id.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| context.auth_scope.snapshot().current_user_id);
+        if let Ok(mut cache) = self.friends_panel_note_memo_cache.lock() {
+            if cache.valid && cache.owner_user_id == owner_user_id {
+                return (
+                    cache.notes_by_user_id.clone(),
+                    cache.memos_by_user_id.clone(),
+                );
+            }
+            let notes_by_user_id = load_friends_panel_notes(context, owner_user_id.clone());
+            let memos_by_user_id = load_friends_panel_memos(context);
+            *cache = FriendsPanelNoteMemoCache {
+                owner_user_id,
+                notes_by_user_id: notes_by_user_id.clone(),
+                memos_by_user_id: memos_by_user_id.clone(),
+                valid: true,
+            };
+            return (notes_by_user_id, memos_by_user_id);
+        }
+        (
+            load_friends_panel_notes(context, owner_user_id),
+            load_friends_panel_memos(context),
+        )
+    }
+
+    fn current_friends_panel_world_names(
+        &self,
+        snapshot: &Option<RealtimeFriendSnapshot>,
+    ) -> HashMap<String, String> {
+        let Some(context) = &self.context else {
+            return HashMap::new();
+        };
+        let Some(snapshot) = snapshot else {
+            return HashMap::new();
+        };
+        let mut names = HashMap::new();
+        for record in snapshot.friends_by_id.values() {
+            for world_id in friend_record_world_ids(record) {
+                if let Some(name) = context.world_cache.get_name(&world_id) {
+                    names.insert(world_id, name);
+                }
+            }
+        }
+        names
+    }
+
+    fn queue_friends_panel_assets(&self, model: &FavoriteFriendsPanelModel) {
+        let Some(context) = &self.context else {
+            return;
+        };
+        let Some(snapshot) = self.current_friends_panel_snapshot() else {
+            return;
+        };
+        let visible_user_ids = model
+            .visible_rows()
+            .map(|(_, row)| row.user_id.clone())
+            .collect::<HashSet<_>>();
+        if visible_user_ids.is_empty() {
+            return;
+        }
+        let endpoint = if snapshot.endpoint.trim().is_empty() {
+            context.auth_scope.snapshot().endpoint
+        } else {
+            snapshot.endpoint.clone()
+        };
+        for user_id in &visible_user_ids {
+            if let Some(record) = snapshot.friends_by_id.get(user_id) {
+                self.queue_friends_panel_avatar(context, &endpoint, record);
+                self.queue_friends_panel_world_names(context, &endpoint, record);
+            }
+        }
+    }
+
+    fn queue_friends_panel_avatar(
+        &self,
+        context: &Arc<RuntimeHostContext>,
+        endpoint: &str,
+        record: &FriendRecord,
+    ) {
+        let user_id = record.id.trim();
+        if user_id.is_empty()
+            || self
+                .friends_panel_avatars
+                .lock()
+                .map(|avatars| avatars.contains_key(user_id))
+                .unwrap_or(false)
+        {
+            return;
+        }
+        let Ok(mut inflight) = self.friends_panel_avatar_fetches.lock() else {
+            return;
+        };
+        if !inflight.insert(user_id.to_string()) {
+            return;
+        }
+        drop(inflight);
+
+        let context = Arc::clone(context);
+        let user_image_cache = Arc::clone(&self.user_image_cache);
+        let avatar_cache = Arc::clone(&self.avatar_bitmap_cache);
+        let avatars = Arc::clone(&self.friends_panel_avatars);
+        let inflight = Arc::clone(&self.friends_panel_avatar_fetches);
+        let dirty = Arc::clone(&self.friends_panel_model_dirty);
+        let endpoint = endpoint.to_string();
+        let user_id = user_id.to_string();
+        let initial_image_url = friend_record_avatar_url(record);
+        let tasks = context.tasks.clone();
+        let allow_user_icon = context
+            .config()
+            .get_bool("displayVRCPlusIconsAsAvatar", true)
+            .unwrap_or(true);
+        tasks.spawn(async move {
+            let image_url = if initial_image_url.is_empty() {
+                user_image_cache
+                    .resolve(
+                        context.web.as_ref(),
+                        context.db.as_ref(),
+                        &endpoint,
+                        &user_id,
+                        allow_user_icon,
+                    )
+                    .await
+                    .unwrap_or_default()
+            } else {
+                initial_image_url
+            };
+            if !image_url.trim().is_empty() {
+                if let Some(bitmap) = avatar_cache
+                    .resolve(context.web.as_ref(), image_url.trim())
+                    .await
+                {
+                    if let Ok(mut avatars) = avatars.lock() {
+                        avatars.insert(user_id.clone(), bitmap);
+                    }
+                    dirty.store(true, Ordering::Release);
+                }
+            }
+            if let Ok(mut inflight) = inflight.lock() {
+                inflight.remove(&user_id);
+            }
+        });
+    }
+
+    fn queue_friends_panel_world_names(
+        &self,
+        context: &Arc<RuntimeHostContext>,
+        endpoint: &str,
+        record: &FriendRecord,
+    ) {
+        if endpoint.trim().is_empty() {
+            return;
+        }
+        for world_id in friend_record_world_ids(record) {
+            if context.world_cache.get_name(&world_id).is_some() {
+                continue;
+            }
+            let Ok(mut inflight) = self.friends_panel_world_resolves.lock() else {
+                continue;
+            };
+            if !inflight.insert(world_id.clone()) {
+                continue;
+            }
+            drop(inflight);
+
+            let context = Arc::clone(context);
+            let inflight = Arc::clone(&self.friends_panel_world_resolves);
+            let dirty = Arc::clone(&self.friends_panel_model_dirty);
+            let endpoint = endpoint.to_string();
+            let tasks = context.tasks.clone();
+            tasks.spawn(async move {
+                let resolved = context
+                    .world_cache
+                    .resolve_name(context.web.as_ref(), &endpoint, &world_id)
+                    .await
+                    .is_some();
+                if resolved {
+                    dirty.store(true, Ordering::Release);
+                }
+                if let Ok(mut inflight) = inflight.lock() {
+                    inflight.remove(&world_id);
+                }
+            });
+        }
+    }
+
+    fn load_friends_panel_selected_group(&self) -> String {
+        self.context
+            .as_ref()
+            .and_then(|context| {
+                context
+                    .config()
+                    .get_string(VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY, "all")
+                    .ok()
+            })
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "all".to_string())
+    }
+
+    fn persist_friends_panel_selected_group(&self, key: &str) {
+        let Some(context) = &self.context else {
+            return;
+        };
+        if let Err(error) = context
+            .config()
+            .set_string(VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY, key)
+        {
+            tracing::warn!(error = %error, "failed to persist VR friends panel group");
+        }
+    }
+
     fn refresh_interval(&self) -> Duration {
-        if self.interactive_panel_active_refresh() {
-            INTERACTIVE_PANEL_FRAME_REFRESH_INTERVAL
+        if self.friends_panel_animation_refresh_active() {
+            FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL
         } else {
             WRIST_FRAME_REFRESH_INTERVAL
         }
     }
 
     fn input_drain_interval(&self) -> Duration {
-        if self.panel_listener_available() || self.interactive_panel_active_refresh() {
+        if self.panel_listener_available() || self.interactive_panel_interaction_active() {
             INTERACTIVE_INPUT_DRAIN_INTERVAL
         } else {
             WRIST_FRAME_REFRESH_INTERVAL
@@ -490,10 +871,17 @@ impl VrOverlayRuntime {
             .panel_listener
     }
 
-    fn interactive_panel_active_refresh(&self) -> bool {
+    fn interactive_panel_interaction_active(&self) -> bool {
         self.interactive_panel
             .lock()
             .map(|panel| panel.visible || panel.focused)
+            .unwrap_or(false)
+    }
+
+    fn friends_panel_animation_refresh_active(&self) -> bool {
+        self.interactive_panel
+            .lock()
+            .map(|panel| panel.visible && panel.model.has_visible_traveling_row())
             .unwrap_or(false)
     }
 
@@ -769,17 +1157,8 @@ impl VrOverlayRuntime {
             let game_running = self.game_running.load(Ordering::Acquire);
             let vr_mode = self.vr_mode.load(Ordering::Acquire);
             let steamvr_running = self.steamvr_running.load(Ordering::Acquire);
-            let panel_bindings = self.refresh_panel_bindings_from_config();
-            if let Err(error) = manager.set_panel_bindings(panel_bindings.clone()) {
-                tracing::warn!(error = %error, "failed to apply VR overlay panel bindings");
-            }
-            let active_surfaces = self.active_surfaces_for_state(
-                config,
-                game_running,
-                vr_mode,
-                steamvr_running,
-                !panel_bindings.is_empty(),
-            );
+            let active_surfaces =
+                self.active_surfaces_for_state(config, game_running, vr_mode, steamvr_running);
             if active_surfaces.any() {
                 let configs = overlay_surface_configs(active_surfaces, config, self);
                 if let Err(error) = manager.set_surface_configs(configs) {
@@ -809,7 +1188,6 @@ impl VrOverlayRuntime {
                         game_running,
                         vr_mode,
                         steamvr_running,
-                        !panel_bindings.is_empty(),
                     );
                     let configs = overlay_surface_configs(refreshed_surfaces, config, self);
                     if let Err(error) = manager.set_surface_configs(configs) {
@@ -820,7 +1198,7 @@ impl VrOverlayRuntime {
                     }
                 }
                 if let Err(error) =
-                    manager.set_interaction_active(self.interactive_panel_active_refresh())
+                    manager.set_interaction_active(self.interactive_panel_interaction_active())
                 {
                     tracing::warn!(error = %error, "failed to set VR overlay interaction mode");
                 }
@@ -839,7 +1217,7 @@ impl VrOverlayRuntime {
                 } else {
                     self.clear_hmd_toasts();
                 }
-                self.push_dummy_panel_frame(&mut manager);
+                self.push_friends_panel_frame(&mut manager);
             } else {
                 self.release_frame_producer();
             }
@@ -848,7 +1226,7 @@ impl VrOverlayRuntime {
     }
 
     fn drain_overlay_input_events(&self) {
-        if !self.panel_listener_available() && !self.interactive_panel_active_refresh() {
+        if !self.panel_listener_available() && !self.interactive_panel_interaction_active() {
             return;
         }
         let Ok(mut manager) = self.manager.try_lock() else {
@@ -860,13 +1238,13 @@ impl VrOverlayRuntime {
         }
         if input_outcome.surface_config_changed || input_outcome.frame_changed {
             if let Err(error) =
-                manager.set_interaction_active(self.interactive_panel_active_refresh())
+                manager.set_interaction_active(self.interactive_panel_interaction_active())
             {
                 tracing::warn!(error = %error, "failed to set VR overlay interaction mode");
             }
         }
         if input_outcome.frame_changed {
-            self.push_dummy_panel_frame(&mut manager);
+            self.push_friends_panel_frame(&mut manager);
         }
         self.refresh_manager_mirror(&manager);
     }
@@ -902,7 +1280,6 @@ impl VrOverlayRuntime {
             self.game_running.load(Ordering::Acquire),
             self.vr_mode.load(Ordering::Acquire),
             self.steamvr_running.load(Ordering::Acquire),
-            !self.current_panel_bindings().is_empty(),
         )
     }
 
@@ -912,10 +1289,9 @@ impl VrOverlayRuntime {
         game_running: bool,
         vr_mode: bool,
         steamvr_running: bool,
-        has_panel_bindings: bool,
     ) -> ActiveOverlaySurfaces {
-        let panel_listener = self.backend_available && steamvr_running && has_panel_bindings;
-        let dummy_panel = panel_listener
+        let panel_listener = self.backend_available && steamvr_running && config.panel_enabled;
+        let friends_panel = panel_listener
             && self
                 .interactive_panel
                 .lock()
@@ -939,28 +1315,8 @@ impl VrOverlayRuntime {
                 vr_mode,
             ),
             panel_listener,
-            dummy_panel,
+            friends_panel,
         }
-    }
-
-    fn current_panel_bindings(&self) -> Vec<OverlayPanelBinding> {
-        self.panel_bindings
-            .lock()
-            .map(|bindings| bindings.clone())
-            .unwrap_or_else(|_| default_overlay_panel_bindings())
-    }
-
-    fn refresh_panel_bindings_from_config(&self) -> Vec<OverlayPanelBinding> {
-        let Some(context) = &self.context else {
-            return self.current_panel_bindings();
-        };
-        let next = load_panel_bindings(context.config());
-        if let Ok(mut current) = self.panel_bindings.lock() {
-            if *current != next {
-                *current = next.clone();
-            }
-        }
-        next
     }
 
     fn changed_runtime_config(&self) -> Option<VrOverlayRuntimeConfig> {
@@ -978,17 +1334,25 @@ impl VrOverlayRuntime {
     }
 
     fn commit_runtime_config(&self, next_config: VrOverlayRuntimeConfig, clear_devices: bool) {
-        let Ok(mut current_config) = self.config.lock() else {
-            return;
-        };
-        if *current_config == next_config {
-            return;
-        }
-        *current_config = next_config;
-        if clear_devices {
-            if let Ok(mut devices) = self.devices.lock() {
-                devices.clear();
+        let close_panel = {
+            let Ok(mut current_config) = self.config.lock() else {
+                return;
+            };
+            if *current_config == next_config {
+                !next_config.panel_enabled
+            } else {
+                let close_panel = current_config.panel_enabled && !next_config.panel_enabled;
+                *current_config = next_config;
+                if clear_devices {
+                    if let Ok(mut devices) = self.devices.lock() {
+                        devices.clear();
+                    }
+                }
+                close_panel
             }
+        };
+        if close_panel {
+            self.close_friends_panel();
         }
     }
 
@@ -1073,141 +1437,204 @@ impl VrOverlayRuntime {
         }
     }
 
+    fn close_friends_panel(&self) -> bool {
+        let Ok(mut panel) = self.interactive_panel.lock() else {
+            return false;
+        };
+        let was_visible = panel.visible;
+        panel.visible = false;
+        panel.focused = false;
+        panel.model.hovered_region_id = None;
+        panel.model.pressed_region_id = None;
+        was_visible
+    }
+
     fn process_overlay_input_events(
         &self,
         manager: &mut VrOverlayManager<HostVrOverlayService>,
     ) -> OverlayInputProcessOutcome {
         let mut outcome = OverlayInputProcessOutcome::default();
         for event in manager.drain_input_events() {
-            if event.panel_id != "dummy" {
+            if !is_friends_panel_id(&event.panel_id) {
                 continue;
             }
-            let event_outcome = self.apply_dummy_panel_input(event);
+            let event_outcome = self.apply_friends_panel_input(event);
             outcome.surface_config_changed |= event_outcome.surface_config_changed;
             outcome.frame_changed |= event_outcome.frame_changed;
         }
         outcome
     }
 
-    fn apply_dummy_panel_input(&self, event: OverlayInputEvent) -> OverlayInputProcessOutcome {
-        let Ok(mut panel) = self.interactive_panel.lock() else {
-            return OverlayInputProcessOutcome::default();
+    fn apply_friends_panel_input(&self, event: OverlayInputEvent) -> OverlayInputProcessOutcome {
+        if !self.current_runtime_config().panel_enabled {
+            return OverlayInputProcessOutcome {
+                surface_config_changed: self.close_friends_panel(),
+                frame_changed: false,
+            };
+        }
+        let next_model_for_summon = if matches!(&event.kind, OverlayInputKind::Summon { .. }) {
+            let opening = self
+                .interactive_panel
+                .lock()
+                .map(|panel| !panel.visible)
+                .unwrap_or(false);
+            if opening {
+                self.clear_friends_panel_note_memo_cache();
+                Some(self.build_current_friends_panel_model(None, 0.0))
+            } else {
+                None
+            }
+        } else {
+            None
         };
-        match event.kind {
-            OverlayInputKind::Summon { transform } => {
-                let frame_changed = !panel.visible;
-                if panel.visible {
-                    panel.visible = false;
-                    panel.focused = false;
-                    panel.model.hovered_region_id = None;
-                    panel.model.pressed_region_id = None;
-                } else {
-                    panel.visible = true;
+        let mut selected_group_to_persist = None;
+        let outcome = {
+            let Ok(mut panel) = self.interactive_panel.lock() else {
+                return OverlayInputProcessOutcome::default();
+            };
+            match event.kind {
+                OverlayInputKind::Summon { transform } => {
+                    let frame_changed = !panel.visible;
+                    if panel.visible {
+                        panel.visible = false;
+                        panel.focused = false;
+                        panel.model.hovered_region_id = None;
+                        panel.model.pressed_region_id = None;
+                    } else {
+                        panel.visible = true;
+                        panel.focused = true;
+                        panel.transform = transform;
+                        if let Some(model) = next_model_for_summon {
+                            panel.model = model;
+                        }
+                    }
+                    OverlayInputProcessOutcome {
+                        surface_config_changed: true,
+                        frame_changed,
+                    }
+                }
+                _ if !panel.visible => OverlayInputProcessOutcome::default(),
+                OverlayInputKind::Hover => {
+                    panel
+                        .model
+                        .apply_uv_action(event.uv, FriendPanelAction::Hover);
+                    panel.focused = panel.model.hovered_region_id.is_some();
+                    OverlayInputProcessOutcome {
+                        surface_config_changed: false,
+                        frame_changed: true,
+                    }
+                }
+                OverlayInputKind::ClickDown => {
+                    panel
+                        .model
+                        .apply_uv_action(event.uv, FriendPanelAction::ClickDown);
                     panel.focused = true;
+                    OverlayInputProcessOutcome {
+                        surface_config_changed: false,
+                        frame_changed: true,
+                    }
+                }
+                OverlayInputKind::ClickUp => {
+                    let previous_group = panel.model.selected_tab_key.clone();
+                    let hit = panel
+                        .model
+                        .apply_uv_action(event.uv, FriendPanelAction::ClickUp);
+                    if let Some(region_id) = hit {
+                        tracing::debug!(region_id = %region_id, "VR friends panel clicked");
+                    }
+                    if panel.model.selected_tab_key != previous_group {
+                        selected_group_to_persist = Some(panel.model.selected_tab_key.clone());
+                    }
+                    panel.focused = panel.model.hovered_region_id.is_some();
+                    OverlayInputProcessOutcome {
+                        surface_config_changed: false,
+                        frame_changed: true,
+                    }
+                }
+                OverlayInputKind::Scroll { delta } => {
+                    panel
+                        .model
+                        .apply_uv_action(event.uv, FriendPanelAction::Scroll { delta });
+                    panel.focused = true;
+                    OverlayInputProcessOutcome {
+                        surface_config_changed: false,
+                        frame_changed: true,
+                    }
+                }
+                OverlayInputKind::GrabStart => {
+                    panel.focused = true;
+                    OverlayInputProcessOutcome::default()
+                }
+                OverlayInputKind::GrabMove { transform } => {
                     panel.transform = transform;
+                    panel.focused = true;
+                    OverlayInputProcessOutcome {
+                        surface_config_changed: true,
+                        frame_changed: false,
+                    }
                 }
-                OverlayInputProcessOutcome {
-                    surface_config_changed: true,
-                    frame_changed,
-                }
-            }
-            _ if !panel.visible => OverlayInputProcessOutcome::default(),
-            OverlayInputKind::Hover => {
-                panel
-                    .model
-                    .apply_uv_action(event.uv, DummyPanelAction::Hover);
-                panel.focused = panel.model.hovered_region_id.is_some();
-                OverlayInputProcessOutcome {
-                    surface_config_changed: false,
-                    frame_changed: true,
+                OverlayInputKind::GrabEnd { transform } => {
+                    panel.transform = transform;
+                    panel.focused = true;
+                    OverlayInputProcessOutcome {
+                        surface_config_changed: true,
+                        frame_changed: false,
+                    }
                 }
             }
-            OverlayInputKind::ClickDown => {
-                panel
-                    .model
-                    .apply_uv_action(event.uv, DummyPanelAction::ClickDown);
-                panel.focused = true;
-                OverlayInputProcessOutcome {
-                    surface_config_changed: false,
-                    frame_changed: true,
-                }
+        };
+        if let Some(selected_group) = selected_group_to_persist {
+            self.persist_friends_panel_selected_group(&selected_group);
+            if self.context.is_some() {
+                self.rebuild_visible_friends_panel_model();
             }
-            OverlayInputKind::ClickUp => {
-                let hit = panel
-                    .model
-                    .apply_uv_action(event.uv, DummyPanelAction::ClickUp);
-                if let Some(region_id) = hit {
-                    tracing::debug!(region_id = %region_id, "VR dummy panel clicked");
-                }
-                panel.focused = panel.model.hovered_region_id.is_some();
-                OverlayInputProcessOutcome {
-                    surface_config_changed: false,
-                    frame_changed: true,
-                }
+            OverlayInputProcessOutcome {
+                surface_config_changed: outcome.surface_config_changed,
+                frame_changed: true,
             }
-            OverlayInputKind::Scroll { delta } => {
-                panel
-                    .model
-                    .apply_uv_action(event.uv, DummyPanelAction::Scroll { delta });
-                panel.focused = true;
-                OverlayInputProcessOutcome {
-                    surface_config_changed: false,
-                    frame_changed: true,
-                }
-            }
-            OverlayInputKind::GrabStart => {
-                panel.focused = true;
-                OverlayInputProcessOutcome::default()
-            }
-            OverlayInputKind::GrabMove { transform } => {
-                panel.transform = transform;
-                panel.focused = true;
-                OverlayInputProcessOutcome {
-                    surface_config_changed: true,
-                    frame_changed: false,
-                }
-            }
-            OverlayInputKind::GrabEnd { transform } => {
-                panel.transform = transform;
-                panel.focused = true;
-                OverlayInputProcessOutcome {
-                    surface_config_changed: true,
-                    frame_changed: false,
-                }
-            }
+        } else {
+            outcome
         }
     }
 
-    fn push_dummy_panel_frame(&self, manager: &mut VrOverlayManager<HostVrOverlayService>) {
+    fn push_friends_panel_frame(&self, manager: &mut VrOverlayManager<HostVrOverlayService>) {
+        if self.friends_panel_model_dirty.swap(false, Ordering::AcqRel) {
+            self.rebuild_visible_friends_panel_model();
+        }
         let model = {
-            let Ok(panel) = self.interactive_panel.lock() else {
+            let Ok(mut panel) = self.interactive_panel.lock() else {
                 return;
             };
             if !panel.visible {
                 return;
             }
+            if panel.model.has_visible_traveling_row() {
+                panel.model.spinner_phase =
+                    (panel.model.spinner_phase + FRIENDS_PANEL_SPINNER_PHASE_STEP).rem_euclid(1.0);
+            }
             panel.model.clone()
         };
-        let scene = build_dummy_panel_scene(&model);
+        self.queue_friends_panel_assets(&model);
+        let scene = build_friends_panel_scene(&model);
         let frame = match self
-            .dummy_panel_renderer
+            .friends_panel_renderer
             .lock()
-            .map_err(|_| "dummy panel renderer lock poisoned".to_string())
+            .map_err(|_| "friends panel renderer lock poisoned".to_string())
             .and_then(|mut renderer| renderer.render(&scene).map_err(|error| error.to_string()))
         {
             Ok(frame) => frame,
             Err(error) => {
-                tracing::warn!(error = %error, "failed to render VR dummy panel frame");
+                tracing::warn!(error = %error, "failed to render VR friends panel frame");
                 return;
             }
         };
-        let surface_id = OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID);
+        let surface_id = OverlaySurfaceId::new(FRIENDS_PANEL_SURFACE_ID);
         if let Err(error) = manager.update_surface_frame(&surface_id, frame) {
-            tracing::warn!(error = %error, "failed to update VR dummy panel frame");
+            tracing::warn!(error = %error, "failed to update VR friends panel frame");
             return;
         }
         if let Err(error) = manager.show_surface(&surface_id) {
-            tracing::warn!(error = %error, "failed to show VR dummy panel surface");
+            tracing::warn!(error = %error, "failed to show VR friends panel surface");
         }
     }
 
@@ -1240,15 +1667,15 @@ impl VrOverlayRuntime {
         }
     }
 
-    fn dummy_panel_surface_config(&self) -> Option<OverlaySurfaceConfig> {
+    fn friends_panel_surface_config(&self) -> Option<OverlaySurfaceConfig> {
         let panel = self.interactive_panel.lock().ok()?;
         if !panel.visible {
             return None;
         }
         Some(OverlaySurfaceConfig {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            surface_id: OverlaySurfaceId::new(FRIENDS_PANEL_SURFACE_ID),
             size: panel.model.size,
-            physical_width_meters: 0.8,
+            physical_width_meters: 0.82,
             placement: OverlayPlacement::Absolute {
                 transform: panel.transform,
             },
@@ -1531,6 +1958,517 @@ fn start_mode_allows(start_mode: WristOverlayStartMode, game_running: bool, vr_m
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct FavoriteFriendGroupSnapshot {
+    key: String,
+    label: String,
+    user_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct FavoriteFriendGroupsSnapshot {
+    groups: Vec<FavoriteFriendGroupSnapshot>,
+}
+
+impl FavoriteFriendGroupsSnapshot {
+    fn all_user_ids(&self) -> Vec<String> {
+        let mut seen = HashSet::new();
+        let mut user_ids = Vec::new();
+        for group in &self.groups {
+            for user_id in &group.user_ids {
+                if seen.insert(user_id.clone()) {
+                    user_ids.push(user_id.clone());
+                }
+            }
+        }
+        user_ids
+    }
+
+    fn group_user_ids(&self, key: &str) -> Option<Vec<String>> {
+        self.groups
+            .iter()
+            .find(|group| group.key == key)
+            .map(|group| group.user_ids.clone())
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct FriendsPanelModelInput {
+    selected_group_key: String,
+    friend_snapshot: Option<RealtimeFriendSnapshot>,
+    favorite_groups: FavoriteFriendGroupsSnapshot,
+    notes_by_user_id: HashMap<String, String>,
+    memos_by_user_id: HashMap<String, String>,
+    world_names_by_id: HashMap<String, String>,
+    avatars_by_user_id: HashMap<String, AvatarBitmap>,
+    locale: OverlayLocale,
+    spinner_phase: f32,
+}
+
+fn favorite_friend_groups_snapshot_from_baseline(
+    snapshot: &serde_json::Value,
+) -> FavoriteFriendGroupsSnapshot {
+    let remote_membership = object_string_vecs(snapshot.get("groupedFavoriteFriendIdsByGroupKey"));
+    let local_membership = object_string_vecs(snapshot.get("localFriendFavorites"));
+    let remote_labels = group_labels(snapshot.get("favoriteFriendGroups"), "");
+    let local_labels = group_labels(snapshot.get("localFriendFavoriteGroups"), "local:");
+    let mut groups = Vec::new();
+
+    for (key, user_ids) in remote_membership {
+        if user_ids.is_empty() {
+            continue;
+        }
+        let label = remote_labels
+            .get(&key)
+            .cloned()
+            .unwrap_or_else(|| fallback_group_label(&key));
+        groups.push(FavoriteFriendGroupSnapshot {
+            key,
+            label,
+            user_ids,
+        });
+    }
+    for (raw_key, user_ids) in local_membership {
+        if user_ids.is_empty() {
+            continue;
+        }
+        let key = format!("local:{raw_key}");
+        let label = local_labels
+            .get(&key)
+            .cloned()
+            .unwrap_or_else(|| fallback_group_label(&raw_key));
+        groups.push(FavoriteFriendGroupSnapshot {
+            key,
+            label,
+            user_ids,
+        });
+    }
+    FavoriteFriendGroupsSnapshot { groups }
+}
+
+fn local_favorite_friend_groups_from_db(
+    db: &vrcx_0_persistence::DatabaseService,
+) -> std::result::Result<FavoriteFriendGroupsSnapshot, vrcx_0_persistence::Error> {
+    let rows = favorite_list(db, "friend".to_string())?;
+    let mut groups_by_key: HashMap<String, Vec<String>> = HashMap::new();
+    for row in rows {
+        let user_id = json_string_field(&row, "userId").unwrap_or_default();
+        if user_id.is_empty() {
+            continue;
+        }
+        let group_name = json_string_field(&row, "groupName").unwrap_or_else(|| "Favorites".into());
+        let group_name = if group_name.trim().is_empty() {
+            "Favorites".to_string()
+        } else {
+            group_name
+        };
+        groups_by_key.entry(group_name).or_default().push(user_id);
+    }
+    let mut groups = groups_by_key
+        .into_iter()
+        .map(|(group_name, user_ids)| FavoriteFriendGroupSnapshot {
+            key: format!("local:{group_name}"),
+            label: group_name,
+            user_ids: dedupe_preserve_order(user_ids),
+        })
+        .collect::<Vec<_>>();
+    groups.sort_by(|left, right| left.label.cmp(&right.label).then(left.key.cmp(&right.key)));
+    Ok(FavoriteFriendGroupsSnapshot { groups })
+}
+
+fn load_friends_panel_notes(
+    context: &RuntimeHostContext,
+    owner_user_id: String,
+) -> HashMap<String, String> {
+    memo_list_user_notes(context.db.as_ref(), owner_user_id)
+        .map(|notes| {
+            notes
+                .into_iter()
+                .filter(|note| !note.user_id.trim().is_empty() && !note.note.trim().is_empty())
+                .map(|note| (note.user_id, note.note))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn load_friends_panel_memos(context: &RuntimeHostContext) -> HashMap<String, String> {
+    memo_list_users(context.db.as_ref())
+        .map(|memos| {
+            memos
+                .into_iter()
+                .filter(|memo| !memo.user_id.trim().is_empty() && !memo.memo.trim().is_empty())
+                .map(|memo| (memo.user_id, memo.memo))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn build_friends_panel_model(input: FriendsPanelModelInput) -> FavoriteFriendsPanelModel {
+    let localizer = OverlayLocalizer::new(input.locale);
+    let strings = localizer.friends_panel_strings();
+    let snapshot = input.friend_snapshot.as_ref();
+    let online_counts = snapshot
+        .map(|snapshot| online_favorite_counts(snapshot, &input.favorite_groups))
+        .unwrap_or_default();
+    let all_user_ids = input.favorite_groups.all_user_ids();
+    let all_count = snapshot
+        .map(|snapshot| online_favorite_count(snapshot, &all_user_ids))
+        .unwrap_or_default();
+    let mut tabs = vec![FriendPanelTab {
+        key: "all".to_string(),
+        label: strings.all_label.clone(),
+        count: all_count,
+    }];
+    tabs.extend(
+        input
+            .favorite_groups
+            .groups
+            .iter()
+            .map(|group| FriendPanelTab {
+                key: group.key.clone(),
+                label: group.label.clone(),
+                count: online_counts.get(&group.key).copied().unwrap_or(0),
+            }),
+    );
+
+    let selected_tab_key = if input.selected_group_key == "all"
+        || input
+            .favorite_groups
+            .groups
+            .iter()
+            .any(|group| group.key == input.selected_group_key)
+    {
+        input.selected_group_key.clone()
+    } else {
+        "all".to_string()
+    };
+    let selected_user_ids = if selected_tab_key == "all" {
+        all_user_ids
+    } else {
+        input
+            .favorite_groups
+            .group_user_ids(&selected_tab_key)
+            .unwrap_or_default()
+    };
+    let mut rows = snapshot
+        .map(|snapshot| {
+            selected_user_ids
+                .into_iter()
+                .filter_map(|user_id| {
+                    let record = snapshot.friends_by_id.get(&user_id)?;
+                    if !friend_record_is_visible(record) {
+                        return None;
+                    }
+                    Some(friend_row_from_record(&input, &localizer, record))
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    rows.sort_by(|left, right| {
+        let left_record = snapshot.and_then(|snapshot| snapshot.friends_by_id.get(&left.user_id));
+        let right_record = snapshot.and_then(|snapshot| snapshot.friends_by_id.get(&right.user_id));
+        friend_sort_key(left, left_record).cmp(&friend_sort_key(right, right_record))
+    });
+
+    FavoriteFriendsPanelModel {
+        tabs,
+        selected_tab_key,
+        rows,
+        spinner_phase: input.spinner_phase,
+        strings,
+        ..FavoriteFriendsPanelModel::default()
+    }
+}
+
+fn friend_record_world_ids(record: &FriendRecord) -> Vec<String> {
+    let ids = [
+        record.world_id.trim().to_string(),
+        world_id_from_location(&record.location),
+        world_id_from_location(&record.traveling_to_location),
+        world_id_from_location(&extra_string(record, "travelingToLocation")),
+        world_id_from_location(&extra_string(record, "$travelingToLocation")),
+    ]
+    .into_iter()
+    .filter(|value| !value.is_empty())
+    .collect::<Vec<_>>();
+    dedupe_preserve_order(ids)
+}
+
+fn object_string_vecs(value: Option<&serde_json::Value>) -> Vec<(String, Vec<String>)> {
+    let Some(object) = value.and_then(serde_json::Value::as_object) else {
+        return Vec::new();
+    };
+    let mut groups = object
+        .iter()
+        .filter_map(|(key, value)| {
+            let user_ids = value
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|value| value.as_str().map(str::trim).map(str::to_string))
+                .filter(|value| !value.is_empty())
+                .collect::<Vec<_>>();
+            if user_ids.is_empty() {
+                None
+            } else {
+                Some((key.clone(), dedupe_preserve_order(user_ids)))
+            }
+        })
+        .collect::<Vec<_>>();
+    groups.sort_by(|left, right| left.0.cmp(&right.0));
+    groups
+}
+
+fn group_labels(value: Option<&serde_json::Value>, key_prefix: &str) -> HashMap<String, String> {
+    value
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|group| {
+            let raw_key = json_string_field(group, "key")
+                .or_else(|| json_string_field(group, "name"))
+                .or_else(|| json_string_field(group, "displayName"))?;
+            let key = format!("{key_prefix}{raw_key}");
+            let label = json_string_field(group, "displayName")
+                .or_else(|| json_string_field(group, "name"))
+                .unwrap_or_else(|| fallback_group_label(&raw_key));
+            Some((key, label))
+        })
+        .collect()
+}
+
+fn json_string_field(value: &serde_json::Value, key: &str) -> Option<String> {
+    value
+        .as_object()
+        .and_then(|object| object.get(key))
+        .and_then(|value| match value {
+            serde_json::Value::String(value) => Some(value.trim().to_string()),
+            serde_json::Value::Number(value) => Some(value.to_string()),
+            serde_json::Value::Bool(value) => Some(value.to_string()),
+            _ => None,
+        })
+        .filter(|value| !value.is_empty())
+}
+
+fn fallback_group_label(key: &str) -> String {
+    key.rsplit(':').next().unwrap_or(key).to_string()
+}
+
+fn dedupe_preserve_order(values: Vec<String>) -> Vec<String> {
+    let mut seen = HashSet::new();
+    values
+        .into_iter()
+        .filter(|value| seen.insert(value.clone()))
+        .collect()
+}
+
+fn online_favorite_counts(
+    snapshot: &RealtimeFriendSnapshot,
+    groups: &FavoriteFriendGroupsSnapshot,
+) -> HashMap<String, usize> {
+    groups
+        .groups
+        .iter()
+        .map(|group| {
+            (
+                group.key.clone(),
+                online_favorite_count(snapshot, &group.user_ids),
+            )
+        })
+        .collect()
+}
+
+fn online_favorite_count(snapshot: &RealtimeFriendSnapshot, user_ids: &[String]) -> usize {
+    user_ids
+        .iter()
+        .filter_map(|user_id| snapshot.friends_by_id.get(user_id))
+        .filter(|record| friend_record_is_visible(record))
+        .count()
+}
+
+fn friend_record_is_visible(record: &FriendRecord) -> bool {
+    let state = first_non_empty([record.state_bucket.as_str(), record.state.as_str()]);
+    matches!(
+        state.trim().to_ascii_lowercase().as_str(),
+        "online" | "active"
+    )
+}
+
+fn friend_row_from_record(
+    input: &FriendsPanelModelInput,
+    localizer: &OverlayLocalizer,
+    record: &FriendRecord,
+) -> FriendPanelRow {
+    let user_id = record.id.trim().to_string();
+    let traveling_location = traveling_location(record);
+    let is_traveling =
+        !traveling_location.is_empty() || record.location.trim().eq_ignore_ascii_case("traveling");
+    let (location_text, traveling_text) = if is_traveling {
+        (
+            localizer.friends_panel_traveling_label(),
+            Some(display_friend_location(
+                localizer,
+                &input.world_names_by_id,
+                &traveling_location,
+                "",
+            )),
+        )
+    } else {
+        (
+            display_friend_location(
+                localizer,
+                &input.world_names_by_id,
+                &record.location,
+                &record.world_id,
+            ),
+            None,
+        )
+    };
+    FriendPanelRow {
+        user_id: user_id.clone(),
+        display_name: record.display_name_or_id(),
+        status: friend_status_tone(record),
+        location_text,
+        is_traveling,
+        traveling_text: traveling_text.filter(|value| !value.trim().is_empty()),
+        note: friend_record_note(record).or_else(|| input.notes_by_user_id.get(&user_id).cloned()),
+        memo: input.memos_by_user_id.get(&user_id).cloned(),
+        avatar: input.avatars_by_user_id.get(&user_id).cloned(),
+    }
+}
+
+fn friend_record_note(record: &FriendRecord) -> Option<String> {
+    record
+        .extra
+        .get("note")
+        .and_then(|value| match value {
+            serde_json::Value::String(value) => Some(value.trim().to_string()),
+            serde_json::Value::Number(value) => Some(value.to_string()),
+            serde_json::Value::Bool(value) => Some(value.to_string()),
+            _ => None,
+        })
+        .filter(|value| !value.is_empty())
+}
+
+fn display_friend_location(
+    localizer: &OverlayLocalizer,
+    world_names_by_id: &HashMap<String, String>,
+    location: &str,
+    record_world_id: &str,
+) -> String {
+    let location = location.trim();
+    if location.is_empty() || location.eq_ignore_ascii_case("private") {
+        return localizer.friends_panel_private_label();
+    }
+    if location.eq_ignore_ascii_case("offline") {
+        return localizer.friends_panel_offline_label();
+    }
+    let parsed_world_id = world_id_from_location(location);
+    let world_id = if record_world_id.trim().is_empty() {
+        parsed_world_id.as_str()
+    } else {
+        record_world_id.trim()
+    };
+    let world_name = world_names_by_id
+        .get(world_id)
+        .map(String::as_str)
+        .unwrap_or(world_id);
+    let display = localizer.panel_display_location(location, world_name, "");
+    if display.trim().is_empty() {
+        localizer.friends_panel_private_label()
+    } else {
+        display
+    }
+}
+
+fn traveling_location(record: &FriendRecord) -> String {
+    let traveling_to_location = extra_string(record, "travelingToLocation");
+    let legacy_traveling_to_location = extra_string(record, "$travelingToLocation");
+    first_non_empty([
+        record.traveling_to_location.as_str(),
+        traveling_to_location.as_str(),
+        legacy_traveling_to_location.as_str(),
+    ])
+    .to_string()
+}
+
+fn friend_record_avatar_url(record: &FriendRecord) -> String {
+    let profile_override = extra_string(record, "profilePicOverride");
+    let user_icon = extra_string(record, "userIcon");
+    first_non_empty([
+        profile_override.as_str(),
+        record.current_avatar_thumbnail_image_url.as_str(),
+        record.current_avatar_image_url.as_str(),
+        user_icon.as_str(),
+    ])
+    .to_string()
+}
+
+fn extra_string(record: &FriendRecord, key: &str) -> String {
+    record
+        .extra
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn friend_status_tone(record: &FriendRecord) -> FriendPanelStatusTone {
+    match record.status.trim().to_ascii_lowercase().as_str() {
+        "busy" => FriendPanelStatusTone::Busy,
+        "ask me" | "askme" => FriendPanelStatusTone::AskMe,
+        _ if record.state_bucket.trim().eq_ignore_ascii_case("active") => {
+            FriendPanelStatusTone::Active
+        }
+        _ => FriendPanelStatusTone::Online,
+    }
+}
+
+fn friend_sort_key(
+    row: &FriendPanelRow,
+    record: Option<&FriendRecord>,
+) -> (u8, i64, String, String) {
+    let state_order = match row.status {
+        FriendPanelStatusTone::Online
+        | FriendPanelStatusTone::Busy
+        | FriendPanelStatusTone::AskMe => 0,
+        FriendPanelStatusTone::Active => 1,
+        FriendPanelStatusTone::Offline => 2,
+    };
+    let friend_number = record.and_then(friend_number).unwrap_or(i64::MAX);
+    (
+        state_order,
+        friend_number,
+        row.display_name.to_ascii_lowercase(),
+        row.user_id.clone(),
+    )
+}
+
+fn friend_number(record: &FriendRecord) -> Option<i64> {
+    for key in ["friendNumber", "friend_number"] {
+        let Some(value) = record.extra.get(key) else {
+            continue;
+        };
+        if let Some(number) = value.as_i64() {
+            return Some(number);
+        }
+        if let Some(number) = value.as_str().and_then(|value| value.trim().parse().ok()) {
+            return Some(number);
+        }
+    }
+    None
+}
+
+fn first_non_empty<'a>(values: impl IntoIterator<Item = &'a str>) -> &'a str {
+    values
+        .into_iter()
+        .find(|value| !value.trim().is_empty())
+        .unwrap_or("")
+        .trim()
+}
+
 fn surface_active_for_start_mode(
     enabled: bool,
     start_mode: WristOverlayStartMode,
@@ -1557,8 +2495,8 @@ fn overlay_surface_configs(
     if active_surfaces.hmd {
         configs.push(hmd_surface_config(config.hmd.position));
     }
-    if active_surfaces.dummy_panel {
-        if let Some(config) = runtime.dummy_panel_surface_config() {
+    if active_surfaces.friends_panel {
+        if let Some(config) = runtime.friends_panel_surface_config() {
             configs.push(config);
         }
     }
@@ -1624,6 +2562,10 @@ fn hmd_surface_config(position: HmdNotificationPosition) -> OverlaySurfaceConfig
         activation_button: OverlayActivationButton::Grip,
         interactive: false,
     }
+}
+
+fn is_friends_panel_id(panel_id: &str) -> bool {
+    matches!(panel_id, FRIENDS_PANEL_ID | LEGACY_DUMMY_PANEL_ID)
 }
 
 pub(super) fn build_wrist_frame_input(
@@ -1715,6 +2657,9 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
         .get_string(HMD_NOTIFICATION_POSITION_CONFIG_KEY, "bottom")
         .map(|value| HmdNotificationPosition::from_config(&value))
         .unwrap_or_default();
+    let panel_enabled = config
+        .get_bool(VR_OVERLAY_PANEL_ENABLED_CONFIG_KEY, true)
+        .unwrap_or(true);
     let locale = config
         .get_string(APP_LANGUAGE_CONFIG_KEY, "en")
         .map(|value| OverlayLocale::from_config(&value))
@@ -1728,6 +2673,7 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
         backend,
         button,
         hand,
+        panel_enabled,
         hmd: HmdNotificationConfig {
             enabled: hmd_enabled,
             start_mode: hmd_start_mode,
@@ -1745,15 +2691,6 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
         locale,
         dt_hour12,
     }
-}
-
-pub(super) fn load_panel_bindings(config: &ConfigRepository) -> Vec<OverlayPanelBinding> {
-    config
-        .get_raw(VR_OVERLAY_PANEL_BINDINGS_CONFIG_KEY)
-        .ok()
-        .flatten()
-        .map(|raw| parse_overlay_panel_bindings_or_default(&raw))
-        .unwrap_or_else(default_overlay_panel_bindings)
 }
 
 fn now_ms() -> i64 {
@@ -1824,6 +2761,154 @@ mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use vrcx_0_host::vr_overlay::OverlayHand;
+    use vrcx_0_vr_overlay::UvPoint;
+
+    fn friends_panel_input(kind: OverlayInputKind, uv: UvPoint) -> OverlayInputEvent {
+        OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(FRIENDS_PANEL_SURFACE_ID),
+            panel_id: FRIENDS_PANEL_ID.to_string(),
+            hand: OverlayHand::Left,
+            uv,
+            kind,
+        }
+    }
+
+    fn friends_panel_summon_input(transform: OverlayTransform) -> OverlayInputEvent {
+        friends_panel_input(
+            OverlayInputKind::Summon { transform },
+            UvPoint::new(0.5, 0.5),
+        )
+    }
+
+    fn legacy_dummy_summon_input(transform: OverlayTransform) -> OverlayInputEvent {
+        OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(vrcx_0_vr_overlay::INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: LEGACY_DUMMY_PANEL_ID.to_string(),
+            hand: OverlayHand::Left,
+            uv: UvPoint::new(0.5, 0.5),
+            kind: OverlayInputKind::Summon { transform },
+        }
+    }
+
+    fn friend_panel_test_row(
+        user_id: impl Into<String>,
+        display_name: impl Into<String>,
+        status: FriendPanelStatusTone,
+    ) -> FriendPanelRow {
+        FriendPanelRow {
+            user_id: user_id.into(),
+            display_name: display_name.into(),
+            status,
+            location_text: "World".to_string(),
+            is_traveling: false,
+            traveling_text: None,
+            note: None,
+            memo: None,
+            avatar: None,
+        }
+    }
+
+    fn friends_panel_region_uv(runtime: &VrOverlayRuntime, region_id: &str) -> UvPoint {
+        let panel = runtime.interactive_panel.lock().unwrap();
+        build_friends_panel_scene(&panel.model)
+            .hit_regions
+            .iter()
+            .find(|region| region.id == region_id)
+            .map(|region| region.rect.center_uv(panel.model.size))
+            .unwrap_or_else(|| panic!("{region_id} hit region"))
+    }
+
+    struct TestDir {
+        path: std::path::PathBuf,
+    }
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx-0-vr-overlay-{name}-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn test_context(
+        name: &str,
+    ) -> (
+        TestDir,
+        Arc<vrcx_0_persistence::DatabaseService>,
+        Arc<RuntimeHostContext>,
+    ) {
+        let dir = TestDir::new(name);
+        let db = Arc::new(
+            vrcx_0_persistence::DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap(),
+        );
+        let storage =
+            vrcx_0_persistence::storage::StorageService::new(&dir.path.join("VRCX-0.json"))
+                .unwrap();
+        let web = Arc::new(
+            WebClient::new(
+                &storage,
+                &db,
+                "https://app.example".into(),
+                env!("CARGO_PKG_VERSION"),
+            )
+            .unwrap(),
+        );
+        let image_fetcher = web.image_fetcher().unwrap();
+        let image_cache = Arc::new(
+            vrcx_0_application::ImageCache::new(dir.path.join("ImageCache"), image_fetcher)
+                .unwrap(),
+        );
+        let context = Arc::new(RuntimeHostContext::new(Arc::clone(&db), web, image_cache));
+        (dir, db, context)
+    }
+
+    fn friends_panel_snapshot(record: FriendRecord) -> RealtimeFriendSnapshot {
+        RealtimeFriendSnapshot {
+            current_user_id: "usr_self".to_string(),
+            friends_by_id: [(record.id.clone(), record)].into_iter().collect(),
+            ..RealtimeFriendSnapshot::default()
+        }
+    }
+
+    fn set_friends_panel_favorite(runtime: &VrOverlayRuntime, user_id: &str) {
+        runtime.update_friends_panel_favorite_groups_from_baseline(&serde_json::json!({
+            "favoriteFriendGroups": [
+                {
+                    "key": "friend:group_0",
+                    "displayName": "VIP"
+                }
+            ],
+            "groupedFavoriteFriendIdsByGroupKey": {
+                "friend:group_0": [user_id]
+            }
+        }));
+    }
+
+    fn visible_friends_panel_row(runtime: &VrOverlayRuntime, user_id: &str) -> FriendPanelRow {
+        runtime
+            .interactive_panel
+            .lock()
+            .unwrap()
+            .model
+            .rows
+            .iter()
+            .find(|row| row.user_id == user_id)
+            .cloned()
+            .unwrap_or_else(|| panic!("{user_id} visible row"))
+    }
 
     #[test]
     fn snapshot_and_is_running_use_mirror_when_manager_lock_is_busy() {
@@ -1877,8 +2962,10 @@ mod tests {
     }
 
     #[test]
-    fn default_panel_binding_starts_listener_when_steamvr_is_running() {
+    fn default_panel_enabled_starts_listener_when_steamvr_is_running() {
         let runtime = VrOverlayRuntime::new_for_test();
+
+        assert!(runtime.current_runtime_config().panel_enabled);
 
         record_process_status(&runtime, false, true, false);
 
@@ -1888,6 +2975,71 @@ mod tests {
                 .active_surfaces(runtime.current_runtime_config())
                 .panel_listener
         );
+    }
+
+    #[test]
+    fn panel_enabled_false_disables_listener_even_when_steamvr_is_running() {
+        let config = VrOverlayRuntimeConfig {
+            panel_enabled: false,
+            ..VrOverlayRuntimeConfig::default()
+        };
+        let runtime = VrOverlayRuntime::new_for_test_with_config_and_frame_producer_factory(
+            true,
+            config,
+            Box::new(|| Box::<StaticWristFrameProducer>::default()),
+        );
+
+        record_process_status(&runtime, false, true, false);
+
+        assert!(!runtime.is_running());
+        assert!(!runtime.active_surfaces(config).panel_listener);
+    }
+
+    #[test]
+    fn panel_disabled_ignores_summon_input_even_if_backend_is_running() {
+        let config = VrOverlayRuntimeConfig {
+            panel_enabled: false,
+            hmd: HmdNotificationConfig {
+                enabled: true,
+                start_mode: WristOverlayStartMode::SteamVr,
+                ..HmdNotificationConfig::default()
+            },
+            ..VrOverlayRuntimeConfig::default()
+        };
+        let runtime = VrOverlayRuntime::new_for_test_with_config_and_frame_producer_factory(
+            true,
+            config,
+            Box::new(|| Box::<StaticWristFrameProducer>::default()),
+        );
+
+        record_process_status(&runtime, false, true, false);
+        assert!(runtime.is_running());
+
+        let outcome = runtime
+            .apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+
+        assert!(!outcome.surface_config_changed);
+        assert!(!outcome.frame_changed);
+        assert!(runtime.friends_panel_surface_config().is_none());
+        assert!(!runtime.interactive_panel.lock().unwrap().visible);
+    }
+
+    #[test]
+    fn disabling_panel_closes_visible_friends_panel() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+        assert!(runtime.friends_panel_surface_config().is_some());
+
+        runtime.commit_runtime_config(
+            VrOverlayRuntimeConfig {
+                panel_enabled: false,
+                ..VrOverlayRuntimeConfig::default()
+            },
+            false,
+        );
+
+        assert!(runtime.friends_panel_surface_config().is_none());
+        assert!(!runtime.interactive_panel.lock().unwrap().visible);
     }
 
     #[test]
@@ -1907,104 +3059,260 @@ mod tests {
     }
 
     #[test]
-    fn dummy_panel_summon_toggles_absolute_surface_and_refresh_rate() {
+    fn friends_panel_summon_toggles_absolute_surface_and_refresh_rate() {
         let runtime = VrOverlayRuntime::new_for_test();
         let transform = OverlayTransform::from_translation([1.0, 1.2, -2.0]);
 
         assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
 
-        let summon_outcome = runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: vrcx_0_vr_overlay::UvPoint::new(0.5, 0.5),
-            kind: OverlayInputKind::Summon { transform },
-        });
+        let summon_outcome =
+            runtime.apply_friends_panel_input(friends_panel_summon_input(transform));
         assert!(summon_outcome.surface_config_changed);
 
-        assert_eq!(
-            runtime.refresh_interval(),
-            INTERACTIVE_PANEL_FRAME_REFRESH_INTERVAL
-        );
+        assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
         let config = runtime
-            .dummy_panel_surface_config()
-            .expect("dummy surface config");
+            .friends_panel_surface_config()
+            .expect("friends surface config");
         assert!(config.interactive);
-        assert_eq!(config.surface_id.as_str(), INTERACTIVE_DUMMY_SURFACE_ID);
+        assert_eq!(config.surface_id.as_str(), FRIENDS_PANEL_SURFACE_ID);
         assert!(matches!(
             config.placement,
             OverlayPlacement::Absolute { transform: value } if value == transform
         ));
 
-        let dismiss_outcome = runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: vrcx_0_vr_overlay::UvPoint::new(0.5, 0.5),
-            kind: OverlayInputKind::Summon { transform },
-        });
+        let dismiss_outcome =
+            runtime.apply_friends_panel_input(friends_panel_summon_input(transform));
         assert!(dismiss_outcome.surface_config_changed);
 
         assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
-        assert!(runtime.dummy_panel_surface_config().is_none());
+        assert!(runtime.friends_panel_surface_config().is_none());
     }
 
     #[test]
-    fn dummy_panel_routes_hover_click_and_scroll_to_model() {
+    fn friends_panel_visible_without_traveling_keeps_stale_refresh_interval() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+        {
+            let mut panel = runtime.interactive_panel.lock().unwrap();
+            panel.model.rows = vec![friend_panel_test_row(
+                "usr_1",
+                "Friend",
+                FriendPanelStatusTone::Online,
+            )];
+        }
+
+        assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
+    }
+
+    #[test]
+    fn friends_panel_visible_traveling_row_uses_low_frequency_animation_refresh() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+        {
+            let mut panel = runtime.interactive_panel.lock().unwrap();
+            panel.model.rows = vec![FriendPanelRow {
+                is_traveling: true,
+                traveling_text: Some("Target".to_string()),
+                ..friend_panel_test_row("usr_1", "Friend", FriendPanelStatusTone::Active)
+            }];
+        }
+
+        assert_eq!(
+            runtime.refresh_interval(),
+            FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL
+        );
+    }
+
+    #[test]
+    fn friends_panel_frame_advances_visible_traveling_spinner_phase() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+        {
+            let mut panel = runtime.interactive_panel.lock().unwrap();
+            panel.model.rows = vec![FriendPanelRow {
+                is_traveling: true,
+                traveling_text: Some("Target".to_string()),
+                ..friend_panel_test_row("usr_1", "Friend", FriendPanelStatusTone::Active)
+            }];
+        }
+        let before = runtime
+            .interactive_panel
+            .lock()
+            .unwrap()
+            .model
+            .spinner_phase;
+        {
+            let mut manager = runtime.manager.lock().unwrap();
+            runtime.push_friends_panel_frame(&mut manager);
+        }
+        let after = runtime
+            .interactive_panel
+            .lock()
+            .unwrap()
+            .model
+            .spinner_phase;
+
+        assert_ne!(after, before);
+    }
+
+    #[test]
+    fn overlay_activity_snapshot_marks_friends_panel_dirty_for_presence_changes() {
+        let runtime = Arc::new(VrOverlayRuntime::new_for_test());
+        let snapshot_slot = Arc::new(Mutex::new(friends_panel_snapshot(FriendRecord {
+            id: "usr_friend".to_string(),
+            display_name: "Friend".to_string(),
+            state_bucket: "online".to_string(),
+            location: "wrld_home:123".to_string(),
+            world_id: "wrld_home".to_string(),
+            ..FriendRecord::default()
+        })));
+        runtime.set_friends_panel_snapshot_provider({
+            let snapshot_slot = Arc::clone(&snapshot_slot);
+            move || snapshot_slot.lock().ok().map(|snapshot| snapshot.clone())
+        });
+        set_friends_panel_favorite(&runtime, "usr_friend");
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+        {
+            let mut manager = runtime.manager.lock().unwrap();
+            runtime.push_friends_panel_frame(&mut manager);
+        }
+        assert!(!visible_friends_panel_row(&runtime, "usr_friend").is_traveling);
+
+        *snapshot_slot.lock().unwrap() = friends_panel_snapshot(FriendRecord {
+            id: "usr_friend".to_string(),
+            display_name: "Friend".to_string(),
+            state_bucket: "active".to_string(),
+            location: "traveling".to_string(),
+            traveling_to_location: "wrld_target:456".to_string(),
+            ..FriendRecord::default()
+        });
+        let sink = VrOverlayActivitySink::new(Arc::clone(&runtime));
+        sink.emit_overlay_activity_snapshot(OverlayActivitySnapshot::default());
+        {
+            let mut manager = runtime.manager.lock().unwrap();
+            runtime.push_friends_panel_frame(&mut manager);
+        }
+
+        assert!(visible_friends_panel_row(&runtime, "usr_friend").is_traveling);
+    }
+
+    #[test]
+    fn friends_panel_presence_rebuild_reuses_open_memo_cache() {
+        let (_dir, db, context) = test_context("friends-panel-memo-cache");
+        vrcx_0_persistence::memos::memo_save_user(
+            db.as_ref(),
+            "usr_friend".to_string(),
+            "Cached memo".to_string(),
+        )
+        .unwrap();
+        let runtime = VrOverlayRuntime::new(context);
+        runtime.set_friends_panel_snapshot_provider(|| {
+            Some(friends_panel_snapshot(FriendRecord {
+                id: "usr_friend".to_string(),
+                display_name: "Friend".to_string(),
+                state_bucket: "online".to_string(),
+                location: "wrld_home:123".to_string(),
+                world_id: "wrld_home".to_string(),
+                ..FriendRecord::default()
+            }))
+        });
+        set_friends_panel_favorite(&runtime, "usr_friend");
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+        assert_eq!(
+            visible_friends_panel_row(&runtime, "usr_friend")
+                .memo
+                .as_deref(),
+            Some("Cached memo")
+        );
+
+        vrcx_0_persistence::memos::memo_save_user(
+            db.as_ref(),
+            "usr_friend".to_string(),
+            "Updated memo".to_string(),
+        )
+        .unwrap();
+        runtime
+            .friends_panel_model_dirty
+            .store(true, Ordering::Release);
+        {
+            let mut manager = runtime.manager.lock().unwrap();
+            runtime.push_friends_panel_frame(&mut manager);
+        }
+
+        assert_eq!(
+            visible_friends_panel_row(&runtime, "usr_friend")
+                .memo
+                .as_deref(),
+            Some("Cached memo")
+        );
+    }
+
+    #[test]
+    fn legacy_dummy_panel_id_routes_to_friends_panel() {
         let runtime = VrOverlayRuntime::new_for_test();
         let transform = OverlayTransform::identity();
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: vrcx_0_vr_overlay::UvPoint::new(0.5, 0.5),
-            kind: OverlayInputKind::Summon { transform },
-        });
-        let primary_uv = {
-            let panel = runtime.interactive_panel.lock().unwrap();
-            build_dummy_panel_scene(&panel.model)
-                .hit_regions
-                .iter()
-                .find(|region| region.id == "button:primary")
-                .map(|region| region.rect.center_uv(panel.model.size))
-                .expect("primary hit region")
-        };
+        let outcome = runtime.apply_friends_panel_input(legacy_dummy_summon_input(transform));
 
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: primary_uv,
-            kind: OverlayInputKind::Hover,
-        });
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: primary_uv,
-            kind: OverlayInputKind::ClickDown,
-        });
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: primary_uv,
-            kind: OverlayInputKind::ClickUp,
-        });
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: primary_uv,
-            kind: OverlayInputKind::Scroll { delta: 10.0 },
-        });
+        assert!(outcome.surface_config_changed);
+        assert_eq!(
+            runtime
+                .friends_panel_surface_config()
+                .expect("friends surface config")
+                .surface_id
+                .as_str(),
+            FRIENDS_PANEL_SURFACE_ID
+        );
+    }
+
+    #[test]
+    fn friends_panel_routes_hover_tab_click_and_scroll_to_model() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let transform = OverlayTransform::identity();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(transform));
+        {
+            let mut panel = runtime.interactive_panel.lock().unwrap();
+            panel.model.tabs = vec![
+                FriendPanelTab {
+                    key: "all".to_string(),
+                    label: "All".to_string(),
+                    count: 7,
+                },
+                FriendPanelTab {
+                    key: "local:Best".to_string(),
+                    label: "Best".to_string(),
+                    count: 2,
+                },
+            ];
+            panel.model.rows = (0..7)
+                .map(|index| {
+                    friend_panel_test_row(
+                        format!("usr_{index}"),
+                        format!("Friend {index}"),
+                        FriendPanelStatusTone::Active,
+                    )
+                })
+                .collect();
+        }
+        let best_tab_uv = friends_panel_region_uv(&runtime, "tab:local:Best");
+        runtime
+            .apply_friends_panel_input(friends_panel_input(OverlayInputKind::Hover, best_tab_uv));
+        runtime.apply_friends_panel_input(friends_panel_input(
+            OverlayInputKind::ClickDown,
+            best_tab_uv,
+        ));
+        runtime
+            .apply_friends_panel_input(friends_panel_input(OverlayInputKind::ClickUp, best_tab_uv));
+        runtime.apply_friends_panel_input(friends_panel_input(
+            OverlayInputKind::Scroll { delta: 10.0 },
+            best_tab_uv,
+        ));
 
         let panel = runtime.interactive_panel.lock().unwrap();
         assert_eq!(
             panel.model.hovered_region_id.as_deref(),
-            Some("button:primary")
+            Some("tab:local:Best")
         );
-        assert_eq!(panel.model.primary_click_count, 1);
+        assert_eq!(panel.model.selected_tab_key, "local:Best");
         assert_eq!(
             panel.model.scroll_offset_rows,
             panel.model.max_scroll_offset_rows()
@@ -2012,61 +3320,253 @@ mod tests {
     }
 
     #[test]
-    fn dummy_panel_clears_hover_and_pressed_state_on_pointer_miss() {
+    fn friends_panel_clears_hover_and_pressed_state_on_pointer_miss() {
         let runtime = VrOverlayRuntime::new_for_test();
         let transform = OverlayTransform::identity();
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: vrcx_0_vr_overlay::UvPoint::new(0.5, 0.5),
-            kind: OverlayInputKind::Summon { transform },
-        });
-        let primary_uv = {
-            let panel = runtime.interactive_panel.lock().unwrap();
-            build_dummy_panel_scene(&panel.model)
-                .hit_regions
-                .iter()
-                .find(|region| region.id == "button:primary")
-                .map(|region| region.rect.center_uv(panel.model.size))
-                .expect("primary hit region")
-        };
+        runtime.apply_friends_panel_input(friends_panel_summon_input(transform));
+        {
+            let mut panel = runtime.interactive_panel.lock().unwrap();
+            panel.model.rows = vec![friend_panel_test_row(
+                "usr_1",
+                "Friend",
+                FriendPanelStatusTone::Online,
+            )];
+        }
+        let row_uv = friends_panel_region_uv(&runtime, "row:usr_1");
 
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: primary_uv,
-            kind: OverlayInputKind::Hover,
-        });
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: primary_uv,
-            kind: OverlayInputKind::ClickDown,
-        });
+        runtime.apply_friends_panel_input(friends_panel_input(OverlayInputKind::Hover, row_uv));
+        runtime.apply_friends_panel_input(friends_panel_input(OverlayInputKind::ClickDown, row_uv));
 
-        let miss_uv = vrcx_0_vr_overlay::UvPoint::new(-1.0, -1.0);
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: miss_uv,
-            kind: OverlayInputKind::Hover,
-        });
-        runtime.apply_dummy_panel_input(OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
-            panel_id: "dummy".to_string(),
-            hand: OverlayHand::Left,
-            uv: miss_uv,
-            kind: OverlayInputKind::ClickUp,
-        });
+        let miss_uv = UvPoint::new(-1.0, -1.0);
+        runtime.apply_friends_panel_input(friends_panel_input(OverlayInputKind::Hover, miss_uv));
+        runtime.apply_friends_panel_input(friends_panel_input(OverlayInputKind::ClickUp, miss_uv));
 
         let panel = runtime.interactive_panel.lock().unwrap();
         assert_eq!(panel.model.hovered_region_id, None);
         assert_eq!(panel.model.pressed_region_id, None);
-        assert_eq!(panel.model.primary_click_count, 0);
+    }
+
+    #[test]
+    fn favorite_friend_groups_snapshot_preserves_remote_and_local_labels() {
+        let snapshot = serde_json::json!({
+            "favoriteFriendGroups": [
+                {
+                    "key": "friend:group_0",
+                    "name": "group_0",
+                    "displayName": "VIP",
+                    "count": 1
+                }
+            ],
+            "groupedFavoriteFriendIdsByGroupKey": {
+                "friend:group_0": ["usr_a"]
+            },
+            "localFriendFavoriteGroups": [
+                {
+                    "key": "Best",
+                    "displayName": "Best Local",
+                    "count": 1
+                }
+            ],
+            "localFriendFavorites": {
+                "Best": ["usr_b"]
+            }
+        });
+
+        let groups = favorite_friend_groups_snapshot_from_baseline(&snapshot);
+
+        assert_eq!(groups.all_user_ids(), vec!["usr_a", "usr_b"]);
+        assert_eq!(groups.groups.len(), 2);
+        assert_eq!(groups.groups[0].key, "friend:group_0");
+        assert_eq!(groups.groups[0].label, "VIP");
+        assert_eq!(groups.groups[0].user_ids, vec!["usr_a"]);
+        assert_eq!(groups.groups[1].key, "local:Best");
+        assert_eq!(groups.groups[1].label, "Best Local");
+        assert_eq!(groups.groups[1].user_ids, vec!["usr_b"]);
+    }
+
+    #[test]
+    fn friends_panel_session_clear_drops_cached_favorite_groups() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let snapshot = serde_json::json!({
+            "favoriteFriendGroups": [
+                {
+                    "key": "friend:group_0",
+                    "displayName": "VIP"
+                }
+            ],
+            "groupedFavoriteFriendIdsByGroupKey": {
+                "friend:group_0": ["usr_a"]
+            }
+        });
+        runtime.update_friends_panel_favorite_groups_from_baseline(&snapshot);
+        assert!(!runtime
+            .current_friends_panel_favorite_groups()
+            .groups
+            .is_empty());
+
+        runtime.clear_friends_panel_session_state();
+
+        assert!(runtime
+            .current_friends_panel_favorite_groups()
+            .groups
+            .is_empty());
+    }
+
+    #[test]
+    fn friends_panel_model_filters_favorites_and_keeps_note_memo_traveling() {
+        let snapshot = vrcx_0_application::RealtimeFriendSnapshot {
+            current_user_id: "usr_self".to_string(),
+            friends_by_id: [
+                (
+                    "usr_online".to_string(),
+                    vrcx_0_core::friends::FriendRecord {
+                        id: "usr_online".to_string(),
+                        display_name: "Online Friend".to_string(),
+                        state_bucket: "online".to_string(),
+                        status: "join me".to_string(),
+                        location: "wrld_home:123".to_string(),
+                        world_id: "wrld_home".to_string(),
+                        ..vrcx_0_core::friends::FriendRecord::default()
+                    },
+                ),
+                (
+                    "usr_traveling".to_string(),
+                    vrcx_0_core::friends::FriendRecord {
+                        id: "usr_traveling".to_string(),
+                        display_name: "Traveling Friend".to_string(),
+                        state_bucket: "active".to_string(),
+                        location: "traveling".to_string(),
+                        traveling_to_location: "wrld_target:456".to_string(),
+                        ..vrcx_0_core::friends::FriendRecord::default()
+                    },
+                ),
+                (
+                    "usr_offline".to_string(),
+                    vrcx_0_core::friends::FriendRecord {
+                        id: "usr_offline".to_string(),
+                        display_name: "Offline Friend".to_string(),
+                        state_bucket: "offline".to_string(),
+                        location: "offline".to_string(),
+                        ..vrcx_0_core::friends::FriendRecord::default()
+                    },
+                ),
+            ]
+            .into_iter()
+            .collect(),
+            ..vrcx_0_application::RealtimeFriendSnapshot::default()
+        };
+        let groups = FavoriteFriendGroupsSnapshot {
+            groups: vec![FavoriteFriendGroupSnapshot {
+                key: "friend:group_0".to_string(),
+                label: "VIP".to_string(),
+                user_ids: vec![
+                    "usr_online".to_string(),
+                    "usr_traveling".to_string(),
+                    "usr_offline".to_string(),
+                ],
+            }],
+        };
+        let input = FriendsPanelModelInput {
+            selected_group_key: "missing".to_string(),
+            friend_snapshot: Some(snapshot),
+            favorite_groups: groups,
+            notes_by_user_id: [("usr_online".to_string(), "VRChat note".to_string())]
+                .into_iter()
+                .collect(),
+            memos_by_user_id: [("usr_online".to_string(), "Local memo".to_string())]
+                .into_iter()
+                .collect(),
+            world_names_by_id: [
+                ("wrld_home".to_string(), "Home World".to_string()),
+                ("wrld_target".to_string(), "Target World".to_string()),
+            ]
+            .into_iter()
+            .collect(),
+            avatars_by_user_id: HashMap::new(),
+            locale: OverlayLocale::En,
+            spinner_phase: 0.25,
+        };
+
+        let model = build_friends_panel_model(input);
+
+        assert_eq!(model.selected_tab_key, "all");
+        assert_eq!(
+            model
+                .tabs
+                .iter()
+                .map(|tab| (tab.key.as_str(), tab.label.as_str(), tab.count))
+                .collect::<Vec<_>>(),
+            vec![("all", "All", 2), ("friend:group_0", "VIP", 2)]
+        );
+        assert_eq!(
+            model
+                .rows
+                .iter()
+                .map(|row| row.user_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["usr_online", "usr_traveling"]
+        );
+        let online = model
+            .rows
+            .iter()
+            .find(|row| row.user_id == "usr_online")
+            .expect("online row");
+        assert_eq!(online.location_text, "Home World Public");
+        assert_eq!(online.note.as_deref(), Some("VRChat note"));
+        assert_eq!(online.memo.as_deref(), Some("Local memo"));
+
+        let traveling = model
+            .rows
+            .iter()
+            .find(|row| row.user_id == "usr_traveling")
+            .expect("traveling row");
+        assert!(traveling.is_traveling);
+        assert_eq!(traveling.location_text, "Traveling");
+        assert_eq!(
+            traveling.traveling_text.as_deref(),
+            Some("Target World Public")
+        );
+    }
+
+    #[test]
+    fn friends_panel_model_prefers_live_friend_note_over_cached_note_map() {
+        let mut friend = FriendRecord {
+            id: "usr_friend".to_string(),
+            display_name: "Friend".to_string(),
+            state_bucket: "online".to_string(),
+            location: "wrld_home:123".to_string(),
+            world_id: "wrld_home".to_string(),
+            ..FriendRecord::default()
+        };
+        friend.extra.insert(
+            "note".to_string(),
+            serde_json::Value::String("Live note".to_string()),
+        );
+        let model = build_friends_panel_model(FriendsPanelModelInput {
+            selected_group_key: "all".to_string(),
+            friend_snapshot: Some(RealtimeFriendSnapshot {
+                current_user_id: "usr_self".to_string(),
+                friends_by_id: [("usr_friend".to_string(), friend)].into_iter().collect(),
+                ..RealtimeFriendSnapshot::default()
+            }),
+            favorite_groups: FavoriteFriendGroupsSnapshot {
+                groups: vec![FavoriteFriendGroupSnapshot {
+                    key: "friend:group_0".to_string(),
+                    label: "VIP".to_string(),
+                    user_ids: vec!["usr_friend".to_string()],
+                }],
+            },
+            notes_by_user_id: [("usr_friend".to_string(), "Cached note".to_string())]
+                .into_iter()
+                .collect(),
+            memos_by_user_id: HashMap::new(),
+            world_names_by_id: HashMap::new(),
+            avatars_by_user_id: HashMap::new(),
+            locale: OverlayLocale::En,
+            spinner_phase: 0.0,
+        });
+
+        assert_eq!(model.rows[0].note.as_deref(), Some("Live note"));
     }
 
     #[test]
@@ -2234,11 +3734,15 @@ mod tests {
     fn frame_producer_is_created_only_while_runtime_can_render_and_released_when_ineligible() {
         let created = Arc::new(AtomicUsize::new(0));
         let dropped = Arc::new(AtomicUsize::new(0));
-        let runtime = VrOverlayRuntime::new_for_test_with_frame_producer_factory(
+        let config = VrOverlayRuntimeConfig {
+            panel_enabled: false,
+            ..VrOverlayRuntimeConfig::default()
+        };
+        let runtime = VrOverlayRuntime::new_for_test_with_config_and_frame_producer_factory(
             true,
+            config,
             counting_frame_producer_factory(Arc::clone(&created), Arc::clone(&dropped)),
         );
-        runtime.panel_bindings.lock().unwrap().clear();
 
         assert_eq!(created.load(Ordering::SeqCst), 0);
 
@@ -2270,6 +3774,7 @@ mod tests {
         let dropped = Arc::new(AtomicUsize::new(0));
         let config = VrOverlayRuntimeConfig {
             start_mode: WristOverlayStartMode::SteamVr,
+            panel_enabled: false,
             ..VrOverlayRuntimeConfig::default()
         };
         let runtime = VrOverlayRuntime::new_for_test_with_config_and_frame_producer_factory(
@@ -2277,8 +3782,6 @@ mod tests {
             config,
             counting_frame_producer_factory(Arc::clone(&created), Arc::clone(&dropped)),
         );
-        runtime.panel_bindings.lock().unwrap().clear();
-
         runtime.set_enabled(true);
         record_process_status(&runtime, true, true, true);
         assert!(runtime.is_running());
@@ -2298,6 +3801,7 @@ mod tests {
         let created = Arc::new(AtomicUsize::new(0));
         let dropped = Arc::new(AtomicUsize::new(0));
         let config = VrOverlayRuntimeConfig {
+            panel_enabled: false,
             hmd: HmdNotificationConfig {
                 enabled: true,
                 ..HmdNotificationConfig::default()
@@ -2309,8 +3813,6 @@ mod tests {
             config,
             counting_frame_producer_factory(Arc::clone(&created), Arc::clone(&dropped)),
         );
-        runtime.panel_bindings.lock().unwrap().clear();
-
         record_process_status(&runtime, false, true, false);
         assert!(!runtime.is_running());
 

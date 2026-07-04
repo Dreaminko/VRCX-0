@@ -107,6 +107,7 @@ import { useShellStore } from '@/state/shellStore';
 import {
     addFeedHiddenUserPreference,
     removeFeedHiddenUserPreference,
+    setBoolConfigPreference,
     setIntConfigPreference,
     setStartAtWindowsStartupPreference,
     setTablePageSizesPreference
@@ -208,6 +209,23 @@ describe('preferenceGenericSetters', () => {
             'notificationTimeout',
             10000
         );
+    });
+
+    it('reloads the VR overlay runtime when saving the interactive panel switch', async () => {
+        await setBoolConfigPreference('vrOverlayPanelEnabled', false);
+
+        expect(mocks.setBool).toHaveBeenCalledWith(
+            'vrOverlayPanelEnabled',
+            false
+        );
+        expect(usePreferencesStore.getState().vrOverlayPanelEnabled).toBe(
+            false
+        );
+        expect(mocks.publishPreferenceChanged).toHaveBeenCalledWith(
+            'vrOverlayPanelEnabled',
+            false
+        );
+        expect(mocks.appVrOverlayConfigReload).toHaveBeenCalledTimes(1);
     });
 
     it('adds and removes hidden feed users through the normalized JSON preference', async () => {

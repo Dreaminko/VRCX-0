@@ -31,6 +31,7 @@ export const VRCHAT_RICH_PRESENCE_CONFIG_KEY = 'disableRichPresence';
 export const WRIST_OVERLAY_RUNTIME_CONFIG_KEYS = new Set([
     'appLanguage',
     'dtHour12',
+    'vrOverlayPanelEnabled',
     'wristOverlayStartMode',
     'wristOverlayButton',
     'wristOverlayHand',

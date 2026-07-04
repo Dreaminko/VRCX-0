@@ -357,6 +357,12 @@
                     "timeout": "Czas wyświetlania",
                     "opacity": "Nieprzezroczystość",
                     "filters": "Filtry powiadomień w goglach"
+                },
+                "interactive_panel": {
+                    "header": "Interaktywny panel znajomych",
+                    "enabled": "Włącz interaktywny panel znajomych",
+                    "summon_hint": "Gest przywołania",
+                    "openvr_required": "Przytrzymaj prawy grip przez około 2 sekundy, aby go przywołać. Wymaga backendu nakładki SteamVR/OpenVR; OpenXR obecnie nie udostępnia panelu interaktywnego."
                 }
             },
             "social": {

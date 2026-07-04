@@ -1630,6 +1630,12 @@
                     "opacity": "Opacité",
                     "filters": "Filtres des notifications du casque"
                 },
+                "interactive_panel": {
+                    "header": "Panneau d'amis interactif",
+                    "enabled": "Activer le panneau d'amis interactif",
+                    "summon_hint": "Geste d'appel",
+                    "openvr_required": "Maintenez le grip droit environ 2 secondes pour l'afficher. Nécessite le backend d'overlay SteamVR/OpenVR; OpenXR ne fournit pas encore le panneau interactif."
+                },
                 "wrist_overlay": {
                     "header": "Overlay au poignet",
                     "wrist_feed_overlay": "Overlay du flux au poignet",

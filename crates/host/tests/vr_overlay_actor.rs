@@ -6,9 +6,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use vrcx_0_host::vr_overlay::{
-    default_overlay_panel_bindings, parse_overlay_panel_bindings_or_default, BackendStartError,
-    OverlayActivationButton, OverlayActorHandle, OverlayBackend, OverlayCommandError, OverlayHand,
-    OverlayInputEvent, OverlayInputEventSink, OverlayInputKind, OverlayPanelBinding,
+    BackendStartError, OverlayActivationButton, OverlayActorHandle, OverlayBackend,
+    OverlayCommandError, OverlayHand, OverlayInputEvent, OverlayInputEventSink, OverlayInputKind,
     OverlayPlacement, OverlayServiceCommand, OverlayServicePhase, OverlaySurfaceConfig,
     TickOutcome, VrDeviceSnapshot,
 };
@@ -339,24 +338,6 @@ fn overlay_actor_ticks_faster_while_interaction_active() {
         .expect("stop overlay");
 
     assert!(ticks.load(Ordering::Acquire) >= 3);
-}
-
-#[test]
-fn overlay_panel_binding_parser_uses_default_for_invalid_json() {
-    assert_eq!(
-        parse_overlay_panel_bindings_or_default("not json"),
-        default_overlay_panel_bindings()
-    );
-    assert_eq!(
-        default_overlay_panel_bindings(),
-        vec![OverlayPanelBinding {
-            hand: OverlayHand::Left,
-            button: OverlayActivationButton::Menu,
-            panel_id: "dummy".to_string(),
-            double_click: true,
-            double_click_window_ms: 350,
-        }]
-    );
 }
 
 fn make_wrist_config() -> OverlaySurfaceConfig {

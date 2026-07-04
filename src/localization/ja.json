@@ -1649,6 +1649,12 @@
                     "opacity": "不透明度",
                     "filters": "ヘッドセット通知フィルター"
                 },
+                "interactive_panel": {
+                    "header": "インタラクティブフレンドパネル",
+                    "enabled": "インタラクティブフレンドパネルを有効にする",
+                    "summon_hint": "呼び出しジェスチャー",
+                    "openvr_required": "右手の Grip を約 2 秒長押しして呼び出します。SteamVR/OpenVR オーバーレイバックエンドが必要です。OpenXR では現在インタラクティブパネルを提供していません。"
+                },
                 "wrist_overlay": {
                     "header": "手首のオーバーレイ",
                     "wrist_feed_overlay": "手首フィードオーバーレイ",

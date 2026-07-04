@@ -1,8 +1,24 @@
 use vrcx_0_vr_overlay::{
-    build_dummy_panel_scene, grab_follow_transform, ray_quad_intersection, recenter_transform,
-    Color, DummyPanelAction, DummyPanelModel, HitRegion, OverlayQuadSize, OverlaySize,
-    OverlaySurfaceId, OverlayTransform, Ray3, Rect, UvPoint,
+    build_dummy_panel_scene, build_friends_panel_scene, grab_follow_transform,
+    ray_quad_intersection, recenter_transform, Color, DrawCommand, DummyPanelAction,
+    DummyPanelModel, FavoriteFriendsPanelModel, FriendPanelAction, FriendPanelRow,
+    FriendPanelStatusTone, FriendPanelTab, HitRegion, OverlayQuadSize, OverlaySize,
+    OverlaySurfaceId, OverlayTransform, Ray3, Rect, UvPoint, FRIENDS_PANEL_SURFACE_ID,
 };
+
+fn friend_panel_row(user_id: impl Into<String>, display_name: impl Into<String>) -> FriendPanelRow {
+    FriendPanelRow {
+        user_id: user_id.into(),
+        display_name: display_name.into(),
+        status: FriendPanelStatusTone::Online,
+        location_text: "World Name".to_string(),
+        is_traveling: false,
+        traveling_text: None,
+        note: None,
+        memo: None,
+        avatar: None,
+    }
+}
 
 #[test]
 fn raycast_hits_quad_center_and_boundaries() {
@@ -147,4 +163,138 @@ fn dummy_panel_updates_hover_press_and_scroll_state() {
                 if color == &Color::rgba(14, 116, 144, 255)
         )
     }));
+}
+
+#[test]
+fn friends_panel_scene_emits_group_and_row_hit_regions() {
+    let model = FavoriteFriendsPanelModel {
+        tabs: vec![
+            FriendPanelTab {
+                key: "all".to_string(),
+                label: "All".to_string(),
+                count: 1,
+            },
+            FriendPanelTab {
+                key: "local:Best".to_string(),
+                label: "Best".to_string(),
+                count: 1,
+            },
+        ],
+        rows: vec![FriendPanelRow {
+            note: Some("VRChat note".to_string()),
+            memo: Some("Local memo".to_string()),
+            ..friend_panel_row("usr_1", "Aki")
+        }],
+        ..FavoriteFriendsPanelModel::default()
+    };
+
+    let scene = build_friends_panel_scene(&model);
+    let region_ids: Vec<&str> = scene
+        .hit_regions
+        .iter()
+        .map(|region| region.id.as_str())
+        .collect();
+
+    assert_eq!(
+        scene.surface_id,
+        OverlaySurfaceId::new(FRIENDS_PANEL_SURFACE_ID)
+    );
+    assert_eq!(scene.size, OverlaySize::new(960, 720));
+    assert!(region_ids.contains(&"tab:all"));
+    assert!(region_ids.contains(&"tab:local:Best"));
+    assert!(region_ids.contains(&"row:usr_1"));
+    assert!(region_ids.contains(&"list"));
+    assert!(scene.commands.iter().any(|command| {
+        matches!(command, DrawCommand::Text { text, .. } if text.contains("Note: VRChat note"))
+    }));
+    assert!(scene.commands.iter().any(|command| {
+        matches!(command, DrawCommand::Text { text, .. } if text.contains("Memo: Local memo"))
+    }));
+}
+
+#[test]
+fn friends_panel_updates_tab_scroll_and_keeps_row_click_read_only() {
+    let mut model = FavoriteFriendsPanelModel {
+        tabs: vec![
+            FriendPanelTab {
+                key: "all".to_string(),
+                label: "All".to_string(),
+                count: 7,
+            },
+            FriendPanelTab {
+                key: "local:Best".to_string(),
+                label: "Best".to_string(),
+                count: 2,
+            },
+        ],
+        rows: (0..7)
+            .map(|index| FriendPanelRow {
+                status: FriendPanelStatusTone::Active,
+                location_text: "World".to_string(),
+                ..friend_panel_row(format!("usr_{index}"), format!("Friend {index}"))
+            })
+            .collect(),
+        ..FavoriteFriendsPanelModel::default()
+    };
+    let size = model.size;
+    let scene = build_friends_panel_scene(&model);
+    let best_tab_uv = scene
+        .hit_regions
+        .iter()
+        .find(|region| region.id == "tab:local:Best")
+        .map(|region| region.rect.center_uv(size))
+        .expect("best tab region");
+
+    assert_eq!(
+        model
+            .apply_uv_action(best_tab_uv, FriendPanelAction::ClickDown)
+            .as_deref(),
+        Some("tab:local:Best")
+    );
+    assert_eq!(
+        model
+            .apply_uv_action(best_tab_uv, FriendPanelAction::ClickUp)
+            .as_deref(),
+        Some("tab:local:Best")
+    );
+    assert_eq!(model.selected_tab_key, "local:Best");
+
+    model.apply_uv_action(
+        UvPoint::new(0.5, 0.5),
+        FriendPanelAction::Scroll { delta: 10.0 },
+    );
+    assert_eq!(model.scroll_offset_rows, model.max_scroll_offset_rows());
+
+    let scene_after_scroll = build_friends_panel_scene(&model);
+    let row_uv = scene_after_scroll
+        .hit_regions
+        .iter()
+        .find(|region| region.id.starts_with("row:"))
+        .map(|region| region.rect.center_uv(size))
+        .expect("visible row region");
+    model.apply_uv_action(row_uv, FriendPanelAction::ClickDown);
+    let hit = model.apply_uv_action(row_uv, FriendPanelAction::ClickUp);
+
+    assert!(hit.as_deref().is_some_and(|id| id.starts_with("row:")));
+    assert_eq!(model.selected_tab_key, "local:Best");
+    assert_eq!(model.pressed_region_id, None);
+}
+
+#[test]
+fn friends_panel_spinner_phase_changes_traveling_row_commands() {
+    let mut model = FavoriteFriendsPanelModel {
+        rows: vec![FriendPanelRow {
+            location_text: "Traveling".to_string(),
+            is_traveling: true,
+            traveling_text: Some("Target World".to_string()),
+            ..friend_panel_row("usr_1", "Aki")
+        }],
+        ..FavoriteFriendsPanelModel::default()
+    };
+
+    let first = build_friends_panel_scene(&model).commands;
+    model.spinner_phase = 0.5;
+    let second = build_friends_panel_scene(&model).commands;
+
+    assert_ne!(first, second);
 }

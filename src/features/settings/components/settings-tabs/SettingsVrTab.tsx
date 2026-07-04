@@ -27,6 +27,7 @@ type SettingsVrPrefs = Record<string, unknown> & {
     notificationTimeout?: number;
     ovrtHudNotifications?: boolean;
     ovrtWristNotifications?: boolean;
+    vrOverlayPanelEnabled?: boolean;
     wristOverlayButton?: string;
     wristOverlayDarkBackground?: boolean;
     wristOverlayEnabled?: boolean;
@@ -54,6 +55,7 @@ type SettingsVrTabProps = {
     onOpenWristFeedNotificationsDialog: () => unknown;
     onOvrtHudNotificationsChange: (checked: boolean) => unknown;
     onOvrtWristNotificationsChange: (checked: boolean) => unknown;
+    onVrOverlayPanelEnabledChange: (checked: boolean) => unknown;
     onWristOverlayButtonChange: (value: string) => unknown;
     onWristOverlayDarkBackgroundChange: (checked: boolean) => unknown;
     onWristOverlayEnabledChange: (checked: boolean) => unknown;
@@ -118,6 +120,7 @@ export function SettingsVrTab({
     onHmdNotificationPositionChange,
     onHmdNotificationStartModeChange,
     onOpenHmdNotificationFiltersDialog,
+    onVrOverlayPanelEnabledChange,
     onWristOverlayEnabledChange,
     onWristOverlayStartModeChange,
     onWristOverlayButtonChange,
@@ -131,6 +134,7 @@ export function SettingsVrTab({
 }: SettingsVrTabProps) {
     const { t } = useTranslation();
     const hmdNotificationsEnabled = Boolean(prefs.hmdNotificationsEnabled);
+    const vrOverlayPanelEnabled = prefs.vrOverlayPanelEnabled !== false;
     const wristOverlayEnabled = Boolean(prefs.wristOverlayEnabled);
     const vrDeviceStatusEnabled =
         wristOverlayEnabled && Boolean(prefs.wristOverlayShowDevices);
@@ -425,6 +429,27 @@ export function SettingsVrTab({
                     >
                         {t('common.actions.configure')}
                     </Button>
+                </Field>
+            </SettingsGroup>
+
+            <SettingsGroup
+                title={t('view.settings.vr.interactive_panel.header')}
+            >
+                <Field label={t('view.settings.vr.interactive_panel.enabled')}>
+                    <Switch
+                        checked={vrOverlayPanelEnabled}
+                        onCheckedChange={onVrOverlayPanelEnabledChange}
+                    />
+                </Field>
+
+                <Field
+                    label={t('view.settings.vr.interactive_panel.summon_hint')}
+                >
+                    <p className="text-muted-foreground max-w-md text-sm">
+                        {t(
+                            'view.settings.vr.interactive_panel.openvr_required'
+                        )}
+                    </p>
                 </Field>
             </SettingsGroup>
 

@@ -1653,6 +1653,12 @@
                     "opacity": "不透明度",
                     "filters": "头显通知过滤"
                 },
+                "interactive_panel": {
+                    "header": "交互好友面板",
+                    "enabled": "启用交互好友面板",
+                    "summon_hint": "召唤手势",
+                    "openvr_required": "右手长按 Grip 约 2 秒召唤。需要 SteamVR/OpenVR 叠加界面后端；OpenXR 当前不提供交互面板。"
+                },
                 "wrist_overlay": {
                     "header": "手腕叠加界面",
                     "wrist_feed_overlay": "手腕动态叠加界面",

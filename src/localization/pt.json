@@ -1630,6 +1630,12 @@
                     "opacity": "Opacidade",
                     "filters": "Filtros de notificações do headset"
                 },
+                "interactive_panel": {
+                    "header": "Painel interativo de amigos",
+                    "enabled": "Ativar painel interativo de amigos",
+                    "summon_hint": "Gesto de invocação",
+                    "openvr_required": "Segure o grip direito por cerca de 2 segundos para invocar. Requer o backend de sobreposição SteamVR/OpenVR; o OpenXR ainda não oferece o painel interativo."
+                },
                 "wrist_overlay": {
                     "header": "Overlay de Pulso",
                     "wrist_feed_overlay": "Overlay de Feed no Pulso",

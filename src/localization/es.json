@@ -1630,6 +1630,12 @@
                     "opacity": "Opacidad",
                     "filters": "Filtros de notificaciones del visor"
                 },
+                "interactive_panel": {
+                    "header": "Panel interactivo de amigos",
+                    "enabled": "Activar el panel interactivo de amigos",
+                    "summon_hint": "Gesto de invocación",
+                    "openvr_required": "Mantén pulsado el grip derecho unos 2 segundos para invocarlo. Requiere el backend de superposición SteamVR/OpenVR; OpenXR todavía no ofrece el panel interactivo."
+                },
                 "wrist_overlay": {
                     "header": "Overlay de muñeca",
                     "wrist_feed_overlay": "Overlay de feed de muñeca",

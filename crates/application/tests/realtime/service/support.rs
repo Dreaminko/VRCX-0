@@ -93,6 +93,7 @@ pub(super) fn runtime_with_active_session(
         overlay_activity: OverlayActivityRuntime::default(),
         world_cache,
         print_cleanup: PrintCleanupQueue::new(),
+        friend_note_change_sink: None,
     }));
     let active_session = RealtimeSessionContext::new(
         "usr_self".into(),

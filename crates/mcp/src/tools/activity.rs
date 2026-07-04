@@ -909,6 +909,7 @@ mod activity_output_tests {
             overlay_activity: OverlayActivityRuntime::default(),
             world_cache,
             print_cleanup: PrintCleanupQueue::new(),
+            friend_note_change_sink: None,
         }));
         let runtime = crate::runtime::McpRuntime {
             db: Arc::clone(&db),

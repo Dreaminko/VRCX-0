@@ -1623,6 +1623,12 @@
                     "opacity": "불투명도",
                     "filters": "헤드셋 알림 필터"
                 },
+                "interactive_panel": {
+                    "header": "인터랙티브 친구 패널",
+                    "enabled": "인터랙티브 친구 패널 사용",
+                    "summon_hint": "호출 제스처",
+                    "openvr_required": "오른손 Grip을 약 2초 동안 길게 눌러 호출합니다. SteamVR/OpenVR 오버레이 백엔드가 필요하며 OpenXR에서는 현재 인터랙티브 패널을 제공하지 않습니다."
+                },
                 "wrist_overlay": {
                     "header": "손목 오버레이",
                     "wrist_feed_notifications": "손목 오버레이 알림 필터"

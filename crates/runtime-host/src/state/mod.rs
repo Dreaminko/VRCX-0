@@ -306,7 +306,18 @@ impl RuntimeHostState {
             overlay_activity: runtime_context.overlay_activity.clone(),
             world_cache: Arc::clone(&runtime_context.world_cache),
             print_cleanup: runtime_context.print_cleanup.clone(),
+            friend_note_change_sink: Some({
+                let vr_overlay_runtime = Arc::clone(&vr_overlay_runtime);
+                Arc::new(move || {
+                    vr_overlay_runtime.invalidate_friends_panel_note_memo_cache();
+                })
+            }),
         }));
+        {
+            let realtime_runtime = Arc::clone(&realtime_runtime);
+            vr_overlay_runtime
+                .set_friends_panel_snapshot_provider(move || realtime_runtime.friend_snapshot());
+        }
         let session_runtime = Arc::new(SessionHostRuntime::new(
             runtime_context.session.clone(),
             runtime_context.event_bus.clone(),
