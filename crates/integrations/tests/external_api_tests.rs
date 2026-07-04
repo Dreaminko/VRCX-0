@@ -121,20 +121,17 @@ fn external_scopes_allow_any_http_and_https_url() {
         url: Some("http://example.com/v1/chat/completions".into()),
         ..Default::default()
     };
-    assert!(build_web_execute_request_with_policy(
-        request,
-        ExternalApiScope::Translation,
-        &policy
-    )
-    .is_ok());
+    assert!(
+        build_web_execute_request_with_policy(request, ExternalApiScope::Translation, &policy)
+            .is_ok()
+    );
 
     let request = ExternalHttpRequestInput {
         url: Some("http://10.0.0.5/image.png".into()),
         ..Default::default()
     };
     assert!(
-        build_web_execute_request_with_policy(request, ExternalApiScope::Image, &policy)
-            .is_ok()
+        build_web_execute_request_with_policy(request, ExternalApiScope::Image, &policy).is_ok()
     );
 
     let request = ExternalHttpRequestInput {

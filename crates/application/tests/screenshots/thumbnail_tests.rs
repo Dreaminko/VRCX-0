@@ -45,8 +45,8 @@ fn write_test_png_with_size(path: &Path, width: u32, height: u32) -> Result<()> 
 
 fn write_text_chunk(path: &Path, keyword: &str, text: &str) -> Result<()> {
     let path_str = path.to_string_lossy();
-    let mut png = png::PngFile::open_rw(&path_str)
-        .map_err(|e| Error::Custom(format!("png open: {e}")))?;
+    let mut png =
+        png::PngFile::open_rw(&path_str).map_err(|e| Error::Custom(format!("png open: {e}")))?;
     let chunk = png::generate_text_chunk(keyword, text);
     assert!(png.write_chunk(&chunk));
     Ok(())
@@ -259,12 +259,8 @@ fn screenshot_library_scan_indexes_skips_and_deletes_png_files() -> Result<()> {
     );
 
     let image_path_string = image_path.to_string_lossy().into_owned();
-    let thumb_path = ensure_screenshot_thumbnail_in_root(
-        &image_path_string,
-        &thumb_dir,
-        &cache,
-        &photos_dir,
-    )?;
+    let thumb_path =
+        ensure_screenshot_thumbnail_in_root(&image_path_string, &thumb_dir, &cache, &photos_dir)?;
     assert!(Path::new(&thumb_path).is_file());
 
     let second_status =
@@ -426,30 +422,18 @@ fn ensure_screenshot_thumbnail_generates_and_reuses_webp_cache() -> Result<()> {
     write_test_png_with_size(&source_path, 64, 32)?;
     let source_path_string = source_path.to_string_lossy().into_owned();
 
-    let first_thumb = ensure_screenshot_thumbnail_in_root(
-        &source_path_string,
-        &thumb_dir,
-        &cache,
-        &dir.path,
-    )?;
+    let first_thumb =
+        ensure_screenshot_thumbnail_in_root(&source_path_string, &thumb_dir, &cache, &dir.path)?;
     assert!(Path::new(&first_thumb).is_file());
     assert!(first_thumb.ends_with(".webp"));
 
-    let second_thumb = ensure_screenshot_thumbnail_in_root(
-        &source_path_string,
-        &thumb_dir,
-        &cache,
-        &dir.path,
-    )?;
+    let second_thumb =
+        ensure_screenshot_thumbnail_in_root(&source_path_string, &thumb_dir, &cache, &dir.path)?;
     assert_eq!(first_thumb, second_thumb);
 
     write_test_png_with_size(&source_path, 65, 32)?;
-    let third_thumb = ensure_screenshot_thumbnail_in_root(
-        &source_path_string,
-        &thumb_dir,
-        &cache,
-        &dir.path,
-    )?;
+    let third_thumb =
+        ensure_screenshot_thumbnail_in_root(&source_path_string, &thumb_dir, &cache, &dir.path)?;
     assert!(Path::new(&third_thumb).is_file());
     assert_ne!(first_thumb, third_thumb);
     assert!(!Path::new(&first_thumb).exists());

@@ -70,8 +70,7 @@ fn parses_location_with_recent_world_name_and_clears_session_state() {
     ctx.video_errors.insert("previous video error".into());
     *inner.vrc_closed_gracefully.lock().unwrap() = true;
 
-    let room_line =
-        "2026.06.21 22:10:00 Log        -  [Behaviour] Entering Room: Midnight Rooftop";
+    let room_line = "2026.06.21 22:10:00 Log        -  [Behaviour] Entering Room: Midnight Rooftop";
     assert!(presence::parse_location(
         &inner,
         "output_log.txt",

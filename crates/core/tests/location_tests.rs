@@ -148,8 +148,7 @@ fn frontend_value_matches_presence_contract() {
 
     let strict = parse_location("wrld_a:1~region(eu)~strict~ageGate&shortName=ab12");
     assert_eq!(
-        strict.to_frontend_value("wrld_a:1~region(eu)~strict~ageGate&shortName=ab12")
-            ["shortName"],
+        strict.to_frontend_value("wrld_a:1~region(eu)~strict~ageGate&shortName=ab12")["shortName"],
         json!("ab12")
     );
     assert_eq!(
@@ -157,8 +156,7 @@ fn frontend_value_matches_presence_contract() {
         json!(true)
     );
     assert_eq!(
-        strict.to_frontend_value("wrld_a:1~region(eu)~strict~ageGate&shortName=ab12")
-            ["ageGate"],
+        strict.to_frontend_value("wrld_a:1~region(eu)~strict~ageGate&shortName=ab12")["ageGate"],
         json!(true)
     );
 

@@ -82,8 +82,8 @@ fn build_test_processor(dir: &TestDir, db: Arc<DatabaseService>) -> Result<GameL
         auth_scope: RuntimeAuthScope::new(),
         snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
         host_actions: Arc::new(NoopGameLogHostActions),
-        overlay_activity: OverlayActivityRuntime::with_filters(
-            OverlayActivityFilters::from_json(serde_json::json!({
+        overlay_activity: OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(
+            serde_json::json!({
                 "version": 1,
                 "wrist": {
                     "types": {
@@ -97,8 +97,8 @@ fn build_test_processor(dir: &TestDir, db: Arc<DatabaseService>) -> Result<GameL
                         }
                     }
                 }
-            })),
-        ),
+            }),
+        )),
         world_cache,
     });
     Ok(processor)

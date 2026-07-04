@@ -352,8 +352,8 @@ fn writes_notification_v1_and_v2_schema_columns() -> Result<(), crate::Error> {
 }
 
 #[test]
-fn notification_v2_update_falls_back_to_upsert_with_received_timestamp(
-) -> Result<(), crate::Error> {
+fn notification_v2_update_falls_back_to_upsert_with_received_timestamp() -> Result<(), crate::Error>
+{
     let dir = TestDir::new("realtime-notification-update-fallback");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
 
