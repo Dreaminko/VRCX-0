@@ -86,6 +86,17 @@ const overlayPathKeys = [
         'overlay.generic_instance_location',
         ['overlay', 'generic_instance_location']
     ],
+    ['overlay.friends_panel.title', ['overlay', 'friends_panel', 'title']],
+    ['overlay.friends_panel.all', ['overlay', 'friends_panel', 'all']],
+    ['overlay.friends_panel.empty', ['overlay', 'friends_panel', 'empty']],
+    ['overlay.friends_panel.note', ['overlay', 'friends_panel', 'note']],
+    ['overlay.friends_panel.memo', ['overlay', 'friends_panel', 'memo']],
+    [
+        'overlay.friends_panel.traveling',
+        ['overlay', 'friends_panel', 'traveling']
+    ],
+    ['overlay.friends_panel.private', ['overlay', 'friends_panel', 'private']],
+    ['overlay.friends_panel.offline', ['overlay', 'friends_panel', 'offline']],
     ['overlay.access.public', ['dialog', 'new_instance', 'access_type_public']],
     ['overlay.access.invite', ['dialog', 'new_instance', 'access_type_invite']],
     [
