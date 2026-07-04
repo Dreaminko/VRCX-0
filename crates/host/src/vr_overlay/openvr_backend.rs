@@ -1392,7 +1392,7 @@ fn click_up_event_for_release(
 }
 
 fn trigger_pressed(state: &ControllerState) -> bool {
-    state.button_pressed & (1u64 << (button_id::STEAM_VR_TRIGGER as u32)) != 0
+    state.button_pressed & (1u64 << button_id::STEAM_VR_TRIGGER) != 0
         || state
             .axis
             .get(1)
@@ -1411,7 +1411,7 @@ fn grip_pressed(
 fn grip_pressed_for_state(state: &ControllerState, tracking_system_name: Option<&str>) -> bool {
     let remapped_mask = overlay_button_mask(OverlayActivationButton::Grip, tracking_system_name);
     state.button_pressed & remapped_mask != 0
-        || state.button_pressed & (1u64 << (button_id::GRIP as u32)) != 0
+        || state.button_pressed & (1u64 << button_id::GRIP) != 0
         || state.axis.get(2).is_some_and(|axis| {
             axis.x >= GRIP_AXIS_PRESS_THRESHOLD || axis.y >= GRIP_AXIS_PRESS_THRESHOLD
         })
