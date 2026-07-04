@@ -10,13 +10,14 @@ use openvr::{
         DeviceProvidesBatteryStatus_Bool, ModelNumber_String, SerialNumber_String,
         TrackingSystemName_String,
     },
-    tracked_device_index, ApplicationType, Context, Overlay, TrackedControllerRole,
+    system::event::Event,
+    tracked_device_index, ApplicationType, Context, Overlay, System, TrackedControllerRole,
     TrackedDeviceClass, TrackedDeviceIndex, TrackingUniverseOrigin, MAX_TRACKED_DEVICE_COUNT,
 };
 use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame, MAIN_SURFACE_ID};
 
 use super::{
-    actor::OverlayBackend,
+    actor::{OverlayBackend, TickOutcome},
     policy::WristVisibilityPolicy,
     types::{
         BackendStartError, OverlayActivationButton, OverlayPlacement, OverlaySurfaceConfig,
@@ -31,6 +32,7 @@ const SURFACE_FADE_DURATION: Duration = Duration::from_millis(240);
 pub struct OpenVrOverlayBackend {
     context: Option<Context>,
     overlay: Option<Overlay>,
+    system: Option<System>,
     surfaces: HashMap<OverlaySurfaceId, OpenVrSurface>,
 }
 
@@ -70,6 +72,7 @@ impl OpenVrOverlayBackend {
         Self {
             context: None,
             overlay: None,
+            system: None,
             surfaces: HashMap::new(),
         }
     }
@@ -83,7 +86,7 @@ impl Default for OpenVrOverlayBackend {
 
 impl OverlayBackend for OpenVrOverlayBackend {
     fn start(&mut self) -> Result<(), BackendStartError> {
-        if self.context.is_some() && self.overlay.is_some() {
+        if self.context.is_some() && self.overlay.is_some() && self.system.is_some() {
             return Ok(());
         }
 
@@ -92,8 +95,12 @@ impl OverlayBackend for OpenVrOverlayBackend {
         let overlay = context
             .overlay()
             .map_err(|error| init_start_error("OpenVR overlay interface failed", error))?;
+        let system = context
+            .system()
+            .map_err(|error| init_start_error("OpenVR system interface failed", error))?;
         self.context = Some(context);
         self.overlay = Some(overlay);
+        self.system = Some(system);
         Ok(())
     }
 
@@ -236,23 +243,25 @@ impl OverlayBackend for OpenVrOverlayBackend {
 
     fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String> {
         self.start().map_err(|error| error.message)?;
-        let context = self
-            .context
+        let system = self
+            .system
             .as_ref()
-            .ok_or_else(|| "OpenVR context is not started".to_string())?;
-        let system = context
-            .system()
-            .map_err(|error| format!("OpenVR system interface failed: {error:?}"))?;
-        Ok(snapshot_openvr_devices(&system))
+            .ok_or_else(|| "OpenVR system interface is not started".to_string())?;
+        Ok(snapshot_openvr_devices(system))
     }
 
-    fn tick(&mut self) {
+    fn tick(&mut self) -> TickOutcome {
+        if self.poll_runtime_quit() {
+            self.clear_runtime_handles();
+            return TickOutcome::RuntimeQuit;
+        }
         if let Err(error) = self.update_button_visibility() {
             tracing::warn!(error = %error, "failed to update VR overlay button visibility");
         }
         if let Err(error) = self.advance_fades() {
             tracing::warn!(error = %error, "failed to advance VR overlay fade");
         }
+        TickOutcome::Continue
     }
 
     fn stop(&mut self) {
@@ -260,9 +269,7 @@ impl OverlayBackend for OpenVrOverlayBackend {
         for surface_id in surface_ids {
             let _ = self.set_visibility(&surface_id, false);
         }
-        self.surfaces.clear();
-        self.overlay = None;
-        self.context = None;
+        self.clear_runtime_handles();
     }
 }
 
@@ -285,17 +292,34 @@ fn visible_frame_upload_interval(surface_id: &OverlaySurfaceId) -> Duration {
 }
 
 impl OpenVrOverlayBackend {
+    fn poll_runtime_quit(&self) -> bool {
+        let Some(system) = &self.system else {
+            return false;
+        };
+        while let Some(info) = system.poll_next_event() {
+            if let Event::Quit(_) = info.event {
+                system.acknowledge_quit_exiting();
+                return true;
+            }
+        }
+        false
+    }
+
+    fn clear_runtime_handles(&mut self) {
+        self.surfaces.clear();
+        self.overlay = None;
+        self.system = None;
+        self.context = None;
+    }
+
     fn update_button_visibility(&mut self) -> Result<(), String> {
         if self.surfaces.is_empty() {
             return Ok(());
         }
-        let context = self
-            .context
+        let system = self
+            .system
             .as_ref()
-            .ok_or_else(|| "OpenVR context is not started".to_string())?;
-        let system = context
-            .system()
-            .map_err(|error| format!("OpenVR system interface failed: {error:?}"))?;
+            .ok_or_else(|| "OpenVR system interface is not started".to_string())?;
         let candidates = self
             .surfaces
             .iter()
@@ -320,7 +344,7 @@ impl OpenVrOverlayBackend {
             let mut transform_device = candidate.transform_device;
             let mut policy = candidate.policy;
 
-            if let Ok(device) = resolve_device(&system, &candidate.config.placement) {
+            if let Ok(device) = resolve_device(system, &candidate.config.placement) {
                 if transform_device != Some(device) {
                     overlay
                         .set_transform_tracked_device_relative(
@@ -337,7 +361,7 @@ impl OpenVrOverlayBackend {
                     );
                 }
                 transform_device = Some(device);
-                if device_button_pressed(&system, device, candidate.config.activation_button) {
+                if device_button_pressed(system, device, candidate.config.activation_button) {
                     policy.open(now);
                 }
             }
@@ -360,10 +384,10 @@ impl OpenVrOverlayBackend {
     }
 
     fn apply_config(&mut self, config: &OverlaySurfaceConfig) -> Result<(), String> {
-        let context = self
-            .context
+        let system = self
+            .system
             .as_ref()
-            .ok_or_else(|| "OpenVR context is not started".to_string())?;
+            .ok_or_else(|| "OpenVR system interface is not started".to_string())?;
         let handle = self.surface_handle(&config.surface_id)?;
         let overlay = self
             .overlay
@@ -377,10 +401,7 @@ impl OpenVrOverlayBackend {
             .set_texel_aspect(handle, 1.0)
             .map_err(|error| format!("set overlay texel aspect failed: {error:?}"))?;
 
-        let system = context
-            .system()
-            .map_err(|error| format!("OpenVR system interface failed: {error:?}"))?;
-        let transform_device = match resolve_device(&system, &config.placement) {
+        let transform_device = match resolve_device(system, &config.placement) {
             Ok(device) => {
                 tracing::debug!(
                     surface_id = config.surface_id.as_str(),

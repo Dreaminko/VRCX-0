@@ -148,16 +148,41 @@ where
 }
 
 fn log_overlay_start_error(error: &str) {
-    if is_openvr_server_unavailable_error(error) {
+    if !is_expected_overlay_start_wait(error) {
+        tracing::warn!(error = %error, "failed to start VR overlay service");
+        return;
+    }
+    if error.contains("cooling down") {
+        tracing::debug!(
+            error = %error,
+            "VR overlay start deferred by runtime quit cooldown"
+        );
+    } else {
         tracing::debug!(
             error = %error,
             "VR overlay service is waiting for the OpenVR server"
         );
-        return;
     }
-    tracing::warn!(error = %error, "failed to start VR overlay service");
 }
 
-fn is_openvr_server_unavailable_error(error: &str) -> bool {
-    error.contains("VRInitError_Init_NoServerForBackgroundApp")
+fn is_expected_overlay_start_wait(error: &str) -> bool {
+    error.contains("VRInitError_Init_NoServerForBackgroundApp") || error.contains("cooling down")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_expected_overlay_start_wait;
+
+    #[test]
+    fn expected_overlay_start_wait_matches_openvr_server_and_cooldown_errors() {
+        assert!(is_expected_overlay_start_wait(
+            "OpenVR init failed: VRInitError_Init_NoServerForBackgroundApp"
+        ));
+        assert!(is_expected_overlay_start_wait(
+            "VR runtime quit 120ms ago; cooling down"
+        ));
+        assert!(!is_expected_overlay_start_wait(
+            "OpenVR init failed: VRInitError_Init_InterfaceNotFound"
+        ));
+    }
 }

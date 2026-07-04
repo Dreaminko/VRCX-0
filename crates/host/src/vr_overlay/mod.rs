@@ -13,7 +13,7 @@ mod policy;
 mod status;
 mod types;
 
-pub use actor::{OverlayActorHandle, OverlayBackend};
+pub use actor::{OverlayActorHandle, OverlayBackend, TickOutcome};
 pub use command::{OverlayCommandError, OverlayServiceCommand};
 pub use noop::NoopOverlayBackend;
 #[cfg(all(feature = "steamvr-overlay", any(windows, target_os = "linux")))]

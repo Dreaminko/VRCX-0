@@ -3,7 +3,7 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
@@ -19,6 +19,12 @@ use super::{
 };
 
 const OVERLAY_TICK_INTERVAL: Duration = Duration::from_millis(100);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TickOutcome {
+    Continue,
+    RuntimeQuit,
+}
 
 pub trait OverlayBackend: Send + 'static {
     fn start(&mut self) -> Result<(), BackendStartError>;
@@ -37,7 +43,9 @@ pub trait OverlayBackend: Send + 'static {
         Ok(())
     }
     fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String>;
-    fn tick(&mut self) {}
+    fn tick(&mut self) -> TickOutcome {
+        TickOutcome::Continue
+    }
     fn stop(&mut self);
 }
 
@@ -45,6 +53,7 @@ pub trait OverlayBackend: Send + 'static {
 pub struct OverlayActorHandle {
     sender: mpsc::Sender<OverlayActorMessage>,
     status: Arc<Mutex<OverlayServiceStatus>>,
+    runtime_quit_at: Arc<Mutex<Option<Instant>>>,
 }
 
 enum OverlayActorMessage {
@@ -88,12 +97,18 @@ impl OverlayActorHandle {
     {
         let (sender, receiver) = mpsc::channel::<OverlayActorMessage>();
         let status = Arc::new(Mutex::new(OverlayServiceStatus::default()));
+        let runtime_quit_at = Arc::new(Mutex::new(None));
         let actor_status = Arc::clone(&status);
+        let actor_runtime_quit_at = Arc::clone(&runtime_quit_at);
         thread::Builder::new()
             .name("vrcx-vr-overlay".to_string())
-            .spawn(move || run_actor(backend, receiver, actor_status))
+            .spawn(move || run_actor(backend, receiver, actor_status, actor_runtime_quit_at))
             .expect("spawn VR overlay actor thread");
-        Self { sender, status }
+        Self {
+            sender,
+            status,
+            runtime_quit_at,
+        }
     }
 
     pub fn send(&self, command: OverlayServiceCommand) -> Result<(), OverlayCommandError> {
@@ -121,47 +136,106 @@ impl OverlayActorHandle {
             .unwrap_or_else(|e| e.into_inner())
             .clone()
     }
+
+    pub fn runtime_quit_at(&self) -> Option<Instant> {
+        self.runtime_quit_at
+            .lock()
+            .map(|slot| *slot)
+            .unwrap_or(None)
+    }
 }
 
 fn run_actor<B>(
     mut backend: B,
     receiver: mpsc::Receiver<OverlayActorMessage>,
     status: Arc<Mutex<OverlayServiceStatus>>,
+    runtime_quit_at: Arc<Mutex<Option<Instant>>>,
 ) where
     B: OverlayBackend,
 {
-    let mut stopped = false;
+    let mut skip_backend_stop = false;
+    let mut last_tick_at = Instant::now();
     loop {
         match receiver.recv_timeout(OVERLAY_TICK_INTERVAL) {
-            Ok(message) => match message {
-                OverlayActorMessage::Command(envelope) => {
-                    let should_stop = matches!(envelope.command, OverlayServiceCommand::Stop);
-                    let result = handle_command(&mut backend, envelope.command, &status);
-                    let _ = envelope.reply.send(result);
-                    if should_stop {
-                        stopped = true;
-                        break;
+            Ok(message) => {
+                match message {
+                    OverlayActorMessage::Command(envelope) => {
+                        let should_stop = matches!(envelope.command, OverlayServiceCommand::Stop);
+                        let result = handle_command(&mut backend, envelope.command, &status);
+                        let _ = envelope.reply.send(result);
+                        if should_stop {
+                            skip_backend_stop = true;
+                            break;
+                        }
+                    }
+                    OverlayActorMessage::SnapshotDevices { reply } => {
+                        let result = backend
+                            .snapshot_devices()
+                            .map_err(|error| record_backend_error(&status, error));
+                        let _ = reply.send(result);
                     }
                 }
-                OverlayActorMessage::SnapshotDevices { reply } => {
-                    let result = backend
-                        .snapshot_devices()
-                        .map_err(|error| record_backend_error(&status, error));
-                    let _ = reply.send(result);
+                if run_tick_if_due(&mut backend, &status, &runtime_quit_at, &mut last_tick_at) {
+                    skip_backend_stop = true;
+                    break;
                 }
-            },
+            }
             Err(RecvTimeoutError::Timeout) => {
-                if actor_is_running(&status) {
-                    backend.tick();
+                if run_tick_if_due(&mut backend, &status, &runtime_quit_at, &mut last_tick_at) {
+                    skip_backend_stop = true;
+                    break;
                 }
             }
             Err(RecvTimeoutError::Disconnected) => break,
         }
     }
 
-    if !stopped {
+    if !skip_backend_stop {
         backend.stop();
         update_status(&status, OverlayServicePhase::Stopped, None);
+    }
+}
+
+fn run_tick_if_due<B>(
+    backend: &mut B,
+    status: &Arc<Mutex<OverlayServiceStatus>>,
+    runtime_quit_at: &Arc<Mutex<Option<Instant>>>,
+    last_tick_at: &mut Instant,
+) -> bool
+where
+    B: OverlayBackend,
+{
+    if last_tick_at.elapsed() < OVERLAY_TICK_INTERVAL {
+        return false;
+    }
+    *last_tick_at = Instant::now();
+    run_tick(backend, status, runtime_quit_at)
+}
+
+fn run_tick<B>(
+    backend: &mut B,
+    status: &Arc<Mutex<OverlayServiceStatus>>,
+    runtime_quit_at: &Arc<Mutex<Option<Instant>>>,
+) -> bool
+where
+    B: OverlayBackend,
+{
+    if !actor_is_running(status) {
+        return false;
+    }
+    match backend.tick() {
+        TickOutcome::Continue => false,
+        TickOutcome::RuntimeQuit => {
+            if let Ok(mut slot) = runtime_quit_at.lock() {
+                *slot = Some(Instant::now());
+            }
+            update_status(
+                status,
+                OverlayServicePhase::Stopped,
+                Some("VR runtime requested quit".to_string()),
+            );
+            true
+        }
     }
 }
 

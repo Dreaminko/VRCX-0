@@ -1,10 +1,13 @@
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use vrcx_0_host::vr_overlay::{
     OverlayActorHandle, OverlayCommandError, OverlayServiceCommand, OverlayServicePhase,
     OverlaySurfaceConfig, VrDeviceSnapshot,
 };
 use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
+
+const RUNTIME_QUIT_RESTART_COOLDOWN: Duration = Duration::from_secs(10);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OverlayServiceStartError {
@@ -176,6 +179,18 @@ impl VrOverlayServiceControl for HostVrOverlayService {
     fn start(&mut self) -> Result<(), OverlayServiceStartError> {
         if self.actor.as_ref().is_some_and(actor_is_active) {
             return Ok(());
+        }
+        if let Some(remaining) = quit_cooldown_remaining(
+            self.actor
+                .as_ref()
+                .and_then(|actor| actor.runtime_quit_at()),
+            Instant::now(),
+        ) {
+            let elapsed = RUNTIME_QUIT_RESTART_COOLDOWN - remaining;
+            return Err(OverlayServiceStartError::transient(format!(
+                "VR runtime quit {}ms ago; cooling down",
+                elapsed.as_millis()
+            )));
         }
         self.stop();
 
@@ -441,6 +456,15 @@ fn actor_is_active(actor: &OverlayActorHandle) -> bool {
     )
 }
 
+fn quit_cooldown_remaining(quit_at: Option<Instant>, now: Instant) -> Option<Duration> {
+    let quit_at = quit_at?;
+    let elapsed = now.saturating_duration_since(quit_at);
+    if elapsed >= RUNTIME_QUIT_RESTART_COOLDOWN {
+        return None;
+    }
+    Some(RUNTIME_QUIT_RESTART_COOLDOWN - elapsed)
+}
+
 fn spawn_overlay_actor(
     kind: OverlayBackendKind,
     preference: OverlayBackendPreference,
@@ -518,13 +542,32 @@ fn openxr_runtime_supported() -> bool {
 mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
+    use std::time::{Duration, Instant};
 
     use vrcx_0_host::vr_overlay::{
         OverlayActivationButton, OverlayPlacement, OverlaySurfaceConfig,
     };
     use vrcx_0_vr_overlay::{OverlaySize, OverlaySurfaceId};
 
-    use super::apply_surface_config_change;
+    use super::{apply_surface_config_change, quit_cooldown_remaining};
+
+    #[test]
+    fn quit_cooldown_remaining_respects_ten_second_boundary() {
+        let now = Instant::now();
+        let recent = now
+            .checked_sub(Duration::from_secs(10) - Duration::from_millis(100))
+            .expect("recent instant");
+        let old = now
+            .checked_sub(Duration::from_secs(10) + Duration::from_millis(100))
+            .expect("old instant");
+
+        assert_eq!(
+            quit_cooldown_remaining(Some(recent), now),
+            Some(Duration::from_millis(100))
+        );
+        assert_eq!(quit_cooldown_remaining(Some(old), now), None);
+        assert_eq!(quit_cooldown_remaining(None, now), None);
+    }
 
     #[test]
     fn surface_config_change_does_not_unregister_or_commit_when_registration_fails() {
