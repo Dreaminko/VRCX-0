@@ -598,6 +598,20 @@
                     }
                 }
             }
+        },
+        "about": {
+            "title": "O aplikaci VRCX-0",
+            "tagline": "Rychlý a lehký VRCX postavený na Tauri a Rustu.",
+            "copy_version": "Kopírovat informace o verzi",
+            "version_copied": "Informace o verzi zkopírovány.",
+            "link_source": "Zdrojový kód",
+            "link_qq": "Skupina QQ",
+            "link_issues": "Nahlásit problém",
+            "contributors": "Přispěvatelé",
+            "contributors_error": "Seznam přispěvatelů se nepodařilo načíst.",
+            "thanks": "Překlady, testování, hlášení chyb i nápady — to vše od komunity. Děkujeme.",
+            "view_graph": "Zobrazit celý graf příspěvků na GitHubu",
+            "license_line": "Svobodný a otevřený software pod licencí GPL-3.0"
         }
     },
     "dialog": {
@@ -1959,7 +1973,7 @@
                 "reportIssue": "Report Issue",
                 "github": "GitHub",
                 "discord": "Join our Discord",
-                "qqGroup": "QQ Group (Chinese community)",
+                "qqGroup": "QQ Group",
                 "openDevtools": "Open DevTools",
                 "supportVrcx": "Support VRCX-0"
             }

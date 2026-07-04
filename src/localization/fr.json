@@ -3142,6 +3142,20 @@
                 "custom_source_required": "Sélectionnez d'abord une image locale dans les paramètres.",
                 "no_images": "Aucune image prise en charge n'a été trouvée."
             }
+        },
+        "about": {
+            "title": "À propos de VRCX-0",
+            "tagline": "Le VRCX rapide et léger, conçu avec Tauri et Rust.",
+            "copy_version": "Copier les informations de version",
+            "version_copied": "Informations de version copiées.",
+            "link_source": "Code source",
+            "link_qq": "Groupe QQ",
+            "link_issues": "Signaler un problème",
+            "contributors": "Contributeurs",
+            "contributors_error": "Impossible de charger la liste des contributeurs.",
+            "thanks": "Traductions, tests, retours et idées : tout vient de la communauté. Merci.",
+            "view_graph": "Voir le graphique complet des contributions sur GitHub",
+            "license_line": "Libre et open source sous GPL-3.0"
         }
     },
     "dialog": {

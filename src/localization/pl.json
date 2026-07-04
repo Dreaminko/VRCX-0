@@ -889,6 +889,20 @@
                     }
                 }
             }
+        },
+        "about": {
+            "title": "O VRCX-0",
+            "tagline": "Szybki i lekki VRCX zbudowany z użyciem Tauri i Rusta.",
+            "copy_version": "Kopiuj informacje o wersji",
+            "version_copied": "Skopiowano informacje o wersji.",
+            "link_source": "Kod źródłowy",
+            "link_qq": "Grupa QQ",
+            "link_issues": "Zgłoś problem",
+            "contributors": "Współtwórcy",
+            "contributors_error": "Nie udało się wczytać listy współtwórców.",
+            "thanks": "Tłumaczenia, testy, zgłoszenia i pomysły — wszystko od społeczności. Dziękujemy.",
+            "view_graph": "Zobacz pełny wykres wkładu na GitHubie",
+            "license_line": "Wolne i otwarte oprogramowanie na licencji GPL-3.0"
         }
     },
     "dialog": {
@@ -2384,7 +2398,7 @@
                 "reportIssue": "Report Issue",
                 "github": "GitHub",
                 "discord": "Join our Discord",
-                "qqGroup": "QQ Group (Chinese community)",
+                "qqGroup": "QQ Group",
                 "openDevtools": "Open DevTools",
                 "supportVrcx": "Support VRCX-0"
             }

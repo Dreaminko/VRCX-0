@@ -3151,6 +3151,20 @@
                 "custom_source_required": "先に設定でローカル画像を選択してください。",
                 "no_images": "対応している画像が見つかりません。"
             }
+        },
+        "about": {
+            "title": "VRCX-0 について",
+            "tagline": "Tauri と Rust で構築された高速で軽量な VRCX。",
+            "copy_version": "バージョン情報をコピー",
+            "version_copied": "バージョン情報をコピーしました。",
+            "link_source": "ソースコード",
+            "link_qq": "QQ グループ",
+            "link_issues": "問題を報告",
+            "contributors": "コントリビューター",
+            "contributors_error": "コントリビューター一覧を読み込めませんでした。",
+            "thanks": "翻訳、テスト、フィードバック、アイデア — すべてコミュニティの皆さんから。ありがとうございます。",
+            "view_graph": "GitHub でコントリビューショングラフを見る",
+            "license_line": "GPL-3.0 のフリー・オープンソースソフトウェア"
         }
     },
     "dialog": {

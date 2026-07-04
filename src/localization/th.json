@@ -729,6 +729,20 @@
                     }
                 }
             }
+        },
+        "about": {
+            "title": "เกี่ยวกับ VRCX-0",
+            "tagline": "VRCX ที่เร็วและเบา สร้างด้วย Tauri และ Rust",
+            "copy_version": "คัดลอกข้อมูลเวอร์ชัน",
+            "version_copied": "คัดลอกข้อมูลเวอร์ชันแล้ว",
+            "link_source": "ซอร์สโค้ด",
+            "link_qq": "กลุ่ม QQ",
+            "link_issues": "รายงานปัญหา",
+            "contributors": "ผู้มีส่วนร่วม",
+            "contributors_error": "โหลดรายชื่อผู้มีส่วนร่วมไม่สำเร็จ",
+            "thanks": "งานแปล การทดสอบ รายงานปัญหา และไอเดีย — ทั้งหมดมาจากคอมมูนิตี้ ขอบคุณ",
+            "view_graph": "ดูกราฟการมีส่วนร่วมทั้งหมดบน GitHub",
+            "license_line": "ซอฟต์แวร์เสรีและโอเพนซอร์สภายใต้ GPL-3.0"
         }
     },
     "dialog": {
@@ -2131,7 +2145,7 @@
                 "reportIssue": "Report Issue",
                 "github": "GitHub",
                 "discord": "Join our Discord",
-                "qqGroup": "QQ Group (Chinese community)",
+                "qqGroup": "QQ Group",
                 "openDevtools": "Open DevTools",
                 "supportVrcx": "Support VRCX-0"
             }

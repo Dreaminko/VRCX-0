@@ -554,6 +554,20 @@
                     }
                 }
             }
+        },
+        "about": {
+            "title": "A VRCX-0 névjegye",
+            "tagline": "A Tauri és Rust alapokra épített gyors, könnyű VRCX.",
+            "copy_version": "Verzióinformáció másolása",
+            "version_copied": "Verzióinformáció másolva.",
+            "link_source": "Forráskód",
+            "link_qq": "QQ csoport",
+            "link_issues": "Hiba bejelentése",
+            "contributors": "Közreműködők",
+            "contributors_error": "A közreműködők listáját nem sikerült betölteni.",
+            "thanks": "Fordítások, tesztelés, visszajelzések és ötletek — mind a közösségtől. Köszönjük.",
+            "view_graph": "A teljes hozzájárulási grafikon megtekintése a GitHubon",
+            "license_line": "Szabad és nyílt forráskódú, GPL-3.0 licenc alatt"
         }
     },
     "dialog": {
@@ -1755,7 +1769,7 @@
                 "reportIssue": "Report Issue",
                 "github": "GitHub",
                 "discord": "Join our Discord",
-                "qqGroup": "QQ Group (Chinese community)",
+                "qqGroup": "QQ Group",
                 "openDevtools": "Open DevTools",
                 "supportVrcx": "Support VRCX-0"
             }

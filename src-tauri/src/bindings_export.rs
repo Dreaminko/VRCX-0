@@ -238,6 +238,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::lifecycle::app__runtime_lifecycle_snapshot_get,
             commands::application::lifecycle::app__runtime_sync_snapshot_get,
             commands::integrations::external_api::service::app__external_api_avatar_search_get,
+            commands::integrations::external_api::service::app__external_api_github_contributors_get,
             commands::integrations::external_api::service::app__external_api_github_releases_get,
             commands::integrations::external_api::service::app__external_api_image_data_url_get,
             commands::integrations::external_api::service::app__external_api_translation_request,

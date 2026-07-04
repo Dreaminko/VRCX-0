@@ -1154,6 +1154,13 @@ export const commands = {
             input
         });
     },
+    async appExternalApiGithubContributorsGet(
+        input: ExternalApiUrlInput
+    ): Promise<ExternalApiExecuteResponse> {
+        return await TAURI_INVOKE('app__external_api_github_contributors_get', {
+            input
+        });
+    },
     async appExternalApiGithubReleasesGet(
         input: ExternalApiUrlInput
     ): Promise<ExternalApiExecuteResponse> {

@@ -3086,6 +3086,20 @@
                 "custom_source_required": "먼저 설정에서 로컬 이미지를 선택하세요.",
                 "no_images": "지원되는 이미지를 찾을 수 없습니다."
             }
+        },
+        "about": {
+            "title": "VRCX-0 정보",
+            "tagline": "Tauri와 Rust로 만든 빠르고 가벼운 VRCX입니다.",
+            "copy_version": "버전 정보 복사",
+            "version_copied": "버전 정보가 복사되었습니다.",
+            "link_source": "소스 코드",
+            "link_qq": "QQ 그룹",
+            "link_issues": "문제 신고",
+            "contributors": "기여자",
+            "contributors_error": "기여자 목록을 불러오지 못했습니다.",
+            "thanks": "번역, 테스트, 피드백, 아이디어 — 모두 커뮤니티에서 왔습니다. 감사합니다.",
+            "view_graph": "GitHub에서 전체 기여 그래프 보기",
+            "license_line": "GPL-3.0 자유 오픈 소스"
         }
     },
     "dialog": {

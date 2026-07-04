@@ -8,6 +8,10 @@ const links: Record<string, string> = {
     kofi: 'https://ko-fi.com/map1en_',
     issues: 'https://github.com/Map1en/VRCX-0/issues',
     releases: 'https://github.com/Map1en/VRCX-0/releases',
+    contributorsApi:
+        'https://api.github.com/repos/Map1en/VRCX-0/contributors?per_page=100',
+    contributorsGraph: 'https://github.com/Map1en/VRCX-0/graphs/contributors',
+    license: 'https://github.com/Map1en/VRCX-0/blob/master/LICENSE',
     discord: 'https://discord.gg/fehKP3SVPN',
     qqGroup: 'https://qm.qq.com/q/MDK8QDUX2C',
     vrchatStatus: 'https://status.vrchat.com/',

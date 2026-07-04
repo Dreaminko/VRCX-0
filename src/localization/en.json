@@ -228,7 +228,7 @@
                 "reportIssue": "Report Issue",
                 "github": "GitHub",
                 "discord": "Join our Discord",
-                "qqGroup": "QQ Group (Chinese community)",
+                "qqGroup": "QQ Group",
                 "openDevtools": "Open DevTools",
                 "supportVrcx": "Support VRCX-0"
             }
@@ -262,7 +262,7 @@
     },
     "nav_menu": {
         "resources": "RESOURCES",
-        "qq_group": "QQ Group (Chinese community)",
+        "qq_group": "QQ Group",
         "get_help": "GET HELP",
         "github": "VRCX-0 on GitHub",
         "discord": "Join our Discord",
@@ -3155,6 +3155,20 @@
                 "custom_source_required": "Select a local image in Settings first.",
                 "no_images": "No supported images were found."
             }
+        },
+        "about": {
+            "title": "About VRCX-0",
+            "tagline": "The fast lightweight VRCX built with Tauri and Rust.",
+            "copy_version": "Copy version info",
+            "version_copied": "Version info copied.",
+            "link_source": "Source",
+            "link_qq": "QQ Group",
+            "link_issues": "Report issue",
+            "contributors": "Contributors",
+            "contributors_error": "Couldn't load the contributor list.",
+            "thanks": "Translations, testing, bug reports and ideas — all from the community. Thank you.",
+            "view_graph": "View the full contribution graph on GitHub",
+            "license_line": "Free and open source under GPL-3.0"
         }
     },
     "dialog": {

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { SupportVrcxDialog } from '@/components/support/SupportVrcxDialog';
+import { AboutVrcxDialog } from '@/components/about/AboutVrcxDialog';
 import { OpenSourceNoticeDialog } from '@/features/settings/components/OpenSourceNoticeDialog';
+import { cn } from '@/lib/utils';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import { logoutFromReactShell } from '@/services/authExecutionService';
@@ -42,15 +43,6 @@ import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
 import { Badge } from '@/ui/shadcn/badge';
-import { Button } from '@/ui/shadcn/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from '@/ui/shadcn/dialog';
 import {
     Menubar,
     MenubarContent,
@@ -68,10 +60,15 @@ import {
 
 const ZOOM_STEP = 10;
 
-function MenuItem({ children, onClick, ...props }: any) {
+function MenuItem({
+    children,
+    onClick,
+    className,
+    ...props
+}: ComponentProps<typeof MenubarItem>) {
     return (
         <MenubarItem
-            className="min-h-7 min-w-48 text-xs"
+            className={cn('min-h-7 min-w-48 text-xs', className)}
             onClick={onClick}
             {...props}
         >
@@ -112,7 +109,6 @@ export function AppMenuBar({
     const navigate = useNavigate();
     const [aboutOpen, setAboutOpen] = useState(false);
     const [openSourceNoticeOpen, setOpenSourceNoticeOpen] = useState(false);
-    const [supportOpen, setSupportOpen] = useState(false);
     const [quickAccessKeys, setQuickAccessKeys] = useState<string[]>([]);
     const zoomLevel = useShellStore((state) => state.zoomLevel);
     const navbarOpen = useShellStore((state) => state.sidebarOpen);
@@ -512,12 +508,13 @@ export function AppMenuBar({
                             </>
                         ) : null}
                         <MenubarGroup>
-                            <MenuItem onClick={() => setSupportOpen(true)}>
-                                {t('support_vrcx.title')}
-                            </MenuItem>
-                            <MenuItem onClick={() => setAboutOpen(true)}>
+                            <MenuItem
+                                label={t('app_menu.about')}
+                                className="min-w-56"
+                                onClick={() => setAboutOpen(true)}
+                            >
                                 {t('app_menu.about')}
-                                <MenubarShortcut className="tracking-normal">
+                                <MenubarShortcut className="font-mono tracking-normal tabular-nums">
                                     {appVersion}
                                 </MenubarShortcut>
                             </MenuItem>
@@ -530,40 +527,15 @@ export function AppMenuBar({
                 open={openSourceNoticeOpen}
                 onOpenChange={setOpenSourceNoticeOpen}
             />
-            <SupportVrcxDialog
-                open={supportOpen}
-                onOpenChange={setSupportOpen}
-            />
 
-            <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
-                <DialogContent showCloseButton={false}>
-                    <DialogHeader>
-                        <DialogTitle>{t('app_menu.about_title')}</DialogTitle>
-                        <DialogDescription>
-                            {t('app_menu.about_description')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="bg-muted/30 rounded-lg border p-3 text-sm">
-                        <div className="flex items-center justify-between gap-3">
-                            <span className="text-muted-foreground">
-                                {t('app_menu.version')}
-                            </span>
-                            <span className="font-medium">{appVersion}</span>
-                        </div>
-                    </div>
-                    <Button
-                        variant="outline"
-                        className="w-full justify-start"
-                        onClick={() => {
-                            setAboutOpen(false);
-                            setOpenSourceNoticeOpen(true);
-                        }}
-                    >
-                        {t('app_menu.open_source_licenses')}
-                    </Button>
-                    <DialogFooter showCloseButton />
-                </DialogContent>
-            </Dialog>
+            <AboutVrcxDialog
+                open={aboutOpen}
+                onOpenChange={setAboutOpen}
+                onOpenLicenses={() => {
+                    setAboutOpen(false);
+                    setOpenSourceNoticeOpen(true);
+                }}
+            />
         </>
     );
 }

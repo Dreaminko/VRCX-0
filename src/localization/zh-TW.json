@@ -3155,6 +3155,20 @@
                 "custom_source_required": "請先在設定裡選擇本機圖片。",
                 "no_images": "沒有找到支援的圖片。"
             }
+        },
+        "about": {
+            "title": "關於 VRCX-0",
+            "tagline": "基於 Tauri 和 Rust 構建的快速輕量 VRCX。",
+            "copy_version": "複製版本資訊",
+            "version_copied": "版本資訊已複製。",
+            "link_source": "原始碼",
+            "link_qq": "QQ 群",
+            "link_issues": "回報問題",
+            "contributors": "貢獻者",
+            "contributors_error": "貢獻者清單載入失敗。",
+            "thanks": "翻譯、測試、回饋與點子來自社群的每一位 —— 謝謝你們。",
+            "view_graph": "在 GitHub 查看完整貢獻圖",
+            "license_line": "GPL-3.0 自由開源"
         }
     },
     "dialog": {

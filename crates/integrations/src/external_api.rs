@@ -23,6 +23,7 @@ pub enum ExternalApiScope {
     Youtube,
     VrcStatus,
     UpdateRelease,
+    GithubContributors,
     Image,
 }
 
@@ -179,6 +180,13 @@ pub fn github_releases_get_input(
     external_get_input(url.to_string(), headers)
 }
 
+pub fn github_contributors_get_input(
+    url: &str,
+    headers: HashMap<String, String>,
+) -> ExternalHttpRequestInput {
+    external_get_input(url.to_string(), headers)
+}
+
 pub fn image_data_url_get_input(url: &str) -> ExternalHttpRequestInput {
     external_get_input(url.to_string(), HashMap::new())
 }
@@ -255,6 +263,7 @@ fn scope_name(scope: ExternalApiScope) -> &'static str {
         ExternalApiScope::Youtube => "externalYoutube",
         ExternalApiScope::VrcStatus => "externalVrcStatus",
         ExternalApiScope::UpdateRelease => "externalUpdateRelease",
+        ExternalApiScope::GithubContributors => "externalGithubContributors",
         ExternalApiScope::Image => "externalImage",
     }
 }
@@ -317,6 +326,11 @@ fn external_url_allowed(url: &Url, scope: ExternalApiScope, policy: &ExternalApi
             origin == GITHUB_API_ORIGIN
                 && url.path().starts_with("/repos/")
                 && url.path().ends_with("/releases")
+        }
+        ExternalApiScope::GithubContributors => {
+            origin == GITHUB_API_ORIGIN
+                && url.path().starts_with("/repos/")
+                && url.path().ends_with("/contributors")
         }
     }
 }
@@ -681,6 +695,34 @@ mod tests {
                 ..Default::default()
             },
             ExternalApiScope::UpdateRelease,
+            &policy,
+        )
+        .is_err());
+
+        assert!(build_web_execute_request_with_policy(
+            ExternalHttpRequestInput {
+                url: Some("https://api.github.com/repos/Map1en/VRCX-0/contributors".into()),
+                ..Default::default()
+            },
+            ExternalApiScope::GithubContributors,
+            &policy,
+        )
+        .is_ok());
+        assert!(build_web_execute_request_with_policy(
+            ExternalHttpRequestInput {
+                url: Some("https://api.github.com/repos/Map1en/VRCX-0/releases".into()),
+                ..Default::default()
+            },
+            ExternalApiScope::GithubContributors,
+            &policy,
+        )
+        .is_err());
+        assert!(build_web_execute_request_with_policy(
+            ExternalHttpRequestInput {
+                url: Some("https://github.com/repos/Map1en/VRCX-0/contributors".into()),
+                ..Default::default()
+            },
+            ExternalApiScope::GithubContributors,
             &policy,
         )
         .is_err());
