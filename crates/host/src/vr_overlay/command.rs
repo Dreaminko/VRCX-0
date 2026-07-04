@@ -3,7 +3,7 @@ use std::time::Duration;
 use thiserror::Error;
 use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
-use super::types::OverlaySurfaceConfig;
+use super::types::{OverlayPanelBinding, OverlaySurfaceConfig};
 
 #[derive(Debug)]
 pub enum OverlayServiceCommand {
@@ -21,6 +21,8 @@ pub enum OverlayServiceCommand {
         surface_id: OverlaySurfaceId,
         alpha: f32,
     },
+    SetPanelBindings(Vec<OverlayPanelBinding>),
+    SetInteractionActive(bool),
     Stop,
 }
 

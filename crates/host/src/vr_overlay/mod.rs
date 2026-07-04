@@ -22,6 +22,8 @@ pub use openvr_backend::OpenVrOverlayBackend;
 pub use openxr_backend::{probe_runtime as probe_openxr_runtime, OpenXrOverlayBackend};
 pub use status::{OverlayServicePhase, OverlayServiceStatus};
 pub use types::{
-    BackendStartError, OverlayActivationButton, OverlayPlacement, OverlaySurfaceConfig,
+    default_overlay_panel_bindings, parse_overlay_panel_bindings_or_default, BackendStartError,
+    OverlayActivationButton, OverlayHand, OverlayInputEvent, OverlayInputEventSink,
+    OverlayInputKind, OverlayPanelBinding, OverlayPlacement, OverlaySurfaceConfig,
     VrDeviceSnapshot, VrDeviceStatus,
 };

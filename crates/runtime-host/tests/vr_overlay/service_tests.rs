@@ -15,9 +15,8 @@ use vrcx_0_host::vr_overlay::{
 use vrcx_0_vr_overlay::{OverlaySize, OverlaySurfaceId, RgbaFrame};
 
 use super::{
-    apply_surface_config_change, condemned_probe_due, is_running_phase,
-    quit_cooldown_remaining, retire_outcome_for_stop_result, HostVrOverlayService,
-    RetireOutcome, VrOverlayServiceControl,
+    apply_surface_config_change, condemned_probe_due, is_running_phase, quit_cooldown_remaining,
+    retire_outcome_for_stop_result, HostVrOverlayService, RetireOutcome, VrOverlayServiceControl,
 };
 
 #[test]
@@ -257,6 +256,7 @@ fn surface_config(value: &str) -> OverlaySurfaceConfig {
             device_hint: "left-hand".to_string(),
         },
         activation_button: OverlayActivationButton::Grip,
+        interactive: false,
     }
 }
 

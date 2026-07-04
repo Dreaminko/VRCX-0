@@ -1,6 +1,8 @@
 use std::time::{Duration, Instant};
 
-use vrcx_0_host::vr_overlay::{OverlaySurfaceConfig, VrDeviceSnapshot};
+use vrcx_0_host::vr_overlay::{
+    OverlayInputEvent, OverlayPanelBinding, OverlaySurfaceConfig, VrDeviceSnapshot,
+};
 use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
 use super::{
@@ -123,6 +125,18 @@ where
 
     pub fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String> {
         self.service.snapshot_devices()
+    }
+
+    pub fn drain_input_events(&mut self) -> Vec<OverlayInputEvent> {
+        self.service.drain_input_events()
+    }
+
+    pub fn set_panel_bindings(&mut self, bindings: Vec<OverlayPanelBinding>) -> Result<(), String> {
+        self.service.set_panel_bindings(bindings)
+    }
+
+    pub fn set_interaction_active(&mut self, active: bool) -> Result<(), String> {
+        self.service.set_interaction_active(active)
     }
 
     pub fn set_surface_configs(

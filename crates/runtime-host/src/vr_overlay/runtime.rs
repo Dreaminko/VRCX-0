@@ -14,13 +14,16 @@ use vrcx_0_application::{
 };
 use vrcx_0_core::log_watcher::GameLogEventKind;
 use vrcx_0_host::vr_overlay::{
-    OverlayActivationButton, OverlayPlacement, OverlaySurfaceConfig, VrDeviceSnapshot,
+    default_overlay_panel_bindings, parse_overlay_panel_bindings_or_default,
+    OverlayActivationButton, OverlayInputEvent, OverlayInputKind, OverlayPanelBinding,
+    OverlayPlacement, OverlaySurfaceConfig, VrDeviceSnapshot,
 };
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_vr_overlay::{
-    build_main_scene, build_wrist_scene, new_shared_overlay_font_system, AvatarBitmap,
-    MainSurfaceModel, OverlayRenderer, OverlaySize, OverlaySurfaceId, RgbaFrame, TextMeasurer,
-    TinySkiaRenderer, MAIN_SURFACE_ID,
+    build_dummy_panel_scene, build_main_scene, build_wrist_scene, new_shared_overlay_font_system,
+    AvatarBitmap, DummyPanelAction, DummyPanelModel, MainSurfaceModel, OverlayRenderer,
+    OverlaySize, OverlaySurfaceId, OverlayTransform, RgbaFrame, TextMeasurer, TinySkiaRenderer,
+    INTERACTIVE_DUMMY_SURFACE_ID, MAIN_SURFACE_ID,
 };
 
 use crate::notification::user_image::UserImageCache;
@@ -52,6 +55,7 @@ pub const VR_OVERLAY_HIDE_PRIVATE_WORLDS_CONFIG_KEY: &str = "wristOverlayHidePri
 pub const VR_OVERLAY_DARK_BACKGROUND_CONFIG_KEY: &str = "wristOverlayDarkBackground";
 pub const VR_OVERLAY_SHOW_DEVICES_CONFIG_KEY: &str = "wristOverlayShowDevices";
 pub const VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY: &str = "wristOverlayShowBatteryPercent";
+pub const VR_OVERLAY_PANEL_BINDINGS_CONFIG_KEY: &str = "vrOverlayPanelBindings";
 pub const HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY: &str = "hmdNotificationsEnabled";
 pub const HMD_NOTIFICATION_START_MODE_CONFIG_KEY: &str = "hmdNotificationStartMode";
 pub const HMD_NOTIFICATION_TIMEOUT_CONFIG_KEY: &str = "hmdNotificationTimeout";
@@ -61,6 +65,8 @@ const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
 const DATE_TIME_HOUR12_CONFIG_KEY: &str = "dtHour12";
 const WRIST_DEVICE_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WRIST_FRAME_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
+const INTERACTIVE_PANEL_FRAME_REFRESH_INTERVAL: Duration = Duration::from_millis(16);
+const INTERACTIVE_INPUT_DRAIN_INTERVAL: Duration = Duration::from_millis(30);
 const HMD_TOAST_CAPACITY: usize = 3;
 const HMD_JOIN_LEAVE_MERGE_WINDOW: Duration = Duration::from_secs(4);
 const HMD_AVATAR_SIZE: u32 = 96;
@@ -198,11 +204,38 @@ struct VrOverlayFrameInput {
 struct ActiveOverlaySurfaces {
     wrist: bool,
     hmd: bool,
+    panel_listener: bool,
+    dummy_panel: bool,
 }
 
 impl ActiveOverlaySurfaces {
     fn any(self) -> bool {
-        self.wrist || self.hmd
+        self.wrist || self.hmd || self.panel_listener || self.dummy_panel
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct OverlayInputProcessOutcome {
+    surface_config_changed: bool,
+    frame_changed: bool,
+}
+
+#[derive(Clone)]
+struct InteractivePanelRuntimeState {
+    visible: bool,
+    transform: OverlayTransform,
+    model: DummyPanelModel,
+    focused: bool,
+}
+
+impl Default for InteractivePanelRuntimeState {
+    fn default() -> Self {
+        Self {
+            visible: false,
+            transform: OverlayTransform::identity(),
+            model: DummyPanelModel::default(),
+            focused: false,
+        }
     }
 }
 
@@ -232,11 +265,14 @@ pub struct VrOverlayRuntime {
     vr_mode: AtomicBool,
     steamvr_running: AtomicBool,
     refresh_loop_started: AtomicBool,
+    interactive_degraded_logged: AtomicBool,
     backend_available: bool,
     context: Option<Arc<RuntimeHostContext>>,
     config: Mutex<VrOverlayRuntimeConfig>,
+    panel_bindings: Mutex<Vec<OverlayPanelBinding>>,
     devices: Mutex<Vec<VrDeviceSnapshot>>,
     hmd_toasts: Mutex<VecDeque<HmdToastState>>,
+    interactive_panel: Mutex<InteractivePanelRuntimeState>,
     avatar_bitmap_cache: Arc<AvatarBitmapCache>,
     user_image_cache: Arc<UserImageCache>,
     manager: Mutex<VrOverlayManager<HostVrOverlayService>>,
@@ -245,6 +281,7 @@ pub struct VrOverlayRuntime {
     frame_producer_factory: VrOverlayFrameProducerFactory,
     frame_producer: Mutex<Option<Box<dyn VrOverlayFrameProducer>>>,
     main_frame_renderer: Mutex<Option<RuntimeMainFrameRenderer>>,
+    dummy_panel_renderer: Mutex<TinySkiaRenderer>,
 }
 
 #[derive(Clone)]
@@ -271,11 +308,13 @@ impl OverlayActivitySink for VrOverlayActivitySink {
 impl VrOverlayRuntime {
     pub fn new(context: Arc<RuntimeHostContext>) -> Self {
         let config = load_runtime_config(context.config());
+        let panel_bindings = load_panel_bindings(context.config());
         let producer_context = Arc::clone(&context);
         Self::new_with_frame_producer_factory(
             HostVrOverlayService::backend_available(),
             Some(context.clone()),
             config,
+            panel_bindings,
             Box::new(move || {
                 Box::new(RuntimeWristFrameProducer::new(Arc::clone(
                     &producer_context,
@@ -293,6 +332,7 @@ impl VrOverlayRuntime {
             backend_available,
             None,
             VrOverlayRuntimeConfig::default(),
+            default_overlay_panel_bindings(),
             Box::new(|| Box::<StaticWristFrameProducer>::default()),
         )
     }
@@ -319,6 +359,7 @@ impl VrOverlayRuntime {
             backend_available,
             None,
             config,
+            default_overlay_panel_bindings(),
             frame_producer_factory,
         )
     }
@@ -327,9 +368,10 @@ impl VrOverlayRuntime {
         backend_available: bool,
         context: Option<Arc<RuntimeHostContext>>,
         config: VrOverlayRuntimeConfig,
+        panel_bindings: Vec<OverlayPanelBinding>,
         frame_producer_factory: VrOverlayFrameProducerFactory,
     ) -> Self {
-        let service_configs = overlay_surface_configs(ActiveOverlaySurfaces::default(), config);
+        let service_configs = Vec::new();
         let service = if context.is_some() {
             HostVrOverlayService::new_with_preference(service_configs, config.backend)
         } else {
@@ -341,19 +383,23 @@ impl VrOverlayRuntime {
             vr_mode: AtomicBool::new(false),
             steamvr_running: AtomicBool::new(false),
             refresh_loop_started: AtomicBool::new(false),
+            interactive_degraded_logged: AtomicBool::new(false),
             backend_available,
             context,
             manager: Mutex::new(VrOverlayManager::new(service)),
             running_mirror: AtomicBool::new(false),
             active_backend_mirror: Mutex::new(None),
             config: Mutex::new(config),
+            panel_bindings: Mutex::new(panel_bindings),
             devices: Mutex::new(Vec::new()),
             hmd_toasts: Mutex::new(VecDeque::new()),
+            interactive_panel: Mutex::new(InteractivePanelRuntimeState::default()),
             avatar_bitmap_cache: Arc::new(AvatarBitmapCache::new()),
             user_image_cache: Arc::new(UserImageCache::new()),
             frame_producer_factory,
             frame_producer: Mutex::new(None),
             main_frame_renderer: Mutex::new(None),
+            dummy_panel_renderer: Mutex::new(TinySkiaRenderer::new()),
         }
     }
 
@@ -376,7 +422,7 @@ impl VrOverlayRuntime {
         tasks.spawn_cancellable_thread("vr-overlay-refresh", move |stop_token| {
             let mut next_device_refresh = Instant::now();
             while !stop_token.is_stop_requested() {
-                std::thread::sleep(WRIST_FRAME_REFRESH_INTERVAL);
+                std::thread::sleep(runtime.refresh_interval());
                 if !runtime.has_active_surface() {
                     continue;
                 }
@@ -386,6 +432,14 @@ impl VrOverlayRuntime {
                 if refresh_devices {
                     next_device_refresh = now + WRIST_DEVICE_REFRESH_INTERVAL;
                 }
+            }
+        });
+
+        let input_runtime = Arc::clone(self);
+        tasks.spawn_cancellable_thread("vr-overlay-input", move |stop_token| {
+            while !stop_token.is_stop_requested() {
+                std::thread::sleep(input_runtime.input_drain_interval());
+                input_runtime.drain_overlay_input_events();
             }
         });
     }
@@ -413,6 +467,34 @@ impl VrOverlayRuntime {
 
     fn has_active_surface(&self) -> bool {
         self.active_surfaces(self.current_runtime_config()).any()
+    }
+
+    fn refresh_interval(&self) -> Duration {
+        if self.interactive_panel_active_refresh() {
+            INTERACTIVE_PANEL_FRAME_REFRESH_INTERVAL
+        } else {
+            WRIST_FRAME_REFRESH_INTERVAL
+        }
+    }
+
+    fn input_drain_interval(&self) -> Duration {
+        if self.panel_listener_available() || self.interactive_panel_active_refresh() {
+            INTERACTIVE_INPUT_DRAIN_INTERVAL
+        } else {
+            WRIST_FRAME_REFRESH_INTERVAL
+        }
+    }
+
+    fn panel_listener_available(&self) -> bool {
+        self.active_surfaces(self.current_runtime_config())
+            .panel_listener
+    }
+
+    fn interactive_panel_active_refresh(&self) -> bool {
+        self.interactive_panel
+            .lock()
+            .map(|panel| panel.visible || panel.focused)
+            .unwrap_or(false)
     }
 
     pub fn snapshot(&self) -> VrOverlayRuntimeSnapshot {
@@ -687,10 +769,19 @@ impl VrOverlayRuntime {
             let game_running = self.game_running.load(Ordering::Acquire);
             let vr_mode = self.vr_mode.load(Ordering::Acquire);
             let steamvr_running = self.steamvr_running.load(Ordering::Acquire);
-            let active_surfaces =
-                self.active_surfaces_for_state(config, game_running, vr_mode, steamvr_running);
+            let panel_bindings = self.refresh_panel_bindings_from_config();
+            if let Err(error) = manager.set_panel_bindings(panel_bindings.clone()) {
+                tracing::warn!(error = %error, "failed to apply VR overlay panel bindings");
+            }
+            let active_surfaces = self.active_surfaces_for_state(
+                config,
+                game_running,
+                vr_mode,
+                steamvr_running,
+                !panel_bindings.is_empty(),
+            );
             if active_surfaces.any() {
-                let configs = overlay_surface_configs(active_surfaces, config);
+                let configs = overlay_surface_configs(active_surfaces, config, self);
                 if let Err(error) = manager.set_surface_configs(configs) {
                     tracing::warn!(
                         error = %error,
@@ -709,7 +800,30 @@ impl VrOverlayRuntime {
                 start_mode: WristOverlayStartMode::SteamVr,
             };
             manager.reconcile(eligibility);
+            self.log_interactive_backend_degradation(&manager, active_surfaces);
             if eligibility.can_run() && manager.is_running() {
+                let input_outcome = self.process_overlay_input_events(&mut manager);
+                if input_outcome.surface_config_changed {
+                    let refreshed_surfaces = self.active_surfaces_for_state(
+                        config,
+                        game_running,
+                        vr_mode,
+                        steamvr_running,
+                        !panel_bindings.is_empty(),
+                    );
+                    let configs = overlay_surface_configs(refreshed_surfaces, config, self);
+                    if let Err(error) = manager.set_surface_configs(configs) {
+                        tracing::warn!(
+                            error = %error,
+                            "failed to apply VR overlay interactive surface config"
+                        );
+                    }
+                }
+                if let Err(error) =
+                    manager.set_interaction_active(self.interactive_panel_active_refresh())
+                {
+                    tracing::warn!(error = %error, "failed to set VR overlay interaction mode");
+                }
                 if active_surfaces.wrist {
                     self.refresh_devices_if_needed(
                         &mut manager,
@@ -725,10 +839,56 @@ impl VrOverlayRuntime {
                 } else {
                     self.clear_hmd_toasts();
                 }
+                self.push_dummy_panel_frame(&mut manager);
             } else {
                 self.release_frame_producer();
             }
             self.refresh_manager_mirror(&manager);
+        }
+    }
+
+    fn drain_overlay_input_events(&self) {
+        if !self.panel_listener_available() && !self.interactive_panel_active_refresh() {
+            return;
+        }
+        let Ok(mut manager) = self.manager.try_lock() else {
+            return;
+        };
+        let input_outcome = self.process_overlay_input_events(&mut manager);
+        if input_outcome.surface_config_changed {
+            self.apply_current_surface_configs(&mut manager, "interactive");
+        }
+        if input_outcome.surface_config_changed || input_outcome.frame_changed {
+            if let Err(error) =
+                manager.set_interaction_active(self.interactive_panel_active_refresh())
+            {
+                tracing::warn!(error = %error, "failed to set VR overlay interaction mode");
+            }
+        }
+        if input_outcome.frame_changed {
+            self.push_dummy_panel_frame(&mut manager);
+        }
+        self.refresh_manager_mirror(&manager);
+    }
+
+    fn apply_current_surface_configs(
+        &self,
+        manager: &mut VrOverlayManager<HostVrOverlayService>,
+        context: &str,
+    ) {
+        let config = self.current_runtime_config();
+        let active_surfaces = self.active_surfaces(config);
+        if !active_surfaces.any() {
+            self.clear_hmd_toasts();
+            return;
+        }
+        let configs = overlay_surface_configs(active_surfaces, config, self);
+        if let Err(error) = manager.set_surface_configs(configs) {
+            tracing::warn!(
+                error = %error,
+                context,
+                "failed to apply VR overlay surface config"
+            );
         }
     }
 
@@ -742,6 +902,7 @@ impl VrOverlayRuntime {
             self.game_running.load(Ordering::Acquire),
             self.vr_mode.load(Ordering::Acquire),
             self.steamvr_running.load(Ordering::Acquire),
+            !self.current_panel_bindings().is_empty(),
         )
     }
 
@@ -751,7 +912,15 @@ impl VrOverlayRuntime {
         game_running: bool,
         vr_mode: bool,
         steamvr_running: bool,
+        has_panel_bindings: bool,
     ) -> ActiveOverlaySurfaces {
+        let panel_listener = self.backend_available && steamvr_running && has_panel_bindings;
+        let dummy_panel = panel_listener
+            && self
+                .interactive_panel
+                .lock()
+                .map(|panel| panel.visible)
+                .unwrap_or(false);
         ActiveOverlaySurfaces {
             wrist: surface_active_for_start_mode(
                 self.enabled.load(Ordering::Acquire),
@@ -769,7 +938,29 @@ impl VrOverlayRuntime {
                 game_running,
                 vr_mode,
             ),
+            panel_listener,
+            dummy_panel,
         }
+    }
+
+    fn current_panel_bindings(&self) -> Vec<OverlayPanelBinding> {
+        self.panel_bindings
+            .lock()
+            .map(|bindings| bindings.clone())
+            .unwrap_or_else(|_| default_overlay_panel_bindings())
+    }
+
+    fn refresh_panel_bindings_from_config(&self) -> Vec<OverlayPanelBinding> {
+        let Some(context) = &self.context else {
+            return self.current_panel_bindings();
+        };
+        let next = load_panel_bindings(context.config());
+        if let Ok(mut current) = self.panel_bindings.lock() {
+            if *current != next {
+                *current = next.clone();
+            }
+        }
+        next
     }
 
     fn changed_runtime_config(&self) -> Option<VrOverlayRuntimeConfig> {
@@ -880,6 +1071,190 @@ impl VrOverlayRuntime {
         if let Ok(mut devices) = self.devices.lock() {
             devices.clear();
         }
+    }
+
+    fn process_overlay_input_events(
+        &self,
+        manager: &mut VrOverlayManager<HostVrOverlayService>,
+    ) -> OverlayInputProcessOutcome {
+        let mut outcome = OverlayInputProcessOutcome::default();
+        for event in manager.drain_input_events() {
+            if event.panel_id != "dummy" {
+                continue;
+            }
+            let event_outcome = self.apply_dummy_panel_input(event);
+            outcome.surface_config_changed |= event_outcome.surface_config_changed;
+            outcome.frame_changed |= event_outcome.frame_changed;
+        }
+        outcome
+    }
+
+    fn apply_dummy_panel_input(&self, event: OverlayInputEvent) -> OverlayInputProcessOutcome {
+        let Ok(mut panel) = self.interactive_panel.lock() else {
+            return OverlayInputProcessOutcome::default();
+        };
+        match event.kind {
+            OverlayInputKind::Summon { transform } => {
+                let frame_changed = !panel.visible;
+                if panel.visible {
+                    panel.visible = false;
+                    panel.focused = false;
+                    panel.model.hovered_region_id = None;
+                    panel.model.pressed_region_id = None;
+                } else {
+                    panel.visible = true;
+                    panel.focused = true;
+                    panel.transform = transform;
+                }
+                OverlayInputProcessOutcome {
+                    surface_config_changed: true,
+                    frame_changed,
+                }
+            }
+            _ if !panel.visible => OverlayInputProcessOutcome::default(),
+            OverlayInputKind::Hover => {
+                panel
+                    .model
+                    .apply_uv_action(event.uv, DummyPanelAction::Hover);
+                panel.focused = panel.model.hovered_region_id.is_some();
+                OverlayInputProcessOutcome {
+                    surface_config_changed: false,
+                    frame_changed: true,
+                }
+            }
+            OverlayInputKind::ClickDown => {
+                panel
+                    .model
+                    .apply_uv_action(event.uv, DummyPanelAction::ClickDown);
+                panel.focused = true;
+                OverlayInputProcessOutcome {
+                    surface_config_changed: false,
+                    frame_changed: true,
+                }
+            }
+            OverlayInputKind::ClickUp => {
+                let hit = panel
+                    .model
+                    .apply_uv_action(event.uv, DummyPanelAction::ClickUp);
+                if let Some(region_id) = hit {
+                    tracing::debug!(region_id = %region_id, "VR dummy panel clicked");
+                }
+                panel.focused = panel.model.hovered_region_id.is_some();
+                OverlayInputProcessOutcome {
+                    surface_config_changed: false,
+                    frame_changed: true,
+                }
+            }
+            OverlayInputKind::Scroll { delta } => {
+                panel
+                    .model
+                    .apply_uv_action(event.uv, DummyPanelAction::Scroll { delta });
+                panel.focused = true;
+                OverlayInputProcessOutcome {
+                    surface_config_changed: false,
+                    frame_changed: true,
+                }
+            }
+            OverlayInputKind::GrabStart => {
+                panel.focused = true;
+                OverlayInputProcessOutcome::default()
+            }
+            OverlayInputKind::GrabMove { transform } => {
+                panel.transform = transform;
+                panel.focused = true;
+                OverlayInputProcessOutcome {
+                    surface_config_changed: true,
+                    frame_changed: false,
+                }
+            }
+            OverlayInputKind::GrabEnd { transform } => {
+                panel.transform = transform;
+                panel.focused = true;
+                OverlayInputProcessOutcome {
+                    surface_config_changed: true,
+                    frame_changed: false,
+                }
+            }
+        }
+    }
+
+    fn push_dummy_panel_frame(&self, manager: &mut VrOverlayManager<HostVrOverlayService>) {
+        let model = {
+            let Ok(panel) = self.interactive_panel.lock() else {
+                return;
+            };
+            if !panel.visible {
+                return;
+            }
+            panel.model.clone()
+        };
+        let scene = build_dummy_panel_scene(&model);
+        let frame = match self
+            .dummy_panel_renderer
+            .lock()
+            .map_err(|_| "dummy panel renderer lock poisoned".to_string())
+            .and_then(|mut renderer| renderer.render(&scene).map_err(|error| error.to_string()))
+        {
+            Ok(frame) => frame,
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to render VR dummy panel frame");
+                return;
+            }
+        };
+        let surface_id = OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID);
+        if let Err(error) = manager.update_surface_frame(&surface_id, frame) {
+            tracing::warn!(error = %error, "failed to update VR dummy panel frame");
+            return;
+        }
+        if let Err(error) = manager.show_surface(&surface_id) {
+            tracing::warn!(error = %error, "failed to show VR dummy panel surface");
+        }
+    }
+
+    fn log_interactive_backend_degradation(
+        &self,
+        manager: &VrOverlayManager<HostVrOverlayService>,
+        active_surfaces: ActiveOverlaySurfaces,
+    ) {
+        if !active_surfaces.panel_listener {
+            self.interactive_degraded_logged
+                .store(false, Ordering::Release);
+            return;
+        }
+        match manager.active_backend() {
+            Some("openvr") | None => {
+                self.interactive_degraded_logged
+                    .store(false, Ordering::Release);
+            }
+            Some(backend) => {
+                if !self
+                    .interactive_degraded_logged
+                    .swap(true, Ordering::AcqRel)
+                {
+                    tracing::debug!(
+                        backend,
+                        "VR interactive panel input is unavailable on this overlay backend"
+                    );
+                }
+            }
+        }
+    }
+
+    fn dummy_panel_surface_config(&self) -> Option<OverlaySurfaceConfig> {
+        let panel = self.interactive_panel.lock().ok()?;
+        if !panel.visible {
+            return None;
+        }
+        Some(OverlaySurfaceConfig {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            size: panel.model.size,
+            physical_width_meters: 0.8,
+            placement: OverlayPlacement::Absolute {
+                transform: panel.transform,
+            },
+            activation_button: OverlayActivationButton::Menu,
+            interactive: true,
+        })
     }
 }
 
@@ -1173,6 +1548,7 @@ fn surface_active_for_start_mode(
 fn overlay_surface_configs(
     active_surfaces: ActiveOverlaySurfaces,
     config: VrOverlayRuntimeConfig,
+    runtime: &VrOverlayRuntime,
 ) -> Vec<OverlaySurfaceConfig> {
     let mut configs = Vec::new();
     if active_surfaces.wrist {
@@ -1180,6 +1556,11 @@ fn overlay_surface_configs(
     }
     if active_surfaces.hmd {
         configs.push(hmd_surface_config(config.hmd.position));
+    }
+    if active_surfaces.dummy_panel {
+        if let Some(config) = runtime.dummy_panel_surface_config() {
+            configs.push(config);
+        }
     }
     configs
 }
@@ -1228,6 +1609,7 @@ fn wrist_surface_config(
             device_hint: device_hint.to_string(),
         },
         activation_button: button,
+        interactive: false,
     }
 }
 
@@ -1240,6 +1622,7 @@ fn hmd_surface_config(position: HmdNotificationPosition) -> OverlaySurfaceConfig
             device_hint: position.as_device_hint().to_string(),
         },
         activation_button: OverlayActivationButton::Grip,
+        interactive: false,
     }
 }
 
@@ -1364,6 +1747,15 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
     }
 }
 
+pub(super) fn load_panel_bindings(config: &ConfigRepository) -> Vec<OverlayPanelBinding> {
+    config
+        .get_raw(VR_OVERLAY_PANEL_BINDINGS_CONFIG_KEY)
+        .ok()
+        .flatten()
+        .map(|raw| parse_overlay_panel_bindings_or_default(&raw))
+        .unwrap_or_else(default_overlay_panel_bindings)
+}
+
 fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -1431,6 +1823,7 @@ fn is_real_instance_location(location: &str) -> bool {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use vrcx_0_host::vr_overlay::OverlayHand;
 
     #[test]
     fn snapshot_and_is_running_use_mirror_when_manager_lock_is_busy() {
@@ -1481,6 +1874,199 @@ mod tests {
         let mut button = base;
         button.button = OverlayActivationButton::Menu;
         assert_ne!(base.surface_config_key(), button.surface_config_key());
+    }
+
+    #[test]
+    fn default_panel_binding_starts_listener_when_steamvr_is_running() {
+        let runtime = VrOverlayRuntime::new_for_test();
+
+        record_process_status(&runtime, false, true, false);
+
+        assert!(runtime.is_running());
+        assert!(
+            runtime
+                .active_surfaces(runtime.current_runtime_config())
+                .panel_listener
+        );
+    }
+
+    #[test]
+    fn input_drain_interval_is_fast_while_panel_listener_is_available() {
+        let runtime = VrOverlayRuntime::new_for_test();
+
+        assert_eq!(runtime.input_drain_interval(), WRIST_FRAME_REFRESH_INTERVAL);
+
+        record_process_status(&runtime, false, true, false);
+
+        assert!(
+            runtime
+                .active_surfaces(runtime.current_runtime_config())
+                .panel_listener
+        );
+        assert!(runtime.input_drain_interval() <= Duration::from_millis(100));
+    }
+
+    #[test]
+    fn dummy_panel_summon_toggles_absolute_surface_and_refresh_rate() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let transform = OverlayTransform::from_translation([1.0, 1.2, -2.0]);
+
+        assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
+
+        let summon_outcome = runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: vrcx_0_vr_overlay::UvPoint::new(0.5, 0.5),
+            kind: OverlayInputKind::Summon { transform },
+        });
+        assert!(summon_outcome.surface_config_changed);
+
+        assert_eq!(
+            runtime.refresh_interval(),
+            INTERACTIVE_PANEL_FRAME_REFRESH_INTERVAL
+        );
+        let config = runtime
+            .dummy_panel_surface_config()
+            .expect("dummy surface config");
+        assert!(config.interactive);
+        assert_eq!(config.surface_id.as_str(), INTERACTIVE_DUMMY_SURFACE_ID);
+        assert!(matches!(
+            config.placement,
+            OverlayPlacement::Absolute { transform: value } if value == transform
+        ));
+
+        let dismiss_outcome = runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: vrcx_0_vr_overlay::UvPoint::new(0.5, 0.5),
+            kind: OverlayInputKind::Summon { transform },
+        });
+        assert!(dismiss_outcome.surface_config_changed);
+
+        assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
+        assert!(runtime.dummy_panel_surface_config().is_none());
+    }
+
+    #[test]
+    fn dummy_panel_routes_hover_click_and_scroll_to_model() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let transform = OverlayTransform::identity();
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: vrcx_0_vr_overlay::UvPoint::new(0.5, 0.5),
+            kind: OverlayInputKind::Summon { transform },
+        });
+        let primary_uv = {
+            let panel = runtime.interactive_panel.lock().unwrap();
+            build_dummy_panel_scene(&panel.model)
+                .hit_regions
+                .iter()
+                .find(|region| region.id == "button:primary")
+                .map(|region| region.rect.center_uv(panel.model.size))
+                .expect("primary hit region")
+        };
+
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: primary_uv,
+            kind: OverlayInputKind::Hover,
+        });
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: primary_uv,
+            kind: OverlayInputKind::ClickDown,
+        });
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: primary_uv,
+            kind: OverlayInputKind::ClickUp,
+        });
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: primary_uv,
+            kind: OverlayInputKind::Scroll { delta: 10.0 },
+        });
+
+        let panel = runtime.interactive_panel.lock().unwrap();
+        assert_eq!(
+            panel.model.hovered_region_id.as_deref(),
+            Some("button:primary")
+        );
+        assert_eq!(panel.model.primary_click_count, 1);
+        assert_eq!(
+            panel.model.scroll_offset_rows,
+            panel.model.max_scroll_offset_rows()
+        );
+    }
+
+    #[test]
+    fn dummy_panel_clears_hover_and_pressed_state_on_pointer_miss() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let transform = OverlayTransform::identity();
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: vrcx_0_vr_overlay::UvPoint::new(0.5, 0.5),
+            kind: OverlayInputKind::Summon { transform },
+        });
+        let primary_uv = {
+            let panel = runtime.interactive_panel.lock().unwrap();
+            build_dummy_panel_scene(&panel.model)
+                .hit_regions
+                .iter()
+                .find(|region| region.id == "button:primary")
+                .map(|region| region.rect.center_uv(panel.model.size))
+                .expect("primary hit region")
+        };
+
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: primary_uv,
+            kind: OverlayInputKind::Hover,
+        });
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: primary_uv,
+            kind: OverlayInputKind::ClickDown,
+        });
+
+        let miss_uv = vrcx_0_vr_overlay::UvPoint::new(-1.0, -1.0);
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: miss_uv,
+            kind: OverlayInputKind::Hover,
+        });
+        runtime.apply_dummy_panel_input(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new(INTERACTIVE_DUMMY_SURFACE_ID),
+            panel_id: "dummy".to_string(),
+            hand: OverlayHand::Left,
+            uv: miss_uv,
+            kind: OverlayInputKind::ClickUp,
+        });
+
+        let panel = runtime.interactive_panel.lock().unwrap();
+        assert_eq!(panel.model.hovered_region_id, None);
+        assert_eq!(panel.model.pressed_region_id, None);
+        assert_eq!(panel.model.primary_click_count, 0);
     }
 
     #[test]
@@ -1652,6 +2238,7 @@ mod tests {
             true,
             counting_frame_producer_factory(Arc::clone(&created), Arc::clone(&dropped)),
         );
+        runtime.panel_bindings.lock().unwrap().clear();
 
         assert_eq!(created.load(Ordering::SeqCst), 0);
 
@@ -1690,6 +2277,7 @@ mod tests {
             config,
             counting_frame_producer_factory(Arc::clone(&created), Arc::clone(&dropped)),
         );
+        runtime.panel_bindings.lock().unwrap().clear();
 
         runtime.set_enabled(true);
         record_process_status(&runtime, true, true, true);
@@ -1721,6 +2309,7 @@ mod tests {
             config,
             counting_frame_producer_factory(Arc::clone(&created), Arc::clone(&dropped)),
         );
+        runtime.panel_bindings.lock().unwrap().clear();
 
         record_process_status(&runtime, false, true, false);
         assert!(!runtime.is_running());

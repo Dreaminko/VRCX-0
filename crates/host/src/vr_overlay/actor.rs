@@ -15,10 +15,14 @@ use super::{
     command::{OverlayCommandError, OverlayServiceCommand},
     noop::NoopOverlayBackend,
     status::{OverlayServicePhase, OverlayServiceStatus},
-    types::{BackendStartError, OverlaySurfaceConfig, VrDeviceSnapshot},
+    types::{
+        BackendStartError, OverlayInputEvent, OverlayInputEventSink, OverlayPanelBinding,
+        OverlaySurfaceConfig, VrDeviceSnapshot,
+    },
 };
 
-const OVERLAY_TICK_INTERVAL: Duration = Duration::from_millis(100);
+const IDLE_OVERLAY_TICK_INTERVAL: Duration = Duration::from_millis(100);
+const ACTIVE_OVERLAY_TICK_INTERVAL: Duration = Duration::from_millis(16);
 const START_COMMAND_TIMEOUT: Duration = Duration::from_secs(30);
 const SURFACE_COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
 const OVERLAY_COMMAND_TIMEOUT: Duration = Duration::from_secs(5);
@@ -30,6 +34,9 @@ pub enum TickOutcome {
 }
 
 pub trait OverlayBackend: Send + 'static {
+    fn set_input_event_sink(&mut self, _sink: OverlayInputEventSink) {}
+    fn set_panel_bindings(&mut self, _bindings: Vec<OverlayPanelBinding>) {}
+    fn set_interaction_active(&mut self, _active: bool) {}
     fn start(&mut self) -> Result<(), BackendStartError>;
     fn register_surface(&mut self, config: OverlaySurfaceConfig) -> Result<(), String>;
     fn unregister_surface(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
@@ -57,6 +64,7 @@ pub struct OverlayActorHandle {
     sender: mpsc::Sender<OverlayActorMessage>,
     status: Arc<Mutex<OverlayServiceStatus>>,
     runtime_quit_at: Arc<Mutex<Option<Instant>>>,
+    input_events: OverlayInputEventSink,
 }
 
 enum OverlayActorMessage {
@@ -94,13 +102,15 @@ impl OverlayActorHandle {
         Self::spawn_with_backend(backend)
     }
 
-    pub fn spawn_with_backend<B>(backend: B) -> Self
+    pub fn spawn_with_backend<B>(mut backend: B) -> Self
     where
         B: OverlayBackend,
     {
         let (sender, receiver) = mpsc::channel::<OverlayActorMessage>();
         let status = Arc::new(Mutex::new(OverlayServiceStatus::default()));
         let runtime_quit_at = Arc::new(Mutex::new(None));
+        let input_events = OverlayInputEventSink::default();
+        backend.set_input_event_sink(input_events.clone());
         let actor_status = Arc::clone(&status);
         let actor_runtime_quit_at = Arc::clone(&runtime_quit_at);
         thread::Builder::new()
@@ -111,6 +121,7 @@ impl OverlayActorHandle {
             sender,
             status,
             runtime_quit_at,
+            input_events,
         }
     }
 
@@ -150,6 +161,10 @@ impl OverlayActorHandle {
             .send(OverlayActorMessage::SnapshotDevices { reply })
             .map_err(|_| OverlayCommandError::Stopped)?;
         receive_with_timeout(result, "snapshot_devices", OVERLAY_COMMAND_TIMEOUT)
+    }
+
+    pub fn drain_input_events(&self) -> Vec<OverlayInputEvent> {
+        self.input_events.drain()
     }
 
     pub fn status(&self) -> OverlayServiceStatus {
@@ -192,6 +207,8 @@ fn command_name(command: &OverlayServiceCommand) -> &'static str {
         OverlayServiceCommand::Show(_) => "show",
         OverlayServiceCommand::Hide(_) => "hide",
         OverlayServiceCommand::SetAlpha { .. } => "set_alpha",
+        OverlayServiceCommand::SetPanelBindings(_) => "set_panel_bindings",
+        OverlayServiceCommand::SetInteractionActive(_) => "set_interaction_active",
         OverlayServiceCommand::Stop => "stop",
     }
 }
@@ -206,6 +223,8 @@ fn command_timeout(command: &OverlayServiceCommand) -> Duration {
         | OverlayServiceCommand::Show(_)
         | OverlayServiceCommand::Hide(_)
         | OverlayServiceCommand::SetAlpha { .. }
+        | OverlayServiceCommand::SetPanelBindings(_)
+        | OverlayServiceCommand::SetInteractionActive(_)
         | OverlayServiceCommand::Stop => OVERLAY_COMMAND_TIMEOUT,
     }
 }
@@ -220,13 +239,20 @@ fn run_actor<B>(
 {
     let mut skip_backend_stop = false;
     let mut last_tick_at = Instant::now();
+    let mut interaction_active = false;
     loop {
-        match receiver.recv_timeout(OVERLAY_TICK_INTERVAL) {
+        let tick_interval = overlay_tick_interval(interaction_active);
+        match receiver.recv_timeout(tick_interval) {
             Ok(message) => {
                 match message {
                     OverlayActorMessage::Command(envelope) => {
                         let should_stop = matches!(envelope.command, OverlayServiceCommand::Stop);
-                        let result = handle_command(&mut backend, envelope.command, &status);
+                        let result = handle_command(
+                            &mut backend,
+                            envelope.command,
+                            &status,
+                            &mut interaction_active,
+                        );
                         let _ = envelope.reply.send(result);
                         if should_stop {
                             skip_backend_stop = true;
@@ -240,13 +266,25 @@ fn run_actor<B>(
                         let _ = reply.send(result);
                     }
                 }
-                if run_tick_if_due(&mut backend, &status, &runtime_quit_at, &mut last_tick_at) {
+                if run_tick_if_due(
+                    &mut backend,
+                    &status,
+                    &runtime_quit_at,
+                    &mut last_tick_at,
+                    tick_interval,
+                ) {
                     skip_backend_stop = true;
                     break;
                 }
             }
             Err(RecvTimeoutError::Timeout) => {
-                if run_tick_if_due(&mut backend, &status, &runtime_quit_at, &mut last_tick_at) {
+                if run_tick_if_due(
+                    &mut backend,
+                    &status,
+                    &runtime_quit_at,
+                    &mut last_tick_at,
+                    tick_interval,
+                ) {
                     skip_backend_stop = true;
                     break;
                 }
@@ -266,11 +304,12 @@ fn run_tick_if_due<B>(
     status: &Arc<Mutex<OverlayServiceStatus>>,
     runtime_quit_at: &Arc<Mutex<Option<Instant>>>,
     last_tick_at: &mut Instant,
+    tick_interval: Duration,
 ) -> bool
 where
     B: OverlayBackend,
 {
-    if last_tick_at.elapsed() < OVERLAY_TICK_INTERVAL {
+    if last_tick_at.elapsed() < tick_interval {
         return false;
     }
     *last_tick_at = Instant::now();
@@ -315,6 +354,7 @@ fn handle_command<B>(
     backend: &mut B,
     command: OverlayServiceCommand,
     status: &Arc<Mutex<OverlayServiceStatus>>,
+    interaction_active: &mut bool,
 ) -> Result<(), OverlayCommandError>
 where
     B: OverlayBackend,
@@ -364,11 +404,28 @@ where
         OverlayServiceCommand::SetAlpha { surface_id, alpha } => backend
             .set_alpha(&surface_id, alpha)
             .map_err(|error| record_backend_error(status, error)),
+        OverlayServiceCommand::SetPanelBindings(bindings) => {
+            backend.set_panel_bindings(bindings);
+            Ok(())
+        }
+        OverlayServiceCommand::SetInteractionActive(active) => {
+            *interaction_active = active;
+            backend.set_interaction_active(active);
+            Ok(())
+        }
         OverlayServiceCommand::Stop => {
             backend.stop();
             update_status(status, OverlayServicePhase::Stopped, None);
             Ok(())
         }
+    }
+}
+
+fn overlay_tick_interval(interaction_active: bool) -> Duration {
+    if interaction_active {
+        ACTIVE_OVERLAY_TICK_INTERVAL
+    } else {
+        IDLE_OVERLAY_TICK_INTERVAL
     }
 }
 

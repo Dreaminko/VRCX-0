@@ -6,11 +6,13 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use vrcx_0_host::vr_overlay::{
-    BackendStartError, OverlayActivationButton, OverlayActorHandle, OverlayBackend,
-    OverlayCommandError, OverlayPlacement, OverlayServiceCommand, OverlayServicePhase,
-    OverlaySurfaceConfig, TickOutcome, VrDeviceSnapshot,
+    default_overlay_panel_bindings, parse_overlay_panel_bindings_or_default, BackendStartError,
+    OverlayActivationButton, OverlayActorHandle, OverlayBackend, OverlayCommandError, OverlayHand,
+    OverlayInputEvent, OverlayInputEventSink, OverlayInputKind, OverlayPanelBinding,
+    OverlayPlacement, OverlayServiceCommand, OverlayServicePhase, OverlaySurfaceConfig,
+    TickOutcome, VrDeviceSnapshot,
 };
-use vrcx_0_vr_overlay::{OverlaySize, OverlaySurfaceId, RgbaFrame};
+use vrcx_0_vr_overlay::{OverlaySize, OverlaySurfaceId, OverlayTransform, RgbaFrame, UvPoint};
 
 #[test]
 fn overlay_actor_serializes_commands_until_stop() {
@@ -264,6 +266,99 @@ fn overlay_actor_does_not_tick_before_start() {
         .expect("stop overlay");
 }
 
+#[test]
+fn overlay_actor_drains_input_events_pushed_by_backend_tick() {
+    let actor = OverlayActorHandle::spawn_with_backend(InputPushingBackend {
+        sink: OverlayInputEventSink::default(),
+        pushed: false,
+    });
+
+    actor
+        .send(OverlayServiceCommand::Start)
+        .expect("start overlay actor");
+    actor
+        .send(OverlayServiceCommand::SetInteractionActive(true))
+        .expect("enable interaction mode");
+
+    wait_until(Duration::from_secs(1), || {
+        !actor.drain_input_events().is_empty()
+    });
+    assert!(actor.drain_input_events().is_empty());
+
+    actor
+        .send(OverlayServiceCommand::Stop)
+        .expect("stop overlay");
+}
+
+#[test]
+fn overlay_input_event_sink_caps_backlog_and_keeps_latest_events() {
+    let sink = OverlayInputEventSink::default();
+    for index in 0..600 {
+        sink.push(OverlayInputEvent {
+            surface_id: OverlaySurfaceId::new("interactive-dummy"),
+            panel_id: format!("dummy-{index}"),
+            hand: OverlayHand::Left,
+            uv: UvPoint::new(0.5, 0.5),
+            kind: OverlayInputKind::Hover,
+        });
+    }
+
+    let drained = sink.drain();
+
+    assert_eq!(drained.len(), 512);
+    assert_eq!(
+        drained.first().map(|event| event.panel_id.as_str()),
+        Some("dummy-88")
+    );
+    assert_eq!(
+        drained.last().map(|event| event.panel_id.as_str()),
+        Some("dummy-599")
+    );
+}
+
+#[test]
+fn overlay_actor_ticks_faster_while_interaction_active() {
+    let ticks = Arc::new(AtomicUsize::new(0));
+    let actor = OverlayActorHandle::spawn_with_backend(TickCountingBackend {
+        ticks: Arc::clone(&ticks),
+    });
+
+    actor
+        .send(OverlayServiceCommand::Start)
+        .expect("start overlay actor");
+    actor
+        .send(OverlayServiceCommand::SetInteractionActive(true))
+        .expect("enable interaction mode");
+    thread::sleep(Duration::from_millis(90));
+
+    actor
+        .send(OverlayServiceCommand::SetInteractionActive(false))
+        .expect("disable interaction mode");
+    actor
+        .send(OverlayServiceCommand::Stop)
+        .expect("stop overlay");
+
+    assert!(ticks.load(Ordering::Acquire) >= 3);
+}
+
+#[test]
+fn overlay_panel_binding_parser_uses_default_for_invalid_json() {
+    assert_eq!(
+        parse_overlay_panel_bindings_or_default("not json"),
+        default_overlay_panel_bindings()
+    );
+    assert_eq!(
+        default_overlay_panel_bindings(),
+        vec![OverlayPanelBinding {
+            hand: OverlayHand::Left,
+            button: OverlayActivationButton::Menu,
+            panel_id: "dummy".to_string(),
+            double_click: true,
+            double_click_window_ms: 350,
+        }]
+    );
+}
+
 fn make_wrist_config() -> OverlaySurfaceConfig {
     OverlaySurfaceConfig {
         surface_id: wrist_surface_id(),
@@ -273,6 +368,7 @@ fn make_wrist_config() -> OverlaySurfaceConfig {
             device_hint: "left-hand".to_string(),
         },
         activation_button: OverlayActivationButton::Grip,
+        interactive: false,
     }
 }
 
@@ -575,6 +671,63 @@ impl OverlayBackend for TickCountingBackend {
 
     fn tick(&mut self) -> TickOutcome {
         self.ticks.fetch_add(1, Ordering::AcqRel);
+        TickOutcome::Continue
+    }
+
+    fn stop(&mut self) {}
+}
+
+struct InputPushingBackend {
+    sink: OverlayInputEventSink,
+    pushed: bool,
+}
+
+impl OverlayBackend for InputPushingBackend {
+    fn set_input_event_sink(&mut self, sink: OverlayInputEventSink) {
+        self.sink = sink;
+    }
+
+    fn start(&mut self) -> Result<(), BackendStartError> {
+        Ok(())
+    }
+
+    fn register_surface(&mut self, _config: OverlaySurfaceConfig) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn update_frame(
+        &mut self,
+        _surface_id: &OverlaySurfaceId,
+        _frame: RgbaFrame,
+    ) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn show(&mut self, _surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn hide(&mut self, _surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String> {
+        Ok(Vec::new())
+    }
+
+    fn tick(&mut self) -> TickOutcome {
+        if !self.pushed {
+            self.sink.push(OverlayInputEvent {
+                surface_id: OverlaySurfaceId::new("interactive-dummy"),
+                panel_id: "dummy".to_string(),
+                hand: OverlayHand::Left,
+                uv: UvPoint::new(0.5, 0.5),
+                kind: OverlayInputKind::Summon {
+                    transform: OverlayTransform::identity(),
+                },
+            });
+            self.pushed = true;
+        }
         TickOutcome::Continue
     }
 

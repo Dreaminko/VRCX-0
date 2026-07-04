@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use vrcx_0_host::vr_overlay::{
-    OverlayActorHandle, OverlayCommandError, OverlayServiceCommand, OverlayServicePhase,
-    OverlaySurfaceConfig, VrDeviceSnapshot,
+    OverlayActorHandle, OverlayCommandError, OverlayInputEvent, OverlayPanelBinding,
+    OverlayServiceCommand, OverlayServicePhase, OverlaySurfaceConfig, VrDeviceSnapshot,
 };
 use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
@@ -77,6 +77,15 @@ pub trait VrOverlayServiceControl {
         Ok(())
     }
     fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String>;
+    fn drain_input_events(&mut self) -> Vec<OverlayInputEvent> {
+        Vec::new()
+    }
+    fn set_panel_bindings(&mut self, _bindings: Vec<OverlayPanelBinding>) -> Result<(), String> {
+        Ok(())
+    }
+    fn set_interaction_active(&mut self, _active: bool) -> Result<(), String> {
+        Ok(())
+    }
     fn set_surface_configs(&mut self, configs: Vec<OverlaySurfaceConfig>) -> Result<(), String>;
     fn set_backend_preference(&mut self, _preference: OverlayBackendPreference) {}
     fn active_backend(&self) -> Option<&'static str> {
@@ -98,6 +107,8 @@ pub struct HostVrOverlayService {
     backend: OverlayBackendKind,
     preference: OverlayBackendPreference,
     active_backend: Option<&'static str>,
+    panel_bindings: Vec<OverlayPanelBinding>,
+    interaction_active: bool,
     last_frame: Option<RgbaFrame>,
     last_surface_frames: HashMap<OverlaySurfaceId, RgbaFrame>,
     frame_dirty: bool,
@@ -141,6 +152,8 @@ impl HostVrOverlayService {
             backend,
             preference: OverlayBackendPreference::Auto,
             active_backend: None,
+            panel_bindings: vrcx_0_host::vr_overlay::default_overlay_panel_bindings(),
+            interaction_active: false,
             last_frame: None,
             last_surface_frames: HashMap::new(),
             frame_dirty: true,
@@ -158,6 +171,9 @@ impl HostVrOverlayService {
         actor: &OverlayActorHandle,
         configs: &[OverlaySurfaceConfig],
     ) -> Result<Vec<OverlaySurfaceId>, OverlayCommandError> {
+        if configs.is_empty() {
+            return Ok(Vec::new());
+        }
         let mut registered_surface_ids = Vec::new();
         let allow_partial = configs.len() > 1;
         for config in configs {
@@ -282,6 +298,23 @@ impl HostVrOverlayService {
         }
         Ok(())
     }
+
+    fn send_startup_command(
+        &mut self,
+        actor: &OverlayActorHandle,
+        command: OverlayServiceCommand,
+    ) -> Result<(), OverlayServiceStartError> {
+        if let Err(error) = actor.send(command) {
+            let message = error.to_string();
+            if is_timeout_error(&error) {
+                self.condemn_active_actor();
+            } else {
+                let _ = self.stop_active_actor();
+            }
+            return Err(OverlayServiceStartError::transient(message));
+        }
+        Ok(())
+    }
 }
 
 impl VrOverlayServiceControl for HostVrOverlayService {
@@ -326,6 +359,14 @@ impl VrOverlayServiceControl for HostVrOverlayService {
             }
             return Err(OverlayServiceStartError::transient(message));
         }
+        self.send_startup_command(
+            &actor,
+            OverlayServiceCommand::SetPanelBindings(self.panel_bindings.clone()),
+        )?;
+        self.send_startup_command(
+            &actor,
+            OverlayServiceCommand::SetInteractionActive(self.interaction_active),
+        )?;
         let registered_surface_ids = match Self::register_surface_configs(&actor, &self.configs) {
             Ok(surface_ids) => surface_ids,
             Err(error) => {
@@ -338,12 +379,6 @@ impl VrOverlayServiceControl for HostVrOverlayService {
                 return Err(OverlayServiceStartError::transient(message));
             }
         };
-        if registered_surface_ids.is_empty() {
-            let _ = self.stop_active_actor();
-            return Err(OverlayServiceStartError::transient(
-                "no VR overlay surfaces were registered",
-            ));
-        }
         self.surface_ids = registered_surface_ids;
         self.surfaces_registered = true;
         self.frame_dirty = true;
@@ -453,6 +488,43 @@ impl VrOverlayServiceControl for HostVrOverlayService {
         let actor = self.active_actor()?;
         actor
             .snapshot_devices()
+            .map_err(|error| self.map_actor_error(error))
+    }
+
+    fn drain_input_events(&mut self) -> Vec<OverlayInputEvent> {
+        self.actor
+            .as_ref()
+            .map(OverlayActorHandle::drain_input_events)
+            .unwrap_or_default()
+    }
+
+    fn set_panel_bindings(&mut self, bindings: Vec<OverlayPanelBinding>) -> Result<(), String> {
+        self.panel_bindings = bindings.clone();
+        let Some(actor) = self
+            .actor
+            .as_ref()
+            .filter(|actor| actor_is_running(actor))
+            .cloned()
+        else {
+            return Ok(());
+        };
+        actor
+            .send(OverlayServiceCommand::SetPanelBindings(bindings))
+            .map_err(|error| self.map_actor_error(error))
+    }
+
+    fn set_interaction_active(&mut self, active: bool) -> Result<(), String> {
+        self.interaction_active = active;
+        let Some(actor) = self
+            .actor
+            .as_ref()
+            .filter(|actor| actor_is_running(actor))
+            .cloned()
+        else {
+            return Ok(());
+        };
+        actor
+            .send(OverlayServiceCommand::SetInteractionActive(active))
             .map_err(|error| self.map_actor_error(error))
     }
 
