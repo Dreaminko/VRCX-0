@@ -647,6 +647,11 @@ export const commands = {
     async appGameLogQuery(query: GameLogQueryInput): Promise<JsonValue> {
         return await TAURI_INVOKE('app__game_log_query', { query });
     },
+    async appGameLogSessionsQuery(
+        input: GameLogSessionsQueryInput
+    ): Promise<GameLogSessionDto[]> {
+        return await TAURI_INVOKE('app__game_log_sessions_query', { input });
+    },
     async appPlayerListLocationGet(
         location: string
     ): Promise<PlayerLocationOutput | null> {
@@ -3324,6 +3329,47 @@ export type GameLogRuntimeSnapshotDto = {
     worldName: string;
     destination: string;
     players: PlayerState[];
+};
+export type GameLogSessionDto = {
+    id?: number | null;
+    created_at: string;
+    location: string;
+    worldId: string;
+    worldName: string;
+    groupName: string;
+    duration: number | null;
+    events: GameLogSessionEventDto[];
+};
+export type GameLogSessionEventDto = {
+    type: string;
+    created_at: string;
+    rowId?: number | null;
+    userId?: string | null;
+    displayName?: string | null;
+    location?: string | null;
+    videoUrl?: string | null;
+    videoName?: string | null;
+    videoId?: string | null;
+    playCount?: number | null;
+    isFavorite?: boolean | null;
+    count?: number | null;
+    members?: GameLogSessionMemberDto[] | null;
+};
+export type GameLogSessionMemberDto = {
+    displayName: string;
+    userId: string;
+    created_at: string;
+    isFavorite: boolean;
+};
+export type GameLogSessionsQueryInput = {
+    search?: string;
+    filters?: string[];
+    favoriteUserIds?: string[];
+    dateFrom?: string;
+    dateTo?: string;
+    limit?: number;
+    maxTableSize?: number;
+    searchLimit?: number;
 };
 export type GroupQuickModerationActionInput = {
     currentUserId?: string;

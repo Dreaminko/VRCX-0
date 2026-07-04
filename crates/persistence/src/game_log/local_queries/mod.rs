@@ -30,7 +30,7 @@ mod tests;
 
 use rows::{
     game_log_base_columns, game_log_batch_for_kind, game_log_filter_flags,
-    game_log_location_segment_from_row, game_log_row_from_unified_row,
+    game_log_row_from_unified_row,
 };
 use sql::{
     append_i64_in_params, game_log_event_union_select, game_log_external_union_select,

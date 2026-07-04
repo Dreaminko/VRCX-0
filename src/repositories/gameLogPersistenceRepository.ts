@@ -91,16 +91,6 @@ type GameLogOnlineSessionRow = {
     time: number;
 };
 
-type GameLogSessionLocationSegmentRow = {
-    created_at: string;
-    groupName: string;
-    id: number;
-    location: string;
-    time: number;
-    worldId: string;
-    worldName: string;
-};
-
 type GameLogPreviousDisplayNameRow = {
     created_at: string;
     displayName: string;
@@ -121,8 +111,6 @@ type GameLogQueryResultMap = {
     playerDetailFromInstance: GameLogPlayerDetailRow[];
     joinLeaveRange: GameLogJoinLeaveRangeRow[];
     onlineSessions: GameLogOnlineSessionRow[];
-    sessionsEventsForSegments: GameLogPlayerEventRow[];
-    sessionsLocationSegments: GameLogSessionLocationSegmentRow[];
     userStats: GameLogUserStatsQueryResult;
     worldNameByWorldId: string;
 };
@@ -773,53 +761,6 @@ const gameLog = {
             normalizeGameLogIdentifier(input.type) || 'ResourceLoad',
             input
         );
-    },
-
-    async getSessionsLocationSegments(beforeId: unknown, limit: number) {
-        const rows = await queryGameLog('sessionsLocationSegments', {
-            beforeId,
-            limit
-        });
-        return Array.isArray(rows) ? rows : [];
-    },
-
-    async getSessionsLocationSegmentsByDateRange(
-        afterDate: unknown,
-        beforeDate: unknown,
-        limit: number
-    ) {
-        const rows = await queryGameLog('sessionsLocationSegmentsByDateRange', {
-            afterDate,
-            beforeDate,
-            limit
-        });
-        return Array.isArray(rows) ? rows : [];
-    },
-
-    async getSessionsEventsForSegments(
-        locationTags: string[],
-        afterDate: unknown,
-        beforeDate: unknown
-    ) {
-        if (!locationTags || locationTags.length === 0) return [];
-
-        const rows = await queryGameLog('sessionsEventsForSegments', {
-            locationTags,
-            afterDate,
-            beforeDate
-        });
-        return Array.isArray(rows) ? rows : [];
-    },
-
-    async getSessionsLocationSegmentsByAnchor(
-        sinceDate: unknown,
-        limit: number
-    ) {
-        const rows = await queryGameLog('sessionsLocationSegmentsByAnchor', {
-            sinceDate,
-            limit
-        });
-        return Array.isArray(rows) ? rows : [];
     }
 };
 

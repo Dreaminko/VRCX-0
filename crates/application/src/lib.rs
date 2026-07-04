@@ -89,12 +89,13 @@ pub use game_client::{
     NoopGameClientWindowActions,
 };
 pub use game_log::{
-    duration_ms, parse_event_time_ms, player_key, player_list_current_snapshot,
-    world_id_from_location, GameLogHostActions, GameLogIngestEngine, GameLogIngestOptions,
-    GameLogIngestOutput, GameLogProcessEvent, GameLogProjection, GameLogRuntime,
-    GameLogRuntimeDeps, GameLogRuntimeState, GameLogSideEffect, NoopGameLogHostActions,
-    PlayerListSnapshotContext, PlayerListSnapshotOutput, PlayerListSnapshotPlayer, PlayerState,
-    RuntimeSnapshot, ScreenshotInput,
+    duration_ms, game_log_sessions_query, parse_event_time_ms, player_key,
+    player_list_current_snapshot, world_id_from_location, GameLogHostActions, GameLogIngestEngine,
+    GameLogIngestOptions, GameLogIngestOutput, GameLogProcessEvent, GameLogProjection,
+    GameLogRuntime, GameLogRuntimeDeps, GameLogRuntimeState, GameLogSessionDto,
+    GameLogSessionEventDto, GameLogSessionMemberDto, GameLogSessionsQueryInput, GameLogSideEffect,
+    NoopGameLogHostActions, PlayerListSnapshotContext, PlayerListSnapshotOutput,
+    PlayerListSnapshotPlayer, PlayerState, RuntimeSnapshot, ScreenshotInput,
 };
 pub use groups::{
     ban_member, block_group, cancel_request, create_post, delete_invite, delete_post, edit_post,
