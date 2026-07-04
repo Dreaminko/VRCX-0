@@ -240,6 +240,8 @@ pub struct VrOverlayRuntime {
     avatar_bitmap_cache: Arc<AvatarBitmapCache>,
     user_image_cache: Arc<UserImageCache>,
     manager: Mutex<VrOverlayManager<HostVrOverlayService>>,
+    running_mirror: AtomicBool,
+    active_backend_mirror: Mutex<Option<&'static str>>,
     frame_producer_factory: VrOverlayFrameProducerFactory,
     frame_producer: Mutex<Option<Box<dyn VrOverlayFrameProducer>>>,
     main_frame_renderer: Mutex<Option<RuntimeMainFrameRenderer>>,
@@ -342,6 +344,8 @@ impl VrOverlayRuntime {
             backend_available,
             context,
             manager: Mutex::new(VrOverlayManager::new(service)),
+            running_mirror: AtomicBool::new(false),
+            active_backend_mirror: Mutex::new(None),
             config: Mutex::new(config),
             devices: Mutex::new(Vec::new()),
             hmd_toasts: Mutex::new(VecDeque::new()),
@@ -398,6 +402,7 @@ impl VrOverlayRuntime {
     pub fn stop(&self) {
         if let Ok(mut manager) = self.manager.lock() {
             manager.reconcile(VrOverlayEligibility::default());
+            self.refresh_manager_mirror(&manager);
         }
         self.release_frame_producer();
     }
@@ -411,16 +416,21 @@ impl VrOverlayRuntime {
     }
 
     pub fn snapshot(&self) -> VrOverlayRuntimeSnapshot {
-        let active_backend = self
-            .manager
-            .lock()
-            .ok()
-            .and_then(|manager| manager.active_backend())
-            .map(str::to_string);
+        let (running, active_backend) = if let Ok(manager) = self.manager.try_lock() {
+            let running = manager.is_running();
+            let active_backend = manager.active_backend();
+            self.refresh_manager_mirror(&manager);
+            (running, active_backend.map(str::to_string))
+        } else {
+            (
+                self.running_mirror.load(Ordering::Acquire),
+                self.active_backend_mirror(),
+            )
+        };
         VrOverlayRuntimeSnapshot {
             enabled: self.enabled.load(Ordering::Acquire),
             backend_available: self.backend_available,
-            running: self.is_running(),
+            running,
             vr_mode: self.vr_mode.load(Ordering::Acquire),
             steamvr_running: self.steamvr_running.load(Ordering::Acquire),
             active_backend,
@@ -428,10 +438,28 @@ impl VrOverlayRuntime {
     }
 
     pub fn is_running(&self) -> bool {
-        self.manager
+        if let Ok(manager) = self.manager.try_lock() {
+            let running = manager.is_running();
+            self.refresh_manager_mirror(&manager);
+            return running;
+        }
+        self.running_mirror.load(Ordering::Acquire)
+    }
+
+    fn refresh_manager_mirror(&self, manager: &VrOverlayManager<HostVrOverlayService>) {
+        self.running_mirror
+            .store(manager.is_running(), Ordering::Release);
+        if let Ok(mut active_backend) = self.active_backend_mirror.lock() {
+            *active_backend = manager.active_backend();
+        }
+    }
+
+    fn active_backend_mirror(&self) -> Option<String> {
+        self.active_backend_mirror
             .lock()
-            .map(|manager| manager.is_running())
-            .unwrap_or(false)
+            .ok()
+            .and_then(|active_backend| *active_backend)
+            .map(str::to_string)
     }
 
     fn update_process_status(&self, game_running: bool, steamvr_running: bool) {
@@ -700,6 +728,7 @@ impl VrOverlayRuntime {
             } else {
                 self.release_frame_producer();
             }
+            self.refresh_manager_mirror(&manager);
         }
     }
 
@@ -1402,6 +1431,20 @@ fn is_real_instance_location(location: &str) -> bool {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn snapshot_and_is_running_use_mirror_when_manager_lock_is_busy() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.running_mirror.store(true, Ordering::Release);
+        *runtime.active_backend_mirror.lock().unwrap() = Some("openvr");
+        let _manager = runtime.manager.lock().unwrap();
+
+        assert!(runtime.is_running());
+        let snapshot = runtime.snapshot();
+
+        assert!(snapshot.running);
+        assert_eq!(snapshot.active_backend.as_deref(), Some("openvr"));
+    }
 
     #[test]
     fn locale_is_render_only_config() {

@@ -74,7 +74,7 @@ where
         } else {
             self.reset_retry_state();
             self.unsupported_eligibility = None;
-            if self.service.is_running() {
+            if self.service.should_stop_when_ineligible() {
                 self.service.stop();
             }
         }
@@ -171,7 +171,14 @@ fn is_expected_overlay_start_wait(error: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::is_expected_overlay_start_wait;
+    use vrcx_0_host::vr_overlay::{OverlaySurfaceConfig, VrDeviceSnapshot};
+    use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
+
+    use super::{is_expected_overlay_start_wait, VrOverlayManager};
+    use crate::vr_overlay::{
+        service::{OverlayBackendPreference, OverlayServiceStartError, VrOverlayServiceControl},
+        VrOverlayEligibility,
+    };
 
     #[test]
     fn expected_overlay_start_wait_matches_openvr_server_and_cooldown_errors() {
@@ -184,5 +191,99 @@ mod tests {
         assert!(!is_expected_overlay_start_wait(
             "OpenVR init failed: VRInitError_Init_InterfaceNotFound"
         ));
+    }
+
+    #[test]
+    fn ineligible_reconcile_stops_service_that_needs_stop_without_running() {
+        let service = RecordingService {
+            needs_stop_when_ineligible: true,
+            ..RecordingService::default()
+        };
+        let mut manager = VrOverlayManager::new(service);
+
+        manager.reconcile(VrOverlayEligibility::default());
+
+        let service = manager.into_inner();
+        assert_eq!(service.starts, 0);
+        assert_eq!(service.stops, 1);
+    }
+
+    #[derive(Default)]
+    struct RecordingService {
+        running: bool,
+        needs_stop_when_ineligible: bool,
+        starts: usize,
+        stops: usize,
+    }
+
+    impl VrOverlayServiceControl for RecordingService {
+        fn start(&mut self) -> Result<(), OverlayServiceStartError> {
+            self.starts += 1;
+            self.running = true;
+            Ok(())
+        }
+
+        fn update_frame(&mut self, _frame: RgbaFrame) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn show(&mut self) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn snapshot_devices(&mut self) -> Result<Vec<VrDeviceSnapshot>, String> {
+            Ok(Vec::new())
+        }
+
+        fn set_surface_configs(
+            &mut self,
+            _configs: Vec<OverlaySurfaceConfig>,
+        ) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn set_backend_preference(&mut self, _preference: OverlayBackendPreference) {}
+
+        fn active_backend(&self) -> Option<&'static str> {
+            self.running.then_some("test")
+        }
+
+        fn should_stop_when_ineligible(&self) -> bool {
+            self.needs_stop_when_ineligible
+        }
+
+        fn stop(&mut self) {
+            self.stops += 1;
+            self.running = false;
+            self.needs_stop_when_ineligible = false;
+        }
+
+        fn is_running(&self) -> bool {
+            self.running
+        }
+
+        fn update_surface_frame(
+            &mut self,
+            _surface_id: &OverlaySurfaceId,
+            _frame: RgbaFrame,
+        ) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn show_surface(&mut self, _surface_id: &OverlaySurfaceId) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn hide_surface(&mut self, _surface_id: &OverlaySurfaceId) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn set_surface_alpha(
+            &mut self,
+            _surface_id: &OverlaySurfaceId,
+            _alpha: f32,
+        ) -> Result<(), String> {
+            Ok(())
+        }
     }
 }
