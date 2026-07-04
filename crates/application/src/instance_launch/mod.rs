@@ -10,6 +10,7 @@ use crate::vrchat_api::VrchatApiResponse;
 use crate::{Error, Result};
 
 #[cfg(test)]
+#[path = "../../tests/instance_launch/tests.rs"]
 mod tests;
 
 pub type InstanceLaunchApiFuture<'a> =

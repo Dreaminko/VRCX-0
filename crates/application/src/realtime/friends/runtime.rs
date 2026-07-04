@@ -25,19 +25,19 @@ mod state;
 mod utils;
 
 #[cfg(test)]
-#[path = "tests_baseline.rs"]
+#[path = "../../../tests/realtime/friends/tests_baseline.rs"]
 mod tests_baseline;
 #[cfg(test)]
-#[path = "tests_feed.rs"]
+#[path = "../../../tests/realtime/friends/tests_feed.rs"]
 mod tests_feed;
 #[cfg(test)]
-#[path = "tests_location.rs"]
+#[path = "../../../tests/realtime/friends/tests_location.rs"]
 mod tests_location;
 #[cfg(test)]
-#[path = "tests_presence.rs"]
+#[path = "../../../tests/realtime/friends/tests_presence.rs"]
 mod tests_presence;
 #[cfg(test)]
-#[path = "tests_profile.rs"]
+#[path = "../../../tests/realtime/friends/tests_profile.rs"]
 mod tests_profile;
 
 pub use event_patch::is_friend_event_type;
