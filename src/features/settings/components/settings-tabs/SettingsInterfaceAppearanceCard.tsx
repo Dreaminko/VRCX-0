@@ -217,7 +217,9 @@ export function SettingsInterfaceAppearanceCard({
             >
                 <Select value={locale || 'en'} onValueChange={onLanguageChange}>
                     <SelectTrigger id="settings-language" className="w-56">
-                        <SelectValue />
+                        <SelectValue>
+                            {getLanguageName(locale || 'en')}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectGroup>

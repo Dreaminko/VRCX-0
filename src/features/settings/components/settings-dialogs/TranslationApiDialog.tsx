@@ -118,7 +118,11 @@ export function TranslationApiDialog({
                                 id="settings-translation-bio-language"
                                 className="w-56"
                             >
-                                <SelectValue />
+                                <SelectValue>
+                                    {getLanguageName(
+                                        translationDraft.bioLanguage || 'en'
+                                    )}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
