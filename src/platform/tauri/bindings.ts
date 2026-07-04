@@ -1665,6 +1665,11 @@ export const commands = {
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_instance_get', { input });
     },
+    async appVrchatInstanceJoin(
+        input: InstanceLaunchInput
+    ): Promise<InstanceLaunchOutcome> {
+        return await TAURI_INVOKE('app__vrchat_instance_join', { input });
+    },
     async appVrchatInstanceSelfInvite(
         input: VrchatInstanceSelfInviteInput
     ): Promise<HttpApiExecuteResponse> {
@@ -3458,6 +3463,17 @@ export type InstanceActivityRowOutput = {
     userId: string;
     time: number;
 };
+export type InstanceLaunchInput = {
+    location?: string;
+    shortName?: string;
+    endpoint?: string;
+    mode?: InstanceLaunchMode;
+};
+export type InstanceLaunchMode = 'auto' | 'openOnly' | 'selfInviteOnly';
+export type InstanceLaunchOutcome =
+    | { status: 'opened' }
+    | { status: 'selfInvited' }
+    | { status: 'failed'; reason: string };
 export type JsonValue = any;
 export type LegacyVrcxMigrationStatus = {
     detected: boolean;

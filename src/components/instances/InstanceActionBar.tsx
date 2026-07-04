@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import vrchatInstanceRepository from '@/repositories/vrchatInstanceRepository';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
 import { recordLocationHintsFromInstances } from '@/services/domainIngestionService';
+import { selfInviteToInstance } from '@/services/launchService';
 import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
 import { useLaunchStore } from '@/state/launchStore';
 import { useModalStore } from '@/state/modalStore';
@@ -135,20 +136,6 @@ function canCloseInstance(instance: any, currentUserId: any) {
         hasGroupPermission(instance?.group, 'group-instance-moderate') ||
         hasGroupPermission(instance?.owner, 'group-instance-moderate')
     );
-}
-
-export function buildInstanceActionSelfInviteRequest(
-    actionTarget: any,
-    endpoint: string
-) {
-    return {
-        worldId: actionTarget.parsedInviteLocation.worldId,
-        instanceId: actionTarget.parsedInviteLocation.instanceId,
-        shortName:
-            actionTarget.parsedInviteLocation.shortName ||
-            actionTarget.shortName,
-        endpoint
-    };
 }
 
 function InstanceInfoTooltip({
@@ -382,8 +369,11 @@ export function InstanceActionBar({
         }
         setBusy('invite');
         try {
-            await vrchatInstanceRepository.selfInvite(
-                buildInstanceActionSelfInviteRequest(actionTarget, endpoint)
+            await selfInviteToInstance(
+                actionTarget.inviteLocation,
+                actionTarget.parsedInviteLocation.shortName ||
+                    actionTarget.shortName,
+                endpoint
             );
             toast.success(t('message.invite.self_sent'));
         } catch (error) {

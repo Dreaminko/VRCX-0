@@ -327,6 +327,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::vrchat::instances::service::app__vrchat_instance_close,
             commands::vrchat::instances::service::app__vrchat_instance_create,
             commands::vrchat::instances::service::app__vrchat_instance_get,
+            commands::vrchat::instances::service::app__vrchat_instance_join,
             commands::vrchat::instances::service::app__vrchat_instance_self_invite,
             commands::vrchat::instances::service::app__vrchat_instance_short_name_get,
             commands::vrchat::media::service::app__vrchat_media_avatar_gallery_image_upload,
