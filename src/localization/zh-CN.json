@@ -3158,7 +3158,7 @@
         },
         "about": {
             "title": "关于 VRCX-0",
-            "tagline": "基于 Tauri 和 Rust 构建的快速轻量 VRCX。",
+            "tagline": "由 Tauri 和 Rust 打造的快速、轻量 VRCX。",
             "copy_version": "复制版本信息",
             "version_copied": "版本信息已复制。",
             "link_source": "源代码",
@@ -3166,7 +3166,7 @@
             "link_issues": "反馈问题",
             "contributors": "贡献者",
             "contributors_error": "贡献者列表加载失败。",
-            "thanks": "翻译、测试、反馈与点子来自社区的每一位 —— 谢谢你们。",
+            "thanks": "每一份翻译、每一次测试、每条反馈和每个想法，都来自社区。谢谢你们。",
             "view_graph": "在 GitHub 查看完整贡献图",
             "license_line": "GPL-3.0 自由开源"
         }

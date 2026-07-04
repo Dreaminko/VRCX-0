@@ -609,7 +609,7 @@
             "link_issues": "Nahlásit problém",
             "contributors": "Přispěvatelé",
             "contributors_error": "Seznam přispěvatelů se nepodařilo načíst.",
-            "thanks": "Překlady, testování, hlášení chyb i nápady — to vše od komunity. Děkujeme.",
+            "thanks": "Každý překlad, test, hlášení chyby i nápad pochází od komunity. Děkujeme.",
             "view_graph": "Zobrazit celý graf příspěvků na GitHubu",
             "license_line": "Svobodný a otevřený software pod licencí GPL-3.0"
         }

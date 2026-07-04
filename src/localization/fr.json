@@ -3153,7 +3153,7 @@
             "link_issues": "Signaler un problème",
             "contributors": "Contributeurs",
             "contributors_error": "Impossible de charger la liste des contributeurs.",
-            "thanks": "Traductions, tests, retours et idées : tout vient de la communauté. Merci.",
+            "thanks": "Les traductions, les tests, les signalements de bugs et les idées viennent de la communauté. Merci.",
             "view_graph": "Voir le graphique complet des contributions sur GitHub",
             "license_line": "Libre et open source sous GPL-3.0"
         }

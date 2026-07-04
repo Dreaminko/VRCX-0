@@ -3097,7 +3097,7 @@
             "link_issues": "문제 신고",
             "contributors": "기여자",
             "contributors_error": "기여자 목록을 불러오지 못했습니다.",
-            "thanks": "번역, 테스트, 피드백, 아이디어 — 모두 커뮤니티에서 왔습니다. 감사합니다.",
+            "thanks": "번역, 테스트, 버그 제보와 아이디어 하나하나가 커뮤니티에서 나옵니다. 감사합니다.",
             "view_graph": "GitHub에서 전체 기여 그래프 보기",
             "license_line": "GPL-3.0 자유 오픈 소스"
         }

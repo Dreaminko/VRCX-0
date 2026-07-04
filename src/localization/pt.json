@@ -3145,7 +3145,7 @@
         },
         "about": {
             "title": "Sobre o VRCX-0",
-            "tagline": "O VRCX rápido e leve criado com Tauri e Rust.",
+            "tagline": "VRCX rápido e leve, criado com Tauri e Rust.",
             "copy_version": "Copiar informações de versão",
             "version_copied": "Informações de versão copiadas.",
             "link_source": "Código-fonte",
@@ -3153,7 +3153,7 @@
             "link_issues": "Relatar problema",
             "contributors": "Contribuidores",
             "contributors_error": "Não foi possível carregar a lista de contribuidores.",
-            "thanks": "Traduções, testes, feedback e ideias — tudo vem da comunidade. Obrigado.",
+            "thanks": "Cada tradução, teste, relato de bug e ideia vem da comunidade. Agradecemos.",
             "view_graph": "Ver o gráfico completo de contribuições no GitHub",
             "license_line": "Livre e de código aberto sob GPL-3.0"
         }

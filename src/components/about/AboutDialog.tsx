@@ -1,12 +1,4 @@
-import {
-    BugIcon,
-    CodeXmlIcon,
-    CoffeeIcon,
-    HeartIcon,
-    MessageCircleIcon,
-    MessagesSquareIcon,
-    type LucideIcon
-} from 'lucide-react';
+import { CoffeeIcon, HeartIcon, type LucideIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -23,7 +15,6 @@ import {
     DialogDescription,
     DialogTitle
 } from '@/ui/shadcn/dialog';
-import { FieldSeparator } from '@/ui/shadcn/field';
 import { Skeleton } from '@/ui/shadcn/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
@@ -49,33 +40,6 @@ type AboutActionLink = {
     href: string;
     icon: LucideIcon;
 };
-
-const PROJECT_LINKS: AboutActionLink[] = [
-    {
-        key: 'source',
-        labelKey: 'view.about.link_source',
-        href: links.github,
-        icon: CodeXmlIcon
-    },
-    {
-        key: 'discord',
-        label: 'Discord',
-        href: links.discord,
-        icon: MessageCircleIcon
-    },
-    {
-        key: 'qq',
-        labelKey: 'view.about.link_qq',
-        href: links.qqGroup,
-        icon: MessagesSquareIcon
-    },
-    {
-        key: 'issues',
-        labelKey: 'view.about.link_issues',
-        href: links.issues,
-        icon: BugIcon
-    }
-];
 
 const SUPPORT_LINKS: AboutActionLink[] = [
     {
@@ -241,78 +205,38 @@ export function AboutVrcxDialog({
                             </>
                         ) : null}
                     </div>
-                    <div className="mt-4 flex flex-wrap justify-center gap-0.5">
-                        {PROJECT_LINKS.map(
-                            ({ key, labelKey, label, href, icon: Icon }) => (
-                                <Button
-                                    key={key}
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-foreground"
-                                    onClick={() => {
-                                        openExternalLink(href);
-                                    }}
-                                >
-                                    <Icon data-icon="inline-start" />
-                                    {labelKey ? t(labelKey) : label}
-                                </Button>
-                            )
-                        )}
-                    </div>
                 </div>
 
-                <FieldSeparator className="[&>[data-slot=field-separator-content]]:bg-popover my-5 [&>[data-slot=separator]]:opacity-55">
+                <div className="my-5 text-center">
                     <span className="text-muted-foreground/75 text-[10px] font-medium tracking-[0.18em] uppercase">
                         {t('view.about.contributors')}
                     </span>
-                </FieldSeparator>
+                </div>
 
                 <AboutContributorsWall open={open} />
 
-                <div className="text-muted-foreground/70 mt-5 flex flex-col items-center gap-1.5 text-center text-xs">
-                    <p className="max-w-md text-balance">
+                <div className="text-muted-foreground/70 mt-5 text-center text-xs">
+                    <p className="mx-auto max-w-sm text-balance">
                         {t('view.about.thanks')}
                     </p>
-                    <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        className="text-muted-foreground hover:text-foreground h-auto p-0 text-xs"
-                        onClick={() => {
-                            openExternalLink(links.contributorsGraph);
-                        }}
-                    >
-                        {t('view.about.view_graph')}
-                    </Button>
                 </div>
 
-                <FieldSeparator className="[&>[data-slot=field-separator-content]]:bg-popover mt-7 mb-4 [&>[data-slot=separator]]:opacity-55">
+                <div className="mt-7 mb-4 text-center">
                     <span className="text-muted-foreground/75 text-[10px] font-medium tracking-[0.18em] uppercase">
                         {t('support_vrcx.title')}
                     </span>
-                </FieldSeparator>
+                </div>
 
-                <div className="flex flex-col items-center gap-3 text-center">
-                    <p className="text-muted-foreground max-w-md text-xs text-balance">
-                        {t('support_vrcx.description')}
-                    </p>
+                <div className="flex justify-center">
                     <div className="flex flex-wrap justify-center gap-2">
                         {SUPPORT_LINKS.map(
                             ({ key, labelKey, label, href, icon: Icon }) => (
                                 <Button
                                     key={key}
                                     type="button"
-                                    variant={
-                                        key === 'github-sponsors'
-                                            ? 'default'
-                                            : 'outline'
-                                    }
+                                    variant="outline"
                                     size="sm"
-                                    className={cn(
-                                        key !== 'github-sponsors' &&
-                                            'text-muted-foreground hover:text-foreground'
-                                    )}
+                                    className="text-muted-foreground hover:text-foreground"
                                     onClick={() => {
                                         openExternalLink(href);
                                     }}

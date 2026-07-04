@@ -900,7 +900,7 @@
             "link_issues": "Zgłoś problem",
             "contributors": "Współtwórcy",
             "contributors_error": "Nie udało się wczytać listy współtwórców.",
-            "thanks": "Tłumaczenia, testy, zgłoszenia i pomysły — wszystko od społeczności. Dziękujemy.",
+            "thanks": "Każde tłumaczenie, test, zgłoszenie błędu i pomysł pochodzi od społeczności. Dziękujemy.",
             "view_graph": "Zobacz pełny wykres wkładu na GitHubie",
             "license_line": "Wolne i otwarte oprogramowanie na licencji GPL-3.0"
         }

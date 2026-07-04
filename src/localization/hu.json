@@ -565,7 +565,7 @@
             "link_issues": "Hiba bejelentése",
             "contributors": "Közreműködők",
             "contributors_error": "A közreműködők listáját nem sikerült betölteni.",
-            "thanks": "Fordítások, tesztelés, visszajelzések és ötletek — mind a közösségtől. Köszönjük.",
+            "thanks": "Minden fordítás, teszt, hibajelentés és ötlet a közösségtől érkezik. Köszönjük.",
             "view_graph": "A teljes hozzájárulási grafikon megtekintése a GitHubon",
             "license_line": "Szabad és nyílt forráskódú, GPL-3.0 licenc alatt"
         }
