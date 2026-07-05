@@ -125,6 +125,8 @@
             "empty": "オンラインのお気に入りフレンドはいません",
             "note": "VRChat メモ",
             "memo": "ローカルメモ",
+            "favorites_online": "オンラインお気に入り",
+            "local_favorites": "ローカルお気に入り",
             "traveling": "移動中",
             "private": "プライベート",
             "offline": "オフライン"
@@ -1652,6 +1654,7 @@
                 "interactive_panel": {
                     "header": "インタラクティブフレンドパネル",
                     "enabled": "インタラクティブフレンドパネルを有効にする",
+                    "all_friends_include_favorites": "すべてにお気に入りを含める",
                     "summon_hint": "呼び出しジェスチャー",
                     "openvr_required": "右手の Grip を約 2 秒長押しして呼び出します。SteamVR/OpenVR オーバーレイバックエンドが必要です。OpenXR では現在インタラクティブパネルを提供していません。"
                 },

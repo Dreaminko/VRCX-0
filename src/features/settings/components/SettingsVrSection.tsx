@@ -168,6 +168,16 @@ export function SettingsVrSection({ vr }: SettingsVrSectionProps) {
                     enabled
                 );
             }}
+            onVrOverlayPanelAllFriendsIncludesFavoritesChange={(
+                checked: unknown
+            ) => {
+                const enabled = normalizeCheckedState(checked);
+                saveBoolPreference(
+                    'vrOverlayPanelAllFriendsIncludesFavorites',
+                    'vrOverlayPanelAllFriendsIncludesFavorites',
+                    enabled
+                );
+            }}
             onWristOverlayEnabledChange={(checked: unknown) =>
                 saveWristOverlayEnabled(normalizeCheckedState(checked))
             }

@@ -125,6 +125,8 @@
             "empty": "온라인 즐겨찾기 친구가 없습니다",
             "note": "VRChat 메모",
             "memo": "로컬 메모",
+            "favorites_online": "온라인 즐겨찾기",
+            "local_favorites": "로컬 즐겨찾기",
             "traveling": "이동 중",
             "private": "비공개",
             "offline": "오프라인"
@@ -1626,6 +1628,7 @@
                 "interactive_panel": {
                     "header": "인터랙티브 친구 패널",
                     "enabled": "인터랙티브 친구 패널 사용",
+                    "all_friends_include_favorites": "전체에 즐겨찾기 포함",
                     "summon_hint": "호출 제스처",
                     "openvr_required": "오른손 Grip을 약 2초 동안 길게 눌러 호출합니다. SteamVR/OpenVR 오버레이 백엔드가 필요하며 OpenXR에서는 현재 인터랙티브 패널을 제공하지 않습니다."
                 },

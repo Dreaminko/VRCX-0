@@ -125,6 +125,8 @@
             "empty": "没有在线收藏好友",
             "note": "VRChat 备注",
             "memo": "本地备注",
+            "favorites_online": "在线收藏",
+            "local_favorites": "本地收藏",
             "traveling": "正在前往",
             "private": "私密",
             "offline": "离线"
@@ -1656,6 +1658,7 @@
                 "interactive_panel": {
                     "header": "交互好友面板",
                     "enabled": "启用交互好友面板",
+                    "all_friends_include_favorites": "“全部”包含收藏好友",
                     "summon_hint": "召唤手势",
                     "openvr_required": "右手长按 Grip 约 2 秒召唤。需要 SteamVR/OpenVR 叠加界面后端；OpenXR 当前不提供交互面板。"
                 },

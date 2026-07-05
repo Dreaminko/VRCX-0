@@ -374,6 +374,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     webhookUrl: '',
     webhookFormat: 'generic',
     vrOverlayPanelEnabled: true,
+    vrOverlayPanelAllFriendsIncludesFavorites: true,
     wristOverlayEnabled: false,
     wristOverlayStartMode: 'vrchatVrMode',
     wristOverlayButton: 'grip',
@@ -562,6 +563,9 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
         webhookUrl: String(next.webhookUrl || ''),
         webhookFormat: next.webhookFormat === 'discord' ? 'discord' : 'generic',
         vrOverlayPanelEnabled: normalizeBool(next.vrOverlayPanelEnabled),
+        vrOverlayPanelAllFriendsIncludesFavorites: normalizeBool(
+            next.vrOverlayPanelAllFriendsIncludesFavorites
+        ),
         wristOverlayEnabled: normalizeBool(next.wristOverlayEnabled),
         wristOverlayStartMode: normalizeWristOverlayStartMode(
             next.wristOverlayStartMode

@@ -127,6 +127,14 @@ impl OverlayLocalizer {
         self.label("overlay.friends_panel.traveling", "Traveling")
     }
 
+    pub(crate) fn friends_panel_favorites_online_label(&self) -> String {
+        self.label("overlay.friends_panel.favorites_online", "Favorites Online")
+    }
+
+    pub(crate) fn friends_panel_local_favorites_label(&self) -> String {
+        self.label("overlay.friends_panel.local_favorites", "Local Favorites")
+    }
+
     pub(crate) fn friends_panel_private_label(&self) -> String {
         self.label("overlay.friends_panel.private", "Private")
     }

@@ -278,6 +278,7 @@ describe('preferencesStore normalizers', () => {
             navPanelWidth: 9999,
             tablePageSizes: ['25', '10', '25'],
             wristOverlayStartMode: 'steamvr',
+            vrOverlayPanelAllFriendsIncludesFavorites: 'false',
             wristOverlayButton: 'menu',
             wristOverlayHand: 'both',
             wristOverlaySize: 'large',
@@ -346,6 +347,7 @@ describe('preferencesStore normalizers', () => {
                 searchLimit: 100000
             },
             localFavoriteFriendsGroups: ['VIP'],
+            vrOverlayPanelAllFriendsIncludesFavorites: false,
             wristOverlayStartMode: 'steamvr',
             wristOverlayButton: 'menu',
             wristOverlayHand: 'both',

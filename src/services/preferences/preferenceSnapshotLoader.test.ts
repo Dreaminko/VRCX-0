@@ -253,7 +253,16 @@ describe('preferenceSnapshotLoader', () => {
             'vrOverlayPanelEnabled',
             true
         );
+        expect(mocks.getBool).toHaveBeenCalledWith(
+            'vrOverlayPanelAllFriendsIncludesFavorites',
+            true
+        );
         expect(snapshot.vrOverlayPanelEnabled).toBe(true);
+        expect(snapshot.vrOverlayPanelAllFriendsIncludesFavorites).toBe(true);
         expect(usePreferencesStore.getState().vrOverlayPanelEnabled).toBe(true);
+        expect(
+            usePreferencesStore.getState()
+                .vrOverlayPanelAllFriendsIncludesFavorites
+        ).toBe(true);
     });
 });

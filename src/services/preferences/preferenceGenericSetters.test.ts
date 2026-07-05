@@ -228,6 +228,27 @@ describe('preferenceGenericSetters', () => {
         expect(mocks.appVrOverlayConfigReload).toHaveBeenCalledTimes(1);
     });
 
+    it('reloads the VR overlay runtime when saving the interactive panel all-friends setting', async () => {
+        await setBoolConfigPreference(
+            'vrOverlayPanelAllFriendsIncludesFavorites',
+            false
+        );
+
+        expect(mocks.setBool).toHaveBeenCalledWith(
+            'vrOverlayPanelAllFriendsIncludesFavorites',
+            false
+        );
+        expect(
+            usePreferencesStore.getState()
+                .vrOverlayPanelAllFriendsIncludesFavorites
+        ).toBe(false);
+        expect(mocks.publishPreferenceChanged).toHaveBeenCalledWith(
+            'vrOverlayPanelAllFriendsIncludesFavorites',
+            false
+        );
+        expect(mocks.appVrOverlayConfigReload).toHaveBeenCalledTimes(1);
+    });
+
     it('adds and removes hidden feed users through the normalized JSON preference', async () => {
         usePreferencesStore.getState().hydratePreferences({
             ...DEFAULT_PREFERENCES,

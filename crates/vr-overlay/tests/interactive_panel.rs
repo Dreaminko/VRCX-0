@@ -1,8 +1,8 @@
 use vrcx_0_vr_overlay::{
     build_dummy_panel_scene, build_friends_panel_scene, grab_follow_transform,
     ray_quad_intersection, recenter_transform, Color, DrawCommand, DummyPanelAction,
-    DummyPanelModel, FavoriteFriendsPanelModel, FriendPanelAction, FriendPanelRow,
-    FriendPanelStatusTone, FriendPanelTab, HitRegion, OverlayQuadSize, OverlaySize,
+    DummyPanelModel, FavoriteFriendsPanelModel, FriendPanelAction, FriendPanelCategory,
+    FriendPanelRow, FriendPanelStatusTone, HitRegion, OverlayQuadSize, OverlaySize,
     OverlaySurfaceId, OverlayTransform, Ray3, Rect, UvPoint, FRIENDS_PANEL_SURFACE_ID,
 };
 
@@ -168,13 +168,13 @@ fn dummy_panel_updates_hover_press_and_scroll_state() {
 #[test]
 fn friends_panel_scene_emits_group_and_row_hit_regions() {
     let model = FavoriteFriendsPanelModel {
-        tabs: vec![
-            FriendPanelTab {
+        categories: vec![
+            FriendPanelCategory {
                 key: "all".to_string(),
                 label: "All".to_string(),
                 count: 1,
             },
-            FriendPanelTab {
+            FriendPanelCategory {
                 key: "local:Best".to_string(),
                 label: "Best".to_string(),
                 count: 1,
@@ -199,10 +199,11 @@ fn friends_panel_scene_emits_group_and_row_hit_regions() {
         scene.surface_id,
         OverlaySurfaceId::new(FRIENDS_PANEL_SURFACE_ID)
     );
-    assert_eq!(scene.size, OverlaySize::new(960, 720));
-    assert!(region_ids.contains(&"tab:all"));
-    assert!(region_ids.contains(&"tab:local:Best"));
+    assert_eq!(scene.size, OverlaySize::new(1080, 720));
+    assert!(region_ids.contains(&"cat:all"));
+    assert!(region_ids.contains(&"cat:local:Best"));
     assert!(region_ids.contains(&"row:usr_1"));
+    assert!(region_ids.contains(&"category-list"));
     assert!(region_ids.contains(&"list"));
     assert!(scene.commands.iter().any(|command| {
         matches!(command, DrawCommand::Text { text, .. } if text.contains("Note: VRChat note"))
@@ -213,15 +214,123 @@ fn friends_panel_scene_emits_group_and_row_hit_regions() {
 }
 
 #[test]
-fn friends_panel_updates_tab_scroll_and_keeps_row_click_read_only() {
+fn friends_panel_hover_draws_pointer_reticle() {
+    let mut model = FavoriteFriendsPanelModel::default();
+    let pointer_uv = UvPoint::new(0.5, 0.5);
+
+    assert_eq!(
+        model
+            .apply_uv_action(pointer_uv, FriendPanelAction::Hover)
+            .as_deref(),
+        Some("list")
+    );
+
+    let scene = build_friends_panel_scene(&model);
+
+    assert!(scene.commands.iter().any(|command| {
+        matches!(
+            command,
+            DrawCommand::Circle {
+                center_x,
+                center_y,
+                radius,
+                ..
+            } if (*center_x - model.size.width as f32 * pointer_uv.x).abs() < 0.001
+                && (*center_y - model.size.height as f32 * pointer_uv.y).abs() < 0.001
+                && *radius >= 8.0
+        )
+    }));
+
+    model.apply_uv_action(UvPoint::new(-1.0, -1.0), FriendPanelAction::Hover);
+    let scene_after_miss = build_friends_panel_scene(&model);
+    assert!(!scene_after_miss.commands.iter().any(|command| {
+        matches!(
+            command,
+            DrawCommand::Circle {
+                center_x,
+                center_y,
+                radius,
+                ..
+            } if (*center_x - model.size.width as f32 * pointer_uv.x).abs() < 0.001
+                && (*center_y - model.size.height as f32 * pointer_uv.y).abs() < 0.001
+                && *radius >= 8.0
+        )
+    }));
+}
+
+#[test]
+fn friends_panel_categories_use_left_column_and_independent_scroll() {
     let mut model = FavoriteFriendsPanelModel {
-        tabs: vec![
-            FriendPanelTab {
+        categories: (0..9)
+            .map(|index| FriendPanelCategory {
+                key: format!("group:{index}"),
+                label: format!("Group {index}"),
+                count: index,
+            })
+            .collect(),
+        selected_category_key: "group:0".to_string(),
+        rows: (0..8)
+            .map(|index| friend_panel_row(format!("usr_{index}"), format!("Friend {index}")))
+            .collect(),
+        ..FavoriteFriendsPanelModel::default()
+    };
+    let size = model.size;
+    let scene = build_friends_panel_scene(&model);
+    let second_category_uv = scene
+        .hit_regions
+        .iter()
+        .find(|region| region.id == "cat:group:1")
+        .map(|region| region.rect.center_uv(size))
+        .expect("second category region");
+    let first_row_uv = scene
+        .hit_regions
+        .iter()
+        .find(|region| region.id.starts_with("row:"))
+        .map(|region| region.rect.center_uv(size))
+        .expect("first row region");
+
+    model.apply_uv_action(second_category_uv, FriendPanelAction::ClickDown);
+    model.apply_uv_action(second_category_uv, FriendPanelAction::ClickUp);
+    assert_eq!(model.selected_category_key, "group:1");
+    assert_eq!(model.row_scroll_offset, 0);
+
+    model.apply_uv_action(
+        second_category_uv,
+        FriendPanelAction::Scroll { delta: 10.0 },
+    );
+    assert_eq!(
+        model.category_scroll_offset,
+        model.max_category_scroll_offset()
+    );
+    assert_eq!(model.row_scroll_offset, 0);
+
+    model.apply_uv_action(first_row_uv, FriendPanelAction::Scroll { delta: 10.0 });
+    assert_eq!(model.row_scroll_offset, model.max_row_scroll_offset());
+    assert_eq!(
+        model.category_scroll_offset,
+        model.max_category_scroll_offset()
+    );
+
+    let category_scroll = model.category_scroll_offset;
+    let row_scroll = model.row_scroll_offset;
+    model.apply_uv_action(
+        UvPoint::new(0.5, 0.05),
+        FriendPanelAction::Scroll { delta: -10.0 },
+    );
+    assert_eq!(model.category_scroll_offset, category_scroll);
+    assert_eq!(model.row_scroll_offset, row_scroll);
+}
+
+#[test]
+fn friends_panel_updates_category_scroll_and_keeps_row_click_read_only() {
+    let mut model = FavoriteFriendsPanelModel {
+        categories: vec![
+            FriendPanelCategory {
                 key: "all".to_string(),
                 label: "All".to_string(),
                 count: 7,
             },
-            FriendPanelTab {
+            FriendPanelCategory {
                 key: "local:Best".to_string(),
                 label: "Best".to_string(),
                 count: 2,
@@ -238,32 +347,32 @@ fn friends_panel_updates_tab_scroll_and_keeps_row_click_read_only() {
     };
     let size = model.size;
     let scene = build_friends_panel_scene(&model);
-    let best_tab_uv = scene
+    let best_category_uv = scene
         .hit_regions
         .iter()
-        .find(|region| region.id == "tab:local:Best")
+        .find(|region| region.id == "cat:local:Best")
         .map(|region| region.rect.center_uv(size))
-        .expect("best tab region");
+        .expect("best category region");
 
     assert_eq!(
         model
-            .apply_uv_action(best_tab_uv, FriendPanelAction::ClickDown)
+            .apply_uv_action(best_category_uv, FriendPanelAction::ClickDown)
             .as_deref(),
-        Some("tab:local:Best")
+        Some("cat:local:Best")
     );
     assert_eq!(
         model
-            .apply_uv_action(best_tab_uv, FriendPanelAction::ClickUp)
+            .apply_uv_action(best_category_uv, FriendPanelAction::ClickUp)
             .as_deref(),
-        Some("tab:local:Best")
+        Some("cat:local:Best")
     );
-    assert_eq!(model.selected_tab_key, "local:Best");
+    assert_eq!(model.selected_category_key, "local:Best");
 
     model.apply_uv_action(
         UvPoint::new(0.5, 0.5),
         FriendPanelAction::Scroll { delta: 10.0 },
     );
-    assert_eq!(model.scroll_offset_rows, model.max_scroll_offset_rows());
+    assert_eq!(model.row_scroll_offset, model.max_row_scroll_offset());
 
     let scene_after_scroll = build_friends_panel_scene(&model);
     let row_uv = scene_after_scroll
@@ -276,7 +385,7 @@ fn friends_panel_updates_tab_scroll_and_keeps_row_click_read_only() {
     let hit = model.apply_uv_action(row_uv, FriendPanelAction::ClickUp);
 
     assert!(hit.as_deref().is_some_and(|id| id.starts_with("row:")));
-    assert_eq!(model.selected_tab_key, "local:Best");
+    assert_eq!(model.selected_category_key, "local:Best");
     assert_eq!(model.pressed_region_id, None);
 }
 

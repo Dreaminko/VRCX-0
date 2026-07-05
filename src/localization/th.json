@@ -293,6 +293,7 @@
                 "interactive_panel": {
                     "header": "แผงเพื่อนแบบโต้ตอบ",
                     "enabled": "เปิดใช้แผงเพื่อนแบบโต้ตอบ",
+                    "all_friends_include_favorites": "รวมรายการโปรดในทั้งหมด",
                     "summon_hint": "ท่าทางเรียกแผง",
                     "openvr_required": "กด Grip มือขวาค้างไว้ประมาณ 2 วินาทีเพื่อเรียกแผง ต้องใช้แบ็กเอนด์โอเวอร์เลย์ SteamVR/OpenVR; ตอนนี้ OpenXR ยังไม่มีแผงแบบโต้ตอบ"
                 }

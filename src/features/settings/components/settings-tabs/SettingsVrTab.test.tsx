@@ -91,6 +91,7 @@ const handlers = {
     onOpenWristFeedNotificationsDialog: noop,
     onOvrtHudNotificationsChange: noop,
     onOvrtWristNotificationsChange: noop,
+    onVrOverlayPanelAllFriendsIncludesFavoritesChange: noop,
     onVrOverlayPanelEnabledChange: noop,
     onWristOverlayButtonChange: noop,
     onWristOverlayDarkBackgroundChange: noop,
@@ -110,6 +111,7 @@ describe('SettingsVrTab', () => {
             <SettingsVrTab
                 prefs={{
                     vrOverlayPanelEnabled: true,
+                    vrOverlayPanelAllFriendsIncludesFavorites: true,
                     wristOverlayEnabled: false
                 }}
                 {...handlers}
@@ -118,6 +120,9 @@ describe('SettingsVrTab', () => {
 
         expect(html).toContain('view.settings.vr.interactive_panel.header');
         expect(html).toContain('view.settings.vr.interactive_panel.enabled');
+        expect(html).toContain(
+            'view.settings.vr.interactive_panel.all_friends_include_favorites'
+        );
         expect(html).toContain(
             'view.settings.vr.interactive_panel.summon_hint'
         );

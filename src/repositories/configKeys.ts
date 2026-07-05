@@ -176,6 +176,10 @@ export const ConfigKeys = defineConfigKeys({
 
     // ── Settings - Overlay ───────────────────────────
     vrOverlayPanelEnabled: { type: 'bool', default: true },
+    vrOverlayPanelAllFriendsIncludesFavorites: {
+        type: 'bool',
+        default: true
+    },
     wristOverlayEnabled: { type: 'bool', default: false },
     wristOverlayStartMode: { type: 'string', default: 'vrchatVrMode' },
     wristOverlayButton: { type: 'string', default: 'grip' },

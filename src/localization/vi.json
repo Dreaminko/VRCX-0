@@ -196,6 +196,7 @@
                 "interactive_panel": {
                     "header": "Bảng bạn bè tương tác",
                     "enabled": "Bật bảng bạn bè tương tác",
+                    "all_friends_include_favorites": "Bao gồm mục yêu thích trong Tất cả",
                     "summon_hint": "Cử chỉ gọi bảng",
                     "openvr_required": "Giữ Grip tay phải khoảng 2 giây để gọi bảng. Cần backend lớp phủ SteamVR/OpenVR; OpenXR hiện chưa cung cấp bảng tương tác."
                 }

@@ -361,6 +361,7 @@
                 "interactive_panel": {
                     "header": "Interaktywny panel znajomych",
                     "enabled": "Włącz interaktywny panel znajomych",
+                    "all_friends_include_favorites": "Uwzględniaj ulubionych we Wszystkich",
                     "summon_hint": "Gest przywołania",
                     "openvr_required": "Przytrzymaj prawy grip przez około 2 sekundy, aby go przywołać. Wymaga backendu nakładki SteamVR/OpenVR; OpenXR obecnie nie udostępnia panelu interaktywnego."
                 }

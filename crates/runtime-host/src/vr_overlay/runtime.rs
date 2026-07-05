@@ -25,10 +25,11 @@ use vrcx_0_persistence::favorites::favorite_list;
 use vrcx_0_persistence::memos::{memo_list_user_notes, memo_list_users};
 use vrcx_0_vr_overlay::{
     build_friends_panel_scene, build_main_scene, build_wrist_scene, new_shared_overlay_font_system,
-    AvatarBitmap, FavoriteFriendsPanelModel, FriendPanelAction, FriendPanelRow,
-    FriendPanelStatusTone, FriendPanelTab, MainSurfaceModel, OverlayRenderer, OverlaySize,
+    AvatarBitmap, FavoriteFriendsPanelModel, FriendPanelAction, FriendPanelCategory,
+    FriendPanelRow, FriendPanelStatusTone, MainSurfaceModel, OverlayRenderer, OverlaySize,
     OverlaySurfaceId, OverlayTransform, RgbaFrame, TextMeasurer, TinySkiaRenderer,
-    FRIENDS_PANEL_ID, FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
+    FRIENDS_PANEL_ID, FRIENDS_PANEL_LASER_LEFT_SURFACE_ID, FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID,
+    FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 
 use crate::notification::user_image::UserImageCache;
@@ -62,6 +63,9 @@ pub const VR_OVERLAY_DARK_BACKGROUND_CONFIG_KEY: &str = "wristOverlayDarkBackgro
 pub const VR_OVERLAY_SHOW_DEVICES_CONFIG_KEY: &str = "wristOverlayShowDevices";
 pub const VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY: &str = "wristOverlayShowBatteryPercent";
 pub const VR_OVERLAY_PANEL_ENABLED_CONFIG_KEY: &str = "vrOverlayPanelEnabled";
+pub const VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY: &str = "vrOverlayPanelSelectedCategory";
+pub const VR_OVERLAY_PANEL_ALL_FRIENDS_INCLUDES_FAVORITES_CONFIG_KEY: &str =
+    "vrOverlayPanelAllFriendsIncludesFavorites";
 pub const VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY: &str = "vrOverlayFriendsPanelGroup";
 pub const HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY: &str = "hmdNotificationsEnabled";
 pub const HMD_NOTIFICATION_START_MODE_CONFIG_KEY: &str = "hmdNotificationStartMode";
@@ -74,6 +78,8 @@ const WRIST_DEVICE_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WRIST_FRAME_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 const FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL: Duration = Duration::from_millis(100);
 const FRIENDS_PANEL_SPINNER_PHASE_STEP: f32 = 0.1;
+const FRIENDS_PANEL_LASER_SIZE: OverlaySize = OverlaySize::new(256, 6);
+const FRIENDS_PANEL_LASER_INITIAL_WIDTH_METERS: f32 = 0.45;
 const INTERACTIVE_INPUT_DRAIN_INTERVAL: Duration = Duration::from_millis(30);
 const HMD_TOAST_CAPACITY: usize = 3;
 const HMD_JOIN_LEAVE_MERGE_WINDOW: Duration = Duration::from_secs(4);
@@ -81,6 +87,11 @@ const HMD_AVATAR_SIZE: u32 = 96;
 const HMD_AVATAR_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 const HMD_AVATAR_SUCCESS_TTL: Duration = Duration::from_secs(15 * 60);
 const HMD_AVATAR_FAILURE_TTL: Duration = Duration::from_secs(60);
+const FRIENDS_PANEL_CATEGORY_ALL: &str = "all";
+const FRIENDS_PANEL_CATEGORY_FAVORITES_ONLINE: &str = "favOnline";
+const FRIENDS_PANEL_CATEGORY_LOCAL_FAVORITES: &str = "favLocal";
+const FRIENDS_PANEL_CATEGORY_GROUP_PREFIX: &str = "group:";
+const LOCAL_FAVORITE_GROUP_PREFIX: &str = "local:";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum WristOverlayHand {
@@ -157,6 +168,7 @@ pub(super) struct VrOverlayRuntimeConfig {
     button: OverlayActivationButton,
     hand: WristOverlayHand,
     panel_enabled: bool,
+    panel_all_friends_includes_favorites: bool,
     hmd: HmdNotificationConfig,
     render: WristOverlayRenderOptions,
     locale: OverlayLocale,
@@ -171,6 +183,7 @@ impl Default for VrOverlayRuntimeConfig {
             button: OverlayActivationButton::Grip,
             hand: WristOverlayHand::Left,
             panel_enabled: true,
+            panel_all_friends_includes_favorites: true,
             hmd: HmdNotificationConfig::default(),
             render: WristOverlayRenderOptions::default(),
             locale: OverlayLocale::default(),
@@ -358,18 +371,6 @@ impl VrOverlayRuntime {
             None,
             VrOverlayRuntimeConfig::default(),
             Box::new(|| Box::<StaticWristFrameProducer>::default()),
-        )
-    }
-
-    #[cfg(test)]
-    fn new_for_test_with_frame_producer_factory(
-        backend_available: bool,
-        frame_producer_factory: VrOverlayFrameProducerFactory,
-    ) -> Self {
-        Self::new_for_test_with_config_and_frame_producer_factory(
-            backend_available,
-            VrOverlayRuntimeConfig::default(),
-            frame_producer_factory,
         )
     }
 
@@ -563,7 +564,7 @@ impl VrOverlayRuntime {
     fn rebuild_visible_friends_panel_model(&self) {
         let (selected, spinner_phase) = match self.interactive_panel.lock() {
             Ok(panel) if panel.visible => (
-                Some(panel.model.selected_tab_key.clone()),
+                Some(panel.model.selected_category_key.clone()),
                 panel.model.spinner_phase,
             ),
             _ => return,
@@ -578,11 +579,12 @@ impl VrOverlayRuntime {
 
     fn build_current_friends_panel_model(
         &self,
-        selected_group_key: Option<String>,
+        selected_category_key: Option<String>,
         spinner_phase: f32,
     ) -> FavoriteFriendsPanelModel {
-        let selected_group_key =
-            selected_group_key.unwrap_or_else(|| self.load_friends_panel_selected_group());
+        let runtime_config = self.current_runtime_config();
+        let selected_category_key =
+            selected_category_key.unwrap_or_else(|| self.load_friends_panel_selected_category());
         let friend_snapshot = self.current_friends_panel_snapshot();
         let favorite_groups = self.current_friends_panel_favorite_groups();
         let (notes_by_user_id, memos_by_user_id) =
@@ -594,14 +596,15 @@ impl VrOverlayRuntime {
             .map(|avatars| avatars.clone())
             .unwrap_or_default();
         build_friends_panel_model(FriendsPanelModelInput {
-            selected_group_key,
+            selected_category_key,
             friend_snapshot,
             favorite_groups,
             notes_by_user_id,
             memos_by_user_id,
             world_names_by_id,
             avatars_by_user_id,
-            locale: self.current_runtime_config().locale,
+            locale: runtime_config.locale,
+            all_friends_includes_favorites: runtime_config.panel_all_friends_includes_favorites,
             spinner_phase,
         })
     }
@@ -825,28 +828,39 @@ impl VrOverlayRuntime {
         }
     }
 
-    fn load_friends_panel_selected_group(&self) -> String {
-        self.context
-            .as_ref()
-            .and_then(|context| {
-                context
-                    .config()
-                    .get_string(VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY, "all")
-                    .ok()
-            })
-            .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| "all".to_string())
+    fn load_friends_panel_selected_category(&self) -> String {
+        let Some(context) = &self.context else {
+            return FRIENDS_PANEL_CATEGORY_ALL.to_string();
+        };
+        if let Ok(value) = context
+            .config()
+            .get_string(VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY, "")
+        {
+            let value = value.trim();
+            if !value.is_empty() {
+                return normalize_friends_panel_category_key(value);
+            }
+        }
+        context
+            .config()
+            .get_string(
+                VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY,
+                FRIENDS_PANEL_CATEGORY_ALL,
+            )
+            .ok()
+            .map(|value| normalize_friends_panel_category_key(&value))
+            .unwrap_or_else(|| FRIENDS_PANEL_CATEGORY_ALL.to_string())
     }
 
-    fn persist_friends_panel_selected_group(&self, key: &str) {
+    fn persist_friends_panel_selected_category(&self, key: &str) {
         let Some(context) = &self.context else {
             return;
         };
         if let Err(error) = context
             .config()
-            .set_string(VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY, key)
+            .set_string(VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY, key)
         {
-            tracing::warn!(error = %error, "failed to persist VR friends panel group");
+            tracing::warn!(error = %error, "failed to persist VR friends panel category");
         }
     }
 
@@ -1334,25 +1348,32 @@ impl VrOverlayRuntime {
     }
 
     fn commit_runtime_config(&self, next_config: VrOverlayRuntimeConfig, clear_devices: bool) {
-        let close_panel = {
+        let (close_panel, rebuild_friends_panel_model) = {
             let Ok(mut current_config) = self.config.lock() else {
                 return;
             };
             if *current_config == next_config {
-                !next_config.panel_enabled
+                (!next_config.panel_enabled, false)
             } else {
+                let previous_config = *current_config;
                 let close_panel = current_config.panel_enabled && !next_config.panel_enabled;
+                let rebuild_friends_panel_model = previous_config.locale != next_config.locale
+                    || previous_config.panel_all_friends_includes_favorites
+                        != next_config.panel_all_friends_includes_favorites;
                 *current_config = next_config;
                 if clear_devices {
                     if let Ok(mut devices) = self.devices.lock() {
                         devices.clear();
                     }
                 }
-                close_panel
+                (close_panel, rebuild_friends_panel_model)
             }
         };
         if close_panel {
             self.close_friends_panel();
+        } else if rebuild_friends_panel_model {
+            self.friends_panel_model_dirty
+                .store(true, Ordering::Release);
         }
     }
 
@@ -1487,7 +1508,7 @@ impl VrOverlayRuntime {
         } else {
             None
         };
-        let mut selected_group_to_persist = None;
+        let mut selected_category_to_persist = None;
         let outcome = {
             let Ok(mut panel) = self.interactive_panel.lock() else {
                 return OverlayInputProcessOutcome::default();
@@ -1535,15 +1556,16 @@ impl VrOverlayRuntime {
                     }
                 }
                 OverlayInputKind::ClickUp => {
-                    let previous_group = panel.model.selected_tab_key.clone();
+                    let previous_category = panel.model.selected_category_key.clone();
                     let hit = panel
                         .model
                         .apply_uv_action(event.uv, FriendPanelAction::ClickUp);
                     if let Some(region_id) = hit {
                         tracing::debug!(region_id = %region_id, "VR friends panel clicked");
                     }
-                    if panel.model.selected_tab_key != previous_group {
-                        selected_group_to_persist = Some(panel.model.selected_tab_key.clone());
+                    if panel.model.selected_category_key != previous_category {
+                        selected_category_to_persist =
+                            Some(panel.model.selected_category_key.clone());
                     }
                     panel.focused = panel.model.hovered_region_id.is_some();
                     OverlayInputProcessOutcome {
@@ -1583,8 +1605,8 @@ impl VrOverlayRuntime {
                 }
             }
         };
-        if let Some(selected_group) = selected_group_to_persist {
-            self.persist_friends_panel_selected_group(&selected_group);
+        if let Some(selected_category) = selected_category_to_persist {
+            self.persist_friends_panel_selected_category(&selected_category);
             if self.context.is_some() {
                 self.rebuild_visible_friends_panel_model();
             }
@@ -1636,6 +1658,23 @@ impl VrOverlayRuntime {
         if let Err(error) = manager.show_surface(&surface_id) {
             tracing::warn!(error = %error, "failed to show VR friends panel surface");
         }
+        self.push_friends_panel_laser_frames(manager);
+    }
+
+    fn push_friends_panel_laser_frames(
+        &self,
+        manager: &mut VrOverlayManager<HostVrOverlayService>,
+    ) {
+        let frame = friends_panel_laser_frame();
+        for surface_id in friends_panel_laser_surface_ids() {
+            if let Err(error) = manager.update_surface_frame(&surface_id, frame.clone()) {
+                tracing::warn!(
+                    error = %error,
+                    surface_id = surface_id.as_str(),
+                    "failed to update VR friends panel laser frame"
+                );
+            }
+        }
     }
 
     fn log_interactive_backend_degradation(
@@ -1682,6 +1721,28 @@ impl VrOverlayRuntime {
             activation_button: OverlayActivationButton::Menu,
             interactive: true,
         })
+    }
+
+    fn friends_panel_laser_surface_configs(&self) -> Vec<OverlaySurfaceConfig> {
+        let Ok(panel) = self.interactive_panel.lock() else {
+            return Vec::new();
+        };
+        if !panel.visible {
+            return Vec::new();
+        }
+        friends_panel_laser_surface_ids()
+            .into_iter()
+            .map(|surface_id| OverlaySurfaceConfig {
+                surface_id,
+                size: FRIENDS_PANEL_LASER_SIZE,
+                physical_width_meters: FRIENDS_PANEL_LASER_INITIAL_WIDTH_METERS,
+                placement: OverlayPlacement::Absolute {
+                    transform: panel.transform,
+                },
+                activation_button: OverlayActivationButton::Menu,
+                interactive: false,
+            })
+            .collect()
     }
 }
 
@@ -1972,16 +2033,7 @@ struct FavoriteFriendGroupsSnapshot {
 
 impl FavoriteFriendGroupsSnapshot {
     fn all_user_ids(&self) -> Vec<String> {
-        let mut seen = HashSet::new();
-        let mut user_ids = Vec::new();
-        for group in &self.groups {
-            for user_id in &group.user_ids {
-                if seen.insert(user_id.clone()) {
-                    user_ids.push(user_id.clone());
-                }
-            }
-        }
-        user_ids
+        self.user_ids_for_groups(|_| true)
     }
 
     fn group_user_ids(&self, key: &str) -> Option<Vec<String>> {
@@ -1990,11 +2042,31 @@ impl FavoriteFriendGroupsSnapshot {
             .find(|group| group.key == key)
             .map(|group| group.user_ids.clone())
     }
+
+    fn local_user_ids(&self) -> Vec<String> {
+        self.user_ids_for_groups(|group| group.key.starts_with(LOCAL_FAVORITE_GROUP_PREFIX))
+    }
+
+    fn user_ids_for_groups(
+        &self,
+        include_group: impl Fn(&FavoriteFriendGroupSnapshot) -> bool,
+    ) -> Vec<String> {
+        let mut seen = HashSet::new();
+        let mut user_ids = Vec::new();
+        for group in self.groups.iter().filter(|group| include_group(group)) {
+            for user_id in &group.user_ids {
+                if seen.insert(user_id.clone()) {
+                    user_ids.push(user_id.clone());
+                }
+            }
+        }
+        user_ids
+    }
 }
 
 #[derive(Clone, Debug, Default)]
 struct FriendsPanelModelInput {
-    selected_group_key: String,
+    selected_category_key: String,
     friend_snapshot: Option<RealtimeFriendSnapshot>,
     favorite_groups: FavoriteFriendGroupsSnapshot,
     notes_by_user_id: HashMap<String, String>,
@@ -2002,6 +2074,7 @@ struct FriendsPanelModelInput {
     world_names_by_id: HashMap<String, String>,
     avatars_by_user_id: HashMap<String, AvatarBitmap>,
     locale: OverlayLocale,
+    all_friends_includes_favorites: bool,
     spinner_phase: f32,
 }
 
@@ -2011,7 +2084,10 @@ fn favorite_friend_groups_snapshot_from_baseline(
     let remote_membership = object_string_vecs(snapshot.get("groupedFavoriteFriendIdsByGroupKey"));
     let local_membership = object_string_vecs(snapshot.get("localFriendFavorites"));
     let remote_labels = group_labels(snapshot.get("favoriteFriendGroups"), "");
-    let local_labels = group_labels(snapshot.get("localFriendFavoriteGroups"), "local:");
+    let local_labels = group_labels(
+        snapshot.get("localFriendFavoriteGroups"),
+        LOCAL_FAVORITE_GROUP_PREFIX,
+    );
     let mut groups = Vec::new();
 
     for (key, user_ids) in remote_membership {
@@ -2032,7 +2108,7 @@ fn favorite_friend_groups_snapshot_from_baseline(
         if user_ids.is_empty() {
             continue;
         }
-        let key = format!("local:{raw_key}");
+        let key = format!("{LOCAL_FAVORITE_GROUP_PREFIX}{raw_key}");
         let label = local_labels
             .get(&key)
             .cloned()
@@ -2067,7 +2143,7 @@ fn local_favorite_friend_groups_from_db(
     let mut groups = groups_by_key
         .into_iter()
         .map(|(group_name, user_ids)| FavoriteFriendGroupSnapshot {
-            key: format!("local:{group_name}"),
+            key: format!("{LOCAL_FAVORITE_GROUP_PREFIX}{group_name}"),
             label: group_name,
             user_ids: dedupe_preserve_order(user_ids),
         })
@@ -2107,56 +2183,67 @@ fn build_friends_panel_model(input: FriendsPanelModelInput) -> FavoriteFriendsPa
     let localizer = OverlayLocalizer::new(input.locale);
     let strings = localizer.friends_panel_strings();
     let snapshot = input.friend_snapshot.as_ref();
-    let online_counts = snapshot
-        .map(|snapshot| online_favorite_counts(snapshot, &input.favorite_groups))
-        .unwrap_or_default();
-    let all_user_ids = input.favorite_groups.all_user_ids();
-    let all_count = snapshot
-        .map(|snapshot| online_favorite_count(snapshot, &all_user_ids))
-        .unwrap_or_default();
-    let mut tabs = vec![FriendPanelTab {
-        key: "all".to_string(),
-        label: strings.all_label.clone(),
-        count: all_count,
-    }];
-    tabs.extend(
+    let favorites_user_ids = input.favorite_groups.all_user_ids();
+    let favorites_user_id_set = favorites_user_ids.iter().cloned().collect::<HashSet<_>>();
+    let all_user_ids = all_friend_category_user_ids(
+        snapshot,
+        &favorites_user_id_set,
+        input.all_friends_includes_favorites,
+    );
+    let local_favorite_user_ids = input.favorite_groups.local_user_ids();
+    let mut categories = vec![
+        FriendPanelCategory {
+            key: FRIENDS_PANEL_CATEGORY_ALL.to_string(),
+            label: strings.all_label.clone(),
+            count: present_friend_count(snapshot, &all_user_ids),
+        },
+        FriendPanelCategory {
+            key: FRIENDS_PANEL_CATEGORY_FAVORITES_ONLINE.to_string(),
+            label: localizer.friends_panel_favorites_online_label(),
+            count: visible_friend_count(snapshot, &favorites_user_ids),
+        },
+        FriendPanelCategory {
+            key: FRIENDS_PANEL_CATEGORY_LOCAL_FAVORITES.to_string(),
+            label: localizer.friends_panel_local_favorites_label(),
+            count: present_friend_count(snapshot, &local_favorite_user_ids),
+        },
+    ];
+    categories.extend(
         input
             .favorite_groups
             .groups
             .iter()
-            .map(|group| FriendPanelTab {
-                key: group.key.clone(),
+            .map(|group| FriendPanelCategory {
+                key: format!("{FRIENDS_PANEL_CATEGORY_GROUP_PREFIX}{}", group.key),
                 label: group.label.clone(),
-                count: online_counts.get(&group.key).copied().unwrap_or(0),
+                count: present_friend_count(snapshot, &group.user_ids),
             }),
     );
 
-    let selected_tab_key = if input.selected_group_key == "all"
-        || input
-            .favorite_groups
-            .groups
-            .iter()
-            .any(|group| group.key == input.selected_group_key)
+    let selected_category_key = normalize_friends_panel_category_key(&input.selected_category_key);
+    let selected_category_key = if categories
+        .iter()
+        .any(|category| category.key == selected_category_key)
     {
-        input.selected_group_key.clone()
+        selected_category_key
     } else {
-        "all".to_string()
+        FRIENDS_PANEL_CATEGORY_ALL.to_string()
     };
-    let selected_user_ids = if selected_tab_key == "all" {
-        all_user_ids
-    } else {
-        input
-            .favorite_groups
-            .group_user_ids(&selected_tab_key)
-            .unwrap_or_default()
-    };
+    let selected_user_ids = selected_category_user_ids(
+        &selected_category_key,
+        snapshot,
+        &input.favorite_groups,
+        &favorites_user_id_set,
+        input.all_friends_includes_favorites,
+    );
+    let online_only = category_is_online_only(&selected_category_key);
     let mut rows = snapshot
         .map(|snapshot| {
             selected_user_ids
                 .into_iter()
                 .filter_map(|user_id| {
                     let record = snapshot.friends_by_id.get(&user_id)?;
-                    if !friend_record_is_visible(record) {
+                    if online_only && !friend_record_is_visible(record) {
                         return None;
                     }
                     Some(friend_row_from_record(&input, &localizer, record))
@@ -2171,13 +2258,64 @@ fn build_friends_panel_model(input: FriendsPanelModelInput) -> FavoriteFriendsPa
     });
 
     FavoriteFriendsPanelModel {
-        tabs,
-        selected_tab_key,
+        categories,
+        selected_category_key,
         rows,
         spinner_phase: input.spinner_phase,
         strings,
         ..FavoriteFriendsPanelModel::default()
     }
+}
+
+fn all_friend_category_user_ids(
+    snapshot: Option<&RealtimeFriendSnapshot>,
+    favorite_user_ids: &HashSet<String>,
+    include_favorites: bool,
+) -> Vec<String> {
+    snapshot
+        .map(|snapshot| {
+            snapshot
+                .friends_by_id
+                .keys()
+                .filter(|user_id| include_favorites || !favorite_user_ids.contains(*user_id))
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn selected_category_user_ids(
+    selected_category_key: &str,
+    snapshot: Option<&RealtimeFriendSnapshot>,
+    favorite_groups: &FavoriteFriendGroupsSnapshot,
+    favorite_user_ids: &HashSet<String>,
+    include_favorites: bool,
+) -> Vec<String> {
+    match selected_category_key {
+        FRIENDS_PANEL_CATEGORY_ALL => {
+            all_friend_category_user_ids(snapshot, favorite_user_ids, include_favorites)
+        }
+        FRIENDS_PANEL_CATEGORY_FAVORITES_ONLINE => favorite_groups.all_user_ids(),
+        FRIENDS_PANEL_CATEGORY_LOCAL_FAVORITES => favorite_groups.local_user_ids(),
+        _ => selected_category_key
+            .strip_prefix(FRIENDS_PANEL_CATEGORY_GROUP_PREFIX)
+            .and_then(|key| favorite_groups.group_user_ids(key))
+            .unwrap_or_default(),
+    }
+}
+
+fn normalize_friends_panel_category_key(key: &str) -> String {
+    let key = key.trim();
+    if key.is_empty() || key == FRIENDS_PANEL_CATEGORY_ALL {
+        return FRIENDS_PANEL_CATEGORY_ALL.to_string();
+    }
+    if key == FRIENDS_PANEL_CATEGORY_FAVORITES_ONLINE
+        || key == FRIENDS_PANEL_CATEGORY_LOCAL_FAVORITES
+        || key.starts_with(FRIENDS_PANEL_CATEGORY_GROUP_PREFIX)
+    {
+        return key.to_string();
+    }
+    format!("{FRIENDS_PANEL_CATEGORY_GROUP_PREFIX}{key}")
 }
 
 fn friend_record_world_ids(record: &FriendRecord) -> Vec<String> {
@@ -2262,28 +2400,29 @@ fn dedupe_preserve_order(values: Vec<String>) -> Vec<String> {
         .collect()
 }
 
-fn online_favorite_counts(
-    snapshot: &RealtimeFriendSnapshot,
-    groups: &FavoriteFriendGroupsSnapshot,
-) -> HashMap<String, usize> {
-    groups
-        .groups
-        .iter()
-        .map(|group| {
-            (
-                group.key.clone(),
-                online_favorite_count(snapshot, &group.user_ids),
-            )
-        })
-        .collect()
-}
-
-fn online_favorite_count(snapshot: &RealtimeFriendSnapshot, user_ids: &[String]) -> usize {
+fn visible_friend_count(snapshot: Option<&RealtimeFriendSnapshot>, user_ids: &[String]) -> usize {
+    let Some(snapshot) = snapshot else {
+        return 0;
+    };
     user_ids
         .iter()
         .filter_map(|user_id| snapshot.friends_by_id.get(user_id))
         .filter(|record| friend_record_is_visible(record))
         .count()
+}
+
+fn present_friend_count(snapshot: Option<&RealtimeFriendSnapshot>, user_ids: &[String]) -> usize {
+    let Some(snapshot) = snapshot else {
+        return 0;
+    };
+    user_ids
+        .iter()
+        .filter(|user_id| snapshot.friends_by_id.contains_key(*user_id))
+        .count()
+}
+
+fn category_is_online_only(category_key: &str) -> bool {
+    category_key == FRIENDS_PANEL_CATEGORY_FAVORITES_ONLINE
 }
 
 fn friend_record_is_visible(record: &FriendRecord) -> bool {
@@ -2416,6 +2555,9 @@ fn extra_string(record: &FriendRecord, key: &str) -> String {
 }
 
 fn friend_status_tone(record: &FriendRecord) -> FriendPanelStatusTone {
+    if !friend_record_is_visible(record) {
+        return FriendPanelStatusTone::Offline;
+    }
     match record.status.trim().to_ascii_lowercase().as_str() {
         "busy" => FriendPanelStatusTone::Busy,
         "ask me" | "askme" => FriendPanelStatusTone::AskMe,
@@ -2499,8 +2641,40 @@ fn overlay_surface_configs(
         if let Some(config) = runtime.friends_panel_surface_config() {
             configs.push(config);
         }
+        configs.extend(runtime.friends_panel_laser_surface_configs());
     }
     configs
+}
+
+fn friends_panel_laser_surface_ids() -> [OverlaySurfaceId; 2] {
+    [
+        OverlaySurfaceId::new(FRIENDS_PANEL_LASER_LEFT_SURFACE_ID),
+        OverlaySurfaceId::new(FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID),
+    ]
+}
+
+fn friends_panel_laser_frame() -> RgbaFrame {
+    let size = FRIENDS_PANEL_LASER_SIZE;
+    let width = size.width as usize;
+    let height = size.height as usize;
+    let mut data = vec![0; width * height * 4];
+    let center = (height.saturating_sub(1)) as f32 * 0.5;
+    let max_y_distance = (center + 0.5).max(1.0);
+    for y in 0..height {
+        let y_distance = (y as f32 - center).abs();
+        let y_alpha = ((max_y_distance - y_distance) / max_y_distance).clamp(0.0, 1.0);
+        for x in 0..width {
+            let edge = x.min(width.saturating_sub(1).saturating_sub(x)) as f32;
+            let x_alpha = (edge / 18.0).clamp(0.0, 1.0);
+            let alpha = (220.0 * y_alpha * x_alpha).round().clamp(0.0, 220.0) as u8;
+            let index = (y * width + x) * 4;
+            data[index] = 45;
+            data[index + 1] = 212;
+            data[index + 2] = 191;
+            data[index + 3] = alpha;
+        }
+    }
+    RgbaFrame::new(size, data)
 }
 
 fn wrist_surface_configs(config: VrOverlayRuntimeConfig) -> Vec<OverlaySurfaceConfig> {
@@ -2660,6 +2834,12 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
     let panel_enabled = config
         .get_bool(VR_OVERLAY_PANEL_ENABLED_CONFIG_KEY, true)
         .unwrap_or(true);
+    let panel_all_friends_includes_favorites = config
+        .get_bool(
+            VR_OVERLAY_PANEL_ALL_FRIENDS_INCLUDES_FAVORITES_CONFIG_KEY,
+            true,
+        )
+        .unwrap_or(true);
     let locale = config
         .get_string(APP_LANGUAGE_CONFIG_KEY, "en")
         .map(|value| OverlayLocale::from_config(&value))
@@ -2674,6 +2854,7 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
         button,
         hand,
         panel_enabled,
+        panel_all_friends_includes_favorites,
         hmd: HmdNotificationConfig {
             enabled: hmd_enabled,
             start_mode: hmd_start_mode,
@@ -2978,6 +3159,98 @@ mod tests {
     }
 
     #[test]
+    fn runtime_config_reads_interactive_panel_all_friends_setting() {
+        let (_dir, _db, context) = test_context("vr-panel-all-friends-config");
+        context
+            .config()
+            .set_bool(
+                VR_OVERLAY_PANEL_ALL_FRIENDS_INCLUDES_FAVORITES_CONFIG_KEY,
+                false,
+            )
+            .unwrap();
+
+        let config = load_runtime_config(context.config());
+
+        assert!(!config.panel_all_friends_includes_favorites);
+    }
+
+    #[test]
+    fn changing_all_friends_setting_rebuilds_visible_friends_panel_model() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.set_friends_panel_snapshot_provider(|| {
+            Some(RealtimeFriendSnapshot {
+                current_user_id: "usr_self".to_string(),
+                friends_by_id: [
+                    (
+                        "usr_favorite".to_string(),
+                        FriendRecord {
+                            id: "usr_favorite".to_string(),
+                            display_name: "Favorite".to_string(),
+                            state_bucket: "online".to_string(),
+                            location: "wrld_home:123".to_string(),
+                            world_id: "wrld_home".to_string(),
+                            ..FriendRecord::default()
+                        },
+                    ),
+                    (
+                        "usr_other".to_string(),
+                        FriendRecord {
+                            id: "usr_other".to_string(),
+                            display_name: "Other".to_string(),
+                            state_bucket: "online".to_string(),
+                            location: "wrld_home:123".to_string(),
+                            world_id: "wrld_home".to_string(),
+                            ..FriendRecord::default()
+                        },
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+                ..RealtimeFriendSnapshot::default()
+            })
+        });
+        set_friends_panel_favorite(&runtime, "usr_favorite");
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+        assert_eq!(
+            runtime
+                .interactive_panel
+                .lock()
+                .unwrap()
+                .model
+                .rows
+                .iter()
+                .map(|row| row.user_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["usr_favorite", "usr_other"]
+        );
+
+        runtime.commit_runtime_config(
+            VrOverlayRuntimeConfig {
+                panel_all_friends_includes_favorites: false,
+                ..VrOverlayRuntimeConfig::default()
+            },
+            false,
+        );
+        {
+            let mut manager = runtime.manager.lock().unwrap();
+            runtime.push_friends_panel_frame(&mut manager);
+        }
+
+        assert_eq!(
+            runtime
+                .interactive_panel
+                .lock()
+                .unwrap()
+                .model
+                .rows
+                .iter()
+                .map(|row| row.user_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["usr_other"]
+        );
+    }
+
+    #[test]
     fn panel_enabled_false_disables_listener_even_when_steamvr_is_running() {
         let config = VrOverlayRuntimeConfig {
             panel_enabled: false,
@@ -3079,6 +3352,27 @@ mod tests {
             config.placement,
             OverlayPlacement::Absolute { transform: value } if value == transform
         ));
+        let configs = overlay_surface_configs(
+            ActiveOverlaySurfaces {
+                friends_panel: true,
+                ..ActiveOverlaySurfaces::default()
+            },
+            runtime.current_runtime_config(),
+            &runtime,
+        );
+        let laser_configs = configs
+            .iter()
+            .filter(|config| {
+                matches!(
+                    config.surface_id.as_str(),
+                    FRIENDS_PANEL_LASER_LEFT_SURFACE_ID | FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(laser_configs.len(), 2);
+        assert!(laser_configs
+            .iter()
+            .all(|config| !config.interactive && config.size == FRIENDS_PANEL_LASER_SIZE));
 
         let dismiss_outcome =
             runtime.apply_friends_panel_input(friends_panel_summon_input(transform));
@@ -3265,20 +3559,20 @@ mod tests {
     }
 
     #[test]
-    fn friends_panel_routes_hover_tab_click_and_scroll_to_model() {
+    fn friends_panel_routes_hover_category_click_and_row_scroll_to_model() {
         let runtime = VrOverlayRuntime::new_for_test();
         let transform = OverlayTransform::identity();
         runtime.apply_friends_panel_input(friends_panel_summon_input(transform));
         {
             let mut panel = runtime.interactive_panel.lock().unwrap();
-            panel.model.tabs = vec![
-                FriendPanelTab {
-                    key: "all".to_string(),
+            panel.model.categories = vec![
+                FriendPanelCategory {
+                    key: FRIENDS_PANEL_CATEGORY_ALL.to_string(),
                     label: "All".to_string(),
                     count: 7,
                 },
-                FriendPanelTab {
-                    key: "local:Best".to_string(),
+                FriendPanelCategory {
+                    key: "group:local:Best".to_string(),
                     label: "Best".to_string(),
                     count: 2,
                 },
@@ -3293,29 +3587,81 @@ mod tests {
                 })
                 .collect();
         }
-        let best_tab_uv = friends_panel_region_uv(&runtime, "tab:local:Best");
-        runtime
-            .apply_friends_panel_input(friends_panel_input(OverlayInputKind::Hover, best_tab_uv));
+        let best_category_uv = friends_panel_region_uv(&runtime, "cat:group:local:Best");
+        let list_uv = friends_panel_region_uv(&runtime, "list");
+        runtime.apply_friends_panel_input(friends_panel_input(
+            OverlayInputKind::Hover,
+            best_category_uv,
+        ));
         runtime.apply_friends_panel_input(friends_panel_input(
             OverlayInputKind::ClickDown,
-            best_tab_uv,
+            best_category_uv,
         ));
-        runtime
-            .apply_friends_panel_input(friends_panel_input(OverlayInputKind::ClickUp, best_tab_uv));
+        runtime.apply_friends_panel_input(friends_panel_input(
+            OverlayInputKind::ClickUp,
+            best_category_uv,
+        ));
         runtime.apply_friends_panel_input(friends_panel_input(
             OverlayInputKind::Scroll { delta: 10.0 },
-            best_tab_uv,
+            list_uv,
         ));
 
         let panel = runtime.interactive_panel.lock().unwrap();
         assert_eq!(
             panel.model.hovered_region_id.as_deref(),
-            Some("tab:local:Best")
+            Some("cat:group:local:Best")
         );
-        assert_eq!(panel.model.selected_tab_key, "local:Best");
+        assert_eq!(panel.model.selected_category_key, "group:local:Best");
         assert_eq!(
-            panel.model.scroll_offset_rows,
-            panel.model.max_scroll_offset_rows()
+            panel.model.row_scroll_offset,
+            panel.model.max_row_scroll_offset()
+        );
+    }
+
+    #[test]
+    fn friends_panel_persists_selected_category_and_maps_legacy_group_key() {
+        let (_dir, _db, context) = test_context("friends-panel-category-config");
+        context
+            .config()
+            .set_string(VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY, "friend:group_0")
+            .unwrap();
+        let runtime = VrOverlayRuntime::new(Arc::clone(&context));
+
+        assert_eq!(
+            runtime.load_friends_panel_selected_category(),
+            "group:friend:group_0"
+        );
+
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+        {
+            let mut panel = runtime.interactive_panel.lock().unwrap();
+            panel.model.categories = vec![
+                FriendPanelCategory {
+                    key: "all".to_string(),
+                    label: "All".to_string(),
+                    count: 0,
+                },
+                FriendPanelCategory {
+                    key: "favOnline".to_string(),
+                    label: "Favorites Online".to_string(),
+                    count: 0,
+                },
+            ];
+        }
+        let category_uv = friends_panel_region_uv(&runtime, "cat:favOnline");
+        runtime.apply_friends_panel_input(friends_panel_input(
+            OverlayInputKind::ClickDown,
+            category_uv,
+        ));
+        runtime
+            .apply_friends_panel_input(friends_panel_input(OverlayInputKind::ClickUp, category_uv));
+
+        assert_eq!(
+            context
+                .config()
+                .get_string(VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY, "")
+                .unwrap(),
+            "favOnline"
         );
     }
 
@@ -3467,7 +3813,7 @@ mod tests {
             }],
         };
         let input = FriendsPanelModelInput {
-            selected_group_key: "missing".to_string(),
+            selected_category_key: "missing".to_string(),
             friend_snapshot: Some(snapshot),
             favorite_groups: groups,
             notes_by_user_id: [("usr_online".to_string(), "VRChat note".to_string())]
@@ -3484,19 +3830,31 @@ mod tests {
             .collect(),
             avatars_by_user_id: HashMap::new(),
             locale: OverlayLocale::En,
+            all_friends_includes_favorites: true,
             spinner_phase: 0.25,
         };
 
         let model = build_friends_panel_model(input);
 
-        assert_eq!(model.selected_tab_key, "all");
+        assert_eq!(model.selected_category_key, "all");
         assert_eq!(
             model
-                .tabs
+                .categories
                 .iter()
-                .map(|tab| (tab.key.as_str(), tab.label.as_str(), tab.count))
+                .map(|category| {
+                    (
+                        category.key.as_str(),
+                        category.label.as_str(),
+                        category.count,
+                    )
+                })
                 .collect::<Vec<_>>(),
-            vec![("all", "All", 2), ("friend:group_0", "VIP", 2)]
+            vec![
+                ("all", "All", 3),
+                ("favOnline", "Favorites Online", 2),
+                ("favLocal", "Local Favorites", 0),
+                ("group:friend:group_0", "VIP", 3),
+            ]
         );
         assert_eq!(
             model
@@ -3504,7 +3862,7 @@ mod tests {
                 .iter()
                 .map(|row| row.user_id.as_str())
                 .collect::<Vec<_>>(),
-            vec!["usr_online", "usr_traveling"]
+            vec!["usr_online", "usr_traveling", "usr_offline"]
         );
         let online = model
             .rows
@@ -3529,6 +3887,116 @@ mod tests {
     }
 
     #[test]
+    fn friends_panel_model_builds_categories_and_respects_all_friends_setting() {
+        let snapshot = RealtimeFriendSnapshot {
+            current_user_id: "usr_self".to_string(),
+            friends_by_id: [
+                (
+                    "usr_favorite".to_string(),
+                    FriendRecord {
+                        id: "usr_favorite".to_string(),
+                        display_name: "Favorite".to_string(),
+                        state_bucket: "online".to_string(),
+                        location: "wrld_home:123".to_string(),
+                        world_id: "wrld_home".to_string(),
+                        ..FriendRecord::default()
+                    },
+                ),
+                (
+                    "usr_local".to_string(),
+                    FriendRecord {
+                        id: "usr_local".to_string(),
+                        display_name: "Local".to_string(),
+                        state_bucket: "active".to_string(),
+                        location: "wrld_home:123".to_string(),
+                        world_id: "wrld_home".to_string(),
+                        ..FriendRecord::default()
+                    },
+                ),
+                (
+                    "usr_other".to_string(),
+                    FriendRecord {
+                        id: "usr_other".to_string(),
+                        display_name: "Other".to_string(),
+                        state_bucket: "online".to_string(),
+                        location: "wrld_home:123".to_string(),
+                        world_id: "wrld_home".to_string(),
+                        ..FriendRecord::default()
+                    },
+                ),
+            ]
+            .into_iter()
+            .collect(),
+            ..RealtimeFriendSnapshot::default()
+        };
+        let groups = FavoriteFriendGroupsSnapshot {
+            groups: vec![
+                FavoriteFriendGroupSnapshot {
+                    key: "friend:group_0".to_string(),
+                    label: "VIP".to_string(),
+                    user_ids: vec!["usr_favorite".to_string()],
+                },
+                FavoriteFriendGroupSnapshot {
+                    key: "local:Best".to_string(),
+                    label: "Best".to_string(),
+                    user_ids: vec!["usr_local".to_string()],
+                },
+            ],
+        };
+
+        let excluded = build_friends_panel_model(FriendsPanelModelInput {
+            selected_category_key: "all".to_string(),
+            friend_snapshot: Some(snapshot.clone()),
+            favorite_groups: groups.clone(),
+            locale: OverlayLocale::En,
+            all_friends_includes_favorites: false,
+            ..FriendsPanelModelInput::default()
+        });
+
+        assert_eq!(
+            excluded
+                .categories
+                .iter()
+                .map(|category| (category.key.as_str(), category.count))
+                .collect::<Vec<_>>(),
+            vec![
+                ("all", 1),
+                ("favOnline", 2),
+                ("favLocal", 1),
+                ("group:friend:group_0", 1),
+                ("group:local:Best", 1),
+            ]
+        );
+        assert_eq!(
+            excluded
+                .rows
+                .iter()
+                .map(|row| row.user_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["usr_other"]
+        );
+
+        let included = build_friends_panel_model(FriendsPanelModelInput {
+            selected_category_key: "all".to_string(),
+            friend_snapshot: Some(snapshot),
+            favorite_groups: groups,
+            locale: OverlayLocale::En,
+            all_friends_includes_favorites: true,
+            ..FriendsPanelModelInput::default()
+        });
+
+        assert_eq!(included.categories[0].count, 3);
+        assert_eq!(
+            included
+                .rows
+                .iter()
+                .map(|row| row.user_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["usr_favorite", "usr_other", "usr_local"]
+        );
+    }
+
+    #[test]
     fn friends_panel_model_prefers_live_friend_note_over_cached_note_map() {
         let mut friend = FriendRecord {
             id: "usr_friend".to_string(),
@@ -3543,7 +4011,7 @@ mod tests {
             serde_json::Value::String("Live note".to_string()),
         );
         let model = build_friends_panel_model(FriendsPanelModelInput {
-            selected_group_key: "all".to_string(),
+            selected_category_key: "all".to_string(),
             friend_snapshot: Some(RealtimeFriendSnapshot {
                 current_user_id: "usr_self".to_string(),
                 friends_by_id: [("usr_friend".to_string(), friend)].into_iter().collect(),
@@ -3563,6 +4031,7 @@ mod tests {
             world_names_by_id: HashMap::new(),
             avatars_by_user_id: HashMap::new(),
             locale: OverlayLocale::En,
+            all_friends_includes_favorites: true,
             spinner_phase: 0.0,
         });
 

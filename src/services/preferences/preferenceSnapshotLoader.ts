@@ -149,6 +149,7 @@ export async function loadPreferenceSnapshot() {
         webhookUrl,
         webhookFormat,
         vrOverlayPanelEnabled,
+        vrOverlayPanelAllFriendsIncludesFavorites,
         wristOverlayEnabled,
         wristOverlayStartMode,
         wristOverlayButton,
@@ -273,6 +274,10 @@ export async function loadPreferenceSnapshot() {
         configRepository.getString('webhookUrl', ''),
         configRepository.getString('webhookFormat', 'generic'),
         configRepository.getBool('vrOverlayPanelEnabled', true),
+        configRepository.getBool(
+            'vrOverlayPanelAllFriendsIncludesFavorites',
+            true
+        ),
         configRepository.getBool('wristOverlayEnabled', false),
         configRepository.getString('wristOverlayStartMode', 'vrchatVrMode'),
         configRepository.getString('wristOverlayButton', 'grip'),
@@ -471,6 +476,9 @@ export async function loadPreferenceSnapshot() {
         webhookUrl: String(webhookUrl || ''),
         webhookFormat: webhookFormat === 'discord' ? 'discord' : 'generic',
         vrOverlayPanelEnabled: Boolean(vrOverlayPanelEnabled),
+        vrOverlayPanelAllFriendsIncludesFavorites: Boolean(
+            vrOverlayPanelAllFriendsIncludesFavorites
+        ),
         wristOverlayEnabled: Boolean(wristOverlayEnabled),
         wristOverlayStartMode: normalizeWristOverlayStartMode(
             wristOverlayStartMode

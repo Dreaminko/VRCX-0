@@ -196,6 +196,7 @@
                 "interactive_panel": {
                     "header": "Interaktív barátpanel",
                     "enabled": "Interaktív barátpanel engedélyezése",
+                    "all_friends_include_favorites": "Kedvencek beleszámítása az Összesbe",
                     "summon_hint": "Előhívási gesztus",
                     "openvr_required": "Tartsd lenyomva a jobb kéz grip gombját kb. 2 másodpercig. A SteamVR/OpenVR overlay háttérrendszer szükséges; OpenXR jelenleg nem biztosít interaktív panelt."
                 }

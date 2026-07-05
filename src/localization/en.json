@@ -125,6 +125,8 @@
             "empty": "No favorite friends online",
             "note": "Note",
             "memo": "Memo",
+            "favorites_online": "Favorites Online",
+            "local_favorites": "Local Favorites",
             "traveling": "Traveling",
             "private": "Private",
             "offline": "Offline"
@@ -1656,6 +1658,7 @@
                 "interactive_panel": {
                     "header": "Interactive Friends Panel",
                     "enabled": "Interactive friends panel",
+                    "all_friends_include_favorites": "Include favorites in All",
                     "summon_hint": "Summon gesture",
                     "openvr_required": "Hold the right-hand grip for about 2 seconds to summon it. Requires the SteamVR/OpenVR overlay backend; OpenXR does not provide the interactive panel."
                 },

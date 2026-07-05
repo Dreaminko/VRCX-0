@@ -197,6 +197,7 @@
                 "interactive_panel": {
                     "header": "Interaktivní panel přátel",
                     "enabled": "Povolit interaktivní panel přátel",
+                    "all_friends_include_favorites": "Zahrnout oblíbené do Všichni",
                     "summon_hint": "Gesto vyvolání",
                     "openvr_required": "Podržením pravého gripu asi 2 sekundy panel vyvoláte. Vyžaduje backend překryvné vrstvy SteamVR/OpenVR; OpenXR momentálně interaktivní panel neposkytuje."
                 }

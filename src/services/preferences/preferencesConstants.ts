@@ -32,6 +32,7 @@ export const WRIST_OVERLAY_RUNTIME_CONFIG_KEYS = new Set([
     'appLanguage',
     'dtHour12',
     'vrOverlayPanelEnabled',
+    'vrOverlayPanelAllFriendsIncludesFavorites',
     'wristOverlayStartMode',
     'wristOverlayButton',
     'wristOverlayHand',

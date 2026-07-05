@@ -1633,6 +1633,7 @@
                 "interactive_panel": {
                     "header": "Panneau d'amis interactif",
                     "enabled": "Activer le panneau d'amis interactif",
+                    "all_friends_include_favorites": "Inclure les favoris dans Tous",
                     "summon_hint": "Geste d'appel",
                     "openvr_required": "Maintenez le grip droit environ 2 secondes pour l'afficher. Nécessite le backend d'overlay SteamVR/OpenVR; OpenXR ne fournit pas encore le panneau interactif."
                 },

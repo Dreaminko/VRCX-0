@@ -27,6 +27,7 @@ type SettingsVrPrefs = Record<string, unknown> & {
     notificationTimeout?: number;
     ovrtHudNotifications?: boolean;
     ovrtWristNotifications?: boolean;
+    vrOverlayPanelAllFriendsIncludesFavorites?: boolean;
     vrOverlayPanelEnabled?: boolean;
     wristOverlayButton?: string;
     wristOverlayDarkBackground?: boolean;
@@ -55,6 +56,9 @@ type SettingsVrTabProps = {
     onOpenWristFeedNotificationsDialog: () => unknown;
     onOvrtHudNotificationsChange: (checked: boolean) => unknown;
     onOvrtWristNotificationsChange: (checked: boolean) => unknown;
+    onVrOverlayPanelAllFriendsIncludesFavoritesChange: (
+        checked: boolean
+    ) => unknown;
     onVrOverlayPanelEnabledChange: (checked: boolean) => unknown;
     onWristOverlayButtonChange: (value: string) => unknown;
     onWristOverlayDarkBackgroundChange: (checked: boolean) => unknown;
@@ -121,6 +125,7 @@ export function SettingsVrTab({
     onHmdNotificationStartModeChange,
     onOpenHmdNotificationFiltersDialog,
     onVrOverlayPanelEnabledChange,
+    onVrOverlayPanelAllFriendsIncludesFavoritesChange,
     onWristOverlayEnabledChange,
     onWristOverlayStartModeChange,
     onWristOverlayButtonChange,
@@ -135,6 +140,8 @@ export function SettingsVrTab({
     const { t } = useTranslation();
     const hmdNotificationsEnabled = Boolean(prefs.hmdNotificationsEnabled);
     const vrOverlayPanelEnabled = prefs.vrOverlayPanelEnabled !== false;
+    const vrOverlayPanelAllFriendsIncludesFavorites =
+        prefs.vrOverlayPanelAllFriendsIncludesFavorites !== false;
     const wristOverlayEnabled = Boolean(prefs.wristOverlayEnabled);
     const vrDeviceStatusEnabled =
         wristOverlayEnabled && Boolean(prefs.wristOverlayShowDevices);
@@ -439,6 +446,21 @@ export function SettingsVrTab({
                     <Switch
                         checked={vrOverlayPanelEnabled}
                         onCheckedChange={onVrOverlayPanelEnabledChange}
+                    />
+                </Field>
+
+                <Field
+                    label={t(
+                        'view.settings.vr.interactive_panel.all_friends_include_favorites'
+                    )}
+                    disabled={!vrOverlayPanelEnabled}
+                >
+                    <Switch
+                        checked={vrOverlayPanelAllFriendsIncludesFavorites}
+                        disabled={!vrOverlayPanelEnabled}
+                        onCheckedChange={
+                            onVrOverlayPanelAllFriendsIncludesFavoritesChange
+                        }
                     />
                 </Field>
 

@@ -19,10 +19,11 @@ pub const OFFLINE: Color = Color::rgba(100, 116, 139, 255);
 
 pub const MARGIN: f32 = 32.0;
 pub const HEADER_Y: f32 = 30.0;
-pub const TABS_Y: f32 = 92.0;
-pub const TAB_HEIGHT: f32 = 44.0;
-pub const TAB_GAP: f32 = 10.0;
 pub const LIST_Y: f32 = 154.0;
 pub const ROW_HEIGHT: f32 = 106.0;
+pub const CATEGORY_WIDTH: f32 = 230.0;
+pub const CATEGORY_GAP: f32 = 18.0;
+pub const CATEGORY_HEIGHT: f32 = 58.0;
 pub const AVATAR_SIZE: f32 = 72.0;
 pub const VISIBLE_ROWS: usize = 5;
+pub const VISIBLE_CATEGORIES: usize = 7;

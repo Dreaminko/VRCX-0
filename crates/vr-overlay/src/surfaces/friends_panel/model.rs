@@ -9,6 +9,8 @@ use crate::surfaces::main::AvatarBitmap;
 pub const FRIENDS_PANEL_ID: &str = "friends";
 pub const LEGACY_DUMMY_PANEL_ID: &str = "dummy";
 pub const FRIENDS_PANEL_SURFACE_ID: &str = "friends-panel";
+pub const FRIENDS_PANEL_LASER_LEFT_SURFACE_ID: &str = "friends-panel-laser-left";
+pub const FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID: &str = "friends-panel-laser-right";
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum FriendPanelAction {
@@ -28,7 +30,7 @@ pub enum FriendPanelStatusTone {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FriendPanelTab {
+pub struct FriendPanelCategory {
     pub key: String,
     pub label: String,
     pub count: usize,
@@ -71,12 +73,14 @@ impl Default for FriendPanelStrings {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FavoriteFriendsPanelModel {
     pub size: OverlaySize,
-    pub tabs: Vec<FriendPanelTab>,
-    pub selected_tab_key: String,
+    pub categories: Vec<FriendPanelCategory>,
+    pub selected_category_key: String,
     pub rows: Vec<FriendPanelRow>,
     pub hovered_region_id: Option<String>,
     pub pressed_region_id: Option<String>,
-    pub scroll_offset_rows: usize,
+    pub pointer_uv: Option<UvPoint>,
+    pub category_scroll_offset: usize,
+    pub row_scroll_offset: usize,
     pub spinner_phase: f32,
     pub strings: FriendPanelStrings,
 }
@@ -85,17 +89,19 @@ impl Default for FavoriteFriendsPanelModel {
     fn default() -> Self {
         let strings = FriendPanelStrings::default();
         Self {
-            size: OverlaySize::new(960, 720),
-            tabs: vec![FriendPanelTab {
+            size: OverlaySize::new(1080, 720),
+            categories: vec![FriendPanelCategory {
                 key: "all".to_string(),
                 label: strings.all_label.clone(),
                 count: 0,
             }],
-            selected_tab_key: "all".to_string(),
+            selected_category_key: "all".to_string(),
             rows: Vec::new(),
             hovered_region_id: None,
             pressed_region_id: None,
-            scroll_offset_rows: 0,
+            pointer_uv: None,
+            category_scroll_offset: 0,
+            row_scroll_offset: 0,
             spinner_phase: 0.0,
             strings,
         }
@@ -107,6 +113,7 @@ impl FavoriteFriendsPanelModel {
         match action {
             FriendPanelAction::Hover => {
                 let hit = self.hit_region_at(uv).map(|region| region.id);
+                self.pointer_uv = hit.as_ref().map(|_| uv);
                 self.hovered_region_id = hit.clone();
                 hit
             }
@@ -118,14 +125,18 @@ impl FavoriteFriendsPanelModel {
             FriendPanelAction::ClickUp => {
                 let hit = self.hit_region_at(uv).map(|region| region.id);
                 if self.pressed_region_id == hit {
-                    if let Some(tab_key) = hit
+                    if let Some(category_key) = hit
                         .as_deref()
-                        .and_then(|id| id.strip_prefix("tab:"))
+                        .and_then(|id| id.strip_prefix("cat:"))
                         .map(str::to_string)
                     {
-                        if self.tabs.iter().any(|tab| tab.key == tab_key) {
-                            self.selected_tab_key = tab_key;
-                            self.scroll_offset_rows = 0;
+                        if self
+                            .categories
+                            .iter()
+                            .any(|category| category.key == category_key)
+                        {
+                            self.selected_category_key = category_key;
+                            self.row_scroll_offset = 0;
                         }
                     }
                 }
@@ -133,20 +144,46 @@ impl FavoriteFriendsPanelModel {
                 hit
             }
             FriendPanelAction::Scroll { delta } => {
-                let max = self.max_scroll_offset_rows() as i32;
-                let next = self.scroll_offset_rows as i32 + delta.round() as i32;
-                self.scroll_offset_rows = next.clamp(0, max) as usize;
-                self.hit_region_at(uv).map(|region| region.id)
+                let hit = self.hit_region_at(uv).map(|region| region.id);
+                if hit.as_deref().is_some_and(is_category_region) {
+                    let max = self.max_category_scroll_offset() as i32;
+                    let next = self.category_scroll_offset as i32 + delta.round() as i32;
+                    self.category_scroll_offset = next.clamp(0, max) as usize;
+                } else if hit.as_deref().is_some_and(is_row_region) {
+                    let max = self.max_row_scroll_offset() as i32;
+                    let next = self.row_scroll_offset as i32 + delta.round() as i32;
+                    self.row_scroll_offset = next.clamp(0, max) as usize;
+                }
+                hit
             }
         }
     }
 
-    pub fn max_scroll_offset_rows(&self) -> usize {
+    pub fn max_row_scroll_offset(&self) -> usize {
         self.rows.len().saturating_sub(visible_row_count())
     }
 
+    pub fn max_scroll_offset_rows(&self) -> usize {
+        self.max_row_scroll_offset()
+    }
+
+    pub fn max_category_scroll_offset(&self) -> usize {
+        self.categories
+            .len()
+            .saturating_sub(visible_category_count())
+    }
+
+    pub fn visible_categories(&self) -> impl Iterator<Item = (usize, &FriendPanelCategory)> {
+        let start = self.category_scroll_offset.min(self.categories.len());
+        self.categories
+            .iter()
+            .enumerate()
+            .skip(start)
+            .take(visible_category_count())
+    }
+
     pub fn visible_rows(&self) -> impl Iterator<Item = (usize, &FriendPanelRow)> {
-        let start = self.scroll_offset_rows.min(self.rows.len());
+        let start = self.row_scroll_offset.min(self.rows.len());
         self.rows
             .iter()
             .enumerate()
@@ -167,4 +204,16 @@ impl FavoriteFriendsPanelModel {
 
 pub const fn visible_row_count() -> usize {
     style::VISIBLE_ROWS
+}
+
+pub const fn visible_category_count() -> usize {
+    style::VISIBLE_CATEGORIES
+}
+
+fn is_category_region(id: &str) -> bool {
+    id == "category-list" || id.starts_with("cat:")
+}
+
+fn is_row_region(id: &str) -> bool {
+    id == "list" || id.starts_with("row:")
 }

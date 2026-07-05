@@ -5,8 +5,8 @@ use crate::{
 
 use super::{
     model::{
-        visible_row_count, FavoriteFriendsPanelModel, FriendPanelRow, FriendPanelStatusTone,
-        FRIENDS_PANEL_SURFACE_ID,
+        visible_category_count, visible_row_count, FavoriteFriendsPanelModel, FriendPanelRow,
+        FriendPanelStatusTone, FRIENDS_PANEL_SURFACE_ID,
     },
     style,
 };
@@ -37,21 +37,11 @@ pub fn build_friends_panel_scene(model: &FavoriteFriendsPanelModel) -> OverlaySc
         style: TextStyle::new(32.0, 38.0, style::TEXT),
     });
 
-    push_tabs(&mut scene, model);
+    let categories_rect = category_list_rect();
     let list_rect = list_rect(model.size);
-    scene.push(DrawCommand::FillRect {
-        rect: list_rect,
-        color: style::PANEL_ALT,
-    });
-    scene.push(DrawCommand::StrokeRect {
-        rect: list_rect,
-        color: if model.hovered_region_id.as_deref() == Some("list") {
-            style::ACCENT
-        } else {
-            style::DIVIDER
-        },
-        width: 2.0,
-    });
+    push_panel_list_frame(&mut scene, categories_rect, "category-list", model);
+    push_panel_list_frame(&mut scene, list_rect, "list", model);
+    push_categories(&mut scene, model, categories_rect);
 
     if model.rows.is_empty() {
         scene.push(DrawCommand::Text {
@@ -64,6 +54,7 @@ pub fn build_friends_panel_scene(model: &FavoriteFriendsPanelModel) -> OverlaySc
     } else {
         push_rows(&mut scene, model, list_rect);
     }
+    push_pointer_reticle(&mut scene, model);
 
     scene.hit_regions = friends_panel_hit_regions(model);
     scene
@@ -71,10 +62,22 @@ pub fn build_friends_panel_scene(model: &FavoriteFriendsPanelModel) -> OverlaySc
 
 pub fn friends_panel_hit_regions(model: &FavoriteFriendsPanelModel) -> Vec<HitRegion> {
     let mut regions = Vec::new();
-    regions.extend(tab_rects(model).into_iter().map(|(key, rect)| HitRegion {
-        id: format!("tab:{key}"),
-        rect,
-    }));
+    let category_list = category_list_rect();
+    for (visible_index, (_, category)) in model.visible_categories().enumerate() {
+        regions.push(HitRegion {
+            id: format!("cat:{}", category.key),
+            rect: Rect::new(
+                category_list.x,
+                category_list.y + visible_index as f32 * style::CATEGORY_HEIGHT,
+                category_list.width,
+                style::CATEGORY_HEIGHT,
+            ),
+        });
+    }
+    regions.push(HitRegion {
+        id: "category-list".to_string(),
+        rect: category_list,
+    });
     let list = list_rect(model.size);
     for (visible_index, (_, row)) in model.visible_rows().enumerate() {
         regions.push(HitRegion {
@@ -94,14 +97,37 @@ pub fn friends_panel_hit_regions(model: &FavoriteFriendsPanelModel) -> Vec<HitRe
     regions
 }
 
-fn push_tabs(scene: &mut OverlayScene, model: &FavoriteFriendsPanelModel) {
-    for (key, rect) in tab_rects(model) {
-        let tab = model.tabs.iter().find(|tab| tab.key == key);
-        let label = tab
-            .map(|tab| format!("{} {}", tab.label, tab.count))
-            .unwrap_or_else(|| key.clone());
-        let id = format!("tab:{key}");
-        let selected = model.selected_tab_key == key;
+fn push_panel_list_frame(
+    scene: &mut OverlayScene,
+    rect: Rect,
+    hover_region_id: &str,
+    model: &FavoriteFriendsPanelModel,
+) {
+    scene.push(DrawCommand::FillRect {
+        rect,
+        color: style::PANEL_ALT,
+    });
+    scene.push(DrawCommand::StrokeRect {
+        rect,
+        color: if model.hovered_region_id.as_deref() == Some(hover_region_id) {
+            style::ACCENT
+        } else {
+            style::DIVIDER
+        },
+        width: 2.0,
+    });
+}
+
+fn push_categories(scene: &mut OverlayScene, model: &FavoriteFriendsPanelModel, list_rect: Rect) {
+    for (visible_index, (_, category)) in model.visible_categories().enumerate() {
+        let rect = Rect::new(
+            list_rect.x,
+            list_rect.y + visible_index as f32 * style::CATEGORY_HEIGHT,
+            list_rect.width,
+            style::CATEGORY_HEIGHT,
+        );
+        let id = format!("cat:{}", category.key);
+        let selected = model.selected_category_key == category.key;
         let hovered = model.hovered_region_id.as_deref() == Some(id.as_str());
         let pressed = model.pressed_region_id.as_deref() == Some(id.as_str());
         let fill = if pressed {
@@ -125,9 +151,9 @@ fn push_tabs(scene: &mut OverlayScene, model: &FavoriteFriendsPanelModel) {
         });
         scene.push(DrawCommand::Text {
             origin_x: rect.x + 16.0,
-            origin_y: rect.y + 10.0,
+            origin_y: rect.y + 14.0,
             max_width: rect.width - 32.0,
-            text: label,
+            text: format!("{} {}", category.label, category.count),
             style: TextStyle::new(
                 19.0,
                 24.0,
@@ -171,6 +197,26 @@ fn push_rows(scene: &mut OverlayScene, model: &FavoriteFriendsPanelModel, list_r
             });
         }
     }
+}
+
+fn push_pointer_reticle(scene: &mut OverlayScene, model: &FavoriteFriendsPanelModel) {
+    let Some(pointer) = model.pointer_uv else {
+        return;
+    };
+    let center_x = pointer.x * model.size.width as f32;
+    let center_y = pointer.y * model.size.height as f32;
+    scene.push(DrawCommand::Circle {
+        center_x,
+        center_y,
+        radius: 13.0,
+        color: Color::rgba(style::ACCENT.r, style::ACCENT.g, style::ACCENT.b, 92),
+    });
+    scene.push(DrawCommand::Circle {
+        center_x,
+        center_y,
+        radius: 5.0,
+        color: style::ACCENT,
+    });
 }
 
 fn push_row_contents(
@@ -286,31 +332,23 @@ fn status_color(status: FriendPanelStatusTone) -> Color {
     }
 }
 
-fn tab_rects(model: &FavoriteFriendsPanelModel) -> Vec<(String, Rect)> {
-    let max_x = model.size.width as f32 - style::MARGIN - 22.0;
-    let mut x = style::MARGIN + 22.0;
-    let mut rects = Vec::new();
-    for tab in &model.tabs {
-        if x >= max_x {
-            break;
-        }
-        let label_width = tab.label.chars().count() as f32 * 11.0 + 64.0;
-        let width = label_width.clamp(92.0, 180.0).min((max_x - x).max(1.0));
-        rects.push((
-            tab.key.clone(),
-            Rect::new(x, style::TABS_Y, width, style::TAB_HEIGHT),
-        ));
-        x += width + style::TAB_GAP;
-    }
-    rects
-}
-
 fn list_rect(size: OverlaySize) -> Rect {
     let width = size.width as f32;
+    let categories = category_list_rect();
+    let x = categories.x + categories.width + style::CATEGORY_GAP;
+    Rect::new(
+        x,
+        style::LIST_Y,
+        width - x - style::MARGIN - 22.0,
+        style::ROW_HEIGHT * visible_row_count() as f32,
+    )
+}
+
+fn category_list_rect() -> Rect {
     Rect::new(
         style::MARGIN + 22.0,
         style::LIST_Y,
-        width - style::MARGIN * 2.0 - 44.0,
-        style::ROW_HEIGHT * visible_row_count() as f32,
+        style::CATEGORY_WIDTH,
+        style::CATEGORY_HEIGHT * visible_category_count() as f32,
     )
 }

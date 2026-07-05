@@ -18,6 +18,7 @@ use openvr::{
 use vrcx_0_vr_overlay::{
     grab_follow_transform, ray_quad_intersection, recenter_transform, OverlayQuadSize,
     OverlaySurfaceId, OverlayTransform, Ray3, RgbaFrame, UvPoint, FRIENDS_PANEL_ID,
+    FRIENDS_PANEL_LASER_LEFT_SURFACE_ID, FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID,
     FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 
@@ -45,6 +46,11 @@ const HOVER_UV_EPSILON: f32 = 0.01;
 const SUMMON_HOLD_DURATION: Duration = Duration::from_secs(2);
 const PANEL_SUMMON_HAND: OverlayHand = OverlayHand::Right;
 const PANEL_SUMMON_PANEL_ID: &str = FRIENDS_PANEL_ID;
+const POINTER_PITCH_OFFSET_RADIANS: f32 = 35.0_f32.to_radians();
+const POINTER_LASER_START_OFFSET_METERS: f32 = 0.08;
+const POINTER_LASER_MISS_LENGTH_METERS: f32 = 0.35;
+const POINTER_LASER_MIN_LENGTH_METERS: f32 = 0.12;
+const POINTER_LASER_MAX_LENGTH_METERS: f32 = 2.0;
 
 pub struct OpenVrOverlayBackend {
     context: Option<Context>,
@@ -178,6 +184,11 @@ struct ControllerTickInput {
     state: ControllerState,
     grip_pressed: bool,
     hit: Option<InteractiveHit>,
+}
+
+struct PointerLaserState {
+    transform: OverlayTransform,
+    width_meters: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -587,13 +598,14 @@ impl OpenVrOverlayBackend {
     }
 
     fn update_interactive_input(&mut self) -> Result<(), String> {
-        let (has_interactive_surfaces, inputs) = {
+        let (has_interactive_surfaces, hmd_transform, inputs) = {
             let system = self
                 .system
                 .as_ref()
                 .ok_or_else(|| "OpenVR system interface is not started".to_string())?;
             let poses =
                 system.device_to_absolute_tracking_pose(TrackingUniverseOrigin::Standing, 0.0);
+            let hmd_transform = pose_transform(&poses, tracked_device_index::HMD);
             update_panel_summon_events(
                 system,
                 &poses,
@@ -621,10 +633,11 @@ impl OpenVrOverlayBackend {
                 .collect::<Vec<_>>();
 
             if interactive_surfaces.is_empty() {
-                (false, Vec::new())
+                (false, hmd_transform, Vec::new())
             } else {
                 (
                     true,
+                    hmd_transform,
                     [OverlayHand::Left, OverlayHand::Right]
                         .into_iter()
                         .filter_map(|hand| {
@@ -645,6 +658,11 @@ impl OpenVrOverlayBackend {
                 )
             }
         };
+        if let Err(error) =
+            self.update_pointer_laser_surfaces(has_interactive_surfaces, hmd_transform, &inputs)
+        {
+            tracing::debug!(error = %error, "failed to update VR interactive pointer laser");
+        }
         if !has_interactive_surfaces {
             self.clear_interactive_pointer_state();
             return Ok(());
@@ -796,6 +814,68 @@ impl OpenVrOverlayBackend {
             state.last_scroll_at = None;
         }
         self.grab_state = None;
+    }
+
+    fn update_pointer_laser_surfaces(
+        &mut self,
+        has_interactive_surfaces: bool,
+        hmd_transform: Option<OverlayTransform>,
+        inputs: &[ControllerTickInput],
+    ) -> Result<(), String> {
+        for hand in [OverlayHand::Left, OverlayHand::Right] {
+            let surface_id = pointer_laser_surface_id_for_hand(hand);
+            let Some(input) = inputs.iter().find(|input| input.hand == hand) else {
+                self.hide_pointer_laser_surface(&surface_id)?;
+                continue;
+            };
+            if !has_interactive_surfaces {
+                self.hide_pointer_laser_surface(&surface_id)?;
+                continue;
+            }
+            let state = pointer_laser_state(input, hmd_transform);
+            self.apply_pointer_laser_surface(&surface_id, state)?;
+        }
+        Ok(())
+    }
+
+    fn hide_pointer_laser_surface(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        if !self.surfaces.contains_key(surface_id) {
+            return Ok(());
+        }
+        self.set_visibility(surface_id, false)
+    }
+
+    fn apply_pointer_laser_surface(
+        &mut self,
+        surface_id: &OverlaySurfaceId,
+        state: PointerLaserState,
+    ) -> Result<(), String> {
+        if !self.surfaces.contains_key(surface_id) {
+            return Ok(());
+        }
+        let handle = self.surface_handle(surface_id)?;
+        let overlay = self
+            .overlay
+            .as_mut()
+            .ok_or_else(|| "OpenVR overlay is not started".to_string())?;
+        overlay
+            .set_width(handle, state.width_meters)
+            .map_err(|error| format!("set laser overlay width failed: {error:?}"))?;
+        overlay
+            .set_transform_absolute(
+                handle,
+                TrackingUniverseOrigin::Standing,
+                &overlay_transform_to_matrix(state.transform),
+            )
+            .map_err(|error| format!("set laser overlay transform failed: {error:?}"))?;
+        if let Some(surface) = self.surfaces.get_mut(surface_id) {
+            surface.config.physical_width_meters = state.width_meters;
+            surface.config.placement = OverlayPlacement::Absolute {
+                transform: state.transform,
+            };
+            surface.transform_device = None;
+        }
+        self.set_visibility(surface_id, true)
     }
 
     fn apply_absolute_transform(
@@ -1348,7 +1428,7 @@ fn nearest_interactive_hit(
 ) -> Option<InteractiveHit> {
     let ray = Ray3::new(
         controller_transform.translation,
-        controller_transform.forward(),
+        aim_direction(controller_transform),
     );
     surfaces
         .iter()
@@ -1364,6 +1444,77 @@ fn nearest_interactive_hit(
             })
         })
         .min_by(|left, right| left.distance.total_cmp(&right.distance))
+}
+
+fn aim_direction(controller_transform: OverlayTransform) -> [f32; 3] {
+    let forward = controller_transform.forward();
+    let up = controller_transform.up();
+    let cos = POINTER_PITCH_OFFSET_RADIANS.cos();
+    let sin = POINTER_PITCH_OFFSET_RADIANS.sin();
+    [
+        forward[0] * cos + up[0] * sin,
+        forward[1] * cos + up[1] * sin,
+        forward[2] * cos + up[2] * sin,
+    ]
+}
+
+fn pointer_laser_state(
+    input: &ControllerTickInput,
+    hmd_transform: Option<OverlayTransform>,
+) -> PointerLaserState {
+    let width_meters = pointer_laser_width(input.hit.as_ref());
+    PointerLaserState {
+        transform: pointer_laser_transform(input.transform, hmd_transform, width_meters),
+        width_meters,
+    }
+}
+
+fn pointer_laser_width(hit: Option<&InteractiveHit>) -> f32 {
+    hit.map(|hit| hit.distance - POINTER_LASER_START_OFFSET_METERS)
+        .unwrap_or(POINTER_LASER_MISS_LENGTH_METERS)
+        .clamp(
+            POINTER_LASER_MIN_LENGTH_METERS,
+            POINTER_LASER_MAX_LENGTH_METERS,
+        )
+}
+
+fn pointer_laser_transform(
+    controller_transform: OverlayTransform,
+    hmd_transform: Option<OverlayTransform>,
+    width_meters: f32,
+) -> OverlayTransform {
+    let right = normalize_vec3_or(
+        aim_direction(controller_transform),
+        controller_transform.forward(),
+    );
+    let center = vec3_add(
+        controller_transform.translation,
+        vec3_scale(
+            right,
+            POINTER_LASER_START_OFFSET_METERS + width_meters * 0.5,
+        ),
+    );
+    let facing = hmd_transform
+        .map(|hmd| vec3_sub(hmd.translation, center))
+        .unwrap_or_else(|| controller_transform.up());
+    let normal = perpendicular_axis(facing, right, controller_transform.up());
+    let up = normalize_vec3_or(vec3_cross(normal, right), controller_transform.up());
+    let normal = normalize_vec3_or(vec3_cross(right, up), normal);
+    OverlayTransform::from_translation_rotation(
+        center,
+        [
+            [right[0], up[0], normal[0]],
+            [right[1], up[1], normal[1]],
+            [right[2], up[2], normal[2]],
+        ],
+    )
+}
+
+fn pointer_laser_surface_id_for_hand(hand: OverlayHand) -> OverlaySurfaceId {
+    match hand {
+        OverlayHand::Left => OverlaySurfaceId::new(FRIENDS_PANEL_LASER_LEFT_SURFACE_ID),
+        OverlayHand::Right => OverlaySurfaceId::new(FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID),
+    }
 }
 
 fn click_up_event_for_release(
@@ -1454,6 +1605,63 @@ fn should_emit_hover(
 
 fn pointer_miss_uv() -> UvPoint {
     UvPoint::new(-1.0, -1.0)
+}
+
+fn perpendicular_axis(candidate: [f32; 3], axis: [f32; 3], fallback: [f32; 3]) -> [f32; 3] {
+    let projected = reject_axis(candidate, axis);
+    if vec3_len(projected) > 0.0001 {
+        return normalize_vec3_or(projected, [0.0, 1.0, 0.0]);
+    }
+    let fallback = reject_axis(fallback, axis);
+    if vec3_len(fallback) > 0.0001 {
+        return normalize_vec3_or(fallback, [0.0, 1.0, 0.0]);
+    }
+    let base = if axis[1].abs() < 0.9 {
+        [0.0, 1.0, 0.0]
+    } else {
+        [1.0, 0.0, 0.0]
+    };
+    normalize_vec3_or(vec3_cross(axis, base), [0.0, 0.0, 1.0])
+}
+
+fn reject_axis(value: [f32; 3], axis: [f32; 3]) -> [f32; 3] {
+    vec3_sub(value, vec3_scale(axis, vec3_dot(value, axis)))
+}
+
+fn vec3_add(left: [f32; 3], right: [f32; 3]) -> [f32; 3] {
+    [left[0] + right[0], left[1] + right[1], left[2] + right[2]]
+}
+
+fn vec3_sub(left: [f32; 3], right: [f32; 3]) -> [f32; 3] {
+    [left[0] - right[0], left[1] - right[1], left[2] - right[2]]
+}
+
+fn vec3_scale(value: [f32; 3], scalar: f32) -> [f32; 3] {
+    [value[0] * scalar, value[1] * scalar, value[2] * scalar]
+}
+
+fn vec3_dot(left: [f32; 3], right: [f32; 3]) -> f32 {
+    left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
+}
+
+fn vec3_cross(left: [f32; 3], right: [f32; 3]) -> [f32; 3] {
+    [
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    ]
+}
+
+fn vec3_len(value: [f32; 3]) -> f32 {
+    vec3_dot(value, value).sqrt()
+}
+
+fn normalize_vec3_or(value: [f32; 3], fallback: [f32; 3]) -> [f32; 3] {
+    let len = vec3_len(value);
+    if len <= 0.0001 {
+        return fallback;
+    }
+    vec3_scale(value, 1.0 / len)
 }
 
 fn surface_id_for_panel_id(panel_id: &str) -> OverlaySurfaceId {
@@ -1750,6 +1958,62 @@ mod tests {
             true,
             restarted + SUMMON_HOLD_DURATION
         ));
+    }
+
+    #[test]
+    fn aim_direction_applies_pitch_offset_to_grip_forward() {
+        let controller = OverlayTransform::identity();
+
+        let aim = aim_direction(controller);
+
+        assert!(aim[1] > 0.5);
+        assert!(aim[2] < -0.7 && aim[2] > -1.0);
+        assert!(aim[0].abs() < 0.001);
+    }
+
+    #[test]
+    fn pointer_laser_width_uses_hit_distance_or_short_miss_length() {
+        let hit = InteractiveHit {
+            surface_id: OverlaySurfaceId::new("interactive-dummy"),
+            panel_id: "dummy".to_string(),
+            uv: UvPoint::new(0.5, 0.5),
+            distance: 1.2,
+            transform: OverlayTransform::identity(),
+        };
+
+        assert!(
+            (pointer_laser_width(Some(&hit)) - (1.2 - POINTER_LASER_START_OFFSET_METERS)).abs()
+                < 0.001
+        );
+        assert!((pointer_laser_width(None) - POINTER_LASER_MISS_LENGTH_METERS).abs() < 0.001);
+    }
+
+    #[test]
+    fn pointer_laser_transform_spans_aim_axis_and_faces_hmd() {
+        let controller = OverlayTransform::identity();
+        let hmd = OverlayTransform::from_translation([0.0, 0.0, 0.5]);
+        let width_meters = 0.5;
+
+        let transform = pointer_laser_transform(controller, Some(hmd), width_meters);
+        let aim = aim_direction(controller);
+        let expected_center = vec3_add(
+            controller.translation,
+            vec3_scale(aim, POINTER_LASER_START_OFFSET_METERS + width_meters * 0.5),
+        );
+
+        assert!((transform.right()[0] - aim[0]).abs() < 0.001);
+        assert!((transform.right()[1] - aim[1]).abs() < 0.001);
+        assert!((transform.right()[2] - aim[2]).abs() < 0.001);
+        assert!((transform.translation[0] - expected_center[0]).abs() < 0.001);
+        assert!((transform.translation[1] - expected_center[1]).abs() < 0.001);
+        assert!((transform.translation[2] - expected_center[2]).abs() < 0.001);
+        assert!(vec3_dot(transform.right(), transform.up()).abs() < 0.001);
+        assert!(
+            vec3_dot(
+                transform.normal(),
+                vec3_sub(hmd.translation, transform.translation)
+            ) > 0.0
+        );
     }
 
     #[test]
