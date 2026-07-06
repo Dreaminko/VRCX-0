@@ -146,7 +146,7 @@ async fn auto_join_stops_after_launch_pipe_success() {
     assert_eq!(outcome, InstanceLaunchOutcome::Opened);
     assert_eq!(
         launch_pipe.calls.lock().unwrap().as_slice(),
-        ["vrchat://launch?ref=vrcx.app&id=wrld_test:12345~hidden(usr_owner)&shortName=tok123"]
+        ["vrchat://launch?id=wrld_test:12345~hidden(usr_owner)&shortName=tok123"]
     );
     assert!(api.short_name_calls.lock().unwrap().is_empty());
     assert!(api.self_invite_calls.lock().unwrap().is_empty());
@@ -318,7 +318,7 @@ async fn public_launch_resolves_short_name_even_when_token_is_provided() {
     assert_eq!(api.short_name_calls.lock().unwrap().len(), 1);
     assert_eq!(
         launch_pipe.calls.lock().unwrap().as_slice(),
-        ["vrchat://launch?ref=vrcx.app&id=wrld_test:12345&shortName=resolvedTok"]
+        ["vrchat://launch?id=wrld_test:12345&shortName=resolvedTok"]
     );
 }
 
@@ -347,7 +347,7 @@ async fn launch_url_omits_short_name_when_none_is_available() {
     assert_eq!(outcome, InstanceLaunchOutcome::Opened);
     assert_eq!(
         launch_pipe.calls.lock().unwrap().as_slice(),
-        ["vrchat://launch?ref=vrcx.app&id=wrld_test:12345"]
+        ["vrchat://launch?id=wrld_test:12345"]
     );
 }
 

@@ -199,7 +199,7 @@ describe('location parser', () => {
 
     it('normalizes vrchat launch scheme URLs before parsing', () => {
         const parsed = parseLocation(
-            'vrchat://launch?ref=vrcx.app&id=wrld_123%3Ainstance1~region(us)&shortName=abc123'
+            'vrchat://launch?id=wrld_123%3Ainstance1~region(us)&shortName=abc123'
         );
 
         expect(parsed).toMatchObject({

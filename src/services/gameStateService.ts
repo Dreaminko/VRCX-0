@@ -68,7 +68,7 @@ function clearCrashRelaunchTimer() {
 }
 
 function buildLaunchUrl(location: unknown) {
-    return `vrchat://launch?ref=vrcx.app&id=${encodeURIComponent(
+    return `vrchat://launch?id=${encodeURIComponent(
         normalizeString(location)
     )}`;
 }

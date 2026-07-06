@@ -288,7 +288,7 @@ async fn self_invite_join_target(
 }
 
 fn build_vrc_launch_url(location: &str, short_name: &str) -> String {
-    let mut launch_url = format!("vrchat://launch?ref=vrcx.app&id={location}");
+    let mut launch_url = format!("vrchat://launch?id={location}");
     if !short_name.is_empty() {
         launch_url.push_str("&shortName=");
         launch_url.push_str(short_name);
