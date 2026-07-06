@@ -85,6 +85,7 @@ impl AppState {
             launched_from_autostart,
             app_data_dir,
             app_version: env!("CARGO_PKG_VERSION").into(),
+            is_headless: false,
         })?;
         let mcp_controller = McpServerController::new(McpRuntime::from_host(&runtime));
         let ipc_sink: Arc<dyn IpcEventSink> = runtime.game_client_runtime.clone();

@@ -139,6 +139,15 @@ pub struct RuntimeHostOptions {
     pub launched_from_autostart: bool,
     pub app_data_dir: AppDataDirResolution,
     pub app_version: String,
+    pub is_headless: bool,
+}
+
+fn web_ua_app_version(app_version: &str, is_headless: bool) -> String {
+    if is_headless {
+        format!("{app_version} (hl)")
+    } else {
+        app_version.to_string()
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]
@@ -221,6 +230,7 @@ impl RuntimeHostState {
             launched_from_autostart,
             app_data_dir,
             app_version,
+            is_headless,
         } = options;
         let paths = AppPaths::from_app_data(app_data_dir.current_dir.clone());
         cleanup_legacy_updater_files(&paths.app_data);
@@ -242,11 +252,12 @@ impl RuntimeHostState {
         let db = Arc::new(DatabaseService::new(&paths.db_file)?);
         let discord_rpc = Arc::new(DiscordRpc::new());
         let process_monitor = ProcessMonitor::new();
+        let web_user_agent_version = web_ua_app_version(&app_version, is_headless);
         let web = Arc::new(WebClient::new(
             &storage,
             &db,
             realtime_origin,
-            &app_version,
+            &web_user_agent_version,
         )?);
         let image_fetcher = web.image_fetcher()?;
         let image_cache = Arc::new(ImageCache::new(paths.image_cache.clone(), image_fetcher)?);
@@ -372,5 +383,22 @@ impl RuntimeHostState {
 
     pub fn start_telemetry_runtime(&self) {
         self.telemetry.start();
+    }
+}
+
+#[cfg(test)]
+mod web_ua_tests {
+    use super::web_ua_app_version;
+
+    #[test]
+    fn keeps_plain_version_outside_headless() {
+        assert_eq!(web_ua_app_version("2.9.2", false), "2.9.2");
+    }
+
+    #[test]
+    fn tags_headless_builds_without_extra_slash() {
+        let version = web_ua_app_version("2.9.2", true);
+        assert_eq!(version, "2.9.2 (hl)");
+        assert!(!version.contains('/'));
     }
 }

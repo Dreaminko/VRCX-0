@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 use crate::cookies::CookieJar;
-use crate::web_client::BASE_USER_AGENT;
+use crate::web_client::build_vrcx_user_agent;
 use reqwest::Client;
 use vrcx_0_core::vrchat_endpoints::{
     VRCHAT_API_HOST, VRCHAT_ASSETS_HOST, VRCHAT_FILES_HOST, VRCHAT_LEGACY_CLOUDFRONT_HOST,
@@ -22,10 +22,14 @@ pub struct ImageFetcher {
 }
 
 impl ImageFetcher {
-    pub fn new(cookie_jar: Arc<CookieJar>, proxy_url: Option<&str>) -> Result<Self> {
+    pub fn new(
+        cookie_jar: Arc<CookieJar>,
+        proxy_url: Option<&str>,
+        app_version: &str,
+    ) -> Result<Self> {
         let mut builder = Client::builder()
             .cookie_provider(cookie_jar)
-            .user_agent(BASE_USER_AGENT)
+            .user_agent(build_vrcx_user_agent(app_version))
             .pool_max_idle_per_host(10);
 
         if let Some(proxy) = proxy_url {

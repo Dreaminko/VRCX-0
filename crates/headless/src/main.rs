@@ -71,6 +71,7 @@ async fn async_main() -> ExitCode {
         launched_from_autostart: false,
         app_data_dir: app_data_dir.clone(),
         app_version: product_app_version(),
+        is_headless: true,
     }) {
         Ok(state) => state,
         Err(error) => {
