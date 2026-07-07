@@ -404,6 +404,7 @@ pub struct VrOverlayRuntime {
     refresh_loop_started: AtomicBool,
     wrist_frame_release_requested: AtomicBool,
     hmd_frame_release_requested: AtomicBool,
+    friends_panel_host_release_requested: AtomicBool,
     device_refresh_requested: AtomicBool,
     interactive_degraded_logged: AtomicBool,
     backend_available: bool,
@@ -519,6 +520,7 @@ impl VrOverlayRuntime {
             refresh_loop_started: AtomicBool::new(false),
             wrist_frame_release_requested: AtomicBool::new(false),
             hmd_frame_release_requested: AtomicBool::new(false),
+            friends_panel_host_release_requested: AtomicBool::new(false),
             device_refresh_requested: AtomicBool::new(false),
             interactive_degraded_logged: AtomicBool::new(false),
             backend_available,
@@ -885,13 +887,19 @@ impl VrOverlayRuntime {
         } else {
             snapshot.endpoint.clone()
         };
-        let mut avatar_fetches_spawned = 0_usize;
+        let inflight_avatar_fetches = self
+            .friends_panel_avatar_fetches
+            .lock()
+            .map(|inflight| inflight.len())
+            .unwrap_or(usize::MAX);
+        let mut avatar_fetch_budget =
+            FRIENDS_PANEL_AVATAR_FETCH_BATCH.saturating_sub(inflight_avatar_fetches);
         for user_id in &visible_user_ids {
             if let Some(record) = snapshot.friends_by_id.get(user_id) {
-                if avatar_fetches_spawned < FRIENDS_PANEL_AVATAR_FETCH_BATCH
+                if avatar_fetch_budget > 0
                     && self.queue_friends_panel_avatar(context, &endpoint, record)
                 {
-                    avatar_fetches_spawned += 1;
+                    avatar_fetch_budget -= 1;
                 }
                 self.queue_friends_panel_world_names(context, &endpoint, record);
             }
@@ -1686,6 +1694,12 @@ impl VrOverlayRuntime {
         self.consume_slint_renderer_release_request(&self.hmd_frame_release_requested, || {
             self.release_hmd_renderer_on_current_thread();
         });
+        self.consume_slint_renderer_release_request(
+            &self.friends_panel_host_release_requested,
+            || {
+                self.release_friends_panel_host_on_current_thread();
+            },
+        );
     }
 
     fn defer_slint_renderer_release(&self, request: &AtomicBool) -> bool {
@@ -1709,6 +1723,23 @@ impl VrOverlayRuntime {
             return;
         }
         self.release_hmd_renderer_on_current_thread();
+    }
+
+    fn release_friends_panel_host(&self) {
+        if let Ok(mut avatars) = self.friends_panel_avatars.lock() {
+            avatars.clear();
+        }
+        if self.defer_slint_renderer_release(&self.friends_panel_host_release_requested) {
+            self.refresh_wake.notify();
+            return;
+        }
+        self.release_friends_panel_host_on_current_thread();
+    }
+
+    fn release_friends_panel_host_on_current_thread(&self) {
+        self.friends_panel_host_release_requested
+            .store(false, Ordering::Release);
+        clear_slint_friends_panel_host();
     }
 
     fn release_hmd_renderer_on_current_thread(&self) {
@@ -1739,7 +1770,9 @@ impl VrOverlayRuntime {
         panel.model.pointer_uv = None;
         disarm_friends_panel_action(&mut panel);
         panel.slint_animation_active = false;
+        drop(panel);
         self.clear_friends_panel_input_events();
+        self.release_friends_panel_host();
         was_visible
     }
 
@@ -1854,6 +1887,7 @@ impl VrOverlayRuntime {
                         disarm_friends_panel_action(&mut panel);
                         panel.slint_animation_active = false;
                         self.clear_friends_panel_input_events();
+                        self.release_friends_panel_host();
                     } else {
                         panel.visible = true;
                         panel.focused = true;
@@ -2499,6 +2533,12 @@ fn render_slint_wrist_frame(model: &WristSurfaceModel) -> Result<RgbaFrame, Stri
 fn clear_slint_wrist_renderer() {
     SLINT_WRIST_RENDERER.with(|renderer| {
         renderer.borrow_mut().take();
+    });
+}
+
+fn clear_slint_friends_panel_host() {
+    SLINT_FRIENDS_PANEL_HOST.with(|host| {
+        host.borrow_mut().take();
     });
 }
 

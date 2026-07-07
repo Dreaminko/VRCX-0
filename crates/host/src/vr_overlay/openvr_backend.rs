@@ -18,7 +18,7 @@ use openvr::{
     MAX_TRACKED_DEVICE_COUNT,
 };
 use vrcx_0_vr_overlay::{
-    grab_follow_transform, ray_quad_intersection, recenter_transform, OverlayQuadSize,
+    grab_follow_transform_facing, ray_quad_intersection, recenter_transform, OverlayQuadSize,
     OverlaySurfaceId, OverlayTransform, Ray3, RgbaFrame, UvPoint, FRIENDS_PANEL_ID,
     FRIENDS_PANEL_LASER_LEFT_SURFACE_ID, FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID,
     FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
@@ -732,6 +732,7 @@ impl OpenVrOverlayBackend {
                 &input.state,
                 input.grip_pressed,
                 input.hit,
+                hmd_transform,
             )?;
         }
 
@@ -745,6 +746,7 @@ impl OpenVrOverlayBackend {
         state: &ControllerState,
         grip_pressed: bool,
         hit: Option<InteractiveHit>,
+        hmd_transform: Option<OverlayTransform>,
     ) -> Result<(), String> {
         let trigger_pressed = trigger_pressed(state);
         let scroll_value = state.axis[0].y;
@@ -866,10 +868,11 @@ impl OpenVrOverlayBackend {
 
         if let Some(grab) = self.grab_state.clone().filter(|grab| grab.hand == hand) {
             if grip_pressed {
-                let transform = grab_follow_transform(
+                let transform = grab_follow_transform_facing(
                     grab.panel_start,
                     grab.controller_start,
                     controller_transform,
+                    hmd_transform,
                 );
                 self.apply_absolute_transform(&grab.surface_id, transform)?;
                 self.input_events.push(OverlayInputEvent {
@@ -880,10 +883,11 @@ impl OpenVrOverlayBackend {
                     kind: OverlayInputKind::GrabMove { transform },
                 });
             } else if previous.grip_pressed {
-                let transform = grab_follow_transform(
+                let transform = grab_follow_transform_facing(
                     grab.panel_start,
                     grab.controller_start,
                     controller_transform,
+                    hmd_transform,
                 );
                 self.apply_absolute_transform(&grab.surface_id, transform)?;
                 self.input_events.push(OverlayInputEvent {

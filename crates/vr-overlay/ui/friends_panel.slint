@@ -34,7 +34,6 @@ export component FriendsPanel inherits Window {
     width: 1080px;
     height: 720px;
     background: transparent;
-    default-font-family: "Microsoft YaHei UI";
 
     in property <string> panel-title: "Favorite Friends";
     in property <string> status-message;
@@ -234,42 +233,56 @@ export component FriendsPanel inherits Window {
             Text {
                 x: 112px;
                 y: 13px;
-                width: 360px;
+                width: 340px;
                 height: 32px;
                 visible: !row.is-section;
                 text: row.display-name;
                 font-size: 26px;
+                overflow: elide;
                 color: row.name-color;
             }
 
             Text {
                 x: 112px;
                 y: 46px;
-                width: 396px;
+                width: 348px;
                 height: 28px;
                 visible: !row.is-section && !row.is-traveling;
                 text: row.location-text;
                 font-size: 20px;
+                overflow: elide;
                 color: root.text-color;
+            }
+
+            Rectangle {
+                x: 98px;
+                y: 55px;
+                width: 10px;
+                height: 10px;
+                visible: !row.is-section && row.is-traveling;
+                border-radius: 5px;
+                background: root.accent-color;
             }
 
             Text {
                 x: 112px;
                 y: 46px;
-                width: 396px;
+                width: 348px;
                 height: 28px;
                 visible: !row.is-section && row.is-traveling;
                 text: row.traveling-text;
                 font-size: 20px;
+                overflow: elide;
                 color: root.accent-color;
             }
 
             Text {
                 x: 112px;
                 y: 74px;
-                width: 396px;
+                width: 348px;
                 height: 22px;
                 visible: !row.is-section && row.note-text != "";
+                overflow: elide;
                 text: row.note-text;
                 font-size: 16px;
                 color: root.muted-color;
@@ -278,19 +291,20 @@ export component FriendsPanel inherits Window {
             Text {
                 x: 112px;
                 y: 74px;
-                width: 396px;
+                width: 348px;
                 height: 22px;
                 visible: !row.is-section && row.note-text == "";
+                overflow: elide;
                 text: row.memo-text;
                 font-size: 16px;
                 color: root.muted-color;
             }
 
             Rectangle {
-                x: parent.width - 100px;
-                y: 20px;
-                width: 88px;
-                height: 28px;
+                x: parent.width - 232px;
+                y: 33px;
+                width: 104px;
+                height: 40px;
                 visible: !row.is-section && row.has-primary;
                 border-color: row.armed-primary ? root.favorite-color : root.accent-color;
                 border-width: 2px;
@@ -301,7 +315,7 @@ export component FriendsPanel inherits Window {
                     width: parent.width;
                     height: parent.height;
                     text: row.primary-label;
-                    font-size: 16px;
+                    font-size: 18px;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                     color: root.text-color;
@@ -322,10 +336,10 @@ export component FriendsPanel inherits Window {
             }
 
             Rectangle {
-                x: parent.width - 100px;
-                y: 58px;
-                width: 88px;
-                height: 28px;
+                x: parent.width - 118px;
+                y: 33px;
+                width: 104px;
+                height: 40px;
                 visible: !row.is-section && row.has-invite;
                 border-color: row.armed-invite ? root.favorite-color : root.accent-color;
                 border-width: 2px;
@@ -336,7 +350,7 @@ export component FriendsPanel inherits Window {
                     width: parent.width;
                     height: parent.height;
                     text: row.invite-label;
-                    font-size: 16px;
+                    font-size: 18px;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                     color: root.text-color;
@@ -354,16 +368,6 @@ export component FriendsPanel inherits Window {
                         }
                     }
                 }
-            }
-
-            Rectangle {
-                x: parent.width - 160px + sin(animation-tick() / 1s * 360deg) * 12px;
-                y: 45px + cos(animation-tick() / 1s * 360deg) * 12px;
-                width: 10px;
-                height: 10px;
-                visible: !row.is-section && row.is-traveling;
-                border-radius: 5px;
-                background: root.accent-color;
             }
         }
     }

@@ -24,7 +24,6 @@ export component WristPanel inherits Window {
     width: 512px;
     height: 512px;
     background: transparent;
-    default-font-family: "Microsoft YaHei UI";
 
     in property <bool> dark-background: true;
     in property <color> accent-color: #5eead4;
@@ -164,25 +163,27 @@ export component WristPanel inherits Window {
             color: root.muted-color;
         }
 
-        Text {
+        HorizontalLayout {
             x: 58px;
             y: 1px;
-            width: 178px;
+            width: parent.width - 58px;
             height: 22px;
-            text: line.actor;
-            font-size: 17px;
-            visible: line.has-actor;
-            color: line.actor-color;
-        }
+            spacing: 5px;
 
-        Text {
-            x: line.has-actor ? 244px : 58px;
-            y: 1px;
-            width: line.has-actor ? parent.width - 244px : parent.width - 58px;
-            height: 22px;
-            text: line.detail;
-            font-size: 17px;
-            color: line.detail-color;
+            if line.has-actor: Text {
+                horizontal-stretch: 0;
+                text: line.actor;
+                font-size: 17px;
+                color: line.actor-color;
+            }
+
+            Text {
+                horizontal-stretch: 1;
+                text: line.detail;
+                font-size: 17px;
+                overflow: elide;
+                color: line.detail-color;
+            }
         }
 
         Rectangle {

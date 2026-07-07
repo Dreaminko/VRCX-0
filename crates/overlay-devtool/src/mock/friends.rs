@@ -126,7 +126,7 @@ fn category_defs(scenario: &str) -> Vec<(String, String)> {
         ("favLocal".to_string(), "Local Favorites".to_string()),
     ];
     if scenario == "manyGroups" {
-        defs.extend((0..MANY_GROUP_MOCK_GROUP_COUNT).map(|index| mock_favorite_group_def(index)));
+        defs.extend((0..MANY_GROUP_MOCK_GROUP_COUNT).map(mock_favorite_group_def));
     } else {
         defs.extend([
             ("group:local:Best".to_string(), "Best".to_string()),
@@ -301,7 +301,7 @@ fn section_row(label: String) -> FriendPanelRow {
 }
 
 fn mock_favorite_group_def(index: usize) -> (String, String) {
-    if index % 5 == 0 {
+    if index.is_multiple_of(5) {
         (
             format!("group:local:mock_local_{index:02}"),
             format!("Local Favorite Group {index:02}"),
@@ -399,6 +399,14 @@ fn long_text_rows() -> Vec<FriendPanelRow> {
 
 fn i18n_rows() -> Vec<FriendPanelRow> {
     vec![
+        row(RowSpec::new(
+            "usr_i18n_fancy",
+            "𝓕𝓪𝓷𝓬𝔂 ✦ ᴠʀᴄ ɴᴀᴍᴇ ★彡",
+            FriendPanelStatusTone::Online,
+            "『ＦＵＬＬＷＩＤＴＨ』✧ world ✧ ω(=^･ω･^=)",
+            0,
+        )
+        .note("ﾚ(ﾟ∀ﾟ;)ﾍ zalgo-ish t̷e̷x̷t̷ + 🌸🦋💫 emoji mix")),
         row(RowSpec::new(
             "usr_i18n_0",
             "简体中文好友 🎧",

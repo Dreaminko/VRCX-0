@@ -4,10 +4,10 @@ pub mod slint_ui;
 pub mod surfaces;
 
 pub use model::{
-    grab_follow_transform, ray_quad_intersection, recenter_transform, Color, DeviceChip,
-    DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation, FeedSeverity, OverlayFooter,
-    OverlayQuadSize, OverlaySize, OverlaySurfaceId, OverlayTransform, Ray3, RayQuadHit, Rect,
-    RgbaFrame, UvPoint, MAIN_SURFACE_ID,
+    grab_follow_transform, grab_follow_transform_facing, ray_quad_intersection, recenter_transform,
+    Color, DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation, FeedSeverity,
+    OverlayFooter, OverlayQuadSize, OverlaySize, OverlaySurfaceId, OverlayTransform, Ray3,
+    RayQuadHit, Rect, RgbaFrame, UvPoint, MAIN_SURFACE_ID,
 };
 #[cfg(feature = "slint-ui")]
 pub use slint_ui::{

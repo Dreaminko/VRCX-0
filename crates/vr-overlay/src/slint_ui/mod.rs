@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::{
     cell::{Cell, RefCell},
@@ -93,6 +95,40 @@ pub enum SlintPanelEvent {
     ActionHoverLost { user_id: String, kind: String },
 }
 
+type AvatarImageCache = HashMap<usize, (Arc<[u8]>, Image)>;
+
+fn avatar_cache_key(avatar: &AvatarBitmap) -> usize {
+    Arc::as_ptr(&avatar.rgba) as *const u8 as usize
+}
+
+fn cached_avatar_image(
+    cache: &mut AvatarImageCache,
+    avatar: Option<&AvatarBitmap>,
+) -> (bool, Image) {
+    let Some(avatar) = avatar else {
+        return (false, Image::default());
+    };
+    let key = avatar_cache_key(avatar);
+    if let Some((held, image)) = cache.get(&key) {
+        if Arc::ptr_eq(held, &avatar.rgba) {
+            return (true, image.clone());
+        }
+    }
+    let (has_avatar, image) = avatar_image(Some(avatar));
+    if has_avatar {
+        cache.insert(key, (Arc::clone(&avatar.rgba), image.clone()));
+    }
+    (has_avatar, image)
+}
+
+fn retain_avatar_images<'a>(
+    cache: &mut AvatarImageCache,
+    live: impl Iterator<Item = Option<&'a AvatarBitmap>>,
+) {
+    let live: HashSet<usize> = live.flatten().map(avatar_cache_key).collect();
+    cache.retain(|key, _| live.contains(key));
+}
+
 pub struct SlintPanelHost {
     size: OverlaySize,
     window: Rc<MinimalSoftwareWindow>,
@@ -100,6 +136,7 @@ pub struct SlintPanelHost {
     buffer: Vec<PremultipliedRgbaColor>,
     events: Rc<RefCell<Vec<SlintPanelEvent>>>,
     last_model: Option<FavoriteFriendsPanelModel>,
+    avatar_images: AvatarImageCache,
 }
 
 impl SlintPanelHost {
@@ -146,6 +183,7 @@ impl SlintPanelHost {
             buffer,
             events,
             last_model: None,
+            avatar_images: AvatarImageCache::new(),
         })
     }
 
@@ -157,6 +195,10 @@ impl SlintPanelHost {
         if self.last_model.as_ref() == Some(model) {
             return;
         }
+        retain_avatar_images(
+            &mut self.avatar_images,
+            model.rows.iter().map(|row| row.avatar.as_ref()),
+        );
         self.component
             .set_panel_title(SharedString::from(model.strings.title.as_str()));
         self.component.set_status_message(SharedString::from(
@@ -165,7 +207,8 @@ impl SlintPanelHost {
         self.component
             .set_empty_label(SharedString::from(model.strings.empty_label.as_str()));
         self.component.set_categories(friend_category_model(model));
-        self.component.set_rows(friend_row_model(model));
+        self.component
+            .set_rows(friend_row_model(model, &mut self.avatar_images));
         self.last_model = Some(model.clone());
     }
 
@@ -389,6 +432,7 @@ struct SlintHmdHost {
     window: Rc<MinimalSoftwareWindow>,
     component: HmdToastPanel,
     buffer: Vec<PremultipliedRgbaColor>,
+    avatar_images: AvatarImageCache,
 }
 
 impl SlintHmdHost {
@@ -401,6 +445,7 @@ impl SlintHmdHost {
             window,
             component,
             buffer: vec![PremultipliedRgbaColor::default(); pixel_count(size)?],
+            avatar_images: AvatarImageCache::new(),
         })
     }
 
@@ -409,8 +454,13 @@ impl SlintHmdHost {
     }
 
     fn set_model(&mut self, model: &MainSurfaceModel) {
+        retain_avatar_images(
+            &mut self.avatar_images,
+            model.toasts.iter().map(|toast| toast.avatar.as_ref()),
+        );
         self.component.set_dark_background(model.dark_background);
-        self.component.set_toasts(hmd_toast_model(model));
+        self.component
+            .set_toasts(hmd_toast_model(model, &mut self.avatar_images));
     }
 
     fn render_if_needed(&mut self) -> Option<RgbaFrame> {
@@ -517,7 +567,10 @@ fn to_slint_color(color: crate::Color) -> slint::Color {
     slint::Color::from_argb_u8(color.a, color.r, color.g, color.b)
 }
 
-fn hmd_toast_model(model: &MainSurfaceModel) -> ModelRc<HmdToastItem> {
+fn hmd_toast_model(
+    model: &MainSurfaceModel,
+    cache: &mut AvatarImageCache,
+) -> ModelRc<HmdToastItem> {
     ModelRc::new(VecModel::from(
         model
             .toasts
@@ -525,13 +578,17 @@ fn hmd_toast_model(model: &MainSurfaceModel) -> ModelRc<HmdToastItem> {
             .rev()
             .take(3)
             .rev()
-            .map(|toast| hmd_toast_item(toast, model.accent))
+            .map(|toast| hmd_toast_item(toast, model.accent, cache))
             .collect::<Vec<_>>(),
     ))
 }
 
-fn hmd_toast_item(toast: &ToastCard, accent: crate::Color) -> HmdToastItem {
-    let (has_avatar, avatar) = avatar_image(toast.avatar.as_ref());
+fn hmd_toast_item(
+    toast: &ToastCard,
+    accent: crate::Color,
+    cache: &mut AvatarImageCache,
+) -> HmdToastItem {
+    let (has_avatar, avatar) = cached_avatar_image(cache, toast.avatar.as_ref());
     HmdToastItem {
         actor: SharedString::from(hmd_actor_text(toast)),
         action: SharedString::from(toast.action.as_str()),
@@ -594,18 +651,25 @@ fn friend_category_item(
     }
 }
 
-fn friend_row_model(model: &FavoriteFriendsPanelModel) -> ModelRc<FriendPanelRowItem> {
+fn friend_row_model(
+    model: &FavoriteFriendsPanelModel,
+    cache: &mut AvatarImageCache,
+) -> ModelRc<FriendPanelRowItem> {
     ModelRc::new(VecModel::from(
         model
             .rows
             .iter()
-            .map(|row| friend_row_item(row, model))
+            .map(|row| friend_row_item(row, model, cache))
             .collect::<Vec<_>>(),
     ))
 }
 
-fn friend_row_item(row: &FriendPanelRow, model: &FavoriteFriendsPanelModel) -> FriendPanelRowItem {
-    let (has_avatar, avatar) = avatar_image(row.avatar.as_ref());
+fn friend_row_item(
+    row: &FriendPanelRow,
+    model: &FavoriteFriendsPanelModel,
+    cache: &mut AvatarImageCache,
+) -> FriendPanelRowItem {
+    let (has_avatar, avatar) = cached_avatar_image(cache, row.avatar.as_ref());
     let (primary_label, primary_kind, has_primary) = match row.actions.primary {
         Some(FriendPanelRowPrimaryAction::Open) => {
             (model.strings.open_label.as_str(), "open", true)
@@ -1035,6 +1099,21 @@ mod tests {
         let third = renderer.render(&changed).unwrap();
 
         assert_ne!(first, third);
+        assert_eq!(renderer.render_count(), 2);
+    }
+
+    #[test]
+    fn slint_hmd_renderer_shows_late_arriving_avatar() {
+        let mut renderer = SlintHmdRenderer::new();
+        let mut model = sample_main_model();
+        let avatar = model.toasts[0].avatar.take();
+
+        let without_avatar = renderer.render(&model).unwrap();
+
+        model.toasts[0].avatar = avatar;
+        let with_avatar = renderer.render(&model).unwrap();
+
+        assert_ne!(without_avatar, with_avatar);
         assert_eq!(renderer.render_count(), 2);
     }
 
