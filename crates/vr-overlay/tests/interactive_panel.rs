@@ -2,12 +2,14 @@ use vrcx_0_vr_overlay::{
     build_dummy_panel_scene, build_friends_panel_scene, grab_follow_transform,
     ray_quad_intersection, recenter_transform, Color, DrawCommand, DummyPanelAction,
     DummyPanelModel, FavoriteFriendsPanelModel, FriendPanelAction, FriendPanelCategory,
-    FriendPanelRow, FriendPanelStatusTone, HitRegion, OverlayQuadSize, OverlaySize,
-    OverlaySurfaceId, OverlayTransform, Ray3, Rect, UvPoint, FRIENDS_PANEL_SURFACE_ID,
+    FriendPanelRow, FriendPanelRowActions, FriendPanelRowPrimaryAction, FriendPanelStatusTone,
+    HitRegion, OverlayQuadSize, OverlaySize, OverlaySurfaceId, OverlayTransform, Ray3, Rect,
+    UvPoint, FRIENDS_PANEL_SURFACE_ID,
 };
 
 fn friend_panel_row(user_id: impl Into<String>, display_name: impl Into<String>) -> FriendPanelRow {
     FriendPanelRow {
+        section_label: None,
         user_id: user_id.into(),
         display_name: display_name.into(),
         status: FriendPanelStatusTone::Online,
@@ -17,6 +19,7 @@ fn friend_panel_row(user_id: impl Into<String>, display_name: impl Into<String>)
         note: None,
         memo: None,
         avatar: None,
+        actions: Default::default(),
     }
 }
 
@@ -209,12 +212,189 @@ fn friends_panel_scene_emits_group_and_row_hit_regions() {
         matches!(command, DrawCommand::Text { text, .. } if text.contains("Note: VRChat note"))
     }));
     assert!(scene.commands.iter().any(|command| {
-        matches!(command, DrawCommand::Text { text, .. } if text.contains("Memo: Local memo"))
+        matches!(command, DrawCommand::Text { text, .. } if text.contains("Local Note: Local memo"))
     }));
 }
 
 #[test]
-fn friends_panel_hover_draws_pointer_reticle() {
+fn friends_panel_section_header_renders_without_row_hit_region() {
+    let model = FavoriteFriendsPanelModel {
+        rows: vec![
+            FriendPanelRow {
+                section_label: Some("The Black Cat".to_string()),
+                ..friend_panel_row("", "")
+            },
+            friend_panel_row("usr_1", "Aki"),
+        ],
+        ..FavoriteFriendsPanelModel::default()
+    };
+
+    let scene = build_friends_panel_scene(&model);
+    let region_ids = scene
+        .hit_regions
+        .iter()
+        .map(|region| region.id.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(!region_ids.contains(&"row:"));
+    assert!(region_ids.contains(&"row:usr_1"));
+    assert!(scene.commands.iter().any(|command| {
+        matches!(command, DrawCommand::Text { text, .. } if text == "The Black Cat")
+    }));
+}
+
+#[test]
+fn friends_panel_long_row_text_is_ellipsized_before_rendering() {
+    const LONG_NAME: &str = "A Very Long Display Name That Should Ellipsize Cleanly In The Row";
+    const LONG_LOCATION: &str = "A World With A Very Long Name That Should Not Break The Layout";
+    const LONG_NOTE: &str =
+        "This VRChat note is intentionally long enough to exercise row text clipping";
+    const LONG_LOCAL_NOTE: &str =
+        "This local note is also intentionally long enough to stay inside the row";
+
+    let model = FavoriteFriendsPanelModel {
+        rows: vec![FriendPanelRow {
+            location_text: LONG_LOCATION.to_string(),
+            note: Some(LONG_NOTE.to_string()),
+            memo: Some(LONG_LOCAL_NOTE.to_string()),
+            ..friend_panel_row("usr_long", LONG_NAME)
+        }],
+        ..FavoriteFriendsPanelModel::default()
+    };
+
+    let scene = build_friends_panel_scene(&model);
+    let text_commands: Vec<&str> = scene
+        .commands
+        .iter()
+        .filter_map(|command| match command {
+            DrawCommand::Text { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(!text_commands.contains(&LONG_NAME));
+    assert!(!text_commands.contains(&LONG_LOCATION));
+    assert!(text_commands
+        .iter()
+        .any(|text| text.starts_with("A Very Long Display Name") && text.ends_with('…')));
+    assert!(text_commands
+        .iter()
+        .any(|text| text.starts_with("A World With A Very Long Name") && text.ends_with('…')));
+    assert!(text_commands
+        .iter()
+        .any(|text| text.starts_with("Note: This VRChat note") && text.ends_with('…')));
+    assert!(text_commands
+        .iter()
+        .any(|text| text.starts_with("Local Note: This local note") && text.ends_with('…')));
+}
+
+#[test]
+fn friends_panel_row_actions_render_hit_regions_without_business_action() {
+    let mut model = FavoriteFriendsPanelModel {
+        rows: vec![FriendPanelRow {
+            actions: FriendPanelRowActions {
+                primary: Some(FriendPanelRowPrimaryAction::Open),
+                invite: true,
+            },
+            ..friend_panel_row("usr_1", "Aki")
+        }],
+        ..FavoriteFriendsPanelModel::default()
+    };
+    let size = model.size;
+    let scene = build_friends_panel_scene(&model);
+    let action_uv = scene
+        .hit_regions
+        .iter()
+        .find(|region| region.id == "action:usr_1:open")
+        .map(|region| region.rect.center_uv(size))
+        .expect("open action region");
+
+    assert!(scene
+        .hit_regions
+        .iter()
+        .any(|region| region.id == "action:usr_1:invite"));
+    assert!(scene
+        .commands
+        .iter()
+        .any(|command| { matches!(command, DrawCommand::Text { text, .. } if text == "Open") }));
+    assert!(scene
+        .commands
+        .iter()
+        .any(|command| { matches!(command, DrawCommand::Text { text, .. } if text == "Invite") }));
+    assert_eq!(
+        model
+            .apply_uv_action(action_uv, FriendPanelAction::ClickDown)
+            .as_deref(),
+        Some("action:usr_1:open")
+    );
+    assert_eq!(
+        model
+            .apply_uv_action(action_uv, FriendPanelAction::ClickUp)
+            .as_deref(),
+        Some("action:usr_1:open")
+    );
+    assert_eq!(
+        model.armed_action_region_id.as_deref(),
+        Some("action:usr_1:open")
+    );
+    assert_eq!(
+        model
+            .apply_uv_action(action_uv, FriendPanelAction::ClickDown)
+            .as_deref(),
+        Some("action:usr_1:open")
+    );
+    assert_eq!(
+        model
+            .apply_uv_action(action_uv, FriendPanelAction::ClickUp)
+            .as_deref(),
+        Some("action:usr_1:open")
+    );
+    assert_eq!(model.armed_action_region_id, None);
+    assert_eq!(model.selected_category_key, "all");
+    assert_eq!(model.pressed_region_id, None);
+}
+
+#[test]
+fn friends_panel_status_message_draws_above_overflow_masks() {
+    let model = FavoriteFriendsPanelModel {
+        status_message: Some("Request invite sent.".to_string()),
+        rows: vec![friend_panel_row("usr_1", "Friend")],
+        ..FavoriteFriendsPanelModel::default()
+    };
+
+    let scene = build_friends_panel_scene(&model);
+    let status = scene
+        .commands
+        .iter()
+        .enumerate()
+        .find_map(|(index, command)| match command {
+            DrawCommand::Text {
+                origin_y,
+                style,
+                text,
+                ..
+            } if text == "Request invite sent." => Some((index, *origin_y, style.line_height)),
+            _ => None,
+        })
+        .expect("status text command");
+    let last_covering_fill = scene
+        .commands
+        .iter()
+        .enumerate()
+        .rfind(|(_, command)| match command {
+            DrawCommand::FillRect { rect, .. } => {
+                rect.y < status.1 + status.2 && rect.y + rect.height > status.1
+            }
+            _ => false,
+        })
+        .map(|(index, _)| index)
+        .expect("covering fill command");
+
+    assert!(status.0 > last_covering_fill);
+}
+
+#[test]
+fn friends_panel_hover_updates_region_without_pointer_reticle() {
     let mut model = FavoriteFriendsPanelModel::default();
     let pointer_uv = UvPoint::new(0.5, 0.5);
 
@@ -224,38 +404,17 @@ fn friends_panel_hover_draws_pointer_reticle() {
             .as_deref(),
         Some("list")
     );
+    assert_eq!(model.hovered_region_id.as_deref(), Some("list"));
 
     let scene = build_friends_panel_scene(&model);
 
-    assert!(scene.commands.iter().any(|command| {
-        matches!(
-            command,
-            DrawCommand::Circle {
-                center_x,
-                center_y,
-                radius,
-                ..
-            } if (*center_x - model.size.width as f32 * pointer_uv.x).abs() < 0.001
-                && (*center_y - model.size.height as f32 * pointer_uv.y).abs() < 0.001
-                && *radius >= 8.0
-        )
-    }));
+    assert!(!scene
+        .commands
+        .iter()
+        .any(|command| matches!(command, DrawCommand::Circle { .. })));
 
     model.apply_uv_action(UvPoint::new(-1.0, -1.0), FriendPanelAction::Hover);
-    let scene_after_miss = build_friends_panel_scene(&model);
-    assert!(!scene_after_miss.commands.iter().any(|command| {
-        matches!(
-            command,
-            DrawCommand::Circle {
-                center_x,
-                center_y,
-                radius,
-                ..
-            } if (*center_x - model.size.width as f32 * pointer_uv.x).abs() < 0.001
-                && (*center_y - model.size.height as f32 * pointer_uv.y).abs() < 0.001
-                && *radius >= 8.0
-        )
-    }));
+    assert_eq!(model.hovered_region_id, None);
 }
 
 #[test]
@@ -292,7 +451,7 @@ fn friends_panel_categories_use_left_column_and_independent_scroll() {
     model.apply_uv_action(second_category_uv, FriendPanelAction::ClickDown);
     model.apply_uv_action(second_category_uv, FriendPanelAction::ClickUp);
     assert_eq!(model.selected_category_key, "group:1");
-    assert_eq!(model.row_scroll_offset, 0);
+    assert_eq!(model.row_scroll_offset, 0.0);
 
     model.apply_uv_action(
         second_category_uv,
@@ -302,7 +461,7 @@ fn friends_panel_categories_use_left_column_and_independent_scroll() {
         model.category_scroll_offset,
         model.max_category_scroll_offset()
     );
-    assert_eq!(model.row_scroll_offset, 0);
+    assert_eq!(model.row_scroll_offset, 0.0);
 
     model.apply_uv_action(first_row_uv, FriendPanelAction::Scroll { delta: 10.0 });
     assert_eq!(model.row_scroll_offset, model.max_row_scroll_offset());
@@ -387,6 +546,53 @@ fn friends_panel_updates_category_scroll_and_keeps_row_click_read_only() {
     assert!(hit.as_deref().is_some_and(|id| id.starts_with("row:")));
     assert_eq!(model.selected_category_key, "local:Best");
     assert_eq!(model.pressed_region_id, None);
+}
+
+#[test]
+fn friends_panel_row_scrollbar_drag_and_track_update_fractional_offset() {
+    let mut model = FavoriteFriendsPanelModel {
+        rows: (0..12)
+            .map(|index| friend_panel_row(format!("usr_{index}"), format!("Friend {index}")))
+            .collect(),
+        ..FavoriteFriendsPanelModel::default()
+    };
+    let size = model.size;
+    let scene = build_friends_panel_scene(&model);
+    let thumb_uv = scene
+        .hit_regions
+        .iter()
+        .find(|region| region.id == "scroll-thumb")
+        .map(|region| region.rect.center_uv(size))
+        .expect("scroll thumb region");
+
+    model.apply_uv_action(thumb_uv, FriendPanelAction::ClickDown);
+    model.apply_uv_action(
+        UvPoint::new(thumb_uv.x, (thumb_uv.y + 0.2).min(0.98)),
+        FriendPanelAction::Hover,
+    );
+
+    assert!(model.row_scroll_offset > 0.0);
+    assert!(model.row_scroll_offset < model.max_row_scroll_offset());
+    assert!(model.row_scroll_offset.fract() > 0.0);
+
+    model.apply_uv_action(thumb_uv, FriendPanelAction::ClickUp);
+    let before_track_click = model.row_scroll_offset;
+    let scene = build_friends_panel_scene(&model);
+    let track_uv = scene
+        .hit_regions
+        .iter()
+        .find(|region| region.id == "scroll-track")
+        .map(|region| {
+            UvPoint::new(
+                (region.rect.x + region.rect.width * 0.5) / size.width as f32,
+                (region.rect.y + region.rect.height - 2.0) / size.height as f32,
+            )
+        })
+        .expect("scroll track region");
+    model.apply_uv_action(track_uv, FriendPanelAction::ClickDown);
+    model.apply_uv_action(track_uv, FriendPanelAction::ClickUp);
+
+    assert!(model.row_scroll_offset > before_track_click);
 }
 
 #[test]

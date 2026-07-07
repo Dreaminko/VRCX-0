@@ -125,7 +125,11 @@
             "empty": "オンラインのお気に入りフレンドはいません",
             "note": "VRChat メモ",
             "memo": "ローカルメモ",
+            "open": "開く",
+            "request": "参加を申請",
+            "invite": "招待",
             "favorites_online": "オンラインお気に入り",
+            "same_instance": "同じインスタンス",
             "local_favorites": "ローカルお気に入り",
             "traveling": "移動中",
             "private": "プライベート",
@@ -213,7 +217,7 @@
                 "reportIssue": "問題を報告",
                 "github": "GitHub",
                 "discord": "みんなと話そう (Discord)",
-                "qqGroup": "QQグループ（中国語コミュニティ）",
+                "qqGroup": "QQグループ",
                 "openDevtools": "DevTools を開く",
                 "supportVrcx": "VRCX-0 をサポート"
             }
@@ -244,7 +248,7 @@
         "toggle_theme": "テーマを切り替える"
     },
     "nav_menu": {
-        "qq_group": "QQグループ（中国語コミュニティ）",
+        "qq_group": "QQグループ",
         "discord": "みんなと話そう (Discord)",
         "changelog": "新機能 (更新履歴)",
         "update": "更新",

@@ -1,4 +1,6 @@
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
 
 use openvr::{
@@ -22,6 +24,8 @@ use vrcx_0_vr_overlay::{
     FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 
+#[cfg(windows)]
+use super::gpu_presenter::GpuPresenter;
 use super::{
     actor::{OverlayBackend, TickOutcome},
     policy::WristVisibilityPolicy,
@@ -43,6 +47,7 @@ const SCROLL_AXIS_THRESHOLD: f32 = 0.55;
 const GRIP_AXIS_PRESS_THRESHOLD: f32 = 0.6;
 const SCROLL_REPEAT_INTERVAL: Duration = Duration::from_millis(120);
 const HOVER_UV_EPSILON: f32 = 0.01;
+const TRIGGER_DRAG_SCROLL_UV_PER_STEP: f32 = 0.055;
 const SUMMON_HOLD_DURATION: Duration = Duration::from_secs(2);
 const PANEL_SUMMON_HAND: OverlayHand = OverlayHand::Right;
 const PANEL_SUMMON_PANEL_ID: &str = FRIENDS_PANEL_ID;
@@ -61,6 +66,12 @@ pub struct OpenVrOverlayBackend {
     panel_summon_state: PanelSummonGestureState,
     controller_states: HashMap<OverlayHand, ControllerInputState>,
     grab_state: Option<GrabState>,
+    #[cfg(windows)]
+    gpu: Option<GpuPresenter>,
+    #[cfg(windows)]
+    gpu_init_attempted: bool,
+    #[cfg(windows)]
+    gpu_retry_after_present_failure: bool,
 }
 
 struct OpenVrSurface {
@@ -71,11 +82,20 @@ struct OpenVrSurface {
     visible: bool,
     active: bool,
     pending_frame: Option<RgbaFrame>,
+    last_uploaded_frame_fingerprint: Option<FrameFingerprint>,
     last_visible_frame_upload_at: Option<Instant>,
     current_alpha: f32,
     target_alpha: f32,
     fade: Option<SurfaceFade>,
     hide_after_fade: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct FrameFingerprint {
+    width: u32,
+    height: u32,
+    byte_len: usize,
+    hash: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -98,6 +118,10 @@ struct ControllerInputState {
     hovered_target: Option<InteractiveTarget>,
     hovered_uv: Option<UvPoint>,
     pressed_target: Option<InteractiveTarget>,
+    pressed_uv: Option<UvPoint>,
+    drag_scroll_last_uv: Option<UvPoint>,
+    drag_scroll_remainder_y: f32,
+    trigger_drag_scrolled: bool,
     last_scroll_at: Option<Instant>,
 }
 
@@ -197,6 +221,12 @@ struct ScrollDelta {
     last_scroll_at: Option<Instant>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct DragScrollDelta {
+    delta: Option<f32>,
+    remainder_y: f32,
+}
+
 impl OpenVrOverlayBackend {
     pub fn new() -> Self {
         Self {
@@ -208,6 +238,12 @@ impl OpenVrOverlayBackend {
             panel_summon_state: PanelSummonGestureState::default(),
             controller_states: HashMap::new(),
             grab_state: None,
+            #[cfg(windows)]
+            gpu: None,
+            #[cfg(windows)]
+            gpu_init_attempted: false,
+            #[cfg(windows)]
+            gpu_retry_after_present_failure: true,
         }
     }
 }
@@ -239,6 +275,8 @@ impl OverlayBackend for OpenVrOverlayBackend {
         self.context = Some(context);
         self.overlay = Some(overlay);
         self.system = Some(system);
+        #[cfg(windows)]
+        self.ensure_gpu_presenter();
         Ok(())
     }
 
@@ -274,6 +312,7 @@ impl OverlayBackend for OpenVrOverlayBackend {
                 visible: false,
                 active: true,
                 pending_frame: None,
+                last_uploaded_frame_fingerprint: None,
                 last_visible_frame_upload_at: None,
                 current_alpha: 1.0,
                 target_alpha: 1.0,
@@ -289,6 +328,7 @@ impl OverlayBackend for OpenVrOverlayBackend {
         surface_id: &OverlaySurfaceId,
         frame: RgbaFrame,
     ) -> Result<(), String> {
+        let fingerprint = frame_fingerprint(&frame);
         let handle = {
             let surface = self.surfaces.get_mut(surface_id).ok_or_else(|| {
                 format!(
@@ -296,6 +336,10 @@ impl OverlayBackend for OpenVrOverlayBackend {
                     surface_id.as_str()
                 )
             })?;
+            if surface.last_uploaded_frame_fingerprint == Some(fingerprint) {
+                surface.pending_frame = None;
+                return Ok(());
+            }
             if surface.visible {
                 let now = Instant::now();
                 let can_upload = surface
@@ -318,12 +362,15 @@ impl OverlayBackend for OpenVrOverlayBackend {
             }
         };
 
-        if let Err(error) = self.upload_frame(handle, &frame) {
+        if let Err(error) = self.upload_frame(surface_id, handle, &frame) {
             if let Some(surface) = self.surfaces.get_mut(surface_id) {
                 surface.pending_frame = Some(frame);
                 surface.last_visible_frame_upload_at = None;
             }
             return Err(error);
+        }
+        if let Some(surface) = self.surfaces.get_mut(surface_id) {
+            surface.last_uploaded_frame_fingerprint = Some(fingerprint);
         }
         Ok(())
     }
@@ -372,6 +419,10 @@ impl OverlayBackend for OpenVrOverlayBackend {
             return Ok(());
         }
         self.set_visibility(surface_id, false)?;
+        #[cfg(windows)]
+        if let Some(gpu) = self.gpu.as_mut() {
+            gpu.unregister_surface(surface_id);
+        }
         if let Some(surface) = self.surfaces.get_mut(surface_id) {
             surface.active = false;
             surface.policy.close();
@@ -455,6 +506,12 @@ impl OpenVrOverlayBackend {
     }
 
     fn clear_runtime_handles(&mut self) {
+        #[cfg(windows)]
+        {
+            self.gpu = None;
+            self.gpu_init_attempted = false;
+            self.gpu_retry_after_present_failure = true;
+        }
         self.surfaces.clear();
         self.overlay = None;
         self.system = None;
@@ -736,6 +793,36 @@ impl OpenVrOverlayBackend {
                 self.input_events
                     .push(hit.event(hand, OverlayInputKind::ClickDown));
                 next.pressed_target = Some(hit.target());
+                next.pressed_uv = Some(hit.uv);
+                next.drag_scroll_last_uv = Some(hit.uv);
+                next.drag_scroll_remainder_y = 0.0;
+                next.trigger_drag_scrolled = false;
+            } else if trigger_pressed
+                && previous.trigger_pressed
+                && previous
+                    .pressed_target
+                    .as_ref()
+                    .is_some_and(|target| target.matches_hit(hit))
+            {
+                let drag_scroll = trigger_drag_scroll_delta(
+                    previous.drag_scroll_last_uv,
+                    hit.uv,
+                    previous.drag_scroll_remainder_y,
+                );
+                next.drag_scroll_last_uv = Some(hit.uv);
+                next.drag_scroll_remainder_y = drag_scroll.remainder_y;
+                if let Some(delta) = drag_scroll.delta {
+                    if let (Some(target), Some(uv)) =
+                        (previous.pressed_target.as_ref(), previous.pressed_uv)
+                    {
+                        self.input_events.push(target.event(
+                            hand,
+                            uv,
+                            OverlayInputKind::Scroll { delta },
+                        ));
+                        next.trigger_drag_scrolled = true;
+                    }
+                }
             }
             let scroll_delta =
                 scroll_delta_for_state(scroll_value, previous.last_scroll_at, Instant::now());
@@ -759,12 +846,22 @@ impl OpenVrOverlayBackend {
         }
 
         if !trigger_pressed && previous.trigger_pressed {
-            if let Some(event) =
+            let event = if previous.trigger_drag_scrolled {
+                previous
+                    .pressed_target
+                    .as_ref()
+                    .map(|target| target.event(hand, pointer_miss_uv(), OverlayInputKind::ClickUp))
+            } else {
                 click_up_event_for_release(hand, hit.as_ref(), previous.pressed_target.as_ref())
-            {
+            };
+            if let Some(event) = event {
                 self.input_events.push(event);
             }
             next.pressed_target = None;
+            next.pressed_uv = None;
+            next.drag_scroll_last_uv = None;
+            next.drag_scroll_remainder_y = 0.0;
+            next.trigger_drag_scrolled = false;
         }
 
         if let Some(grab) = self.grab_state.clone().filter(|grab| grab.hand == hand) {
@@ -811,6 +908,10 @@ impl OpenVrOverlayBackend {
             state.hovered_target = None;
             state.hovered_uv = None;
             state.pressed_target = None;
+            state.pressed_uv = None;
+            state.drag_scroll_last_uv = None;
+            state.drag_scroll_remainder_y = 0.0;
+            state.trigger_drag_scrolled = false;
             state.last_scroll_at = None;
         }
         self.grab_state = None;
@@ -927,11 +1028,15 @@ impl OpenVrOverlayBackend {
             return Ok(());
         }
         if let Some(frame) = pending_before_show {
-            if let Err(error) = self.upload_frame(handle, &frame) {
+            let fingerprint = frame_fingerprint(&frame);
+            if let Err(error) = self.upload_frame(surface_id, handle, &frame) {
                 if let Some(surface) = self.surfaces.get_mut(surface_id) {
                     surface.pending_frame = Some(frame);
                 }
                 return Err(error);
+            }
+            if let Some(surface) = self.surfaces.get_mut(surface_id) {
+                surface.last_uploaded_frame_fingerprint = Some(fingerprint);
             }
         }
         let overlay = self
@@ -1048,12 +1153,58 @@ impl OpenVrOverlayBackend {
         Ok(())
     }
 
-    fn upload_frame(&mut self, handle: OverlayHandle, frame: &RgbaFrame) -> Result<(), String> {
+    fn upload_frame(
+        &mut self,
+        surface_id: &OverlaySurfaceId,
+        handle: OverlayHandle,
+        frame: &RgbaFrame,
+    ) -> Result<(), String> {
+        #[cfg(windows)]
+        {
+            self.ensure_gpu_presenter();
+            if let Some(gpu) = self.gpu.as_mut() {
+                match gpu.present(surface_id, handle, frame) {
+                    Ok(()) => return Ok(()),
+                    Err(error) => {
+                        tracing::warn!(
+                            error = %error,
+                            "VR overlay GPU presenter failed; falling back to SetOverlayRaw"
+                        );
+                        self.gpu = None;
+                        if self.gpu_retry_after_present_failure {
+                            self.gpu_retry_after_present_failure = false;
+                            self.gpu_init_attempted = false;
+                        } else {
+                            self.gpu_init_attempted = true;
+                        }
+                    }
+                }
+            }
+        }
         let overlay = self
             .overlay
             .as_mut()
             .ok_or_else(|| "OpenVR overlay is not started".to_string())?;
         upload_raw_frame(overlay, handle, frame)
+    }
+
+    #[cfg(windows)]
+    fn ensure_gpu_presenter(&mut self) {
+        if self.gpu.is_some() || self.gpu_init_attempted {
+            return;
+        }
+        self.gpu_init_attempted = true;
+        match GpuPresenter::new() {
+            Ok(gpu) => {
+                self.gpu = Some(gpu);
+            }
+            Err(error) => {
+                tracing::warn!(
+                    error = %error,
+                    "VR overlay GPU presenter unavailable; using SetOverlayRaw fallback"
+                );
+            }
+        }
     }
 
     fn surface_handle(&self, surface_id: &OverlaySurfaceId) -> Result<OverlayHandle, String> {
@@ -1102,6 +1253,20 @@ fn upload_raw_frame(
             4,
         )
         .map_err(|error| format!("set raw overlay data failed: {error:?}"))
+}
+
+fn frame_fingerprint(frame: &RgbaFrame) -> FrameFingerprint {
+    let mut hasher = DefaultHasher::new();
+    frame.size.width.hash(&mut hasher);
+    frame.size.height.hash(&mut hasher);
+    frame.data.len().hash(&mut hasher);
+    frame.data.hash(&mut hasher);
+    FrameFingerprint {
+        width: frame.size.width,
+        height: frame.size.height,
+        byte_len: frame.data.len(),
+        hash: hasher.finish(),
+    }
 }
 
 fn device_button_pressed(
@@ -1452,9 +1617,9 @@ fn aim_direction(controller_transform: OverlayTransform) -> [f32; 3] {
     let cos = POINTER_PITCH_OFFSET_RADIANS.cos();
     let sin = POINTER_PITCH_OFFSET_RADIANS.sin();
     [
-        forward[0] * cos + up[0] * sin,
-        forward[1] * cos + up[1] * sin,
-        forward[2] * cos + up[2] * sin,
+        forward[0] * cos - up[0] * sin,
+        forward[1] * cos - up[1] * sin,
+        forward[2] * cos - up[2] * sin,
     ]
 }
 
@@ -1584,6 +1749,32 @@ fn scroll_delta_for_state(
         } else {
             last_scroll_at
         },
+    }
+}
+
+fn trigger_drag_scroll_delta(
+    previous_uv: Option<UvPoint>,
+    current_uv: UvPoint,
+    remainder_y: f32,
+) -> DragScrollDelta {
+    let Some(previous_uv) = previous_uv else {
+        return DragScrollDelta {
+            delta: None,
+            remainder_y,
+        };
+    };
+    let mut remainder_y = remainder_y + current_uv.y - previous_uv.y;
+    let steps = (remainder_y / TRIGGER_DRAG_SCROLL_UV_PER_STEP).trunc();
+    if steps == 0.0 {
+        return DragScrollDelta {
+            delta: None,
+            remainder_y,
+        };
+    }
+    remainder_y -= steps * TRIGGER_DRAG_SCROLL_UV_PER_STEP;
+    DragScrollDelta {
+        delta: Some(-steps),
+        remainder_y,
     }
 }
 
@@ -1966,7 +2157,7 @@ mod tests {
 
         let aim = aim_direction(controller);
 
-        assert!(aim[1] > 0.5);
+        assert!(aim[1] < -0.5);
         assert!(aim[2] < -0.7 && aim[2] > -1.0);
         assert!(aim[0].abs() < 0.001);
     }
@@ -2033,6 +2224,20 @@ mod tests {
         assert_eq!(third.delta, Some(-1.0));
         let reset = scroll_delta_for_state(0.0, third.last_scroll_at, started);
         assert_eq!(reset.last_scroll_at, None);
+    }
+
+    #[test]
+    fn trigger_drag_scroll_maps_vertical_uv_motion_to_scroll_steps() {
+        let start = UvPoint::new(0.5, 0.6);
+
+        let small = trigger_drag_scroll_delta(Some(start), UvPoint::new(0.5, 0.57), 0.0);
+        assert_eq!(small.delta, None);
+
+        let up = trigger_drag_scroll_delta(Some(start), UvPoint::new(0.5, 0.48), 0.0);
+        assert_eq!(up.delta, Some(2.0));
+
+        let down = trigger_drag_scroll_delta(Some(start), UvPoint::new(0.5, 0.72), 0.0);
+        assert_eq!(down.delta, Some(-2.0));
     }
 
     #[test]

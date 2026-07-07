@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = []
-steamvr-overlay = ["dep:openvr"]
+steamvr-overlay = ["dep:openvr", "dep:openvr_sys"]
 openxr-overlay = ["dep:openxr", "dep:ash"]
 
 [dependencies]
@@ -44,10 +44,18 @@ windows-sys = { version = "0.61", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging"
 ] }
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common"
+] }
 winreg = "0.56"
 
 [target.'cfg(any(windows, target_os = "linux"))'.dependencies]
 openvr = { version = "0.9", optional = true }
+openvr_sys = { version = "2.1.4", optional = true }
 openxr = { version = "0.21", optional = true, default-features = false, features = [
     "loaded"
 ] }

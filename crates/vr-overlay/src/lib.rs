@@ -19,8 +19,9 @@ pub use surfaces::dummy_panel::{
     build_dummy_panel_scene, DummyPanelAction, DummyPanelModel, INTERACTIVE_DUMMY_SURFACE_ID,
 };
 pub use surfaces::friends_panel::{
-    build_friends_panel_scene, FavoriteFriendsPanelModel, FriendPanelAction, FriendPanelCategory,
-    FriendPanelRow, FriendPanelStatusTone, FriendPanelStrings, FRIENDS_PANEL_ID,
+    build_friends_panel_scene, build_friends_panel_scene_with_text, FavoriteFriendsPanelModel,
+    FriendPanelAction, FriendPanelCategory, FriendPanelRow, FriendPanelRowActions,
+    FriendPanelRowPrimaryAction, FriendPanelStatusTone, FriendPanelStrings, FRIENDS_PANEL_ID,
     FRIENDS_PANEL_LASER_LEFT_SURFACE_ID, FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID,
     FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID,
 };

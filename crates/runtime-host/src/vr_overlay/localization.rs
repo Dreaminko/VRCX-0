@@ -119,7 +119,10 @@ impl OverlayLocalizer {
             all_label: self.label("overlay.friends_panel.all", "All"),
             empty_label: self.label("overlay.friends_panel.empty", "No favorite friends online"),
             note_label: self.label("overlay.friends_panel.note", "Note"),
-            memo_label: self.label("overlay.friends_panel.memo", "Memo"),
+            memo_label: self.label("overlay.friends_panel.memo", "Local Note"),
+            open_label: self.label("overlay.friends_panel.open", "Open"),
+            request_label: self.label("overlay.friends_panel.request", "Request"),
+            invite_label: self.label("overlay.friends_panel.invite", "Invite"),
         }
     }
 
@@ -129,6 +132,10 @@ impl OverlayLocalizer {
 
     pub(crate) fn friends_panel_favorites_online_label(&self) -> String {
         self.label("overlay.friends_panel.favorites_online", "Favorites Online")
+    }
+
+    pub(crate) fn friends_panel_same_instance_label(&self) -> String {
+        self.label("overlay.friends_panel.same_instance", "Same Instance")
     }
 
     pub(crate) fn friends_panel_local_favorites_label(&self) -> String {

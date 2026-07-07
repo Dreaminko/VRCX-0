@@ -11,6 +11,7 @@ members = [
     "crates/media",
     "crates/application",
     "crates/runtime-host",
+    "crates/overlay-devtool",
     "crates/headless",
     "crates/mcp",
     "crates/harness"

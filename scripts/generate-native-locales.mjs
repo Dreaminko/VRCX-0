@@ -91,9 +91,16 @@ const overlayPathKeys = [
     ['overlay.friends_panel.empty', ['overlay', 'friends_panel', 'empty']],
     ['overlay.friends_panel.note', ['overlay', 'friends_panel', 'note']],
     ['overlay.friends_panel.memo', ['overlay', 'friends_panel', 'memo']],
+    ['overlay.friends_panel.open', ['overlay', 'friends_panel', 'open']],
+    ['overlay.friends_panel.request', ['overlay', 'friends_panel', 'request']],
+    ['overlay.friends_panel.invite', ['overlay', 'friends_panel', 'invite']],
     [
         'overlay.friends_panel.favorites_online',
         ['overlay', 'friends_panel', 'favorites_online']
+    ],
+    [
+        'overlay.friends_panel.same_instance',
+        ['overlay', 'friends_panel', 'same_instance']
     ],
     [
         'overlay.friends_panel.local_favorites',
