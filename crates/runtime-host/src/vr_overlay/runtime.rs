@@ -23,10 +23,10 @@ use vrcx_0_application::{
     InstanceLaunchHttpClient, InstanceLaunchInput, InstanceLaunchMode, InstanceLaunchOutcome,
     InstanceLaunchPipe, OverlayActivityActorRelation, OverlayActivityDelivery,
     OverlayActivityEntry, OverlayActivitySink, OverlayActivitySnapshot, RealtimeFriendSnapshot,
-    TaskSupervisor, WebClient,
+    TaskSupervisor, WebClient, WorldCache,
 };
 use vrcx_0_core::friends::FriendRecord;
-use vrcx_0_core::location::{parse_location, world_id_from_location};
+use vrcx_0_core::location::{is_meaningful_world_name, parse_location, world_id_from_location};
 use vrcx_0_core::log_watcher::GameLogEventKind;
 use vrcx_0_host::vr_overlay::{
     OverlayActivationButton, OverlayInputEvent, OverlayInputKind, OverlayPlacement,
@@ -109,6 +109,7 @@ const FRIENDS_PANEL_LASER_SIZE: OverlaySize = OverlaySize::new(256, 6);
 const FRIENDS_PANEL_LASER_INITIAL_WIDTH_METERS: f32 = 0.45;
 const INTERACTIVE_INPUT_DRAIN_INTERVAL: Duration = Duration::from_millis(30);
 const HMD_TOAST_CAPACITY: usize = 3;
+const HMD_TOAST_WORLD_RESOLVE_BUDGET: Duration = Duration::from_secs(2);
 const HMD_JOIN_LEAVE_MERGE_WINDOW: Duration = Duration::from_secs(4);
 const HMD_AVATAR_SIZE: u32 = 96;
 const HMD_AVATAR_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
@@ -1148,16 +1149,43 @@ impl VrOverlayRuntime {
     }
 
     fn ingest_hmd_delivery(self: &Arc<Self>, delivery: OverlayActivityDelivery) {
-        let config = self.current_runtime_config();
-        let hmd_config = config.hmd;
-        if !delivery.hmd || !self.is_hmd_surface_active(config) {
+        if !delivery.hmd || !self.is_hmd_surface_active(self.current_runtime_config()) {
             return;
         }
         let entry = delivery.entry;
-        let now = Instant::now();
-        let timeout = Duration::from_millis(hmd_config.timeout_ms);
-        let changed = self.enqueue_hmd_toast(entry.clone(), now, timeout);
-        if !changed {
+        let pending = unresolved_entry_world_id(&entry)
+            .and_then(|world_id| self.context.as_ref().cloned().map(|ctx| (ctx, world_id)));
+        let Some((context, world_id)) = pending else {
+            self.deliver_hmd_toast(entry);
+            return;
+        };
+        let runtime = Arc::clone(self);
+        let tasks = context.tasks.clone();
+        tasks.spawn(async move {
+            let mut entry = entry;
+            let endpoint = context.auth_scope.snapshot().endpoint;
+            if !endpoint.trim().is_empty() {
+                let resolve =
+                    context
+                        .world_cache
+                        .resolve_name(context.web.as_ref(), &endpoint, &world_id);
+                if let Ok(Some(world_name)) =
+                    tokio::time::timeout(HMD_TOAST_WORLD_RESOLVE_BUDGET, resolve).await
+                {
+                    entry.content.world_name = world_name;
+                }
+            }
+            runtime.deliver_hmd_toast(entry);
+        });
+    }
+
+    fn deliver_hmd_toast(self: &Arc<Self>, entry: OverlayActivityEntry) {
+        let config = self.current_runtime_config();
+        if !self.is_hmd_surface_active(config) {
+            return;
+        }
+        let timeout = Duration::from_millis(config.hmd.timeout_ms);
+        if !self.enqueue_hmd_toast(entry.clone(), Instant::now(), timeout) {
             return;
         }
         self.spawn_avatar_fetch(&entry);
@@ -1245,6 +1273,11 @@ impl VrOverlayRuntime {
             return Vec::new();
         };
         prune_expired_hmd_toasts(&mut queue, now);
+        if let Some(context) = &self.context {
+            for toast in queue.iter_mut() {
+                refresh_cached_world_name(&context.world_cache, &mut toast.entry);
+            }
+        }
         queue
             .iter()
             .map(|toast| HmdToastView {
@@ -2675,6 +2708,28 @@ fn hmd_instance_key(entry: &OverlayActivityEntry) -> Option<String> {
     .map(str::to_string)
 }
 
+fn unresolved_entry_world_id(entry: &OverlayActivityEntry) -> Option<String> {
+    if is_meaningful_world_name(&entry.content.world_name) {
+        return None;
+    }
+    let explicit = entry.content.world_id.trim();
+    let world_id = if explicit.is_empty() {
+        world_id_from_location(&entry.content.location)
+    } else {
+        explicit.to_string()
+    };
+    (!world_id.is_empty()).then_some(world_id)
+}
+
+fn refresh_cached_world_name(world_cache: &WorldCache, entry: &mut OverlayActivityEntry) {
+    let Some(world_id) = unresolved_entry_world_id(entry) else {
+        return;
+    };
+    if let Some(world_name) = world_cache.get_name(&world_id) {
+        entry.content.world_name = world_name;
+    }
+}
+
 fn start_mode_allows(start_mode: WristOverlayStartMode, game_running: bool, vr_mode: bool) -> bool {
     match start_mode {
         WristOverlayStartMode::SteamVr => true,
@@ -3835,8 +3890,12 @@ pub(super) fn build_wrist_frame_input(
 ) -> WristOverlayFrameInput {
     let game_log = context.game_log_snapshot();
     let captured_at_ms = now_ms();
+    let mut activity = context.overlay_activity.snapshot();
+    for entry in &mut activity.entries {
+        refresh_cached_world_name(&context.world_cache, entry);
+    }
     WristOverlayFrameInput {
-        activity: context.overlay_activity.snapshot(),
+        activity,
         devices,
         footer: WristRuntimeFooter {
             player_count: game_log.players.len() as u32,
