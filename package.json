@@ -34,6 +34,7 @@
         "format": "oxfmt . \"!**/*.{rs,toml,lock}\" \"!signatures/**\"",
         "format:check": "oxfmt --check . \"!**/*.{rs,toml,lock}\" \"!signatures/**\"",
         "lint": "oxlint . --ignore-pattern \"**/*.{rs,toml,lock}\"",
+        "check:crate-boundaries": "node ./scripts/check-crate-boundaries.mjs",
         "rust:check": "cargo check --manifest-path src-tauri/Cargo.toml",
         "rust:clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
         "rust:fmt": "cargo fmt --all",
