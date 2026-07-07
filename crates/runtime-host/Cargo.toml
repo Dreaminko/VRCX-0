@@ -7,7 +7,6 @@ edition = "2021"
 default = []
 steamvr-overlay = ["vrcx-0-host/steamvr-overlay"]
 openxr-overlay = ["vrcx-0-host/openxr-overlay"]
-slint-spike = ["vrcx-0-vr-overlay/slint-spike"]
 test-utils = ["vrcx-0-application/test-utils"]
 
 [dependencies]

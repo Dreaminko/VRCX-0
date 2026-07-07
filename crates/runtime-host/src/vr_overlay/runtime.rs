@@ -1,9 +1,5 @@
-#[cfg(all(test, feature = "slint-spike"))]
-use std::cell::Cell;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
-#[cfg(feature = "slint-spike")]
-use std::sync::OnceLock;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Condvar, Mutex,
@@ -40,16 +36,13 @@ use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::favorites::favorite_list;
 use vrcx_0_persistence::memos::{memo_list_user_notes, memo_list_users};
 use vrcx_0_vr_overlay::{
-    build_friends_panel_scene, AvatarBitmap, FavoriteFriendsPanelModel, FriendPanelAction,
-    FriendPanelCategory, FriendPanelRow, FriendPanelRowActions, FriendPanelRowPrimaryAction,
-    FriendPanelStatusTone, MainSurfaceModel, OverlayRenderer, OverlaySize, OverlaySurfaceId,
-    OverlayTransform, RgbaFrame, SlintHmdRenderer, SlintWristRenderer, TinySkiaRenderer,
-    WristSurfaceModel, FRIENDS_PANEL_ID, FRIENDS_PANEL_LASER_LEFT_SURFACE_ID,
-    FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID, FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID,
-    MAIN_SURFACE_ID,
+    AvatarBitmap, FavoriteFriendsPanelModel, FriendPanelCategory, FriendPanelRow,
+    FriendPanelRowActions, FriendPanelRowPrimaryAction, FriendPanelStatusTone, MainSurfaceModel,
+    OverlaySize, OverlaySurfaceId, OverlayTransform, RgbaFrame, SlintHmdRenderer, SlintPanelEvent,
+    SlintPanelHost, SlintPanelPointerEvent, SlintWristRenderer, UvPoint, WristSurfaceModel,
+    FRIENDS_PANEL_ID, FRIENDS_PANEL_LASER_LEFT_SURFACE_ID, FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID,
+    FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
-#[cfg(feature = "slint-spike")]
-use vrcx_0_vr_overlay::{SlintPanelHost, SlintPanelPointerEvent, UvPoint};
 
 use crate::notification::user_image::UserImageCache;
 use crate::RuntimeHostContext;
@@ -74,16 +67,13 @@ type FriendsPanelSnapshotProvider = Arc<dyn Fn() -> Option<RealtimeFriendSnapsho
 thread_local! {
     static SLINT_WRIST_RENDERER: RefCell<Option<SlintWristRenderer>> = const { RefCell::new(None) };
     static SLINT_HMD_RENDERER: RefCell<Option<SlintHmdRenderer>> = const { RefCell::new(None) };
+    static SLINT_FRIENDS_PANEL_HOST: RefCell<Option<SlintPanelHost>> = const { RefCell::new(None) };
 }
 
-#[cfg(feature = "slint-spike")]
-thread_local! {
-    static SLINT_SPIKE_HOST: RefCell<Option<SlintPanelHost>> = const { RefCell::new(None) };
-}
-
-#[cfg(all(test, feature = "slint-spike"))]
-thread_local! {
-    static SLINT_SPIKE_TEST_ENABLED: Cell<bool> = const { Cell::new(false) };
+#[derive(Clone, Debug)]
+struct FriendsPanelQueuedInput {
+    event: OverlayInputEvent,
+    release_fallback_uv: Option<UvPoint>,
 }
 
 pub const VR_OVERLAY_ENABLED_CONFIG_KEY: &str = "wristOverlayEnabled";
@@ -111,13 +101,9 @@ const DATE_TIME_HOUR12_CONFIG_KEY: &str = "dtHour12";
 const WRIST_DEVICE_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WRIST_FRAME_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 const FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL: Duration = Duration::from_millis(100);
-#[cfg(feature = "slint-spike")]
-const SLINT_SPIKE_ENV_KEY: &str = "VRCX0_SLINT_SPIKE";
-#[cfg(feature = "slint-spike")]
-const MAX_SLINT_SPIKE_INPUT_EVENTS: usize = 512;
-#[cfg(feature = "slint-spike")]
-const SLINT_SPIKE_SCROLL_ROW_PIXELS: f32 = 106.0;
-const FRIENDS_PANEL_SPINNER_PHASE_STEP: f32 = 0.1;
+const MAX_FRIENDS_PANEL_INPUT_EVENTS: usize = 512;
+const FRIENDS_PANEL_AVATAR_FETCH_BATCH: usize = 8;
+const FRIENDS_PANEL_SCROLL_ROW_PIXELS: f32 = 106.0;
 const FRIENDS_PANEL_ACTION_ARM_TIMEOUT: Duration = Duration::from_secs(3);
 const FRIENDS_PANEL_LASER_SIZE: OverlaySize = OverlaySize::new(256, 6);
 const FRIENDS_PANEL_LASER_INITIAL_WIDTH_METERS: f32 = 0.45;
@@ -341,6 +327,7 @@ struct InteractivePanelRuntimeState {
     model: FavoriteFriendsPanelModel,
     focused: bool,
     armed_action_expires_at: Option<Instant>,
+    slint_animation_active: bool,
 }
 
 impl Default for InteractivePanelRuntimeState {
@@ -351,6 +338,7 @@ impl Default for InteractivePanelRuntimeState {
             model: FavoriteFriendsPanelModel::default(),
             focused: false,
             armed_action_expires_at: None,
+            slint_animation_active: false,
         }
     }
 }
@@ -360,6 +348,25 @@ enum FriendsPanelActionKind {
     Open,
     Request,
     Invite,
+}
+
+impl FriendsPanelActionKind {
+    fn from_panel_kind(value: &str) -> Option<Self> {
+        match value {
+            "open" => Some(Self::Open),
+            "request" => Some(Self::Request),
+            "invite" => Some(Self::Invite),
+            _ => None,
+        }
+    }
+
+    fn as_panel_kind(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::Request => "request",
+            Self::Invite => "invite",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -409,8 +416,7 @@ pub struct VrOverlayRuntime {
     friends_panel_note_memo_cache: Mutex<FriendsPanelNoteMemoCache>,
     friends_panel_model_dirty: Arc<AtomicBool>,
     friends_panel_frame_dirty: Arc<AtomicBool>,
-    #[cfg(feature = "slint-spike")]
-    slint_spike_input_events: Mutex<VecDeque<OverlayInputEvent>>,
+    friends_panel_input_events: Mutex<VecDeque<FriendsPanelQueuedInput>>,
     refresh_wake: Arc<RefreshWake>,
     devices: Mutex<Vec<VrDeviceSnapshot>>,
     hmd_toasts: Mutex<VecDeque<HmdToastState>>,
@@ -423,7 +429,6 @@ pub struct VrOverlayRuntime {
     refresh_thread_id: Mutex<Option<ThreadId>>,
     frame_producer_factory: VrOverlayFrameProducerFactory,
     frame_producer: Mutex<Option<Box<dyn VrOverlayFrameProducer>>>,
-    friends_panel_renderer: Mutex<TinySkiaRenderer>,
 }
 
 #[derive(Clone)]
@@ -530,8 +535,7 @@ impl VrOverlayRuntime {
             friends_panel_note_memo_cache: Mutex::new(FriendsPanelNoteMemoCache::default()),
             friends_panel_model_dirty: Arc::new(AtomicBool::new(false)),
             friends_panel_frame_dirty: Arc::new(AtomicBool::new(false)),
-            #[cfg(feature = "slint-spike")]
-            slint_spike_input_events: Mutex::new(VecDeque::new()),
+            friends_panel_input_events: Mutex::new(VecDeque::new()),
             refresh_wake: Arc::new(RefreshWake::new()),
             devices: Mutex::new(Vec::new()),
             hmd_toasts: Mutex::new(VecDeque::new()),
@@ -540,7 +544,6 @@ impl VrOverlayRuntime {
             user_image_cache: Arc::new(UserImageCache::new()),
             frame_producer_factory,
             frame_producer: Mutex::new(None),
-            friends_panel_renderer: Mutex::new(TinySkiaRenderer::new()),
         }
     }
 
@@ -708,15 +711,14 @@ impl VrOverlayRuntime {
     }
 
     fn rebuild_visible_friends_panel_model(&self) {
-        let (selected, spinner_phase, status_message) = match self.interactive_panel.lock() {
+        let (selected, status_message) = match self.interactive_panel.lock() {
             Ok(panel) if panel.visible => (
                 Some(panel.model.selected_category_key.clone()),
-                panel.model.spinner_phase,
                 panel.model.status_message.clone(),
             ),
             _ => return,
         };
-        let mut model = self.build_current_friends_panel_model(selected, spinner_phase);
+        let mut model = self.build_current_friends_panel_model(selected);
         model.status_message = status_message;
         if let Ok(mut panel) = self.interactive_panel.lock() {
             if panel.visible {
@@ -728,7 +730,6 @@ impl VrOverlayRuntime {
     fn build_current_friends_panel_model(
         &self,
         selected_category_key: Option<String>,
-        spinner_phase: f32,
     ) -> FavoriteFriendsPanelModel {
         let runtime_config = self.current_runtime_config();
         let selected_category_key =
@@ -758,7 +759,6 @@ impl VrOverlayRuntime {
             locale: runtime_config.locale,
             all_friends_includes_favorites: runtime_config.panel_all_friends_includes_favorites,
             is_game_running: self.game_running.load(Ordering::Acquire),
-            spinner_phase,
         })
     }
 
@@ -871,8 +871,10 @@ impl VrOverlayRuntime {
             return;
         };
         let visible_user_ids = model
-            .visible_rows()
-            .map(|(_, row)| row.user_id.clone())
+            .rows
+            .iter()
+            .filter(|row| row.section_label.is_none())
+            .map(|row| row.user_id.clone())
             .collect::<HashSet<_>>();
         if visible_user_ids.is_empty() {
             return;
@@ -882,9 +884,14 @@ impl VrOverlayRuntime {
         } else {
             snapshot.endpoint.clone()
         };
+        let mut avatar_fetches_spawned = 0_usize;
         for user_id in &visible_user_ids {
             if let Some(record) = snapshot.friends_by_id.get(user_id) {
-                self.queue_friends_panel_avatar(context, &endpoint, record);
+                if avatar_fetches_spawned < FRIENDS_PANEL_AVATAR_FETCH_BATCH
+                    && self.queue_friends_panel_avatar(context, &endpoint, record)
+                {
+                    avatar_fetches_spawned += 1;
+                }
                 self.queue_friends_panel_world_names(context, &endpoint, record);
             }
         }
@@ -895,7 +902,7 @@ impl VrOverlayRuntime {
         context: &Arc<RuntimeHostContext>,
         endpoint: &str,
         record: &FriendRecord,
-    ) {
+    ) -> bool {
         let user_id = record.id.trim();
         if user_id.is_empty()
             || self
@@ -904,13 +911,13 @@ impl VrOverlayRuntime {
                 .map(|avatars| avatars.contains_key(user_id))
                 .unwrap_or(false)
         {
-            return;
+            return false;
         }
         let Ok(mut inflight) = self.friends_panel_avatar_fetches.lock() else {
-            return;
+            return false;
         };
         if !inflight.insert(user_id.to_string()) {
-            return;
+            return false;
         }
         drop(inflight);
 
@@ -920,6 +927,7 @@ impl VrOverlayRuntime {
         let avatars = Arc::clone(&self.friends_panel_avatars);
         let inflight = Arc::clone(&self.friends_panel_avatar_fetches);
         let dirty = Arc::clone(&self.friends_panel_model_dirty);
+        let wake = Arc::clone(&self.refresh_wake);
         let endpoint = endpoint.to_string();
         let user_id = user_id.to_string();
         let initial_image_url = friend_record_avatar_url(record);
@@ -952,12 +960,14 @@ impl VrOverlayRuntime {
                         avatars.insert(user_id.clone(), bitmap);
                     }
                     dirty.store(true, Ordering::Release);
+                    wake.notify();
                 }
             }
             if let Ok(mut inflight) = inflight.lock() {
                 inflight.remove(&user_id);
             }
         });
+        true
     }
 
     fn queue_friends_panel_world_names(
@@ -1067,29 +1077,13 @@ impl VrOverlayRuntime {
     }
 
     fn friends_panel_animation_refresh_active(&self) -> bool {
-        #[cfg(feature = "slint-spike")]
-        if self.slint_spike_animation_refresh_active() {
-            return true;
-        }
         self.interactive_panel
             .lock()
             .map(|panel| {
                 panel.visible
-                    && (panel.model.has_visible_traveling_row()
-                        || panel.armed_action_expires_at.is_some())
+                    && (panel.slint_animation_active || panel.armed_action_expires_at.is_some())
             })
             .unwrap_or(false)
-    }
-
-    #[cfg(feature = "slint-spike")]
-    fn slint_spike_animation_refresh_active(&self) -> bool {
-        slint_spike_enabled()
-            && self
-                .interactive_panel
-                .lock()
-                .map(|panel| panel.visible)
-                .unwrap_or(false)
-            && slint_spike_host_has_active_animations()
     }
 
     pub fn snapshot(&self) -> VrOverlayRuntimeSnapshot {
@@ -1706,35 +1700,45 @@ impl VrOverlayRuntime {
         let was_visible = panel.visible;
         panel.visible = false;
         panel.focused = false;
-        panel.model.hovered_region_id = None;
-        panel.model.pressed_region_id = None;
-        panel.model.armed_action_region_id = None;
-        panel.model.row_scroll_drag = None;
-        panel.armed_action_expires_at = None;
-        #[cfg(feature = "slint-spike")]
-        self.clear_slint_spike_input_events();
+        panel.model.pointer_uv = None;
+        disarm_friends_panel_action(&mut panel);
+        panel.slint_animation_active = false;
+        self.clear_friends_panel_input_events();
         was_visible
     }
 
-    #[cfg(feature = "slint-spike")]
-    fn enqueue_slint_spike_friends_panel_input(
+    fn enqueue_friends_panel_input_event(
         &self,
         event: OverlayInputEvent,
     ) -> OverlayInputProcessOutcome {
-        {
+        let release_fallback_uv = {
             let Ok(mut panel) = self.interactive_panel.lock() else {
                 return OverlayInputProcessOutcome::default();
             };
             if !panel.visible {
                 return OverlayInputProcessOutcome::default();
             }
-            panel.focused = !slint_spike_pointer_missed(event.uv);
-        }
-        if let Ok(mut events) = self.slint_spike_input_events.lock() {
-            if events.len() >= MAX_SLINT_SPIKE_INPUT_EVENTS {
+            let pointer_missed = friends_panel_pointer_missed(event.uv);
+            let release_fallback_uv =
+                if pointer_missed && matches!(event.kind, OverlayInputKind::ClickUp) {
+                    panel.model.pointer_uv
+                } else {
+                    None
+                };
+            if !pointer_missed {
+                panel.model.pointer_uv = Some(event.uv);
+            }
+            panel.focused = !pointer_missed;
+            release_fallback_uv
+        };
+        if let Ok(mut events) = self.friends_panel_input_events.lock() {
+            if events.len() >= MAX_FRIENDS_PANEL_INPUT_EVENTS {
                 events.pop_front();
             }
-            events.push_back(event);
+            events.push_back(FriendsPanelQueuedInput {
+                event,
+                release_fallback_uv,
+            });
         }
         self.friends_panel_frame_dirty
             .store(true, Ordering::Release);
@@ -1744,17 +1748,15 @@ impl VrOverlayRuntime {
         }
     }
 
-    #[cfg(feature = "slint-spike")]
-    fn drain_slint_spike_input_events(&self) -> Vec<OverlayInputEvent> {
-        self.slint_spike_input_events
+    fn drain_friends_panel_input_events(&self) -> Vec<FriendsPanelQueuedInput> {
+        self.friends_panel_input_events
             .lock()
             .map(|mut events| events.drain(..).collect())
             .unwrap_or_default()
     }
 
-    #[cfg(feature = "slint-spike")]
-    fn clear_slint_spike_input_events(&self) {
-        if let Ok(mut events) = self.slint_spike_input_events.lock() {
+    fn clear_friends_panel_input_events(&self) {
+        if let Ok(mut events) = self.friends_panel_input_events.lock() {
             events.clear();
         }
     }
@@ -1782,9 +1784,8 @@ impl VrOverlayRuntime {
                 frame_changed: false,
             };
         }
-        #[cfg(feature = "slint-spike")]
-        if slint_spike_enabled() && slint_spike_consumes_input(&event.kind) {
-            return self.enqueue_slint_spike_friends_panel_input(event);
+        if friends_panel_slint_consumes_input(&event.kind) {
+            return self.enqueue_friends_panel_input_event(event);
         }
         let next_model_for_summon = if matches!(&event.kind, OverlayInputKind::Summon { .. }) {
             let opening = self
@@ -1794,7 +1795,7 @@ impl VrOverlayRuntime {
                 .unwrap_or(false);
             if opening {
                 self.clear_friends_panel_note_memo_cache();
-                Some(self.build_current_friends_panel_model(None, 0.0))
+                Some(self.build_current_friends_panel_model(None))
             } else {
                 None
             }
@@ -1802,30 +1803,25 @@ impl VrOverlayRuntime {
             None
         };
         let now = Instant::now();
-        let mut selected_category_to_persist = None;
-        let mut action_to_fire = None;
         let outcome = {
             let Ok(mut panel) = self.interactive_panel.lock() else {
                 return OverlayInputProcessOutcome::default();
             };
-            let arm_expired = clear_expired_friends_panel_arm(&mut panel, now);
-            match event.kind {
+            clear_expired_friends_panel_arm(&mut panel, now);
+            match &event.kind {
                 OverlayInputKind::Summon { transform } => {
                     let frame_changed = !panel.visible;
                     if panel.visible {
                         panel.visible = false;
                         panel.focused = false;
-                        panel.model.hovered_region_id = None;
-                        panel.model.pressed_region_id = None;
-                        panel.model.armed_action_region_id = None;
-                        panel.model.row_scroll_drag = None;
-                        panel.armed_action_expires_at = None;
-                        #[cfg(feature = "slint-spike")]
-                        self.clear_slint_spike_input_events();
+                        panel.model.pointer_uv = None;
+                        disarm_friends_panel_action(&mut panel);
+                        panel.slint_animation_active = false;
+                        self.clear_friends_panel_input_events();
                     } else {
                         panel.visible = true;
                         panel.focused = true;
-                        panel.transform = transform;
+                        panel.transform = *transform;
                         if let Some(model) = next_model_for_summon {
                             panel.model = model;
                         }
@@ -1836,76 +1832,16 @@ impl VrOverlayRuntime {
                     }
                 }
                 _ if !panel.visible => OverlayInputProcessOutcome::default(),
-                OverlayInputKind::Hover => {
-                    let previous_hover = panel.model.hovered_region_id.clone();
-                    panel
-                        .model
-                        .apply_uv_action(event.uv, FriendPanelAction::Hover);
-                    if panel.model.armed_action_region_id.is_none() {
-                        panel.armed_action_expires_at = None;
-                    }
-                    panel.focused = panel.model.hovered_region_id.is_some();
-                    OverlayInputProcessOutcome {
-                        surface_config_changed: false,
-                        frame_changed: arm_expired
-                            || panel.model.hovered_region_id != previous_hover,
-                    }
-                }
-                OverlayInputKind::ClickDown => {
-                    panel
-                        .model
-                        .apply_uv_action(event.uv, FriendPanelAction::ClickDown);
-                    panel.focused = true;
-                    OverlayInputProcessOutcome {
-                        surface_config_changed: false,
-                        frame_changed: true,
-                    }
-                }
-                OverlayInputKind::ClickUp => {
-                    let previous_category = panel.model.selected_category_key.clone();
-                    let previous_armed = panel.model.armed_action_region_id.clone();
-                    let hit = panel
-                        .model
-                        .apply_uv_action(event.uv, FriendPanelAction::ClickUp);
-                    if let Some(region_id) = hit {
-                        tracing::debug!(region_id = %region_id, "VR friends panel clicked");
-                        if previous_armed.as_deref() == Some(region_id.as_str()) {
-                            action_to_fire = parse_friends_panel_action_region(&region_id);
-                        }
-                    }
-                    if panel.model.selected_category_key != previous_category {
-                        selected_category_to_persist =
-                            Some(panel.model.selected_category_key.clone());
-                    }
-                    panel.armed_action_expires_at = if panel.model.armed_action_region_id.is_some()
-                    {
-                        Some(now + FRIENDS_PANEL_ACTION_ARM_TIMEOUT)
-                    } else {
-                        None
-                    };
-                    panel.focused = panel.model.hovered_region_id.is_some();
-                    OverlayInputProcessOutcome {
-                        surface_config_changed: false,
-                        frame_changed: true,
-                    }
-                }
-                OverlayInputKind::Scroll { delta } => {
-                    panel
-                        .model
-                        .apply_uv_action(event.uv, FriendPanelAction::Scroll { delta });
-                    panel.armed_action_expires_at = None;
-                    panel.focused = true;
-                    OverlayInputProcessOutcome {
-                        surface_config_changed: false,
-                        frame_changed: true,
-                    }
-                }
+                OverlayInputKind::Hover
+                | OverlayInputKind::ClickDown
+                | OverlayInputKind::ClickUp
+                | OverlayInputKind::Scroll { .. } => OverlayInputProcessOutcome::default(),
                 OverlayInputKind::GrabStart => {
                     panel.focused = true;
                     OverlayInputProcessOutcome::default()
                 }
                 OverlayInputKind::GrabMove { transform } => {
-                    panel.transform = transform;
+                    panel.transform = *transform;
                     panel.focused = true;
                     OverlayInputProcessOutcome {
                         surface_config_changed: true,
@@ -1913,7 +1849,7 @@ impl VrOverlayRuntime {
                     }
                 }
                 OverlayInputKind::GrabEnd { transform } => {
-                    panel.transform = transform;
+                    panel.transform = *transform;
                     panel.focused = true;
                     OverlayInputProcessOutcome {
                         surface_config_changed: true,
@@ -1922,17 +1858,6 @@ impl VrOverlayRuntime {
                 }
             }
         };
-        let mut outcome = outcome;
-        if let Some(selected_category) = selected_category_to_persist {
-            self.persist_friends_panel_selected_category(&selected_category);
-            if self.context.is_some() {
-                self.rebuild_visible_friends_panel_model();
-            }
-            outcome.frame_changed = true;
-        }
-        if let Some(action) = action_to_fire {
-            self.spawn_friends_panel_action(action);
-        }
         if outcome.frame_changed {
             self.friends_panel_frame_dirty
                 .store(true, Ordering::Release);
@@ -1980,18 +1905,94 @@ impl VrOverlayRuntime {
         );
     }
 
+    fn set_friends_panel_slint_animation_active(&self, active: bool) {
+        if let Ok(mut panel) = self.interactive_panel.lock() {
+            panel.slint_animation_active = panel.visible && active;
+        }
+    }
+
+    fn apply_friends_panel_slint_events(&self, events: Vec<SlintPanelEvent>) -> bool {
+        if events.is_empty() {
+            return false;
+        }
+        let now = Instant::now();
+        let mut selected_category_to_persist = None;
+        let mut action_to_fire = None;
+        let mut changed = false;
+        {
+            let Ok(mut panel) = self.interactive_panel.lock() else {
+                return false;
+            };
+            if !panel.visible {
+                return false;
+            }
+            changed |= clear_expired_friends_panel_arm(&mut panel, now);
+            for event in events {
+                match event {
+                    SlintPanelEvent::CategorySelected(key) => {
+                        if panel
+                            .model
+                            .categories
+                            .iter()
+                            .any(|category| category.key == key)
+                            && panel.model.selected_category_key != key
+                        {
+                            panel.model.selected_category_key = key.clone();
+                            disarm_friends_panel_action(&mut panel);
+                            selected_category_to_persist = Some(key);
+                            changed = true;
+                        }
+                    }
+                    SlintPanelEvent::ActionClicked { user_id, kind } => {
+                        let Some(kind) = FriendsPanelActionKind::from_panel_kind(&kind) else {
+                            continue;
+                        };
+                        let action_id = friends_panel_action_region_id(&user_id, kind);
+                        if panel.model.armed_action_region_id.as_deref() == Some(&action_id) {
+                            disarm_friends_panel_action(&mut panel);
+                            action_to_fire = Some(FriendsPanelActionRequest { user_id, kind });
+                        } else {
+                            panel.model.armed_action_region_id = Some(action_id);
+                            panel.armed_action_expires_at =
+                                Some(now + FRIENDS_PANEL_ACTION_ARM_TIMEOUT);
+                        }
+                        changed = true;
+                    }
+                    SlintPanelEvent::RowClicked(_) => {
+                        changed |= disarm_friends_panel_action(&mut panel);
+                    }
+                    SlintPanelEvent::ActionHoverLost { user_id, kind } => {
+                        let Some(kind) = FriendsPanelActionKind::from_panel_kind(&kind) else {
+                            continue;
+                        };
+                        let action_id = friends_panel_action_region_id(&user_id, kind);
+                        if panel.model.armed_action_region_id.as_deref() == Some(&action_id) {
+                            changed |= disarm_friends_panel_action(&mut panel);
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(selected_category) = selected_category_to_persist {
+            self.persist_friends_panel_selected_category(&selected_category);
+            if self.context.is_some() {
+                self.rebuild_visible_friends_panel_model();
+            }
+        }
+        if let Some(action) = action_to_fire {
+            self.spawn_friends_panel_action(action);
+        }
+        changed
+    }
+
     fn push_friends_panel_frame(&self, manager: &mut VrOverlayManager<HostVrOverlayService>) {
         let model_dirty = self.friends_panel_model_dirty.swap(false, Ordering::AcqRel);
         if model_dirty {
             self.rebuild_visible_friends_panel_model();
         }
         let frame_dirty = self.friends_panel_frame_dirty.swap(false, Ordering::AcqRel);
-        #[cfg(feature = "slint-spike")]
-        if slint_spike_enabled() {
-            self.push_slint_spike_friends_panel_frame(manager);
-            return;
-        }
-        let model = {
+        let input_events = self.drain_friends_panel_input_events();
+        let initial_model = {
             let Ok(mut panel) = self.interactive_panel.lock() else {
                 return;
             };
@@ -1999,86 +2000,71 @@ impl VrOverlayRuntime {
                 return;
             }
             let arm_expired = clear_expired_friends_panel_arm(&mut panel, Instant::now());
-            let animation_active = panel.model.has_visible_traveling_row()
-                || panel.armed_action_expires_at.is_some()
-                || arm_expired;
-            if !model_dirty && !frame_dirty && !animation_active {
+            let animation_active =
+                panel.slint_animation_active || panel.armed_action_expires_at.is_some();
+            let frame_dirty = frame_dirty || arm_expired;
+            if !model_dirty && !frame_dirty && !animation_active && input_events.is_empty() {
                 return;
             }
-            if panel.model.has_visible_traveling_row() {
-                panel.model.spinner_phase =
-                    (panel.model.spinner_phase + FRIENDS_PANEL_SPINNER_PHASE_STEP).rem_euclid(1.0);
+            panel.model.clone()
+        };
+
+        let ui_events = match with_slint_friends_panel_host(initial_model.size, |host| {
+            host.set_model(&initial_model);
+            for input in input_events {
+                for event in friends_panel_pointer_events(input, initial_model.size) {
+                    host.dispatch(event)?;
+                }
+            }
+            Ok(host.drain_events())
+        }) {
+            Ok(events) => events,
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to dispatch VR friends panel input");
+                return;
+            }
+        };
+        self.apply_friends_panel_slint_events(ui_events);
+
+        let model = {
+            let Ok(panel) = self.interactive_panel.lock() else {
+                return;
+            };
+            if !panel.visible {
+                return;
             }
             panel.model.clone()
         };
         self.queue_friends_panel_assets(&model);
-        let scene = build_friends_panel_scene(&model);
-        let frame = match self
-            .friends_panel_renderer
-            .lock()
-            .map_err(|_| "friends panel renderer lock poisoned".to_string())
-            .and_then(|mut renderer| renderer.render(&scene).map_err(|error| error.to_string()))
-        {
-            Ok(frame) => frame,
+        let render_result = match with_slint_friends_panel_host(model.size, |host| {
+            host.set_model(&model);
+            let frame = host.render_if_needed()?;
+            Ok((frame, host.has_active_animations()))
+        }) {
+            Ok(result) => result,
             Err(error) => {
-                tracing::warn!(error = %error, "failed to render VR friends panel frame");
+                tracing::warn!(error = %error, "failed to render VR Slint friends panel frame");
                 return;
             }
         };
+        let (rendered, slint_animation_active) = render_result;
+        self.set_friends_panel_slint_animation_active(slint_animation_active);
+        let Some(rendered) = rendered else {
+            return;
+        };
+        tracing::debug!(
+            elapsed_us = rendered.stats.elapsed.as_micros(),
+            dirty_area = rendered.stats.dirty_area,
+            dirty_rects = rendered.stats.dirty_rects,
+            "rendered VR Slint friends panel frame"
+        );
         let surface_id = OverlaySurfaceId::new(FRIENDS_PANEL_SURFACE_ID);
-        if let Err(error) = manager.update_surface_frame(&surface_id, frame) {
+        if let Err(error) = manager.update_surface_frame(&surface_id, rendered.frame) {
             tracing::warn!(error = %error, "failed to update VR friends panel frame");
             return;
         }
         if let Err(error) = manager.show_surface(&surface_id) {
             tracing::warn!(error = %error, "failed to show VR friends panel surface");
-        }
-        self.push_friends_panel_laser_frames(manager);
-    }
-
-    #[cfg(feature = "slint-spike")]
-    fn push_slint_spike_friends_panel_frame(
-        &self,
-        manager: &mut VrOverlayManager<HostVrOverlayService>,
-    ) {
-        let (visible, size) = {
-            let Ok(panel) = self.interactive_panel.lock() else {
-                return;
-            };
-            (panel.visible, panel.model.size)
-        };
-        if !visible {
-            return;
-        }
-        let events = self.drain_slint_spike_input_events();
-        let result = with_slint_spike_host(size, |host| {
-            for event in events {
-                host.dispatch(slint_spike_pointer_event(event, size))?;
-            }
-            host.render_if_needed()
-        })
-        .and_then(|frame| frame);
-        let frame = match result {
-            Ok(Some(frame)) => frame,
-            Ok(None) => return,
-            Err(error) => {
-                tracing::warn!(error = %error, "failed to render VR Slint spike panel frame");
-                return;
-            }
-        };
-        tracing::debug!(
-            elapsed_us = frame.stats.elapsed.as_micros(),
-            dirty_area = frame.stats.dirty_area,
-            dirty_rects = frame.stats.dirty_rects,
-            "rendered VR Slint spike panel frame"
-        );
-        let surface_id = OverlaySurfaceId::new(FRIENDS_PANEL_SURFACE_ID);
-        if let Err(error) = manager.update_surface_frame(&surface_id, frame.frame) {
-            tracing::warn!(error = %error, "failed to update VR Slint spike panel frame");
-            return;
-        }
-        if let Err(error) = manager.show_surface(&surface_id) {
-            tracing::warn!(error = %error, "failed to show VR Slint spike panel surface");
         }
         self.push_friends_panel_laser_frames(manager);
     }
@@ -2388,20 +2374,8 @@ fn friends_panel_action_pending_message(kind: FriendsPanelActionKind) -> &'stati
     }
 }
 
-fn parse_friends_panel_action_region(region_id: &str) -> Option<FriendsPanelActionRequest> {
-    let rest = region_id.strip_prefix("action:")?;
-    let (user_id, kind) = rest.rsplit_once(':')?;
-    let kind = match kind {
-        "open" => FriendsPanelActionKind::Open,
-        "request" => FriendsPanelActionKind::Request,
-        "invite" => FriendsPanelActionKind::Invite,
-        _ => return None,
-    };
-    let user_id = user_id.trim();
-    (!user_id.is_empty()).then(|| FriendsPanelActionRequest {
-        user_id: user_id.to_string(),
-        kind,
-    })
+fn friends_panel_action_region_id(user_id: &str, kind: FriendsPanelActionKind) -> String {
+    format!("action:{user_id}:{}", kind.as_panel_kind())
 }
 
 fn clear_expired_friends_panel_arm(panel: &mut InteractivePanelRuntimeState, now: Instant) -> bool {
@@ -2411,9 +2385,16 @@ fn clear_expired_friends_panel_arm(panel: &mut InteractivePanelRuntimeState, now
     if expires_at > now {
         return false;
     }
+    disarm_friends_panel_action(panel);
+    true
+}
+
+fn disarm_friends_panel_action(panel: &mut InteractivePanelRuntimeState) -> bool {
+    let was_armed =
+        panel.model.armed_action_region_id.is_some() || panel.armed_action_expires_at.is_some();
     panel.model.disarm_action();
     panel.armed_action_expires_at = None;
-    true
+    was_armed
 }
 
 impl Default for VrOverlayRuntime {
@@ -2701,28 +2682,7 @@ fn start_mode_allows(start_mode: WristOverlayStartMode, game_running: bool, vr_m
     }
 }
 
-#[cfg(feature = "slint-spike")]
-fn slint_spike_enabled() -> bool {
-    #[cfg(test)]
-    if SLINT_SPIKE_TEST_ENABLED.with(|enabled| enabled.get()) {
-        return true;
-    }
-    static ENABLED: OnceLock<bool> = OnceLock::new();
-    *ENABLED.get_or_init(|| {
-        std::env::var(SLINT_SPIKE_ENV_KEY)
-            .map(|value| {
-                let value = value.trim();
-                !(value.is_empty()
-                    || value == "0"
-                    || value.eq_ignore_ascii_case("false")
-                    || value.eq_ignore_ascii_case("off"))
-            })
-            .unwrap_or(false)
-    })
-}
-
-#[cfg(feature = "slint-spike")]
-fn slint_spike_consumes_input(kind: &OverlayInputKind) -> bool {
+fn friends_panel_slint_consumes_input(kind: &OverlayInputKind) -> bool {
     matches!(
         kind,
         OverlayInputKind::Hover
@@ -2732,26 +2692,47 @@ fn slint_spike_consumes_input(kind: &OverlayInputKind) -> bool {
     )
 }
 
-#[cfg(feature = "slint-spike")]
-fn slint_spike_pointer_missed(uv: UvPoint) -> bool {
+fn friends_panel_pointer_missed(uv: UvPoint) -> bool {
     !uv.x.is_finite() || !uv.y.is_finite() || uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0
 }
 
-#[cfg(feature = "slint-spike")]
-fn slint_spike_pointer_position(uv: UvPoint, size: OverlaySize) -> (f32, f32) {
+fn friends_panel_pointer_position(uv: UvPoint, size: OverlaySize) -> (f32, f32) {
     (uv.x * size.width as f32, uv.y * size.height as f32)
 }
 
-#[cfg(feature = "slint-spike")]
-fn slint_spike_pointer_event(
-    event: OverlayInputEvent,
+fn friends_panel_pointer_events(
+    input: FriendsPanelQueuedInput,
+    size: OverlaySize,
+) -> Vec<SlintPanelPointerEvent> {
+    if friends_panel_pointer_missed(input.event.uv) {
+        if matches!(input.event.kind, OverlayInputKind::ClickUp) {
+            if let Some(uv) = input
+                .release_fallback_uv
+                .filter(|uv| !friends_panel_pointer_missed(*uv))
+            {
+                let (x, y) = friends_panel_pointer_position(uv, size);
+                return vec![
+                    SlintPanelPointerEvent::Released { x, y },
+                    SlintPanelPointerEvent::Exited,
+                ];
+            }
+        }
+        return vec![SlintPanelPointerEvent::Exited];
+    }
+    vec![friends_panel_pointer_event_at(
+        input.event.kind,
+        input.event.uv,
+        size,
+    )]
+}
+
+fn friends_panel_pointer_event_at(
+    kind: OverlayInputKind,
+    uv: UvPoint,
     size: OverlaySize,
 ) -> SlintPanelPointerEvent {
-    if slint_spike_pointer_missed(event.uv) {
-        return SlintPanelPointerEvent::Exited;
-    }
-    let (x, y) = slint_spike_pointer_position(event.uv, size);
-    match event.kind {
+    let (x, y) = friends_panel_pointer_position(uv, size);
+    match kind {
         OverlayInputKind::Hover => SlintPanelPointerEvent::Moved { x, y },
         OverlayInputKind::ClickDown => SlintPanelPointerEvent::Pressed { x, y },
         OverlayInputKind::ClickUp => SlintPanelPointerEvent::Released { x, y },
@@ -2759,18 +2740,17 @@ fn slint_spike_pointer_event(
             x,
             y,
             delta_x: 0.0,
-            delta_y: -delta * SLINT_SPIKE_SCROLL_ROW_PIXELS,
+            delta_y: -delta * FRIENDS_PANEL_SCROLL_ROW_PIXELS,
         },
         _ => SlintPanelPointerEvent::Exited,
     }
 }
 
-#[cfg(feature = "slint-spike")]
-fn with_slint_spike_host<T>(
+fn with_slint_friends_panel_host<T>(
     size: OverlaySize,
-    callback: impl FnOnce(&mut SlintPanelHost) -> T,
+    callback: impl FnOnce(&mut SlintPanelHost) -> Result<T, String>,
 ) -> Result<T, String> {
-    SLINT_SPIKE_HOST.with(|slot| {
+    SLINT_FRIENDS_PANEL_HOST.with(|slot| {
         let mut host = slot.borrow_mut();
         let needs_new = host
             .as_ref()
@@ -2780,18 +2760,9 @@ fn with_slint_spike_host<T>(
             *host = Some(SlintPanelHost::new(size)?);
         }
         let Some(host) = host.as_mut() else {
-            return Err("Slint spike host is unavailable".to_string());
+            return Err("Slint friends panel host is unavailable".to_string());
         };
-        Ok(callback(host))
-    })
-}
-
-#[cfg(feature = "slint-spike")]
-fn slint_spike_host_has_active_animations() -> bool {
-    SLINT_SPIKE_HOST.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .is_some_and(SlintPanelHost::has_active_animations)
+        callback(host)
     })
 }
 
@@ -2854,7 +2825,6 @@ struct FriendsPanelModelInput {
     locale: OverlayLocale,
     all_friends_includes_favorites: bool,
     is_game_running: bool,
-    spinner_phase: f32,
 }
 
 fn favorite_friend_groups_snapshot_from_baseline(
@@ -3068,7 +3038,6 @@ fn build_friends_panel_model(input: FriendsPanelModelInput) -> FavoriteFriendsPa
         categories,
         selected_category_key,
         rows,
-        spinner_phase: input.spinner_phase,
         strings,
         ..FavoriteFriendsPanelModel::default()
     }
@@ -4072,6 +4041,17 @@ mod tests {
         }
     }
 
+    fn queued_friends_panel_input(
+        kind: OverlayInputKind,
+        uv: UvPoint,
+        release_fallback_uv: Option<UvPoint>,
+    ) -> FriendsPanelQueuedInput {
+        FriendsPanelQueuedInput {
+            event: friends_panel_input(kind, uv),
+            release_fallback_uv,
+        }
+    }
+
     fn friends_panel_summon_input(transform: OverlayTransform) -> OverlayInputEvent {
         friends_panel_input(
             OverlayInputKind::Summon { transform },
@@ -4081,7 +4061,7 @@ mod tests {
 
     fn legacy_dummy_summon_input(transform: OverlayTransform) -> OverlayInputEvent {
         OverlayInputEvent {
-            surface_id: OverlaySurfaceId::new(vrcx_0_vr_overlay::INTERACTIVE_DUMMY_SURFACE_ID),
+            surface_id: OverlaySurfaceId::new("interactive-dummy"),
             panel_id: LEGACY_DUMMY_PANEL_ID.to_string(),
             hand: OverlayHand::Left,
             uv: UvPoint::new(0.5, 0.5),
@@ -4107,16 +4087,6 @@ mod tests {
             avatar: None,
             actions: FriendPanelRowActions::default(),
         }
-    }
-
-    fn friends_panel_region_uv(runtime: &VrOverlayRuntime, region_id: &str) -> UvPoint {
-        let panel = runtime.interactive_panel.lock().unwrap();
-        build_friends_panel_scene(&panel.model)
-            .hit_regions
-            .iter()
-            .find(|region| region.id == region_id)
-            .map(|region| region.rect.center_uv(panel.model.size))
-            .unwrap_or_else(|| panic!("{region_id} hit region"))
     }
 
     struct TestDir {
@@ -4184,28 +4154,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "slint-spike")]
-    struct SlintSpikeTestGate {
-        previous: bool,
-    }
-
-    #[cfg(feature = "slint-spike")]
-    impl Drop for SlintSpikeTestGate {
-        fn drop(&mut self) {
-            SLINT_SPIKE_TEST_ENABLED.with(|enabled| enabled.set(self.previous));
-        }
-    }
-
-    #[cfg(feature = "slint-spike")]
-    fn enable_slint_spike_for_test() -> SlintSpikeTestGate {
-        let previous = SLINT_SPIKE_TEST_ENABLED.with(|enabled| {
-            let previous = enabled.get();
-            enabled.set(true);
-            previous
-        });
-        SlintSpikeTestGate { previous }
-    }
-
     fn set_friends_panel_favorite(runtime: &VrOverlayRuntime, user_id: &str) {
         runtime.update_friends_panel_favorite_groups_from_baseline(&serde_json::json!({
             "favoriteFriendGroups": [
@@ -4267,61 +4215,65 @@ mod tests {
         assert!(!base.should_clear_device_snapshot_for(hour12));
     }
 
-    #[cfg(feature = "slint-spike")]
     #[test]
-    fn slint_spike_translates_overlay_input_to_pointer_events() {
+    fn friends_panel_translates_overlay_input_to_slint_pointer_events() {
         let size = OverlaySize::new(1080, 720);
-        let moved = slint_spike_pointer_event(
-            friends_panel_input(OverlayInputKind::Hover, UvPoint::new(0.25, 0.5)),
+        let moved = friends_panel_pointer_events(
+            queued_friends_panel_input(OverlayInputKind::Hover, UvPoint::new(0.25, 0.5), None),
             size,
         );
-        assert_eq!(moved, SlintPanelPointerEvent::Moved { x: 270.0, y: 360.0 });
+        assert_eq!(
+            moved,
+            vec![SlintPanelPointerEvent::Moved { x: 270.0, y: 360.0 }]
+        );
 
-        let scrolled = slint_spike_pointer_event(
-            friends_panel_input(
+        let scrolled = friends_panel_pointer_events(
+            queued_friends_panel_input(
                 OverlayInputKind::Scroll { delta: 2.0 },
                 UvPoint::new(0.5, 0.5),
+                None,
             ),
             size,
         );
         assert_eq!(
             scrolled,
-            SlintPanelPointerEvent::Scrolled {
+            vec![SlintPanelPointerEvent::Scrolled {
                 x: 540.0,
                 y: 360.0,
                 delta_x: 0.0,
                 delta_y: -212.0,
-            }
+            }]
         );
 
-        let exited = slint_spike_pointer_event(
-            friends_panel_input(OverlayInputKind::Hover, UvPoint::new(-1.0, -1.0)),
+        let exited = friends_panel_pointer_events(
+            queued_friends_panel_input(OverlayInputKind::Hover, UvPoint::new(-1.0, -1.0), None),
             size,
         );
-        assert_eq!(exited, SlintPanelPointerEvent::Exited);
+        assert_eq!(exited, vec![SlintPanelPointerEvent::Exited]);
+
+        let release_outside = friends_panel_pointer_events(
+            queued_friends_panel_input(
+                OverlayInputKind::ClickUp,
+                UvPoint::new(-1.0, -1.0),
+                Some(UvPoint::new(0.25, 0.5)),
+            ),
+            size,
+        );
+        assert_eq!(
+            release_outside,
+            vec![
+                SlintPanelPointerEvent::Released { x: 270.0, y: 360.0 },
+                SlintPanelPointerEvent::Exited,
+            ]
+        );
     }
 
-    #[cfg(feature = "slint-spike")]
     #[test]
-    fn slint_spike_animation_refresh_requires_active_host_animation() {
-        let _gate = enable_slint_spike_for_test();
-        SLINT_SPIKE_HOST.with(|slot| {
-            slot.borrow_mut().take();
-        });
+    fn friends_panel_visible_without_active_model_animation_uses_normal_refresh_interval() {
         let runtime = VrOverlayRuntime::new_for_test();
         runtime.interactive_panel.lock().unwrap().visible = true;
 
-        assert!(!runtime.slint_spike_animation_refresh_active());
-
-        with_slint_spike_host(OverlaySize::new(1080, 720), |host| {
-            host.set_animation_enabled(false);
-        })
-        .unwrap();
-
-        assert!(!runtime.slint_spike_animation_refresh_active());
-        SLINT_SPIKE_HOST.with(|slot| {
-            slot.borrow_mut().take();
-        });
+        assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
     }
 
     #[test]
@@ -4647,16 +4599,12 @@ mod tests {
     }
 
     #[test]
-    fn friends_panel_visible_traveling_row_uses_low_frequency_animation_refresh() {
+    fn friends_panel_visible_slint_animation_uses_low_frequency_refresh() {
         let runtime = VrOverlayRuntime::new_for_test();
         runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
         {
             let mut panel = runtime.interactive_panel.lock().unwrap();
-            panel.model.rows = vec![FriendPanelRow {
-                is_traveling: true,
-                traveling_text: Some("Target".to_string()),
-                ..friend_panel_test_row("usr_1", "Friend", FriendPanelStatusTone::Active)
-            }];
+            panel.slint_animation_active = true;
         }
 
         assert_eq!(
@@ -4667,49 +4615,6 @@ mod tests {
         runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
 
         assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
-    }
-
-    #[cfg(feature = "slint-spike")]
-    #[test]
-    fn slint_spike_visible_panel_without_active_animation_uses_normal_refresh_interval() {
-        let _gate = enable_slint_spike_for_test();
-        let runtime = VrOverlayRuntime::new_for_test();
-
-        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
-
-        assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
-    }
-
-    #[test]
-    fn friends_panel_frame_advances_visible_traveling_spinner_phase() {
-        let runtime = VrOverlayRuntime::new_for_test();
-        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
-        {
-            let mut panel = runtime.interactive_panel.lock().unwrap();
-            panel.model.rows = vec![FriendPanelRow {
-                is_traveling: true,
-                traveling_text: Some("Target".to_string()),
-                ..friend_panel_test_row("usr_1", "Friend", FriendPanelStatusTone::Active)
-            }];
-        }
-        let before = runtime
-            .interactive_panel
-            .lock()
-            .unwrap()
-            .model
-            .spinner_phase;
-        {
-            let mut manager = runtime.manager.lock().unwrap();
-            runtime.push_friends_panel_frame(&mut manager);
-        }
-        let after = runtime
-            .interactive_panel
-            .lock()
-            .unwrap()
-            .model
-            .spinner_phase;
-
-        assert_ne!(after, before);
     }
 
     #[test]
@@ -4955,7 +4860,7 @@ mod tests {
     }
 
     #[test]
-    fn friends_panel_routes_hover_category_click_and_row_scroll_to_model() {
+    fn friends_panel_routes_pointer_input_to_slint_queue_and_category_callback_to_model() {
         let runtime = VrOverlayRuntime::new_for_test();
         let transform = OverlayTransform::identity();
         runtime.apply_friends_panel_input(friends_panel_summon_input(transform));
@@ -4983,58 +4888,189 @@ mod tests {
                 })
                 .collect();
         }
-        let best_category_uv = friends_panel_region_uv(&runtime, "cat:group:local:Best");
-        let list_uv = friends_panel_region_uv(&runtime, "list");
-        runtime.apply_friends_panel_input(friends_panel_input(
+        let outcome = runtime.apply_friends_panel_input(friends_panel_input(
             OverlayInputKind::Hover,
-            best_category_uv,
+            UvPoint::new(0.25, 0.5),
         ));
-        runtime.apply_friends_panel_input(friends_panel_input(
-            OverlayInputKind::ClickDown,
-            best_category_uv,
-        ));
-        runtime.apply_friends_panel_input(friends_panel_input(
-            OverlayInputKind::ClickUp,
-            best_category_uv,
-        ));
-        runtime.apply_friends_panel_input(friends_panel_input(
-            OverlayInputKind::Scroll { delta: 10.0 },
-            list_uv,
-        ));
+        assert!(outcome.frame_changed);
+        assert_eq!(runtime.drain_friends_panel_input_events().len(), 1);
+
+        assert!(
+            runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::CategorySelected(
+                "group:local:Best".to_string()
+            )])
+        );
+
+        let panel = runtime.interactive_panel.lock().unwrap();
+        assert!(panel.focused);
+        assert_eq!(panel.model.selected_category_key, "group:local:Best");
+    }
+
+    #[test]
+    fn friends_panel_action_click_arms_then_same_button_fires_and_disarms() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+
+        assert!(
+            runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionClicked {
+                user_id: "usr_a".to_string(),
+                kind: "open".to_string(),
+            }])
+        );
+        {
+            let panel = runtime.interactive_panel.lock().unwrap();
+            assert_eq!(
+                panel.model.armed_action_region_id.as_deref(),
+                Some("action:usr_a:open")
+            );
+            assert!(panel.armed_action_expires_at.is_some());
+        }
+
+        assert!(
+            runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionClicked {
+                user_id: "usr_a".to_string(),
+                kind: "open".to_string(),
+            }])
+        );
+        let panel = runtime.interactive_panel.lock().unwrap();
+        assert!(panel.model.armed_action_region_id.is_none());
+        assert!(panel.armed_action_expires_at.is_none());
+    }
+
+    #[test]
+    fn friends_panel_action_click_on_other_button_rearms_instead_of_firing() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+
+        runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionClicked {
+            user_id: "usr_a".to_string(),
+            kind: "open".to_string(),
+        }]);
+        runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionClicked {
+            user_id: "usr_b".to_string(),
+            kind: "invite".to_string(),
+        }]);
 
         let panel = runtime.interactive_panel.lock().unwrap();
         assert_eq!(
-            panel.model.hovered_region_id.as_deref(),
-            Some("cat:group:local:Best")
+            panel.model.armed_action_region_id.as_deref(),
+            Some("action:usr_b:invite")
         );
-        assert_eq!(panel.model.selected_category_key, "group:local:Best");
+        assert!(panel.armed_action_expires_at.is_some());
+    }
+
+    #[test]
+    fn friends_panel_row_click_and_armed_hover_loss_disarm() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+
+        runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionClicked {
+            user_id: "usr_a".to_string(),
+            kind: "open".to_string(),
+        }]);
+        assert!(
+            runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::RowClicked(
+                "usr_b".to_string()
+            )])
+        );
+        assert!(runtime
+            .interactive_panel
+            .lock()
+            .unwrap()
+            .model
+            .armed_action_region_id
+            .is_none());
+
+        runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionClicked {
+            user_id: "usr_a".to_string(),
+            kind: "invite".to_string(),
+        }]);
+        runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionHoverLost {
+            user_id: "usr_b".to_string(),
+            kind: "invite".to_string(),
+        }]);
         assert_eq!(
-            panel.model.row_scroll_offset,
-            panel.model.max_row_scroll_offset()
+            runtime
+                .interactive_panel
+                .lock()
+                .unwrap()
+                .model
+                .armed_action_region_id
+                .as_deref(),
+            Some("action:usr_a:invite")
+        );
+        runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionHoverLost {
+            user_id: "usr_a".to_string(),
+            kind: "invite".to_string(),
+        }]);
+        assert!(runtime
+            .interactive_panel
+            .lock()
+            .unwrap()
+            .model
+            .armed_action_region_id
+            .is_none());
+    }
+
+    #[test]
+    fn friends_panel_unknown_action_kind_and_hidden_panel_are_ignored() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
+
+        assert!(
+            !runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionClicked {
+                user_id: "usr_a".to_string(),
+                kind: "selfdestruct".to_string(),
+            }])
+        );
+        assert!(runtime
+            .interactive_panel
+            .lock()
+            .unwrap()
+            .model
+            .armed_action_region_id
+            .is_none());
+
+        runtime.close_friends_panel();
+        assert!(
+            !runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::ActionClicked {
+                user_id: "usr_a".to_string(),
+                kind: "open".to_string(),
+            }])
         );
     }
 
     #[test]
-    fn friends_panel_hover_same_region_does_not_trigger_frame_refresh() {
+    fn friends_panel_arm_expires_after_timeout() {
+        let mut panel = InteractivePanelRuntimeState::default();
+        panel.model.armed_action_region_id = Some("action:usr_a:open".to_string());
+        panel.armed_action_expires_at = Some(Instant::now() - Duration::from_millis(1));
+
+        assert!(clear_expired_friends_panel_arm(&mut panel, Instant::now()));
+        assert!(panel.model.armed_action_region_id.is_none());
+        assert!(panel.armed_action_expires_at.is_none());
+
+        panel.model.armed_action_region_id = Some("action:usr_a:open".to_string());
+        panel.armed_action_expires_at = Some(Instant::now() + FRIENDS_PANEL_ACTION_ARM_TIMEOUT);
+        assert!(!clear_expired_friends_panel_arm(&mut panel, Instant::now()));
+        assert_eq!(
+            panel.model.armed_action_region_id.as_deref(),
+            Some("action:usr_a:open")
+        );
+    }
+
+    #[test]
+    fn friends_panel_pointer_miss_clears_focus() {
         let runtime = VrOverlayRuntime::new_for_test();
         runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
 
-        let first = runtime.apply_friends_panel_input(friends_panel_input(
-            OverlayInputKind::Hover,
-            UvPoint::new(0.5, 0.5),
-        ));
-        let second = runtime.apply_friends_panel_input(friends_panel_input(
-            OverlayInputKind::Hover,
-            UvPoint::new(0.51, 0.5),
-        ));
         let miss = runtime.apply_friends_panel_input(friends_panel_input(
             OverlayInputKind::Hover,
             UvPoint::new(-1.0, -1.0),
         ));
 
-        assert!(first.frame_changed);
-        assert!(!second.frame_changed);
         assert!(miss.frame_changed);
+        assert!(!runtime.interactive_panel.lock().unwrap().focused);
     }
 
     #[test]
@@ -5150,13 +5186,11 @@ mod tests {
                 },
             ];
         }
-        let category_uv = friends_panel_region_uv(&runtime, "cat:favOnline");
-        runtime.apply_friends_panel_input(friends_panel_input(
-            OverlayInputKind::ClickDown,
-            category_uv,
-        ));
-        runtime
-            .apply_friends_panel_input(friends_panel_input(OverlayInputKind::ClickUp, category_uv));
+        assert!(
+            runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::CategorySelected(
+                "favOnline".to_string()
+            )])
+        );
 
         assert_eq!(
             context
@@ -5165,33 +5199,6 @@ mod tests {
                 .unwrap(),
             "favOnline"
         );
-    }
-
-    #[test]
-    fn friends_panel_clears_hover_and_pressed_state_on_pointer_miss() {
-        let runtime = VrOverlayRuntime::new_for_test();
-        let transform = OverlayTransform::identity();
-        runtime.apply_friends_panel_input(friends_panel_summon_input(transform));
-        {
-            let mut panel = runtime.interactive_panel.lock().unwrap();
-            panel.model.rows = vec![friend_panel_test_row(
-                "usr_1",
-                "Friend",
-                FriendPanelStatusTone::Online,
-            )];
-        }
-        let row_uv = friends_panel_region_uv(&runtime, "row:usr_1");
-
-        runtime.apply_friends_panel_input(friends_panel_input(OverlayInputKind::Hover, row_uv));
-        runtime.apply_friends_panel_input(friends_panel_input(OverlayInputKind::ClickDown, row_uv));
-
-        let miss_uv = UvPoint::new(-1.0, -1.0);
-        runtime.apply_friends_panel_input(friends_panel_input(OverlayInputKind::Hover, miss_uv));
-        runtime.apply_friends_panel_input(friends_panel_input(OverlayInputKind::ClickUp, miss_uv));
-
-        let panel = runtime.interactive_panel.lock().unwrap();
-        assert_eq!(panel.model.hovered_region_id, None);
-        assert_eq!(panel.model.pressed_region_id, None);
     }
 
     #[test]
@@ -5336,7 +5343,6 @@ mod tests {
             locale: OverlayLocale::En,
             all_friends_includes_favorites: true,
             is_game_running: false,
-            spinner_phase: 0.25,
         };
 
         let model = build_friends_panel_model(input);
@@ -5793,7 +5799,6 @@ mod tests {
             locale: OverlayLocale::En,
             all_friends_includes_favorites: true,
             is_game_running: false,
-            spinner_phase: 0.0,
         });
 
         assert_eq!(model.rows[0].note.as_deref(), Some("Live note"));

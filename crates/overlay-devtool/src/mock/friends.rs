@@ -64,7 +64,6 @@ pub fn build(scenario: &str) -> FavoriteFriendsPanelModel {
         categories: categories_for_scenario(scenario),
         selected_category_key: selected_category_key.clone(),
         rows: rows_for_category(scenario, &selected_category_key),
-        spinner_phase: 0.0,
         strings: FriendPanelStrings {
             title: "Overlay Devtool Friends".to_string(),
             all_label: "All".to_string(),

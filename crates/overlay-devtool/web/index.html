@@ -167,7 +167,6 @@
                 <div class="group">
                     <div class="row">
                         <button id="reset" type="button">Reset</button>
-                        <button id="spinner" type="button">Spinner</button>
                     </div>
                     <div class="row">
                         <button id="append-toast" type="button">
@@ -377,14 +376,6 @@
                 .getElementById('reset')
                 .addEventListener('click', async () => {
                     state = await api('/api/reset');
-                    renderControls();
-                    await refreshFrame();
-                });
-
-            document
-                .getElementById('spinner')
-                .addEventListener('click', async () => {
-                    state = await api('/api/spinner');
                     renderControls();
                     await refreshFrame();
                 });

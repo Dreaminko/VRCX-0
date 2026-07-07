@@ -1,6 +1,6 @@
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 use vrcx_0_vr_overlay::{
-    default_slint_spike_size, FavoriteFriendsPanelModel, MainSurfaceModel, RgbaFrame,
+    default_slint_panel_size, FavoriteFriendsPanelModel, MainSurfaceModel, RgbaFrame,
     SlintHmdRenderer, SlintPanelHost, SlintPanelPointerEvent, SlintPanelRenderStats,
     SlintWristRenderer, WristSurfaceModel,
 };
@@ -31,9 +31,9 @@ impl DevtoolRenderer {
 
     pub fn friends_png(
         &mut self,
-        _model: &FavoriteFriendsPanelModel,
+        model: &FavoriteFriendsPanelModel,
     ) -> Result<RenderedPng, String> {
-        self.panel_png()
+        self.panel_png(model)
     }
 
     pub fn main_png(&mut self, model: &MainSurfaceModel) -> Result<RenderedPng, String> {
@@ -56,9 +56,10 @@ impl DevtoolRenderer {
         self.panel_stats = None;
     }
 
-    fn panel_png(&mut self) -> Result<RenderedPng, String> {
+    fn panel_png(&mut self, model: &FavoriteFriendsPanelModel) -> Result<RenderedPng, String> {
         let rendered = {
             let host = self.panel_host()?;
+            host.set_model(model);
             host.render_if_needed()?
         };
         if let Some(rendered) = rendered {
@@ -77,7 +78,7 @@ impl DevtoolRenderer {
 
     fn panel_host(&mut self) -> Result<&mut SlintPanelHost, String> {
         if self.panel.is_none() {
-            self.panel = Some(SlintPanelHost::new(default_slint_spike_size())?);
+            self.panel = Some(SlintPanelHost::new(default_slint_panel_size())?);
         }
         self.panel
             .as_mut()

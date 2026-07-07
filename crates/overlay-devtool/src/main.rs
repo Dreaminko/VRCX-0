@@ -226,10 +226,6 @@ impl AppState {
         }
     }
 
-    fn step_spinner(&mut self) {
-        self.friends.spinner_phase = (self.friends.spinner_phase + 0.1).rem_euclid(1.0);
-    }
-
     fn current_scenario(&self) -> &str {
         match self.surface {
             SurfaceKind::Friends => &self.friends_scenario,
@@ -251,8 +247,6 @@ impl AppState {
             },
             "friends": {
                 "selectedCategory": self.friends.selected_category_key,
-                "categoryScrollOffset": self.friends.category_scroll_offset,
-                "rowScrollOffset": self.friends.row_scroll_offset,
                 "rows": self.friends.rows.len()
             },
             "toast": {
@@ -335,10 +329,6 @@ fn handle_request(
             app.apply_toast_action(&input.action);
             json_response(200, app.state_json())
         }),
-        (&Method::Post, "/api/spinner") => {
-            app.step_spinner();
-            json_response(200, app.state_json())
-        }
         (&Method::Post, "/api/reset") => {
             app.reset_current();
             if app.surface == SurfaceKind::Friends {
@@ -569,7 +559,7 @@ mod tests {
             })
             .count();
         assert_eq!(mock_group_count, 42);
-        assert!(app.friends.max_category_scroll_offset() > 0);
+        assert!(app.friends.categories.len() > 42);
     }
 
     #[test]
