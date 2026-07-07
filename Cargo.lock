@@ -8477,11 +8477,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 name = "vrcx-0"
 version = "2.11.0"
 dependencies = [
- "base64 0.22.1",
  "chrono",
  "image",
  "percent-encoding",
- "reqwest",
  "rustls",
  "serde",
  "serde_json",
@@ -8682,7 +8680,6 @@ dependencies = [
  "image",
  "serde_json",
  "sha2 0.11.0",
- "specta",
  "thiserror 2.0.18",
  "tokio",
  "vrcx-0-core",
