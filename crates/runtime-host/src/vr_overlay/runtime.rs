@@ -1153,8 +1153,11 @@ impl VrOverlayRuntime {
             return;
         }
         let entry = delivery.entry;
-        let pending = unresolved_entry_world_id(&entry)
-            .and_then(|world_id| self.context.as_ref().cloned().map(|ctx| (ctx, world_id)));
+        let pending = self
+            .context
+            .as_ref()
+            .cloned()
+            .zip(unresolved_entry_world_id(&entry));
         let Some((context, world_id)) = pending else {
             self.deliver_hmd_toast(entry);
             return;
