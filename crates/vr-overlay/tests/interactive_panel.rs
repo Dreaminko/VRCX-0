@@ -272,20 +272,39 @@ fn friends_panel_long_row_text_is_ellipsized_before_rendering() {
         })
         .collect();
 
+    let full_note = format!("Note: {LONG_NOTE}");
+    let full_local_note = format!("Local Note: {LONG_LOCAL_NOTE}");
+
     assert!(!text_commands.contains(&LONG_NAME));
     assert!(!text_commands.contains(&LONG_LOCATION));
-    assert!(text_commands
+    assert!(!text_commands.iter().any(|text| *text == full_note.as_str()));
+    assert!(!text_commands
         .iter()
-        .any(|text| text.starts_with("A Very Long Display Name") && text.ends_with('…')));
-    assert!(text_commands
-        .iter()
-        .any(|text| text.starts_with("A World With A Very Long Name") && text.ends_with('…')));
-    assert!(text_commands
-        .iter()
-        .any(|text| text.starts_with("Note: This VRChat note") && text.ends_with('…')));
-    assert!(text_commands
-        .iter()
-        .any(|text| text.starts_with("Local Note: This local note") && text.ends_with('…')));
+        .any(|text| *text == full_local_note.as_str()));
+    assert!(
+        text_commands
+            .iter()
+            .any(|text| text.starts_with("A Very Long Display Name") && text.ends_with('…')),
+        "text_commands={text_commands:?}"
+    );
+    assert!(
+        text_commands.iter().any(|text| {
+            text.starts_with("A World With A Very Long Name") && text.ends_with('…')
+        }),
+        "text_commands={text_commands:?}"
+    );
+    assert!(
+        text_commands
+            .iter()
+            .any(|text| text.starts_with("Note:") && text.ends_with('…')),
+        "text_commands={text_commands:?}"
+    );
+    assert!(
+        text_commands
+            .iter()
+            .any(|text| text.starts_with("Local Note:") && text.ends_with('…')),
+        "text_commands={text_commands:?}"
+    );
 }
 
 #[test]
