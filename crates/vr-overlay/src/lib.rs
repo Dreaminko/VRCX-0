@@ -3,6 +3,8 @@ pub mod layout;
 pub mod model;
 pub mod render;
 pub mod scene;
+#[cfg(feature = "slint-ui")]
+pub mod slint_ui;
 pub mod surfaces;
 
 pub use font::{new_shared_overlay_font_system, SharedOverlayFontSystem};
@@ -15,6 +17,13 @@ pub use model::{
 };
 pub use render::{OverlayRenderError, OverlayRenderer, TinySkiaRenderer};
 pub use scene::{DrawCommand, HitRegion, OverlayScene, TextStyle};
+#[cfg(feature = "slint-spike")]
+pub use slint_ui::{
+    default_slint_spike_size, SlintPanelFrame, SlintPanelHost, SlintPanelPointerEvent,
+    SlintPanelRenderStats,
+};
+#[cfg(feature = "slint-ui")]
+pub use slint_ui::{SlintHmdRenderer, SlintWristRenderer};
 pub use surfaces::dummy_panel::{
     build_dummy_panel_scene, DummyPanelAction, DummyPanelModel, INTERACTIVE_DUMMY_SURFACE_ID,
 };
