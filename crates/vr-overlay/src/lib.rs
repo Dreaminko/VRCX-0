@@ -34,5 +34,5 @@ pub use surfaces::friends_panel::{
     FRIENDS_PANEL_LASER_LEFT_SURFACE_ID, FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID,
     FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID,
 };
-pub use surfaces::main::{build_main_scene, AvatarBitmap, MainSurfaceModel, ToastCard};
-pub use surfaces::wrist::{build_wrist_scene, WristSurfaceModel};
+pub use surfaces::main::{AvatarBitmap, MainSurfaceModel, ToastCard};
+pub use surfaces::wrist::WristSurfaceModel;
