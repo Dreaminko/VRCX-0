@@ -1,18 +1,17 @@
 import { useMemo } from 'react';
 
 import {
-    useRuntimeStore,
-    type CurrentUserSnapshotState
-} from '@/state/runtimeStore';
-import { useUserFactsStore } from '@/state/userFactsStore';
-
-import { getKnownUserFact } from './userFactAccess';
-import {
     normalizeEndpoint,
     normalizeUserId,
     userFactKey,
     type UserFact
-} from './userFacts';
+} from '@/domain/users/userFacts';
+import { getKnownUserFact } from '@/services/userFactAccessService';
+import {
+    useRuntimeStore,
+    type CurrentUserSnapshotState
+} from '@/state/runtimeStore';
+import { useUserFactsStore } from '@/state/userFactsStore';
 
 interface UseKnownUserOptions {
     endpoint?: unknown;

@@ -1,13 +1,12 @@
-import { commands } from '@/platform/tauri/bindings';
-import { useUserFactsStore } from '@/state/userFactsStore';
-
 import {
     normalizeEndpoint,
     normalizeUserId,
     userFactKey,
     type UserFact,
     type UserFactMergeOptions
-} from './userFacts';
+} from '@/domain/users/userFacts';
+import { commands } from '@/platform/tauri/bindings';
+import { useUserFactsStore } from '@/state/userFactsStore';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
     return value && typeof value === 'object'

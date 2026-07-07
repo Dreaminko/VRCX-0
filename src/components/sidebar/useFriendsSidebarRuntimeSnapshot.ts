@@ -2,16 +2,18 @@ import { useMemo } from 'react';
 
 import { useCurrentInstancePresence } from '@/lib/useCurrentInstancePresence';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { useShellStore } from '@/state/shellStore';
 
 const EMPTY_CURRENT_LOCATION_PLAYER_IDS = Object.freeze([]);
 
-export function useFriendsLocationsRuntime() {
+export function useFriendsSidebarRuntimeSnapshot() {
+    const themeMode = useShellStore((state) => state.themeMode);
+    const currentUser = useRuntimeStore(
+        (state) => state.auth.currentUserSnapshot
+    );
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const currentEndpoint = useRuntimeStore(
         (state) => state.auth.currentUserEndpoint
-    );
-    const currentUserSnapshot = useRuntimeStore(
-        (state) => state.auth.currentUserSnapshot
     );
     const runtimeCurrentLocation = useRuntimeStore(
         (state) => state.gameState.currentLocation
@@ -45,13 +47,22 @@ export function useFriendsLocationsRuntime() {
             runtimeCurrentLocation
         ]
     );
-    const canBoop = Boolean(currentUserSnapshot?.isBoopingEnabled);
+    const currentLocation =
+        runtimeCurrentLocation === 'traveling'
+            ? runtimeCurrentDestination
+            : runtimeCurrentLocation;
+    const isDarkMode =
+        themeMode === 'dark' ||
+        (typeof document !== 'undefined' &&
+            document.documentElement.classList.contains('dark'));
 
     return {
-        canBoop,
         currentEndpoint,
+        currentLocation,
+        currentUser,
         currentUserId,
-        currentUserSnapshot,
-        gameState
+        effectiveCurrentLocationPlayerIds,
+        gameState,
+        isDarkMode
     };
 }
