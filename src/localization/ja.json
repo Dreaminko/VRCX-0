@@ -10,7 +10,7 @@
         "example_1": "今週、誰と一番一緒に遊んだ？",
         "example_2": "最近疎遠になっている人は？",
         "example_3": "フレンドがオンラインになりやすい時間は？",
-        "not_configured": "Select an LLM Endpoint and model to start.",
+        "not_configured": "LLM エンドポイントとモデルを選択して開始してください。",
         "entities_title": "言及",
         "entities_empty": "回答で言及された人やワールドがここに表示されます。",
         "untitled": "新しい会話",
@@ -499,7 +499,7 @@
         "success": {
             "vrchat_launch_request_sent": "VRChat で開きました",
             "invite_request_sent": "招待リクエストを送信しました",
-            "boop_sent": "Boop を送信しました",
+            "boop_sent": "つっつきを送信しました",
             "friend_and_favorite_snapshots_refreshed": "フレンドを更新しました"
         },
         "error": {
@@ -609,7 +609,7 @@
                 "cannot_invite_no_current_vrchat_location_is_available": "招待できません: 現在の VRChat 位置がありません",
                 "cannot_invite_from_the_current_instance_type": "現在のインスタンスタイプからは招待できません",
                 "cannot_invite_current_location_is_not_a_concrete_instance": "招待できません: 現在の位置は具体的なインスタンスではありません",
-                "cannot_request_invite_friend_is_not_online": "参加リクエストできません: フレンドがオンラインではありません",
+                "cannot_request_invite_friend_is_not_online": "招待をリクエストできません: フレンドがオンラインではありません",
                 "feed_query_failed": "フィードの取得に失敗しました"
             },
             "label": {
@@ -620,8 +620,8 @@
             },
             "success": {
                 "vrchat_launch_request_sent": "VRChat で開きました",
-                "invite_request_sent": "参加リクエストを送信しました",
-                "boop_sent": "Boop を送信しました"
+                "invite_request_sent": "招待リクエストを送信しました",
+                "boop_sent": "つっつきを送信しました"
             },
             "loading": {
                 "loading_feed_rows": "フィード行を読み込み中"
@@ -635,14 +635,14 @@
                 "failed_to_launch_instance": "インスタンスの起動に失敗しました",
                 "failed_to_send_self_invite": "自分への招待の送信に失敗しました",
                 "failed_to_send_invite": "招待の送信に失敗しました",
-                "failed_to_request_invite": "参加リクエストに失敗しました",
-                "failed_to_send_boop": "Boop の送信に失敗しました"
+                "failed_to_request_invite": "招待のリクエストに失敗しました",
+                "failed_to_send_boop": "つっつきの送信に失敗しました"
             },
             "modal": {
                 "send_invite": "招待を送信しますか？",
                 "invite": "招待する",
-                "request_invite": "参加リクエストしますか？",
-                "request_invite_2": "参加リクエスト",
+                "request_invite": "招待をリクエストしますか？",
+                "request_invite_2": "招待リクエスト",
                 "send": "送信"
             },
             "dynamic": {
@@ -966,8 +966,8 @@
                 "local_favorite_group_deleted": "ローカルお気に入りグループを削除しました",
                 "avatar_history_cleared": "アバター履歴をクリアしました",
                 "vrchat_launch_request_sent": "VRChat で開きました",
-                "invite_request_sent": "参加リクエストを送信しました",
-                "boop_sent": "Boop を送信しました",
+                "invite_request_sent": "招待リクエストを送信しました",
+                "boop_sent": "つっつきを送信しました",
                 "avatar_selected": "アバターを選択しました",
                 "copied_selected_favorite_ids": "選択したお気に入り ID をコピーしました",
                 "selected_favorites_removed": "選択したお気に入りを削除しました",
@@ -1081,7 +1081,7 @@
                 "friendRequest": "フレンドリクエスト",
                 "ignoredFriendRequest": "無視したフレンドリクエスト",
                 "message": "メッセージ",
-                "boop": "Boop",
+                "boop": "つっつく",
                 "groupChange": "グループ変更",
                 "group": {
                     "announcement": "お知らせ",
@@ -1128,7 +1128,7 @@
             },
             "action": {
                 "mark_seen": "既読にする",
-                "send_boop": "Boop を送信",
+                "send_boop": "つっつく",
                 "search_emoji": "Emoji を検索",
                 "clear_selection": "選択をクリア",
                 "send": "送信"
@@ -1137,7 +1137,7 @@
                 "friend_request_accepted": "フレンド申請を承認しました",
                 "notification_declined": "通知を拒否しました",
                 "invite_response_sent": "招待への返信を送信しました",
-                "boop_sent": "Boop を送信しました",
+                "boop_sent": "つっつきを送信しました",
                 "notification_response_sent": "通知への返信を送信しました",
                 "notification_log_entry_deleted": "通知ログ項目を削除しました"
             },
@@ -1148,7 +1148,7 @@
                 "cannot_send_invite_response_no_current_user_session_is_available": "招待への返信を送信できません: 現在のユーザーセッションがありません"
             },
             "empty": {
-                "no_custom_emoji_selected_the_default_boop_will_be_sent": "カスタム Emoji が選択されていません。既定の Boop を送信します"
+                "no_custom_emoji_selected_the_default_boop_will_be_sent": "カスタム絵文字が選択されていません。既定のつっつきを送信します"
             },
             "loading": {
                 "loading_emojis": "Emojiを読み込み中"
@@ -1194,7 +1194,7 @@
                 "roster_bootstrap_did_not_complete": "フレンド一覧の初期化が完了しませんでした",
                 "vrchat_launch_request_sent": "VRChat で開きました",
                 "invite_request_sent": "招待リクエストを送信しました",
-                "boop_sent": "Boop を送信しました"
+                "boop_sent": "つっつきを送信しました"
             },
             "empty": {
                 "no_friends_are_available_for_mutual_friends_loading": "共通フレンドの読み込みに使えるフレンドがいません",
@@ -1417,8 +1417,8 @@
                 "status_schedule_description": "時間に応じてステータスとステータスメッセージを変更します。必要に応じて VRChat 起動中だけ実行できます。",
                 "room_status_rules": "ルームステータスルール",
                 "room_status_rules_description": "VRChat 起動中に、ルームとフレンドの状況に応じてステータスを変更します。",
-                "invite_request_auto_reply": "参加リクエストの自動返信",
-                "invite_request_auto_reply_description": "VRChat 起動中に、許可リスト内のフレンドから参加リクエストが来たら自動で招待します。",
+                "invite_request_auto_reply": "招待リクエストの自動返信",
+                "invite_request_auto_reply_description": "VRChat 起動中に、許可リスト内のフレンドから招待リクエストが来たら自動で招待します。",
                 "schedule_rules": "スケジュールルール",
                 "schedule_rules_description": "時間帯ごとにステータス、ステータスメッセージ、またはその両方を変更できます。",
                 "add_rule": "ルールを追加",
@@ -1475,7 +1475,7 @@
                 "preset_with_selected_friend": "選択したフレンドと一緒",
                 "preset_in_selected_room_types": "選択したルームタイプ内",
                 "preset_custom": "カスタム",
-                "auto_send_invites_for_request_invite": "参加リクエストに自動返信",
+                "auto_send_invites_for_request_invite": "招待リクエストに自動返信",
                 "auto_send_invites_description": "許可リスト内のお気に入りフレンドだけを自動処理します。",
                 "allowlist_mode": "許可リストモード",
                 "allowlist_mode_description": "自動返信でも、現在のルームが招待送信を許可している必要があります。",
@@ -1488,8 +1488,8 @@
                 "failed_to_load_room_rules": "ルームルールの読み込みに失敗しました。",
                 "failed_to_save_room_settings": "ルーム自動化設定の保存に失敗しました。",
                 "failed_to_save_room_rules": "ルームルールの保存に失敗しました。",
-                "failed_to_load_invite_settings": "参加リクエスト自動返信設定の読み込みに失敗しました。",
-                "failed_to_save_invite_settings": "参加リクエスト自動返信設定の保存に失敗しました。"
+                "failed_to_load_invite_settings": "招待リクエスト自動返信設定の読み込みに失敗しました。",
+                "failed_to_save_invite_settings": "招待リクエスト自動返信設定の保存に失敗しました。"
             },
             "other": {
                 "header": "その他",
@@ -1498,11 +1498,11 @@
             },
             "success": {
                 "media_item_deleted": "メディア項目を削除しました",
-                "print_deleted": "Printを削除しました"
+                "print_deleted": "プリントを削除しました"
             },
             "empty": {
                 "no_current_user_is_available": "現在のユーザーを取得できません",
-                "no_prints_loaded": "Print が読み込まれていません",
+                "no_prints_loaded": "プリントが読み込まれていません",
                 "no_inventory_items_loaded": "インベントリアイテムが読み込まれていません",
                 "no_player_metadata": "プレイヤーメタデータはありません",
                 "no_screenshot_selected": "スクリーンショットが選択されていません"
@@ -1515,7 +1515,7 @@
             },
             "action": {
                 "preview": "プレビュー",
-                "refresh_this_tab_to_load_your_vrchat_prints": "このタブを更新して VRChat Print を読み込みます",
+                "refresh_this_tab_to_load_your_vrchat_prints": "このタブを更新して VRChat のプリントを読み込みます",
                 "refresh_this_tab_to_load_inventory_items": "このタブを更新してインベントリ項目を読み込みます",
                 "load_a_screenshot_to_inspect_embedded_world_player_and_file_metadata": "スクリーンショットを読み込んで、埋め込みのワールド、プレイヤー、ファイルメタデータを確認します"
             },
@@ -1535,10 +1535,10 @@
             },
             "toast": {
                 "failed_to_load_value": "{value}の読み込みに失敗しました",
-                "failed_to_load_prints": "Print の読み込みに失敗しました",
+                "failed_to_load_prints": "プリントの読み込みに失敗しました",
                 "failed_to_load_inventory": "インベントリの読み込みに失敗しました",
                 "failed_to_delete_media_item": "メディア項目の削除に失敗しました",
-                "failed_to_delete_print": "Print の削除に失敗しました",
+                "failed_to_delete_print": "プリントの削除に失敗しました",
                 "failed_to_update_profile_media": "プロフィールメディアの更新に失敗しました",
                 "failed_to_consume_inventory_bundle": "インベントリバンドルの使用に失敗しました",
                 "failed_to_redeem_reward": "報酬の受け取りに失敗しました",
@@ -1546,27 +1546,27 @@
                 "failed_to_copy_image": "画像のコピーに失敗しました",
                 "failed_to_pin_tool_to_navigation": "ツールをナビゲーションに固定できませんでした",
                 "failed_to_unpin_tool_from_navigation": "ツールのナビゲーション固定解除に失敗しました",
-                "failed_to_update_print_favorite": "Print のお気に入り状態を更新できませんでした"
+                "failed_to_update_print_favorite": "プリントのお気に入り状態を更新できませんでした"
             },
             "modal": {
                 "delete_value_item": "{value} 項目を削除",
-                "delete_print": "Print を削除"
+                "delete_print": "プリントを削除"
             },
             "dynamic": {
                 "no_value_loaded": "{value}が読み込まれていません",
                 "refresh_this_tab_to_load_value_files": "このタブを更新して{value}ファイルを読み込みます"
             },
             "prints_favorites": {
-                "favorite": "Print をお気に入りに追加",
-                "unfavorite": "Print のお気に入りを解除",
+                "favorite": "プリントをお気に入りに追加",
+                "unfavorite": "プリントのお気に入りを解除",
                 "favorite_badge": "お気に入り",
-                "favorited_toast": "Print をお気に入りに追加しました",
-                "unfavorited_toast": "Print のお気に入りを解除しました",
-                "favorite_limit_toast": "現在の自動削除上限では最大 {max} 件の Print をお気に入りにできます。",
-                "cleanup_deleted": "古い Print を {count} 件自動削除しました。残りは {remaining} 件です。",
+                "favorited_toast": "プリントをお気に入りに追加しました",
+                "unfavorited_toast": "プリントのお気に入りを解除しました",
+                "favorite_limit_toast": "現在の自動削除上限では最大 {max} 件のプリントをお気に入りにできます。",
+                "cleanup_deleted": "古いプリントを {count} 件自動削除しました。残りは {remaining} 件です。",
                 "warning": {
-                    "too_many_favorites": "お気に入りの Print が {favorites} 件あり、お気に入り上限 {max} 件を {over} 件超えています。自動削除はお気に入りの Print を削除しません。",
-                    "too_many_favorites_event": "お気に入りの Print がリストを占めているため、自動削除で設定上限以下にできませんでした。残りは {remaining} 件です。"
+                    "too_many_favorites": "お気に入りのプリントが {favorites} 件あり、お気に入り上限 {max} 件を {over} 件超えています。自動削除はお気に入りのプリントを削除しません。",
+                    "too_many_favorites_event": "お気に入りのプリントがリストを占めているため、自動削除で設定上限以下にできませんでした。残りは {remaining} 件です。"
                 }
             },
             "llm_endpoints": {
@@ -1631,7 +1631,7 @@
                 },
                 "hidden_feed": {
                     "header": "Feedで非表示のユーザー",
-                    "description": "保存済みデータを削除せずに、選択したユーザーをFeedから非表示にします。",
+                    "description": "保存済みデータを削除せずに、選択したユーザーをフィードから非表示にします。",
                     "add": "ユーザーを追加",
                     "search_placeholder": "ユーザーを検索",
                     "empty": "Feedで非表示のユーザーはいません。",
@@ -1660,7 +1660,7 @@
                     "enabled": "インタラクティブフレンドパネルを有効にする",
                     "all_friends_include_favorites": "すべてにお気に入りを含める",
                     "summon_hint": "呼び出しジェスチャー",
-                    "openvr_required": "右手の Grip を約 2 秒長押しして呼び出します。SteamVR/OpenVR オーバーレイバックエンドが必要です。OpenXR では現在インタラクティブパネルを提供していません。"
+                    "openvr_required": "右手のグリップを約 2 秒長押しして呼び出します。SteamVR/OpenVR オーバーレイバックエンドが必要です。OpenXR では現在インタラクティブパネルを提供していません。"
                 },
                 "wrist_overlay": {
                     "header": "手首のオーバーレイ",
@@ -1669,8 +1669,8 @@
                     "start_when_steamvr": "SteamVR 起動時",
                     "start_when_vrchat_vr_mode": "VRChat 起動時",
                     "overlay_button": "オーバーレイボタン",
-                    "overlay_button_grip": "Grip",
-                    "overlay_button_menu": "Menu",
+                    "overlay_button_grip": "グリップ",
+                    "overlay_button_menu": "メニュー",
                     "display_on": "表示する手",
                     "display_on_left": "左",
                     "display_on_right": "右",
@@ -2118,7 +2118,7 @@
                         "default_launch_mode_vr": "VR モード",
                         "default_launch_mode_desktop": "デスクトップモード",
                         "show_confirmation_on_switch_avatar_enable": "アバターの切り替え時に、確認ダイアログを表示",
-                        "show_confirmation_on_switch_avatar_tooltip": "無効の場合、アバターの切り替え時に VRCX-0 が確認を求める事はありません。"
+                        "show_confirmation_on_switch_avatar_tooltip": "無効の場合、アバターの切り替え時に VRCX-0 が確認を求めることはありません。"
                     },
                     "screenshot_helper": {
                         "header": "スクリーンショット ヘルパー",
@@ -2221,10 +2221,10 @@
                         "reset_override": "元に戻す"
                     },
                     "auto_delete_prints": {
-                        "enable": "古い VRChat Prints を自動削除",
-                        "description": "Print 一覧が上限を超えたとき、最も古いお気に入り以外の VRChat Print を削除します。",
+                        "enable": "古い VRChat のプリントを自動削除",
+                        "description": "プリント一覧が上限を超えたとき、最も古いお気に入り以外の VRChat のプリントを削除します。",
                         "limit": "最大保持数",
-                        "limit_description": "指定できる範囲は 30-60 です。お気に入りの Print は自動削除されません。この上限より 5 件少ない数までお気に入りにできます。"
+                        "limit_description": "指定できる範囲は 30-60 です。お気に入りのプリントは自動削除されません。この上限より 5 件少ない数までお気に入りにできます。"
                     }
                 }
             },
@@ -2249,7 +2249,7 @@
                 "failed_to_refresh_config_json": "config JSON の更新に失敗しました",
                 "failed_to_refresh_online_user_count": "オンラインユーザー数の更新に失敗しました",
                 "failed_to_save_proxy_settings": "プロキシ設定の保存に失敗しました",
-                "failed_to_crop_existing_prints": "既存 Print の切り抜きに失敗しました",
+                "failed_to_crop_existing_prints": "既存プリントの切り抜きに失敗しました",
                 "failed_to_save_translation_settings": "翻訳設定の保存に失敗しました",
                 "failed_to_fetch_translation_models": "翻訳モデルの取得に失敗しました",
                 "failed_to_save_feed_filters": "フィードフィルターの保存に失敗しました"
@@ -2435,8 +2435,8 @@
                 "failed_to_launch_instance": "インスタンスの起動に失敗しました",
                 "failed_to_send_self_invite": "自分への招待の送信に失敗しました",
                 "failed_to_send_invite": "招待の送信に失敗しました",
-                "failed_to_request_invite": "参加リクエストに失敗しました",
-                "failed_to_send_boop": "Boop の送信に失敗しました",
+                "failed_to_request_invite": "招待のリクエストに失敗しました",
+                "failed_to_send_boop": "つっつきの送信に失敗しました",
                 "failed_to_select_avatar": "アバターの選択に失敗しました",
                 "failed_to_create_local_favorite_group": "ローカルお気に入りグループの作成に失敗しました",
                 "failed_to_copy_selected_favorites": "選択したお気に入りのコピーに失敗しました",
@@ -2457,8 +2457,8 @@
                 "clear_avatar_history": "アバター履歴をクリアしますか？",
                 "send_invite": "招待を送信しますか？",
                 "invite": "招待する",
-                "request_invite": "参加リクエストしますか？",
-                "request_invite_2": "参加リクエスト",
+                "request_invite": "招待をリクエストしますか？",
+                "request_invite_2": "招待リクエスト",
                 "send": "送信",
                 "select_avatar": "アバターを選択しますか？",
                 "delete_value_favorites": "{value} 件のお気に入りを削除しますか？",
@@ -2499,15 +2499,15 @@
                 "failed_to_launch_instance": "インスタンスの起動に失敗しました",
                 "failed_to_send_self_invite": "自分への招待の送信に失敗しました",
                 "failed_to_send_invite": "招待の送信に失敗しました",
-                "failed_to_request_invite": "参加リクエストに失敗しました",
-                "failed_to_send_boop": "Boop の送信に失敗しました"
+                "failed_to_request_invite": "招待のリクエストに失敗しました",
+                "failed_to_send_boop": "つっつきの送信に失敗しました"
             },
             "modal": {
                 "unfriend_user": "フレンドを解除しますか？",
                 "unfriend": "フレンド解除",
                 "send_invite": "招待を送信しますか？",
                 "invite": "招待する",
-                "request_invite": "参加リクエストしますか？",
+                "request_invite": "招待をリクエストしますか？",
                 "request_invite_2": "招待リクエスト",
                 "send": "送信"
             },
@@ -2779,7 +2779,7 @@
                 "invite_to_group": "グループに招待",
                 "group_actions": "グループ...",
                 "group_moderation": "グループの管理",
-                "send_boop": "Boop を送信",
+                "send_boop": "つっつく",
                 "accept_friend_request": "フレンドリクエストを許可",
                 "decline_friend_request": "フレンドリクエストを拒否",
                 "cancel_friend_request": "フレンドリクエストをキャンセル",
@@ -2857,7 +2857,7 @@
                 "show_original_bio": "原文を表示",
                 "open_bio_link": "{link}を開く",
                 "last_seen": "最後に見た日時",
-                "join_count": "Join した回数",
+                "join_count": "参加した回数",
                 "time_together": "一緒に居た時間",
                 "play_time": "プレイ時間",
                 "estimated_online_for": "約 {duration} オンライン",
@@ -2865,7 +2865,7 @@
                 "date_joined": "アカウント作成日",
                 "friended": "フレンドになった日",
                 "avatar_cloning": "アバタークローン",
-                "booping": "Boop",
+                "booping": "つっつき",
                 "avatar_cloning_allow": "許可",
                 "avatar_cloning_deny": "拒否",
                 "home_location": "ホームワールド",
@@ -3022,11 +3022,11 @@
                 "status_preset_saved": "ステータスプリセットを保存しました",
                 "status_updated": "ステータスを更新しました",
                 "avatar_cloning_setting_updated": "アバタークローン設定を更新しました",
-                "booping_setting_updated": "Boop 設定を更新しました",
+                "booping_setting_updated": "つっつき設定を更新しました",
                 "shared_connections_setting_updated": "共有つながり設定を更新しました",
-                "discord_connections_setting_updated": "Discordつながり設定を更新しました",
+                "discord_connections_setting_updated": "Discord つながり設定を更新しました",
                 "report_sent": "通報を送信しました",
-                "boop_sent": "Boop を送信しました",
+                "boop_sent": "つっつきを送信しました",
                 "profile_details_updated": "プロフィール詳細を更新しました",
                 "group_invite_sent": "グループ招待を送信しました",
                 "left_group": "グループを退出しました",
@@ -3067,7 +3067,7 @@
                 "failed_to_update_social_status": "ソーシャルステータスを更新できませんでした",
                 "failed_to_update_profile_details": "プロフィール詳細を更新できませんでした",
                 "failed_to_update_avatar_cloning_setting": "アバタークローン設定を更新できませんでした",
-                "failed_to_update_booping_setting": "Boop 設定を更新できませんでした",
+                "failed_to_update_booping_setting": "つっつき設定を更新できませんでした",
                 "failed_to_update_shared_connections_setting": "共通接続設定を更新できませんでした",
                 "failed_to_update_discord_connections_setting": "Discord 接続設定を更新できませんでした",
                 "failed_to_update_badge": "バッジを更新できませんでした",
@@ -3083,10 +3083,10 @@
                 "failed_to_report_user": "ユーザーを通報できませんでした",
                 "invite_message_sent": "招待メッセージを送信しました",
                 "failed_to_send_invite": "招待の送信に失敗しました",
-                "invite_request_message_sent": "参加リクエストメッセージを送信しました",
+                "invite_request_message_sent": "招待リクエストのメッセージを送信しました",
                 "invite_request_sent": "招待リクエストを送信しました",
-                "failed_to_request_invite": "参加リクエストに失敗しました",
-                "failed_to_send_boop": "Boop の送信に失敗しました",
+                "failed_to_request_invite": "招待のリクエストに失敗しました",
+                "failed_to_send_boop": "つっつきの送信に失敗しました",
                 "already_viewing_user": "このユーザーはすでに表示中です",
                 "failed_to_open_discord_profile": "Discord プロフィールを開けませんでした",
                 "translation_failed": "翻訳に失敗しました",
@@ -3100,7 +3100,7 @@
                 "report_hacking": "チート行為を通報しますか？",
                 "report": "通報",
                 "send_invite": "招待を送信しますか？",
-                "request_invite": "参加リクエストしますか？",
+                "request_invite": "招待をリクエストしますか？",
                 "send": "送信",
                 "enter_the_vrchat_group_id_to_invite_this_user_to": "このユーザーを招待する VRChat グループ ID を入力してください",
                 "leave_group": "グループを退出",
@@ -3365,7 +3365,7 @@
                 "edit_details": "詳細を編集",
                 "change_content_tags": "コンテンツタグを変更",
                 "change_image": "画像を変更",
-                "download_package": "Unity Packageをダウンロード",
+                "download_package": "Unity Package をダウンロード",
                 "delete": "削除",
                 "delete_impostor": "インポスターを削除",
                 "regenerate_impostor": "インポスターを再生成",
@@ -3778,13 +3778,13 @@
             "header": "招待返信"
         },
         "invite_request_response_message": {
-            "header": "参加リクエストへの返信"
+            "header": "招待リクエストへの返信"
         },
         "edit_invite_messages": {
             "header": "メッセージテンプレート",
             "invite_message_tab": "招待",
-            "invite_request_tab": "参加リクエスト",
-            "invite_request_response_tab": "参加リクエストへの返信",
+            "invite_request_tab": "招待リクエスト",
+            "invite_request_response_tab": "招待リクエストへの返信",
             "invite_response_tab": "招待への返信",
             "error": {
                 "failed_to_load_templates": "招待メッセージテンプレートの読み込みに失敗しました。",
@@ -3819,7 +3819,7 @@
             "description": "所有しているアバターの ID と名前の一覧をエクスポートします。"
         },
         "discord_names": {
-            "header": "Discordの名前",
+            "header": "Discord の名前",
             "description": "フレンドリストタブの「不足するエントリを読み込む」をクリックすると、フレンドリスト全体を検索することができます。"
         },
         "note_export": {
@@ -3871,7 +3871,7 @@
             "emoji_animation_fps": "FPS:",
             "emoji_animation_frame_count": "フレーム数:",
             "emoji_loop_pingpong": "ピンポンループ",
-            "flipbook_info": "アニメーション絵文字として使用する1024x1024px の PNG スプライトシート画像を選択 (最大 64FPS)",
+            "flipbook_info": "アニメーション絵文字として使用する 1024x1024 の PNG スプライトシート画像を選択してください。利用可能なフレームグリッドサイズ: 4、16、64（最大 64FPS、最大 64 フレーム）",
             "note": "ノート",
             "crop_print_border": "再アップロード時に既存の枠をトリミング",
             "upload_options": "アップロードオプション",
@@ -3997,7 +3997,7 @@
             "cache_expiry_delay": "キャッシュの有効期限 [日] (最小 30)",
             "cache_directory": "カスタムキャッシュフォルダ",
             "picture_directory": "カスタム写真フォルダ",
-            "fpv_steadycam_fov": "一人称 Steadycam の視野角",
+            "fpv_steadycam_fov": "一人称ステディカムの視野角",
             "camera_resolution": "カメラの解像度",
             "spout_resolution": "Spout の解像度",
             "screenshot_resolution": "スクリーンショット解像度",
@@ -4101,8 +4101,8 @@
                 },
                 "profileChange": {
                     "label": "プロフィール変更",
-                    "description": "名前、トラスト、Avatar、Bio、フレンド追加、フレンド解除の変化です。",
-                    "example": "名前、Avatar"
+                    "description": "名前、トラスト、アバター、自己紹介、フレンド追加、フレンド解除の変化です。",
+                    "example": "名前、アバター"
                 },
                 "groupSocial": {
                     "label": "グループとソーシャル",
@@ -4126,13 +4126,13 @@
                 "inviteResponse": "招待への返信",
                 "requestInviteResponse": "招待リクエストへの返信",
                 "friendRequest": "フレンドリクエスト",
-                "boop": "Boop",
+                "boop": "つっつく",
                 "group_queueReady": "インスタンスキュー準備完了",
                 "instance_closed": "インスタンス終了",
                 "OnPlayerJoining": "プレイヤー参加中",
                 "OnPlayerJoined": "プレイヤー参加",
                 "OnPlayerLeft": "プレイヤー退出",
-                "AvatarChange": "Avatar 変更",
+                "AvatarChange": "アバター変更",
                 "Online": "オンライン",
                 "Offline": "オフライン",
                 "GPS": "位置変更",
@@ -4141,7 +4141,7 @@
                 "Unfriend": "フレンド解除",
                 "DisplayName": "表示名変更",
                 "TrustLevel": "トラストレベル変更",
-                "Bio": "Bio 変更",
+                "Bio": "自己紹介変更",
                 "groupChange": "グループ変更",
                 "group_announcement": "グループ告知",
                 "group_informative": "グループ参加承認",
@@ -4252,7 +4252,7 @@
             "following_count_short": "{count} 件フォロー中"
         },
         "boop_dialog": {
-            "header": "Boop",
+            "header": "つっつく",
             "emoji_manager": "絵文字を管理",
             "select_default_emoji": "デフォルトの絵文字を選択",
             "default_emojis": "デフォルトの絵文字",
@@ -4501,16 +4501,16 @@
             "header": "プロキシ設定",
             "description": "プロキシサーバーのアドレスとポートを入力してください。127.0.0.1:7890、http://127.0.0.1:7890、socks5://127.0.0.1:7890 に対応しています。",
             "restart": "保存して再起動",
-            "enabled": "Enable proxy",
-            "enabled_description": "When enabled with no address, VRCX-0 connects directly and keeps the proxy switch on.",
-            "address": "Proxy address",
-            "address_description": "Leave blank to connect directly while keeping the proxy switch enabled.",
-            "test": "Test",
-            "configure": "Configure",
-            "configure_empty": "Configure address",
-            "saved_restart_required": "Proxy settings saved. Restart VRCX-0 to apply network proxy changes.",
-            "test_success": "Proxy test succeeded (HTTP {status}).",
-            "test_failed": "Proxy test failed: {message}"
+            "enabled": "プロキシを有効化",
+            "enabled_description": "アドレスを入力せずに有効化すると、VRCX-0 は直接接続を行い、プロキシのスイッチはオンのままになります。",
+            "address": "プロキシアドレス",
+            "address_description": "空欄のままにすると、プロキシのスイッチを有効にしたまま直接接続します。",
+            "test": "テスト",
+            "configure": "設定",
+            "configure_empty": "アドレスを設定",
+            "saved_restart_required": "プロキシ設定を保存しました。ネットワークプロキシの変更を適用するには VRCX-0 を再起動してください。",
+            "test_success": "プロキシのテストに成功しました（HTTP {status}）。",
+            "test_failed": "プロキシのテストに失敗しました：{message}"
         },
         "redeem": {
             "header": "コードを引き換え",
@@ -4656,7 +4656,7 @@
         "registry": {
             "restored": "VRC レジストリ設定が復元されました",
             "deleted": "VRC レジストリ設定が削除されました",
-            "restore_failed": "VRC レジストリ設定の復元に失敗しました。詳細はコンソールを確認してください: {error}"
+            "restore_failed": "VRChat レジストリ設定の復元に失敗しました。詳細はコンソールを確認してください: {error}"
         },
         "cache": {
             "deleted": "すべての VRChat キャッシュが削除されました"
@@ -4776,7 +4776,7 @@
             "status": "ステータス",
             "language": "言語",
             "bioLink": "自己紹介リンク",
-            "joinCount": "Join した回数",
+            "joinCount": "参加した回数",
             "timeTogether": "一緒に居た時間",
             "lastSeen": "最後に見た日時",
             "lastActivity": "最後に活動した時間",
@@ -4862,11 +4862,11 @@
         "mutual_graph_progress": "共通フレンドグラフの取得進捗",
         "start_background_mode": "バックグラウンドモードへ切り替える",
         "start_background_mode_tooltip": "バックグラウンドモードへ切り替えます",
-        "modify_proxy_address": "Modify proxy address",
-        "proxy_disabled": "Proxy disabled",
-        "proxy_enabled_direct": "Proxy enabled, connecting directly",
-        "proxy_enabled_server": "Proxy enabled: {proxy}",
-        "proxy_network_issue": "Proxy enabled, network request failed"
+        "modify_proxy_address": "プロキシアドレスを変更",
+        "proxy_disabled": "プロキシを無効化しました",
+        "proxy_enabled_direct": "プロキシが有効ですが、直接接続しています",
+        "proxy_enabled_server": "プロキシ有効: {proxy}",
+        "proxy_network_issue": "プロキシが有効ですが、ネットワークリクエストに失敗しました"
     },
     "component": {
         "favorite_action_menu": {
@@ -4967,8 +4967,8 @@
                 "failed_to_launch_instance": "インスタンスの起動に失敗しました",
                 "failed_to_send_self_invite": "自分への招待の送信に失敗しました",
                 "failed_to_send_invite": "招待の送信に失敗しました",
-                "failed_to_request_invite": "参加リクエストに失敗しました",
-                "failed_to_send_boop": "Boop の送信に失敗しました",
+                "failed_to_request_invite": "招待のリクエストに失敗しました",
+                "failed_to_send_boop": "つっつきの送信に失敗しました",
                 "failed_to_update_social_status": "ソーシャルステータスを更新できませんでした",
                 "failed_to_update_status_description": "ステータスメッセージを更新できませんでした",
                 "failed_to_update_status": "ステータスを更新できませんでした"
@@ -4976,7 +4976,7 @@
             "modal": {
                 "send_invite": "招待を送信しますか？",
                 "invite": "招待する",
-                "request_invite": "参加リクエストしますか？",
+                "request_invite": "招待をリクエストしますか？",
                 "request_invite_2": "招待リクエスト",
                 "send": "送信",
                 "edit_status_description": "ステータスメッセージを編集"
