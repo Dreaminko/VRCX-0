@@ -44,7 +44,9 @@ use vrcx_0_vr_overlay::{
     FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 
-use crate::notification::user_image::UserImageCache;
+use crate::notification::user_image::{
+    normalize_avatar_image_url_128, user_image_url_128, UserImageCache, UserImageSources,
+};
 use crate::RuntimeHostContext;
 
 use super::{
@@ -389,6 +391,24 @@ struct HmdToastState {
     merge_count: u32,
 }
 
+#[derive(Clone)]
+struct FriendsPanelAvatarCacheEntry {
+    bitmap: AvatarBitmap,
+    source_url: String,
+    allow_user_icon: bool,
+}
+
+impl FriendsPanelAvatarCacheEntry {
+    fn matches(&self, initial_image_url: &str, allow_user_icon: bool) -> bool {
+        let initial_image_url = initial_image_url.trim();
+        if initial_image_url.is_empty() {
+            self.allow_user_icon == allow_user_icon
+        } else {
+            self.source_url == initial_image_url
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrOverlayRuntimeSnapshot {
@@ -416,7 +436,7 @@ pub struct VrOverlayRuntime {
     config: Mutex<VrOverlayRuntimeConfig>,
     friends_panel_snapshot_provider: Mutex<Option<FriendsPanelSnapshotProvider>>,
     friends_panel_favorite_groups: Mutex<FavoriteFriendGroupsSnapshot>,
-    friends_panel_avatars: Arc<Mutex<HashMap<String, AvatarBitmap>>>,
+    friends_panel_avatars: Arc<Mutex<HashMap<String, FriendsPanelAvatarCacheEntry>>>,
     friends_panel_avatar_fetches: Arc<Mutex<HashSet<String>>>,
     friends_panel_world_resolves: Arc<Mutex<HashSet<String>>>,
     friends_panel_note_memo_cache: Mutex<FriendsPanelNoteMemoCache>,
@@ -755,7 +775,12 @@ impl VrOverlayRuntime {
         let avatars_by_user_id = self
             .friends_panel_avatars
             .lock()
-            .map(|avatars| avatars.clone())
+            .map(|avatars| {
+                avatars
+                    .iter()
+                    .map(|(user_id, entry)| (user_id.clone(), entry.bitmap.clone()))
+                    .collect()
+            })
             .unwrap_or_default();
         build_friends_panel_model(FriendsPanelModelInput {
             selected_category_key,
@@ -921,12 +946,24 @@ impl VrOverlayRuntime {
         record: &FriendRecord,
     ) -> bool {
         let user_id = record.id.trim();
-        if user_id.is_empty()
-            || self
-                .friends_panel_avatars
-                .lock()
-                .map(|avatars| avatars.contains_key(user_id))
-                .unwrap_or(false)
+        if user_id.is_empty() {
+            return false;
+        }
+        let endpoint = endpoint.to_string();
+        let allow_user_icon = context
+            .config()
+            .get_bool("displayVRCPlusIconsAsAvatar", true)
+            .unwrap_or(true);
+        let initial_image_url = friend_record_avatar_url(record, allow_user_icon, &endpoint);
+        if self
+            .friends_panel_avatars
+            .lock()
+            .map(|avatars| {
+                avatars
+                    .get(user_id)
+                    .is_some_and(|entry| entry.matches(&initial_image_url, allow_user_icon))
+            })
+            .unwrap_or(false)
         {
             return false;
         }
@@ -945,14 +982,8 @@ impl VrOverlayRuntime {
         let inflight = Arc::clone(&self.friends_panel_avatar_fetches);
         let dirty = Arc::clone(&self.friends_panel_model_dirty);
         let wake = Arc::clone(&self.refresh_wake);
-        let endpoint = endpoint.to_string();
         let user_id = user_id.to_string();
-        let initial_image_url = friend_record_avatar_url(record);
         let tasks = context.tasks.clone();
-        let allow_user_icon = context
-            .config()
-            .get_bool("displayVRCPlusIconsAsAvatar", true)
-            .unwrap_or(true);
         tasks.spawn(async move {
             let image_url = if initial_image_url.is_empty() {
                 user_image_cache
@@ -974,7 +1005,14 @@ impl VrOverlayRuntime {
                     .await
                 {
                     if let Ok(mut avatars) = avatars.lock() {
-                        avatars.insert(user_id.clone(), bitmap);
+                        avatars.insert(
+                            user_id.clone(),
+                            FriendsPanelAvatarCacheEntry {
+                                bitmap,
+                                source_url: image_url.trim().to_string(),
+                                allow_user_icon,
+                            },
+                        );
                     }
                     dirty.store(true, Ordering::Release);
                     wake.notify();
@@ -1338,7 +1376,8 @@ impl VrOverlayRuntime {
             return;
         }
         let actor_user_id = entry.actor_user_id.trim().to_string();
-        let initial_image_url = entry.content.image_url.trim().to_string();
+        let endpoint = context.auth_scope.snapshot().endpoint;
+        let initial_image_url = normalize_avatar_image_url_128(&entry.content.image_url, &endpoint);
         if initial_image_url.is_empty() && !actor_user_id.starts_with("usr_") {
             tracing::debug!(
                 source_id = %source_id,
@@ -2734,15 +2773,19 @@ impl AvatarBitmapCache {
 }
 
 fn decode_avatar_bitmap(bytes: &[u8]) -> Option<AvatarBitmap> {
-    let resized = image::load_from_memory(bytes)
-        .ok()?
-        .resize_to_fill(
-            HMD_AVATAR_SIZE,
-            HMD_AVATAR_SIZE,
-            image::imageops::FilterType::Lanczos3,
-        )
-        .to_rgba8();
-    let mut rgba = resized.into_raw();
+    let decoded = image::load_from_memory(bytes).ok()?;
+    let image = if decoded.width() == HMD_AVATAR_SIZE && decoded.height() == HMD_AVATAR_SIZE {
+        decoded.to_rgba8()
+    } else {
+        decoded
+            .resize_to_fill(
+                HMD_AVATAR_SIZE,
+                HMD_AVATAR_SIZE,
+                image::imageops::FilterType::Lanczos3,
+            )
+            .to_rgba8()
+    };
+    let mut rgba = image.into_raw();
     apply_circular_avatar_mask(&mut rgba, HMD_AVATAR_SIZE, HMD_AVATAR_SIZE);
     Some(AvatarBitmap {
         width: HMD_AVATAR_SIZE,
@@ -3775,27 +3818,36 @@ fn traveling_location(record: &FriendRecord) -> String {
     .to_string()
 }
 
-fn friend_record_avatar_url(record: &FriendRecord) -> String {
-    let profile_override = extra_string(record, "profilePicOverride");
-    let user_icon = extra_string(record, "userIcon");
-    first_non_empty([
-        profile_override.as_str(),
-        record.current_avatar_thumbnail_image_url.as_str(),
-        record.current_avatar_image_url.as_str(),
-        user_icon.as_str(),
-    ])
-    .to_string()
+fn friend_record_avatar_url(
+    record: &FriendRecord,
+    allow_user_icon: bool,
+    endpoint: &str,
+) -> String {
+    user_image_url_128(
+        UserImageSources {
+            user_icon: extra_str(record, "userIcon"),
+            profile_pic_override_thumbnail: extra_str(record, "profilePicOverrideThumbnail"),
+            profile_pic_override: extra_str(record, "profilePicOverride"),
+            thumbnail_url: extra_str(record, "thumbnailUrl"),
+            current_avatar_thumbnail_image_url: record.current_avatar_thumbnail_image_url.as_str(),
+            current_avatar_image_url: record.current_avatar_image_url.as_str(),
+        },
+        allow_user_icon,
+        endpoint,
+    )
+    .unwrap_or_default()
 }
 
-fn extra_string(record: &FriendRecord, key: &str) -> String {
+fn extra_str<'a>(record: &'a FriendRecord, key: &str) -> &'a str {
     record
         .extra
         .get(key)
         .and_then(serde_json::Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
         .unwrap_or_default()
-        .to_string()
+}
+
+fn extra_string(record: &FriendRecord, key: &str) -> String {
+    extra_str(record, key).trim().to_string()
 }
 
 fn friend_status_tone(record: &FriendRecord) -> FriendPanelStatusTone {
@@ -4181,6 +4233,7 @@ fn is_real_instance_location(location: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use vrcx_0_application::{PlayerState, RuntimeSnapshot};
     use vrcx_0_host::vr_overlay::OverlayHand;
@@ -6105,6 +6158,89 @@ mod tests {
     }
 
     #[test]
+    fn decode_avatar_bitmap_returns_128_square_for_square_source() {
+        let bytes = test_png(128, 128);
+        let avatar = decode_avatar_bitmap(&bytes).expect("decode avatar bitmap");
+
+        assert_eq!(avatar.width, 128);
+        assert_eq!(avatar.height, 128);
+    }
+
+    #[test]
+    fn decode_avatar_bitmap_resizes_non_square_source_to_128_square() {
+        let bytes = test_png(256, 128);
+        let avatar = decode_avatar_bitmap(&bytes).expect("decode avatar bitmap");
+
+        assert_eq!(avatar.width, 128);
+        assert_eq!(avatar.height, 128);
+    }
+
+    #[test]
+    fn friends_panel_avatar_url_follows_vrc_plus_icon_config() {
+        let record = FriendRecord {
+            id: "usr_avatar".into(),
+            current_avatar_thumbnail_image_url:
+                "https://api.vrchat.cloud/api/1/file/file_avatar/3/256".into(),
+            current_avatar_image_url:
+                "https://api.vrchat.cloud/api/1/file/file_avatar/3/file".into(),
+            extra: serde_json::json!({
+                "userIcon": "https://api.vrchat.cloud/api/1/file/file_1234abcd-0000-1111-2222-abcdefabcdef/4/file",
+                "profilePicOverrideThumbnail": "https://images.example/profile/256",
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+            ..FriendRecord::default()
+        };
+
+        assert_eq!(
+            friend_record_avatar_url(&record, true, "https://api.vrchat.cloud/api/1"),
+            "https://api.vrchat.cloud/api/1/image/file_1234abcd-0000-1111-2222-abcdefabcdef/4/128"
+        );
+        assert_eq!(
+            friend_record_avatar_url(&record, false, "https://api.vrchat.cloud/api/1"),
+            "https://images.example/profile/128"
+        );
+    }
+
+    #[test]
+    fn friends_panel_avatar_refetches_when_config_selects_different_url() {
+        let (_dir, _db, context) = test_context("friends-panel-avatar-source-change");
+        context
+            .config()
+            .set_bool("displayVRCPlusIconsAsAvatar", false)
+            .unwrap();
+        let runtime = friends_panel_enabled_runtime_with_context(Arc::clone(&context));
+        runtime.friends_panel_avatars.lock().unwrap().insert(
+            "usr_avatar".into(),
+            FriendsPanelAvatarCacheEntry {
+                bitmap: test_avatar_bitmap(),
+                source_url:
+                    "https://api.vrchat.cloud/api/1/image/file_1234abcd-0000-1111-2222-abcdefabcdef/4/128"
+                        .into(),
+                allow_user_icon: true,
+            },
+        );
+        let record = FriendRecord {
+            id: "usr_avatar".into(),
+            extra: serde_json::json!({
+                "userIcon": "https://api.vrchat.cloud/api/1/file/file_1234abcd-0000-1111-2222-abcdefabcdef/4/file",
+                "profilePicOverrideThumbnail": "https://images.example/profile/256",
+            })
+            .as_object()
+            .unwrap()
+            .clone(),
+            ..FriendRecord::default()
+        };
+
+        assert!(runtime.queue_friends_panel_avatar(
+            &context,
+            "https://api.vrchat.cloud/api/1",
+            &record
+        ));
+    }
+
+    #[test]
     fn frame_producer_is_created_only_while_runtime_can_render_and_released_when_ineligible() {
         let created = Arc::new(AtomicUsize::new(0));
         let dropped = Arc::new(AtomicUsize::new(0));
@@ -6263,6 +6399,23 @@ mod tests {
                 game_changed,
             })
             .expect("record process status");
+    }
+
+    fn test_png(width: u32, height: u32) -> Vec<u8> {
+        let image = image::RgbaImage::from_pixel(width, height, image::Rgba([255, 0, 0, 255]));
+        let mut bytes = Cursor::new(Vec::new());
+        image
+            .write_to(&mut bytes, image::ImageFormat::Png)
+            .expect("encode test png");
+        bytes.into_inner()
+    }
+
+    fn test_avatar_bitmap() -> AvatarBitmap {
+        AvatarBitmap {
+            width: 1,
+            height: 1,
+            rgba: Arc::<[u8]>::from([255, 255, 255, 255]),
+        }
     }
 
     fn hmd_entry(
