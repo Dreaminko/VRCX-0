@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
     Arc, Condvar, Mutex,
 };
 use std::thread::{self, ThreadId};
@@ -119,8 +119,8 @@ const HMD_JOIN_LEAVE_MERGE_WINDOW: Duration = Duration::from_secs(4);
 const HMD_AVATAR_SIZE: u32 = 128;
 const HMD_AVATAR_MASK_FEATHER_PX: f32 = 2.0;
 const HMD_AVATAR_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
-const HMD_AVATAR_SUCCESS_TTL: Duration = Duration::from_secs(15 * 60);
 const HMD_AVATAR_FAILURE_TTL: Duration = Duration::from_secs(60);
+const HMD_AVATAR_CACHE_CAPACITY: usize = 300;
 const FRIENDS_PANEL_CATEGORY_ALL: &str = "all";
 const FRIENDS_PANEL_CATEGORY_SAME_INSTANCE: &str = "sameInstance";
 const FRIENDS_PANEL_CATEGORY_FAVORITES_ONLINE: &str = "favOnline";
@@ -409,6 +409,35 @@ impl FriendsPanelAvatarCacheEntry {
     }
 }
 
+fn insert_friends_panel_avatar_if_session_current(
+    avatars: &Arc<Mutex<HashMap<String, FriendsPanelAvatarCacheEntry>>>,
+    session_generation: &AtomicU64,
+    expected_generation: u64,
+    user_id: &str,
+    bitmap: AvatarBitmap,
+    source_url: &str,
+    allow_user_icon: bool,
+) -> bool {
+    if session_generation.load(Ordering::Acquire) != expected_generation {
+        return false;
+    }
+    let Ok(mut avatars) = avatars.lock() else {
+        return false;
+    };
+    if session_generation.load(Ordering::Acquire) != expected_generation {
+        return false;
+    }
+    avatars.insert(
+        user_id.to_string(),
+        FriendsPanelAvatarCacheEntry {
+            bitmap,
+            source_url: source_url.to_string(),
+            allow_user_icon,
+        },
+    );
+    true
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrOverlayRuntimeSnapshot {
@@ -437,6 +466,7 @@ pub struct VrOverlayRuntime {
     friends_panel_snapshot_provider: Mutex<Option<FriendsPanelSnapshotProvider>>,
     friends_panel_favorite_groups: Mutex<FavoriteFriendGroupsSnapshot>,
     friends_panel_avatars: Arc<Mutex<HashMap<String, FriendsPanelAvatarCacheEntry>>>,
+    friends_panel_avatar_session_generation: Arc<AtomicU64>,
     friends_panel_avatar_fetches: Arc<Mutex<HashSet<String>>>,
     friends_panel_world_resolves: Arc<Mutex<HashSet<String>>>,
     friends_panel_note_memo_cache: Mutex<FriendsPanelNoteMemoCache>,
@@ -561,6 +591,7 @@ impl VrOverlayRuntime {
             friends_panel_snapshot_provider: Mutex::new(None),
             friends_panel_favorite_groups: Mutex::new(FavoriteFriendGroupsSnapshot::default()),
             friends_panel_avatars: Arc::new(Mutex::new(HashMap::new())),
+            friends_panel_avatar_session_generation: Arc::new(AtomicU64::new(0)),
             friends_panel_avatar_fetches: Arc::new(Mutex::new(HashSet::new())),
             friends_panel_world_resolves: Arc::new(Mutex::new(HashSet::new())),
             friends_panel_note_memo_cache: Mutex::new(FriendsPanelNoteMemoCache::default()),
@@ -684,12 +715,15 @@ impl VrOverlayRuntime {
     }
 
     pub(crate) fn clear_friends_panel_session_state(&self) {
+        self.friends_panel_avatar_session_generation
+            .fetch_add(1, Ordering::AcqRel);
         if let Ok(mut current) = self.friends_panel_favorite_groups.lock() {
             *current = FavoriteFriendGroupsSnapshot::default();
         }
         if let Ok(mut avatars) = self.friends_panel_avatars.lock() {
             avatars.clear();
         }
+        self.avatar_bitmap_cache.clear();
         self.clear_friends_panel_note_memo_cache();
         self.friends_panel_model_dirty
             .store(true, Ordering::Release);
@@ -979,6 +1013,8 @@ impl VrOverlayRuntime {
         let user_image_cache = Arc::clone(&self.user_image_cache);
         let avatar_cache = Arc::clone(&self.avatar_bitmap_cache);
         let avatars = Arc::clone(&self.friends_panel_avatars);
+        let avatar_session_generation = Arc::clone(&self.friends_panel_avatar_session_generation);
+        let expected_avatar_session_generation = avatar_session_generation.load(Ordering::Acquire);
         let inflight = Arc::clone(&self.friends_panel_avatar_fetches);
         let dirty = Arc::clone(&self.friends_panel_model_dirty);
         let wake = Arc::clone(&self.refresh_wake);
@@ -1001,21 +1037,21 @@ impl VrOverlayRuntime {
             };
             if !image_url.trim().is_empty() {
                 if let Some(bitmap) = avatar_cache
-                    .resolve(context.web.as_ref(), image_url.trim())
+                    .resolve(context.web.as_ref(), image_url.trim(), &user_id)
                     .await
                 {
-                    if let Ok(mut avatars) = avatars.lock() {
-                        avatars.insert(
-                            user_id.clone(),
-                            FriendsPanelAvatarCacheEntry {
-                                bitmap,
-                                source_url: image_url.trim().to_string(),
-                                allow_user_icon,
-                            },
-                        );
+                    if insert_friends_panel_avatar_if_session_current(
+                        &avatars,
+                        avatar_session_generation.as_ref(),
+                        expected_avatar_session_generation,
+                        &user_id,
+                        bitmap,
+                        image_url.trim(),
+                        allow_user_icon,
+                    ) {
+                        dirty.store(true, Ordering::Release);
+                        wake.notify();
                     }
-                    dirty.store(true, Ordering::Release);
-                    wake.notify();
                 }
             }
             if let Ok(mut inflight) = inflight.lock() {
@@ -1205,6 +1241,9 @@ impl VrOverlayRuntime {
             self.vr_mode.store(false, Ordering::Release);
         }
         let previous_game_running = self.game_running.swap(game_running, Ordering::AcqRel);
+        if previous_game_running && !game_running {
+            self.avatar_bitmap_cache.clear();
+        }
         if previous_game_running != game_running {
             self.friends_panel_model_dirty
                 .store(true, Ordering::Release);
@@ -1367,6 +1406,16 @@ impl VrOverlayRuntime {
         render_slint_hmd_frame(&model)
     }
 
+    fn hmd_avatar_friend_context(&self, actor_user_id: &str) -> Option<(FriendRecord, String)> {
+        let actor_user_id = actor_user_id.trim();
+        if !actor_user_id.starts_with("usr_") {
+            return None;
+        }
+        let snapshot = self.current_friends_panel_snapshot()?;
+        let record = snapshot.friends_by_id.get(actor_user_id)?.clone();
+        Some((record, snapshot.endpoint))
+    }
+
     fn spawn_avatar_fetch(self: &Arc<Self>, entry: &OverlayActivityEntry) {
         let Some(context) = self.context.as_ref().cloned() else {
             return;
@@ -1376,20 +1425,30 @@ impl VrOverlayRuntime {
             return;
         }
         let actor_user_id = entry.actor_user_id.trim().to_string();
-        let endpoint = context.auth_scope.snapshot().endpoint;
-        let initial_image_url = normalize_avatar_image_url_128(&entry.content.image_url, &endpoint);
-        if initial_image_url.is_empty() && !actor_user_id.starts_with("usr_") {
+        let Some((friend_record, snapshot_endpoint)) =
+            self.hmd_avatar_friend_context(&actor_user_id)
+        else {
             tracing::debug!(
                 source_id = %source_id,
                 actor_user_id = %actor_user_id,
-                "HMD avatar fetch skipped: no image url and no resolvable user id"
+                "HMD avatar fetch skipped: actor is not in the current friend snapshot"
             );
             return;
-        }
+        };
+        let auth = context.auth_scope.snapshot();
+        let endpoint = if snapshot_endpoint.trim().is_empty() {
+            auth.endpoint.clone()
+        } else {
+            snapshot_endpoint
+        };
         let allow_user_icon = context
             .config()
             .get_bool("displayVRCPlusIconsAsAvatar", true)
             .unwrap_or(true);
+        let friend_image_url = friend_record_avatar_url(&friend_record, allow_user_icon, &endpoint);
+        let entry_image_url = normalize_avatar_image_url_128(&entry.content.image_url, &endpoint);
+        let initial_image_url =
+            first_non_empty([friend_image_url.as_str(), entry_image_url.as_str()]).to_string();
         if let Some(bitmap) =
             self.cached_hmd_avatar(&initial_image_url, &actor_user_id, allow_user_icon)
         {
@@ -1399,10 +1458,11 @@ impl VrOverlayRuntime {
         let user_image_cache = Arc::clone(&self.user_image_cache);
         let avatar_cache = Arc::clone(&self.avatar_bitmap_cache);
         let runtime = Arc::clone(self);
+        let resolve_endpoint = endpoint.clone();
+        let avatar_cache_generation = avatar_cache.generation();
         let tasks = context.tasks.clone();
         tasks.spawn(async move {
             let image_url = if initial_image_url.is_empty() {
-                let auth = context.auth_scope.snapshot();
                 if actor_user_id == auth.current_user_id {
                     return;
                 }
@@ -1410,7 +1470,7 @@ impl VrOverlayRuntime {
                     .resolve(
                         context.web.as_ref(),
                         context.db.as_ref(),
-                        &auth.endpoint,
+                        &resolve_endpoint,
                         &actor_user_id,
                         allow_user_icon,
                     )
@@ -1428,7 +1488,7 @@ impl VrOverlayRuntime {
                 return;
             }
             let Some(bitmap) = avatar_cache
-                .resolve(context.web.as_ref(), image_url.trim())
+                .resolve(context.web.as_ref(), image_url.trim(), &actor_user_id)
                 .await
             else {
                 tracing::debug!(
@@ -1437,6 +1497,9 @@ impl VrOverlayRuntime {
                 );
                 return;
             };
+            if !avatar_cache.is_generation_current(avatar_cache_generation) {
+                return;
+            }
             runtime.update_hmd_avatar(&source_id, bitmap);
         });
     }
@@ -1453,7 +1516,7 @@ impl VrOverlayRuntime {
         } else {
             initial_image_url.to_string()
         };
-        self.avatar_bitmap_cache.cached(url.trim())
+        self.avatar_bitmap_cache.cached(url.trim(), actor_user_id)
     }
 
     fn update_hmd_avatar(&self, source_id: &str, avatar: AvatarBitmap) {
@@ -1791,7 +1854,7 @@ impl VrOverlayRuntime {
             self.release_frame_producer_on_current_thread();
         });
         self.consume_slint_renderer_release_request(&self.hmd_frame_release_requested, || {
-            self.release_hmd_renderer_on_current_thread();
+            self.release_hmd_renderer_for_lifecycle_reset_on_current_thread();
         });
         self.consume_slint_renderer_release_request(
             &self.friends_panel_host_release_requested,
@@ -1821,7 +1884,7 @@ impl VrOverlayRuntime {
             self.refresh_wake.notify();
             return;
         }
-        self.release_hmd_renderer_on_current_thread();
+        self.release_hmd_renderer_for_lifecycle_reset_on_current_thread();
     }
 
     fn release_friends_panel_host(&self) {
@@ -1845,6 +1908,11 @@ impl VrOverlayRuntime {
         self.hmd_frame_release_requested
             .store(false, Ordering::Release);
         clear_slint_hmd_renderer();
+    }
+
+    fn release_hmd_renderer_for_lifecycle_reset_on_current_thread(&self) {
+        self.avatar_bitmap_cache.clear();
+        self.release_hmd_renderer_on_current_thread();
     }
 
     fn release_frame_producer_on_current_thread(&self) {
@@ -2666,10 +2734,45 @@ impl VrOverlayFrameProducer for StaticWristFrameProducer {
 }
 
 #[derive(Default)]
+struct AvatarBitmapCacheState {
+    entries: HashMap<String, AvatarBitmapCacheEntry>,
+    next_seq: u64,
+}
+
+#[derive(Clone)]
+struct AvatarBitmapCacheEntry {
+    bitmap: AvatarBitmap,
+    user_id: String,
+    last_used_seq: u64,
+}
+
+impl AvatarBitmapCacheState {
+    fn next_lru_seq(&mut self) -> u64 {
+        self.next_seq = self.next_seq.saturating_add(1);
+        self.next_seq
+    }
+
+    fn evict_oldest_if_over_capacity(&mut self) {
+        while self.entries.len() > HMD_AVATAR_CACHE_CAPACITY {
+            let Some(oldest_url) = self
+                .entries
+                .iter()
+                .min_by_key(|(_, entry)| entry.last_used_seq)
+                .map(|(url, _)| url.clone())
+            else {
+                break;
+            };
+            self.entries.remove(&oldest_url);
+        }
+    }
+}
+
+#[derive(Default)]
 struct AvatarBitmapCache {
-    success: Mutex<HashMap<String, (AvatarBitmap, Instant)>>,
+    success: Mutex<AvatarBitmapCacheState>,
     failures: Mutex<HashMap<String, Instant>>,
     inflight: Mutex<HashMap<String, std::sync::Weak<tokio::sync::Mutex<()>>>>,
+    generation: AtomicU64,
 }
 
 impl AvatarBitmapCache {
@@ -2677,12 +2780,14 @@ impl AvatarBitmapCache {
         Self::default()
     }
 
-    async fn resolve(&self, web: &WebClient, url: &str) -> Option<AvatarBitmap> {
+    async fn resolve(&self, web: &WebClient, url: &str, user_id: &str) -> Option<AvatarBitmap> {
         let url = url.trim();
-        if url.is_empty() {
+        let user_id = user_id.trim();
+        if url.is_empty() || !user_id.starts_with("usr_") {
             return None;
         }
-        if let Some(bitmap) = self.cached(url) {
+        let generation = self.generation();
+        if let Some(bitmap) = self.cached(url, user_id) {
             return Some(bitmap);
         }
         if self.recently_failed(url) {
@@ -2690,7 +2795,7 @@ impl AvatarBitmapCache {
         }
         let inflight = self.inflight_lock(url);
         let _guard = inflight.lock().await;
-        if let Some(bitmap) = self.cached(url) {
+        if let Some(bitmap) = self.cached(url, user_id) {
             return Some(bitmap);
         }
         if self.recently_failed(url) {
@@ -2699,11 +2804,14 @@ impl AvatarBitmapCache {
         let bitmap = self.fetch_and_decode(web, url).await;
         match bitmap {
             Some(bitmap) => {
-                self.store_success(url, bitmap.clone());
-                Some(bitmap)
+                if self.store_success_if_generation(url, user_id, bitmap.clone(), generation) {
+                    Some(bitmap)
+                } else {
+                    None
+                }
             }
             None => {
-                self.store_failure(url);
+                self.store_failure_if_generation(url, generation);
                 None
             }
         }
@@ -2718,17 +2826,27 @@ impl AvatarBitmapCache {
         decode_avatar_bitmap(&bytes)
     }
 
-    fn cached(&self, url: &str) -> Option<AvatarBitmap> {
+    fn cached(&self, url: &str, user_id: &str) -> Option<AvatarBitmap> {
+        let url = url.trim();
+        let user_id = user_id.trim();
+        if url.is_empty() || user_id.is_empty() {
+            return None;
+        }
         let mut success = self
             .success
             .lock()
             .unwrap_or_else(|error| error.into_inner());
-        let (bitmap, at) = success.get(url)?;
-        if at.elapsed() >= HMD_AVATAR_SUCCESS_TTL {
-            success.remove(url);
+        if !success
+            .entries
+            .get(url)
+            .is_some_and(|entry| entry.user_id == user_id)
+        {
             return None;
         }
-        Some(bitmap.clone())
+        let last_used_seq = success.next_lru_seq();
+        let entry = success.entries.get_mut(url)?;
+        entry.last_used_seq = last_used_seq;
+        Some(entry.bitmap.clone())
     }
 
     fn recently_failed(&self, url: &str) -> bool {
@@ -2739,22 +2857,63 @@ impl AvatarBitmapCache {
             .is_some_and(|at| at.elapsed() < HMD_AVATAR_FAILURE_TTL)
     }
 
-    fn store_success(&self, url: &str, bitmap: AvatarBitmap) {
+    fn store_success(&self, url: &str, user_id: &str, bitmap: AvatarBitmap) {
+        let generation = self.generation();
+        let _ = self.store_success_if_generation(url, user_id, bitmap, generation);
+    }
+
+    fn store_success_if_generation(
+        &self,
+        url: &str,
+        user_id: &str,
+        bitmap: AvatarBitmap,
+        generation: u64,
+    ) -> bool {
+        let url = url.trim();
+        let user_id = user_id.trim();
+        if url.is_empty() || !user_id.starts_with("usr_") || !self.is_generation_current(generation)
+        {
+            return false;
+        }
         let mut success = self
             .success
             .lock()
             .unwrap_or_else(|error| error.into_inner());
-        success.retain(|_, (_, at)| at.elapsed() < HMD_AVATAR_SUCCESS_TTL);
-        success.insert(url.to_string(), (bitmap, Instant::now()));
+        if !self.is_generation_current(generation) {
+            return false;
+        }
+        let last_used_seq = success.next_lru_seq();
+        success.entries.insert(
+            url.to_string(),
+            AvatarBitmapCacheEntry {
+                bitmap,
+                user_id: user_id.to_string(),
+                last_used_seq,
+            },
+        );
+        success.evict_oldest_if_over_capacity();
+        true
     }
 
     fn store_failure(&self, url: &str) {
+        let generation = self.generation();
+        let _ = self.store_failure_if_generation(url, generation);
+    }
+
+    fn store_failure_if_generation(&self, url: &str, generation: u64) -> bool {
+        if !self.is_generation_current(generation) {
+            return false;
+        }
         let mut failures = self
             .failures
             .lock()
             .unwrap_or_else(|error| error.into_inner());
+        if !self.is_generation_current(generation) {
+            return false;
+        }
         failures.retain(|_, at| at.elapsed() < HMD_AVATAR_FAILURE_TTL);
         failures.insert(url.to_string(), Instant::now());
+        true
     }
 
     fn inflight_lock(&self, url: &str) -> Arc<tokio::sync::Mutex<()>> {
@@ -2769,6 +2928,30 @@ impl AvatarBitmapCache {
         let guard = Arc::new(tokio::sync::Mutex::new(()));
         inflight.insert(url.to_string(), Arc::downgrade(&guard));
         guard
+    }
+
+    fn clear(&self) {
+        self.generation.fetch_add(1, Ordering::AcqRel);
+        *self
+            .success
+            .lock()
+            .unwrap_or_else(|error| error.into_inner()) = AvatarBitmapCacheState::default();
+        self.failures
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .clear();
+        self.inflight
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .clear();
+    }
+
+    fn generation(&self) -> u64 {
+        self.generation.load(Ordering::Acquire)
+    }
+
+    fn is_generation_current(&self, generation: u64) -> bool {
+        self.generation.load(Ordering::Acquire) == generation
     }
 }
 
@@ -4367,6 +4550,33 @@ mod tests {
             config,
             Box::new(|| Box::<StaticWristFrameProducer>::default()),
         )
+    }
+
+    fn hmd_enabled_runtime_with_context(context: Arc<RuntimeHostContext>) -> Arc<VrOverlayRuntime> {
+        context
+            .config()
+            .set_bool(HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY, true)
+            .unwrap();
+        context
+            .config()
+            .set_string(HMD_NOTIFICATION_START_MODE_CONFIG_KEY, "steamvr")
+            .unwrap();
+        let runtime = Arc::new(VrOverlayRuntime::new_with_frame_producer_factory(
+            true,
+            Some(context),
+            VrOverlayRuntimeConfig {
+                panel_enabled: true,
+                hmd: HmdNotificationConfig {
+                    enabled: true,
+                    start_mode: WristOverlayStartMode::SteamVr,
+                    ..HmdNotificationConfig::default()
+                },
+                ..VrOverlayRuntimeConfig::default()
+            },
+            Box::new(|| Box::<StaticWristFrameProducer>::default()),
+        ));
+        record_process_status(&runtime, false, true, false);
+        runtime
     }
 
     fn friends_panel_snapshot(record: FriendRecord) -> RealtimeFriendSnapshot {
@@ -6176,6 +6386,282 @@ mod tests {
     }
 
     #[test]
+    fn avatar_bitmap_cache_keeps_friend_bitmap_until_lifecycle_clear() {
+        let cache = AvatarBitmapCache::new();
+        cache.store_success(
+            "https://images.example/avatar",
+            "usr_friend",
+            test_avatar_bitmap(),
+        );
+
+        assert!(cache
+            .cached("https://images.example/avatar", "usr_friend")
+            .is_some());
+
+        cache.clear();
+
+        assert!(cache
+            .cached("https://images.example/avatar", "usr_friend")
+            .is_none());
+    }
+
+    #[test]
+    fn avatar_bitmap_cache_rejects_other_user_context() {
+        let cache = AvatarBitmapCache::new();
+        cache.store_success(
+            "https://images.example/avatar",
+            "usr_friend",
+            test_avatar_bitmap(),
+        );
+
+        assert!(cache
+            .cached("https://images.example/avatar", "usr_stranger")
+            .is_none());
+    }
+
+    #[test]
+    fn avatar_bitmap_cache_evicts_least_recently_used_entry_after_capacity() {
+        let cache = AvatarBitmapCache::new();
+        for index in 0..HMD_AVATAR_CACHE_CAPACITY {
+            let url = format!("https://images.example/avatar/{index}");
+            let user_id = format!("usr_friend_{index}");
+            cache.store_success(&url, &user_id, test_avatar_bitmap());
+        }
+
+        assert!(cache
+            .cached("https://images.example/avatar/0", "usr_friend_0")
+            .is_some());
+        cache.store_success(
+            "https://images.example/avatar/new",
+            "usr_friend_new",
+            test_avatar_bitmap(),
+        );
+
+        assert!(cache
+            .cached("https://images.example/avatar/0", "usr_friend_0")
+            .is_some());
+        assert!(cache
+            .cached("https://images.example/avatar/1", "usr_friend_1")
+            .is_none());
+        assert!(cache
+            .cached("https://images.example/avatar/new", "usr_friend_new")
+            .is_some());
+    }
+
+    #[test]
+    fn avatar_bitmap_cache_failure_ttl_still_suppresses_short_term_retries() {
+        let cache = AvatarBitmapCache::new();
+        cache.store_failure("https://images.example/avatar");
+
+        assert!(cache.recently_failed("https://images.example/avatar"));
+
+        *cache
+            .failures
+            .lock()
+            .unwrap()
+            .get_mut("https://images.example/avatar")
+            .unwrap() = Instant::now() - HMD_AVATAR_FAILURE_TTL - Duration::from_secs(1);
+
+        assert!(!cache.recently_failed("https://images.example/avatar"));
+    }
+
+    #[test]
+    fn avatar_bitmap_cache_rejects_stale_fetch_results_after_clear() {
+        let cache = AvatarBitmapCache::new();
+        let generation = cache.generation();
+
+        cache.clear();
+
+        assert!(!cache.store_success_if_generation(
+            "https://images.example/avatar",
+            "usr_friend",
+            test_avatar_bitmap(),
+            generation,
+        ));
+        assert!(cache
+            .cached("https://images.example/avatar", "usr_friend")
+            .is_none());
+        assert!(!cache.store_failure_if_generation("https://images.example/avatar", generation));
+        assert!(!cache.recently_failed("https://images.example/avatar"));
+    }
+
+    #[test]
+    fn friends_panel_avatar_session_clear_rejects_stale_insert() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        let session_generation = runtime
+            .friends_panel_avatar_session_generation
+            .load(Ordering::Acquire);
+
+        runtime.clear_friends_panel_session_state();
+
+        assert!(!insert_friends_panel_avatar_if_session_current(
+            &runtime.friends_panel_avatars,
+            runtime.friends_panel_avatar_session_generation.as_ref(),
+            session_generation,
+            "usr_friend",
+            test_avatar_bitmap(),
+            "https://images.example/avatar",
+            true,
+        ));
+        assert!(runtime.friends_panel_avatars.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn hmd_avatar_cache_hit_requires_friend_snapshot() {
+        let (_dir, _db, context) = test_context("hmd-avatar-friend-gate");
+        let runtime = hmd_enabled_runtime_with_context(context);
+        let url = "https://images.example/avatar/128";
+        let bitmap = test_avatar_bitmap();
+        runtime
+            .avatar_bitmap_cache
+            .store_success(url, "usr_actor", bitmap.clone());
+        let mut entry = hmd_entry(
+            "friend-avatar",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::Friend,
+            "wrld_home:123",
+        );
+        entry.content.image_url = url.to_string();
+        runtime.enqueue_hmd_toast(entry.clone(), Instant::now(), Duration::from_secs(5));
+
+        runtime.spawn_avatar_fetch(&entry);
+
+        assert!(runtime
+            .hmd_toast_views(Instant::now())
+            .first()
+            .and_then(|toast| toast.avatar.clone())
+            .is_none());
+
+        runtime.set_friends_panel_snapshot_provider(|| {
+            Some(friends_panel_snapshot(FriendRecord {
+                id: "usr_actor".to_string(),
+                display_name: "Friend".to_string(),
+                ..FriendRecord::default()
+            }))
+        });
+        runtime.spawn_avatar_fetch(&entry);
+
+        assert_eq!(
+            runtime
+                .hmd_toast_views(Instant::now())
+                .first()
+                .and_then(|toast| toast.avatar.clone()),
+            Some(bitmap)
+        );
+    }
+
+    #[test]
+    fn hmd_avatar_uses_friend_record_url_before_direct_notification_image() {
+        let (_dir, _db, context) = test_context("hmd-avatar-record-url-first");
+        let runtime = hmd_enabled_runtime_with_context(context);
+        let selected_url = "https://images.example/profile/128";
+        let direct_url = "https://images.example/direct/128";
+        let selected_bitmap = test_avatar_bitmap_with_red(32);
+        let direct_bitmap = test_avatar_bitmap_with_red(220);
+        runtime.avatar_bitmap_cache.store_success(
+            selected_url,
+            "usr_actor",
+            selected_bitmap.clone(),
+        );
+        runtime
+            .avatar_bitmap_cache
+            .store_success(direct_url, "usr_actor", direct_bitmap);
+        runtime.set_friends_panel_snapshot_provider(|| {
+            Some(friends_panel_snapshot(FriendRecord {
+                id: "usr_actor".to_string(),
+                display_name: "Friend".to_string(),
+                extra: serde_json::json!({
+                    "profilePicOverrideThumbnail": "https://images.example/profile/256",
+                })
+                .as_object()
+                .unwrap()
+                .clone(),
+                ..FriendRecord::default()
+            }))
+        });
+        let mut entry = hmd_entry(
+            "friend-avatar-direct-image",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::Friend,
+            "wrld_home:123",
+        );
+        entry.content.image_url = direct_url.to_string();
+        runtime.enqueue_hmd_toast(entry.clone(), Instant::now(), Duration::from_secs(5));
+
+        runtime.spawn_avatar_fetch(&entry);
+
+        assert_eq!(
+            runtime
+                .hmd_toast_views(Instant::now())
+                .first()
+                .and_then(|toast| toast.avatar.clone()),
+            Some(selected_bitmap)
+        );
+    }
+
+    #[test]
+    fn hmd_idle_renderer_release_keeps_avatar_bitmap_cache() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.avatar_bitmap_cache.store_success(
+            "https://images.example/idle",
+            "usr_friend",
+            test_avatar_bitmap(),
+        );
+
+        {
+            let mut manager = runtime.manager.lock().unwrap();
+            runtime.push_hmd_frame(
+                &mut manager,
+                VrOverlayRuntimeConfig::default(),
+                Instant::now(),
+            );
+        }
+
+        assert!(runtime
+            .avatar_bitmap_cache
+            .cached("https://images.example/idle", "usr_friend")
+            .is_some());
+    }
+
+    #[test]
+    fn game_stop_hmd_release_and_session_clear_drop_avatar_bitmap_cache() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        runtime.avatar_bitmap_cache.store_success(
+            "https://images.example/game",
+            "usr_friend",
+            test_avatar_bitmap(),
+        );
+        record_process_status(&runtime, true, true, true);
+        record_process_status(&runtime, false, true, true);
+        assert!(runtime
+            .avatar_bitmap_cache
+            .cached("https://images.example/game", "usr_friend")
+            .is_none());
+
+        runtime.avatar_bitmap_cache.store_success(
+            "https://images.example/hmd",
+            "usr_friend",
+            test_avatar_bitmap(),
+        );
+        runtime.release_hmd_renderer();
+        assert!(runtime
+            .avatar_bitmap_cache
+            .cached("https://images.example/hmd", "usr_friend")
+            .is_none());
+
+        runtime.avatar_bitmap_cache.store_success(
+            "https://images.example/session",
+            "usr_friend",
+            test_avatar_bitmap(),
+        );
+        runtime.clear_friends_panel_session_state();
+        assert!(runtime
+            .avatar_bitmap_cache
+            .cached("https://images.example/session", "usr_friend")
+            .is_none());
+    }
+
+    #[test]
     fn friends_panel_avatar_url_follows_vrc_plus_icon_config() {
         let record = FriendRecord {
             id: "usr_avatar".into(),
@@ -6415,6 +6901,14 @@ mod tests {
             width: 1,
             height: 1,
             rgba: Arc::<[u8]>::from([255, 255, 255, 255]),
+        }
+    }
+
+    fn test_avatar_bitmap_with_red(red: u8) -> AvatarBitmap {
+        AvatarBitmap {
+            width: 1,
+            height: 1,
+            rgba: Arc::<[u8]>::from([red, 0, 0, 255]),
         }
     }
 
