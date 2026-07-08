@@ -114,7 +114,8 @@ const INTERACTIVE_INPUT_DRAIN_INTERVAL: Duration = Duration::from_millis(30);
 const HMD_TOAST_CAPACITY: usize = 3;
 const HMD_TOAST_WORLD_RESOLVE_BUDGET: Duration = Duration::from_secs(2);
 const HMD_JOIN_LEAVE_MERGE_WINDOW: Duration = Duration::from_secs(4);
-const HMD_AVATAR_SIZE: u32 = 96;
+const HMD_AVATAR_SIZE: u32 = 128;
+const HMD_AVATAR_MASK_FEATHER_PX: f32 = 2.0;
 const HMD_AVATAR_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 const HMD_AVATAR_SUCCESS_TTL: Duration = Duration::from_secs(15 * 60);
 const HMD_AVATAR_FAILURE_TTL: Duration = Duration::from_secs(60);
@@ -2715,17 +2716,17 @@ fn apply_circular_avatar_mask(rgba: &mut [u8], width: u32, height: u32) {
     let center_x = (width as f32 - 1.0) / 2.0;
     let center_y = (height as f32 - 1.0) / 2.0;
     let radius = width.min(height) as f32 / 2.0;
-    let radius_sq = radius * radius;
+    let half_feather = HMD_AVATAR_MASK_FEATHER_PX / 2.0;
     for y in 0..height {
         for x in 0..width {
             let dx = x as f32 - center_x;
             let dy = y as f32 - center_y;
-            if dx * dx + dy * dy <= radius_sq {
-                continue;
-            }
+            let distance = (dx * dx + dy * dy).sqrt();
+            let coverage =
+                ((radius - distance + half_feather) / HMD_AVATAR_MASK_FEATHER_PX).clamp(0.0, 1.0);
             let alpha_index = ((y * width + x) * 4 + 3) as usize;
             if let Some(alpha) = rgba.get_mut(alpha_index) {
-                *alpha = 0;
+                *alpha = ((*alpha as f32) * coverage).round() as u8;
             }
         }
     }
@@ -6052,13 +6053,16 @@ mod tests {
 
     #[test]
     fn circular_avatar_mask_makes_corners_transparent() {
+        assert_eq!(HMD_AVATAR_SIZE, 128);
         let mut rgba = vec![255; (HMD_AVATAR_SIZE * HMD_AVATAR_SIZE * 4) as usize];
         apply_circular_avatar_mask(&mut rgba, HMD_AVATAR_SIZE, HMD_AVATAR_SIZE);
+        let alpha_at = |x: u32, y: u32| rgba[((y * HMD_AVATAR_SIZE + x) * 4 + 3) as usize];
 
-        assert_eq!(rgba[3], 0);
-        let center_alpha =
-            (((HMD_AVATAR_SIZE / 2) * HMD_AVATAR_SIZE + HMD_AVATAR_SIZE / 2) * 4 + 3) as usize;
-        assert_eq!(rgba[center_alpha], 255);
+        assert_eq!(alpha_at(0, 0), 0);
+        assert_eq!(alpha_at(HMD_AVATAR_SIZE / 2, HMD_AVATAR_SIZE / 2), 255);
+        let edge_alpha = alpha_at(HMD_AVATAR_SIZE - 1, HMD_AVATAR_SIZE / 2);
+        assert!(edge_alpha > 0);
+        assert!(edge_alpha < 255);
     }
 
     #[test]
