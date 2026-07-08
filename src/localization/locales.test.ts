@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import cs from './cs.json';
+import de from './de.json';
 import en from './en.json';
 import es from './es.json';
 import fr from './fr.json';
@@ -19,6 +20,7 @@ import zhTw from './zh-TW.json';
 
 const localeSources: Record<string, unknown> = {
     cs,
+    de,
     en,
     es,
     fr,
@@ -64,8 +66,12 @@ describe('normalizeLanguageCode', () => {
         expect(normalizeLanguageCode('zh-HK')).toBe('zh-TW');
     });
 
+    it('maps regional German system locale to the supported app language', () => {
+        expect(normalizeLanguageCode('de-DE')).toBe('de');
+    });
+
     it('falls back to English for unsupported or empty languages', () => {
-        expect(normalizeLanguageCode('de-DE')).toBe('en');
+        expect(normalizeLanguageCode('xx-XX')).toBe('en');
         expect(normalizeLanguageCode('')).toBe('en');
         expect(normalizeLanguageCode(null)).toBe('en');
     });

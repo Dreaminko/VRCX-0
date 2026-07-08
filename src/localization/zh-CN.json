@@ -1080,8 +1080,8 @@
             "filters": {
                 "requestInvite": "申请加入",
                 "invite": "邀请",
-                "requestInviteResponse": "拒绝加入申请",
-                "inviteResponse": "拒绝邀请",
+                "requestInviteResponse": "加入申请回应",
+                "inviteResponse": "邀请回应",
                 "friendRequest": "好友申请",
                 "ignoredFriendRequest": "忽略的好友申请",
                 "message": "消息",
@@ -4128,8 +4128,8 @@
             "types": {
                 "invite": "邀请",
                 "requestInvite": "申请加入",
-                "inviteResponse": "拒绝邀请",
-                "requestInviteResponse": "拒绝加入申请",
+                "inviteResponse": "邀请回应",
+                "requestInviteResponse": "加入申请回应",
                 "friendRequest": "好友请求",
                 "boop": "戳一戳",
                 "group_queueReady": "房间排队就绪",

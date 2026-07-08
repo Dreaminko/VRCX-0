@@ -118,7 +118,36 @@
             "players": "{count} jogadores",
             "instance_duration": "Instância {duration}"
         },
-        "generic_instance_location": "uma instância"
+        "generic_instance_location": "uma instância",
+        "friends_panel": {
+            "title": "Amigos Favoritos",
+            "all": "Todos",
+            "empty": "Nenhum amigo favorito online",
+            "note": "Nota",
+            "memo": "Nota Local",
+            "open": "Abrir",
+            "request": "Solicitar",
+            "invite": "Convidar",
+            "favorites_online": "Favoritos Online",
+            "same_instance": "Mesma Instância",
+            "local_favorites": "Favoritos Locais",
+            "traveling": "Viajando",
+            "private": "Privado",
+            "offline": "Offline"
+        },
+        "discord": {
+            "title": {
+                "invite": "Convite de {name}",
+                "request_invite": "Pedido de convite de {name}",
+                "invite_response": "Resposta ao convite de {name}",
+                "request_invite_response": "Resposta ao pedido de convite de {name}",
+                "gps": "Localização de {name}",
+                "status": "{name} mudou de status",
+                "avatar_change": "{name} trocou de avatar",
+                "online": "{name} entrou",
+                "offline": "{name} saiu"
+            }
+        }
     },
     "nativeShell": {
         "tray": {
@@ -1741,6 +1770,9 @@
                     "tray_description": "Quando ativado, clicar no botão de fechar (X) minimiza o VRCX-0 para a bandeja do sistema em vez de encerrar. Quando desativado, clicar no X encerra o VRCX-0.",
                     "background_mode": "Mudar para modo de segundo plano ao minimizar para a bandeja",
                     "background_mode_description": "Muda automaticamente para o modo de segundo plano ao minimizar para a bandeja. Reduz o uso de memória para 10% como antes. Alguns estados de página podem ser redefinidos ao restaurar.",
+                    "background_mode_delay": "Atraso para Mudar ao Modo em Segundo Plano",
+                    "background_mode_delay_description": "Depois que o VRCX-0 é minimizado para a bandeja, ele só muda para o Modo em Segundo Plano após a janela ficar fechada pelo número de minutos configurado. Abrir a janela reinicia o temporizador.",
+                    "background_mode_delay_button": "Definir Minutos de Atraso",
                     "auto_install_updates_on_startup": "Atualizar automaticamente na inicialização",
                     "auto_install_updates_on_startup_description": "Quando ativado, o VRCX-0 verifica atualizações ao iniciar o app. Se houver uma atualização instalável disponível, ela será baixada, instalada e o app reiniciará automaticamente.",
                     "auto_background_download_updates": "Baixar atualizações em segundo plano",
@@ -4468,6 +4500,11 @@
             "description": "Insira o atraso em segundos (0 para desativar, máx. 10).",
             "input_error": "Por favor, insira um número inteiro de 0 a 10."
         },
+        "background_mode_delay": {
+            "header": "Atraso para o modo em segundo plano",
+            "description": "Insira o atraso em minutos (10-600).",
+            "input_error": "Por favor, insira um número inteiro de 10 a 600."
+        },
         "proxy_settings": {
             "header": "Configurações de Proxy",
             "description": "Insira o endereço e a porta do servidor proxy",
@@ -4641,6 +4678,8 @@
     "notifications": {
         "has_joined": "entrou",
         "has_left": "saiu",
+        "joined_with_others": "e mais {count} entraram",
+        "left_with_others": "e mais {count} saíram",
         "is_joining": "está entrando",
         "gps": "está em {location}",
         "online_location": "entrou em {location}",

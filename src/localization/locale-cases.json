@@ -17,6 +17,8 @@
     { "input": "zh-Hant-HK", "expected": "zh-TW" },
     { "input": "zh-HK", "expected": "zh-TW" },
     { "input": "zh-MO", "expected": "zh-TW" },
-    { "input": "de-DE", "expected": "en" },
+    { "input": "de-DE", "expected": "de" },
+    { "input": "de", "expected": "de" },
+    { "input": "de_DE", "expected": "de" },
     { "input": "", "expected": "en" }
 ]

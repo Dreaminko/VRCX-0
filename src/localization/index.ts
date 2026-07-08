@@ -1,4 +1,5 @@
 import csMessages from './cs.json';
+import deMessages from './de.json';
 import enMessages from './en.json';
 import esMessages from './es.json';
 import frMessages from './fr.json';
@@ -19,6 +20,7 @@ type LocalizedStringTable = Record<string, unknown> & {
 
 const localizedStrings: Record<string, LocalizedStringTable> = {
     cs: csMessages,
+    de: deMessages,
     en: enMessages,
     es: esMessages,
     fr: frMessages,
