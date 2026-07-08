@@ -1770,6 +1770,9 @@
                     "tray_description": "When enabled, clicking the close button (X) minimizes VRCX-0 to the system tray instead of quitting. When disabled, clicking X quits VRCX-0.",
                     "background_mode": "Switch to Background Mode When Minimized to Tray",
                     "background_mode_description": "Automatically switch to background mode when minimized to tray. Reduces memory usage to 10% as before. Some page states may reset when restored.",
+                    "background_mode_delay": "Delay Switching to Background Mode",
+                    "background_mode_delay_description": "After VRCX-0 is closed to the tray, switch to Background Mode only after the window stays unopened for the configured number of minutes. Opening the window resets the timer.",
+                    "background_mode_delay_button": "Set Delay Minutes",
                     "auto_install_updates_on_startup": "Auto-Update on Startup",
                     "auto_install_updates_on_startup_description": "When enabled, VRCX-0 checks for updates when the app starts. If an installable update is available, it will download, install, and restart automatically.",
                     "auto_background_download_updates": "Download Updates in Background",
@@ -4496,6 +4499,11 @@
             "header": "Auto-login delay",
             "description": "Enter delay in seconds (0 to disable, max 10)",
             "input_error": "Please enter a whole number from 0 to 10"
+        },
+        "background_mode_delay": {
+            "header": "Background mode delay",
+            "description": "Enter delay in minutes (10-600).",
+            "input_error": "Please enter a whole number from 10 to 600"
         },
         "proxy_settings": {
             "header": "Proxy Settings",

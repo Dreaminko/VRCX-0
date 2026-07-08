@@ -1770,6 +1770,9 @@
                     "tray_description": "啟用時，點擊關閉按鈕（X）會將 VRCX-0 最小化至系統匣，而非結束程式。\n停用時，點擊關閉按鈕（X）將直接結束 VRCX-0。",
                     "background_mode": "最小化到系統匣時切換到背景模式",
                     "background_mode_description": "關閉到系統匣時切換到背景模式，記憶體用量降至約十分之一\n恢復後部分頁面狀態可能重設。",
+                    "background_mode_delay": "延遲切換到背景模式",
+                    "background_mode_delay_description": "關閉到系統匣後，只有在設定分鐘數內未重新開啟視窗時才切換到背景模式；每次開啟視窗都會重設計時。",
+                    "background_mode_delay_button": "設定延遲（分鐘）",
                     "auto_install_updates_on_startup": "啟動時自動更新",
                     "auto_install_updates_on_startup_description": "啟用時，VRCX-0 會在啟動時檢查更新。\n如果有可安裝的更新，將會自動下載、安裝並重新啟動。",
                     "auto_background_download_updates": "在背景下載更新",
@@ -4496,6 +4499,11 @@
             "header": "自動登入延遲",
             "description": "請輸入延遲秒數（0 表示停用，最多 10 秒）",
             "input_error": "請輸入 0 到 10 之間的整數"
+        },
+        "background_mode_delay": {
+            "header": "背景模式延遲",
+            "description": "請輸入延遲分鐘數（10 到 600）。",
+            "input_error": "請輸入 10 到 600 之間的整數"
         },
         "proxy_settings": {
             "header": "代理伺服器設定",

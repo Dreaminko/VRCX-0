@@ -35,6 +35,34 @@ describe('preferencesStore normalizers', () => {
         ).toBe(true);
     });
 
+    it('keeps background mode delay disabled with a bounded minute default', () => {
+        expect(DEFAULT_PREFERENCES.backgroundModeDelayEnabled).toBe(false);
+        expect(DEFAULT_PREFERENCES.backgroundModeDelayMinutes).toBe(60);
+        expect(normalizePreferenceSnapshot({})).toMatchObject({
+            backgroundModeDelayEnabled: false,
+            backgroundModeDelayMinutes: 60
+        });
+        expect(
+            normalizePreferenceSnapshot({
+                backgroundModeDelayEnabled: 'true',
+                backgroundModeDelayMinutes: '5'
+            })
+        ).toMatchObject({
+            backgroundModeDelayEnabled: true,
+            backgroundModeDelayMinutes: 10
+        });
+        expect(
+            normalizePreferenceSnapshot({
+                backgroundModeDelayMinutes: '9999'
+            }).backgroundModeDelayMinutes
+        ).toBe(600);
+        expect(
+            normalizePreferenceSnapshot({
+                backgroundModeDelayMinutes: 'bad'
+            }).backgroundModeDelayMinutes
+        ).toBe(60);
+    });
+
     it('keeps auth recovery webhook events enabled by default', () => {
         expect(DEFAULT_PREFERENCES.webhookAuthEventsEnabled).toBe(true);
         expect(normalizePreferenceSnapshot({}).webhookAuthEventsEnabled).toBe(

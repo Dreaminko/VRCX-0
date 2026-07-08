@@ -1716,6 +1716,9 @@
                     "tray_description": "활성화하면 닫기 버튼(X)을 클릭할 때 VRCX-0이 종료되지 않고 시스템 트레이로 최소화됩니다. 비활성화하면 X를 클릭할 때 VRCX-0이 종료됩니다.",
                     "background_mode": "트레이로 최소화되면 배경 모드로 전환",
                     "background_mode_description": "트레이로 최소화되면 자동으로 백그라운드 모드로 전환됩니다. 이전과 같이 메모리 사용량을 10%로 줄입니다. 일부 페이지 상태는 복원 시 재설정될 수 있습니다. ",
+                    "background_mode_delay": "배경 모드 전환 지연",
+                    "background_mode_delay_description": "VRCX-0을 트레이로 닫은 뒤 설정한 분 동안 창을 다시 열지 않은 경우에만 배경 모드로 전환합니다. 창을 열 때마다 타이머가 재설정됩니다.",
+                    "background_mode_delay_button": "지연 시간(분) 설정",
                     "auto_install_updates_on_startup": "시작 시 자동 업데이트",
                     "auto_install_updates_on_startup_description": "켜면 VRCX-0이 앱 시작 시 업데이트를 확인합니다. 설치 가능한 업데이트가 있으면 자동으로 다운로드하고 설치한 뒤 다시 시작해 업데이트를 완료합니다.",
                     "auto_background_download_updates": "백그라운드에서 업데이트 다운로드",
@@ -4423,6 +4426,11 @@
             "header": "자동 로그인 지연",
             "description": "지연 시간을 초 단위로 입력하세요(비활성화하려면 0, 최대 10).",
             "input_error": "0~10 사이의 정수를 입력하세요."
+        },
+        "background_mode_delay": {
+            "header": "배경 모드 지연",
+            "description": "지연 시간을 분 단위로 입력하세요(10-600).",
+            "input_error": "10~600 사이의 정수를 입력하세요."
         },
         "proxy_settings": {
             "header": "프록시 설정",

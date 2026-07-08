@@ -12,6 +12,7 @@ import { normalizeTrustColors } from '@/shared/utils/trustColors';
 import {
     DEFAULT_PREFERENCES,
     normalizeAutoDeletePrintsLimit,
+    normalizeBackgroundModeDelayMinutes,
     normalizeDefaultLaunchMode,
     normalizeFeedTimeDisplayMode,
     normalizeFeedHiddenUsers,
@@ -175,6 +176,8 @@ export async function loadPreferenceSnapshot() {
         autoLoginDelayEnabled,
         autoLoginDelaySeconds,
         backgroundModeEnabled,
+        backgroundModeDelayEnabled,
+        backgroundModeDelayMinutes,
         isStartAtWindowsStartup,
         isStartAsMinimizedState,
         isCloseToTray,
@@ -305,6 +308,8 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('autoLoginDelayEnabled', false),
         configRepository.getInt('autoLoginDelaySeconds', 0),
         configRepository.getBool('backgroundModeEnabled', false),
+        configRepository.getBool('backgroundModeDelayEnabled', false),
+        configRepository.getInt('backgroundModeDelayMinutes', 60),
         configRepository.getBool('StartAtWindowsStartup', false),
         storageRepository.getString('VRCX_StartAsMinimizedState', 'false'),
         storageRepository.getString('VRCX_CloseToTray', 'false'),
@@ -515,6 +520,10 @@ export async function loadPreferenceSnapshot() {
             ? autoLoginDelaySeconds
             : 0,
         backgroundModeEnabled: Boolean(backgroundModeEnabled),
+        backgroundModeDelayEnabled: Boolean(backgroundModeDelayEnabled),
+        backgroundModeDelayMinutes: normalizeBackgroundModeDelayMinutes(
+            backgroundModeDelayMinutes
+        ),
         isStartAtWindowsStartup: Boolean(isStartAtWindowsStartup),
         isStartAsMinimizedState: isStartAsMinimizedState === 'true',
         isCloseToTray: isCloseToTray === 'true',

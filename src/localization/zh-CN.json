@@ -1770,6 +1770,9 @@
                     "tray_description": "启用后，点击关闭按钮（X）会将 VRCX-0 最小化到系统托盘而非退出；关闭此选项时，点击 X 将直接退出 VRCX-0。",
                     "background_mode": "最小化到托盘时切换到后台模式",
                     "background_mode_description": "最小化到系统托盘时切换到后台模式，内存占用可降至约十分之一；恢复后部分页面状态可能重置。",
+                    "background_mode_delay": "延迟切换到后台模式",
+                    "background_mode_delay_description": "关闭到系统托盘后，只有在设定分钟数内未重新打开窗口时才切换到后台模式；每次打开窗口都会重置计时。",
+                    "background_mode_delay_button": "设置延迟（分钟）",
                     "auto_install_updates_on_startup": "启动时自动更新",
                     "auto_install_updates_on_startup_description": "打开后，VRCX-0 会在启动 app 时检查更新；如有可安装更新，将自动下载安装并重启完成更新。",
                     "auto_background_download_updates": "后台下载更新",
@@ -4496,6 +4499,11 @@
             "header": "自动登录延迟",
             "description": "输入延迟时间（秒）（0 表示禁用，最大值为 10）。",
             "input_error": "请输入 0 到 10 之间的整数。"
+        },
+        "background_mode_delay": {
+            "header": "后台模式延迟",
+            "description": "输入延迟时间（分钟），范围 10 到 600。",
+            "input_error": "请输入 10 到 600 之间的整数。"
         },
         "proxy_settings": {
             "header": "代理服务器设置",

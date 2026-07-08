@@ -76,6 +76,7 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     openYoutubeApiDialog: SettingsCallback;
     promptAutoClearVrcxCacheFrequency: SettingsCallback;
     promptAutoLoginDelaySeconds: SettingsCallback;
+    promptBackgroundModeDelayMinutes: SettingsCallback;
     prefs: SettingsPrefs;
     refreshCacheSize: SettingsCallback;
     refreshConfigTreeData: SettingsCallback;
@@ -214,6 +215,7 @@ export function buildSettingsPageStateSections({
     prefs,
     promptAutoClearVrcxCacheFrequency,
     promptAutoLoginDelaySeconds,
+    promptBackgroundModeDelayMinutes,
     purgeAvatarFeedData,
     purgeDialogOpen,
     purgeInProgress,
@@ -346,7 +348,8 @@ export function buildSettingsPageStateSections({
             setStartAtWindowsStartupPreference,
             setStartAsMinimizedPreference,
             setCloseToTrayPreference,
-            promptAutoLoginDelaySeconds
+            promptAutoLoginDelaySeconds,
+            promptBackgroundModeDelayMinutes
         },
         interface: {
             locale,

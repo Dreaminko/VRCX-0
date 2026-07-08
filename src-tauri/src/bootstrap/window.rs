@@ -10,7 +10,7 @@ use vrcx_0_application::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntime
 use super::adapters::start_host_services;
 use super::notification::{is_background_mode_active, is_community_theme_enabled, tray_labels};
 use super::{
-    show_auth_failure_notification_after_backend_start_error,
+    cancel_background_delay, show_auth_failure_notification_after_backend_start_error,
     show_background_mode_started_notification,
 };
 
@@ -111,6 +111,7 @@ pub async fn start_background_mode_for_current_session(
     app: &tauri::AppHandle,
     state: &AppState,
 ) -> Result<BackendRuntimeSnapshot, AppError> {
+    cancel_background_delay(state);
     super::capture_background_resume_route(app, state);
     let snapshot = match state
         .start_backend_runtime(BackendRuntimeMode::Background, None)
@@ -182,6 +183,9 @@ fn normalize_background_resume_route(raw: &str) -> Option<String> {
 }
 
 fn present_main_window(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<AppState>() {
+        cancel_background_delay(&state);
+    }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.set_skip_taskbar(false);
         let _ = window.show();

@@ -261,6 +261,14 @@ export function normalizeAutoDeletePrintsLimit(value: unknown): number {
     });
 }
 
+export function normalizeBackgroundModeDelayMinutes(value: unknown): number {
+    return normalizeBoundedInt(value, {
+        min: 10,
+        max: 600,
+        fallback: 60
+    });
+}
+
 export function normalizeTableLimits(value: unknown = {}): {
     maxTableSize: number;
     searchLimit: number;
@@ -414,6 +422,8 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     autoLoginDelayEnabled: false,
     autoLoginDelaySeconds: 0,
     backgroundModeEnabled: false,
+    backgroundModeDelayEnabled: false,
+    backgroundModeDelayMinutes: 60,
     isStartAtWindowsStartup: false,
     isStartAsMinimizedState: false,
     isCloseToTray: false,
@@ -628,6 +638,12 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
             fallback: 0
         }),
         backgroundModeEnabled: normalizeBool(next.backgroundModeEnabled),
+        backgroundModeDelayEnabled: normalizeBool(
+            next.backgroundModeDelayEnabled
+        ),
+        backgroundModeDelayMinutes: normalizeBackgroundModeDelayMinutes(
+            next.backgroundModeDelayMinutes
+        ),
         isStartAtWindowsStartup: normalizeBool(next.isStartAtWindowsStartup),
         isStartAsMinimizedState: normalizeBool(next.isStartAsMinimizedState),
         isCloseToTray: normalizeBool(next.isCloseToTray),

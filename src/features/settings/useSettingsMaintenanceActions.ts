@@ -18,7 +18,10 @@ import {
     setAppDataDir,
     validateAppDataDir
 } from '@/services/shellIntegrationService';
-import type { PreferencesSnapshot } from '@/state/preferencesStore';
+import {
+    normalizeBackgroundModeDelayMinutes,
+    type PreferencesSnapshot
+} from '@/state/preferencesStore';
 
 import { normalizeCheckedState } from './settingsValues';
 import type {
@@ -476,6 +479,31 @@ export function useSettingsMaintenanceActions({
             })
         );
     }
+
+    async function promptBackgroundModeDelayMinutes() {
+        const currentMinutes = normalizeBackgroundModeDelayMinutes(
+            prefs.backgroundModeDelayMinutes
+        );
+        const result = await prompt({
+            title: t('prompt.background_mode_delay.header'),
+            description: t('prompt.background_mode_delay.description'),
+            inputValue: String(currentMinutes),
+            pattern: /^\d+$/,
+            errorMessage: t('prompt.background_mode_delay.input_error')
+        });
+        if (!result.ok) {
+            return;
+        }
+        const minutes = normalizeBackgroundModeDelayMinutes(result.value);
+        await savePreferenceValue('backgroundModeDelayMinutes', minutes, () =>
+            setIntConfigPreference('backgroundModeDelayMinutes', minutes, {
+                min: 10,
+                max: 600,
+                fallback: 60
+            })
+        );
+    }
+
     async function resetUgcFolder() {
         await commit(
             () => setUserGeneratedContentPathPreference(''),
@@ -673,6 +701,7 @@ export function useSettingsMaintenanceActions({
         clearVrcxCache,
         promptAutoClearVrcxCacheFrequency,
         promptAutoLoginDelaySeconds,
+        promptBackgroundModeDelayMinutes,
         resetUgcFolder,
         purgeAvatarFeedData,
         openUgcFolderSelector,

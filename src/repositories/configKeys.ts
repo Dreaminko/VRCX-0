@@ -57,6 +57,8 @@ export const ConfigKeys = defineConfigKeys({
     CloseToTray: { type: 'bool', default: false },
     autoLoginDelayEnabled: { type: 'bool', default: false },
     autoLoginDelaySeconds: { type: 'int', default: 0 },
+    backgroundModeDelayEnabled: { type: 'bool', default: false },
+    backgroundModeDelayMinutes: { type: 'int', default: 60 },
     weekStartsOn: { type: 'int', default: null },
 
     // ── Settings - Appearance ────────────────────────

@@ -28,7 +28,8 @@ export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
         setStartAtWindowsStartupPreference,
         setStartAsMinimizedPreference,
         setCloseToTrayPreference,
-        promptAutoLoginDelaySeconds
+        promptAutoLoginDelaySeconds,
+        promptBackgroundModeDelayMinutes
     } = system;
 
     return (
@@ -42,6 +43,8 @@ export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
             autoInstallUpdatesOnStartup={prefs.autoInstallUpdatesOnStartup}
             autoBackgroundDownloadUpdates={prefs.autoBackgroundDownloadUpdates}
             backgroundModeEnabled={prefs.backgroundModeEnabled}
+            backgroundModeDelayEnabled={prefs.backgroundModeDelayEnabled}
+            backgroundModeDelayMinutes={prefs.backgroundModeDelayMinutes}
             proxyEnabled={prefs.proxyEnabled}
             proxyServer={prefs.proxyServer}
             onStartAtWindowsStartupChange={(checked: unknown) => {
@@ -78,6 +81,14 @@ export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
                     enabled
                 );
             }}
+            onBackgroundModeDelayEnabledChange={(checked: unknown) => {
+                const enabled = normalizeCheckedState(checked);
+                saveBoolPreference(
+                    'backgroundModeDelayEnabled',
+                    'backgroundModeDelayEnabled',
+                    enabled
+                );
+            }}
             onAutoInstallUpdatesOnStartupChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
@@ -99,6 +110,9 @@ export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
             }}
             onPromptAutoLoginDelaySeconds={() => {
                 promptAutoLoginDelaySeconds();
+            }}
+            onPromptBackgroundModeDelayMinutes={() => {
+                promptBackgroundModeDelayMinutes();
             }}
             onProxyEnabledChange={async (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);

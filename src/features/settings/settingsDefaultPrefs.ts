@@ -107,6 +107,8 @@ export function createDefaultSettingsPrefs() {
         autoLoginDelayEnabled: false,
         autoLoginDelaySeconds: 0,
         backgroundModeEnabled: false,
+        backgroundModeDelayEnabled: false,
+        backgroundModeDelayMinutes: 60,
         isStartAtWindowsStartup: false,
         isStartAsMinimizedState: false,
         isCloseToTray: false,

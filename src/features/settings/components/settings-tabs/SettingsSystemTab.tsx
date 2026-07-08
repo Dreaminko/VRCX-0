@@ -14,6 +14,8 @@ type SettingsSystemTabProps = {
     autoLoginDelayEnabled?: boolean;
     autoLoginDelaySeconds?: ReactNode;
     backgroundModeEnabled?: boolean;
+    backgroundModeDelayEnabled?: boolean;
+    backgroundModeDelayMinutes?: ReactNode;
     hostPlatform?: string;
     isCloseToTray?: boolean;
     isStartAsMinimizedState?: boolean;
@@ -24,8 +26,10 @@ type SettingsSystemTabProps = {
     onAutoInstallUpdatesOnStartupChange: (checked: boolean) => unknown;
     onAutoLoginDelayEnabledChange: (checked: boolean) => unknown;
     onBackgroundModeEnabledChange: (checked: boolean) => unknown;
+    onBackgroundModeDelayEnabledChange: (checked: boolean) => unknown;
     onCloseToTrayChange: (checked: boolean) => unknown;
     onPromptAutoLoginDelaySeconds: () => unknown;
+    onPromptBackgroundModeDelayMinutes: () => unknown;
     onProxyEnabledChange: (checked: boolean) => unknown;
     onProxySettings: () => unknown;
     onStartAsMinimizedChange: (checked: boolean) => unknown;
@@ -42,6 +46,8 @@ export function SettingsSystemTab({
     autoInstallUpdatesOnStartup,
     autoBackgroundDownloadUpdates,
     backgroundModeEnabled,
+    backgroundModeDelayEnabled,
+    backgroundModeDelayMinutes,
     proxyEnabled,
     proxyServer,
     onStartAtWindowsStartupChange,
@@ -50,6 +56,8 @@ export function SettingsSystemTab({
     onAutoLoginDelayEnabledChange,
     onPromptAutoLoginDelaySeconds,
     onBackgroundModeEnabledChange,
+    onBackgroundModeDelayEnabledChange,
+    onPromptBackgroundModeDelayMinutes,
     onAutoInstallUpdatesOnStartupChange,
     onAutoBackgroundDownloadUpdatesChange,
     onProxyEnabledChange,
@@ -72,6 +80,8 @@ export function SettingsSystemTab({
                   }
               )
             : '';
+    const backgroundModeDelayDisabled =
+        !isCloseToTray || !backgroundModeEnabled;
 
     return (
         <SettingsTabContent value="system">
@@ -124,6 +134,47 @@ export function SettingsSystemTab({
                         onCheckedChange={onBackgroundModeEnabledChange}
                     />
                 </Field>
+                <Field
+                    label={t(
+                        'view.settings.general.application.background_mode_delay'
+                    )}
+                    description={t(
+                        'view.settings.general.application.background_mode_delay_description'
+                    )}
+                    disabled={backgroundModeDelayDisabled}
+                >
+                    <Switch
+                        checked={backgroundModeDelayEnabled}
+                        disabled={backgroundModeDelayDisabled}
+                        onCheckedChange={onBackgroundModeDelayEnabledChange}
+                    />
+                </Field>
+                {backgroundModeDelayEnabled ? (
+                    <Field
+                        label={t(
+                            'view.settings.general.application.background_mode_delay_button'
+                        )}
+                        disabled={backgroundModeDelayDisabled}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline">
+                                {backgroundModeDelayMinutes}
+                                {t('common.time_units.m')}
+                            </Badge>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={backgroundModeDelayDisabled}
+                                onClick={onPromptBackgroundModeDelayMinutes}
+                            >
+                                {t(
+                                    'view.settings.general.application.background_mode_delay_button'
+                                )}
+                            </Button>
+                        </div>
+                    </Field>
+                ) : null}
                 <Field
                     label={t(
                         'view.settings.general.application.auto_install_updates_on_startup'

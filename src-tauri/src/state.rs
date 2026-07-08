@@ -1,5 +1,5 @@
 use std::ops::Deref;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -24,6 +24,7 @@ pub struct AppState {
     pub pending_tauri_update: tokio::sync::Mutex<Option<PendingTauriUpdate>>,
     assistant: tokio::sync::OnceCell<AssistantController>,
     background_resume_route: Mutex<Option<String>>,
+    pub(crate) background_delay_generation: AtomicU64,
     main_window_rebuild_in_progress: AtomicBool,
     auth_failure_notification: Mutex<Option<AuthFailureNotificationRecord>>,
 }
@@ -100,6 +101,7 @@ impl AppState {
             pending_tauri_update: tokio::sync::Mutex::new(None),
             assistant: tokio::sync::OnceCell::new(),
             background_resume_route: Mutex::new(None),
+            background_delay_generation: AtomicU64::new(0),
             main_window_rebuild_in_progress: AtomicBool::new(false),
             auth_failure_notification: Mutex::new(None),
         })
