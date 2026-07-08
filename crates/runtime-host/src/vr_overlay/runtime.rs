@@ -1256,6 +1256,7 @@ impl VrOverlayRuntime {
             if let Err(error) = manager.hide_surface(&surface_id) {
                 tracing::warn!(error = %error, "failed to hide HMD overlay surface");
             }
+            self.release_hmd_renderer_on_current_thread();
             return;
         }
         let frame = match self.render_hmd_frame(toasts, config.locale) {
