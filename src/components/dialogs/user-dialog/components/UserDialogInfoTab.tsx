@@ -10,12 +10,12 @@ import { InstanceActionBar } from '@/components/instances/InstanceActionBar';
 import { Location } from '@/components/Location';
 import { LocationWorld } from '@/components/LocationWorld';
 import { AvatarInfoLine } from '@/features/feed/components/FeedAvatarInfoLine';
+import { formatDateTime } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import {
     convertFileUrlToImageUrl,
     openExternalLink
 } from '@/services/entityMediaService';
-import { formatDateTimeValue } from '@/shared/utils/dateTimeFormatters';
 import { getFaviconUrl } from '@/shared/utils/urlUtils';
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
@@ -197,21 +197,14 @@ function formatLocalizedActivityDate(
     locale: string | null | undefined,
     dateOnly = false
 ) {
-    if (!value) {
-        return '\u2014';
-    }
-    const date = new Date(value as string | number | Date);
-    if (Number.isNaN(date.getTime())) {
-        return '\u2014';
-    }
-    return formatDateTimeValue(
-        date,
+    return formatDateTime(
+        value,
         {
             dateStyle: 'medium',
             ...(dateOnly ? {} : { timeStyle: 'medium' })
         },
         {
-            locale: locale || undefined,
+            appLocale: locale || undefined,
             fallback: '\u2014'
         }
     );
