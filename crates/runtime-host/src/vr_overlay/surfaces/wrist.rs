@@ -137,7 +137,6 @@ pub fn build_wrist_surface_model(input: WristOverlayFrameInput) -> WristSurfaceM
             right: input.footer.local_time,
         },
         accent: Color::rgba(94, 234, 212, 255),
-        captured_at_ms: input.captured_at_ms,
     }
 }
 

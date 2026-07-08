@@ -1340,12 +1340,23 @@ impl VrOverlayRuntime {
         let actor_user_id = entry.actor_user_id.trim().to_string();
         let initial_image_url = entry.content.image_url.trim().to_string();
         if initial_image_url.is_empty() && !actor_user_id.starts_with("usr_") {
+            tracing::debug!(
+                source_id = %source_id,
+                actor_user_id = %actor_user_id,
+                "HMD avatar fetch skipped: no image url and no resolvable user id"
+            );
             return;
         }
         let allow_user_icon = context
             .config()
             .get_bool("displayVRCPlusIconsAsAvatar", true)
             .unwrap_or(true);
+        if let Some(bitmap) =
+            self.cached_hmd_avatar(&initial_image_url, &actor_user_id, allow_user_icon)
+        {
+            self.update_hmd_avatar(&source_id, bitmap);
+            return;
+        }
         let user_image_cache = Arc::clone(&self.user_image_cache);
         let avatar_cache = Arc::clone(&self.avatar_bitmap_cache);
         let runtime = Arc::clone(self);
@@ -1370,16 +1381,40 @@ impl VrOverlayRuntime {
                 initial_image_url
             };
             if image_url.trim().is_empty() {
+                tracing::debug!(
+                    source_id = %source_id,
+                    actor_user_id = %actor_user_id,
+                    "HMD avatar fetch skipped: user image resolution returned empty url"
+                );
                 return;
             }
             let Some(bitmap) = avatar_cache
                 .resolve(context.web.as_ref(), image_url.trim())
                 .await
             else {
+                tracing::debug!(
+                    source_id = %source_id,
+                    "HMD avatar fetch failed: avatar bitmap resolve returned none"
+                );
                 return;
             };
             runtime.update_hmd_avatar(&source_id, bitmap);
         });
+    }
+
+    fn cached_hmd_avatar(
+        &self,
+        initial_image_url: &str,
+        actor_user_id: &str,
+        allow_user_icon: bool,
+    ) -> Option<AvatarBitmap> {
+        let url = if initial_image_url.is_empty() {
+            self.user_image_cache
+                .cached_url(actor_user_id, allow_user_icon)?
+        } else {
+            initial_image_url.to_string()
+        };
+        self.avatar_bitmap_cache.cached(url.trim())
     }
 
     fn update_hmd_avatar(&self, source_id: &str, avatar: AvatarBitmap) {
@@ -1391,6 +1426,10 @@ impl VrOverlayRuntime {
                 .iter_mut()
                 .find(|toast| toast.entry.source_id == source_id)
             else {
+                tracing::debug!(
+                    source_id = %source_id,
+                    "HMD avatar arrived after toast expired; dropping"
+                );
                 return;
             };
             if toast.avatar.as_ref() == Some(&avatar) {

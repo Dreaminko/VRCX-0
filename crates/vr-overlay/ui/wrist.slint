@@ -80,60 +80,67 @@ export component WristPanel inherits Window {
         background: root.divider-color;
     }
 
-    for device[index] in root.devices : Rectangle {
-        x: 18px + index * 90px;
+    Rectangle {
+        x: 18px;
         y: 8px;
-        width: 90px;
+        width: parent.width - 36px;
         height: 24px;
-        visible: self.x + self.width <= root.width - 18px;
+        clip: true;
 
-        Text {
+        HorizontalLayout {
             x: 0px;
-            y: 2px;
-            width: 30px;
-            height: 18px;
-            text: device.label;
-            font-size: 14px;
-            color: device.label-color;
-        }
+            y: 0px;
+            height: 24px;
+            spacing: 8px;
+            alignment: start;
 
-        Text {
-            x: 34px;
-            y: 3px;
-            width: 28px;
-            height: 17px;
-            text: device.percent;
-            font-size: 13px;
-            visible: device.show-percent;
-            color: device.percent-color;
-        }
+            for device in root.devices : HorizontalLayout {
+                spacing: 5px;
 
-        Rectangle {
-            x: device.show-percent ? 64px : 34px;
-            y: 6px;
-            width: 20px;
-            height: 11px;
-            visible: device.show-battery;
-            border-color: device.battery-color;
-            border-width: 1.5px;
-            background: transparent;
+                Text {
+                    text: device.label;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                    color: device.label-color;
+                }
 
-            Rectangle {
-                x: 2.5px;
-                y: 2.5px;
-                width: 15px * device.battery-fill;
-                height: 6px;
-                background: device.battery-color;
+                if device.show-percent: Text {
+                    text: device.percent;
+                    font-size: 13px;
+                    vertical-alignment: center;
+                    color: device.percent-color;
+                }
+
+                if device.show-battery: Rectangle {
+                    width: 26px;
+
+                    Rectangle {
+                        x: 0px;
+                        y: 6px;
+                        width: 20px;
+                        height: 12px;
+                        border-color: device.battery-color;
+                        border-width: 2px;
+                        background: transparent;
+
+                        Rectangle {
+                            x: 4px;
+                            y: 4px;
+                            width: 12px * device.battery-fill;
+                            height: 4px;
+                            background: device.battery-color;
+                        }
+                    }
+
+                    Rectangle {
+                        x: 20px;
+                        y: 10px;
+                        width: 3px;
+                        height: 4px;
+                        background: device.battery-color;
+                    }
+                }
             }
-        }
-
-        Rectangle {
-            x: device.show-percent ? 85px : 55px;
-            y: 9.5px;
-            width: 3px;
-            height: 4px;
-            visible: device.show-battery;
-            background: device.battery-color;
         }
     }
 
@@ -155,25 +162,27 @@ export component WristPanel inherits Window {
 
         Text {
             x: 7px;
-            y: 2px;
+            y: 0px;
             width: 45px;
-            height: 18px;
+            height: 31px;
             text: line.time;
             font-size: 14px;
+            vertical-alignment: center;
             color: root.muted-color;
         }
 
         HorizontalLayout {
             x: 58px;
-            y: 1px;
+            y: 0px;
             width: parent.width - 58px;
-            height: 22px;
+            height: 31px;
             spacing: 5px;
 
             if line.has-actor: Text {
                 horizontal-stretch: 0;
                 text: line.actor;
                 font-size: 17px;
+                vertical-alignment: center;
                 color: line.actor-color;
             }
 
@@ -181,6 +190,7 @@ export component WristPanel inherits Window {
                 horizontal-stretch: 1;
                 text: line.detail;
                 font-size: 17px;
+                vertical-alignment: center;
                 overflow: elide;
                 color: line.detail-color;
             }

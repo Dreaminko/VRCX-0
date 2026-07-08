@@ -209,6 +209,7 @@ impl SlintPanelHost {
         self.component.set_categories(friend_category_model(model));
         self.component
             .set_rows(friend_row_model(model, &mut self.avatar_images));
+        self.component.window().request_redraw();
         self.last_model = Some(model.clone());
     }
 
@@ -254,14 +255,35 @@ impl SlintPanelHost {
     }
 }
 
-pub struct SlintWristRenderer {
-    host: Option<SlintWristHost>,
-    last_model: Option<WristSurfaceModel>,
+/// A passive Slint surface (wrist / HMD toast) that maps a value-type model into
+/// its component and rasterizes on demand. `apply_model` is a non-overridable
+/// wrapper so every model change marks the window dirty — forgetting the redraw
+/// reintroduces the dropped-frame bug, so it cannot be forgotten per-host.
+pub trait SlintSurfaceHost: Sized {
+    type Model: Clone + PartialEq;
+    const LABEL: &'static str;
+
+    fn new(size: OverlaySize) -> Result<Self, String>;
+    fn size(&self) -> OverlaySize;
+    fn model_size(model: &Self::Model) -> OverlaySize;
+    fn window(&self) -> &slint::Window;
+    fn write_model(&mut self, model: &Self::Model);
+    fn render_if_needed(&mut self) -> Option<RgbaFrame>;
+
+    fn apply_model(&mut self, model: &Self::Model) {
+        self.write_model(model);
+        self.window().request_redraw();
+    }
+}
+
+pub struct SlintSurfaceRenderer<H: SlintSurfaceHost> {
+    host: Option<H>,
+    last_model: Option<H::Model>,
     last_frame: Option<RgbaFrame>,
     render_count: usize,
 }
 
-impl SlintWristRenderer {
+impl<H: SlintSurfaceHost> SlintSurfaceRenderer<H> {
     pub fn new() -> Self {
         Self {
             host: None,
@@ -271,21 +293,25 @@ impl SlintWristRenderer {
         }
     }
 
-    pub fn render(&mut self, model: &WristSurfaceModel) -> Result<RgbaFrame, String> {
+    pub fn render(&mut self, model: &H::Model) -> Result<RgbaFrame, String> {
         if self.last_model.as_ref() == Some(model) {
             if let Some(frame) = self.last_frame.as_ref() {
                 return Ok(frame.clone());
             }
         }
-        let host = self.host_for_size(model.size)?;
-        host.set_model(model);
-        let Some(frame) = host.render_if_needed() else {
+        let host = self.host_for_size(H::model_size(model))?;
+        host.apply_model(model);
+        let rendered = host.render_if_needed();
+        self.last_model = Some(model.clone());
+        let Some(frame) = rendered else {
             return self.last_frame.clone().ok_or_else(|| {
-                "Slint wrist renderer did not produce an initial frame".to_string()
+                format!(
+                    "Slint {} renderer did not produce an initial frame",
+                    H::LABEL
+                )
             });
         };
         self.render_count += 1;
-        self.last_model = Some(model.clone());
         self.last_frame = Some(frame.clone());
         Ok(frame)
     }
@@ -295,102 +321,43 @@ impl SlintWristRenderer {
         self.render_count
     }
 
-    fn host_for_size(&mut self, size: OverlaySize) -> Result<&mut SlintWristHost, String> {
+    fn host_for_size(&mut self, size: OverlaySize) -> Result<&mut H, String> {
         let needs_new = self
             .host
             .as_ref()
             .map(|host| host.size() != size)
             .unwrap_or(true);
         if needs_new {
-            self.host = Some(SlintWristHost::new(size)?);
+            self.host = Some(H::new(size)?);
             self.last_model = None;
             self.last_frame = None;
         }
         self.host
             .as_mut()
-            .ok_or_else(|| "Slint wrist host is unavailable".to_string())
+            .ok_or_else(|| format!("Slint {} host is unavailable", H::LABEL))
     }
 }
 
-impl Default for SlintWristRenderer {
+impl<H: SlintSurfaceHost> Default for SlintSurfaceRenderer<H> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-pub struct SlintHmdRenderer {
-    host: Option<SlintHmdHost>,
-    last_model: Option<MainSurfaceModel>,
-    last_frame: Option<RgbaFrame>,
-    render_count: usize,
-}
+pub type SlintWristRenderer = SlintSurfaceRenderer<SlintWristHost>;
+pub type SlintHmdRenderer = SlintSurfaceRenderer<SlintHmdHost>;
 
-impl SlintHmdRenderer {
-    pub fn new() -> Self {
-        Self {
-            host: None,
-            last_model: None,
-            last_frame: None,
-            render_count: 0,
-        }
-    }
-
-    pub fn render(&mut self, model: &MainSurfaceModel) -> Result<RgbaFrame, String> {
-        if self.last_model.as_ref() == Some(model) {
-            if let Some(frame) = self.last_frame.as_ref() {
-                return Ok(frame.clone());
-            }
-        }
-        let host = self.host_for_size(model.size)?;
-        host.set_model(model);
-        let Some(frame) = host.render_if_needed() else {
-            return self
-                .last_frame
-                .clone()
-                .ok_or_else(|| "Slint HMD renderer did not produce an initial frame".to_string());
-        };
-        self.render_count += 1;
-        self.last_model = Some(model.clone());
-        self.last_frame = Some(frame.clone());
-        Ok(frame)
-    }
-
-    #[cfg(test)]
-    fn render_count(&self) -> usize {
-        self.render_count
-    }
-
-    fn host_for_size(&mut self, size: OverlaySize) -> Result<&mut SlintHmdHost, String> {
-        let needs_new = self
-            .host
-            .as_ref()
-            .map(|host| host.size() != size)
-            .unwrap_or(true);
-        if needs_new {
-            self.host = Some(SlintHmdHost::new(size)?);
-            self.last_model = None;
-            self.last_frame = None;
-        }
-        self.host
-            .as_mut()
-            .ok_or_else(|| "Slint HMD host is unavailable".to_string())
-    }
-}
-
-impl Default for SlintHmdRenderer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-struct SlintWristHost {
+pub struct SlintWristHost {
     size: OverlaySize,
     window: Rc<MinimalSoftwareWindow>,
     component: WristPanel,
     buffer: Vec<PremultipliedRgbaColor>,
 }
 
-impl SlintWristHost {
+impl SlintSurfaceHost for SlintWristHost {
+    type Model = WristSurfaceModel;
+    const LABEL: &'static str = "wrist";
+
     fn new(size: OverlaySize) -> Result<Self, String> {
         let (component, window) = create_component_window(WristPanel::new)?;
         window.set_size(PhysicalSize::new(size.width, size.height));
@@ -407,7 +374,15 @@ impl SlintWristHost {
         self.size
     }
 
-    fn set_model(&mut self, model: &WristSurfaceModel) {
+    fn model_size(model: &WristSurfaceModel) -> OverlaySize {
+        model.size
+    }
+
+    fn window(&self) -> &slint::Window {
+        self.component.window()
+    }
+
+    fn write_model(&mut self, model: &WristSurfaceModel) {
         self.component.set_dark_background(model.dark_background);
         self.component
             .set_accent_color(to_slint_color(model.accent));
@@ -427,7 +402,7 @@ impl SlintWristHost {
     }
 }
 
-struct SlintHmdHost {
+pub struct SlintHmdHost {
     size: OverlaySize,
     window: Rc<MinimalSoftwareWindow>,
     component: HmdToastPanel,
@@ -435,7 +410,10 @@ struct SlintHmdHost {
     avatar_images: AvatarImageCache,
 }
 
-impl SlintHmdHost {
+impl SlintSurfaceHost for SlintHmdHost {
+    type Model = MainSurfaceModel;
+    const LABEL: &'static str = "HMD";
+
     fn new(size: OverlaySize) -> Result<Self, String> {
         let (component, window) = create_component_window(HmdToastPanel::new)?;
         window.set_size(PhysicalSize::new(size.width, size.height));
@@ -453,7 +431,15 @@ impl SlintHmdHost {
         self.size
     }
 
-    fn set_model(&mut self, model: &MainSurfaceModel) {
+    fn model_size(model: &MainSurfaceModel) -> OverlaySize {
+        model.size
+    }
+
+    fn window(&self) -> &slint::Window {
+        self.component.window()
+    }
+
+    fn write_model(&mut self, model: &MainSurfaceModel) {
         retain_avatar_images(
             &mut self.avatar_images,
             model.toasts.iter().map(|toast| toast.avatar.as_ref()),
@@ -1249,7 +1235,6 @@ mod tests {
                 right: "12:34".to_string(),
             },
             accent: crate::Color::rgba(94, 234, 212, 255),
-            captured_at_ms: 1_717_200_000_000,
         }
     }
 

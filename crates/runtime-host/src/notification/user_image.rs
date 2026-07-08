@@ -67,6 +67,14 @@ impl UserImageCache {
         }
     }
 
+    pub fn cached_url(&self, user_id: &str, allow_user_icon: bool) -> Option<String> {
+        let user_id = user_id.trim();
+        if !user_id.starts_with("usr_") {
+            return None;
+        }
+        self.cached(&cache_key(user_id, allow_user_icon))
+    }
+
     fn cached(&self, key: &str) -> Option<String> {
         let mut map = lock(&self.success);
         let (url, at) = map.get(key)?;

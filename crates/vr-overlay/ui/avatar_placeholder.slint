@@ -1,0 +1,27 @@
+export component AvatarPlaceholder inherits Rectangle {
+    in property <length> diameter: 72px;
+
+    width: root.diameter;
+    height: root.diameter;
+    border-radius: root.diameter / 2;
+    background: #2a3441;
+    clip: true;
+
+    Rectangle {
+        x: root.diameter * 0.355;
+        y: root.diameter * 0.205;
+        width: root.diameter * 0.29;
+        height: root.diameter * 0.29;
+        border-radius: self.width / 2;
+        background: #6b7a8c;
+    }
+
+    Rectangle {
+        x: root.diameter * 0.22;
+        y: root.diameter * 0.50;
+        width: root.diameter * 0.56;
+        height: root.diameter * 0.36;
+        border-radius: self.height / 2;
+        background: #6b7a8c;
+    }
+}

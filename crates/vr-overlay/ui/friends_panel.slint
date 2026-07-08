@@ -1,4 +1,5 @@
 import { ListView } from "std-widgets.slint";
+import { AvatarPlaceholder } from "avatar_placeholder.slint";
 
 export struct FriendPanelCategoryItem {
     key: string,
@@ -201,14 +202,11 @@ export component FriendsPanel inherits Window {
                 }
             }
 
-            Rectangle {
+            AvatarPlaceholder {
                 x: 18px;
                 y: 17px;
-                width: 72px;
-                height: 72px;
-                visible: !row.is-section;
-                border-radius: 36px;
-                background: #334155;
+                diameter: 72px;
+                visible: !row.is-section && !row.has-avatar;
             }
 
             Image {
@@ -387,13 +385,11 @@ export component FriendsPanel inherits Window {
             border-radius: 12px;
         }
 
-        Rectangle {
+        AvatarPlaceholder {
             x: 24px;
             y: 24px;
-            width: 72px;
-            height: 72px;
-            border-radius: 36px;
-            background: #334155;
+            diameter: 72px;
+            visible: !root.detail-row.has-avatar;
         }
 
         Image {

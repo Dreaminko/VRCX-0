@@ -67,7 +67,6 @@ pub fn build(scenario: &str) -> WristSurfaceModel {
             },
         },
         accent: accent(),
-        captured_at_ms: 1_735_689_600_000,
     }
 }
 

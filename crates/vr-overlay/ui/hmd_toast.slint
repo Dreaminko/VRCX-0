@@ -1,3 +1,5 @@
+import { AvatarPlaceholder } from "avatar_placeholder.slint";
+
 export struct HmdToastItem {
     actor: string,
     action: string,
@@ -36,13 +38,10 @@ export component HmdToastPanel inherits Window {
             background: toast.severity-color;
         }
 
-        Rectangle {
+        AvatarPlaceholder {
             x: 24px;
             y: 24px;
-            width: 96px;
-            height: 96px;
-            border-radius: 48px;
-            background: root.muted-color;
+            diameter: 96px;
             visible: !toast.has-avatar;
         }
 
