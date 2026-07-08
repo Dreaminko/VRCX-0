@@ -16,6 +16,8 @@ pub(super) fn web_ua_app_version(app_version: &str, is_headless: bool) -> String
     }
 }
 
+const USER_GENERATED_CONTENT_PATH_CONFIG_KEY: &str = "userGeneratedContentPath";
+
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct BackendRuntimeFrontendSessionSnapshot {
@@ -133,6 +135,10 @@ impl RuntimeHostState {
             Arc::clone(&web),
             Arc::clone(&image_cache),
         ));
+        register_persisted_user_generated_content_path_grant(
+            &host_file_access,
+            runtime_context.config(),
+        )?;
         let backend_runtime = BackendRuntime::new();
         let telemetry = TelemetryRuntime::new(TelemetryRuntimeDeps {
             config: runtime_context.config.clone(),
@@ -249,5 +255,83 @@ impl RuntimeHostState {
 
     pub fn start_telemetry_runtime(&self) {
         self.telemetry.start();
+    }
+}
+
+fn register_persisted_user_generated_content_path_grant(
+    host_file_access: &HostFileAccess,
+    config: &vrcx_0_persistence::config::ConfigRepository,
+) -> Result<()> {
+    let ugc_path = config.get_string(USER_GENERATED_CONTENT_PATH_CONFIG_KEY, "")?;
+    let ugc_path = ugc_path.trim();
+    if !ugc_path.is_empty() {
+        host_file_access.register_path(ugc_path);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod persisted_file_access_tests {
+    use super::{
+        register_persisted_user_generated_content_path_grant,
+        USER_GENERATED_CONTENT_PATH_CONFIG_KEY,
+    };
+    use crate::{HostFileAccess, Result};
+    use std::path::PathBuf;
+    use std::sync::Arc;
+    use vrcx_0_host::app_paths::AppPaths;
+    use vrcx_0_persistence::{config::ConfigRepository, DatabaseService};
+
+    struct TestDir {
+        path: PathBuf,
+    }
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path =
+                std::env::temp_dir().join(format!("vrcx-0-{name}-{}-{nonce}", std::process::id()));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    #[test]
+    fn restores_persisted_user_generated_content_path_for_open_and_save() -> Result<()> {
+        let dir = TestDir::new("persisted-ugc-grant");
+        let app_data = dir.path.join("app-data");
+        let ugc_path = dir.path.join("custom-ugc");
+        std::fs::create_dir_all(&app_data)?;
+        std::fs::create_dir_all(&ugc_path)?;
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
+        let config = ConfigRepository::new(db);
+        config.set_string(
+            USER_GENERATED_CONTENT_PATH_CONFIG_KEY,
+            &ugc_path.to_string_lossy(),
+        )?;
+
+        let host_file_access = HostFileAccess::new();
+        let app_paths = AppPaths::from_app_data(app_data);
+        assert!(host_file_access
+            .ensure_read_allowed(&ugc_path, &app_paths)
+            .is_err());
+        assert!(host_file_access
+            .ensure_write_allowed(&ugc_path, &app_paths)
+            .is_err());
+
+        register_persisted_user_generated_content_path_grant(&host_file_access, &config)?;
+
+        host_file_access.ensure_read_allowed(&ugc_path, &app_paths)?;
+        host_file_access.ensure_write_allowed(ugc_path.join("Prints"), &app_paths)?;
+        Ok(())
     }
 }
