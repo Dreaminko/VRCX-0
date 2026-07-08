@@ -145,7 +145,8 @@ export const ConfigKeys = defineConfigKeys({
     desktopNotificationSound: { type: 'bool', default: false },
     notificationLayout: { type: 'string', default: null },
     notificationTTS: { type: 'string', default: 'Never' },
-    notificationTTSVoice: { type: 'string', default: '0' },
+    notificationTTSVoiceNative: { type: 'string', default: '' },
+    notificationTTSNameMode: { type: 'string', default: 'username' },
     notificationTTSNickName: { type: 'bool', default: false },
     notificationIconDot: { type: 'bool', default: true },
     showPostUpdateChangelogToast: { type: 'bool', default: true },
@@ -172,6 +173,7 @@ export const ConfigKeys = defineConfigKeys({
     vrNotificationActivityFilters: { type: 'string', default: '' },
     desktopNotificationActivityFilters: { type: 'string', default: '' },
     webhookActivityFilters: { type: 'string', default: '' },
+    ttsNotificationActivityFilters: { type: 'string', default: '' },
     hmdNotificationActivityFilters: { type: 'string', default: '' },
 
     // ── Settings - Overlay ───────────────────────────

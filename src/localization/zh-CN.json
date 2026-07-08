@@ -2012,9 +2012,18 @@
                         "header": "文字转语音选项",
                         "when_to_play": "何时使用文字转语音",
                         "tts_voice": "TTS 语音样式",
+                        "system_default_voice": "系统默认",
+                        "notification_filters": "TTS 通知过滤器",
+                        "name_mode": "朗读名称",
+                        "name_mode_username": "用户名",
+                        "name_mode_note": "备注",
+                        "name_mode_username_and_note": "用户名和备注",
                         "use_memo_nicknames": "使用本地备注昵称",
                         "play": "播放",
-                        "tts_test_placeholder": "测试 TTS"
+                        "tts_test_placeholder": "测试 TTS",
+                        "tts_enabled_preview": "通知文字转语音已开启",
+                        "tts_voice_preview": "已选择通知 TTS 语音",
+                        "tts_test_failed": "无法播放文字转语音"
                     }
                 }
             },
@@ -4049,6 +4058,10 @@
             "title": "VR 叠加界面通知过滤器",
             "description": "选择在 SteamVR 运行时哪些通知会发送到 XSOverlay 和 OVR Toolkit。"
         },
+        "tts_notifications": {
+            "title": "TTS 通知过滤器",
+            "description": "选择哪些运行时通知会通过文字转语音播放。上方的 TTS 播放条件依然生效。"
+        },
         "hmd_notifications": {
             "title": "头显通知过滤",
             "description": "选择哪些通知会显示在头显视野内。"
@@ -4064,7 +4077,6 @@
         "wrist_feed_notifications": {
             "title": "叠加界面通知过滤器",
             "description": "选择哪些内容会显示在手腕叠加界面中。桌面通知使用单独的过滤设置。",
-            "reset_recommended": "重置",
             "scopes": {
                 "off": "关闭",
                 "on": "开启",

@@ -4,6 +4,7 @@ import { sharedFeedFiltersDefaults } from '@/shared/constants/feedFilters';
 import {
     DEFAULT_OVERLAY_ACTIVITY_FILTERS,
     DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
+    DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
     migrateLegacySharedFeedWristFilters,
@@ -111,6 +112,7 @@ type BoundedIntOptions = {
     fallback?: number;
 };
 type PreferenceInputSnapshot = Record<string, unknown>;
+export type NotificationTtsNameMode = 'username' | 'note' | 'usernameAndNote';
 
 function asRecord(value: unknown): Record<string, unknown> {
     return value && typeof value === 'object'
@@ -126,6 +128,20 @@ function normalizeBool(value: unknown): boolean {
         return value.trim().toLowerCase() === 'true';
     }
     return Boolean(value);
+}
+
+export function normalizeNotificationTtsNameMode(
+    value: unknown,
+    legacyNicknameEnabled: unknown = false
+): NotificationTtsNameMode {
+    if (
+        value === 'username' ||
+        value === 'note' ||
+        value === 'usernameAndNote'
+    ) {
+        return value;
+    }
+    return normalizeBool(legacyNicknameEnabled) ? 'note' : 'username';
 }
 
 function normalizeText(value: unknown): string {
@@ -356,8 +372,9 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     afkDesktopToast: false,
     desktopNotificationSound: false,
     notificationTTS: 'Never',
+    notificationTTSNameMode: 'username',
     notificationTTSNickName: false,
-    notificationTTSVoice: '0',
+    notificationTTSVoiceNative: '',
     xsNotifications: false,
     ovrtHudNotifications: false,
     ovrtWristNotifications: false,
@@ -421,6 +438,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     desktopNotificationActivityFilters:
         DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     webhookActivityFilters: DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
+    ttsNotificationActivityFilters: DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
     feedTimeDisplayMode: 'relative',
     trustColor: { ...TRUST_COLOR_DEFAULTS },
     youtubeAPI: false,
@@ -519,8 +537,14 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
         afkDesktopToast: normalizeBool(next.afkDesktopToast),
         desktopNotificationSound: normalizeBool(next.desktopNotificationSound),
         notificationTTS: next.notificationTTS || 'Never',
+        notificationTTSNameMode: normalizeNotificationTtsNameMode(
+            next.notificationTTSNameMode,
+            next.notificationTTSNickName
+        ),
         notificationTTSNickName: normalizeBool(next.notificationTTSNickName),
-        notificationTTSVoice: String(next.notificationTTSVoice ?? '0'),
+        notificationTTSVoiceNative: String(
+            next.notificationTTSVoiceNative ?? ''
+        ),
         xsNotifications: normalizeBool(next.xsNotifications),
         ovrtHudNotifications: normalizeBool(next.ovrtHudNotifications),
         ovrtWristNotifications: normalizeBool(next.ovrtWristNotifications),
@@ -638,6 +662,10 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
         ),
         webhookActivityFilters: parseOverlayActivityFilterProfile(
             next.webhookActivityFilters || DEFAULT_WEBHOOK_ACTIVITY_FILTERS
+        ),
+        ttsNotificationActivityFilters: parseOverlayActivityFilterProfile(
+            next.ttsNotificationActivityFilters ||
+                DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS
         ),
         feedTimeDisplayMode: normalizeFeedTimeDisplayMode(
             next.feedTimeDisplayMode

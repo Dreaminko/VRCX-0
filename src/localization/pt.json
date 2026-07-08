@@ -1983,9 +1983,18 @@
                         "header": "Texto para Voz",
                         "when_to_play": "TTS de Notificação. Quando Reproduzir",
                         "tts_voice": "Voz TTS",
+                        "system_default_voice": "Voz padrão do sistema",
+                        "notification_filters": "Filtros de Notificação TTS",
+                        "name_mode": "Nome lido",
+                        "name_mode_username": "Nome de usuário",
+                        "name_mode_note": "Nota",
+                        "name_mode_username_and_note": "Nome de usuário e nota",
                         "use_memo_nicknames": "Usar Apelidos de Memo",
                         "play": "Reproduzir",
-                        "tts_test_placeholder": "Testar TTS"
+                        "tts_test_placeholder": "Testar TTS",
+                        "tts_enabled_preview": "Texto para voz de notificações ativado",
+                        "tts_voice_preview": "Voz de texto para voz selecionada",
+                        "tts_test_failed": "Não foi possível reproduzir o texto para voz"
                     }
                 }
             },
@@ -4020,6 +4029,10 @@
             "title": "Filtros de Notificação do Overlay de VR",
             "description": "Escolha quais notificações em tempo real são enviadas ao XSOverlay e ao OVR Toolkit enquanto o SteamVR está em execução."
         },
+        "tts_notifications": {
+            "title": "Filtros de Notificação TTS",
+            "description": "Escolha quais notificações em tempo de execução serão lidas por texto-para-fala. A condição de reprodução de TTS acima ainda se aplica."
+        },
         "hmd_notifications": {
             "title": "Filtros de notificações do headset",
             "description": "Escolha quais notificações aparecem dentro do headset."
@@ -4035,7 +4048,6 @@
         "wrist_feed_notifications": {
             "title": "Filtros de Notificação do Overlay de Pulso",
             "description": "Escolha o que aparece no feed de pulso. As notificações da área de trabalho usam filtros separados.",
-            "reset_recommended": "Redefinir",
             "scopes": {
                 "off": "Desligado",
                 "on": "Ligado",

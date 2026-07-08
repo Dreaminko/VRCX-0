@@ -1,3 +1,4 @@
+import type { TtsVoice } from '@/platform/tauri/bindings';
 import { openUGCPhotosFolder } from '@/services/shellIntegrationService';
 import { recordViewModeUsage } from '@/services/telemetry/telemetryViewModeUsage';
 import {
@@ -11,6 +12,7 @@ import {
     avatarAutoCleanupOptions,
     desktopToastOptions,
     notificationLayoutOptions,
+    notificationTtsNameModeOptions,
     notificationTtsOptions,
     settingsTabs,
     sqliteTableSizeRows,
@@ -54,9 +56,11 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
         [action: SettingsAction, optimistic?: () => unknown]
     >;
     deleteAllScreenshotMetadata: SettingsCallback;
+    desktopNotificationsDialogOpen: boolean;
     discordPrefs: SettingsDiscordPrefs;
     handleCropInstancePrintsChange: SettingsCallback<[boolean]>;
     handleGameLogDisabledChange: SettingsCallback<[boolean]>;
+    hmdNotificationsDialogOpen: boolean;
     integrationPrefs: SettingsIntegrationPrefs;
     loading: boolean;
     migrateLegacyVrcxData: SettingsCallback;
@@ -95,6 +99,14 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     saveTrustColor: SettingsCallback<[string, string]>;
     saveNotificationTtsMode: SettingsCallback<[string]>;
     saveNotificationTtsVoice: SettingsCallback<[string]>;
+    saveOverlayActivityFilters: SettingsCallback<[unknown, unknown?]>;
+    saveVrNotificationActivityFilters: SettingsCallback<[unknown, unknown?]>;
+    saveHmdNotificationActivityFilters: SettingsCallback<[unknown, unknown?]>;
+    saveDesktopNotificationActivityFilters: SettingsCallback<
+        [unknown, unknown?]
+    >;
+    saveWebhookActivityFilters: SettingsCallback<[unknown, unknown?]>;
+    saveTtsNotificationActivityFilters: SettingsCallback<[unknown, unknown?]>;
     saveWristOverlayEnabled: SettingsCallback<[boolean]>;
     selectCjkFontPack: SettingsCallback<[unknown]>;
     setAccessibleStatusIndicatorsPreference: SettingsCallback<[boolean]>;
@@ -129,14 +141,19 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     setTableDensityPreference: SettingsCallback<[unknown]>;
     setHmdNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setTranslationApiEnabledPreference: SettingsCallback<[boolean]>;
+    setTtsNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setVrNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setWebhookNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setWristFeedNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setYoutubeApiEnabledPreference: SettingsCallback<[boolean]>;
     setZoomInput: SettingsCallback<[unknown]>;
-    speakNotificationTts: SettingsCallback<[unknown]>;
+    speakNotificationTts: SettingsCallback<[string, string?]>;
     toggleLocalFavoriteFriendsGroup: SettingsCallback<[unknown, boolean]>;
-    ttsVoices: SpeechSynthesisVoice[];
+    ttsNotificationsDialogOpen: boolean;
+    ttsVoices: TtsVoice[];
+    vrNotificationsDialogOpen: boolean;
+    webhookNotificationsDialogOpen: boolean;
+    wristFeedNotificationsDialogOpen: boolean;
     addFeedHiddenUser: SettingsCallback<[string]>;
     favoriteFriendGroupOptions: FavoriteFriendGroupOption[];
     localFavoriteFriendGroupOptions: FavoriteFriendGroupOption[];
@@ -219,22 +236,23 @@ export function buildSettingsPageStateSections({
     saveAvatarProviderField,
     saveBoolPreference,
     saveCustomFontFamily,
-    saveDesktopNotificationActivityFilters,
     saveDiscordBoolPreference,
     saveFontFamilyPreference,
-    saveHmdNotificationActivityFilters,
     saveIntegrationBoolPreference,
     saveInterfaceZoomLevel,
     saveNotificationTtsMode,
     saveNotificationTtsVoice,
     saveOverlayActivityFilters,
+    saveVrNotificationActivityFilters,
+    saveHmdNotificationActivityFilters,
+    saveDesktopNotificationActivityFilters,
+    saveWebhookActivityFilters,
+    saveTtsNotificationActivityFilters,
     savePreferenceValue,
     saveStringPreference,
     saveTableLimitsDialog,
     saveTranslationApiConfig,
     saveTrustColor,
-    saveVrNotificationActivityFilters,
-    saveWebhookActivityFilters,
     saveWristOverlayEnabled,
     saveYoutubeApiKey,
     searchLimitError,
@@ -279,6 +297,7 @@ export function buildSettingsPageStateSections({
     setTranslationApiEnabledPreference,
     setTranslationApiDialogOpen,
     setTranslationDraftValue,
+    setTtsNotificationsDialogOpen,
     setVrNotificationsDialogOpen,
     setWebhookNotificationsDialogOpen,
     setWristFeedNotificationsDialogOpen,
@@ -300,6 +319,7 @@ export function buildSettingsPageStateSections({
     translationApiDialogOpen,
     translationDraft,
     ttsVoices,
+    ttsNotificationsDialogOpen,
     toggleLocalFavoriteFriendsGroup,
     updateAvatarProvider,
     updateSharedFeedFilter,
@@ -755,6 +775,7 @@ export function buildSettingsPageStateSections({
             notificationLayoutOptions,
             desktopToastOptions,
             notificationTtsOptions,
+            notificationTtsNameModeOptions,
             ttsVoices,
             notificationTtsTestVisible,
             notificationTtsTest,
@@ -763,6 +784,7 @@ export function buildSettingsPageStateSections({
             setPrefs,
             setFeedFilterDialogOpen,
             setDesktopNotificationsDialogOpen,
+            setTtsNotificationsDialogOpen,
             saveStringPreference,
             saveBoolPreference,
             saveNotificationTtsMode,
@@ -882,18 +904,23 @@ export function buildSettingsPageStateSections({
             setDesktopNotificationsDialogOpen,
             webhookNotificationsDialogOpen,
             setWebhookNotificationsDialogOpen,
+            ttsNotificationsDialogOpen,
+            setTtsNotificationsDialogOpen,
             overlayActivityFilters: prefs.overlayActivityFilters,
-            saveOverlayActivityFilters,
             vrNotificationActivityFilters: prefs.vrNotificationActivityFilters,
-            saveVrNotificationActivityFilters,
             hmdNotificationActivityFilters:
                 prefs.hmdNotificationActivityFilters,
-            saveHmdNotificationActivityFilters,
             desktopNotificationActivityFilters:
                 prefs.desktopNotificationActivityFilters,
-            saveDesktopNotificationActivityFilters,
             webhookActivityFilters: prefs.webhookActivityFilters,
-            saveWebhookActivityFilters
+            ttsNotificationActivityFilters:
+                prefs.ttsNotificationActivityFilters,
+            saveOverlayActivityFilters,
+            saveVrNotificationActivityFilters,
+            saveHmdNotificationActivityFilters,
+            saveDesktopNotificationActivityFilters,
+            saveWebhookActivityFilters,
+            saveTtsNotificationActivityFilters
         }
     };
 }

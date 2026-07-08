@@ -1,5 +1,11 @@
 {
     "language": "Magyar (hu)",
+    "common": {
+        "actions": {
+            "configure": "Beállítás",
+            "reset": "Visszaállítás"
+        }
+    },
     "nav_tooltip": {
         "feed": "Feed",
         "game_log": "Játéknapló",
@@ -293,7 +299,18 @@
                     "text_to_speech": {
                         "header": "Szövegfelolvasás",
                         "when_to_play": "Értesítés felolvasása. Mikor játssza le",
-                        "tts_voice": "TTS hang"
+                        "tts_voice": "TTS hang",
+                        "system_default_voice": "Rendszer alapértelmezett hangja",
+                        "notification_filters": "TTS értesítési szűrők",
+                        "name_mode": "Felolvasott név",
+                        "name_mode_username": "Felhasználónév",
+                        "name_mode_note": "Jegyzet",
+                        "name_mode_username_and_note": "Felhasználónév és jegyzet",
+                        "play": "Lejátszás",
+                        "tts_test_placeholder": "TTS teszt",
+                        "tts_enabled_preview": "Értesítési felolvasás bekapcsolva",
+                        "tts_voice_preview": "Értesítési felolvasási hang kiválasztva",
+                        "tts_test_failed": "Nem sikerült lejátszani a felolvasást"
                     }
                 }
             },
@@ -427,6 +444,10 @@
         "hmd_notifications": {
             "title": "Headset értesítési szűrők",
             "description": "Válaszd ki, mely értesítések jelenjenek meg a headsetben."
+        },
+        "tts_notifications": {
+            "title": "TTS értesítési szűrők",
+            "description": "Válaszd ki, mely futásidejű értesítéseket olvassa fel a szövegfelolvasó. A fenti TTS lejátszási feltétel továbbra is érvényes."
         },
         "user": {
             "status": {

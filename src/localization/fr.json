@@ -1983,9 +1983,18 @@
                         "header": "Synthèse vocale",
                         "when_to_play": "Quand la jouer",
                         "tts_voice": "Voix de la synthèse vocale",
+                        "system_default_voice": "Voix système par défaut",
+                        "notification_filters": "Filtres de notifications TTS",
+                        "name_mode": "Nom lu",
+                        "name_mode_username": "Nom d'utilisateur",
+                        "name_mode_note": "Note",
+                        "name_mode_username_and_note": "Nom d'utilisateur et note",
                         "use_memo_nicknames": "Utiliser les surnoms dans les mémos",
                         "play": "Jouer",
-                        "tts_test_placeholder": "Cliquez pour tester"
+                        "tts_test_placeholder": "Cliquez pour tester",
+                        "tts_enabled_preview": "Synthèse vocale des notifications activée",
+                        "tts_voice_preview": "Voix de synthèse vocale sélectionnée",
+                        "tts_test_failed": "Impossible de lire la synthèse vocale"
                     }
                 }
             },
@@ -4020,6 +4029,10 @@
             "title": "Filtres de notifications de l'overlay VR",
             "description": "Choisissez les notifications d'exécution envoyées à XSOverlay et OVR Toolkit pendant que SteamVR fonctionne."
         },
+        "tts_notifications": {
+            "title": "Filtres de notifications TTS",
+            "description": "Choisissez quelles notifications d'exécution sont lues avec la synthèse vocale. La condition de lecture TTS ci-dessus s'applique toujours."
+        },
         "hmd_notifications": {
             "title": "Filtres des notifications du casque",
             "description": "Choisissez les notifications à afficher dans le casque."
@@ -4035,7 +4048,6 @@
         "wrist_feed_notifications": {
             "title": "Filtres de notifications de l'overlay de poignet",
             "description": "Choisissez ce qui apparaît sur le flux du poignet. Les notifications du bureau utilisent des filtres distincts.",
-            "reset_recommended": "Réinitialiser",
             "scopes": {
                 "off": "Désactivé",
                 "on": "Activé",

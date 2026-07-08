@@ -2012,9 +2012,18 @@
                         "header": "Text-To-Speech",
                         "when_to_play": "Notification TTS",
                         "tts_voice": "TTS Voice",
+                        "system_default_voice": "System default",
+                        "notification_filters": "TTS Notification Filters",
+                        "name_mode": "Spoken Name",
+                        "name_mode_username": "Username",
+                        "name_mode_note": "Note",
+                        "name_mode_username_and_note": "Username and Note",
                         "use_memo_nicknames": "Use Local Note Nicknames for TTS",
                         "play": "Play",
-                        "tts_test_placeholder": "Play Test TTS"
+                        "tts_test_placeholder": "Play Test TTS",
+                        "tts_enabled_preview": "Notification text-to-speech enabled",
+                        "tts_voice_preview": "Notification text-to-speech voice selected",
+                        "tts_test_failed": "Could not play text-to-speech"
                     }
                 }
             },
@@ -4049,6 +4058,10 @@
             "title": "VR Overlay Notification Filters",
             "description": "Choose which runtime notifications are sent to XSOverlay and OVR Toolkit while SteamVR is running."
         },
+        "tts_notifications": {
+            "title": "TTS Notification Filters",
+            "description": "Choose which runtime notifications are spoken with text-to-speech. The TTS play condition above still applies."
+        },
         "hmd_notifications": {
             "title": "HMD Notification Filters",
             "description": "Choose which runtime notifications appear inside the headset."
@@ -4064,7 +4077,6 @@
         "wrist_feed_notifications": {
             "title": "Wrist Overlay Notification Filters",
             "description": "Choose what appears on the wrist feed. Desktop notifications use separate filters.",
-            "reset_recommended": "Reset",
             "scopes": {
                 "off": "Off",
                 "on": "On",

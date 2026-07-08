@@ -140,6 +140,33 @@ describe('native shell locale coverage', () => {
     });
 });
 
+describe('settings locale coverage', () => {
+    const requiredSettingsKeys = [
+        'common.actions.configure',
+        'common.actions.reset',
+        'view.settings.notifications.notifications.text_to_speech.play',
+        'view.settings.notifications.notifications.text_to_speech.tts_test_placeholder',
+        'view.settings.notifications.notifications.text_to_speech.tts_enabled_preview',
+        'view.settings.notifications.notifications.text_to_speech.tts_voice_preview',
+        'view.settings.notifications.notifications.text_to_speech.tts_test_failed'
+    ];
+
+    it('keeps notification settings labels in every locale source file', () => {
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            for (const key of requiredSettingsKeys) {
+                const value = readPath(source, key);
+                expect(value, `${locale} ${key}`).toEqual(expect.any(String));
+                if (typeof value !== 'string') {
+                    continue;
+                }
+                expect(value.trim()).not.toBe('');
+                expect(value).not.toBe(key);
+            }
+        }
+    });
+});
+
 function readLocaleSource(locale: string): unknown {
     return localeSources[locale];
 }

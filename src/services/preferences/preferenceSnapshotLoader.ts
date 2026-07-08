@@ -2,6 +2,7 @@ import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import storageRepository from '@/repositories/storageRepository';
 import {
+    DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
     parseHmdOverlayActivityFilterProfile,
     parseOverlayActivityFilterProfile
@@ -15,6 +16,7 @@ import {
     normalizeFeedTimeDisplayMode,
     normalizeFeedHiddenUsers,
     normalizeHmdNotificationPosition,
+    normalizeNotificationTtsNameMode,
     normalizeOverlayStartMode,
     normalizeTableLimits,
     normalizeTablePageSize,
@@ -132,7 +134,8 @@ export async function loadPreferenceSnapshot() {
         desktopNotificationSound,
         notificationTTS,
         notificationTTSNickName,
-        notificationTTSVoice,
+        notificationTTSNameMode,
+        notificationTTSVoiceNative,
         xsNotifications,
         ovrtHudNotifications,
         ovrtWristNotifications,
@@ -193,6 +196,7 @@ export async function loadPreferenceSnapshot() {
         hmdNotificationActivityFilters,
         desktopNotificationActivityFilters,
         webhookActivityFilters,
+        ttsNotificationActivityFilters,
         feedTimeDisplayMode,
         youtubeAPI,
         translationAPI,
@@ -257,7 +261,8 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('desktopNotificationSound', false),
         configRepository.getString('notificationTTS', 'Never'),
         configRepository.getBool('notificationTTSNickName', false),
-        configRepository.getString('notificationTTSVoice', '0'),
+        configRepository.getString('notificationTTSNameMode', ''),
+        configRepository.getString('notificationTTSVoiceNative', ''),
         getBoolConfigWithLegacy('xsNotifications', false),
         getBoolConfigWithLegacy('ovrtHudNotifications', false),
         getBoolConfigWithLegacy('ovrtWristNotifications', false),
@@ -333,6 +338,7 @@ export async function loadPreferenceSnapshot() {
         configRepository.getString('hmdNotificationActivityFilters', ''),
         configRepository.getString('desktopNotificationActivityFilters', ''),
         configRepository.getString('webhookActivityFilters', ''),
+        configRepository.getString('ttsNotificationActivityFilters', ''),
         configRepository.getString('feedTimeDisplayMode', 'relative'),
         configRepository.getBool('youtubeAPI', false),
         configRepository.getBool('translationAPI', false),
@@ -447,7 +453,11 @@ export async function loadPreferenceSnapshot() {
         desktopNotificationSound: Boolean(desktopNotificationSound),
         notificationTTS: notificationTTS || 'Never',
         notificationTTSNickName: Boolean(notificationTTSNickName),
-        notificationTTSVoice: notificationTTSVoice || '0',
+        notificationTTSNameMode: normalizeNotificationTtsNameMode(
+            notificationTTSNameMode,
+            notificationTTSNickName
+        ),
+        notificationTTSVoiceNative: String(notificationTTSVoiceNative || ''),
         xsNotifications: Boolean(xsNotifications),
         ovrtHudNotifications: Boolean(ovrtHudNotifications),
         ovrtWristNotifications: Boolean(ovrtWristNotifications),
@@ -538,6 +548,10 @@ export async function loadPreferenceSnapshot() {
         ),
         webhookActivityFilters: parseOverlayActivityFilterProfile(
             webhookActivityFilters || DEFAULT_WEBHOOK_ACTIVITY_FILTERS
+        ),
+        ttsNotificationActivityFilters: parseOverlayActivityFilterProfile(
+            ttsNotificationActivityFilters ||
+                DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS
         ),
         feedTimeDisplayMode: normalizeFeedTimeDisplayMode(feedTimeDisplayMode),
         youtubeAPI: Boolean(youtubeAPI),

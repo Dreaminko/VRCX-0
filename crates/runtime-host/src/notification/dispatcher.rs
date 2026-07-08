@@ -2,11 +2,11 @@ use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use vrcx_0_application::{
     HostSessionRuntime, ImageCache, OverlayActivityDelivery, OverlayActivitySink,
-    OverlayActivitySnapshot, RuntimeDiagnostics, RuntimeEventBus, TaskSupervisor, WebClient,
-    WorldCache,
+    OverlayActivitySnapshot, RuntimeDiagnostics, TaskSupervisor, WebClient, WorldCache,
 };
 use vrcx_0_core::location::{format_display_location, is_meaningful_world_name, parse_location};
 use vrcx_0_host::overlay_notifications::{send_xs_notification, OvrToolkit};
+use vrcx_0_host::tts::TtsEngine;
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 
@@ -39,6 +39,8 @@ pub struct NotificationDeliveryPreferences {
     pub desktop_toast: String,
     pub desktop_notification_sound: bool,
     pub notification_tts: String,
+    pub notification_tts_name_mode: String,
+    pub notification_tts_voice_native: String,
     pub xs_notifications: bool,
     pub ovrt_hud_notifications: bool,
     pub ovrt_wrist_notifications: bool,
@@ -57,6 +59,8 @@ impl Default for NotificationDeliveryPreferences {
             desktop_toast: "Never".into(),
             desktop_notification_sound: false,
             notification_tts: "Never".into(),
+            notification_tts_name_mode: "username".into(),
+            notification_tts_voice_native: String::new(),
             xs_notifications: false,
             ovrt_hud_notifications: false,
             ovrt_wrist_notifications: false,
@@ -113,8 +117,7 @@ pub fn decide_notification_plan(
     let webhook = delivery.webhook
         && preferences.webhook_enabled
         && !preferences.webhook_url.trim().is_empty();
-    let tts = (delivery.desktop || delivery.vr)
-        && should_play_for_condition(&preferences.notification_tts, game);
+    let tts = delivery.tts && should_play_for_condition(&preferences.notification_tts, game);
 
     NotificationDeliveryPlan {
         desktop,
@@ -185,7 +188,7 @@ pub struct NotificationDispatcher {
     world_cache: Arc<WorldCache>,
     user_image_cache: Arc<UserImageCache>,
     desktop: Arc<dyn DesktopNotifier>,
-    event_bus: RuntimeEventBus,
+    tts: Arc<dyn TtsEngine>,
     diagnostics: RuntimeDiagnostics,
     tasks: TaskSupervisor,
 }
@@ -198,7 +201,7 @@ pub struct NotificationDispatcherDeps {
     pub web: Arc<WebClient>,
     pub world_cache: Arc<WorldCache>,
     pub desktop: Arc<dyn DesktopNotifier>,
-    pub event_bus: RuntimeEventBus,
+    pub tts: Arc<dyn TtsEngine>,
     pub diagnostics: RuntimeDiagnostics,
     pub tasks: TaskSupervisor,
 }
@@ -215,7 +218,7 @@ impl NotificationDispatcher {
             world_cache: deps.world_cache,
             user_image_cache: Arc::new(UserImageCache::new()),
             desktop: deps.desktop,
-            event_bus: deps.event_bus,
+            tts: deps.tts,
             diagnostics: deps.diagnostics,
             tasks: deps.tasks,
         }
@@ -249,7 +252,7 @@ impl OverlayActivitySink for NotificationDispatcher {
         let user_image_cache = Arc::clone(&self.user_image_cache);
         let allow_user_icon = config_bool(&self.config, "displayVRCPlusIconsAsAvatar", true);
         let desktop = Arc::clone(&self.desktop);
-        let event_bus = self.event_bus.clone();
+        let tts = Arc::clone(&self.tts);
         let diagnostics = self.diagnostics.clone();
 
         self.tasks.spawn(async move {
@@ -289,7 +292,7 @@ impl OverlayActivitySink for NotificationDispatcher {
                 endpoint,
                 allow_user_icon,
                 desktop,
-                event_bus,
+                tts,
                 diagnostics,
             )
             .await;
@@ -313,11 +316,15 @@ async fn dispatch_rendered_notification(
     endpoint: String,
     allow_user_icon: bool,
     desktop: Arc<dyn DesktopNotifier>,
-    event_bus: RuntimeEventBus,
+    tts: Arc<dyn TtsEngine>,
     diagnostics: RuntimeDiagnostics,
 ) {
     if plan.tts {
-        event_bus.emit("notificationTts", render.tts_payload(&delivery));
+        let text = notification_tts_text(db.as_ref(), &delivery, &render, &preferences);
+        if let Err(error) = tts.speak(&text, non_empty(&preferences.notification_tts_voice_native))
+        {
+            tracing::warn!("[TTS] notification speak failed: {error}");
+        }
     }
 
     let local_image = if plan.needs_local_image() && preferences.image_notifications {
@@ -515,6 +522,57 @@ fn combine_text(title: &str, body: &str) -> String {
     }
 }
 
+fn notification_tts_text(
+    db: &DatabaseService,
+    delivery: &OverlayActivityDelivery,
+    render: &RenderedNotification,
+    preferences: &NotificationDeliveryPreferences,
+) -> String {
+    let name_mode = notification_tts_name_mode(&preferences.notification_tts_name_mode);
+    if name_mode == "username" {
+        return render.text.clone();
+    }
+    let title = render.title.trim();
+    let actor_user_id = delivery.entry.actor_user_id.trim();
+    if title.is_empty() || actor_user_id.is_empty() {
+        return render.text.clone();
+    }
+    let Some(memo_first_line) = user_memo_first_line(db, actor_user_id) else {
+        return render.text.clone();
+    };
+    let replacement = match name_mode {
+        "note" => memo_first_line,
+        "usernameAndNote" => format!("{title}, {memo_first_line}"),
+        _ => return render.text.clone(),
+    };
+    render.text.replacen(title, &replacement, 1)
+}
+
+fn notification_tts_name_mode(value: &str) -> &'static str {
+    match value {
+        "note" => "note",
+        "usernameAndNote" => "usernameAndNote",
+        _ => "username",
+    }
+}
+
+fn user_memo_first_line(db: &DatabaseService, actor_user_id: &str) -> Option<String> {
+    match vrcx_0_persistence::memos::memo_get_user(db, actor_user_id.to_string()) {
+        Ok(Some(memo)) => memo
+            .memo
+            .lines()
+            .next()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToString::to_string),
+        Ok(None) => None,
+        Err(error) => {
+            tracing::debug!("failed to load TTS nickname memo: {error}");
+            None
+        }
+    }
+}
+
 fn should_play_for_condition(condition: &str, game: &NotificationDeliveryGameState) -> bool {
     match condition {
         "Always" => true,
@@ -532,6 +590,8 @@ fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPreference
         desktop_toast: config_string(config, "desktopToast", "Never"),
         desktop_notification_sound: config_bool(config, "desktopNotificationSound", false),
         notification_tts: config_string(config, "notificationTTS", "Never"),
+        notification_tts_name_mode: config_tts_name_mode(config),
+        notification_tts_voice_native: config_string(config, "notificationTTSVoiceNative", ""),
         xs_notifications: config_bool_with_legacy(config, "xsNotifications", false),
         ovrt_hud_notifications: config_bool_with_legacy(config, "ovrtHudNotifications", false),
         ovrt_wrist_notifications: config_bool_with_legacy(config, "ovrtWristNotifications", false),
@@ -547,6 +607,19 @@ fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPreference
         )),
         webhook_fields: parse_webhook_fields(&config_string(config, "webhookFields", "")),
     }
+}
+
+fn config_tts_name_mode(config: &ConfigRepository) -> String {
+    let configured = config_string(config, "notificationTTSNameMode", "");
+    if !configured.trim().is_empty() {
+        return notification_tts_name_mode(&configured).into();
+    }
+    if config_bool(config, "notificationTTSNickName", false) {
+        "note"
+    } else {
+        "username"
+    }
+    .into()
 }
 
 fn load_game_state(
@@ -798,17 +871,21 @@ fn non_empty(value: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
+    use std::{path::PathBuf, sync::Arc};
+
     use serde_json::json;
     use vrcx_0_application::{
         OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
         OverlayActivityDelivery, OverlayActivityEntry,
     };
+    use vrcx_0_persistence::{config::ConfigRepository, memos::memo_save_user, DatabaseService};
 
     use crate::vr_overlay::OverlayLocale;
 
     use super::{
-        delivery_actor_image_user_id, generic_webhook_payload, overlay_notification_render,
-        parse_webhook_fields, render_delivery,
+        config_tts_name_mode, delivery_actor_image_user_id, generic_webhook_payload,
+        notification_tts_text, overlay_notification_render, parse_webhook_fields, render_delivery,
+        NotificationDeliveryPreferences,
     };
     use crate::notification::rendered::RenderedNotification;
 
@@ -860,6 +937,52 @@ mod tests {
         assert_eq!(overlay.title, "VRCX-0");
         assert_eq!(overlay.text, "Traveler joined Named World");
         assert_eq!(render.title, "Traveler");
+    }
+
+    #[test]
+    fn notification_tts_note_mode_replaces_only_first_title() {
+        let (_dir, db) = test_db("tts-note-mode");
+        memo_save_user(&db, "usr_traveler".into(), "Pilot\nsecond line".into()).unwrap();
+        let preferences = NotificationDeliveryPreferences {
+            notification_tts_name_mode: "note".into(),
+            ..NotificationDeliveryPreferences::default()
+        };
+        let mut render = rendered();
+        render.text = "Traveler waved at Traveler".into();
+
+        assert_eq!(
+            notification_tts_text(&db, &delivery(), &render, &preferences),
+            "Pilot waved at Traveler"
+        );
+    }
+
+    #[test]
+    fn notification_tts_username_and_note_mode_reads_both() {
+        let (_dir, db) = test_db("tts-username-and-note-mode");
+        memo_save_user(&db, "usr_traveler".into(), "Pilot".into()).unwrap();
+        let preferences = NotificationDeliveryPreferences {
+            notification_tts_name_mode: "usernameAndNote".into(),
+            ..NotificationDeliveryPreferences::default()
+        };
+
+        assert_eq!(
+            notification_tts_text(&db, &delivery(), &rendered(), &preferences),
+            "Traveler, Pilot joined Named World"
+        );
+    }
+
+    #[test]
+    fn notification_tts_name_mode_preserves_legacy_nickname_setting() {
+        let (_dir, db) = test_db("tts-name-mode-legacy");
+        let config = ConfigRepository::new(Arc::new(db));
+
+        config.set_bool("notificationTTSNickName", true).unwrap();
+        assert_eq!(config_tts_name_mode(&config), "note");
+
+        config
+            .set_string("notificationTTSNameMode", "usernameAndNote")
+            .unwrap();
+        assert_eq!(config_tts_name_mode(&config), "usernameAndNote");
     }
 
     #[test]
@@ -955,7 +1078,39 @@ mod tests {
             vr: false,
             hmd: false,
             webhook: true,
+            tts: false,
         }
+    }
+
+    struct TestDir {
+        path: PathBuf,
+    }
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx-0-dispatcher-{name}-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn test_db(name: &str) -> (TestDir, DatabaseService) {
+        let dir = TestDir::new(name);
+        let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap();
+        (dir, db)
     }
 
     fn text(

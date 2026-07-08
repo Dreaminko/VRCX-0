@@ -1996,9 +1996,18 @@
                         "header": "Преобразование текста в речь",
                         "when_to_play": "TTS уведомления во время игры",
                         "tts_voice": "Синтезатор голоса",
+                        "system_default_voice": "Системный голос по умолчанию",
+                        "notification_filters": "Фильтры TTS-уведомлений",
+                        "name_mode": "Озвучиваемое имя",
+                        "name_mode_username": "Имя пользователя",
+                        "name_mode_note": "Заметка",
+                        "name_mode_username_and_note": "Имя пользователя и заметка",
                         "use_memo_nicknames": "Использовать прозвища из заметок",
                         "play": "Воспроизвести",
-                        "tts_test_placeholder": "Тест TTS"
+                        "tts_test_placeholder": "Тест TTS",
+                        "tts_enabled_preview": "TTS уведомлений включён",
+                        "tts_voice_preview": "Голос TTS уведомлений выбран",
+                        "tts_test_failed": "Не удалось воспроизвести TTS"
                     }
                 }
             },
@@ -4033,6 +4042,10 @@
             "title": "VR Фильтры уведомления о накладных устройствах",
             "description": "Выбрать, кому направляются уведомления о времени работы XSOverlay и OVR Toolkit в то время как SteamVR Бежит."
         },
+        "tts_notifications": {
+            "title": "Фильтры TTS-уведомлений",
+            "description": "Выберите, какие уведомления времени выполнения будут озвучиваться через TTS. Условие воспроизведения TTS выше по-прежнему применяется."
+        },
         "hmd_notifications": {
             "title": "Фильтры уведомлений в шлеме",
             "description": "Выберите, какие уведомления показывать в шлеме."
@@ -4048,7 +4061,6 @@
         "wrist_feed_notifications": {
             "title": "Фильтры уведомления Wrist",
             "description": "Выберите, что появляется в запястье. В уведомлениях рабочего стола используются отдельные фильтры.",
-            "reset_recommended": "Сбросить",
             "scopes": {
                 "off": "Выключить",
                 "on": "Включено",

@@ -2012,9 +2012,18 @@
                         "header": "文字轉語音",
                         "when_to_play": "通知文字轉語音播放時機",
                         "tts_voice": "語音樣式",
+                        "system_default_voice": "系統預設",
+                        "notification_filters": "TTS 通知過濾器",
+                        "name_mode": "朗讀名稱",
+                        "name_mode_username": "使用者名稱",
+                        "name_mode_note": "備註",
+                        "name_mode_username_and_note": "使用者名稱和備註",
                         "use_memo_nicknames": "使用本機備註暱稱",
                         "play": "播放",
-                        "tts_test_placeholder": "測試文字轉語音"
+                        "tts_test_placeholder": "測試文字轉語音",
+                        "tts_enabled_preview": "通知文字轉語音已啟用",
+                        "tts_voice_preview": "已選擇通知 TTS 語音",
+                        "tts_test_failed": "無法播放文字轉語音"
                     }
                 }
             },
@@ -4049,6 +4058,10 @@
             "title": "VR 疊加通知過濾器",
             "description": "選擇 SteamVR 執行時哪些通知會傳送到 XSOverlay 和 OVR Toolkit。"
         },
+        "tts_notifications": {
+            "title": "TTS 通知過濾器",
+            "description": "選擇哪些執行階段通知會透過文字轉語音播放。上方的 TTS 播放條件仍會套用。"
+        },
         "hmd_notifications": {
             "title": "頭顯通知篩選器",
             "description": "選擇要在頭顯中顯示哪些執行時通知。"
@@ -4064,7 +4077,6 @@
         "wrist_feed_notifications": {
             "title": "手腕疊加通知過濾器",
             "description": "選擇哪些內容顯示在手腕動態中。桌面通知使用單獨的篩選設定。",
-            "reset_recommended": "重置",
             "scopes": {
                 "off": "關閉",
                 "on": "開啟",

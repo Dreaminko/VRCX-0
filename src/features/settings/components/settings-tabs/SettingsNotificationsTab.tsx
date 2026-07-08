@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import type { TtsVoice } from '@/platform/tauri/bindings';
+import { normalizeNotificationTtsNameMode } from '@/state/preferencesStore';
 import { Button } from '@/ui/shadcn/button';
 import { Input } from '@/ui/shadcn/input';
 import {
@@ -24,8 +26,9 @@ type SettingsNotificationsPrefs = Record<string, unknown> & {
     notificationIconDot?: boolean;
     notificationLayout?: string;
     notificationTTS?: string;
+    notificationTTSNameMode?: string;
     notificationTTSNickName?: boolean;
-    notificationTTSVoice?: string;
+    notificationTTSVoiceNative?: string;
     showPostUpdateChangelogToast?: boolean;
 };
 
@@ -33,6 +36,7 @@ type SettingsNotificationsTabProps = {
     desktopToastOptions: SettingsOptionList;
     notificationLayoutOptions: SettingsOptionList;
     notificationTtsOptions: SettingsOptionList;
+    notificationTtsNameModeOptions: SettingsOptionList;
     notificationTtsTest: string;
     notificationTtsTestVisible: boolean;
     onAfkDesktopToastChange: (checked: boolean) => unknown;
@@ -41,17 +45,18 @@ type SettingsNotificationsTabProps = {
     onNotificationIconDotChange: (checked: boolean) => unknown;
     onNotificationLayoutChange: (value: string) => unknown;
     onNotificationTtsModeChange: (value: string) => unknown;
-    onNotificationTtsNicknameChange: (checked: boolean) => unknown;
+    onNotificationTtsNameModeChange: (value: string) => unknown;
     onNotificationTtsTestChange: (value: string) => unknown;
     onNotificationTtsTestVisibleChange: (visible: boolean) => unknown;
     onNotificationTtsVoiceChange: (value: string) => unknown;
     onOpenDesktopNotificationFiltersDialog: () => unknown;
     onOpenFeedFilterDialog: () => unknown;
+    onOpenTtsNotificationFiltersDialog: () => unknown;
     onPostUpdateChangelogToastChange: (checked: boolean) => unknown;
     onSpeakNotificationTts: (message: string) => unknown;
     onTestDesktopNotification: () => unknown;
     prefs: SettingsNotificationsPrefs;
-    ttsVoices: SpeechSynthesisVoice[];
+    ttsVoices: TtsVoice[];
 };
 
 export function SettingsNotificationsTab({
@@ -59,6 +64,7 @@ export function SettingsNotificationsTab({
     notificationLayoutOptions,
     desktopToastOptions,
     notificationTtsOptions,
+    notificationTtsNameModeOptions,
     ttsVoices,
     notificationTtsTestVisible,
     notificationTtsTest,
@@ -67,18 +73,23 @@ export function SettingsNotificationsTab({
     onPostUpdateChangelogToastChange,
     onOpenFeedFilterDialog,
     onOpenDesktopNotificationFiltersDialog,
+    onOpenTtsNotificationFiltersDialog,
     onTestDesktopNotification,
     onDesktopToastChange,
     onAfkDesktopToastChange,
     onDesktopNotificationSoundChange,
     onNotificationTtsModeChange,
     onNotificationTtsVoiceChange,
-    onNotificationTtsNicknameChange,
+    onNotificationTtsNameModeChange,
     onNotificationTtsTestVisibleChange,
     onNotificationTtsTestChange,
     onSpeakNotificationTts
 }: SettingsNotificationsTabProps) {
     const { t } = useTranslation();
+    const ttsNameMode = normalizeNotificationTtsNameMode(
+        prefs.notificationTTSNameMode,
+        prefs.notificationTTSNickName
+    );
 
     return (
         <SettingsTabContent value="notifications">
@@ -307,17 +318,27 @@ export function SettingsNotificationsTab({
                     controlId="settings-notification-tts-voice"
                 >
                     <Select
-                        value={prefs.notificationTTSVoice}
-                        items={ttsVoices.map((voice, index) => ({
-                            value: String(index),
-                            label: voice.name
-                        }))}
-                        disabled={
-                            prefs.notificationTTS === 'Never' ||
-                            !ttsVoices.length
-                        }
+                        value={prefs.notificationTTSVoiceNative || 'default'}
+                        items={[
+                            {
+                                value: 'default',
+                                label: t(
+                                    'view.settings.notifications.notifications.text_to_speech.system_default_voice',
+                                    { defaultValue: 'System default' }
+                                )
+                            },
+                            ...ttsVoices.map((voice) => ({
+                                value: voice.id,
+                                label: voice.language
+                                    ? `${voice.name} (${voice.language})`
+                                    : voice.name
+                            }))
+                        ]}
+                        disabled={prefs.notificationTTS === 'Never'}
                         onValueChange={(value) =>
-                            onNotificationTtsVoiceChange(value ?? '')
+                            onNotificationTtsVoiceChange(
+                                value === 'default' ? '' : (value ?? '')
+                            )
                         }
                     >
                         <SelectTrigger
@@ -329,19 +350,24 @@ export function SettingsNotificationsTab({
                                     ttsVoices.length
                                         ? undefined
                                         : t(
-                                              'view.settings.notifications.notifications.no_text_to_speech_voices_are_available'
+                                              'view.settings.empty.no_text_to_speech_voices_are_available'
                                           )
                                 }
                             />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                {ttsVoices.map((voice, index) => (
-                                    <SelectItem
-                                        key={`${voice.name}-${index}`}
-                                        value={String(index)}
-                                    >
-                                        {voice.name}
+                                <SelectItem value="default">
+                                    {t(
+                                        'view.settings.notifications.notifications.text_to_speech.system_default_voice',
+                                        { defaultValue: 'System default' }
+                                    )}
+                                </SelectItem>
+                                {ttsVoices.map((voice) => (
+                                    <SelectItem key={voice.id} value={voice.id}>
+                                        {voice.language
+                                            ? `${voice.name} (${voice.language})`
+                                            : voice.name}
                                     </SelectItem>
                                 ))}
                             </SelectGroup>
@@ -351,14 +377,55 @@ export function SettingsNotificationsTab({
 
                 <Field
                     label={t(
-                        'view.settings.notifications.notifications.text_to_speech.use_memo_nicknames'
+                        'view.settings.notifications.notifications.text_to_speech.notification_filters'
                     )}
                 >
-                    <Switch
-                        checked={prefs.notificationTTSNickName}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onOpenTtsNotificationFiltersDialog}
+                    >
+                        {t('common.actions.configure')}
+                    </Button>
+                </Field>
+
+                <Field
+                    label={t(
+                        'view.settings.notifications.notifications.text_to_speech.name_mode'
+                    )}
+                    controlId="settings-notification-tts-name-mode"
+                >
+                    <Select
+                        value={ttsNameMode}
+                        items={notificationTtsNameModeOptions.map(
+                            ([value, labelKey]) => ({
+                                value,
+                                label: t(labelKey)
+                            })
+                        )}
                         disabled={prefs.notificationTTS === 'Never'}
-                        onCheckedChange={onNotificationTtsNicknameChange}
-                    />
+                        onValueChange={(value) =>
+                            onNotificationTtsNameModeChange(value ?? 'username')
+                        }
+                    >
+                        <SelectTrigger
+                            id="settings-notification-tts-name-mode"
+                            className="w-72"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                {notificationTtsNameModeOptions.map(
+                                    ([value, labelKey]) => (
+                                        <SelectItem key={value} value={value}>
+                                            {t(labelKey)}
+                                        </SelectItem>
+                                    )
+                                )}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
                 </Field>
 
                 <Field

@@ -1957,9 +1957,18 @@
                         "header": "텍스트 음성 변환",
                         "when_to_play": "알림 TTS 재생 조건",
                         "tts_voice": "TTS 목소리",
+                        "system_default_voice": "시스템 기본값",
+                        "notification_filters": "TTS 알림 필터",
+                        "name_mode": "읽을 이름",
+                        "name_mode_username": "사용자 이름",
+                        "name_mode_note": "노트",
+                        "name_mode_username_and_note": "사용자 이름과 노트",
                         "use_memo_nicknames": "TTS에 로컬 노트 별명 사용",
                         "play": "플레이",
-                        "tts_test_placeholder": "테스트 TTS 플레이"
+                        "tts_test_placeholder": "테스트 TTS 플레이",
+                        "tts_enabled_preview": "알림 TTS가 활성화되었습니다",
+                        "tts_voice_preview": "알림 TTS 음성이 선택되었습니다",
+                        "tts_test_failed": "TTS를 재생하지 못했습니다"
                     }
                 }
             },
@@ -3990,6 +3999,10 @@
             "title": "VR 오버레이 알림 필터",
             "description": "SteamVR가 실행 중일 때 XSOverlay 및 OVR Toolkit으로 보낼 알림을 선택합니다."
         },
+        "tts_notifications": {
+            "title": "TTS 알림 필터",
+            "description": "텍스트 음성 변환으로 읽을 런타임 알림을 선택합니다. 위의 TTS 재생 조건은 계속 적용됩니다."
+        },
         "hmd_notifications": {
             "title": "헤드셋 알림 필터",
             "description": "헤드셋에 표시할 알림을 선택하세요."
@@ -4005,7 +4018,6 @@
         "wrist_feed_notifications": {
             "title": "손목 오버레이 알림 필터",
             "description": "손목 피드에 표시할 항목을 선택합니다. 데스크톱 알림은 별도의 필터를 사용합니다.",
-            "reset_recommended": "초기화",
             "scopes": {
                 "off": "끄기",
                 "on": "켜기",

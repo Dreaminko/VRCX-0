@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import type { TtsVoice } from '@/platform/tauri/bindings';
 import {
     setAccessibleStatusIndicatorsPreference,
     setAppLanguagePreference,
@@ -137,7 +138,7 @@ export function useSettingsPageState() {
     const [localFavoriteFriendsGroups, setLocalFavoriteFriendsGroups] =
         useState<string[]>([]);
     const [zoomInput, setZoomInput] = useState('100');
-    const [ttsVoices, setTtsVoices] = useState<SpeechSynthesisVoice[]>([]);
+    const [ttsVoices, setTtsVoices] = useState<TtsVoice[]>([]);
     const [notificationTtsTest, setNotificationTtsTest] = useState('');
     const [customFontDialogOpen, setCustomFontDialogOpen] = useState(false);
     const [customFontDraft, setCustomFontDraft] = useState({
@@ -163,6 +164,8 @@ export function useSettingsPageState() {
     const [desktopNotificationsDialogOpen, setDesktopNotificationsDialogOpen] =
         useState(false);
     const [webhookNotificationsDialogOpen, setWebhookNotificationsDialogOpen] =
+        useState(false);
+    const [ttsNotificationsDialogOpen, setTtsNotificationsDialogOpen] =
         useState(false);
     const [sharedFeedFilters, setSharedFeedFilters] = useState(() =>
         normalizeSharedFeedFilters()
@@ -264,6 +267,7 @@ export function useSettingsPageState() {
         saveHmdNotificationActivityFilters,
         saveDesktopNotificationActivityFilters,
         saveWebhookActivityFilters,
+        saveTtsNotificationActivityFilters,
         saveWristOverlayEnabled,
         setProxyEnabledPreference: saveProxyEnabledPreference,
         refreshRuntimeAppSnapshot,
@@ -452,22 +456,23 @@ export function useSettingsPageState() {
         saveAvatarProviderField,
         saveBoolPreference,
         saveCustomFontFamily,
-        saveDesktopNotificationActivityFilters,
         saveDiscordBoolPreference,
         saveFontFamilyPreference,
         saveIntegrationBoolPreference,
         saveInterfaceZoomLevel,
         saveNotificationTtsMode,
         saveNotificationTtsVoice,
-        saveOverlayActivityFilters,
         savePreferenceValue,
-        saveHmdNotificationActivityFilters,
         saveStringPreference,
         saveTableLimitsDialog,
         saveTranslationApiConfig,
         saveTrustColor,
+        saveOverlayActivityFilters,
         saveVrNotificationActivityFilters,
+        saveHmdNotificationActivityFilters,
+        saveDesktopNotificationActivityFilters,
         saveWebhookActivityFilters,
+        saveTtsNotificationActivityFilters,
         saveWristOverlayEnabled,
         saveYoutubeApiKey,
         searchLimitError,
@@ -512,6 +517,7 @@ export function useSettingsPageState() {
         setTranslationApiDialogOpen,
         setTranslationDraftValue,
         setTranslationApiEnabledPreference,
+        setTtsNotificationsDialogOpen,
         setVrNotificationsDialogOpen,
         setWebhookNotificationsDialogOpen,
         setWristFeedNotificationsDialogOpen,
@@ -533,6 +539,7 @@ export function useSettingsPageState() {
         translationApiDialogOpen,
         translationDraft,
         ttsVoices,
+        ttsNotificationsDialogOpen,
         toggleLocalFavoriteFriendsGroup,
         updateAvatarProvider,
         updateSharedFeedFilter,

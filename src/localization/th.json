@@ -1,5 +1,11 @@
 {
     "language": "ภาษาไทย (th)",
+    "common": {
+        "actions": {
+            "configure": "กำหนดค่า",
+            "reset": "รีเซ็ต"
+        }
+    },
     "nav_tooltip": {
         "feed": "ฟีด",
         "game_log": "บันทึกเกม",
@@ -406,9 +412,18 @@
                         "header": "อ่านออกเสียง",
                         "when_to_play": "TTS การแจ้งเตือน จะเล่นเมื่อใด",
                         "tts_voice": "เสียง TTS",
+                        "system_default_voice": "เสียงเริ่มต้นของระบบ",
+                        "notification_filters": "ตัวกรองการแจ้งเตือน TTS",
+                        "name_mode": "ชื่อที่อ่านออกเสียง",
+                        "name_mode_username": "ชื่อผู้ใช้",
+                        "name_mode_note": "โน้ต",
+                        "name_mode_username_and_note": "ชื่อผู้ใช้และโน้ต",
                         "use_memo_nicknames": "ใช้ชื่อเล่นในบันทึก",
                         "play": "เล่น",
-                        "tts_test_placeholder": "ทดสอบ TTS"
+                        "tts_test_placeholder": "ทดสอบ TTS",
+                        "tts_enabled_preview": "เปิดใช้การอ่านออกเสียงการแจ้งเตือนแล้ว",
+                        "tts_voice_preview": "เลือกเสียงอ่านออกเสียงการแจ้งเตือนแล้ว",
+                        "tts_test_failed": "ไม่สามารถเล่นเสียง TTS ได้"
                     }
                 }
             },
@@ -561,6 +576,10 @@
         "hmd_notifications": {
             "title": "ตัวกรองการแจ้งเตือนในเฮดเซ็ต",
             "description": "เลือกการแจ้งเตือนที่จะแสดงในเฮดเซ็ต"
+        },
+        "tts_notifications": {
+            "title": "ตัวกรองการแจ้งเตือน TTS",
+            "description": "เลือกว่าการแจ้งเตือนขณะทำงานใดจะถูกอ่านด้วยข้อความเป็นเสียง เงื่อนไขการเล่น TTS ด้านบนยังคงมีผลอยู่"
         },
         "user": {
             "status": {

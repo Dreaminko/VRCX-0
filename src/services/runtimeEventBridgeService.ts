@@ -36,7 +36,6 @@ import { handleGameRunningUpdate } from './gameStateService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
 import i18n from './i18nService';
 import { handleIpcEvent } from './ipcEventService';
-import { executeNotificationTts } from './notificationDeliveryService';
 import { handleRealtimeInstanceQueueProjection } from './realtimeInstanceQueueService';
 import {
     handleRealtimeCurrentUserProjection,
@@ -60,7 +59,6 @@ type RuntimeEventName =
     | 'runtimeWorkerError'
     | 'runtimeGroupInstancesProjection'
     | 'overlayActivitySnapshot'
-    | 'notificationTts'
     | 'printsAutoCleanup'
     | 'realtimeFriendProjection'
     | 'realtimeUserProjection'
@@ -83,7 +81,6 @@ type RuntimeEventPayloadMap = {
     runtimeWorkerError: unknown;
     runtimeGroupInstancesProjection: RuntimeGroupInstancesProjection;
     overlayActivitySnapshot: OverlayActivitySnapshot;
-    notificationTts: Parameters<typeof executeNotificationTts>[0];
     printsAutoCleanup: PrintAutoCleanupEvent;
     realtimeFriendProjection: FriendProjection;
     realtimeUserProjection: unknown;
@@ -549,16 +546,6 @@ function handleRuntimeEvent(
         return;
     }
 
-    if (name === 'notificationTts') {
-        runtimeStore.recordRuntimeEvent(name, payload);
-        executeNotificationTts(
-            payload as RuntimeEventPayloadMap['notificationTts']
-        ).catch((error: unknown) => {
-            console.warn('Failed to execute notification TTS:', error);
-        });
-        return;
-    }
-
     if (name === 'printsAutoCleanup') {
         const printCleanupEvent =
             payload as RuntimeEventPayloadMap['printsAutoCleanup'];
@@ -757,7 +744,6 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'gameLogSideEffect',
         'runtimeGroupInstancesProjection',
         'overlayActivitySnapshot',
-        'notificationTts',
         'printsAutoCleanup',
         'gameClientEvent',
         'runtimeWorkerError',

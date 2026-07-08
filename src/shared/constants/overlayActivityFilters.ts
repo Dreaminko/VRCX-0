@@ -3,7 +3,8 @@ export type OverlayActivitySurface =
     | 'desktop'
     | 'vr'
     | 'hmd'
-    | 'webhook';
+    | 'webhook'
+    | 'tts';
 
 export type OverlayActivityCategory =
     | 'actionRequired'
@@ -351,6 +352,9 @@ export const DEFAULT_OVERLAY_ACTIVITY_FILTERS: OverlayActivityFiltersPreference 
 export const DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS =
     DEFAULT_OVERLAY_ACTIVITY_FILTER_PROFILE;
 
+export const DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS =
+    DEFAULT_OVERLAY_ACTIVITY_FILTER_PROFILE;
+
 export const DEFAULT_WEBHOOK_ACTIVITY_FILTERS: OverlayActivityFilterProfilePreference =
     {
         version: 1,
@@ -437,6 +441,18 @@ export function hmdDefaultOverlayActivityFilterProfileFromDefinitions(
         version: 1,
         types: cloneOverlayActivityTypeRules(
             hmdDefaultOverlayActivityTypeRulesFromDefinitions(definitions),
+            definitions
+        )
+    };
+}
+
+export function disabledOverlayActivityFilterProfileFromDefinitions(
+    definitions: OverlayActivityTypeDefinition[]
+): OverlayActivityFilterProfilePreference {
+    return {
+        version: 1,
+        types: cloneOverlayActivityTypeRules(
+            disabledOverlayActivityTypeRules(definitions),
             definitions
         )
     };

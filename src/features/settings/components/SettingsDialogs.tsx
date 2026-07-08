@@ -7,8 +7,9 @@ import { TranslationApiDialog } from './settings-dialogs/TranslationApiDialog';
 import {
     DesktopNotificationsDialog,
     HmdNotificationsDialog,
-    WebhookNotificationsDialog,
+    TtsNotificationsDialog,
     VrNotificationsDialog,
+    WebhookNotificationsDialog,
     WristFeedNotificationsDialog
 } from './settings-dialogs/WristFeedNotificationsDialog';
 import { YoutubeApiDialog } from './settings-dialogs/YoutubeApiDialog';
@@ -27,7 +28,8 @@ export function SettingsDialogs({
     vrNotifications,
     hmdNotifications,
     desktopNotifications,
-    webhookNotifications
+    webhookNotifications,
+    ttsNotifications
 }: any) {
     return (
         <>
@@ -130,6 +132,12 @@ export function SettingsDialogs({
                 onOpenChange={webhookNotifications.setOpen}
                 value={webhookNotifications.value}
                 onSave={webhookNotifications.onSave}
+            />
+            <TtsNotificationsDialog
+                open={ttsNotifications.open}
+                onOpenChange={ttsNotifications.setOpen}
+                value={ttsNotifications.value}
+                onSave={ttsNotifications.onSave}
             />
         </>
     );

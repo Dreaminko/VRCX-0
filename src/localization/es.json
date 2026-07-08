@@ -1983,9 +1983,18 @@
                         "header": "Texto a Voz",
                         "when_to_play": "Texto a Voz de Notificación. Cuándo reproducir",
                         "tts_voice": "Voz de TTS",
+                        "system_default_voice": "Voz del sistema predeterminada",
+                        "notification_filters": "Filtros de notificaciones TTS",
+                        "name_mode": "Nombre leído",
+                        "name_mode_username": "Nombre de usuario",
+                        "name_mode_note": "Nota",
+                        "name_mode_username_and_note": "Nombre de usuario y nota",
                         "use_memo_nicknames": "Usar Apodos de Memo",
                         "play": "Reproducir",
-                        "tts_test_placeholder": "Probar TTS"
+                        "tts_test_placeholder": "Probar TTS",
+                        "tts_enabled_preview": "Texto a voz de notificaciones activado",
+                        "tts_voice_preview": "Voz de texto a voz de notificaciones seleccionada",
+                        "tts_test_failed": "No se pudo reproducir el texto a voz"
                     }
                 }
             },
@@ -4020,6 +4029,10 @@
             "title": "Filtros de notificaciones del Overlay de VR",
             "description": "Elige qué notificaciones en tiempo de ejecución se envían a XSOverlay y OVR Toolkit mientras SteamVR está en ejecución."
         },
+        "tts_notifications": {
+            "title": "Filtros de notificaciones TTS",
+            "description": "Elige qué notificaciones en tiempo de ejecución se leerán con texto a voz. La condición de reproducción de TTS anterior sigue aplicándose."
+        },
         "hmd_notifications": {
             "title": "Filtros de notificaciones del visor",
             "description": "Elige qué notificaciones aparecen dentro del visor."
@@ -4035,7 +4048,6 @@
         "wrist_feed_notifications": {
             "title": "Filtros de notificaciones del overlay de muñeca",
             "description": "Elige qué aparece en el feed de muñeca. Las notificaciones de escritorio usan filtros independientes.",
-            "reset_recommended": "Restablecer",
             "scopes": {
                 "off": "Desactivado",
                 "on": "Activado",

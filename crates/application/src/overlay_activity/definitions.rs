@@ -396,7 +396,7 @@ pub(super) fn default_rule(definition: &ActivityTypeDefinition) -> OverlayActivi
 }
 
 pub(super) fn has_persisted_filter_rules(value: &Value) -> bool {
-    ["wrist", "desktop", "vr", "hmd", "webhook"]
+    ["wrist", "desktop", "vr", "hmd", "webhook", "tts"]
         .iter()
         .any(|surface| {
             value
@@ -426,6 +426,10 @@ pub(super) fn normalize_filters(value: Value) -> OverlayActivityFilters {
             .get("webhook")
             .map(|surface| normalize_surface(Some(surface)))
             .unwrap_or_else(OverlayActivitySurfaceFilters::disabled_rules),
+        tts: value
+            .get("tts")
+            .map(|surface| normalize_surface(Some(surface)))
+            .unwrap_or_else(OverlayActivitySurfaceFilters::default_rules),
     }
 }
 

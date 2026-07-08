@@ -2008,9 +2008,18 @@
                         "header": "テキスト読み上げ",
                         "when_to_play": "読み上げタイミング",
                         "tts_voice": "読み上げボイス",
+                        "system_default_voice": "システム既定",
+                        "notification_filters": "TTS 通知フィルター",
+                        "name_mode": "読み上げる名前",
+                        "name_mode_username": "ユーザー名",
+                        "name_mode_note": "ノート",
+                        "name_mode_username_and_note": "ユーザー名とノート",
                         "use_memo_nicknames": "ローカルノートのニックネームを使用",
                         "play": "再生",
-                        "tts_test_placeholder": "TTS のテスト"
+                        "tts_test_placeholder": "TTS のテスト",
+                        "tts_enabled_preview": "通知の読み上げが有効になりました",
+                        "tts_voice_preview": "通知の読み上げボイスを選択しました",
+                        "tts_test_failed": "読み上げを再生できませんでした"
                     }
                 }
             },
@@ -4044,6 +4053,10 @@
             "title": "VR オーバーレイ通知フィルター",
             "description": "SteamVR の実行中に XSOverlay と OVR Toolkit へ送る通知を選択します。"
         },
+        "tts_notifications": {
+            "title": "TTS 通知フィルター",
+            "description": "テキスト読み上げで再生する実行時通知を選択します。上の TTS 再生条件も引き続き適用されます。"
+        },
         "hmd_notifications": {
             "title": "ヘッドセット通知フィルター",
             "description": "ヘッドセット内に表示する通知を選択します。"
@@ -4059,7 +4072,6 @@
         "wrist_feed_notifications": {
             "title": "手首オーバーレイ通知フィルター",
             "description": "手首フィードに表示する内容を選択します。デスクトップ通知は別のフィルターを使用します。",
-            "reset_recommended": "リセット",
             "scopes": {
                 "off": "オフ",
                 "on": "オン",

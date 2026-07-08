@@ -121,6 +121,7 @@ pub enum OverlayActivitySurface {
     Vr,
     Hmd,
     Webhook,
+    Tts,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
@@ -136,6 +137,8 @@ pub struct OverlayActivityFilters {
     pub hmd: OverlayActivitySurfaceFilters,
     #[serde(default = "OverlayActivitySurfaceFilters::disabled_rules")]
     pub webhook: OverlayActivitySurfaceFilters,
+    #[serde(default = "OverlayActivitySurfaceFilters::default_rules")]
+    pub tts: OverlayActivitySurfaceFilters,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
@@ -177,6 +180,7 @@ impl Default for OverlayActivityFilters {
             vr: OverlayActivitySurfaceFilters::default_rules(),
             hmd: OverlayActivitySurfaceFilters::hmd_default_rules(),
             webhook: OverlayActivitySurfaceFilters::disabled_rules(),
+            tts: OverlayActivitySurfaceFilters::default_rules(),
         }
     }
 }
@@ -201,6 +205,7 @@ impl OverlayActivityFilters {
             OverlayActivitySurface::Vr => &self.vr,
             OverlayActivitySurface::Hmd => &self.hmd,
             OverlayActivitySurface::Webhook => &self.webhook,
+            OverlayActivitySurface::Tts => &self.tts,
         }
     }
 
@@ -301,4 +306,5 @@ pub struct OverlayActivityDelivery {
     pub vr: bool,
     pub hmd: bool,
     pub webhook: bool,
+    pub tts: bool,
 }

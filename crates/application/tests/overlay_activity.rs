@@ -129,10 +129,43 @@ fn hmd_delivery_is_live_only_and_independent_from_wrist_snapshot() {
     assert!(!deliveries[0].desktop);
     assert!(!deliveries[0].vr);
     assert!(!deliveries[0].webhook);
+    assert!(!deliveries[0].tts);
     assert!(
         snapshots.lock().unwrap().is_empty(),
         "hmd-only deliveries must not create wrist snapshot entries"
     );
+}
+
+#[test]
+fn tts_delivery_is_independent_from_visual_surfaces() {
+    let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
+        "version": 1,
+        "wrist": { "types": { "Online": { "scope": "off" } } },
+        "desktop": { "types": { "Online": { "scope": "off" } } },
+        "vr": { "types": { "Online": { "scope": "off" } } },
+        "hmd": { "types": { "Online": { "scope": "off" } } },
+        "webhook": { "types": { "Online": { "scope": "off" } } },
+        "tts": { "types": { "Online": { "scope": "friends" } } }
+    })));
+    let sink = RecordingSink::default();
+    let deliveries = sink.deliveries.clone();
+    let snapshots = sink.snapshots.clone();
+    runtime.set_sink(sink);
+    runtime.set_friend_user_ids(["usr_friend"]);
+    runtime.set_delivery_armed(true);
+
+    let mut row = candidate("Online", "usr_friend");
+    row.created_at = chrono::Utc::now().to_rfc3339();
+    runtime.ingest_candidate(row);
+
+    let deliveries = deliveries.lock().unwrap();
+    assert_eq!(deliveries.len(), 1);
+    assert!(!deliveries[0].desktop);
+    assert!(!deliveries[0].vr);
+    assert!(!deliveries[0].hmd);
+    assert!(!deliveries[0].webhook);
+    assert!(deliveries[0].tts);
+    assert!(snapshots.lock().unwrap().is_empty());
 }
 
 #[test]

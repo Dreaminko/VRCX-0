@@ -20,6 +20,7 @@ export function SettingsNotificationsSection({
         notificationLayoutOptions,
         desktopToastOptions,
         notificationTtsOptions,
+        notificationTtsNameModeOptions,
         ttsVoices,
         notificationTtsTestVisible,
         notificationTtsTest,
@@ -28,6 +29,7 @@ export function SettingsNotificationsSection({
         setPrefs,
         setFeedFilterDialogOpen,
         setDesktopNotificationsDialogOpen,
+        setTtsNotificationsDialogOpen,
         saveStringPreference,
         saveBoolPreference,
         saveNotificationTtsMode,
@@ -43,6 +45,7 @@ export function SettingsNotificationsSection({
             notificationLayoutOptions={notificationLayoutOptions}
             desktopToastOptions={desktopToastOptions}
             notificationTtsOptions={notificationTtsOptions}
+            notificationTtsNameModeOptions={notificationTtsNameModeOptions}
             ttsVoices={ttsVoices}
             notificationTtsTestVisible={notificationTtsTestVisible}
             notificationTtsTest={notificationTtsTest}
@@ -90,6 +93,9 @@ export function SettingsNotificationsSection({
             onOpenDesktopNotificationFiltersDialog={() =>
                 setDesktopNotificationsDialogOpen(true)
             }
+            onOpenTtsNotificationFiltersDialog={() =>
+                setTtsNotificationsDialogOpen(true)
+            }
             onTestDesktopNotification={() => {
                 showDesktopNotification(
                     'VRCX-0',
@@ -123,18 +129,24 @@ export function SettingsNotificationsSection({
             onNotificationTtsVoiceChange={(value: string) => {
                 saveNotificationTtsVoice(value);
             }}
-            onNotificationTtsNicknameChange={(checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'notificationTTSNickName',
-                    'notificationTTSNickName',
-                    enabled
+            onNotificationTtsNameModeChange={(value: string) => {
+                saveStringPreference(
+                    'notificationTTSNameMode',
+                    'notificationTTSNameMode',
+                    value
                 );
             }}
             onNotificationTtsTestVisibleChange={setNotificationTtsTestVisible}
             onNotificationTtsTestChange={setNotificationTtsTest}
             onSpeakNotificationTts={(message: unknown) =>
-                speakNotificationTts(message)
+                speakNotificationTts(
+                    String(
+                        message ||
+                            t(
+                                'view.settings.notifications.notifications.text_to_speech.tts_test_placeholder'
+                            )
+                    )
+                )
             }
         />
     );

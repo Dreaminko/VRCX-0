@@ -20,6 +20,7 @@ pub mod proxy;
 pub mod shell_actions;
 pub mod system_fonts;
 pub mod system_theme;
+pub mod tts;
 pub mod updater_policy;
 pub mod vr_overlay;
 pub mod vrchat_ipc;

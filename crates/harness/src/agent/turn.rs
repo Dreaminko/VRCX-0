@@ -213,9 +213,9 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
 
     if final_answer.trim().is_empty() {
         let fallback_summary = last_success_tool_summary.or(last_error_tool_summary);
-        if apply_tool_summary_fallback(&mut final_answer, fallback_summary) {
-            ctx.emitter.delta(&final_answer);
-        } else if apply_empty_tool_answer_fallback(&mut final_answer, used_tools) {
+        if apply_tool_summary_fallback(&mut final_answer, fallback_summary)
+            || apply_empty_tool_answer_fallback(&mut final_answer, used_tools)
+        {
             ctx.emitter.delta(&final_answer);
         }
     }

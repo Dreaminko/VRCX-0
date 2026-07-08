@@ -301,5 +301,6 @@ fn delivery() -> OverlayActivityDelivery {
         vr: false,
         hmd: false,
         webhook: true,
+        tts: false,
     }
 }

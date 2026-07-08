@@ -1,5 +1,11 @@
 {
     "language": "Polski (pl)",
+    "common": {
+        "actions": {
+            "configure": "Konfiguruj",
+            "reset": "Resetuj"
+        }
+    },
     "nav_tooltip": {
         "friends_locations": "Lokalizacja znajomych",
         "feed": "Aktywność",
@@ -479,9 +485,18 @@
                         "header": "Tekst-na-mowę",
                         "when_to_play": "Kiedy odtwarzać powiadomienia jako tekst-na-mowę",
                         "tts_voice": "Głos tekstu-na-mowę",
+                        "system_default_voice": "Domyślny głos systemowy",
+                        "notification_filters": "Filtry powiadomień TTS",
+                        "name_mode": "Odczytywana nazwa",
+                        "name_mode_username": "Nazwa użytkownika",
+                        "name_mode_note": "Notatka",
+                        "name_mode_username_and_note": "Nazwa użytkownika i notatka",
                         "use_memo_nicknames": "Używaj notatek nazw",
                         "play": "Odtwórz",
-                        "tts_test_placeholder": "Testuj TTS"
+                        "tts_test_placeholder": "Testuj TTS",
+                        "tts_enabled_preview": "Włączono odczytywanie powiadomień",
+                        "tts_voice_preview": "Wybrano głos odczytywania powiadomień",
+                        "tts_test_failed": "Nie udało się odtworzyć TTS"
                     }
                 }
             },
@@ -656,6 +671,10 @@
         "hmd_notifications": {
             "title": "Filtry powiadomień w goglach",
             "description": "Wybierz, które powiadomienia mają być wyświetlane w goglach."
+        },
+        "tts_notifications": {
+            "title": "Filtry powiadomień TTS",
+            "description": "Wybierz, które powiadomienia w czasie działania mają być odczytywane przez syntezę mowy. Powyższy warunek odtwarzania TTS nadal obowiązuje."
         },
         "user": {
             "status": {

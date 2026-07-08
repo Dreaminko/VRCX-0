@@ -139,6 +139,12 @@ export const commands = {
             launchArguments
         });
     },
+    async appHostTtsVoices(): Promise<TtsVoice[]> {
+        return await TAURI_INVOKE('app__host_tts_voices');
+    },
+    async appHostTtsSpeak(text: string, voiceId: string | null): Promise<null> {
+        return await TAURI_INVOKE('app__host_tts_speak', { text, voiceId });
+    },
     async appStartRealtimeTransport(
         userId: string,
         endpoint: string,
@@ -4151,6 +4157,7 @@ export type TelemetryClientEvent =
           summary: string | null;
       }
     | { type: 'assistantTurnError'; code: string; summary: string | null };
+export type TtsVoice = { id: string; name: string; language: string };
 export type TurnStatus = 'running' | 'done' | 'error' | 'cancelled';
 export type UserMemoOutput = { userId: string; editedAt: string; memo: string };
 export type UserNoteOutput = {

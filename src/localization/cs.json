@@ -1,5 +1,11 @@
 {
     "language": "Čeština (cs)",
+    "common": {
+        "actions": {
+            "configure": "Nastavit",
+            "reset": "Resetovat"
+        }
+    },
     "nav_tooltip": {
         "feed": "Zdroj",
         "game_log": "Záznam hry",
@@ -309,9 +315,18 @@
                         "header": "Text-To-Speech",
                         "when_to_play": "Notification TTS. When to play",
                         "tts_voice": "TTS Voice",
+                        "system_default_voice": "Výchozí systémový hlas",
+                        "notification_filters": "Filtry oznámení TTS",
+                        "name_mode": "Čtené jméno",
+                        "name_mode_username": "Uživatelské jméno",
+                        "name_mode_note": "Poznámka",
+                        "name_mode_username_and_note": "Uživatelské jméno a poznámka",
                         "use_memo_nicknames": "Use Memo Nicknames",
                         "play": "Play",
-                        "tts_test_placeholder": "Test TTS"
+                        "tts_test_placeholder": "Test TTS",
+                        "tts_enabled_preview": "Čtení oznámení je zapnuté",
+                        "tts_voice_preview": "Hlas pro čtení oznámení byl vybrán",
+                        "tts_test_failed": "Nepodařilo se přehrát text-to-speech"
                     }
                 }
             },
@@ -454,6 +469,10 @@
         "hmd_notifications": {
             "title": "Filtry oznámení v headsetu",
             "description": "Vyberte, která oznámení se zobrazí v headsetu."
+        },
+        "tts_notifications": {
+            "title": "Filtry oznámení TTS",
+            "description": "Vyberte, která běhová oznámení se přečtou pomocí převodu textu na řeč. Výše uvedená podmínka přehrávání TTS stále platí."
         },
         "user": {
             "status": {

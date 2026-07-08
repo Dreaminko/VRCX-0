@@ -201,21 +201,27 @@ export function useSettingsMaintenanceActions({
 }: SettingsMaintenanceActionsDeps) {
     async function saveNotificationTtsMode(value: string) {
         if (prefs.notificationTTS === 'Never' && value !== 'Never') {
-            speakNotificationTts('Notification text-to-speech enabled');
-        } else if (typeof window !== 'undefined' && window.speechSynthesis) {
-            window.speechSynthesis.cancel();
+            speakNotificationTts(
+                t(
+                    'view.settings.notifications.notifications.text_to_speech.tts_enabled_preview'
+                )
+            );
+        } else if (value === 'Never') {
+            speakNotificationTts('');
         }
         await saveStringPreference('notificationTTS', 'notificationTTS', value);
     }
     async function saveNotificationTtsVoice(value: string) {
         await saveStringPreference(
-            'notificationTTSVoice',
-            'notificationTTSVoice',
+            'notificationTTSVoiceNative',
+            'notificationTTSVoiceNative',
             value
         );
         speakNotificationTts(
-            'Notification text-to-speech voice selected',
-            Number.parseInt(value, 10) || 0
+            t(
+                'view.settings.notifications.notifications.text_to_speech.tts_voice_preview'
+            ),
+            value
         );
     }
     async function deleteAllScreenshotMetadata() {

@@ -265,7 +265,8 @@ impl OverlayActivityRuntime {
                 OverlayActivitySurface::Webhook,
                 definition,
             );
-            if !wrist && !desktop && !vr && !hmd && !webhook {
+            let tts = surface_matches(&state, &candidate, OverlayActivitySurface::Tts, definition);
+            if !wrist && !desktop && !vr && !hmd && !webhook && !tts {
                 return None;
             }
             remember_source_id(&mut state, source_id.clone());
@@ -303,18 +304,20 @@ impl OverlayActivityRuntime {
                 None
             };
 
-            let delivery =
-                if (desktop || vr || hmd || webhook) && is_live_event(&state, &entry.created_at) {
-                    Some(OverlayActivityDelivery {
-                        entry: entry.clone(),
-                        desktop,
-                        vr,
-                        hmd,
-                        webhook,
-                    })
-                } else {
-                    None
-                };
+            let delivery = if (desktop || vr || hmd || webhook || tts)
+                && is_live_event(&state, &entry.created_at)
+            {
+                Some(OverlayActivityDelivery {
+                    entry: entry.clone(),
+                    desktop,
+                    vr,
+                    hmd,
+                    webhook,
+                    tts,
+                })
+            } else {
+                None
+            };
 
             (entry, snapshot, delivery)
         };

@@ -14,6 +14,7 @@ import {
     DEFAULT_TRANSLATION_MODEL,
     DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_OVERLAY_ACTIVITY_FILTERS,
+    DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
     normalizeSharedFeedFilters,
@@ -62,8 +63,9 @@ export function createDefaultSettingsPrefs() {
         afkDesktopToast: false,
         desktopNotificationSound: false,
         notificationTTS: 'Never',
+        notificationTTSNameMode: 'username',
         notificationTTSNickName: false,
-        notificationTTSVoice: '0',
+        notificationTTSVoiceNative: '',
         xsNotifications: false,
         ovrtHudNotifications: false,
         ovrtWristNotifications: false,
@@ -129,6 +131,8 @@ export function createDefaultSettingsPrefs() {
         desktopNotificationActivityFilters:
             DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
         webhookActivityFilters: DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
+        ttsNotificationActivityFilters:
+            DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
         feedTimeDisplayMode: 'relative',
         youtubeAPI: false,
         translationAPI: false,

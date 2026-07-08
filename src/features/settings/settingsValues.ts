@@ -2,6 +2,7 @@ import { sharedFeedFiltersDefaults } from '@/shared/constants/feedFilters';
 export {
     DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_OVERLAY_ACTIVITY_FILTERS,
+    DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
     OVERLAY_ACTIVITY_CATEGORIES,
@@ -9,6 +10,7 @@ export {
     OVERLAY_ACTIVITY_SCOPES,
     OVERLAY_ACTIVITY_TYPE_DEFINITIONS,
     OVERLAY_ACTIVITY_TYPE_DEFINITION_BY_KEY,
+    disabledOverlayActivityFilterProfileFromDefinitions,
     migrateLegacySharedFeedWristFilters,
     normalizeOverlayActivityFilters,
     overlayActivityTypeLabelKey,

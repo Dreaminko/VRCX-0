@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -10,6 +11,7 @@ use vrcx_0_application::OverlayActivityFilters;
 use vrcx_0_application::OverlayActivityRuntime;
 use vrcx_0_application::OverlayActivitySink;
 use vrcx_0_application::OverlayActivitySnapshot;
+use vrcx_0_application::OverlayActivitySurface;
 use vrcx_0_application::OverlayActivitySurfaceFilters;
 use vrcx_0_application::PrintCleanupQueue;
 use vrcx_0_application::RuntimeAuthScope;
@@ -22,6 +24,7 @@ use vrcx_0_application::RuntimeSyncEngine;
 use vrcx_0_application::TaskSupervisor;
 use vrcx_0_application::WebClient;
 use vrcx_0_application::WorldCache;
+use vrcx_0_host::tts::{SystemTtsEngine, TtsEngine};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 
@@ -87,6 +90,7 @@ pub struct RuntimeHostContext {
     pub overlay_activity: OverlayActivityRuntime,
     pub world_cache: Arc<WorldCache>,
     pub config: ConfigRepository,
+    pub tts: Arc<dyn TtsEngine>,
     notification_desktop_notifier: DesktopNotifierSlot,
     overlay_activity_extra_sinks: Arc<Mutex<Vec<Arc<dyn OverlayActivitySink>>>>,
     game_log_snapshot: Arc<Mutex<RuntimeSnapshot>>,
@@ -110,6 +114,7 @@ impl RuntimeHostContext {
             WORLD_CACHE_WORKING_CAPACITY,
             WORLD_CACHE_WORKING_TTL,
         ));
+        let tts: Arc<dyn TtsEngine> = Arc::new(SystemTtsEngine::new());
         let notification_desktop_notifier = DesktopNotifierSlot::default();
         let notification_sink: Arc<dyn OverlayActivitySink> =
             Arc::new(NotificationDispatcher::new(NotificationDispatcherDeps {
@@ -120,7 +125,7 @@ impl RuntimeHostContext {
                 web: Arc::clone(&web),
                 world_cache: Arc::clone(&world_cache),
                 desktop: Arc::new(notification_desktop_notifier.clone()),
-                event_bus: event_bus.clone(),
+                tts: Arc::clone(&tts),
                 diagnostics: diagnostics.clone(),
                 tasks: tasks.clone(),
             }));
@@ -149,6 +154,7 @@ impl RuntimeHostContext {
             overlay_activity,
             world_cache,
             config,
+            tts,
             notification_desktop_notifier,
             overlay_activity_extra_sinks: Arc::new(Mutex::new(vec![notification_sink])),
             game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
@@ -309,7 +315,42 @@ fn load_overlay_activity_filters(config: &ConfigRepository, runtime: &OverlayAct
     if let Some(webhook) = load_types_key_surface(config, "webhookActivityFilters") {
         filters.webhook = webhook;
     }
+    if let Some(tts) = load_types_key_surface(config, "ttsNotificationActivityFilters") {
+        filters.tts = tts;
+    } else {
+        filters.tts = seed_tts_notification_activity_filters(config, &filters);
+    }
     runtime.set_filters(filters);
+}
+
+fn seed_tts_notification_activity_filters(
+    config: &ConfigRepository,
+    filters: &OverlayActivityFilters,
+) -> OverlayActivitySurfaceFilters {
+    let mut seeded = filters.desktop.clone();
+    let activity_types = filters
+        .desktop
+        .types
+        .keys()
+        .chain(filters.vr.types.keys())
+        .collect::<BTreeSet<_>>();
+    for activity_type in activity_types {
+        let desktop_rule = filters.rule_for(OverlayActivitySurface::Desktop, activity_type);
+        if desktop_rule.scope == vrcx_0_application::OverlayActivityScope::Off {
+            let vr_rule = filters.rule_for(OverlayActivitySurface::Vr, activity_type);
+            if vr_rule.scope != vrcx_0_application::OverlayActivityScope::Off {
+                seeded.types.insert(activity_type.clone(), vr_rule);
+            }
+        } else {
+            seeded.types.insert(activity_type.clone(), desktop_rule);
+        }
+    }
+    if let Ok(value) = serde_json::to_value(&seeded) {
+        if let Err(error) = config.set_json("ttsNotificationActivityFilters", &value) {
+            tracing::warn!("failed to persist seeded TTS activity filters: {error}");
+        }
+    }
+    seeded
 }
 
 fn load_types_key_surface(
@@ -515,6 +556,80 @@ mod tests {
                 .rule_for(OverlayActivitySurface::Webhook, "invite")
                 .scope,
             OverlayActivityScope::On
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn backend_load_seeds_tts_filters_from_desktop_once() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let dir = TestDir::new("overlay-activity-tts-seed-desktop");
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
+        let config = ConfigRepository::new(db);
+        config.set_string(
+            "desktopNotificationActivityFilters",
+            &serde_json::to_string(&json!({
+                "version": 1,
+                "types": { "invite": { "scope": "allFavorites" } }
+            }))?,
+        )?;
+        config.set_string(
+            "vrNotificationActivityFilters",
+            &serde_json::to_string(&json!({
+                "version": 1,
+                "types": { "invite": { "scope": "off" } }
+            }))?,
+        )?;
+        let runtime = OverlayActivityRuntime::new();
+
+        load_overlay_activity_filters(&config, &runtime);
+
+        let filters = runtime.filters();
+        assert_eq!(
+            filters
+                .rule_for(OverlayActivitySurface::Tts, "invite")
+                .scope,
+            OverlayActivityScope::AllFavorites
+        );
+        let saved = config.get_json("ttsNotificationActivityFilters", json!({}))?;
+        let saved = OverlayActivitySurfaceFilters::from_types_json(&saved);
+        assert_eq!(
+            saved.types.get("invite").unwrap().scope,
+            OverlayActivityScope::AllFavorites
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn backend_load_seeds_tts_filters_from_vr_when_desktop_is_off(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = TestDir::new("overlay-activity-tts-seed-vr");
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
+        let config = ConfigRepository::new(db);
+        config.set_string(
+            "desktopNotificationActivityFilters",
+            &serde_json::to_string(&json!({
+                "version": 1,
+                "types": { "invite": { "scope": "off" } }
+            }))?,
+        )?;
+        config.set_string(
+            "vrNotificationActivityFilters",
+            &serde_json::to_string(&json!({
+                "version": 1,
+                "types": { "invite": { "scope": "friends" } }
+            }))?,
+        )?;
+        let runtime = OverlayActivityRuntime::new();
+
+        load_overlay_activity_filters(&config, &runtime);
+
+        assert_eq!(
+            runtime
+                .filters()
+                .rule_for(OverlayActivitySurface::Tts, "invite")
+                .scope,
+            OverlayActivityScope::Friends
         );
         Ok(())
     }

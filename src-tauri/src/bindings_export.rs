@@ -10,6 +10,7 @@ use vrcx_0_harness::{
     AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,
     AssistantToolResultEvent, AssistantTurnEntitiesEvent,
 };
+use vrcx_0_host::tts::TtsVoice;
 use vrcx_0_mcp::McpServerStatus;
 
 use crate::commands;
@@ -37,6 +38,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         .typ::<RealtimeInstanceQueueProjection>()
         .typ::<RealtimeNotificationProjection>()
         .typ::<RealtimeWsStatusPayload>()
+        .typ::<TtsVoice>()
         .commands(collect_commands![
             commands::storage::storage__get,
             commands::storage::storage__set,
@@ -66,6 +68,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::game::app__quit_game,
             commands::host::game::app__start_game,
             commands::host::game::app__start_game_from_path,
+            commands::host::tts::app__host_tts_voices,
+            commands::host::tts::app__host_tts_speak,
             commands::application::realtime::app__start_realtime_transport,
             commands::application::realtime::app__sync_frontend_authenticated_session,
             commands::application::realtime::app__sync_realtime_friend_snapshot,

@@ -1,5 +1,11 @@
 {
     "language": "Tiếng Việt (vi)",
+    "common": {
+        "actions": {
+            "configure": "Cấu hình",
+            "reset": "Đặt lại"
+        }
+    },
     "nav_tooltip": {
         "feed": "Feed",
         "game_log": "Game Log",
@@ -293,7 +299,18 @@
                     "text_to_speech": {
                         "header": "Text-To-Speech",
                         "when_to_play": "Thông báo TTS. khi nào báo",
-                        "tts_voice": "Giọng TTS"
+                        "tts_voice": "Giọng TTS",
+                        "system_default_voice": "Giọng mặc định của hệ thống",
+                        "notification_filters": "Bộ lọc thông báo TTS",
+                        "name_mode": "Tên được đọc",
+                        "name_mode_username": "Tên người dùng",
+                        "name_mode_note": "Ghi chú",
+                        "name_mode_username_and_note": "Tên người dùng và ghi chú",
+                        "play": "Phát",
+                        "tts_test_placeholder": "Thử TTS",
+                        "tts_enabled_preview": "Đã bật đọc thông báo bằng TTS",
+                        "tts_voice_preview": "Đã chọn giọng đọc thông báo",
+                        "tts_test_failed": "Không thể phát TTS"
                     }
                 }
             },
@@ -427,6 +444,10 @@
         "hmd_notifications": {
             "title": "Bộ lọc thông báo trong kính VR",
             "description": "Chọn thông báo sẽ hiển thị trong kính VR."
+        },
+        "tts_notifications": {
+            "title": "Bộ lọc thông báo TTS",
+            "description": "Chọn thông báo khi chạy nào sẽ được đọc bằng chuyển văn bản thành giọng nói. Điều kiện phát TTS ở trên vẫn được áp dụng."
         },
         "user": {
             "status": {
