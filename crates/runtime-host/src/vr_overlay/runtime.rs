@@ -2845,10 +2845,10 @@ impl AvatarBitmapCache {
             .success
             .lock()
             .unwrap_or_else(|error| error.into_inner());
-        if !success
+        if success
             .entries
             .get(url)
-            .is_some_and(|entry| entry.user_id == user_id)
+            .is_none_or(|entry| entry.user_id != user_id)
         {
             return None;
         }
@@ -2866,6 +2866,7 @@ impl AvatarBitmapCache {
             .is_some_and(|at| at.elapsed() < HMD_AVATAR_FAILURE_TTL)
     }
 
+    #[cfg(test)]
     fn store_success(&self, url: &str, user_id: &str, bitmap: AvatarBitmap) {
         let generation = self.generation();
         let _ = self.store_success_if_generation(url, user_id, bitmap, generation);
@@ -2904,6 +2905,7 @@ impl AvatarBitmapCache {
         true
     }
 
+    #[cfg(test)]
     fn store_failure(&self, url: &str) {
         let generation = self.generation();
         let _ = self.store_failure_if_generation(url, generation);
