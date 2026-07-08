@@ -202,6 +202,7 @@ describe('userDialogViewData', () => {
                 tags: ['language_jpn'],
                 $friendNumber: 42,
                 mutualFriendCount: 4,
+                last_activity: '2026-01-03T04:05:06',
                 timeSpent: 2000,
                 joinCount: 8
             },
@@ -263,5 +264,6 @@ describe('userDialogViewData', () => {
         ]);
         expect(summary.mutualFriendCount).toBe(4);
         expect(summary.friendNumber).toBe(42);
+        expect(summary.presenceActivityAt).toBe('2026-01-03T04:05:06');
     });
 });

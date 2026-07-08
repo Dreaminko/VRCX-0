@@ -86,6 +86,7 @@ function estimatedOnlineDuration(profile: any, nowMs: any) {
 
 function resolvePresenceActivityAt(profile: any) {
     return (
+        validTimestampValue(profile?.last_activity) ||
         validTimestampValue(profile?.locationUpdatedAt) ||
         validTimestampValue(profile?.$location_at) ||
         validTimestampValue(profile?.locationAt) ||
