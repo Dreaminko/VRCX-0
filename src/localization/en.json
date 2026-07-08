@@ -506,7 +506,7 @@
             "unable_to_open_this_instance_in_vrchat": "Unable to open this instance in VRChat",
             "cannot_invite_no_current_vrchat_location_is_available": "Cannot invite: no current VRChat location is available",
             "cannot_invite_from_the_current_instance_type": "Cannot invite from the current instance type",
-            "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: current location is not a concrete instance",
+            "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: you're not currently in a joinable instance",
             "cannot_update_profile_no_current_user_session_is_available": "Cannot update profile: no current user session is available"
         },
         "empty": {
@@ -598,7 +598,7 @@
                 "favorite_groups": "Favorite groups",
                 "types": "Types",
                 "restore_preset": "Restore preset",
-                "restore_preset_title": "Restore feed columns preset?",
+                "restore_preset_title": "Restore the preset feed columns?",
                 "restore_preset_description": "This restores the preset columns: Favorites, Location, Profile, Presence.",
                 "restore_preset_confirm": "Restore preset"
             },
@@ -608,7 +608,7 @@
                 "unable_to_open_this_instance_in_vrchat": "Unable to open this instance in VRChat",
                 "cannot_invite_no_current_vrchat_location_is_available": "Cannot invite: no current VRChat location is available",
                 "cannot_invite_from_the_current_instance_type": "Cannot invite from the current instance type",
-                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: current location is not a concrete instance",
+                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: you're not currently in a joinable instance",
                 "cannot_request_invite_friend_is_not_online": "Cannot request invite: friend is not online",
                 "feed_query_failed": "Feed query failed"
             },
@@ -675,7 +675,7 @@
             "all_matching_friends": "All matching friends",
             "no_favorite_group": "No favorite group",
             "favorite_group_segment": "Favorite group segment",
-            "friend_is_not_in_hydrated_favorite_group": "Friend is not in a hydrated favorite group."
+            "friend_is_not_in_hydrated_favorite_group": "This friend's favorite group hasn't finished loading."
         },
         "game_log": {
             "filter_placeholder": "Filter",
@@ -997,7 +997,7 @@
                 "cannot_self_invite_to_this_instance": "Cannot self invite to this instance",
                 "cannot_invite_no_current_vrchat_location_is_available": "Cannot invite: no current VRChat location is available",
                 "cannot_invite_from_the_current_instance_type": "Cannot invite from the current instance type",
-                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: current location is not a concrete instance",
+                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: you're not currently in a joinable instance",
                 "favorites_failed_to_load": "Favorites failed to load"
             },
             "loading": {
@@ -1148,7 +1148,7 @@
             "error": {
                 "cannot_invite_no_current_vrchat_location_is_available": "Cannot invite: no current VRChat location is available",
                 "cannot_invite_from_the_current_instance_type": "Cannot invite from the current instance type",
-                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: current location is not a concrete instance",
+                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: you're not currently in a joinable instance",
                 "cannot_send_invite_response_no_current_user_session_is_available": "Cannot send invite response: no current user session is available"
             },
             "empty": {
@@ -1181,7 +1181,7 @@
             },
             "label": {
                 "friend_details_are_already_loaded": "Friend details are already loaded",
-                "shared_connections_are_opted_out_for_the_current_account": "Shared connections are opted out for the current account",
+                "shared_connections_are_opted_out_for_the_current_account": "This account has opted out of shared connections",
                 "showing": "Showing",
                 "of": "of",
                 "friend": "friend",
@@ -1214,7 +1214,7 @@
                 "unable_to_open_this_instance_in_vrchat": "Unable to open this instance in VRChat",
                 "cannot_invite_no_current_vrchat_location_is_available": "Cannot invite: no current VRChat location is available",
                 "cannot_invite_from_the_current_instance_type": "Cannot invite from the current instance type",
-                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: current location is not a concrete instance",
+                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: you're not currently in a joinable instance",
                 "friend_locations_failed_to_load": "Friend locations failed to load"
             },
             "description": {
@@ -1418,9 +1418,9 @@
             "social_automation": {
                 "header": "Social Automation",
                 "status_schedule": "Status Schedule",
-                "status_schedule_description": "Change status and message by time, optionally only while VRChat is running.",
+                "status_schedule_description": "Change status and message on a schedule, optionally restricted to while VRChat is running.",
                 "room_status_rules": "Room Status Rules",
-                "room_status_rules_description": "Change status from room and friend context while VRChat is running.",
+                "room_status_rules_description": "Change status based on room and friend context while VRChat is running.",
                 "invite_request_auto_reply": "Invite Request Auto-Reply",
                 "invite_request_auto_reply_description": "Auto-invite allowlisted friends who ask to join while VRChat is running.",
                 "schedule_rules": "Schedule rules",
@@ -1453,7 +1453,7 @@
                 "legacy_alone_company_mode": "Existing alone/with-people mode",
                 "legacy_mode_description": "These settings keep the previous automatic status behavior visible.",
                 "enable_legacy_auto_status": "Enable room status rules",
-                "alone_condition": "When should VRCX treat you as alone?",
+                "alone_condition": "When should VRCX-0 treat you as alone?",
                 "any_player_counts_as_company": "Any player means I am with people",
                 "only_friends_count_as_company": "Only friends count as people with me",
                 "friend_groups_counted_as_company": "Friend groups that count as people with me",
@@ -1468,7 +1468,7 @@
                 "minimum_players": "Minimum players",
                 "friend_user_ids": "Friend user IDs",
                 "room_types": "Room types",
-                "room_types_hint": "Leave empty for any room type. Rules that make you appear joinable should stay limited.",
+                "room_types_hint": "Leave empty for any room type. Keep rules that make you appear joinable narrowly scoped.",
                 "no_custom_room_rules": "No custom room rules configured.",
                 "preset_alone": "Alone",
                 "preset_with_anyone": "With anyone",
@@ -1714,7 +1714,7 @@
                     "port_apply": "Apply",
                     "port_invalid": "Port must be between 1024 and 65535",
                     "status_label": "Status",
-                    "port_active_connections": "Port {port}; active connections {count}",
+                    "port_active_connections": "Port {port} · {count} active connections",
                     "client_config": "Client Config",
                     "client_config_description": "Pick the option for your client. Claude Code: a one-time `claude mcp add` terminal command. Generic (HTTP): a JSON config for a direct HTTP connection — no extra tools. Generic (mcp-remote): a JSON config that tunnels via a Node.js proxy for clients without native HTTP (e.g. Claude Desktop); needs Node.js in PATH. When LAN connections are enabled, copied configs use `YOUR-LAN-IP`; replace it with this computer's local IP before using them from another device.",
                     "copy_claude_code": "Claude Code",
@@ -1769,7 +1769,7 @@
                     "tray": "Minimize to Tray When Closing",
                     "tray_description": "When enabled, clicking the close button (X) minimizes VRCX-0 to the system tray instead of quitting. When disabled, clicking X quits VRCX-0.",
                     "background_mode": "Switch to Background Mode When Minimized to Tray",
-                    "background_mode_description": "Automatically switch to background mode when minimized to tray. Reduces memory usage to 10% as before. Some page states may reset when restored.",
+                    "background_mode_description": "Automatically switch to background mode when minimized to tray. This reduces memory usage to around 10%, same as before. Some page states may reset when restored.",
                     "background_mode_delay": "Delay Switching to Background Mode",
                     "background_mode_delay_description": "After VRCX-0 is closed to the tray, switch to Background Mode only after the window stays unopened for the configured number of minutes. Opening the window resets the timer.",
                     "background_mode_delay_button": "Set Delay Minutes",
@@ -2094,7 +2094,7 @@
                     "delete_all_screenshot_metadata": {
                         "button": "Remove Screenshot Metadata",
                         "ask": "Are you sure you want to delete all VRChat & VRCX-0 screenshot metadata from your VRChat Pictures folder?",
-                        "confirm": "Deleting all screenshot metadata is a very destructive action and cannot be undone! This includes all prints, sub folders and other unrelated images in your VRChat Pictures folder, if these photos are precious to you, please make a backup before proceeding.",
+                        "confirm": "Deleting all screenshot metadata is a very destructive action and cannot be undone! This includes all prints, subfolders, and other unrelated images in your VRChat Pictures folder. If these photos are precious to you, please back them up before proceeding.",
                         "confirm_yes": "Yes",
                         "confirm_no": "No"
                     },
@@ -2301,8 +2301,8 @@
                 "vertical": "Vertical",
                 "dashboard_name": "Dashboard name",
                 "route_available": "Route available",
-                "the_current_filter_set_did_not_return_any_recent_feed_activity": "The current filter set did not return any recent feed activity",
-                "the_current_filter_set_did_not_return_any_recent_game_log_activity": "The current filter set did not return any recent game-log activity"
+                "the_current_filter_set_did_not_return_any_recent_feed_activity": "No recent feed activity matches your current filters",
+                "the_current_filter_set_did_not_return_any_recent_game_log_activity": "No recent game-log activity matches your current filters"
             },
             "error": {
                 "unsupported_panel": "Unsupported panel:",
@@ -2669,7 +2669,7 @@
                 "apod_note": "NASA APOD only uses images without a copyright field.",
                 "custom_source": "Local image",
                 "custom_source_description": "Select one image for a fixed background, or select multiple images or a folder for rotation.",
-                "folder_first_level_note": "Folders are scanned one level only. Subfolders are not read.",
+                "folder_first_level_note": "Only the top level of a folder is scanned; subfolders are not included.",
                 "selected_files": "{count} selected image",
                 "current_image": "Current image",
                 "image_count": "{count} image",
@@ -2741,12 +2741,12 @@
             "run_policy_short_always": "Every start",
             "run_policy_short_skipIfRunning": "Skip running",
             "stop_policy_keepRunning": "Keep running",
-            "stop_policy_closeByVrcx": "Close by VRCX-0",
+            "stop_policy_closeByVrcx": "Closed by VRCX-0",
             "stop_policy_short_keepRunning": "Keep",
             "stop_policy_short_closeByVrcx": "Close",
             "delete": "Delete",
             "steam_app_id": "Steam App ID",
-            "delay_seconds": "Launch delay seconds",
+            "delay_seconds": "Launch Delay (seconds)",
             "args": "Args",
             "close": "Close",
             "save": "Save",
@@ -2781,7 +2781,7 @@
             "actions": {
                 "invite": "Invite",
                 "request_invite": "Request Invite",
-                "invite_to_group": "Invite To Group",
+                "invite_to_group": "Invite to Group",
                 "group_actions": "Group...",
                 "group_moderation": "Group Moderation",
                 "send_boop": "Send Boop",
@@ -2809,7 +2809,7 @@
                 "edit_status": "Social Status",
                 "edit_profile_details": "Profile Details",
                 "edit_profile_media": "Change Banner and Icon",
-                "report_hacking": "Report For Hacking",
+                "report_hacking": "Report for Hacking",
                 "unfriend": "Unfriend",
                 "edit_note_memo": "Edit Note and Local Note"
             },
@@ -2872,7 +2872,7 @@
                 "avatar_cloning": "Avatar Cloning",
                 "booping": "Booping",
                 "avatar_cloning_allow": "Allowed",
-                "avatar_cloning_deny": "Deny",
+                "avatar_cloning_deny": "Denied",
                 "home_location": "Home World",
                 "id": "User ID",
                 "url": "VRChat URL",
@@ -3050,7 +3050,7 @@
             "error": {
                 "cannot_invite_no_current_vrchat_location_is_available": "Cannot invite: no current VRChat location is available",
                 "cannot_invite_from_the_current_instance_type": "Cannot invite from the current instance type",
-                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: current location is not a concrete instance",
+                "cannot_invite_current_location_is_not_a_concrete_instance": "Cannot invite: you're not currently in a joinable instance",
                 "user_profile_unavailable": "User profile unavailable",
                 "avatar_author_unavailable": "Avatar author unavailable",
                 "blocked": "Blocked",
@@ -3163,7 +3163,7 @@
                 "change_allowed_video_player_domains": "Change Allowed Video Player Domains",
                 "download_package": "Download Unity Package",
                 "publish": "Publish",
-                "publish_to_labs": "Publish To Labs. You can only publish once per week (7 days)",
+                "publish_to_labs": "Publish to Labs (once every 7 days)",
                 "unpublish": "Unpublish",
                 "local_records": "Local Data",
                 "open_cache": "Open Cache",
@@ -3264,8 +3264,8 @@
                 "unable_to_open_this_instance_in_vrchat": "Unable to open this instance in VRChat",
                 "world_cache_location_unavailable": "World cache location unavailable",
                 "group_id_is_required_for_group_instances": "Group ID is required for group instances",
-                "cannot_self_invite_location_is_not_a_concrete_instance": "Cannot self invite: location is not a concrete instance",
-                "cannot_open_in_vrchat_location_is_not_a_concrete_instance": "Cannot open in VRChat: location is not a concrete instance",
+                "cannot_self_invite_location_is_not_a_concrete_instance": "Cannot self invite: you're not currently in a joinable instance",
+                "cannot_open_in_vrchat_location_is_not_a_concrete_instance": "Cannot open in VRChat: you're not currently in a joinable instance",
                 "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Failed to open instance in VRChat, falling back to self invite",
                 "failed_to_refresh_the_remote_world_snapshot": "Failed to refresh the remote world snapshot",
                 "failed_to_load_the_world_profile": "Failed to load the world profile",
@@ -3452,7 +3452,7 @@
                 "failed_to_load_avatar_styles": "Failed to load avatar styles",
                 "failed_to_update_avatar_details": "Failed to update avatar details",
                 "failed_to_delete_avatar": "Failed to delete avatar",
-                "value_avatar_state_refresh_failed": "{value} Avatar state refresh failed",
+                "value_avatar_state_refresh_failed": "Avatar state refresh failed for {value}",
                 "avatar_unblocked": "Avatar unblocked",
                 "failed_to_update_avatar_moderation": "Failed to update avatar moderation",
                 "memo_saved": "Local note saved",
@@ -3505,7 +3505,7 @@
                 "share": "Share",
                 "unsubscribe": "Unsubscribe From Announcements",
                 "subscribe": "Subscribe To Announcements",
-                "invite_to_group": "Invite To Group",
+                "invite_to_group": "Invite to Group",
                 "visibility": "Group Visibility",
                 "visibility_everyone": "Everyone",
                 "visibility_friends": "Friends",
@@ -3658,7 +3658,7 @@
                 "delete_group_post": "Delete group post?",
                 "block_group": "Block group?",
                 "unblock_group": "Unblock group?",
-                "invite_to_group": "Invite to group"
+                "invite_to_group": "Invite to Group"
             },
             "dynamic": {
                 "leave_value": "Leave {value}?",
@@ -3745,7 +3745,7 @@
             "add_favorite_friends": "Add Favorite Friends",
             "invite": "Invite",
             "error": {
-                "cannot_invite_location_is_not_a_concrete_instance": "Cannot invite: location is not a concrete instance"
+                "cannot_invite_location_is_not_a_concrete_instance": "Cannot invite: you're not currently in a joinable instance"
             },
             "action": {
                 "select_at_least_one_user_to_invite": "Select at least one user to invite",
@@ -3836,7 +3836,7 @@
             "description5": "- Swear words filter (no fun allowed).",
             "description6": "- No new lines (they will replaced with a space).",
             "description7": "- This will overwrite any existing VRChat notes for these users.",
-            "description8": "- Any edits made here wont affect VRCX-0 local notes but will affect VRChat notes once exported.",
+            "description8": "- Any edits made here won't affect VRCX-0 local notes, but will affect VRChat notes once exported.",
             "refresh": "Refresh",
             "export": "Export",
             "cancel": "Cancel",
@@ -3876,7 +3876,7 @@
             "emoji_animation_fps": "FPS:",
             "emoji_animation_frame_count": "Frame Count:",
             "emoji_loop_pingpong": "Loop PingPong",
-            "flipbook_info": "Select a 1024x1024 PNG spritesheet to use as an animated emoji, available frame grid sizes: 4, 16 or 64 (max FPS 64, max frames 64)",
+            "flipbook_info": "Select a 1024x1024 PNG spritesheet to use as an animated emoji. Supported frame grid sizes: 4, 16, or 64 (max FPS: 64, max frames: 64).",
             "note": "Note",
             "crop_print_border": "Crop existing border (re-upload)",
             "upload_options": "Upload options",
@@ -3993,7 +3993,7 @@
         "config_json": {
             "header": "VRChat Config JSON",
             "description1": "These options are for advanced users only.",
-            "description2": "Leave field empty to set as default, game restart required to apply settings.",
+            "description2": "Leave a field empty to use the default value. A game restart is required to apply changes.",
             "cache_size": "Cache Size:",
             "refresh": "Refresh",
             "delete_cache": "Delete Cache",
@@ -4024,7 +4024,7 @@
         },
         "translation_api": {
             "header": "Bio Translation API",
-            "description": "Enter your Google translate API Key",
+            "description": "Enter your Google Translate API Key",
             "guide": "Guide",
             "mode": "Provider",
             "mode_google": "Google Translate",
@@ -4246,8 +4246,8 @@
             "search_no_this_month": "No events this month",
             "event_card": {
                 "category": "Category",
-                "interested_user": "Users Interested",
-                "close_time": "Close Instance After End",
+                "interested_user": "Interested Users",
+                "close_time": "Close Instance After Event Ends",
                 "created": "Created Date",
                 "description": "Description",
                 "export_to_calendar": "Export to Calendar",
@@ -4289,7 +4289,7 @@
             "loading": "Loading generated third-party notices...",
             "unavailable": "No generated third-party notice manifest is available in this build. Run a production build to regenerate it.",
             "search_placeholder": "Search packages, versions, or licenses",
-            "notice_location_prefix": "Full notices file location in the app directory:",
+            "notice_location_prefix": "Location of the full notices file within the app directory:",
             "open_project": "Open Project",
             "open_license_url": "Open License URL",
             "notice_unavailable": "No local license text is available for this entry. You can find this dependency's notice in the full notices file.",
@@ -4440,11 +4440,11 @@
     "confirm": {
         "title": "Confirm",
         "cancel_button": "Cancel",
-        "logout": "Continue? Logout",
-        "delete_log": "Continue? Delete Log",
-        "disable_gamelog": "Continue? Disable GameLog",
-        "delete_vrc_registry": "Continue? Delete existing VRChat registry settings",
-        "clear_cache": "Continue? Clear all VRChat cache"
+        "logout": "Log out?",
+        "delete_log": "Delete log?",
+        "disable_gamelog": "Disable GameLog?",
+        "delete_vrc_registry": "Delete existing VRChat registry settings?",
+        "clear_cache": "Clear all VRChat cache?"
     },
     "prompt": {
         "totp": {
@@ -4485,7 +4485,7 @@
         },
         "auto_clear_cache": {
             "header": "Clear VRCX-0 Cache Timer",
-            "description": "Enter amount of hours, larger values may impact RAM usage and performance (default: 24, disabled: 0)",
+            "description": "Enter the number of hours. Larger values may impact RAM usage and performance (default: 24, disabled: 0).",
             "cancel": "Cancel",
             "ok": "OK",
             "input_error": "Valid number is required"
@@ -4529,7 +4529,7 @@
         },
         "table_entries_settings": {
             "header": "Table Entries Settings",
-            "description": "Limit the number of entries the VRCX-0 logs from the database to the UI. A large number may impact RAM usage and performance",
+            "description": "Limit how many entries VRCX-0 loads from the database into the UI. Large values may impact RAM usage and performance.",
             "table_max_entries": "Table Max Entries",
             "table_max_entries_error": "Enter a number between {min} and {max}",
             "table_max_entries_hint": "Valid range: {min} – {max}",
@@ -4602,7 +4602,7 @@
             "message_updated": "Invite message updated"
         },
         "launch": {
-            "invalid_path": "Invalid path, you must enter VRChat folder or launch.exe"
+            "invalid_path": "Invalid path. Please select the VRChat installation folder or its launch.exe file."
         },
         "gallery": {
             "uploaded": "Gallery image uploaded",
@@ -5128,7 +5128,7 @@
     "repository": {
         "sqlite_repository": {
             "modal": {
-                "please_repair_or_delete_your_database_file_by_fo": "Please repair or delete your database file by following the VRCX-0 database repair instructions",
+                "please_repair_or_delete_your_database_file_by_fo": "Please repair or delete your database file. See the VRCX-0 database repair instructions for details.",
                 "your_database_is_corrupted": "Your database is corrupted",
                 "disk_full_description": "The disk containing the database is full",
                 "disk_full_title": "Disk containing database is full",
