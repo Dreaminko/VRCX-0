@@ -8,11 +8,13 @@ import { normalizeNavWidth, useShellStore } from '@/state/shellStore';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/ui/shadcn/sidebar';
 
 import { AppNavMenu } from './AppNavMenu';
+import { useDelayedNavMenuCollapsed } from './navMenuCollapse';
 
 export function AppSidebar({ children }: any) {
     const sidebarOpen = useShellStore((state) => state.sidebarOpen);
     const navWidth = useShellStore((state) => state.navWidth);
     const resizeCleanupRef = useRef<(() => void) | null>(null);
+    const navMenuCollapsed = useDelayedNavMenuCollapsed(sidebarOpen);
 
     useEffect(() => {
         return () => {
@@ -122,7 +124,7 @@ export function AppSidebar({ children }: any) {
                 data-vrcx-0-surface="sidebar"
                 style={{ top: '2rem', bottom: 0, height: 'auto' }}
             >
-                <AppNavMenu isCollapsed={!sidebarOpen} />
+                <AppNavMenu isCollapsed={navMenuCollapsed} />
             </Sidebar>
             {sidebarOpen ? (
                 <div
