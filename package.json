@@ -1,15 +1,18 @@
 {
     "name": "VRCX-0",
     "private": true,
-    "description": "An independent VRCX rewrite built with Tauri and Rust.",
+    "description": "The fast, lightweight VRCX built with Tauri and Rust.",
     "keywords": [
-        "VRChat"
+        "react",
+        "rust",
+        "tauri",
+        "vrchat"
     ],
     "license": "GPL-3.0-only",
-    "author": "Map1en",
+    "author": "Map1en <maplenagisa@gmail.com>",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Map1en/VRCX-0"
+        "url": "https://github.com/Map1en/VRCX-0"
     },
     "scripts": {
         "generate:native-locales": "node ./scripts/generate-native-locales.mjs",
