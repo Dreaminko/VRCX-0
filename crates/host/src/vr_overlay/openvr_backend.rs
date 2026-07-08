@@ -51,6 +51,7 @@ const TRIGGER_DRAG_SCROLL_UV_PER_STEP: f32 = 0.055;
 const SUMMON_HOLD_DURATION: Duration = Duration::from_secs(2);
 const PANEL_SUMMON_HAND: OverlayHand = OverlayHand::Right;
 const PANEL_SUMMON_PANEL_ID: &str = FRIENDS_PANEL_ID;
+const FRIENDS_PANEL_INPUT_ENABLED: bool = false;
 const POINTER_PITCH_OFFSET_RADIANS: f32 = 35.0_f32.to_radians();
 const POINTER_LASER_START_OFFSET_METERS: f32 = 0.08;
 const POINTER_LASER_MISS_LENGTH_METERS: f32 = 0.35;
@@ -447,8 +448,10 @@ impl OverlayBackend for OpenVrOverlayBackend {
         if let Err(error) = self.update_button_visibility() {
             tracing::warn!(error = %error, "failed to update VR overlay button visibility");
         }
-        if let Err(error) = self.update_interactive_input() {
-            tracing::debug!(error = %error, "failed to update VR overlay input");
+        if FRIENDS_PANEL_INPUT_ENABLED {
+            if let Err(error) = self.update_interactive_input() {
+                tracing::debug!(error = %error, "failed to update VR overlay input");
+            }
         }
         if let Err(error) = self.advance_fades() {
             tracing::warn!(error = %error, "failed to advance VR overlay fade");
@@ -2119,6 +2122,11 @@ mod tests {
         assert_eq!(PANEL_SUMMON_HAND, OverlayHand::Right);
         assert_eq!(PANEL_SUMMON_PANEL_ID, FRIENDS_PANEL_ID);
         assert_eq!(SUMMON_HOLD_DURATION, Duration::from_secs(2));
+    }
+
+    #[test]
+    fn friends_panel_input_path_is_disabled_by_default() {
+        assert!(!FRIENDS_PANEL_INPUT_ENABLED);
     }
 
     #[test]

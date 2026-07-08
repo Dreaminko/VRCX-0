@@ -86,8 +86,10 @@ pub const VR_OVERLAY_HIDE_PRIVATE_WORLDS_CONFIG_KEY: &str = "wristOverlayHidePri
 pub const VR_OVERLAY_DARK_BACKGROUND_CONFIG_KEY: &str = "wristOverlayDarkBackground";
 pub const VR_OVERLAY_SHOW_DEVICES_CONFIG_KEY: &str = "wristOverlayShowDevices";
 pub const VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY: &str = "wristOverlayShowBatteryPercent";
+#[cfg(test)]
 pub const VR_OVERLAY_PANEL_ENABLED_CONFIG_KEY: &str = "vrOverlayPanelEnabled";
 pub const VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY: &str = "vrOverlayPanelSelectedCategory";
+#[cfg(test)]
 pub const VR_OVERLAY_PANEL_ALL_FRIENDS_INCLUDES_FAVORITES_CONFIG_KEY: &str =
     "vrOverlayPanelAllFriendsIncludesFavorites";
 pub const VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY: &str = "vrOverlayFriendsPanelGroup";
@@ -98,6 +100,7 @@ pub const HMD_NOTIFICATION_OPACITY_CONFIG_KEY: &str = "hmdNotificationOpacity";
 pub const HMD_NOTIFICATION_POSITION_CONFIG_KEY: &str = "hmdNotificationPosition";
 const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
 const DATE_TIME_HOUR12_CONFIG_KEY: &str = "dtHour12";
+const FRIENDS_PANEL_RUNTIME_ENABLED: bool = false;
 const WRIST_DEVICE_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WRIST_FRAME_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 const FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL: Duration = Duration::from_millis(100);
@@ -211,7 +214,7 @@ impl Default for VrOverlayRuntimeConfig {
             backend: OverlayBackendPreference::Auto,
             button: OverlayActivationButton::Grip,
             hand: WristOverlayHand::Left,
-            panel_enabled: true,
+            panel_enabled: FRIENDS_PANEL_RUNTIME_ENABLED,
             panel_all_friends_includes_favorites: true,
             hmd: HmdNotificationConfig::default(),
             render: WristOverlayRenderOptions::default(),
@@ -478,10 +481,14 @@ impl VrOverlayRuntime {
     }
 
     pub fn new_for_test_with_backend_available(backend_available: bool) -> Self {
+        let config = VrOverlayRuntimeConfig {
+            panel_enabled: true,
+            ..VrOverlayRuntimeConfig::default()
+        };
         Self::new_with_frame_producer_factory(
             backend_available,
             None,
-            VrOverlayRuntimeConfig::default(),
+            config,
             Box::new(|| Box::<StaticWristFrameProducer>::default()),
         )
     }
@@ -1022,6 +1029,9 @@ impl VrOverlayRuntime {
     }
 
     fn load_friends_panel_selected_category(&self) -> String {
+        if !self.current_runtime_config().panel_enabled {
+            return FRIENDS_PANEL_CATEGORY_ALL.to_string();
+        }
         let Some(context) = &self.context else {
             return FRIENDS_PANEL_CATEGORY_ALL.to_string();
         };
@@ -1046,6 +1056,9 @@ impl VrOverlayRuntime {
     }
 
     fn persist_friends_panel_selected_category(&self, key: &str) {
+        if !self.current_runtime_config().panel_enabled {
+            return;
+        }
         let Some(context) = &self.context else {
             return;
         };
@@ -1058,6 +1071,9 @@ impl VrOverlayRuntime {
     }
 
     fn refresh_interval(&self) -> Duration {
+        if !self.current_runtime_config().panel_enabled {
+            return WRIST_FRAME_REFRESH_INTERVAL;
+        }
         if self.friends_panel_animation_refresh_active() {
             FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL
         } else {
@@ -1066,6 +1082,9 @@ impl VrOverlayRuntime {
     }
 
     fn input_drain_interval(&self) -> Duration {
+        if !self.current_runtime_config().panel_enabled {
+            return WRIST_FRAME_REFRESH_INTERVAL;
+        }
         if self.panel_listener_available() || self.interactive_panel_interaction_active() {
             INTERACTIVE_INPUT_DRAIN_INTERVAL
         } else {
@@ -4020,15 +4039,8 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
         .get_string(HMD_NOTIFICATION_POSITION_CONFIG_KEY, "bottom")
         .map(|value| HmdNotificationPosition::from_config(&value))
         .unwrap_or_default();
-    let panel_enabled = config
-        .get_bool(VR_OVERLAY_PANEL_ENABLED_CONFIG_KEY, true)
-        .unwrap_or(true);
-    let panel_all_friends_includes_favorites = config
-        .get_bool(
-            VR_OVERLAY_PANEL_ALL_FRIENDS_INCLUDES_FAVORITES_CONFIG_KEY,
-            true,
-        )
-        .unwrap_or(true);
+    let panel_enabled = FRIENDS_PANEL_RUNTIME_ENABLED;
+    let panel_all_friends_includes_favorites = true;
     let locale = config
         .get_string(APP_LANGUAGE_CONFIG_KEY, "en")
         .map(|value| OverlayLocale::from_config(&value))
@@ -4249,6 +4261,21 @@ mod tests {
         (dir, db, context)
     }
 
+    fn friends_panel_enabled_runtime_with_context(
+        context: Arc<RuntimeHostContext>,
+    ) -> VrOverlayRuntime {
+        let config = VrOverlayRuntimeConfig {
+            panel_enabled: true,
+            ..VrOverlayRuntimeConfig::default()
+        };
+        VrOverlayRuntime::new_with_frame_producer_factory(
+            true,
+            Some(context),
+            config,
+            Box::new(|| Box::<StaticWristFrameProducer>::default()),
+        )
+    }
+
     fn friends_panel_snapshot(record: FriendRecord) -> RealtimeFriendSnapshot {
         RealtimeFriendSnapshot {
             current_user_id: "usr_self".to_string(),
@@ -4397,23 +4424,28 @@ mod tests {
     }
 
     #[test]
-    fn default_panel_enabled_starts_listener_when_steamvr_is_running() {
-        let runtime = VrOverlayRuntime::new_for_test();
+    fn persisted_panel_enabled_setting_is_ignored_when_panel_is_hidden() {
+        let (_dir, _db, context) = test_context("vr-panel-hidden-config");
+        context
+            .config()
+            .set_bool(VR_OVERLAY_PANEL_ENABLED_CONFIG_KEY, true)
+            .unwrap();
+        let runtime = VrOverlayRuntime::new(Arc::clone(&context));
 
-        assert!(runtime.current_runtime_config().panel_enabled);
+        assert!(!runtime.current_runtime_config().panel_enabled);
 
         record_process_status(&runtime, false, true, false);
 
-        assert!(runtime.is_running());
+        assert!(!runtime.is_running());
         assert!(
-            runtime
+            !runtime
                 .active_surfaces(runtime.current_runtime_config())
                 .panel_listener
         );
     }
 
     #[test]
-    fn runtime_config_reads_interactive_panel_all_friends_setting() {
+    fn runtime_config_ignores_hidden_interactive_panel_all_friends_setting() {
         let (_dir, _db, context) = test_context("vr-panel-all-friends-config");
         context
             .config()
@@ -4425,7 +4457,7 @@ mod tests {
 
         let config = load_runtime_config(context.config());
 
-        assert!(!config.panel_all_friends_includes_favorites);
+        assert!(config.panel_all_friends_includes_favorites);
     }
 
     #[test]
@@ -4480,6 +4512,7 @@ mod tests {
 
         runtime.commit_runtime_config(
             VrOverlayRuntimeConfig {
+                panel_enabled: true,
                 panel_all_friends_includes_favorites: false,
                 ..VrOverlayRuntimeConfig::default()
             },
@@ -4505,52 +4538,13 @@ mod tests {
     }
 
     #[test]
-    fn game_running_change_rebuilds_visible_friends_panel_actions() {
-        let (_dir, _db, context) = test_context("friends-panel-game-running-actions");
-        *context.game_log_snapshot_handle().lock().unwrap() = RuntimeSnapshot {
-            location: "wrld_home:999".to_string(),
-            ..RuntimeSnapshot::default()
-        };
-        let runtime = VrOverlayRuntime::new(context);
-        runtime.set_friends_panel_snapshot_provider(|| {
-            Some(friends_panel_snapshot(FriendRecord {
-                id: "usr_friend".to_string(),
-                display_name: "Friend".to_string(),
-                state_bucket: "online".to_string(),
-                location: "wrld_public:123".to_string(),
-                world_id: "wrld_public".to_string(),
-                ..FriendRecord::default()
-            }))
-        });
-
-        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
-        assert!(
-            !visible_friends_panel_row(&runtime, "usr_friend")
-                .actions
-                .invite
-        );
+    fn game_process_event_updates_runtime_game_running_state() {
+        let runtime = VrOverlayRuntime::new_for_test();
+        assert!(!runtime.game_running.load(Ordering::Acquire));
 
         record_process_status(&runtime, true, true, true);
-        {
-            let mut manager = runtime.manager.lock().unwrap();
-            runtime.push_friends_panel_frame(&mut manager);
-        }
-        assert!(
-            visible_friends_panel_row(&runtime, "usr_friend")
-                .actions
-                .invite
-        );
 
-        record_process_status(&runtime, false, true, true);
-        {
-            let mut manager = runtime.manager.lock().unwrap();
-            runtime.push_friends_panel_frame(&mut manager);
-        }
-        assert!(
-            !visible_friends_panel_row(&runtime, "usr_friend")
-                .actions
-                .invite
-        );
+        assert!(runtime.game_running.load(Ordering::Acquire));
     }
 
     #[test]
@@ -4632,6 +4626,25 @@ mod tests {
                 .panel_listener
         );
         assert!(runtime.input_drain_interval() <= Duration::from_millis(100));
+    }
+
+    #[test]
+    fn hidden_panel_state_does_not_accelerate_refresh_or_input_drain_intervals() {
+        let runtime = VrOverlayRuntime::new_for_test_with_config_and_frame_producer_factory(
+            true,
+            VrOverlayRuntimeConfig::default(),
+            Box::new(|| Box::<StaticWristFrameProducer>::default()),
+        );
+        {
+            let mut panel = runtime.interactive_panel.lock().unwrap();
+            panel.visible = true;
+            panel.focused = true;
+            panel.slint_animation_active = true;
+            panel.armed_action_expires_at = Some(Instant::now() + Duration::from_secs(1));
+        }
+
+        assert_eq!(runtime.refresh_interval(), WRIST_FRAME_REFRESH_INTERVAL);
+        assert_eq!(runtime.input_drain_interval(), WRIST_FRAME_REFRESH_INTERVAL);
     }
 
     #[test]
@@ -4802,7 +4815,7 @@ mod tests {
                 FRIENDS_PANEL_CATEGORY_SAME_INSTANCE,
             )
             .unwrap();
-        let runtime = VrOverlayRuntime::new(Arc::clone(&context));
+        let runtime = friends_panel_enabled_runtime_with_context(Arc::clone(&context));
         runtime.set_friends_panel_snapshot_provider(|| {
             Some(RealtimeFriendSnapshot {
                 current_user_id: "usr_self".to_string(),
@@ -4903,7 +4916,7 @@ mod tests {
             "Cached memo".to_string(),
         )
         .unwrap();
-        let runtime = VrOverlayRuntime::new(context);
+        let runtime = friends_panel_enabled_runtime_with_context(context);
         runtime.set_friends_panel_snapshot_provider(|| {
             Some(friends_panel_snapshot(FriendRecord {
                 id: "usr_friend".to_string(),
@@ -5260,7 +5273,7 @@ mod tests {
     }
 
     #[test]
-    fn friends_panel_persists_selected_category_and_maps_legacy_group_key() {
+    fn hidden_friends_panel_ignores_selected_category_config() {
         let (_dir, _db, context) = test_context("friends-panel-category-config");
         context
             .config()
@@ -5270,37 +5283,17 @@ mod tests {
 
         assert_eq!(
             runtime.load_friends_panel_selected_category(),
-            "group:friend:group_0"
+            FRIENDS_PANEL_CATEGORY_ALL
         );
 
-        runtime.apply_friends_panel_input(friends_panel_summon_input(OverlayTransform::identity()));
-        {
-            let mut panel = runtime.interactive_panel.lock().unwrap();
-            panel.model.categories = vec![
-                FriendPanelCategory {
-                    key: "all".to_string(),
-                    label: "All".to_string(),
-                    count: 0,
-                },
-                FriendPanelCategory {
-                    key: "favOnline".to_string(),
-                    label: "Favorites Online".to_string(),
-                    count: 0,
-                },
-            ];
-        }
-        assert!(
-            runtime.apply_friends_panel_slint_events(vec![SlintPanelEvent::CategorySelected(
-                "favOnline".to_string()
-            )])
-        );
+        runtime.persist_friends_panel_selected_category(FRIENDS_PANEL_CATEGORY_FAVORITES_ONLINE);
 
         assert_eq!(
             context
                 .config()
                 .get_string(VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY, "")
                 .unwrap(),
-            "favOnline"
+            ""
         );
     }
 

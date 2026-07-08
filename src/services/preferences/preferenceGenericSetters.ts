@@ -70,6 +70,18 @@ import type {
     StringConfigPreferenceKey
 } from './preferencesTypes';
 
+type HiddenVrPanelBoolConfigKey =
+    | 'vrOverlayPanelEnabled'
+    | 'vrOverlayPanelAllFriendsIncludesFavorites';
+type BoolConfigPreferenceInputKey =
+    | BoolConfigPreferenceKey
+    | HiddenVrPanelBoolConfigKey;
+
+const HIDDEN_VR_PANEL_BOOL_CONFIG_KEYS = new Set<string>([
+    'vrOverlayPanelEnabled',
+    'vrOverlayPanelAllFriendsIncludesFavorites'
+]);
+
 export async function setAppLanguagePreference(language: unknown) {
     const nextLanguage = normalizeLanguageCode(language);
     useShellStore.getState().setLocale(nextLanguage);
@@ -305,9 +317,13 @@ export async function setCloseToTrayPreference(value: boolean) {
 }
 
 export async function setBoolConfigPreference(
-    key: BoolConfigPreferenceKey,
+    key: BoolConfigPreferenceInputKey,
     value: boolean
 ) {
+    if (isHiddenVrPanelBoolConfigKey(key)) {
+        patchPreferenceValue(key, false);
+        return;
+    }
     const enabled = value;
     await configRepository.setBool(key, enabled);
     const normalizedKey = normalizePreferenceKey(key);
@@ -341,6 +357,12 @@ export async function setBoolConfigPreference(
     patchPreferenceValue(key, enabled);
     publishPreferenceChanged(key, enabled);
     await reloadWristOverlayRuntimeConfigIfNeeded(key);
+}
+
+function isHiddenVrPanelBoolConfigKey(
+    key: BoolConfigPreferenceInputKey
+): key is HiddenVrPanelBoolConfigKey {
+    return HIDDEN_VR_PANEL_BOOL_CONFIG_KEYS.has(key);
 }
 
 export async function setStringConfigPreference(
