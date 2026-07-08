@@ -46,6 +46,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 import { PreviousInstanceInfoChart } from './PreviousInstanceInfoChart';
 import {
     normalizePlayerRows,
+    playerJoinMs,
+    playerLeaveMs,
     playerDisplayName,
     playerUserId,
     rowDuration,
@@ -54,23 +56,17 @@ import {
     rowWorldId
 } from './previousInstancesRows';
 
-function playerLeaveMs(player: any) {
-    const value = new Date(
-        player?.created_at || player?.createdAt || 0
-    ).getTime();
-    return Number.isFinite(value) && value > 0 ? value : 0;
-}
+type PreviousInstancePlayerClockRow = Parameters<typeof playerJoinMs>[0];
 
-function playerJoinClock(player: any) {
-    const leaveMs = playerLeaveMs(player);
-    if (!leaveMs) {
+function playerJoinClock(player: PreviousInstancePlayerClockRow) {
+    const joinedMs = playerJoinMs(player);
+    if (!joinedMs) {
         return '—';
     }
-    const stayMs = Math.max(0, Number(player?.time || 0)) * 1000;
-    return formatClock(leaveMs - stayMs) || '—';
+    return formatClock(joinedMs) || '—';
 }
 
-function playerLeaveClock(player: any) {
+function playerLeaveClock(player: PreviousInstancePlayerClockRow) {
     const leaveMs = playerLeaveMs(player);
     return leaveMs ? formatClock(leaveMs) || '—' : '—';
 }

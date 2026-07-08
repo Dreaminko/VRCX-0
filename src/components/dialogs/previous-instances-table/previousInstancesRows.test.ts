@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
     normalizeInfoChartRows,
+    playerJoinMs,
+    playerLeaveMs,
     normalizePlayerRows,
     playerDisplayName,
     playerUserId,
@@ -42,6 +44,32 @@ describe('previousInstancesRows', () => {
         expect(playerDisplayName({ display_name: 'Snake' })).toBe('Snake');
         expect(playerUserId({ userId: 'usr_camel' })).toBe('usr_camel');
         expect(playerUserId({ user_id: 'usr_snake' })).toBe('usr_snake');
+    });
+
+    it('calculates player table join and leave times from millisecond durations', () => {
+        const joinedAt = '2026-01-01T12:00:00.000Z';
+        const leftAt = '2026-01-01T12:07:00.000Z';
+
+        expect(
+            playerJoinMs({
+                created_at: joinedAt,
+                left_at: leftAt,
+                time: 420_000
+            })
+        ).toBe(Date.parse(joinedAt));
+        expect(
+            playerLeaveMs({
+                created_at: joinedAt,
+                left_at: leftAt,
+                time: 420_000
+            })
+        ).toBe(Date.parse(leftAt));
+        expect(
+            playerLeaveMs({
+                created_at: joinedAt,
+                time: 420_000
+            })
+        ).toBe(Date.parse(leftAt));
     });
 
     it('merges parsed locations with explicit location metadata', () => {
