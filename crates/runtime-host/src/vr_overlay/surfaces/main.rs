@@ -12,6 +12,7 @@ use super::super::localization::{OverlayLocale, OverlayLocalizer};
 pub(crate) struct HmdToastView {
     pub entry: OverlayActivityEntry,
     pub avatar: Option<AvatarBitmap>,
+    pub show_avatar: bool,
     pub merge_count: u32,
 }
 
@@ -44,6 +45,7 @@ fn toast_card_from_activity(toast: HmdToastView, localizer: &OverlayLocalizer) -
         context: context_text(&entry, localizer),
         severity: feed_severity(&entry),
         avatar: toast.avatar,
+        show_avatar: toast.show_avatar,
     }
 }
 

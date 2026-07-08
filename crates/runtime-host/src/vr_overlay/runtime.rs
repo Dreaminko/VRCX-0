@@ -1382,6 +1382,7 @@ impl VrOverlayRuntime {
             return Vec::new();
         };
         prune_expired_hmd_toasts(&mut queue, now);
+        let friend_snapshot = self.current_friends_panel_snapshot();
         if let Some(context) = &self.context {
             for toast in queue.iter_mut() {
                 refresh_cached_world_name(&context.world_cache, &mut toast.entry);
@@ -1389,10 +1390,18 @@ impl VrOverlayRuntime {
         }
         queue
             .iter()
-            .map(|toast| HmdToastView {
-                entry: toast.entry.clone(),
-                avatar: toast.avatar.clone(),
-                merge_count: toast.merge_count,
+            .map(|toast| {
+                let show_avatar = hmd_entry_should_show_avatar(&toast.entry, &friend_snapshot);
+                HmdToastView {
+                    entry: toast.entry.clone(),
+                    avatar: if show_avatar {
+                        toast.avatar.clone()
+                    } else {
+                        None
+                    },
+                    show_avatar,
+                    merge_count: toast.merge_count,
+                }
             })
             .collect()
     }
@@ -2999,6 +3008,17 @@ fn apply_circular_avatar_mask(rgba: &mut [u8], width: u32, height: u32) {
 
 fn prune_expired_hmd_toasts(queue: &mut VecDeque<HmdToastState>, now: Instant) {
     queue.retain(|toast| toast.expires_at > now);
+}
+
+fn hmd_entry_should_show_avatar(
+    entry: &OverlayActivityEntry,
+    snapshot: &Option<RealtimeFriendSnapshot>,
+) -> bool {
+    let actor_user_id = entry.actor_user_id.trim();
+    actor_user_id.starts_with("usr_")
+        && snapshot
+            .as_ref()
+            .is_some_and(|snapshot| snapshot.friends_by_id.contains_key(actor_user_id))
 }
 
 fn should_merge_hmd_toast(
@@ -6548,6 +6568,104 @@ mod tests {
                 .and_then(|toast| toast.avatar.clone()),
             Some(bitmap)
         );
+        assert!(runtime
+            .hmd_toast_views(Instant::now())
+            .first()
+            .is_some_and(|toast| toast.show_avatar));
+    }
+
+    #[test]
+    fn hmd_snapshot_gap_does_not_drop_loaded_toast_avatar() {
+        let (_dir, _db, context) = test_context("hmd-avatar-snapshot-gap");
+        let runtime = hmd_enabled_runtime_with_context(context);
+        let snapshot_available = Arc::new(AtomicBool::new(true));
+        let provider_available = Arc::clone(&snapshot_available);
+        runtime.set_friends_panel_snapshot_provider(move || {
+            if provider_available.load(Ordering::Acquire) {
+                Some(friends_panel_snapshot(FriendRecord {
+                    id: "usr_actor".to_string(),
+                    display_name: "Friend".to_string(),
+                    ..FriendRecord::default()
+                }))
+            } else {
+                None
+            }
+        });
+        let url = "https://images.example/avatar/128";
+        let bitmap = test_avatar_bitmap();
+        runtime
+            .avatar_bitmap_cache
+            .store_success(url, "usr_actor", bitmap.clone());
+        let mut entry = hmd_entry(
+            "friend-avatar-snapshot-gap",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::Friend,
+            "wrld_home:123",
+        );
+        entry.content.image_url = url.to_string();
+        runtime.enqueue_hmd_toast(entry.clone(), Instant::now(), Duration::from_secs(5));
+        runtime.spawn_avatar_fetch(&entry);
+
+        assert_eq!(
+            runtime
+                .hmd_toast_views(Instant::now())
+                .first()
+                .and_then(|toast| toast.avatar.clone()),
+            Some(bitmap.clone())
+        );
+
+        snapshot_available.store(false, Ordering::Release);
+        let hidden = runtime.hmd_toast_views(Instant::now()).pop().unwrap();
+        assert!(!hidden.show_avatar);
+        assert!(hidden.avatar.is_none());
+
+        snapshot_available.store(true, Ordering::Release);
+        let restored = runtime.hmd_toast_views(Instant::now()).pop().unwrap();
+        assert!(restored.show_avatar);
+        assert_eq!(restored.avatar, Some(bitmap));
+    }
+
+    #[test]
+    fn hmd_non_friend_toast_hides_avatar_slot() {
+        let (_dir, _db, context) = test_context("hmd-non-friend-avatar-hidden");
+        let runtime = hmd_enabled_runtime_with_context(context);
+        let entry = hmd_entry(
+            "stranger-toast",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::None,
+            "wrld_home:123",
+        );
+
+        runtime.enqueue_hmd_toast(entry, Instant::now(), Duration::from_secs(5));
+
+        let toast = runtime.hmd_toast_views(Instant::now()).pop().unwrap();
+        assert!(!toast.show_avatar);
+        assert!(toast.avatar.is_none());
+    }
+
+    #[test]
+    fn hmd_friend_toast_without_bitmap_keeps_avatar_slot() {
+        let (_dir, _db, context) = test_context("hmd-friend-avatar-slot");
+        let runtime = hmd_enabled_runtime_with_context(context);
+        runtime.set_friends_panel_snapshot_provider(|| {
+            Some(friends_panel_snapshot(FriendRecord {
+                id: "usr_actor".to_string(),
+                display_name: "Friend".to_string(),
+                ..FriendRecord::default()
+            }))
+        });
+        let entry = hmd_entry(
+            "friend-toast",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::Friend,
+            "wrld_home:123",
+        );
+
+        runtime.enqueue_hmd_toast(entry, Instant::now(), Duration::from_secs(5));
+
+        let toast = runtime.hmd_toast_views(Instant::now()).pop().unwrap();
+        assert!(toast.show_avatar);
+        assert!(toast.avatar.is_none());
     }
 
     #[test]

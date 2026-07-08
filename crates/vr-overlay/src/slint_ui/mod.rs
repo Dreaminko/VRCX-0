@@ -121,6 +121,14 @@ fn cached_avatar_image(
     (has_avatar, image)
 }
 
+fn visible_toast_avatar(toast: &ToastCard) -> Option<&AvatarBitmap> {
+    if toast.show_avatar {
+        toast.avatar.as_ref()
+    } else {
+        None
+    }
+}
+
 fn retain_avatar_images<'a>(
     cache: &mut AvatarImageCache,
     live: impl Iterator<Item = Option<&'a AvatarBitmap>>,
@@ -442,7 +450,7 @@ impl SlintSurfaceHost for SlintHmdHost {
     fn write_model(&mut self, model: &MainSurfaceModel) {
         retain_avatar_images(
             &mut self.avatar_images,
-            model.toasts.iter().map(|toast| toast.avatar.as_ref()),
+            model.toasts.iter().map(visible_toast_avatar),
         );
         self.component.set_dark_background(model.dark_background);
         self.component
@@ -574,13 +582,14 @@ fn hmd_toast_item(
     accent: crate::Color,
     cache: &mut AvatarImageCache,
 ) -> HmdToastItem {
-    let (has_avatar, avatar) = cached_avatar_image(cache, toast.avatar.as_ref());
+    let (has_avatar, avatar) = cached_avatar_image(cache, visible_toast_avatar(toast));
     HmdToastItem {
         actor: SharedString::from(hmd_actor_text(toast)),
         action: SharedString::from(toast.action.as_str()),
         context: SharedString::from(toast.context.as_deref().unwrap_or_default()),
         avatar,
         has_avatar,
+        show_avatar: toast.show_avatar,
         relation_color: hmd_relation_color(toast.relation),
         severity_color: hmd_severity_color(toast.severity, accent),
     }
@@ -1104,6 +1113,22 @@ mod tests {
     }
 
     #[test]
+    fn slint_hmd_renderer_hides_avatar_placeholder_when_avatar_slot_is_disabled() {
+        let mut renderer = SlintHmdRenderer::new();
+        let mut model = sample_main_model();
+        model.toasts[0].avatar = None;
+        model.toasts[0].show_avatar = true;
+
+        let with_placeholder = renderer.render(&model).unwrap();
+
+        model.toasts[0].show_avatar = false;
+        let without_slot = renderer.render(&model).unwrap();
+
+        assert_ne!(with_placeholder, without_slot);
+        assert_eq!(renderer.render_count(), 2);
+    }
+
+    #[test]
     fn wrist_device_tokens_prioritize_abnormal_trackers_and_filter_normal_other_devices() {
         let devices = vec![
             device("HMD", DeviceRole::Hmd, DeviceStatus::Normal, Some(90), 10),
@@ -1256,6 +1281,7 @@ mod tests {
                         255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255,
                     ]),
                 }),
+                show_avatar: true,
             }],
         }
     }

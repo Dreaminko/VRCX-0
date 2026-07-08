@@ -3,7 +3,7 @@ use vrcx_0_vr_overlay::{
     FriendPanelRowPrimaryAction, FriendPanelStatusTone, FriendPanelStrings, OverlaySize,
 };
 
-use super::{avatar, ScenarioInfo};
+use super::ScenarioInfo;
 
 const DEFAULT_SCENARIO: &str = "many";
 const MANY_GROUP_MOCK_GROUP_COUNT: usize = 42;
@@ -171,7 +171,6 @@ fn many_rows() -> Vec<FriendPanelRow> {
                     1 => "Japan Shrine",
                     _ => "Private",
                 },
-                index as u8,
             );
             let spec = if index % 5 == 0 {
                 spec.memo("Local memo from VRCX-0")
@@ -207,7 +206,6 @@ fn many_groups_rows() -> Vec<FriendPanelRow> {
                     2 => "Group Public",
                     _ => "Private",
                 },
-                index as u8,
             );
             let spec = if index % 6 == 0 {
                 spec.note("Visible in several mock groups")
@@ -245,7 +243,6 @@ fn same_instance_rows() -> Vec<FriendPanelRow> {
                 format!("Same Instance Friend {index:02}"),
                 status,
                 location,
-                (index + 12) as u8,
             );
             let spec = match index {
                 2 => spec.note("Visible in your current instance"),
@@ -339,7 +336,6 @@ fn traveling_rows() -> Vec<FriendPanelRow> {
                 format!("Traveler {index}"),
                 FriendPanelStatusTone::Active,
                 "Traveling",
-                (index + 2) as u8,
             )
             .traveling())
         })
@@ -353,7 +349,6 @@ fn note_rows() -> Vec<FriendPanelRow> {
             "VRChat Note Friend",
             FriendPanelStatusTone::Online,
             "Friends+ Instance",
-            1,
         )
         .note("VRChat profile note stays separate")
         .memo("Local memo stays separate")),
@@ -362,7 +357,6 @@ fn note_rows() -> Vec<FriendPanelRow> {
             "Memo Only",
             FriendPanelStatusTone::Active,
             "Group Public",
-            2,
         )
         .memo("Met at the weekend event")),
         row(RowSpec::new(
@@ -370,7 +364,6 @@ fn note_rows() -> Vec<FriendPanelRow> {
             "Note Only",
             FriendPanelStatusTone::AskMe,
             "Private",
-            3,
         )
         .note("Prefers invite requests")),
     ]
@@ -383,7 +376,6 @@ fn long_text_rows() -> Vec<FriendPanelRow> {
             "A Very Long Display Name That Should Ellipsize Cleanly In The Row",
             FriendPanelStatusTone::Online,
             "A World With A Very Long Name That Should Not Break The Layout",
-            4,
         )
         .note("This VRChat note is intentionally long enough to exercise row text clipping")
         .memo("This local memo is also intentionally long enough to stay inside the row")),
@@ -392,7 +384,6 @@ fn long_text_rows() -> Vec<FriendPanelRow> {
             "Short Name",
             FriendPanelStatusTone::Busy,
             "Private",
-            5,
         )),
     ]
 }
@@ -404,7 +395,6 @@ fn i18n_rows() -> Vec<FriendPanelRow> {
             "𝓕𝓪𝓷𝓬𝔂 ✦ ᴠʀᴄ ɴᴀᴍᴇ ★彡",
             FriendPanelStatusTone::Online,
             "『ＦＵＬＬＷＩＤＴＨ』✧ world ✧ ω(=^･ω･^=)",
-            0,
         )
         .note("ﾚ(ﾟ∀ﾟ;)ﾍ zalgo-ish t̷e̷x̷t̷ + 🌸🦋💫 emoji mix")),
         row(RowSpec::new(
@@ -412,7 +402,6 @@ fn i18n_rows() -> Vec<FriendPanelRow> {
             "简体中文好友 🎧",
             FriendPanelStatusTone::Active,
             "测试世界",
-            0,
         )
         .note("VRChat 资料备注：喜欢跳舞和拍照")
         .memo("本地备注：周末活动认识")),
@@ -421,7 +410,6 @@ fn i18n_rows() -> Vec<FriendPanelRow> {
             "繁體中文好友",
             FriendPanelStatusTone::Online,
             "朋友+ 實例",
-            1,
         )
         .memo("本地備註保持可讀")),
         row(RowSpec::new(
@@ -429,7 +417,6 @@ fn i18n_rows() -> Vec<FriendPanelRow> {
             "日本語ユーザー",
             FriendPanelStatusTone::AskMe,
             "東京ナイト",
-            2,
         )
         .traveling()),
         row(RowSpec::new(
@@ -437,7 +424,6 @@ fn i18n_rows() -> Vec<FriendPanelRow> {
             "한국어 친구",
             FriendPanelStatusTone::Busy,
             "서울 테스트 월드",
-            3,
         )
         .note("프로필 메모가 긴 행에서도 잘립니다")),
         row(RowSpec::new(
@@ -445,14 +431,12 @@ fn i18n_rows() -> Vec<FriendPanelRow> {
             "Русский друг",
             FriendPanelStatusTone::Online,
             "Длинное название мира",
-            4,
         )),
         row(RowSpec::new(
             "usr_i18n_5",
             "صديق عربي",
             FriendPanelStatusTone::Active,
             "اختبار طويل للنص",
-            5,
         )
         .memo("ملاحظة محلية طويلة")),
     ]
@@ -466,7 +450,6 @@ struct RowSpec {
     note: Option<&'static str>,
     memo: Option<&'static str>,
     is_traveling: bool,
-    avatar_seed: u8,
 }
 
 impl RowSpec {
@@ -475,7 +458,6 @@ impl RowSpec {
         display_name: impl Into<String>,
         status: FriendPanelStatusTone,
         location_text: impl Into<String>,
-        avatar_seed: u8,
     ) -> Self {
         Self {
             user_id: user_id.into(),
@@ -485,7 +467,6 @@ impl RowSpec {
             note: None,
             memo: None,
             is_traveling: false,
-            avatar_seed,
         }
     }
 
@@ -520,7 +501,7 @@ fn row(spec: RowSpec) -> FriendPanelRow {
         traveling_text: spec.is_traveling.then(|| "Traveling".to_string()),
         note: spec.note.map(str::to_string),
         memo: spec.memo.map(str::to_string),
-        avatar: Some(avatar(spec.avatar_seed)),
+        avatar: None,
         actions,
     }
 }

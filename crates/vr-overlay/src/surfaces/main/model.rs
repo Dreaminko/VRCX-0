@@ -17,6 +17,7 @@ pub struct ToastCard {
     pub context: Option<String>,
     pub severity: FeedSeverity,
     pub avatar: Option<AvatarBitmap>,
+    pub show_avatar: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]

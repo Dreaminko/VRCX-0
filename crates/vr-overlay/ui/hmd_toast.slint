@@ -6,6 +6,7 @@ export struct HmdToastItem {
     context: string,
     avatar: image,
     has-avatar: bool,
+    show-avatar: bool,
     relation-color: color,
     severity-color: color,
 }
@@ -29,6 +30,8 @@ export component HmdToastPanel inherits Window {
         height: 144px;
         visible: self.y >= 0px;
         background: root.card-color;
+        property <length> content-x: toast.show-avatar ? 142px : 24px;
+        property <length> content-width: self.width - self.content-x - 24px;
 
         Rectangle {
             x: 0px;
@@ -42,7 +45,7 @@ export component HmdToastPanel inherits Window {
             x: 24px;
             y: 24px;
             diameter: 96px;
-            visible: !toast.has-avatar;
+            visible: toast.show-avatar && !toast.has-avatar;
         }
 
         Image {
@@ -51,13 +54,13 @@ export component HmdToastPanel inherits Window {
             width: 96px;
             height: 96px;
             source: toast.avatar;
-            visible: toast.has-avatar;
+            visible: toast.show-avatar && toast.has-avatar;
         }
 
         Text {
-            x: 142px;
+            x: parent.content-x;
             y: 22px;
-            width: parent.width - 166px;
+            width: parent.content-width;
             height: 36px;
             text: toast.actor;
             font-size: 30px;
@@ -65,9 +68,9 @@ export component HmdToastPanel inherits Window {
         }
 
         Text {
-            x: 142px;
+            x: parent.content-x;
             y: 62px;
-            width: parent.width - 166px;
+            width: parent.content-width;
             height: 29px;
             text: toast.action;
             font-size: 23px;
@@ -75,9 +78,9 @@ export component HmdToastPanel inherits Window {
         }
 
         Text {
-            x: 142px;
+            x: parent.content-x;
             y: 96px;
-            width: parent.width - 166px;
+            width: parent.content-width;
             height: 25px;
             text: toast.context;
             font-size: 20px;

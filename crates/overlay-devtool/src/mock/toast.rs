@@ -174,13 +174,12 @@ fn toasts_for_scenario(scenario: &str) -> Vec<ToastCard> {
                 FeedSeverity::Normal,
                 1,
             ),
-            card(
-                "Group Member",
+            card_placeholder(
+                "Avatar Loading",
                 FeedRelation::Friend,
-                "sent an invite",
-                Some("Group Public"),
-                FeedSeverity::Important,
-                2,
+                "came online",
+                Some("Placeholder avatar"),
+                FeedSeverity::Normal,
             ),
             card(
                 "Media",
@@ -209,5 +208,24 @@ fn card(
         context: context.map(str::to_string),
         severity,
         avatar: Some(avatar(avatar_seed)),
+        show_avatar: true,
+    }
+}
+
+fn card_placeholder(
+    actor_name: impl Into<String>,
+    relation: FeedRelation,
+    action: impl Into<String>,
+    context: Option<&str>,
+    severity: FeedSeverity,
+) -> ToastCard {
+    ToastCard {
+        actor_name: actor_name.into(),
+        relation,
+        action: action.into(),
+        context: context.map(str::to_string),
+        severity,
+        avatar: None,
+        show_avatar: true,
     }
 }
