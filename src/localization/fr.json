@@ -216,7 +216,7 @@
                 "keyboardShortcuts": "Raccourcis clavier",
                 "reportIssue": "Signaler un problème",
                 "github": "GitHub",
-                "discord": "Rejoindre notre Discord",
+                "discord": "Discord",
                 "qqGroup": "Groupe QQ (communauté chinoise)",
                 "openDevtools": "Ouvrir les DevTools",
                 "supportVrcx": "Soutenir VRCX-0"
@@ -249,7 +249,7 @@
     },
     "nav_menu": {
         "qq_group": "Groupe QQ (communauté chinoise)",
-        "discord": "Rejoindre notre Discord",
+        "discord": "Discord",
         "changelog": "Journal des modifications",
         "update": "Mettre à jour",
         "update_downloaded": "Mise à jour prête",

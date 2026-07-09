@@ -216,7 +216,7 @@
                 "keyboardShortcuts": "键盘快捷键",
                 "reportIssue": "反馈问题",
                 "github": "在 GitHub 上查看",
-                "discord": "加入 Discord",
+                "discord": "Discord",
                 "qqGroup": "QQ群",
                 "openDevtools": "打开 DevTools",
                 "supportVrcx": "支持 VRCX-0"
@@ -249,7 +249,7 @@
     },
     "nav_menu": {
         "qq_group": "QQ群",
-        "discord": "加入 Discord",
+        "discord": "Discord",
         "changelog": "更新日志",
         "update": "更新",
         "update_downloaded": "已下载更新",

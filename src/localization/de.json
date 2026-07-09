@@ -216,7 +216,7 @@
                 "keyboardShortcuts": "Tastenkombinationen",
                 "reportIssue": "Problem melden",
                 "github": "GitHub",
-                "discord": "Unserem Discord beitreten",
+                "discord": "Discord",
                 "qqGroup": "QQ-Gruppe",
                 "openDevtools": "DevTools öffnen",
                 "supportVrcx": "VRCX-0 unterstützen"
@@ -249,7 +249,7 @@
     },
     "nav_menu": {
         "qq_group": "QQ-Gruppe",
-        "discord": "Tritt unserem Discord bei",
+        "discord": "Discord",
         "changelog": "Änderungsprotokoll",
         "update": "Update",
         "update_downloaded": "Update bereit",

@@ -49,7 +49,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Klávesové zkratky",
             "nativeShell.menu.help.reportIssue": "Nahlásit problém",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Připojte se k našemu Discordu",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ skupina",
             "nativeShell.menu.help.openDevtools": "Otevřít DevTools",
             "nativeShell.menu.help.supportVrcx": "Podpořte VRCX-0"
@@ -101,7 +101,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Tastenkombinationen",
             "nativeShell.menu.help.reportIssue": "Problem melden",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Unserem Discord beitreten",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ-Gruppe",
             "nativeShell.menu.help.openDevtools": "DevTools öffnen",
             "nativeShell.menu.help.supportVrcx": "VRCX-0 unterstützen"
@@ -153,7 +153,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Keyboard Shortcuts",
             "nativeShell.menu.help.reportIssue": "Report Issue",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Join our Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ Group",
             "nativeShell.menu.help.openDevtools": "Open DevTools",
             "nativeShell.menu.help.supportVrcx": "Support VRCX-0"
@@ -205,7 +205,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Atajos de teclado",
             "nativeShell.menu.help.reportIssue": "Reportar un problema",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Únete a nuestro Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "Grupo de QQ (comunidad china)",
             "nativeShell.menu.help.openDevtools": "Abrir DevTools",
             "nativeShell.menu.help.supportVrcx": "Apoyar a VRCX-0"
@@ -257,7 +257,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Raccourcis clavier",
             "nativeShell.menu.help.reportIssue": "Signaler un problème",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Rejoindre notre Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "Groupe QQ (communauté chinoise)",
             "nativeShell.menu.help.openDevtools": "Ouvrir les DevTools",
             "nativeShell.menu.help.supportVrcx": "Soutenir VRCX-0"
@@ -309,7 +309,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Keyboard Shortcuts",
             "nativeShell.menu.help.reportIssue": "Report Issue",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Join our Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ Group",
             "nativeShell.menu.help.openDevtools": "Open DevTools",
             "nativeShell.menu.help.supportVrcx": "Support VRCX-0"
@@ -361,7 +361,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "キーボードショートカット",
             "nativeShell.menu.help.reportIssue": "問題を報告",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "みんなと話そう (Discord)",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQグループ",
             "nativeShell.menu.help.openDevtools": "DevTools を開く",
             "nativeShell.menu.help.supportVrcx": "VRCX-0 をサポート"
@@ -413,7 +413,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "키보드 단축키",
             "nativeShell.menu.help.reportIssue": "문제 보고",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Discord에 가입하세요",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ그룹 (중국 커뮤니티)",
             "nativeShell.menu.help.openDevtools": "DevTools 열기",
             "nativeShell.menu.help.supportVrcx": "VRCX-0 후원"
@@ -465,7 +465,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Keyboard Shortcuts",
             "nativeShell.menu.help.reportIssue": "Report Issue",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Join our Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ Group",
             "nativeShell.menu.help.openDevtools": "Open DevTools",
             "nativeShell.menu.help.supportVrcx": "Support VRCX-0"
@@ -517,7 +517,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Atalhos de teclado",
             "nativeShell.menu.help.reportIssue": "Reportar problema",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Entre no nosso Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "Grupo do QQ (comunidade chinesa)",
             "nativeShell.menu.help.openDevtools": "Abrir DevTools",
             "nativeShell.menu.help.supportVrcx": "Apoiar o VRCX-0"
@@ -569,7 +569,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Горячие клавиши",
             "nativeShell.menu.help.reportIssue": "Сообщить о проблеме",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Присоединиться к Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ-группа",
             "nativeShell.menu.help.openDevtools": "Открыть DevTools",
             "nativeShell.menu.help.supportVrcx": "Поддержать VRCX-0"
@@ -621,7 +621,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Keyboard Shortcuts",
             "nativeShell.menu.help.reportIssue": "Report Issue",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Join our Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ Group",
             "nativeShell.menu.help.openDevtools": "Open DevTools",
             "nativeShell.menu.help.supportVrcx": "Support VRCX-0"
@@ -673,7 +673,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "Keyboard Shortcuts",
             "nativeShell.menu.help.reportIssue": "Report Issue",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "Join our Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ Group",
             "nativeShell.menu.help.openDevtools": "Open DevTools",
             "nativeShell.menu.help.supportVrcx": "Support VRCX-0"
@@ -725,7 +725,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "键盘快捷键",
             "nativeShell.menu.help.reportIssue": "反馈问题",
             "nativeShell.menu.help.github": "在 GitHub 上查看",
-            "nativeShell.menu.help.discord": "加入 Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ群",
             "nativeShell.menu.help.openDevtools": "打开 DevTools",
             "nativeShell.menu.help.supportVrcx": "支持 VRCX-0"
@@ -777,7 +777,7 @@
             "nativeShell.menu.help.keyboardShortcuts": "鍵盤快捷鍵",
             "nativeShell.menu.help.reportIssue": "回報問題",
             "nativeShell.menu.help.github": "GitHub",
-            "nativeShell.menu.help.discord": "加入我們的 Discord",
+            "nativeShell.menu.help.discord": "Discord",
             "nativeShell.menu.help.qqGroup": "QQ 群組",
             "nativeShell.menu.help.openDevtools": "開啟開發者工具",
             "nativeShell.menu.help.supportVrcx": "支援 VRCX-0"

@@ -216,7 +216,7 @@
                 "keyboardShortcuts": "Klávesové zkratky",
                 "reportIssue": "Nahlásit problém",
                 "github": "GitHub",
-                "discord": "Připojte se k našemu Discordu",
+                "discord": "Discord",
                 "qqGroup": "QQ skupina",
                 "openDevtools": "Otevřít DevTools",
                 "supportVrcx": "Podpořte VRCX-0"
@@ -249,7 +249,7 @@
     },
     "nav_menu": {
         "qq_group": "QQ skupina",
-        "discord": "Připojte se k našemu Discordu",
+        "discord": "Discord",
         "changelog": "Seznam změn",
         "update": "Aktualizace",
         "update_downloaded": "Aktualizace připravena",

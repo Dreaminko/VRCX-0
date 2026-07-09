@@ -216,7 +216,7 @@
                 "keyboardShortcuts": "키보드 단축키",
                 "reportIssue": "문제 보고",
                 "github": "GitHub",
-                "discord": "Discord에 가입하세요",
+                "discord": "Discord",
                 "qqGroup": "QQ그룹 (중국 커뮤니티)",
                 "openDevtools": "DevTools 열기",
                 "supportVrcx": "VRCX-0 후원"
@@ -279,7 +279,7 @@
                 "show_value": "{value} 표시"
             }
         },
-        "discord": "Discord에 가입하세요"
+        "discord": "Discord"
     },
     "dashboard": {
         "default_name": "대시보드",

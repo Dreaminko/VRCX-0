@@ -216,7 +216,7 @@
                 "keyboardShortcuts": "Горячие клавиши",
                 "reportIssue": "Сообщить о проблеме",
                 "github": "GitHub",
-                "discord": "Присоединиться к Discord",
+                "discord": "Discord",
                 "qqGroup": "QQ-группа",
                 "openDevtools": "Открыть DevTools",
                 "supportVrcx": "Поддержать VRCX-0"
@@ -249,7 +249,7 @@
     },
     "nav_menu": {
         "qq_group": "QQ-группа",
-        "discord": "Присоединяйтесь к нашему Discord",
+        "discord": "Discord",
         "changelog": "Изменить журнал",
         "update": "Обновление",
         "update_downloaded": "Обновление готово",

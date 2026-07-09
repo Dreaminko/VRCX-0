@@ -216,7 +216,7 @@
                 "keyboardShortcuts": "キーボードショートカット",
                 "reportIssue": "問題を報告",
                 "github": "GitHub",
-                "discord": "みんなと話そう (Discord)",
+                "discord": "Discord",
                 "qqGroup": "QQグループ",
                 "openDevtools": "DevTools を開く",
                 "supportVrcx": "VRCX-0 をサポート"
@@ -249,7 +249,7 @@
     },
     "nav_menu": {
         "qq_group": "QQグループ",
-        "discord": "みんなと話そう (Discord)",
+        "discord": "Discord",
         "changelog": "新機能 (更新履歴)",
         "update": "更新",
         "update_downloaded": "更新準備完了",

@@ -26,7 +26,7 @@
         "settings": "Ustawienia"
     },
     "nav_menu": {
-        "discord": "Dołącz do naszego Discorda",
+        "discord": "Discord",
         "changelog": "Co nowego?",
         "custom_nav": {
             "header": "Edytuj nawigację",
@@ -1575,7 +1575,7 @@
                 "keyboardShortcuts": "Keyboard Shortcuts",
                 "reportIssue": "Report Issue",
                 "github": "GitHub",
-                "discord": "Join our Discord",
+                "discord": "Discord",
                 "qqGroup": "QQ Group",
                 "openDevtools": "Open DevTools",
                 "supportVrcx": "Support VRCX-0"
