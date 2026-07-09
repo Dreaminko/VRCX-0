@@ -1,5 +1,11 @@
 {
     "language": "ภาษาไทย (th)",
+    "deep_link": {
+        "import_collection": {
+            "title": "นำเข้าคอลเลกชัน",
+            "description": "ID คอลเลกชัน: {collectionId}"
+        }
+    },
     "common": {
         "actions": {
             "configure": "กำหนดค่า",
@@ -117,7 +123,46 @@
             "bulk_unfavorite": "เลิกถูกใจหลายรายการ",
             "export": "ส่งออก",
             "import": "นำเข้า",
-            "rename_tooltip": "เปลี่ยนชื่อ"
+            "rename_tooltip": "เปลี่ยนชื่อ",
+            "share_collection": {
+                "title": "แชร์คอลเลกชัน",
+                "subtitle": "สร้างลิงก์สำหรับ {group}",
+                "subtitle_empty": "สร้างลิงก์แชร์คอลเลกชัน",
+                "action": {
+                    "menu": "แชร์กลุ่มนี้",
+                    "share": "แชร์",
+                    "copy_share_url": "คัดลอกลิงก์แชร์",
+                    "copy_edit_url": "คัดลอกลิงก์แก้ไข",
+                    "open_manage": "จัดการรายการแชร์ของฉัน",
+                    "open_editor": "เปิดตัวแก้ไข",
+                    "forget": "ลบรายการบันทึก"
+                },
+                "label": {
+                    "title": "ชื่อเรื่อง",
+                    "listed": "แสดงแบบสาธารณะ",
+                    "listed_description": "อนุญาตให้คอลเลกชันนี้แสดงในรายการสาธารณะ",
+                    "include_notes": "รวมโน้ตของฉัน",
+                    "include_notes_description": "ใช้โน้ตโลกในเครื่องเป็นคอมเมนต์เริ่มต้น",
+                    "worlds": "พร้อมแชร์ {count}/{total} โลก",
+                    "truncated": "จะอัปโหลดเฉพาะ {cap} โลกแรกเท่านั้น",
+                    "share_url": "ลิงก์แชร์",
+                    "edit_url": "ลิงก์แก้ไข",
+                    "edit_url_warning": "ทุกคนที่มีลิงก์แก้ไขสามารถแก้ไขคอลเลกชันนี้ได้"
+                },
+                "toast": {
+                    "copy_success": "คัดลอกลิงก์แชร์แล้ว",
+                    "copy_edit_success": "คัดลอกลิงก์แก้ไขแล้ว",
+                    "copy_failed": "คัดลอกลิงก์ไม่สำเร็จ",
+                    "create_success": "แชร์คอลเลกชันแล้ว",
+                    "create_failed": "แชร์คอลเลกชันไม่สำเร็จ",
+                    "open_manage_failed": "เปิดหน้าจัดการคอลเลกชันที่แชร์ไม่สำเร็จ",
+                    "load_failed": "โหลดคอลเลกชันที่แชร์ไม่สำเร็จ",
+                    "open_failed": "เปิดตัวแก้ไขไม่สำเร็จ",
+                    "forget_success": "ลบรายการบันทึกแล้ว",
+                    "forget_failed": "ลบรายการบันทึกไม่สำเร็จ",
+                    "no_worlds": "กลุ่มนี้ไม่มี ID โลกให้แชร์"
+                }
+            }
         },
         "friend_log": {
             "filter_placeholder": "ตัวกรอง",

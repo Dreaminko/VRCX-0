@@ -30,6 +30,7 @@ import { useSessionStore } from '@/state/sessionStore';
 
 import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
 import { resumeFrontendSessionFromBackendRuntime } from './backendRuntimeSessionResumeService';
+import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import { recordRuntimeGameClientEvent } from './gameClientLifecycle';
 import { applyRuntimeGameLogProjection } from './gameLogIngestService';
 import { handleGameRunningUpdate } from './gameStateService';
@@ -767,11 +768,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
             unsubscribers.push(unsubscribe);
         }
     } catch (error) {
-        for (const unsubscribe of unsubscribers) {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe();
-            }
-        }
+        unsubscribeRuntimeEvents(unsubscribers);
         useRuntimeStore.getState().setShellState({
             backendRuntimeSnapshotHydrated: true,
             backendRuntimeSessionHydrating: false
@@ -791,18 +788,32 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         });
         console.warn('Failed to hydrate backend runtime snapshot:', error);
     }
+    try {
+        unsubscribers.push(await bindDeepLinkEvents());
+    } catch (error) {
+        unsubscribeRuntimeEvents(unsubscribers);
+        useSessionStore.getState().setTransportStatus('disconnected');
+        throw error;
+    }
+    await drainPendingDeepLinks();
     requestGroupInstancesRefresh(
         'runtime event binding after backend snapshot hydration'
     );
 
     return () => {
-        for (const unsubscribe of unsubscribers) {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe();
-            }
-        }
+        unsubscribeRuntimeEvents(unsubscribers);
         useSessionStore.getState().setTransportStatus('disconnected');
     };
+}
+
+function unsubscribeRuntimeEvents(
+    unsubscribers: RuntimeEventUnsubscribe[]
+): void {
+    for (const unsubscribe of unsubscribers) {
+        if (typeof unsubscribe === 'function') {
+            unsubscribe();
+        }
+    }
 }
 
 function subscribeRuntimeEvent<Name extends RuntimeEventName>(

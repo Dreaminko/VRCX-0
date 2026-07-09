@@ -25,6 +25,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         .typ::<AssistantDoneEvent>()
         .typ::<AssistantErrorEvent>()
         .typ::<BackendRuntimeTelemetry>()
+        .typ::<crate::deep_link::DeepLinkAction>()
         .typ::<FriendProjection>()
         .typ::<GameLogProjection>()
         .typ::<HostSessionProjection>()
@@ -82,6 +83,9 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::background_mode::app__get_backend_runtime_snapshot,
             commands::application::background_mode::app__get_backend_runtime_frontend_session_snapshot,
             commands::application::background_mode::app__ensure_main_window,
+            commands::application::deep_link::app__drain_pending_deep_links,
+            commands::application::share_collection::app__share_collection_create,
+            commands::application::share_collection::app__share_collection_open_manage,
             commands::application::telemetry::app__telemetry_record_event,
             commands::application::proxy::app__proxy_settings_test,
             commands::application::mcp_server::app__mcp_server_status,

@@ -1,5 +1,11 @@
 {
     "language": "Polski (pl)",
+    "deep_link": {
+        "import_collection": {
+            "title": "Importuj kolekcję",
+            "description": "ID kolekcji: {collectionId}"
+        }
+    },
     "common": {
         "actions": {
             "configure": "Konfiguruj",
@@ -143,7 +149,46 @@
             "bulk_unfavorite": "Masowe odlubianie",
             "export": "Eksportuj",
             "import": "Importuj",
-            "rename_tooltip": "Zmień nazwę"
+            "rename_tooltip": "Zmień nazwę",
+            "share_collection": {
+                "title": "Udostępnij kolekcję",
+                "subtitle": "Utwórz linki dla {group}.",
+                "subtitle_empty": "Utwórz linki do udostępnienia kolekcji.",
+                "action": {
+                    "menu": "Udostępnij tę grupę",
+                    "share": "Udostępnij",
+                    "copy_share_url": "Kopiuj link do udostępnienia",
+                    "copy_edit_url": "Kopiuj link do edycji",
+                    "open_manage": "Zarządzaj moimi udostępnieniami",
+                    "open_editor": "Otwórz edytor",
+                    "forget": "Usuń rekord"
+                },
+                "label": {
+                    "title": "Tytuł",
+                    "listed": "Pokaż publicznie",
+                    "listed_description": "Pozwól, aby ta kolekcja pojawiała się na publicznych listach.",
+                    "include_notes": "Dołącz moje notatki",
+                    "include_notes_description": "Użyj lokalnych notatek światów jako początkowych komentarzy.",
+                    "worlds": "{count}/{total} światów gotowych do udostępnienia",
+                    "truncated": "Przesłane zostanie tylko pierwsze {cap} światów.",
+                    "share_url": "Link do udostępnienia",
+                    "edit_url": "Link do edycji",
+                    "edit_url_warning": "Każda osoba z linkiem do edycji może zmienić tę kolekcję."
+                },
+                "toast": {
+                    "copy_success": "Skopiowano link do udostępnienia",
+                    "copy_edit_success": "Skopiowano link do edycji",
+                    "copy_failed": "Nie udało się skopiować linku",
+                    "create_success": "Kolekcja udostępniona",
+                    "create_failed": "Nie udało się udostępnić kolekcji",
+                    "open_manage_failed": "Nie udało się otworzyć menedżera udostępnionych kolekcji",
+                    "load_failed": "Nie udało się wczytać udostępnionych kolekcji",
+                    "open_failed": "Nie udało się otworzyć edytora",
+                    "forget_success": "Rekord usunięty",
+                    "forget_failed": "Nie udało się usunąć rekordu",
+                    "no_worlds": "Ta grupa nie ma ID światów do udostępnienia"
+                }
+            }
         },
         "friend_log": {
             "filter_placeholder": "Filtruj",

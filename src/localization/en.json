@@ -45,6 +45,12 @@
         "last_online": "Last online {duration} ago",
         "in_private_world": "In a private world"
     },
+    "deep_link": {
+        "import_collection": {
+            "title": "Import collection",
+            "description": "Collection ID: {collectionId}"
+        }
+    },
     "language": "English (en)",
     "common": {
         "no_data": "No data",
@@ -1004,6 +1010,45 @@
                 "loading_favorites_baseline": "Loading favorites baseline",
                 "loading_remote_avatar_details": "Loading remote avatar details",
                 "loading_remote_world_details": "Loading remote world details"
+            },
+            "share_collection": {
+                "title": "Share collection",
+                "subtitle": "Create links for {group}.",
+                "subtitle_empty": "Create collection share links.",
+                "action": {
+                    "menu": "Share this group",
+                    "share": "Share",
+                    "copy_share_url": "Copy share link",
+                    "copy_edit_url": "Copy edit link",
+                    "open_manage": "Manage my shares",
+                    "open_editor": "Open editor",
+                    "forget": "Remove record"
+                },
+                "label": {
+                    "title": "Title",
+                    "listed": "List publicly",
+                    "listed_description": "Allow this collection to appear in public listings.",
+                    "include_notes": "Include my notes",
+                    "include_notes_description": "Use local world memos as initial comments.",
+                    "worlds": "{count}/{total} worlds ready",
+                    "truncated": "First {cap} worlds only.",
+                    "share_url": "Share link",
+                    "edit_url": "Edit link",
+                    "edit_url_warning": "Anyone with the edit link can modify this collection."
+                },
+                "toast": {
+                    "copy_success": "Share link copied",
+                    "copy_edit_success": "Edit link copied",
+                    "copy_failed": "Failed to copy link",
+                    "create_success": "Collection shared",
+                    "create_failed": "Failed to share collection",
+                    "open_manage_failed": "Failed to open shared collection manager",
+                    "load_failed": "Failed to load shared collections",
+                    "open_failed": "Failed to open editor",
+                    "forget_success": "Record removed",
+                    "forget_failed": "Failed to remove record",
+                    "no_worlds": "This group has no world IDs to share"
+                }
             }
         },
         "friend_log": {

@@ -77,6 +77,11 @@
         "createUpdaterArtifacts": true
     },
     "plugins": {
+        "deep-link": {
+            "desktop": {
+                "schemes": ["vrcx-0"]
+            }
+        },
         "updater": {
             "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIwQTA3NTFDOTAxM0E3MjYKUldRbXB4T1FISFdnc0dXNWJhUEVNUVNNcm5ubytmR3lEdTBCUzJPUFY0dHpLcW1UdldwUFB4OWEK",
             "endpoints": [

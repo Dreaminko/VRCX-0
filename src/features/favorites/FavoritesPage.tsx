@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { PageScaffold } from '@/components/layout/PageScaffold';
 import {
@@ -8,12 +8,17 @@ import {
 } from '@/ui/shadcn/resizable';
 
 import { FavoriteExportDialog } from './components/FavoriteExportDialog';
+import { FavoriteShareCollectionDialog } from './components/FavoriteShareCollectionDialog';
 import {
     FavoritesContentPanel,
     FavoritesGroupRailPanel
 } from './components/FavoritesPanels';
 import { FavoritesToolbar } from './components/FavoritesToolbar';
-import type { FavoriteKind } from './favoritesTypes';
+import type {
+    FavoriteGroup,
+    FavoriteItem,
+    FavoriteKind
+} from './favoritesTypes';
 import { useFavoritesPageController } from './useFavoritesPageController';
 
 function useStableEvent(handler: any) {
@@ -31,6 +36,8 @@ function FavoritesPage({
     embedded?: boolean;
 }) {
     const state = useFavoritesPageController({ kind });
+    const [shareCollectionGroup, setShareCollectionGroup] =
+        useState<FavoriteGroup | null>(null);
     const {
         actions,
         collections,
@@ -57,6 +64,21 @@ function FavoritesPage({
     );
     const handleSplitterResize = useStableEvent(layout.handleSplitterResize);
     const handleSplitterLayout = useStableEvent(layout.persistSplitterLayout);
+    const shareCollectionItems = useMemo<FavoriteItem[]>(() => {
+        if (kind !== 'world' || !shareCollectionGroup) {
+            return [];
+        }
+        const itemsByGroup =
+            shareCollectionGroup.source === 'remote'
+                ? viewData.remoteItemsByGroup
+                : viewData.localItemsByGroup;
+        return itemsByGroup[shareCollectionGroup.key] || [];
+    }, [
+        kind,
+        shareCollectionGroup,
+        viewData.localItemsByGroup,
+        viewData.remoteItemsByGroup
+    ]);
 
     return (
         <PageScaffold
@@ -95,6 +117,16 @@ function FavoritesPage({
                 remoteItemsByGroup={viewData.remoteItemsByGroup}
                 localItemsByGroup={viewData.localItemsByGroup}
             />
+            <FavoriteShareCollectionDialog
+                open={kind === 'world' && Boolean(shareCollectionGroup)}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) {
+                        setShareCollectionGroup(null);
+                    }
+                }}
+                group={shareCollectionGroup}
+                items={shareCollectionItems}
+            />
 
             <div className="flex h-full min-h-0 min-w-0 flex-1">
                 <ResizablePanelGroup
@@ -122,6 +154,11 @@ function FavoritesPage({
                             filters={filters}
                             newLocalGroupName={newLocalGroupName}
                             onNewGroupNameChange={setNewLocalGroupName}
+                            onShareCollectionGroup={
+                                kind === 'world'
+                                    ? setShareCollectionGroup
+                                    : undefined
+                            }
                             setCreatingLocalGroup={setCreatingLocalGroup}
                             viewData={viewData}
                         />

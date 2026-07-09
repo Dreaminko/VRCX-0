@@ -31,6 +31,7 @@ mod runtime_lifecycle;
 mod runtime_output;
 mod screenshots;
 mod session;
+mod share_collection;
 mod social_baseline;
 mod sync;
 mod task_supervisor;
@@ -199,6 +200,11 @@ pub use screenshots::{
 pub use session::{
     GameProcessStatus as HostSessionGameProcessStatus, HostSessionProjection, HostSessionRuntime,
     RealtimeSessionContext as HostRealtimeSessionContext, SessionHostRuntime,
+};
+pub use share_collection::{
+    derive_share_collection_owner_key, prepare_share_collection_payload, share_collection_create,
+    PreparedShareCollection, ShareCollectionCreateInput, ShareCollectionCreateResult,
+    ShareCollectionDeps, SHARE_COLLECTION_MAX_WORLDS,
 };
 pub use social_baseline::{
     build_favorites_baseline, build_friend_roster_baseline, SocialBaselineDeps,

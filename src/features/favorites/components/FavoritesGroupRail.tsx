@@ -2,7 +2,8 @@ import {
     EllipsisIcon,
     MoreHorizontalIcon,
     PlusIcon,
-    RefreshCcwIcon
+    RefreshCcwIcon,
+    Share2Icon
 } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -49,7 +50,8 @@ function GroupMenu({
     onRemoteClear,
     onLocalRename,
     onLocalDelete,
-    onHistoryClear
+    onHistoryClear,
+    onShareCollection
 }: any) {
     const { t } = useTranslation();
 
@@ -111,6 +113,16 @@ function GroupMenu({
                     className="w-52"
                 >
                     <DropdownMenuGroup>
+                        {onShareCollection ? (
+                            <DropdownMenuItem
+                                onClick={() => onShareCollection(group)}
+                            >
+                                <Share2Icon data-icon="inline-start" />
+                                {t(
+                                    'view.favorite.share_collection.action.menu'
+                                )}
+                            </DropdownMenuItem>
+                        ) : null}
                         <DropdownMenuItem onClick={() => onRemoteRename(group)}>
                             {t('view.favorite.rename_tooltip')}
                         </DropdownMenuItem>
@@ -172,6 +184,14 @@ function GroupMenu({
             />
             <DropdownMenuContent side="right" align="start" className="w-48">
                 <DropdownMenuGroup>
+                    {onShareCollection ? (
+                        <DropdownMenuItem
+                            onClick={() => onShareCollection(group)}
+                        >
+                            <Share2Icon data-icon="inline-start" />
+                            {t('view.favorite.share_collection.action.menu')}
+                        </DropdownMenuItem>
+                    ) : null}
                     <DropdownMenuItem onClick={() => onLocalRename(group)}>
                         {t('view.favorite.rename_tooltip')}
                     </DropdownMenuItem>
@@ -208,7 +228,8 @@ const GroupRailSection = memo(function GroupRailSection({
     onRemoteClear,
     onLocalRename,
     onLocalDelete,
-    onHistoryClear
+    onHistoryClear,
+    onShareCollection
 }: any) {
     const { t } = useTranslation();
     const resolvedNewGroupLabel =
@@ -303,6 +324,7 @@ const GroupRailSection = memo(function GroupRailSection({
                                         onLocalRename={onLocalRename}
                                         onLocalDelete={onLocalDelete}
                                         onHistoryClear={onHistoryClear}
+                                        onShareCollection={onShareCollection}
                                     />
                                 </div>
                             </div>

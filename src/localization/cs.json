@@ -45,6 +45,12 @@
         "last_online": "Naposledy online před {duration}",
         "in_private_world": "V soukromém světě"
     },
+    "deep_link": {
+        "import_collection": {
+            "title": "Importovat kolekci",
+            "description": "ID kolekce: {collectionId}"
+        }
+    },
     "language": "Čeština (cs)",
     "common": {
         "no_data": "Žádná data",
@@ -1004,6 +1010,45 @@
                 "loading_favorites_baseline": "Načítání základních oblíbených",
                 "loading_remote_avatar_details": "Načítání vzdálených podrobností avatara",
                 "loading_remote_world_details": "Načítání vzdálených podrobností světa"
+            },
+            "share_collection": {
+                "title": "Sdílet sbírku",
+                "subtitle": "Vytvořit odkazy pro {group}.",
+                "subtitle_empty": "Vytvořit odkazy pro sdílení sbírky.",
+                "action": {
+                    "menu": "Sdílet tuto skupinu",
+                    "share": "Sdílet",
+                    "copy_share_url": "Kopírovat odkaz ke sdílení",
+                    "copy_edit_url": "Kopírovat odkaz pro úpravy",
+                    "open_manage": "Spravovat moje sdílení",
+                    "open_editor": "Otevřít editor",
+                    "forget": "Odebrat záznam"
+                },
+                "label": {
+                    "title": "Název",
+                    "listed": "Zobrazit veřejně",
+                    "listed_description": "Povolit zobrazení této sbírky ve veřejných seznamech.",
+                    "include_notes": "Zahrnout moje poznámky",
+                    "include_notes_description": "Použít místní poznámky ke světům jako počáteční komentáře.",
+                    "worlds": "Ke sdílení připraveno {count}/{total} světů",
+                    "truncated": "Nahraje se pouze prvních {cap} světů.",
+                    "share_url": "Odkaz ke sdílení",
+                    "edit_url": "Odkaz pro úpravy",
+                    "edit_url_warning": "Kdokoli s odkazem pro úpravy může tuto sbírku změnit."
+                },
+                "toast": {
+                    "copy_success": "Odkaz ke sdílení zkopírován",
+                    "copy_edit_success": "Odkaz pro úpravy zkopírován",
+                    "copy_failed": "Odkaz se nepodařilo zkopírovat",
+                    "create_success": "Sbírka byla sdílena",
+                    "create_failed": "Sbírku se nepodařilo sdílet",
+                    "open_manage_failed": "Správce sdílených sbírek se nepodařilo otevřít",
+                    "load_failed": "Sdílené sbírky se nepodařilo načíst",
+                    "open_failed": "Editor se nepodařilo otevřít",
+                    "forget_success": "Záznam odebrán",
+                    "forget_failed": "Záznam se nepodařilo odebrat",
+                    "no_worlds": "Tato skupina nemá žádné ID světů ke sdílení"
+                }
             }
         },
         "friend_log": {

@@ -34,6 +34,7 @@ export function FavoritesGroupRailPanel({
     kind,
     newLocalGroupName,
     onNewGroupNameChange,
+    onShareCollectionGroup,
     setCreatingLocalGroup,
     viewData
 }: any) {
@@ -79,6 +80,7 @@ export function FavoritesGroupRailPanel({
                 onRemoteClear={favoriteCommands.handleRemoteGroupClear}
                 onLocalRename={favoriteCommands.handleLocalGroupRename}
                 onLocalDelete={favoriteCommands.handleLocalGroupDelete}
+                onShareCollection={onShareCollectionGroup}
             />
             <GroupRailSection
                 title={viewData.pageConfig.localSectionTitle}
@@ -103,6 +105,7 @@ export function FavoritesGroupRailPanel({
                 onRemoteClear={favoriteCommands.handleRemoteGroupClear}
                 onLocalRename={favoriteCommands.handleLocalGroupRename}
                 onLocalDelete={favoriteCommands.handleLocalGroupDelete}
+                onShareCollection={onShareCollectionGroup}
             />
             {kind === 'avatar' ? (
                 <GroupRailSection

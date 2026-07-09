@@ -45,6 +45,12 @@
         "last_online": "最后在线 {duration} 前",
         "in_private_world": "目前位于私人房间"
     },
+    "deep_link": {
+        "import_collection": {
+            "title": "导入收藏集合",
+            "description": "集合 ID：{collectionId}"
+        }
+    },
     "language": "中文（简体） (zh-CN)",
     "common": {
         "no_data": "这里空空如也~",
@@ -1004,6 +1010,45 @@
                 "loading_favorites_baseline": "正在加载收藏基线数据",
                 "loading_remote_avatar_details": "正在加载远程模型详情",
                 "loading_remote_world_details": "正在加载远程世界详情"
+            },
+            "share_collection": {
+                "title": "分享收藏合集",
+                "subtitle": "为 {group} 生成分享链接。",
+                "subtitle_empty": "生成收藏合集分享链接。",
+                "action": {
+                    "menu": "分享此组",
+                    "share": "分享",
+                    "copy_share_url": "复制分享链接",
+                    "copy_edit_url": "复制编辑链接",
+                    "open_manage": "管理我的分享",
+                    "open_editor": "打开编辑器",
+                    "forget": "移除记录"
+                },
+                "label": {
+                    "title": "标题",
+                    "listed": "公开展示",
+                    "listed_description": "允许此合集进入公开列表。",
+                    "include_notes": "带上我的备注",
+                    "include_notes_description": "用本地世界备注预填评论。",
+                    "worlds": "准备分享 {count}/{total} 个世界",
+                    "truncated": "仅上传前 {cap} 个世界。",
+                    "share_url": "分享链接",
+                    "edit_url": "编辑链接",
+                    "edit_url_warning": "持有编辑链接的人可以修改这个合集。"
+                },
+                "toast": {
+                    "copy_success": "已复制分享链接",
+                    "copy_edit_success": "已复制编辑链接",
+                    "copy_failed": "复制链接失败",
+                    "create_success": "合集已分享",
+                    "create_failed": "分享合集失败",
+                    "open_manage_failed": "打开分享管理页失败",
+                    "load_failed": "加载分享记录失败",
+                    "open_failed": "打开编辑器失败",
+                    "forget_success": "记录已移除",
+                    "forget_failed": "移除记录失败",
+                    "no_worlds": "此分组没有可分享的世界 ID"
+                }
             }
         },
         "friend_log": {

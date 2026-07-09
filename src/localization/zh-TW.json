@@ -45,6 +45,12 @@
         "last_online": "最後上線： {duration} 前",
         "in_private_world": "在私人世界中"
     },
+    "deep_link": {
+        "import_collection": {
+            "title": "匯入收藏集合",
+            "description": "集合 ID：{collectionId}"
+        }
+    },
     "language": "中文（繁體） (zh-TW)",
     "common": {
         "no_data": "無資料",
@@ -1004,6 +1010,45 @@
                 "loading_favorites_baseline": "正在載入收藏基線資料",
                 "loading_remote_avatar_details": "正在載入遠程角色詳細資訊",
                 "loading_remote_world_details": "正在載入遠程世界詳細資訊"
+            },
+            "share_collection": {
+                "title": "分享收藏合集",
+                "subtitle": "為 {group} 產生分享連結。",
+                "subtitle_empty": "產生收藏合集分享連結。",
+                "action": {
+                    "menu": "分享此組",
+                    "share": "分享",
+                    "copy_share_url": "複製分享連結",
+                    "copy_edit_url": "複製編輯連結",
+                    "open_manage": "管理我的分享",
+                    "open_editor": "開啟編輯器",
+                    "forget": "移除記錄"
+                },
+                "label": {
+                    "title": "標題",
+                    "listed": "公開顯示",
+                    "listed_description": "允許此合集出現在公開列表。",
+                    "include_notes": "帶上我的備註",
+                    "include_notes_description": "用本機世界備註預填評論。",
+                    "worlds": "準備分享 {count}/{total} 個世界",
+                    "truncated": "僅上傳前 {cap} 個世界。",
+                    "share_url": "分享連結",
+                    "edit_url": "編輯連結",
+                    "edit_url_warning": "持有編輯連結的人可以修改這個合集。"
+                },
+                "toast": {
+                    "copy_success": "已複製分享連結",
+                    "copy_edit_success": "已複製編輯連結",
+                    "copy_failed": "複製連結失敗",
+                    "create_success": "合集已分享",
+                    "create_failed": "分享合集失敗",
+                    "open_manage_failed": "開啟分享管理頁失敗",
+                    "load_failed": "載入分享記錄失敗",
+                    "open_failed": "開啟編輯器失敗",
+                    "forget_success": "記錄已移除",
+                    "forget_failed": "移除記錄失敗",
+                    "no_worlds": "此分組沒有可分享的世界 ID"
+                }
             }
         },
         "friend_log": {

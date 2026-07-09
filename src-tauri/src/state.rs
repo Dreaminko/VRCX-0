@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 use crate::adapters::ipc::{IpcEventSink, IpcServer};
 use crate::adapters::log_watcher::LogWatcherCompatBridge;
+use crate::deep_link::PendingDeepLinks;
 use crate::error::AppError;
 use serde::Serialize;
 use tauri_plugin_updater::Update;
@@ -21,6 +22,7 @@ pub struct AppState {
     pub mcp_controller: McpServerController,
     pub log_watcher_compat_bridge: LogWatcherCompatBridge,
     pub ipc: IpcServer,
+    pub pending_deep_links: PendingDeepLinks,
     pub pending_tauri_update: tokio::sync::Mutex<Option<PendingTauriUpdate>>,
     assistant: tokio::sync::OnceCell<AssistantController>,
     background_resume_route: Mutex<Option<String>>,
@@ -98,6 +100,7 @@ impl AppState {
             mcp_controller,
             log_watcher_compat_bridge,
             ipc,
+            pending_deep_links: PendingDeepLinks::default(),
             pending_tauri_update: tokio::sync::Mutex::new(None),
             assistant: tokio::sync::OnceCell::new(),
             background_resume_route: Mutex::new(None),

@@ -45,6 +45,12 @@
         "last_online": "Zuletzt online vor {duration}",
         "in_private_world": "In einer privaten Welt"
     },
+    "deep_link": {
+        "import_collection": {
+            "title": "Sammlung importieren",
+            "description": "Sammlungs-ID: {collectionId}"
+        }
+    },
     "language": "Deutsch (de)",
     "common": {
         "no_data": "Keine Daten",
@@ -1004,6 +1010,45 @@
                 "loading_favorites_baseline": "Favoriten-Basisdaten werden geladen",
                 "loading_remote_avatar_details": "Externe Avatar-Details werden geladen",
                 "loading_remote_world_details": "Externe Welt-Details werden geladen"
+            },
+            "share_collection": {
+                "title": "Sammlung teilen",
+                "subtitle": "Links für {group} erstellen.",
+                "subtitle_empty": "Links zum Teilen einer Sammlung erstellen.",
+                "action": {
+                    "menu": "Diese Gruppe teilen",
+                    "share": "Teilen",
+                    "copy_share_url": "Teillink kopieren",
+                    "copy_edit_url": "Bearbeitungslink kopieren",
+                    "open_manage": "Meine geteilten Sammlungen verwalten",
+                    "open_editor": "Editor öffnen",
+                    "forget": "Eintrag entfernen"
+                },
+                "label": {
+                    "title": "Titel",
+                    "listed": "Öffentlich listen",
+                    "listed_description": "Diese Sammlung darf in öffentlichen Listen erscheinen.",
+                    "include_notes": "Meine Notizen einbeziehen",
+                    "include_notes_description": "Lokale Welt-Notizen als erste Kommentare verwenden.",
+                    "worlds": "{count}/{total} Welten bereit zum Teilen",
+                    "truncated": "Es werden nur die ersten {cap} Welten hochgeladen.",
+                    "share_url": "Teillink",
+                    "edit_url": "Bearbeitungslink",
+                    "edit_url_warning": "Jeder mit dem Bearbeitungslink kann diese Sammlung ändern."
+                },
+                "toast": {
+                    "copy_success": "Teillink kopiert",
+                    "copy_edit_success": "Bearbeitungslink kopiert",
+                    "copy_failed": "Link konnte nicht kopiert werden",
+                    "create_success": "Sammlung geteilt",
+                    "create_failed": "Sammlung konnte nicht geteilt werden",
+                    "open_manage_failed": "Verwaltung geteilter Sammlungen konnte nicht geöffnet werden",
+                    "load_failed": "Geteilte Sammlungen konnten nicht geladen werden",
+                    "open_failed": "Editor konnte nicht geöffnet werden",
+                    "forget_success": "Eintrag entfernt",
+                    "forget_failed": "Eintrag konnte nicht entfernt werden",
+                    "no_worlds": "Diese Gruppe enthält keine Welt-IDs zum Teilen"
+                }
             }
         },
         "friend_log": {

@@ -151,6 +151,7 @@ pub fn run() {
                 });
             });
         }))
+        .plugin(tauri_plugin_deep_link::init())
         .register_asynchronous_uri_scheme_protocol("vrcx-0-img", move |_ctx, request, responder| {
             let paths = image_protocol_paths.clone();
             tauri::async_runtime::spawn_blocking(move || {

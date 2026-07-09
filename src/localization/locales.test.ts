@@ -173,6 +173,28 @@ describe('settings locale coverage', () => {
     });
 });
 
+describe('deep link locale coverage', () => {
+    const requiredDeepLinkKeys = [
+        'deep_link.import_collection.title',
+        'deep_link.import_collection.description'
+    ];
+
+    it('keeps deep link labels in every locale source file', () => {
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            for (const key of requiredDeepLinkKeys) {
+                const value = readPath(source, key);
+                expect(value, `${locale} ${key}`).toEqual(expect.any(String));
+                if (typeof value !== 'string') {
+                    continue;
+                }
+                expect(value.trim()).not.toBe('');
+                expect(value).not.toBe(key);
+            }
+        }
+    });
+});
+
 function readLocaleSource(locale: string): unknown {
     return localeSources[locale];
 }

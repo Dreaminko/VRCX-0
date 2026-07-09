@@ -1,12 +1,14 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+use tauri_plugin_deep_link::DeepLinkExt;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 
+use crate::deep_link::{parse_deep_link, DEEP_LINK_ARRIVED_EVENT};
 use crate::state::{AppState, BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY};
 
 use super::adapters::{start_host_services, start_mcp_server_if_enabled, TauriDesktopNotifier};
@@ -131,10 +133,78 @@ pub fn setup_app_with_data_dir(
     apply_autostart_window_state_if_needed(app, &state);
     start_host_services(app.handle(), &state);
     start_mcp_server_if_enabled(app.handle());
+    wire_deep_links(app.handle());
     state
         .runtime_context
         .sync
         .record("startup", "ready", "Backend host services are ready.", 0);
 
     Ok(())
+}
+
+fn wire_deep_links(app: &tauri::AppHandle) {
+    #[cfg(all(debug_assertions, any(windows, target_os = "linux")))]
+    if let Err(error) = app.deep_link().register_all() {
+        tracing::warn!(error = %error, "failed to register development deep link schemes");
+    }
+
+    match app.deep_link().get_current() {
+        Ok(Some(urls)) => {
+            for url in urls {
+                queue_deep_link_url(app, url.as_str());
+            }
+        }
+        Ok(None) => {}
+        Err(error) => {
+            tracing::warn!(error = %error, "failed to read launch deep links");
+        }
+    }
+
+    let app_handle = app.clone();
+    app.deep_link().on_open_url(move |event| {
+        for url in event.urls() {
+            queue_deep_link_url(&app_handle, url.as_str());
+        }
+    });
+}
+
+fn queue_deep_link_url(app: &tauri::AppHandle, value: &str) {
+    let Some(action) = parse_deep_link(value) else {
+        tracing::warn!(url = %value, "ignored unsupported deep link");
+        return;
+    };
+    let Some(state) = app.try_state::<AppState>() else {
+        tracing::warn!(url = %value, "ignored deep link before app state was ready");
+        return;
+    };
+    state.pending_deep_links.push(action);
+
+    let app_handle = app.clone();
+    if let Err(error) = app.run_on_main_thread(move || {
+        show_main_window_for_deep_link(&app_handle);
+        emit_deep_link_arrived(&app_handle);
+    }) {
+        tracing::warn!(error = %error, "failed to schedule deep link window restore");
+    }
+}
+
+fn show_main_window_for_deep_link(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<AppState>() {
+        if let Err(error) =
+            super::window::restore_foreground_window_from_background_mode(app, &state)
+        {
+            tracing::warn!(error = %error, "failed to show main window from deep link");
+        }
+        return;
+    }
+
+    if let Err(error) = super::window::ensure_main_window(app) {
+        tracing::warn!(error = %error, "failed to show main window from deep link");
+    }
+}
+
+fn emit_deep_link_arrived(app: &tauri::AppHandle) {
+    if let Err(error) = app.emit(DEEP_LINK_ARRIVED_EVENT, serde_json::json!({})) {
+        tracing::warn!(error = %error, "failed to emit deep link wake event");
+    }
 }

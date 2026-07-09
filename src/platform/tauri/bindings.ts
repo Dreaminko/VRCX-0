@@ -253,6 +253,17 @@ export const commands = {
     async appEnsureMainWindow(): Promise<null> {
         return await TAURI_INVOKE('app__ensure_main_window');
     },
+    async appDrainPendingDeepLinks(): Promise<DeepLinkAction[]> {
+        return await TAURI_INVOKE('app__drain_pending_deep_links');
+    },
+    async appShareCollectionCreate(
+        input: ShareCollectionCreateInput
+    ): Promise<ShareCollectionCreateResult> {
+        return await TAURI_INVOKE('app__share_collection_create', { input });
+    },
+    async appShareCollectionOpenManage(): Promise<null> {
+        return await TAURI_INVOKE('app__share_collection_open_manage');
+    },
     async appTelemetryRecordEvent(event: TelemetryClientEvent): Promise<null> {
         return await TAURI_INVOKE('app__telemetry_record_event', { event });
     },
@@ -3083,6 +3094,9 @@ export type DatabaseUpgradeStatus = {
     failedAt?: string | null;
     reason?: string | null;
 };
+export type DeepLinkAction =
+    | { type: 'openWorld'; worldId: string }
+    | { type: 'importCollection'; collectionId: string };
 export type Entity = { kind: string; id: string; displayName: string };
 export type ExternalApiAvatarSearchInput = { url?: string; vrcxId?: string };
 export type ExternalApiExecuteResponse = {
@@ -4101,6 +4115,17 @@ export type SessionSummary = {
     title: string;
     busy: boolean;
     updatedAt: string;
+};
+export type ShareCollectionCreateInput = {
+    title: string;
+    listed: boolean;
+    includeNotes: boolean;
+    worldIds: string[];
+};
+export type ShareCollectionCreateResult = {
+    id: string;
+    url: string;
+    editUrl: string;
 };
 export type SocialFavoritesBaselineInput = {
     userId?: string;

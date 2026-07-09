@@ -1,6 +1,7 @@
 pub mod assistant;
 pub mod auth_scope;
 pub mod background_mode;
+pub mod deep_link;
 pub mod favorite_transfer;
 pub mod group_quick_moderation;
 pub mod lifecycle;
@@ -11,6 +12,7 @@ pub mod overlay_activity;
 pub mod proxy;
 pub mod realtime;
 pub mod registry_backup;
+pub mod share_collection;
 pub mod social_baseline;
 pub mod telemetry;
 pub mod vr_overlay;

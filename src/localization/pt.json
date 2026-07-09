@@ -45,6 +45,12 @@
         "last_online": "Online pela última vez há {duration}",
         "in_private_world": "Em um mundo privado"
     },
+    "deep_link": {
+        "import_collection": {
+            "title": "Importar coleção",
+            "description": "ID da coleção: {collectionId}"
+        }
+    },
     "language": "Português Brasileiro (pt-br)",
     "common": {
         "no_data": "Sem dados",
@@ -1004,6 +1010,45 @@
                 "loading_favorites_baseline": "Carregando dados base dos favoritos",
                 "loading_remote_avatar_details": "Carregando detalhes do avatar remoto",
                 "loading_remote_world_details": "Carregando detalhes do mundo remoto"
+            },
+            "share_collection": {
+                "title": "Compartilhar coleção",
+                "subtitle": "Criar links para {group}.",
+                "subtitle_empty": "Criar links de compartilhamento da coleção.",
+                "action": {
+                    "menu": "Compartilhar este grupo",
+                    "share": "Compartilhar",
+                    "copy_share_url": "Copiar link de compartilhamento",
+                    "copy_edit_url": "Copiar link de edição",
+                    "open_manage": "Gerenciar meus compartilhamentos",
+                    "open_editor": "Abrir editor",
+                    "forget": "Remover registro"
+                },
+                "label": {
+                    "title": "Título",
+                    "listed": "Listar publicamente",
+                    "listed_description": "Permitir que esta coleção apareça em listas públicas.",
+                    "include_notes": "Incluir minhas notas",
+                    "include_notes_description": "Usar notas locais de mundos como comentários iniciais.",
+                    "worlds": "{count}/{total} mundos prontos para compartilhar",
+                    "truncated": "Apenas os primeiros {cap} mundos serão enviados.",
+                    "share_url": "Link de compartilhamento",
+                    "edit_url": "Link de edição",
+                    "edit_url_warning": "Qualquer pessoa com o link de edição pode modificar esta coleção."
+                },
+                "toast": {
+                    "copy_success": "Link de compartilhamento copiado",
+                    "copy_edit_success": "Link de edição copiado",
+                    "copy_failed": "Falha ao copiar o link",
+                    "create_success": "Coleção compartilhada",
+                    "create_failed": "Falha ao compartilhar a coleção",
+                    "open_manage_failed": "Falha ao abrir o gerenciador de coleções compartilhadas",
+                    "load_failed": "Falha ao carregar coleções compartilhadas",
+                    "open_failed": "Falha ao abrir o editor",
+                    "forget_success": "Registro removido",
+                    "forget_failed": "Falha ao remover o registro",
+                    "no_worlds": "Este grupo não tem IDs de mundos para compartilhar"
+                }
             }
         },
         "friend_log": {
