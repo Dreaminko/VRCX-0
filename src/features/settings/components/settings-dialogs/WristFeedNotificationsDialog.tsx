@@ -671,12 +671,12 @@ function FavoriteGroupMenu({
                 }
             />
             <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel>
-                    {t(
-                        'dialog.wrist_feed_notifications.favorite_groups.menu_label'
-                    )}
-                </DropdownMenuLabel>
                 <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                        {t(
+                            'dialog.wrist_feed_notifications.favorite_groups.menu_label'
+                        )}
+                    </DropdownMenuLabel>
                     <DropdownMenuCheckboxItem
                         checked={allFavoriteGroups}
                         onCheckedChange={(checked) =>
@@ -688,8 +688,6 @@ function FavoriteGroupMenu({
                             'dialog.wrist_feed_notifications.favorite_groups.all_groups'
                         )}
                     </DropdownMenuCheckboxItem>
-                </DropdownMenuGroup>
-                <DropdownMenuGroup>
                     {favoriteGroupOptions.map((group) => (
                         <DropdownMenuCheckboxItem
                             key={group.key}

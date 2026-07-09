@@ -132,10 +132,10 @@ function FavoritesContentHeader({
                                 }
                             />
                             <DropdownMenuContent align="end" className="w-64">
-                                <DropdownMenuLabel>
-                                    {t('view.favorite.action.move_to')}
-                                </DropdownMenuLabel>
                                 <DropdownMenuGroup>
+                                    <DropdownMenuLabel>
+                                        {t('view.favorite.action.move_to')}
+                                    </DropdownMenuLabel>
                                     {remoteMoveTargets.map((target) => (
                                         <DropdownMenuItem
                                             key={`remote:${target.key}`}
@@ -146,11 +146,9 @@ function FavoritesContentHeader({
                                             {target.label}
                                         </DropdownMenuItem>
                                     ))}
-                                </DropdownMenuGroup>
-                                {showMoveSeparator ? (
-                                    <DropdownMenuSeparator />
-                                ) : null}
-                                <DropdownMenuGroup>
+                                    {showMoveSeparator ? (
+                                        <DropdownMenuSeparator />
+                                    ) : null}
                                     {localMoveTargets.map((target) => (
                                         <DropdownMenuItem
                                             key={`local:${target.key}`}
