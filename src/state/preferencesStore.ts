@@ -1,13 +1,11 @@
 import { create } from 'zustand';
 
-import { sharedFeedFiltersDefaults } from '@/shared/constants/feedFilters';
 import {
     DEFAULT_OVERLAY_ACTIVITY_FILTERS,
     DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
-    migrateLegacySharedFeedWristFilters,
     normalizeOverlayActivityFilters,
     parseHmdOverlayActivityFilterProfile,
     parseOverlayActivityFilterProfile,
@@ -74,10 +72,6 @@ export interface TableLimitsPreference {
     searchLimit: number;
 }
 
-export interface SharedFeedFiltersPreference {
-    noty: Record<string, unknown>;
-}
-
 export { normalizeOverlayActivityFilters, parseOverlayActivityFilters };
 
 function hasPersistedOverlayActivityFilters(value: unknown): boolean {
@@ -96,14 +90,10 @@ function hasPersistedOverlayActivityFilters(value: unknown): boolean {
     return Boolean(wrist.types || wrist.categories);
 }
 
-export function parseOverlayActivityFiltersPreference(
-    value?: unknown,
-    legacySharedFeedFilters?: unknown
-) {
-    if (!hasPersistedOverlayActivityFilters(value)) {
-        return migrateLegacySharedFeedWristFilters(legacySharedFeedFilters);
-    }
-    return parseOverlayActivityFilters(value);
+export function parseOverlayActivityFiltersPreference(value?: unknown) {
+    return hasPersistedOverlayActivityFilters(value)
+        ? parseOverlayActivityFilters(value)
+        : normalizeOverlayActivityFilters();
 }
 
 type BoundedIntOptions = {
@@ -288,33 +278,6 @@ export function normalizeTableLimits(value: unknown = {}): {
     };
 }
 
-export function normalizeSharedFeedFilters(
-    value: unknown = {}
-): SharedFeedFiltersPreference {
-    const filters = asRecord(value);
-    const noty = asRecord(filters.noty);
-    return {
-        noty: {
-            ...sharedFeedFiltersDefaults.noty,
-            ...noty
-        }
-    };
-}
-
-export function parseSharedFeedFilters(value?: unknown) {
-    if (!value) {
-        return normalizeSharedFeedFilters();
-    }
-    if (typeof value === 'object') {
-        return normalizeSharedFeedFilters(value);
-    }
-    try {
-        return normalizeSharedFeedFilters(JSON.parse(String(value)));
-    } catch {
-        return normalizeSharedFeedFilters();
-    }
-}
-
 export function normalizeFeedHiddenUsers(value: unknown): string[] {
     if (typeof value === 'string') {
         try {
@@ -439,9 +402,6 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     },
     localFavoriteFriendsGroups: [],
     feedHiddenUsers: [],
-    sharedFeedFilters: {
-        noty: { ...sharedFeedFiltersDefaults.noty }
-    },
     overlayActivityFilters: DEFAULT_OVERLAY_ACTIVITY_FILTERS,
     vrNotificationActivityFilters: DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     hmdNotificationActivityFilters: DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
@@ -474,10 +434,6 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
 
 export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
     const snapshotRecord = asRecord(snapshot);
-    const hasOverlayActivityFiltersInput = Object.prototype.hasOwnProperty.call(
-        snapshotRecord,
-        'overlayActivityFilters'
-    );
     const next: PreferenceInputSnapshot = {
         ...DEFAULT_PREFERENCES,
         ...snapshotRecord
@@ -658,12 +614,8 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
             ? next.localFavoriteFriendsGroups.filter(Boolean)
             : [],
         feedHiddenUsers: normalizeFeedHiddenUsers(next.feedHiddenUsers),
-        sharedFeedFilters: parseSharedFeedFilters(next.sharedFeedFilters),
         overlayActivityFilters: parseOverlayActivityFiltersPreference(
-            hasOverlayActivityFiltersInput
-                ? next.overlayActivityFilters
-                : undefined,
-            next.sharedFeedFilters
+            next.overlayActivityFilters
         ),
         vrNotificationActivityFilters: parseOverlayActivityFilterProfile(
             next.vrNotificationActivityFilters

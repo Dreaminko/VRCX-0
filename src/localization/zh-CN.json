@@ -1938,11 +1938,8 @@
                     "layout": "通知视图",
                     "layout_notification_center": "通知中心",
                     "layout_table": "通知标签页",
-                    "notification_filter": "通知筛选器",
                     "post_update_changelog_prompt": "显示更新后的更新内容提示",
                     "post_update_changelog_prompt_description": "升级后首次启动新版本时，在右下角查看更新内容。",
-                    "test_notification": "发送测试通知",
-                    "test_message": "这是一个测试通知。",
                     "vr_notifications": {
                         "header": "VR 叠加界面通知",
                         "xsoverlay_notifications": "XSOverlay 通知",
@@ -4695,6 +4692,7 @@
         "unfriend": "不再是你的好友了",
         "trust_level": "信誉等级变更为 {trustLevel}",
         "display_name": "已改名为 {displayName}",
+        "bio": "更新简介",
         "group_announcement_title": "群组公告",
         "group_informative_title": "群组信息",
         "group_invite_title": "群组邀请",
@@ -4702,6 +4700,9 @@
         "group_transfer_request_title": "群组转让请求",
         "group_queue_ready_title": "房间队列准备就绪",
         "instance_closed_title": "房间已关闭",
+        "event_title": "事件",
+        "external_title": "外部事件",
+        "video_play_title": "视频播放",
         "portal_spawn_name": "生成了一个通往 {location} 的传送门",
         "portal_spawn": "用户生成了一个传送门",
         "avatar_change": "更换模型为 {avatar}",
@@ -5099,7 +5100,7 @@
                 "value_item_s_imported": "已导入 {value} 项"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "动态：{value}"
             }

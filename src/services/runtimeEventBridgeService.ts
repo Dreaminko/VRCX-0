@@ -45,7 +45,7 @@ import {
     handleRealtimeNotificationProjection,
     handleRealtimeUserCacheProjection
 } from './realtimePresenceService';
-import { pushSharedFeedNotification } from './sharedFeedFilterService';
+import { pushSharedFeedNotification } from './sharedFeedNotificationService';
 import { showSQLiteErrorDialog } from './sqliteErrorDialogService';
 import { handleBrowserFocus } from './vrcStatusService';
 

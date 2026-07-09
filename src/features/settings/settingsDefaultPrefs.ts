@@ -2,7 +2,6 @@ import {
     APP_CJK_FONT_PACK_DEFAULT_KEY,
     APP_FONT_DEFAULT_KEY
 } from '@/services/themeService';
-import { sharedFeedFiltersDefaults } from '@/shared/constants/feedFilters';
 import {
     DEFAULT_MAX_TABLE_SIZE,
     DEFAULT_SEARCH_LIMIT
@@ -17,7 +16,6 @@ import {
     DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
-    normalizeSharedFeedFilters,
     TABLE_PAGE_SIZE_DEFAULTS
 } from './settingsValues';
 
@@ -123,9 +121,6 @@ export function createDefaultSettingsPrefs() {
         },
         localFavoriteFriendsGroups,
         feedHiddenUsers,
-        sharedFeedFilters: normalizeSharedFeedFilters(
-            sharedFeedFiltersDefaults
-        ),
         overlayActivityFilters: DEFAULT_OVERLAY_ACTIVITY_FILTERS,
         vrNotificationActivityFilters: DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
         hmdNotificationActivityFilters:

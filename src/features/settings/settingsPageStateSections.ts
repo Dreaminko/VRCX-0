@@ -118,7 +118,6 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     setConfigTreeData: SettingsCallback<[Record<string, unknown>]>;
     setDataTableStripedPreference: SettingsCallback<[boolean]>;
     setDesktopNotificationsDialogOpen: SettingsCallback<[boolean]>;
-    setFeedFilterDialogOpen: SettingsCallback<[boolean]>;
     setIntConfigPreference: SettingsCallback<
         [string, number, { min?: number; max?: number; fallback?: number }]
     >;
@@ -178,7 +177,6 @@ export function buildSettingsPageStateSections({
     clearVrcxCache,
     commit,
     configTreeData,
-    currentSharedFeedFilterOptions,
     customFontDialogOpen,
     customFontDraft,
     customFontOptions,
@@ -188,8 +186,6 @@ export function buildSettingsPageStateSections({
     hmdNotificationsDialogOpen,
     discordPrefs,
     favoriteFriendGroupOptions,
-    feedFilterDialogOpen,
-    feedFilterMode,
     fetchTranslationModels,
     handleCropInstancePrintsChange,
     handleGameLogDisabledChange,
@@ -229,7 +225,6 @@ export function buildSettingsPageStateSections({
     removeFeedHiddenUser,
     removeAvatarProvider,
     resetAppDataDir,
-    resetSharedFeedFilters,
     resetTrustColors,
     resetUgcFolder,
     restartForAppDataDir,
@@ -270,7 +265,6 @@ export function buildSettingsPageStateSections({
     setCustomFontDraft,
     setDataTableStripedPreference,
     setDesktopNotificationsDialogOpen,
-    setFeedFilterDialogOpen,
     setHmdNotificationsDialogOpen,
     setIntConfigPreference,
     setIntegrationValue,
@@ -308,7 +302,6 @@ export function buildSettingsPageStateSections({
     setYoutubeApiKeyDraft,
     setZoomInput,
     setZoomLevelPreference,
-    sharedFeedFilters,
     sqliteTableSizes,
     speakNotificationTts,
     tableLimitsDialogOpen,
@@ -324,7 +317,6 @@ export function buildSettingsPageStateSections({
     ttsNotificationsDialogOpen,
     toggleLocalFavoriteFriendsGroup,
     updateAvatarProvider,
-    updateSharedFeedFilter,
     vrNotificationsDialogOpen,
     webhookNotificationsDialogOpen,
     wristFeedNotificationsDialogOpen,
@@ -785,7 +777,6 @@ export function buildSettingsPageStateSections({
             commit,
             setNotificationLayoutPreference,
             setPrefs,
-            setFeedFilterDialogOpen,
             setDesktopNotificationsDialogOpen,
             setTtsNotificationsDialogOpen,
             saveStringPreference,
@@ -890,13 +881,6 @@ export function buildSettingsPageStateSections({
             setPurgePeriod,
             purgeInProgress,
             purgeAvatarFeedData,
-            feedFilterDialogOpen,
-            setFeedFilterDialogOpen,
-            feedFilterMode,
-            currentSharedFeedFilterOptions,
-            sharedFeedFilters,
-            updateSharedFeedFilter,
-            resetSharedFeedFilters,
             wristFeedNotificationsDialogOpen,
             setWristFeedNotificationsDialogOpen,
             vrNotificationsDialogOpen,

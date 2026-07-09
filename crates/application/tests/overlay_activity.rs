@@ -1,10 +1,11 @@
-use serde_json::json;
+use serde_json::{json, Map, Value};
 use std::sync::{Arc, Mutex};
 use vrcx_0_application::{
     overlay_activity_type_definitions, OverlayActivityCandidate, OverlayActivityCategory,
     OverlayActivityDelivery, OverlayActivityFavoriteGroupKeys, OverlayActivityFilters,
     OverlayActivityRule, OverlayActivityRuntime, OverlayActivityScope, OverlayActivitySink,
-    OverlayActivitySnapshot, OverlayActivitySurface, OverlayFavoriteGroups,
+    OverlayActivitySnapshot, OverlayActivitySurface, OverlayActivityTypeDefinition,
+    OverlayFavoriteGroups,
 };
 
 #[test]
@@ -309,58 +310,6 @@ fn legacy_category_filters_normalize_to_type_rules() {
 }
 
 #[test]
-fn legacy_shared_feed_wrist_filters_migrate_to_type_rules() {
-    let filters = OverlayActivityFilters::from_legacy_shared_feed_filters(json!({
-        "noty": {
-            "Online": "Off"
-        },
-        "wrist": {
-            "invite": "VIP",
-            "OnPlayerJoined": "Everyone",
-            "friendRequest": "Off",
-            "group.queueReady": "Friends",
-            "Avatar": "VIP",
-            "Location": "On"
-        }
-    }));
-
-    assert_eq!(
-        filters
-            .rule_for(OverlayActivitySurface::Wrist, "invite")
-            .scope,
-        OverlayActivityScope::AllFavorites
-    );
-    assert_eq!(
-        filters
-            .rule_for(OverlayActivitySurface::Wrist, "OnPlayerJoined")
-            .scope,
-        OverlayActivityScope::EveryoneInInstance
-    );
-    assert_eq!(
-        filters
-            .rule_for(OverlayActivitySurface::Wrist, "friendRequest")
-            .scope,
-        OverlayActivityScope::Off
-    );
-    assert_eq!(
-        filters
-            .rule_for(OverlayActivitySurface::Wrist, "group.queueReady")
-            .scope,
-        OverlayActivityScope::On
-    );
-    assert_eq!(
-        filters
-            .rule_for(OverlayActivitySurface::Wrist, "AvatarChange")
-            .scope,
-        OverlayActivityScope::AllFavorites
-    );
-    assert_eq!(
-        filters.rule_for(OverlayActivitySurface::Wrist, "GPS").scope,
-        OverlayActivityScope::Friends
-    );
-}
-
-#[test]
 fn persisted_overlay_filter_shape_detection_matches_runtime_loader() {
     assert!(!OverlayActivityFilters::has_persisted_rules(&json!({})));
     assert!(OverlayActivityFilters::has_persisted_rules(&json!({
@@ -462,6 +411,40 @@ fn activity_content_is_built_from_feed_payload() {
     assert_eq!(entry.content.location, "wrld_1:123");
     assert_eq!(entry.content.world_name, "Great World");
     assert_eq!(entry.content.group_name, "Group A");
+}
+
+#[test]
+fn all_activity_types_build_desktop_safe_content() {
+    let definitions = overlay_activity_type_definitions();
+    let runtime = OverlayActivityRuntime::with_filters(desktop_filters_for(&definitions));
+    runtime.set_friend_user_ids(["usr_actor"]);
+
+    for definition in definitions {
+        let mut row = candidate(&definition.key, "usr_actor");
+        row.actor_display_name = "Desktop Actor".to_string();
+        row.payload = representative_payload(&definition.key);
+
+        let entry = runtime
+            .ingest_candidate(row)
+            .unwrap_or_else(|| panic!("{} should ingest", definition.key));
+
+        assert_eq!(entry.activity_type, definition.key);
+        assert!(
+            !entry.content.summary.trim().is_empty(),
+            "{} should build non-empty desktop summary",
+            definition.key
+        );
+        assert_desktop_text_key(&definition.key, "title", &entry.content.title.key);
+        assert_desktop_text_key(&definition.key, "body", &entry.content.body.key);
+
+        match definition.key.as_str() {
+            "Bio" => assert_eq!(entry.content.body.key, "notifications.bio"),
+            "Event" => assert_eq!(entry.content.title.key, "notifications.event_title"),
+            "External" => assert_eq!(entry.content.title.key, "notifications.external_title"),
+            "VideoPlay" => assert_eq!(entry.content.title.key, "notifications.video_play_title"),
+            _ => {}
+        }
+    }
 }
 
 #[test]
@@ -614,4 +597,72 @@ fn candidate(activity_type: &str, user_id: &str) -> OverlayActivityCandidate {
         current_instance: false,
         payload: json!({}),
     }
+}
+
+fn desktop_filters_for(definitions: &[OverlayActivityTypeDefinition]) -> OverlayActivityFilters {
+    let mut types = Map::new();
+    for definition in definitions {
+        let scope = if definition
+            .allowed_scopes
+            .contains(&OverlayActivityScope::On)
+        {
+            "on"
+        } else {
+            "friends"
+        };
+        types.insert(
+            definition.key.clone(),
+            json!({
+                "scope": scope,
+                "favoriteGroupKeys": "all"
+            }),
+        );
+    }
+
+    OverlayActivityFilters::from_json(json!({
+        "version": 1,
+        "desktop": {
+            "types": Value::Object(types)
+        }
+    }))
+}
+
+fn representative_payload(activity_type: &str) -> Value {
+    json!({
+        "type": activity_type,
+        "userId": "usr_actor",
+        "senderUserId": "usr_actor",
+        "senderUsername": "Desktop Actor",
+        "displayName": "New Name",
+        "previousDisplayName": "Old Name",
+        "location": "wrld_desktop:123",
+        "worldId": "wrld_desktop",
+        "worldName": "Desktop World",
+        "groupName": "Desktop Group",
+        "status": "join me",
+        "statusDescription": "Testing desktop notifications",
+        "avatarName": "Desktop Avatar",
+        "name": "Desktop Avatar",
+        "trustLevel": "Trusted",
+        "message": "Desktop notification message",
+        "data": "Desktop event data",
+        "videoName": "Desktop Video",
+        "videoUrl": "https://example.com/video",
+        "thumbnailImageUrl": "https://example.com/thumb.png",
+        "details": {
+            "worldId": "wrld_desktop",
+            "worldName": "Desktop World",
+            "inviteMessage": "Join me",
+            "requestMessage": "Invite please",
+            "responseMessage": "On my way",
+            "imageUrl": "https://example.com/detail.png"
+        }
+    })
+}
+
+fn assert_desktop_text_key(activity_type: &str, field: &str, key: &str) {
+    assert!(
+        key.is_empty() || key.starts_with("notifications."),
+        "{activity_type} {field} should use a native notification key, got {key}"
+    );
 }

@@ -1,6 +1,5 @@
 import { AvatarProviderDialog } from './settings-dialogs/AvatarProviderDialog';
 import { CustomFontDialog } from './settings-dialogs/CustomFontDialog';
-import { FeedFilterDialog } from './settings-dialogs/FeedFilterDialog';
 import { PurgeConfirmDialog } from './settings-dialogs/PurgeConfirmDialog';
 import { TableLimitsDialog } from './settings-dialogs/TableLimitsDialog';
 import { TranslationApiDialog } from './settings-dialogs/TranslationApiDialog';
@@ -23,7 +22,6 @@ export function SettingsDialogs({
     tableLimits,
     avatarProvider,
     purge,
-    feedFilter,
     wristFeedNotifications,
     vrNotifications,
     hmdNotifications,
@@ -93,15 +91,6 @@ export function SettingsDialogs({
                 onPeriodChange={purge.setPeriod}
                 inProgress={purge.inProgress}
                 onConfirm={purge.onConfirm}
-            />
-            <FeedFilterDialog
-                open={feedFilter.open}
-                onOpenChange={feedFilter.setOpen}
-                mode={feedFilter.mode}
-                options={feedFilter.options}
-                filters={feedFilter.filters}
-                onUpdate={feedFilter.onUpdate}
-                onReset={feedFilter.onReset}
             />
             <WristFeedNotificationsDialog
                 open={wristFeedNotifications.open}

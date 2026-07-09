@@ -290,13 +290,13 @@ fn load_overlay_activity_filters(config: &ConfigRepository, runtime: &OverlayAct
             Ok(value) if OverlayActivityFilters::has_persisted_rules(&value) => {
                 OverlayActivityFilters::from_json(value)
             }
-            Ok(_) => load_legacy_overlay_activity_filters(config),
+            Ok(_) => OverlayActivityFilters::default(),
             Err(error) => {
                 tracing::warn!("failed to parse overlay activity filters: {error}");
-                load_legacy_overlay_activity_filters(config)
+                OverlayActivityFilters::default()
             }
         },
-        Ok(None) => load_legacy_overlay_activity_filters(config),
+        Ok(None) => OverlayActivityFilters::default(),
         Err(error) => {
             tracing::warn!("failed to load overlay activity filters: {error}");
             OverlayActivityFilters::default()
@@ -365,38 +365,6 @@ fn load_types_key_surface(
         .then(|| OverlayActivitySurfaceFilters::from_types_json(&value))
 }
 
-fn load_legacy_overlay_activity_filters(config: &ConfigRepository) -> OverlayActivityFilters {
-    match config.get_json("sharedFeedFilters", json!({})) {
-        Ok(value) => {
-            let filters = OverlayActivityFilters::from_legacy_shared_feed_filters(value.clone());
-            if has_legacy_shared_wrist_filters(&value) {
-                persist_migrated_overlay_activity_filters(config, &filters);
-            }
-            filters
-        }
-        Err(error) => {
-            tracing::warn!("failed to load legacy shared feed filters: {error}");
-            OverlayActivityFilters::default()
-        }
-    }
-}
-
-fn has_legacy_shared_wrist_filters(value: &Value) -> bool {
-    value.get("wrist").and_then(Value::as_object).is_some()
-}
-
-fn persist_migrated_overlay_activity_filters(
-    config: &ConfigRepository,
-    filters: &OverlayActivityFilters,
-) {
-    let Ok(value) = serde_json::to_value(filters) else {
-        return;
-    };
-    if let Err(error) = config.set_json("overlayActivityFilters", &value) {
-        tracing::warn!("failed to persist migrated overlay activity filters: {error}");
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
@@ -433,7 +401,7 @@ mod tests {
     }
 
     #[test]
-    fn backend_load_migrates_legacy_shared_wrist_filters() -> Result<(), Box<dyn std::error::Error>>
+    fn backend_load_ignores_legacy_shared_wrist_filters() -> Result<(), Box<dyn std::error::Error>>
     {
         let dir = TestDir::new("overlay-activity-config");
         let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
@@ -454,19 +422,18 @@ mod tests {
 
         load_overlay_activity_filters(&config, &runtime);
 
-        let saved = config.get_json("overlayActivityFilters", json!({}))?;
-        let filters = OverlayActivityFilters::from_json(saved);
+        let filters = runtime.filters();
         assert_eq!(
             filters
                 .rule_for(OverlayActivitySurface::Wrist, "invite")
                 .scope,
-            OverlayActivityScope::AllFavorites
+            OverlayActivityScope::Friends
         );
         assert_eq!(
             filters
                 .rule_for(OverlayActivitySurface::Wrist, "friendRequest")
                 .scope,
-            OverlayActivityScope::Off
+            OverlayActivityScope::On
         );
         assert_eq!(
             config.get_json("sharedFeedFilters", json!({}))?,
@@ -480,6 +447,7 @@ mod tests {
                 }
             })
         );
+        assert_eq!(config.get_raw("overlayActivityFilters")?, None);
         Ok(())
     }
 

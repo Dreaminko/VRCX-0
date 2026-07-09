@@ -25,7 +25,6 @@ import {
     setYoutubeApiEnabledPreference,
     setZoomLevelPreference
 } from '@/services/preferencesService';
-import { feedFiltersOptions } from '@/shared/constants/feedFilters';
 import {
     DEFAULT_MAX_TABLE_SIZE,
     DEFAULT_SEARCH_LIMIT
@@ -42,7 +41,6 @@ import { useShellStore } from '@/state/shellStore';
 import { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import { buildFavoriteFriendGroupOptions } from './settingsFavoriteGroupOptions';
 import { buildSettingsPageStateSections } from './settingsPageStateSections';
-import { normalizeSharedFeedFilters } from './settingsValues';
 import {
     useAvatarProviderConfig,
     type AvatarProviderConfig
@@ -55,7 +53,6 @@ import {
     type SettingsIntegrationPrefs
 } from './useSettingsIntegrations';
 
-const FEED_FILTER_OPTIONS = feedFiltersOptions();
 const SETTINGS_PREFERENCE_KEYS = Object.keys(DEFAULT_PREFERENCES) as Array<
     keyof PreferencesSnapshot
 >;
@@ -151,8 +148,6 @@ export function useSettingsPageState() {
         useState(false);
     const [loading, setLoading] = useState(true);
     const [activeSettingsTab, setActiveSettingsTab] = useState('system');
-    const feedFilterMode = 'noty';
-    const [feedFilterDialogOpen, setFeedFilterDialogOpen] = useState(false);
     const [
         wristFeedNotificationsDialogOpen,
         setWristFeedNotificationsDialogOpen
@@ -167,9 +162,6 @@ export function useSettingsPageState() {
         useState(false);
     const [ttsNotificationsDialogOpen, setTtsNotificationsDialogOpen] =
         useState(false);
-    const [sharedFeedFilters, setSharedFeedFilters] = useState(() =>
-        normalizeSharedFeedFilters()
-    );
     const [notificationTtsTestVisible, setNotificationTtsTestVisible] =
         useState(false);
     const [tablePageSizesDialogOpen, setTablePageSizesDialogOpen] =
@@ -261,8 +253,6 @@ export function useSettingsPageState() {
         resetAppDataDir,
         removeFeedHiddenUser,
         restartForAppDataDir,
-        updateSharedFeedFilter,
-        resetSharedFeedFilters,
         saveOverlayActivityFilters,
         saveVrNotificationActivityFilters,
         saveHmdNotificationActivityFilters,
@@ -297,12 +287,10 @@ export function useSettingsPageState() {
         setPurgeDialogOpen,
         setPurgeInProgress,
         setRuntimeAppSnapshot,
-        setSharedFeedFilters,
         setSqliteTableSizes,
         setTableLimitsDialogOpen,
         setTableLimitsDraft,
         setTablePageSizesDialogOpen,
-        sharedFeedFilters,
         tableLimitsDraft
     });
     useSettingsEffects({
@@ -317,9 +305,6 @@ export function useSettingsPageState() {
         sidebarOpen,
         zoomLevel
     });
-    const feedFilterOptions = FEED_FILTER_OPTIONS;
-    const currentSharedFeedFilterOptions =
-        feedFilterOptions.notyFeedFiltersOptions;
     const {
         favoriteFriendGroupOptions,
         localFavoriteFriendGroupOptions,
@@ -398,7 +383,6 @@ export function useSettingsPageState() {
         clearVrcxCache,
         commit,
         configTreeData,
-        currentSharedFeedFilterOptions,
         customFontDialogOpen,
         customFontDraft,
         customFontOptions,
@@ -407,8 +391,6 @@ export function useSettingsPageState() {
         desktopNotificationsDialogOpen,
         discordPrefs,
         favoriteFriendGroupOptions,
-        feedFilterDialogOpen,
-        feedFilterMode,
         fetchTranslationModels,
         handleCropInstancePrintsChange,
         handleGameLogDisabledChange,
@@ -449,7 +431,6 @@ export function useSettingsPageState() {
         removeFeedHiddenUser,
         removeAvatarProvider,
         resetAppDataDir,
-        resetSharedFeedFilters,
         resetTrustColors,
         resetUgcFolder,
         restartForAppDataDir,
@@ -491,7 +472,6 @@ export function useSettingsPageState() {
         setDataTableStripedPreference,
         setDesktopNotificationsDialogOpen,
         setHmdNotificationsDialogOpen,
-        setFeedFilterDialogOpen,
         setIntConfigPreference,
         setIntegrationValue,
         setNotificationLayoutPreference,
@@ -528,7 +508,6 @@ export function useSettingsPageState() {
         setYoutubeApiKeyDraft,
         setZoomInput,
         setZoomLevelPreference,
-        sharedFeedFilters,
         sqliteTableSizes,
         speakNotificationTts,
         tableLimitsDialogOpen,
@@ -544,7 +523,6 @@ export function useSettingsPageState() {
         ttsNotificationsDialogOpen,
         toggleLocalFavoriteFriendsGroup,
         updateAvatarProvider,
-        updateSharedFeedFilter,
         vrNotificationsDialogOpen,
         webhookNotificationsDialogOpen,
         wristFeedNotificationsDialogOpen,

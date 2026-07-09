@@ -18,7 +18,7 @@ import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
 import { recordCurrentUserSnapshot } from './domainIngestionService';
 import { handleRealtimeInstanceQueueProjection } from './realtimeInstanceQueueService';
-import { pushSharedFeedNotification } from './sharedFeedFilterService';
+import { pushSharedFeedNotification } from './sharedFeedNotificationService';
 
 type ProjectionRecord = Record<string, unknown>;
 type RuntimeState = ReturnType<typeof useRuntimeStore.getState>;

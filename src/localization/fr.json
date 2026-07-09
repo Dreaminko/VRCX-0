@@ -1938,11 +1938,8 @@
                     "layout": "Affichage des notifications",
                     "layout_notification_center": "Centre de notifications",
                     "layout_table": "Page des notifications",
-                    "notification_filter": "Filtre des notifications",
                     "post_update_changelog_prompt": "Afficher les notes de mise à jour après l'installation",
                     "post_update_changelog_prompt_description": "Affiche une invite persistante au démarrage de l'application après l'installation d'une nouvelle version.",
-                    "test_notification": "Envoyer une notification de test",
-                    "test_message": "Notification de test",
                     "vr_notifications": {
                         "header": "Notifications de l'overlay VR",
                         "xsoverlay_notifications": "Notifications XSOverlay",
@@ -5099,7 +5096,7 @@
                 "value_item_s_imported": "{value} élément(s) importé(s)"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "Flux : {value}"
             }

@@ -1938,11 +1938,8 @@
                     "layout": "Benachrichtigungsansicht",
                     "layout_notification_center": "Benachrichtigungszentrale",
                     "layout_table": "Benachrichtigungsseite",
-                    "notification_filter": "Benachrichtigungsfilter",
                     "post_update_changelog_prompt": "Update-Hinweise nach Aktualisierung anzeigen",
                     "post_update_changelog_prompt_description": "Zeigt nach dem Start der App auf einer neu installierten Version einen dauerhaften Hinweis an.",
-                    "test_notification": "Testbenachrichtigung senden",
-                    "test_message": "Testbenachrichtigung",
                     "vr_notifications": {
                         "header": "VR-Overlay-Benachrichtigungen",
                         "xsoverlay_notifications": "XSOverlay-Benachrichtigungen",
@@ -5099,7 +5096,7 @@
                 "value_item_s_imported": "{value} Element(e) importiert"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "Feed: {value}"
             }

@@ -125,7 +125,7 @@ pub(super) fn build_activity_content(
         "Bio" => titled_body(
             "bio",
             &title_name,
-            text("dashboard.widget.feed_bio", json!({}), "updated bio"),
+            text("notifications.bio", json!({}), "updated bio"),
         ),
         "Friend" => titled_body(
             "friend",
@@ -270,17 +270,19 @@ pub(super) fn build_activity_content(
             ),
             literal_body(string_field(payload, "message")),
         ),
-        "Event" => titled_body(
+        "Event" => keyed_title_body(
             "system",
+            "notifications.event_title",
             "Event",
             literal_body(first_non_empty([
                 string_field(payload, "data"),
                 string_field(payload, "message"),
             ])),
         ),
-        "External" => titled_body(
+        "External" => keyed_title_body(
             "system",
-            "External",
+            "notifications.external_title",
+            "External app",
             literal_body(string_field(payload, "message")),
         ),
         "Blocked" => titled_body(
@@ -339,9 +341,10 @@ pub(super) fn build_activity_content(
                 "muted user left",
             ),
         ),
-        "VideoPlay" => titled_body(
+        "VideoPlay" => keyed_title_body(
             "media",
-            "Now playing",
+            "notifications.video_play_title",
+            "Video play",
             literal_body(first_non_empty([
                 string_field(payload, "videoName"),
                 string_field(payload, "notyName"),
@@ -417,6 +420,15 @@ fn group_message(key: &str, fallback: &str, payload: &Value) -> OverlayActivityC
 
 fn titled_body(icon: &str, title: &str, body: OverlayActivityText) -> OverlayActivityContent {
     activity_content(icon, literal_title(title), body)
+}
+
+fn keyed_title_body(
+    icon: &str,
+    title_key: &str,
+    title_fallback: &str,
+    body: OverlayActivityText,
+) -> OverlayActivityContent {
+    activity_content(icon, text(title_key, json!({}), title_fallback), body)
 }
 
 fn activity_content(

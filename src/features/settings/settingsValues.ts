@@ -1,4 +1,3 @@
-import { sharedFeedFiltersDefaults } from '@/shared/constants/feedFilters';
 export {
     DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_OVERLAY_ACTIVITY_FILTERS,
@@ -11,7 +10,6 @@ export {
     OVERLAY_ACTIVITY_TYPE_DEFINITIONS,
     OVERLAY_ACTIVITY_TYPE_DEFINITION_BY_KEY,
     disabledOverlayActivityFilterProfileFromDefinitions,
-    migrateLegacySharedFeedWristFilters,
     normalizeOverlayActivityFilters,
     overlayActivityTypeLabelKey,
     parseOverlayActivityFilters,
@@ -55,10 +53,6 @@ export type CustomFontDraft = {
     override: string;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value && typeof value === 'object');
-}
-
 export function parseWebJson(response: { data?: unknown } | null | undefined) {
     if (response?.data && typeof response.data === 'object') {
         return response.data;
@@ -94,17 +88,6 @@ export function buildOpenAiModelsEndpoint(endpoint: string | undefined) {
         }
         return `${normalized}/models`;
     }
-}
-
-export function normalizeSharedFeedFilters(value: unknown = {}) {
-    const record = isRecord(value) ? value : {};
-    const noty = isRecord(record.noty) ? record.noty : {};
-    return {
-        noty: {
-            ...sharedFeedFiltersDefaults.noty,
-            ...noty
-        }
-    };
 }
 
 export function normalizeTablePageSizes(input: unknown): number[] {

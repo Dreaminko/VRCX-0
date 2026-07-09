@@ -279,7 +279,6 @@
             "notifications": {
                 "notifications": {
                     "header": "Thông báo",
-                    "notification_filter": "Lọc thông báo",
                     "conditions": {
                         "never": "Không bao giờ",
                         "desktop": "Trên chế độ Desktop",

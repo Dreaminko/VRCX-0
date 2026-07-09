@@ -10,7 +10,6 @@ import {
 import { MINUTES_PER_DAY } from '@/shared/constants/time';
 import { normalizeTrustColors } from '@/shared/utils/trustColors';
 import {
-    DEFAULT_PREFERENCES,
     normalizeAutoDeletePrintsLimit,
     normalizeBackgroundModeDelayMinutes,
     normalizeDefaultLaunchMode,
@@ -29,7 +28,6 @@ import {
     normalizeWristOverlaySize,
     normalizeWristOverlayStartMode,
     parseOverlayActivityFiltersPreference,
-    parseSharedFeedFilters,
     type PreferencesSnapshot,
     usePreferencesStore
 } from '@/state/preferencesStore';
@@ -191,7 +189,6 @@ export async function loadPreferenceSnapshot() {
         searchLimit,
         localFavoriteFriendsGroups,
         feedHiddenUsers,
-        sharedFeedFilters,
         overlayActivityFilters,
         vrNotificationActivityFilters,
         hmdNotificationActivityFilters,
@@ -327,10 +324,6 @@ export async function loadPreferenceSnapshot() {
         ),
         configRepository.getArray('localFavoriteFriendsGroups', []),
         configRepository.getString('feedHiddenUsers', '[]'),
-        configRepository.getString(
-            'sharedFeedFilters',
-            JSON.stringify(DEFAULT_PREFERENCES.sharedFeedFilters)
-        ),
         configRepository.getString('overlayActivityFilters', ''),
         configRepository.getString('vrNotificationActivityFilters', ''),
         configRepository.getString('hmdNotificationActivityFilters', ''),
@@ -409,7 +402,6 @@ export async function loadPreferenceSnapshot() {
         );
     }
 
-    const parsedSharedFeedFilters = parseSharedFeedFilters(sharedFeedFilters);
     const snapshot: PreferencesSnapshot = {
         notificationLayout: notificationLayout || DEFAULT_NOTIFICATION_LAYOUT,
         dataTableStriped: Boolean(dataTableStriped),
@@ -532,10 +524,8 @@ export async function loadPreferenceSnapshot() {
             localFavoriteFriendsGroups
         ),
         feedHiddenUsers: normalizeFeedHiddenUsers(feedHiddenUsers),
-        sharedFeedFilters: parsedSharedFeedFilters,
         overlayActivityFilters: parseOverlayActivityFiltersPreference(
-            overlayActivityFilters,
-            sharedFeedFilters
+            overlayActivityFilters
         ),
         vrNotificationActivityFilters: parseOverlayActivityFilterProfile(
             vrNotificationActivityFilters

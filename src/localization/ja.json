@@ -1934,11 +1934,8 @@
                     "layout": "通知のレイアウト",
                     "layout_notification_center": "通知センター",
                     "layout_table": "通知タブ",
-                    "notification_filter": "通知フィルター",
                     "post_update_changelog_prompt": "更新後に更新内容の通知を表示",
                     "post_update_changelog_prompt_description": "新しいバージョンで初回起動したとき、右下に更新内容の通知を表示します。",
-                    "test_notification": "テスト通知を送る",
-                    "test_message": "これはテスト通知です",
                     "vr_notifications": {
                         "header": "VR オーバーレイ通知",
                         "xsoverlay_notifications": "XSOverlay で通知する",
@@ -4687,6 +4684,7 @@
         "unfriend": "とのフレンド関係が解除されました",
         "trust_level": "トラストレベルが {trustLevel} になりました",
         "display_name": "の表示名が {displayName} に変更されました",
+        "bio": "プロフィールを更新",
         "group_announcement_title": "グループのお知らせ",
         "group_informative_title": "グループのインフォメーション",
         "group_invite_title": "グループへの招待",
@@ -4694,6 +4692,9 @@
         "group_transfer_request_title": "グループ管理者の移譲",
         "group_queue_ready_title": "グループキューが準備完了",
         "instance_closed_title": "インスタンスが閉じられました",
+        "event_title": "イベント",
+        "external_title": "外部アプリ",
+        "video_play_title": "動画再生",
         "portal_spawn_name": "が {location} へのポータルを設置しました",
         "portal_spawn": "ポータルが設置されました",
         "avatar_change": "アバターを {avatar} に変更しました",
@@ -5091,7 +5092,7 @@
                 "value_item_s_imported": "{value} 件の項目をインポートしました"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "フィード: {value}"
             }

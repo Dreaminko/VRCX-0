@@ -47,7 +47,7 @@ vi.mock('./ipcEventService', () => ({
     handleIpcEvent: mocks.handleIpcEvent
 }));
 
-vi.mock('./sharedFeedFilterService', () => ({
+vi.mock('./sharedFeedNotificationService', () => ({
     pushSharedFeedNotification: mocks.pushSharedFeedNotification
 }));
 

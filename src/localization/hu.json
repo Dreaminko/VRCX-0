@@ -279,7 +279,6 @@
             "notifications": {
                 "notifications": {
                     "header": "Értesítések",
-                    "notification_filter": "Értesítésszűrő",
                     "conditions": {
                         "never": "Soha",
                         "desktop": "Asztali mód",

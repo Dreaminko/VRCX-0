@@ -1938,11 +1938,8 @@
                     "layout": "Вид уведомления",
                     "layout_notification_center": "Центр уведомления",
                     "layout_table": "Уведомления Стр.",
-                    "notification_filter": "Фильтр уведомлений",
                     "post_update_changelog_prompt": "Показать обновления нот после обновления",
                     "post_update_changelog_prompt_description": "Показывает стойкую скорость после запуска приложения на вновь установленной версии.",
-                    "test_notification": "Отправить уведомление об испытании",
-                    "test_message": "Тестовое уведомление",
                     "vr_notifications": {
                         "header": "VR Уведомления о накладных расходах",
                         "xsoverlay_notifications": "XSOverlay Уведомления",
@@ -5099,7 +5096,7 @@
                 "value_item_s_imported": "Импортировано элементов: {value}"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "Лента: {value}"
             }

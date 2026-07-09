@@ -1885,9 +1885,6 @@
                     "layout": "알림 보기",
                     "layout_notification_center": "알림 센터",
                     "layout_table": "알림 페이지",
-                    "notification_filter": "알림 필터",
-                    "test_notification": "테스트 알림 보내기",
-                    "test_message": "테스트 알림",
                     "vr_notifications": {
                         "header": "VR 오버레이 알림",
                         "xsoverlay_notifications": "XSOverlay 알림 사용",
@@ -4635,6 +4632,10 @@
         "request_invite_response": "귀하의 초대 요청에 응답했습니다 {message}",
         "trust_level": "현재 신뢰 수준은 {trustLevel}입니다.",
         "display_name": "이름을 {displayName}(으)로 변경했습니다.",
+        "bio": "업데이트된 약력",
+        "event_title": "이벤트",
+        "external_title": "외부 앱",
+        "video_play_title": "비디오 재생",
         "portal_spawn_name": "{location}에 대한 포털을 생성했습니다.",
         "avatar_change": "아바타 {avatar}로 변경됨",
         "chat_message": "말했다: {message}"
@@ -5032,7 +5033,7 @@
                 "value_item_s_imported": "{value} 항목을 가져왔습니다."
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "피드: {value}"
             }

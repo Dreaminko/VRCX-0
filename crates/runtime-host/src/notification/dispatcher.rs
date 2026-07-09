@@ -1027,6 +1027,69 @@ mod tests {
     }
 
     #[test]
+    fn render_delivery_localizes_generic_desktop_activity_keys() {
+        let cases = [
+            (
+                "Bio",
+                text("", "Traveler", json!({})),
+                text("notifications.bio", "__missing_bio__", json!({})),
+                "Traveler",
+                "updated bio",
+            ),
+            (
+                "Event",
+                text(
+                    "notifications.event_title",
+                    "__missing_event_title__",
+                    json!({}),
+                ),
+                text("", "General event message", json!({})),
+                "Event",
+                "General event message",
+            ),
+            (
+                "External",
+                text(
+                    "notifications.external_title",
+                    "__missing_external_title__",
+                    json!({}),
+                ),
+                text("", "External app message", json!({})),
+                "External App",
+                "External app message",
+            ),
+            (
+                "VideoPlay",
+                text(
+                    "notifications.video_play_title",
+                    "__missing_video_play_title__",
+                    json!({}),
+                ),
+                text("", "Desktop Video", json!({})),
+                "Video Play",
+                "Desktop Video",
+            ),
+        ];
+
+        for (activity_type, title, body, expected_title, expected_body) in cases {
+            let mut delivery = delivery();
+            delivery.entry.activity_type = activity_type.into();
+            delivery.entry.content.title = title;
+            delivery.entry.content.body = body;
+
+            let render = render_delivery(&delivery, OverlayLocale::En);
+
+            assert_eq!(render.title, expected_title, "{activity_type}");
+            assert_eq!(render.body, expected_body, "{activity_type}");
+            assert_eq!(
+                render.text,
+                format!("{expected_title} {expected_body}"),
+                "{activity_type}"
+            );
+        }
+    }
+
+    #[test]
     fn generic_webhook_location_uses_localized_access_label() {
         let mut delivery = delivery();
         delivery.entry.content.location =

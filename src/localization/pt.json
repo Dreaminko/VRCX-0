@@ -1938,11 +1938,8 @@
                     "layout": "Visualização de notificações",
                     "layout_notification_center": "Central de notificações",
                     "layout_table": "Página de notificações",
-                    "notification_filter": "Filtro de Notificação",
                     "post_update_changelog_prompt": "Mostrar notas de atualização após atualizar",
                     "post_update_changelog_prompt_description": "Mostra um aviso persistente após o app iniciar em uma versão recém-instalada.",
-                    "test_notification": "Testar Notificação",
-                    "test_message": "Notificação de teste",
                     "vr_notifications": {
                         "header": "Notificações do Overlay de VR",
                         "xsoverlay_notifications": "Notificações do XSOverlay",
@@ -5099,7 +5096,7 @@
                 "value_item_s_imported": "{value} item(ns) importado(s)"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "Feed: {value}"
             }

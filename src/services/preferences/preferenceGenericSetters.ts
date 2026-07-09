@@ -8,10 +8,7 @@ import {
     normalizeTrustColors,
     TRUST_COLOR_DEFAULTS
 } from '@/shared/utils/trustColors';
-import {
-    normalizeFeedHiddenUsers,
-    normalizeSharedFeedFilters
-} from '@/state/preferencesStore';
+import { normalizeFeedHiddenUsers } from '@/state/preferencesStore';
 import type { TrustColorKey } from '@/state/preferencesStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import {
@@ -536,17 +533,6 @@ export async function resetTrustColorsPreference() {
     patchPreferences({ trustColor });
     publishPreferenceChanged('VRCX_trustColor', trustColor);
     return trustColor;
-}
-
-export async function setSharedFeedFiltersPreference(value: unknown) {
-    const sharedFeedFilters = normalizeSharedFeedFilters(value);
-    await configRepository.setString(
-        'sharedFeedFilters',
-        JSON.stringify(sharedFeedFilters)
-    );
-    patchPreferences({ sharedFeedFilters });
-    publishPreferenceChanged('sharedFeedFilters', sharedFeedFilters);
-    return sharedFeedFilters;
 }
 
 export async function setLocalFavoriteFriendsGroupsPreference(value: unknown) {

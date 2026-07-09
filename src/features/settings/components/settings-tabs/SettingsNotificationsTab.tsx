@@ -50,11 +50,9 @@ type SettingsNotificationsTabProps = {
     onNotificationTtsTestVisibleChange: (visible: boolean) => unknown;
     onNotificationTtsVoiceChange: (value: string) => unknown;
     onOpenDesktopNotificationFiltersDialog: () => unknown;
-    onOpenFeedFilterDialog: () => unknown;
     onOpenTtsNotificationFiltersDialog: () => unknown;
     onPostUpdateChangelogToastChange: (checked: boolean) => unknown;
     onSpeakNotificationTts: (message: string) => unknown;
-    onTestDesktopNotification: () => unknown;
     prefs: SettingsNotificationsPrefs;
     ttsVoices: TtsVoice[];
 };
@@ -71,10 +69,8 @@ export function SettingsNotificationsTab({
     onNotificationLayoutChange,
     onNotificationIconDotChange,
     onPostUpdateChangelogToastChange,
-    onOpenFeedFilterDialog,
     onOpenDesktopNotificationFiltersDialog,
     onOpenTtsNotificationFiltersDialog,
-    onTestDesktopNotification,
     onDesktopToastChange,
     onAfkDesktopToastChange,
     onDesktopNotificationSoundChange,
@@ -157,38 +153,6 @@ export function SettingsNotificationsTab({
                         checked={prefs.showPostUpdateChangelogToast}
                         onCheckedChange={onPostUpdateChangelogToastChange}
                     />
-                </Field>
-
-                <Field
-                    label={t(
-                        'view.settings.notifications.notifications.notification_filter'
-                    )}
-                >
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onOpenFeedFilterDialog}
-                    >
-                        {t(
-                            'view.settings.notifications.notifications.notification_filter'
-                        )}
-                    </Button>
-                </Field>
-
-                <Field
-                    label={t(
-                        'view.settings.notifications.notifications.test_notification'
-                    )}
-                >
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onTestDesktopNotification}
-                    >
-                        {t(
-                            'view.settings.notifications.notifications.test_notification'
-                        )}
-                    </Button>
                 </Field>
             </SettingsGroup>
             <SettingsGroup

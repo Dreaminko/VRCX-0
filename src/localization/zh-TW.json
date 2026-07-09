@@ -1938,11 +1938,8 @@
                     "layout": "通知顯示模式",
                     "layout_notification_center": "通知中心",
                     "layout_table": "通知頁面",
-                    "notification_filter": "通知篩選器",
                     "post_update_changelog_prompt": "顯示更新後的更新內容提示",
                     "post_update_changelog_prompt_description": "升級後首次啟動新版本時，在右下角提示查看更新內容。",
-                    "test_notification": "發送測試用通知",
-                    "test_message": "測試通知。",
                     "vr_notifications": {
                         "header": "VR 疊加通知",
                         "xsoverlay_notifications": "XSOverlay 通知",
@@ -4695,6 +4692,7 @@
         "unfriend": "不再是你的好友",
         "trust_level": "的信任等級現在是 {trustLevel}",
         "display_name": "變更名稱為 {displayName}",
+        "bio": "更新了個人簡介",
         "group_announcement_title": "群組公告",
         "group_informative_title": "群組資訊",
         "group_invite_title": "群組邀請",
@@ -4702,6 +4700,9 @@
         "group_transfer_request_title": "群主轉讓請求",
         "group_queue_ready_title": "房間排隊已準備完成",
         "instance_closed_title": "房間已關閉",
+        "event_title": "事件",
+        "external_title": "外部應用程式",
+        "video_play_title": "影片播放",
         "portal_spawn_name": "生成一個傳送門到 {location}",
         "portal_spawn": "用戶已生成傳送門",
         "avatar_change": "已切換為角色 「{avatar}」",
@@ -5099,7 +5100,7 @@
                 "value_item_s_imported": "已匯入 {value} 項"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "動態：{value}"
             }

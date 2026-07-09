@@ -5,8 +5,7 @@ use serde_json::Value;
 
 use super::definitions::{
     default_activity_rules, default_rule, disabled_activity_rules, has_persisted_filter_rules,
-    hmd_activity_rules, known_definition_for_type, migrate_legacy_shared_feed_wrist_filters,
-    normalize_filters, normalize_surface,
+    hmd_activity_rules, known_definition_for_type, normalize_filters, normalize_surface,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
@@ -192,10 +191,6 @@ impl OverlayActivityFilters {
 
     pub fn has_persisted_rules(value: &Value) -> bool {
         has_persisted_filter_rules(value)
-    }
-
-    pub fn from_legacy_shared_feed_filters(value: Value) -> Self {
-        migrate_legacy_shared_feed_wrist_filters(value)
     }
 
     pub fn surface(&self, surface: OverlayActivitySurface) -> &OverlayActivitySurfaceFilters {

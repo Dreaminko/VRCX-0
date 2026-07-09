@@ -114,9 +114,6 @@ type SettingsPreferenceActionsDeps = {
     setOnlineVisitCount: (value: number) => void;
     setPrefs: StateSetter<SettingsPrefs>;
     setProxyEnabledPreference: (value: boolean) => Promise<boolean>;
-    setSharedFeedFilters: (
-        value: PreferencesSnapshot['sharedFeedFilters']
-    ) => void;
     setSqliteTableSizes: (value: Record<string, unknown>) => void;
     setStringConfigPreference: (
         key: StringConfigPreferenceKey,
@@ -235,7 +232,6 @@ export function useSettingsPreferenceActions({
     setOnlineVisitCount,
     setPrefs,
     setProxyEnabledPreference,
-    setSharedFeedFilters,
     setSqliteTableSizes,
     setStringConfigPreference,
     setTableLimitsDialogOpen,
@@ -289,7 +285,6 @@ export function useSettingsPreferenceActions({
             discordWorldNameAsDiscordStatus:
                 normalizedSnapshot.discordWorldNameAsDiscordStatus
         });
-        setSharedFeedFilters(normalizedSnapshot.sharedFeedFilters);
         setLocalFavoriteFriendsGroups(
             normalizedSnapshot.localFavoriteFriendsGroups
         );

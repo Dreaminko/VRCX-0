@@ -55,13 +55,6 @@ export function SettingsDialogsSection({
         setPurgePeriod,
         purgeInProgress,
         purgeAvatarFeedData,
-        feedFilterDialogOpen,
-        setFeedFilterDialogOpen,
-        feedFilterMode,
-        currentSharedFeedFilterOptions,
-        sharedFeedFilters,
-        updateSharedFeedFilter,
-        resetSharedFeedFilters,
         wristFeedNotificationsDialogOpen,
         setWristFeedNotificationsDialogOpen,
         vrNotificationsDialogOpen,
@@ -154,15 +147,6 @@ export function SettingsDialogsSection({
                 setPeriod: setPurgePeriod,
                 inProgress: purgeInProgress,
                 onConfirm: purgeAvatarFeedData
-            }}
-            feedFilter={{
-                open: feedFilterDialogOpen,
-                setOpen: setFeedFilterDialogOpen,
-                mode: feedFilterMode,
-                options: currentSharedFeedFilterOptions,
-                filters: sharedFeedFilters,
-                onUpdate: updateSharedFeedFilter,
-                onReset: resetSharedFeedFilters
             }}
             wristFeedNotifications={{
                 open: wristFeedNotificationsDialogOpen,

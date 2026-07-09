@@ -18,10 +18,7 @@ import {
     setAppDataDir,
     validateAppDataDir
 } from '@/services/shellIntegrationService';
-import {
-    normalizeBackgroundModeDelayMinutes,
-    type PreferencesSnapshot
-} from '@/state/preferencesStore';
+import { normalizeBackgroundModeDelayMinutes } from '@/state/preferencesStore';
 
 import { normalizeCheckedState } from './settingsValues';
 import type {
@@ -50,7 +47,6 @@ type SettingsCacheStats = {
     favoriteDetailsPending: number;
     assetBundleCacheSize: string;
 };
-type SettingsSharedFeedFilters = PreferencesSnapshot['sharedFeedFilters'];
 type SettingsDialogResult = {
     ok: boolean;
     value?: unknown;
@@ -115,7 +111,6 @@ type SettingsMaintenanceActionsDeps = {
         cropAllPrints(path: string): Promise<unknown>;
         getUgcPhotoLocation(path: unknown): Promise<string>;
     };
-    normalizeSharedFeedFilters: (value?: unknown) => SettingsSharedFeedFilters;
     prefs: SettingsPrefs;
     prompt: (options: SettingsPromptOptions) => Promise<SettingsDialogResult>;
     purgePeriod: string;
@@ -134,11 +129,7 @@ type SettingsMaintenanceActionsDeps = {
     setPrefs: StateSetter<SettingsPrefs>;
     setPurgeDialogOpen: (value: boolean) => void;
     setPurgeInProgress: (value: boolean) => void;
-    setSharedFeedFilters: (value: SettingsSharedFeedFilters) => void;
-    setSharedFeedFiltersPreference: (value: unknown) => Promise<unknown>;
     setUserGeneratedContentPathPreference: (value: string) => Promise<string>;
-    sharedFeedFilters: SettingsSharedFeedFilters;
-    sharedFeedFiltersDefaults: SettingsSharedFeedFilters;
     speakNotificationTts: PreferenceActions['speakNotificationTts'];
     t: (key: string, options?: Record<string, unknown>) => string;
     toast: SettingsToast;
@@ -150,18 +141,6 @@ type SettingsMaintenanceActionsDeps = {
         };
     };
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value && typeof value === 'object');
-}
-
-function readFilterMode(
-    filters: SettingsSharedFeedFilters,
-    mode: string
-): Record<string, unknown> {
-    const value = (filters as unknown as Record<string, unknown>)[mode];
-    return isRecord(value) ? value : {};
-}
 
 export function useSettingsMaintenanceActions({
     auth,
@@ -177,7 +156,6 @@ export function useSettingsMaintenanceActions({
     getEntityQueryCacheSize,
     getEntityQueryCacheStats,
     mediaRepository,
-    normalizeSharedFeedFilters,
     prefs,
     prompt,
     purgePeriod,
@@ -192,11 +170,7 @@ export function useSettingsMaintenanceActions({
     setPrefs,
     setPurgeDialogOpen,
     setPurgeInProgress,
-    setSharedFeedFilters,
-    setSharedFeedFiltersPreference,
     setUserGeneratedContentPathPreference,
-    sharedFeedFilters,
-    sharedFeedFiltersDefaults,
     speakNotificationTts,
     t,
     toast,
@@ -661,35 +635,6 @@ export function useSettingsMaintenanceActions({
             enabled
         );
     }
-    function saveSharedFeedFilters(nextFilters: SettingsSharedFeedFilters) {
-        setSharedFeedFilters(nextFilters);
-        setSharedFeedFiltersPreference(nextFilters).catch((error: unknown) => {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('view.settings.toast.failed_to_save_feed_filters')
-            );
-        });
-    }
-    function updateSharedFeedFilter(mode: string, key: string, value: unknown) {
-        const nextFilters = normalizeSharedFeedFilters({
-            ...sharedFeedFilters,
-            [mode]: {
-                ...readFilterMode(sharedFeedFilters, mode),
-                [key]: value
-            }
-        });
-        saveSharedFeedFilters(nextFilters);
-    }
-    function resetSharedFeedFilters(mode: string) {
-        const nextFilters = normalizeSharedFeedFilters({
-            ...sharedFeedFilters,
-            [mode]: {
-                ...readFilterMode(sharedFeedFiltersDefaults, mode)
-            }
-        });
-        saveSharedFeedFilters(nextFilters);
-    }
     return {
         saveNotificationTtsMode,
         saveNotificationTtsVoice,
@@ -707,8 +652,6 @@ export function useSettingsMaintenanceActions({
         openUgcFolderSelector,
         handleCropInstancePrintsChange,
         handleGameLogDisabledChange,
-        migrateLegacyVrcxData,
-        updateSharedFeedFilter,
-        resetSharedFeedFilters
+        migrateLegacyVrcxData
     };
 }

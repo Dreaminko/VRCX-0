@@ -389,7 +389,6 @@
             "notifications": {
                 "notifications": {
                     "header": "การแจ้งเตือน",
-                    "notification_filter": "ตัวกรองการแจ้งเตือน",
                     "conditions": {
                         "never": "ไม่เลย",
                         "desktop": "โหมดเดสก์ท็อป",

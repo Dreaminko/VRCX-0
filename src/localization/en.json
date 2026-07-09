@@ -1938,11 +1938,8 @@
                     "layout": "Notification View",
                     "layout_notification_center": "Notification Center",
                     "layout_table": "Notifications Page",
-                    "notification_filter": "Notification Filters",
                     "post_update_changelog_prompt": "Show update notes after updating",
                     "post_update_changelog_prompt_description": "Shows a persistent prompt after the app starts on a newly installed version.",
-                    "test_notification": "Send Test Notification",
-                    "test_message": "Test notification",
                     "vr_notifications": {
                         "header": "VR Overlay Notifications",
                         "xsoverlay_notifications": "XSOverlay Notifications",
@@ -4695,6 +4692,7 @@
         "unfriend": "is no longer your friend",
         "trust_level": "Trust level is now {trustLevel}",
         "display_name": "changed their name to {displayName}",
+        "bio": "updated bio",
         "group_announcement_title": "Group Announcement",
         "group_informative_title": "Group Informative",
         "group_invite_title": "Group Invite",
@@ -4702,6 +4700,9 @@
         "group_transfer_request_title": "Group Transfer Request",
         "group_queue_ready_title": "Instance Queue Ready",
         "instance_closed_title": "Instance Closed",
+        "event_title": "Event",
+        "external_title": "External App",
+        "video_play_title": "Video Play",
         "portal_spawn_name": "has spawned a portal to {location}",
         "portal_spawn": "User has spawned a portal",
         "avatar_change": "changed into avatar {avatar}",
@@ -5099,7 +5100,7 @@
                 "value_item_s_imported": "{value} item(s) imported"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "Feed: {value}"
             }

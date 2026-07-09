@@ -462,7 +462,6 @@
             "notifications": {
                 "notifications": {
                     "header": "Powiadomienia",
-                    "notification_filter": "Filtrowanie powiadomień",
                     "conditions": {
                         "never": "Nigdy",
                         "desktop": "Tryb PC",

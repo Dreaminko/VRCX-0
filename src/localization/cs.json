@@ -1938,11 +1938,8 @@
                     "layout": "Zobrazení oznámení",
                     "layout_notification_center": "Centrum oznámení",
                     "layout_table": "Stránka oznámení",
-                    "notification_filter": "Filtr oznámení",
                     "post_update_changelog_prompt": "Zobrazit poznámky k aktualizaci po aktualizaci",
                     "post_update_changelog_prompt_description": "Po spuštění aplikace na nově nainstalované verzi zobrazí trvalou výzvu.",
-                    "test_notification": "Odeslat testovací oznámení",
-                    "test_message": "Testovací oznámení",
                     "vr_notifications": {
                         "header": "Oznámení v překryvné vrstvě VR",
                         "xsoverlay_notifications": "Oznámení XSOverlay",
@@ -5099,7 +5096,7 @@
                 "value_item_s_imported": "Naimportováno položek: {value}"
             }
         },
-        "shared_feed_filter_service": {
+        "shared_feed_notification_service": {
             "dynamic": {
                 "feed_value": "Zdroj: {value}"
             }

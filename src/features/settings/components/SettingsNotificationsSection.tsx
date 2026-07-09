@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
 import { POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY } from '@/services/changelogService';
-import { showDesktopNotification } from '@/services/shellIntegrationService';
 
 import type { SettingsPageStateSections } from '../settingsPageStateSections';
 import { normalizeCheckedState } from '../settingsValues';
@@ -27,7 +26,6 @@ export function SettingsNotificationsSection({
         commit,
         setNotificationLayoutPreference,
         setPrefs,
-        setFeedFilterDialogOpen,
         setDesktopNotificationsDialogOpen,
         setTtsNotificationsDialogOpen,
         saveStringPreference,
@@ -89,21 +87,12 @@ export function SettingsNotificationsSection({
                     enabled
                 );
             }}
-            onOpenFeedFilterDialog={() => setFeedFilterDialogOpen(true)}
             onOpenDesktopNotificationFiltersDialog={() =>
                 setDesktopNotificationsDialogOpen(true)
             }
             onOpenTtsNotificationFiltersDialog={() =>
                 setTtsNotificationsDialogOpen(true)
             }
-            onTestDesktopNotification={() => {
-                showDesktopNotification(
-                    'VRCX-0',
-                    t('view.settings.notifications.notifications.test_message'),
-                    '',
-                    prefs.desktopNotificationSound
-                );
-            }}
             onDesktopToastChange={(value: string) => {
                 saveStringPreference('desktopToast', 'desktopToast', value);
             }}

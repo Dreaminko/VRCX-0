@@ -21,7 +21,6 @@ import {
     setLocalFavoriteFriendsGroupsPreference,
     setOverlayActivityFiltersPreference,
     setProxyEnabledPreference,
-    setSharedFeedFiltersPreference,
     setStringConfigPreference,
     setHmdNotificationActivityFiltersPreference,
     setTableLimitsPreference,
@@ -42,7 +41,6 @@ import {
     normalizeAppCjkFontPack,
     normalizeAppFontFamily
 } from '@/services/themeService';
-import { sharedFeedFiltersDefaults } from '@/shared/constants/feedFilters';
 import {
     DEFAULT_MAX_TABLE_SIZE,
     DEFAULT_SEARCH_LIMIT,
@@ -62,7 +60,6 @@ import type { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import {
     formatByteSize,
     isValidFontFamilyList,
-    normalizeSharedFeedFilters,
     parseIntegerInput
 } from './settingsValues';
 import { useSettingsMaintenanceActions } from './useSettingsMaintenanceActions';
@@ -95,7 +92,6 @@ type SettingsActionsDeps = Pick<
     | 'setIntegrationPrefs'
     | 'setLocalFavoriteFriendsGroups'
     | 'setOnlineVisitCount'
-    | 'setSharedFeedFilters'
     | 'setSqliteTableSizes'
     | 'setTableLimitsDialogOpen'
     | 'setTableLimitsDraft'
@@ -110,7 +106,6 @@ type SettingsActionsDeps = Pick<
         | 'setCacheStatsVisible'
         | 'setPurgeDialogOpen'
         | 'setPurgeInProgress'
-        | 'sharedFeedFilters'
     > & {
         setPrefs: SettingsPagePrefsSetter;
         setRuntimeAppSnapshot: (value: unknown) => void;
@@ -186,7 +181,6 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
         normalizeAppCjkFontPack,
         normalizeAppFontFamily,
         normalizePreferenceSnapshot,
-        normalizeSharedFeedFilters,
         parseIntegerInput,
         prompt,
         resetTrustColorsPreference,
@@ -196,7 +190,6 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
         setLocalFavoriteFriendsGroupsPreference,
         setOverlayActivityFiltersPreference,
         setProxyEnabledPreference,
-        setSharedFeedFiltersPreference,
         setStringConfigPreference,
         setHmdNotificationActivityFiltersPreference,
         setTableLimitsPreference,
@@ -207,7 +200,6 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
         setWebhookActivityFiltersPreference,
         setTtsNotificationActivityFiltersPreference,
         setWristOverlayEnabledPreference,
-        sharedFeedFiltersDefaults,
         t,
         tableLimitsSaveDisabled,
         toast,
