@@ -20,6 +20,9 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
         onCjkFontPackChange,
         onZoomInputChange,
         onZoomBlur,
+        notificationLayoutOptions,
+        onNotificationLayoutChange,
+        onNotificationIconDotChange,
         onTableDensityChange,
         onDataTableStripedChange,
         onAccessibleStatusIndicatorsChange,
@@ -55,6 +58,9 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
                 onCjkFontPackChange={onCjkFontPackChange}
                 onZoomInputChange={onZoomInputChange}
                 onZoomBlur={onZoomBlur}
+                notificationLayoutOptions={notificationLayoutOptions}
+                onNotificationLayoutChange={onNotificationLayoutChange}
+                onNotificationIconDotChange={onNotificationIconDotChange}
                 onTableDensityChange={onTableDensityChange}
                 onDataTableStripedChange={onDataTableStripedChange}
                 onAccessibleStatusIndicatorsChange={

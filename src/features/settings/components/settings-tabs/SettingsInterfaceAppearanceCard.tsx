@@ -33,6 +33,12 @@ import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SegmentedPreference, SettingsGroup } from '../SettingsField';
 
+type SettingsOption = readonly [value: string, labelKey: string];
+type SettingsOptionItem = {
+    label: string;
+    value: string;
+};
+
 const fontFamilyLabelKeys: any = {
     inter: 'view.settings.appearance.appearance.font_family_inter',
     noto_sans: 'view.settings.appearance.appearance.font_family_noto_sans',
@@ -202,12 +208,20 @@ export function SettingsInterfaceAppearanceCard({
     onCjkFontPackChange,
     onZoomInputChange,
     onZoomBlur,
+    notificationLayoutOptions,
+    onNotificationLayoutChange,
+    onNotificationIconDotChange,
     onTableDensityChange,
     onDataTableStripedChange,
     onAccessibleStatusIndicatorsChange,
     onReducedMotionAndBlurChange
 }: any) {
     const { t } = useTranslation();
+    const notificationLayoutItems: SettingsOptionItem[] =
+        notificationLayoutOptions.map(([value, labelKey]: SettingsOption) => ({
+            value,
+            label: t(labelKey)
+        }));
 
     return (
         <SettingsGroup title={t('view.settings.appearance.appearance.header')}>
@@ -264,6 +278,46 @@ export function SettingsInterfaceAppearanceCard({
                         onBlur={onZoomBlur}
                     />
                 </div>
+            </Field>
+
+            <Field
+                label={t('view.settings.notifications.notifications.layout')}
+                controlId="settings-notification-layout"
+            >
+                <Select
+                    value={prefs.notificationLayout}
+                    items={notificationLayoutItems}
+                    onValueChange={(value) =>
+                        onNotificationLayoutChange(value ?? '')
+                    }
+                >
+                    <SelectTrigger
+                        id="settings-notification-layout"
+                        className="w-56"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectGroup>
+                            {notificationLayoutItems.map(({ value, label }) => (
+                                <SelectItem key={value} value={value}>
+                                    {label}
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
+            </Field>
+
+            <Field
+                label={t(
+                    'view.settings.appearance.appearance.show_notification_icon_dot'
+                )}
+            >
+                <Switch
+                    checked={prefs.notificationIconDot}
+                    onCheckedChange={onNotificationIconDotChange}
+                />
             </Field>
 
             <Field

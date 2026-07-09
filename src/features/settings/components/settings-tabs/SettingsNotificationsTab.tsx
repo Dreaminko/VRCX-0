@@ -23,18 +23,14 @@ type SettingsNotificationsPrefs = Record<string, unknown> & {
     afkDesktopToast?: boolean;
     desktopNotificationSound?: boolean;
     desktopToast?: string;
-    notificationIconDot?: boolean;
-    notificationLayout?: string;
     notificationTTS?: string;
     notificationTTSNameMode?: string;
     notificationTTSNickName?: boolean;
     notificationTTSVoiceNative?: string;
-    showPostUpdateChangelogToast?: boolean;
 };
 
 type SettingsNotificationsTabProps = {
     desktopToastOptions: SettingsOptionList;
-    notificationLayoutOptions: SettingsOptionList;
     notificationTtsOptions: SettingsOptionList;
     notificationTtsNameModeOptions: SettingsOptionList;
     notificationTtsTest: string;
@@ -42,8 +38,6 @@ type SettingsNotificationsTabProps = {
     onAfkDesktopToastChange: (checked: boolean) => unknown;
     onDesktopNotificationSoundChange: (checked: boolean) => unknown;
     onDesktopToastChange: (value: string) => unknown;
-    onNotificationIconDotChange: (checked: boolean) => unknown;
-    onNotificationLayoutChange: (value: string) => unknown;
     onNotificationTtsModeChange: (value: string) => unknown;
     onNotificationTtsNameModeChange: (value: string) => unknown;
     onNotificationTtsTestChange: (value: string) => unknown;
@@ -51,7 +45,6 @@ type SettingsNotificationsTabProps = {
     onNotificationTtsVoiceChange: (value: string) => unknown;
     onOpenDesktopNotificationFiltersDialog: () => unknown;
     onOpenTtsNotificationFiltersDialog: () => unknown;
-    onPostUpdateChangelogToastChange: (checked: boolean) => unknown;
     onSpeakNotificationTts: (message: string) => unknown;
     prefs: SettingsNotificationsPrefs;
     ttsVoices: TtsVoice[];
@@ -59,16 +52,12 @@ type SettingsNotificationsTabProps = {
 
 export function SettingsNotificationsTab({
     prefs,
-    notificationLayoutOptions,
     desktopToastOptions,
     notificationTtsOptions,
     notificationTtsNameModeOptions,
     ttsVoices,
     notificationTtsTestVisible,
     notificationTtsTest,
-    onNotificationLayoutChange,
-    onNotificationIconDotChange,
-    onPostUpdateChangelogToastChange,
     onOpenDesktopNotificationFiltersDialog,
     onOpenTtsNotificationFiltersDialog,
     onDesktopToastChange,
@@ -89,72 +78,6 @@ export function SettingsNotificationsTab({
 
     return (
         <SettingsTabContent value="notifications">
-            <SettingsGroup
-                title={t('view.settings.notifications.notifications.header')}
-            >
-                <Field
-                    label={t(
-                        'view.settings.notifications.notifications.layout'
-                    )}
-                    controlId="settings-notification-layout"
-                >
-                    <Select
-                        value={prefs.notificationLayout}
-                        items={notificationLayoutOptions.map(
-                            ([value, labelKey]) => ({
-                                value,
-                                label: t(labelKey)
-                            })
-                        )}
-                        onValueChange={(value) =>
-                            onNotificationLayoutChange(value ?? '')
-                        }
-                    >
-                        <SelectTrigger
-                            id="settings-notification-layout"
-                            className="w-56"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {notificationLayoutOptions.map(
-                                    ([value, labelKey]) => (
-                                        <SelectItem key={value} value={value}>
-                                            {t(labelKey)}
-                                        </SelectItem>
-                                    )
-                                )}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                </Field>
-
-                <Field
-                    label={t(
-                        'view.settings.appearance.appearance.show_notification_icon_dot'
-                    )}
-                >
-                    <Switch
-                        checked={prefs.notificationIconDot}
-                        onCheckedChange={onNotificationIconDotChange}
-                    />
-                </Field>
-
-                <Field
-                    label={t(
-                        'view.settings.notifications.notifications.post_update_changelog_prompt'
-                    )}
-                    description={t(
-                        'view.settings.notifications.notifications.post_update_changelog_prompt_description'
-                    )}
-                >
-                    <Switch
-                        checked={prefs.showPostUpdateChangelogToast}
-                        onCheckedChange={onPostUpdateChangelogToastChange}
-                    />
-                </Field>
-            </SettingsGroup>
             <SettingsGroup
                 title={t(
                     'view.settings.notifications.notifications.desktop_notifications.header'

@@ -348,6 +348,7 @@ export function buildSettingsPageStateSections({
             prefs,
             zoomInput,
             zoomLevel,
+            notificationLayoutOptions,
             commit,
             setAppLanguagePreference,
             openCustomFontDialog,
@@ -386,6 +387,38 @@ export function buildSettingsPageStateSections({
                 event: { target?: { value?: unknown } } | null | undefined
             ) => {
                 saveInterfaceZoomLevel(event?.target?.value ?? zoomInput);
+            },
+            onNotificationLayoutChange: (value: string) => {
+                commit(
+                    async () => {
+                        const nextLayout =
+                            await setNotificationLayoutPreference(value);
+                        setPrefs((current) => ({
+                            ...current,
+                            notificationLayout: nextLayout
+                        }));
+                    },
+                    () => {
+                        const previous = prefs.notificationLayout;
+                        setPrefs((current) => ({
+                            ...current,
+                            notificationLayout: value
+                        }));
+                        return () =>
+                            setPrefs((current) => ({
+                                ...current,
+                                notificationLayout: previous
+                            }));
+                    }
+                );
+            },
+            onNotificationIconDotChange: (checked: unknown) => {
+                const enabled = normalizeCheckedState(checked);
+                saveBoolPreference(
+                    'notificationIconDot',
+                    'notificationIconDot',
+                    enabled
+                );
             },
             onTableDensityChange: (value: unknown) => {
                 savePreferenceValue('tableDensity', value, () =>
@@ -767,16 +800,12 @@ export function buildSettingsPageStateSections({
         },
         notifications: {
             prefs,
-            notificationLayoutOptions,
             desktopToastOptions,
             notificationTtsOptions,
             notificationTtsNameModeOptions,
             ttsVoices,
             notificationTtsTestVisible,
             notificationTtsTest,
-            commit,
-            setNotificationLayoutPreference,
-            setPrefs,
             setDesktopNotificationsDialogOpen,
             setTtsNotificationsDialogOpen,
             saveStringPreference,

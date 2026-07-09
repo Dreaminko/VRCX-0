@@ -22,6 +22,7 @@ type SettingsSystemTabProps = {
     isStartAtWindowsStartup?: boolean;
     proxyEnabled?: boolean;
     proxyServer?: string;
+    showPostUpdateChangelogToast?: boolean;
     onAutoBackgroundDownloadUpdatesChange: (checked: boolean) => unknown;
     onAutoInstallUpdatesOnStartupChange: (checked: boolean) => unknown;
     onAutoLoginDelayEnabledChange: (checked: boolean) => unknown;
@@ -32,6 +33,7 @@ type SettingsSystemTabProps = {
     onPromptBackgroundModeDelayMinutes: () => unknown;
     onProxyEnabledChange: (checked: boolean) => unknown;
     onProxySettings: () => unknown;
+    onPostUpdateChangelogToastChange: (checked: boolean) => unknown;
     onStartAsMinimizedChange: (checked: boolean) => unknown;
     onStartAtWindowsStartupChange: (checked: boolean) => unknown;
 };
@@ -45,6 +47,7 @@ export function SettingsSystemTab({
     autoLoginDelaySeconds,
     autoInstallUpdatesOnStartup,
     autoBackgroundDownloadUpdates,
+    showPostUpdateChangelogToast,
     backgroundModeEnabled,
     backgroundModeDelayEnabled,
     backgroundModeDelayMinutes,
@@ -60,6 +63,7 @@ export function SettingsSystemTab({
     onPromptBackgroundModeDelayMinutes,
     onAutoInstallUpdatesOnStartupChange,
     onAutoBackgroundDownloadUpdatesChange,
+    onPostUpdateChangelogToastChange,
     onProxyEnabledChange,
     onProxySettings
 }: SettingsSystemTabProps) {
@@ -199,6 +203,19 @@ export function SettingsSystemTab({
                     <Switch
                         checked={autoBackgroundDownloadUpdates}
                         onCheckedChange={onAutoBackgroundDownloadUpdatesChange}
+                    />
+                </Field>
+                <Field
+                    label={t(
+                        'view.settings.notifications.notifications.post_update_changelog_prompt'
+                    )}
+                    description={t(
+                        'view.settings.notifications.notifications.post_update_changelog_prompt_description'
+                    )}
+                >
+                    <Switch
+                        checked={showPostUpdateChangelogToast}
+                        onCheckedChange={onPostUpdateChangelogToastChange}
                     />
                 </Field>
                 <Field
