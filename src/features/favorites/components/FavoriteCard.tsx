@@ -4,13 +4,17 @@ import {
     MoreHorizontalIcon,
     PersonStandingIcon,
     TriangleAlertIcon,
-    UserIcon,
-    UsersIcon
+    UserIcon
 } from 'lucide-react';
 import { memo, type KeyboardEvent, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Location } from '@/components/Location';
+import {
+    resolveSidebarStatusDotClassName,
+    type SidebarFriendRecord
+} from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
+import { UserStatusDot } from '@/components/UserStatusDot';
 import { cn } from '@/lib/utils';
 import { copyTextToClipboard } from '@/services/clipboardService';
 import {
@@ -39,11 +43,8 @@ function resolvePresenceLocation(profile: unknown) {
     return resolveFriendPresenceLocation(profile);
 }
 
-type FavoriteCardSeedData = Record<string, unknown> & {
+type FavoriteCardSeedData = SidebarFriendRecord & {
     groupName?: unknown;
-    state?: unknown;
-    stateBucket?: unknown;
-    status?: unknown;
     travelingToWorld?: unknown;
     worldName?: unknown;
 };
@@ -121,36 +122,35 @@ const FavoriteCard = memo(function FavoriteCard({
     const canSendInvite = Boolean(instanceActionGate?.canInvite);
     const canBoop = Boolean(currentUserSnapshot?.isBoopingEnabled);
     const currentAvatarId = currentUserSnapshot?.currentAvatar || '';
+    const isFriendCard = item.kind === 'friend';
 
-    const Icon =
-        item.kind === 'friend'
-            ? UserIcon
-            : item.kind === 'world'
-              ? GlobeIcon
-              : PersonStandingIcon;
-    const openHandler =
-        item.kind === 'friend'
+    const Icon = isFriendCard
+        ? UserIcon
+        : item.kind === 'world'
+          ? GlobeIcon
+          : PersonStandingIcon;
+    const openHandler = isFriendCard
+        ? () =>
+              openUserDialog({
+                  userId: item.id,
+                  title: item.title || undefined,
+                  seedData: item.seedData ?? null
+              })
+        : item.kind === 'world'
+          ? () =>
+                openWorldDialog({
+                    worldId: item.id,
+                    title: item.title || undefined,
+                    seedData: item.seedData ?? null
+                })
+          : item.kind === 'avatar'
             ? () =>
-                  openUserDialog({
-                      userId: item.id,
+                  openAvatarDialog({
+                      avatarId: item.id,
                       title: item.title || undefined,
                       seedData: item.seedData ?? null
                   })
-            : item.kind === 'world'
-              ? () =>
-                    openWorldDialog({
-                        worldId: item.id,
-                        title: item.title || undefined,
-                        seedData: item.seedData ?? null
-                    })
-              : item.kind === 'avatar'
-                ? () =>
-                      openAvatarDialog({
-                          avatarId: item.id,
-                          title: item.title || undefined,
-                          seedData: item.seedData ?? null
-                      })
-                : null;
+            : null;
     const canRemoveLocal =
         item.source === 'local' && typeof onRemoveLocal === 'function';
     const canRemoveRemote =
@@ -190,17 +190,33 @@ const FavoriteCard = memo(function FavoriteCard({
         canUseWorldActions ||
         canCopyUnavailableWorldId
     );
-    const friendLocation =
-        item.kind === 'friend'
-            ? resolvePresenceLocation(item.seedData || item)
-            : '';
+    const friendLocation = isFriendCard
+        ? resolvePresenceLocation(item.seedData || item)
+        : '';
     const friendShowsLocation = Boolean(
         friendLocation && friendLocation !== 'offline'
     );
     const cardPaddingY = Math.max(4, Math.round(8 * cardScale * cardSpacing));
     const cardPaddingX = Math.max(4, Math.round(10 * cardScale * cardSpacing));
     const cardGap = Math.max(4, Math.round(8 * cardSpacing));
-    const mediaSize = Math.max(28, Math.round(48 * cardScale));
+    const mediaSize = isFriendCard
+        ? 36
+        : Math.max(28, Math.round(48 * cardScale));
+    const friendStatusSource: SidebarFriendRecord | null = isFriendCard
+        ? {
+              ...(item.seedData || {}),
+              id: item.seedData?.id || item.id,
+              displayName: item.seedData?.displayName || item.title
+          }
+        : null;
+    const statusDotClassName = friendStatusSource
+        ? resolveSidebarStatusDotClassName(
+              friendStatusSource,
+              currentUserSnapshot,
+              isCurrentUser,
+              { isGameRunning }
+          )
+        : '';
     const openCard = () => openHandler?.();
     const copyWorldId = async () => {
         if (!item.id) {
@@ -247,26 +263,39 @@ const FavoriteCard = memo(function FavoriteCard({
         >
             <div
                 className={cn(
-                    'bg-muted flex size-12 shrink-0 items-center justify-center overflow-hidden',
-                    item.kind === 'friend' ? 'rounded-full' : 'rounded-sm'
+                    'relative flex shrink-0 items-center justify-center',
+                    isFriendCard
+                        ? 'ml-2 size-9 overflow-visible'
+                        : 'bg-muted size-12 overflow-hidden rounded-sm'
                 )}
                 style={{
                     width: `${mediaSize}px`,
                     height: `${mediaSize}px`
                 }}
             >
-                {item.imageUrl ? (
-                    <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        loading="lazy"
-                        className="size-full object-cover"
+                <span
+                    className={cn(
+                        'flex size-full items-center justify-center overflow-hidden',
+                        isFriendCard && 'bg-muted rounded-full border'
+                    )}
+                >
+                    {item.imageUrl ? (
+                        <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            loading="lazy"
+                            className="size-full object-cover"
+                        />
+                    ) : (
+                        <Icon className="text-muted-foreground size-4" />
+                    )}
+                </span>
+                {isFriendCard ? (
+                    <UserStatusDot
+                        statusDotClassName={statusDotClassName}
+                        className="absolute -right-0.5 -bottom-0.5 z-10 size-3.75"
                     />
-                ) : item.kind === 'friend' ? (
-                    <UsersIcon className="text-muted-foreground size-4" />
-                ) : (
-                    <Icon className="text-muted-foreground size-4" />
-                )}
+                ) : null}
             </div>
             <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-1.5">
