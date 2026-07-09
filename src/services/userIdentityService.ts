@@ -105,7 +105,8 @@ function findKnownUserByDisplayName(
 
     const normalizedEndpoint = resolvedEndpoint(endpoint);
     const state = useUserFactsStore.getState();
-    const userIds = state.userIdsByEndpoint[normalizedEndpoint] || [];
+    const userIds =
+        state.userIdsByEndpoint[normalizedEndpoint] ?? new Set<string>();
     for (const userId of userIds) {
         const fact = getKnownUserFact(normalizedEndpoint, userId);
         if (displayNameMatches(fact, targetDisplayName)) {

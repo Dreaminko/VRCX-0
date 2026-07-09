@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { instanceLocationKey } from '@/domain/presence/instancePresence';
+import { evictOverflow } from '@/state/storeEviction';
 
 interface LocationHint {
     endpoint: string;
@@ -33,13 +34,20 @@ interface LocationHintInput {
 interface LocationHintStoreState {
     version: number;
     hintsByKey: Record<string, LocationHint>;
+    order: string[];
     upsertLocationHint: (input: LocationHintInput) => void;
     resetLocationHints: () => void;
 }
 
-const initialState: Pick<LocationHintStoreState, 'version' | 'hintsByKey'> = {
+const LOCATION_HINT_CAPACITY = 512;
+
+const initialState: Pick<
+    LocationHintStoreState,
+    'version' | 'hintsByKey' | 'order'
+> = {
     version: 0,
-    hintsByKey: {}
+    hintsByKey: {},
+    order: []
 };
 
 function text(value: unknown): string {
@@ -97,12 +105,18 @@ export const useLocationHintStore = create<LocationHintStoreState>((set) => ({
             if (existing && sameHintIgnoringUpdatedAt(existing, next)) {
                 return state;
             }
+            const hintsByKey = { ...state.hintsByKey, [key]: next };
+            const order = existing ? state.order : [...state.order, key];
+            for (const evictedKey of evictOverflow(
+                order,
+                LOCATION_HINT_CAPACITY
+            )) {
+                delete hintsByKey[evictedKey];
+            }
             return {
                 version: state.version + 1,
-                hintsByKey: {
-                    ...state.hintsByKey,
-                    [key]: next
-                }
+                hintsByKey,
+                order
             };
         });
     },
