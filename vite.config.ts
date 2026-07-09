@@ -93,7 +93,6 @@ export default defineConfig(({ mode }) => {
     const enableReactDevtoolsStandalone =
         mode === 'development' && process.env.VITE_REACT_DEVTOOLS === '1';
     const macosSystemFontsEnabled = process.platform === 'darwin';
-    const bundledCjkFontsEnabled = !macosSystemFontsEnabled;
 
     return {
         base: '',
@@ -129,9 +128,6 @@ export default defineConfig(({ mode }) => {
             ),
             VRCX_0_BUILD_BADGE: JSON.stringify(
                 process.env['VRCX_0_BUILD_BADGE'] || ''
-            ),
-            VRCX_0_BUNDLED_CJK_FONTS_ENABLED: JSON.stringify(
-                bundledCjkFontsEnabled
             ),
             VRCX_0_MACOS_SYSTEM_FONTS_ENABLED: JSON.stringify(
                 macosSystemFontsEnabled

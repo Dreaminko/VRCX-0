@@ -611,7 +611,7 @@ describe('preferencesService characterization', () => {
         mocks.getString.mockImplementation((key: string, fallback = '') => {
             const values: Record<string, string> = {
                 VRCX_fontFamily: 'geist',
-                VRCX_cjkFontPack: 'noto-sans-sc',
+                VRCX_cjkFontPack: 'noto',
                 customFontFamily: 'Custom Font'
             };
             return Promise.resolve(values[key] ?? String(fallback ?? ''));
@@ -628,7 +628,7 @@ describe('preferencesService characterization', () => {
         expect(mocks.applyAppFontPreferences).toHaveBeenCalledWith({
             fontFamily: 'geist',
             customFontFamily: 'Custom Font',
-            cjkFontPack: 'noto-sans-sc',
+            cjkFontPack: 'noto',
             locale: 'ko'
         });
         expect(mocks.appVrOverlayConfigReload).toHaveBeenCalledTimes(1);
