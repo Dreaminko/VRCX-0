@@ -1822,7 +1822,7 @@
                     "font_family_custom_detection_unavailable": "Font detection is unavailable. Use the advanced override.",
                     "font_family_custom_detection_unavailable_toast": "Font detection is unavailable. Use the advanced override.",
                     "font_family_custom_preview": "Preview",
-                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 こんにちは 안녕",
+                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 / 逃げちゃダメだ / 다람쥐 헌 쳇바퀴에 타고파",
                     "font_family_custom_advanced": "Advanced",
                     "font_family_custom_override": "CSS font-family override",
                     "font_family_custom_override_description": "When set, this full value is applied and the selected fonts above are ignored.",

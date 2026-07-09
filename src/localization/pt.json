@@ -1822,7 +1822,7 @@
                     "font_family_custom_detection_unavailable": "A detecção de fontes está indisponível. Use a substituição avançada.",
                     "font_family_custom_detection_unavailable_toast": "A detecção de fontes está indisponível. Use a substituição avançada.",
                     "font_family_custom_preview": "Pré-visualização",
-                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 こんにちは 안녕",
+                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 / 逃げちゃダメだ / 다람쥐 헌 쳇바퀴에 타고파",
                     "font_family_custom_advanced": "Avançado",
                     "font_family_custom_override": "Substituição de CSS font-family",
                     "font_family_custom_override_description": "Quando definido, este valor completo é aplicado e as fontes selecionadas acima são ignoradas.",

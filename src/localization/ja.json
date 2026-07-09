@@ -1818,7 +1818,7 @@
                     "font_family_custom_detection_unavailable": "フォント検出を利用できません。詳細 override を使用してください。",
                     "font_family_custom_detection_unavailable_toast": "フォント検出を利用できません。詳細 override を使用してください。",
                     "font_family_custom_preview": "プレビュー",
-                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 こんにちは 안녕",
+                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 / 逃げちゃダメだ / 다람쥐 헌 쳇바퀴에 타고파",
                     "font_family_custom_advanced": "詳細",
                     "font_family_custom_override": "CSS font-family override",
                     "font_family_custom_override_description": "入力するとこの値全体が適用され、上の選択は無視されます。",

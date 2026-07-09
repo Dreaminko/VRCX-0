@@ -1822,7 +1822,7 @@
                     "font_family_custom_detection_unavailable": "無法偵測字型。請使用進階覆寫功能。",
                     "font_family_custom_detection_unavailable_toast": "無法偵測字型。請使用進階覆寫功能。",
                     "font_family_custom_preview": "預覽",
-                    "font_family_custom_preview_sample": "那隻敏捷的棕色狐狸 / 早安 こんにちは 안녕",
+                    "font_family_custom_preview_sample": "那隻敏捷的棕色狐狸 / 早安 / 逃げちゃダメだ / 다람쥐 헌 쳇바퀴에 타고파",
                     "font_family_custom_advanced": "進階",
                     "font_family_custom_override": "CSS font-family 的覆寫",
                     "font_family_custom_override_description": "設定後，將直接套用此完整值，並忽略上方所選的字型。",

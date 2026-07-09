@@ -1822,7 +1822,7 @@
                     "font_family_custom_detection_unavailable": "La détection des polices est indisponible. Utilisez le remplacement avancé.",
                     "font_family_custom_detection_unavailable_toast": "La détection des polices est indisponible. Utilisez le remplacement avancé.",
                     "font_family_custom_preview": "Aperçu",
-                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 こんにちは 안녕",
+                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 / 逃げちゃダメだ / 다람쥐 헌 쳇바퀴에 타고파",
                     "font_family_custom_advanced": "Avancé",
                     "font_family_custom_override": "Remplacement CSS font-family",
                     "font_family_custom_override_description": "Une fois défini, cette valeur complète est appliquée et les polices sélectionnées ci-dessus sont ignorées.",

@@ -1822,7 +1822,7 @@
                     "font_family_custom_detection_unavailable": "Schrifterkennung ist nicht verfügbar. Verwende die erweiterte Überschreibung.",
                     "font_family_custom_detection_unavailable_toast": "Schrifterkennung ist nicht verfügbar. Verwende die erweiterte Überschreibung.",
                     "font_family_custom_preview": "Vorschau",
-                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 こんにちは 안녕",
+                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 / 逃げちゃダメだ / 다람쥐 헌 쳇바퀴에 타고파",
                     "font_family_custom_advanced": "Erweitert",
                     "font_family_custom_override": "CSS-font-family-Überschreibung",
                     "font_family_custom_override_description": "Wenn festgelegt, wird dieser vollständige Wert angewendet und die oben ausgewählten Schriftarten werden ignoriert.",

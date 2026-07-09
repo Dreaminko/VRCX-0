@@ -1822,7 +1822,7 @@
                     "font_family_custom_detection_unavailable": "字体检测不可用，可使用高级选项进行设置。",
                     "font_family_custom_detection_unavailable_toast": "字体检测不可用，可使用高级选项进行设置。",
                     "font_family_custom_preview": "预览",
-                    "font_family_custom_preview_sample": "The quick brown fox / 那只敏捷的棕色狐狸 / あの機敏な茶色のキツネ / 그 민첩한 갈색 여우",
+                    "font_family_custom_preview_sample": "The quick brown fox / 那只敏捷的棕色狐狸 / 逃げちゃダメだ / 다람쥐 헌 쳇바퀴에 타고파",
                     "font_family_custom_advanced": "高级选项",
                     "font_family_custom_override": "CSS font-family 覆盖",
                     "font_family_custom_override_description": "非空时会直接使用这一整串，并忽略上面的选择。",

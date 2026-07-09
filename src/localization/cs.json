@@ -1822,7 +1822,7 @@
                     "font_family_custom_detection_unavailable": "Detekce písem není dostupná. Použijte pokročilé přepsání.",
                     "font_family_custom_detection_unavailable_toast": "Detekce písem není dostupná. Použijte pokročilé přepsání.",
                     "font_family_custom_preview": "Náhled",
-                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 こんにちは 안녕",
+                    "font_family_custom_preview_sample": "The quick brown fox / 早晨好 / 逃げちゃダメだ / 다람쥐 헌 쳇바퀴에 타고파",
                     "font_family_custom_advanced": "Pokročilé",
                     "font_family_custom_override": "Vlastní hodnota CSS font-family",
                     "font_family_custom_override_description": "Když je nastaveno, použije se celá tato hodnota a vybraná písma výše se ignorují.",
