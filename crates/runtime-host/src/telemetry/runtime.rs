@@ -16,9 +16,9 @@ use vrcx_0_host::{
     system_theme::current_system_theme_category,
 };
 use vrcx_0_integrations::telemetry::{
-    resolve_endpoint, AssistantHealthPayload, AssistantUsagePayload, ClientErrorPayload,
-    ConfigSnapshotPayload, PageHealthPayload, TelemetryClient, TelemetryConfigSnapshot,
-    TelemetryContext, TelemetryRuntimeMode, ViewModeUsagePayload, VrchatLifecyclePayload,
+    resolve_endpoint, AssistantHealthPayload, ClientErrorPayload, ConfigSnapshotPayload,
+    PageHealthPayload, TelemetryClient, TelemetryConfigSnapshot, TelemetryContext,
+    TelemetryRuntimeMode, ViewModeUsagePayload, VrchatLifecyclePayload,
 };
 use vrcx_0_persistence::config::ConfigRepository;
 
@@ -354,7 +354,7 @@ impl TelemetryRuntime {
     }
 
     async fn flush_collectors(&self, session: &TelemetrySession) {
-        let (view_modes, routes, assistant_health, assistant_usage, client_errors) = {
+        let (view_modes, routes, assistant_health, client_errors) = {
             let Ok(state) = self.inner.state.lock() else {
                 return;
             };
@@ -362,7 +362,6 @@ impl TelemetryRuntime {
                 state.acc.view_mode_entries(),
                 state.acc.route_entries(),
                 state.acc.assistant_health_entry(),
-                state.acc.assistant_usage_entry(),
                 state.acc.client_error_entries(),
             )
         };
@@ -394,19 +393,6 @@ impl TelemetryRuntime {
                 "/api/v1/telemetry/assistant-health",
                 &payload,
                 "assistant health",
-            )
-            .await;
-        }
-        if let Some(assistant_usage) = assistant_usage {
-            let payload = AssistantUsagePayload {
-                context: context.clone(),
-                opens: assistant_usage.opens,
-                api_key_configured: assistant_usage.api_key_configured.then_some(true),
-            };
-            self.post_debug(
-                "/api/v1/telemetry/assistant-usage",
-                &payload,
-                "assistant usage",
             )
             .await;
         }
@@ -473,8 +459,8 @@ impl TelemetryRuntime {
             xs_notifications: self.config_bool("xsNotifications", false),
             ovrt_hud_notifications: self.config_bool("ovrtHudNotifications", false),
             ovrt_wrist_notifications: self.config_bool("ovrtWristNotifications", false),
+            hmd_notifications_enabled: self.config_bool("hmdNotificationsEnabled", false),
             discord_active: self.config_bool("discordActive", false),
-            mcp_server_enabled: self.config_bool("mcpServerEnabled", false),
             webhook_enabled: self.config_bool("webhookEnabled", false),
             auto_state_change_enabled: self.config_bool("autoStateChangeEnabled", false),
             auto_accept_invite_requests: normalize_enum_value(

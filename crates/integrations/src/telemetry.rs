@@ -133,8 +133,8 @@ pub struct TelemetryConfigSnapshot {
     pub xs_notifications: bool,
     pub ovrt_hud_notifications: bool,
     pub ovrt_wrist_notifications: bool,
+    pub hmd_notifications_enabled: bool,
     pub discord_active: bool,
-    pub mcp_server_enabled: bool,
     pub webhook_enabled: bool,
     pub auto_state_change_enabled: bool,
     pub auto_accept_invite_requests: String,
@@ -214,16 +214,6 @@ pub struct AssistantHealthPayload {
     pub turn_errors: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub details: Option<Vec<TelemetryErrorDetail>>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AssistantUsagePayload {
-    #[serde(flatten)]
-    pub context: TelemetryContext,
-    pub opens: u32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_key_configured: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize)]

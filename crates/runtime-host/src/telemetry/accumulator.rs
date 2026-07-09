@@ -19,7 +19,6 @@ pub struct TelemetryAccumulator {
     view_modes: HashMap<String, ViewModeUsage>,
     routes: HashMap<String, RouteUsage>,
     assistant: AssistantHealthAccumulator,
-    assistant_usage: AssistantUsageEntry,
     client_errors: DetailAccumulator,
 }
 
@@ -45,12 +44,6 @@ struct AssistantHealthAccumulator {
 }
 
 #[derive(Default)]
-pub(super) struct AssistantUsageEntry {
-    pub(super) opens: u32,
-    pub(super) api_key_configured: bool,
-}
-
-#[derive(Default)]
 struct DetailAccumulator {
     details: HashMap<String, TelemetryErrorDetail>,
 }
@@ -73,12 +66,6 @@ impl TelemetryAccumulator {
             } => self.record_route_error(error_class, name, summary),
             TelemetryClientEvent::ViewModeSwitch { dimension, value } => {
                 self.record_view_mode_switch(dimension, value)
-            }
-            TelemetryClientEvent::AssistantOpen => {
-                self.assistant_usage.opens = increment(self.assistant_usage.opens);
-            }
-            TelemetryClientEvent::AssistantApiKeyConfigured => {
-                self.assistant_usage.api_key_configured = true;
             }
             TelemetryClientEvent::AssistantToolError { source, summary } => {
                 self.assistant.tool_errors = increment(self.assistant.tool_errors);
@@ -156,16 +143,6 @@ impl TelemetryAccumulator {
         self.client_errors
             .serialize_with_limit(self.client_errors.details.len())
             .unwrap_or_default()
-    }
-
-    pub(super) fn assistant_usage_entry(&self) -> Option<AssistantUsageEntry> {
-        if self.assistant_usage.opens == 0 && !self.assistant_usage.api_key_configured {
-            return None;
-        }
-        Some(AssistantUsageEntry {
-            opens: self.assistant_usage.opens,
-            api_key_configured: self.assistant_usage.api_key_configured,
-        })
     }
 
     pub(super) fn view_mode_entries(&self) -> Vec<ViewModeUsageEntry> {

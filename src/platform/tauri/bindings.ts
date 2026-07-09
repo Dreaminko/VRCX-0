@@ -4149,8 +4149,6 @@ export type TelemetryClientEvent =
           summary: string | null;
       }
     | { type: 'viewModeSwitch'; dimension: string; value: string }
-    | { type: 'assistantOpen' }
-    | { type: 'assistantApiKeyConfigured' }
     | {
           type: 'assistantToolError';
           source: string | null;
