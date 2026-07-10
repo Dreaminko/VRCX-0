@@ -58,6 +58,7 @@ type FavoriteCardItem = {
     title?: string;
     subtitle?: string;
     imageUrl?: string;
+    imageSmallUrl?: string;
     seedData?: FavoriteCardSeedData | null;
     groupLabel?: string;
     isPrivate?: boolean;
@@ -481,7 +482,11 @@ const FavoriteCard = memo(function FavoriteCard({
                 >
                     {item.imageUrl && !item.isUnavailable ? (
                         <img
-                            src={item.imageUrl}
+                            src={
+                                densityConfig.value === 'compact'
+                                    ? item.imageSmallUrl || item.imageUrl
+                                    : item.imageUrl
+                            }
                             alt={item.title}
                             loading="lazy"
                             className="size-full object-cover"
@@ -590,9 +595,9 @@ const FavoriteCard = memo(function FavoriteCard({
                         isFriendCard && 'bg-muted rounded-full border'
                     )}
                 >
-                    {item.imageUrl ? (
+                    {item.imageSmallUrl || item.imageUrl ? (
                         <img
-                            src={item.imageUrl}
+                            src={item.imageSmallUrl || item.imageUrl}
                             alt={item.title}
                             loading="lazy"
                             className="size-full object-cover"
