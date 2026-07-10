@@ -31,13 +31,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 export function SearchEmptyState() {
     const { t } = useTranslation();
 
-    return <EmptyState title={t('common.no_data')} className="min-h-56" />;
+    return <EmptyState variant="panel" title={t('common.no_data')} />;
 }
 
 export function SearchLoadingState() {
     const { t } = useTranslation();
 
-    return <LoadingState label={t('common.loading')} className="min-h-56" />;
+    return <LoadingState variant="panel" label={t('common.loading')} />;
 }
 
 const searchMediaTextStyle: any = {

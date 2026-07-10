@@ -174,7 +174,7 @@ function SortableResizableTableHead<TData extends RowData>({
                 ...style,
                 width: resolveSize(header.getSize()),
                 transform: CSS.Translate.toString(transform),
-                transition: transition || 'width transform 0.2s ease-in-out'
+                transition
             }}
         >
             <ResizableTableHeadContent
@@ -273,7 +273,7 @@ function SortableResizableTableCell<TData extends RowData>({
                 ...style,
                 width: resolveSize(cell.column.getSize()),
                 transform: CSS.Translate.toString(transform),
-                transition: transition || 'width transform 0.2s ease-in-out'
+                transition
             }}
         >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}

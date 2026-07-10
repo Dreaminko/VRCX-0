@@ -416,7 +416,7 @@ export function FriendLocationCard({
                     <Card
                         size="sm"
                         className={cn(
-                            'border-border/70 bg-card/40 hover:bg-muted/40 h-full cursor-pointer overflow-hidden backdrop-blur',
+                            'border-border/45 hover:bg-muted/30 h-full cursor-pointer overflow-hidden bg-transparent backdrop-blur',
                             isDense
                                 ? 'flex-row items-center gap-[var(--friend-card-gap)] rounded-lg p-[var(--friend-card-padding)]'
                                 : 'gap-[var(--friend-card-gap)] py-[var(--friend-card-padding)]'

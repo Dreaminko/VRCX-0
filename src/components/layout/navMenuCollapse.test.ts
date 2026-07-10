@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
     NAV_MENU_COLLAPSE_DELAY_MS,
-    resolveDelayedNavMenuCollapsed
+    resolveDelayedNavMenuCollapsed,
+    scheduleKeyboardSidebarToggleCleanup
 } from './navMenuCollapse';
 
 describe('navMenuCollapse', () => {
@@ -46,5 +47,57 @@ describe('navMenuCollapse', () => {
                 NAV_MENU_COLLAPSE_DELAY_MS
             )
         ).toBe(false);
+    });
+
+    it('switches immediately for a keyboard collapse', () => {
+        expect(resolveDelayedNavMenuCollapsed(false, false, 0, true)).toBe(
+            true
+        );
+    });
+
+    it('switches immediately for a keyboard expand', () => {
+        expect(resolveDelayedNavMenuCollapsed(true, true, 0, true)).toBe(false);
+    });
+
+    it('cleans up the scheduled keyboard transition reset', () => {
+        let frameCallback: FrameRequestCallback | null = null;
+        let cancelledFrameId: number | null = null;
+        const scheduler = {
+            requestAnimationFrame(callback: FrameRequestCallback) {
+                frameCallback = callback;
+                return 7;
+            },
+            cancelAnimationFrame(frameId: number) {
+                cancelledFrameId = frameId;
+            }
+        };
+        const cleanup = scheduleKeyboardSidebarToggleCleanup(
+            () => {},
+            scheduler
+        );
+
+        expect(frameCallback).not.toBeNull();
+        cleanup();
+        expect(cancelledFrameId).toBe(7);
+    });
+
+    it('defers the keyboard transition reset until the next animation frame', () => {
+        const frameCallbacks: FrameRequestCallback[] = [];
+        let reset = false;
+        const scheduler = {
+            requestAnimationFrame(callback: FrameRequestCallback) {
+                frameCallbacks.push(callback);
+                return 8;
+            },
+            cancelAnimationFrame() {}
+        };
+
+        scheduleKeyboardSidebarToggleCleanup(() => {
+            reset = true;
+        }, scheduler);
+
+        expect(reset).toBe(false);
+        frameCallbacks[0]?.(0);
+        expect(reset).toBe(true);
     });
 });

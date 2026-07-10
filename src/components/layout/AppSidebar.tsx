@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
     setNavWidthPreference,
@@ -8,17 +8,31 @@ import { normalizeNavWidth, useShellStore } from '@/state/shellStore';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/ui/shadcn/sidebar';
 
 import { AppNavMenu } from './AppNavMenu';
-import { useDelayedNavMenuCollapsed } from './navMenuCollapse';
+import {
+    scheduleKeyboardSidebarToggleCleanup,
+    useDelayedNavMenuCollapsed
+} from './navMenuCollapse';
 
 export function AppSidebar({ children }: any) {
     const sidebarOpen = useShellStore((state) => state.sidebarOpen);
     const navWidth = useShellStore((state) => state.navWidth);
     const resizeCleanupRef = useRef<(() => void) | null>(null);
-    const navMenuCollapsed = useDelayedNavMenuCollapsed(sidebarOpen);
+    const keyboardSidebarToggleCleanupRef = useRef<(() => void) | null>(null);
+    const [
+        keyboardSidebarToggleTargetOpen,
+        setKeyboardSidebarToggleTargetOpen
+    ] = useState<boolean | null>(null);
+    const keyboardSidebarToggleActive =
+        keyboardSidebarToggleTargetOpen !== null;
+    const navMenuCollapsed = useDelayedNavMenuCollapsed(
+        sidebarOpen,
+        keyboardSidebarToggleActive
+    );
 
     useEffect(() => {
         return () => {
             resizeCleanupRef.current?.();
+            keyboardSidebarToggleCleanupRef.current?.();
         };
     }, []);
 
@@ -27,6 +41,34 @@ export function AppSidebar({ children }: any) {
             resizeCleanupRef.current?.();
         }
     }, [sidebarOpen]);
+
+    useEffect(() => {
+        if (keyboardSidebarToggleTargetOpen === null) {
+            keyboardSidebarToggleCleanupRef.current?.();
+            keyboardSidebarToggleCleanupRef.current = null;
+            return;
+        }
+        if (keyboardSidebarToggleTargetOpen !== sidebarOpen) {
+            return;
+        }
+
+        const targetOpen = keyboardSidebarToggleTargetOpen;
+        // Do not tie this frame to the effect cleanup: a pointer toggle in the
+        // same frame must still release keyboard-only instant mode.
+        keyboardSidebarToggleCleanupRef.current?.();
+        keyboardSidebarToggleCleanupRef.current =
+            scheduleKeyboardSidebarToggleCleanup(() => {
+                keyboardSidebarToggleCleanupRef.current = null;
+                setKeyboardSidebarToggleTargetOpen((currentTargetOpen) =>
+                    currentTargetOpen === targetOpen ? null : currentTargetOpen
+                );
+            });
+    }, [keyboardSidebarToggleTargetOpen, sidebarOpen]);
+
+    function toggleSidebarFromKeyboard() {
+        setKeyboardSidebarToggleTargetOpen(!sidebarOpen);
+        void setNavbarCollapsedPreference(sidebarOpen);
+    }
 
     function startNavResize(event: any) {
         if (!sidebarOpen) {
@@ -113,8 +155,11 @@ export function AppSidebar({ children }: any) {
             data-vrcx-0-surface="sidebar-layout"
             className="vrcx-0-sidebar-layout relative h-full min-h-0 w-full overflow-hidden"
             style={{ '--sidebar-width': `${navWidth}px` }}
+            instantSidebarTransition={keyboardSidebarToggleActive}
+            onKeyboardShortcutToggle={toggleSidebarFromKeyboard}
             onOpenChange={(open) => {
-                setNavbarCollapsedPreference(!open);
+                setKeyboardSidebarToggleTargetOpen(null);
+                void setNavbarCollapsedPreference(!open);
             }}
         >
             <Sidebar

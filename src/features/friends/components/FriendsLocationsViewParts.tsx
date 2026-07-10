@@ -82,7 +82,9 @@ export function FriendsLocationsEmptyState({
     title,
     description
 }: FriendsLocationsEmptyStateProps) {
-    return <EmptyState title={title} description={description} />;
+    return (
+        <EmptyState variant="page" title={title} description={description} />
+    );
 }
 
 export function FriendsLocationsSectionHeader({
@@ -93,7 +95,7 @@ export function FriendsLocationsSectionHeader({
     const { t } = useTranslation();
 
     return (
-        <div className="bg-card/50 flex h-full min-h-0 flex-col gap-1.5 overflow-hidden rounded-lg border px-3 py-2 md:flex-row md:items-center md:justify-between">
+        <div className="border-border/70 flex h-full min-h-0 flex-col gap-1.5 overflow-hidden rounded-lg border-b px-2 py-2 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden">
                 <div className="flex min-w-0 items-center gap-2">
                     <LayersIcon className="text-muted-foreground size-4 shrink-0" />
