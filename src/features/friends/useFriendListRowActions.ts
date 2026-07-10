@@ -1,25 +1,18 @@
-import {
-    useEffect,
-    useRef,
-    type Dispatch,
-    type MutableRefObject,
-    type SetStateAction
-} from 'react';
+import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import mutualGraphPersistenceRepository from '@/repositories/mutualGraphPersistenceRepository';
-import userProfileRepository from '@/repositories/userProfileRepository';
 import { openUserDialog } from '@/services/dialogService';
+import {
+    openFriendProfileLoadDialog,
+    startFriendProfileLoad
+} from '@/services/friendProfileLoadService';
 import friendRelationshipService from '@/services/friendRelationshipService';
 import {
     startMutualGraphFetch,
     startMutualGraphFetchStatusPolling
 } from '@/services/mutualGraphFetchService';
-import {
-    executeWithBackoff,
-    isBackoffCancelledError
-} from '@/shared/utils/retry';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -28,54 +21,30 @@ import {
     type FriendListRow,
     normalizeFriendListId as normalizeId
 } from './friendListRows';
-import type { FriendUserLoadProgress } from './useFriendListUserLoadDialog';
-
-const FRIEND_PROFILE_LOAD_CONCURRENCY = 3;
-const FRIEND_PROFILE_LOAD_MAX_RETRIES = 4;
-const FRIEND_PROFILE_LOAD_BASE_DELAY_MS = 500;
 
 type MutualProgress = {
     current: number;
     total: number;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value && typeof value === 'object');
-}
-
-function isRateLimitedError(error: unknown) {
-    return (
-        (isRecord(error) && error.status === 429) ||
-        (error instanceof Error && error.message.includes('429'))
-    );
-}
-
 export function useFriendListRowActions({
-    cancelUserLoadRef,
     filteredRows,
-    isLoadingUserDetails,
     resetTableLayout,
     rosterRows,
     selectedFriendIds,
     setDeletingFriendIds,
     setIsBulkDeleting,
-    setIsLoadingUserDetails,
     setMutualProgress,
-    setSelectedFriendIds,
-    setUserLoadProgress
+    setSelectedFriendIds
 }: {
-    cancelUserLoadRef: MutableRefObject<boolean>;
     filteredRows: FriendListRow[];
-    isLoadingUserDetails: boolean;
     resetTableLayout(): void;
     rosterRows: FriendListRow[];
     selectedFriendIds: Set<string>;
     setDeletingFriendIds: Dispatch<SetStateAction<Set<string>>>;
     setIsBulkDeleting(value: boolean): void;
-    setIsLoadingUserDetails(value: boolean): void;
     setMutualProgress(value: MutualProgress): void;
     setSelectedFriendIds: Dispatch<SetStateAction<Set<string>>>;
-    setUserLoadProgress: Dispatch<SetStateAction<FriendUserLoadProgress>>;
 }) {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
@@ -105,10 +74,20 @@ export function useFriendListRowActions({
     const mutualGraphTotalFriends = useRuntimeStore(
         (state) => state.mutualGraph.totalFriends
     );
+    const friendProfileLoadStatus = useRuntimeStore(
+        (state) => state.friendProfileLoad.status
+    );
+    const friendProfileLoadOwnerUserId = useRuntimeStore(
+        (state) => state.friendProfileLoad.ownerUserId
+    );
     const handledMutualGraphRunRef = useRef(0);
     const isMutualFetching =
         mutualGraphOwnerUserId === currentUserId &&
         (mutualGraphStatus === 'running' || mutualGraphStatus === 'cancelling');
+    const isLoadingUserDetails =
+        friendProfileLoadOwnerUserId === currentUserId &&
+        (friendProfileLoadStatus === 'running' ||
+            friendProfileLoadStatus === 'cancelling');
 
     useEffect(() => {
         if (!isMutualFetching) {
@@ -303,8 +282,9 @@ export function useFriendListRowActions({
         }
     }
 
-    async function loadFriendUserDetails() {
+    function loadFriendUserDetails() {
         if (isLoadingUserDetails) {
+            openFriendProfileLoadDialog();
             return;
         }
         const rowsToFetch = rosterRows.filter(
@@ -316,105 +296,20 @@ export function useFriendListRowActions({
             );
             return;
         }
-        cancelUserLoadRef.current = false;
-        setIsLoadingUserDetails(true);
-        setUserLoadProgress({
-            current: 0,
-            total: rowsToFetch.length,
-            open: true,
-            cancelled: false
-        });
-        let loadedCount = 0;
-        let nextRowIndex = 0;
         try {
-            async function loadNextFriendProfile() {
-                while (!cancelUserLoadRef.current) {
-                    const friend = rowsToFetch[nextRowIndex];
-                    nextRowIndex += 1;
-                    if (!friend) {
-                        return;
-                    }
-
-                    const friendId = normalizeId(friend?.id);
-                    try {
-                        const profile = await executeWithBackoff(
-                            () =>
-                                userProfileRepository.getUserProfile({
-                                    userId: friendId,
-                                    endpoint: currentEndpoint
-                                }),
-                            {
-                                maxRetries: FRIEND_PROFILE_LOAD_MAX_RETRIES,
-                                baseDelay: FRIEND_PROFILE_LOAD_BASE_DELAY_MS,
-                                shouldRetry: isRateLimitedError,
-                                isCancelled: () => cancelUserLoadRef.current
-                            }
-                        );
-                        if (!cancelUserLoadRef.current && profile?.id) {
-                            applyFriendPatch({
-                                userId: friendId,
-                                patch: profile,
-                                stateBucket:
-                                    friend.stateBucket ||
-                                    friend.state ||
-                                    'offline'
-                            });
-                            loadedCount += 1;
-                        }
-                    } catch (error) {
-                        if (
-                            isBackoffCancelledError(error) ||
-                            cancelUserLoadRef.current
-                        ) {
-                            return;
-                        }
-                        console.warn(
-                            '[FriendListPage] Failed to load friend profile',
-                            friendId,
-                            error
-                        );
-                    } finally {
-                        setUserLoadProgress((current) => ({
-                            ...current,
-                            current: Math.min(
-                                current.total,
-                                current.current + 1
-                            )
-                        }));
-                    }
-                }
-            }
-
-            const workerCount = Math.min(
-                FRIEND_PROFILE_LOAD_CONCURRENCY,
-                rowsToFetch.length
+            startFriendProfileLoad({
+                ownerUserId: currentUserId || '',
+                endpoint: currentEndpoint,
+                friendIds: rowsToFetch.map((friend) => normalizeId(friend.id))
+            });
+        } catch (error) {
+            console.warn(
+                '[FriendListPage] Failed to start friend profile loading',
+                error
             );
-            await Promise.all(
-                Array.from({ length: workerCount }, () =>
-                    loadNextFriendProfile()
-                )
+            toast.error(
+                t('view.friend_list.error.failed_to_load_friend_details')
             );
-            if (cancelUserLoadRef.current) {
-                toast.warning(
-                    t(
-                        'view.friend_list.success.friend_detail_loading_cancelled'
-                    )
-                );
-                return;
-            }
-            toast.success(
-                t('view.friends.dynamic.loaded_value_friend_profiles', {
-                    value: loadedCount
-                })
-            );
-        } finally {
-            setIsLoadingUserDetails(false);
-            if (!cancelUserLoadRef.current) {
-                setUserLoadProgress((current) => ({
-                    ...current,
-                    open: false
-                }));
-            }
         }
     }
 
@@ -500,6 +395,7 @@ export function useFriendListRowActions({
     return {
         confirmDeleteFriend,
         isMutualFetching,
+        isLoadingUserDetails,
         bulkUnfriendSelected,
         loadFriendUserDetails,
         loadMutualFriends,

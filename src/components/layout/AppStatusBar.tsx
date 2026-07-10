@@ -228,6 +228,15 @@ export function AppStatusBar() {
         (state) => state.nowPlaying.length
     );
     const instanceQueue = useRuntimeStore((state) => state.instanceQueue);
+    const friendProfileLoadStatus = useRuntimeStore(
+        (state) => state.friendProfileLoad.status
+    );
+    const friendProfileLoadProcessedFriends = useRuntimeStore(
+        (state) => state.friendProfileLoad.processedFriends
+    );
+    const friendProfileLoadTotalFriends = useRuntimeStore(
+        (state) => state.friendProfileLoad.totalFriends
+    );
     const mutualGraphRunId = useRuntimeStore(
         (state) => state.mutualGraph.runId
     );
@@ -342,6 +351,18 @@ export function AppStatusBar() {
             mutualGraphRunId,
             mutualGraphStatus,
             mutualGraphTotalFriends
+        ]
+    );
+    const friendProfileLoad = useMemo(
+        () => ({
+            status: friendProfileLoadStatus,
+            processedFriends: friendProfileLoadProcessedFriends,
+            totalFriends: friendProfileLoadTotalFriends
+        }),
+        [
+            friendProfileLoadProcessedFriends,
+            friendProfileLoadStatus,
+            friendProfileLoadTotalFriends
         ]
     );
     const vrcStatus = useMemo(
@@ -721,6 +742,7 @@ export function AppStatusBar() {
         formatClock,
         formatDuration,
         formatStatusDate,
+        friendProfileLoad,
         gameStartedAt,
         isGameRunning,
         isSteamVRRunning,

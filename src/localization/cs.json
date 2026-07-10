@@ -1259,6 +1259,7 @@
             },
             "error": {
                 "friend_roster_failed_to_load": "Seznam přátel se nepodařilo načíst",
+                "failed_to_load_friend_details": "Nepodařilo se načíst podrobnosti o přátelích",
                 "unable_to_open_this_instance_in_vrchat": "Tuto instanci se nepodařilo otevřít ve VRChat",
                 "cannot_invite_no_current_vrchat_location_is_available": "Nelze pozvat: aktuální lokace ve VRChat není k dispozici",
                 "cannot_invite_from_the_current_instance_type": "Z tohoto typu instance nelze zvát",

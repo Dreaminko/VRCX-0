@@ -158,7 +158,10 @@
             "load": "Hiányzó bejegyzések betöltése",
             "favorites_only_tooltip": "Csak a kedvencek szűrése",
             "search_placeholder": "Keresés",
-            "filter_placeholder": "Szűrés"
+            "filter_placeholder": "Szűrés",
+            "error": {
+                "failed_to_load_friend_details": "Nem sikerült betölteni a barátok részletes adatait"
+            }
         },
         "tools": {
             "export": {

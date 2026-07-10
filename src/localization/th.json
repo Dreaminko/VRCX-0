@@ -235,7 +235,10 @@
             "load": "โหลดรายการที่ขาดหายไป",
             "favorites_only_tooltip": "กรองเฉพาะรายการโปรด",
             "search_placeholder": "ค้นหา",
-            "filter_placeholder": "ตัวกรอง"
+            "filter_placeholder": "ตัวกรอง",
+            "error": {
+                "failed_to_load_friend_details": "ไม่สามารถโหลดรายละเอียดของเพื่อนได้"
+            }
         },
         "charts": {
             "instance_activity": {

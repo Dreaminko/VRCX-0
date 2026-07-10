@@ -265,7 +265,10 @@
             "favorites_only_tooltip": "Filtruj tylko ulubione",
             "search_placeholder": "Szukaj",
             "filter_placeholder": "Filtruj",
-            "load_mutual_friends": "Załaduj wspólnych znajomych"
+            "load_mutual_friends": "Załaduj wspólnych znajomych",
+            "error": {
+                "failed_to_load_friend_details": "Nie udało się wczytać szczegółów znajomych"
+            }
         },
         "charts": {
             "instance_activity": {

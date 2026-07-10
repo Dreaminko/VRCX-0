@@ -158,7 +158,10 @@
             "load": "Tải thông tin thiếu",
             "favorites_only_tooltip": "Lọc chỉ mỗi yêu thích",
             "search_placeholder": "Tìm kiếm",
-            "filter_placeholder": "Lọc"
+            "filter_placeholder": "Lọc",
+            "error": {
+                "failed_to_load_friend_details": "Không thể tải thông tin chi tiết của bạn bè"
+            }
         },
         "tools": {
             "export": {

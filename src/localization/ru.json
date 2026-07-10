@@ -1259,6 +1259,7 @@
             },
             "error": {
                 "friend_roster_failed_to_load": "Не удалось загрузить список друзей",
+                "failed_to_load_friend_details": "Не удалось загрузить сведения о друзьях",
                 "unable_to_open_this_instance_in_vrchat": "Невозможно открыть этот инстанс в VRChat",
                 "cannot_invite_no_current_vrchat_location_is_available": "Невозможно пригласить: нет доступного текущего местоположения VRChat",
                 "cannot_invite_from_the_current_instance_type": "Невозможно пригласить из текущего типа",

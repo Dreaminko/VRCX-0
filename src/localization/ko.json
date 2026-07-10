@@ -1228,6 +1228,7 @@
             },
             "error": {
                 "friend_roster_failed_to_load": "친구 명단을 로드하지 못했습니다.",
+                "failed_to_load_friend_details": "친구 상세 정보를 불러오지 못했습니다.",
                 "cannot_invite_from_the_current_instance_type": "현재 인스턴스 유형에서는 초대할 수 없습니다.",
                 "cannot_invite_current_location_is_not_a_concrete_instance": "초대할 수 없습니다. 현재 위치는 구체적인 인스턴스가 아닙니다.",
                 "friend_locations_failed_to_load": "친구 위치를 로드하지 못했습니다.",

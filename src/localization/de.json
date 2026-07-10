@@ -1257,6 +1257,7 @@
             },
             "error": {
                 "friend_roster_failed_to_load": "Freundesübersicht konnte nicht geladen werden",
+                "failed_to_load_friend_details": "Details zu Freunden konnten nicht geladen werden",
                 "unable_to_open_this_instance_in_vrchat": "Diese Instanz kann nicht in VRChat geöffnet werden",
                 "cannot_invite_no_current_vrchat_location_is_available": "Einladen nicht möglich: kein aktueller VRChat-Standort verfügbar",
                 "cannot_invite_from_the_current_instance_type": "Einladen aus diesem Instanztyp nicht möglich",

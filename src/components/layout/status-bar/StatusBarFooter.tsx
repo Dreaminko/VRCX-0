@@ -42,13 +42,40 @@ import {
     DurationValue,
     NowPlayingProgress
 } from './StatusBarFooterParts';
+import { isFriendProfileLoadStatusVisible } from './statusBarFriendProfileLoad';
 import { StatusDot, StatusSegment } from './StatusBarParts';
 import { resolveProxyIndicatorState } from './statusBarProxy';
 import type {
     StatusBarFooterProps,
+    StatusBarFriendProfileLoad,
     StatusBarInstanceQueue,
     StatusBarMutualGraph
 } from './statusBarTypes';
+
+function formatFriendProfileLoadValue(
+    friendProfileLoad: StatusBarFriendProfileLoad
+) {
+    const processed = Number(friendProfileLoad.processedFriends) || 0;
+    const total = Number(friendProfileLoad.totalFriends) || 0;
+    return total > 0 ? `${processed}/${total}` : '';
+}
+
+function formatFriendProfileLoadTooltip(
+    friendProfileLoad: StatusBarFriendProfileLoad,
+    t: ReturnType<typeof useTranslation>['t']
+) {
+    const status = String(friendProfileLoad.status || 'idle');
+    if (status === 'error') {
+        return t('view.friend_list.error.failed_to_load_friend_details');
+    }
+    if (status === 'cancelled') {
+        return t('view.friend_list.success.friend_detail_loading_cancelled');
+    }
+    if (status === 'cancelling') {
+        return t('view.friend_list.description.cancelling');
+    }
+    return t('view.friend_list.loading.loading_friend_details');
+}
 
 function formatInstanceQueueValue(
     instanceQueue: StatusBarInstanceQueue,
@@ -152,6 +179,7 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
             gameStartedAt,
             isGameRunning,
             isSteamVRRunning,
+            friendProfileLoad,
             instanceQueue,
             mutualGraph,
             nowPlaying,
@@ -191,6 +219,9 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
             instanceQueue?.active && instanceQueue?.instanceLocation
         );
         const mutualGraphStatus = String(mutualGraph?.status || 'idle');
+        const friendProfileLoadVisible = isFriendProfileLoadStatusVisible(
+            friendProfileLoad?.status
+        );
         const mutualGraphVisible = [
             'running',
             'cancelling',
@@ -457,6 +488,22 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                     </div>
 
                     <div className="text-muted-foreground flex shrink-0 items-center justify-end overflow-hidden">
+                        <StatusSegment
+                            visible={friendProfileLoadVisible}
+                            showDot={false}
+                            label={t(
+                                'view.friend_list.loading.loading_friend_details'
+                            )}
+                            value={formatFriendProfileLoadValue(
+                                friendProfileLoad
+                            )}
+                            tooltip={formatFriendProfileLoadTooltip(
+                                friendProfileLoad,
+                                t
+                            )}
+                            className="text-muted-foreground -ml-px border-l"
+                            valueClassName="text-muted-foreground"
+                        />
                         <StatusSegment
                             visible={
                                 visibility.mutualGraph && mutualGraphVisible

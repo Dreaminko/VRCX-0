@@ -1257,6 +1257,7 @@
             },
             "error": {
                 "friend_roster_failed_to_load": "Échec du chargement de la liste d'amis",
+                "failed_to_load_friend_details": "Impossible de charger les informations sur les amis",
                 "unable_to_open_this_instance_in_vrchat": "Impossible d'ouvrir cette instance dans VRChat",
                 "cannot_invite_no_current_vrchat_location_is_available": "Impossible d'inviter : aucune position VRChat actuelle disponible",
                 "cannot_invite_from_the_current_instance_type": "Impossible d'inviter depuis le type d'instance actuel",

@@ -52,6 +52,31 @@ type MutualGraphState = Record<string, unknown> & {
     lastError: string | null;
 };
 
+export type FriendProfileLoadStatus =
+    | 'idle'
+    | 'running'
+    | 'cancelling'
+    | 'completed'
+    | 'cancelled'
+    | 'error';
+
+export type FriendProfileLoadState = Record<string, unknown> & {
+    runId: number;
+    status: FriendProfileLoadStatus;
+    ownerUserId: string;
+    ownerEndpoint: string;
+    totalFriends: number;
+    processedFriends: number;
+    loadedFriends: number;
+    failedFriends: number;
+    cancelRequested: boolean;
+    dialogOpen: boolean;
+    startedAt: string | null;
+    updatedAt: string | null;
+    finishedAt: string | null;
+    lastError: string | null;
+};
+
 type InstanceQueueState = Record<string, unknown> & {
     active: boolean;
     instanceLocation: string;
@@ -171,6 +196,7 @@ type RuntimeStore = {
     };
     activity: ActivityState;
     mutualGraph: MutualGraphState;
+    friendProfileLoad: FriendProfileLoadState;
     transport: TransportState;
     gameState: Record<string, unknown> & {
         isGameRunning: boolean | null;
@@ -230,6 +256,8 @@ type RuntimeStore = {
     resetActivityState(): void;
     setMutualGraphState(patch: Partial<MutualGraphState>): void;
     resetMutualGraphState(): void;
+    setFriendProfileLoadState(patch: Partial<FriendProfileLoadState>): void;
+    resetFriendProfileLoadState(): void;
     setTransportState(patch: Partial<TransportState>): void;
     incrementTransportReconnect(): void;
     recordRuntimeEvent(name: string, payload: unknown): void;
@@ -305,6 +333,25 @@ function createMutualGraphState(): MutualGraphState {
         optedOutFriends: 0,
         failedFriends: 0,
         cancelRequested: false,
+        startedAt: null,
+        updatedAt: null,
+        finishedAt: null,
+        lastError: null
+    };
+}
+
+function createFriendProfileLoadState(): FriendProfileLoadState {
+    return {
+        runId: 0,
+        status: 'idle',
+        ownerUserId: '',
+        ownerEndpoint: '',
+        totalFriends: 0,
+        processedFriends: 0,
+        loadedFriends: 0,
+        failedFriends: 0,
+        cancelRequested: false,
+        dialogOpen: false,
         startedAt: null,
         updatedAt: null,
         finishedAt: null,
@@ -404,6 +451,8 @@ type RuntimeStoreState = Omit<
     | 'resetActivityState'
     | 'setMutualGraphState'
     | 'resetMutualGraphState'
+    | 'setFriendProfileLoadState'
+    | 'resetFriendProfileLoadState'
     | 'setTransportState'
     | 'incrementTransportReconnect'
     | 'recordRuntimeEvent'
@@ -460,6 +509,7 @@ const initialState: RuntimeStoreState = {
     },
     activity: createActivityState(),
     mutualGraph: createMutualGraphState(),
+    friendProfileLoad: createFriendProfileLoadState(),
     transport: createTransportState(),
     gameState: {
         isGameRunning: null,
@@ -576,7 +626,10 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
                 auth,
                 groupInstances: scopeChanged
                     ? createGroupInstancesState()
-                    : state.groupInstances
+                    : state.groupInstances,
+                friendProfileLoad: scopeChanged
+                    ? createFriendProfileLoadState()
+                    : state.friendProfileLoad
             };
         });
     },
@@ -624,6 +677,20 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
     resetMutualGraphState() {
         set({
             mutualGraph: createMutualGraphState()
+        });
+    },
+    setFriendProfileLoadState(patch: Partial<FriendProfileLoadState>) {
+        set((state) => ({
+            friendProfileLoad: {
+                ...state.friendProfileLoad,
+                ...patch,
+                updatedAt: patch.updatedAt || new Date().toISOString()
+            }
+        }));
+    },
+    resetFriendProfileLoadState() {
+        set({
+            friendProfileLoad: createFriendProfileLoadState()
         });
     },
     setTransportState(patch: Partial<TransportState>) {

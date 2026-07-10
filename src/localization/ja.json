@@ -1253,6 +1253,7 @@
             },
             "error": {
                 "friend_roster_failed_to_load": "フレンド一覧の読み込みに失敗しました",
+                "failed_to_load_friend_details": "フレンドの詳細情報を読み込めませんでした",
                 "unable_to_open_this_instance_in_vrchat": "このインスタンスを VRChat で開けませんでした",
                 "cannot_invite_no_current_vrchat_location_is_available": "招待できません: 現在の VRChat 位置がありません",
                 "cannot_invite_from_the_current_instance_type": "現在のインスタンスタイプからは招待できません",

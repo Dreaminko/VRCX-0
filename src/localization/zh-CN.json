@@ -1257,6 +1257,7 @@
             },
             "error": {
                 "friend_roster_failed_to_load": "好友列表加载失败",
+                "failed_to_load_friend_details": "加载好友详情失败",
                 "unable_to_open_this_instance_in_vrchat": "无法在 VRChat 中打开这个房间",
                 "cannot_invite_no_current_vrchat_location_is_available": "无法邀请：当前没有可用的 VRChat 位置",
                 "cannot_invite_from_the_current_instance_type": "无法从当前房间类型发出邀请",
