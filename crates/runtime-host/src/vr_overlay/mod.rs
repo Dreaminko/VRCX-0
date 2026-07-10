@@ -1,3 +1,4 @@
+mod avatar_cache;
 mod eligibility;
 mod localization;
 mod manager;
