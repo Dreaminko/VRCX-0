@@ -195,6 +195,33 @@ describe('deep link locale coverage', () => {
     });
 });
 
+describe('LLM endpoint preset locale coverage', () => {
+    const requiredPresetKeys = [
+        'view.tools.llm_endpoints.preset',
+        'view.tools.llm_endpoints.preset_custom',
+        'view.tools.llm_endpoints.presets.openai',
+        'view.tools.llm_endpoints.presets.openrouter',
+        'view.tools.llm_endpoints.presets.gemini',
+        'view.tools.llm_endpoints.presets.deepseek',
+        'view.tools.llm_endpoints.presets.xai'
+    ];
+
+    it('keeps preset labels in every locale source file', () => {
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            for (const key of requiredPresetKeys) {
+                const value = readPath(source, key);
+                expect(value, `${locale} ${key}`).toEqual(expect.any(String));
+                if (typeof value !== 'string') {
+                    continue;
+                }
+                expect(value.trim()).not.toBe('');
+                expect(value).not.toBe(key);
+            }
+        }
+    });
+});
+
 function readLocaleSource(locale: string): unknown {
     return localeSources[locale];
 }

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
     CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
+    DEFAULT_LLM_ENDPOINT_PROVIDER_ID,
     LLM_ENDPOINT_PROVIDER_PRESETS,
     applyLlmEndpointProviderPreset,
+    createEmptyLlmEndpointDraft,
     findLlmEndpointProviderId,
     shouldUseSavedLlmEndpointForDetect,
     type LlmEndpointProviderDraft
@@ -22,14 +24,20 @@ function draft(): LlmEndpointProviderDraft {
     };
 }
 
-describe('LLM endpoint provider presets', () => {
-    it('exposes only the selected common providers in the agreed order', () => {
+describe('LLM endpoint presets', () => {
+    it('exposes presets in the agreed order and defaults new drafts to OpenAI', () => {
         expect(
             LLM_ENDPOINT_PROVIDER_PRESETS.map((preset) => preset.id)
         ).toEqual(['openai', 'openrouter', 'gemini', 'deepseek', 'xai']);
+        expect(DEFAULT_LLM_ENDPOINT_PROVIDER_ID).toBe('openai');
+        expect(createEmptyLlmEndpointDraft()).toMatchObject({
+            providerId: 'openai',
+            name: 'OpenAI',
+            baseUrl: 'https://api.openai.com/v1'
+        });
     });
 
-    it('matches providers by normalized base URL and preset name', () => {
+    it('matches presets by normalized base URL and preset name', () => {
         expect(
             findLlmEndpointProviderId(
                 ' https://api.openai.com/v1/chat/completions/ ',
@@ -88,13 +96,22 @@ describe('LLM endpoint provider presets', () => {
         });
     });
 
-    it('keeps manual configuration when switching to custom', () => {
+    it('clears editable fields when selecting custom', () => {
         expect(
             applyLlmEndpointProviderPreset(
                 draft(),
                 CUSTOM_LLM_ENDPOINT_PROVIDER_ID
             )
-        ).toEqual(draft());
+        ).toEqual({
+            id: 'ep_1',
+            savedBaseUrl: 'https://example.test/v1',
+            providerId: CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
+            name: '',
+            baseUrl: '',
+            apiKey: '',
+            clearKey: false,
+            modelsText: ''
+        });
     });
 
     it('uses a saved endpoint for detect only when draft connection state is unchanged', () => {

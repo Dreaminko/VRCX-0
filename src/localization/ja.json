@@ -1622,6 +1622,15 @@
                 "model_count": "{count} 件のモデル",
                 "add": "エンドポイントを追加",
                 "empty_description": "Social AI と OpenAI 互換翻訳で使う OpenAI 互換エンドポイントを追加します。",
+                "preset": "プリセット",
+                "preset_custom": "カスタム",
+                "presets": {
+                    "openai": "OpenAI",
+                    "openrouter": "OpenRouter",
+                    "gemini": "Google Gemini",
+                    "deepseek": "DeepSeek",
+                    "xai": "xAI"
+                },
                 "name": "名前",
                 "base_url": "Base URL",
                 "models": "モデル",

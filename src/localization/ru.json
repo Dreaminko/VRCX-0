@@ -1628,6 +1628,15 @@
                 "model_count": "Моделей: {count}",
                 "add": "Добавить эндпоинт",
                 "empty_description": "Добавьте OpenAI-совместимый эндпоинт для Social AI и OpenAI-совместимого перевода.",
+                "preset": "Пресет",
+                "preset_custom": "Пользовательский",
+                "presets": {
+                    "openai": "OpenAI",
+                    "openrouter": "OpenRouter",
+                    "gemini": "Google Gemini",
+                    "deepseek": "DeepSeek",
+                    "xai": "xAI"
+                },
                 "name": "Имя",
                 "base_url": "Базовый URL",
                 "models": "Модели",

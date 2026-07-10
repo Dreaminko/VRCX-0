@@ -1626,6 +1626,15 @@
                 "model_count": "{count} 個模型",
                 "add": "新增端點",
                 "empty_description": "新增供社交 AI 與 OpenAI 相容翻譯功能使用的 OpenAI 相容端點。",
+                "preset": "預設",
+                "preset_custom": "自訂",
+                "presets": {
+                    "openai": "OpenAI",
+                    "openrouter": "OpenRouter",
+                    "gemini": "Google Gemini",
+                    "deepseek": "DeepSeek",
+                    "xai": "xAI"
+                },
                 "name": "名稱",
                 "base_url": "基礎網址",
                 "models": "模型",

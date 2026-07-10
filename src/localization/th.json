@@ -290,6 +290,15 @@
                 "model_count": "{count} โมเดล",
                 "add": "เพิ่ม Endpoint",
                 "empty_description": "เพิ่ม Endpoint ที่รองรับ OpenAI สำหรับ Social AI และการแปลที่รองรับ OpenAI",
+                "preset": "พรีเซ็ต",
+                "preset_custom": "กำหนดเอง",
+                "presets": {
+                    "openai": "OpenAI",
+                    "openrouter": "OpenRouter",
+                    "gemini": "Google Gemini",
+                    "deepseek": "DeepSeek",
+                    "xai": "xAI"
+                },
                 "name": "ชื่อ",
                 "base_url": "Base URL",
                 "models": "โมเดล",

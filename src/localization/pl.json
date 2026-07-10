@@ -358,6 +358,15 @@
                 "model_count": "Modele: {count}",
                 "add": "Dodaj endpoint",
                 "empty_description": "Dodaj endpoint zgodny z OpenAI dla Social AI i tłumaczenia zgodnego z OpenAI.",
+                "preset": "Ustawienie wstępne",
+                "preset_custom": "Własne",
+                "presets": {
+                    "openai": "OpenAI",
+                    "openrouter": "OpenRouter",
+                    "gemini": "Google Gemini",
+                    "deepseek": "DeepSeek",
+                    "xai": "xAI"
+                },
                 "name": "Nazwa",
                 "base_url": "Bazowy URL",
                 "models": "Modele",

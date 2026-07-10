@@ -31,31 +31,31 @@ export const LLM_ENDPOINT_PROVIDER_PRESETS: LlmEndpointProviderPreset[] = [
     {
         id: 'openai',
         name: 'OpenAI',
-        labelKey: 'view.tools.llm_endpoints.providers.openai',
+        labelKey: 'view.tools.llm_endpoints.presets.openai',
         baseUrl: 'https://api.openai.com/v1'
     },
     {
         id: 'openrouter',
         name: 'OpenRouter',
-        labelKey: 'view.tools.llm_endpoints.providers.openrouter',
+        labelKey: 'view.tools.llm_endpoints.presets.openrouter',
         baseUrl: 'https://openrouter.ai/api/v1'
     },
     {
         id: 'gemini',
         name: 'Google Gemini',
-        labelKey: 'view.tools.llm_endpoints.providers.gemini',
+        labelKey: 'view.tools.llm_endpoints.presets.gemini',
         baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai'
     },
     {
         id: 'deepseek',
         name: 'DeepSeek',
-        labelKey: 'view.tools.llm_endpoints.providers.deepseek',
+        labelKey: 'view.tools.llm_endpoints.presets.deepseek',
         baseUrl: 'https://api.deepseek.com'
     },
     {
         id: 'xai',
         name: 'xAI',
-        labelKey: 'view.tools.llm_endpoints.providers.xai',
+        labelKey: 'view.tools.llm_endpoints.presets.xai',
         baseUrl: 'https://api.x.ai/v1'
     }
 ];
@@ -111,7 +111,12 @@ export function applyLlmEndpointProviderPreset(
     if (!preset) {
         return {
             ...draft,
-            providerId: CUSTOM_LLM_ENDPOINT_PROVIDER_ID
+            providerId: CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
+            name: '',
+            baseUrl: '',
+            apiKey: '',
+            clearKey: false,
+            modelsText: ''
         };
     }
 

@@ -404,8 +404,8 @@ export function LlmEndpointsDialog({
                 ) : (
                     <div className="grid gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="llm-endpoint-dialog-provider">
-                                {t('view.tools.llm_endpoints.provider')}
+                            <Label htmlFor="llm-endpoint-dialog-preset">
+                                {t('view.tools.llm_endpoints.preset')}
                             </Label>
                             <Select
                                 value={draft.providerId}
@@ -413,7 +413,7 @@ export function LlmEndpointsDialog({
                                     {
                                         value: CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
                                         label: t(
-                                            'view.tools.llm_endpoints.provider_custom'
+                                            'view.tools.llm_endpoints.preset_custom'
                                         )
                                     },
                                     ...LLM_ENDPOINT_PROVIDER_PRESETS.map(
@@ -428,7 +428,7 @@ export function LlmEndpointsDialog({
                                 onValueChange={updateDraftProvider}
                             >
                                 <SelectTrigger
-                                    id="llm-endpoint-dialog-provider"
+                                    id="llm-endpoint-dialog-preset"
                                     className="w-full"
                                 >
                                     <SelectValue />
@@ -441,7 +441,7 @@ export function LlmEndpointsDialog({
                                             }
                                         >
                                             {t(
-                                                'view.tools.llm_endpoints.provider_custom'
+                                                'view.tools.llm_endpoints.preset_custom'
                                             )}
                                         </SelectItem>
                                         {LLM_ENDPOINT_PROVIDER_PRESETS.map(

@@ -1597,6 +1597,15 @@
                 "model_count": "모델 {count}개",
                 "add": "엔드포인트 추가",
                 "empty_description": "Social AI 및 OpenAI 호환 번역에 사용할 OpenAI 호환 엔드포인트를 추가하세요.",
+                "preset": "사전 설정",
+                "preset_custom": "맞춤",
+                "presets": {
+                    "openai": "OpenAI",
+                    "openrouter": "OpenRouter",
+                    "gemini": "Google Gemini",
+                    "deepseek": "DeepSeek",
+                    "xai": "xAI"
+                },
                 "name": "이름",
                 "base_url": "Base URL",
                 "models": "모델",

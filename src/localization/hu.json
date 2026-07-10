@@ -193,6 +193,15 @@
                 "model_count": "{count} modell",
                 "add": "Végpont hozzáadása",
                 "empty_description": "Adj hozzá egy OpenAI-kompatibilis végpontot a Social AI-hoz és az OpenAI-kompatibilis fordításhoz.",
+                "preset": "Előbeállítás",
+                "preset_custom": "Egyéni",
+                "presets": {
+                    "openai": "OpenAI",
+                    "openrouter": "OpenRouter",
+                    "gemini": "Google Gemini",
+                    "deepseek": "DeepSeek",
+                    "xai": "xAI"
+                },
                 "name": "Név",
                 "base_url": "Base URL",
                 "models": "Modellek",

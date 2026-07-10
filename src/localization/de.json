@@ -1626,6 +1626,15 @@
                 "model_count": "{count} Modelle",
                 "add": "Endpunkt hinzufügen",
                 "empty_description": "Füge einen OpenAI-kompatiblen Endpunkt für Social AI und OpenAI-kompatible Übersetzung hinzu.",
+                "preset": "Vorlage",
+                "preset_custom": "Benutzerdefiniert",
+                "presets": {
+                    "openai": "OpenAI",
+                    "openrouter": "OpenRouter",
+                    "gemini": "Google Gemini",
+                    "deepseek": "DeepSeek",
+                    "xai": "xAI"
+                },
                 "name": "Name",
                 "base_url": "Basis-URL",
                 "models": "Modelle",

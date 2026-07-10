@@ -1626,9 +1626,9 @@
                 "model_count": "{count} models",
                 "add": "Add endpoint",
                 "empty_description": "Add an OpenAI-compatible endpoint for Social AI and OpenAI-compatible translation.",
-                "provider": "Provider",
-                "provider_custom": "Custom",
-                "providers": {
+                "preset": "Preset",
+                "preset_custom": "Custom",
+                "presets": {
                     "openai": "OpenAI",
                     "openrouter": "OpenRouter",
                     "gemini": "Google Gemini",
