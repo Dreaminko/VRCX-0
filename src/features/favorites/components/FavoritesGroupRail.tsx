@@ -92,7 +92,7 @@ function GroupCapacityMeter({
             <div className="bg-muted h-[3px] min-w-0 flex-1 overflow-hidden rounded-full">
                 <div
                     className={cn(
-                        'h-full rounded-full transition-all',
+                        'h-full rounded-full transition-[width,background-color] ease-out motion-reduce:transition-[background-color]',
                         isFull
                             ? 'bg-destructive'
                             : isWarning

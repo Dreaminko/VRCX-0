@@ -148,7 +148,7 @@ export function UserActivityOverlapSection({
                         </span>
                         <span className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
                             <span
-                                className="block h-full rounded-full transition-all duration-500"
+                                className="block h-full rounded-full transition-[width,background-color] duration-200 ease-out motion-reduce:transition-[background-color]"
                                 style={{
                                     width: `${overlapPercent}%`,
                                     backgroundColor: isDarkMode

@@ -351,7 +351,7 @@ export function TopWorldRows({ worlds, sortBy }: any) {
                             </span>
                             <span className="bg-muted mt-1 block h-1.5 w-full overflow-hidden rounded-full">
                                 <span
-                                    className="bg-muted-foreground/45 block h-full rounded-full transition-all duration-500"
+                                    className="bg-muted-foreground/45 block h-full rounded-full transition-[width] duration-200 ease-out motion-reduce:transition-none"
                                     style={{ width: barWidth }}
                                 />
                             </span>

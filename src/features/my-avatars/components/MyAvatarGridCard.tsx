@@ -317,7 +317,7 @@ export function MyAvatarGridCard({
                                         </HoverCard>
                                     ) : null}
                                     {canWear && !tags.length ? (
-                                        <div className="bg-background/85 text-foreground max-w-full -translate-y-1 rounded-sm px-1.5 py-0 text-xs font-medium opacity-0 shadow-sm backdrop-blur-[1px] transition-all group-focus-within/card:translate-y-0 group-focus-within/card:opacity-100 group-hover/card:translate-y-0 group-hover/card:opacity-100">
+                                        <div className="bg-background/85 text-foreground max-w-full -translate-y-1 rounded-sm px-1.5 py-0 text-xs font-medium opacity-0 shadow-sm backdrop-blur-[1px] transition-[opacity,transform] ease-out group-focus-within/card:translate-y-0 group-focus-within/card:opacity-100 group-hover/card:translate-y-0 group-hover/card:opacity-100 motion-reduce:translate-y-0 motion-reduce:transition-opacity">
                                             {t(
                                                 'view.my_avatars.label.click_to_wear'
                                             )}

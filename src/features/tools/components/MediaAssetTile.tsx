@@ -166,7 +166,7 @@ export function MediaAssetTile({
                     ))}
                 </div>
                 {mediaHoverLabel ? (
-                    <div className="bg-background/85 text-foreground pointer-events-none absolute top-2 left-2 max-w-[calc(100%-3rem)] -translate-y-1 rounded-sm px-1.5 py-0.5 text-xs font-medium opacity-0 backdrop-blur-[1px] transition-all group-focus-within/tile:translate-y-0 group-focus-within/tile:opacity-100 group-hover/tile:translate-y-0 group-hover/tile:opacity-100">
+                    <div className="bg-background/85 text-foreground pointer-events-none absolute top-2 left-2 max-w-[calc(100%-3rem)] -translate-y-1 rounded-sm px-1.5 py-0.5 text-xs font-medium opacity-0 backdrop-blur-[1px] transition-[opacity,transform] ease-out group-focus-within/tile:translate-y-0 group-focus-within/tile:opacity-100 group-hover/tile:translate-y-0 group-hover/tile:opacity-100 motion-reduce:translate-y-0 motion-reduce:transition-opacity">
                         {mediaHoverLabel}
                     </div>
                 ) : null}
