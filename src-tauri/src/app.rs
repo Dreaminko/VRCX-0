@@ -247,7 +247,8 @@ pub fn run() {
                         hide_window_to_tray(window);
                     }
                 } else {
-                    commands::host::window::stop_runtime_services(window.app_handle());
+                    api.prevent_close();
+                    commands::host::window::request_application_exit(window.app_handle());
                 }
             }
         })
@@ -293,8 +294,7 @@ pub fn run() {
                 });
             }
             "tray-exit" => {
-                commands::host::window::stop_runtime_services(app);
-                app.exit(0);
+                commands::host::window::request_application_exit(app);
             }
             id if id.starts_with("mac-menu-") => {
                 #[cfg(target_os = "macos")]

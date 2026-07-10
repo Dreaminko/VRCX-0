@@ -62,7 +62,7 @@ mod platform {
                             break;
                         }
                         tracing::warn!("[IPC] accept error: {error}");
-                        std::thread::sleep(std::time::Duration::from_secs(1));
+                        std::thread::park_timeout(std::time::Duration::from_secs(1));
                     }
                 }
             });
@@ -131,6 +131,7 @@ mod platform {
             }
             if let Ok(mut accept_thread) = self.accept_thread.lock() {
                 if let Some(handle) = accept_thread.take() {
+                    handle.thread().unpark();
                     let _ = handle.join();
                 }
             }
