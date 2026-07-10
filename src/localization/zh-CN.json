@@ -666,8 +666,6 @@
             "active": "活跃中（仅登录网页端）",
             "offline": "离线",
             "search_placeholder": "搜索好友",
-            "spacing": "卡片间距",
-            "scale": "缩放",
             "density": "密度",
             "density_options": {
                 "standard": "标准",
@@ -935,6 +933,10 @@
             },
             "select_all": "全选",
             "deselect_all": "取消全选",
+            "selection": {
+                "count_one": "已选择 {count} 项",
+                "count_other": "已选择 {count} 项"
+            },
             "bulk_unfavorite": "批量取消收藏",
             "export": "导出",
             "import": "导入",
@@ -987,7 +989,6 @@
             "action": {
                 "remove_favorite": "移除收藏",
                 "export_favorite": "导出收藏",
-                "edit_mode": "编辑模式",
                 "move": "移动",
                 "move_to": "移动到"
             },

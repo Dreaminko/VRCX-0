@@ -244,12 +244,9 @@ export const ConfigKeys = defineConfigKeys({
     FavoritesFriendSplitter: { type: 'string', default: '260' },
     FavoritesWorldSplitter: { type: 'string', default: '260' },
     FavoritesAvatarSplitter: { type: 'string', default: '260' },
-    FavoritesFriendCardScale: { type: 'string', default: '1' },
-    FavoritesWorldCardScale: { type: 'string', default: '1' },
-    FavoritesAvatarCardScale: { type: 'string', default: '1' },
-    FavoritesFriendCardSpacing: { type: 'string', default: '1' },
-    FavoritesWorldCardSpacing: { type: 'string', default: '1' },
-    FavoritesAvatarCardSpacing: { type: 'string', default: '1' },
+    FavoritesFriendDensity: { type: 'string', default: 'compact' },
+    FavoritesWorldDensity: { type: 'string', default: 'standard' },
+    FavoritesAvatarDensity: { type: 'string', default: 'standard' },
 
     // ── Table Filters ────────────────────────────────
     notificationTableFilters: { type: 'string', default: '[]' },
@@ -358,15 +355,10 @@ export const FAVORITES_LAYOUT_CONFIG_KEYS = Object.freeze({
         world: 'VRCX_FavoritesWorldSplitter',
         avatar: 'VRCX_FavoritesAvatarSplitter'
     }),
-    cardScale: Object.freeze({
-        friend: 'VRCX_FavoritesFriendCardScale',
-        world: 'VRCX_FavoritesWorldCardScale',
-        avatar: 'VRCX_FavoritesAvatarCardScale'
-    }),
-    cardSpacing: Object.freeze({
-        friend: 'VRCX_FavoritesFriendCardSpacing',
-        world: 'VRCX_FavoritesWorldCardSpacing',
-        avatar: 'VRCX_FavoritesAvatarCardSpacing'
+    density: Object.freeze({
+        friend: 'VRCX_FavoritesFriendDensity',
+        world: 'VRCX_FavoritesWorldDensity',
+        avatar: 'VRCX_FavoritesAvatarDensity'
     }),
     sort: Object.freeze({
         friend: 'VRCX_FavoritesFriendSort',

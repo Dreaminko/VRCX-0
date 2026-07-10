@@ -120,6 +120,10 @@
                 "local_favorites": "รายการโปรดในเครื่อง (ต้องใช้ VRC+)",
                 "new_group": "กลุ่มใหม่"
             },
+            "selection": {
+                "count_one": "เลือกแล้ว {count} รายการ",
+                "count_other": "เลือกแล้ว {count} รายการ"
+            },
             "bulk_unfavorite": "เลิกถูกใจหลายรายการ",
             "export": "ส่งออก",
             "import": "นำเข้า",

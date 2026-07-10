@@ -93,8 +93,7 @@ function FavoritesPage({
                 searchQuery={filters.searchQuery}
                 searchPlaceholder={viewData.pageConfig.searchPlaceholder}
                 searchMode={filters.searchMode}
-                cardScale={layout.cardScale}
-                cardSpacing={layout.cardSpacing}
+                density={layout.density}
                 refreshing={
                     actions.refreshing ||
                     collections.favoriteLoadStatus === 'running'
@@ -102,8 +101,7 @@ function FavoritesPage({
                 onSortValueChange={layout.handleSortValueChange}
                 onSearchChange={filters.setSearchQuery}
                 onSearchModeChange={filters.setSearchMode}
-                onCardScaleChange={layout.handleCardScaleChange}
-                onCardSpacingChange={layout.handleCardSpacingChange}
+                onDensityChange={layout.handleDensityChange}
                 onRefresh={handleGroupRailRefresh}
                 onImport={handleImportFavorites}
                 onExport={handleExportFavorites}

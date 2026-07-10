@@ -99,6 +99,10 @@
             },
             "export": "Xuất dữ liệu",
             "import": "Nhập dữ liệu",
+            "selection": {
+                "count_one": "Đã chọn {count} mục",
+                "count_other": "Đã chọn {count} mục"
+            },
             "rename_tooltip": "Đổi tên",
             "share_collection": {
                 "title": "Chia sẻ bộ sưu tập",

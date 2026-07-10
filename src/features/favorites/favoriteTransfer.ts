@@ -95,6 +95,58 @@ export function buildFavoriteTransferFailureDescription({
         .join('\n');
 }
 
+export function isFavoriteMoveTargetOverCapacity(
+    target: FavoriteGroup,
+    additionalCount: number
+): boolean {
+    if (typeof target.capacity !== 'number') {
+        return false;
+    }
+    const currentCount = typeof target.count === 'number' ? target.count : 0;
+    return currentCount + additionalCount > target.capacity;
+}
+
+function favoriteItemSourceGroupBatchKey(item: FavoriteItem): string {
+    return `${item.source}:${item.groupKey ?? ''}`;
+}
+
+export function groupFavoriteItemsBySourceGroup(
+    items: FavoriteItem[]
+): FavoriteItem[][] {
+    const buckets = new Map<string, FavoriteItem[]>();
+    for (const item of items) {
+        const batchKey = favoriteItemSourceGroupBatchKey(item);
+        const bucket = buckets.get(batchKey);
+        if (bucket) {
+            bucket.push(item);
+        } else {
+            buckets.set(batchKey, [item]);
+        }
+    }
+    return Array.from(buckets.values());
+}
+
+export function resolveFavoriteSourceGroup({
+    item,
+    remoteGroups,
+    localGroups
+}: {
+    item: FavoriteItem;
+    remoteGroups: FavoriteGroup[];
+    localGroups: FavoriteGroup[];
+}): FavoriteGroup {
+    const candidates = item.source === 'remote' ? remoteGroups : localGroups;
+    const matched = candidates.find((group) => group.key === item.groupKey);
+    if (matched) {
+        return matched;
+    }
+    return {
+        key: item.groupKey || '',
+        source: item.source,
+        label: item.groupLabel || item.groupKey || ''
+    };
+}
+
 export function buildFavoriteTransferTargets({
     remoteGroups,
     localGroups,

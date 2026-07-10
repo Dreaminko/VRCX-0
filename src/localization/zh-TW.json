@@ -666,8 +666,6 @@
             "active": "活躍",
             "offline": "離線",
             "search_placeholder": "搜尋好友",
-            "spacing": "間距",
-            "scale": "縮放",
             "density": "密度",
             "density_options": {
                 "standard": "標準",
@@ -935,6 +933,10 @@
             },
             "select_all": "選擇全部",
             "deselect_all": "取消選擇全部",
+            "selection": {
+                "count_one": "已選取 {count} 項",
+                "count_other": "已選取 {count} 項"
+            },
             "bulk_unfavorite": "批次移除收藏",
             "export": "匯出",
             "import": "匯入",
@@ -987,7 +989,6 @@
             "action": {
                 "remove_favorite": "移除收藏",
                 "export_favorite": "匯出收藏",
-                "edit_mode": "編輯模式",
                 "move": "移動",
                 "move_to": "移動至"
             },

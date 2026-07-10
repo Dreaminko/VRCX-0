@@ -63,4 +63,29 @@ describe('favorite export helpers', () => {
             'ID,Name,Author,Thumbnail,Group,Source\nwrld_1,Hangout,World Author,https://example.test/thumb.png,worlds1,local'
         );
     });
+
+    it('prefers authorName over subtitle and keeps unavailable authors empty', () => {
+        expect(
+            buildFavoriteExportCsv(
+                [
+                    {
+                        id: 'wrld_1',
+                        title: 'Hangout',
+                        authorName: 'Real Author',
+                        subtitle: 'Real Author',
+                        source: 'remote'
+                    },
+                    {
+                        id: 'wrld_2',
+                        title: 'Gone World',
+                        authorName: '',
+                        subtitle: 'World details unavailable',
+                        source: 'remote'
+                    }
+                ],
+                'world',
+                ['id', 'author']
+            )
+        ).toBe('ID,Author\nwrld_1,Real Author\nwrld_2,');
+    });
 });

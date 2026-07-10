@@ -7,7 +7,10 @@ import {
     buildFavoriteTransferFailureDescription,
     buildFavoriteTransferInput,
     buildFavoriteTransferSuccessfulKeys,
-    buildFavoriteTransferTargets
+    buildFavoriteTransferTargets,
+    groupFavoriteItemsBySourceGroup,
+    isFavoriteMoveTargetOverCapacity,
+    resolveFavoriteSourceGroup
 } from './favoriteTransfer';
 
 const remoteGroups: FavoriteGroup[] = [
@@ -158,5 +161,98 @@ describe('favorite transfer helpers', () => {
                 fallbackMessage: 'Failed to move selected favorites'
             })
         ).toBe('wrld_1 [addRemote]: Favorite limit reached');
+    });
+
+    it('flags a move target as over capacity once selected items would exceed it', () => {
+        const target: FavoriteGroup = {
+            key: 'world:group_0',
+            source: 'remote',
+            label: 'Remote A',
+            count: 98,
+            capacity: 100
+        };
+        expect(isFavoriteMoveTargetOverCapacity(target, 2)).toBe(false);
+        expect(isFavoriteMoveTargetOverCapacity(target, 3)).toBe(true);
+    });
+
+    it('treats move targets without a capacity as never over capacity', () => {
+        expect(
+            isFavoriteMoveTargetOverCapacity(
+                {
+                    key: 'Local A',
+                    source: 'local',
+                    label: 'Local A',
+                    count: 500
+                },
+                999
+            )
+        ).toBe(false);
+    });
+
+    it('groups selected items by their originating source and group for safe cross-group moves', () => {
+        const groupAItem: FavoriteItem = {
+            ...remoteItem,
+            key: 'remote:world:group_0:wrld_a',
+            id: 'wrld_a'
+        };
+        const groupBItem: FavoriteItem = {
+            ...remoteItem,
+            key: 'remote:world:group_1:wrld_b',
+            id: 'wrld_b',
+            groupKey: 'world:group_1'
+        };
+        const batches = groupFavoriteItemsBySourceGroup([
+            groupAItem,
+            groupBItem,
+            localItem
+        ]);
+        expect(batches).toHaveLength(3);
+        expect(batches.map((batch) => batch.map((item) => item.key))).toEqual([
+            [groupAItem.key],
+            [groupBItem.key],
+            [localItem.key]
+        ]);
+    });
+
+    it('keeps items from the same source group together in one batch', () => {
+        const secondGroupAItem: FavoriteItem = {
+            ...remoteItem,
+            key: 'remote:world:group_0:wrld_c',
+            id: 'wrld_c'
+        };
+        const batches = groupFavoriteItemsBySourceGroup([
+            remoteItem,
+            secondGroupAItem
+        ]);
+        expect(batches).toEqual([[remoteItem, secondGroupAItem]]);
+    });
+
+    it('resolves the actual favorite group object matching an item source and group key', () => {
+        expect(
+            resolveFavoriteSourceGroup({
+                item: localItem,
+                remoteGroups,
+                localGroups
+            })
+        ).toEqual(localGroups[0]);
+    });
+
+    it('falls back to a synthetic group when no matching group object is found', () => {
+        const orphanedItem: FavoriteItem = {
+            ...localItem,
+            groupKey: 'Missing Group',
+            groupLabel: 'Missing Group Label'
+        };
+        expect(
+            resolveFavoriteSourceGroup({
+                item: orphanedItem,
+                remoteGroups,
+                localGroups
+            })
+        ).toEqual({
+            key: 'Missing Group',
+            source: 'local',
+            label: 'Missing Group Label'
+        });
     });
 });

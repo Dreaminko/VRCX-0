@@ -666,8 +666,6 @@
             "active": "Actif",
             "offline": "Hors ligne",
             "search_placeholder": "Rechercher des amis",
-            "spacing": "Espacement",
-            "scale": "Échelle",
             "density": "Densité",
             "density_options": {
                 "standard": "Standard",
@@ -935,6 +933,10 @@
             },
             "select_all": "Tout sélectionner",
             "deselect_all": "Tout désélectionner",
+            "selection": {
+                "count_one": "{count} élément sélectionné",
+                "count_other": "{count} éléments sélectionnés"
+            },
             "bulk_unfavorite": "Retirer les favoris en masse",
             "export": "Exporter",
             "import": "Importer",
@@ -987,7 +989,6 @@
             "action": {
                 "remove_favorite": "Retirer le favori",
                 "export_favorite": "Exporter le favori",
-                "edit_mode": "Mode édition",
                 "move": "Déplacer",
                 "move_to": "Déplacer vers"
             },

@@ -99,6 +99,10 @@
             },
             "export": "Exportálás",
             "import": "Importálás",
+            "selection": {
+                "count_one": "{count} elem kiválasztva",
+                "count_other": "{count} elem kiválasztva"
+            },
             "rename_tooltip": "Átnevezés",
             "share_collection": {
                 "title": "Gyűjtemény megosztása",

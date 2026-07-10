@@ -1,10 +1,14 @@
 import {
     EllipsisIcon,
+    GlobeIcon,
+    LockIcon,
     MoreHorizontalIcon,
     PlusIcon,
     RefreshCcwIcon,
-    Share2Icon
+    Share2Icon,
+    UsersIcon
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -23,24 +27,95 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 import { Input } from '@/ui/shadcn/input';
+import { Skeleton } from '@/ui/shadcn/skeleton';
 import { Spinner } from '@/ui/shadcn/spinner';
 
 const VISIBILITY_OPTIONS = ['public', 'friends', 'private'] as const;
 type FavoriteVisibility = (typeof VISIBILITY_OPTIONS)[number];
 
-const VISIBILITY_LABEL_KEYS: Record<FavoriteVisibility, string> = {
-    public: 'view.favorite.visibility.public',
-    friends: 'view.favorite.visibility.friends',
-    private: 'view.favorite.visibility.private'
+const VISIBILITY_META: Record<
+    FavoriteVisibility,
+    { labelKey: string; icon: LucideIcon }
+> = {
+    public: { labelKey: 'view.favorite.visibility.public', icon: GlobeIcon },
+    friends: { labelKey: 'view.favorite.visibility.friends', icon: UsersIcon },
+    private: { labelKey: 'view.favorite.visibility.private', icon: LockIcon }
 };
 
 function getVisibilityLabel(
     t: ReturnType<typeof useTranslation>['t'],
     visibility: string
 ) {
-    return VISIBILITY_LABEL_KEYS[visibility as FavoriteVisibility]
-        ? t(VISIBILITY_LABEL_KEYS[visibility as FavoriteVisibility])
-        : visibility;
+    const meta = VISIBILITY_META[visibility as FavoriteVisibility];
+    return meta ? t(meta.labelKey) : visibility;
+}
+
+function GroupVisibilityIcon({
+    visibility,
+    label
+}: {
+    visibility: string;
+    label: string;
+}) {
+    const meta = VISIBILITY_META[visibility as FavoriteVisibility];
+    if (!meta) {
+        return (
+            <span className="text-muted-foreground shrink-0 text-xs">
+                {label}
+            </span>
+        );
+    }
+    return (
+        <span className="shrink-0" title={label}>
+            <meta.icon
+                className="text-muted-foreground size-3.5"
+                aria-hidden="true"
+            />
+        </span>
+    );
+}
+
+function GroupCapacityMeter({
+    count,
+    capacity
+}: {
+    count: number;
+    capacity: number;
+}) {
+    const ratio = capacity > 0 ? count / capacity : 0;
+    const percent = Math.min(100, Math.max(0, ratio * 100));
+    const isFull = count >= capacity;
+    const isWarning = !isFull && ratio >= 0.9;
+
+    return (
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <div className="bg-muted h-[3px] min-w-0 flex-1 overflow-hidden rounded-full">
+                <div
+                    className={cn(
+                        'h-full rounded-full transition-all',
+                        isFull
+                            ? 'bg-destructive'
+                            : isWarning
+                              ? 'bg-amber-600 dark:bg-amber-500'
+                              : 'bg-primary'
+                    )}
+                    style={{ width: `${percent}%` }}
+                />
+            </div>
+            <span
+                className={cn(
+                    'shrink-0 text-xs tabular-nums',
+                    isFull
+                        ? 'text-destructive'
+                        : isWarning
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-muted-foreground'
+                )}
+            >
+                {count}/{capacity}
+            </span>
+        </div>
+    );
 }
 
 function GroupMenu({
@@ -209,6 +284,7 @@ function GroupMenu({
 
 const GroupRailSection = memo(function GroupRailSection({
     title,
+    icon: SectionIcon,
     groups,
     selectedSource,
     selectedGroupKey,
@@ -236,9 +312,17 @@ const GroupRailSection = memo(function GroupRailSection({
         newGroupLabel || t('view.favorite.worlds.new_group');
 
     return (
-        <div className="flex flex-col gap-2">
-            <div className="mb-[9px] flex items-center justify-between text-sm font-semibold">
-                <span>{title}</span>
+        <div className="flex flex-col gap-1">
+            <div className="mb-1 flex items-center justify-between text-sm font-semibold">
+                <span className="flex items-center gap-1.5">
+                    {SectionIcon ? (
+                        <SectionIcon
+                            className="text-muted-foreground size-4"
+                            aria-hidden="true"
+                        />
+                    ) : null}
+                    <span>{title}</span>
+                </span>
                 {onRefresh ? (
                     <Button
                         type="button"
@@ -257,19 +341,15 @@ const GroupRailSection = memo(function GroupRailSection({
                     </Button>
                 ) : null}
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-0.5">
                 {loading && !groups.length ? (
                     Array.from({ length: 5 }, (_: any, index: any) => (
                         <div
                             key={`group-placeholder-${index}`}
-                            className="border-border pointer-events-none flex w-full items-start justify-between rounded-lg border px-3 py-2 text-left text-sm opacity-70"
+                            className="pointer-events-none flex w-full flex-col gap-1 rounded-md px-2 py-1.5 text-sm opacity-70"
                         >
-                            <div className="min-w-0">
-                                <div className="truncate font-semibold">
-                                    {t('view.favorite.label.group')} {index + 1}
-                                </div>
-                                <div className="bg-muted mt-1 h-3 w-14 rounded" />
-                            </div>
+                            <Skeleton className="h-3.5 w-3/5" />
+                            <Skeleton className="h-[3px] w-full rounded-full" />
                         </div>
                     ))
                 ) : groups.length ? (
@@ -284,38 +364,46 @@ const GroupRailSection = memo(function GroupRailSection({
                             <div
                                 key={`${group.source}:${group.key}`}
                                 className={cn(
-                                    'hover:bg-muted flex w-full items-start justify-between rounded-lg border transition-colors',
+                                    'group/rail-row flex w-full items-center gap-1 rounded-md transition-colors',
                                     isActive
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border'
+                                        ? 'bg-primary/15'
+                                        : 'hover:bg-muted'
                                 )}
                             >
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    className="h-auto min-w-0 flex-1 justify-start rounded-lg px-3 py-2 text-left whitespace-normal"
+                                    className="h-auto min-w-0 flex-1 justify-start gap-1 rounded-md px-2 py-1.5 text-left whitespace-normal hover:bg-transparent"
                                     onClick={() => onSelect(group)}
                                 >
-                                    <span className="min-w-0">
-                                        <span className="block truncate font-semibold">
-                                            {group.label}
-                                        </span>
-                                        <span className="text-muted-foreground mt-1 flex items-center gap-1.5 text-xs font-normal">
+                                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                                        <span className="flex min-w-0 items-center gap-1.5">
+                                            <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                                                {group.label}
+                                            </span>
                                             {visibilityLabel ? (
-                                                <span>{visibilityLabel}</span>
+                                                <GroupVisibilityIcon
+                                                    visibility={
+                                                        group.visibility
+                                                    }
+                                                    label={visibilityLabel}
+                                                />
                                             ) : null}
-                                            {group.capacity ? (
-                                                <span>
-                                                    {group.count}/
-                                                    {group.capacity}
+                                            {!group.capacity ? (
+                                                <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                                                    {group.count}
                                                 </span>
-                                            ) : (
-                                                <span>{group.count}</span>
-                                            )}
+                                            ) : null}
                                         </span>
+                                        {group.capacity ? (
+                                            <GroupCapacityMeter
+                                                count={group.count}
+                                                capacity={group.capacity}
+                                            />
+                                        ) : null}
                                     </span>
                                 </Button>
-                                <div className="shrink-0 py-1 pr-1">
+                                <div className="shrink-0 pr-1">
                                     <GroupMenu
                                         group={group}
                                         onRemoteRename={onRemoteRename}

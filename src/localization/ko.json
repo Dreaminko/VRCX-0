@@ -659,8 +659,6 @@
             "active": "활성",
             "offline": "오프라인",
             "search_placeholder": "친구 검색",
-            "spacing": "간격",
-            "scale": "규모",
             "density": "밀도",
             "density_options": {
                 "standard": "표준",
@@ -906,6 +904,10 @@
             },
             "select_all": "모두 선택",
             "deselect_all": "모두 선택 취소",
+            "selection": {
+                "count_one": "{count}개 선택됨",
+                "count_other": "{count}개 선택됨"
+            },
             "bulk_unfavorite": "대량 비선호",
             "export": "내보내기",
             "import": "가져오기",
@@ -958,7 +960,6 @@
             "action": {
                 "remove_favorite": "즐겨찾기 삭제",
                 "export_favorite": "즐겨찾기 내보내기",
-                "edit_mode": "편집 모드",
                 "move": "이동",
                 "move_to": "이동 위치"
             },

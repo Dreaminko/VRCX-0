@@ -27,14 +27,12 @@ export function useFavoritesActions({
     newLocalGroupName,
     refreshRemoteDetails,
     remoteGroups,
-    selectedGroup,
     selectedContentItems,
     selectedGroupKey,
     selectedSource,
     setAvatarHistory,
     setAvatarHistoryLoading,
     setCreatingLocalGroup,
-    setEditMode,
     setExportDialogOpen,
     setNewLocalGroupName,
     setSelectedGroupKey,
@@ -55,7 +53,6 @@ export function useFavoritesActions({
     newLocalGroupName: string;
     refreshRemoteDetails(): void;
     remoteGroups: FavoriteGroup[];
-    selectedGroup: FavoriteGroup | null;
     selectedContentItems: FavoriteItem[];
     selectedGroupKey: string;
     selectedSource: FavoriteSource;
@@ -64,7 +61,6 @@ export function useFavoritesActions({
     ): void;
     setAvatarHistoryLoading(value: boolean): void;
     setCreatingLocalGroup(value: boolean): void;
-    setEditMode(value: boolean): void;
     setExportDialogOpen(value: boolean): void;
     setNewLocalGroupName(value: string): void;
     setSelectedGroupKey(value: string): void;
@@ -122,11 +118,9 @@ export function useFavoritesActions({
         localGroups,
         refreshFavorites: collectionActions.refreshFavorites,
         remoteGroups,
-        selectedGroup,
         selectedContentItems,
         selectedGroupKey,
         selectedSource,
-        setEditMode,
         setSelectedKeys
     });
 

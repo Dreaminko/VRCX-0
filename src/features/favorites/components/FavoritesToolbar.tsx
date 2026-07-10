@@ -18,7 +18,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
-import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
+import { Field, FieldContent, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import {
     InputGroup,
     InputGroupAddon,
@@ -33,33 +33,49 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-import { Slider } from '@/ui/shadcn/slider';
 import { Spinner } from '@/ui/shadcn/spinner';
+import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
-const CARD_SCALE_SLIDER = { min: 0.6, max: 1, step: 0.01 };
-const CARD_SPACING_SLIDER = { min: 0.5, max: 1.5, step: 0.05 };
+import {
+    FAVORITES_DENSITY_OPTIONS,
+    type FavoritesDensity
+} from '../favoritesDensity';
+import type { FavoriteKind } from '../favoritesTypes';
+
+type FavoritesToolbarProps = {
+    kind: FavoriteKind;
+    sortValue: string;
+    searchQuery: string;
+    searchPlaceholder: string;
+    searchMode: string;
+    density: FavoritesDensity;
+    refreshing: boolean;
+    onSortValueChange: (value: string) => void;
+    onSearchChange: (value: string) => void;
+    onSearchModeChange: (mode: string) => void;
+    onDensityChange: (value: FavoritesDensity) => void;
+    onRefresh: () => void;
+    onImport: () => void;
+    onExport: () => void;
+};
+
 function FavoritesToolbar({
     kind,
     sortValue,
     searchQuery,
     searchPlaceholder,
     searchMode,
-    cardScale,
-    cardSpacing,
+    density,
     refreshing,
     onSortValueChange,
     onSearchChange,
     onSearchModeChange,
-    onCardScaleChange,
-    onCardSpacingChange,
+    onDensityChange,
     onRefresh,
     onImport,
     onExport
-}: any) {
+}: FavoritesToolbarProps) {
     const { t } = useTranslation();
-
-    const cardScalePercent = Math.round(cardScale * 100);
-    const cardSpacingPercent = Math.round(cardSpacing * 100);
 
     return (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -195,50 +211,38 @@ function FavoritesToolbar({
                             onClick={(event) => event.stopPropagation()}
                         >
                             <Field>
-                                <div className="flex items-center justify-between text-sm font-semibold">
+                                <FieldContent>
                                     <FieldLabel>
-                                        {t('view.friends_locations.scale')}
+                                        {t('view.friends_locations.density')}
                                     </FieldLabel>
-                                    <span className="text-muted-foreground text-xs">
-                                        {cardScalePercent}%
-                                    </span>
-                                </div>
-                                <Slider
-                                    min={CARD_SCALE_SLIDER.min}
-                                    max={CARD_SCALE_SLIDER.max}
-                                    step={CARD_SCALE_SLIDER.step}
-                                    value={[cardScale]}
-                                    onValueChange={(value) =>
-                                        onCardScaleChange(
-                                            Array.isArray(value)
-                                                ? value[0]
-                                                : value
-                                        )
-                                    }
-                                />
-                            </Field>
-                            <Field>
-                                <div className="flex items-center justify-between text-sm font-semibold">
-                                    <FieldLabel>
-                                        {t('view.friends_locations.spacing')}
-                                    </FieldLabel>
-                                    <span className="text-muted-foreground text-xs">
-                                        {cardSpacingPercent}%
-                                    </span>
-                                </div>
-                                <Slider
-                                    min={CARD_SPACING_SLIDER.min}
-                                    max={CARD_SPACING_SLIDER.max}
-                                    step={CARD_SPACING_SLIDER.step}
-                                    value={[cardSpacing]}
-                                    onValueChange={(value) =>
-                                        onCardSpacingChange(
-                                            Array.isArray(value)
-                                                ? value[0]
-                                                : value
-                                        )
-                                    }
-                                />
+                                </FieldContent>
+                                <ToggleGroup
+                                    variant="outline"
+                                    size="sm"
+                                    spacing={1}
+                                    value={density ? [density] : []}
+                                    onValueChange={(nextValue) => {
+                                        if (nextValue[0]) {
+                                            onDensityChange(
+                                                nextValue[0] as FavoritesDensity
+                                            );
+                                        }
+                                    }}
+                                    className="grid w-full grid-cols-2"
+                                >
+                                    {FAVORITES_DENSITY_OPTIONS.map((option) => (
+                                        <ToggleGroupItem
+                                            key={option.value}
+                                            value={option.value}
+                                            aria-label={t(option.labelKey)}
+                                            className="w-full min-w-0 justify-center px-2"
+                                        >
+                                            <span className="truncate">
+                                                {t(option.labelKey)}
+                                            </span>
+                                        </ToggleGroupItem>
+                                    ))}
+                                </ToggleGroup>
                             </Field>
                         </FieldGroup>
                         <DropdownMenuSeparator />

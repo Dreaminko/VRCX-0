@@ -666,8 +666,6 @@
             "active": "アクティブ",
             "offline": "オフライン",
             "search_placeholder": "フレンドを検索",
-            "spacing": "表示間隔",
-            "scale": "サイズ",
             "density": "密度",
             "density_options": {
                 "standard": "標準",
@@ -931,6 +929,10 @@
             },
             "select_all": "すべて選択",
             "deselect_all": "すべて解除",
+            "selection": {
+                "count_one": "{count} 件選択中",
+                "count_other": "{count} 件選択中"
+            },
             "bulk_unfavorite": "一括お気に入り解除",
             "export": "エクスポート",
             "import": "インポート",
@@ -983,7 +985,6 @@
             "action": {
                 "remove_favorite": "お気に入りから削除",
                 "export_favorite": "お気に入りをエクスポート",
-                "edit_mode": "編集モード",
                 "move": "移動",
                 "move_to": "移動先"
             },

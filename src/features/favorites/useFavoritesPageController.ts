@@ -116,9 +116,7 @@ export function useFavoritesPageController({ kind }: { kind: FavoriteKind }) {
     );
     const selection = useFavoritesSelectionState({
         contentItems: viewData.contentItems,
-        isSearchActive: viewData.isSearchActive,
-        kind,
-        selectedSource: filters.selectedSource
+        kind
     });
     const actions = useFavoritesActions({
         allItems: viewData.allItems,
@@ -135,7 +133,6 @@ export function useFavoritesPageController({ kind }: { kind: FavoriteKind }) {
         newLocalGroupName,
         remoteGroups: viewData.remoteGroups,
         refreshRemoteDetails: collections.actionInputs.refreshRemoteDetails,
-        selectedGroup: viewData.selectedGroup,
         selectedContentItems: selection.selectedContentItems,
         selectedGroupKey: filters.selectedGroupKey,
         selectedSource: filters.selectedSource,
@@ -143,7 +140,6 @@ export function useFavoritesPageController({ kind }: { kind: FavoriteKind }) {
         setAvatarHistoryLoading:
             collections.actionInputs.setAvatarHistoryLoading,
         setCreatingLocalGroup,
-        setEditMode: selection.setEditMode,
         setExportDialogOpen,
         setNewLocalGroupName,
         setSelectedGroupKey: filters.setSelectedGroupKey,

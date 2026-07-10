@@ -465,19 +465,10 @@ export function buildFavoriteRemoteItemsByGroup({
             textValue(displayDetail?.releaseStatus) === 'private' ||
             usedFallback;
         const playerCount = Number(displayDetail?.occupants) || 0;
+        const authorName = textValue(displayDetail?.authorName);
         const subtitle =
-            kind === 'world'
-                ? textValue(displayDetail?.authorName)
-                    ? playerCount
-                        ? `${textValue(displayDetail?.authorName)} (${playerCount})`
-                        : textValue(displayDetail?.authorName)
-                    : defaultFavoriteDetailSubtitle(
-                          kind,
-                          isUnavailable,
-                          translate
-                      )
-                : textValue(displayDetail?.authorName) ||
-                  defaultFavoriteDetailSubtitle(kind, isUnavailable, translate);
+            authorName ||
+            defaultFavoriteDetailSubtitle(kind, isUnavailable, translate);
 
         itemsByGroup[groupKey].push({
             key: `remote:${groupKey}:${favoriteId}`,
@@ -492,6 +483,7 @@ export function buildFavoriteRemoteItemsByGroup({
                 textValue(displayDetail?.name) ||
                 defaultFavoriteEntityTitle(kind, translate),
             subtitle,
+            authorName,
             description: textValue(displayDetail?.description),
             seedData: displayDetail || null,
             imageUrl: shrinkImage(
@@ -596,6 +588,7 @@ export function buildFavoriteLocalItemsByGroup({
                     textValue(detail.name) ||
                     defaultFavoriteEntityTitle(kind, translate),
                 subtitle: textValue(detail.authorName),
+                authorName: textValue(detail.authorName),
                 description: textValue(detail.description),
                 seedData: detail || null,
                 imageUrl: shrinkImage(
@@ -643,6 +636,7 @@ export function buildFavoriteAvatarHistoryItems({
                 textValue(detail?.name) ||
                 translate('view.favorites.empty.avatar_fallback'),
             subtitle: textValue(detail?.authorName),
+            authorName: textValue(detail?.authorName),
             description: textValue(detail?.description),
             seedData: detail || null,
             imageUrl: shrinkImage(

@@ -666,8 +666,6 @@
             "active": "Активен",
             "offline": "Офлайн",
             "search_placeholder": "Поиск друзей",
-            "spacing": "Расстояние",
-            "scale": "Шкала",
             "density": "Плотность",
             "density_options": {
                 "standard": "Стандартные",
@@ -935,6 +933,12 @@
             },
             "select_all": "Выбрать все",
             "deselect_all": "Отменить все",
+            "selection": {
+                "count_one": "Выбран {count} элемент",
+                "count_few": "Выбрано {count} элемента",
+                "count_many": "Выбрано {count} элементов",
+                "count_other": "Выбрано {count} элемента"
+            },
             "bulk_unfavorite": "Массово убрать из избранного",
             "export": "Экспорт",
             "import": "Импорт",
@@ -987,7 +991,6 @@
             "action": {
                 "remove_favorite": "Удалить избранный",
                 "export_favorite": "Экспорт избранное",
-                "edit_mode": "Редактировать режим",
                 "move": "Двигайся.",
                 "move_to": "Перейти к"
             },

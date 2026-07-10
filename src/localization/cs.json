@@ -666,8 +666,6 @@
             "active": "Aktivní",
             "offline": "Offline",
             "search_placeholder": "Hledat přátele",
-            "spacing": "Rozestupy",
-            "scale": "Měřítko",
             "density": "Hustota",
             "density_options": {
                 "standard": "Standardní",
@@ -935,6 +933,12 @@
             },
             "select_all": "Vybrat vše",
             "deselect_all": "Zrušit výběr",
+            "selection": {
+                "count_one": "Vybrána {count} položka",
+                "count_few": "Vybrány {count} položky",
+                "count_many": "Vybráno {count} položky",
+                "count_other": "Vybráno {count} položek"
+            },
             "bulk_unfavorite": "Hromadné odebrání z oblíbených",
             "export": "Exportovat",
             "import": "Importovat",
@@ -987,7 +991,6 @@
             "action": {
                 "remove_favorite": "Odebrat z oblíbených",
                 "export_favorite": "Exportovat oblíbené",
-                "edit_mode": "Režim úprav",
                 "move": "Přesunout",
                 "move_to": "Přesunout do"
             },

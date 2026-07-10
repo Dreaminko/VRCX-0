@@ -88,8 +88,6 @@
             }
         },
         "friends_locations": {
-            "spacing": "Odstępy",
-            "scale": "Rozmiar",
             "loading_more": "Ładowanie więcej..."
         },
         "game_log": {
@@ -146,6 +144,12 @@
             },
             "select_all": "Zaznacz wszystko",
             "deselect_all": "Odznacz wszystko",
+            "selection": {
+                "count_one": "Zaznaczono {count} element",
+                "count_few": "Zaznaczono {count} elementy",
+                "count_many": "Zaznaczono {count} elementów",
+                "count_other": "Zaznaczono {count} elementu"
+            },
             "bulk_unfavorite": "Masowe odlubianie",
             "export": "Eksportuj",
             "import": "Importuj",
