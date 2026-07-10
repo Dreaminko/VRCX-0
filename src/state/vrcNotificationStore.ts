@@ -8,7 +8,6 @@ import {
     getNotificationCategory,
     getNotificationTs
 } from '@/shared/utils/notificationCategory';
-import { getNotificationLifecycleBucket } from '@/shared/utils/notificationLifecycle';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
 
@@ -151,15 +150,37 @@ function isUnseenNotification(notification?: NotificationRow | null): boolean {
     );
 }
 
-function shouldMarkSeenOnCenterClose(
-    notification?: NotificationRow | null
-): boolean {
+function shouldBulkMarkSeen(notification?: NotificationRow | null): boolean {
     const version = Number(notification?.version ?? 1);
     const type = String(notification?.type || '');
-    return (
-        getNotificationLifecycleBucket(type) !== 'system' &&
-        !(version !== 2 && ACTION_REQUIRED_V1_TYPES.has(type))
-    );
+    return !(version !== 2 && ACTION_REQUIRED_V1_TYPES.has(type));
+}
+
+const MARK_SEEN_MAX_RETRIES = 3;
+const MARK_SEEN_BASE_DELAY_MS = 1000;
+
+function isRetryableMarkSeenError(error: unknown): boolean {
+    const status = Number((error as { status?: unknown } | null)?.status);
+    return status === 429 || status >= 500;
+}
+
+async function markSeenWithBackoff(
+    input: Parameters<typeof notificationPersistenceRepository.markSeen>[0]
+): Promise<void> {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            await notificationPersistenceRepository.markSeen(input);
+            return;
+        } catch (error) {
+            if (
+                attempt >= MARK_SEEN_MAX_RETRIES ||
+                !isRetryableMarkSeenError(error)
+            ) {
+                throw error;
+            }
+            await windowDelay(MARK_SEEN_BASE_DELAY_MS * 2 ** attempt);
+        }
+    }
 }
 
 function createEmptyCategories(): NotificationCategories {
@@ -427,47 +448,51 @@ export const useVrcNotificationStore = create<VrcNotificationStore>(
                 return;
             }
 
-            const markableRows = unseenRows.filter(shouldMarkSeenOnCenterClose);
+            const markableRows = unseenRows.filter(shouldBulkMarkSeen);
             const ids = markableRows
                 .map((notification) => notification.id)
                 .filter(isNonEmptyString);
             if (!ids.length) {
                 return;
             }
-            const localV2Ids = markableRows
-                .filter((notification) => Number(notification.version) === 2)
-                .map((notification) => notification.id)
-                .filter(isNonEmptyString);
             for (const id of ids) {
                 pendingSeenIds.add(id);
             }
             get().markNotificationsSeen(ids);
+            let failedCount = 0;
             try {
-                await notificationPersistenceRepository.markSeenLocalBulk({
-                    userId: auth.currentUserId,
-                    ids: localV2Ids
-                });
                 for (const notification of markableRows) {
-                    await notificationPersistenceRepository
-                        .markSeen({
+                    try {
+                        await markSeenWithBackoff({
                             userId: auth.currentUserId,
                             id: notification.id,
                             version: notification.version,
                             endpoint: auth.currentUserEndpoint
-                        })
-                        .catch((error: unknown) => {
-                            console.warn(
-                                'Failed to mark VRChat notification as seen:',
-                                error
-                            );
                         });
-                    await windowDelay(250);
+                    } catch (error) {
+                        failedCount += 1;
+                        const failedId = normalizeNotificationId(
+                            notification.id
+                        );
+                        if (failedId) {
+                            pendingSeenIds.delete(failedId);
+                        }
+                        console.warn(
+                            'Failed to mark VRChat notification as seen:',
+                            error
+                        );
+                    }
                 }
                 await get().loadForCurrentUser();
             } finally {
                 for (const id of ids) {
                     pendingSeenIds.delete(id);
                 }
+            }
+            if (failedCount > 0) {
+                throw new Error(
+                    `Failed to mark ${failedCount} notification(s) as seen.`
+                );
             }
         },
         resetVrcNotificationState() {
