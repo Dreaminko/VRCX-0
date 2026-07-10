@@ -113,6 +113,35 @@ describe('friendProfileLoadService', () => {
         });
     });
 
+    it('includes already-loaded friends in full-roster progress', async () => {
+        const deferred = createDeferred<Record<string, unknown>>();
+        mocks.getUserProfile.mockReturnValue(deferred.promise);
+        seedFriend('usr_missing');
+
+        startFriendProfileLoad({
+            ownerUserId: OWNER_USER_ID,
+            endpoint: ENDPOINT,
+            friendIds: ['usr_missing'],
+            totalFriendCount: 3
+        });
+        expect(useRuntimeStore.getState().friendProfileLoad).toMatchObject({
+            status: 'running',
+            processedFriends: 2,
+            totalFriends: 3
+        });
+
+        deferred.resolve({
+            id: 'usr_missing',
+            date_joined: '2026-01-01'
+        });
+        await waitForStatus('completed');
+        expect(useRuntimeStore.getState().friendProfileLoad).toMatchObject({
+            processedFriends: 3,
+            totalFriends: 3,
+            loadedFriends: 1
+        });
+    });
+
     it('retries rate limits and counts non-retryable failures', async () => {
         vi.useFakeTimers();
         seedFriend('usr_retry');

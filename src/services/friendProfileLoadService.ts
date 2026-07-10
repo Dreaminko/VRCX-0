@@ -22,6 +22,7 @@ type StartFriendProfileLoadInput = {
     ownerUserId: string;
     endpoint?: string;
     friendIds: string[];
+    totalFriendCount?: number;
 };
 
 type FriendProfileLoadTerminalStatus = Extract<
@@ -213,7 +214,8 @@ async function runFriendProfileLoad(
 export function startFriendProfileLoad({
     ownerUserId,
     endpoint = '',
-    friendIds
+    friendIds,
+    totalFriendCount
 }: StartFriendProfileLoadInput): number {
     const current = useRuntimeStore.getState().friendProfileLoad;
     if (ACTIVE_STATUSES.has(current.status)) {
@@ -238,6 +240,11 @@ export function startFriendProfileLoad({
     if (!normalizedFriendIds.length) {
         throw new Error('Friend profile loading requires at least one friend.');
     }
+    const totalFriends =
+        typeof totalFriendCount === 'number' &&
+        Number.isFinite(totalFriendCount)
+            ? Math.max(normalizedFriendIds.length, Math.floor(totalFriendCount))
+            : normalizedFriendIds.length;
 
     clearResetTimer();
     const runId = nextRunId++;
@@ -247,8 +254,8 @@ export function startFriendProfileLoad({
         status: 'running',
         ownerUserId: normalizedOwnerUserId,
         ownerEndpoint: normalizedEndpoint,
-        totalFriends: normalizedFriendIds.length,
-        processedFriends: 0,
+        totalFriends,
+        processedFriends: totalFriends - normalizedFriendIds.length,
         loadedFriends: 0,
         failedFriends: 0,
         cancelRequested: false,

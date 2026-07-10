@@ -300,7 +300,8 @@ export function useFriendListRowActions({
             startFriendProfileLoad({
                 ownerUserId: currentUserId || '',
                 endpoint: currentEndpoint,
-                friendIds: rowsToFetch.map((friend) => normalizeId(friend.id))
+                friendIds: rowsToFetch.map((friend) => normalizeId(friend.id)),
+                totalFriendCount: rosterRows.length
             });
         } catch (error) {
             console.warn(
