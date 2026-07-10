@@ -4,18 +4,23 @@ import {
     setNavWidthPreference,
     setNavbarCollapsedPreference
 } from '@/services/preferencesService';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { normalizeNavWidth, useShellStore } from '@/state/shellStore';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/ui/shadcn/sidebar';
 
 import { AppNavMenu } from './AppNavMenu';
 import {
     scheduleKeyboardSidebarToggleCleanup,
-    useDelayedNavMenuCollapsed
+    useDelayedNavMenuCollapsed,
+    useSidebarInstantTransition
 } from './navMenuCollapse';
 
 export function AppSidebar({ children }: any) {
     const sidebarOpen = useShellStore((state) => state.sidebarOpen);
     const navWidth = useShellStore((state) => state.navWidth);
+    const reducedMotionAndBlur = usePreferencesStore(
+        (state) => state.reducedMotionAndBlur
+    );
     const resizeCleanupRef = useRef<(() => void) | null>(null);
     const keyboardSidebarToggleCleanupRef = useRef<(() => void) | null>(null);
     const [
@@ -24,9 +29,13 @@ export function AppSidebar({ children }: any) {
     ] = useState<boolean | null>(null);
     const keyboardSidebarToggleActive =
         keyboardSidebarToggleTargetOpen !== null;
+    const instantSidebarTransition = useSidebarInstantTransition(
+        keyboardSidebarToggleActive,
+        reducedMotionAndBlur
+    );
     const navMenuCollapsed = useDelayedNavMenuCollapsed(
         sidebarOpen,
-        keyboardSidebarToggleActive
+        instantSidebarTransition
     );
 
     useEffect(() => {
@@ -53,8 +62,6 @@ export function AppSidebar({ children }: any) {
         }
 
         const targetOpen = keyboardSidebarToggleTargetOpen;
-        // Do not tie this frame to the effect cleanup: a pointer toggle in the
-        // same frame must still release keyboard-only instant mode.
         keyboardSidebarToggleCleanupRef.current?.();
         keyboardSidebarToggleCleanupRef.current =
             scheduleKeyboardSidebarToggleCleanup(() => {
@@ -155,7 +162,7 @@ export function AppSidebar({ children }: any) {
             data-vrcx-0-surface="sidebar-layout"
             className="vrcx-0-sidebar-layout relative h-full min-h-0 w-full overflow-hidden"
             style={{ '--sidebar-width': `${navWidth}px` }}
-            instantSidebarTransition={keyboardSidebarToggleActive}
+            instantSidebarTransition={instantSidebarTransition}
             onKeyboardShortcutToggle={toggleSidebarFromKeyboard}
             onOpenChange={(open) => {
                 setKeyboardSidebarToggleTargetOpen(null);

@@ -1,12 +1,61 @@
-import { describe, expect, it } from 'vitest';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
     NAV_MENU_COLLAPSE_DELAY_MS,
+    PREFERS_REDUCED_MOTION_MEDIA_QUERY,
     resolveDelayedNavMenuCollapsed,
-    scheduleKeyboardSidebarToggleCleanup
+    scheduleKeyboardSidebarToggleCleanup,
+    subscribeToReducedMotionChanges,
+    type ReducedMotionMediaQuery,
+    useSidebarInstantTransition
 } from './navMenuCollapse';
 
+function SidebarInstantTransitionProbe({
+    keyboardToggleActive,
+    reducedMotionAndBlur
+}: {
+    keyboardToggleActive: boolean;
+    reducedMotionAndBlur: boolean;
+}) {
+    const instantSidebarTransition = useSidebarInstantTransition(
+        keyboardToggleActive,
+        reducedMotionAndBlur
+    );
+    return createElement('span', null, instantSidebarTransition ? 'yes' : 'no');
+}
+
+function renderSidebarInstantTransition({
+    keyboardToggleActive,
+    prefersReducedMotion,
+    reducedMotionAndBlur
+}: {
+    keyboardToggleActive: boolean;
+    prefersReducedMotion: boolean;
+    reducedMotionAndBlur: boolean;
+}): string {
+    const mediaQuery: ReducedMotionMediaQuery = {
+        matches: prefersReducedMotion,
+        addEventListener() {},
+        removeEventListener() {}
+    };
+    vi.stubGlobal('window', {
+        matchMedia: () => mediaQuery
+    });
+    return renderToStaticMarkup(
+        createElement(SidebarInstantTransitionProbe, {
+            keyboardToggleActive,
+            reducedMotionAndBlur
+        })
+    );
+}
+
 describe('navMenuCollapse', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
     it('keeps expanded menu content during the sidebar collapse transition', () => {
         expect(resolveDelayedNavMenuCollapsed(false, false, 0)).toBe(false);
         expect(
@@ -57,6 +106,64 @@ describe('navMenuCollapse', () => {
 
     it('switches immediately for a keyboard expand', () => {
         expect(resolveDelayedNavMenuCollapsed(true, true, 0, true)).toBe(false);
+    });
+
+    it('uses each source in the production instant-transition hook', () => {
+        expect(
+            renderSidebarInstantTransition({
+                keyboardToggleActive: true,
+                prefersReducedMotion: false,
+                reducedMotionAndBlur: false
+            })
+        ).toContain('yes');
+        expect(
+            renderSidebarInstantTransition({
+                keyboardToggleActive: false,
+                prefersReducedMotion: false,
+                reducedMotionAndBlur: true
+            })
+        ).toContain('yes');
+        expect(
+            renderSidebarInstantTransition({
+                keyboardToggleActive: false,
+                prefersReducedMotion: true,
+                reducedMotionAndBlur: false
+            })
+        ).toContain('yes');
+        expect(
+            renderSidebarInstantTransition({
+                keyboardToggleActive: false,
+                prefersReducedMotion: false,
+                reducedMotionAndBlur: false
+            })
+        ).toContain('no');
+    });
+
+    it('responds to operating-system reduced-motion changes', () => {
+        const listeners = new Set<(event: { matches: boolean }) => void>();
+        const mediaQuery: ReducedMotionMediaQuery = {
+            matches: false,
+            addEventListener(_type, listener) {
+                listeners.add(listener);
+            },
+            removeEventListener(_type, listener) {
+                listeners.delete(listener);
+            }
+        };
+        const changes: boolean[] = [];
+        const unsubscribe = subscribeToReducedMotionChanges(
+            mediaQuery,
+            (matches) => changes.push(matches)
+        );
+
+        listeners.forEach((listener) => listener({ matches: true }));
+        unsubscribe();
+        listeners.forEach((listener) => listener({ matches: false }));
+
+        expect(PREFERS_REDUCED_MOTION_MEDIA_QUERY).toBe(
+            '(prefers-reduced-motion: reduce)'
+        );
+        expect(changes).toEqual([true]);
     });
 
     it('cleans up the scheduled keyboard transition reset', () => {

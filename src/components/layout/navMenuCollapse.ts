@@ -1,11 +1,69 @@
 import { useEffect, useState } from 'react';
 
 export const NAV_MENU_COLLAPSE_DELAY_MS = 200;
+export const PREFERS_REDUCED_MOTION_MEDIA_QUERY =
+    '(prefers-reduced-motion: reduce)';
 
 export type AnimationFrameScheduler = Pick<
     Window,
     'cancelAnimationFrame' | 'requestAnimationFrame'
 >;
+
+export type ReducedMotionMediaQuery = {
+    matches: boolean;
+    addEventListener(
+        type: 'change',
+        listener: (event: { matches: boolean }) => void
+    ): void;
+    removeEventListener(
+        type: 'change',
+        listener: (event: { matches: boolean }) => void
+    ): void;
+};
+
+export function subscribeToReducedMotionChanges(
+    mediaQuery: ReducedMotionMediaQuery,
+    onChange: (matches: boolean) => void
+): () => void {
+    const handleChange = (event: { matches: boolean }) => {
+        onChange(event.matches);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+}
+
+export function usePrefersReducedMotion(): boolean {
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+        typeof window !== 'undefined' && window.matchMedia
+            ? window.matchMedia(PREFERS_REDUCED_MOTION_MEDIA_QUERY).matches
+            : false
+    );
+
+    useEffect(() => {
+        if (!window.matchMedia) {
+            return;
+        }
+
+        const mediaQuery = window.matchMedia(
+            PREFERS_REDUCED_MOTION_MEDIA_QUERY
+        );
+        setPrefersReducedMotion(mediaQuery.matches);
+        return subscribeToReducedMotionChanges(
+            mediaQuery,
+            setPrefersReducedMotion
+        );
+    }, []);
+
+    return prefersReducedMotion;
+}
+
+export function useSidebarInstantTransition(
+    keyboardToggleActive: boolean,
+    reducedMotionAndBlur: boolean
+): boolean {
+    const prefersReducedMotion = usePrefersReducedMotion();
+    return keyboardToggleActive || reducedMotionAndBlur || prefersReducedMotion;
+}
 
 export function scheduleKeyboardSidebarToggleCleanup(
     onFrame: () => void,
