@@ -85,7 +85,6 @@ pub(super) fn friend_log_upsert(
             previous
                 .map(|previous| string_field(previous.get("trustLevel")))
                 .unwrap_or_default(),
-            "Visitor".to_string(),
         ]),
         friend_number: int_field(patch.get("$friendNumber"))
             .or_else(|| int_field(patch.get("friendNumber")))

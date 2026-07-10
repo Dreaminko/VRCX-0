@@ -166,6 +166,168 @@ mod tests {
     }
 
     #[test]
+    fn friend_update_display_name_change_upserts_friend_log_once() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Old Name".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_1:123".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let event = RealtimeWsMessagePayload {
+            json: json!({
+                "type": "friend-update",
+                "content": {
+                    "userId": "usr_friend",
+                    "user": {
+                        "id": "usr_friend",
+                        "displayName": "New Name"
+                    }
+                }
+            }),
+            raw: "{}".into(),
+            received_at: "2026-05-15T00:00:00Z".into(),
+        };
+
+        let RealtimeFriendApplyResult::Output(first) = runtime.apply_ws_message(&event) else {
+            panic!("friend-update with display name change should produce an output");
+        };
+        assert_eq!(first.persistence.friend_log_upserts.len(), 1);
+        assert_eq!(
+            first.persistence.friend_log_upserts[0].display_name,
+            "New Name"
+        );
+        assert!(first.projection.friend_log_changed);
+
+        if let RealtimeFriendApplyResult::Output(second) = runtime.apply_ws_message(&event) {
+            assert!(second.persistence.friend_log_upserts.is_empty());
+            assert!(!second.projection.friend_log_changed);
+        }
+    }
+
+    #[test]
+    fn friend_online_with_display_name_change_upserts_friend_log() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Old Name".into(),
+                        state: "offline".into(),
+                        state_bucket: "offline".into(),
+                        location: "offline".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let RealtimeFriendApplyResult::Output(output) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-online",
+                    "content": {
+                        "userId": "usr_friend",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "New Name",
+                            "location": "wrld_1:123"
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("friend-online should produce an output");
+        };
+
+        assert_eq!(output.persistence.friend_log_upserts.len(), 1);
+        assert_eq!(
+            output.persistence.friend_log_upserts[0].display_name,
+            "New Name"
+        );
+        assert!(output.projection.friend_log_changed);
+    }
+
+    #[test]
+    fn friend_location_with_embedded_display_name_change_upserts_friend_log() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Old Name".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_1:123".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let RealtimeFriendApplyResult::Output(output) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-location",
+                    "content": {
+                        "userId": "usr_friend",
+                        "location": "wrld_2:456",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "New Name"
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("friend-location should produce an output");
+        };
+
+        assert_eq!(output.persistence.friend_log_upserts.len(), 1);
+        assert_eq!(
+            output.persistence.friend_log_upserts[0].display_name,
+            "New Name"
+        );
+        assert!(output.projection.friend_log_changed);
+    }
+
+    #[test]
     fn friend_delete_generates_unfriend_feed_entry() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(

@@ -237,15 +237,24 @@ pub(crate) fn reconcile_friend_roster_records(
         }
     };
 
-    let existing_ids: HashSet<&str> = existing.iter().map(|row| row.user_id.as_str()).collect();
+    let existing_names: HashMap<&str, &str> = existing
+        .iter()
+        .map(|row| (row.user_id.as_str(), row.display_name.as_str()))
+        .collect();
     let expected_set: HashSet<&str> = friends_by_id.keys().map(String::as_str).collect();
 
     let created_at = chrono::Utc::now().to_rfc3339();
     let mut batch = RealtimePersistenceBatch::default();
 
     for (friend_id, entry) in friends_by_id {
-        if friend_id == user_id || existing_ids.contains(friend_id.as_str()) {
+        if friend_id == user_id {
             continue;
+        }
+        if let Some(existing_name) = existing_names.get(friend_id.as_str()) {
+            let next_name = entry.display_name.trim();
+            if next_name.is_empty() || next_name == "Unknown" || next_name == existing_name.trim() {
+                continue;
+            }
         }
         let trust_level = entry
             .extra

@@ -126,7 +126,7 @@ fn writes_friend_log_and_feed_rows() -> Result<(), crate::Error> {
 }
 
 #[test]
-fn force_history_false_skips_history_on_update() -> Result<(), crate::Error> {
+fn force_history_false_skips_friend_history_on_update() -> Result<(), crate::Error> {
     let dir = TestDir::new("realtime-force-history-false");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
 
@@ -146,10 +146,84 @@ fn force_history_false_skips_history_on_update() -> Result<(), crate::Error> {
     write_realtime_batch(&db, "usr_self", &upsert("Friend Renamed"))?;
 
     let history = db.execute(
-        "SELECT user_id FROM usrself_friend_log_history WHERE user_id = @user_id",
+        "SELECT user_id FROM usrself_friend_log_history WHERE user_id = @user_id AND type = 'Friend'",
         &ParamsBuilder::new().set("user_id", "usr_friend").build(),
     )?;
     assert_eq!(history.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn display_name_change_on_update_writes_display_name_history() -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-display-name-change");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+
+    let upsert = |name: &str, trust: &str| RealtimePersistenceBatch {
+        friend_log_upserts: vec![FriendLogUpsert {
+            target_user_id: "usr_friend".into(),
+            display_name: name.into(),
+            trust_level: trust.into(),
+            friend_number: 12,
+            created_at: "2026-05-15T00:00:00Z".into(),
+            force_history: false,
+        }],
+        ..RealtimePersistenceBatch::default()
+    };
+
+    write_realtime_batch(&db, "usr_self", &upsert("Friend", "Known"))?;
+    write_realtime_batch(&db, "usr_self", &upsert("Friend Renamed", ""))?;
+
+    let history = db.execute(
+        "SELECT display_name, previous_display_name FROM usrself_friend_log_history WHERE user_id = @user_id AND type = 'DisplayName'",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0][0], json!("Friend Renamed"));
+    assert_eq!(history[0][1], json!("Friend"));
+
+    let current = db.execute(
+        "SELECT display_name, trust_level FROM usrself_friend_log_current WHERE user_id = @user_id",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert_eq!(current[0][0], json!("Friend Renamed"));
+    assert_eq!(current[0][1], json!("Known"));
+    Ok(())
+}
+
+#[test]
+fn unchanged_or_unknown_display_name_skips_display_name_history() -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-display-name-skip");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+
+    let upsert = |name: &str| RealtimePersistenceBatch {
+        friend_log_upserts: vec![FriendLogUpsert {
+            target_user_id: "usr_friend".into(),
+            display_name: name.into(),
+            trust_level: "Known".into(),
+            friend_number: 12,
+            created_at: "2026-05-15T00:00:00Z".into(),
+            force_history: false,
+        }],
+        ..RealtimePersistenceBatch::default()
+    };
+
+    write_realtime_batch(&db, "usr_self", &upsert(""))?;
+    write_realtime_batch(&db, "usr_self", &upsert("First Known Name"))?;
+    write_realtime_batch(&db, "usr_self", &upsert("First Known Name"))?;
+    write_realtime_batch(&db, "usr_self", &upsert(""))?;
+    write_realtime_batch(&db, "usr_self", &upsert("Unknown"))?;
+
+    let history = db.execute(
+        "SELECT display_name FROM usrself_friend_log_history WHERE user_id = @user_id AND type = 'DisplayName'",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert!(history.is_empty());
+
+    let current = db.execute(
+        "SELECT display_name FROM usrself_friend_log_current WHERE user_id = @user_id",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert_eq!(current[0][0], json!("First Known Name"));
     Ok(())
 }
 

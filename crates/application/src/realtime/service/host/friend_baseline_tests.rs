@@ -628,6 +628,69 @@ fn causal_watermark_rejects_baseline_after_local_friend_log_mutation() -> Result
 }
 
 #[test]
+fn reconcile_records_display_name_change_for_existing_friend() -> Result<()> {
+    let dir = TestDir::new("reconcile-display-name");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    config_store::set_bool(&db, "friendLogInit_usr_self", true)?;
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Old Name".into(),
+                trust_level: "Known".into(),
+                friend_number: 1,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+
+    let friends_by_id: HashMap<String, FriendRecord> = [(
+        "usr_friend".to_string(),
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "New Name".into(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect();
+
+    assert!(reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id
+    ));
+    assert!(!reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id
+    ));
+
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current.len(), 1);
+    assert_eq!(current[0].display_name, "New Name");
+    assert_eq!(current[0].trust_level, "Known");
+    assert_eq!(current[0].friend_number, 1);
+
+    let history = vrcx_0_persistence::friends::friend_log_history_query(
+        &db,
+        vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
+            user_id: "usr_self".into(),
+            target_user_id: String::new(),
+            types: vec!["DisplayName".into()],
+        },
+    )?;
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].display_name, "New Name");
+    assert_eq!(history[0].previous_display_name, "Old Name");
+    Ok(())
+}
+
+#[test]
 fn friend_owner_preserves_baseline_then_ws_output_order() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("friend-owner-order")?;
     runtime.sync_friend_snapshot(

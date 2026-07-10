@@ -123,7 +123,12 @@ fn upsert_friend_log_current(
     } else {
         "Unknown"
     };
-    let trust_level = first_non_empty([entry.trust_level.as_str(), "Visitor"]);
+    let existing_trust_level = existing
+        .as_ref()
+        .map(|existing| existing.trust_level.trim())
+        .unwrap_or("");
+    let trust_level =
+        first_non_empty([entry.trust_level.as_str(), existing_trust_level, "Visitor"]);
     let insert_count = tx.execute_non_query(
         &format!(
             "INSERT OR IGNORE INTO {user_prefix}_friend_log_current (user_id, display_name, trust_level, friend_number) VALUES (@user_id, @display_name, @trust_level, @friend_number)"
@@ -148,6 +153,26 @@ fn upsert_friend_log_current(
                 .set("friend_number", friend_number)
                 .build(),
         )?));
+        let renamed = !existing_display_name.is_empty()
+            && existing_display_name != "Unknown"
+            && display_name != "Unknown"
+            && display_name != existing_display_name;
+        if renamed {
+            affected = affected.saturating_add(add_friend_log_history(
+                tx,
+                user_prefix,
+                &FriendLogHistoryEntry {
+                    created_at: &entry.created_at,
+                    entry_type: "DisplayName",
+                    user_id: &target_user_id,
+                    display_name,
+                    previous_display_name: existing_display_name,
+                    trust_level,
+                    previous_trust_level: "",
+                    friend_number,
+                },
+            )?);
+        }
         if entry.force_history {
             affected = affected.saturating_add(add_friend_log_history(
                 tx,

@@ -1,7 +1,7 @@
 use super::persistence::{
     add_location_metadata, add_profile_diff_feed_entries, friend_log_upsert,
-    friend_relationship_feed_entry, gps_feed_entry, is_online_state, online_offline_feed_entry,
-    value_equal_for_diff, FriendChangedProps,
+    friend_relationship_feed_entry, gps_feed_entry, is_online_state, meaningful_name,
+    online_offline_feed_entry, value_equal_for_diff, FriendChangedProps,
 };
 use super::projection::resolve_state_bucket;
 use super::state::{PendingOffline, RealtimeFriendState, PENDING_OFFLINE_DELAY_MS};
@@ -184,6 +184,14 @@ fn apply_friend_event_with_options(
                     patch_object.insert("pendingOffline".into(), Value::Bool(false));
                 }
             }
+            record_display_name_change(
+                &mut output,
+                &user_id,
+                &patch,
+                previous.as_ref(),
+                &state_bucket,
+                now,
+            );
             if options.emit_profile_diff_feed {
                 add_profile_diff_feed_entries(
                     &mut output,
@@ -216,6 +224,14 @@ fn apply_friend_event_with_options(
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let patch = online_patch(content, user_patch, previous.as_ref(), now, "online");
             output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
+            record_display_name_change(
+                &mut output,
+                &user_id,
+                &patch,
+                previous.as_ref(),
+                "online",
+                now,
+            );
             if !canceled_pending
                 && !previous_record
                     .as_ref()
@@ -360,6 +376,14 @@ fn apply_friend_event_with_options(
                 }
             }
             output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
+            record_display_name_change(
+                &mut output,
+                &user_id,
+                &patch,
+                previous.as_ref(),
+                &state_bucket,
+                now,
+            );
             if let Some(previous) = previous.as_ref() {
                 add_gps_feed_entry_if_not_repeated(
                     state,
@@ -494,6 +518,34 @@ fn remember_gps_event(state: &mut RealtimeFriendState, user_id: &str, location: 
         .or_default()
         .locations_by_tag
         .insert(location.to_string(), now_ms);
+}
+
+fn record_display_name_change(
+    output: &mut RealtimeFriendOutput,
+    user_id: &str,
+    patch: &Value,
+    previous: Option<&Value>,
+    state_bucket: &str,
+    now: &EventTime,
+) {
+    let Some(previous) = previous else {
+        return;
+    };
+    let next_name = meaningful_name(patch, user_id);
+    if next_name.is_empty() || next_name == meaningful_name(previous, user_id) {
+        return;
+    }
+    output
+        .persistence
+        .friend_log_upserts
+        .push(friend_log_upsert(
+            user_id,
+            patch,
+            Some(previous),
+            state_bucket,
+            &now.iso,
+        ));
+    output.projection.friend_log_changed = true;
 }
 
 fn patch_changes_note(patch: &Value, previous: Option<&Value>) -> bool {
