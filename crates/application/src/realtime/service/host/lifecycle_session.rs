@@ -16,7 +16,10 @@ impl RealtimeHostRuntime {
             user_cache: UserCacheRuntime::new(),
             user_query_cache: UserQueryCache::new(),
             world_cache,
+            friend_owner_lock: Mutex::new(()),
             notification_apply_lock: Arc::new(tokio::sync::Mutex::new(())),
+            #[cfg(test)]
+            friend_before_output_hook: Mutex::new(None),
         }
     }
 
@@ -36,6 +39,7 @@ impl RealtimeHostRuntime {
             ));
         }
         let mut friends_by_id = friends_by_id;
+        let friend_owner = self.lock_friend_owner();
         let generation = {
             let mut state = self
                 .state
@@ -97,6 +101,7 @@ impl RealtimeHostRuntime {
                 current_user_snapshot,
             );
         }
+        drop(friend_owner);
         self.user_cache.clear();
         self.user_query_cache.clear();
         self.world_cache.init_load();
@@ -206,6 +211,7 @@ impl RealtimeHostRuntime {
     }
 
     pub fn stop(&self, request: RealtimeStopRequest) {
+        let friend_owner = self.lock_friend_owner();
         let (
             websocket_domain,
             client_run_id,
@@ -266,6 +272,7 @@ impl RealtimeHostRuntime {
                 final_current_user_output,
             )
         };
+        drop(friend_owner);
 
         self.user_cache.clear();
         self.user_query_cache.clear();

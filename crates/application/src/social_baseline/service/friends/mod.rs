@@ -15,7 +15,9 @@ mod state_map;
 #[cfg(test)]
 mod tests;
 
-use entry::{build_fast_roster_snapshot, infer_state_from_platform};
+use entry::{
+    build_fast_roster_snapshot, build_roster_snapshot_from_records, infer_state_from_platform,
+};
 use profile::{
     fallback_friend_user, fetch_all_friends, float_value, get_display_name,
     get_meaningful_display_name, insert_fetched_friend, normalize_state_bucket, number_value,
@@ -25,5 +27,9 @@ use profile::{
 #[cfg(test)]
 use baseline::collect_suspicious_friend_ids;
 
-pub use baseline::build_friend_roster_baseline;
+pub(crate) use baseline::reconcile_friend_roster_records;
+pub use baseline::{
+    apply_friend_roster_baseline_sync_outcome, build_friend_roster_baseline,
+    build_friend_roster_baseline_deferred,
+};
 pub(super) use state_map::{build_friend_state_map, build_snapshot_friend_ids};

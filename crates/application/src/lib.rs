@@ -168,11 +168,12 @@ pub use process_monitor::{
 };
 pub use proxy::{test_proxy_connectivity, ProxySettingsTestResult};
 pub use realtime::{
-    is_friend_event_type, FriendBaselineResult, FriendProjection, FriendProjectionPatch,
-    PendingOfflineTimerAction, RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput,
-    RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
-    RealtimeEntryCorrectionStream, RealtimeFriendApplyResult, RealtimeFriendOutput,
-    RealtimeFriendSnapshot, RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
+    is_friend_event_type, FriendBaselineCausalWatermark, FriendBaselineResult,
+    FriendBaselineSyncOutcome, FriendProjection, FriendProjectionPatch, PendingOfflineTimerAction,
+    RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeCurrentUserProjection,
+    RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
+    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
+    RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
     RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
     RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
     RealtimeNotificationUpsert, RealtimeSessionContext, RealtimeStopRequest,
@@ -207,7 +208,8 @@ pub use share_collection::{
     ShareCollectionDeps, SHARE_COLLECTION_MAX_WORLDS,
 };
 pub use social_baseline::{
-    build_favorites_baseline, build_friend_roster_baseline, SocialBaselineDeps,
+    apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
+    build_friend_roster_baseline, build_friend_roster_baseline_deferred, SocialBaselineDeps,
     SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
     SocialFriendRosterBaselineOutput,
 };

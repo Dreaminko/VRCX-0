@@ -255,9 +255,29 @@ pub(super) fn build_fast_roster_snapshot(
         friends_by_id.insert(friend_id.clone(), normalized_friend);
     }
 
-    let online_ids = build_bucket_ids(expected_ids, &friends_by_id, "online");
-    let active_ids = build_bucket_ids(expected_ids, &friends_by_id, "active");
-    let offline_ids = build_bucket_ids(expected_ids, &friends_by_id, "offline");
+    build_roster_snapshot(user_id, expected_ids, friends_by_id)
+}
+
+pub(super) fn build_roster_snapshot_from_records(
+    user_id: &str,
+    records_by_id: &HashMap<String, FriendRecord>,
+) -> Result<Value> {
+    let mut friends_by_id = Map::new();
+    for (friend_id, record) in records_by_id {
+        friends_by_id.insert(friend_id.clone(), serde_json::to_value(record)?);
+    }
+    let included_ids = records_by_id.keys().cloned().collect::<Vec<_>>();
+    Ok(build_roster_snapshot(user_id, &included_ids, friends_by_id))
+}
+
+fn build_roster_snapshot(
+    user_id: &str,
+    included_ids: &[String],
+    friends_by_id: Map<String, Value>,
+) -> Value {
+    let online_ids = build_bucket_ids(included_ids, &friends_by_id, "online");
+    let active_ids = build_bucket_ids(included_ids, &friends_by_id, "active");
+    let offline_ids = build_bucket_ids(included_ids, &friends_by_id, "offline");
     let mut ordered_friend_ids = Vec::new();
     ordered_friend_ids.extend(online_ids.clone());
     ordered_friend_ids.extend(active_ids.clone());

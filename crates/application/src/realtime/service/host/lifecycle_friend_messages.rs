@@ -63,6 +63,7 @@ impl RealtimeHostRuntime {
         session: &RealtimeSessionContext,
         payload: &RealtimeWsMessagePayload,
     ) {
+        let owner = self.lock_friend_owner();
         let state = match self.state.lock() {
             Ok(state) => state,
             Err(error) => {
@@ -77,7 +78,7 @@ impl RealtimeHostRuntime {
 
         match self.friends.apply_ws_message(payload) {
             RealtimeFriendApplyResult::Output(output) => {
-                self.apply_friend_output(*output);
+                self.apply_friend_output_owned(&owner, *output);
             }
             RealtimeFriendApplyResult::MissingBaseline => {
                 tracing::warn!(
@@ -101,8 +102,9 @@ impl RealtimeHostRuntime {
     }
 
     pub(super) fn fire_pending_offline(self: &Arc<Self>, user_id: &str, token: u64, now: String) {
+        let owner = self.lock_friend_owner();
         if let Some(output) = self.friends.fire_pending_offline(user_id, token, now) {
-            self.apply_friend_output(output);
+            self.apply_friend_output_owned(&owner, output);
         }
     }
 

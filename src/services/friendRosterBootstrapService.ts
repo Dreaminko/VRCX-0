@@ -280,9 +280,13 @@ async function runFriendBootstrap({
                 realtimeWebsocket
             )
         ) {
-            throw new Error(
-                `Friend roster baseline was stale for ${normalizedUserId}.`
-            );
+            if (!preserveLoadedState) {
+                throw new Error(
+                    `Friend roster baseline was stale for ${normalizedUserId}.`
+                );
+            }
+            useFriendRosterStore.getState().setRosterReady(detail);
+            syncStartupServicesTask([detail]);
         }
 
         return {
@@ -308,23 +312,19 @@ async function runFriendBootstrap({
         };
     }
 
-    const friendsById = normalizeFriendsById(snapshot.friendsById);
-
-    useFriendRosterStore.getState().setRosterSnapshot({
-        currentUserId: normalizedUserId,
-        friendsById,
-        orderedFriendIds: normalizeStringArray(snapshot.orderedFriendIds),
-        onlineIds: normalizeStringArray(snapshot.onlineIds),
-        activeIds: normalizeStringArray(snapshot.activeIds),
-        offlineIds: normalizeStringArray(snapshot.offlineIds),
-        detail
-    });
-    useSessionStore.getState().setFriendsLoaded(true);
-    syncStartupServicesTask([detail]);
-    if (result.friendLogChanged) {
-        signalFriendLogChanged();
-    }
-    if (!preserveLoadedState) {
+    if (preserveLoadedState) {
+        useFriendRosterStore.getState().setRosterReady(detail);
+    } else {
+        const friendsById = normalizeFriendsById(snapshot.friendsById);
+        useFriendRosterStore.getState().setRosterSnapshot({
+            currentUserId: normalizedUserId,
+            friendsById,
+            orderedFriendIds: normalizeStringArray(snapshot.orderedFriendIds),
+            onlineIds: normalizeStringArray(snapshot.onlineIds),
+            activeIds: normalizeStringArray(snapshot.activeIds),
+            offlineIds: normalizeStringArray(snapshot.offlineIds),
+            detail
+        });
         startFriendRosterBackgroundTasks({
             normalizedUserId,
             endpoint: normalizedEndpoint,
@@ -333,7 +333,11 @@ async function runFriendBootstrap({
             fastFriendsById: friendsById
         });
     }
-
+    useSessionStore.getState().setFriendsLoaded(true);
+    syncStartupServicesTask([detail]);
+    if (result.friendLogChanged) {
+        signalFriendLogChanged();
+    }
     return {
         userId: normalizedUserId,
         count: result.count ?? 0,

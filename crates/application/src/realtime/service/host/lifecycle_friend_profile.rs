@@ -26,6 +26,7 @@ impl RealtimeHostRuntime {
             vrcx_0_core::friends::strip_default_avatar_image(profile_object);
         }
         let requested_endpoint = endpoint.trim().to_string();
+        let owner = self.lock_friend_owner();
         let active = {
             let state = self
                 .state
@@ -59,7 +60,7 @@ impl RealtimeHostRuntime {
             &chrono::Utc::now().to_rfc3339(),
         ) {
             RealtimeFriendApplyResult::Output(output) => {
-                self.apply_friend_output(*output);
+                self.apply_friend_output_owned(&owner, *output);
                 let runtime = Arc::clone(self);
                 let endpoint = requested_endpoint.clone();
                 let user_id = normalized_user_id.clone();
@@ -428,36 +429,44 @@ impl RealtimeHostRuntime {
             );
             return;
         }
-        {
-            let state = match self.state.lock() {
-                Ok(state) => state,
-                Err(error) => {
-                    tracing::warn!("realtime state lock failed: {error}");
+        let applied = {
+            let owner = self.lock_friend_owner();
+            {
+                let state = match self.state.lock() {
+                    Ok(state) => state,
+                    Err(error) => {
+                        tracing::warn!("realtime state lock failed: {error}");
+                        return;
+                    }
+                };
+                if !self.is_message_current_locked(
+                    &state,
+                    active.generation,
+                    active.session_generation,
+                    &active.session,
+                ) {
                     return;
                 }
-            };
-            if !self.is_message_current_locked(
-                &state,
+            }
+            match self.friends.apply_refetched_user_profile(
                 active.generation,
-                active.session_generation,
-                &active.session,
+                &user_id,
+                profile,
+                &chrono::Utc::now().to_rfc3339(),
             ) {
-                return;
+                RealtimeFriendApplyResult::Output(output) => {
+                    self.apply_friend_output_owned(&owner, *output);
+                    true
+                }
+                RealtimeFriendApplyResult::MissingBaseline | RealtimeFriendApplyResult::Ignored => {
+                    false
+                }
             }
-        }
-        match self.friends.apply_refetched_user_profile(
-            active.generation,
-            &user_id,
-            profile,
-            &chrono::Utc::now().to_rfc3339(),
-        ) {
-            RealtimeFriendApplyResult::Output(output) => {
-                self.apply_friend_output(*output);
-                self.user_query_cache
-                    .invalidate_user(&active.session.endpoint, &user_id)
-                    .await;
-            }
-            RealtimeFriendApplyResult::MissingBaseline | RealtimeFriendApplyResult::Ignored => {}
+        };
+        if applied {
+            self.user_query_cache
+                .invalidate_user(&active.session.endpoint, &user_id)
+                .await;
         }
     }
 }

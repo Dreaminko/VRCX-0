@@ -162,6 +162,7 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
         session_generation: u64,
         session: &RealtimeSessionContext,
     ) {
+        let friend_owner = self.runtime.lock_friend_owner();
         let final_current_user_output = {
             let mut state = match self.runtime.state.lock() {
                 Ok(state) => state,
@@ -191,6 +192,7 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             self.runtime.current_user.clear();
             final_current_user_output
         };
+        drop(friend_owner);
 
         if let Some(output) = final_current_user_output {
             self.runtime.apply_current_user_output(output);

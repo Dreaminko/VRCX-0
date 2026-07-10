@@ -1,8 +1,28 @@
+use super::types::FriendOwnerGuard;
 use super::*;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 
 impl RealtimeHostRuntime {
-    pub(super) fn apply_friend_output(self: &Arc<Self>, mut output: RealtimeFriendOutput) {
+    pub(super) fn lock_friend_owner(&self) -> FriendOwnerGuard<'_> {
+        FriendOwnerGuard {
+            _guard: self
+                .friend_owner_lock
+                .lock()
+                .unwrap_or_else(|error| error.into_inner()),
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn apply_friend_output(self: &Arc<Self>, output: RealtimeFriendOutput) {
+        let owner = self.lock_friend_owner();
+        self.apply_friend_output_owned(&owner, output);
+    }
+
+    pub(super) fn apply_friend_output_owned(
+        self: &Arc<Self>,
+        _owner: &FriendOwnerGuard<'_>,
+        mut output: RealtimeFriendOutput,
+    ) {
         let timer_action = output.timer_action.clone();
         let profile_refetch_user_ids = output.profile_refetch_user_ids.clone();
         let mut projection = output.projection.clone();

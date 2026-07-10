@@ -6,6 +6,10 @@ use std::collections::HashSet;
 
 pub(super) const MAX_QUEUED_FRIEND_MESSAGES: usize = 512;
 
+pub(super) struct FriendOwnerGuard<'a> {
+    pub(super) _guard: std::sync::MutexGuard<'a, ()>,
+}
+
 #[derive(Clone, Debug)]
 pub(super) struct ActiveRealtimeContext {
     pub(super) session: RealtimeSessionContext,
@@ -23,6 +27,7 @@ pub(super) struct PendingFriendBaseline {
 #[derive(Default)]
 pub(super) struct RealtimeHostRuntimeState {
     pub(super) generation: u64,
+    pub(super) friend_log_sequence: u64,
     pub(super) active_context: Option<ActiveRealtimeContext>,
     pub(super) pending_friend_baseline: Option<PendingFriendBaseline>,
     pub(super) friend_messages_paused: bool,
@@ -99,7 +104,10 @@ pub struct RealtimeHostRuntime {
     pub(super) user_cache: UserCacheRuntime,
     pub(super) user_query_cache: UserQueryCache,
     pub(super) world_cache: Arc<WorldCache>,
+    pub(super) friend_owner_lock: Mutex<()>,
     pub(super) notification_apply_lock: Arc<tokio::sync::Mutex<()>>,
+    #[cfg(test)]
+    pub(super) friend_before_output_hook: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
 pub(super) struct RealtimeHostRuntimeMessageSink {

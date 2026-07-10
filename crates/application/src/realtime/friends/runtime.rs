@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
@@ -9,8 +9,9 @@ use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use vrcx_0_persistence::realtime::{FriendLogDelete, FriendLogUpsert};
 
 use super::super::{
-    FriendBaselineResult, FriendProjection, FriendProjectionPatch, PendingOfflineTimerAction,
-    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
+    FriendBaselineCausalWatermark, FriendBaselineResult, FriendProjection, FriendProjectionPatch,
+    PendingOfflineTimerAction, RealtimeFriendApplyResult, RealtimeFriendOutput,
+    RealtimeFriendSnapshot,
 };
 
 mod event_patch;

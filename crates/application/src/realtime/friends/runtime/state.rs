@@ -2,9 +2,9 @@ use super::event_patch::{
     apply_friend_event, apply_patch_to_state, apply_refetched_friend_profile_event,
     is_friend_event_type, record_to_value,
 };
-use super::persistence::{duration_ms, is_online_state, online_offline_feed_entry};
+use super::persistence::{is_online_state, offline_feed_entry};
 use super::projection::state_bucket_from_patch;
-use super::utils::{bool_field, object_with_pending_offline, string_field, EventTime};
+use super::utils::{bool_field, object_with_pending_offline, EventTime};
 use super::*;
 
 pub(super) const PENDING_OFFLINE_DELAY_MS: u64 = 170_000;
@@ -25,6 +25,8 @@ pub(super) struct PendingOffline {
 pub(super) struct RealtimeFriendState {
     pub(super) generation: u64,
     pub(super) timer_token: u64,
+    pub(super) friend_state_sequence: u64,
+    pub(super) friend_state_sequence_by_user: HashMap<String, u64>,
     pub(super) baseline: Option<RealtimeFriendSnapshot>,
     pub(super) pending_offline: HashMap<String, PendingOffline>,
     pub(super) recent_gps: HashMap<String, RecentGps>,
@@ -40,13 +42,26 @@ impl RealtimeFriendsRuntime {
         Self::default()
     }
 
+    pub fn baseline_causal_watermark(&self) -> FriendBaselineCausalWatermark {
+        let state = self.lock_state();
+        FriendBaselineCausalWatermark {
+            generation: state.baseline.as_ref().map(|baseline| baseline.generation),
+            baseline_revision: state
+                .baseline
+                .as_ref()
+                .map(|baseline| baseline.baseline_revision),
+            friend_state_sequence: state.friend_state_sequence,
+            friend_log_sequence: 0,
+        }
+    }
+
     pub fn set_baseline(
         &self,
         baseline: FriendRosterBaseline,
         realtime_generation: u64,
         baseline_revision: u64,
     ) -> FriendBaselineResult {
-        self.set_baseline_with_schedules(baseline, realtime_generation, baseline_revision)
+        self.apply_baseline(baseline, realtime_generation, baseline_revision, None)
             .0
     }
 
@@ -56,6 +71,33 @@ impl RealtimeFriendsRuntime {
         realtime_generation: u64,
         baseline_revision: u64,
     ) -> (FriendBaselineResult, Vec<(String, u64, u64)>) {
+        let (result, schedules, _) =
+            self.apply_baseline(baseline, realtime_generation, baseline_revision, None);
+        (result, schedules)
+    }
+
+    pub(crate) fn set_baseline_with_effects(
+        &self,
+        baseline: FriendRosterBaseline,
+        realtime_generation: u64,
+        baseline_revision: u64,
+        friend_state_sequence_watermark: Option<u64>,
+    ) -> (FriendBaselineResult, Vec<(String, u64, u64)>, Vec<Value>) {
+        self.apply_baseline(
+            baseline,
+            realtime_generation,
+            baseline_revision,
+            friend_state_sequence_watermark,
+        )
+    }
+
+    fn apply_baseline(
+        &self,
+        baseline: FriendRosterBaseline,
+        realtime_generation: u64,
+        baseline_revision: u64,
+        friend_state_sequence_watermark: Option<u64>,
+    ) -> (FriendBaselineResult, Vec<(String, u64, u64)>, Vec<Value>) {
         let mut baseline = baseline.normalized();
         let mut state = self.lock_state();
         let generation = realtime_generation;
@@ -65,9 +107,42 @@ impl RealtimeFriendsRuntime {
             .is_some_and(|snapshot| snapshot.generation == generation);
         state.generation = state.generation.max(generation);
         let mut pending_to_create: Vec<(String, FriendRecord, FriendRecord)> = Vec::new();
+        let mut resolved_pending_ids = HashSet::new();
+        let mut confirmed_pending: Vec<(String, FriendRecord, FriendRecord)> = Vec::new();
+        let friend_state_sequence_watermark = friend_state_sequence_watermark.unwrap_or(0);
+        let mut stale_incoming_ids = HashSet::new();
+        let mut newer_missing_records = Vec::new();
         if let Some(existing_snapshot) = state.baseline.as_ref() {
+            if same_generation {
+                newer_missing_records = existing_snapshot
+                    .friends_by_id
+                    .iter()
+                    .filter(|(user_id, _record)| {
+                        !baseline.friends_by_id.contains_key(*user_id)
+                            && state
+                                .friend_state_sequence_by_user
+                                .get(*user_id)
+                                .is_some_and(|sequence| *sequence > friend_state_sequence_watermark)
+                    })
+                    .map(|(user_id, record)| (user_id.clone(), record.clone()))
+                    .collect();
+            }
             for (user_id, record) in baseline.friends_by_id.iter_mut() {
-                let Some(existing_record) = existing_snapshot.friends_by_id.get(user_id) else {
+                let existing_record = existing_snapshot.friends_by_id.get(user_id);
+                if same_generation
+                    && state
+                        .friend_state_sequence_by_user
+                        .get(user_id)
+                        .is_some_and(|sequence| *sequence > friend_state_sequence_watermark)
+                {
+                    if let Some(existing_record) = existing_record {
+                        *record = existing_record.clone();
+                    } else {
+                        stale_incoming_ids.insert(user_id.clone());
+                    }
+                    continue;
+                }
+                let Some(existing_record) = existing_record else {
                     continue;
                 };
                 let is_placeholder = record.extra.get("$profileSource").and_then(Value::as_str)
@@ -81,10 +156,23 @@ impl RealtimeFriendsRuntime {
                 {
                     record.display_name = existing_record.display_name.clone();
                 }
-                if same_generation
-                    && existing_record.state_bucket == "online"
+                if !same_generation {
+                    continue;
+                }
+                if let Some(pending) = state.pending_offline.get(user_id) {
+                    resolved_pending_ids.insert(user_id.clone());
+                    record
+                        .extra
+                        .insert("pendingOffline".into(), Value::Bool(false));
+                    if matches!(record.state_bucket.as_str(), "offline" | "active") {
+                        confirmed_pending.push((
+                            user_id.clone(),
+                            record.clone(),
+                            pending.previous.clone(),
+                        ));
+                    }
+                } else if existing_record.state_bucket == "online"
                     && matches!(record.state_bucket.as_str(), "offline" | "active")
-                    && !state.pending_offline.contains_key(user_id)
                 {
                     pending_to_create.push((
                         user_id.clone(),
@@ -98,6 +186,26 @@ impl RealtimeFriendsRuntime {
                 }
             }
         }
+        for user_id in stale_incoming_ids {
+            baseline.friends_by_id.remove(&user_id);
+        }
+        for (user_id, record) in newer_missing_records {
+            baseline.friends_by_id.insert(user_id, record);
+        }
+        let confirmed_at = Utc::now();
+        let confirmed_at_iso = confirmed_at.to_rfc3339();
+        let confirmed_feed_entries = confirmed_pending
+            .into_iter()
+            .map(|(user_id, record, previous)| {
+                offline_feed_entry(
+                    &user_id,
+                    &record_to_value(&record),
+                    &previous,
+                    &confirmed_at_iso,
+                    confirmed_at.timestamp_millis(),
+                )
+            })
+            .collect::<Vec<_>>();
         let mut schedules: Vec<(String, u64, u64)> = Vec::new();
         for (user_id, new_record, existing_online) in pending_to_create {
             state.timer_token = state.timer_token.saturating_add(1);
@@ -114,6 +222,9 @@ impl RealtimeFriendsRuntime {
         }
         if same_generation {
             state.pending_offline.retain(|user_id, _pending| {
+                if resolved_pending_ids.contains(user_id) {
+                    return false;
+                }
                 let Some(record) = baseline.friends_by_id.get_mut(user_id) else {
                     return false;
                 };
@@ -131,6 +242,22 @@ impl RealtimeFriendsRuntime {
         } else {
             state.pending_offline.clear();
             state.recent_gps.clear();
+            state.friend_state_sequence_by_user.clear();
+        }
+        let mut changed_user_ids = HashSet::new();
+        if same_generation {
+            if let Some(existing_snapshot) = state.baseline.as_ref() {
+                for (user_id, record) in &baseline.friends_by_id {
+                    if existing_snapshot.friends_by_id.get(user_id) != Some(record) {
+                        changed_user_ids.insert(user_id.clone());
+                    }
+                }
+                for user_id in existing_snapshot.friends_by_id.keys() {
+                    if !baseline.friends_by_id.contains_key(user_id) {
+                        changed_user_ids.insert(user_id.clone());
+                    }
+                }
+            }
         }
         let friend_count = baseline.friends_by_id.len();
         state.baseline = Some(RealtimeFriendSnapshot {
@@ -141,6 +268,15 @@ impl RealtimeFriendsRuntime {
             baseline_revision,
             friends_by_id: baseline.friends_by_id,
         });
+        if !changed_user_ids.is_empty() {
+            state.friend_state_sequence = state.friend_state_sequence.saturating_add(1);
+            let sequence = state.friend_state_sequence;
+            for user_id in changed_user_ids {
+                state
+                    .friend_state_sequence_by_user
+                    .insert(user_id, sequence);
+            }
+        }
 
         (
             FriendBaselineResult {
@@ -150,6 +286,7 @@ impl RealtimeFriendsRuntime {
                 friend_count,
             },
             schedules,
+            confirmed_feed_entries,
         )
     }
 
@@ -159,6 +296,7 @@ impl RealtimeFriendsRuntime {
         state.baseline = None;
         state.pending_offline.clear();
         state.recent_gps.clear();
+        state.friend_state_sequence_by_user.clear();
         state.generation
     }
 
@@ -176,6 +314,7 @@ impl RealtimeFriendsRuntime {
             state.baseline = None;
             state.pending_offline.clear();
             state.recent_gps.clear();
+            state.friend_state_sequence_by_user.clear();
         }
         should_clear
     }
@@ -212,10 +351,11 @@ impl RealtimeFriendsRuntime {
         if state.baseline.is_none() {
             return RealtimeFriendApplyResult::MissingBaseline;
         }
-        apply_friend_event(&mut state, message_type, content, &now)
-            .map(Box::new)
-            .map(RealtimeFriendApplyResult::Output)
-            .unwrap_or(RealtimeFriendApplyResult::Ignored)
+        let Some(output) = apply_friend_event(&mut state, message_type, content, &now) else {
+            return RealtimeFriendApplyResult::Ignored;
+        };
+        record_output_friend_state_sequence(&mut state, &output);
+        RealtimeFriendApplyResult::Output(Box::new(output))
     }
 
     pub fn apply_refetched_user_profile(
@@ -244,10 +384,11 @@ impl RealtimeFriendsRuntime {
             "user": profile
         });
         let now = EventTime::from_received_at(received_at);
-        apply_refetched_friend_profile_event(&mut state, &content, &now)
-            .map(Box::new)
-            .map(RealtimeFriendApplyResult::Output)
-            .unwrap_or(RealtimeFriendApplyResult::Ignored)
+        let Some(output) = apply_refetched_friend_profile_event(&mut state, &content, &now) else {
+            return RealtimeFriendApplyResult::Ignored;
+        };
+        record_output_friend_state_sequence(&mut state, &output);
+        RealtimeFriendApplyResult::Output(Box::new(output))
     }
 
     pub fn fire_pending_offline(
@@ -289,30 +430,48 @@ impl RealtimeFriendsRuntime {
             ..RealtimeFriendOutput::default()
         };
         apply_patch_to_state(&mut state, &mut output, user_id, patch, &state_bucket);
-        let location = string_field(record_to_value(&previous).get("location"));
-        output
-            .persistence
-            .feed_entries
-            .push(online_offline_feed_entry(
-                "Offline",
-                user_id,
-                output
-                    .projection
-                    .patches
-                    .last()
-                    .map(|patch| &patch.patch)
-                    .unwrap_or(&Value::Null),
-                &record_to_value(&previous),
-                &location,
-                duration_ms(&previous, Utc::now().timestamp_millis()),
-                &now_iso,
-            ));
+        output.persistence.feed_entries.push(offline_feed_entry(
+            user_id,
+            output
+                .projection
+                .patches
+                .last()
+                .map(|patch| &patch.patch)
+                .unwrap_or(&Value::Null),
+            &previous,
+            &now_iso,
+            Utc::now().timestamp_millis(),
+        ));
         output.projection.feed_entries = output.persistence.feed_entries.clone();
+        record_output_friend_state_sequence(&mut state, &output);
         Some(output)
     }
 
     fn lock_state(&self) -> std::sync::MutexGuard<'_, RealtimeFriendState> {
         self.state.lock().unwrap_or_else(|error| error.into_inner())
+    }
+}
+
+fn record_output_friend_state_sequence(
+    state: &mut RealtimeFriendState,
+    output: &RealtimeFriendOutput,
+) {
+    let user_ids = output
+        .projection
+        .patches
+        .iter()
+        .map(|patch| patch.user_id.as_str())
+        .chain(output.projection.removals.iter().map(String::as_str))
+        .collect::<HashSet<_>>();
+    if user_ids.is_empty() {
+        return;
+    }
+    state.friend_state_sequence = state.friend_state_sequence.saturating_add(1);
+    let sequence = state.friend_state_sequence;
+    for user_id in user_ids {
+        state
+            .friend_state_sequence_by_user
+            .insert(user_id.to_string(), sequence);
     }
 }
 

@@ -27,6 +27,21 @@ pub async fn build_friend_roster_baseline(
     deps: SocialBaselineDeps,
     input: SocialFriendRosterBaselineInput,
 ) -> Result<SocialFriendRosterBaselineOutput> {
+    build_friend_roster_baseline_inner(deps, input, true).await
+}
+
+pub async fn build_friend_roster_baseline_deferred(
+    deps: SocialBaselineDeps,
+    input: SocialFriendRosterBaselineInput,
+) -> Result<SocialFriendRosterBaselineOutput> {
+    build_friend_roster_baseline_inner(deps, input, false).await
+}
+
+async fn build_friend_roster_baseline_inner(
+    deps: SocialBaselineDeps,
+    input: SocialFriendRosterBaselineInput,
+    reconcile_friend_log: bool,
+) -> Result<SocialFriendRosterBaselineOutput> {
     let cached_current_user =
         CurrentUserSnapshotView::from_raw(input.current_user_snapshot.as_value());
     let user_id = normalize_text(if input.user_id.is_empty() {
@@ -134,37 +149,87 @@ pub async fn build_friend_roster_baseline(
         &state_by_id,
         &fetched_friends_by_id,
     );
-    let friend_log_changed =
-        reconcile_friend_log_against_current(&deps, &user_id, &expected_ids, &snapshot);
     let detail = String::new();
     let count = snapshot
         .get("orderedFriendIds")
         .and_then(Value::as_array)
         .map_or(0, Vec::len);
 
-    Ok(SocialFriendRosterBaselineOutput {
+    let mut output = SocialFriendRosterBaselineOutput {
         user_id,
         stale: false,
         count,
         detail,
         snapshot: Some(RawJson::from(snapshot)),
-        friend_log_changed,
-    })
+        friend_log_changed: false,
+    };
+    if reconcile_friend_log {
+        output.friend_log_changed = reconcile_friend_roster_baseline(&deps, &output);
+    }
+    Ok(output)
 }
 
-fn reconcile_friend_log_against_current(
+fn reconcile_friend_roster_baseline(
     deps: &SocialBaselineDeps,
-    user_id: &str,
-    expected_ids: &[String],
-    snapshot: &Value,
+    output: &SocialFriendRosterBaselineOutput,
 ) -> bool {
-    let initialized = config_get_bool(deps.db.as_ref(), &format!("friendLogInit_{user_id}"), false)
-        .unwrap_or(false);
+    if output.stale {
+        return false;
+    }
+    let Some(snapshot) = output.snapshot.as_ref().map(RawJson::as_value) else {
+        return false;
+    };
+    let Some(friends_by_id) = snapshot.get("friendsById").cloned() else {
+        return false;
+    };
+    let Ok(friends_by_id) = serde_json::from_value::<HashMap<String, FriendRecord>>(friends_by_id)
+    else {
+        tracing::warn!("Friend roster baseline friendsById decode failed during reconciliation");
+        return false;
+    };
+    reconcile_friend_roster_records(deps.db.as_ref(), &output.user_id, &friends_by_id)
+}
+
+fn replace_friend_roster_baseline_snapshot(
+    output: &mut SocialFriendRosterBaselineOutput,
+    friends_by_id: &HashMap<String, FriendRecord>,
+) -> Result<()> {
+    output.count = friends_by_id.len();
+    output.snapshot = Some(RawJson::from(build_roster_snapshot_from_records(
+        &output.user_id,
+        friends_by_id,
+    )?));
+    Ok(())
+}
+
+pub fn apply_friend_roster_baseline_sync_outcome(
+    output: &mut SocialFriendRosterBaselineOutput,
+    outcome: FriendBaselineSyncOutcome,
+) -> Result<bool> {
+    let Some(snapshot) = outcome.snapshot.filter(|_| outcome.result.accepted) else {
+        output.stale = true;
+        output.snapshot = None;
+        output.friend_log_changed = false;
+        output.detail = "Superseded friend roster baseline.".into();
+        return Ok(false);
+    };
+    replace_friend_roster_baseline_snapshot(output, &snapshot.friends_by_id)?;
+    output.friend_log_changed = outcome.friend_log_changed;
+    Ok(true)
+}
+
+pub(crate) fn reconcile_friend_roster_records(
+    db: &DatabaseService,
+    user_id: &str,
+    friends_by_id: &HashMap<String, FriendRecord>,
+) -> bool {
+    let initialized =
+        config_get_bool(db, &format!("friendLogInit_{user_id}"), false).unwrap_or(false);
     if !initialized {
         return false;
     }
 
-    let existing = match friend_log_current_list(deps.db.as_ref(), user_id.to_string()) {
+    let existing = match friend_log_current_list(db, user_id.to_string()) {
         Ok(rows) => rows,
         Err(error) => {
             tracing::warn!("friend-log reconciliation read failed: {error}");
@@ -173,26 +238,24 @@ fn reconcile_friend_log_against_current(
     };
 
     let existing_ids: HashSet<&str> = existing.iter().map(|row| row.user_id.as_str()).collect();
-    let expected_set: HashSet<&str> = expected_ids.iter().map(String::as_str).collect();
+    let expected_set: HashSet<&str> = friends_by_id.keys().map(String::as_str).collect();
 
     let created_at = chrono::Utc::now().to_rfc3339();
-    let friends_by_id = snapshot.get("friendsById").and_then(Value::as_object);
     let mut batch = RealtimePersistenceBatch::default();
 
-    for friend_id in expected_ids {
+    for (friend_id, entry) in friends_by_id {
         if friend_id == user_id || existing_ids.contains(friend_id.as_str()) {
             continue;
         }
-        let entry = friends_by_id.and_then(|map| map.get(friend_id));
-        let display_name = entry
-            .map(|value| object_field_string(value, &["displayName", "display_name"]))
-            .unwrap_or_default();
         let trust_level = entry
-            .map(|value| object_field_string(value, &["$trustLevel", "trustLevel"]))
+            .extra
+            .get("$trustLevel")
+            .or_else(|| entry.extra.get("trustLevel"))
+            .map(value_as_string)
             .unwrap_or_default();
         batch.friend_log_upserts.push(FriendLogUpsert {
             target_user_id: friend_id.clone(),
-            display_name,
+            display_name: entry.display_name.clone(),
             trust_level,
             friend_number: 0,
             created_at: created_at.clone(),
@@ -214,7 +277,7 @@ fn reconcile_friend_log_against_current(
         return false;
     }
 
-    match write_realtime_batch(deps.db.as_ref(), user_id, &batch) {
+    match write_realtime_batch(db, user_id, &batch) {
         Ok(counts) => counts.affected_count > 0,
         Err(error) => {
             tracing::warn!("friend-log reconciliation write failed: {error}");

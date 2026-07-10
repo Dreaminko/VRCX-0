@@ -305,6 +305,101 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
         });
     });
 
+    it('keeps realtime patches authoritative when refreshing a loaded roster', async () => {
+        const { useFriendRosterStore } =
+            await import('@/state/friendRosterStore');
+        const { bootstrapFriendRoster } =
+            await import('./friendBootstrapService');
+        useFriendRosterStore.getState().setRosterSnapshot({
+            currentUserId: 'usr_self',
+            friendsById: {
+                usr_live: {
+                    id: 'usr_live',
+                    displayName: 'Live Friend',
+                    stateBucket: 'online',
+                    location: 'wrld_new:456'
+                }
+            }
+        });
+        serviceMocks.socialFriendRosterBaselineGet.mockResolvedValue({
+            stale: false,
+            count: 1,
+            detail: 'refreshed',
+            snapshot: {
+                friendsById: {
+                    usr_stale: {
+                        id: 'usr_stale',
+                        displayName: 'Stale Friend',
+                        stateBucket: 'offline'
+                    }
+                }
+            }
+        });
+
+        await bootstrapFriendRoster({
+            userId: 'usr_self',
+            endpoint: 'https://api.example.test',
+            websocket: 'wss://ws.example.test',
+            currentUserSnapshot: { id: 'usr_self' },
+            preserveLoadedState: true
+        });
+
+        expect(useFriendRosterStore.getState()).toMatchObject({
+            loadStatus: 'ready',
+            detail: 'refreshed',
+            friendsById: {
+                usr_live: {
+                    displayName: 'Live Friend',
+                    stateBucket: 'online',
+                    location: 'wrld_new:456'
+                }
+            }
+        });
+        expect(
+            useFriendRosterStore.getState().friendsById.usr_stale
+        ).toBeUndefined();
+    });
+
+    it('skips a superseded refresh without erroring when preserving loaded state', async () => {
+        const { useFriendRosterStore } =
+            await import('@/state/friendRosterStore');
+        const { bootstrapFriendRoster } =
+            await import('./friendBootstrapService');
+        useFriendRosterStore.getState().setRosterSnapshot({
+            currentUserId: 'usr_self',
+            friendsById: {
+                usr_live: {
+                    id: 'usr_live',
+                    displayName: 'Live Friend',
+                    stateBucket: 'online'
+                }
+            }
+        });
+        serviceMocks.socialFriendRosterBaselineGet.mockResolvedValue({
+            stale: true,
+            count: 0,
+            detail: 'Superseded friend roster baseline.',
+            snapshot: null
+        });
+
+        const result = await bootstrapFriendRoster({
+            userId: 'usr_self',
+            endpoint: 'https://api.example.test',
+            websocket: 'wss://ws.example.test',
+            currentUserSnapshot: { id: 'usr_self' },
+            preserveLoadedState: true
+        });
+
+        expect(result.stale).toBe(true);
+        expect(useFriendRosterStore.getState()).toMatchObject({
+            loadStatus: 'ready',
+            detail: 'Superseded friend roster baseline.',
+            friendsById: {
+                usr_live: { displayName: 'Live Friend' }
+            }
+        });
+    });
+
     it('initializes friend log current in the background without creating friend history spam', async () => {
         const { bootstrapFriendRoster } =
             await import('./friendBootstrapService');

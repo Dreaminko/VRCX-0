@@ -22,8 +22,9 @@ use crate::{
     Result, RuntimeHostContext, RuntimeHostEventSink,
 };
 use vrcx_0_application::{
-    auth_response_error_message, build_background_discord_presence_command,
-    build_background_presence_facts, build_favorites_baseline, build_friend_roster_baseline,
+    apply_friend_roster_baseline_sync_outcome, auth_response_error_message,
+    build_background_discord_presence_command, build_background_presence_facts,
+    build_favorites_baseline, build_friend_roster_baseline, build_friend_roster_baseline_deferred,
     current_user_from_cookie, parse_current_user_response, probe_current_user_from_cookie,
     record_login_success, record_logout, refresh_background_current_user,
     refresh_background_group_instances, refresh_player_moderations,

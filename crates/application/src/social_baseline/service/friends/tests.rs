@@ -335,3 +335,108 @@ fn active_list_bucket_ignores_location() {
         Some("active")
     );
 }
+
+#[test]
+fn canonical_records_replace_raw_roster_snapshot_and_ordering() -> Result<()> {
+    let mut output = SocialFriendRosterBaselineOutput {
+        user_id: "usr_self".into(),
+        stale: false,
+        count: 1,
+        detail: String::new(),
+        snapshot: Some(RawJson::from(json!({
+            "friendsById": { "usr_stale": { "id": "usr_stale", "stateBucket": "online" } },
+            "orderedFriendIds": ["usr_stale"],
+            "onlineIds": ["usr_stale"],
+            "activeIds": [],
+            "offlineIds": []
+        }))),
+        friend_log_changed: false,
+    };
+    let friends_by_id = HashMap::from([
+        (
+            "usr_online".to_string(),
+            FriendRecord {
+                id: "usr_online".into(),
+                display_name: "Online".into(),
+                state: "online".into(),
+                state_bucket: "online".into(),
+                ..FriendRecord::default()
+            },
+        ),
+        (
+            "usr_offline".to_string(),
+            FriendRecord {
+                id: "usr_offline".into(),
+                display_name: "Offline".into(),
+                state: "offline".into(),
+                state_bucket: "offline".into(),
+                ..FriendRecord::default()
+            },
+        ),
+    ]);
+
+    let applied = apply_friend_roster_baseline_sync_outcome(
+        &mut output,
+        FriendBaselineSyncOutcome {
+            result: crate::realtime::FriendBaselineResult {
+                accepted: true,
+                generation: 7,
+                baseline_revision: 1,
+                friend_count: friends_by_id.len(),
+            },
+            snapshot: Some(crate::realtime::RealtimeFriendSnapshot {
+                current_user_id: "usr_self".into(),
+                generation: 7,
+                baseline_revision: 1,
+                friends_by_id,
+                ..crate::realtime::RealtimeFriendSnapshot::default()
+            }),
+            friend_log_changed: true,
+        },
+    )?;
+
+    let snapshot = output.snapshot.unwrap().into_value();
+    assert!(applied);
+    assert_eq!(output.count, 2);
+    assert!(output.friend_log_changed);
+    assert!(snapshot["friendsById"].get("usr_stale").is_none());
+    assert_eq!(snapshot["onlineIds"], json!(["usr_online"]));
+    assert_eq!(snapshot["offlineIds"], json!(["usr_offline"]));
+    assert_eq!(
+        snapshot["orderedFriendIds"],
+        json!(["usr_online", "usr_offline"])
+    );
+    Ok(())
+}
+
+#[test]
+fn rejected_sync_outcome_clears_raw_roster_snapshot() -> Result<()> {
+    let mut output = SocialFriendRosterBaselineOutput {
+        user_id: "usr_self".into(),
+        stale: false,
+        count: 1,
+        detail: String::new(),
+        snapshot: Some(RawJson::from(json!({
+            "friendsById": { "usr_stale": { "id": "usr_stale" } }
+        }))),
+        friend_log_changed: true,
+    };
+
+    let applied = apply_friend_roster_baseline_sync_outcome(
+        &mut output,
+        FriendBaselineSyncOutcome {
+            result: crate::realtime::FriendBaselineResult {
+                accepted: false,
+                ..crate::realtime::FriendBaselineResult::default()
+            },
+            snapshot: Some(crate::realtime::RealtimeFriendSnapshot::default()),
+            friend_log_changed: true,
+        },
+    )?;
+
+    assert!(!applied);
+    assert!(output.stale);
+    assert!(output.snapshot.is_none());
+    assert!(!output.friend_log_changed);
+    Ok(())
+}

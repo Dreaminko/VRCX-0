@@ -269,6 +269,26 @@ pub(super) fn online_offline_feed_entry(
     })
 }
 
+pub(super) fn offline_feed_entry(
+    user_id: &str,
+    patch: &Value,
+    previous: &FriendRecord,
+    created_at: &str,
+    timestamp_ms: i64,
+) -> Value {
+    let previous_value = record_to_value(previous);
+    let location = string_field(previous_value.get("location"));
+    online_offline_feed_entry(
+        "Offline",
+        user_id,
+        patch,
+        &previous_value,
+        &location,
+        duration_ms(previous, timestamp_ms),
+        created_at,
+    )
+}
+
 pub(super) fn add_location_metadata(
     patch: &mut Map<String, Value>,
     previous: Option<&Value>,

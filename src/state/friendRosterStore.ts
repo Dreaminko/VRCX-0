@@ -537,6 +537,14 @@ export const useFriendRosterStore = create<FriendRosterStore>((set) => ({
             };
         });
     },
+    setRosterReady(detail = '') {
+        set((state) => ({
+            ...state,
+            loadStatus: 'ready',
+            detail,
+            lastLoadedAt: new Date().toISOString()
+        }));
+    },
     setRosterSnapshot({
         currentUserId,
         friendsById,

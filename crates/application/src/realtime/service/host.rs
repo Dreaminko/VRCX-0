@@ -40,14 +40,16 @@ use crate::realtime::notifications::{
 use crate::realtime::user_cache::UserCacheRuntime;
 use crate::realtime::user_query_cache::UserQueryCache;
 use crate::realtime::{
-    FriendBaselineResult, FriendProjection, PendingOfflineTimerAction,
-    RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeEntryCorrection,
-    RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream, RealtimeFriendApplyResult,
-    RealtimeFriendOutput, RealtimeInstanceClosedOutput, RealtimeInstanceQueueProjection,
+    FriendBaselineCausalWatermark, FriendBaselineResult, FriendBaselineSyncOutcome,
+    FriendProjection, PendingOfflineTimerAction, RealtimeCurrentUserAuthority,
+    RealtimeCurrentUserOutput, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
+    RealtimeEntryCorrectionStream, RealtimeFriendApplyResult, RealtimeFriendOutput,
+    RealtimeFriendSnapshot, RealtimeInstanceClosedOutput, RealtimeInstanceQueueProjection,
     RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeNotificationUpsert,
     RealtimeSessionContext, RealtimeTransportStartResult, RealtimeWsStatusPayload,
 };
 use crate::session::HostSessionRuntime;
+use crate::social_baseline::service::reconcile_friend_roster_records;
 use crate::sync::RuntimeSyncEngine;
 use crate::task_supervisor::TaskSupervisor;
 use crate::web_client::WebClient;
