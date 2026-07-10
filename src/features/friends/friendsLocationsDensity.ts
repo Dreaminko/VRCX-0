@@ -1,3 +1,5 @@
+import { createDensityPreset } from '@/lib/densityPreset';
+
 export const DEFAULT_FRIENDS_LOCATIONS_DENSITY = 'compact';
 
 export const FRIENDS_LOCATIONS_DENSITY_OPTIONS = Object.freeze([
@@ -66,21 +68,11 @@ const DENSITY_CONFIGS = Object.freeze({
     })
 });
 
-const DENSITY_VALUES = new Set(
-    FRIENDS_LOCATIONS_DENSITY_OPTIONS.map((option: any) => option.value)
+const preset = createDensityPreset(
+    DEFAULT_FRIENDS_LOCATIONS_DENSITY,
+    DENSITY_CONFIGS
 );
 
-export function sanitizeFriendsLocationsDensity(value: any) {
-    const normalizedValue = typeof value === 'string' ? value.trim() : '';
-    return DENSITY_VALUES.has(normalizedValue)
-        ? normalizedValue
-        : DEFAULT_FRIENDS_LOCATIONS_DENSITY;
-}
+export const sanitizeFriendsLocationsDensity = preset.sanitize;
 
-type FriendsLocationsDensityKey = keyof typeof DENSITY_CONFIGS;
-
-export function getFriendsLocationsDensityConfig(value: any) {
-    return DENSITY_CONFIGS[
-        sanitizeFriendsLocationsDensity(value) as FriendsLocationsDensityKey
-    ];
-}
+export const getFriendsLocationsDensityConfig = preset.getConfig;
