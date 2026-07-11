@@ -8,27 +8,6 @@ import browserslist from 'browserslist';
 import { browserslistToTargets } from 'lightningcss';
 import { defineConfig } from 'vite';
 
-function getAssetLanguage(assetId) {
-    if (!assetId) return null;
-
-    const language = {
-        jp: 'ja',
-        sc: 'zh-CN',
-        tc: 'zh-TW',
-        kr: 'ko'
-    }[assetId.split('noto-sans-')[1]?.split('-')[0]];
-
-    return language || null;
-}
-
-function getManualChunk(moduleId) {
-    const basename = moduleId.split('/').pop();
-    const language = getAssetLanguage(basename);
-    if (!language) return;
-
-    return `i18n/${language}`;
-}
-
 const defaultAssetName = '[name][extname]';
 const webview2BuildTarget = {
     vite: 'edge140',
@@ -54,12 +33,8 @@ function isFont(name) {
     return /\.(woff2?|ttf|otf|eot)$/.test(name);
 }
 
-function getAssetFilename({ name }) {
-    const language = getAssetLanguage(name);
-    if (!language) return `assets/${defaultAssetName}`;
-
-    if (isFont(name)) return 'assets/fonts/[name][extname]';
-    return 'assets/i18n/[name][extname]';
+function getAssetFilename() {
+    return `assets/${defaultAssetName}`;
 }
 
 function createReactDevtoolsStandalonePlugin(enabled) {
@@ -155,8 +130,7 @@ export default defineConfig(({ mode }) => {
             rolldownOptions: {
                 preserveEntrySignatures: false,
                 output: {
-                    assetFileNames: getAssetFilename,
-                    manualChunks: getManualChunk
+                    assetFileNames: getAssetFilename
                 }
             }
         }
