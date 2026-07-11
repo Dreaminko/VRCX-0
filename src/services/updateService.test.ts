@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+    TauriDownloadEvent,
+    TauriUpdateMetadata
+} from '@/platform/tauri/bindings';
+
 const mocks = vi.hoisted(() => ({
     fetchGithubReleases: vi.fn(),
     checkTauriUpdate: vi.fn(),
@@ -154,7 +159,11 @@ describe('updateService pending update downloads', () => {
     it('downloads a Tauri update into the pending slot and reports progress', async () => {
         const progress = vi.fn();
         mocks.downloadTauriUpdate.mockImplementation(
-            async (_version: string, _request: unknown, onEvent: any) => {
+            async (
+                _version: string,
+                _request: unknown,
+                onEvent: (event: TauriDownloadEvent) => void
+            ) => {
                 onEvent({
                     event: 'Started',
                     data: { contentLength: 100 }
@@ -232,7 +241,9 @@ describe('updateService pending update downloads', () => {
     });
 
     it('reuses the same pending download promise for the same version', async () => {
-        let resolveDownload: (value: any) => void = () => {};
+        let resolveDownload: (
+            value: TauriUpdateMetadata | null
+        ) => void = () => {};
         let markDownloadStarted: () => void = () => {};
         const downloadStarted = new Promise<void>((resolve) => {
             markDownloadStarted = resolve;
@@ -270,14 +281,20 @@ describe('updateService pending update downloads', () => {
     it('forwards in-flight download progress to same-version callers', async () => {
         const firstProgress = vi.fn();
         const secondProgress = vi.fn();
-        let resolveDownload: (value: any) => void = () => {};
+        let resolveDownload: (
+            value: TauriUpdateMetadata | null
+        ) => void = () => {};
         let markDownloadStarted: () => void = () => {};
-        let emitDownloadEvent: (event: any) => void = () => {};
+        let emitDownloadEvent: (event: TauriDownloadEvent) => void = () => {};
         const downloadStarted = new Promise<void>((resolve) => {
             markDownloadStarted = resolve;
         });
         mocks.downloadTauriUpdate.mockImplementation(
-            (_version: string, _request: unknown, onEvent: any) => {
+            (
+                _version: string,
+                _request: unknown,
+                onEvent: (event: TauriDownloadEvent) => void
+            ) => {
                 emitDownloadEvent = onEvent;
                 markDownloadStarted();
                 return new Promise((resolve) => {

@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import type { TFunction } from 'i18next';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { toast } from 'sonner';
 
+import type { EntityRecord } from '@/domain/entities/profileEntities';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
 import { setVrchatRegistryKey } from '@/services/shellIntegrationService';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -8,6 +10,38 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 import { groupIdForRow } from './userDialogGroupRows';
 import { normalizedText, summarizeEntityRow } from './userDialogRows';
 import { downloadJsonFile } from './UserDialogViewParts';
+import type { UserDialogProfileRecord } from './useUserDialogProfileResource';
+
+type Confirm = (options: {
+    title: string;
+    description?: string;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+}) => Promise<{ ok: boolean }>;
+
+type GroupVisibility = 'visible' | 'friends' | 'hidden';
+type GroupOrderDirection = 'top' | 'bottom' | 'up' | 'down';
+
+type UseUserDialogGroupActionsProps = {
+    confirm: Confirm;
+    currentEndpoint: string;
+    currentUserId: string | null;
+    inGameGroupOrder: readonly unknown[];
+    isCurrentUser: boolean;
+    profile: UserDialogProfileRecord;
+    profileGroups: EntityRecord[];
+    prompt: (options: Record<string, unknown>) => Promise<{
+        ok: boolean;
+        value?: unknown;
+    }>;
+    refreshGroups: () => Promise<unknown>;
+    selectedGroupIds: Set<string>;
+    selectedUserGroups: EntityRecord[];
+    setGroupSort: Dispatch<SetStateAction<string>>;
+    setSelectedGroupIds: Dispatch<SetStateAction<Set<string>>>;
+    t: TFunction;
+};
 
 export function useUserDialogGroupActions({
     confirm,
@@ -24,7 +58,7 @@ export function useUserDialogGroupActions({
     setGroupSort,
     setSelectedGroupIds,
     t
-}: any) {
+}: UseUserDialogGroupActionsProps) {
     const [groupActionId, setGroupActionId] = useState('');
     const [groupEditMode, setGroupEditMode] = useState(false);
 
@@ -51,7 +85,7 @@ export function useUserDialogGroupActions({
         }
         try {
             await groupProfileRepository.sendGroupInvite({
-                groupId: result.value,
+                groupId: normalizedText(result.value),
                 userId: profile.id,
                 endpoint: currentEndpoint
             });
@@ -69,7 +103,10 @@ export function useUserDialogGroupActions({
         await refreshGroups();
     }
 
-    async function changeGroupVisibility(group: any, visibility: any) {
+    async function changeGroupVisibility(
+        group: EntityRecord,
+        visibility: GroupVisibility
+    ) {
         const groupId = groupIdForRow(group);
         if (!groupId || !currentUserId || groupActionId) {
             return;
@@ -95,7 +132,7 @@ export function useUserDialogGroupActions({
         }
     }
 
-    async function leaveUserGroup(group: any) {
+    async function leaveUserGroup(group: EntityRecord) {
         const groupId = groupIdForRow(group);
         if (!groupId || groupActionId) {
             return;
@@ -132,12 +169,12 @@ export function useUserDialogGroupActions({
         }
     }
 
-    function setGroupSelected(group: any, selected: any) {
+    function setGroupSelected(group: EntityRecord, selected: boolean) {
         const groupId = groupIdForRow(group);
         if (!groupId) {
             return;
         }
-        setSelectedGroupIds((current: any) => {
+        setSelectedGroupIds((current) => {
             const next = new Set(current);
             if (selected) {
                 next.add(groupId);
@@ -148,8 +185,8 @@ export function useUserDialogGroupActions({
         });
     }
 
-    function selectVisibleGroups(rows: any) {
-        setSelectedGroupIds((current: any) => {
+    function selectVisibleGroups(rows: EntityRecord[]) {
+        setSelectedGroupIds((current) => {
             const next = new Set(current);
             for (const group of rows) {
                 const groupId = groupIdForRow(group);
@@ -165,7 +202,7 @@ export function useUserDialogGroupActions({
         setSelectedGroupIds(new Set());
     }
 
-    function exportUserGroups(rows: any) {
+    function exportUserGroups(rows: EntityRecord[]) {
         const groups = rows.length ? rows : profileGroups;
         if (!groups.length) {
             toast.error(t('dialog.user.empty.no_groups_to_export'));
@@ -183,14 +220,14 @@ export function useUserDialogGroupActions({
         );
     }
 
-    async function changeSelectedGroupsVisibility(visibility: any) {
+    async function changeSelectedGroupsVisibility(visibility: GroupVisibility) {
         if (!selectedUserGroups.length || !currentUserId || groupActionId) {
             return;
         }
         setGroupActionId('__bulk_groups__');
         try {
             const results = await Promise.allSettled(
-                selectedUserGroups.map((group: any) =>
+                selectedUserGroups.map((group) =>
                     groupProfileRepository.setGroupMemberProps({
                         groupId: groupIdForRow(group),
                         userId: currentUserId,
@@ -200,7 +237,7 @@ export function useUserDialogGroupActions({
                 )
             );
             const failed = results.filter(
-                (result: any) => result.status === 'rejected'
+                (result) => result.status === 'rejected'
             ).length;
             if (failed) {
                 toast.error(
@@ -240,7 +277,7 @@ export function useUserDialogGroupActions({
         setGroupActionId('__bulk_groups__');
         try {
             const results = await Promise.allSettled(
-                selectedUserGroups.map((group: any) =>
+                selectedUserGroups.map((group) =>
                     groupProfileRepository.leaveGroup({
                         groupId: groupIdForRow(group),
                         endpoint: currentEndpoint
@@ -248,7 +285,7 @@ export function useUserDialogGroupActions({
                 )
             );
             const failed = results.filter(
-                (entry: any) => entry.status === 'rejected'
+                (entry) => entry.status === 'rejected'
             ).length;
             if (failed) {
                 toast.error(
@@ -272,8 +309,8 @@ export function useUserDialogGroupActions({
 
     function editableGroupOrder() {
         const nextOrder: string[] = [];
-        const seen = new Set();
-        const pushGroupId = (groupId: any) => {
+        const seen = new Set<string>();
+        const pushGroupId = (groupId: unknown) => {
             const normalizedGroupId = normalizedText(groupId);
             if (!normalizedGroupId || seen.has(normalizedGroupId)) {
                 return;
@@ -290,7 +327,10 @@ export function useUserDialogGroupActions({
         return nextOrder;
     }
 
-    async function moveGroupInGameOrder(group: any, direction: any) {
+    async function moveGroupInGameOrder(
+        group: EntityRecord,
+        direction: GroupOrderDirection
+    ) {
         const groupId = groupIdForRow(group);
         if (!isCurrentUser || !currentUserId || !groupId || groupActionId) {
             return;

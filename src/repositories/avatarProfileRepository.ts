@@ -1,3 +1,9 @@
+import type {
+    AvatarLocalTag,
+    AvatarProfileRecord,
+    EntityRecord,
+    UnityPackageRecord
+} from '@/domain/entities/profileEntities';
 import {
     entityQueryPolicies,
     fetchCachedData,
@@ -35,45 +41,23 @@ import {
 
 type AvatarRecord = Record<string, unknown>;
 type CachedAvatarImage = ReturnType<typeof storeAvatarImage>;
-type AvatarLocalTag = { tag: string; color?: string | null };
 export type AvatarStyleRecord = AvatarRecord & {
     id?: string;
     name?: string;
     styleName?: string;
 };
-export type AvatarStyleSelection = Record<string, unknown> & {
-    primary?: string;
-    secondary?: string;
-};
-export type AvatarProfileRecord = AvatarRecord & {
-    id: string;
-    name: string;
-    description: string;
-    authorId: string;
-    authorName: string;
-    created_at: unknown;
-    updated_at: unknown;
-    featured?: boolean;
-    listingDate?: string | null;
-    pendingUpload?: boolean;
-    releaseStatus: string;
-    searchable?: boolean;
-    thumbnailImageUrl: string;
-    imageUrl: string;
-    version: number;
-    tags: string[];
-    styles?: AvatarStyleSelection;
-    unityPackages: AvatarRecord[];
-    $tags: AvatarLocalTag[];
-    $timeSpent: number;
-    $memo: string;
-    $isCached: boolean;
-};
-
 export type AvatarGalleryFile = AvatarRecord & {
     id?: string;
     fileId?: string;
     order?: number | string;
+    url?: string;
+    fileUrl?: string;
+    imageUrl?: string;
+    versions?: Array<
+        AvatarRecord & {
+            file?: AvatarRecord & { url?: string };
+        }
+    >;
 };
 type AvatarFileVersion = AvatarRecord & {
     created_at?: string;
@@ -89,7 +73,7 @@ type AvatarFileRecord = AvatarRecord & {
     tags?: string[];
     versions?: AvatarFileVersion[];
 };
-type AvatarModerationRecord = AvatarRecord & {
+export type AvatarModerationRecord = AvatarRecord & {
     avatarModerationType?: string;
     created?: string | number;
     targetAvatarId?: string;
@@ -99,7 +83,7 @@ type AvatarModerationDeleteRecord = AvatarRecord & {
 };
 
 interface AvatarProfileExtras extends AvatarRecord {
-    cachedAvatar?: AvatarRecord | null;
+    cachedAvatar?: unknown;
     localTags?: unknown[];
     timeSpent?: unknown;
     memo?: unknown;
@@ -158,6 +142,10 @@ function normalizeEntityId(value: unknown): string {
 
 function normalizeString(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeTimestamp(value: unknown): string {
+    return typeof value === 'string' ? value : '';
 }
 
 function avatarIdInput(
@@ -234,12 +222,12 @@ function normalizeLocalTags(values: unknown): AvatarLocalTag[] {
         .filter((entry) => entry.tag);
 }
 
-function normalizeUnityPackages(values: unknown): AvatarRecord[] {
+function normalizeUnityPackages(values: unknown): UnityPackageRecord[] {
     if (!Array.isArray(values)) {
         return [];
     }
 
-    return values.filter((value): value is AvatarRecord =>
+    return values.filter((value): value is EntityRecord =>
         Boolean(value && typeof value === 'object')
     );
 }
@@ -287,8 +275,8 @@ function normalizeAvatarProfile(
             source.thumbnailImageUrl ?? source.thumbnail_image_url
         ),
         imageUrl: normalizeString(source.imageUrl ?? source.image_url),
-        created_at: source.created_at ?? source.createdAt ?? '',
-        updated_at: source.updated_at ?? source.updatedAt ?? '',
+        created_at: normalizeTimestamp(source.created_at ?? source.createdAt),
+        updated_at: normalizeTimestamp(source.updated_at ?? source.updatedAt),
         version: parseInteger(source.version),
         tags: normalizeArray(source.tags),
         unityPackages: normalizeUnityPackages(source.unityPackages),
@@ -478,19 +466,18 @@ async function getAvatarGallery({
         policy: entityQueryPolicies.avatarGallery,
         force,
         queryFn: async () => {
-            const response = unwrapVrchatAvatarResponse<
-                AvatarGalleryFile[] | { files?: AvatarGalleryFile[] }
-            >(
+            const response = unwrapVrchatAvatarResponse(
                 await commands.appVrchatAvatarGalleryGet(
                     avatarIdInput(normalizedAvatarId, endpoint)
                 ),
                 'files'
             );
-            return Array.isArray(response.json)
+            const rows = Array.isArray(response.json)
                 ? response.json
-                : Array.isArray(response.json?.files)
+                : isRecord(response.json) && Array.isArray(response.json.files)
                   ? response.json.files
                   : [];
+            return rows.filter(isRecord);
         }
     });
     return rows.slice().sort((a, b) => {
@@ -721,12 +708,16 @@ async function deleteImposter({ avatarId, endpoint = '' }: AvatarIdInput) {
 async function getAvatarModerations({
     endpoint = ''
 }: AvatarRequestOptions = {}) {
-    return unwrapVrchatAvatarResponse<AvatarModerationRecord[]>(
+    const response = unwrapVrchatAvatarResponse(
         await commands.appVrchatAvatarModerationsGet(
             avatarEndpointInput(endpoint)
         ),
         'auth/user/avatarmoderations'
     );
+    return {
+        ...response,
+        json: Array.isArray(response.json) ? response.json.filter(isRecord) : []
+    };
 }
 
 async function sendAvatarModeration({
@@ -868,4 +859,8 @@ export {
     deleteAvatarModeration,
     getAvatarNameFromImageUrl
 };
+export type {
+    AvatarProfileRecord,
+    AvatarStyleSelection
+} from '@/domain/entities/profileEntities';
 export default avatarProfileRepository;

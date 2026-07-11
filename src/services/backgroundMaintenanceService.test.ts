@@ -315,8 +315,8 @@ describe('backgroundMaintenanceService update checks', () => {
         expect(useRuntimeStore.getState().updateLoop.hasAvailableUpdate).toBe(
             true
         );
-        const latestUpdaterRelease = useRuntimeStore.getState().updateLoop
-            .latestUpdaterRelease as any;
+        const latestUpdaterRelease =
+            useRuntimeStore.getState().updateLoop.latestUpdaterRelease;
         expect(latestUpdaterRelease?.updaterType).toBe('manual');
         expect(mocks.installUpdateRelease).not.toHaveBeenCalled();
         expect(mocks.downloadUpdate).not.toHaveBeenCalled();

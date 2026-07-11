@@ -51,9 +51,9 @@ describe('friends locations row helpers', () => {
     });
 
     it('deduplicates friends by id while keeping anonymous rows', () => {
-        const first: any = { id: 'usr_1', displayName: 'First' };
-        const duplicate: any = { id: 'usr_1', displayName: 'Duplicate' };
-        const anonymous: any = { displayName: 'Anonymous' };
+        const first = { id: 'usr_1', displayName: 'First' };
+        const duplicate = { id: 'usr_1', displayName: 'Duplicate' };
+        const anonymous = { displayName: 'Anonymous' };
 
         expect(uniqueFriendsById([first, duplicate, anonymous])).toEqual([
             first,
@@ -115,17 +115,17 @@ describe('friends locations row helpers', () => {
     it('groups friends who share the same concrete instance location', () => {
         const sharedLocation = 'wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:123';
         const soloLocation = 'wrld_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb:456';
-        const first: any = {
+        const first = {
             id: 'usr_1',
             displayName: 'First',
             location: sharedLocation
         };
-        const second: any = {
+        const second = {
             id: 'usr_2',
             displayName: 'Second',
             location: sharedLocation
         };
-        const solo: any = {
+        const solo = {
             id: 'usr_3',
             displayName: 'Solo',
             location: soloLocation
@@ -141,7 +141,7 @@ describe('friends locations row helpers', () => {
 
     it('matches search text against friend and location summary fields', () => {
         const favoriteIds = new Set(['usr_1']);
-        const friend: any = {
+        const friend = {
             id: 'usr_1',
             displayName: 'Maple',
             username: 'maple_user',
@@ -191,10 +191,10 @@ describe('friends locations row helpers', () => {
 
         expect(
             [...rows]
-                .sort((left: any, right: any) =>
+                .sort((left, right) =>
                     compareFavoriteGroups(left, right, ['group_b'])
                 )
-                .map((row: any) => row.key)
+                .map((row) => row.key)
         ).toEqual(['group_b', 'group_c', 'group_a']);
     });
 });

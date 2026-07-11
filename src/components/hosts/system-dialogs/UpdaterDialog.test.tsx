@@ -39,7 +39,7 @@ vi.mock('@/ui/shadcn/button', async () => {
     const React = await import('react');
 
     return {
-        Button: ({ children, ...props }: any) =>
+        Button: ({ children, ...props }: React.ComponentProps<'button'>) =>
             React.createElement('button', props, children)
     };
 });
@@ -48,17 +48,17 @@ vi.mock('@/ui/shadcn/dialog', async () => {
     const React = await import('react');
 
     return {
-        Dialog: ({ children }: any) =>
+        Dialog: ({ children }: React.PropsWithChildren) =>
             React.createElement('div', null, children),
-        DialogContent: ({ children }: any) =>
+        DialogContent: ({ children }: React.PropsWithChildren) =>
             React.createElement('section', null, children),
-        DialogDescription: ({ children }: any) =>
+        DialogDescription: ({ children }: React.PropsWithChildren) =>
             React.createElement('p', null, children),
-        DialogFooter: ({ children }: any) =>
+        DialogFooter: ({ children }: React.PropsWithChildren) =>
             React.createElement('footer', null, children),
-        DialogHeader: ({ children }: any) =>
+        DialogHeader: ({ children }: React.PropsWithChildren) =>
             React.createElement('header', null, children),
-        DialogTitle: ({ children }: any) =>
+        DialogTitle: ({ children }: React.PropsWithChildren) =>
             React.createElement('h1', null, children)
     };
 });
@@ -67,7 +67,7 @@ vi.mock('@/ui/shadcn/field', async () => {
     const React = await import('react');
 
     return {
-        FieldGroup: ({ children }: any) =>
+        FieldGroup: ({ children }: React.PropsWithChildren) =>
             React.createElement('div', null, children)
     };
 });

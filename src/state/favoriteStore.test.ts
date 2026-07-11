@@ -37,7 +37,7 @@ describe('favoriteStore', () => {
 
     it('keeps local entity details until the entity is removed from every group', () => {
         const store = useFavoriteStore.getState();
-        const world: any = {
+        const world = {
             name: 'Test World'
         };
 
@@ -241,7 +241,7 @@ describe('favoriteStore', () => {
             },
             localFriendFavoriteGroups: ['Friends', undefined],
             localFriendFavoritesList: ['usr_1', 123, '']
-        } as any);
+        });
 
         expect(useFavoriteStore.getState()).toMatchObject({
             localWorldFavorites: {
@@ -271,11 +271,14 @@ describe('favoriteStore', () => {
             groupName: 'Friends',
             entityId: 'usr_1'
         });
-        store.addLocalFavorite({
+        const invalidAction: unknown = {
             kind: 'invalid',
             groupName: 'Friends',
             entityId: 'usr_2'
-        } as any);
+        };
+        store.addLocalFavorite(
+            invalidAction as Parameters<typeof store.addLocalFavorite>[0]
+        );
 
         expect(useFavoriteStore.getState()).toMatchObject({
             localFriendFavorites: {

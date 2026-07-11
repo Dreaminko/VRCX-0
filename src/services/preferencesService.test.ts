@@ -202,7 +202,7 @@ void assertSettingsPreferenceActionTypes;
 function installDocumentStub() {
     const attributes = new Map<string, string>();
     const classes = new Set<string>();
-    globalThis.document = {
+    vi.stubGlobal('document', {
         documentElement: {
             setAttribute: vi.fn((key: string, value: string) => {
                 attributes.set(key, value);
@@ -232,7 +232,7 @@ function installDocumentStub() {
                 removeProperty: vi.fn()
             }
         }
-    } as any;
+    });
 
     return { attributes, classes };
 }
@@ -247,7 +247,7 @@ describe('preferencesService characterization', () => {
             tableDensity: 'standard',
             notificationLayout: 'notification-center',
             navWidth: 240
-        } as any);
+        });
 
         mocks.getRawValue.mockResolvedValue(null);
         mocks.has.mockResolvedValue(true);
@@ -739,7 +739,12 @@ describe('preferencesService characterization', () => {
             setTrustColorPreference('basic', 'not-a-color')
         ).rejects.toThrow('Invalid color. Use #RRGGBB.');
         await expect(
-            setDiscordBoolPreference('unknownDiscordKey' as any, true)
+            setDiscordBoolPreference(
+                'unknownDiscordKey' as Parameters<
+                    typeof setDiscordBoolPreference
+                >[0],
+                true
+            )
         ).rejects.toThrow('Unsupported Discord preference: unknownDiscordKey');
 
         expect(mocks.setObject).not.toHaveBeenCalled();

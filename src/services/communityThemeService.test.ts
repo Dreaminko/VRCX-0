@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { CommunityThemeManifest } from '@/features/themes/communityThemeTypes';
+
 const CATALOG_URL = 'https://themes.example.test/index.json';
 const CSS_FILE_NAME = 'theme.css';
 
@@ -107,21 +109,30 @@ function themeRecord(
     };
 }
 
-function manifest(id = 'theme-a', patch: Record<string, unknown> = {}) {
+function manifest(
+    id = 'theme-a',
+    patch: Partial<CommunityThemeManifest> = {}
+): CommunityThemeManifest {
     return {
         id,
         name: `${id} name`,
         version: '1.0.0',
         tags: [],
-        author: 'Tester',
+        author: { name: 'Tester', github: 'tester' },
         description: '',
+        testedWith: '2.7.0',
+        remoteAssets: false,
+        darkMode: true,
+        accentMode: true,
+        previewUrl: '',
+        readmeUrl: '',
         ...patch
-    } as any;
+    };
 }
 
 function installBrowserStubs() {
     const attributes = new Map<string, string>();
-    globalThis.document = {
+    vi.stubGlobal('document', {
         documentElement: {
             setAttribute: vi.fn((key: string, value: string) => {
                 attributes.set(key, value);
@@ -136,15 +147,15 @@ function installBrowserStubs() {
                 removeProperty: vi.fn()
             }
         }
-    } as any;
-    globalThis.window = {
+    });
+    vi.stubGlobal('window', {
         setInterval: vi.fn((handler: TimerHandler, timeout?: number) =>
             globalThis.setInterval(handler, timeout)
         ),
         clearInterval: vi.fn((timer: ReturnType<typeof setInterval>) => {
             globalThis.clearInterval(timer);
         })
-    } as any;
+    });
 }
 
 async function loadCommunityThemeService() {
@@ -214,8 +225,7 @@ describe('communityThemeService characterization', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        delete (globalThis as any).document;
-        delete (globalThis as any).window;
+        vi.unstubAllGlobals();
     });
 
     it('loads the community theme catalog and records catalog failures', async () => {

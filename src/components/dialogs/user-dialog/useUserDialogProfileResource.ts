@@ -13,7 +13,7 @@ import { useFriendRosterStore } from '@/state/friendRosterStore';
 
 import { normalizeUserId } from './userProfileFields';
 
-type UserDialogProfileRecord = CurrentUserPresenceRecord & {
+export type UserDialogProfileRecord = CurrentUserPresenceRecord & {
     id?: string;
     userId?: string;
     user_id?: string;

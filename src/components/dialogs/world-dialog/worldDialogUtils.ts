@@ -1,24 +1,34 @@
-export function resolveWorldDialogTab(
-    tabs: any,
-    preferred: any,
-    fallback: any = 'instances'
-) {
-    return tabs.some((tab: any) => tab.value === preferred)
-        ? preferred
-        : fallback;
+import type { TFunction } from 'i18next';
+
+import type { WorldProfileRecord } from '@/domain/entities/profileEntities';
+
+type WorldDialogTab = { value: string };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
 }
 
-export function authorWorldTags(tags: any[] = []) {
+export function resolveWorldDialogTab(
+    tabs: readonly WorldDialogTab[],
+    preferred: string,
+    fallback = 'instances'
+) {
+    return tabs.some((tab) => tab.value === preferred) ? preferred : fallback;
+}
+
+export function authorWorldTags(tags: unknown = []) {
     if (!Array.isArray(tags)) {
         return [];
     }
     return tags
-        .filter((tag: any) => String(tag).startsWith('author_tag_'))
-        .map((tag: any) => String(tag).replace(/^author_tag_/, ''))
+        .filter((tag) => String(tag).startsWith('author_tag_'))
+        .map((tag) => String(tag).replace(/^author_tag_/, ''))
         .filter(Boolean);
 }
 
-export function firstKnownValue(...values: any[]) {
+export function firstKnownValue<T>(
+    ...values: Array<T | null | undefined | ''>
+): T | undefined {
     for (const value of values) {
         if (value !== null && typeof value !== 'undefined' && value !== '') {
             return value;
@@ -27,7 +37,9 @@ export function firstKnownValue(...values: any[]) {
     return undefined;
 }
 
-const visibleWorldFeatureTags = [
+const visibleWorldFeatureTags: Array<
+    [tag: string, localeKey: string, fallbackLabel: string]
+> = [
     [
         'feature_avatar_scaling_disabled',
         'dialog.world.tags.avatar_scaling_disabled',
@@ -75,11 +87,11 @@ const visibleWorldFeatureTags = [
     ]
 ];
 
-export function visibleWorldTags(world: any, t: any) {
-    const tags = Array.isArray(world?.tags) ? world.tags : [];
+export function visibleWorldTags(world: WorldProfileRecord, t: TFunction) {
+    const tags = world.tags;
     const entries: Array<{ key: string; label: string }> = [];
     const seen = new Set<string>();
-    const pushTag = (key: any, label: any) => {
+    const pushTag = (key: string, label: string) => {
         if (!key || seen.has(key)) {
             return;
         }
@@ -98,7 +110,10 @@ export function visibleWorldTags(world: any, t: any) {
     if (tags.includes('debug_allowed')) {
         pushTag('debug_allowed', 'Debug allowed');
     }
-    if (world?.unityPackageUrl || world?.unityPackage?.url) {
+    const unityPackage = isRecord(world.unityPackage)
+        ? world.unityPackage
+        : null;
+    if (world.unityPackageUrl || unityPackage?.url) {
         pushTag('future_proofing', t('dialog.world.tags.future_proofing'));
     }
     for (const tag of tags) {

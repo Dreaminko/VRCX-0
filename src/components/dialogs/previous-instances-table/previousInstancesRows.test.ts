@@ -18,9 +18,10 @@ describe('previousInstancesRows', () => {
             ['long', { user_id: 'usr_long', time: 3000 }]
         ]);
 
-        expect(
-            normalizePlayerRows(players).map((row: any) => row.user_id)
-        ).toEqual(['usr_long', 'usr_short']);
+        expect(normalizePlayerRows(players).map((row) => row.user_id)).toEqual([
+            'usr_long',
+            'usr_short'
+        ]);
         expect(normalizePlayerRows(null)).toEqual([]);
     });
 
@@ -30,10 +31,11 @@ describe('previousInstancesRows', () => {
             { user_id: 'usr_long', time: 3000 }
         ];
 
-        expect(
-            normalizePlayerRows(players).map((row: any) => row.user_id)
-        ).toEqual(['usr_long', 'usr_short']);
-        expect(players.map((row: any) => row.user_id)).toEqual([
+        expect(normalizePlayerRows(players).map((row) => row.user_id)).toEqual([
+            'usr_long',
+            'usr_short'
+        ]);
+        expect(players.map((row) => row.user_id)).toEqual([
             'usr_short',
             'usr_long'
         ]);

@@ -1,3 +1,9 @@
+import type {
+    GroupAuditLogRow,
+    GroupInstanceRecord,
+    GroupMemberRow,
+    GroupProfileRecord
+} from '@/domain/entities/profileEntities';
 import {
     entityQueryPolicies,
     fetchCachedData,
@@ -17,19 +23,6 @@ import {
 } from './vrchatRequest';
 
 type GroupRecord = Record<string, unknown>;
-type GroupGallerySummary = GroupRecord & {
-    createdAt?: string;
-    description?: string;
-    id: string;
-    membersOnly?: boolean;
-    name?: string;
-    roleIdsToAutoApprove?: string[];
-    roleIdsToManage?: string[];
-    roleIdsToSubmit?: string[];
-    roleIdsToView?: string[] | null;
-    updatedAt?: string;
-};
-
 type GroupGalleryFileRow = GroupRecord & {
     approved?: boolean;
     approvedAt?: string | null;
@@ -41,31 +34,6 @@ type GroupGalleryFileRow = GroupRecord & {
     id: string;
     imageUrl?: string;
     submittedByUserId?: string;
-};
-
-type GroupProfileRecord = GroupRecord & {
-    id: string;
-    name: string;
-    displayName: string;
-    description: string;
-    rules: string;
-    shortCode: string;
-    discriminator: string;
-    bannerUrl: string;
-    iconUrl: string;
-    memberCount: number;
-    onlineMemberCount: number;
-    ownerId: string;
-    ownerDisplayName: string;
-    privacy: string;
-    membershipStatus: string;
-    languages: string[];
-    links: string[];
-    tags: string[];
-    roles: GroupRecord[];
-    galleries?: GroupGallerySummary[];
-    url: string;
-    userInterest?: unknown;
 };
 
 type GroupUserGroupRow = GroupRecord & {
@@ -89,83 +57,12 @@ type GroupUserGroupRow = GroupRecord & {
     shortCode?: string;
 };
 
-type GroupMemberUser = GroupRecord & {
-    currentAvatarImageUrl?: string;
-    currentAvatarTags?: string[];
-    currentAvatarThumbnailImageUrl?: string;
-    displayName?: string;
-    iconUrl?: string;
-    id?: string;
-    profilePicOverride?: string;
-    thumbnailUrl?: string;
-    userIcon?: string;
-};
-
-type GroupMemberRow = GroupRecord & {
-    acceptedByDisplayName?: string | null;
-    acceptedById?: string | null;
-    bannedAt?: string | null;
-    createdAt?: string;
-    groupId: string;
-    hasJoinedFromPurchase?: boolean;
-    id: string;
-    isRepresenting?: boolean;
-    isSubscribedToAnnouncements?: boolean;
-    isSubscribedToEventAnnouncements?: boolean;
-    joinedAt?: string;
-    lastPostReadAt?: string | null;
-    mRoleIds?: string[];
-    managerNotes?: string | null;
-    membershipStatus?: string;
-    roleIds?: string[];
-    user?: GroupMemberUser;
-    userId: string;
-    visibility?: string;
-};
-
-type GroupInstanceRow = GroupRecord & {
-    active?: boolean;
-    ageGate?: boolean;
-    calendarEntryId?: string | null;
-    canRequestInvite?: boolean;
-    capacity?: number;
-    clientNumber?: string | number;
-    closedAt?: string | null;
-    contentSettings?: GroupRecord & {
-        drones?: boolean;
-        prints?: boolean;
-        stickers?: boolean;
-    };
-    disabledPropAbilities?: string[];
-    displayName?: string;
-    dominantLanguage?: string;
-    full?: boolean;
-    gameServerVersion?: string | number;
-    groupAccessType?: string;
-    hardClose?: boolean;
-    id?: string;
-    instanceId?: string;
-    instancePersistenceEnabled?: boolean;
-    languageRatio?: GroupRecord;
-    location?: string;
-};
-
-type GroupInstancesResponse = GroupRecord & {
-    fetchedAt?: string;
-    instances?: GroupInstanceRow[];
-};
-
-type GroupAuditLogRow = GroupRecord & {
-    actorDisplayName: string;
-    actorId: string;
-    created_at: string;
-    data: GroupRecord;
-    description: string;
-    eventType: string;
-    groupId: string;
-    id: string;
-    targetId: string;
-};
+type GroupInstancesResponse =
+    | GroupInstanceRecord[]
+    | (GroupRecord & {
+          fetchedAt?: string;
+          instances?: GroupInstanceRecord[];
+      });
 
 type GroupLogsPage = {
     hasNext: boolean;
@@ -173,7 +70,11 @@ type GroupLogsPage = {
     totalCount: number | null;
 };
 
-type GroupModerationRow = GroupMemberRow;
+type GroupModerationRow = Partial<GroupMemberRow> & {
+    groupId: string;
+    id: string;
+    userId: string;
+};
 type VrchatApiResult = {
     status: number;
     data: unknown;
@@ -387,15 +288,18 @@ function normalizeGroupProfile(
         discriminator,
         bannerUrl: normalizeString(base.bannerUrl),
         iconUrl: normalizeString(base.iconUrl),
-        createdAt: base.createdAt || '',
-        updatedAt: base.updatedAt || '',
+        createdAt: typeof base.createdAt === 'string' ? base.createdAt : '',
+        updatedAt: typeof base.updatedAt === 'string' ? base.updatedAt : '',
         memberCount: parseInteger(base.memberCount),
         onlineMemberCount: parseInteger(base.onlineMemberCount),
         ownerId,
         ownerDisplayName,
         privacy: normalizeString(base.privacy),
         membershipStatus: normalizeString(base.membershipStatus),
-        memberCountSyncedAt: base.memberCountSyncedAt || '',
+        memberCountSyncedAt:
+            typeof base.memberCountSyncedAt === 'string'
+                ? base.memberCountSyncedAt
+                : '',
         languages: normalizeArray(base.languages),
         links: normalizeArray(base.links),
         tags: normalizeArray(base.tags),
@@ -558,7 +462,7 @@ async function getGroupPosts({
         }),
         `groups/${encodeURIComponent(normalizedGroupId)}/posts`
     );
-    return responseRows(response.json, 'posts');
+    return responseRows<GroupRecord>(response.json, 'posts');
 }
 
 async function getAllGroupPosts({ groupId, endpoint = '' }: GroupIdInput) {
@@ -1399,4 +1303,12 @@ export {
     unblockGroup,
     getUsersGroupInstances
 };
+export type {
+    GroupAuditLogData,
+    GroupAuditLogRow,
+    GroupInstanceRecord,
+    GroupMemberRow,
+    GroupMemberUser,
+    GroupProfileRecord
+} from '@/domain/entities/profileEntities';
 export default groupProfileRepository;

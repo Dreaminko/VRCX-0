@@ -108,7 +108,7 @@ function emitTauriEvent(name: string, payload: unknown) {
     }
 }
 
-async function prepareReadySession(websocket: any = '') {
+async function prepareReadySession(websocket = '') {
     const { useFriendRosterStore } = await import('@/state/friendRosterStore');
     const { useRuntimeStore } = await import('@/state/runtimeStore');
     const { useSessionStore } = await import('@/state/sessionStore');
@@ -225,7 +225,7 @@ describe('realtime transport runtime routing', () => {
             );
             expect(globalThis.WebSocket).not.toHaveBeenCalled();
             expect(
-                [...runtimeState.eventHandlers.keys()].some((name: any) =>
+                [...runtimeState.eventHandlers.keys()].some((name) =>
                     name.includes('WsMessage')
                 )
             ).toBe(false);
@@ -540,7 +540,7 @@ describe('realtime transport runtime routing', () => {
                 _websocket: string,
                 clientRunId: number
             ) =>
-                new Promise((resolve: any) => {
+                new Promise<RealtimeStartResolution>((resolve) => {
                     pendingStarts.push({ clientRunId, resolve });
                 })
         );

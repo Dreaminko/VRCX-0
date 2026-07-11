@@ -52,6 +52,7 @@ import {
     installUpdateRelease,
     openOrInstallLatestAvailableUpdate
 } from './updateInstallService';
+import type { UpdateOptions } from './updateService';
 
 function tauriRelease() {
     return {
@@ -127,8 +128,8 @@ describe('openOrInstallLatestAvailableUpdate', () => {
 
     it('installs a passed Tauri update release and restarts', async () => {
         mocks.downloadAndInstallUpdate.mockImplementation(
-            async (_release: unknown, options: any) => {
-                options.onDownloadProgress({
+            async (_release: unknown, options: UpdateOptions) => {
+                options.onDownloadProgress?.({
                     downloadedBytes: 50,
                     totalBytes: 100,
                     percent: 50

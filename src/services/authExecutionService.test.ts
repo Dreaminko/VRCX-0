@@ -166,7 +166,7 @@ describe('authExecutionService characterization', () => {
         useModalStore.setState({
             confirm: mocks.confirm,
             otpPrompt: mocks.otpPrompt
-        } as any);
+        });
 
         mocks.appRuntimeAuthScopeSet.mockResolvedValue(undefined);
         mocks.recordLoginSuccess.mockResolvedValue(savedSnapshot());
@@ -343,7 +343,7 @@ describe('authExecutionService characterization', () => {
                     username: 'saved@example.test'
                 },
                 hasLoginCredentials: true
-            } as any)
+            })
         ).rejects.toMatchObject({
             code: 'AUTH_SAVED_CREDENTIALS_INVALID',
             authSnapshot: savedSnapshot({
@@ -377,7 +377,7 @@ describe('authExecutionService characterization', () => {
                     username: 'saved@example.test'
                 },
                 hasLoginCredentials: true
-            } as any)
+            })
         ).rejects.toBe(error);
 
         expect(mocks.deleteSavedCredential).not.toHaveBeenCalled();
@@ -390,7 +390,7 @@ describe('authExecutionService characterization', () => {
             executeSavedCredentialLogin({
                 user: { id: 'usr_saved' },
                 hasLoginCredentials: false
-            } as any)
+            })
         ).rejects.toMatchObject({
             code: 'AUTH_SAVED_CREDENTIALS_INVALID'
         });

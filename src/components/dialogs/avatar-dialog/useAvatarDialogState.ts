@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AvatarProfileRecord } from '@/domain/entities/profileEntities';
 import { getFileAnalysisForUnityPackages } from '@/lib/fileAnalysis';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
@@ -15,14 +16,25 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 import { avatarGalleryImageUrl, defaultAvatarSideData } from './avatarAssets';
 import { readAvatarCacheInfo } from './avatarCacheAdapter';
 import { createAvatarDialogActions } from './avatarDialogActions';
+import type {
+    AvatarActionStatus,
+    AvatarDialogInput,
+    AvatarImageCropRequest,
+    AvatarLoadStatus,
+    AvatarOwnerEditor,
+    AvatarViewRecord
+} from './avatarDialogTypes';
 
-function normalizeEntityId(value: any) {
+function normalizeEntityId(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-export function useAvatarDialogState({ avatarId, seedData = null }: any) {
+export function useAvatarDialogState({
+    avatarId,
+    seedData = null
+}: AvatarDialogInput) {
     const { t } = useTranslation();
 
     const normalizedAvatarId = normalizeEntityId(avatarId);
@@ -43,21 +55,23 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
     const [avatar, setAvatar] = useState(() =>
         seedData ? avatarProfileRepository.normalize(seedData) : null
     );
-    const [loadStatus, setLoadStatus] = useState(
+    const [loadStatus, setLoadStatus] = useState<AvatarLoadStatus>(
         normalizedAvatarId ? 'running' : 'idle'
     );
-    const [actionStatus, setActionStatus] = useState('idle');
+    const [actionStatus, setActionStatus] =
+        useState<AvatarActionStatus>('idle');
     const [detail, setDetail] = useState('');
     const [memo, setMemo] = useState(() =>
-        typeof seedData?.$memo === 'string' ? seedData.$memo : ''
+        seedData ? avatarProfileRepository.normalize(seedData).$memo : ''
     );
     const [avatarBlocked, setAvatarBlocked] = useState(false);
     const [avatarSideData, setAvatarSideData] = useState(() =>
         defaultAvatarSideData()
     );
-    const [imageCropRequest, setImageCropRequest] = useState<any>(null);
-    const [ownerEditor, setOwnerEditor] = useState<any>(null);
-    const actionStatusRef = useRef('idle');
+    const [imageCropRequest, setImageCropRequest] =
+        useState<AvatarImageCropRequest | null>(null);
+    const [ownerEditor, setOwnerEditor] = useState<AvatarOwnerEditor>(null);
+    const actionStatusRef = useRef<AvatarActionStatus>('idle');
     const memoRevisionRef = useRef(0);
     const moderationRevisionRef = useRef(0);
     const activeAvatarTargetRef = useRef({
@@ -65,7 +79,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
         endpoint: currentEndpoint
     });
     const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
-    const imageUploadAvatarRef = useRef<unknown>(null);
+    const imageUploadAvatarRef = useRef<AvatarProfileRecord | null>(null);
     const galleryUploadInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
@@ -114,7 +128,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
             };
         }
 
-        setAvatarSideData((current: any) => ({
+        setAvatarSideData((current) => ({
             ...current,
             galleryRows: [],
             galleryImages: [],
@@ -127,7 +141,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
                 avatarId: avatar.id,
                 endpoint: currentEndpoint
             })
-        ]).then(([configResult, galleryResult]: any) => {
+        ]).then(([configResult, galleryResult]) => {
             if (!active) {
                 return;
             }
@@ -145,7 +159,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
                     sdkUnityVersion,
                     endpoint: currentEndpoint
                 })
-            ]).then(([cacheResult, fileAnalysisResult]: any) => {
+            ]).then(([cacheResult, fileAnalysisResult]) => {
                 if (!active) {
                     return;
                 }
@@ -153,7 +167,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
                     galleryRows,
                     galleryImages: galleryRows
                         .map(avatarGalleryImageUrl)
-                        .filter(Boolean),
+                        .filter((url): url is string => Boolean(url)),
                     fileAnalysis:
                         fileAnalysisResult.status === 'fulfilled'
                             ? fileAnalysisResult.value
@@ -184,7 +198,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
         const revision = moderationRevisionRef.current;
         avatarProfileRepository
             .getAvatarModerations({ endpoint: currentEndpoint })
-            .then((response: any) => {
+            .then((response) => {
                 if (!active || moderationRevisionRef.current !== revision) {
                     return;
                 }
@@ -192,7 +206,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
                 const rows = Array.isArray(response.json) ? response.json : [];
                 setAvatarBlocked(
                     rows.some(
-                        (row: any) =>
+                        (row) =>
                             normalizeEntityId(row?.targetAvatarId) ===
                                 normalizedAvatarId &&
                             normalizeEntityId(
@@ -227,7 +241,9 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
         setAvatar(
             seedData ? avatarProfileRepository.normalize(seedData) : null
         );
-        setMemo(typeof seedData?.$memo === 'string' ? seedData.$memo : '');
+        setMemo(
+            seedData ? avatarProfileRepository.normalize(seedData).$memo : ''
+        );
         setLoadStatus('running');
         setDetail('');
         const memoRevision = memoRevisionRef.current;
@@ -239,13 +255,13 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
                 dialog: true,
                 currentUserId
             })
-            .then((nextAvatar: any) => {
+            .then((nextAvatar) => {
                 if (!active) {
                     return;
                 }
 
                 persistFavoriteAvatarDetails(nextAvatar);
-                setAvatar((currentAvatar: any) =>
+                setAvatar((currentAvatar) =>
                     memoRevisionRef.current === memoRevision
                         ? nextAvatar
                         : {
@@ -264,7 +280,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
                 if (seedData) {
                     const nextAvatar =
                         avatarProfileRepository.normalize(seedData);
-                    setAvatar((currentAvatar: any) =>
+                    setAvatar((currentAvatar) =>
                         memoRevisionRef.current === memoRevision
                             ? nextAvatar
                             : {
@@ -300,7 +316,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
 
     if (loadStatus === 'running' && !avatar) {
         return {
-            status: 'loading',
+            status: 'loading' as const,
             emptyState: {
                 loading: true,
                 title: t('dialog.avatar.loading.loading_avatar_profile'),
@@ -313,7 +329,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
 
     if (!avatar) {
         return {
-            status: 'empty',
+            status: 'empty' as const,
             emptyState: {
                 title: t('dialog.avatar.error.avatar_profile_unavailable'),
                 description:
@@ -344,7 +360,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
     const canSelectFallbackAvatar = Boolean(
         avatar.id && (availablePlatforms.isQuest || availablePlatforms.isIos)
     );
-    const avatarForView: any = {
+    const avatarForView: AvatarViewRecord = {
         ...avatar,
         gallery: avatarSideData.galleryRows,
         galleryImages: avatarSideData.galleryImages,
@@ -356,8 +372,12 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
         $timeSpent: getCurrentAvatarLiveWearTime(avatar.id, avatar.$timeSpent)
     };
 
-    function applyCurrentAvatarUpdate(nextAvatar: any) {
-        const targetAvatarId = normalizeEntityId(nextAvatar?.id || avatar?.id);
+    function applyCurrentAvatarUpdate(nextAvatar: unknown) {
+        const normalizedNextAvatar =
+            avatarProfileRepository.normalize(nextAvatar);
+        const targetAvatarId = normalizeEntityId(
+            normalizedNextAvatar.id || avatarForView.id
+        );
         if (
             !targetAvatarId ||
             activeAvatarTargetRef.current.avatarId !== targetAvatarId ||
@@ -365,16 +385,20 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
         ) {
             return;
         }
-        setAvatar((currentAvatar: any) =>
-            normalizeEntityId(currentAvatar?.id) === targetAvatarId
-                ? avatarProfileRepository.normalize(nextAvatar, {
-                      localTags: currentAvatar.$tags,
-                      timeSpent: currentAvatar.$timeSpent,
-                      memo: currentAvatar.$memo,
-                      cachedAvatar: currentAvatar.$isCached
-                  })
-                : currentAvatar
-        );
+        setAvatar((currentAvatar) => {
+            if (
+                !currentAvatar ||
+                normalizeEntityId(currentAvatar.id) !== targetAvatarId
+            ) {
+                return currentAvatar;
+            }
+            return avatarProfileRepository.normalize(normalizedNextAvatar, {
+                localTags: currentAvatar.$tags,
+                timeSpent: currentAvatar.$timeSpent,
+                memo: currentAvatar.$memo,
+                cachedAvatar: currentAvatar.$isCached
+            });
+        });
     }
 
     const avatarActions = createAvatarDialogActions({
@@ -384,7 +408,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
         avatar,
         avatarSideData,
         canManageAvatar,
-        canSelectAvatar,
+        canSelectAvatar: Boolean(canSelectAvatar),
         canSelectFallbackAvatar,
         closeDialog,
         confirm,
@@ -412,7 +436,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
     });
 
     return {
-        status: 'ready',
+        status: 'ready' as const,
         avatar,
         avatarActions,
         avatarForView,
@@ -431,7 +455,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
             actionStatus,
             avatarBlocked,
             canManageAvatar,
-            canSelectAvatar,
+            canSelectAvatar: Boolean(canSelectAvatar),
             canSelectFallbackAvatar,
             detail,
             fileAnalysis: avatarSideData.fileAnalysis,

@@ -56,7 +56,7 @@ import {
     refreshDiscordPresence
 } from './discordPresenceService';
 
-const labels: any = {
+const labels: Record<string, string> = {
     'dialog.new_instance.access_type_public': 'Public',
     'dialog.new_instance.access_type_invite_plus': 'Invite+',
     'dialog.new_instance.access_type_invite': 'Invite',
@@ -75,7 +75,7 @@ const labels: any = {
     'view.settings.discord_presence.rpc.private_world': 'Private World'
 };
 
-const enabledDiscordConfig: any = {
+const enabledDiscordConfig: Record<string, boolean> = {
     discordActive: true,
     discordInstance: true,
     discordHideInvite: false,
@@ -92,15 +92,15 @@ describe('discordPresenceService', () => {
         invalidateDiscordPresenceCache();
         useRuntimeStore.getState().resetRuntimeState();
 
-        mocks.t.mockImplementation((key: any) => labels[key] ?? key);
-        mocks.getBool.mockImplementation((key: any, fallback: any) =>
+        mocks.t.mockImplementation((key: string) => labels[key] ?? key);
+        mocks.getBool.mockImplementation((key: string, fallback: boolean) =>
             Promise.resolve(
                 Object.hasOwn(enabledDiscordConfig, key)
                     ? enabledDiscordConfig[key]
                     : fallback
             )
         );
-        mocks.setActive.mockImplementation((active: any) =>
+        mocks.setActive.mockImplementation((active: boolean) =>
             Promise.resolve(Boolean(active))
         );
         mocks.setAssets.mockResolvedValue(true);
@@ -119,7 +119,11 @@ describe('discordPresenceService', () => {
         });
     });
 
-    function setRunningWindowsPresence({ isGameNoVR }: any) {
+    function setRunningWindowsPresence({
+        isGameNoVR
+    }: {
+        isGameNoVR: boolean;
+    }) {
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserId: 'usr_self',
             currentUserEndpoint: 'https://api.vrchat.cloud/api/1',
@@ -263,7 +267,7 @@ describe('discordPresenceService', () => {
             isGameRunning: true,
             currentLocation: 'wrld_public:12345~region(us)'
         });
-        mocks.getBool.mockImplementation((key: any, fallback: any) =>
+        mocks.getBool.mockImplementation((key: string, fallback: boolean) =>
             Promise.resolve(key === 'discordActive' ? false : fallback)
         );
 

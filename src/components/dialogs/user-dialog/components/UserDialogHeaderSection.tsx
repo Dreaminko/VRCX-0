@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import {
     ClockIcon,
     CopyIcon,
@@ -6,10 +7,11 @@ import {
     PencilIcon,
     UsersIcon
 } from 'lucide-react';
-import { isValidElement } from 'react';
+import { isValidElement, type ComponentType, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { UserStatusDot } from '@/components/UserStatusDot';
+import type { UserBadgeRecord } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { userImage } from '@/services/entityMediaService';
@@ -20,11 +22,29 @@ import { Separator } from '@/ui/shadcn/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { EntityOverviewCard } from '../../EntityDialogScaffold';
-import { formatStatsDuration } from '../userDialogRows';
+import type {
+    resolveFriendRequestState,
+    resolvePlatformMeta
+} from '../userDialogContentHelpers';
+import {
+    formatStatsDuration,
+    normalizePreviousDisplayNames
+} from '../userDialogRows';
 import {
     PreviousDisplayNamesBadge,
     UserTitleLanguages
 } from '../UserDialogViewParts';
+import type {
+    AvatarOverrideState,
+    ExtendedModerationState,
+    ModerationState
+} from '../useUserDialogModerationState';
+import type { UserDialogProfileRecord } from '../useUserDialogProfileResource';
+import type {
+    AvatarOverrideType,
+    ExtendedModerationType,
+    ModerationType
+} from '../useUserModerationActions';
 import { UserDialogHeaderActions } from './UserDialogHeaderActions';
 import {
     hasRenderableUserProfileBadges,
@@ -32,13 +52,98 @@ import {
     UserDialogHeaderMediaBadges
 } from './UserDialogHeaderBadges';
 
-function preferenceLabel(value: any, t: any) {
+export interface UserHeaderModel {
+    actionStatus: string;
+    avatarOverrideState: AvatarOverrideState;
+    canInviteFromCurrentLocation: boolean;
+    currentAvatarTarget: string;
+    currentUserBoopingEnabled: boolean;
+    detail: string;
+    extendedModerationState: ExtendedModerationState;
+    fallbackAvatarTarget: string;
+    estimatedOnlineDurationMs?: number;
+    friendNumber?: number | string;
+    friendRequestState: ReturnType<typeof resolveFriendRequestState>;
+    imageUrl: string;
+    isCurrentUser: boolean;
+    isFriend: boolean;
+    loadStatus: string;
+    moderationState: ModerationState;
+    platform: ReturnType<typeof resolvePlatformMeta>;
+    PlatformIcon: ComponentType | null;
+    previousDisplayNames: ReturnType<typeof normalizePreviousDisplayNames>;
+    previousInstances: unknown[];
+    profile: UserDialogProfileRecord;
+    profileLanguages: { key: string; value: string }[];
+    profileTitle: string;
+    pronounsText?: string;
+    recentDialogShortcut: (actionType: unknown) => ReactNode;
+    statusDotClassName: string;
+    statusStateText: string;
+    userSubtitle: string;
+    userUrl: string;
+}
+
+export interface UserHeaderCommands {
+    onAvatarOverride: (type: AvatarOverrideType) => void;
+    onBoop: () => void;
+    onCopyUserId: () => void;
+    onCopyUserUrl: () => void;
+    onEditMemo: () => void;
+    onEditSelfProfileDetails: () => void;
+    onEditSelfProfileMedia: () => void;
+    onEditSelfStatus: () => void;
+    onExtendedModeration: (
+        type: ExtendedModerationType,
+        enabled: boolean
+    ) => void;
+    onFriendRequest: (action: string) => void;
+    onGroupModeration: () => void;
+    onImageClick: () => void;
+    onInvite: () => void;
+    onInviteMessage: () => void;
+    onInviteRequest: () => void;
+    onInviteRequestMessage: () => void;
+    onInviteToGroup: () => void;
+    onModeration: (type: ModerationType, enabled: boolean) => void;
+    onOpenDiscordProfile: (discordId: unknown) => void | Promise<void>;
+    onOpenFallbackAvatar: () => void;
+    onOpenImagePreview: (options?: Record<string, unknown>) => void;
+    onOpenUserIcon: () => void;
+    onOpenUserUrl: () => void;
+    onRefresh: () => void;
+    onReportHacking: () => void;
+    onShowAvatarAuthor: () => void;
+    onShowInstanceHistory: () => void;
+    onSubtitleClick?: () => void;
+    onTitleClick?: () => void;
+    onToggleBadgeShowcased: (
+        badge: UserBadgeRecord,
+        showcased: boolean
+    ) => void;
+    onToggleBadgeVisibility: (badge: UserBadgeRecord, hidden: boolean) => void;
+    onToggleSelfAvatarCopying: () => void;
+    onToggleSelfBooping: () => void;
+    onToggleSelfDiscordConnections: () => void;
+    onToggleSelfSharedConnections: () => void;
+    onUnfriend: () => void;
+}
+
+function preferenceLabel(value: boolean, t: TFunction) {
     return value
         ? t('dialog.user.info.avatar_cloning_allow')
         : t('dialog.user.info.avatar_cloning_deny');
 }
 
-function HeaderFactRow({ label, value, children }: any) {
+function HeaderFactRow({
+    label,
+    value,
+    children
+}: {
+    label: ReactNode;
+    value?: ReactNode;
+    children?: ReactNode;
+}) {
     return (
         <div className="flex min-w-0 items-center justify-between gap-2">
             <span className="text-muted-foreground min-w-0 truncate">
@@ -53,7 +158,17 @@ function HeaderFactRow({ label, value, children }: any) {
     );
 }
 
-function HeaderPreferenceRow({ checked, disabled, label, onToggle }: any) {
+function HeaderPreferenceRow({
+    checked,
+    disabled,
+    label,
+    onToggle
+}: {
+    checked: boolean;
+    disabled: boolean;
+    label: ReactNode;
+    onToggle?: () => void;
+}) {
     const { t } = useTranslation();
     const value = preferenceLabel(checked, t);
 
@@ -78,14 +193,14 @@ function HeaderPreferenceRow({ checked, disabled, label, onToggle }: any) {
     );
 }
 
-function compactUserId(userId: any) {
+function compactUserId(userId: string) {
     if (!userId || userId.length <= 18) {
         return userId || '';
     }
     return `${userId.slice(0, 12)}\u2026${userId.slice(-4)}`;
 }
 
-function compactUrl(url: any) {
+function compactUrl(url: string) {
     if (!url) {
         return '';
     }
@@ -98,10 +213,26 @@ function compactUrl(url: any) {
     return `${displayUrl.slice(0, 12)}\u2026${displayUrl.slice(-4)}`;
 }
 
-function UserDialogHeaderFacts(props: any) {
+function UserDialogHeaderFacts({
+    factsModel: model,
+    factsCommands: commands
+}: {
+    factsModel: Pick<
+        UserHeaderModel,
+        'actionStatus' | 'isCurrentUser' | 'profile' | 'userUrl'
+    >;
+    factsCommands: Pick<
+        UserHeaderCommands,
+        | 'onCopyUserId'
+        | 'onCopyUserUrl'
+        | 'onOpenUserUrl'
+        | 'onToggleSelfAvatarCopying'
+        | 'onToggleSelfBooping'
+        | 'onToggleSelfDiscordConnections'
+        | 'onToggleSelfSharedConnections'
+    >;
+}) {
     const { t } = useTranslation();
-    const model = props?.factsModel || props || {};
-    const commands = props?.factsCommands || props || {};
     const {
         actionStatus = 'idle',
         isCurrentUser,
@@ -207,32 +338,36 @@ function UserDialogHeaderFacts(props: any) {
     );
 }
 
-export function UserDialogHeaderSection(props: any) {
+export function UserDialogHeaderSection({
+    headerModel: model,
+    headerCommands: commands
+}: {
+    headerModel: UserHeaderModel;
+    headerCommands: UserHeaderCommands;
+}) {
     const { t } = useTranslation();
-    const model = props?.headerModel || props || {};
-    const commands = props?.headerCommands || props || {};
     const {
         actionStatus = 'idle',
-        avatarOverrideState = {},
+        avatarOverrideState,
         canInviteFromCurrentLocation,
         currentAvatarTarget,
         currentUserBoopingEnabled,
         detail,
-        extendedModerationState = {},
+        extendedModerationState,
         fallbackAvatarTarget,
         estimatedOnlineDurationMs,
         friendNumber,
-        friendRequestState = {},
+        friendRequestState,
         imageUrl,
         isCurrentUser,
         isFriend,
         loadStatus,
-        moderationState = {},
+        moderationState,
         platform,
         PlatformIcon,
         previousDisplayNames,
         previousInstances = [],
-        profile = {},
+        profile,
         profileLanguages,
         profileTitle,
         pronounsText,
@@ -280,7 +415,7 @@ export function UserDialogHeaderSection(props: any) {
         onToggleSelfSharedConnections,
         onUnfriend
     } = commands;
-    const actionMenuModel: any = {
+    const actionMenuModel = {
         actionStatus,
         avatarOverrideState,
         canInviteFromCurrentLocation,
@@ -297,7 +432,7 @@ export function UserDialogHeaderSection(props: any) {
         profile,
         recentDialogShortcut
     };
-    const actionMenuCommands: any = {
+    const actionMenuCommands = {
         onAvatarOverride,
         onBoop,
         onEditMemo,
@@ -320,13 +455,13 @@ export function UserDialogHeaderSection(props: any) {
         onShowInstanceHistory,
         onUnfriend
     };
-    const factsModel: any = {
+    const factsModel = {
         actionStatus,
         isCurrentUser,
         profile,
         userUrl
     };
-    const factsCommands: any = {
+    const factsCommands = {
         onCopyUserId,
         onCopyUserUrl,
         onOpenUserUrl,
@@ -356,9 +491,7 @@ export function UserDialogHeaderSection(props: any) {
                         onClick={onImageClick}
                         className={cn(
                             'bg-muted aspect-[4/3] h-auto w-full overflow-hidden rounded-lg border p-0 disabled:pointer-events-none',
-                            imageUrl && onImageClick
-                                ? 'cursor-pointer'
-                                : 'cursor-default'
+                            imageUrl ? 'cursor-pointer' : 'cursor-default'
                         )}
                     >
                         {imageUrl ? (
@@ -552,7 +685,10 @@ export function UserDialogHeaderSection(props: any) {
                                     className="mt-1 size-3 shrink-0"
                                 />
                                 <span className="min-w-0">
-                                    {profile.statusDescription}
+                                    {typeof profile.statusDescription ===
+                                    'string'
+                                        ? profile.statusDescription
+                                        : ''}
                                 </span>
                             </span>
                         </Button>
@@ -563,7 +699,9 @@ export function UserDialogHeaderSection(props: any) {
                                 className="mt-1 size-3 shrink-0"
                             />
                             <span className="min-w-0">
-                                {profile.statusDescription}
+                                {typeof profile.statusDescription === 'string'
+                                    ? profile.statusDescription
+                                    : ''}
                             </span>
                         </div>
                     )}

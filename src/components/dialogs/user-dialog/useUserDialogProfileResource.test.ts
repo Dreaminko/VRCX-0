@@ -7,7 +7,7 @@ import {
 
 describe('mergeLocalSnapshotIntoProfile', () => {
     it('refreshes presence fields without erasing full profile fields', () => {
-        const profile: any = {
+        const profile = {
             id: 'usr_target',
             displayName: 'Target',
             bio: 'Full profile bio',
@@ -16,7 +16,7 @@ describe('mergeLocalSnapshotIntoProfile', () => {
             status: 'active',
             location: 'private'
         };
-        const localSnapshot: any = {
+        const localSnapshot = {
             id: 'usr_target',
             displayName: 'Target',
             status: 'join me',
@@ -33,14 +33,14 @@ describe('mergeLocalSnapshotIntoProfile', () => {
     });
 
     it('does not clear profile presence with normalized empty snapshot defaults', () => {
-        const profile: any = {
+        const profile = {
             id: 'usr_target',
             displayName: 'Target',
             bio: 'Full profile bio',
             status: 'active',
             location: 'wrld_profile:12345'
         };
-        const localSnapshot: any = {
+        const localSnapshot = {
             id: 'usr_target',
             displayName: 'Target',
             status: '',
@@ -53,7 +53,7 @@ describe('mergeLocalSnapshotIntoProfile', () => {
     });
 
     it('keeps seed profile details when a friend snapshot provides fresher presence', () => {
-        const seedData: any = {
+        const seedData = {
             id: 'usr_target',
             displayName: 'Target',
             bio: 'Full profile bio',
@@ -62,7 +62,7 @@ describe('mergeLocalSnapshotIntoProfile', () => {
             status: 'active',
             location: 'private'
         };
-        const friendSnapshot: any = {
+        const friendSnapshot = {
             id: 'usr_target',
             displayName: 'Target',
             status: 'join me',

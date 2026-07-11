@@ -51,10 +51,13 @@ describe('userFactsStore', () => {
         expect(useUserFactsStore.getState().version).toBe(0);
         expect(useUserFactsStore.getState().usersByKey).toEqual({});
 
-        store.replaceUserFacts([
+        const facts: unknown[] = [
             rustUser(),
-            { endpoint: 'api', displayName: 'No Id' } as any
-        ]);
+            { endpoint: 'api', displayName: 'No Id' }
+        ];
+        store.replaceUserFacts(
+            facts as Parameters<typeof store.replaceUserFacts>[0]
+        );
 
         const state = useUserFactsStore.getState();
         expect(state.version).toBe(1);

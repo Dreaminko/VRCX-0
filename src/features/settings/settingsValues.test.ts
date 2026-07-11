@@ -50,9 +50,9 @@ describe('settingsValues', () => {
 
         expect(options).toContain(12);
         expect(options).toContain(1000);
-        expect(options.filter((size: any) => size === 50)).toHaveLength(1);
+        expect(options.filter((size) => size === 50)).toHaveLength(1);
         expect(filterTablePageSizeOptions(options, '5')).toEqual(
-            options.filter((size: any) => String(size).includes('5'))
+            options.filter((size) => String(size).includes('5'))
         );
         expect(filterTablePageSizeOptions(options, '')).toEqual(options);
     });

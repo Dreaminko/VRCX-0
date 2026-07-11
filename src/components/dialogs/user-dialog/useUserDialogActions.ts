@@ -1,7 +1,15 @@
-import { useLayoutEffect, useState } from 'react';
+import {
+    useLayoutEffect,
+    useState,
+    type Dispatch,
+    type MutableRefObject,
+    type RefObject,
+    type SetStateAction
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
 import vrchatFriendRepository from '@/repositories/vrchatFriendRepository';
 import vrchatToolsRepository from '@/repositories/vrchatToolsRepository';
 import friendRelationshipService from '@/services/friendRelationshipService';
@@ -14,10 +22,60 @@ import {
     hideRemoteAndExpireNotification
 } from '@/services/notificationActionService';
 import { recordRecentAction } from '@/services/recentActionService';
+import { useFriendRosterStore } from '@/state/friendRosterStore';
 
 import { normalizeUserId } from './userProfileFields';
+import type {
+    AvatarOverrideState,
+    ExtendedModerationState,
+    ModerationState
+} from './useUserDialogModerationState';
+import type { UserDialogProfileRecord } from './useUserDialogProfileResource';
 import { useUserInviteActions } from './useUserInviteActions';
 import { useUserModerationActions } from './useUserModerationActions';
+
+type FriendRequestPatch = {
+    isFriend?: boolean;
+    friendRequestStatus?: string;
+    incomingRequest?: boolean;
+    outgoingRequest?: boolean;
+};
+type BoopDialogRequest = {
+    endpoint: string;
+    targetLabel: string;
+    userId: string;
+};
+type Confirm = (options: Record<string, unknown>) => Promise<{ ok: boolean }>;
+type UseUserDialogActionsProps = {
+    actionStatusRef: MutableRefObject<string>;
+    activeUserTargetRef: RefObject<{ userId: string; endpoint?: string }>;
+    applyFriendPatch: ReturnType<
+        typeof useFriendRosterStore.getState
+    >['applyFriendPatch'];
+    avatarOverrideState: AvatarOverrideState;
+    canInviteFromCurrentLocation: boolean;
+    confirm: Confirm;
+    currentEndpoint: string;
+    currentInviteLocation: string | null;
+    currentUserId: string | null;
+    friendsById: FriendRosterById;
+    isCurrentUser: boolean;
+    isFriend: boolean;
+    normalizedCurrentUserId: string;
+    normalizedUserId: string;
+    openGroupQuickModerationDialog?: () => void;
+    moderationRevisionRef: MutableRefObject<number>;
+    moderationState: ModerationState;
+    openNonce: unknown;
+    profile: UserDialogProfileRecord | null;
+    setActionStatus: Dispatch<SetStateAction<string>>;
+    setAvatarOverrideState: Dispatch<SetStateAction<AvatarOverrideState>>;
+    setBaseProfile: Dispatch<SetStateAction<UserDialogProfileRecord | null>>;
+    setExtendedModerationState: Dispatch<
+        SetStateAction<ExtendedModerationState>
+    >;
+    setModerationState: Dispatch<SetStateAction<ModerationState>>;
+};
 
 export function useUserDialogActions({
     actionStatusRef,
@@ -44,9 +102,10 @@ export function useUserDialogActions({
     setBaseProfile,
     setExtendedModerationState,
     setModerationState
-}: any) {
+}: UseUserDialogActionsProps) {
     const { t } = useTranslation();
-    const [boopDialogRequest, setBoopDialogRequest] = useState<any>(null);
+    const [boopDialogRequest, setBoopDialogRequest] =
+        useState<BoopDialogRequest | null>(null);
 
     const {
         handleInviteMessageDialogOpenChange,
@@ -78,7 +137,7 @@ export function useUserDialogActions({
         avatarOverrideState,
         confirm,
         currentEndpoint,
-        currentUserId,
+        currentUserId: currentUserId || undefined,
         isCurrentUser,
         moderationRevisionRef,
         moderationState,
@@ -136,7 +195,7 @@ export function useUserDialogActions({
                     )
                 );
             } else {
-                setBaseProfile((currentProfile: any) =>
+                setBaseProfile((currentProfile) =>
                     currentProfile
                         ? {
                               ...currentProfile,
@@ -163,7 +222,7 @@ export function useUserDialogActions({
         }
     }
 
-    async function updateFriendRequest(action: any) {
+    async function updateFriendRequest(action: string) {
         const rosterUserId = normalizeUserId(profile?.id);
         if (
             !rosterUserId ||
@@ -175,14 +234,14 @@ export function useUserDialogActions({
         }
         const requestEndpoint = currentEndpoint;
         const requestProfile = profile;
-        function commitFriendRequestPatch(patch: any) {
+        function commitFriendRequestPatch(patch: FriendRequestPatch) {
             if (
                 activeUserTargetRef.current.userId !== rosterUserId ||
                 activeUserTargetRef.current.endpoint !== requestEndpoint
             ) {
                 return false;
             }
-            setBaseProfile((currentProfile: any) =>
+            setBaseProfile((currentProfile) =>
                 normalizeUserId(currentProfile?.id) === rosterUserId
                     ? { ...currentProfile, ...patch }
                     : currentProfile
@@ -376,10 +435,14 @@ export function useUserDialogActions({
                 );
             }
         } catch (error) {
+            const errorRecord =
+                error && typeof error === 'object'
+                    ? Object.fromEntries(Object.entries(error))
+                    : {};
             if (
                 (action === 'accept' || action === 'decline') &&
                 incomingNotification &&
-                (error as { status?: number } | null)?.status === 404
+                errorRecord.status === 404
             ) {
                 await expireNotificationLocally({
                     currentUserId,
@@ -516,7 +579,7 @@ export function useUserDialogActions({
         }
     }
 
-    function handleBoopDialogOpenChange(nextOpen: any) {
+    function handleBoopDialogOpenChange(nextOpen: boolean) {
         if (!nextOpen && actionStatusRef.current === 'idle') {
             setBoopDialogRequest(null);
         }

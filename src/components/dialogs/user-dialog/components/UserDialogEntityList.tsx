@@ -1,8 +1,10 @@
 import { LockIcon, PersonStandingIcon, UserIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { resolveSidebarStatusDotClassName } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { UserStatusAvatar } from '@/components/UserStatusAvatar';
+import type { EntityRecord } from '@/domain/entities/profileEntities';
 import { timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -16,17 +18,22 @@ import {
     userTravelingTimestamp,
     worldOccupantSubtitle
 } from '../userDialogRows';
-import { rowImage } from './userDialogEntityImages';
+import { rowImage, type UserDialogEntityKind } from './userDialogEntityImages';
 import { EntityListState } from './UserDialogEntityListState';
 import { openRow } from './userDialogEntityNavigation';
 import { UserGroupCard } from './UserDialogGroupCard';
 
 export function EntityList({
     rows,
-    kind = '',
+    kind,
     loading = false,
     error = ''
-}: any) {
+}: {
+    rows: readonly EntityRecord[];
+    kind: UserDialogEntityKind;
+    loading?: boolean;
+    error?: string;
+}) {
     const { t } = useTranslation();
     const currentEndpoint = useRuntimeStore(
         (state) => state.auth.currentUserEndpoint
@@ -49,7 +56,7 @@ export function EntityList({
 
     return (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] items-start gap-1">
-            {rows.map((row: any, index: any) => {
+            {rows.map((row, index) => {
                 if (kind === 'group') {
                     return (
                         <UserGroupCard
@@ -61,16 +68,22 @@ export function EntityList({
                 }
 
                 const image = rowImage(row, kind);
-                const label =
+                const rawLabel =
                     kind === 'user'
                         ? row?.displayName || row?.username || ''
                         : summarizeEntityRow(row);
+                const label =
+                    typeof rawLabel === 'string'
+                        ? rawLabel
+                        : String(rawLabel ?? '');
                 const subtitle =
                     kind === 'user'
                         ? userRowSubtitle(row, nowMs, t)
                         : kind === 'world'
                           ? worldOccupantSubtitle(row)
-                          : row?.description || '';
+                          : typeof row.description === 'string'
+                            ? row.description
+                            : '';
                 const imageRoundedClassName =
                     kind === 'user' ? 'rounded-full' : 'rounded-md';
                 const RowFallbackIcon =
@@ -92,6 +105,8 @@ export function EntityList({
                         : '';
                 const isPrivateWorld =
                     kind === 'world' && row?.releaseStatus === 'private';
+                const userColour =
+                    typeof row.$userColour === 'string' ? row.$userColour : '';
                 const rowClassName =
                     'h-auto min-w-0 justify-start gap-2 px-1.5 py-1.5 text-left font-normal active:not-aria-[haspopup]:translate-y-0';
                 const content = (
@@ -129,8 +144,8 @@ export function EntityList({
                                 <span
                                     className="block truncate leading-snug font-medium"
                                     style={
-                                        kind === 'user' && row?.$userColour
-                                            ? { color: row.$userColour }
+                                        kind === 'user' && userColour
+                                            ? { color: userColour }
                                             : undefined
                                     }
                                 >
@@ -180,7 +195,15 @@ export function EntityList({
     );
 }
 
-export function UserGroupSection({ title, rows, countText }: any) {
+export function UserGroupSection({
+    title,
+    rows,
+    countText
+}: {
+    title: ReactNode;
+    rows: readonly EntityRecord[];
+    countText?: ReactNode;
+}) {
     if (!rows.length) {
         return null;
     }

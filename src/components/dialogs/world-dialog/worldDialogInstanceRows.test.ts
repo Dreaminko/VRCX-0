@@ -73,7 +73,7 @@ describe('worldDialogInstanceRows', () => {
             }
         });
         expect(
-            result.displayInstanceRows[0].users.map((user: any) => user.id)
+            result.displayInstanceRows[0].users.map((user) => user.id)
         ).toEqual(['usr_inside', 'usr_friend']);
         expect(result.displayInstanceRows[1]).toMatchObject({
             id: 'public',

@@ -3,7 +3,15 @@ import {
     MoreHorizontalIcon,
     RefreshCwIcon
 } from 'lucide-react';
-import { isValidElement, useEffect, useState } from 'react';
+import {
+    isValidElement,
+    useEffect,
+    useState,
+    type ComponentProps,
+    type ComponentType,
+    type CSSProperties,
+    type ReactNode
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
@@ -25,7 +33,12 @@ import { Spinner } from '@/ui/shadcn/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 import { Textarea } from '@/ui/shadcn/textarea';
 
-function EntityDialogScaffold({ className, children }: any) {
+type ClassNameAndChildren = {
+    className?: string;
+    children?: ReactNode;
+};
+
+function EntityDialogScaffold({ className, children }: ClassNameAndChildren) {
     return (
         <div
             className={cn(
@@ -46,17 +59,27 @@ function EntityDialogTwoColumnLayout({
     className,
     railClassName,
     contentClassName
-}: any) {
+}: ClassNameAndChildren & {
+    rail: ReactNode;
+    railWidth?: string;
+    railMaxHeight?: string;
+    railClassName?: string;
+    contentClassName?: string;
+}) {
+    const layoutStyle: CSSProperties & {
+        '--entity-dialog-rail-width': string;
+        '--entity-dialog-rail-max-height': string;
+    } = {
+        '--entity-dialog-rail-width': railWidth,
+        '--entity-dialog-rail-max-height': railMaxHeight
+    };
     return (
         <div
             className={cn(
                 'flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden min-[880px]:grid min-[880px]:grid-cols-[var(--entity-dialog-rail-width)_minmax(0,1fr)]',
                 className
             )}
-            style={{
-                '--entity-dialog-rail-width': railWidth,
-                '--entity-dialog-rail-max-height': railMaxHeight
-            }}
+            style={layoutStyle}
         >
             <div
                 className={cn(
@@ -84,7 +107,11 @@ function EntityOverviewCard({
     className,
     headerClassName,
     contentClassName
-}: any) {
+}: ClassNameAndChildren & {
+    media?: ReactNode;
+    headerClassName?: string;
+    contentClassName?: string;
+}) {
     return (
         <Card
             size="sm"
@@ -123,7 +150,25 @@ function EntityDialogHeader({
     descriptionAction,
     detail,
     actions
-}: any) {
+}: {
+    imageUrl?: string;
+    imageAlt?: string;
+    imagePlaceholder?: ReactNode;
+    imageClassName?: string;
+    onImageClick?: () => void;
+    titlePrefix?: ReactNode;
+    title?: ReactNode;
+    onTitleClick?: () => void;
+    titleMeta?: ReactNode;
+    subtitle?: ReactNode;
+    onSubtitleClick?: () => void;
+    badges?: ReactNode;
+    mediaBadges?: ReactNode;
+    description?: ReactNode;
+    descriptionAction?: ReactNode;
+    detail?: ReactNode;
+    actions?: ReactNode;
+}) {
     return (
         <div className="flex shrink-0 flex-col gap-4 md:flex-row md:items-start">
             <Button
@@ -238,7 +283,22 @@ function EntityDialogHeader({
     );
 }
 
-function EntityDialogTabs({ value, onValueChange, tabs, children }: any) {
+export type EntityDialogTab = {
+    value: string;
+    label: ReactNode;
+};
+
+function EntityDialogTabs({
+    value,
+    onValueChange,
+    tabs,
+    children
+}: {
+    value: string;
+    onValueChange: (value: string) => void;
+    tabs: EntityDialogTab[];
+    children?: ReactNode;
+}) {
     return (
         <Tabs
             value={value}
@@ -249,7 +309,7 @@ function EntityDialogTabs({ value, onValueChange, tabs, children }: any) {
                 variant="line"
                 className="relative flex h-11 min-h-11 w-full justify-start overflow-x-auto overflow-y-hidden rounded-none border-b bg-transparent p-0"
             >
-                {tabs.map((tab: any) => (
+                {tabs.map((tab) => (
                     <TabsTrigger
                         key={tab.value}
                         value={tab.value}
@@ -269,7 +329,10 @@ function EntityDialogTabContent({
     className,
     children,
     forceMount = false
-}: any) {
+}: ClassNameAndChildren & {
+    value: string;
+    forceMount?: boolean;
+}) {
     return (
         <TabsContent
             value={value}
@@ -289,7 +352,12 @@ function EntityMemoTextarea({
     value = '',
     placeholder = '',
     onSave
-}: any) {
+}: {
+    label?: ReactNode;
+    value?: string;
+    placeholder?: string;
+    onSave?: (value: string) => void | Promise<void>;
+}) {
     const normalizedValue = typeof value === 'string' ? value : '';
     const [draft, setDraft] = useState(normalizedValue);
     const [saving, setSaving] = useState(false);
@@ -337,7 +405,12 @@ function EntityActionDropdown({
     busy = false,
     dangerous = false,
     indicator = false
-}: any) {
+}: {
+    children?: ReactNode;
+    busy?: boolean;
+    dangerous?: boolean;
+    indicator?: boolean;
+}) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
@@ -374,7 +447,14 @@ function EntityActionItem({
     disabled = false,
     shortcut = null,
     onClick
-}: any) {
+}: {
+    children?: ReactNode;
+    icon?: ComponentType;
+    destructive?: boolean;
+    disabled?: boolean;
+    shortcut?: ReactNode;
+    onClick?: ComponentProps<typeof DropdownMenuItem>['onClick'];
+}) {
     return (
         <DropdownMenuItem
             disabled={disabled}
@@ -403,7 +483,12 @@ function EntityActionSub({
     icon: Icon,
     label,
     disabled = false
-}: any) {
+}: {
+    children?: ReactNode;
+    icon?: ComponentType;
+    label: ReactNode;
+    disabled?: boolean;
+}) {
     return (
         <DropdownMenuSub>
             <DropdownMenuSubTrigger disabled={disabled}>
@@ -421,26 +506,30 @@ function EntityActionSub({
     );
 }
 
-function EntityRawJson({ value, valueFactory }: any) {
+type EntityRawJsonProps<TValue> = {
+    value?: TValue;
+    valueFactory?: () => TValue;
+};
+
+function EntityRawJson<TValue>({
+    value,
+    valueFactory
+}: EntityRawJsonProps<TValue>) {
     const { t } = useTranslation();
 
     const [snapshot, setSnapshot] = useState(() =>
-        typeof valueFactory === 'function' ? valueFactory() : value
+        valueFactory ? valueFactory() : value
     );
     const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
-        setSnapshot(
-            typeof valueFactory === 'function' ? valueFactory() : value
-        );
+        setSnapshot(valueFactory ? valueFactory() : value);
     }, [value]);
 
     async function refreshJson() {
         setRefreshing(true);
         try {
-            setSnapshot(
-                typeof valueFactory === 'function' ? valueFactory() : value
-            );
+            setSnapshot(valueFactory ? valueFactory() : value);
         } finally {
             setRefreshing(false);
         }
@@ -473,11 +562,11 @@ function EntityRawJson({ value, valueFactory }: any) {
     );
 }
 
-function EntityBlank({ children = '—' }: any) {
+function EntityBlank({ children = '—' }: { children?: ReactNode }) {
     return <div className="text-muted-foreground text-sm">{children}</div>;
 }
 
-function EntityInfoGrid({ children, className }: any) {
+function EntityInfoGrid({ children, className }: ClassNameAndChildren) {
     return (
         <div
             className={cn('flex flex-wrap items-start gap-1 px-2.5', className)}
@@ -495,7 +584,15 @@ function EntityInfoBlock({
     wide = false,
     onClick,
     children
-}: any) {
+}: {
+    label: ReactNode;
+    value?: ReactNode;
+    mono?: boolean;
+    full?: boolean;
+    wide?: boolean;
+    onClick?: () => void;
+    children?: ReactNode;
+}) {
     const Component = onClick ? 'button' : 'div';
     return (
         <Component

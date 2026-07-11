@@ -383,7 +383,7 @@ describe('preferencesStore normalizers', () => {
         });
         expect(snapshot.trustColor.basic).toBe('#ABCDEF');
         expect(snapshot.trustColor.known).toBe(
-            (DEFAULT_PREFERENCES.trustColor as any).known
+            normalizePreferenceSnapshot(DEFAULT_PREFERENCES).trustColor.known
         );
     });
 

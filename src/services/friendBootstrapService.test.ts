@@ -121,7 +121,7 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
         const { useSessionStore } = await import('@/state/sessionStore');
         const { bootstrapFriendRoster } =
             await import('./friendBootstrapService');
-        const baseline = deferred<Record<string, any>>();
+        const baseline = deferred<Record<string, unknown>>();
         serviceMocks.getFriendLogCurrent.mockResolvedValue([
             {
                 userId: 'usr_online',

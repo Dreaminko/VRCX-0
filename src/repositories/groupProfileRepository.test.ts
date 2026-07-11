@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const tauriMock = vi.hoisted(() => ({
     commands: {
         appVrchatGroupGet: vi.fn(),
+        appVrchatGroupInstancesGet: vi.fn(),
+        appVrchatGroupUserInstancesGet: vi.fn(),
         appVrchatGroupLogsGet: vi.fn()
     }
 }));
@@ -10,6 +12,10 @@ const tauriMock = vi.hoisted(() => ({
 vi.mock('@/platform/tauri/bindings', () => ({ commands: tauriMock.commands }));
 
 import groupProfileRepository, { normalize } from './groupProfileRepository';
+import type {
+    GroupAuditLogRow,
+    GroupMemberRow
+} from './groupProfileRepository';
 
 describe('GroupProfileRepository', () => {
     beforeEach(() => {
@@ -79,6 +85,119 @@ describe('GroupProfileRepository', () => {
                 }
             ]
         });
+    });
+
+    it('preserves nullable membership data and gallery role visibility', () => {
+        expect(
+            normalize({
+                id: 'grp_redacted',
+                name: 'Group',
+                createdAt: { malformed: true },
+                updatedAt: 42,
+                myMember: null,
+                memberCountSyncedAt: null,
+                galleries: [
+                    {
+                        id: 'gal_redacted',
+                        name: 'Gallery',
+                        roleIdsToView: null
+                    }
+                ]
+            })
+        ).toMatchObject({
+            id: 'grp_redacted',
+            createdAt: '',
+            updatedAt: '',
+            myMember: null,
+            memberCountSyncedAt: '',
+            galleries: [{ id: 'gal_redacted', roleIdsToView: null }]
+        });
+    });
+
+    it('preserves direct-array and wrapped group instance response shapes', async () => {
+        const directRows = [
+            {
+                id: 'instance_direct',
+                location: 'wrld_redacted:instance_direct~group(grp_redacted)'
+            }
+        ];
+        const wrappedRows = [
+            {
+                id: 'instance_wrapped',
+                location: 'wrld_redacted:instance_wrapped~group(grp_redacted)'
+            }
+        ];
+        tauriMock.commands.appVrchatGroupInstancesGet.mockResolvedValue({
+            status: 200,
+            data: JSON.stringify(directRows),
+            raw: {}
+        });
+        tauriMock.commands.appVrchatGroupUserInstancesGet.mockResolvedValue({
+            status: 200,
+            data: JSON.stringify({ instances: wrappedRows }),
+            raw: {}
+        });
+
+        await expect(
+            groupProfileRepository.getGroupInstances({
+                groupId: 'grp_redacted',
+                userId: 'usr_redacted'
+            })
+        ).resolves.toMatchObject({ json: directRows });
+        await expect(
+            groupProfileRepository.getUsersGroupInstances({
+                userId: 'usr_redacted'
+            })
+        ).resolves.toMatchObject({ json: { instances: wrappedRows } });
+    });
+
+    it('models member nullability and open audit-log data without real account data', () => {
+        const member = {
+            acceptedByDisplayName: null,
+            acceptedById: 'usr_actor_redacted',
+            bannedAt: null,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            groupId: 'grp_redacted',
+            hasJoinedFromPurchase: false,
+            id: 'gmem_redacted',
+            isRepresenting: false,
+            isSubscribedToAnnouncements: true,
+            isSubscribedToEventAnnouncements: false,
+            joinedAt: '2026-01-01T00:00:00.000Z',
+            lastPostReadAt: null,
+            managerNotes: '',
+            membershipStatus: 'member',
+            mRoleIds: [],
+            roleIds: ['grol_redacted'],
+            user: {
+                currentAvatarImageUrl: '',
+                currentAvatarTags: [],
+                currentAvatarThumbnailImageUrl: '',
+                displayName: 'Member',
+                iconUrl: '',
+                id: 'usr_member_redacted',
+                profilePicOverride: '',
+                thumbnailUrl: '',
+                userIcon: ''
+            },
+            userId: 'usr_member_redacted',
+            visibility: 'visible'
+        } satisfies GroupMemberRow;
+        const log = {
+            actorDisplayName: 'Actor',
+            actorId: 'usr_actor_redacted',
+            created_at: '2026-01-01T00:00:00.000Z',
+            data: {},
+            description: 'Member joined',
+            eventType: 'group.member.join',
+            groupId: 'grp_redacted',
+            id: 'gaud_redacted',
+            targetId: 'usr_member_redacted'
+        } satisfies GroupAuditLogRow;
+
+        expect(member.acceptedByDisplayName).toBeNull();
+        expect(member.lastPostReadAt).toBeNull();
+        expect(log.data).toEqual({});
     });
 
     it('unwraps string error bodies from failed group requests', async () => {

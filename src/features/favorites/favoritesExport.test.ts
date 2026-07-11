@@ -16,13 +16,11 @@ describe('favorite export helpers', () => {
     it('returns friend export fields for friends and entity fields for worlds or avatars', () => {
         expect(
             getFavoriteExportFieldOptions('friend').map(
-                (option: any) => option.value
+                (option) => option.value
             )
         ).toEqual(['id', 'name', 'status', 'group', 'source']);
         expect(
-            getFavoriteExportFieldOptions('world').map(
-                (option: any) => option.value
-            )
+            getFavoriteExportFieldOptions('world').map((option) => option.value)
         ).toEqual(['id', 'name', 'author', 'thumbnail', 'group', 'source']);
     });
 

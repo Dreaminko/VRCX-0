@@ -1,3 +1,4 @@
+import type { UserProfileRecord } from '@/domain/entities/profileEntities';
 import {
     entityQueryPolicies,
     fetchCachedData,
@@ -30,20 +31,6 @@ type VrchatApiResult = {
     status: number;
     data: unknown;
     raw: unknown;
-};
-
-type UserProfileRecord = UserRecord & {
-    id?: string;
-    displayName?: string;
-    username?: string;
-    name?: string;
-    $trustLevel: string;
-    $trustClass: string;
-    $trustSortNum: number;
-    $isModerator: boolean;
-    $isTroll: boolean;
-    $isProbableTroll: boolean;
-    $platform: string;
 };
 
 type UserMutualCounts = {
@@ -605,4 +592,5 @@ export {
     addCurrentUserTags,
     removeCurrentUserTags
 };
+export type { UserProfileRecord } from '@/domain/entities/profileEntities';
 export default userProfileRepository;

@@ -15,7 +15,7 @@ import {
 describe('friends locations config helpers', () => {
     it('keeps the expected segment order for the page tabs', () => {
         expect(
-            FRIENDS_LOCATIONS_SEGMENTS.map((segment: any) => segment.value)
+            FRIENDS_LOCATIONS_SEGMENTS.map((segment) => segment.value)
         ).toEqual(['online', 'favorite', 'same-instance', 'active', 'offline']);
     });
 
@@ -40,7 +40,7 @@ describe('friends locations config helpers', () => {
     it('normalizes fixed density options and exposes grid metrics', () => {
         expect(DEFAULT_FRIENDS_LOCATIONS_DENSITY).toBe('compact');
         expect(
-            FRIENDS_LOCATIONS_DENSITY_OPTIONS.map((option: any) => option.value)
+            FRIENDS_LOCATIONS_DENSITY_OPTIONS.map((option) => option.value)
         ).toEqual(['standard', 'compact', 'dense']);
         expect(sanitizeFriendsLocationsDensity('standard')).toBe('standard');
         expect(sanitizeFriendsLocationsDensity('bad-value')).toBe('compact');
