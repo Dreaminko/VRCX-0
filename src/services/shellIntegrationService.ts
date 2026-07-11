@@ -95,6 +95,13 @@ export async function saveCalendarFile(
     await commands.appSaveCalendarFile(defaultName, icsContent);
 }
 
+export async function saveJsonFile(
+    defaultName: string,
+    json: string
+): Promise<void> {
+    await commands.appSaveVrcRegJsonFile(null, defaultName, json);
+}
+
 export async function readVrchatConfigFileSafe(): Promise<string> {
     const config = await commands.appReadConfigFileSafe();
     return typeof config === 'string' ? config : '';
