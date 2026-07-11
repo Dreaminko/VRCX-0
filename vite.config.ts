@@ -1,4 +1,3 @@
-// @ts-nocheck
 import fs from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -6,9 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import browserslist from 'browserslist';
 import { browserslistToTargets } from 'lightningcss';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
-const defaultAssetName = '[name][extname]';
 const webview2BuildTarget = {
     vite: 'edge140',
     browserslist: 'Edge 140'
@@ -29,15 +27,7 @@ function getPlatformBuildTarget() {
     }
 }
 
-function isFont(name) {
-    return /\.(woff2?|ttf|otf|eot)$/.test(name);
-}
-
-function getAssetFilename() {
-    return `assets/${defaultAssetName}`;
-}
-
-function createReactDevtoolsStandalonePlugin(enabled) {
+function createReactDevtoolsStandalonePlugin(enabled: boolean): Plugin {
     return {
         name: 'vrcx-0-react-devtools-standalone',
         transformIndexHtml() {
@@ -84,17 +74,10 @@ export default defineConfig(({ mode }) => {
         css: {
             transformer: 'lightningcss',
             lightningcss: {
-                drafts: {
-                    customMedia: true
-                },
-                errorRecovery: true,
                 targets: browserslistToTargets(
                     browserslist(buildTarget.browserslist)
                 )
             }
-        },
-        optimizeDeps: {
-            entries: []
         },
         define: {
             VERSION: JSON.stringify(version),
@@ -117,20 +100,13 @@ export default defineConfig(({ mode }) => {
             license: {
                 fileName: 'licenses/frontend-licenses.json'
             },
-            emptyOutDir: true,
-            copyPublicDir: true,
+            copyPublicDir: false,
             reportCompressedSize: false,
-            chunkSizeWarningLimit: 5000,
-            sourcemap: false,
-            assetsInlineLimit(filePath) {
-                if (isFont(filePath)) return 0;
-                if (filePath.endsWith('.json')) return 0;
-                return 40960;
-            },
+            chunkSizeWarningLimit: 3000,
+            assetsInlineLimit: 0,
             rolldownOptions: {
-                preserveEntrySignatures: false,
                 output: {
-                    assetFileNames: getAssetFilename
+                    assetFileNames: 'assets/[name][extname]'
                 }
             }
         }
