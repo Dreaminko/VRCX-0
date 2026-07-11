@@ -23,6 +23,8 @@
         "tauri": "tauri",
         "pretauri:dev": "npm run generate:native-locales",
         "tauri:dev": "tauri dev --features devtools",
+        "pretauri:dev:reuse-vite": "npm run generate:native-locales",
+        "tauri:dev:reuse-vite": "tauri dev --features devtools --no-dev-server --config src-tauri/tauri.reuse-vite.conf.json",
         "pretauri:dev:react-devtools": "npm run generate:native-locales",
         "tauri:dev:react-devtools": "set VITE_REACT_DEVTOOLS=1&& tauri dev --features devtools",
         "pretauri:dev:ws-log": "npm run generate:native-locales",
