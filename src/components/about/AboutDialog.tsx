@@ -227,8 +227,8 @@ export function AboutVrcxDialog({
                     <DialogDescription className="mt-3 text-[13px]">
                         {t('view.about.tagline')}
                     </DialogDescription>
-                    <div className="text-muted-foreground mt-3 inline-flex h-6 items-center justify-center gap-2 text-xs">
-                        <span className="text-foreground/80 font-mono tracking-normal tabular-nums">
+                    <div className="text-muted-foreground mt-3 inline-flex h-6 items-center justify-center gap-2 font-sans text-xs tracking-[0.01em]">
+                        <span className="text-foreground/80 font-medium tabular-nums">
                             {displayVersion}
                         </span>
                         {platformLabel ? (
