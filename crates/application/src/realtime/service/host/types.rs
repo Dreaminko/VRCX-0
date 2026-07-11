@@ -106,6 +106,9 @@ pub struct RealtimeHostRuntime {
     pub(super) world_cache: Arc<WorldCache>,
     pub(super) friend_owner_lock: Mutex<()>,
     pub(super) notification_apply_lock: Arc<tokio::sync::Mutex<()>>,
+    pub(super) friend_profile_bulk_load:
+        Mutex<super::friend_profile_bulk_load::FriendProfileBulkLoadState>,
+    pub(super) friend_profile_bulk_cancel_tx: watch::Sender<u64>,
     #[cfg(test)]
     pub(super) friend_before_output_hook: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }

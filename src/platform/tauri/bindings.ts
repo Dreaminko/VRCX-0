@@ -234,6 +234,12 @@ export const commands = {
     async appIngestUserFacts(entries: JsonValue[]): Promise<null> {
         return await TAURI_INVOKE('app__ingest_user_facts', { entries });
     },
+    async appFriendProfileLoadStart(): Promise<FriendProfileLoadStatusPayload> {
+        return await TAURI_INVOKE('app__friend_profile_load_start');
+    },
+    async appFriendProfileLoadCancel(): Promise<FriendProfileLoadStatusPayload> {
+        return await TAURI_INVOKE('app__friend_profile_load_cancel');
+    },
     async appStartBackgroundMode(): Promise<BackendRuntimeSnapshot> {
         return await TAURI_INVOKE('app__start_background_mode');
     },
@@ -3022,6 +3028,7 @@ export type BackendRuntimeSnapshot = {
     gameLogPersistedCount: number;
     lastError: string | null;
     updatedAt: string;
+    friendProfileLoad: FriendProfileLoadStatusPayload;
 };
 export type BackendRuntimeTelemetry = {
     kind: string;
@@ -3303,9 +3310,28 @@ export type FriendLogUpsertOptionsInput = {
     historyEntry?: FriendLogHistoryEntryInput | null;
     forceHistory?: boolean;
 };
+export type FriendProfileBulkLoadStatus =
+    | 'idle'
+    | 'running'
+    | 'cancelling'
+    | 'completed'
+    | 'cancelled'
+    | 'error';
+export type FriendProfileLoadStatusPayload = {
+    runId: number;
+    status: FriendProfileBulkLoadStatus;
+    total: number;
+    processed: number;
+    loaded: number;
+    failed: number;
+    startedAt: string;
+    finishedAt: string | null;
+    lastError: string | null;
+};
 export type FriendProjection = {
     generation: number;
     baselineRevision: number;
+    source?: RealtimeProjectionSource | null;
     patches?: FriendProjectionPatch[];
     removals?: string[];
     feedEntries?: JsonValue[];
@@ -3926,6 +3952,7 @@ export type RealtimeNotificationUpsert = {
     deliverRuntime: boolean;
     runAutomation: boolean;
 };
+export type RealtimeProjectionSource = 'friendProfileBulkLoad';
 export type RealtimeTransportStartResult = {
     generation: number;
     clientRunId: number;

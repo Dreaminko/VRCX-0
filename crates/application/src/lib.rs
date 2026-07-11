@@ -169,15 +169,17 @@ pub use process_monitor::{
 pub use proxy::{test_proxy_connectivity, ProxySettingsTestResult};
 pub use realtime::{
     is_friend_event_type, FriendBaselineCausalWatermark, FriendBaselineResult,
-    FriendBaselineSyncOutcome, FriendProjection, FriendProjectionPatch, PendingOfflineTimerAction,
+    FriendBaselineSyncOutcome, FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
+    FriendProjection, FriendProjectionPatch, PendingOfflineTimerAction,
     RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeCurrentUserProjection,
     RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
     RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
     RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
     RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
     RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
-    RealtimeNotificationUpsert, RealtimeSessionContext, RealtimeStopRequest,
-    RealtimeTransportStartResult, RealtimeWsMessagePayload, RealtimeWsStatusPayload,
+    RealtimeNotificationUpsert, RealtimeProjectionSource, RealtimeSessionContext,
+    RealtimeStopRequest, RealtimeTransportStartResult, RealtimeWsMessagePayload,
+    RealtimeWsStatusPayload,
 };
 pub use registry_backup::{
     registry_backup_create, registry_backup_delete, registry_backup_export_json,

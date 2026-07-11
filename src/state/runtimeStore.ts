@@ -585,6 +585,7 @@ const initialState: RuntimeStoreState = {
         gameLogPersistenceFallback: createRuntimeEventState(),
         gameLogSideEffect: createRuntimeEventState(),
         runtimeGroupInstancesProjection: createRuntimeEventState(),
+        friendProfileLoadStatus: createRuntimeEventState(),
         realtimeWsStatus: createRuntimeEventState(),
         realtimeFriendProjection: createRuntimeEventState(),
         realtimeNotificationProjection: createRuntimeEventState(),

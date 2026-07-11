@@ -6,6 +6,7 @@ use super::*;
 impl RealtimeHostRuntime {
     pub fn new(deps: RealtimeHostRuntimeDeps) -> Self {
         let (cancel_tx, _) = watch::channel(0);
+        let (friend_profile_bulk_cancel_tx, _) = watch::channel(0);
         let world_cache = Arc::clone(&deps.world_cache);
         Self {
             deps,
@@ -18,6 +19,10 @@ impl RealtimeHostRuntime {
             world_cache,
             friend_owner_lock: Mutex::new(()),
             notification_apply_lock: Arc::new(tokio::sync::Mutex::new(())),
+            friend_profile_bulk_load: Mutex::new(
+                super::friend_profile_bulk_load::FriendProfileBulkLoadState::default(),
+            ),
+            friend_profile_bulk_cancel_tx,
             #[cfg(test)]
             friend_before_output_hook: Mutex::new(None),
         }
@@ -40,14 +45,18 @@ impl RealtimeHostRuntime {
         }
         let mut friends_by_id = friends_by_id;
         let friend_owner = self.lock_friend_owner();
-        let generation = {
+        let (generation, previous_active) = {
             let mut state = self
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
+            let previous_active = state.active_context.clone();
             state.generation = state.generation.saturating_add(1);
-            state.generation
+            (state.generation, previous_active)
         };
+        if let Some(previous_active) = previous_active {
+            self.cancel_friend_profile_bulk_load_for_session(&previous_active);
+        }
         let session_generation =
             self.deps
                 .session
@@ -213,6 +222,7 @@ impl RealtimeHostRuntime {
     pub fn stop(&self, request: RealtimeStopRequest) {
         let friend_owner = self.lock_friend_owner();
         let (
+            stopped_active,
             websocket_domain,
             client_run_id,
             generation,
@@ -265,6 +275,7 @@ impl RealtimeHostRuntime {
             self.friends.clear();
             self.current_user.clear();
             (
+                active.clone(),
                 websocket_domain,
                 active.client_run_id,
                 active.generation,
@@ -273,6 +284,7 @@ impl RealtimeHostRuntime {
             )
         };
         drop(friend_owner);
+        self.cancel_friend_profile_bulk_load_for_session(&stopped_active);
 
         self.user_cache.clear();
         self.user_query_cache.clear();

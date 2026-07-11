@@ -4,7 +4,10 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 use tauri::State;
-use vrcx_0_application::{FriendBaselineResult, RealtimeStopRequest, RealtimeTransportStartResult};
+use vrcx_0_application::{
+    FriendBaselineResult, FriendProfileLoadStatusPayload, RealtimeStopRequest,
+    RealtimeTransportStartResult,
+};
 use vrcx_0_core::friends::FriendRecord;
 
 use crate::error::AppError;
@@ -125,4 +128,20 @@ pub fn app__ingest_user_facts(
 ) -> Result<(), AppError> {
     state.realtime_runtime.ingest_user_facts(entries);
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__friend_profile_load_start(
+    state: State<'_, AppState>,
+) -> Result<FriendProfileLoadStatusPayload, AppError> {
+    Ok(state.realtime_runtime.start_friend_profile_bulk_load()?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__friend_profile_load_cancel(
+    state: State<'_, AppState>,
+) -> Result<FriendProfileLoadStatusPayload, AppError> {
+    Ok(state.realtime_runtime.cancel_friend_profile_bulk_load()?)
 }

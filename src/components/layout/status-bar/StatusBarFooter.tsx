@@ -492,7 +492,9 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                             visible={friendProfileLoadVisible}
                             showDot={false}
                             label={t(
-                                'view.friend_list.loading.loading_friend_details'
+                                friendProfileLoad?.status === 'cancelling'
+                                    ? 'view.friend_list.description.cancelling'
+                                    : 'view.friend_list.loading.loading_friend_details'
                             )}
                             value={formatFriendProfileLoadValue(
                                 friendProfileLoad

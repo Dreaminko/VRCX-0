@@ -12,7 +12,17 @@ impl RealtimeHostRuntime {
         self: &Arc<Self>,
         endpoint: String,
         user_id: String,
+        profile: serde_json::Value,
+    ) -> Result<bool> {
+        self.apply_friend_profile_refresh_with_source(endpoint, user_id, profile, None)
+    }
+
+    pub(super) fn apply_friend_profile_refresh_with_source(
+        self: &Arc<Self>,
+        endpoint: String,
+        user_id: String,
         mut profile: serde_json::Value,
+        source: Option<RealtimeProjectionSource>,
     ) -> Result<bool> {
         let normalized_user_id = user_id.trim().to_string();
         if normalized_user_id.is_empty() {
@@ -60,7 +70,9 @@ impl RealtimeHostRuntime {
             &chrono::Utc::now().to_rfc3339(),
         ) {
             RealtimeFriendApplyResult::Output(output) => {
-                self.apply_friend_output_owned(&owner, *output);
+                let mut output = *output;
+                output.projection.source = source;
+                self.apply_friend_output_owned(&owner, output);
                 let runtime = Arc::clone(self);
                 let endpoint = requested_endpoint.clone();
                 let user_id = normalized_user_id.clone();
@@ -92,6 +104,15 @@ impl RealtimeHostRuntime {
     }
 
     pub fn record_user_profile(&self, endpoint: &str, profile: &serde_json::Value) {
+        self.record_user_profile_with_source(endpoint, profile, None);
+    }
+
+    fn record_user_profile_with_source(
+        &self,
+        endpoint: &str,
+        profile: &serde_json::Value,
+        source: Option<RealtimeProjectionSource>,
+    ) {
         let user_id = json_string_field(profile.get("id"));
         if user_id.is_empty() {
             return;
@@ -117,28 +138,48 @@ impl RealtimeHostRuntime {
             ..Default::default()
         };
         if let Some(output) = self.user_cache.record_user(profile, options) {
-            self.emit_user_cache_changes(vec![output.user]);
+            self.emit_user_cache_changes_with_source(vec![output.user], source);
         }
     }
 
     pub(super) fn emit_user_cache_changes(&self, users: Vec<serde_json::Map<String, Value>>) {
+        self.emit_user_cache_changes_with_source(users, None);
+    }
+
+    fn emit_user_cache_changes_with_source(
+        &self,
+        users: Vec<serde_json::Map<String, Value>>,
+        source: Option<RealtimeProjectionSource>,
+    ) {
         if users.is_empty() {
             return;
         }
-        let payload = serde_json::json!({
+        let mut payload = serde_json::json!({
             "users": users.into_iter().map(Value::Object).collect::<Vec<_>>(),
         });
+        if let Some(source) = source {
+            payload["source"] = serde_json::json!(source);
+        }
         self.deps.event_bus.emit_realtime_user_projection(payload);
     }
 
     pub(super) fn record_users_into_cache(&self, values: &[Value], options: &UserFactMergeOptions) {
+        self.record_users_into_cache_with_source(values, options, None);
+    }
+
+    pub(super) fn record_users_into_cache_with_source(
+        &self,
+        values: &[Value],
+        options: &UserFactMergeOptions,
+        source: Option<RealtimeProjectionSource>,
+    ) {
         let mut changed = Vec::new();
         for value in values {
             if let Some(output) = self.user_cache.record_user(value, options.clone()) {
                 changed.push(output.user);
             }
         }
-        self.emit_user_cache_changes(changed);
+        self.emit_user_cache_changes_with_source(changed, source);
     }
 
     pub(super) fn record_baseline_friends_into_cache(&self) {
@@ -213,6 +254,19 @@ impl RealtimeHostRuntime {
         dialog: bool,
         is_friend: Option<bool>,
     ) -> Result<VrchatApiResponse> {
+        self.get_user_via_cache_with_source(endpoint, user_id_input, force, dialog, is_friend, None)
+            .await
+    }
+
+    pub(super) async fn get_user_via_cache_with_source(
+        self: &Arc<Self>,
+        endpoint: String,
+        user_id_input: String,
+        force: bool,
+        dialog: bool,
+        is_friend: Option<bool>,
+        source: Option<RealtimeProjectionSource>,
+    ) -> Result<VrchatApiResponse> {
         let (user_id, request) = remote_users::user_get_input(endpoint.clone(), user_id_input)?;
         let kind = UserQueryKind::from_request(dialog, is_friend);
         if force {
@@ -241,7 +295,7 @@ impl RealtimeHostRuntime {
                 .invalidate(kind, &endpoint, &user_id)
                 .await;
         }
-        self.ingest_user_get_response(&endpoint, &user_id, &response);
+        self.ingest_user_get_response(&endpoint, &user_id, &response, source);
         let mut value = (*response).clone();
         if (200..300).contains(&value.status) {
             if let Ok(Value::Object(mut object)) = serde_json::from_str::<Value>(&value.data) {
@@ -268,6 +322,7 @@ impl RealtimeHostRuntime {
         endpoint: &str,
         requested_user_id: &str,
         response: &VrchatApiResponse,
+        source: Option<RealtimeProjectionSource>,
     ) {
         if !(200..300).contains(&response.status) {
             return;
@@ -288,11 +343,12 @@ impl RealtimeHostRuntime {
             );
             return;
         }
-        self.record_user_profile(endpoint, &profile);
-        if let Err(error) = self.apply_friend_profile_refresh(
+        self.record_user_profile_with_source(endpoint, &profile, source);
+        if let Err(error) = self.apply_friend_profile_refresh_with_source(
             endpoint.to_string(),
             requested_user_id.to_string(),
             profile,
+            source,
         ) {
             tracing::warn!(
                 user_id = %requested_user_id,

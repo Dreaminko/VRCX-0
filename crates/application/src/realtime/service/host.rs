@@ -46,7 +46,8 @@ use crate::realtime::{
     RealtimeEntryCorrectionStream, RealtimeFriendApplyResult, RealtimeFriendOutput,
     RealtimeFriendSnapshot, RealtimeInstanceClosedOutput, RealtimeInstanceQueueProjection,
     RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeNotificationUpsert,
-    RealtimeSessionContext, RealtimeTransportStartResult, RealtimeWsStatusPayload,
+    RealtimeProjectionSource, RealtimeSessionContext, RealtimeTransportStartResult,
+    RealtimeWsStatusPayload,
 };
 use crate::session::HostSessionRuntime;
 use crate::social_baseline::service::reconcile_friend_roster_records;
@@ -59,6 +60,9 @@ use crate::{Error, Result};
 
 #[cfg(test)]
 mod friend_baseline_tests;
+mod friend_profile_bulk_load;
+#[cfg(test)]
+mod friend_profile_bulk_load_tests;
 mod lifecycle_current_user;
 mod lifecycle_enrichment;
 mod lifecycle_friend_baseline;
@@ -82,4 +86,5 @@ mod world_cache_tests;
 
 use lifecycle_world_cache::WorldNameFetchOutcome;
 
+pub use friend_profile_bulk_load::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
 pub use types::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};

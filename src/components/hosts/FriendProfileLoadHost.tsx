@@ -37,11 +37,13 @@ export function FriendProfileLoadHost() {
         }
         if (status === 'completed') {
             notifiedRunRef.current = runId;
-            toast.success(
-                t('view.friends.dynamic.loaded_value_friend_profiles', {
-                    value: loadedFriends
-                })
-            );
+            if (loadedFriends > 0) {
+                toast.success(
+                    t('view.friends.dynamic.loaded_value_friend_profiles', {
+                        value: loadedFriends
+                    })
+                );
+            }
             return;
         }
         if (status === 'cancelled') {

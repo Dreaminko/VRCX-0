@@ -92,8 +92,10 @@ vi.mock('./deepLinkService', () => ({
     drainPendingDeepLinks: mocks.drainPendingDeepLinks
 }));
 
+import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
+import { useUserFactsStore } from '@/state/userFactsStore';
 
 import { bindRuntimeEvents } from './runtimeEventBridgeService';
 
@@ -111,7 +113,18 @@ function createBackendRuntimeSnapshot(): BackendRuntimeSnapshot {
         wsPersistedCount: 0,
         gameLogPersistedCount: 0,
         lastError: null,
-        updatedAt: '2026-07-09T00:00:00.000Z'
+        updatedAt: '2026-07-09T00:00:00.000Z',
+        friendProfileLoad: {
+            runId: 0,
+            status: 'idle',
+            total: 0,
+            processed: 0,
+            loaded: 0,
+            failed: 0,
+            startedAt: '',
+            finishedAt: null,
+            lastError: null
+        }
     };
 }
 
@@ -119,7 +132,10 @@ describe('runtimeEventBridgeService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         useRuntimeStore.getState().resetRuntimeState();
+        useFriendRosterStore.getState().resetRoster();
         useSessionStore.getState().resetSessionState();
+        useUserFactsStore.getState().resetUserFacts();
+        vi.useRealTimers();
         mocks.isHostCapabilityAvailable.mockReturnValue(false);
         mocks.subscribe.mockResolvedValue(() => {});
         mocks.getBackendRuntimeSnapshot.mockResolvedValue(
@@ -257,5 +273,277 @@ describe('runtimeEventBridgeService', () => {
         expect(
             useRuntimeStore.getState().runtimeEvents.gameLogProjection.count
         ).toBe(1);
+    });
+
+    it('batches friend profile projections into one store update', async () => {
+        vi.useFakeTimers();
+        const handlers = new Map<string, (payload: unknown) => void>();
+        mocks.subscribe.mockImplementation((name, handler) => {
+            handlers.set(name, handler);
+            return Promise.resolve(() => {});
+        });
+        const cleanup = await bindRuntimeEvents();
+        const snapshot = createBackendRuntimeSnapshot();
+        useRuntimeStore.getState().setBackendRuntimeSnapshot({
+            ...snapshot,
+            phase: 'running',
+            authStatus: 'authenticated',
+            authUserId: 'usr_owner',
+            wsStatus: 'connected'
+        });
+        useRuntimeStore.getState().setAuthBootstrap({
+            currentUserId: 'usr_owner'
+        });
+        useRuntimeStore.getState().setFriendProfileLoadState({
+            runId: 1,
+            status: 'running'
+        });
+        useSessionStore.getState().setSessionPhase('ready');
+        let rosterUpdates = 0;
+        let userFactUpdates = 0;
+        const unsubscribeRoster = useFriendRosterStore.subscribe(() => {
+            rosterUpdates += 1;
+        });
+        const unsubscribeUserFacts = useUserFactsStore.subscribe(() => {
+            userFactUpdates += 1;
+        });
+
+        for (const userId of ['usr_a', 'usr_b']) {
+            handlers.get('realtimeUserProjection')?.({
+                source: 'friendProfileBulkLoad',
+                users: [
+                    {
+                        id: userId,
+                        endpoint: 'api.vrchat.cloud',
+                        displayName: userId
+                    }
+                ]
+            });
+            handlers.get('realtimeFriendProjection')?.({
+                generation: 1,
+                baselineRevision: 1,
+                source: 'friendProfileBulkLoad',
+                patches: [
+                    {
+                        userId,
+                        patch: {
+                            id: userId,
+                            displayName: userId,
+                            state: 'offline'
+                        },
+                        stateBucket: 'offline',
+                        stateBucketAuthority: 'preserve'
+                    }
+                ],
+                removals: [],
+                feedEntries: [],
+                friendLogChanged: false
+            });
+        }
+
+        expect(rosterUpdates).toBe(0);
+        expect(userFactUpdates).toBe(0);
+        await vi.advanceTimersByTimeAsync(9_999);
+        expect(rosterUpdates).toBe(0);
+        expect(userFactUpdates).toBe(0);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(rosterUpdates).toBe(1);
+        expect(userFactUpdates).toBe(1);
+        expect(
+            Object.keys(useFriendRosterStore.getState().friendsById)
+        ).toEqual(['usr_a', 'usr_b']);
+
+        unsubscribeRoster();
+        unsubscribeUserFacts();
+        cleanup();
+    });
+
+    it.each(['running', 'cancelling'] as const)(
+        'applies normal realtime projections immediately while profile loading is %s',
+        async (status) => {
+            vi.useFakeTimers();
+            const handlers = new Map<string, (payload: unknown) => void>();
+            mocks.subscribe.mockImplementation((name, handler) => {
+                handlers.set(name, handler);
+                return Promise.resolve(() => {});
+            });
+            const cleanup = await bindRuntimeEvents();
+            const snapshot = createBackendRuntimeSnapshot();
+            useRuntimeStore.getState().setBackendRuntimeSnapshot({
+                ...snapshot,
+                phase: 'running',
+                authStatus: 'authenticated',
+                authUserId: 'usr_owner',
+                wsStatus: 'connected'
+            });
+            useRuntimeStore.getState().setAuthBootstrap({
+                currentUserId: 'usr_owner'
+            });
+            useRuntimeStore.getState().setFriendProfileLoadState({
+                runId: 1,
+                status
+            });
+            useSessionStore.getState().setSessionPhase('ready');
+
+            handlers.get('realtimeUserProjection')?.({
+                source: 'friendProfileBulkLoad',
+                users: [
+                    {
+                        id: 'usr_bulk',
+                        endpoint: 'api.vrchat.cloud',
+                        displayName: 'Bulk Friend'
+                    }
+                ]
+            });
+            handlers.get('realtimeFriendProjection')?.({
+                generation: 1,
+                baselineRevision: 1,
+                source: 'friendProfileBulkLoad',
+                patches: [
+                    {
+                        userId: 'usr_bulk',
+                        patch: {
+                            id: 'usr_bulk',
+                            displayName: 'Bulk Friend'
+                        },
+                        stateBucket: 'offline',
+                        stateBucketAuthority: 'preserve'
+                    }
+                ],
+                removals: [],
+                feedEntries: [],
+                friendLogChanged: false
+            });
+            expect(useFriendRosterStore.getState().friendsById).toEqual({});
+            expect(useUserFactsStore.getState().usersByKey).toEqual({});
+
+            handlers.get('realtimeUserProjection')?.({
+                users: [
+                    {
+                        id: 'usr_live',
+                        endpoint: 'api.vrchat.cloud',
+                        displayName: 'Live Friend'
+                    }
+                ]
+            });
+            handlers.get('realtimeFriendProjection')?.({
+                generation: 1,
+                baselineRevision: 1,
+                patches: [
+                    {
+                        userId: 'usr_live',
+                        patch: {
+                            id: 'usr_live',
+                            displayName: 'Live Friend',
+                            status: 'offline'
+                        },
+                        stateBucket: 'online',
+                        stateBucketAuthority: 'preserve'
+                    }
+                ],
+                removals: [],
+                feedEntries: [],
+                friendLogChanged: false
+            });
+
+            expect(
+                Object.keys(useFriendRosterStore.getState().friendsById)
+            ).toEqual(['usr_bulk', 'usr_live']);
+            expect(
+                Object.values(useUserFactsStore.getState().usersByKey).map(
+                    (user) => user.id
+                )
+            ).toEqual(['usr_bulk', 'usr_live']);
+            await vi.advanceTimersByTimeAsync(10_000);
+            expect(
+                Object.keys(useFriendRosterStore.getState().friendsById)
+            ).toEqual(['usr_bulk', 'usr_live']);
+
+            cleanup();
+        }
+    );
+
+    it('flushes pending friend profile projections when the load becomes terminal', async () => {
+        vi.useFakeTimers();
+        const handlers = new Map<string, (payload: unknown) => void>();
+        mocks.subscribe.mockImplementation((name, handler) => {
+            handlers.set(name, handler);
+            return Promise.resolve(() => {});
+        });
+        const cleanup = await bindRuntimeEvents();
+        const snapshot = createBackendRuntimeSnapshot();
+        useRuntimeStore.getState().setBackendRuntimeSnapshot({
+            ...snapshot,
+            phase: 'running',
+            authStatus: 'authenticated',
+            authUserId: 'usr_owner',
+            wsStatus: 'connected'
+        });
+        useRuntimeStore.getState().setAuthBootstrap({
+            currentUserId: 'usr_owner'
+        });
+        useRuntimeStore.getState().setFriendProfileLoadState({
+            runId: 100,
+            status: 'running'
+        });
+        useSessionStore.getState().setSessionPhase('ready');
+
+        handlers.get('realtimeUserProjection')?.({
+            source: 'friendProfileBulkLoad',
+            users: [
+                {
+                    id: 'usr_terminal',
+                    endpoint: 'api.vrchat.cloud',
+                    displayName: 'Terminal Friend'
+                }
+            ]
+        });
+        handlers.get('realtimeFriendProjection')?.({
+            generation: 1,
+            baselineRevision: 1,
+            source: 'friendProfileBulkLoad',
+            patches: [
+                {
+                    userId: 'usr_terminal',
+                    patch: {
+                        id: 'usr_terminal',
+                        displayName: 'Terminal Friend'
+                    },
+                    stateBucket: 'offline',
+                    stateBucketAuthority: 'preserve'
+                }
+            ],
+            removals: [],
+            feedEntries: [],
+            friendLogChanged: false
+        });
+        expect(useFriendRosterStore.getState().friendsById).toEqual({});
+
+        handlers.get('friendProfileLoadStatus')?.({
+            runId: 100,
+            status: 'cancelled',
+            total: 1,
+            processed: 0,
+            loaded: 0,
+            failed: 0,
+            startedAt: '2026-07-11T00:00:00.000Z',
+            finishedAt: '2026-07-11T00:00:01.000Z',
+            lastError: null
+        });
+
+        expect(
+            Object.keys(useFriendRosterStore.getState().friendsById)
+        ).toEqual(['usr_terminal']);
+        expect(
+            Object.values(useUserFactsStore.getState().usersByKey).map(
+                (user) => user.id
+            )
+        ).toEqual(['usr_terminal']);
+        await vi.advanceTimersByTimeAsync(10_000);
+        expect(
+            Object.keys(useFriendRosterStore.getState().friendsById)
+        ).toEqual(['usr_terminal']);
+
+        cleanup();
     });
 });

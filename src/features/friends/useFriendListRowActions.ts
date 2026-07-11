@@ -77,17 +77,13 @@ export function useFriendListRowActions({
     const friendProfileLoadStatus = useRuntimeStore(
         (state) => state.friendProfileLoad.status
     );
-    const friendProfileLoadOwnerUserId = useRuntimeStore(
-        (state) => state.friendProfileLoad.ownerUserId
-    );
     const handledMutualGraphRunRef = useRef(0);
     const isMutualFetching =
         mutualGraphOwnerUserId === currentUserId &&
         (mutualGraphStatus === 'running' || mutualGraphStatus === 'cancelling');
     const isLoadingUserDetails =
-        friendProfileLoadOwnerUserId === currentUserId &&
-        (friendProfileLoadStatus === 'running' ||
-            friendProfileLoadStatus === 'cancelling');
+        friendProfileLoadStatus === 'running' ||
+        friendProfileLoadStatus === 'cancelling';
 
     useEffect(() => {
         if (!isMutualFetching) {
@@ -287,23 +283,7 @@ export function useFriendListRowActions({
             openFriendProfileLoadDialog();
             return;
         }
-        const rowsToFetch = rosterRows.filter(
-            (friend) => normalizeId(friend?.id) && !friend?.date_joined
-        );
-        if (!rowsToFetch.length) {
-            toast.success(
-                t('view.friend_list.label.friend_details_are_already_loaded')
-            );
-            return;
-        }
-        try {
-            startFriendProfileLoad({
-                ownerUserId: currentUserId || '',
-                endpoint: currentEndpoint,
-                friendIds: rowsToFetch.map((friend) => normalizeId(friend.id)),
-                totalFriendCount: rosterRows.length
-            });
-        } catch (error) {
+        startFriendProfileLoad().catch((error: unknown) => {
             console.warn(
                 '[FriendListPage] Failed to start friend profile loading',
                 error
@@ -311,7 +291,7 @@ export function useFriendListRowActions({
             toast.error(
                 t('view.friend_list.error.failed_to_load_friend_details')
             );
-        }
+        });
     }
 
     async function applyCachedMutualFriendStats(ownerUserId: string) {

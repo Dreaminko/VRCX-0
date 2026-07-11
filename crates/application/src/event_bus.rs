@@ -7,8 +7,8 @@ use crate::game_log::GameLogProjection;
 use crate::overlay_activity::OverlayActivitySnapshot;
 use crate::prints::cleanup::PrintAutoCleanupEvent;
 use crate::realtime::{
-    FriendProjection, RealtimeCurrentUserProjection, RealtimeEntryCorrection,
-    RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
+    FriendProfileLoadStatusPayload, FriendProjection, RealtimeCurrentUserProjection,
+    RealtimeEntryCorrection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection,
 };
 use crate::session::HostSessionProjection;
@@ -210,5 +210,9 @@ impl RuntimeEventBus {
 
     pub fn emit_prints_auto_cleanup(&self, payload: PrintAutoCleanupEvent) {
         self.emit("printsAutoCleanup", payload);
+    }
+
+    pub fn emit_friend_profile_load_status(&self, payload: FriendProfileLoadStatusPayload) {
+        self.emit("friendProfileLoadStatus", payload);
     }
 }

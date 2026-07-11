@@ -4,6 +4,7 @@ import { commands } from '@/platform/tauri/bindings';
 import type {
     BackendRuntimeSnapshot,
     BackendRuntimeTelemetry,
+    FriendProfileLoadStatusPayload,
     FriendProjection,
     GameLogProjection,
     HostSessionProjection,
@@ -31,6 +32,10 @@ import { useSessionStore } from '@/state/sessionStore';
 import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
 import { resumeFrontendSessionFromBackendRuntime } from './backendRuntimeSessionResumeService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
+import {
+    applyFriendProfileLoadStatusPayload,
+    isFriendProfileLoadTerminalStatus
+} from './friendProfileLoadService';
 import { recordRuntimeGameClientEvent } from './gameClientLifecycle';
 import { applyRuntimeGameLogProjection } from './gameLogIngestService';
 import { handleGameRunningUpdate } from './gameStateService';
@@ -61,6 +66,7 @@ type RuntimeEventName =
     | 'runtimeGroupInstancesProjection'
     | 'overlayActivitySnapshot'
     | 'printsAutoCleanup'
+    | 'friendProfileLoadStatus'
     | 'realtimeFriendProjection'
     | 'realtimeUserProjection'
     | 'realtimeEntryCorrection'
@@ -83,6 +89,7 @@ type RuntimeEventPayloadMap = {
     runtimeGroupInstancesProjection: RuntimeGroupInstancesProjection;
     overlayActivitySnapshot: OverlayActivitySnapshot;
     printsAutoCleanup: PrintAutoCleanupEvent;
+    friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
     realtimeUserProjection: unknown;
     realtimeEntryCorrection: RealtimeEntryCorrection;
@@ -131,17 +138,159 @@ let pendingBackendRealtimeProjectionEvents: Array<{
     payload: unknown;
     scope: BackendRealtimeProjectionScope;
 }> = [];
+const FRIEND_PROFILE_PROJECTION_BATCH_MS = 10_000;
+const FRIEND_PROFILE_BULK_LOAD_SOURCE = 'friendProfileBulkLoad';
+let friendProfileProjectionBatchTimer: ReturnType<typeof setTimeout> | null =
+    null;
+let pendingFriendProfileProjection: FriendProjection | null = null;
+let pendingFriendProfileUsers: unknown[] = [];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
 
+function friendProfileLoadIsActive(): boolean {
+    const status = useRuntimeStore.getState().friendProfileLoad.status;
+    return status === 'running' || status === 'cancelling';
+}
+
+function isBatchableFriendProfileProjection(
+    projection: FriendProjection
+): boolean {
+    return (
+        (projection.patches?.length ?? 0) > 0 &&
+        (projection.removals?.length ?? 0) === 0 &&
+        (projection.feedEntries?.length ?? 0) === 0 &&
+        !projection.friendLogChanged
+    );
+}
+
+function scheduleFriendProfileProjectionBatch(): void {
+    if (friendProfileProjectionBatchTimer !== null) {
+        return;
+    }
+    friendProfileProjectionBatchTimer = setTimeout(() => {
+        friendProfileProjectionBatchTimer = null;
+        flushFriendProfileProjectionBatch();
+    }, FRIEND_PROFILE_PROJECTION_BATCH_MS);
+}
+
+function clearFriendProfileProjectionBatchTimer(): void {
+    if (friendProfileProjectionBatchTimer === null) {
+        return;
+    }
+    clearTimeout(friendProfileProjectionBatchTimer);
+    friendProfileProjectionBatchTimer = null;
+}
+
+function queueFriendProfileProjection(projection: FriendProjection): void {
+    if (
+        pendingFriendProfileProjection &&
+        (pendingFriendProfileProjection.generation !== projection.generation ||
+            pendingFriendProfileProjection.baselineRevision !==
+                projection.baselineRevision)
+    ) {
+        flushFriendProfileProjectionBatch();
+    }
+    if (pendingFriendProfileProjection) {
+        pendingFriendProfileProjection = {
+            ...pendingFriendProfileProjection,
+            patches: [
+                ...(pendingFriendProfileProjection.patches ?? []),
+                ...(projection.patches ?? [])
+            ]
+        };
+    } else {
+        pendingFriendProfileProjection = {
+            ...projection,
+            patches: [...(projection.patches ?? [])],
+            removals: [],
+            feedEntries: [],
+            friendLogChanged: false
+        };
+    }
+    scheduleFriendProfileProjectionBatch();
+}
+
+function queueFriendProfileUsers(payload: unknown): boolean {
+    const projection = isRecord(payload) ? payload : {};
+    if (!Array.isArray(projection.users) || projection.users.length === 0) {
+        return false;
+    }
+    pendingFriendProfileUsers.push(...projection.users);
+    scheduleFriendProfileProjectionBatch();
+    return true;
+}
+
+function flushFriendProfileProjectionBatch(): void {
+    clearFriendProfileProjectionBatchTimer();
+    const friendProjection = pendingFriendProfileProjection;
+    const users = pendingFriendProfileUsers;
+    pendingFriendProfileProjection = null;
+    pendingFriendProfileUsers = [];
+    if (users.length > 0) {
+        deliverBackendRealtimeProjectionEvent('realtimeUserProjection', {
+            users
+        });
+    }
+    if (friendProjection) {
+        deliverBackendRealtimeProjectionEvent(
+            'realtimeFriendProjection',
+            friendProjection
+        );
+    }
+}
+
+function resetFriendProfileProjectionBatch(): void {
+    clearFriendProfileProjectionBatchTimer();
+    pendingFriendProfileProjection = null;
+    pendingFriendProfileUsers = [];
+}
+
+function queueFriendProfileLoadProjection(
+    name: RuntimeEventName,
+    payload: unknown
+): boolean {
+    if (
+        !friendProfileLoadIsActive() ||
+        !isRecord(payload) ||
+        payload.source !== FRIEND_PROFILE_BULK_LOAD_SOURCE
+    ) {
+        return false;
+    }
+    if (name === 'realtimeUserProjection') {
+        return queueFriendProfileUsers(payload);
+    }
+    if (name !== 'realtimeFriendProjection') {
+        return false;
+    }
+    const projection =
+        payload as RuntimeEventPayloadMap['realtimeFriendProjection'];
+    if (!isBatchableFriendProfileProjection(projection)) {
+        return false;
+    }
+    queueFriendProfileProjection(projection);
+    return true;
+}
+
 function applyBackendRuntimeSnapshot(
     snapshot: RuntimeSnapshotPayload,
-    { markHydrated = true }: { markHydrated?: boolean } = {}
+    {
+        markHydrated = true,
+        applyFriendProfileLoad = false
+    }: { markHydrated?: boolean; applyFriendProfileLoad?: boolean } = {}
 ) {
     const runtimeStore = useRuntimeStore.getState();
     runtimeStore.setBackendRuntimeSnapshot(snapshot);
+    if (
+        applyFriendProfileLoad &&
+        isRecord(snapshot) &&
+        isRecord(snapshot.friendProfileLoad)
+    ) {
+        applyFriendProfileLoadStatusPayload(
+            snapshot.friendProfileLoad as FriendProfileLoadStatusPayload
+        );
+    }
     if (markHydrated) {
         runtimeStore.setShellState({
             backendRuntimeSnapshotHydrated: true
@@ -165,7 +314,8 @@ function hydrateBackendRuntimeSnapshot(
                 pendingBackendRuntimeHydrationSnapshot = null;
                 hasPendingBackendRuntimeHydrationSnapshot = false;
                 applyBackendRuntimeSnapshot(nextSnapshot, {
-                    markHydrated: false
+                    markHydrated: false,
+                    applyFriendProfileLoad: true
                 });
                 try {
                     await resumeFrontendSessionFromBackendRuntime(nextSnapshot);
@@ -469,6 +619,15 @@ function handleBackendRealtimeProjectionEvent(
     }
 
     flushPendingBackendRealtimeProjectionEvents();
+    if (queueFriendProfileLoadProjection(name, payload)) {
+        return true;
+    }
+    if (
+        name === 'realtimeFriendProjection' ||
+        name === 'realtimeUserProjection'
+    ) {
+        flushFriendProfileProjectionBatch();
+    }
     deliverBackendRealtimeProjectionEvent(name, payload);
     return true;
 }
@@ -544,6 +703,17 @@ function handleRuntimeEvent(
 
     if (name === 'gameLogPersistenceFallback') {
         recordGameLogPersistenceTelemetry(name, payload);
+        return;
+    }
+
+    if (name === 'friendProfileLoadStatus') {
+        const friendProfileLoad =
+            payload as RuntimeEventPayloadMap['friendProfileLoadStatus'];
+        if (isFriendProfileLoadTerminalStatus(friendProfileLoad.status)) {
+            flushFriendProfileProjectionBatch();
+        }
+        runtimeStore.recordRuntimeEvent(name, payload);
+        applyFriendProfileLoadStatusPayload(friendProfileLoad);
         return;
     }
 
@@ -736,6 +906,7 @@ function handleRuntimeEvent(
 }
 
 export async function bindRuntimeEvents(): Promise<() => void> {
+    resetFriendProfileProjectionBatch();
     const unsubscribers: RuntimeEventUnsubscribe[] = [];
     const events: RuntimeEventName[] = [
         'addGameLogEvent',
@@ -746,6 +917,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'runtimeGroupInstancesProjection',
         'overlayActivitySnapshot',
         'printsAutoCleanup',
+        'friendProfileLoadStatus',
         'gameClientEvent',
         'runtimeWorkerError',
         'realtimeFriendProjection',
@@ -801,6 +973,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
     );
 
     return () => {
+        resetFriendProfileProjectionBatch();
         unsubscribeRuntimeEvents(unsubscribers);
         useSessionStore.getState().setTransportStatus('disconnected');
     };

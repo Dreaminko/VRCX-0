@@ -188,6 +188,7 @@ mod tests {
             game_log_persisted_count: 0,
             last_error: None,
             updated_at: String::new(),
+            friend_profile_load: vrcx_0_application::FriendProfileLoadStatusPayload::default(),
         }
     }
 
