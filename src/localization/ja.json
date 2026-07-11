@@ -47,8 +47,20 @@
     },
     "deep_link": {
         "import_collection": {
-            "title": "コレクションをインポート",
-            "description": "コレクション ID: {collectionId}"
+            "confirm": {
+                "title": "ワールドコレクションをインポートしますか？",
+                "description": "「{title}」・作者 {author}・{count} 件のワールド",
+                "worlds_preview": "含まれるワールド: {names}",
+                "confirm": "VRCX-0 にインポート",
+                "cancel": "キャンセル"
+            },
+            "toast": {
+                "preview_failed": "共有コレクションの読み込みに失敗しました",
+                "empty": "この共有コレクションにはインポート可能なワールドがありません",
+                "import_success": "{count} 件のワールドを「{title}」にインポートしました",
+                "import_failed": "共有コレクションのインポートに失敗しました"
+            },
+            "unknown_author": "不明な作者"
         }
     },
     "language": "日本語 (ja)",
@@ -1044,7 +1056,9 @@
                     "open_failed": "エディターを開けませんでした",
                     "forget_success": "記録を削除しました",
                     "forget_failed": "記録の削除に失敗しました",
-                    "no_worlds": "このグループには共有できるワールド ID がありません"
+                    "no_worlds": "このグループには共有できるワールド ID がありません",
+                    "too_many": "一度に共有できる世界は最大 {cap} 件です。グループを分割してください。",
+                    "skipped": "共有しました。{count} 件をスキップしました(未同期または非公開)。"
                 }
             }
         },

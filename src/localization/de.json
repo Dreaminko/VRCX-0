@@ -47,8 +47,20 @@
     },
     "deep_link": {
         "import_collection": {
-            "title": "Sammlung importieren",
-            "description": "Sammlungs-ID: {collectionId}"
+            "confirm": {
+                "title": "Weltensammlung importieren?",
+                "description": "\"{title}\" von {author} · {count} Welten",
+                "worlds_preview": "Enthält: {names}",
+                "confirm": "Zu VRCX-0 importieren",
+                "cancel": "Abbrechen"
+            },
+            "toast": {
+                "preview_failed": "Geteilte Sammlung konnte nicht geladen werden",
+                "empty": "Diese geteilte Sammlung enthält keine importierbaren Welten",
+                "import_success": "{count} Welten in \"{title}\" importiert",
+                "import_failed": "Geteilte Sammlung konnte nicht importiert werden"
+            },
+            "unknown_author": "Unbekannter Autor"
         }
     },
     "language": "Deutsch (de)",
@@ -1048,7 +1060,9 @@
                     "open_failed": "Editor konnte nicht geöffnet werden",
                     "forget_success": "Eintrag entfernt",
                     "forget_failed": "Eintrag konnte nicht entfernt werden",
-                    "no_worlds": "Diese Gruppe enthält keine Welt-IDs zum Teilen"
+                    "no_worlds": "Diese Gruppe enthält keine Welt-IDs zum Teilen",
+                    "too_many": "Du kannst höchstens {cap} Welten auf einmal teilen. Bitte teile diese Gruppe zuerst auf.",
+                    "skipped": "Geteilt. {count} Welten übersprungen (nicht synchronisiert oder nicht öffentlich)."
                 }
             }
         },

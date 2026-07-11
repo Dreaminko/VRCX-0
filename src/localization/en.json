@@ -47,8 +47,20 @@
     },
     "deep_link": {
         "import_collection": {
-            "title": "Import collection",
-            "description": "Collection ID: {collectionId}"
+            "confirm": {
+                "title": "Import world collection?",
+                "description": "\"{title}\" by {author} · {count} worlds",
+                "worlds_preview": "Includes: {names}",
+                "confirm": "Import to VRCX-0",
+                "cancel": "Cancel"
+            },
+            "toast": {
+                "preview_failed": "Failed to load shared collection",
+                "empty": "This shared collection has no importable worlds",
+                "import_success": "Imported {count} worlds into \"{title}\"",
+                "import_failed": "Failed to import shared collection"
+            },
+            "unknown_author": "Unknown author"
         }
     },
     "language": "English (en)",
@@ -1048,7 +1060,9 @@
                     "open_failed": "Failed to open editor",
                     "forget_success": "Record removed",
                     "forget_failed": "Failed to remove record",
-                    "no_worlds": "This group has no world IDs to share"
+                    "no_worlds": "This group has no world IDs to share",
+                    "too_many": "You can share up to {cap} worlds at once. Please split this group first.",
+                    "skipped": "Shared. Skipped {count} worlds (not synced or not public)."
                 }
             }
         },

@@ -2,8 +2,20 @@
     "language": "Magyar (hu)",
     "deep_link": {
         "import_collection": {
-            "title": "Gyűjtemény importálása",
-            "description": "Gyűjteményazonosító: {collectionId}"
+            "confirm": {
+                "title": "Importálod a világgyűjteményt?",
+                "description": "„{title}” · szerző: {author} · {count} világ",
+                "worlds_preview": "Tartalmazza: {names}",
+                "confirm": "Importálás a VRCX-0-ba",
+                "cancel": "Mégse"
+            },
+            "toast": {
+                "preview_failed": "Nem sikerült betölteni a megosztott gyűjteményt",
+                "empty": "Ebben a megosztott gyűjteményben nincs importálható világ",
+                "import_success": "{count} világ importálva ide: „{title}”",
+                "import_failed": "Nem sikerült importálni a megosztott gyűjteményt"
+            },
+            "unknown_author": "Ismeretlen szerző"
         }
     },
     "common": {
@@ -140,7 +152,9 @@
                     "open_failed": "A szerkesztő megnyitása sikertelen",
                     "forget_success": "Bejegyzés eltávolítva",
                     "forget_failed": "A bejegyzés eltávolítása sikertelen",
-                    "no_worlds": "Ebben a csoportban nincs megosztható világazonosító"
+                    "no_worlds": "Ebben a csoportban nincs megosztható világazonosító",
+                    "too_many": "Egyszerre legfeljebb {cap} világot oszthatsz meg. Előbb bontsd szét ezt a csoportot.",
+                    "skipped": "Megosztva. {count} világ kihagyva (nincs szinkronizálva vagy nem nyilvános)."
                 }
             }
         },

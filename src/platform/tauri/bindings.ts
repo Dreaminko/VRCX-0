@@ -270,6 +270,12 @@ export const commands = {
     async appShareCollectionOpenManage(): Promise<null> {
         return await TAURI_INVOKE('app__share_collection_open_manage');
     },
+    async appShareCollectionPreview(id: string): Promise<ImportPreview> {
+        return await TAURI_INVOKE('app__share_collection_preview', { id });
+    },
+    async appShareCollectionImport(id: string): Promise<ImportResult> {
+        return await TAURI_INVOKE('app__share_collection_import', { id });
+    },
     async appTelemetryRecordEvent(event: TelemetryClientEvent): Promise<null> {
         return await TAURI_INVOKE('app__telemetry_record_event', { event });
     },
@@ -3500,6 +3506,18 @@ export type HttpApiExecuteResponse = {
     data: string;
     raw: JsonValue;
 };
+export type ImportPreview = {
+    title: string;
+    authorName: string;
+    worldCount: number;
+    worlds: ImportPreviewWorld[];
+};
+export type ImportPreviewWorld = {
+    worldId: string;
+    name: string;
+    imageUrl: string;
+};
+export type ImportResult = { groupKey: string; importedCount: number };
 export type InstanceActivityRowOutput = {
     id: number;
     createdAt: string;
@@ -4153,6 +4171,7 @@ export type ShareCollectionCreateResult = {
     id: string;
     url: string;
     editUrl: string;
+    worldCount: number;
 };
 export type SocialFavoritesBaselineInput = {
     userId?: string;

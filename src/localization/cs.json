@@ -47,8 +47,20 @@
     },
     "deep_link": {
         "import_collection": {
-            "title": "Importovat kolekci",
-            "description": "ID kolekce: {collectionId}"
+            "confirm": {
+                "title": "Importovat kolekci světů?",
+                "description": "„{title}“ od {author} · {count} světů",
+                "worlds_preview": "Obsahuje: {names}",
+                "confirm": "Importovat do VRCX-0",
+                "cancel": "Zrušit"
+            },
+            "toast": {
+                "preview_failed": "Sdílenou kolekci se nepodařilo načíst",
+                "empty": "Tato sdílená kolekce neobsahuje žádné světy k importu",
+                "import_success": "Bylo importováno {count} světů do „{title}“",
+                "import_failed": "Sdílenou kolekci se nepodařilo importovat"
+            },
+            "unknown_author": "Neznámý autor"
         }
     },
     "language": "Čeština (cs)",
@@ -1050,7 +1062,9 @@
                     "open_failed": "Editor se nepodařilo otevřít",
                     "forget_success": "Záznam odebrán",
                     "forget_failed": "Záznam se nepodařilo odebrat",
-                    "no_worlds": "Tato skupina nemá žádné ID světů ke sdílení"
+                    "no_worlds": "Tato skupina nemá žádné ID světů ke sdílení",
+                    "too_many": "Najednou můžeš sdílet nejvýše {cap} světů. Nejdřív tuto skupinu rozděl.",
+                    "skipped": "Sdíleno. Přeskočeno {count} světů (nesynchronizované nebo neveřejné)."
                 }
             }
         },

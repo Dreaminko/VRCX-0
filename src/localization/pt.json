@@ -47,8 +47,20 @@
     },
     "deep_link": {
         "import_collection": {
-            "title": "Importar coleção",
-            "description": "ID da coleção: {collectionId}"
+            "confirm": {
+                "title": "Importar coleção de mundos?",
+                "description": "\"{title}\" por {author} · {count} mundos",
+                "worlds_preview": "Inclui: {names}",
+                "confirm": "Importar para o VRCX-0",
+                "cancel": "Cancelar"
+            },
+            "toast": {
+                "preview_failed": "Falha ao carregar a coleção compartilhada",
+                "empty": "Esta coleção compartilhada não tem mundos para importar",
+                "import_success": "{count} mundos importados para \"{title}\"",
+                "import_failed": "Falha ao importar a coleção compartilhada"
+            },
+            "unknown_author": "Autor desconhecido"
         }
     },
     "language": "Português Brasileiro (pt-br)",
@@ -1048,7 +1060,9 @@
                     "open_failed": "Falha ao abrir o editor",
                     "forget_success": "Registro removido",
                     "forget_failed": "Falha ao remover o registro",
-                    "no_worlds": "Este grupo não tem IDs de mundos para compartilhar"
+                    "no_worlds": "Este grupo não tem IDs de mundos para compartilhar",
+                    "too_many": "Você pode compartilhar até {cap} mundos por vez. Divida este grupo primeiro.",
+                    "skipped": "Compartilhado. {count} mundos ignorados (não sincronizados ou não públicos)."
                 }
             }
         },

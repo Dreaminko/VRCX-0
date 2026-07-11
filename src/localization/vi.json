@@ -2,8 +2,20 @@
     "language": "Tiếng Việt (vi)",
     "deep_link": {
         "import_collection": {
-            "title": "Nhập bộ sưu tập",
-            "description": "ID bộ sưu tập: {collectionId}"
+            "confirm": {
+                "title": "Nhập bộ sưu tập thế giới này?",
+                "description": "\"{title}\" bởi {author} · {count} thế giới",
+                "worlds_preview": "Bao gồm: {names}",
+                "confirm": "Nhập vào VRCX-0",
+                "cancel": "Hủy"
+            },
+            "toast": {
+                "preview_failed": "Không tải được bộ sưu tập được chia sẻ",
+                "empty": "Bộ sưu tập được chia sẻ này không có thế giới nào để nhập",
+                "import_success": "Đã nhập {count} thế giới vào \"{title}\"",
+                "import_failed": "Không nhập được bộ sưu tập được chia sẻ"
+            },
+            "unknown_author": "Không rõ tác giả"
         }
     },
     "common": {
@@ -140,7 +152,9 @@
                     "open_failed": "Không mở được trình chỉnh sửa",
                     "forget_success": "Đã xóa bản ghi",
                     "forget_failed": "Không xóa được bản ghi",
-                    "no_worlds": "Nhóm này không có ID thế giới nào để chia sẻ"
+                    "no_worlds": "Nhóm này không có ID thế giới nào để chia sẻ",
+                    "too_many": "Bạn chỉ có thể chia sẻ tối đa {cap} thế giới mỗi lần. Vui lòng tách nhóm này trước.",
+                    "skipped": "Đã chia sẻ. Bỏ qua {count} thế giới (chưa đồng bộ hoặc không công khai)."
                 }
             }
         },

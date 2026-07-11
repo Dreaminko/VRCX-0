@@ -2,8 +2,20 @@
     "language": "Polski (pl)",
     "deep_link": {
         "import_collection": {
-            "title": "Importuj kolekcję",
-            "description": "ID kolekcji: {collectionId}"
+            "confirm": {
+                "title": "Zaimportować kolekcję światów?",
+                "description": "„{title}” od {author} · {count} światów",
+                "worlds_preview": "Zawiera: {names}",
+                "confirm": "Importuj do VRCX-0",
+                "cancel": "Anuluj"
+            },
+            "toast": {
+                "preview_failed": "Nie udało się wczytać udostępnionej kolekcji",
+                "empty": "Ta udostępniona kolekcja nie zawiera światów do zaimportowania",
+                "import_success": "Zaimportowano {count} światów do „{title}”",
+                "import_failed": "Nie udało się zaimportować udostępnionej kolekcji"
+            },
+            "unknown_author": "Nieznany autor"
         }
     },
     "common": {
@@ -190,7 +202,9 @@
                     "open_failed": "Nie udało się otworzyć edytora",
                     "forget_success": "Rekord usunięty",
                     "forget_failed": "Nie udało się usunąć rekordu",
-                    "no_worlds": "Ta grupa nie ma ID światów do udostępnienia"
+                    "no_worlds": "Ta grupa nie ma ID światów do udostępnienia",
+                    "too_many": "Możesz udostępnić maksymalnie {cap} światów naraz. Najpierw podziel tę grupę.",
+                    "skipped": "Udostępniono. Pominięto {count} światów (niezsynchronizowane lub niepubliczne)."
                 }
             }
         },

@@ -2,8 +2,20 @@
     "language": "ภาษาไทย (th)",
     "deep_link": {
         "import_collection": {
-            "title": "นำเข้าคอลเลกชัน",
-            "description": "ID คอลเลกชัน: {collectionId}"
+            "confirm": {
+                "title": "นำเข้าคอลเลกชันโลกนี้หรือไม่?",
+                "description": "\"{title}\" โดย {author} · {count} โลก",
+                "worlds_preview": "ประกอบด้วย: {names}",
+                "confirm": "นำเข้าสู่ VRCX-0",
+                "cancel": "ยกเลิก"
+            },
+            "toast": {
+                "preview_failed": "โหลดคอลเลกชันที่แชร์ไม่สำเร็จ",
+                "empty": "คอลเลกชันที่แชร์นี้ไม่มีโลกที่นำเข้าได้",
+                "import_success": "นำเข้า {count} โลกไปยัง \"{title}\" แล้ว",
+                "import_failed": "นำเข้าคอลเลกชันที่แชร์ไม่สำเร็จ"
+            },
+            "unknown_author": "ไม่ทราบผู้สร้าง"
         }
     },
     "common": {
@@ -164,7 +176,9 @@
                     "open_failed": "เปิดตัวแก้ไขไม่สำเร็จ",
                     "forget_success": "ลบรายการบันทึกแล้ว",
                     "forget_failed": "ลบรายการบันทึกไม่สำเร็จ",
-                    "no_worlds": "กลุ่มนี้ไม่มี ID โลกให้แชร์"
+                    "no_worlds": "กลุ่มนี้ไม่มี ID โลกให้แชร์",
+                    "too_many": "แชร์ได้สูงสุด {cap} โลกต่อครั้ง กรุณาแยกกลุ่มนี้ก่อน",
+                    "skipped": "แชร์แล้ว ข้าม {count} โลก (ยังไม่ซิงก์หรือไม่เป็นสาธารณะ)"
                 }
             }
         },
