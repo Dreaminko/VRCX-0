@@ -529,6 +529,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "A VRChat működése",
+                        "quit_header": "Megmaradt VRChat-folyamatok bezárása",
+                        "quit_description": "A VRChat kilépése után zárja be a még futó VRChat-folyamatokat.",
+                        "deep_links": "Mélyhivatkozások működése"
+                    },
+                    "storage": {
+                        "header": "Tárhely és tisztítás",
+                        "data_location": "Adatok helye",
+                        "change_folder": "Mappa módosítása…",
+                        "more": "További adathely-műveletek",
+                        "restore_default": "Alapértelmezett hely visszaállítása",
+                        "cache_header": "A VRChat gyorsítótárának automatikus tisztítása",
+                        "cache_description": "A régi VRChat-eszközgyorsítótár-adatok törlése a VRChat bezárásakor.",
+                        "keep_avatar_data": "Avatáradatok megőrzése",
+                        "avatar_cleanup_description": "A VRCX-0 indításakor hetente ellenőrzi."
+                    },
+                    "troubleshooting": {
+                        "header": "Hibaelhárítás",
+                        "description": "Naplózási és diagnosztikai eszközök a problémák kivizsgálásához.",
+                        "show": "Eszközök megjelenítése",
+                        "hide": "Eszközök elrejtése",
+                        "gamelog": "GameLog feldolgozása",
+                        "gamelog_description": "A VRChat naplóit használó funkciókhoz szükséges.",
+                        "tools": "Diagnosztika",
+                        "database_usage": "Adatbázis-használat",
+                        "refresh_database_usage": "Adatbázis-használat frissítése",
+                        "online_users": "Online VRChat-felhasználók",
+                        "refresh_online_users": "Online felhasználók frissítése",
+                        "vrchat_config": "VRChat-konfiguráció",
+                        "view_config": "Megtekintés…",
+                        "hide_config": "Elrejtés"
+                    },
+                    "import_recovery": {
+                        "header": "Importálás és helyreállítás",
+                        "import_from_vrcx": "Importálás a VRCX-ből",
+                        "description": "A jelenlegi VRCX-0 konfiguráció és adatbázis lecserélése a rögzített VRCX adatmappa adataira.",
+                        "review": "Importálás áttekintése…"
+                    },
+                    "usage_data": {
+                        "header": "Használati adatok",
+                        "share": "Névtelen használati adatok megosztása",
+                        "description": "Csak a VRCX-0 fejlesztéséhez szükséges névtelen információk megosztása."
+                    },
+                    "danger": {
+                        "avatar_history": "Avatárelőzmények",
+                        "delete": "Törlés…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "Indítási opciók",
                     "vrc_registry_backup": "VRC regisztrációs adatbázis mentése",
@@ -1305,13 +1355,6 @@
             "message": {
                 "success": "Világ átnevezve"
             }
-        },
-        "auto_clear_cache": {
-            "header": "VRCX-0 gyorsítótár ürítési időzítő",
-            "description": "Add meg az órák számát. A nagyobb értékek befolyásolhatják a RAM használatot és a teljesítményt (alapértelmezett: 24, kikapcsolva: 0)",
-            "cancel": "Mégse",
-            "ok": "OK",
-            "input_error": "Érvényes szám megadása kötelező"
         },
         "proxy_settings": {
             "header": "Proxy beállítások",

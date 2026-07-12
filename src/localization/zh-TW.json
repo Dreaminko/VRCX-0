@@ -2119,6 +2119,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "VRChat 行為",
+                        "quit_header": "關閉殘留的 VRChat 處理程序",
+                        "quit_description": "VRChat 結束後，關閉仍在執行的 VRChat 處理程序。",
+                        "deep_links": "深層連結行為"
+                    },
+                    "storage": {
+                        "header": "儲存與清理",
+                        "data_location": "資料位置",
+                        "change_folder": "變更資料夾…",
+                        "more": "更多資料位置操作",
+                        "restore_default": "還原預設位置",
+                        "cache_header": "自動清理 VRChat 快取",
+                        "cache_description": "VRChat 關閉時清理舊的資源快取資料。",
+                        "keep_avatar_data": "保留虛擬化身資料的時間",
+                        "avatar_cleanup_description": "VRCX-0 啟動時每週檢查一次。"
+                    },
+                    "troubleshooting": {
+                        "header": "疑難排解",
+                        "description": "用於調查問題的記錄與診斷工具。",
+                        "show": "顯示工具",
+                        "hide": "隱藏工具",
+                        "gamelog": "GameLog 處理",
+                        "gamelog_description": "依賴 VRChat 記錄的功能需要啟用此項。",
+                        "tools": "診斷",
+                        "database_usage": "資料庫用量",
+                        "refresh_database_usage": "重新整理資料庫用量",
+                        "online_users": "VRChat 線上使用者",
+                        "refresh_online_users": "重新整理線上使用者",
+                        "vrchat_config": "VRChat 設定",
+                        "view_config": "檢視…",
+                        "hide_config": "隱藏"
+                    },
+                    "import_recovery": {
+                        "header": "匯入與復原",
+                        "import_from_vrcx": "從 VRCX 匯入",
+                        "description": "使用固定 VRCX 資料夾中的資料取代目前的 VRCX-0 設定與資料庫。",
+                        "review": "檢查匯入內容…"
+                    },
+                    "usage_data": {
+                        "header": "使用資料",
+                        "share": "分享匿名使用資料",
+                        "description": "僅分享改善 VRCX-0 所需的匿名資訊。"
+                    },
+                    "danger": {
+                        "avatar_history": "虛擬化身歷史記錄",
+                        "delete": "刪除…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "啟動選項",
                     "vrc_registry_backup": "VRC 註冊表備份",
@@ -4545,13 +4595,6 @@
             "message": {
                 "success": "已重新命名世界"
             }
-        },
-        "auto_clear_cache": {
-            "header": "VRCX-0 快取清除間隔",
-            "description": "輸入小時數，較大的數值可能會影響記憶體用量和性能 （預設：24，關閉：0）",
-            "cancel": "取消",
-            "ok": "確定",
-            "input_error": "請輸入有效的小時數"
         },
         "backup_name": {
             "header": "備份名稱",

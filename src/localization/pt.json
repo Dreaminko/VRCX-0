@@ -2119,6 +2119,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "Comportamento do VRChat",
+                        "quit_header": "Fechar processos restantes do VRChat",
+                        "quit_description": "Após o VRChat encerrar, feche os processos do VRChat que ainda estiverem em execução.",
+                        "deep_links": "Comportamento de links profundos"
+                    },
+                    "storage": {
+                        "header": "Armazenamento e limpeza",
+                        "data_location": "Local dos dados",
+                        "change_folder": "Alterar pasta…",
+                        "more": "Mais ações do local de dados",
+                        "restore_default": "Restaurar local padrão",
+                        "cache_header": "Limpar automaticamente o cache do VRChat",
+                        "cache_description": "Remova dados antigos do cache de recursos quando o VRChat fechar.",
+                        "keep_avatar_data": "Manter dados de avatar por",
+                        "avatar_cleanup_description": "Verificado semanalmente ao iniciar o VRCX-0."
+                    },
+                    "troubleshooting": {
+                        "header": "Solução de problemas",
+                        "description": "Ferramentas de registro e diagnóstico para investigar problemas.",
+                        "show": "Mostrar ferramentas",
+                        "hide": "Ocultar ferramentas",
+                        "gamelog": "Processamento do GameLog",
+                        "gamelog_description": "Necessário para recursos que dependem dos registros do VRChat.",
+                        "tools": "Diagnóstico",
+                        "database_usage": "Uso do banco de dados",
+                        "refresh_database_usage": "Atualizar uso do banco de dados",
+                        "online_users": "Usuários do VRChat online",
+                        "refresh_online_users": "Atualizar usuários online",
+                        "vrchat_config": "Configuração do VRChat",
+                        "view_config": "Ver…",
+                        "hide_config": "Ocultar"
+                    },
+                    "import_recovery": {
+                        "header": "Importação e recuperação",
+                        "import_from_vrcx": "Importar do VRCX",
+                        "description": "Substitua a configuração e o banco de dados atuais do VRCX-0 pelos dados da pasta fixa do VRCX.",
+                        "review": "Revisar importação…"
+                    },
+                    "usage_data": {
+                        "header": "Dados de uso",
+                        "share": "Compartilhar dados de uso anônimos",
+                        "description": "Compartilhe apenas as informações anônimas necessárias para melhorar o VRCX-0."
+                    },
+                    "danger": {
+                        "avatar_history": "Histórico de avatares",
+                        "delete": "Excluir…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "Opções de Inicialização",
                     "vrc_registry_backup": "Backup de Registro do VRC",
@@ -4545,13 +4595,6 @@
             "message": {
                 "success": "Mundo renomeado"
             }
-        },
-        "auto_clear_cache": {
-            "header": "Temporizador de Limpeza de Cache do VRCX-0",
-            "description": "Insira a quantidade de horas; valores maiores podem impactar o uso de RAM e o desempenho (padrão: 24, desativado: 0)",
-            "cancel": "Cancelar",
-            "ok": "OK",
-            "input_error": "Número válido é obrigatório"
         },
         "backup_name": {
             "header": "Nome do Backup",

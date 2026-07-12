@@ -1,12 +1,15 @@
-import {
-    FolderOpenIcon,
-    RefreshCwIcon,
-    RotateCcwIcon,
-    Trash2Icon
-} from 'lucide-react';
+import { FolderOpenIcon, MoreHorizontalIcon, Trash2Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { Alert, AlertDescription, AlertTitle } from '@/ui/shadcn/alert';
 import { Button } from '@/ui/shadcn/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from '@/ui/shadcn/dropdown-menu';
 import {
     Select,
     SelectContent,
@@ -16,61 +19,19 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 import { Switch } from '@/ui/shadcn/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import { Field, SettingsGroup } from '../SettingsField';
+import { Field, SettingsGroup, SettingsSectionHeading } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
-import { SettingsAdvancedDataCards } from './SettingsAdvancedDataCards';
-
-type AppDataDirState = {
-    cliOverride?: boolean;
-    currentDir?: string | null;
-    defaultDir?: string | null;
-    persistedDir?: string | null;
-    source?: string;
-};
-
-type SettingsAdvancedPrefs = Record<string, unknown> & {
-    anonymousUsageTelemetry?: boolean;
-    defaultLaunchMode?: string;
-    gameLogDisabled?: boolean;
-    logResourceLoad?: boolean;
-    relaunchVRChatAfterCrash?: boolean;
-    showConfirmationOnSwitchAvatar?: boolean;
-    udonExceptionLogging?: boolean;
-    vrcQuitFix?: boolean;
-};
+import { AdvancedTroubleshootingGroup } from './AdvancedTroubleshootingGroup';
+import type { SettingsAdvancedModel } from './settingsAdvancedTypes';
 
 type SettingsAdvancedTabProps = {
-    advanced: Record<string, unknown> & {
-        appDataDirState?: AppDataDirState | null;
-        avatarAutoCleanupOptions: string[];
-        configTreeData: unknown;
-        gameLogDisabledLabel: string;
-        onAnonymousUsageTelemetryChange: (checked: boolean) => unknown;
-        onAutoSweepVRChatCacheChange: (checked: boolean) => unknown;
-        onAvatarAutoCleanupChange: (value: string) => unknown;
-        onClearConfigTreeData: () => unknown;
-        onDefaultLaunchModeChange: (value: string) => unknown;
-        onGameLogDisabledChange: (checked: boolean) => unknown;
-        onLogResourceLoadChange: (checked: boolean) => unknown;
-        onMigrateLegacyVrcxData: () => unknown;
-        onOpenAppDataDirSelector: () => unknown;
-        onOpenPurgeDialog: () => unknown;
-        onPromptAutoClearVrcxCacheFrequency: () => unknown;
-        onRefreshConfigTreeData: () => unknown;
-        onRefreshOnlineVisits: () => unknown;
-        onRefreshSqliteTableSizes: () => unknown;
-        onRelaunchVRChatAfterCrashChange: (checked: boolean) => unknown;
-        onResetAppDataDir: () => unknown;
-        onRestartForAppDataDir: () => unknown;
-        onShowConfirmationOnSwitchAvatarChange: (checked: boolean) => unknown;
-        onUdonExceptionLoggingChange: (checked: boolean) => unknown;
-        onVrcQuitFixChange: (checked: boolean) => unknown;
-        onlineVisitCount: unknown;
-        prefs: SettingsAdvancedPrefs;
-        sqliteTableSizeRows: ReadonlyArray<readonly [string, string]>;
-        sqliteTableSizes: unknown;
-    };
+    advanced: SettingsAdvancedModel;
+};
+
+type DataDirectoryPathProps = {
+    value?: string | null;
 };
 
 const launchModeOptions = [
@@ -84,7 +45,7 @@ const launchModeOptions = [
     ]
 ] as const;
 
-function DataDirectoryPath({ value }: { value?: string | null }) {
+function DataDirectoryPath({ value }: DataDirectoryPathProps) {
     return (
         <div className="bg-muted/40 text-muted-foreground w-full min-w-0 rounded-md border px-2 py-1 font-mono text-xs break-all">
             {value || '-'}
@@ -101,7 +62,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         onlineVisitCount,
         configTreeData,
         appDataDirState,
-        gameLogDisabledLabel,
         onRelaunchVRChatAfterCrashChange,
         onVrcQuitFixChange,
         onAutoSweepVRChatCacheChange,
@@ -109,7 +69,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         onLogResourceLoadChange,
         onDefaultLaunchModeChange,
         onShowConfirmationOnSwitchAvatarChange,
-        onPromptAutoClearVrcxCacheFrequency,
         onGameLogDisabledChange,
         onAvatarAutoCleanupChange,
         onOpenPurgeDialog,
@@ -119,14 +78,10 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         onRefreshConfigTreeData,
         onOpenAppDataDirSelector,
         onResetAppDataDir,
-        onRestartForAppDataDir,
         onClearConfigTreeData,
         onAnonymousUsageTelemetryChange
     } = advanced;
     const { t } = useTranslation();
-    const gameLogDisabledDescription = t(
-        'view.settings.advanced.advanced.cache_debug.disable_gamelog_notice'
-    );
     const appDataDirSourceLabel = appDataDirState
         ? t(
               `view.settings.advanced.advanced.data_directory.source_${appDataDirState.source}`
@@ -137,9 +92,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
     return (
         <SettingsTabContent value="advanced">
             <SettingsGroup
-                title={t(
-                    'view.settings.advanced.advanced.vrchat_settings.header'
-                )}
+                title={t('view.settings.advanced.advanced_ui.behavior.header')}
             >
                 <Field
                     label={t(
@@ -157,10 +110,10 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
 
                 <Field
                     label={t(
-                        'view.settings.advanced.advanced.vrchat_quit_fix.header'
+                        'view.settings.advanced.advanced_ui.behavior.quit_header'
                     )}
                     description={t(
-                        'view.settings.advanced.advanced.vrchat_quit_fix.description'
+                        'view.settings.advanced.advanced_ui.behavior.quit_description'
                     )}
                 >
                     <Switch
@@ -168,103 +121,11 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                         onCheckedChange={onVrcQuitFixChange}
                     />
                 </Field>
-            </SettingsGroup>
-            <SettingsGroup
-                title={t(
-                    'view.settings.advanced.advanced.data_directory.header'
-                )}
-            >
-                <Field
-                    label={t(
-                        'view.settings.advanced.advanced.data_directory.current'
+                <SettingsSectionHeading
+                    title={t(
+                        'view.settings.advanced.advanced_ui.behavior.deep_links'
                     )}
-                    description={t(
-                        'view.settings.advanced.advanced.data_directory.description',
-                        {
-                            source: appDataDirSourceLabel
-                        }
-                    )}
-                    controlClassName="lg:max-w-[34rem]"
-                >
-                    <DataDirectoryPath value={appDataDirState?.currentDir} />
-                </Field>
-                <Field
-                    label={t(
-                        'view.settings.advanced.advanced.data_directory.actions'
-                    )}
-                    description={t(
-                        'view.settings.advanced.advanced.data_directory.restart_hint'
-                    )}
-                    controlClassName="flex-wrap gap-2"
-                >
-                    <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={appDataDirActionsDisabled}
-                            onClick={onOpenAppDataDirSelector}
-                        >
-                            <FolderOpenIcon className="size-4" />
-                            {t(
-                                'view.settings.advanced.advanced.data_directory.choose'
-                            )}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={appDataDirActionsDisabled}
-                            onClick={onResetAppDataDir}
-                        >
-                            <RotateCcwIcon className="size-4" />
-                            {t(
-                                'view.settings.advanced.advanced.data_directory.reset'
-                            )}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onRestartForAppDataDir}
-                        >
-                            <RefreshCwIcon className="size-4" />
-                            {t(
-                                'view.settings.advanced.advanced.data_directory.restart'
-                            )}
-                        </Button>
-                    </div>
-                </Field>
-            </SettingsGroup>
-            <SettingsGroup title={t('view.settings.general.logging.header')}>
-                <Field
-                    label={t(
-                        'view.settings.advanced.advanced.cache_debug.udon_exception_logging'
-                    )}
-                >
-                    <Switch
-                        checked={prefs.udonExceptionLogging}
-                        onCheckedChange={onUdonExceptionLoggingChange}
-                    />
-                </Field>
-                <Field label={t('view.settings.general.logging.resource_load')}>
-                    <Switch
-                        checked={prefs.logResourceLoad}
-                        onCheckedChange={onLogResourceLoadChange}
-                    />
-                </Field>
-                <Field
-                    label={gameLogDisabledLabel}
-                    description={gameLogDisabledDescription}
-                >
-                    <Switch
-                        checked={prefs.gameLogDisabled}
-                        onCheckedChange={onGameLogDisabledChange}
-                    />
-                </Field>
-            </SettingsGroup>
-            <SettingsGroup
-                title={t(
-                    'view.settings.advanced.advanced.launch_commands.header'
-                )}
-            >
+                />
                 <Field
                     label={t(
                         'view.settings.advanced.advanced.launch_commands.default_launch_mode'
@@ -308,33 +169,210 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                     />
                 </Field>
             </SettingsGroup>
-            <SettingsAdvancedDataCards
+
+            <SettingsGroup
+                title={t('view.settings.advanced.advanced_ui.storage.header')}
+            >
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced_ui.storage.data_location'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced.data_directory.description',
+                        { source: appDataDirSourceLabel }
+                    )}
+                    className="lg:grid-cols-[minmax(0,1fr)_minmax(16rem,24rem)]"
+                >
+                    <div className="flex w-full flex-col items-end gap-2">
+                        <DataDirectoryPath
+                            value={appDataDirState?.currentDir}
+                        />
+                        <div className="flex items-center justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={appDataDirActionsDisabled}
+                                onClick={onOpenAppDataDirSelector}
+                            >
+                                <FolderOpenIcon data-icon="inline-start" />
+                                {t(
+                                    'view.settings.advanced.advanced_ui.storage.change_folder'
+                                )}
+                            </Button>
+                            {appDataDirState?.persistedDir &&
+                            !appDataDirActionsDisabled ? (
+                                <DropdownMenu>
+                                    <Tooltip>
+                                        <TooltipTrigger
+                                            render={
+                                                <DropdownMenuTrigger
+                                                    render={
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon-sm"
+                                                            aria-label={t(
+                                                                'view.settings.advanced.advanced_ui.storage.more'
+                                                            )}
+                                                        >
+                                                            <MoreHorizontalIcon data-icon="inline-start" />
+                                                        </Button>
+                                                    }
+                                                />
+                                            }
+                                        />
+                                        <TooltipContent>
+                                            {t(
+                                                'view.settings.advanced.advanced_ui.storage.more'
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuGroup>
+                                            <DropdownMenuItem
+                                                onClick={onResetAppDataDir}
+                                            >
+                                                {t(
+                                                    'view.settings.advanced.advanced_ui.storage.restore_default'
+                                                )}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : null}
+                        </div>
+                    </div>
+                </Field>
+                {appDataDirActionsDisabled ? (
+                    <Alert className="pr-32">
+                        <AlertTitle>
+                            {t(
+                                'view.settings.advanced.advanced.data_directory.source_cli'
+                            )}
+                        </AlertTitle>
+                        <AlertDescription>
+                            {t(
+                                'view.settings.advanced.advanced.data_directory.cli_override'
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced_ui.storage.cache_header'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced_ui.storage.cache_description'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.autoSweepVRChatCache}
+                        onCheckedChange={onAutoSweepVRChatCacheChange}
+                    />
+                </Field>
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced_ui.storage.keep_avatar_data'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced_ui.storage.avatar_cleanup_description'
+                    )}
+                    controlId="settings-avatar-auto-cleanup"
+                >
+                    <Select
+                        value={prefs.avatarAutoCleanup}
+                        items={avatarAutoCleanupOptions.map((value) => ({
+                            value,
+                            label:
+                                value === 'Off'
+                                    ? t(
+                                          'view.settings.advanced.advanced.database_cleanup.auto_cleanup_off'
+                                      )
+                                    : t(
+                                          `view.settings.advanced.advanced.database_cleanup.auto_cleanup_${value}`
+                                      )
+                        }))}
+                        onValueChange={(value) =>
+                            onAvatarAutoCleanupChange(value ?? '')
+                        }
+                    >
+                        <SelectTrigger
+                            id="settings-avatar-auto-cleanup"
+                            className="w-36"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                {avatarAutoCleanupOptions.map((value) => (
+                                    <SelectItem key={value} value={value}>
+                                        {value === 'Off'
+                                            ? t(
+                                                  'view.settings.advanced.advanced.database_cleanup.auto_cleanup_off'
+                                              )
+                                            : t(
+                                                  `view.settings.advanced.advanced.database_cleanup.auto_cleanup_${value}`
+                                              )}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </Field>
+            </SettingsGroup>
+
+            <AdvancedTroubleshootingGroup
                 prefs={prefs}
-                avatarAutoCleanupOptions={avatarAutoCleanupOptions}
                 sqliteTableSizes={sqliteTableSizes}
                 sqliteTableSizeRows={sqliteTableSizeRows}
                 onlineVisitCount={onlineVisitCount}
                 configTreeData={configTreeData}
-                onAutoSweepVRChatCacheChange={onAutoSweepVRChatCacheChange}
-                onPromptAutoClearVrcxCacheFrequency={
-                    onPromptAutoClearVrcxCacheFrequency
-                }
-                onAvatarAutoCleanupChange={onAvatarAutoCleanupChange}
-                onMigrateLegacyVrcxData={onMigrateLegacyVrcxData}
                 onRefreshSqliteTableSizes={onRefreshSqliteTableSizes}
                 onRefreshOnlineVisits={onRefreshOnlineVisits}
                 onRefreshConfigTreeData={onRefreshConfigTreeData}
                 onClearConfigTreeData={onClearConfigTreeData}
+                onGameLogDisabledChange={onGameLogDisabledChange}
+                onLogResourceLoadChange={onLogResourceLoadChange}
+                onUdonExceptionLoggingChange={onUdonExceptionLoggingChange}
             />
+
             <SettingsGroup
-                title={t('view.settings.advanced.advanced.improvement.header')}
+                title={t(
+                    'view.settings.advanced.advanced_ui.import_recovery.header'
+                )}
             >
                 <Field
                     label={t(
-                        'view.settings.advanced.advanced.anonymous_usage_telemetry.header'
+                        'view.settings.advanced.advanced_ui.import_recovery.import_from_vrcx'
                     )}
                     description={t(
-                        'view.settings.advanced.advanced.anonymous_usage_telemetry.description'
+                        'view.settings.advanced.advanced_ui.import_recovery.description'
+                    )}
+                >
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onMigrateLegacyVrcxData}
+                    >
+                        {t(
+                            'view.settings.advanced.advanced_ui.import_recovery.review'
+                        )}
+                    </Button>
+                </Field>
+            </SettingsGroup>
+            <SettingsGroup
+                title={t(
+                    'view.settings.advanced.advanced_ui.usage_data.header'
+                )}
+            >
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced_ui.usage_data.share'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced_ui.usage_data.description'
                     )}
                 >
                     <Switch
@@ -353,7 +391,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                 <div className="flex flex-col px-4 pb-2">
                     <Field
                         label={t(
-                            'view.settings.advanced_groups.diagnostics_maintenance.purge_avatar_history'
+                            'view.settings.advanced.advanced_ui.danger.avatar_history'
                         )}
                         description={t(
                             'view.settings.advanced_groups.danger.cannot_be_undone'
@@ -367,7 +405,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                         >
                             <Trash2Icon data-icon="inline-start" />
                             {t(
-                                'view.settings.advanced_groups.diagnostics_maintenance.purge_avatar_history'
+                                'view.settings.advanced.advanced_ui.danger.delete'
                             )}
                         </Button>
                     </Field>

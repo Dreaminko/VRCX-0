@@ -1,5 +1,3 @@
-import { useTranslation } from 'react-i18next';
-
 import type { SettingsPageStateSections } from '../settingsPageStateSections';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsAdvancedTab } from './settings-tabs/SettingsAdvancedTab';
@@ -11,7 +9,6 @@ type SettingsAdvancedSectionProps = {
 export function SettingsAdvancedSection({
     advanced
 }: SettingsAdvancedSectionProps) {
-    const { t } = useTranslation();
     const {
         prefs,
         avatarAutoCleanupOptions,
@@ -21,7 +18,6 @@ export function SettingsAdvancedSection({
         configTreeData,
         appDataDirState,
         saveBoolPreference,
-        promptAutoClearVrcxCacheFrequency,
         handleGameLogDisabledChange,
         saveStringPreference,
         setPurgeDialogOpen,
@@ -30,7 +26,6 @@ export function SettingsAdvancedSection({
         refreshConfigTreeData,
         openAppDataDirSelector,
         resetAppDataDir,
-        restartForAppDataDir,
         setConfigTreeData,
         migrateLegacyVrcxData
     } = advanced;
@@ -43,9 +38,6 @@ export function SettingsAdvancedSection({
         onlineVisitCount,
         configTreeData,
         appDataDirState,
-        gameLogDisabledLabel: t(
-            'view.settings.advanced.advanced.cache_debug.disable_gamelog'
-        ),
         onRelaunchVRChatAfterCrashChange: (checked: unknown) => {
             const enabled = normalizeCheckedState(checked);
             saveBoolPreference(
@@ -107,9 +99,6 @@ export function SettingsAdvancedSection({
                 enabled
             );
         },
-        onPromptAutoClearVrcxCacheFrequency: () => {
-            promptAutoClearVrcxCacheFrequency();
-        },
         onGameLogDisabledChange: (checked: unknown) => {
             handleGameLogDisabledChange(normalizeCheckedState(checked));
         },
@@ -121,27 +110,12 @@ export function SettingsAdvancedSection({
             );
         },
         onOpenPurgeDialog: () => setPurgeDialogOpen(true),
-        onMigrateLegacyVrcxData: () => {
-            migrateLegacyVrcxData();
-        },
-        onRefreshSqliteTableSizes: () => {
-            refreshSqliteTableSizes();
-        },
-        onRefreshOnlineVisits: () => {
-            refreshOnlineVisits();
-        },
-        onRefreshConfigTreeData: () => {
-            refreshConfigTreeData();
-        },
-        onOpenAppDataDirSelector: () => {
-            openAppDataDirSelector();
-        },
-        onResetAppDataDir: () => {
-            resetAppDataDir();
-        },
-        onRestartForAppDataDir: () => {
-            restartForAppDataDir();
-        },
+        onMigrateLegacyVrcxData: migrateLegacyVrcxData,
+        onRefreshSqliteTableSizes: refreshSqliteTableSizes,
+        onRefreshOnlineVisits: refreshOnlineVisits,
+        onRefreshConfigTreeData: refreshConfigTreeData,
+        onOpenAppDataDirSelector: openAppDataDirSelector,
+        onResetAppDataDir: resetAppDataDir,
         onClearConfigTreeData: () => setConfigTreeData({})
     };
 

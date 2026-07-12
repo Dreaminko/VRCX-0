@@ -529,6 +529,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "Hoạt động của VRChat",
+                        "quit_header": "Đóng các tiến trình VRChat còn sót lại",
+                        "quit_description": "Sau khi VRChat thoát, đóng mọi tiến trình VRChat vẫn còn chạy.",
+                        "deep_links": "Hoạt động của liên kết sâu"
+                    },
+                    "storage": {
+                        "header": "Lưu trữ và dọn dẹp",
+                        "data_location": "Vị trí dữ liệu",
+                        "change_folder": "Đổi thư mục…",
+                        "more": "Thao tác khác cho vị trí dữ liệu",
+                        "restore_default": "Khôi phục vị trí mặc định",
+                        "cache_header": "Tự động dọn bộ nhớ đệm VRChat",
+                        "cache_description": "Xóa dữ liệu bộ nhớ đệm tài nguyên cũ khi VRChat đóng.",
+                        "keep_avatar_data": "Giữ dữ liệu avatar trong",
+                        "avatar_cleanup_description": "Được kiểm tra hằng tuần khi VRCX-0 khởi động."
+                    },
+                    "troubleshooting": {
+                        "header": "Khắc phục sự cố",
+                        "description": "Công cụ ghi nhật ký và chẩn đoán để điều tra sự cố.",
+                        "show": "Hiện công cụ",
+                        "hide": "Ẩn công cụ",
+                        "gamelog": "Xử lý GameLog",
+                        "gamelog_description": "Cần thiết cho các tính năng sử dụng nhật ký VRChat.",
+                        "tools": "Chẩn đoán",
+                        "database_usage": "Mức sử dụng cơ sở dữ liệu",
+                        "refresh_database_usage": "Làm mới mức sử dụng cơ sở dữ liệu",
+                        "online_users": "Người dùng VRChat đang trực tuyến",
+                        "refresh_online_users": "Làm mới người dùng trực tuyến",
+                        "vrchat_config": "Cấu hình VRChat",
+                        "view_config": "Xem…",
+                        "hide_config": "Ẩn"
+                    },
+                    "import_recovery": {
+                        "header": "Nhập và khôi phục",
+                        "import_from_vrcx": "Nhập từ VRCX",
+                        "description": "Thay thế cấu hình và cơ sở dữ liệu VRCX-0 hiện tại bằng dữ liệu từ thư mục dữ liệu VRCX cố định.",
+                        "review": "Xem lại nội dung nhập…"
+                    },
+                    "usage_data": {
+                        "header": "Dữ liệu sử dụng",
+                        "share": "Chia sẻ dữ liệu sử dụng ẩn danh",
+                        "description": "Chỉ chia sẻ thông tin ẩn danh cần thiết để cải thiện VRCX-0."
+                    },
+                    "danger": {
+                        "avatar_history": "Lịch sử avatar",
+                        "delete": "Xóa…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "Lựa chọn khởi động",
                     "vrc_registry_backup": "VRC Registry Backup",
@@ -1305,13 +1355,6 @@
             "message": {
                 "success": "World đã được đổi tên"
             }
-        },
-        "auto_clear_cache": {
-            "header": "Xóa thời gian VRCX-0 Cache",
-            "description": "Nhập số giờ, số lớn có thể sử dụng nhiều RAM và hiệu năng hơn (mặc định: 24, tắt: 0)",
-            "cancel": "Hủy",
-            "ok": "OK",
-            "input_error": "Yêu cầu số hợp lệ"
         },
         "proxy_settings": {
             "header": "Proxy Settings",

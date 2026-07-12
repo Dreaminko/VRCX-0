@@ -1,4 +1,4 @@
-import type { TtsVoice } from '@/platform/tauri/bindings';
+import type { AppDataDirState, TtsVoice } from '@/platform/tauri/bindings';
 import { openUGCPhotosFolder } from '@/services/shellIntegrationService';
 import { recordViewModeUsage } from '@/services/telemetry/telemetryViewModeUsage';
 import {
@@ -29,13 +29,6 @@ export type SettingsPagePrefs = ReturnType<typeof createDefaultSettingsPrefs> &
     Record<string, unknown>;
 type SettingsPrefs = SettingsPagePrefs;
 type SettingsAction = () => unknown | Promise<unknown>;
-type SettingsAppDataDirState = {
-    cliOverride?: boolean;
-    currentDir?: string | null;
-    defaultDir?: string | null;
-    persistedDir?: string | null;
-    source?: string;
-};
 type SettingsCallback<Args extends unknown[] = unknown[]> = {
     bivarianceHack(...args: Args): unknown;
 }['bivarianceHack'];
@@ -48,8 +41,9 @@ type SetSettingsPrefs = SettingsCallback<
 
 export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     activeSettingsTab: string;
-    appDataDirState?: SettingsAppDataDirState | null;
+    appDataDirState?: AppDataDirState | null;
     avatarProviderConfig: AvatarProviderConfig;
+    configTreeData: Record<string, unknown>;
     commit: SettingsCallback<
         [action: SettingsAction, optimistic?: () => unknown]
     >;
@@ -65,6 +59,7 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     normalizeRecentActionCooldownMinutes: (value: unknown) => number;
     notificationTtsTest: string;
     notificationTtsTestVisible: boolean;
+    onlineVisitCount: number | null;
     openAppDataDirSelector: SettingsCallback;
     openCustomFontDialog: SettingsCallback;
     openTableLimitsDialog: SettingsCallback;
@@ -72,7 +67,6 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     openTranslationApiDialog: SettingsCallback;
     openUgcFolderSelector: SettingsCallback;
     openYoutubeApiDialog: SettingsCallback;
-    promptAutoClearVrcxCacheFrequency: SettingsCallback;
     promptAutoLoginDelaySeconds: SettingsCallback;
     promptBackgroundModeDelayMinutes: SettingsCallback;
     prefs: SettingsPrefs;
@@ -82,7 +76,6 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     resetAppDataDir: SettingsCallback;
     resetTrustColors: SettingsCallback;
     resetUgcFolder: SettingsCallback;
-    restartForAppDataDir: SettingsCallback;
     saveAvatarProviderEnabled: SettingsCallback<[boolean]>;
     saveBoolPreference: SettingsCallback<[string, string, boolean]>;
     saveDiscordBoolPreference: SettingsCallback<[string, boolean]>;
@@ -144,6 +137,7 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     setYoutubeApiEnabledPreference: SettingsCallback<[boolean]>;
     setZoomInput: SettingsCallback<[unknown]>;
     speakNotificationTts: SettingsCallback<[string, string?]>;
+    sqliteTableSizes: Record<string, unknown>;
     toggleLocalFavoriteFriendsGroup: SettingsCallback<[unknown, boolean]>;
     ttsNotificationsDialogOpen: boolean;
     ttsVoices: TtsVoice[];
@@ -202,7 +196,6 @@ export function buildSettingsPageStateSections({
     openUgcFolderSelector,
     openYoutubeApiDialog,
     prefs,
-    promptAutoClearVrcxCacheFrequency,
     promptAutoLoginDelaySeconds,
     promptBackgroundModeDelayMinutes,
     purgeAvatarFeedData,
@@ -218,7 +211,6 @@ export function buildSettingsPageStateSections({
     resetAppDataDir,
     resetTrustColors,
     resetUgcFolder,
-    restartForAppDataDir,
     saveAvatarProviderConfig,
     saveAvatarProviderEnabled,
     saveAvatarProviderField,
@@ -826,7 +818,6 @@ export function buildSettingsPageStateSections({
             configTreeData,
             appDataDirState,
             saveBoolPreference,
-            promptAutoClearVrcxCacheFrequency,
             handleGameLogDisabledChange,
             saveStringPreference,
             setPurgeDialogOpen,
@@ -835,7 +826,6 @@ export function buildSettingsPageStateSections({
             refreshConfigTreeData,
             openAppDataDirSelector,
             resetAppDataDir,
-            restartForAppDataDir,
             setConfigTreeData,
             migrateLegacyVrcxData,
             onAnonymousUsageTelemetryChange: (checked: unknown) => {

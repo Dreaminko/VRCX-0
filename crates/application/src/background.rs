@@ -128,12 +128,6 @@ impl RuntimeBackgroundJobs {
                 "Update checks are scheduled by Rust and executed by frontend maintenance because they surface UI notifications.",
             ),
             (
-                "clearVRCXCacheCheck",
-                Some(86_400),
-                86_400,
-                "Frontend memory/cache cleanup is scheduled by Rust and executed by the frontend runtime.",
-            ),
-            (
                 "startupMaintenance",
                 None,
                 0,

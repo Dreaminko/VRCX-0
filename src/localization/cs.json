@@ -2121,6 +2121,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "Chování VRChatu",
+                        "quit_header": "Ukončit zbývající procesy VRChatu",
+                        "quit_description": "Po ukončení VRChatu zavře všechny procesy VRChatu, které stále běží.",
+                        "deep_links": "Chování přímých odkazů"
+                    },
+                    "storage": {
+                        "header": "Úložiště a čištění",
+                        "data_location": "Umístění dat",
+                        "change_folder": "Změnit složku…",
+                        "more": "Další akce s umístěním dat",
+                        "restore_default": "Obnovit výchozí umístění",
+                        "cache_header": "Automaticky čistit mezipaměť VRChat",
+                        "cache_description": "Při ukončení VRChatu odstraní stará data z mezipaměti prostředků.",
+                        "keep_avatar_data": "Uchovávat data avatarů po dobu",
+                        "avatar_cleanup_description": "Kontroluje se týdně při spuštění VRCX-0."
+                    },
+                    "troubleshooting": {
+                        "header": "Řešení potíží",
+                        "description": "Nástroje protokolování a diagnostiky pro hledání problémů.",
+                        "show": "Zobrazit nástroje",
+                        "hide": "Skrýt nástroje",
+                        "gamelog": "Zpracování GameLogu",
+                        "gamelog_description": "Vyžadují jej funkce závislé na protokolech VRChatu.",
+                        "tools": "Diagnostika",
+                        "database_usage": "Využití databáze",
+                        "refresh_database_usage": "Obnovit využití databáze",
+                        "online_users": "Online uživatelé VRChatu",
+                        "refresh_online_users": "Obnovit online uživatele",
+                        "vrchat_config": "Konfigurace VRChatu",
+                        "view_config": "Zobrazit…",
+                        "hide_config": "Skrýt"
+                    },
+                    "import_recovery": {
+                        "header": "Import a obnovení",
+                        "import_from_vrcx": "Importovat z VRCX",
+                        "description": "Nahradí aktuální konfiguraci a databázi VRCX-0 daty z pevné datové složky VRCX.",
+                        "review": "Zkontrolovat import…"
+                    },
+                    "usage_data": {
+                        "header": "Údaje o používání",
+                        "share": "Sdílet anonymní údaje o používání",
+                        "description": "Sdílet pouze anonymní informace potřebné ke zlepšování VRCX-0."
+                    },
+                    "danger": {
+                        "avatar_history": "Historie avatarů",
+                        "delete": "Odstranit…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "Možnosti spuštění",
                     "vrc_registry_backup": "VRC Registry Backup",
@@ -4547,13 +4597,6 @@
             "message": {
                 "success": "Svět přejmenován"
             }
-        },
-        "auto_clear_cache": {
-            "header": "Časovač mazání mezipaměti VRCX-0",
-            "description": "Enter amount of hours, larger values may impact RAM usage and performance (default: 24, disabled: 0)",
-            "cancel": "Zrušit",
-            "ok": "OK",
-            "input_error": "Je vyžadováno platné číslo"
         },
         "backup_name": {
             "header": "Název zálohy",

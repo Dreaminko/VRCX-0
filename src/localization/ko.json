@@ -2064,6 +2064,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "VRChat 동작",
+                        "quit_header": "남아 있는 VRChat 프로세스 종료",
+                        "quit_description": "VRChat 종료 후에도 실행 중인 VRChat 프로세스를 닫습니다.",
+                        "deep_links": "딥 링크 동작"
+                    },
+                    "storage": {
+                        "header": "저장소 및 정리",
+                        "data_location": "데이터 위치",
+                        "change_folder": "폴더 변경…",
+                        "more": "데이터 위치 추가 작업",
+                        "restore_default": "기본 위치로 복원",
+                        "cache_header": "VRChat 캐시 자동 정리",
+                        "cache_description": "VRChat 종료 시 오래된 에셋 캐시 데이터를 삭제합니다.",
+                        "keep_avatar_data": "아바타 데이터 보관 기간",
+                        "avatar_cleanup_description": "VRCX-0 시작 시 매주 한 번 확인합니다."
+                    },
+                    "troubleshooting": {
+                        "header": "문제 해결",
+                        "description": "문제를 조사하기 위한 로그 및 진단 도구입니다.",
+                        "show": "도구 표시",
+                        "hide": "도구 숨기기",
+                        "gamelog": "GameLog 처리",
+                        "gamelog_description": "VRChat 로그를 사용하는 기능에 필요합니다.",
+                        "tools": "진단",
+                        "database_usage": "데이터베이스 사용량",
+                        "refresh_database_usage": "데이터베이스 사용량 새로 고침",
+                        "online_users": "VRChat 온라인 사용자",
+                        "refresh_online_users": "온라인 사용자 새로 고침",
+                        "vrchat_config": "VRChat 설정",
+                        "view_config": "보기…",
+                        "hide_config": "숨기기"
+                    },
+                    "import_recovery": {
+                        "header": "가져오기 및 복구",
+                        "import_from_vrcx": "VRCX에서 가져오기",
+                        "description": "고정된 VRCX 데이터 폴더의 데이터로 현재 VRCX-0 설정과 데이터베이스를 교체합니다.",
+                        "review": "가져오기 검토…"
+                    },
+                    "usage_data": {
+                        "header": "사용 데이터",
+                        "share": "익명 사용 데이터 공유",
+                        "description": "VRCX-0 개선에 필요한 익명 정보만 공유합니다."
+                    },
+                    "danger": {
+                        "avatar_history": "아바타 기록",
+                        "delete": "삭제…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "VRChat 실행 설정",
                     "relaunch_vrchat": {
@@ -4472,13 +4522,6 @@
             "message": {
                 "success": "월드 이름 변경됨"
             }
-        },
-        "auto_clear_cache": {
-            "header": "VRCX-0 캐시 타이머 초기화",
-            "description": "시간을 입력하세요..  주기가 길수록 메모리 사용량과 성능에 영향을 줍니다 (기본: 24, 끄기: 0)",
-            "cancel": "취소",
-            "ok": "확인",
-            "input_error": "숫자만 입력 가능"
         },
         "backup_name": {
             "header": "백업 이름",

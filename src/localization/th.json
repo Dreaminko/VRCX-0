@@ -659,6 +659,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "การทำงานของ VRChat",
+                        "quit_header": "ปิดโปรเซส VRChat ที่ยังคงทำงาน",
+                        "quit_description": "หลังออกจาก VRChat ให้ปิดโปรเซส VRChat ที่ยังคงทำงานอยู่",
+                        "deep_links": "การทำงานของดีปลิงก์"
+                    },
+                    "storage": {
+                        "header": "พื้นที่จัดเก็บและการล้างข้อมูล",
+                        "data_location": "ตำแหน่งข้อมูล",
+                        "change_folder": "เปลี่ยนโฟลเดอร์…",
+                        "more": "การทำงานเพิ่มเติมสำหรับตำแหน่งข้อมูล",
+                        "restore_default": "คืนค่าตำแหน่งเริ่มต้น",
+                        "cache_header": "ล้างแคช VRChat โดยอัตโนมัติ",
+                        "cache_description": "ลบข้อมูลแคชทรัพยากรเก่าเมื่อปิด VRChat",
+                        "keep_avatar_data": "เก็บข้อมูลอวาตาร์ไว้",
+                        "avatar_cleanup_description": "ตรวจสอบทุกสัปดาห์เมื่อเริ่ม VRCX-0"
+                    },
+                    "troubleshooting": {
+                        "header": "การแก้ไขปัญหา",
+                        "description": "เครื่องมือบันทึกและวินิจฉัยสำหรับตรวจสอบปัญหา",
+                        "show": "แสดงเครื่องมือ",
+                        "hide": "ซ่อนเครื่องมือ",
+                        "gamelog": "การประมวลผล GameLog",
+                        "gamelog_description": "จำเป็นสำหรับฟีเจอร์ที่ใช้บันทึกของ VRChat",
+                        "tools": "การวินิจฉัย",
+                        "database_usage": "การใช้ฐานข้อมูล",
+                        "refresh_database_usage": "รีเฟรชการใช้ฐานข้อมูล",
+                        "online_users": "ผู้ใช้ VRChat ออนไลน์",
+                        "refresh_online_users": "รีเฟรชผู้ใช้ออนไลน์",
+                        "vrchat_config": "การตั้งค่า VRChat",
+                        "view_config": "ดู…",
+                        "hide_config": "ซ่อน"
+                    },
+                    "import_recovery": {
+                        "header": "นำเข้าและกู้คืน",
+                        "import_from_vrcx": "นำเข้าจาก VRCX",
+                        "description": "แทนที่การตั้งค่าและฐานข้อมูล VRCX-0 ปัจจุบันด้วยข้อมูลจากโฟลเดอร์ข้อมูล VRCX แบบคงที่",
+                        "review": "ตรวจสอบการนำเข้า…"
+                    },
+                    "usage_data": {
+                        "header": "ข้อมูลการใช้งาน",
+                        "share": "แชร์ข้อมูลการใช้งานแบบไม่ระบุตัวตน",
+                        "description": "แชร์เฉพาะข้อมูลแบบไม่ระบุตัวตนที่จำเป็นต่อการปรับปรุง VRCX-0"
+                    },
+                    "danger": {
+                        "avatar_history": "ประวัติอวาตาร์",
+                        "delete": "ลบ…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "ตัวเลือกการเปิดเกม",
                     "vrc_registry_backup": "สำรองข้อมูลรีจิสทรีของ VRC",
@@ -1476,13 +1526,6 @@
             "message": {
                 "success": "เปลี่ยนชื่อโลกแล้ว"
             }
-        },
-        "auto_clear_cache": {
-            "header": "ตัวตั้งเวลาล้างแคช VRCX-0",
-            "description": "ป้อนจำนวนชั่วโมง, ค่าที่สูงขึ้นอาจส่งผลต่อการใช้ RAM และประสิทธิภาพ (ค่าเริ่มต้น: 24, ปิดใช้งาน: 0)",
-            "cancel": "ยกเลิก",
-            "ok": "ตกลง",
-            "input_error": "ต้องระบุตัวเลขที่ถูกต้อง"
         },
         "proxy_settings": {
             "header": "ตั้งค่าพร็อกซี",

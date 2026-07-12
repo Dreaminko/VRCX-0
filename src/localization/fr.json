@@ -2119,6 +2119,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "Comportement de VRChat",
+                        "quit_header": "Fermer les processus VRChat restants",
+                        "quit_description": "Après la fermeture de VRChat, fermer les processus VRChat encore actifs.",
+                        "deep_links": "Comportement des liens profonds"
+                    },
+                    "storage": {
+                        "header": "Stockage et nettoyage",
+                        "data_location": "Emplacement des données",
+                        "change_folder": "Changer de dossier…",
+                        "more": "Autres actions sur l’emplacement des données",
+                        "restore_default": "Rétablir l’emplacement par défaut",
+                        "cache_header": "Nettoyer automatiquement le cache de VRChat",
+                        "cache_description": "Supprimer les anciennes données du cache de ressources à la fermeture de VRChat.",
+                        "keep_avatar_data": "Conserver les données d’avatar pendant",
+                        "avatar_cleanup_description": "Vérifié chaque semaine au démarrage de VRCX-0."
+                    },
+                    "troubleshooting": {
+                        "header": "Dépannage",
+                        "description": "Outils de journalisation et de diagnostic pour rechercher les problèmes.",
+                        "show": "Afficher les outils",
+                        "hide": "Masquer les outils",
+                        "gamelog": "Traitement de GameLog",
+                        "gamelog_description": "Nécessaire aux fonctions qui utilisent les journaux de VRChat.",
+                        "tools": "Diagnostic",
+                        "database_usage": "Utilisation de la base de données",
+                        "refresh_database_usage": "Actualiser l’utilisation de la base de données",
+                        "online_users": "Utilisateurs VRChat en ligne",
+                        "refresh_online_users": "Actualiser les utilisateurs en ligne",
+                        "vrchat_config": "Configuration de VRChat",
+                        "view_config": "Afficher…",
+                        "hide_config": "Masquer"
+                    },
+                    "import_recovery": {
+                        "header": "Importation et récupération",
+                        "import_from_vrcx": "Importer depuis VRCX",
+                        "description": "Remplacer la configuration et la base de données VRCX-0 actuelles par celles du dossier de données VRCX fixe.",
+                        "review": "Vérifier l’importation…"
+                    },
+                    "usage_data": {
+                        "header": "Données d’utilisation",
+                        "share": "Partager des données d’utilisation anonymes",
+                        "description": "Partager uniquement les informations anonymes nécessaires pour améliorer VRCX-0."
+                    },
+                    "danger": {
+                        "avatar_history": "Historique des avatars",
+                        "delete": "Supprimer…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "Options de démarrage",
                     "vrc_registry_backup": "Sauvegarde du registre VRChat",
@@ -4545,13 +4595,6 @@
             "message": {
                 "success": "Monde renommé"
             }
-        },
-        "auto_clear_cache": {
-            "header": "Effacer la temporisation du cache VRCX-0",
-            "description": "Saisissez le nombre d'heures, des valeurs plus élevées peuvent avoir un impact sur l'utilisation de la RAM et les performances (par défaut : 24, désactivé : 0)",
-            "cancel": "Annuler",
-            "ok": "OK",
-            "input_error": "Un numéro valide est nécessaire"
         },
         "backup_name": {
             "header": "Nom de la sauvegarde",

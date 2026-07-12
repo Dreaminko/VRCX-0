@@ -192,8 +192,8 @@ export function FavoriteShareCollectionDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <FieldGroup className="gap-4">
-                    <Field className="gap-1.5">
+                <FieldGroup className="gap-5">
+                    <Field className="gap-2">
                         <FieldLabel htmlFor="favorite-share-collection-title">
                             {t('view.favorite.share_collection.label.title')}
                         </FieldLabel>
@@ -206,15 +206,10 @@ export function FavoriteShareCollectionDialog({
                     </Field>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                        <Field orientation="horizontal">
-                            <Switch
-                                id="favorite-share-collection-listed"
-                                checked={listed}
-                                disabled={sharing}
-                                onCheckedChange={(checked) =>
-                                    setListed(Boolean(checked))
-                                }
-                            />
+                        <Field
+                            orientation="horizontal"
+                            className="items-start rounded-xl border p-4"
+                        >
                             <FieldContent>
                                 <FieldTitle>
                                     {t(
@@ -227,16 +222,19 @@ export function FavoriteShareCollectionDialog({
                                     )}
                                 </FieldDescription>
                             </FieldContent>
-                        </Field>
-                        <Field orientation="horizontal">
                             <Switch
-                                id="favorite-share-collection-include-notes"
-                                checked={includeNotes}
+                                id="favorite-share-collection-listed"
+                                checked={listed}
                                 disabled={sharing}
                                 onCheckedChange={(checked) =>
-                                    setIncludeNotes(Boolean(checked))
+                                    setListed(Boolean(checked))
                                 }
                             />
+                        </Field>
+                        <Field
+                            orientation="horizontal"
+                            className="items-start rounded-xl border p-4"
+                        >
                             <FieldContent>
                                 <FieldTitle>
                                     {t(
@@ -249,70 +247,84 @@ export function FavoriteShareCollectionDialog({
                                     )}
                                 </FieldDescription>
                             </FieldContent>
+                            <Switch
+                                id="favorite-share-collection-include-notes"
+                                checked={includeNotes}
+                                disabled={sharing}
+                                onCheckedChange={(checked) =>
+                                    setIncludeNotes(Boolean(checked))
+                                }
+                            />
                         </Field>
                     </div>
 
-                    <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
-                        <span>
-                            {t('view.favorite.share_collection.label.worlds', {
-                                count: shareWorlds.worldIds.length,
-                                total: shareWorlds.totalWorldIds
-                            })}
-                        </span>
-                        {shareWorlds.truncated ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs tabular-nums">
                             <span>
                                 {t(
-                                    'view.favorite.share_collection.label.truncated',
+                                    'view.favorite.share_collection.label.worlds',
                                     {
-                                        cap: SHARE_COLLECTION_CLIENT_WORLD_CAP
+                                        count: shareWorlds.worldIds.length,
+                                        total: shareWorlds.totalWorldIds
                                     }
                                 )}
                             </span>
-                        ) : null}
-                    </div>
-
-                    <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                void openManage();
-                            }}
-                        >
-                            <ExternalLinkIcon data-icon="inline-start" />
-                            <span>
-                                {t(
-                                    'view.favorite.share_collection.action.open_manage'
+                            {shareWorlds.truncated ? (
+                                <span>
+                                    {t(
+                                        'view.favorite.share_collection.label.truncated',
+                                        {
+                                            cap: SHARE_COLLECTION_CLIENT_WORLD_CAP
+                                        }
+                                    )}
+                                </span>
+                            ) : null}
+                        </div>
+                        <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="rounded-full transition-transform active:scale-[0.98]"
+                                onClick={() => {
+                                    void openManage();
+                                }}
+                            >
+                                <ExternalLinkIcon data-icon="inline-start" />
+                                <span>
+                                    {t(
+                                        'view.favorite.share_collection.action.open_manage'
+                                    )}
+                                </span>
+                            </Button>
+                            <Button
+                                type="button"
+                                className="rounded-full transition-transform active:scale-[0.98]"
+                                disabled={
+                                    sharing ||
+                                    !title.trim() ||
+                                    !shareWorlds.worldIds.length
+                                }
+                                onClick={() => {
+                                    void createShare();
+                                }}
+                            >
+                                {sharing ? (
+                                    <Spinner data-icon="inline-start" />
+                                ) : (
+                                    <Share2Icon data-icon="inline-start" />
                                 )}
-                            </span>
-                        </Button>
-                        <Button
-                            type="button"
-                            disabled={
-                                sharing ||
-                                !title.trim() ||
-                                !shareWorlds.worldIds.length
-                            }
-                            onClick={() => {
-                                void createShare();
-                            }}
-                        >
-                            {sharing ? (
-                                <Spinner data-icon="inline-start" />
-                            ) : (
-                                <Share2Icon data-icon="inline-start" />
-                            )}
-                            <span>
-                                {t(
-                                    'view.favorite.share_collection.action.share'
-                                )}
-                            </span>
-                        </Button>
+                                <span>
+                                    {t(
+                                        'view.favorite.share_collection.action.share'
+                                    )}
+                                </span>
+                            </Button>
+                        </div>
                     </div>
                 </FieldGroup>
 
                 {result ? (
-                    <div className="grid gap-3 rounded-lg border p-3">
+                    <div className="bg-muted/40 animate-in fade-in slide-in-from-bottom-2 grid gap-3 rounded-xl border p-4 duration-300">
                         <ShareLinkField
                             label={t(
                                 'view.favorite.share_collection.label.share_url'
@@ -339,6 +351,7 @@ export function FavoriteShareCollectionDialog({
                             <Button
                                 type="button"
                                 variant="outline"
+                                className="rounded-full transition-transform active:scale-[0.98]"
                                 onClick={() => {
                                     void openManage();
                                 }}

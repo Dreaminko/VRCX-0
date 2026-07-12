@@ -173,6 +173,33 @@ describe('settings locale coverage', () => {
     });
 });
 
+describe('advanced settings locale coverage', () => {
+    const advancedUiPrefix = 'view.settings.advanced.advanced_ui';
+    const requiredAdvancedKeys = collectStringPaths(
+        readPath(en, advancedUiPrefix),
+        advancedUiPrefix
+    );
+
+    it('keeps the reorganized advanced settings localized in every language', () => {
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            for (const key of requiredAdvancedKeys) {
+                const value = readPath(source, key);
+                expect(value, `${locale} ${key}`).toEqual(expect.any(String));
+                if (typeof value !== 'string') {
+                    continue;
+                }
+                expect(value.trim()).not.toBe('');
+                if (locale !== 'en') {
+                    expect(value, `${locale} ${key}`).not.toBe(
+                        readPath(en, key)
+                    );
+                }
+            }
+        }
+    });
+});
+
 describe('custom font locale coverage', () => {
     const fontKeyPrefix = 'view.settings.appearance.appearance';
     const fontKeys = (keys: string[]) =>
@@ -323,6 +350,18 @@ function readPath(source: unknown, keyPath: string): unknown {
         }
         return undefined;
     }, source);
+}
+
+function collectStringPaths(source: unknown, prefix: string): string[] {
+    if (!isRecord(source)) {
+        return [];
+    }
+    return Object.entries(source).flatMap(([key, value]) => {
+        const path = `${prefix}.${key}`;
+        return typeof value === 'string'
+            ? [path]
+            : collectStringPaths(value, path);
+    });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

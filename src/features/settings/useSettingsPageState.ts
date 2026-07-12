@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { TtsVoice } from '@/platform/tauri/bindings';
+import type { AppDataDirState, TtsVoice } from '@/platform/tauri/bindings';
 import {
     setAccessibleStatusIndicatorsPreference,
     setAppLanguagePreference,
@@ -58,7 +58,6 @@ const SETTINGS_PREFERENCE_KEYS = Object.keys(DEFAULT_PREFERENCES) as Array<
 >;
 
 type SettingsSqliteTableSizes = Record<string, unknown>;
-type SettingsAppDataDirState = Record<string, unknown> | null;
 type SettingsConfigTreeData = Record<string, unknown>;
 type SettingsTableLimitsDraft = {
     maxTableSize: string;
@@ -97,7 +96,7 @@ export function useSettingsPageState() {
     const [sqliteTableSizes, setSqliteTableSizes] =
         useState<SettingsSqliteTableSizes>({});
     const [appDataDirState, setAppDataDirState] =
-        useState<SettingsAppDataDirState>(null);
+        useState<AppDataDirState | null>(null);
     const [purgeDialogOpen, setPurgeDialogOpen] = useState(false);
     const [purgePeriod, setPurgePeriod] = useState('180');
     const [purgeInProgress, setPurgeInProgress] = useState(false);
@@ -212,7 +211,6 @@ export function useSettingsPageState() {
         saveNotificationTtsMode,
         saveNotificationTtsVoice,
         deleteAllScreenshotMetadata,
-        promptAutoClearVrcxCacheFrequency,
         promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes,
         resetUgcFolder,
@@ -224,7 +222,6 @@ export function useSettingsPageState() {
         openAppDataDirSelector,
         resetAppDataDir,
         removeFeedHiddenUser,
-        restartForAppDataDir,
         saveOverlayActivityFilters,
         saveVrNotificationActivityFilters,
         saveHmdNotificationActivityFilters,
@@ -380,7 +377,6 @@ export function useSettingsPageState() {
         openUgcFolderSelector,
         openYoutubeApiDialog,
         prefs,
-        promptAutoClearVrcxCacheFrequency,
         promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes,
         purgeAvatarFeedData,
@@ -396,7 +392,6 @@ export function useSettingsPageState() {
         resetAppDataDir,
         resetTrustColors,
         resetUgcFolder,
-        restartForAppDataDir,
         saveAvatarProviderConfig,
         saveAvatarProviderEnabled,
         saveAvatarProviderField,

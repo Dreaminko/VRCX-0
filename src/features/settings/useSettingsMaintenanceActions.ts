@@ -60,10 +60,6 @@ type SettingsMaintenanceActionsDeps = {
         action: PreferenceAction,
         optimistic?: () => PreferenceRollback
     ) => Promise<boolean>;
-    configRepository: {
-        getInt(key: string, defaultValue?: number): Promise<number>;
-        setInt(key: string, value: number): Promise<unknown>;
-    };
     confirm: (options: SettingsConfirmOptions) => Promise<SettingsDialogResult>;
     databaseMaintenanceRepository: {
         vacuum(): Promise<unknown>;
@@ -106,7 +102,6 @@ type SettingsMaintenanceActionsDeps = {
 export function useSettingsMaintenanceActions({
     auth,
     commit,
-    configRepository,
     confirm,
     databaseMaintenanceRepository,
     feedRepository,
@@ -291,42 +286,6 @@ export function useSettingsMaintenanceActions({
         } catch (error) {
             toast.error(error instanceof Error ? error.message : String(error));
         }
-    }
-    async function restartForAppDataDir() {
-        try {
-            await restartApplication();
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : String(error));
-        }
-    }
-    async function promptAutoClearVrcxCacheFrequency() {
-        const frequency = await configRepository.getInt(
-            'VRCX_clearVRCXCacheFrequency',
-            172800
-        );
-        const result = await prompt({
-            title: t('prompt.auto_clear_cache.header'),
-            description: t('prompt.auto_clear_cache.description'),
-            confirmText: t('prompt.auto_clear_cache.ok'),
-            cancelText: t('prompt.auto_clear_cache.cancel'),
-            inputValue: String(
-                Math.max(1, Math.round((Number(frequency) || 172800) / 7200))
-            ),
-            pattern: /\d+$/,
-            errorMessage: t('prompt.auto_clear_cache.input_error')
-        });
-        if (!result.ok) {
-            return;
-        }
-        const units = Number.parseInt(String(result.value), 10);
-        if (!Number.isFinite(units) || units <= 0) {
-            return;
-        }
-        await configRepository.setInt(
-            'VRCX_clearVRCXCacheFrequency',
-            units * 7200
-        );
-        toast.success(t('common.settings_saved'));
     }
     async function promptAutoLoginDelaySeconds() {
         const result = await prompt({
@@ -539,8 +498,6 @@ export function useSettingsMaintenanceActions({
         deleteAllScreenshotMetadata,
         openAppDataDirSelector,
         resetAppDataDir,
-        restartForAppDataDir,
-        promptAutoClearVrcxCacheFrequency,
         promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes,
         resetUgcFolder,

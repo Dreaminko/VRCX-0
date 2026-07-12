@@ -158,12 +158,10 @@ pub fn restore_foreground_window_from_background_mode(
 }
 
 fn defer_frontend_maintenance_after_background_restore(state: &AppState) {
-    for (name, delay_seconds) in [("appUpdateCheck", 180), ("clearVRCXCacheCheck", 300)] {
-        state
-            .runtime_context
-            .background_jobs
-            .defer_frontend_job(name, delay_seconds);
-    }
+    state
+        .runtime_context
+        .background_jobs
+        .defer_frontend_job("appUpdateCheck", 180);
 }
 
 fn normalize_background_resume_route(raw: &str) -> Option<String> {

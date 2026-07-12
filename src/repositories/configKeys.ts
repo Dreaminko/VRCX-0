@@ -16,7 +16,6 @@ export const ConfigKeys = defineConfigKeys({
     appLanguage: { type: 'string', default: null },
     maxTableSize_v2: { type: 'int', default: 500 },
     searchLimit: { type: 'int', default: 50000 },
-    clearVRCXCacheFrequency: { type: 'int', default: 172800 },
     autoUpdateVRCX: { type: 'string', default: 'Auto Download' },
     autoInstallUpdatesOnStartup: { type: 'bool', default: true },
     autoBackgroundDownloadUpdates: { type: 'bool', default: false },

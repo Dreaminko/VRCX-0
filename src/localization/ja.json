@@ -2115,6 +2115,56 @@
                 }
             },
             "advanced": {
+                "advanced_ui": {
+                    "behavior": {
+                        "header": "VRChat の動作",
+                        "quit_header": "残っている VRChat プロセスを終了",
+                        "quit_description": "VRChat の終了後も動作している VRChat プロセスを閉じます。",
+                        "deep_links": "ディープリンクの動作"
+                    },
+                    "storage": {
+                        "header": "保存先とクリーンアップ",
+                        "data_location": "データの保存先",
+                        "change_folder": "フォルダーを変更…",
+                        "more": "データ保存先のその他の操作",
+                        "restore_default": "既定の保存先に戻す",
+                        "cache_header": "VRChat のキャッシュを自動的に整理",
+                        "cache_description": "VRChat の終了時に古いアセットキャッシュを削除します。",
+                        "keep_avatar_data": "アバターデータの保存期間",
+                        "avatar_cleanup_description": "VRCX-0 の起動時に週 1 回確認します。"
+                    },
+                    "troubleshooting": {
+                        "header": "トラブルシューティング",
+                        "description": "問題の調査に使用するログと診断ツールです。",
+                        "show": "ツールを表示",
+                        "hide": "ツールを隠す",
+                        "gamelog": "GameLog の処理",
+                        "gamelog_description": "VRChat のログを利用する機能に必要です。",
+                        "tools": "診断",
+                        "database_usage": "データベース使用量",
+                        "refresh_database_usage": "データベース使用量を更新",
+                        "online_users": "VRChat のオンラインユーザー",
+                        "refresh_online_users": "オンラインユーザー数を更新",
+                        "vrchat_config": "VRChat の設定",
+                        "view_config": "表示…",
+                        "hide_config": "隠す"
+                    },
+                    "import_recovery": {
+                        "header": "インポートと復元",
+                        "import_from_vrcx": "VRCX からインポート",
+                        "description": "固定の VRCX データフォルダーにあるデータで、現在の VRCX-0 の設定とデータベースを置き換えます。",
+                        "review": "インポート内容を確認…"
+                    },
+                    "usage_data": {
+                        "header": "使用状況データ",
+                        "share": "匿名の使用状況データを共有",
+                        "description": "VRCX-0 の改善に必要な匿名情報のみを共有します。"
+                    },
+                    "danger": {
+                        "avatar_history": "アバター履歴",
+                        "delete": "削除…"
+                    }
+                },
                 "advanced": {
                     "launch_options": "VRChat の起動オプション",
                     "vrc_registry_backup": "VRChat のレジストリバックアップ",
@@ -4537,13 +4587,6 @@
             "message": {
                 "success": "ワールド名を変更しました。"
             }
-        },
-        "auto_clear_cache": {
-            "header": "VRCX-0のキャッシュの自動消去タイマー",
-            "description": "消去までの時間を入力してください。長い時間を指定するとRAM使用量とパフォーマンスに影響を及ぼす可能性があります。 (デフォルト: 24, 無効化: 0)",
-            "cancel": "キャンセル",
-            "ok": "OK",
-            "input_error": "有効な数字を入力してください。"
         },
         "backup_name": {
             "header": "バックアップ名",
