@@ -11,16 +11,36 @@ const webview2BuildTarget = {
     vite: 'edge140',
     browserslist: 'Edge 140'
 };
-const webkitBuildTarget = {
+const webkitLegacyBuildTarget = {
     vite: 'safari17',
     browserslist: 'Safari 17.0'
 };
+const webkitModernBuildTarget = {
+    vite: 'safari18.2',
+    browserslist: 'Safari 18.2'
+};
 
 function getPlatformBuildTarget() {
+    const webkitBuildTargetOverride =
+        process.env['VRCX_0_WEBKIT_BUILD_TARGET']?.trim();
+
+    if (webkitBuildTargetOverride === 'safari17') {
+        return webkitLegacyBuildTarget;
+    }
+    if (webkitBuildTargetOverride === 'safari18.2') {
+        return webkitModernBuildTarget;
+    }
+    if (webkitBuildTargetOverride) {
+        throw new Error(
+            `Unsupported VRCX_0_WEBKIT_BUILD_TARGET: ${webkitBuildTargetOverride}`
+        );
+    }
+
     switch (process.platform) {
         case 'darwin':
+            return webkitModernBuildTarget;
         case 'linux':
-            return webkitBuildTarget;
+            return webkitLegacyBuildTarget;
         case 'win32':
         default:
             return webview2BuildTarget;
