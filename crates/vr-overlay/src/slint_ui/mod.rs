@@ -586,7 +586,6 @@ fn hmd_toast_item(
     HmdToastItem {
         actor: SharedString::from(hmd_actor_text(toast)),
         action: SharedString::from(toast.action.as_str()),
-        context: SharedString::from(toast.context.as_deref().unwrap_or_default()),
         avatar,
         has_avatar,
         show_avatar: toast.show_avatar,

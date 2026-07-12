@@ -42,7 +42,6 @@ fn toast_card_from_activity(toast: HmdToastView, localizer: &OverlayLocalizer) -
         actor_name: actor_text(&entry, localizer),
         relation: feed_relation(entry.actor_relation),
         action: action_text(&entry, toast.merge_count, localizer),
-        context: context_text(&entry, localizer),
         severity: feed_severity(&entry),
         avatar: toast.avatar,
         show_avatar: toast.show_avatar,
@@ -89,35 +88,6 @@ fn action_text(
         entry.content.detail.as_str(),
         entry.activity_type.as_str(),
     ])
-}
-
-fn context_text(entry: &OverlayActivityEntry, localizer: &OverlayLocalizer) -> Option<String> {
-    let display_location = localizer.display_location(
-        &entry.content.location,
-        &entry.content.world_name,
-        &entry.content.group_name,
-    );
-    let status = status_line(entry, localizer);
-    let value = first_non_empty([
-        display_location.as_str(),
-        status.as_str(),
-        entry.content.display_location.as_str(),
-        entry.content.world_name.as_str(),
-        entry.content.group_name.as_str(),
-    ]);
-    (!value.trim().is_empty()).then_some(value)
-}
-
-fn status_line(entry: &OverlayActivityEntry, localizer: &OverlayLocalizer) -> String {
-    let status = localizer.status_text(&entry.content.status);
-    let description = entry.content.status_description.trim();
-    if status.is_empty() {
-        description.to_string()
-    } else if description.is_empty() {
-        status
-    } else {
-        format!("{status} {description}")
-    }
 }
 
 fn localized_entry_text(

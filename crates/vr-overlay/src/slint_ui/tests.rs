@@ -249,7 +249,6 @@ fn sample_main_model() -> MainSurfaceModel {
             actor_name: "Ada".to_string(),
             relation: FeedRelation::Favorite,
             action: "joined your instance".to_string(),
-            context: Some("测试世界".to_string()),
             severity: FeedSeverity::Important,
             avatar: Some(AvatarBitmap {
                 width: 2,

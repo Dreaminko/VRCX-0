@@ -14,7 +14,6 @@ pub struct ToastCard {
     pub actor_name: String,
     pub relation: FeedRelation,
     pub action: String,
-    pub context: Option<String>,
     pub severity: FeedSeverity,
     pub avatar: Option<AvatarBitmap>,
     pub show_avatar: bool,
