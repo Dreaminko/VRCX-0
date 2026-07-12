@@ -1032,7 +1032,6 @@
                     "menu": "Partager ce groupe",
                     "share": "Partager",
                     "copy_share_url": "Copier le lien de partage",
-                    "copy_edit_url": "Copier le lien de modification",
                     "open_manage": "Gérer mes partages",
                     "open_editor": "Ouvrir l'éditeur",
                     "forget": "Supprimer le partage enregistré"
@@ -1046,12 +1045,10 @@
                     "worlds": "{count}/{total} mondes prêts à partager",
                     "truncated": "Seuls les {cap} premiers mondes seront téléversés.",
                     "share_url": "Lien de partage",
-                    "edit_url": "Lien de modification",
-                    "edit_url_warning": "Toute personne ayant le lien de modification peut modifier cette collection."
+                    "manage_hint": "Modifiez, masquez ou supprimez cette collection depuis le tableau de bord « Gérer mes partages »."
                 },
                 "toast": {
                     "copy_success": "Lien de partage copié",
-                    "copy_edit_success": "Lien de modification copié",
                     "copy_failed": "Impossible de copier le lien",
                     "create_success": "Collection partagée",
                     "create_failed": "Impossible de partager la collection",

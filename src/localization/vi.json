@@ -158,7 +158,6 @@
                     "menu": "Chia sẻ nhóm này",
                     "share": "Chia sẻ",
                     "copy_share_url": "Sao chép liên kết chia sẻ",
-                    "copy_edit_url": "Sao chép liên kết chỉnh sửa",
                     "open_manage": "Quản lý mục đã chia sẻ",
                     "open_editor": "Mở trình chỉnh sửa",
                     "forget": "Xóa mục chia sẻ đã lưu"
@@ -172,12 +171,10 @@
                     "worlds": "{count}/{total} thế giới sẵn sàng chia sẻ",
                     "truncated": "Chỉ tải lên {cap} thế giới đầu tiên.",
                     "share_url": "Liên kết chia sẻ",
-                    "edit_url": "Liên kết chỉnh sửa",
-                    "edit_url_warning": "Bất kỳ ai có liên kết chỉnh sửa đều có thể sửa bộ sưu tập này."
+                    "manage_hint": "Chỉnh sửa, ẩn hoặc xóa trong trang “Quản lý chia sẻ của tôi”."
                 },
                 "toast": {
                     "copy_success": "Đã sao chép liên kết chia sẻ",
-                    "copy_edit_success": "Đã sao chép liên kết chỉnh sửa",
                     "copy_failed": "Không sao chép được liên kết",
                     "create_success": "Đã chia sẻ bộ sưu tập",
                     "create_failed": "Không chia sẻ được bộ sưu tập",

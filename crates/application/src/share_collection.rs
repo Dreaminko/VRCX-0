@@ -48,7 +48,6 @@ pub struct PreparedShareCollection {
 pub struct ShareCollectionCreateResult {
     pub id: String,
     pub url: String,
-    pub edit_url: String,
     pub world_count: i64,
 }
 
@@ -131,11 +130,9 @@ pub async fn share_collection_create(
         .map_err(|error| Error::Custom(error.to_string()))?;
     let id = response.id;
     let url = format!("{WORLD_COLLECTIONS_SITE_ORIGIN}/c/{id}");
-    let edit_url = format!("{WORLD_COLLECTIONS_SITE_ORIGIN}/edit/{id}");
     Ok(ShareCollectionCreateResult {
         id,
         url,
-        edit_url,
         world_count,
     })
 }

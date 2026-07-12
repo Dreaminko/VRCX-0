@@ -1034,7 +1034,6 @@
                     "menu": "Sdílet tuto skupinu",
                     "share": "Sdílet",
                     "copy_share_url": "Kopírovat odkaz ke sdílení",
-                    "copy_edit_url": "Kopírovat odkaz pro úpravy",
                     "open_manage": "Spravovat moje sdílení",
                     "open_editor": "Otevřít editor",
                     "forget": "Odebrat uložené sdílení"
@@ -1048,12 +1047,10 @@
                     "worlds": "Ke sdílení připraveno {count}/{total} světů",
                     "truncated": "Nahraje se pouze prvních {cap} světů.",
                     "share_url": "Odkaz ke sdílení",
-                    "edit_url": "Odkaz pro úpravy",
-                    "edit_url_warning": "Kdokoli s odkazem pro úpravy může tuto sbírku změnit."
+                    "manage_hint": "Úpravy, skrytí i mazání provedeš v části „Správa mých sdílení“."
                 },
                 "toast": {
                     "copy_success": "Odkaz ke sdílení zkopírován",
-                    "copy_edit_success": "Odkaz pro úpravy zkopírován",
                     "copy_failed": "Odkaz se nepodařilo zkopírovat",
                     "create_success": "Sbírka byla sdílena",
                     "create_failed": "Sbírku se nepodařilo sdílet",

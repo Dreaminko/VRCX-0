@@ -208,7 +208,6 @@
                     "menu": "Udostępnij tę grupę",
                     "share": "Udostępnij",
                     "copy_share_url": "Kopiuj link do udostępnienia",
-                    "copy_edit_url": "Kopiuj link do edycji",
                     "open_manage": "Zarządzaj moimi udostępnieniami",
                     "open_editor": "Otwórz edytor",
                     "forget": "Usuń zapisane udostępnienie"
@@ -222,12 +221,10 @@
                     "worlds": "{count}/{total} światów gotowych do udostępnienia",
                     "truncated": "Przesłane zostanie tylko pierwsze {cap} światów.",
                     "share_url": "Link do udostępnienia",
-                    "edit_url": "Link do edycji",
-                    "edit_url_warning": "Każda osoba z linkiem do edycji może zmienić tę kolekcję."
+                    "manage_hint": "Edytuj, ukryj lub usuń w panelu „Zarządzaj udostępnieniami”."
                 },
                 "toast": {
                     "copy_success": "Skopiowano link do udostępnienia",
-                    "copy_edit_success": "Skopiowano link do edycji",
                     "copy_failed": "Nie udało się skopiować linku",
                     "create_success": "Kolekcja udostępniona",
                     "create_failed": "Nie udało się udostępnić kolekcji",

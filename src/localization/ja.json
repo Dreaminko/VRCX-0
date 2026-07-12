@@ -1028,7 +1028,6 @@
                     "menu": "このグループを共有",
                     "share": "共有",
                     "copy_share_url": "共有リンクをコピー",
-                    "copy_edit_url": "編集リンクをコピー",
                     "open_manage": "共有を管理",
                     "open_editor": "エディターを開く",
                     "forget": "保存した共有情報を削除"
@@ -1042,12 +1041,10 @@
                     "worlds": "{count}/{total} ワールドを準備済み",
                     "truncated": "最初の {cap} ワールドのみアップロードします。",
                     "share_url": "共有リンク",
-                    "edit_url": "編集リンク",
-                    "edit_url_warning": "編集リンクを持つ人はこのコレクションを変更できます。"
+                    "manage_hint": "編集・非公開化・削除は「共有の管理」ページから行えます。"
                 },
                 "toast": {
                     "copy_success": "共有リンクをコピーしました",
-                    "copy_edit_success": "編集リンクをコピーしました",
                     "copy_failed": "リンクのコピーに失敗しました",
                     "create_success": "コレクションを共有しました",
                     "create_failed": "コレクションの共有に失敗しました",

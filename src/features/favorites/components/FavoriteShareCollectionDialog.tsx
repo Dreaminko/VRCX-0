@@ -328,25 +328,10 @@ export function FavoriteShareCollectionDialog({
                                 );
                             }}
                         />
-                        <ShareLinkField
-                            label={t(
-                                'view.favorite.share_collection.label.edit_url'
-                            )}
-                            value={result.editUrl}
-                            copyLabel={t(
-                                'view.favorite.share_collection.action.copy_edit_url'
-                            )}
-                            onCopy={() => {
-                                void copyUrl(
-                                    result.editUrl,
-                                    'view.favorite.share_collection.toast.copy_edit_success'
-                                );
-                            }}
-                        />
                         <Alert>
                             <AlertDescription>
                                 {t(
-                                    'view.favorite.share_collection.label.edit_url_warning'
+                                    'view.favorite.share_collection.label.manage_hint'
                                 )}
                             </AlertDescription>
                         </Alert>

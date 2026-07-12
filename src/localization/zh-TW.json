@@ -1032,7 +1032,6 @@
                     "menu": "分享此組",
                     "share": "分享",
                     "copy_share_url": "複製分享連結",
-                    "copy_edit_url": "複製編輯連結",
                     "open_manage": "管理我的分享",
                     "open_editor": "開啟編輯器",
                     "forget": "移除記錄"
@@ -1046,12 +1045,10 @@
                     "worlds": "準備分享 {count}/{total} 個世界",
                     "truncated": "僅上傳前 {cap} 個世界。",
                     "share_url": "分享連結",
-                    "edit_url": "編輯連結",
-                    "edit_url_warning": "持有編輯連結的人可以修改這個合集。"
+                    "manage_hint": "編輯、下架、刪除都在「管理我的分享」後台完成。"
                 },
                 "toast": {
                     "copy_success": "已複製分享連結",
-                    "copy_edit_success": "已複製編輯連結",
                     "copy_failed": "複製連結失敗",
                     "create_success": "合集已分享",
                     "create_failed": "分享合集失敗",
