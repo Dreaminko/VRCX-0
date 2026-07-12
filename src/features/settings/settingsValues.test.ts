@@ -5,6 +5,7 @@ import {
     buildOpenAiModelsEndpoint,
     buildTablePageSizeOptions,
     composeCustomFontFamily,
+    createEffectiveCustomFontDraft,
     createCustomFontDraftFromPrefs,
     DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_TRANSLATION_ENDPOINT,
@@ -274,6 +275,25 @@ describe('settingsValues', () => {
         );
         expect(quoteCssFontFamilyName('system-ui')).toBe('system-ui');
         expect(quoteCssFontFamilyName("Map's Font")).toBe("'Map\\'s Font'");
+    });
+
+    it('keeps only the values owned by the active custom font mode', () => {
+        const draft = {
+            primary: ' Segoe UI ',
+            secondary: ' Noto Sans JP ',
+            override: " 'Manual Font', serif "
+        };
+
+        expect(createEffectiveCustomFontDraft(draft, 'installed')).toEqual({
+            primary: 'Segoe UI',
+            secondary: 'Noto Sans JP',
+            override: ''
+        });
+        expect(createEffectiveCustomFontDraft(draft, 'css')).toEqual({
+            primary: '',
+            secondary: '',
+            override: "'Manual Font', serif"
+        });
     });
 
     it('composes selected custom font slots into the effective stack', () => {

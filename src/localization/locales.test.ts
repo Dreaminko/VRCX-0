@@ -173,6 +173,88 @@ describe('settings locale coverage', () => {
     });
 });
 
+describe('custom font locale coverage', () => {
+    const fontKeyPrefix = 'view.settings.appearance.appearance';
+    const fontKeys = (keys: string[]) =>
+        keys.map((key) => `${fontKeyPrefix}.${key}`);
+    const requiredFontKeys = fontKeys([
+        'font_family',
+        'cjk_font_pack',
+        'font_family_description',
+        'font_family_custom',
+        'font_family_custom_dialog_title',
+        'font_family_custom_dialog_description',
+        'font_family_custom_invalid',
+        'font_family_custom_primary',
+        'font_family_custom_primary_description',
+        'font_family_custom_secondary',
+        'font_family_custom_secondary_description',
+        'font_family_custom_detection_unavailable_title',
+        'font_family_custom_detection_unavailable',
+        'font_family_custom_detection_unavailable_toast',
+        'font_family_custom_mode_label',
+        'font_family_custom_mode_installed',
+        'font_family_custom_mode_css',
+        'font_family_custom_search_placeholder',
+        'font_family_custom_search_optional_placeholder',
+        'font_family_custom_no_results',
+        'font_family_custom_preview',
+        'font_family_custom_preview_sample',
+        'font_family_custom_override',
+        'font_family_custom_override_description',
+        'font_family_custom_override_hint',
+        'font_family_custom_override_placeholder'
+    ]);
+    const localizedFontKeys = fontKeys([
+        'font_family',
+        'font_family_description',
+        'font_family_custom',
+        'font_family_custom_dialog_title',
+        'font_family_custom_dialog_description',
+        'font_family_custom_primary',
+        'font_family_custom_primary_description',
+        'font_family_custom_secondary',
+        'font_family_custom_secondary_description',
+        'font_family_custom_detection_unavailable_title',
+        'font_family_custom_detection_unavailable',
+        'font_family_custom_mode_label',
+        'font_family_custom_mode_installed',
+        'font_family_custom_search_placeholder',
+        'font_family_custom_search_optional_placeholder',
+        'font_family_custom_no_results',
+        'font_family_custom_preview'
+    ]);
+
+    it('keeps custom font labels in every locale source file', () => {
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            for (const key of requiredFontKeys) {
+                const value = readPath(source, key);
+                expect(value, `${locale} ${key}`).toEqual(expect.any(String));
+                if (typeof value !== 'string') {
+                    continue;
+                }
+                expect(value.trim()).not.toBe('');
+                expect(value).not.toBe(key);
+            }
+        }
+    });
+
+    it('does not fall back to English for user-facing font labels', () => {
+        for (const locale of languageCodes) {
+            if (locale === 'en') {
+                continue;
+            }
+            const source = readLocaleSource(locale);
+            for (const key of localizedFontKeys) {
+                expect(readPath(source, key), `${locale} ${key}`).not.toBe(
+                    readPath(en, key)
+                );
+            }
+        }
+    });
+});
+
 describe('deep link locale coverage', () => {
     const requiredDeepLinkKeys = [
         'deep_link.import_collection.confirm.title',

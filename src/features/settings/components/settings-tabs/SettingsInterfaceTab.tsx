@@ -14,7 +14,6 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
         locale,
         prefs,
         zoomInput,
-        zoomLevel,
         onLanguageChange,
         onFontFamilyChange,
         onCjkFontPackChange,
@@ -51,7 +50,6 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
                 locale={locale}
                 prefs={prefs}
                 zoomInput={zoomInput}
-                zoomLevel={zoomLevel}
                 hideFontControls={isMacHost}
                 onLanguageChange={onLanguageChange}
                 onFontFamilyChange={onFontFamilyChange}

@@ -53,6 +53,8 @@ export type CustomFontDraft = {
     override: string;
 };
 
+export type CustomFontMode = 'installed' | 'css';
+
 export function parseWebJson(response: { data?: unknown } | null | undefined) {
     if (response?.data && typeof response.data === 'object') {
         return response.data;
@@ -180,6 +182,31 @@ export function composeCustomFontFamily(
     }
     parts.push('system-ui');
     return parts.join(', ');
+}
+
+export function createEffectiveCustomFontDraft(
+    value: Partial<CustomFontDraft>,
+    mode: CustomFontMode
+): CustomFontDraft {
+    const draft = {
+        primary: String(value.primary ?? '').trim(),
+        secondary: String(value.secondary ?? '').trim(),
+        override: String(value.override ?? '').trim()
+    };
+
+    if (mode === 'css') {
+        return {
+            primary: '',
+            secondary: '',
+            override: draft.override
+        };
+    }
+
+    return {
+        primary: draft.primary,
+        secondary: draft.secondary,
+        override: ''
+    };
 }
 
 export function createCustomFontDraftFromPrefs(
