@@ -289,7 +289,9 @@ impl RealtimeHostRuntime {
                 baseline_revision: result.baseline_revision,
                 ..FriendProjection::default()
             });
-            projection.feed_entries = confirmed_feed_entries.clone();
+            let mut feed_entries = confirmed_feed_entries.clone();
+            feed_entries.append(&mut projection.feed_entries);
+            projection.feed_entries = feed_entries;
             self.apply_friend_output_owned(
                 &owner,
                 RealtimeFriendOutput {
@@ -386,6 +388,7 @@ fn friend_snapshot_diff_projection(
     previous: Option<&crate::realtime::RealtimeFriendSnapshot>,
     next: &crate::realtime::RealtimeFriendSnapshot,
 ) -> Option<FriendProjection> {
+    let created_at = chrono::Utc::now().to_rfc3339();
     let mut projection = FriendProjection {
         generation: next.generation,
         baseline_revision: next.baseline_revision,
@@ -426,6 +429,10 @@ fn friend_snapshot_diff_projection(
                 continue;
             }
         };
+        let was_traveling = previous_record.is_some_and(|record| {
+            vrcx_0_core::location::parse_location(&record.location).is_traveling
+        });
+        let joining_entry = player_joining_feed_entry(&user_id, was_traveling, record, &created_at);
         projection
             .patches
             .push(crate::realtime::FriendProjectionPatch {
@@ -434,6 +441,9 @@ fn friend_snapshot_diff_projection(
                 state_bucket,
                 state_bucket_authority: Some("explicit".to_string()),
             });
+        if let Some(entry) = joining_entry {
+            projection.feed_entries.push(entry);
+        }
     }
 
     (!projection.patches.is_empty() || !projection.removals.is_empty()).then_some(projection)

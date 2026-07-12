@@ -1,7 +1,7 @@
 use super::persistence::{
     add_location_metadata, add_profile_diff_feed_entries, friend_log_upsert,
     friend_relationship_feed_entry, gps_feed_entry, is_online_state, meaningful_name,
-    online_offline_feed_entry, value_equal_for_diff, FriendChangedProps,
+    online_offline_feed_entry, player_joining_feed_entry, value_equal_for_diff, FriendChangedProps,
 };
 use super::projection::resolve_state_bucket;
 use super::state::{PendingOffline, RealtimeFriendState, PENDING_OFFLINE_DELAY_MS};
@@ -95,7 +95,14 @@ fn apply_friend_event_with_options(
                 resolve_state_bucket(content, &patch, previous.as_ref(), false, "offline");
             let already_friend = previous.is_some();
             output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
-            apply_patch_to_state(state, &mut output, &user_id, patch.clone(), &state_bucket);
+            apply_patch_to_state(
+                state,
+                &mut output,
+                &user_id,
+                patch.clone(),
+                &state_bucket,
+                &now.iso,
+            );
             if !already_friend {
                 output
                     .persistence
@@ -208,7 +215,7 @@ fn apply_friend_event_with_options(
                 &patch,
                 &state_bucket,
             );
-            apply_patch_to_state(state, &mut output, &user_id, patch, &state_bucket);
+            apply_patch_to_state(state, &mut output, &user_id, patch, &state_bucket, &now.iso);
         }
         "friend-online" => {
             let user_id = event_user_id(content)?;
@@ -261,7 +268,7 @@ fn apply_friend_event_with_options(
                     state_bucket_changed(previous, "online"),
                 );
             }
-            apply_patch_to_state(state, &mut output, &user_id, patch, "online");
+            apply_patch_to_state(state, &mut output, &user_id, patch, "online", &now.iso);
         }
         "friend-active" | "friend-offline" => {
             let user_id = event_user_id(content)?;
@@ -298,7 +305,14 @@ fn apply_friend_event_with_options(
                     "id": user_id,
                     "pendingOffline": true,
                 });
-                apply_patch_to_state(state, &mut output, &user_id, pending_patch, "online");
+                apply_patch_to_state(
+                    state,
+                    &mut output,
+                    &user_id,
+                    pending_patch,
+                    "online",
+                    &now.iso,
+                );
                 output.timer_action = PendingOfflineTimerAction::Schedule {
                     user_id,
                     token,
@@ -306,7 +320,7 @@ fn apply_friend_event_with_options(
                 };
             } else {
                 state.recent_gps.remove(&user_id);
-                apply_patch_to_state(state, &mut output, &user_id, patch, next_state);
+                apply_patch_to_state(state, &mut output, &user_id, patch, next_state, &now.iso);
             }
         }
         "friend-location" => {
@@ -413,12 +427,15 @@ fn apply_friend_event_with_options(
                 patch,
                 &state_bucket,
                 state_bucket_authority,
+                &now.iso,
             );
         }
         _ => return None,
     }
 
-    output.projection.feed_entries = output.persistence.feed_entries.clone();
+    let mut feed_entries = output.persistence.feed_entries.clone();
+    feed_entries.append(&mut output.projection.feed_entries);
+    output.projection.feed_entries = feed_entries;
     if output.projection.patches.is_empty()
         && output.projection.removals.is_empty()
         && output.persistence.is_empty()
@@ -588,8 +605,17 @@ pub(super) fn apply_patch_to_state(
     user_id: &str,
     patch: serde_json::Value,
     state_bucket: &str,
+    created_at: &str,
 ) {
-    apply_patch_to_state_with_authority(state, output, user_id, patch, state_bucket, "explicit");
+    apply_patch_to_state_with_authority(
+        state,
+        output,
+        user_id,
+        patch,
+        state_bucket,
+        "explicit",
+        created_at,
+    );
 }
 
 pub(super) fn apply_patch_to_state_with_authority(
@@ -599,6 +625,7 @@ pub(super) fn apply_patch_to_state_with_authority(
     patch: serde_json::Value,
     state_bucket: &str,
     state_bucket_authority: &str,
+    created_at: &str,
 ) {
     let mut record = state
         .baseline
@@ -606,6 +633,7 @@ pub(super) fn apply_patch_to_state_with_authority(
         .and_then(|baseline| baseline.friends_by_id.get(user_id))
         .cloned()
         .unwrap_or_default();
+    let was_traveling = parse_location(&record.location).is_traveling;
     if let Some(patch_object) = patch.as_object() {
         apply_value_patch_to_record(&mut record, patch_object);
     }
@@ -613,6 +641,9 @@ pub(super) fn apply_patch_to_state_with_authority(
     record.state = state_bucket.to_string();
     record.state_bucket = state_bucket.to_string();
     sanitize_record_extra(&mut record);
+    if let Some(entry) = player_joining_feed_entry(user_id, was_traveling, &record, created_at) {
+        output.projection.feed_entries.push(entry);
+    }
 
     let projection_patch = record_to_value(&record);
     if let Some(baseline) = state.baseline.as_mut() {

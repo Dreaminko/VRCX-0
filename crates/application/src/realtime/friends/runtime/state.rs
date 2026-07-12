@@ -429,7 +429,14 @@ impl RealtimeFriendsRuntime {
             },
             ..RealtimeFriendOutput::default()
         };
-        apply_patch_to_state(&mut state, &mut output, user_id, patch, &state_bucket);
+        apply_patch_to_state(
+            &mut state,
+            &mut output,
+            user_id,
+            patch,
+            &state_bucket,
+            &now_iso,
+        );
         output.persistence.feed_entries.push(offline_feed_entry(
             user_id,
             output

@@ -242,6 +242,28 @@ pub(super) fn gps_feed_entry(
     }))
 }
 
+pub(crate) fn player_joining_feed_entry(
+    user_id: &str,
+    was_traveling: bool,
+    current: &FriendRecord,
+    created_at: &str,
+) -> Option<Value> {
+    if was_traveling
+        || !parse_location(&current.location).is_traveling
+        || current.traveling_to_location.trim().is_empty()
+    {
+        return None;
+    }
+    Some(json!({
+        "created_at": created_at,
+        "type": "OnPlayerJoining",
+        "userId": user_id,
+        "displayName": current.display_name,
+        "location": current.location,
+        "travelingToLocation": current.traveling_to_location,
+    }))
+}
+
 pub(super) fn online_offline_feed_entry(
     entry_type: &str,
     user_id: &str,

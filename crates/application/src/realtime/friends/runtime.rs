@@ -38,4 +38,5 @@ mod presence_tests;
 mod profile_tests;
 
 pub use event_patch::is_friend_event_type;
+pub(crate) use persistence::player_joining_feed_entry;
 pub use state::RealtimeFriendsRuntime;

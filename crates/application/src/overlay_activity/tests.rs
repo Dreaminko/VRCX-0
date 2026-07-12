@@ -79,6 +79,38 @@ fn friend_projection_feed_entries_are_ingested_with_canonical_activity_types() {
 }
 
 #[test]
+fn player_joining_friend_feed_matches_everyone_in_instance_scope() {
+    let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
+        "version": 1,
+        "wrist": {
+            "types": {
+                "OnPlayerJoining": {
+                    "scope": "everyoneInInstance",
+                    "favoriteGroupKeys": "all"
+                }
+            }
+        }
+    })));
+    let projection = FriendProjection {
+        feed_entries: vec![json!({
+            "type": "OnPlayerJoining",
+            "created_at": "2026-07-13T10:00:00Z",
+            "userId": "usr_joining",
+            "displayName": "Joining User",
+            "location": "traveling",
+            "travelingToLocation": "wrld_current:456"
+        })],
+        ..FriendProjection::default()
+    };
+
+    runtime.ingest_friend_projection(&projection);
+
+    let entries = runtime.snapshot().entries;
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].activity_type, "OnPlayerJoining");
+}
+
+#[test]
 fn friend_projection_feed_entries_do_not_restore_removed_friend_membership() {
     let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
         "version": 1,

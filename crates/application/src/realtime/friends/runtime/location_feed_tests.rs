@@ -180,4 +180,67 @@ mod tests {
             "online"
         );
     }
+
+    #[test]
+    fn entering_traveling_emits_one_ephemeral_player_joining_entry() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_old:123".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let payload = json!({
+            "type": "friend-location",
+            "content": {
+                "userId": "usr_friend",
+                "location": "traveling",
+                "travelingToLocation": "wrld_current:456",
+                "user": {
+                    "id": "usr_friend",
+                    "displayName": "Friend",
+                    "state": "online"
+                }
+            }
+        });
+        let apply = |received_at: &str| {
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: payload.clone(),
+                raw: "{}".into(),
+                received_at: received_at.into(),
+            })
+        };
+
+        let RealtimeFriendApplyResult::Output(first) = apply("2026-07-13T10:00:00Z") else {
+            panic!("entering traveling should produce an output");
+        };
+        assert!(first.persistence.feed_entries.is_empty());
+        assert_eq!(first.projection.feed_entries.len(), 1);
+        assert_eq!(first.projection.feed_entries[0]["type"], "OnPlayerJoining");
+        assert_eq!(
+            first.projection.feed_entries[0]["travelingToLocation"],
+            "wrld_current:456"
+        );
+
+        let RealtimeFriendApplyResult::Output(second) = apply("2026-07-13T10:00:01Z") else {
+            panic!("repeated traveling should still produce a projection output");
+        };
+        assert!(second.projection.feed_entries.is_empty());
+    }
 }

@@ -32,6 +32,7 @@ impl RealtimeHostRuntime {
                 .clear_baseline_if_revision(projection.generation, projection.baseline_revision);
             return;
         }
+        self.retain_current_instance_joining_entries(&mut projection, &output.owner_user_id);
         let friend_note_changed = output.friend_note_changed;
         let mut world_name_fetch_ids =
             self.enrich_projection_world_names(&mut projection.feed_entries);
@@ -100,6 +101,49 @@ impl RealtimeHostRuntime {
         }
         self.schedule_friend_profile_refetches(projection_generation, profile_refetch_user_ids);
         self.schedule_world_name_warm(world_name_fetch_ids);
+    }
+
+    fn retain_current_instance_joining_entries(
+        &self,
+        projection: &mut FriendProjection,
+        current_user_id: &str,
+    ) {
+        if !projection.feed_entries.iter().any(is_player_joining_entry) {
+            return;
+        }
+        let session = self.deps.session.snapshot();
+        let game_log = self
+            .deps
+            .game_log_snapshot
+            .lock()
+            .map(|snapshot| snapshot.clone())
+            .unwrap_or_default();
+        let current_location = game_log.location.trim();
+        let current_user_id = current_user_id.trim();
+        projection.feed_entries.retain(|entry| {
+            if !is_player_joining_entry(entry) {
+                return true;
+            }
+            let user_id = entry
+                .get("userId")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .unwrap_or_default();
+            let destination = entry
+                .get("travelingToLocation")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .unwrap_or_default();
+            session.is_game_running
+                && !current_location.is_empty()
+                && destination == current_location
+                && !user_id.is_empty()
+                && user_id != current_user_id
+                && !game_log
+                    .players
+                    .iter()
+                    .any(|player| player.user_id.trim() == user_id)
+        });
     }
 
     pub(super) fn apply_notification_output(
@@ -255,4 +299,8 @@ impl RealtimeHostRuntime {
                 .emit_game_log_persisted(counts.game_log_affected_count);
         }
     }
+}
+
+fn is_player_joining_entry(entry: &Value) -> bool {
+    entry.get("type").and_then(Value::as_str) == Some("OnPlayerJoining")
 }

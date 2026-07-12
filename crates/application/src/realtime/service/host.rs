@@ -26,7 +26,9 @@ use crate::realtime::connection::{
     run_realtime_transport, RealtimeMessageSink, RealtimeTransportDeps,
 };
 use crate::realtime::current_user::RealtimeCurrentUserRuntime;
-use crate::realtime::friends::{is_friend_event_type, RealtimeFriendsRuntime};
+use crate::realtime::friends::{
+    is_friend_event_type, player_joining_feed_entry, RealtimeFriendsRuntime,
+};
 use crate::realtime::instance_queue::apply_instance_queue_ws_message;
 use crate::realtime::invite_automation::decision::{
     evaluate_invite_automation, normalize_invite_automation_mode, InviteAutomationConfig,
@@ -60,6 +62,8 @@ use crate::{Error, Result};
 
 #[cfg(test)]
 mod friend_baseline_tests;
+#[cfg(test)]
+mod friend_joining_tests;
 mod friend_profile_bulk_load;
 #[cfg(test)]
 mod friend_profile_bulk_load_tests;
