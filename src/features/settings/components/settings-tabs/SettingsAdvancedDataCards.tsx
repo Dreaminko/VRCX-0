@@ -16,24 +16,18 @@ import { SettingsAdvancedCacheCard } from './SettingsAdvancedCacheCard';
 
 export function SettingsAdvancedDataCards({
     prefs,
-    cacheStats,
-    cacheStatsVisible,
     avatarAutoCleanupOptions,
     sqliteTableSizes,
     sqliteTableSizeRows,
     onlineVisitCount,
     configTreeData,
-    tauriAppSnapshot,
     onAutoSweepVRChatCacheChange,
-    onClearVrcxCache,
     onPromptAutoClearVrcxCacheFrequency,
-    onRefreshCacheSize,
     onAvatarAutoCleanupChange,
     onMigrateLegacyVrcxData,
     onRefreshSqliteTableSizes,
     onRefreshOnlineVisits,
     onRefreshConfigTreeData,
-    onRefreshRuntimeAppSnapshot,
     onClearConfigTreeData
 }: any) {
     const { t } = useTranslation();
@@ -60,14 +54,10 @@ export function SettingsAdvancedDataCards({
                 </Field>
 
                 <SettingsAdvancedCacheCard
-                    cacheStats={cacheStats}
-                    cacheStatsVisible={cacheStatsVisible}
                     autoSweepEnabled={prefs.autoSweepVRChatCache}
-                    onClearVrcxCache={onClearVrcxCache}
                     onPromptAutoClearVrcxCacheFrequency={
                         onPromptAutoClearVrcxCacheFrequency
                     }
-                    onRefreshCacheSize={onRefreshCacheSize}
                 />
 
                 <Field
@@ -227,27 +217,6 @@ export function SettingsAdvancedDataCards({
                 {Object.keys(configTreeData).length ? (
                     <div className="bg-muted/30 max-h-[32rem] overflow-auto rounded-lg border p-3">
                         <JsonTreeView data={configTreeData} />
-                    </div>
-                ) : null}
-                <Field
-                    label={t(
-                        'view.settings.advanced_groups.diagnostics.runtime_lifecycle'
-                    )}
-                >
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={onRefreshRuntimeAppSnapshot}
-                    >
-                        {t(
-                            'view.settings.advanced_groups.diagnostics.refresh_runtime_lifecycle'
-                        )}
-                    </Button>
-                </Field>
-                {tauriAppSnapshot ? (
-                    <div className="bg-muted/30 max-h-[32rem] overflow-auto rounded-lg border p-3">
-                        <JsonTreeView data={tauriAppSnapshot} />
                     </div>
                 ) : null}
             </SettingsGroup>

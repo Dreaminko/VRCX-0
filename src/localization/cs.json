@@ -1808,16 +1808,11 @@
                     "header": "Diagnostika",
                     "refresh_online_users": "Obnovit online uživatele",
                     "refresh_config_json": "Načíst konfigurační JSON",
-                    "clear_config_json": "Vymazat zobrazený JSON",
-                    "runtime_lifecycle": "Životní cyklus běhu",
-                    "refresh_runtime_lifecycle": "Obnovit životní cyklus běhu"
+                    "clear_config_json": "Vymazat zobrazený JSON"
                 },
                 "diagnostics_maintenance": {
                     "header": "Údržba",
-                    "clear_vrcx_cache": "Vymazat mezipaměť VRCX-0",
                     "configure_auto_clear": "Nastavit interval automatického mazání",
-                    "refresh_cache_size": "Obnovit velikost mezipaměti",
-                    "not_refreshed": "Neobnoveno",
                     "purge_avatar_history": "Vymazat historii avatarů",
                     "refresh": "Obnovit stav databáze",
                     "refresh_sqlite_tables": "Obnovit velikosti tabulek",
@@ -2203,8 +2198,6 @@
                         "header": "Datový adresář",
                         "description": "Aktivní zdroj: {source}. Tato změna pouze uloží umístění složky; VRCX-0 data nezkopíruje.",
                         "current": "Aktuální adresář",
-                        "default": "Výchozí adresář",
-                        "persisted": "Uložený vlastní adresář",
                         "actions": "Akce datového adresáře",
                         "choose": "Vybrat složku",
                         "reset": "Obnovit výchozí",
@@ -2214,7 +2207,6 @@
                         "source_persisted": "uložený vlastní adresář",
                         "source_default": "výchozí adresář",
                         "cli_override": "Toto spuštění používá parametr --data-dir. Chcete-li změnit uložený adresář, spusťte aplikaci bez tohoto přepsání příkazovým řádkem.",
-                        "not_set": "Nenastaveno",
                         "confirm_title": "Přepnout datový adresář VRCX-0?",
                         "confirm_description": "VRCX-0 aktuální data nezkopíruje. Chcete-li si zachovat přihlášení, databázi, konfiguraci a mezipaměť, zkopírujte si aktuální datový adresář do {path} sami před restartem. Uložte tento adresář a restartujte aplikaci, aby se změna projevila.",
                         "confirm_empty": "Vybraná složka je prázdná a spustí se jako nový profil, pokud do ní data nezkopírujete.",
@@ -2331,8 +2323,7 @@
                 "skip": "Přeskočit"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "Vymazáno {value} položek mezipaměti dotazů, {value2} položek jmen avatarů a {value3} položek podrobností oblíbených"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

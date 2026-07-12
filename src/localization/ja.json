@@ -1802,16 +1802,11 @@
                     "header": "診断情報",
                     "refresh_online_users": "オンライン数を更新",
                     "refresh_config_json": "Config JSON を読み取り",
-                    "clear_config_json": "表示結果をクリア",
-                    "runtime_lifecycle": "バックエンドランタイム",
-                    "refresh_runtime_lifecycle": "バックエンドランタイムを更新"
+                    "clear_config_json": "表示結果をクリア"
                 },
                 "diagnostics_maintenance": {
                     "header": "メンテナンス",
-                    "clear_vrcx_cache": "VRCX-0 キャッシュを消去",
                     "configure_auto_clear": "自動消去間隔を設定",
-                    "refresh_cache_size": "キャッシュサイズを更新",
-                    "not_refreshed": "未更新",
                     "purge_avatar_history": "アバター履歴を削除",
                     "refresh": "データベースの状態を更新",
                     "refresh_sqlite_tables": "テーブルサイズを更新",
@@ -2197,8 +2192,6 @@
                         "header": "データディレクトリ",
                         "description": "現在のソース: {source}。ここではフォルダーの場所だけを保存します。VRCX-0 はデータをコピーしません。",
                         "current": "現在のディレクトリ",
-                        "default": "既定のディレクトリ",
-                        "persisted": "保存済みのカスタムディレクトリ",
                         "actions": "データディレクトリ操作",
                         "choose": "フォルダーを選択",
                         "reset": "既定に戻す",
@@ -2208,7 +2201,6 @@
                         "source_persisted": "保存済みのカスタムディレクトリ",
                         "source_default": "既定のディレクトリ",
                         "cli_override": "この起動では --data-dir が使われています。保存済みディレクトリを変更するには、コマンドライン指定なしで起動してください。",
-                        "not_set": "未設定",
                         "confirm_title": "VRCX-0 のデータディレクトリを切り替えますか？",
                         "confirm_description": "VRCX-0 は現在のデータをコピーしません。ログイン、データベース、設定、キャッシュを保持するには、再起動前に現在のデータディレクトリの内容を {path} に手動でコピーしてください。このディレクトリを保存し、再起動後に適用します。",
                         "confirm_empty": "選択したフォルダーは空です。手動でデータをコピーしない限り、新しいプロファイルとして起動します。",
@@ -2325,8 +2317,7 @@
                 "skip": "スキップ"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "{value} 件のクエリキャッシュ、{value2} 件のアバター名、{value3} 件のお気に入り詳細をクリアしました"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

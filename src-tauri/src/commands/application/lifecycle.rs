@@ -1,25 +1,10 @@
 #![allow(non_snake_case)]
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tauri::State;
 
 use crate::error::AppError;
 use crate::state::AppState;
-use vrcx_0_application::RuntimeBackgroundJobSnapshot;
-use vrcx_0_application::RuntimeDiagnosticsSnapshot;
-use vrcx_0_application::RuntimeLifecycleSnapshot;
-use vrcx_0_application::RuntimeSyncSnapshot;
-use vrcx_0_application::{PlayerState, RuntimeSnapshot as GameLogRuntimeSnapshot};
-
-#[derive(Clone, Debug, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct RuntimeAppSnapshot {
-    pub runtime: RuntimeLifecycleSnapshot,
-    pub background_jobs: Vec<RuntimeBackgroundJobSnapshot>,
-    pub sync: RuntimeSyncSnapshot,
-    pub diagnostics: RuntimeDiagnosticsSnapshot,
-    pub game_log: GameLogRuntimeSnapshotDto,
-}
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -52,40 +37,6 @@ pub struct RuntimeFrontendScheduleJobDueClaimInput {
 
 fn default_frontend_owner() -> String {
     "frontend".into()
-}
-
-#[derive(Clone, Debug, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct GameLogRuntimeSnapshotDto {
-    pub location: String,
-    pub world_name: String,
-    pub destination: String,
-    pub players: Vec<PlayerState>,
-}
-
-impl From<GameLogRuntimeSnapshot> for GameLogRuntimeSnapshotDto {
-    fn from(snapshot: GameLogRuntimeSnapshot) -> Self {
-        Self {
-            location: snapshot.location,
-            world_name: snapshot.world_name,
-            destination: snapshot.destination,
-            players: snapshot.players,
-        }
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__runtime_lifecycle_snapshot_get(state: State<'_, AppState>) -> RuntimeLifecycleSnapshot {
-    state.runtime_context.runtime.snapshot()
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__runtime_background_jobs_snapshot_get(
-    state: State<'_, AppState>,
-) -> Vec<RuntimeBackgroundJobSnapshot> {
-    state.runtime_context.background_jobs.snapshot()
 }
 
 #[tauri::command]
@@ -138,30 +89,6 @@ pub async fn app__runtime_group_instances_refresh(
 ) -> Result<(), AppError> {
     state.refresh_runtime_group_instances().await;
     Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__runtime_sync_snapshot_get(state: State<'_, AppState>) -> RuntimeSyncSnapshot {
-    state.runtime_context.sync.snapshot()
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__runtime_diagnostics_get(state: State<'_, AppState>) -> RuntimeDiagnosticsSnapshot {
-    state.runtime_context.diagnostics.snapshot()
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__runtime_app_snapshot_get(state: State<'_, AppState>) -> RuntimeAppSnapshot {
-    RuntimeAppSnapshot {
-        runtime: state.runtime_context.runtime.snapshot(),
-        background_jobs: state.runtime_context.background_jobs.snapshot(),
-        sync: state.runtime_context.sync.snapshot(),
-        diagnostics: state.runtime_context.diagnostics.snapshot(),
-        game_log: state.runtime_context.game_log_snapshot().into(),
-    }
 }
 
 #[tauri::command]

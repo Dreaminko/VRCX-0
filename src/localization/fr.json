@@ -1806,16 +1806,11 @@
                     "header": "Diagnostics",
                     "refresh_online_users": "Actualiser le nombre d'utilisateurs en ligne",
                     "refresh_config_json": "Lire la config JSON",
-                    "clear_config_json": "Effacer le JSON affiché",
-                    "runtime_lifecycle": "Cycle de vie du runtime",
-                    "refresh_runtime_lifecycle": "Actualiser le cycle de vie du runtime"
+                    "clear_config_json": "Effacer le JSON affiché"
                 },
                 "diagnostics_maintenance": {
                     "header": "Maintenance",
-                    "clear_vrcx_cache": "Effacer le cache de VRCX-0",
                     "configure_auto_clear": "Définir l'intervalle d'effacement automatique",
-                    "refresh_cache_size": "Actualiser la taille du cache",
-                    "not_refreshed": "Non actualisé",
                     "purge_avatar_history": "Purger l'historique des avatars",
                     "refresh": "Actualiser l'état de la base de données",
                     "refresh_sqlite_tables": "Actualiser la taille des tables",
@@ -2201,8 +2196,6 @@
                         "header": "Répertoire de données",
                         "description": "Source active : {source}. Modifier ce réglage enregistre uniquement l'emplacement du dossier ; VRCX-0 ne copiera pas les données.",
                         "current": "Répertoire actuel",
-                        "default": "Répertoire par défaut",
-                        "persisted": "Répertoire personnalisé enregistré",
                         "actions": "Actions sur le répertoire de données",
                         "choose": "Choisir un dossier",
                         "reset": "Réinitialiser par défaut",
@@ -2212,7 +2205,6 @@
                         "source_persisted": "répertoire personnalisé enregistré",
                         "source_default": "répertoire par défaut",
                         "cli_override": "Ce lancement utilise --data-dir. Démarrez sans le remplacement en ligne de commande pour modifier le répertoire enregistré.",
-                        "not_set": "Non défini",
                         "confirm_title": "Changer le répertoire de données de VRCX-0 ?",
                         "confirm_description": "VRCX-0 ne copiera pas les données actuelles. Pour conserver votre connexion, votre base de données, votre configuration et votre cache, copiez vous-même le répertoire de données actuel vers {path} avant de redémarrer. Enregistrez ce répertoire et redémarrez pour l'appliquer.",
                         "confirm_empty": "Le dossier sélectionné est vide et démarrera comme un nouveau profil tant que vous n'y copiez pas de données.",
@@ -2329,8 +2321,7 @@
                 "skip": "Ignorer"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "{value} entrées de cache de requêtes, {value2} entrées de noms d'avatar et {value3} entrées de détails de Favoris effacées"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

@@ -1128,9 +1128,6 @@ export const commands = {
     async appClearAppDataDir(): Promise<AppDataDirState> {
         return await TAURI_INVOKE('app__clear_app_data_dir');
     },
-    async appRuntimeAppSnapshotGet(): Promise<RuntimeAppSnapshot> {
-        return await TAURI_INVOKE('app__runtime_app_snapshot_get');
-    },
     async appRuntimeFrontendScheduleDueJobsGet(): Promise<string[]> {
         return await TAURI_INVOKE(
             'app__runtime_frontend_schedule_due_jobs_get'
@@ -1161,20 +1158,6 @@ export const commands = {
         input: RuntimeJobRecordInput
     ): Promise<void> {
         await TAURI_INVOKE('app__runtime_background_job_record', { input });
-    },
-    async appRuntimeBackgroundJobsSnapshotGet(): Promise<
-        RuntimeBackgroundJobSnapshot[]
-    > {
-        return await TAURI_INVOKE('app__runtime_background_jobs_snapshot_get');
-    },
-    async appRuntimeDiagnosticsGet(): Promise<RuntimeDiagnosticsSnapshot> {
-        return await TAURI_INVOKE('app__runtime_diagnostics_get');
-    },
-    async appRuntimeLifecycleSnapshotGet(): Promise<RuntimeLifecycleSnapshot> {
-        return await TAURI_INVOKE('app__runtime_lifecycle_snapshot_get');
-    },
-    async appRuntimeSyncSnapshotGet(): Promise<RuntimeSyncSnapshot> {
-        return await TAURI_INVOKE('app__runtime_sync_snapshot_get');
     },
     async appExternalApiAvatarSearchGet(
         input: ExternalApiAvatarSearchInput
@@ -3388,12 +3371,6 @@ export type GameLogProjection = {
     lastGameLogType: string;
 };
 export type GameLogQueryInput = { kind: string; params?: RawJson };
-export type GameLogRuntimeSnapshotDto = {
-    location: string;
-    worldName: string;
-    destination: string;
-    players: PlayerState[];
-};
 export type GameLogSessionDto = {
     id?: number | null;
     created_at: string;
@@ -4009,50 +3986,12 @@ export type RemoteModerationRow = {
     created: string;
 };
 export type Role = 'user' | 'assistant';
-export type RuntimeAppSnapshot = {
-    runtime: RuntimeLifecycleSnapshot;
-    backgroundJobs: RuntimeBackgroundJobSnapshot[];
-    sync: RuntimeSyncSnapshot;
-    diagnostics: RuntimeDiagnosticsSnapshot;
-    gameLog: GameLogRuntimeSnapshotDto;
-};
 export type RuntimeAuthScopeSetInput = { userId?: string; endpoint?: string };
 export type RuntimeAuthScopeSnapshot = {
     currentUserId: string;
     endpoint: string;
     generation: number;
     active: boolean;
-};
-export type RuntimeBackgroundJobSnapshot = {
-    name: string;
-    owner: string;
-    status: string;
-    cadenceSeconds: number | null;
-    lastStartedAt: string | null;
-    lastFinishedAt: string | null;
-    nextRunAt: string | null;
-    lastDetail: string;
-    lastError: string | null;
-    failureCount: number;
-};
-export type RuntimeCommandGroupSnapshot = {
-    name: string;
-    boundary: string;
-    commandCount: number;
-    examples: string[];
-};
-export type RuntimeCommandObservation = {
-    command: string;
-    status: string;
-    detail: string;
-    observedAt: string;
-};
-export type RuntimeDiagnosticsSnapshot = {
-    genericSqlEnabled: boolean;
-    frontendWsParsingEnabled: boolean;
-    commandGroups: RuntimeCommandGroupSnapshot[];
-    recentCommands: RuntimeCommandObservation[];
-    notes: string[];
 };
 export type RuntimeFrontendScheduleJobDeferInput = {
     name: string;
@@ -4070,27 +4009,6 @@ export type RuntimeJobRecordInput = {
     status: string;
     detail?: string;
 };
-export type RuntimeLifecycleSnapshot = {
-    startedAt: string;
-    hostServicesStarted: boolean;
-    phases: RuntimePhaseSnapshot[];
-};
-export type RuntimePhaseSnapshot = {
-    name: string;
-    status: string;
-    detail: string;
-    updatedAt: string;
-};
-export type RuntimeSyncDomainSnapshot = {
-    domain: string;
-    status: string;
-    detail: string;
-    updatedAt: string;
-    revision: number;
-    pendingCount: number;
-    failureCount: number;
-};
-export type RuntimeSyncSnapshot = { domains: RuntimeSyncDomainSnapshot[] };
 export type ScreenshotFolderInfo = {
     path: string;
     parentPath: string | null;
@@ -4170,7 +4088,6 @@ export type ShareCollectionCreateInput = {
 export type ShareCollectionCreateResult = {
     id: string;
     url: string;
-    editUrl: string;
     worldCount: number;
 };
 export type SocialFavoritesBaselineInput = {

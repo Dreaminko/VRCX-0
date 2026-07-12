@@ -14,26 +14,20 @@ export function SettingsAdvancedSection({
     const { t } = useTranslation();
     const {
         prefs,
-        cacheStats,
-        cacheStatsVisible,
         avatarAutoCleanupOptions,
         sqliteTableSizes,
         sqliteTableSizeRows,
         onlineVisitCount,
         configTreeData,
         appDataDirState,
-        tauriAppSnapshot,
         saveBoolPreference,
-        clearVrcxCache,
         promptAutoClearVrcxCacheFrequency,
-        refreshCacheSize,
         handleGameLogDisabledChange,
         saveStringPreference,
         setPurgeDialogOpen,
         refreshSqliteTableSizes,
         refreshOnlineVisits,
         refreshConfigTreeData,
-        refreshRuntimeAppSnapshot,
         openAppDataDirSelector,
         resetAppDataDir,
         restartForAppDataDir,
@@ -43,15 +37,12 @@ export function SettingsAdvancedSection({
 
     const advancedTab = {
         prefs,
-        cacheStats,
-        cacheStatsVisible,
         avatarAutoCleanupOptions,
         sqliteTableSizes,
         sqliteTableSizeRows,
         onlineVisitCount,
         configTreeData,
         appDataDirState,
-        tauriAppSnapshot,
         gameLogDisabledLabel: t(
             'view.settings.advanced.advanced.cache_debug.disable_gamelog'
         ),
@@ -116,14 +107,8 @@ export function SettingsAdvancedSection({
                 enabled
             );
         },
-        onClearVrcxCache: () => {
-            clearVrcxCache();
-        },
         onPromptAutoClearVrcxCacheFrequency: () => {
             promptAutoClearVrcxCacheFrequency();
-        },
-        onRefreshCacheSize: () => {
-            refreshCacheSize();
         },
         onGameLogDisabledChange: (checked: unknown) => {
             handleGameLogDisabledChange(normalizeCheckedState(checked));
@@ -147,9 +132,6 @@ export function SettingsAdvancedSection({
         },
         onRefreshConfigTreeData: () => {
             refreshConfigTreeData();
-        },
-        onRefreshRuntimeAppSnapshot: () => {
-            refreshRuntimeAppSnapshot();
         },
         onOpenAppDataDirSelector: () => {
             openAppDataDirSelector();

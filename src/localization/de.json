@@ -1806,16 +1806,11 @@
                     "header": "Diagnose",
                     "refresh_online_users": "Online-Nutzer aktualisieren",
                     "refresh_config_json": "Konfigurations-JSON lesen",
-                    "clear_config_json": "Angezeigtes JSON löschen",
-                    "runtime_lifecycle": "Laufzeit-Lebenszyklus",
-                    "refresh_runtime_lifecycle": "Laufzeit-Lebenszyklus aktualisieren"
+                    "clear_config_json": "Angezeigtes JSON löschen"
                 },
                 "diagnostics_maintenance": {
                     "header": "Wartung",
-                    "clear_vrcx_cache": "VRCX-0-Cache leeren",
                     "configure_auto_clear": "Intervall für automatisches Leeren festlegen",
-                    "refresh_cache_size": "Cache-Größe aktualisieren",
-                    "not_refreshed": "Nicht aktualisiert",
                     "purge_avatar_history": "Avatar-Verlauf löschen",
                     "refresh": "Datenbankstatus aktualisieren",
                     "refresh_sqlite_tables": "Tabellengrößen aktualisieren",
@@ -2201,8 +2196,6 @@
                         "header": "Datenverzeichnis",
                         "description": "Aktive Quelle: {source}. Diese Änderung speichert nur den Ordnerpfad; VRCX-0 kopiert dabei keine Daten.",
                         "current": "Aktuelles Verzeichnis",
-                        "default": "Standardverzeichnis",
-                        "persisted": "Gespeichertes benutzerdefiniertes Verzeichnis",
                         "actions": "Aktionen für Datenverzeichnis",
                         "choose": "Ordner wählen",
                         "reset": "Auf Standard zurücksetzen",
@@ -2212,7 +2205,6 @@
                         "source_persisted": "gespeichertes benutzerdefiniertes Verzeichnis",
                         "source_default": "Standardverzeichnis",
                         "cli_override": "Dieser Start verwendet --data-dir. Starte ohne den Kommandozeilen-Override, um das gespeicherte Verzeichnis zu ändern.",
-                        "not_set": "Nicht festgelegt",
                         "confirm_title": "VRCX-0-Datenverzeichnis wechseln?",
                         "confirm_description": "VRCX-0 kopiert die aktuellen Daten nicht. Um Login, Datenbank, Konfiguration und Cache zu behalten, kopiere das aktuelle Datenverzeichnis selbst nach {path}, bevor du neu startest. Speichere dieses Verzeichnis und starte neu, um es anzuwenden.",
                         "confirm_empty": "Der ausgewählte Ordner ist leer und startet als neues Profil, sofern du keine Daten hineinkopierst.",
@@ -2329,8 +2321,7 @@
                 "skip": "Überspringen"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "{value} Abfrage-Cache-Einträge, {value2} Avatarnamen-Einträge und {value3} Favoritendetail-Einträge geleert"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

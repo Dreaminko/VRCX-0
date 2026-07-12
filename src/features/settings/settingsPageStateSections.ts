@@ -50,8 +50,6 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     activeSettingsTab: string;
     appDataDirState?: SettingsAppDataDirState | null;
     avatarProviderConfig: AvatarProviderConfig;
-    cacheStatsVisible: boolean;
-    clearVrcxCache: SettingsCallback;
     commit: SettingsCallback<
         [action: SettingsAction, optimistic?: () => unknown]
     >;
@@ -78,10 +76,8 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     promptAutoLoginDelaySeconds: SettingsCallback;
     promptBackgroundModeDelayMinutes: SettingsCallback;
     prefs: SettingsPrefs;
-    refreshCacheSize: SettingsCallback;
     refreshConfigTreeData: SettingsCallback;
     refreshOnlineVisits: SettingsCallback;
-    refreshRuntimeAppSnapshot: SettingsCallback;
     refreshSqliteTableSizes: SettingsCallback;
     resetAppDataDir: SettingsCallback;
     resetTrustColors: SettingsCallback;
@@ -172,9 +168,6 @@ export function buildSettingsPageStateSections({
     avatarProviderConfig,
     avatarProviderConfigRef,
     avatarProviderDialogOpen,
-    cacheStats,
-    cacheStatsVisible,
-    clearVrcxCache,
     commit,
     configTreeData,
     customFontDialogOpen,
@@ -216,10 +209,8 @@ export function buildSettingsPageStateSections({
     purgeDialogOpen,
     purgeInProgress,
     purgePeriod,
-    refreshCacheSize,
     refreshConfigTreeData,
     refreshOnlineVisits,
-    refreshRuntimeAppSnapshot,
     refreshSqliteTableSizes,
     remoteFavoriteFriendGroupOptions,
     removeFeedHiddenUser,
@@ -309,7 +300,6 @@ export function buildSettingsPageStateSections({
     tableLimitsSaveDisabled,
     tableMaxSizeError,
     tablePageSizesDialogOpen,
-    tauriAppSnapshot,
     testTranslationApiConfig,
     translationApiDialogOpen,
     translationDraft,
@@ -829,26 +819,20 @@ export function buildSettingsPageStateSections({
         },
         advanced: {
             prefs,
-            cacheStats,
-            cacheStatsVisible,
             avatarAutoCleanupOptions,
             sqliteTableSizes,
             sqliteTableSizeRows,
             onlineVisitCount,
             configTreeData,
             appDataDirState,
-            tauriAppSnapshot,
             saveBoolPreference,
-            clearVrcxCache,
             promptAutoClearVrcxCacheFrequency,
-            refreshCacheSize,
             handleGameLogDisabledChange,
             saveStringPreference,
             setPurgeDialogOpen,
             refreshSqliteTableSizes,
             refreshOnlineVisits,
             refreshConfigTreeData,
-            refreshRuntimeAppSnapshot,
             openAppDataDirSelector,
             resetAppDataDir,
             restartForAppDataDir,

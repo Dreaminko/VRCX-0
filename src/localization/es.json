@@ -1806,16 +1806,11 @@
                     "header": "Diagnóstico",
                     "refresh_online_users": "Actualizar usuarios en línea",
                     "refresh_config_json": "Leer JSON de configuración",
-                    "clear_config_json": "Borrar el JSON mostrado",
-                    "runtime_lifecycle": "Ciclo de vida del runtime",
-                    "refresh_runtime_lifecycle": "Actualizar ciclo de vida del runtime"
+                    "clear_config_json": "Borrar el JSON mostrado"
                 },
                 "diagnostics_maintenance": {
                     "header": "Mantenimiento",
-                    "clear_vrcx_cache": "Borrar caché de VRCX-0",
                     "configure_auto_clear": "Definir intervalo de borrado automático",
-                    "refresh_cache_size": "Actualizar tamaño de caché",
-                    "not_refreshed": "Sin actualizar",
                     "purge_avatar_history": "Purgar historial de avatares",
                     "refresh": "Actualizar estado de la base de datos",
                     "refresh_sqlite_tables": "Actualizar tamaños de tablas",
@@ -2201,8 +2196,6 @@
                         "header": "Directorio de datos",
                         "description": "Fuente activa: {source}. Cambiar esto solo guarda la ubicación de la carpeta; VRCX-0 no copiará los datos.",
                         "current": "Directorio actual",
-                        "default": "Directorio predeterminado",
-                        "persisted": "Directorio personalizado guardado",
                         "actions": "Acciones del directorio de datos",
                         "choose": "Elegir carpeta",
                         "reset": "Restablecer a predeterminado",
@@ -2212,7 +2205,6 @@
                         "source_persisted": "directorio personalizado guardado",
                         "source_default": "directorio predeterminado",
                         "cli_override": "Este inicio usa --data-dir. Inicia sin la anulación por línea de comandos para cambiar el directorio guardado.",
-                        "not_set": "Sin establecer",
                         "confirm_title": "¿Cambiar el directorio de datos de VRCX-0?",
                         "confirm_description": "VRCX-0 no copiará los datos actuales. Para conservar tu inicio de sesión, base de datos, configuración y caché, copia tú mismo el directorio de datos actual a {path} antes de reiniciar. Guarda este directorio y reinicia para aplicarlo.",
                         "confirm_empty": "La carpeta seleccionada está vacía y se iniciará como un perfil nuevo a menos que copies datos en ella.",
@@ -2329,8 +2321,7 @@
                 "skip": "Omitir"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "Se borraron {value} entradas de caché de consultas, {value2} entradas de nombres de avatar y {value3} entradas de detalles de Favoritos"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

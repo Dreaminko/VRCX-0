@@ -44,15 +44,12 @@ type SettingsAdvancedTabProps = {
     advanced: Record<string, unknown> & {
         appDataDirState?: AppDataDirState | null;
         avatarAutoCleanupOptions: string[];
-        cacheStats: unknown;
-        cacheStatsVisible: boolean;
         configTreeData: unknown;
         gameLogDisabledLabel: string;
         onAnonymousUsageTelemetryChange: (checked: boolean) => unknown;
         onAutoSweepVRChatCacheChange: (checked: boolean) => unknown;
         onAvatarAutoCleanupChange: (value: string) => unknown;
         onClearConfigTreeData: () => unknown;
-        onClearVrcxCache: () => unknown;
         onDefaultLaunchModeChange: (value: string) => unknown;
         onGameLogDisabledChange: (checked: boolean) => unknown;
         onLogResourceLoadChange: (checked: boolean) => unknown;
@@ -60,10 +57,8 @@ type SettingsAdvancedTabProps = {
         onOpenAppDataDirSelector: () => unknown;
         onOpenPurgeDialog: () => unknown;
         onPromptAutoClearVrcxCacheFrequency: () => unknown;
-        onRefreshCacheSize: () => unknown;
         onRefreshConfigTreeData: () => unknown;
         onRefreshOnlineVisits: () => unknown;
-        onRefreshRuntimeAppSnapshot: () => unknown;
         onRefreshSqliteTableSizes: () => unknown;
         onRelaunchVRChatAfterCrashChange: (checked: boolean) => unknown;
         onResetAppDataDir: () => unknown;
@@ -75,7 +70,6 @@ type SettingsAdvancedTabProps = {
         prefs: SettingsAdvancedPrefs;
         sqliteTableSizeRows: ReadonlyArray<readonly [string, string]>;
         sqliteTableSizes: unknown;
-        tauriAppSnapshot: unknown;
     };
 };
 
@@ -101,15 +95,12 @@ function DataDirectoryPath({ value }: { value?: string | null }) {
 export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
     const {
         prefs,
-        cacheStats,
-        cacheStatsVisible,
         avatarAutoCleanupOptions,
         sqliteTableSizes,
         sqliteTableSizeRows,
         onlineVisitCount,
         configTreeData,
         appDataDirState,
-        tauriAppSnapshot,
         gameLogDisabledLabel,
         onRelaunchVRChatAfterCrashChange,
         onVrcQuitFixChange,
@@ -118,9 +109,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         onLogResourceLoadChange,
         onDefaultLaunchModeChange,
         onShowConfirmationOnSwitchAvatarChange,
-        onClearVrcxCache,
         onPromptAutoClearVrcxCacheFrequency,
-        onRefreshCacheSize,
         onGameLogDisabledChange,
         onAvatarAutoCleanupChange,
         onOpenPurgeDialog,
@@ -128,7 +117,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         onRefreshSqliteTableSizes,
         onRefreshOnlineVisits,
         onRefreshConfigTreeData,
-        onRefreshRuntimeAppSnapshot,
         onOpenAppDataDirSelector,
         onResetAppDataDir,
         onRestartForAppDataDir,
@@ -199,36 +187,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                     controlClassName="lg:max-w-[34rem]"
                 >
                     <DataDirectoryPath value={appDataDirState?.currentDir} />
-                </Field>
-                <Field
-                    label={t(
-                        'view.settings.advanced.advanced.data_directory.default'
-                    )}
-                    controlClassName="lg:max-w-[34rem]"
-                >
-                    <DataDirectoryPath value={appDataDirState?.defaultDir} />
-                </Field>
-                <Field
-                    label={t(
-                        'view.settings.advanced.advanced.data_directory.persisted'
-                    )}
-                    description={
-                        appDataDirState?.cliOverride
-                            ? t(
-                                  'view.settings.advanced.advanced.data_directory.cli_override'
-                              )
-                            : undefined
-                    }
-                    controlClassName="lg:max-w-[34rem]"
-                >
-                    <DataDirectoryPath
-                        value={
-                            appDataDirState?.persistedDir ||
-                            t(
-                                'view.settings.advanced.advanced.data_directory.not_set'
-                            )
-                        }
-                    />
                 </Field>
                 <Field
                     label={t(
@@ -352,26 +310,20 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
             </SettingsGroup>
             <SettingsAdvancedDataCards
                 prefs={prefs}
-                cacheStats={cacheStats}
-                cacheStatsVisible={cacheStatsVisible}
                 avatarAutoCleanupOptions={avatarAutoCleanupOptions}
                 sqliteTableSizes={sqliteTableSizes}
                 sqliteTableSizeRows={sqliteTableSizeRows}
                 onlineVisitCount={onlineVisitCount}
                 configTreeData={configTreeData}
-                tauriAppSnapshot={tauriAppSnapshot}
                 onAutoSweepVRChatCacheChange={onAutoSweepVRChatCacheChange}
-                onClearVrcxCache={onClearVrcxCache}
                 onPromptAutoClearVrcxCacheFrequency={
                     onPromptAutoClearVrcxCacheFrequency
                 }
-                onRefreshCacheSize={onRefreshCacheSize}
                 onAvatarAutoCleanupChange={onAvatarAutoCleanupChange}
                 onMigrateLegacyVrcxData={onMigrateLegacyVrcxData}
                 onRefreshSqliteTableSizes={onRefreshSqliteTableSizes}
                 onRefreshOnlineVisits={onRefreshOnlineVisits}
                 onRefreshConfigTreeData={onRefreshConfigTreeData}
-                onRefreshRuntimeAppSnapshot={onRefreshRuntimeAppSnapshot}
                 onClearConfigTreeData={onClearConfigTreeData}
             />
             <SettingsGroup

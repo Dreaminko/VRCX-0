@@ -1806,16 +1806,11 @@
                     "header": "诊断",
                     "refresh_online_users": "刷新在线人数",
                     "refresh_config_json": "获取 API 配置",
-                    "clear_config_json": "清除显示结果",
-                    "runtime_lifecycle": "后端运行态",
-                    "refresh_runtime_lifecycle": "刷新后端运行态"
+                    "clear_config_json": "清除显示结果"
                 },
                 "diagnostics_maintenance": {
                     "header": "维护",
-                    "clear_vrcx_cache": "清除 VRCX-0 缓存",
                     "configure_auto_clear": "设置自动清理周期",
-                    "refresh_cache_size": "刷新缓存大小",
-                    "not_refreshed": "未刷新",
                     "purge_avatar_history": "清理模型记录",
                     "refresh": "刷新数据库状态",
                     "refresh_sqlite_tables": "刷新 SQLite 表",
@@ -2201,8 +2196,6 @@
                         "header": "数据目录",
                         "description": "当前来源：{source}。这里只保存目录位置，VRCX-0 不会复制数据。",
                         "current": "当前目录",
-                        "default": "默认目录",
-                        "persisted": "已保存的自定义目录",
                         "actions": "数据目录操作",
                         "choose": "选择目录",
                         "reset": "重置为默认",
@@ -2212,7 +2205,6 @@
                         "source_persisted": "已保存的自定义目录",
                         "source_default": "默认目录",
                         "cli_override": "本次启动正在使用 --data-dir 进行命令行目录覆盖。要修改持久化目录，请不要携带命令行启动。",
-                        "not_set": "未设置",
                         "confirm_title": "切换 VRCX-0 数据目录？",
                         "confirm_description": "VRCX-0 不会复制当前数据。要保留登录、数据库、配置和缓存，请在重启前自行把当前数据目录复制到 {path} 并保存，重启后生效。",
                         "confirm_empty": "所选目录为空；除非你手动复制数据进去，否则会作为新的 profile 启动。",
@@ -2329,8 +2321,7 @@
                 "skip": "跳过"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "已清除 {value} 条查询缓存、{value2} 条模型名称记录和 {value3} 条收藏详情记录"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

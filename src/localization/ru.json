@@ -1808,16 +1808,11 @@
                     "header": "Диагностика",
                     "refresh_online_users": "Обновить онлайн-пользователей",
                     "refresh_config_json": "Читать Конфиг JSON",
-                    "clear_config_json": "Очистить отображаемый JSON",
-                    "runtime_lifecycle": "Жизненный цикл эксплуатации",
-                    "refresh_runtime_lifecycle": "Обновить жизненный цикл"
+                    "clear_config_json": "Очистить отображаемый JSON"
                 },
                 "diagnostics_maintenance": {
                     "header": "Техническое обслуживание",
-                    "clear_vrcx_cache": "Очистить VRCX-0 Кэш",
                     "configure_auto_clear": "Установить интервал авторазглашения",
-                    "refresh_cache_size": "Обновить размер кэша",
-                    "not_refreshed": "Не обновляется",
                     "purge_avatar_history": "История аватара",
                     "refresh": "Обновление базы данных",
                     "refresh_sqlite_tables": "Обновить размеры таблиц",
@@ -2203,8 +2198,6 @@
                         "header": "Каталог данных",
                         "description": "Активный источник: {source}. Изменение только сохраняет местоположение папки; VRCX-0 не будет копировать данные.",
                         "current": "Текущий каталог",
-                        "default": "Папка по умолчанию",
-                        "persisted": "Сохранённый каталог",
                         "actions": "Действия каталога данных",
                         "choose": "Выбрать папку",
                         "reset": "Перезагрузить в по умолчанию",
@@ -2214,7 +2207,6 @@
                         "source_persisted": "Сохранить каталог",
                         "source_default": "каталог по умолчанию",
                         "cli_override": "Этот запуск используется --data-dirНачать без командной строки для изменения сохраненного каталога.",
-                        "not_set": "Не установлен",
                         "confirm_title": "Переключение VRCX-0 Каталог данных?",
                         "confirm_description": "VRCX-0 не будет копировать текущие данные. Чтобы сохранить ваш вход, базу данных, конфигурацию и кэш, скопировать текущий каталог данных по адресу: {path} Сохраните этот каталог и перезапустите его.",
                         "confirm_empty": "Выбранная папка пуста и начнётся как новый профиль, если вы не скопируете данные.",
@@ -2331,8 +2323,7 @@
                 "skip": "Пропустить"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "Очищено {value} Записи с запросами, {value2} аватарные наименования и {value3} избранные детали"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

@@ -77,7 +77,7 @@ pub use background_capabilities::{
     BackgroundPresenceFactsInput, PresencePlayer,
 };
 pub use config::validate_config_writes;
-pub use diagnostics::{RuntimeDiagnostics, RuntimeDiagnosticsSnapshot};
+pub use diagnostics::RuntimeDiagnostics;
 pub use error::Error;
 pub use event_bus::{RuntimeEventBus, RuntimeEventSink};
 pub use favorite_transfer::{

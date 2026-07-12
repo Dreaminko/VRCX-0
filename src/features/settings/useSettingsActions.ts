@@ -1,17 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import {
-    clearEntityQueryCache,
-    getEntityQueryCacheSize,
-    getEntityQueryCacheStats
-} from '@/lib/entityQueryCache';
-import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import configRepository from '@/repositories/configRepository';
 import databaseMaintenanceRepository from '@/repositories/databaseMaintenanceRepository';
 import feedRepository from '@/repositories/feedRepository';
 import mediaRepository from '@/repositories/mediaRepository';
-import runtimeDiagnosticsRepository from '@/repositories/runtimeDiagnosticsRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import {
     addFeedHiddenUserPreference,
@@ -57,11 +50,7 @@ import {
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import type { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
-import {
-    formatByteSize,
-    isValidFontFamilyList,
-    parseIntegerInput
-} from './settingsValues';
+import { isValidFontFamilyList, parseIntegerInput } from './settingsValues';
 import { useSettingsMaintenanceActions } from './useSettingsMaintenanceActions';
 import { useSettingsPreferenceActions } from './useSettingsPreferenceActions';
 
@@ -102,14 +91,9 @@ type SettingsActionsDeps = Pick<
         SettingsMaintenanceActionDeps,
         | 'purgePeriod'
         | 'setAppDataDirState'
-        | 'setCacheStats'
-        | 'setCacheStatsVisible'
         | 'setPurgeDialogOpen'
         | 'setPurgeInProgress'
-    > & {
-        setPrefs: SettingsPagePrefsSetter;
-        setRuntimeAppSnapshot: (value: unknown) => void;
-    };
+    > & { setPrefs: SettingsPagePrefsSetter };
 
 export function useSettingsActions(deps: SettingsActionsDeps) {
     const { t } = useTranslation();
@@ -165,16 +149,11 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
         DEFAULT_SEARCH_LIMIT,
         applyAppFontPreferences,
         auth,
-        avatarProfileRepository,
-        clearEntityQueryCache,
         configRepository,
         confirm,
         databaseMaintenanceRepository,
         feedRepository,
-        formatByteSize,
         gameState,
-        getEntityQueryCacheSize,
-        getEntityQueryCacheStats,
         isValidFontFamilyList,
         loadTrustColorPreference,
         mediaRepository,
@@ -204,7 +183,6 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
         tableLimitsSaveDisabled,
         toast,
         usePreferencesStore,
-        useRuntimeStore,
         setPrefs: deps.setPrefs as SettingsPreferenceActionDeps['setPrefs'],
         vrchatAuthRepository
     };
@@ -263,21 +241,11 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
             }
         );
     }
-    async function refreshRuntimeAppSnapshot() {
-        try {
-            deps.setRuntimeAppSnapshot(
-                await runtimeDiagnosticsRepository.getAppSnapshot()
-            );
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : String(error));
-        }
-    }
     return {
         ...preferenceActions,
         ...maintenanceActions,
         addFeedHiddenUser,
         removeFeedHiddenUser,
-        refreshRuntimeAppSnapshot,
         searchLimitError,
         tableLimitsSaveDisabled,
         tableMaxSizeError

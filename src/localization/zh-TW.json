@@ -1806,16 +1806,11 @@
                     "header": "診斷",
                     "refresh_online_users": "重新整理線上人數",
                     "refresh_config_json": "讀取 Config JSON",
-                    "clear_config_json": "清除顯示結果",
-                    "runtime_lifecycle": "後端執行態",
-                    "refresh_runtime_lifecycle": "重新整理後端執行態"
+                    "clear_config_json": "清除顯示結果"
                 },
                 "diagnostics_maintenance": {
                     "header": "維護",
-                    "clear_vrcx_cache": "清除 VRCX-0 快取",
                     "configure_auto_clear": "設定自動清理周期",
-                    "refresh_cache_size": "重新整理快取大小",
-                    "not_refreshed": "未重新整理",
                     "purge_avatar_history": "清理角色紀錄",
                     "refresh": "更新資料庫狀態",
                     "refresh_sqlite_tables": "重新整理表大小",
@@ -2201,8 +2196,6 @@
                         "header": "資料目錄",
                         "description": "目前來源：{source}。這裡只儲存目錄位置，VRCX-0 不會複製資料。",
                         "current": "目前目錄",
-                        "default": "預設目錄",
-                        "persisted": "已儲存的自訂目錄",
                         "actions": "資料目錄操作",
                         "choose": "選擇目錄",
                         "reset": "重設為預設",
@@ -2212,7 +2205,6 @@
                         "source_persisted": "已儲存的自訂目錄",
                         "source_default": "預設目錄",
                         "cli_override": "本次啟動正在使用 --data-dir。要修改持久化目錄，請不帶命令行覆蓋啟動。",
-                        "not_set": "未設定",
                         "confirm_title": "切換 VRCX-0 資料目錄？",
                         "confirm_description": "VRCX-0 不會複製目前資料。要保留登入、資料庫、設定和快取，請在重新啟動前自行把目前資料目錄複製到 {path}。儲存此目錄並重新啟動後生效。",
                         "confirm_empty": "所選目錄為空；除非你手動複製資料進去，否則會作為新的 profile 啟動。",
@@ -2329,8 +2321,7 @@
                 "skip": "跳過"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "已清除 {value} 條查詢快取、{value2} 條角色名稱紀錄和 {value3} 條收藏詳細資訊紀錄"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

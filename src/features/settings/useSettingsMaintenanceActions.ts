@@ -2,11 +2,6 @@ import type {
     AppDataDirState,
     AppDataDirValidation
 } from '@/platform/tauri/bindings';
-import { assetBundleRepository } from '@/repositories/assetBundleRepository';
-import {
-    clearFavoriteRemoteDetailsCache,
-    getFavoriteRemoteDetailsCacheStats
-} from '@/services/favoriteRemoteDetailsCacheService';
 import { promptLegacyVrcxForceMigration } from '@/services/legacyVrcxMigrationService';
 import type { IntConfigPreferenceKey } from '@/services/preferencesService';
 import {
@@ -35,18 +30,6 @@ type StateSetter<Value> = {
         value: Value | ((current: Value) => Value | Record<string, unknown>)
     ): void;
 }['bivarianceHack'];
-type SettingsCacheStats = {
-    queryCache: number;
-    userCache: number;
-    worldCache: number;
-    avatarCache: number;
-    groupCache: number;
-    avatarNameCache: number;
-    instanceCache: number;
-    favoriteDetailsCache: number;
-    favoriteDetailsPending: number;
-    assetBundleCacheSize: string;
-};
 type SettingsDialogResult = {
     ok: boolean;
     value?: unknown;
@@ -73,11 +56,6 @@ type SettingsMaintenanceActionsDeps = {
     auth: {
         currentUserId?: unknown;
     };
-    avatarProfileRepository: {
-        clearAvatarNameCache(): number;
-        getAvatarNameCacheSize(): number;
-    };
-    clearEntityQueryCache: () => unknown | Promise<unknown>;
     commit: (
         action: PreferenceAction,
         optimistic?: () => PreferenceRollback
@@ -96,16 +74,8 @@ type SettingsMaintenanceActionsDeps = {
             cutoffDate: string | null
         ): Promise<unknown>;
     };
-    formatByteSize: (value: unknown) => string;
     gameState: {
         isGameRunning: boolean | null;
-    };
-    getEntityQueryCacheSize: () => number;
-    getEntityQueryCacheStats: () => {
-        avatars: number;
-        groups: number;
-        users: number;
-        worlds: number;
     };
     mediaRepository: {
         cropAllPrints(path: string): Promise<unknown>;
@@ -118,8 +88,6 @@ type SettingsMaintenanceActionsDeps = {
     savePreferenceValue: PreferenceActions['savePreferenceValue'];
     saveStringPreference: PreferenceActions['saveStringPreference'];
     setAppDataDirState: (value: AppDataDirState | null) => void;
-    setCacheStats: StateSetter<SettingsCacheStats>;
-    setCacheStatsVisible: (value: boolean) => void;
     setCropInstancePrintsPreference: (value: boolean) => Promise<unknown>;
     setIntConfigPreference: (
         key: IntConfigPreferenceKey,
@@ -133,28 +101,16 @@ type SettingsMaintenanceActionsDeps = {
     speakNotificationTts: PreferenceActions['speakNotificationTts'];
     t: (key: string, options?: Record<string, unknown>) => string;
     toast: SettingsToast;
-    useRuntimeStore: {
-        getState(): {
-            groupInstances: {
-                instances: { length: number };
-            };
-        };
-    };
 };
 
 export function useSettingsMaintenanceActions({
     auth,
-    avatarProfileRepository,
-    clearEntityQueryCache,
     commit,
     configRepository,
     confirm,
     databaseMaintenanceRepository,
     feedRepository,
-    formatByteSize,
     gameState,
-    getEntityQueryCacheSize,
-    getEntityQueryCacheStats,
     mediaRepository,
     prefs,
     prompt,
@@ -162,8 +118,6 @@ export function useSettingsMaintenanceActions({
     saveBoolPreference,
     savePreferenceValue,
     saveStringPreference,
-    setCacheStats,
-    setCacheStatsVisible,
     setAppDataDirState,
     setCropInstancePrintsPreference,
     setIntConfigPreference,
@@ -173,8 +127,7 @@ export function useSettingsMaintenanceActions({
     setUserGeneratedContentPathPreference,
     speakNotificationTts,
     t,
-    toast,
-    useRuntimeStore
+    toast
 }: SettingsMaintenanceActionsDeps) {
     async function saveNotificationTtsMode(value: string) {
         if (prefs.notificationTTS === 'Never' && value !== 'Never') {
@@ -345,61 +298,6 @@ export function useSettingsMaintenanceActions({
         } catch (error) {
             toast.error(error instanceof Error ? error.message : String(error));
         }
-    }
-    async function refreshCacheSize() {
-        const favoriteStats = getFavoriteRemoteDetailsCacheStats();
-        const queryStats = getEntityQueryCacheStats();
-        const runtimeState = useRuntimeStore.getState();
-        let assetBundleCacheSize = '';
-        try {
-            assetBundleCacheSize = formatByteSize(
-                await assetBundleRepository.getCacheSize()
-            );
-        } catch {
-            assetBundleCacheSize = 'Unavailable';
-        }
-        setCacheStats({
-            queryCache: getEntityQueryCacheSize(),
-            userCache: queryStats.users,
-            worldCache: queryStats.worlds,
-            avatarCache: queryStats.avatars,
-            groupCache: queryStats.groups,
-            avatarNameCache: avatarProfileRepository.getAvatarNameCacheSize(),
-            instanceCache: runtimeState.groupInstances.instances.length,
-            favoriteDetailsCache: favoriteStats.detailCacheCount,
-            favoriteDetailsPending: favoriteStats.detailPromiseCount,
-            assetBundleCacheSize
-        });
-        setCacheStatsVisible(true);
-    }
-    async function clearVrcxCache() {
-        const queryCacheCount = getEntityQueryCacheSize();
-        await clearEntityQueryCache();
-        const avatarNameCacheCount =
-            avatarProfileRepository.clearAvatarNameCache();
-        const favoriteStats = clearFavoriteRemoteDetailsCache();
-        setCacheStats((current) => ({
-            ...current,
-            queryCache: 0,
-            userCache: 0,
-            worldCache: 0,
-            avatarCache: 0,
-            groupCache: 0,
-            avatarNameCache: 0,
-            instanceCache: 0,
-            favoriteDetailsCache: 0,
-            favoriteDetailsPending: 0
-        }));
-        toast.success(
-            t(
-                'view.settings.dynamic.cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries',
-                {
-                    value: queryCacheCount,
-                    value2: avatarNameCacheCount,
-                    value3: favoriteStats.detailCacheCount
-                }
-            )
-        );
     }
     async function promptAutoClearVrcxCacheFrequency() {
         const frequency = await configRepository.getInt(
@@ -642,8 +540,6 @@ export function useSettingsMaintenanceActions({
         openAppDataDirSelector,
         resetAppDataDir,
         restartForAppDataDir,
-        refreshCacheSize,
-        clearVrcxCache,
         promptAutoClearVrcxCacheFrequency,
         promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes,

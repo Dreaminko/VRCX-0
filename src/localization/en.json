@@ -1806,16 +1806,11 @@
                     "header": "Diagnostics",
                     "refresh_online_users": "Refresh online users",
                     "refresh_config_json": "Read Config JSON",
-                    "clear_config_json": "Clear displayed JSON",
-                    "runtime_lifecycle": "Runtime lifecycle",
-                    "refresh_runtime_lifecycle": "Refresh runtime lifecycle"
+                    "clear_config_json": "Clear displayed JSON"
                 },
                 "diagnostics_maintenance": {
                     "header": "Maintenance",
-                    "clear_vrcx_cache": "Clear VRCX-0 cache",
                     "configure_auto_clear": "Set auto-clear interval",
-                    "refresh_cache_size": "Refresh cache size",
-                    "not_refreshed": "Not refreshed",
                     "purge_avatar_history": "Purge avatar history",
                     "refresh": "Refresh database status",
                     "refresh_sqlite_tables": "Refresh table sizes",
@@ -2201,8 +2196,6 @@
                         "header": "Data Directory",
                         "description": "Active source: {source}. Changing this only saves the folder location; VRCX-0 will not copy data.",
                         "current": "Current Directory",
-                        "default": "Default Directory",
-                        "persisted": "Saved Custom Directory",
                         "actions": "Data Directory Actions",
                         "choose": "Choose Folder",
                         "reset": "Reset to Default",
@@ -2212,7 +2205,6 @@
                         "source_persisted": "saved custom directory",
                         "source_default": "default directory",
                         "cli_override": "This launch is using --data-dir. Start without the command-line override to change the saved directory.",
-                        "not_set": "Not set",
                         "confirm_title": "Switch VRCX-0 data directory?",
                         "confirm_description": "VRCX-0 will not copy current data. To keep your login, database, configuration, and cache, copy the current data directory to {path} yourself before restarting. Save this directory and restart to apply it.",
                         "confirm_empty": "The selected folder is empty and will start as a new profile unless you copy data into it.",
@@ -2329,8 +2321,7 @@
                 "skip": "Skip"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "Cleared {value} query cache entries, {value2} avatar name entries, and {value3} favorite detail entries"
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {

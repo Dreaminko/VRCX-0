@@ -59,18 +59,6 @@ const SETTINGS_PREFERENCE_KEYS = Object.keys(DEFAULT_PREFERENCES) as Array<
 
 type SettingsSqliteTableSizes = Record<string, unknown>;
 type SettingsAppDataDirState = Record<string, unknown> | null;
-type SettingsCacheStats = {
-    queryCache: number;
-    userCache: number;
-    worldCache: number;
-    avatarCache: number;
-    groupCache: number;
-    avatarNameCache: number;
-    instanceCache: number;
-    favoriteDetailsCache: number;
-    favoriteDetailsPending: number;
-    assetBundleCacheSize: string;
-};
 type SettingsConfigTreeData = Record<string, unknown>;
 type SettingsTableLimitsDraft = {
     maxTableSize: string;
@@ -110,19 +98,6 @@ export function useSettingsPageState() {
         useState<SettingsSqliteTableSizes>({});
     const [appDataDirState, setAppDataDirState] =
         useState<SettingsAppDataDirState>(null);
-    const [cacheStatsVisible, setCacheStatsVisible] = useState(false);
-    const [cacheStats, setCacheStats] = useState<SettingsCacheStats>({
-        queryCache: 0,
-        userCache: 0,
-        worldCache: 0,
-        avatarCache: 0,
-        groupCache: 0,
-        avatarNameCache: 0,
-        instanceCache: 0,
-        favoriteDetailsCache: 0,
-        favoriteDetailsPending: 0,
-        assetBundleCacheSize: ''
-    });
     const [purgeDialogOpen, setPurgeDialogOpen] = useState(false);
     const [purgePeriod, setPurgePeriod] = useState('180');
     const [purgeInProgress, setPurgeInProgress] = useState(false);
@@ -131,7 +106,6 @@ export function useSettingsPageState() {
     );
     const [configTreeData, setConfigTreeData] =
         useState<SettingsConfigTreeData>({});
-    const [tauriAppSnapshot, setRuntimeAppSnapshot] = useState<unknown>(null);
     const [localFavoriteFriendsGroups, setLocalFavoriteFriendsGroups] =
         useState<string[]>([]);
     const [zoomInput, setZoomInput] = useState('100');
@@ -238,8 +212,6 @@ export function useSettingsPageState() {
         saveNotificationTtsMode,
         saveNotificationTtsVoice,
         deleteAllScreenshotMetadata,
-        refreshCacheSize,
-        clearVrcxCache,
         promptAutoClearVrcxCacheFrequency,
         promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes,
@@ -261,7 +233,6 @@ export function useSettingsPageState() {
         saveTtsNotificationActivityFilters,
         saveWristOverlayEnabled,
         setProxyEnabledPreference: saveProxyEnabledPreference,
-        refreshRuntimeAppSnapshot,
         searchLimitError,
         tableLimitsSaveDisabled,
         tableMaxSizeError
@@ -271,8 +242,6 @@ export function useSettingsPageState() {
         localFavoriteFriendsGroups,
         prefs,
         purgePeriod,
-        setCacheStats,
-        setCacheStatsVisible,
         setAppDataDirState,
         setConfigTreeData,
         setCustomFontDialogOpen,
@@ -286,7 +255,6 @@ export function useSettingsPageState() {
         setPrefs,
         setPurgeDialogOpen,
         setPurgeInProgress,
-        setRuntimeAppSnapshot,
         setSqliteTableSizes,
         setTableLimitsDialogOpen,
         setTableLimitsDraft,
@@ -378,9 +346,6 @@ export function useSettingsPageState() {
         avatarProviderConfig,
         avatarProviderConfigRef,
         avatarProviderDialogOpen,
-        cacheStats,
-        cacheStatsVisible,
-        clearVrcxCache,
         commit,
         configTreeData,
         customFontDialogOpen,
@@ -422,10 +387,8 @@ export function useSettingsPageState() {
         purgeDialogOpen,
         purgeInProgress,
         purgePeriod,
-        refreshCacheSize,
         refreshConfigTreeData,
         refreshOnlineVisits,
-        refreshRuntimeAppSnapshot,
         refreshSqliteTableSizes,
         remoteFavoriteFriendGroupOptions,
         removeFeedHiddenUser,
@@ -515,7 +478,6 @@ export function useSettingsPageState() {
         tableLimitsSaveDisabled,
         tableMaxSizeError,
         tablePageSizesDialogOpen,
-        tauriAppSnapshot,
         testTranslationApiConfig,
         translationApiDialogOpen,
         translationDraft,

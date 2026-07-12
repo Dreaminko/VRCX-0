@@ -1756,20 +1756,15 @@
                 "diagnostics": {
                     "header": "진단",
                     "refresh_online_users": "온라인 사용자 새로고침",
-                    "runtime_lifecycle": "런타임 수명주기",
-                    "refresh_runtime_lifecycle": "런타임 수명 주기 새로 고침",
                     "refresh_config_json": "구성 JSON 읽기",
                     "clear_config_json": "표시된 JSON 지우기"
                 },
                 "diagnostics_maintenance": {
                     "header": "유지보수",
                     "configure_auto_clear": "자동 지우기 간격 설정",
-                    "refresh_cache_size": "캐시 크기 새로 고침",
-                    "not_refreshed": "새로고침되지 않음",
                     "purge_avatar_history": "아바타 기록 삭제",
                     "refresh": "데이터베이스 상태 새로 고침",
                     "refresh_sqlite_tables": "테이블 크기 새로 고침",
-                    "clear_vrcx_cache": "VRCX-0 캐시 지우기",
                     "migrate_legacy_vrcx": "기존 VRCX 데이터 마이그레이션"
                 }
             },
@@ -2141,8 +2136,6 @@
                     "data_directory": {
                         "header": "데이터 디렉토리",
                         "current": "현재 디렉토리",
-                        "default": "기본 디렉토리",
-                        "persisted": "저장된 맞춤 디렉터리",
                         "actions": "데이터 디렉터리 작업",
                         "choose": "폴더 선택",
                         "reset": "기본값으로 재설정",
@@ -2151,7 +2144,6 @@
                         "source_persisted": "저장된 사용자 정의 디렉토리",
                         "source_default": "기본 디렉토리",
                         "cli_override": "이번 실행에서는 --data-dir을 사용하고 있습니다. 저장된 디렉터리를 변경하려면 명령줄 재정의 없이 시작하세요.",
-                        "not_set": "설정되지 않음",
                         "confirm_empty": "선택한 폴더는 비어 있으며 데이터를 복사하지 않으면 새 프로필로 시작됩니다.",
                         "failed_to_load": "데이터 디렉터리 설정을 로드하지 못했습니다.",
                         "description": "활성 소스: {source}. 이를 변경하면 폴더 위치만 저장됩니다. VRCX-0은(는) 데이터를 복사하지 않습니다.",
@@ -2274,8 +2266,7 @@
                 "skip": "건너뛰기"
             },
             "dynamic": {
-                "value_value": "{value} {value2}",
-                "cleared_value_query_cache_entries_value_avatar_name_entries_and_value_favorite_detail_entries": "{value} 쿼리 캐시 항목, {value2} 아바타 이름 항목 및 {value3} 즐겨찾기 세부 항목을 지웠습니다."
+                "value_value": "{value} {value2}"
             }
         },
         "dashboard": {
