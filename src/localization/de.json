@@ -1026,26 +1026,40 @@
             },
             "share_collection": {
                 "title": "Sammlung teilen",
-                "subtitle": "Links für {group} erstellen.",
-                "subtitle_empty": "Links zum Teilen einer Sammlung erstellen.",
+                "subtitle": "Eine teilbare Seite für {group} erstellen.",
+                "subtitle_empty": "Eine teilbare Sammlungsseite erstellen.",
                 "action": {
                     "menu": "Diese Gruppe teilen",
                     "share": "Teilen",
-                    "copy_share_url": "Teillink kopieren",
+                    "copy_share_url": "Freigabelink kopieren",
+                    "open_share_page": "Seite öffnen",
                     "open_manage": "Meine geteilten Sammlungen verwalten",
+                    "done": "Fertig",
                     "open_editor": "Editor öffnen",
                     "forget": "Gespeicherte Freigabe entfernen"
                 },
                 "label": {
                     "title": "Titel",
-                    "listed": "Öffentlich listen",
-                    "listed_description": "Diese Sammlung darf in öffentlichen Listen erscheinen.",
+                    "listed": "Auf der Startseite anzeigen",
+                    "listed_description": "Andere können diese Sammlung auf der Startseite entdecken. Wenn die Option deaktiviert ist, bleibt sie über den Freigabelink erreichbar.",
                     "include_notes": "Meine Notizen einbeziehen",
-                    "include_notes_description": "Lokale Welt-Notizen als erste Kommentare verwenden.",
+                    "include_notes_description": "Lokale Welt-Notizen als Kommentare auf die geteilte Seite kopieren. Sie können später auf der Website bearbeitet werden.",
+                    "account_connection": "Freigaben sind mit dem VRChat-Konto verknüpft, das derzeit in VRCX-0 angemeldet ist. Eine separate Website-Anmeldung ist nicht erforderlich; die Freigabe wird von VRCX-0 bereitgestellt, nicht von VRChat.",
                     "worlds": "{count}/{total} Welten bereit zum Teilen",
                     "truncated": "Es werden nur die ersten {cap} Welten hochgeladen.",
                     "share_url": "Teillink",
                     "manage_hint": "Bearbeiten, Ausblenden oder Löschen jederzeit über „Meine Freigaben verwalten“."
+                },
+                "success": {
+                    "title": "Sammlung geteilt",
+                    "description": "{count} Welten können jetzt geteilt werden.",
+                    "ready": "Deine Freigabeseite ist bereit",
+                    "skipped": "{count} nicht verfügbare oder nicht öffentliche Welten wurden nicht aufgenommen."
+                },
+                "coachmark": {
+                    "title": "Weltsammlungen teilen",
+                    "description": "Verwandle jede Favoritengruppe von Welten in eine Seite, die du anderen senden kannst.",
+                    "dismiss": "Verstanden"
                 },
                 "toast": {
                     "copy_success": "Teillink kopiert",

@@ -202,26 +202,40 @@
             "rename_tooltip": "Zmień nazwę",
             "share_collection": {
                 "title": "Udostępnij kolekcję",
-                "subtitle": "Utwórz linki dla {group}.",
-                "subtitle_empty": "Utwórz linki do udostępnienia kolekcji.",
+                "subtitle": "Utwórz stronę do udostępnienia dla {group}.",
+                "subtitle_empty": "Utwórz stronę kolekcji do udostępnienia.",
                 "action": {
                     "menu": "Udostępnij tę grupę",
                     "share": "Udostępnij",
                     "copy_share_url": "Kopiuj link do udostępnienia",
+                    "open_share_page": "Otwórz stronę",
                     "open_manage": "Zarządzaj moimi udostępnieniami",
+                    "done": "Gotowe",
                     "open_editor": "Otwórz edytor",
                     "forget": "Usuń zapisane udostępnienie"
                 },
                 "label": {
                     "title": "Tytuł",
-                    "listed": "Pokaż publicznie",
-                    "listed_description": "Pozwól, aby ta kolekcja pojawiała się na publicznych listach.",
+                    "listed": "Pokaż na stronie głównej",
+                    "listed_description": "Inni będą mogli znaleźć tę kolekcję na stronie głównej. Po wyłączeniu nadal będzie dostępna przez link do udostępnienia.",
                     "include_notes": "Dołącz moje notatki",
-                    "include_notes_description": "Użyj lokalnych notatek światów jako początkowych komentarzy.",
+                    "include_notes_description": "Skopiuj lokalne notatki o światach jako komentarze na udostępnioną stronę. Później możesz je edytować w witrynie.",
+                    "account_connection": "Udostępnienia są powiązane z kontem VRChat aktualnie zalogowanym w VRCX-0. Osobne logowanie w witrynie nie jest wymagane; funkcję udostępniania zapewnia VRCX-0, a nie VRChat.",
                     "worlds": "{count}/{total} światów gotowych do udostępnienia",
                     "truncated": "Przesłane zostanie tylko pierwsze {cap} światów.",
                     "share_url": "Link do udostępnienia",
                     "manage_hint": "Edytuj, ukryj lub usuń w panelu „Zarządzaj udostępnieniami”."
+                },
+                "success": {
+                    "title": "Kolekcja udostępniona",
+                    "description": "{count} światów jest gotowych do udostępnienia.",
+                    "ready": "Strona do udostępnienia jest gotowa",
+                    "skipped": "Nie dodano {count} niedostępnych lub niepublicznych światów."
+                },
+                "coachmark": {
+                    "title": "Udostępniaj kolekcje światów",
+                    "description": "Zamień dowolną grupę ulubionych światów w stronę, którą możesz wysłać innym.",
+                    "dismiss": "Rozumiem"
                 },
                 "toast": {
                     "copy_success": "Skopiowano link do udostępnienia",

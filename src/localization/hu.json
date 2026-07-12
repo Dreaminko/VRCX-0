@@ -152,26 +152,40 @@
             "rename_tooltip": "Átnevezés",
             "share_collection": {
                 "title": "Gyűjtemény megosztása",
-                "subtitle": "Linkek létrehozása ehhez: {group}.",
-                "subtitle_empty": "Gyűjteménymegosztási linkek létrehozása.",
+                "subtitle": "Megosztható oldal létrehozása ehhez: {group}.",
+                "subtitle_empty": "Megosztható gyűjteményoldal létrehozása.",
                 "action": {
                     "menu": "Csoport megosztása",
                     "share": "Megosztás",
                     "copy_share_url": "Megosztási link másolása",
+                    "open_share_page": "Oldal megnyitása",
                     "open_manage": "Megosztásaim kezelése",
+                    "done": "Kész",
                     "open_editor": "Szerkesztő megnyitása",
                     "forget": "Mentett megosztás eltávolítása"
                 },
                 "label": {
                     "title": "Cím",
-                    "listed": "Nyilvános listázás",
-                    "listed_description": "A gyűjtemény megjelenhet a nyilvános listákban.",
+                    "listed": "Megjelenítés a kezdőlapon",
+                    "listed_description": "Mások felfedezhetik ezt a gyűjteményt a kezdőlapon. Kikapcsolva a megosztási linkkel továbbra is megtekinthető.",
                     "include_notes": "Jegyzeteim hozzáadása",
-                    "include_notes_description": "A helyi világjegyzetek használata kezdő megjegyzésként.",
+                    "include_notes_description": "A helyi világjegyzetek másolása megjegyzésként a megosztott oldalra. Később a webhelyen szerkeszthetők.",
+                    "account_connection": "A megosztások a VRCX-0-ban jelenleg bejelentkezett VRChat-fiókhoz kapcsolódnak. Külön webhelyes bejelentkezés nem szükséges; a megosztást a VRCX-0 biztosítja, nem a VRChat.",
                     "worlds": "{count}/{total} világ készen áll a megosztásra",
                     "truncated": "Csak az első {cap} világ lesz feltöltve.",
                     "share_url": "Megosztási link",
                     "manage_hint": "Szerkesztés, elrejtés és törlés a „Megosztásaim kezelése” felületen."
+                },
+                "success": {
+                    "title": "Gyűjtemény megosztva",
+                    "description": "{count} világ készen áll a megosztásra.",
+                    "ready": "A megosztási oldal elkészült",
+                    "skipped": "{count} nem elérhető vagy nem nyilvános világ kimaradt."
+                },
+                "coachmark": {
+                    "title": "Világgyűjtemények megosztása",
+                    "description": "Bármely kedvencvilág-csoportból másoknak elküldhető oldalt készíthetsz.",
+                    "dismiss": "Értem"
                 },
                 "toast": {
                     "copy_success": "Megosztási link másolva",

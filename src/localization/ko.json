@@ -997,26 +997,40 @@
             },
             "share_collection": {
                 "title": "컬렉션 공유",
-                "subtitle": "{group}의 링크를 만듭니다.",
-                "subtitle_empty": "컬렉션 공유 링크를 만듭니다.",
+                "subtitle": "{group}의 공유 페이지를 만듭니다.",
+                "subtitle_empty": "공유할 컬렉션 페이지를 만듭니다.",
                 "action": {
                     "menu": "이 그룹 공유",
                     "share": "공유",
                     "copy_share_url": "공유 링크 복사",
+                    "open_share_page": "페이지 열기",
                     "open_manage": "내 공유 관리",
+                    "done": "완료",
                     "open_editor": "편집기 열기",
                     "forget": "저장된 공유 삭제"
                 },
                 "label": {
                     "title": "제목",
-                    "listed": "공개 목록에 표시",
-                    "listed_description": "이 컬렉션이 공개 목록에 표시되도록 허용합니다.",
+                    "listed": "홈에 표시",
+                    "listed_description": "다른 사람들이 홈에서 이 컬렉션을 발견할 수 있습니다. 꺼도 공유 링크가 있으면 계속 볼 수 있습니다.",
                     "include_notes": "내 메모 포함",
-                    "include_notes_description": "로컬 월드 메모를 초기 댓글로 사용합니다.",
+                    "include_notes_description": "로컬 월드 메모를 댓글로 공유 페이지에 복사합니다. 나중에 웹사이트에서 수정할 수 있습니다.",
+                    "account_connection": "공유 항목은 현재 VRCX-0에 로그인된 VRChat 계정에 연결됩니다. 웹사이트에 따로 로그인할 필요가 없으며, 공유 기능은 VRChat이 아닌 VRCX-0에서 제공합니다.",
                     "worlds": "{count}/{total}개 월드가 공유 준비됨",
                     "truncated": "처음 {cap}개 월드만 업로드합니다.",
                     "share_url": "공유 링크",
                     "manage_hint": "편집·비공개·삭제는 “내 공유 관리” 대시보드에서 할 수 있습니다."
+                },
+                "success": {
+                    "title": "컬렉션을 공유했습니다",
+                    "description": "월드 {count}개를 공유할 수 있습니다.",
+                    "ready": "공유 페이지가 준비되었습니다",
+                    "skipped": "사용할 수 없거나 비공개인 월드 {count}개는 포함되지 않았습니다."
+                },
+                "coachmark": {
+                    "title": "월드 컬렉션 공유",
+                    "description": "월드 즐겨찾기 그룹을 다른 사람에게 보낼 수 있는 페이지로 만들 수 있습니다.",
+                    "dismiss": "확인"
                 },
                 "toast": {
                     "copy_success": "공유 링크를 복사했습니다.",

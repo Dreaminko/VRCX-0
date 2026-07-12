@@ -1026,26 +1026,40 @@
             },
             "share_collection": {
                 "title": "Share collection",
-                "subtitle": "Create links for {group}.",
-                "subtitle_empty": "Create collection share links.",
+                "subtitle": "Create a shareable page for {group}.",
+                "subtitle_empty": "Create a shareable collection page.",
                 "action": {
                     "menu": "Share this group",
                     "share": "Share",
                     "copy_share_url": "Copy share link",
+                    "open_share_page": "Open page",
                     "open_manage": "Manage my shares",
+                    "done": "Done",
                     "open_editor": "Open editor",
                     "forget": "Remove saved share"
                 },
                 "label": {
                     "title": "Title",
-                    "listed": "List publicly",
-                    "listed_description": "Allow this collection to appear in public listings.",
+                    "listed": "Show on the homepage",
+                    "listed_description": "Let other people discover this collection on the homepage. If turned off, anyone with the share link can still view it.",
                     "include_notes": "Include my notes",
-                    "include_notes_description": "Use local world memos as initial comments.",
+                    "include_notes_description": "Copy your local world notes to the shared page as comments. You can edit them later on the website.",
+                    "account_connection": "Shares are connected to the VRChat account currently signed in to VRCX-0. No separate website sign-in is required; sharing is provided by VRCX-0, not VRChat.",
                     "worlds": "{count}/{total} worlds ready",
                     "truncated": "First {cap} worlds only.",
                     "share_url": "Share link",
                     "manage_hint": "Edit, unlist, or delete this collection anytime from the “Manage my shares” dashboard."
+                },
+                "success": {
+                    "title": "Collection shared",
+                    "description": "{count} worlds are ready to share.",
+                    "ready": "Your share page is ready",
+                    "skipped": "{count} unavailable or non-public worlds were not included."
+                },
+                "coachmark": {
+                    "title": "Share world collections",
+                    "description": "Turn any world favorites group into a page you can send to others.",
+                    "dismiss": "Got it"
                 },
                 "toast": {
                     "copy_success": "Share link copied",

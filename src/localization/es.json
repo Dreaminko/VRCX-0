@@ -1026,26 +1026,40 @@
             },
             "share_collection": {
                 "title": "Compartir colección",
-                "subtitle": "Crear enlaces para {group}.",
-                "subtitle_empty": "Crear enlaces para compartir una colección.",
+                "subtitle": "Crear una página para compartir {group}.",
+                "subtitle_empty": "Crear una página de colección para compartir.",
                 "action": {
                     "menu": "Compartir este grupo",
                     "share": "Compartir",
                     "copy_share_url": "Copiar enlace para compartir",
+                    "open_share_page": "Abrir página",
                     "open_manage": "Gestionar mis compartidos",
+                    "done": "Listo",
                     "open_editor": "Abrir editor",
                     "forget": "Eliminar colección compartida guardada"
                 },
                 "label": {
                     "title": "Título",
-                    "listed": "Mostrar públicamente",
-                    "listed_description": "Permitir que esta colección aparezca en listados públicos.",
+                    "listed": "Mostrar en la página de inicio",
+                    "listed_description": "Permite que otras personas descubran esta colección en la página de inicio. Si lo desactivas, seguirá disponible mediante el enlace para compartir.",
                     "include_notes": "Incluir mis notas",
-                    "include_notes_description": "Usar las notas locales de mundos como comentarios iniciales.",
+                    "include_notes_description": "Copiar tus notas locales de mundos como comentarios en la página compartida. Podrás editarlas después en la web.",
+                    "account_connection": "Los compartidos se vinculan a la cuenta de VRChat que tenga la sesión iniciada en VRCX-0. No hace falta iniciar sesión por separado en la web; el servicio lo proporciona VRCX-0, no VRChat.",
                     "worlds": "{count}/{total} mundos listos para compartir",
                     "truncated": "Solo se subirán los primeros {cap} mundos.",
                     "share_url": "Enlace para compartir",
                     "manage_hint": "Edita, oculta o elimina esta colección desde el panel «Gestionar mis compartidos»."
+                },
+                "success": {
+                    "title": "Colección compartida",
+                    "description": "Hay {count} mundos listos para compartir.",
+                    "ready": "Tu página compartida está lista",
+                    "skipped": "No se incluyeron {count} mundos no disponibles o no públicos."
+                },
+                "coachmark": {
+                    "title": "Compartir colecciones de mundos",
+                    "description": "Convierte cualquier grupo de mundos favoritos en una página que puedas enviar a otras personas.",
+                    "dismiss": "Entendido"
                 },
                 "toast": {
                     "copy_success": "Enlace para compartir copiado",

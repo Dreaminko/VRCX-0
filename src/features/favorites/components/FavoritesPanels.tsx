@@ -1,10 +1,25 @@
-import { CloudIcon, HardDriveIcon, HistoryIcon } from 'lucide-react';
+import {
+    CloudIcon,
+    HardDriveIcon,
+    HistoryIcon,
+    Share2Icon
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { isEditableTarget } from '@/components/layout/useGlobalKeyboardShortcuts';
+import { Button } from '@/ui/shadcn/button';
+import {
+    Popover,
+    PopoverContent,
+    PopoverDescription,
+    PopoverHeader,
+    PopoverTitle,
+    PopoverTrigger
+} from '@/ui/shadcn/popover';
 
 import { getFavoritesDensityConfig } from '../favoritesDensity';
+import type { FavoriteGroup } from '../favoritesTypes';
 import { useFavoritesVirtualGrid } from '../useFavoritesVirtualGrid';
 import { FavoriteCard } from './FavoriteCard';
 import { GroupRailSection } from './FavoritesGroupRail';
@@ -28,6 +43,69 @@ function useStableEvent(handler: any) {
     handlerRef.current = handler;
 
     return useCallback((...args: any[]) => handlerRef.current?.(...args), []);
+}
+
+type ShareCollectionButtonProps = {
+    group: FavoriteGroup;
+    coachmarkOpen: boolean;
+    onShare(group: FavoriteGroup): void;
+    onDismissCoachmark?(): void;
+};
+
+function ShareCollectionButton({
+    group,
+    coachmarkOpen,
+    onShare,
+    onDismissCoachmark
+}: ShareCollectionButtonProps) {
+    const { t } = useTranslation();
+
+    return (
+        <Popover
+            open={coachmarkOpen}
+            onOpenChange={(open) => {
+                if (!open) {
+                    onDismissCoachmark?.();
+                }
+            }}
+        >
+            <PopoverTrigger
+                render={
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 rounded-full"
+                        onClick={() => onShare(group)}
+                    >
+                        <Share2Icon data-icon="inline-start" />
+                        {t('view.favorite.share_collection.action.menu')}
+                    </Button>
+                }
+            />
+            <PopoverContent align="end" side="bottom">
+                <PopoverHeader>
+                    <PopoverTitle>
+                        {t('view.favorite.share_collection.coachmark.title')}
+                    </PopoverTitle>
+                    <PopoverDescription>
+                        {t(
+                            'view.favorite.share_collection.coachmark.description'
+                        )}
+                    </PopoverDescription>
+                </PopoverHeader>
+                <div className="flex justify-end">
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={onDismissCoachmark}
+                    >
+                        {t('view.favorite.share_collection.coachmark.dismiss')}
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
 }
 
 export function FavoritesGroupRailPanel({
@@ -145,6 +223,9 @@ export function FavoritesContentPanel({
     layout,
     selection,
     viewData,
+    onShareCollectionGroup,
+    shareCoachmarkOpen,
+    onDismissShareCoachmark,
     instanceActionGatesByItemKey
 }: any) {
     const { t } = useTranslation();
@@ -250,12 +331,24 @@ export function FavoritesContentPanel({
 
     return (
         <div className="flex h-full min-h-0 min-w-0 flex-col pl-[26px]">
-            <div className="mb-3 flex min-w-0 flex-col gap-0.5 pl-0.5 text-base font-semibold">
-                <span className="truncate">{title}</span>
-                {subtitle ? (
-                    <small className="text-muted-foreground truncate text-xs font-normal">
-                        {subtitle}
-                    </small>
+            <div className="mb-3 flex min-w-0 items-center justify-between gap-3 pl-0.5">
+                <div className="flex min-w-0 flex-col gap-0.5 text-base font-semibold">
+                    <span className="truncate">{title}</span>
+                    {subtitle ? (
+                        <small className="text-muted-foreground truncate text-xs font-normal">
+                            {subtitle}
+                        </small>
+                    ) : null}
+                </div>
+                {kind === 'world' &&
+                viewData.selectedGroup &&
+                onShareCollectionGroup ? (
+                    <ShareCollectionButton
+                        group={viewData.selectedGroup}
+                        coachmarkOpen={Boolean(shareCoachmarkOpen)}
+                        onShare={onShareCollectionGroup}
+                        onDismissCoachmark={onDismissShareCoachmark}
+                    />
                 ) : null}
             </div>
             <div className="relative min-h-0 min-w-0 flex-1">

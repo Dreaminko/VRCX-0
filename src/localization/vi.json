@@ -152,26 +152,40 @@
             "rename_tooltip": "Đổi tên",
             "share_collection": {
                 "title": "Chia sẻ bộ sưu tập",
-                "subtitle": "Tạo liên kết cho {group}.",
-                "subtitle_empty": "Tạo liên kết chia sẻ bộ sưu tập.",
+                "subtitle": "Tạo trang để chia sẻ {group}.",
+                "subtitle_empty": "Tạo trang bộ sưu tập để chia sẻ.",
                 "action": {
                     "menu": "Chia sẻ nhóm này",
                     "share": "Chia sẻ",
                     "copy_share_url": "Sao chép liên kết chia sẻ",
+                    "open_share_page": "Mở trang",
                     "open_manage": "Quản lý mục đã chia sẻ",
+                    "done": "Xong",
                     "open_editor": "Mở trình chỉnh sửa",
                     "forget": "Xóa mục chia sẻ đã lưu"
                 },
                 "label": {
                     "title": "Tiêu đề",
-                    "listed": "Hiển thị công khai",
-                    "listed_description": "Cho phép bộ sưu tập này xuất hiện trong danh sách công khai.",
+                    "listed": "Hiển thị trên trang chủ",
+                    "listed_description": "Giúp người khác tìm thấy bộ sưu tập này trên trang chủ. Nếu tắt, những người có liên kết chia sẻ vẫn xem được.",
                     "include_notes": "Kèm ghi chú của tôi",
-                    "include_notes_description": "Dùng ghi chú thế giới cục bộ làm bình luận ban đầu.",
+                    "include_notes_description": "Sao chép ghi chú thế giới trên máy thành bình luận trên trang chia sẻ. Bạn có thể chỉnh sửa sau trên trang web.",
+                    "account_connection": "Nội dung chia sẻ được liên kết với tài khoản VRChat hiện đang đăng nhập trong VRCX-0. Không cần đăng nhập riêng trên trang web; tính năng chia sẻ do VRCX-0 cung cấp, không phải VRChat.",
                     "worlds": "{count}/{total} thế giới sẵn sàng chia sẻ",
                     "truncated": "Chỉ tải lên {cap} thế giới đầu tiên.",
                     "share_url": "Liên kết chia sẻ",
                     "manage_hint": "Chỉnh sửa, ẩn hoặc xóa trong trang “Quản lý chia sẻ của tôi”."
+                },
+                "success": {
+                    "title": "Đã chia sẻ bộ sưu tập",
+                    "description": "Có {count} thế giới sẵn sàng để chia sẻ.",
+                    "ready": "Trang chia sẻ của bạn đã sẵn sàng",
+                    "skipped": "Không bao gồm {count} thế giới không khả dụng hoặc không công khai."
+                },
+                "coachmark": {
+                    "title": "Chia sẻ bộ sưu tập thế giới",
+                    "description": "Biến bất kỳ nhóm thế giới yêu thích nào thành một trang để gửi cho người khác.",
+                    "dismiss": "Đã hiểu"
                 },
                 "toast": {
                     "copy_success": "Đã sao chép liên kết chia sẻ",

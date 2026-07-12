@@ -1026,26 +1026,40 @@
             },
             "share_collection": {
                 "title": "分享收藏合集",
-                "subtitle": "為 {group} 產生分享連結。",
-                "subtitle_empty": "產生收藏合集分享連結。",
+                "subtitle": "為 {group} 建立可分享的合集頁面。",
+                "subtitle_empty": "建立可分享的收藏合集頁面。",
                 "action": {
                     "menu": "分享此組",
                     "share": "分享",
                     "copy_share_url": "複製分享連結",
+                    "open_share_page": "開啟分享頁面",
                     "open_manage": "管理我的分享",
+                    "done": "完成",
                     "open_editor": "開啟編輯器",
                     "forget": "移除記錄"
                 },
                 "label": {
                     "title": "標題",
-                    "listed": "公開顯示",
-                    "listed_description": "允許此合集出現在公開列表。",
+                    "listed": "推薦到首頁",
+                    "listed_description": "讓其他人能在首頁發現這個合集。關閉後，仍可透過分享連結瀏覽。",
                     "include_notes": "帶上我的備註",
-                    "include_notes_description": "用本機世界備註預填評論。",
+                    "include_notes_description": "將本機世界備註作為評論複製到分享頁面，之後可在網頁上編輯。",
+                    "account_connection": "分享內容會與目前在 VRCX-0 中登入的 VRChat 帳號連結，不需要另外登入網頁；分享服務由 VRCX-0 提供，與 VRChat 官方無關。",
                     "worlds": "準備分享 {count}/{total} 個世界",
                     "truncated": "僅上傳前 {cap} 個世界。",
                     "share_url": "分享連結",
                     "manage_hint": "編輯、下架、刪除都在「管理我的分享」後台完成。"
+                },
+                "success": {
+                    "title": "合集已分享",
+                    "description": "已有 {count} 個世界可供分享。",
+                    "ready": "分享頁面已準備完成",
+                    "skipped": "有 {count} 個無法使用或非公開的世界未被加入。"
+                },
+                "coachmark": {
+                    "title": "分享世界收藏合集",
+                    "description": "可將任意世界收藏分組變成頁面，直接分享給其他人。",
+                    "dismiss": "知道了"
                 },
                 "toast": {
                     "copy_success": "已複製分享連結",

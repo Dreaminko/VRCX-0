@@ -2,6 +2,7 @@ import {
     ArrowUpDownIcon,
     DownloadIcon,
     EllipsisIcon,
+    ExternalLinkIcon,
     RefreshCwIcon,
     SearchIcon,
     UploadIcon,
@@ -57,6 +58,7 @@ type FavoritesToolbarProps = {
     onRefresh: () => void;
     onImport: () => void;
     onExport: () => void;
+    onManageShares?: () => void;
 };
 
 function FavoritesToolbar({
@@ -73,7 +75,8 @@ function FavoritesToolbar({
     onDensityChange,
     onRefresh,
     onImport,
-    onExport
+    onExport,
+    onManageShares
 }: FavoritesToolbarProps) {
     const { t } = useTranslation();
 
@@ -174,6 +177,19 @@ function FavoritesToolbar({
                         </InputGroupAddon>
                     ) : null}
                 </InputGroup>
+
+                {kind === 'world' && onManageShares ? (
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full"
+                        onClick={onManageShares}
+                    >
+                        <ExternalLinkIcon data-icon="inline-start" />
+                        {t('view.favorite.share_collection.action.open_manage')}
+                    </Button>
+                ) : null}
 
                 <Button
                     type="button"

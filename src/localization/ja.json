@@ -1022,26 +1022,40 @@
             },
             "share_collection": {
                 "title": "コレクションを共有",
-                "subtitle": "{group} の共有リンクを作成します。",
-                "subtitle_empty": "コレクションの共有リンクを作成します。",
+                "subtitle": "{group} の共有ページを作成します。",
+                "subtitle_empty": "コレクションの共有ページを作成します。",
                 "action": {
                     "menu": "このグループを共有",
                     "share": "共有",
                     "copy_share_url": "共有リンクをコピー",
+                    "open_share_page": "共有ページを開く",
                     "open_manage": "共有を管理",
+                    "done": "完了",
                     "open_editor": "エディターを開く",
                     "forget": "保存した共有情報を削除"
                 },
                 "label": {
                     "title": "タイトル",
-                    "listed": "公開一覧に表示",
-                    "listed_description": "このコレクションを公開一覧に表示できるようにします。",
+                    "listed": "ホームに掲載",
+                    "listed_description": "ほかの人がホームでこのコレクションを見つけられるようにします。オフにしても、共有リンクから引き続き閲覧できます。",
                     "include_notes": "自分のメモを含める",
-                    "include_notes_description": "ローカルのワールドメモを初期コメントとして使います。",
+                    "include_notes_description": "ローカルのワールドメモをコメントとして共有ページにコピーします。後からウェブで編集できます。",
+                    "account_connection": "共有は、現在 VRCX-0 でログインしている VRChat アカウントに関連付けられます。ウェブサイトでの別途ログインは不要です。この共有機能は VRCX-0 が提供するもので、VRChat 公式のサービスではありません。",
                     "worlds": "{count}/{total} ワールドを準備済み",
                     "truncated": "最初の {cap} ワールドのみアップロードします。",
                     "share_url": "共有リンク",
                     "manage_hint": "編集・非公開化・削除は「共有の管理」ページから行えます。"
+                },
+                "success": {
+                    "title": "コレクションを共有しました",
+                    "description": "{count} 件のワールドを共有できます。",
+                    "ready": "共有ページの準備ができました",
+                    "skipped": "利用できない、または非公開のワールド {count} 件は含まれていません。"
+                },
+                "coachmark": {
+                    "title": "ワールドコレクションを共有",
+                    "description": "ワールドのお気に入りグループを、ほかの人に送れるページにできます。",
+                    "dismiss": "了解"
                 },
                 "toast": {
                     "copy_success": "共有リンクをコピーしました",

@@ -1,4 +1,11 @@
-import { CopyIcon, ExternalLinkIcon, Share2Icon } from 'lucide-react';
+import {
+    CheckCircle2Icon,
+    CopyIcon,
+    ExternalLinkIcon,
+    InfoIcon,
+    Share2Icon,
+    TriangleAlertIcon
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -7,6 +14,7 @@ import shareCollectionRepository, {
     type ShareCollectionCreateResult
 } from '@/repositories/shareCollectionRepository';
 import { copyTextToClipboard } from '@/services/clipboardService';
+import { openExternalLink } from '@/services/entityMediaService';
 import { Alert, AlertDescription } from '@/ui/shadcn/alert';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -34,57 +42,260 @@ import {
     SHARE_COLLECTION_CLIENT_WORLD_CAP
 } from '../shareCollectionDialogModel';
 
-type ShareLinkFieldProps = {
-    label: string;
-    value: string;
-    copyLabel: string;
-    onCopy(): void;
-};
-
 type FavoriteShareCollectionDialogProps = {
     open: boolean;
     onOpenChange(open: boolean): void;
+    onOpenManage(): void;
     group: FavoriteGroup | null;
     items: FavoriteItem[];
+};
+
+type ShareCollectionSuccessProps = {
+    url: string;
+    skippedWorlds: number;
+    onCopy(): void;
+    onOpenManage(): void;
+    onDone(): void;
+};
+
+type ShareOptionFieldProps = {
+    id: string;
+    title: string;
+    description: string;
+    checked: boolean;
+    disabled: boolean;
+    onCheckedChange(value: boolean): void;
+};
+
+type ShareCollectionFormProps = {
+    title: string;
+    listed: boolean;
+    includeNotes: boolean;
+    sharing: boolean;
+    worldCount: number;
+    totalWorldCount: number;
+    truncated: boolean;
+    onTitleChange(value: string): void;
+    onListedChange(value: boolean): void;
+    onIncludeNotesChange(value: boolean): void;
+    onCreate(): void;
 };
 
 function errorMessage(error: unknown, fallback: string): string {
     return error instanceof Error && error.message ? error.message : fallback;
 }
 
-function ShareLinkField({
-    label,
-    value,
-    copyLabel,
-    onCopy
-}: ShareLinkFieldProps) {
+function ShareOptionField({
+    id,
+    title,
+    description,
+    checked,
+    disabled,
+    onCheckedChange
+}: ShareOptionFieldProps) {
     return (
-        <Field className="gap-1.5">
-            <FieldLabel>{label}</FieldLabel>
-            <div className="flex min-w-0 gap-2">
+        <Field
+            orientation="horizontal"
+            className="items-start rounded-xl border p-4"
+        >
+            <FieldContent>
+                <FieldTitle>{title}</FieldTitle>
+                <FieldDescription>{description}</FieldDescription>
+            </FieldContent>
+            <Switch
+                id={id}
+                checked={checked}
+                disabled={disabled}
+                onCheckedChange={(value) => onCheckedChange(Boolean(value))}
+            />
+        </Field>
+    );
+}
+
+function ShareCollectionSuccess({
+    url,
+    skippedWorlds,
+    onCopy,
+    onOpenManage,
+    onDone
+}: ShareCollectionSuccessProps) {
+    const { t } = useTranslation();
+
+    return (
+        <div className="grid gap-4">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2Icon className="size-5" />
+                <span className="font-medium">
+                    {t('view.favorite.share_collection.success.ready')}
+                </span>
+            </div>
+            {skippedWorlds > 0 ? (
+                <Alert>
+                    <TriangleAlertIcon />
+                    <AlertDescription>
+                        {t('view.favorite.share_collection.success.skipped', {
+                            count: skippedWorlds
+                        })}
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            <Field className="gap-1.5">
+                <FieldLabel>
+                    {t('view.favorite.share_collection.label.share_url')}
+                </FieldLabel>
                 <Input
                     readOnly
-                    value={value}
-                    className="min-w-0 flex-1"
+                    value={url}
                     onFocus={(event) => event.currentTarget.select()}
                 />
+            </Field>
+            <div className="flex flex-wrap justify-end gap-2">
                 <Button
                     type="button"
-                    size="icon-sm"
                     variant="outline"
-                    aria-label={copyLabel}
+                    className="rounded-full transition-transform active:scale-[0.98]"
+                    onClick={() => {
+                        void openExternalLink(url);
+                    }}
+                >
+                    <ExternalLinkIcon data-icon="inline-start" />
+                    {t('view.favorite.share_collection.action.open_share_page')}
+                </Button>
+                <Button
+                    type="button"
+                    className="rounded-full transition-transform active:scale-[0.98]"
                     onClick={onCopy}
                 >
                     <CopyIcon data-icon="inline-start" />
+                    {t('view.favorite.share_collection.action.copy_share_url')}
                 </Button>
             </div>
-        </Field>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    className="rounded-full transition-transform active:scale-[0.98]"
+                    onClick={onOpenManage}
+                >
+                    <ExternalLinkIcon data-icon="inline-start" />
+                    {t('view.favorite.share_collection.action.open_manage')}
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={onDone}
+                >
+                    {t('view.favorite.share_collection.action.done')}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function ShareCollectionForm({
+    title,
+    listed,
+    includeNotes,
+    sharing,
+    worldCount,
+    totalWorldCount,
+    truncated,
+    onTitleChange,
+    onListedChange,
+    onIncludeNotesChange,
+    onCreate
+}: ShareCollectionFormProps) {
+    const { t } = useTranslation();
+
+    return (
+        <FieldGroup className="gap-5">
+            <Alert>
+                <InfoIcon />
+                <AlertDescription>
+                    {t(
+                        'view.favorite.share_collection.label.account_connection'
+                    )}
+                </AlertDescription>
+            </Alert>
+            <Field className="gap-2">
+                <FieldLabel htmlFor="favorite-share-collection-title">
+                    {t('view.favorite.share_collection.label.title')}
+                </FieldLabel>
+                <Input
+                    id="favorite-share-collection-title"
+                    value={title}
+                    disabled={sharing}
+                    onChange={(event) => onTitleChange(event.target.value)}
+                />
+            </Field>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+                <ShareOptionField
+                    id="favorite-share-collection-listed"
+                    title={t('view.favorite.share_collection.label.listed')}
+                    description={t(
+                        'view.favorite.share_collection.label.listed_description'
+                    )}
+                    checked={listed}
+                    disabled={sharing}
+                    onCheckedChange={onListedChange}
+                />
+                <ShareOptionField
+                    id="favorite-share-collection-include-notes"
+                    title={t(
+                        'view.favorite.share_collection.label.include_notes'
+                    )}
+                    description={t(
+                        'view.favorite.share_collection.label.include_notes_description'
+                    )}
+                    checked={includeNotes}
+                    disabled={sharing}
+                    onCheckedChange={onIncludeNotesChange}
+                />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs tabular-nums">
+                    <span>
+                        {t('view.favorite.share_collection.label.worlds', {
+                            count: worldCount,
+                            total: totalWorldCount
+                        })}
+                    </span>
+                    {truncated ? (
+                        <span>
+                            {t(
+                                'view.favorite.share_collection.label.truncated',
+                                { cap: SHARE_COLLECTION_CLIENT_WORLD_CAP }
+                            )}
+                        </span>
+                    ) : null}
+                </div>
+                <Button
+                    type="button"
+                    className="rounded-full transition-transform active:scale-[0.98]"
+                    disabled={sharing || !title.trim() || !worldCount}
+                    onClick={onCreate}
+                >
+                    {sharing ? (
+                        <Spinner data-icon="inline-start" />
+                    ) : (
+                        <Share2Icon data-icon="inline-start" />
+                    )}
+                    <span>
+                        {t('view.favorite.share_collection.action.share')}
+                    </span>
+                </Button>
+            </div>
+        </FieldGroup>
     );
 }
 
 export function FavoriteShareCollectionDialog({
     open,
     onOpenChange,
+    onOpenManage,
     group,
     items
 }: FavoriteShareCollectionDialogProps) {
@@ -96,11 +307,11 @@ export function FavoriteShareCollectionDialog({
     const [result, setResult] = useState<ShareCollectionCreateResult | null>(
         null
     );
+    const [skippedWorlds, setSkippedWorlds] = useState(0);
     const shareWorlds = useMemo(
         () => buildShareCollectionWorldIds(items),
         [items]
     );
-
     useEffect(() => {
         if (!open) {
             return;
@@ -109,11 +320,14 @@ export function FavoriteShareCollectionDialog({
         setListed(false);
         setIncludeNotes(false);
         setResult(null);
+        setSkippedWorlds(0);
     }, [group?.label, open]);
 
-    async function copyUrl(url: string, messageKey: string): Promise<void> {
+    async function copyShareUrl(url: string): Promise<void> {
         await copyTextToClipboard(url, {
-            successMessage: t(messageKey),
+            successMessage: t(
+                'view.favorite.share_collection.toast.copy_success'
+            ),
             errorMessage: (error) =>
                 errorMessage(
                     error,
@@ -127,6 +341,7 @@ export function FavoriteShareCollectionDialog({
             toast.error(t('view.favorite.share_collection.toast.no_worlds'));
             return;
         }
+        const submittedWorldCount = shareWorlds.worldIds.length;
         setSharing(true);
         try {
             const nextResult =
@@ -136,19 +351,10 @@ export function FavoriteShareCollectionDialog({
                     includeNotes,
                     worldIds: shareWorlds.worldIds
                 });
+            setSkippedWorlds(
+                Math.max(submittedWorldCount - nextResult.worldCount, 0)
+            );
             setResult(nextResult);
-            const skipped = shareWorlds.worldIds.length - nextResult.worldCount;
-            if (skipped > 0) {
-                toast.warning(
-                    t('view.favorite.share_collection.toast.skipped', {
-                        count: skipped
-                    })
-                );
-            } else {
-                toast.success(
-                    t('view.favorite.share_collection.toast.create_success')
-                );
-            }
         } catch (error) {
             toast.error(
                 errorMessage(
@@ -161,211 +367,66 @@ export function FavoriteShareCollectionDialog({
         }
     }
 
-    async function openManage(): Promise<void> {
-        try {
-            await shareCollectionRepository.openShareCollectionManage();
-        } catch (error) {
-            toast.error(
-                errorMessage(
-                    error,
-                    t('view.favorite.share_collection.toast.open_manage_failed')
-                )
-            );
-        }
+    const dialogTitle = t(
+        result
+            ? 'view.favorite.share_collection.success.title'
+            : 'view.favorite.share_collection.title'
+    );
+    let dialogDescription = t('view.favorite.share_collection.subtitle_empty');
+    if (result) {
+        dialogDescription = t(
+            'view.favorite.share_collection.success.description',
+            { count: result.worldCount }
+        );
+    } else if (group) {
+        dialogDescription = t('view.favorite.share_collection.subtitle', {
+            group: group.label
+        });
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-2xl">
+        <Dialog
+            open={open}
+            onOpenChange={(nextOpen) => {
+                if (!nextOpen && sharing) {
+                    return;
+                }
+                onOpenChange(nextOpen);
+            }}
+        >
+            <DialogContent className="sm:max-w-2xl" showCloseButton={!sharing}>
                 <DialogHeader>
-                    <DialogTitle>
-                        {t('view.favorite.share_collection.title')}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {group
-                            ? t('view.favorite.share_collection.subtitle', {
-                                  group: group.label
-                              })
-                            : t(
-                                  'view.favorite.share_collection.subtitle_empty'
-                              )}
-                    </DialogDescription>
+                    <DialogTitle>{dialogTitle}</DialogTitle>
+                    <DialogDescription>{dialogDescription}</DialogDescription>
                 </DialogHeader>
 
-                <FieldGroup className="gap-5">
-                    <Field className="gap-2">
-                        <FieldLabel htmlFor="favorite-share-collection-title">
-                            {t('view.favorite.share_collection.label.title')}
-                        </FieldLabel>
-                        <Input
-                            id="favorite-share-collection-title"
-                            value={title}
-                            disabled={sharing}
-                            onChange={(event) => setTitle(event.target.value)}
-                        />
-                    </Field>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <Field
-                            orientation="horizontal"
-                            className="items-start rounded-xl border p-4"
-                        >
-                            <FieldContent>
-                                <FieldTitle>
-                                    {t(
-                                        'view.favorite.share_collection.label.listed'
-                                    )}
-                                </FieldTitle>
-                                <FieldDescription>
-                                    {t(
-                                        'view.favorite.share_collection.label.listed_description'
-                                    )}
-                                </FieldDescription>
-                            </FieldContent>
-                            <Switch
-                                id="favorite-share-collection-listed"
-                                checked={listed}
-                                disabled={sharing}
-                                onCheckedChange={(checked) =>
-                                    setListed(Boolean(checked))
-                                }
-                            />
-                        </Field>
-                        <Field
-                            orientation="horizontal"
-                            className="items-start rounded-xl border p-4"
-                        >
-                            <FieldContent>
-                                <FieldTitle>
-                                    {t(
-                                        'view.favorite.share_collection.label.include_notes'
-                                    )}
-                                </FieldTitle>
-                                <FieldDescription>
-                                    {t(
-                                        'view.favorite.share_collection.label.include_notes_description'
-                                    )}
-                                </FieldDescription>
-                            </FieldContent>
-                            <Switch
-                                id="favorite-share-collection-include-notes"
-                                checked={includeNotes}
-                                disabled={sharing}
-                                onCheckedChange={(checked) =>
-                                    setIncludeNotes(Boolean(checked))
-                                }
-                            />
-                        </Field>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs tabular-nums">
-                            <span>
-                                {t(
-                                    'view.favorite.share_collection.label.worlds',
-                                    {
-                                        count: shareWorlds.worldIds.length,
-                                        total: shareWorlds.totalWorldIds
-                                    }
-                                )}
-                            </span>
-                            {shareWorlds.truncated ? (
-                                <span>
-                                    {t(
-                                        'view.favorite.share_collection.label.truncated',
-                                        {
-                                            cap: SHARE_COLLECTION_CLIENT_WORLD_CAP
-                                        }
-                                    )}
-                                </span>
-                            ) : null}
-                        </div>
-                        <div className="flex flex-wrap justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="rounded-full transition-transform active:scale-[0.98]"
-                                onClick={() => {
-                                    void openManage();
-                                }}
-                            >
-                                <ExternalLinkIcon data-icon="inline-start" />
-                                <span>
-                                    {t(
-                                        'view.favorite.share_collection.action.open_manage'
-                                    )}
-                                </span>
-                            </Button>
-                            <Button
-                                type="button"
-                                className="rounded-full transition-transform active:scale-[0.98]"
-                                disabled={
-                                    sharing ||
-                                    !title.trim() ||
-                                    !shareWorlds.worldIds.length
-                                }
-                                onClick={() => {
-                                    void createShare();
-                                }}
-                            >
-                                {sharing ? (
-                                    <Spinner data-icon="inline-start" />
-                                ) : (
-                                    <Share2Icon data-icon="inline-start" />
-                                )}
-                                <span>
-                                    {t(
-                                        'view.favorite.share_collection.action.share'
-                                    )}
-                                </span>
-                            </Button>
-                        </div>
-                    </div>
-                </FieldGroup>
-
                 {result ? (
-                    <div className="bg-muted/40 animate-in fade-in slide-in-from-bottom-2 grid gap-3 rounded-xl border p-4 duration-300">
-                        <ShareLinkField
-                            label={t(
-                                'view.favorite.share_collection.label.share_url'
-                            )}
-                            value={result.url}
-                            copyLabel={t(
-                                'view.favorite.share_collection.action.copy_share_url'
-                            )}
-                            onCopy={() => {
-                                void copyUrl(
-                                    result.url,
-                                    'view.favorite.share_collection.toast.copy_success'
-                                );
-                            }}
-                        />
-                        <Alert>
-                            <AlertDescription>
-                                {t(
-                                    'view.favorite.share_collection.label.manage_hint'
-                                )}
-                            </AlertDescription>
-                        </Alert>
-                        <div className="flex justify-end">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="rounded-full transition-transform active:scale-[0.98]"
-                                onClick={() => {
-                                    void openManage();
-                                }}
-                            >
-                                <ExternalLinkIcon data-icon="inline-start" />
-                                <span>
-                                    {t(
-                                        'view.favorite.share_collection.action.open_manage'
-                                    )}
-                                </span>
-                            </Button>
-                        </div>
-                    </div>
-                ) : null}
+                    <ShareCollectionSuccess
+                        url={result.url}
+                        skippedWorlds={skippedWorlds}
+                        onCopy={() => {
+                            void copyShareUrl(result.url);
+                        }}
+                        onOpenManage={onOpenManage}
+                        onDone={() => onOpenChange(false)}
+                    />
+                ) : (
+                    <ShareCollectionForm
+                        title={title}
+                        listed={listed}
+                        includeNotes={includeNotes}
+                        sharing={sharing}
+                        worldCount={shareWorlds.worldIds.length}
+                        totalWorldCount={shareWorlds.totalWorldIds}
+                        truncated={shareWorlds.truncated}
+                        onTitleChange={setTitle}
+                        onListedChange={setListed}
+                        onIncludeNotesChange={setIncludeNotes}
+                        onCreate={() => {
+                            void createShare();
+                        }}
+                    />
+                )}
             </DialogContent>
         </Dialog>
     );
