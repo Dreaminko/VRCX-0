@@ -499,7 +499,7 @@ const FavoriteCard = memo(function FavoriteCard({
                     {showPlayerCountBadge ? (
                         <span
                             className={cn(
-                                'bg-background/80 text-foreground absolute top-1.5 left-1.5 z-10 flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium transition-opacity',
+                                'bg-background/55 text-foreground/75 absolute top-1.5 left-1.5 z-10 flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-normal tabular-nums backdrop-blur-[2px] transition-opacity',
                                 'group-hover/fav-card:opacity-0',
                                 selected && 'opacity-0'
                             )}
