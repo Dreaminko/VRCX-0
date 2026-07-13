@@ -8,7 +8,6 @@ export type SettingsAdvancedPrefs = {
     gameLogDisabled?: boolean;
     logResourceLoad?: boolean;
     relaunchVRChatAfterCrash?: boolean;
-    showConfirmationOnSwitchAvatar?: boolean;
     udonExceptionLogging?: boolean;
     vrcQuitFix?: boolean;
 };
@@ -34,7 +33,6 @@ export type SettingsAdvancedModel = {
     onRefreshSqliteTableSizes: SettingsAdvancedAction;
     onRelaunchVRChatAfterCrashChange: (checked: boolean) => unknown;
     onResetAppDataDir: SettingsAdvancedAction;
-    onShowConfirmationOnSwitchAvatarChange: (checked: boolean) => unknown;
     onUdonExceptionLoggingChange: (checked: boolean) => unknown;
     onVrcQuitFixChange: (checked: boolean) => unknown;
     onlineVisitCount: number | null;

@@ -873,7 +873,6 @@
                 "failed_to_upload_avatar_image": "上传模型图片失败"
             },
             "modal": {
-                "select_avatar_value": "选择模型？\n{value}",
                 "create_impostor": "创建 Impostor？",
                 "create": "创建",
                 "make_avatar_public": "将模型设为公开？",
@@ -2251,9 +2250,7 @@
                         "header": "启动命令 / 客户端连接",
                         "default_launch_mode": "默认启动模式",
                         "default_launch_mode_vr": "VR 模式",
-                        "default_launch_mode_desktop": "桌面模式",
-                        "show_confirmation_on_switch_avatar_enable": "切换模型前显示确认对话框",
-                        "show_confirmation_on_switch_avatar_tooltip": "禁用后，切换模型时 VRCX-0 将不会弹至前台要求确认"
+                        "default_launch_mode_desktop": "桌面模式"
                     },
                     "screenshot_helper": {
                         "header": "截图助手",
@@ -2591,7 +2588,6 @@
                 "request_invite": "确定要请求加入吗？",
                 "request_invite_2": "请求加入",
                 "send": "发送",
-                "select_avatar": "确定要切换到该模型吗？",
                 "delete_value_favorites": "删除 {value} 个收藏？",
                 "this_action_cannot_be_undone": "此操作无法撤销",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "清空本地模型历史和缓存的模型元数据？"
@@ -5232,11 +5228,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "未知的工具操作：{value}",
                 "unsupported_tool_action_value": "不支持的工具操作：{value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "选择模型？\n{value}"
             }
         },
         "background_maintenance": {

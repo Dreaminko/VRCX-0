@@ -95,7 +95,6 @@ export function createDefaultSettingsPrefs() {
         relaunchVRChatAfterCrash: false,
         vrcQuitFix: true,
         autoSweepVRChatCache: false,
-        showConfirmationOnSwitchAvatar: true,
         gameLogDisabled: false,
         avatarAutoCleanup: 'Off',
         defaultLaunchMode: 'vr',

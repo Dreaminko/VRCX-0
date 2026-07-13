@@ -20,8 +20,6 @@ type TransportState = Record<string, unknown> & {
     reconnectCount: number;
     lastConnectedAt: string | null;
     lastDisconnectedAt: string | null;
-    ipcAnnounced: boolean;
-    lastIpcAnnouncedAt: string | null;
 };
 
 type ActivityState = Record<string, unknown> & {
@@ -121,7 +119,6 @@ type HostCapabilitiesState = Record<string, unknown> & {
     steamRuntimeIntegration: CapabilityStatus;
     registryPrefs: CapabilityStatus;
     gameLaunch: CapabilityStatus;
-    ipc: CapabilityStatus;
     vrchatLaunchPipe: CapabilityStatus;
     screenshotCache: CapabilityStatus;
 };
@@ -216,7 +213,6 @@ type RuntimeStore = {
         lastGameLogType: string;
         lastScreenshotPath: string;
         lastBrowserFocusAt: string | null;
-        externalNotifierVersion: number;
     };
     nowPlaying: Record<string, unknown> & {
         url: string;
@@ -302,9 +298,7 @@ function createTransportState(): TransportState {
         websocketDomain: '',
         reconnectCount: 0,
         lastConnectedAt: null,
-        lastDisconnectedAt: null,
-        ipcAnnounced: false,
-        lastIpcAnnouncedAt: null
+        lastDisconnectedAt: null
     };
 }
 
@@ -411,7 +405,6 @@ const HOST_CAPABILITY_KEYS = Object.freeze([
     'steamRuntimeIntegration',
     'registryPrefs',
     'gameLaunch',
-    'ipc',
     'vrchatLaunchPipe',
     'screenshotCache'
 ]);
@@ -528,8 +521,7 @@ const initialState: RuntimeStoreState = {
         lastGameLogAt: null,
         lastGameLogType: '',
         lastScreenshotPath: '',
-        lastBrowserFocusAt: null,
-        externalNotifierVersion: 0
+        lastBrowserFocusAt: null
     },
     nowPlaying: createNowPlayingState(),
     instanceQueue: createInstanceQueueState(),
@@ -593,7 +585,6 @@ const initialState: RuntimeStoreState = {
         realtimeInstanceClosedProjection: createRuntimeEventState(),
         realtimeInstanceQueueProjection: createRuntimeEventState(),
         updateIsGameRunning: createRuntimeEventState(),
-        ipcEvent: createRuntimeEventState(),
         browserFocus: createRuntimeEventState()
     }
 };

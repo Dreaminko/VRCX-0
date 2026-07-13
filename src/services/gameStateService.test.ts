@@ -208,10 +208,6 @@ describe('gameStateService lifecycle transitions', () => {
             queueSize: 5,
             label: 'Queue'
         });
-        useRuntimeStore.getState().setTransportState({
-            ipcAnnounced: true
-        });
-
         await handleGameRunningUpdate({
             isGameRunning: false,
             isSteamVRRunning: false,
@@ -229,7 +225,6 @@ describe('gameStateService lifecycle transitions', () => {
             lastGameLogType: 'game-stopped'
         });
         expect(useRuntimeStore.getState().instanceQueue.active).toBe(false);
-        expect(useRuntimeStore.getState().transport.ipcAnnounced).toBe(false);
         expect(
             useRuntimeStore.getState().auth.currentUserSnapshot
         ).toMatchObject({

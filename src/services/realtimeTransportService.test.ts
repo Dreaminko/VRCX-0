@@ -21,13 +21,11 @@ function createDeferredStart(): {
 
 const runtimeState = vi.hoisted(() => {
     const capabilities: Record<string, boolean> = {
-        runtimeRealtimeTransport: true,
-        ipc: false
+        runtimeRealtimeTransport: true
     };
     return {
         capabilities,
         commands: {
-            appIpcAnnounceStart: vi.fn(),
             appStartRealtimeTransport: vi.fn(),
             appSyncRealtimeFriendSnapshot: vi.fn(),
             appStopRealtimeTransport: vi.fn()
@@ -146,8 +144,6 @@ describe('realtime transport runtime routing', () => {
     beforeEach(() => {
         vi.resetModules();
         runtimeState.capabilities.runtimeRealtimeTransport = true;
-        runtimeState.capabilities.ipc = false;
-        runtimeState.commands.appIpcAnnounceStart.mockReset();
         runtimeState.commands.appStartRealtimeTransport.mockReset();
         runtimeState.commands.appSyncRealtimeFriendSnapshot.mockReset();
         runtimeState.commands.appStopRealtimeTransport.mockReset();

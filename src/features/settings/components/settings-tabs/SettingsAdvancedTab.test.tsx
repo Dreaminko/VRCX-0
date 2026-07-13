@@ -70,7 +70,6 @@ function createModel(
         onRefreshSqliteTableSizes: vi.fn(),
         onRelaunchVRChatAfterCrashChange: vi.fn(),
         onResetAppDataDir: vi.fn(),
-        onShowConfirmationOnSwitchAvatarChange: vi.fn(),
         onUdonExceptionLoggingChange: vi.fn(),
         onVrcQuitFixChange: vi.fn(),
         onlineVisitCount: null,
@@ -82,7 +81,6 @@ function createModel(
             gameLogDisabled: false,
             logResourceLoad: false,
             relaunchVRChatAfterCrash: false,
-            showConfirmationOnSwitchAvatar: true,
             udonExceptionLogging: false,
             vrcQuitFix: true
         },

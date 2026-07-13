@@ -1,5 +1,4 @@
 mod actions;
-mod ipc;
 pub(crate) mod lifecycle;
 mod processor;
 mod runtime;

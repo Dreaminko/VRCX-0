@@ -873,7 +873,6 @@
                 "failed_to_upload_avatar_image": "Failed to upload avatar image"
             },
             "modal": {
-                "select_avatar_value": "Select avatar?\n{value}",
                 "create_impostor": "Create impostor?",
                 "create": "Create",
                 "make_avatar_public": "Make avatar public?",
@@ -2251,9 +2250,7 @@
                         "header": "Launch Commands (Deep Links)",
                         "default_launch_mode": "Default Launch Mode",
                         "default_launch_mode_vr": "VR Mode",
-                        "default_launch_mode_desktop": "Desktop Mode",
-                        "show_confirmation_on_switch_avatar_enable": "Confirm Before Switching Avatars",
-                        "show_confirmation_on_switch_avatar_tooltip": "When disabled, VRCX-0 will not ask for confirmation before switching avatars."
+                        "default_launch_mode_desktop": "Desktop Mode"
                     },
                     "screenshot_helper": {
                         "header": "Screenshot Helper",
@@ -2591,7 +2588,6 @@
                 "request_invite": "Request invite?",
                 "request_invite_2": "Request Invite",
                 "send": "Send",
-                "select_avatar": "Select avatar?",
                 "delete_value_favorites": "Delete {value} favorites?",
                 "this_action_cannot_be_undone": "This action cannot be undone",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "Clear local avatar history and cached avatar metadata?"
@@ -5232,11 +5228,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "Unknown tool action: {value}",
                 "unsupported_tool_action_value": "Unsupported tool action: {value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "Select avatar?\n{value}"
             }
         },
         "background_maintenance": {

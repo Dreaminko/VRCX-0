@@ -15,7 +15,6 @@ const mocks = vi.hoisted(() => ({
     handleGameRunningUpdate: vi.fn<() => Promise<void>>(),
     isHostCapabilityAvailable: vi.fn<(name: string) => boolean>(),
     refreshHostCapabilities: vi.fn(),
-    handleIpcEvent: vi.fn<() => Promise<void>>(),
     pushSharedFeedNotification: vi.fn<() => Promise<void>>(),
     showSQLiteErrorDialog: vi.fn<() => Promise<void>>(),
     handleBrowserFocus: vi.fn<() => Promise<void>>(),
@@ -64,10 +63,6 @@ vi.mock('./gameStateService', () => ({
 
 vi.mock('./hostCapabilityService', () => ({
     isHostCapabilityAvailable: mocks.isHostCapabilityAvailable
-}));
-
-vi.mock('./ipcEventService', () => ({
-    handleIpcEvent: mocks.handleIpcEvent
 }));
 
 vi.mock('./sharedFeedNotificationService', () => ({

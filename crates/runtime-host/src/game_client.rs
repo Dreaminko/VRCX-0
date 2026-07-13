@@ -126,20 +126,12 @@ impl GameClientHostRuntime {
         Self { inner }
     }
 
-    pub fn set_runtime_state(&self, session_active: bool, current_location: &str) {
-        self.inner
-            .set_runtime_state(session_active, current_location);
+    pub fn set_runtime_state(&self, current_location: &str) {
+        self.inner.set_runtime_state(current_location);
     }
 
     pub fn stop(&self) {
         self.inner.stop();
-    }
-
-    pub fn on_ipc_packet(
-        &self,
-        packet: &str,
-    ) -> RuntimeResult<vrcx_0_core::ipc::IpcEventDisposition> {
-        self.inner.on_ipc_packet(packet)
     }
 
     #[cfg(feature = "test-utils")]

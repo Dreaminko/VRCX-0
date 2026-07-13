@@ -68,7 +68,6 @@ pub(crate) fn stop_runtime_services(app_handle: &AppHandle) {
     use tauri::Manager;
     if let Some(state) = app_handle.try_state::<AppState>() {
         state.log_watcher_compat_bridge.stop();
-        state.ipc.stop();
         state.stop_backend_runtime("application-exit");
         flush_telemetry_before_task_shutdown(&state);
         state.runtime_context.tasks.stop_all();

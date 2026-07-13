@@ -41,7 +41,6 @@ import { applyRuntimeGameLogProjection } from './gameLogIngestService';
 import { handleGameRunningUpdate } from './gameStateService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
 import i18n from './i18nService';
-import { handleIpcEvent } from './ipcEventService';
 import { handleRealtimeInstanceQueueProjection } from './realtimeInstanceQueueService';
 import {
     handleRealtimeCurrentUserProjection,
@@ -75,7 +74,6 @@ type RuntimeEventName =
     | 'realtimeInstanceClosedProjection'
     | 'realtimeInstanceQueueProjection'
     | 'updateIsGameRunning'
-    | 'ipcEvent'
     | 'browserFocus';
 
 type RuntimeEventPayloadMap = {
@@ -98,7 +96,6 @@ type RuntimeEventPayloadMap = {
     realtimeInstanceClosedProjection: RealtimeInstanceClosedProjection;
     realtimeInstanceQueueProjection: RealtimeInstanceQueueProjection;
     updateIsGameRunning: HostSessionProjection;
-    ipcEvent: string;
     browserFocus: unknown;
 };
 
@@ -880,20 +877,6 @@ function handleRuntimeEvent(
         return;
     }
 
-    if (name === 'ipcEvent') {
-        if (!isHostCapabilityAvailable('ipc')) {
-            return;
-        }
-        handleIpcEvent(payload).catch((error: unknown) => {
-            useNotificationStore.getState().pushNotification({
-                level: 'warning',
-                title: 'IPC event failed',
-                message: error instanceof Error ? error.message : String(error)
-            });
-        });
-        return;
-    }
-
     if (name === 'browserFocus') {
         runtimeStore.setGameState({
             lastBrowserFocusAt: new Date().toISOString()
@@ -928,7 +911,6 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'realtimeInstanceClosedProjection',
         'realtimeInstanceQueueProjection',
         'updateIsGameRunning',
-        'ipcEvent',
         'browserFocus'
     ];
 

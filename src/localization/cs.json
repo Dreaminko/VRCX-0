@@ -873,7 +873,6 @@
                 "failed_to_upload_avatar_image": "Nepodařilo se nahrát obrázek avataru"
             },
             "modal": {
-                "select_avatar_value": "Vybrat avatar?\n{value}",
                 "create_impostor": "Vytvořit impostora?",
                 "create": "Vytvořit",
                 "make_avatar_public": "Zveřejnit avatar?",
@@ -2253,9 +2252,7 @@
                         "header": "Spouštěcí příkazy (Deep Links)",
                         "default_launch_mode": "Výchozí režim spuštění",
                         "default_launch_mode_vr": "Režim VR",
-                        "default_launch_mode_desktop": "Desktopový režim",
-                        "show_confirmation_on_switch_avatar_enable": "Potvrdit před přepnutím avatara",
-                        "show_confirmation_on_switch_avatar_tooltip": "Když je vypnuto, VRCX-0 se před přepnutím avatara nebude ptát na potvrzení."
+                        "default_launch_mode_desktop": "Desktopový režim"
                     },
                     "screenshot_helper": {
                         "header": "Pomocník pro snímky obrazovky",
@@ -2593,7 +2590,6 @@
                 "request_invite": "Vyžádat pozvánku?",
                 "request_invite_2": "Vyžádat pozvánku",
                 "send": "Odeslat",
-                "select_avatar": "Vybrat avatara?",
                 "delete_value_favorites": "Odstranit {value} oblíbených položek?",
                 "this_action_cannot_be_undone": "Tuto akci nelze vrátit zpět",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "Vymazat lokální historii avatarů a uložená metadata avatarů?"
@@ -5230,11 +5226,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "Neznámá akce nástroje: {value}",
                 "unsupported_tool_action_value": "Nepodporovaná akce nástroje: {value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "Vybrat avatar?\n{value}"
             }
         },
         "background_maintenance": {

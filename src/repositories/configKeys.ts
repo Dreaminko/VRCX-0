@@ -311,8 +311,7 @@ export const ConfigKeys = defineConfigKeys({
         type: 'string',
         default: '["https://api.avtrdb.com/v3/avatar/search/vrcx"]'
     },
-    avatarRemoteDatabaseProvider: { type: 'string', default: '' },
-    showConfirmationOnSwitchAvatar: { type: 'bool', default: true }
+    avatarRemoteDatabaseProvider: { type: 'string', default: '' }
 });
 
 export type ConfigKeyName = keyof typeof ConfigKeys;

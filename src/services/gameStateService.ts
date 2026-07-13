@@ -257,9 +257,6 @@ async function handleGameStopped(
 ) {
     const stoppedAt = new Date().toISOString();
     useRuntimeStore.getState().clearInstanceQueueState();
-    useRuntimeStore.getState().setTransportState({
-        ipcAnnounced: false
-    });
 
     resetGameLogSessionState(stoppedAt);
 

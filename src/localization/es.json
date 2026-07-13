@@ -873,7 +873,6 @@
                 "failed_to_upload_avatar_image": "No se pudo subir la imagen del avatar"
             },
             "modal": {
-                "select_avatar_value": "¿Seleccionar avatar?\n{value}",
                 "create_impostor": "¿Crear impostor?",
                 "create": "Crear",
                 "make_avatar_public": "¿Hacer público el avatar?",
@@ -2251,9 +2250,7 @@
                         "header": "Comandos de Lanzamiento (Enlaces Profundos)",
                         "default_launch_mode": "Modo de inicio predeterminado",
                         "default_launch_mode_vr": "Modo VR",
-                        "default_launch_mode_desktop": "Modo escritorio",
-                        "show_confirmation_on_switch_avatar_enable": "Mostrar diálogo de confirmación antes de cambiar avatares",
-                        "show_confirmation_on_switch_avatar_tooltip": "Cuando está deshabilitado, VRCX-0 no pedirá confirmación antes de cambiar de avatar."
+                        "default_launch_mode_desktop": "Modo escritorio"
                     },
                     "screenshot_helper": {
                         "header": "Asistente de captura de pantalla",
@@ -2591,7 +2588,6 @@
                 "request_invite": "¿Solicitar invitación?",
                 "request_invite_2": "Solicitar invitación",
                 "send": "Enviar",
-                "select_avatar": "¿Seleccionar avatar?",
                 "delete_value_favorites": "¿Eliminar {value} favoritos?",
                 "this_action_cannot_be_undone": "Esta acción no se puede deshacer",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "¿Borrar el historial de avatares local y los metadatos de avatar en caché?"
@@ -5228,11 +5224,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "Acción de herramienta desconocida: {value}",
                 "unsupported_tool_action_value": "Acción de herramienta no compatible: {value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "¿Seleccionar avatar?\n{value}"
             }
         },
         "background_maintenance": {

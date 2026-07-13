@@ -3,9 +3,7 @@ use std::sync::{Arc, Mutex};
 use chrono::Utc;
 use vrcx_0_core::log_watcher::LogLocationSnapshot;
 use vrcx_0_persistence::config::{self as config_store, ConfigRepository};
-use vrcx_0_persistence::game_log::{
-    write_batch, GameLogEventEntry, GameLogExternalEntry, GameLogWriteBatch,
-};
+use vrcx_0_persistence::game_log::{write_batch, GameLogEventEntry, GameLogWriteBatch};
 use vrcx_0_persistence::DatabaseService;
 
 use crate::event_bus::RuntimeEventBus;
@@ -61,40 +59,13 @@ pub struct GameClientProcessorDeps {
 
 #[derive(Default)]
 pub struct GameClientState {
-    pub external_notifier_version: i64,
     pub last_crash_at_ms: Option<i64>,
-    pub session_active: bool,
     pub current_location: String,
 }
 
 #[derive(Clone)]
 pub enum GameClientJob {
-    VrcxNoty {
-        message: String,
-        fallback_packet: String,
-    },
-    VrcxExternal {
-        message: String,
-        display_name: String,
-        user_id: String,
-        notify: bool,
-        fallback_packet: String,
-    },
     GameStopped,
-}
-
-impl GameClientJob {
-    fn fallback_packet(&self) -> Option<&str> {
-        match self {
-            GameClientJob::VrcxNoty {
-                fallback_packet, ..
-            }
-            | GameClientJob::VrcxExternal {
-                fallback_packet, ..
-            } => Some(fallback_packet),
-            GameClientJob::GameStopped => None,
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -111,16 +82,7 @@ impl GameClientProcessor {
     pub fn handle_jobs(&self, jobs: Vec<GameClientJob>) -> Result<()> {
         let mut first_error = None;
         for job in jobs {
-            let fallback_packet = job.fallback_packet().map(ToOwned::to_owned);
             match job {
-                GameClientJob::VrcxNoty { .. } | GameClientJob::VrcxExternal { .. } => {
-                    if let Err(error) = self.handle_ipc_job(job) {
-                        if let Some(packet) = fallback_packet {
-                            self.deps.event_bus.emit_ipc_event(&packet);
-                        }
-                        remember_error(&mut first_error, error);
-                    }
-                }
                 GameClientJob::GameStopped => match self.prepare_game_stopped() {
                     Ok(Some(plan)) => {
                         let processor = self.clone();
@@ -145,100 +107,6 @@ impl GameClientProcessor {
             }
         }
         first_error.map_or(Ok(()), Err)
-    }
-
-    fn handle_ipc_job(&self, job: GameClientJob) -> Result<()> {
-        match job {
-            GameClientJob::VrcxNoty { message, .. } => self.handle_vrcx_noty(&message),
-            GameClientJob::VrcxExternal {
-                message,
-                display_name,
-                user_id,
-                notify,
-                ..
-            } => self.handle_vrcx_external(&message, &display_name, &user_id, notify),
-            GameClientJob::GameStopped => Ok(()),
-        }
-    }
-
-    fn handle_vrcx_noty(&self, message: &str) -> Result<()> {
-        let version = self.lock_state()?.external_notifier_version;
-        if version > 21 {
-            return Ok(());
-        }
-
-        let created_at = now_iso();
-        let affected_count = write_batch(
-            &self.deps.db,
-            &GameLogWriteBatch {
-                events: vec![GameLogEventEntry {
-                    created_at: created_at.clone(),
-                    data: message.to_string(),
-                }],
-                ..Default::default()
-            },
-        )?;
-        self.deps.event_bus.emit_game_log_persisted(affected_count);
-        self.deps.event_bus.emit_runtime_game_log_event(vec![
-            "runtime-ipc".into(),
-            created_at,
-            "event".into(),
-            message.to_string(),
-        ]);
-        self.deps.event_bus.emit_game_client_event(
-            "notification",
-            serde_json::json!({
-                "level": "info",
-                "title": "External notifier",
-                "message": message,
-            }),
-        );
-        Ok(())
-    }
-
-    fn handle_vrcx_external(
-        &self,
-        message: &str,
-        display_name: &str,
-        user_id: &str,
-        notify: bool,
-    ) -> Result<()> {
-        let created_at = now_iso();
-        let location = self.current_location();
-        let affected_count = write_batch(
-            &self.deps.db,
-            &GameLogWriteBatch {
-                externals: vec![GameLogExternalEntry {
-                    created_at: created_at.clone(),
-                    message: message.to_string(),
-                    display_name: display_name.to_string(),
-                    user_id: user_id.to_string(),
-                    location: location.clone(),
-                }],
-                ..Default::default()
-            },
-        )?;
-        self.deps.event_bus.emit_game_log_persisted(affected_count);
-        self.deps.event_bus.emit_runtime_game_log_event(vec![
-            "runtime-ipc".into(),
-            created_at,
-            "external".into(),
-            message.to_string(),
-            display_name.to_string(),
-            user_id.to_string(),
-            location,
-        ]);
-        if notify {
-            self.deps.event_bus.emit_game_client_event(
-                "notification",
-                serde_json::json!({
-                    "level": "info",
-                    "title": if display_name.is_empty() { "External" } else { display_name },
-                    "message": message,
-                }),
-            );
-        }
-        Ok(())
     }
 
     fn prepare_game_stopped(&self) -> Result<Option<CrashRelaunchPlan>> {
@@ -441,206 +309,4 @@ fn remember_error(first_error: &mut Option<Error>, error: Error) {
 
 fn now_iso() -> String {
     Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string()
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use serde_json::Value;
-    use vrcx_0_persistence::game_log::get_game_log_events;
-
-    use super::*;
-
-    struct TestDir {
-        path: PathBuf,
-    }
-
-    impl TestDir {
-        fn new(name: &str) -> Self {
-            let nonce = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos();
-            let path = std::env::temp_dir().join(format!("vrcx-0-game-client-{name}-{nonce}"));
-            std::fs::create_dir_all(&path).unwrap();
-            Self { path }
-        }
-    }
-
-    impl Drop for TestDir {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.path);
-        }
-    }
-
-    fn test_db(name: &str) -> (TestDir, Arc<DatabaseService>) {
-        let dir = TestDir::new(name);
-        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap());
-        (dir, db)
-    }
-
-    struct FakeActions;
-
-    impl GameClientActions for FakeActions {
-        fn is_game_running(&self) -> bool {
-            false
-        }
-        fn is_steamvr_running(&self) -> bool {
-            false
-        }
-        fn start_game(&self, _arguments: &str) -> Result<bool> {
-            Ok(true)
-        }
-        fn start_game_from_path(&self, _path: &str, _arguments: &str) -> Result<bool> {
-            Ok(true)
-        }
-    }
-
-    struct FakeLocation(Option<String>);
-
-    impl GameClientLocationSource for FakeLocation {
-        fn vrc_closed_gracefully(&self) -> bool {
-            true
-        }
-        fn current_location_snapshot(&self) -> Option<LogLocationSnapshot> {
-            self.0.clone().map(|location| LogLocationSnapshot {
-                location,
-                world_name: String::new(),
-                created_at: String::new(),
-                file_name: String::new(),
-            })
-        }
-    }
-
-    fn processor(
-        db: Arc<DatabaseService>,
-        location: Option<String>,
-    ) -> (
-        GameClientProcessor,
-        RuntimeEventBus,
-        Arc<Mutex<GameClientState>>,
-    ) {
-        let event_bus = RuntimeEventBus::new();
-        let state = Arc::new(Mutex::new(GameClientState::default()));
-        let deps = GameClientProcessorDeps {
-            db: Arc::clone(&db),
-            config: ConfigRepository::new(Arc::clone(&db)),
-            event_bus: event_bus.clone(),
-            tasks: TaskSupervisor::new(),
-            session: HostSessionRuntime::new(),
-            actions: Arc::new(FakeActions),
-            cache_actions: Arc::new(NoopGameClientCacheActions),
-            location_source: Arc::new(FakeLocation(location)),
-            window_actions: Arc::new(NoopGameClientWindowActions),
-        };
-        (
-            GameClientProcessor::new(deps, Arc::clone(&state)),
-            event_bus,
-            state,
-        )
-    }
-
-    fn find_notification(events: &[crate::event_bus::RuntimeEventForTest]) -> Option<&Value> {
-        events.iter().find_map(|event| {
-            if event.name == "gameClientEvent" && event.payload.get("kind")? == "notification" {
-                event.payload.get("payload")
-            } else {
-                None
-            }
-        })
-    }
-
-    fn find_runtime_game_log(
-        events: &[crate::event_bus::RuntimeEventForTest],
-    ) -> Option<&Vec<Value>> {
-        events.iter().find_map(|event| {
-            if event.name == "runtimeGameLogEvent" {
-                event.payload.get("raw")?.as_array()
-            } else {
-                None
-            }
-        })
-    }
-
-    #[test]
-    fn vrcx_noty_skips_when_notifier_version_exhausted() {
-        let (_dir, db) = test_db("noty-skip");
-        let (proc, bus, state) = processor(Arc::clone(&db), None);
-        state.lock().unwrap().external_notifier_version = 22;
-
-        proc.handle_jobs(vec![GameClientJob::VrcxNoty {
-            message: "hi".into(),
-            fallback_packet: "{}".into(),
-        }])
-        .unwrap();
-
-        assert!(bus.take_events_for_test().is_empty());
-        assert!(get_game_log_events(&db).unwrap().is_empty());
-    }
-
-    #[test]
-    fn vrcx_noty_persists_and_emits_notification() {
-        let (_dir, db) = test_db("noty-emit");
-        let (proc, bus, _state) = processor(Arc::clone(&db), None);
-
-        proc.handle_jobs(vec![GameClientJob::VrcxNoty {
-            message: "hello".into(),
-            fallback_packet: "{}".into(),
-        }])
-        .unwrap();
-
-        let stored = get_game_log_events(&db).unwrap();
-        assert_eq!(stored.len(), 1);
-        assert_eq!(stored[0].data, "hello");
-
-        let events = bus.take_events_for_test();
-        let raw = find_runtime_game_log(&events).expect("runtime game log event");
-        assert_eq!(raw[2], "event");
-        assert_eq!(raw[3], "hello");
-        let notification = find_notification(&events).expect("notification");
-        assert_eq!(notification["title"], "External notifier");
-        assert_eq!(notification["message"], "hello");
-    }
-
-    #[test]
-    fn vrcx_external_falls_back_title_and_injects_location() {
-        let (_dir, db) = test_db("external-title");
-        let (proc, bus, _state) = processor(Arc::clone(&db), Some("wrld_x:1".into()));
-
-        proc.handle_jobs(vec![GameClientJob::VrcxExternal {
-            message: "m".into(),
-            display_name: String::new(),
-            user_id: "usr_x".into(),
-            notify: true,
-            fallback_packet: "{}".into(),
-        }])
-        .unwrap();
-
-        let events = bus.take_events_for_test();
-        let raw = find_runtime_game_log(&events).expect("runtime game log event");
-        assert_eq!(raw[2], "external");
-        assert_eq!(raw.last().unwrap(), "wrld_x:1");
-        let notification = find_notification(&events).expect("notification");
-        assert_eq!(notification["title"], "External");
-    }
-
-    #[test]
-    fn vrcx_external_skips_notification_when_notify_false() {
-        let (_dir, db) = test_db("external-silent");
-        let (proc, bus, _state) = processor(Arc::clone(&db), Some("wrld_y:2".into()));
-
-        proc.handle_jobs(vec![GameClientJob::VrcxExternal {
-            message: "m".into(),
-            display_name: "Friend".into(),
-            user_id: "usr_y".into(),
-            notify: false,
-            fallback_packet: "{}".into(),
-        }])
-        .unwrap();
-
-        let events = bus.take_events_for_test();
-        assert!(find_runtime_game_log(&events).is_some());
-        assert!(find_notification(&events).is_none());
-    }
 }

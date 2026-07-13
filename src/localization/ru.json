@@ -873,7 +873,6 @@
                 "failed_to_upload_avatar_image": "Не удалось загрузить изображение аватара"
             },
             "modal": {
-                "select_avatar_value": "Выбрать аватар?\n{value}",
                 "create_impostor": "Создать импостора?",
                 "create": "Создать",
                 "make_avatar_public": "Обнародовать Аватар?",
@@ -2253,9 +2252,7 @@
                         "header": "Команды запуска (Deep Links)",
                         "default_launch_mode": "Режим запуска по умолчанию",
                         "default_launch_mode_vr": "Режим VR",
-                        "default_launch_mode_desktop": "Режим рабочего стола",
-                        "show_confirmation_on_switch_avatar_enable": "Подтвердить перед переключением Аватаров",
-                        "show_confirmation_on_switch_avatar_tooltip": "При отключении, VRCX-0 не будет просить подтверждения, прежде чем переключиться на аватары."
+                        "default_launch_mode_desktop": "Режим рабочего стола"
                     },
                     "screenshot_helper": {
                         "header": "Справка",
@@ -2593,7 +2590,6 @@
                 "request_invite": "Запросить приглашение?",
                 "request_invite_2": "Просьба о приглашении",
                 "send": "Отправить",
-                "select_avatar": "Выбрать аватар?",
                 "delete_value_favorites": "Удалить {value} избранных?",
                 "this_action_cannot_be_undone": "Это действие не может быть отменено",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "Очистить локальную историю аватара и удалить кешированные метаданные аватара?"
@@ -5230,11 +5226,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "Неизвестное действие инструмента: {value}",
                 "unsupported_tool_action_value": "Неподдерживаемый инструмент: {value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "Выбрать аватар?\n{value}"
             }
         },
         "background_maintenance": {

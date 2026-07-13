@@ -375,7 +375,6 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     relaunchVRChatAfterCrash: false,
     vrcQuitFix: true,
     autoSweepVRChatCache: false,
-    showConfirmationOnSwitchAvatar: true,
     gameLogDisabled: false,
     avatarAutoCleanup: 'Off',
     defaultLaunchMode: 'vr',
@@ -576,9 +575,6 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
         relaunchVRChatAfterCrash: normalizeBool(next.relaunchVRChatAfterCrash),
         vrcQuitFix: normalizeBool(next.vrcQuitFix),
         autoSweepVRChatCache: normalizeBool(next.autoSweepVRChatCache),
-        showConfirmationOnSwitchAvatar: normalizeBool(
-            next.showConfirmationOnSwitchAvatar
-        ),
         gameLogDisabled: normalizeBool(next.gameLogDisabled),
         avatarAutoCleanup: next.avatarAutoCleanup || 'Off',
         defaultLaunchMode: normalizeDefaultLaunchMode(next.defaultLaunchMode),

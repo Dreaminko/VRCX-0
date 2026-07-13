@@ -853,11 +853,6 @@
                         "translation_api_key": "Klucz API tłumacza",
                         "enable_tooltip": "Tłumacz bio użytkowników"
                     },
-                    "launch_commands": {
-                        "header": "Komendy uruchomieniowe (Głębokie linkowanie)",
-                        "show_confirmation_on_switch_avatar_enable": "Pokaż okno dialogowe potwierdzenia przed zmianą awatara",
-                        "show_confirmation_on_switch_avatar_tooltip": "Gdy opcja jest wyłączona, VRCX-0 nie pojawi się na pierwszym planie podczas zmiany awatarów i nie poprosi o potwierdzenie."
-                    },
                     "screenshot_helper": {
                         "header": "Pomocnik zrzutów ekranu",
                         "description": "Zapisuj nazwę i ID świata, oraz użytkowników z instancji, w metadanych plików zdjęć robionych w grze.",

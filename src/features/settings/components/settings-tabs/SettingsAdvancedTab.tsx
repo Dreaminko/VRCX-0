@@ -68,7 +68,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         onUdonExceptionLoggingChange,
         onLogResourceLoadChange,
         onDefaultLaunchModeChange,
-        onShowConfirmationOnSwitchAvatarChange,
         onGameLogDisabledChange,
         onAvatarAutoCleanupChange,
         onOpenPurgeDialog,
@@ -154,19 +153,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                             </SelectGroup>
                         </SelectContent>
                     </Select>
-                </Field>
-                <Field
-                    label={t(
-                        'view.settings.advanced.advanced.launch_commands.show_confirmation_on_switch_avatar_enable'
-                    )}
-                    description={t(
-                        'view.settings.advanced.advanced.launch_commands.show_confirmation_on_switch_avatar_tooltip'
-                    )}
-                >
-                    <Switch
-                        checked={prefs.showConfirmationOnSwitchAvatar}
-                        onCheckedChange={onShowConfirmationOnSwitchAvatarChange}
-                    />
                 </Field>
             </SettingsGroup>
 

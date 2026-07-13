@@ -44,7 +44,6 @@ type RuntimeTransportStopScope = {
 };
 
 type ConnectRealtimeTransportOptions = {
-    announceIpc?: boolean;
     preserveMetrics?: boolean;
 };
 
@@ -62,7 +61,6 @@ type StopRealtimeTransportOptions = {
 
 let activeContext: RuntimeTransportContext | null = null;
 let intentionalStop = false;
-let ipcAnnouncedForActiveSession = false;
 let runtimeTransportStarting = false;
 let runtimeTransportActive = false;
 let runtimeTransportCleanup: (() => void) | null = null;
@@ -599,7 +597,6 @@ function handleTransportFailure(error: unknown) {
 }
 
 async function connectRealtimeTransport({
-    announceIpc,
     preserveMetrics
 }: ConnectRealtimeTransportOptions) {
     const context = activeContext;
@@ -615,34 +612,8 @@ async function connectRealtimeTransport({
             websocketDomain: normalizeWebsocketDomain(context.websocket),
             reconnectCount: 0,
             lastConnectedAt: null,
-            lastDisconnectedAt: null,
-            ipcAnnounced: false,
-            lastIpcAnnouncedAt: null
+            lastDisconnectedAt: null
         });
-    }
-
-    if (
-        announceIpc &&
-        !ipcAnnouncedForActiveSession &&
-        isHostCapabilityAvailable('ipc')
-    ) {
-        useSessionStore.getState().setTransportStatus('announcing-ipc');
-        try {
-            await commands.appIpcAnnounceStart();
-            ipcAnnouncedForActiveSession = true;
-            useRuntimeStore.getState().setTransportState({
-                ipcAnnounced: true,
-                lastIpcAnnouncedAt: new Date().toISOString()
-            });
-        } catch (error) {
-            const message =
-                error instanceof Error ? error.message : String(error);
-            useNotificationStore.getState().pushNotification({
-                level: 'warning',
-                title: 'IPC announce failed',
-                message
-            });
-        }
     }
 
     if (!isCurrentTransportTarget(context)) {
@@ -685,7 +656,6 @@ export async function startRealtimeTransport({
     stopRealtimeTransport({ preserveTelemetry: false, updateStatus: false });
 
     intentionalStop = false;
-    ipcAnnouncedForActiveSession = false;
     activeContext = {
         userId: normalizedUserId,
         endpoint,
@@ -695,7 +665,6 @@ export async function startRealtimeTransport({
 
     try {
         await connectRealtimeTransport({
-            announceIpc: true,
             preserveMetrics: false
         });
     } catch (error) {
@@ -761,7 +730,6 @@ export function stopRealtimeTransport({
     updateStatus = true
 }: StopRealtimeTransportOptions = {}) {
     intentionalStop = true;
-    ipcAnnouncedForActiveSession = false;
     stopRuntimeRealtimeTransport();
     activeContext = null;
 
@@ -771,9 +739,7 @@ export function stopRealtimeTransport({
             websocketDomain: '',
             reconnectCount: 0,
             lastConnectedAt: null,
-            lastDisconnectedAt: new Date().toISOString(),
-            ipcAnnounced: false,
-            lastIpcAnnouncedAt: null
+            lastDisconnectedAt: new Date().toISOString()
         });
     } else {
         useRuntimeStore.getState().setTransportState({

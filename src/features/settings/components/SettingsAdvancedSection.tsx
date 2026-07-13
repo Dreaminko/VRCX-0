@@ -91,14 +91,6 @@ export function SettingsAdvancedSection({
                 value
             );
         },
-        onShowConfirmationOnSwitchAvatarChange: (checked: unknown) => {
-            const enabled = normalizeCheckedState(checked);
-            saveBoolPreference(
-                'showConfirmationOnSwitchAvatar',
-                'showConfirmationOnSwitchAvatar',
-                enabled
-            );
-        },
         onGameLogDisabledChange: (checked: unknown) => {
             handleGameLogDisabledChange(normalizeCheckedState(checked));
         },

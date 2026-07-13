@@ -140,10 +140,6 @@ impl RuntimeEventBus {
         );
     }
 
-    pub fn emit_ipc_event(&self, packet: &str) {
-        self.emit("ipcEvent", packet.to_string());
-    }
-
     pub fn emit_runtime_worker_error(&self, worker: &str, message: &str) {
         self.emit(
             "runtimeWorkerError",

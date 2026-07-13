@@ -1,10 +1,8 @@
 use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use crate::adapters::ipc::{IpcEventSink, IpcServer};
 use crate::adapters::log_watcher::LogWatcherCompatBridge;
 use crate::deep_link::PendingDeepLinks;
 use crate::error::AppError;
@@ -21,7 +19,6 @@ pub struct AppState {
     pub runtime: RuntimeHostState,
     pub mcp_controller: McpServerController,
     pub log_watcher_compat_bridge: LogWatcherCompatBridge,
-    pub ipc: IpcServer,
     pub pending_deep_links: PendingDeepLinks,
     pub pending_tauri_update: tokio::sync::Mutex<Option<PendingTauriUpdate>>,
     assistant: tokio::sync::OnceCell<AssistantController>,
@@ -91,15 +88,12 @@ impl AppState {
             is_headless: false,
         })?;
         let mcp_controller = McpServerController::new(McpRuntime::from_host(&runtime));
-        let ipc_sink: Arc<dyn IpcEventSink> = runtime.game_client_runtime.clone();
-        let ipc = IpcServer::new(Some(ipc_sink));
         let log_watcher_compat_bridge = LogWatcherCompatBridge::new();
 
         Ok(Self {
             runtime,
             mcp_controller,
             log_watcher_compat_bridge,
-            ipc,
             pending_deep_links: PendingDeepLinks::default(),
             pending_tauri_update: tokio::sync::Mutex::new(None),
             assistant: tokio::sync::OnceCell::new(),

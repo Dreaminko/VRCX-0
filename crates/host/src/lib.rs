@@ -10,7 +10,6 @@ pub mod game_launch;
 pub mod host_capabilities;
 #[cfg(target_os = "linux")]
 pub mod linux_registry;
-pub mod local_ipc_server;
 pub mod local_player_moderations;
 pub mod log_scanner;
 pub mod overlay_notifications;

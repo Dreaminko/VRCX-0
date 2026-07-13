@@ -873,7 +873,6 @@
                 "failed_to_upload_avatar_image": "Avatar-Bild konnte nicht hochgeladen werden"
             },
             "modal": {
-                "select_avatar_value": "Avatar auswählen?\n{value}",
                 "create_impostor": "Impostor erstellen?",
                 "create": "Erstellen",
                 "make_avatar_public": "Avatar öffentlich machen?",
@@ -2251,9 +2250,7 @@
                         "header": "Start-Befehle (Deep Links)",
                         "default_launch_mode": "Standard-Startmodus",
                         "default_launch_mode_vr": "VR-Modus",
-                        "default_launch_mode_desktop": "Desktop-Modus",
-                        "show_confirmation_on_switch_avatar_enable": "Vor Avatarwechsel bestätigen",
-                        "show_confirmation_on_switch_avatar_tooltip": "Wenn deaktiviert, fragt VRCX-0 vor einem Avatarwechsel nicht nach Bestätigung."
+                        "default_launch_mode_desktop": "Desktop-Modus"
                     },
                     "screenshot_helper": {
                         "header": "Screenshot-Helfer",
@@ -2591,7 +2588,6 @@
                 "request_invite": "Einladung anfragen?",
                 "request_invite_2": "Einladung anfragen",
                 "send": "Senden",
-                "select_avatar": "Avatar auswählen?",
                 "delete_value_favorites": "{value} Favoriten löschen?",
                 "this_action_cannot_be_undone": "Diese Aktion kann nicht rückgängig gemacht werden",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "Lokalen Avatar-Verlauf und zwischengespeicherte Avatar-Metadaten leeren?"
@@ -5228,11 +5224,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "Unbekannte Tool-Aktion: {value}",
                 "unsupported_tool_action_value": "Nicht unterstützte Tool-Aktion: {value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "Avatar auswählen?\n{value}"
             }
         },
         "background_maintenance": {

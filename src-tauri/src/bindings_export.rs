@@ -483,8 +483,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::local_player_moderations::app__get_vrchat_moderations,
             commands::local::local_player_moderations::app__get_vrchat_user_moderation,
             commands::local::local_player_moderations::app__set_vrchat_user_moderation,
-            commands::host::ipc_commands::app__ipc_announce_start,
-            commands::host::ipc_commands::app__send_ipc,
             commands::host::ipc_commands::app__try_open_instance_in_vrc,
             commands::host::app_launcher::app__app_launcher_snapshot_get,
             commands::host::app_launcher::app__app_launcher_enabled_set,

@@ -273,22 +273,6 @@ pub(super) fn start_host_services(app: &tauri::AppHandle, state: &AppState) {
     state.start_telemetry_runtime();
     state.start_shell_neutral_services();
 
-    if is_host_capability_available(HostCapability::Ipc) {
-        state.ipc.start(app.clone());
-        state
-            .runtime_context
-            .background_jobs
-            .mark_running("ipcServer", "Local IPC server is active.");
-    } else {
-        state.runtime_context.background_jobs.register_job(
-            "ipcServer",
-            "rust-host",
-            None,
-            "unavailable",
-            "IPC capability is unavailable.",
-        );
-    }
-
     #[cfg(any(target_os = "windows", target_os = "linux"))]
     if is_host_capability_available(HostCapability::GameLogWatcher) {
         state

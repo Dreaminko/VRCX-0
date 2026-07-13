@@ -873,7 +873,6 @@
                 "failed_to_upload_avatar_image": "Échec de l'envoi de l'image de l'avatar"
             },
             "modal": {
-                "select_avatar_value": "Sélectionner cet avatar ?\n{value}",
                 "create_impostor": "Créer un Impostor ?",
                 "create": "Créer",
                 "make_avatar_public": "Rendre l'avatar public ?",
@@ -2251,9 +2250,7 @@
                         "header": "Commandes de lancement (Deep Links)",
                         "default_launch_mode": "Mode de lancement par défaut",
                         "default_launch_mode_vr": "Mode VR",
-                        "default_launch_mode_desktop": "Mode Bureau",
-                        "show_confirmation_on_switch_avatar_enable": "Confirmer avant de changer d'avatar",
-                        "show_confirmation_on_switch_avatar_tooltip": "Lorsque désactivé, VRCX-0 ne demandera pas de confirmation avant de changer d'avatar."
+                        "default_launch_mode_desktop": "Mode Bureau"
                     },
                     "screenshot_helper": {
                         "header": "Aide pour les captures d'écran",
@@ -2591,7 +2588,6 @@
                 "request_invite": "Demander une invitation ?",
                 "request_invite_2": "Demander une invitation",
                 "send": "Envoyer",
-                "select_avatar": "Sélectionner l'avatar ?",
                 "delete_value_favorites": "Supprimer {value} favoris ?",
                 "this_action_cannot_be_undone": "Cette action est irréversible",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "Effacer l'historique local des avatars et les métadonnées d'avatars en cache ?"
@@ -5228,11 +5224,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "Action d'outil inconnue : {value}",
                 "unsupported_tool_action_value": "Action d'outil non prise en charge : {value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "Sélectionner cet avatar ?\n{value}"
             }
         },
         "background_maintenance": {

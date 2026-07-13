@@ -847,8 +847,7 @@
                 "create_impostor": "임포스터를 생성하시겠습니까?",
                 "create": "만들기",
                 "make_avatar_public": "아바타를 공개하시겠습니까?",
-                "make_avatar_private": "아바타를 비공개로 설정하시겠습니까?",
-                "select_avatar_value": "아바타를 선택하시겠습니까?\n{value}"
+                "make_avatar_private": "아바타를 비공개로 설정하시겠습니까?"
             },
             "dynamic": {
                 "updated_local_tags_for_value": "{value}에 대한 로컬 태그가 업데이트되었습니다.",
@@ -2192,9 +2191,7 @@
                         "header": "실행 명령(딥 링크)",
                         "default_launch_mode": "기본 실행 모드",
                         "default_launch_mode_vr": "VR 모드",
-                        "default_launch_mode_desktop": "데스크탑 모드",
-                        "show_confirmation_on_switch_avatar_enable": "아바타를 전환하기 전에 확인하세요",
-                        "show_confirmation_on_switch_avatar_tooltip": "비활성화되면 VRCX-0은(는) 아바타를 전환하기 전에 확인을 요청하지 않습니다."
+                        "default_launch_mode_desktop": "데스크탑 모드"
                     },
                     "screenshot_helper": {
                         "header": "스크린샷 도우미",
@@ -2534,7 +2531,6 @@
                 "request_invite": "초대를 요청하시겠습니까?",
                 "request_invite_2": "초대 요청",
                 "send": "보내기",
-                "select_avatar": "아바타를 선택하시겠습니까?",
                 "this_action_cannot_be_undone": "이 작업은 취소할 수 없습니다.",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "로컬 아바타 기록과 캐시된 아바타 메타데이터를 삭제하시겠습니까?",
                 "remove_vrchat_favorite": "VRChat 즐겨찾기를 삭제하시겠습니까?",
@@ -5165,11 +5161,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "알 수 없는 도구 작업: {value}",
                 "unsupported_tool_action_value": "지원되지 않는 도구 작업: {value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "아바타를 선택하시겠습니까?\n{value}"
             }
         }
     },

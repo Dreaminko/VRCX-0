@@ -115,12 +115,8 @@ export const commands = {
     async appIsSteamvrRunning(): Promise<boolean> {
         return await TAURI_INVOKE('app__is_steamvr_running');
     },
-    async appSetGameClientRuntimeState(
-        sessionActive: boolean,
-        currentLocation: string
-    ): Promise<void> {
+    async appSetGameClientRuntimeState(currentLocation: string): Promise<void> {
         await TAURI_INVOKE('app__set_game_client_runtime_state', {
-            sessionActive,
             currentLocation
         });
     },
@@ -2518,12 +2514,6 @@ export const commands = {
             moderationType
         });
     },
-    async appIpcAnnounceStart(): Promise<null> {
-        return await TAURI_INVOKE('app__ipc_announce_start');
-    },
-    async appSendIpc(typeName: string, data: string): Promise<null> {
-        return await TAURI_INVOKE('app__send_ipc', { typeName, data });
-    },
     async appTryOpenInstanceInVrc(launchUrl: string): Promise<boolean> {
         return await TAURI_INVOKE('app__try_open_instance_in_vrc', {
             launchUrl
@@ -3464,7 +3454,6 @@ export type HostCapabilities = {
     steamRuntimeIntegration: CapabilityStatus;
     registryPrefs: CapabilityStatus;
     gameLaunch: CapabilityStatus;
-    ipc: CapabilityStatus;
     vrchatLaunchPipe: CapabilityStatus;
     screenshotCache: CapabilityStatus;
 };

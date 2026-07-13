@@ -873,7 +873,6 @@
                 "failed_to_upload_avatar_image": "上傳角色圖片失敗"
             },
             "modal": {
-                "select_avatar_value": "選擇角色？\n{value}",
                 "create_impostor": "建立 Impostor？",
                 "create": "建立",
                 "make_avatar_public": "將角色設為公開？",
@@ -2251,9 +2250,7 @@
                         "header": "啟動指令（Deep Links）",
                         "default_launch_mode": "預設啟動模式",
                         "default_launch_mode_vr": "VR 模式",
-                        "default_launch_mode_desktop": "桌面模式",
-                        "show_confirmation_on_switch_avatar_enable": "切換角色前顯示確認對話框",
-                        "show_confirmation_on_switch_avatar_tooltip": "停用時，切換角色時 VRCX-0 不會跳出並要求確認"
+                        "default_launch_mode_desktop": "桌面模式"
                     },
                     "screenshot_helper": {
                         "header": "螢幕截圖助理",
@@ -2591,7 +2588,6 @@
                 "request_invite": "請求加入？",
                 "request_invite_2": "請求加入",
                 "send": "傳送",
-                "select_avatar": "切換到該角色？",
                 "delete_value_favorites": "刪除 {value} 個收藏？",
                 "this_action_cannot_be_undone": "此操作無法撤銷",
                 "clear_local_avatar_history_and_cached_avatar_metadata": "清空本機角色歷史和快取的角色後設資料？"
@@ -5232,11 +5228,6 @@
             "dynamic": {
                 "unknown_tool_action_value": "未知工具操作：{value}",
                 "unsupported_tool_action_value": "不支援的工具操作：{value}"
-            }
-        },
-        "ipc_event_service": {
-            "modal": {
-                "select_avatar_value": "選擇角色？\n{value}"
             }
         },
         "background_maintenance": {
