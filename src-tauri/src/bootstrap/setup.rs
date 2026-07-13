@@ -8,8 +8,6 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 
-use crate::app::APP_VERSION;
-
 use crate::deep_link::{parse_deep_link, DEEP_LINK_ARRIVED_EVENT};
 use crate::state::{AppState, BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY};
 
@@ -17,6 +15,8 @@ use super::adapters::{start_host_services, start_mcp_server_if_enabled, TauriDes
 use super::autostart::{apply_autostart_window_state_if_needed, sync_autostart_from_db};
 use super::shared::app_language;
 use super::window::{configure_tray, create_main_window, disable_windows_default_context_menu};
+
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn init_error_logging(app_data: Option<PathBuf>) {
     let Some(app_data) = app_data.or_else(vrcx_0_host::error_log::default_app_data_dir) else {
@@ -26,7 +26,11 @@ pub fn init_error_logging(app_data: Option<PathBuf>) {
     let default_panic_hook = std::panic::take_hook();
     let panic_app_data = app_data.clone();
     std::panic::set_hook(Box::new(move |panic_info| {
-        vrcx_0_host::panic::handle(&panic_app_data, panic_info, APP_VERSION);
+        vrcx_0_host::error_log::append_panic_error_log_with_version(
+            &panic_app_data,
+            panic_info,
+            APP_VERSION,
+        );
         default_panic_hook(panic_info);
     }));
 

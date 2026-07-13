@@ -2247,9 +2247,6 @@ export const commands = {
     async appOpenUgcPhotosFolder(ugcPath: string | null): Promise<boolean> {
         return await TAURI_INVOKE('app__open_ugc_photos_folder', { ugcPath });
     },
-    async appOpenCrashesFolder(): Promise<boolean> {
-        return await TAURI_INVOKE('app__open_crashes_folder');
-    },
     async appOpenVrcScreenshotsFolder(): Promise<boolean> {
         return await TAURI_INVOKE('app__open_vrc_screenshots_folder');
     },

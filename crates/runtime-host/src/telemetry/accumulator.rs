@@ -96,9 +96,12 @@ impl TelemetryAccumulator {
     }
 
     pub fn record_rust_error(&mut self, source: &str, app_version: &str, message: &str) {
-        let kind = match source {
-            "rust:panic" => "panic",
-            "rust:tracing" => "rust_error",
+        let (kind, summary) = match source {
+            "rust:panic" => (
+                "panic",
+                vrcx_0_host::error_log::panic_summary_for_telemetry(message),
+            ),
+            "rust:tracing" => ("rust_error", message),
             _ => return,
         };
         let detail = build_error_detail(
@@ -106,7 +109,7 @@ impl TelemetryAccumulator {
             Some(source),
             None,
             None,
-            Some(message),
+            Some(summary),
             Some(app_version),
         );
         self.client_errors.record(detail);
@@ -293,6 +296,30 @@ fn increment(value: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn panic_backtrace_addresses_do_not_split_telemetry_identity() {
+        let mut acc = TelemetryAccumulator::default();
+        acc.record_rust_error(
+            "rust:panic",
+            "2.9.2",
+            "panicked at crates/runtime.rs:42\n[backtrace]\n0: 0x1111",
+        );
+        acc.record_rust_error(
+            "rust:panic",
+            "2.9.2",
+            "panicked at crates/runtime.rs:42\n[backtrace]\n0: 0x2222",
+        );
+
+        let entries = acc.client_error_entries();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(
+            entries[0].summary.as_deref(),
+            Some("panicked at crates/runtime.rs:42")
+        );
+        assert_eq!(entries[0].count, 2);
+    }
+
     #[test]
     fn accumulator_caps_routes_and_error_details() {
         let mut acc = TelemetryAccumulator::default();

@@ -438,7 +438,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::shell::app__open_vrc_app_data_folder,
             commands::host::shell::app__open_vrc_photos_folder,
             commands::host::shell::app__open_ugc_photos_folder,
-            commands::host::shell::app__open_crashes_folder,
             commands::host::shell::app__open_vrc_screenshots_folder,
             commands::host::shell::app__open_crash_vrc_crash_dumps,
             commands::host::shell::app__open_folder_and_select_item,

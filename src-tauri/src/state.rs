@@ -4,7 +4,6 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use crate::adapters::log_watcher::LogWatcherCompatBridge;
-use crate::app::APP_VERSION;
 use crate::deep_link::PendingDeepLinks;
 use crate::error::AppError;
 use serde::Serialize;
@@ -85,7 +84,7 @@ impl AppState {
             realtime_origin: realtime_origin(),
             launched_from_autostart,
             app_data_dir,
-            app_version: APP_VERSION.into(),
+            app_version: env!("CARGO_PKG_VERSION").into(),
             is_headless: false,
         })?;
         let mcp_controller = McpServerController::new(McpRuntime::from_host(&runtime));

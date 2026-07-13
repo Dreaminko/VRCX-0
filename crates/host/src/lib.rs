@@ -13,7 +13,6 @@ pub mod linux_registry;
 pub mod local_player_moderations;
 pub mod log_scanner;
 pub mod overlay_notifications;
-pub mod panic;
 pub mod path_utils;
 pub mod process_status;
 pub mod proxy;

@@ -171,14 +171,6 @@ pub fn app__open_crash_vrc_crash_dumps() -> Result<bool, AppError> {
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__open_crashes_folder(state: State<'_, AppState>) -> Result<bool, AppError> {
-    Ok(shell_actions::show_crashes_folder(
-        &state.app_data_dir.current_dir,
-    )?)
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn app__open_folder_and_select_item(
     state: State<'_, AppState>,
     path: String,
