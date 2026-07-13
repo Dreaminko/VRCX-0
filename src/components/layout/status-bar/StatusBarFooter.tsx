@@ -5,12 +5,13 @@ import {
     NetworkIcon,
     PlusIcon
 } from 'lucide-react';
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ProxySettingsEditor } from '@/components/proxy/ProxySettingsEditor';
 import { cn } from '@/lib/utils';
 import {
+    DEFAULT_ZOOM_LEVEL,
     MAX_ZOOM_LEVEL,
     MIN_ZOOM_LEVEL,
     ZOOM_STEP
@@ -33,7 +34,6 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-import { Slider } from '@/ui/shadcn/slider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
@@ -213,7 +213,6 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
             onUpdateClockTimezone
         } = footer;
         const { t } = useTranslation();
-        const [zoomPopoverOpen, setZoomPopoverOpen] = useState(false);
         const proxyAnchorRef = useRef<HTMLSpanElement>(null);
         const instanceQueueActive = Boolean(
             instanceQueue?.active && instanceQueue?.instanceLocation
@@ -241,30 +240,6 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
             server: proxyServer,
             hasNetworkIssue: Boolean(proxyEnabled && vrcStatus.error)
         });
-
-        useEffect(() => {
-            if (!zoomPopoverOpen) {
-                return undefined;
-            }
-
-            function handleZoomWheel(event: WheelEvent) {
-                if (event.deltaY === 0) {
-                    return;
-                }
-
-                event.preventDefault();
-                onStepZoomLevel(event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
-            }
-
-            window.addEventListener('wheel', handleZoomWheel, {
-                passive: false,
-                capture: true
-            });
-
-            return () => {
-                window.removeEventListener('wheel', handleZoomWheel, true);
-            };
-        }, [onStepZoomLevel, zoomPopoverOpen]);
 
         return (
             <footer
@@ -610,10 +585,7 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                               ))
                             : null}
                         {visibility.zoom ? (
-                            <Popover
-                                open={zoomPopoverOpen}
-                                onOpenChange={setZoomPopoverOpen}
-                            >
+                            <Popover>
                                 <PopoverTrigger
                                     render={
                                         <Button
@@ -653,7 +625,7 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                             variant="outline"
                                             size="icon"
                                             aria-label={t('app_menu.zoom_out')}
-                                            className="size-7 shrink-0"
+                                            className="size-10 shrink-0"
                                             disabled={
                                                 zoomLevel <= MIN_ZOOM_LEVEL
                                             }
@@ -663,15 +635,32 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                         >
                                             <MinusIcon data-icon="icon" />
                                         </Button>
-                                        <div className="bg-muted/40 flex min-w-16 justify-center rounded-md border px-2 py-1 text-sm font-medium tabular-nums">
-                                            {zoomLabel}
-                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            aria-label={t(
+                                                'app_menu.reset_zoom'
+                                            )}
+                                            className="h-10 min-w-0 flex-1 gap-2 px-3"
+                                            onClick={() =>
+                                                onSetZoomLevel(
+                                                    DEFAULT_ZOOM_LEVEL
+                                                )
+                                            }
+                                        >
+                                            <span className="text-sm font-medium tabular-nums">
+                                                {zoomLabel}
+                                            </span>
+                                            <span className="text-muted-foreground truncate text-xs font-normal">
+                                                {t('app_menu.reset_zoom')}
+                                            </span>
+                                        </Button>
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="icon"
                                             aria-label={t('app_menu.zoom_in')}
-                                            className="size-7 shrink-0"
+                                            className="size-10 shrink-0"
                                             disabled={
                                                 zoomLevel >= MAX_ZOOM_LEVEL
                                             }
@@ -681,24 +670,6 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                         >
                                             <PlusIcon data-icon="icon" />
                                         </Button>
-                                    </div>
-                                    <Slider
-                                        aria-label={t('status_bar.zoom')}
-                                        min={MIN_ZOOM_LEVEL}
-                                        max={MAX_ZOOM_LEVEL}
-                                        step={ZOOM_STEP}
-                                        value={[zoomLevel]}
-                                        onValueChange={(value) =>
-                                            onSetZoomLevel(
-                                                Array.isArray(value)
-                                                    ? value[0]
-                                                    : value
-                                            )
-                                        }
-                                    />
-                                    <div className="text-muted-foreground flex justify-between text-[11px] tabular-nums">
-                                        <span>{`${MIN_ZOOM_LEVEL}%`}</span>
-                                        <span>{`${MAX_ZOOM_LEVEL}%`}</span>
                                     </div>
                                 </PopoverContent>
                             </Popover>
