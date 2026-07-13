@@ -13,6 +13,7 @@ const COLLECTION_SHORTCODE_MAX_LEN: usize = 12;
 pub struct WorldCollectionCreatePayload {
     pub schema: i64,
     pub owner_key: String,
+    pub owner_hint: String,
     pub title: String,
     pub listed: bool,
     pub access: String,

@@ -1,15 +1,16 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Mutex;
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chrono::Utc;
-use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 use vrcx_0_integrations::world_collections::{
     create_world_collection, WorldCollectionCreatePayload, WorldCollectionPayloadWorld,
     WORLD_COLLECTIONS_SITE_ORIGIN,
 };
 use vrcx_0_persistence::{
+    config::{get_json, set_json},
     memos::memo_get_worlds_many,
     worlds::{world_cache_get_many, WorldSummaryOutput},
     DatabaseService,
@@ -17,10 +18,10 @@ use vrcx_0_persistence::{
 
 use crate::Error;
 
-type HmacSha256 = Hmac<Sha256>;
-
 pub const SHARE_COLLECTION_MAX_WORLDS: usize = 1_000;
 const SHARE_COLLECTION_WORLD_BATCH_SIZE: usize = 500;
+const SHARE_OWNER_KEYS_CONFIG_KEY: &str = "VRCX_ShareOwnerKeys";
+static SHARE_OWNER_KEYS_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -56,7 +57,8 @@ pub fn prepare_share_collection_payload(
     input: ShareCollectionCreateInput,
 ) -> Result<PreparedShareCollection, Error> {
     let title = normalize_title(&input.title)?;
-    let owner_key = derive_share_collection_owner_key(deps.current_user_id)?;
+    let owner_key = get_or_create_share_owner_key(deps.db, deps.current_user_id)?;
+    let owner_hint = share_collection_owner_hint(deps.current_user_id);
     let author_name = deps.current_user_display_name.trim().to_string();
     let normalized_world_ids = normalize_world_ids(&input.world_ids);
     let truncated = normalized_world_ids.len() > SHARE_COLLECTION_MAX_WORLDS;
@@ -108,6 +110,7 @@ pub fn prepare_share_collection_payload(
         payload: WorldCollectionCreatePayload {
             schema: 1,
             owner_key,
+            owner_hint,
             title,
             listed: input.listed,
             access: "open".into(),
@@ -163,24 +166,51 @@ fn payload_world_from_row(
     }
 }
 
-pub fn derive_share_collection_owner_key(current_user_id: &str) -> Result<String, Error> {
-    let current_user_id = current_user_id.trim();
-    if current_user_id.is_empty() {
+pub fn get_or_create_share_owner_key(db: &DatabaseService, user_id: &str) -> Result<String, Error> {
+    let user_id = user_id.trim();
+    if user_id.is_empty() {
         return Err(Error::Custom(
             "Share collection requires an authenticated user.".into(),
         ));
     }
-    let mut mac = HmacSha256::new_from_slice(owner_key_hmac_secret())
-        .expect("HMAC accepts keys of any length");
-    mac.update(current_user_id.as_bytes());
-    Ok(URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes()))
+
+    let _guard = SHARE_OWNER_KEYS_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut owner_keys = read_share_owner_keys(db)?;
+    if let Some(owner_key) = owner_keys.get(user_id) {
+        return Ok(owner_key.clone());
+    }
+
+    let owner_key = generate_share_owner_key()?;
+    owner_keys.insert(user_id.to_string(), owner_key.clone());
+    write_share_owner_keys(db, &owner_keys)?;
+    Ok(owner_key)
 }
 
-fn owner_key_hmac_secret() -> &'static [u8] {
-    match option_env!("VRCX0_SHARE_OWNER_KEY_SECRET") {
-        Some(secret) if !secret.is_empty() => secret.as_bytes(),
-        _ => b"vrcx-0-share-owner-key-dev-placeholder",
-    }
+pub fn share_collection_owner_hint(user_id: &str) -> String {
+    hex::encode(Sha256::digest(user_id.trim().as_bytes()))
+}
+
+fn generate_share_owner_key() -> Result<String, Error> {
+    let mut owner_key_bytes = [0_u8; 32];
+    getrandom::fill(&mut owner_key_bytes)
+        .map_err(|error| Error::Custom(format!("failed to generate share owner key: {error}")))?;
+    Ok(URL_SAFE_NO_PAD.encode(owner_key_bytes))
+}
+
+fn read_share_owner_keys(db: &DatabaseService) -> Result<HashMap<String, String>, Error> {
+    let raw = get_json(db, SHARE_OWNER_KEYS_CONFIG_KEY, serde_json::json!({}))?;
+    Ok(serde_json::from_value(raw).unwrap_or_default())
+}
+
+fn write_share_owner_keys(
+    db: &DatabaseService,
+    owner_keys: &HashMap<String, String>,
+) -> Result<(), Error> {
+    let value = serde_json::to_value(owner_keys)?;
+    set_json(db, SHARE_OWNER_KEYS_CONFIG_KEY, &value)?;
+    Ok(())
 }
 
 fn normalize_title(title: &str) -> Result<String, Error> {

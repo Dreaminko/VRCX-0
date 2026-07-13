@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde_json::json;
 use vrcx_0_application::{
-    derive_share_collection_owner_key, prepare_share_collection_payload,
+    get_or_create_share_owner_key, prepare_share_collection_payload, share_collection_owner_hint,
     ShareCollectionCreateInput, ShareCollectionDeps, SHARE_COLLECTION_MAX_WORLDS,
 };
 use vrcx_0_persistence::{
@@ -57,23 +57,59 @@ fn world_entry(id: &str, release_status: &str, name: &str) -> CacheEntityInput {
     }
 }
 
+fn is_base64_url_no_pad(value: &str) -> bool {
+    value.len() == 43
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+}
+
+fn is_lowercase_hex_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 #[test]
-fn owner_key_is_stable_for_current_user_and_not_a_raw_user_id() {
-    let owner_key = derive_share_collection_owner_key(" usr_current ").unwrap();
-    let same_owner_key = derive_share_collection_owner_key("usr_current").unwrap();
-    let other_owner_key = derive_share_collection_owner_key("usr_other").unwrap();
+fn owner_key_is_stable_for_same_user_and_isolated_across_users() {
+    let (_dir, db) = test_services("owner-key");
+
+    let owner_key = get_or_create_share_owner_key(&db, " usr_current ").unwrap();
+    let same_owner_key = get_or_create_share_owner_key(&db, "usr_current").unwrap();
+    let other_owner_key = get_or_create_share_owner_key(&db, "usr_other").unwrap();
 
     assert_eq!(owner_key, same_owner_key);
     assert_ne!(owner_key, other_owner_key);
     assert_ne!(owner_key, "usr_current");
-    assert!(owner_key.len() >= 32);
-    assert!(owner_key
-        .bytes()
-        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_'));
+    assert!(is_base64_url_no_pad(&owner_key));
+    assert!(is_base64_url_no_pad(&other_owner_key));
 }
 
 #[test]
-fn prepare_payload_derives_owner_key_and_keeps_only_public_worlds_in_input_order() {
+fn owner_key_requires_authenticated_user() {
+    let (_dir, db) = test_services("owner-key-empty");
+
+    let error = get_or_create_share_owner_key(&db, "  ").unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("Share collection requires an authenticated user"));
+}
+
+#[test]
+fn owner_hint_is_deterministic_and_isolated_across_users() {
+    let owner_hint = share_collection_owner_hint(" usr_current ");
+    let same_owner_hint = share_collection_owner_hint("usr_current");
+    let other_owner_hint = share_collection_owner_hint("usr_other");
+
+    assert_eq!(owner_hint, same_owner_hint);
+    assert_ne!(owner_hint, other_owner_hint);
+    assert!(is_lowercase_hex_sha256(&owner_hint));
+    assert!(is_lowercase_hex_sha256(&other_owner_hint));
+}
+
+#[test]
+fn prepare_payload_gets_or_creates_owner_key_and_keeps_only_public_worlds_in_input_order() {
     let (_dir, db) = test_services("payload");
     world_cache_upsert(
         &db,
@@ -133,7 +169,11 @@ fn prepare_payload_derives_owner_key_and_keeps_only_public_worlds_in_input_order
     assert_eq!(prepared.payload.schema, 1);
     assert_eq!(
         prepared.payload.owner_key,
-        derive_share_collection_owner_key("usr_current").unwrap()
+        get_or_create_share_owner_key(&db, "usr_current").unwrap()
+    );
+    assert_eq!(
+        prepared.payload.owner_hint,
+        share_collection_owner_hint("usr_current")
     );
     assert_eq!(prepared.payload.title, "Scenic picks");
     assert!(prepared.payload.listed);
@@ -162,8 +202,8 @@ fn prepare_payload_derives_owner_key_and_keeps_only_public_worlds_in_input_order
 }
 
 #[test]
-fn prepare_payload_requires_current_user_id_for_owner_key_derivation() {
-    let (_dir, db) = test_services("owner-key");
+fn prepare_payload_requires_current_user_id_for_owner_key() {
+    let (_dir, db) = test_services("owner-key-payload");
     world_cache_upsert(
         &db,
         world_entry(

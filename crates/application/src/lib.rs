@@ -210,9 +210,9 @@ pub use session::{
     RealtimeSessionContext as HostRealtimeSessionContext, SessionHostRuntime,
 };
 pub use share_collection::{
-    derive_share_collection_owner_key, prepare_share_collection_payload, share_collection_create,
-    PreparedShareCollection, ShareCollectionCreateInput, ShareCollectionCreateResult,
-    ShareCollectionDeps, SHARE_COLLECTION_MAX_WORLDS,
+    get_or_create_share_owner_key, prepare_share_collection_payload, share_collection_create,
+    share_collection_owner_hint, PreparedShareCollection, ShareCollectionCreateInput,
+    ShareCollectionCreateResult, ShareCollectionDeps, SHARE_COLLECTION_MAX_WORLDS,
 };
 pub use social_baseline::{
     apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
