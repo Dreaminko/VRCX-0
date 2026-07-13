@@ -24,7 +24,7 @@ import {
 import { Switch } from '@/ui/shadcn/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import { Field, SettingsGroup, SettingsSectionHeading } from '../SettingsField';
+import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 import { AdvancedTroubleshootingGroup } from './AdvancedTroubleshootingGroup';
 import type { SettingsAdvancedModel } from './settingsAdvancedTypes';
@@ -204,11 +204,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                         onCheckedChange={onVrcQuitFixChange}
                     />
                 </Field>
-                <SettingsSectionHeading
-                    title={t(
-                        'view.settings.advanced.advanced_ui.behavior.deep_links'
-                    )}
-                />
                 <DeepLinkRegistrationField />
                 <Field
                     label={t(

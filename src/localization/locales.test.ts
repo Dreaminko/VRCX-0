@@ -180,7 +180,6 @@ describe('advanced settings locale coverage', () => {
         advancedUiPrefix
     );
     const linkOpeningKeys = [
-        'view.settings.advanced.advanced_ui.behavior.deep_links',
         'view.settings.advanced.advanced_ui.behavior.deep_link_registration',
         'view.settings.advanced.advanced_ui.behavior.deep_link_registered',
         'view.settings.advanced.advanced_ui.behavior.deep_link_not_registered',

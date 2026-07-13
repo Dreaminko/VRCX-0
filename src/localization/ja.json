@@ -1049,7 +1049,8 @@
                     "title": "コレクションを共有しました",
                     "description": "{count} 件のワールドを共有できます。",
                     "ready": "共有ページの準備ができました",
-                    "skipped": "利用できない、または非公開のワールド {count} 件は含まれていません。"
+                    "skipped": "利用できない、または非公開のワールド {count} 件は含まれていません。",
+                    "skipped_incomplete": "{world} は必要な情報が不足しているためスキップされました。"
                 },
                 "coachmark": {
                     "title": "ワールドコレクションを共有",
@@ -2133,11 +2134,10 @@
                         "header": "VRChat の動作",
                         "quit_header": "残っている VRChat プロセスを終了",
                         "quit_description": "VRChat の終了後も動作している VRChat プロセスを閉じます。",
-                        "deep_links": "VRCX-0 の共有リンク",
-                        "deep_link_registration": "Windows で共有リンクを開く",
-                        "deep_link_registered": "この Windows ユーザーでは、VRCX-0 の共有リンクが VRCX-0 で開くように設定されています。",
-                        "deep_link_not_registered": "この Windows ユーザーでは、VRCX-0 の共有リンクを開く設定が見つからないか、正しくありません。",
-                        "deep_link_repair": "リンクを開く設定を修復",
+                        "deep_link_registration": "共有リンクを VRCX-0 で開く",
+                        "deep_link_registered": "このユーザーでは、VRCX-0 の共有リンクが VRCX-0 で開くように設定されています。",
+                        "deep_link_not_registered": "このシステムでは、VRCX-0 の共有リンクを開く設定が見つからないか、正しくありません。",
+                        "deep_link_repair": "修復",
                         "deep_link_repair_success": "共有リンクを開く設定を修復しました",
                         "deep_link_repair_failed": "共有リンクを開く設定を修復できませんでした"
                     },

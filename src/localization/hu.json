@@ -180,7 +180,8 @@
                     "title": "Gyűjtemény megosztva",
                     "description": "{count} világ készen áll a megosztásra.",
                     "ready": "A megosztási oldal elkészült",
-                    "skipped": "{count} nem elérhető vagy nem nyilvános világ kimaradt."
+                    "skipped": "{count} nem elérhető vagy nem nyilvános világ kimaradt.",
+                    "skipped_incomplete": "A(z) {world} világ hiányos kötelező adatok miatt kimaradt."
                 },
                 "coachmark": {
                     "title": "Világgyűjtemények megosztása",
@@ -548,11 +549,10 @@
                         "header": "A VRChat működése",
                         "quit_header": "Megmaradt VRChat-folyamatok bezárása",
                         "quit_description": "A VRChat kilépése után zárja be a még futó VRChat-folyamatokat.",
-                        "deep_links": "A VRCX-0 megosztási hivatkozásainak megnyitása",
                         "deep_link_registration": "Megosztási hivatkozások megnyitása a VRCX-0-val",
-                        "deep_link_registered": "Ennél a Windows-felhasználónál a VRCX-0 megosztási hivatkozásai megnyithatók a VRCX-0-val.",
-                        "deep_link_not_registered": "A Windows nincs beállítva arra, hogy a VRCX-0 megosztási hivatkozásait a VRCX-0-val nyissa meg, vagy az alkalmazás helye érvénytelen.",
-                        "deep_link_repair": "Hivatkozások megnyitásának javítása",
+                        "deep_link_registered": "Ennél a felhasználónál a VRCX-0 megosztási hivatkozásai megnyithatók a VRCX-0-val.",
+                        "deep_link_not_registered": "A rendszer nincs beállítva arra, hogy a VRCX-0 megosztási hivatkozásait a VRCX-0-val nyissa meg, vagy az alkalmazás helye érvénytelen.",
+                        "deep_link_repair": "Javítás",
                         "deep_link_repair_success": "A VRCX-0 megosztási hivatkozásai mostantól megnyithatók a VRCX-0-val",
                         "deep_link_repair_failed": "Nem sikerült megjavítani a VRCX-0 megosztási hivatkozásainak megnyitását"
                     },

@@ -1053,7 +1053,8 @@
                     "title": "Collection partagée",
                     "description": "{count} mondes sont prêts à être partagés.",
                     "ready": "Votre page de partage est prête",
-                    "skipped": "{count} mondes indisponibles ou non publics n’ont pas été inclus."
+                    "skipped": "{count} mondes indisponibles ou non publics n’ont pas été inclus.",
+                    "skipped_incomplete": "{world} a été ignoré, car des informations obligatoires sont manquantes."
                 },
                 "coachmark": {
                     "title": "Partager des collections de mondes",
@@ -2137,11 +2138,10 @@
                         "header": "Comportement de VRChat",
                         "quit_header": "Fermer les processus VRChat restants",
                         "quit_description": "Après la fermeture de VRChat, fermer les processus VRChat encore actifs.",
-                        "deep_links": "Ouverture des liens VRCX-0",
-                        "deep_link_registration": "Liens VRCX-0 dans Windows",
-                        "deep_link_registered": "Les liens VRCX-0 s’ouvrent avec VRCX-0 pour ce compte Windows.",
-                        "deep_link_not_registered": "Le réglage Windows permettant d’ouvrir les liens VRCX-0 est absent ou pointe vers une installation non valide.",
-                        "deep_link_repair": "Réparer l’ouverture des liens",
+                        "deep_link_registration": "Ouvrir les liens VRCX-0",
+                        "deep_link_registered": "Les liens VRCX-0 s’ouvrent avec VRCX-0 pour ce compte.",
+                        "deep_link_not_registered": "Le réglage système permettant d’ouvrir les liens VRCX-0 est absent ou pointe vers une installation non valide.",
+                        "deep_link_repair": "Réparer",
                         "deep_link_repair_success": "L’ouverture des liens VRCX-0 a été réparée",
                         "deep_link_repair_failed": "Impossible de réparer l’ouverture des liens VRCX-0"
                     },

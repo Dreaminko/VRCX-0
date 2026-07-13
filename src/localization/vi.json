@@ -180,7 +180,8 @@
                     "title": "Đã chia sẻ bộ sưu tập",
                     "description": "Có {count} thế giới sẵn sàng để chia sẻ.",
                     "ready": "Trang chia sẻ của bạn đã sẵn sàng",
-                    "skipped": "Không bao gồm {count} thế giới không khả dụng hoặc không công khai."
+                    "skipped": "Không bao gồm {count} thế giới không khả dụng hoặc không công khai.",
+                    "skipped_incomplete": "Đã bỏ qua {world} vì thiếu thông tin bắt buộc."
                 },
                 "coachmark": {
                     "title": "Chia sẻ bộ sưu tập thế giới",
@@ -548,11 +549,10 @@
                         "header": "Hoạt động của VRChat",
                         "quit_header": "Đóng các tiến trình VRChat còn sót lại",
                         "quit_description": "Sau khi VRChat thoát, đóng mọi tiến trình VRChat vẫn còn chạy.",
-                        "deep_links": "Mở liên kết chia sẻ VRCX-0",
                         "deep_link_registration": "Mở liên kết chia sẻ bằng VRCX-0",
-                        "deep_link_registered": "Người dùng Windows này đã có thể mở liên kết chia sẻ VRCX-0 bằng VRCX-0.",
-                        "deep_link_not_registered": "Windows chưa được thiết lập để mở liên kết chia sẻ VRCX-0 bằng VRCX-0, hoặc vị trí ứng dụng không hợp lệ.",
-                        "deep_link_repair": "Sửa cách mở liên kết",
+                        "deep_link_registered": "Người dùng này đã có thể mở liên kết chia sẻ VRCX-0 bằng VRCX-0.",
+                        "deep_link_not_registered": "Hệ thống chưa được thiết lập để mở liên kết chia sẻ VRCX-0 bằng VRCX-0, hoặc vị trí ứng dụng không hợp lệ.",
+                        "deep_link_repair": "Sửa",
                         "deep_link_repair_success": "Giờ đây có thể mở liên kết chia sẻ VRCX-0 bằng VRCX-0",
                         "deep_link_repair_failed": "Không thể sửa cách mở liên kết chia sẻ VRCX-0"
                     },

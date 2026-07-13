@@ -1053,7 +1053,8 @@
                     "title": "Sammlung geteilt",
                     "description": "{count} Welten können jetzt geteilt werden.",
                     "ready": "Deine Freigabeseite ist bereit",
-                    "skipped": "{count} nicht verfügbare oder nicht öffentliche Welten wurden nicht aufgenommen."
+                    "skipped": "{count} nicht verfügbare oder nicht öffentliche Welten wurden nicht aufgenommen.",
+                    "skipped_incomplete": "{world} wurde übersprungen, weil erforderliche Informationen fehlen."
                 },
                 "coachmark": {
                     "title": "Weltsammlungen teilen",
@@ -2137,11 +2138,10 @@
                         "header": "VRChat-Verhalten",
                         "quit_header": "Verbliebene VRChat-Prozesse schließen",
                         "quit_description": "Nach dem Beenden von VRChat noch laufende VRChat-Prozesse schließen.",
-                        "deep_links": "VRCX-0-Links öffnen",
-                        "deep_link_registration": "VRCX-0-Links in Windows",
-                        "deep_link_registered": "VRCX-0-Links werden für dieses Windows-Benutzerkonto mit VRCX-0 geöffnet.",
-                        "deep_link_not_registered": "Die Windows-Einstellung zum Öffnen von VRCX-0-Links fehlt oder verweist auf eine ungültige Installation.",
-                        "deep_link_repair": "Öffnen von Links reparieren",
+                        "deep_link_registration": "VRCX-0-Links öffnen",
+                        "deep_link_registered": "VRCX-0-Links werden für dieses Benutzerkonto mit VRCX-0 geöffnet.",
+                        "deep_link_not_registered": "Die Systemeinstellung zum Öffnen von VRCX-0-Links fehlt oder verweist auf eine ungültige Installation.",
+                        "deep_link_repair": "Reparieren",
                         "deep_link_repair_success": "Das Öffnen von VRCX-0-Links wurde repariert",
                         "deep_link_repair_failed": "Das Öffnen von VRCX-0-Links konnte nicht repariert werden"
                     },

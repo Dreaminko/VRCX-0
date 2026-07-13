@@ -1053,7 +1053,8 @@
                     "title": "合集已分享",
                     "description": "已有 {count} 個世界可供分享。",
                     "ready": "分享頁面已準備完成",
-                    "skipped": "有 {count} 個無法使用或非公開的世界未被加入。"
+                    "skipped": "有 {count} 個無法使用或非公開的世界未被加入。",
+                    "skipped_incomplete": "{world} 因資訊不完整而被略過。"
                 },
                 "coachmark": {
                     "title": "分享世界收藏合集",
@@ -2137,11 +2138,10 @@
                         "header": "VRChat 行為",
                         "quit_header": "關閉殘留的 VRChat 處理程序",
                         "quit_description": "VRChat 結束後，關閉仍在執行的 VRChat 處理程序。",
-                        "deep_links": "VRCX-0 分享連結",
-                        "deep_link_registration": "在 Windows 中開啟分享連結",
-                        "deep_link_registered": "目前的 Windows 使用者已設定為使用 VRCX-0 開啟分享連結。",
-                        "deep_link_not_registered": "目前的 Windows 使用者缺少使用 VRCX-0 開啟分享連結的設定，或該設定無效。",
-                        "deep_link_repair": "修復連結開啟設定",
+                        "deep_link_registration": "開啟 VRCX-0 分享連結",
+                        "deep_link_registered": "目前的使用者已設定為使用 VRCX-0 開啟分享連結。",
+                        "deep_link_not_registered": "目前的系統缺少使用 VRCX-0 開啟分享連結的設定，或該設定無效。",
+                        "deep_link_repair": "修復",
                         "deep_link_repair_success": "已修復分享連結的開啟設定",
                         "deep_link_repair_failed": "無法修復分享連結的開啟設定"
                     },

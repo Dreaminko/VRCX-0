@@ -1055,7 +1055,8 @@
                     "title": "Sbírka sdílena",
                     "description": "Ke sdílení je připraveno {count} světů.",
                     "ready": "Sdílená stránka je připravena",
-                    "skipped": "{count} nedostupných nebo neveřejných světů nebylo zahrnuto."
+                    "skipped": "{count} nedostupných nebo neveřejných světů nebylo zahrnuto.",
+                    "skipped_incomplete": "Svět {world} byl přeskočen, protože mu chybí povinné údaje."
                 },
                 "coachmark": {
                     "title": "Sdílení sbírek světů",
@@ -2139,11 +2140,10 @@
                         "header": "Chování VRChatu",
                         "quit_header": "Ukončit zbývající procesy VRChatu",
                         "quit_description": "Po ukončení VRChatu zavře všechny procesy VRChatu, které stále běží.",
-                        "deep_links": "Otevírání odkazů VRCX-0",
-                        "deep_link_registration": "Odkazy VRCX-0 ve Windows",
-                        "deep_link_registered": "Odkazy VRCX-0 se v tomto uživatelském účtu Windows otevírají v aplikaci VRCX-0.",
-                        "deep_link_not_registered": "Nastavení Windows pro otevírání odkazů VRCX-0 chybí nebo odkazuje na neplatnou instalaci.",
-                        "deep_link_repair": "Opravit otevírání odkazů",
+                        "deep_link_registration": "Otevírání odkazů VRCX-0",
+                        "deep_link_registered": "Odkazy VRCX-0 se pro tohoto uživatele otevírají v aplikaci VRCX-0.",
+                        "deep_link_not_registered": "Nastavení systému pro otevírání odkazů VRCX-0 chybí nebo odkazuje na neplatnou instalaci.",
+                        "deep_link_repair": "Opravit",
                         "deep_link_repair_success": "Otevírání odkazů VRCX-0 bylo opraveno",
                         "deep_link_repair_failed": "Otevírání odkazů VRCX-0 se nepodařilo opravit"
                     },

@@ -1053,7 +1053,8 @@
                     "title": "Colección compartida",
                     "description": "Hay {count} mundos listos para compartir.",
                     "ready": "Tu página compartida está lista",
-                    "skipped": "No se incluyeron {count} mundos no disponibles o no públicos."
+                    "skipped": "No se incluyeron {count} mundos no disponibles o no públicos.",
+                    "skipped_incomplete": "Se omitió {world} porque faltan datos obligatorios."
                 },
                 "coachmark": {
                     "title": "Compartir colecciones de mundos",
@@ -2137,11 +2138,10 @@
                         "header": "Comportamiento de VRChat",
                         "quit_header": "Cerrar procesos restantes de VRChat",
                         "quit_description": "Después de cerrar VRChat, cierra cualquier proceso de VRChat que siga en ejecución.",
-                        "deep_links": "Apertura de enlaces de VRCX-0",
-                        "deep_link_registration": "Enlaces de VRCX-0 en Windows",
-                        "deep_link_registered": "Los enlaces de VRCX-0 se abren con VRCX-0 para este usuario de Windows.",
-                        "deep_link_not_registered": "Falta la configuración de Windows para abrir los enlaces de VRCX-0 o apunta a una instalación no válida.",
-                        "deep_link_repair": "Reparar la apertura de enlaces",
+                        "deep_link_registration": "Abrir enlaces de VRCX-0",
+                        "deep_link_registered": "Los enlaces de VRCX-0 se abren con VRCX-0 para este usuario.",
+                        "deep_link_not_registered": "Falta la configuración del sistema para abrir los enlaces de VRCX-0 o apunta a una instalación no válida.",
+                        "deep_link_repair": "Reparar",
                         "deep_link_repair_success": "Se ha reparado la apertura de enlaces de VRCX-0",
                         "deep_link_repair_failed": "No se pudo reparar la apertura de enlaces de VRCX-0"
                     },

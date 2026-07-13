@@ -11,6 +11,10 @@ import { SettingsAdvancedTab } from './SettingsAdvancedTab';
 import type { SettingsAdvancedModel } from './settingsAdvancedTypes';
 
 const labels: Record<string, string> = {
+    'view.settings.advanced.advanced_ui.behavior.deep_links':
+        'Open VRCX-0 from links',
+    'view.settings.advanced.advanced_ui.behavior.deep_link_registration':
+        'Open VRCX-0 links',
     'view.settings.advanced.advanced_ui.storage.change_folder':
         'Change folder…',
     'view.settings.advanced.advanced_ui.storage.more':
@@ -21,8 +25,7 @@ const labels: Record<string, string> = {
         'default directory',
     'view.settings.advanced.advanced.data_directory.source_persisted':
         'custom directory',
-    'view.settings.advanced.advanced_ui.behavior.deep_link_repair':
-        'Repair registration'
+    'view.settings.advanced.advanced_ui.behavior.deep_link_repair': 'Fix'
 };
 
 const commandMocks = vi.hoisted(() => ({
@@ -131,7 +134,7 @@ describe('SettingsAdvancedTab data directory states', () => {
         );
     });
 
-    it('keeps the repair action available when registration status fails', async () => {
+    it('shows the cross-platform Fix action without a separate heading', async () => {
         commandMocks.appDeepLinkRegistrationStatus.mockRejectedValueOnce(
             new Error('registry value is malformed')
         );
@@ -140,9 +143,11 @@ describe('SettingsAdvancedTab data directory states', () => {
 
         expect(
             await screen.findByRole('button', {
-                name: 'Repair registration'
+                name: 'Fix'
             })
         ).not.toBeNull();
+        expect(screen.getByText('Open VRCX-0 links')).not.toBeNull();
+        expect(screen.queryByText('Open VRCX-0 from links')).toBeNull();
     });
 
     it('keeps the repair action hidden on unsupported platforms', async () => {
@@ -155,7 +160,7 @@ describe('SettingsAdvancedTab data directory states', () => {
         });
         expect(
             screen.queryByRole('button', {
-                name: 'Repair registration'
+                name: 'Fix'
             })
         ).toBeNull();
     });

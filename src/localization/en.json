@@ -1053,7 +1053,8 @@
                     "title": "Collection shared",
                     "description": "{count} worlds are ready to share.",
                     "ready": "Your share page is ready",
-                    "skipped": "{count} unavailable or non-public worlds were not included."
+                    "skipped": "{count} unavailable or non-public worlds were not included.",
+                    "skipped_incomplete": "{world} was skipped because required information is missing."
                 },
                 "coachmark": {
                     "title": "Share world collections",
@@ -2137,11 +2138,10 @@
                         "header": "VRChat behavior",
                         "quit_header": "Close lingering VRChat processes",
                         "quit_description": "After VRChat exits, close any VRChat processes that are still running.",
-                        "deep_links": "Open VRCX-0 from links",
-                        "deep_link_registration": "Open VRCX-0 links in Windows",
-                        "deep_link_registered": "VRCX-0 links are set to open in VRCX-0 for this Windows user.",
-                        "deep_link_not_registered": "Windows is not set up to open VRCX-0 links, or the setup points to an invalid installation.",
-                        "deep_link_repair": "Fix link opening",
+                        "deep_link_registration": "Open VRCX-0 links",
+                        "deep_link_registered": "VRCX-0 links are set to open in VRCX-0 for this user.",
+                        "deep_link_not_registered": "This system is not set up to open VRCX-0 links, or the setup points to an invalid installation.",
+                        "deep_link_repair": "Fix",
                         "deep_link_repair_success": "VRCX-0 links can now be opened",
                         "deep_link_repair_failed": "Could not fix VRCX-0 link opening"
                     },

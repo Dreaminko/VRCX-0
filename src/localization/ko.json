@@ -1024,7 +1024,8 @@
                     "title": "컬렉션을 공유했습니다",
                     "description": "월드 {count}개를 공유할 수 있습니다.",
                     "ready": "공유 페이지가 준비되었습니다",
-                    "skipped": "사용할 수 없거나 비공개인 월드 {count}개는 포함되지 않았습니다."
+                    "skipped": "사용할 수 없거나 비공개인 월드 {count}개는 포함되지 않았습니다.",
+                    "skipped_incomplete": "{world}은(는) 필수 정보가 없어 건너뛰었습니다."
                 },
                 "coachmark": {
                     "title": "월드 컬렉션 공유",
@@ -2082,11 +2083,10 @@
                         "header": "VRChat 동작",
                         "quit_header": "남아 있는 VRChat 프로세스 종료",
                         "quit_description": "VRChat 종료 후에도 실행 중인 VRChat 프로세스를 닫습니다.",
-                        "deep_links": "VRCX-0 공유 링크",
-                        "deep_link_registration": "Windows에서 공유 링크 열기",
-                        "deep_link_registered": "현재 Windows 사용자 계정에서는 VRCX-0 공유 링크가 VRCX-0으로 열립니다.",
-                        "deep_link_not_registered": "현재 Windows 사용자 계정에 VRCX-0 공유 링크를 여는 설정이 없거나, 설정이 올바르지 않습니다.",
-                        "deep_link_repair": "링크 열기 설정 복구",
+                        "deep_link_registration": "VRCX-0으로 공유 링크 열기",
+                        "deep_link_registered": "현재 사용자 계정에서는 VRCX-0 공유 링크가 VRCX-0으로 열립니다.",
+                        "deep_link_not_registered": "현재 시스템에 VRCX-0 공유 링크를 여는 설정이 없거나, 설정이 올바르지 않습니다.",
+                        "deep_link_repair": "복구",
                         "deep_link_repair_success": "공유 링크 열기 설정을 복구했습니다",
                         "deep_link_repair_failed": "공유 링크 열기 설정을 복구하지 못했습니다"
                     },
