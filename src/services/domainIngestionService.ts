@@ -186,10 +186,15 @@ function recordGameRuntimePresence({
     for (const player of Array.isArray(currentLocationPlayers)
         ? currentLocationPlayers
         : []) {
-        recordKnownUser(record(player), {
-            endpoint,
-            source: 'playerSnapshot'
-        });
+        const source = record(player);
+        const playerUserId = text(source.userId || source.user_id);
+        recordKnownUser(
+            { ...source, id: playerUserId, userId: playerUserId },
+            {
+                endpoint,
+                source: 'playerSnapshot'
+            }
+        );
     }
 }
 

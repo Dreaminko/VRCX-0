@@ -120,6 +120,18 @@ export function buildWorldDialogDisplayInstanceRows({
               )
             : '';
     const currentInstanceOwnerIsGroup = isGroupId(currentInstanceOwnerId);
+    const snapshotPlayers = (
+        Array.isArray(playerSnapshot.players) ? playerSnapshot.players : []
+    ).map((player) => {
+        const source = record(player);
+        const userId = firstText(source.userId, source.user_id);
+        return {
+            id: userId,
+            userId,
+            displayName: firstText(source.displayName, source.display_name),
+            joinedAt: firstText(source.joinedAt, source.joined_at)
+        };
+    });
     const currentInstanceRow: WorldDialogInstanceRow | null =
         parsedCurrentInstanceLocation?.worldId &&
         parsedCurrentInstanceLocation?.instanceId
@@ -149,7 +161,7 @@ export function buildWorldDialogDisplayInstanceRows({
                       currentInstance.userList,
                       currentInstance.userIds,
                       currentInstance.usersById,
-                      playerSnapshot.players
+                      snapshotPlayers
                   ),
                   ref: currentInstanceDetailsForLocation.instance || null,
                   creatorUserId: currentInstanceOwnerIsGroup

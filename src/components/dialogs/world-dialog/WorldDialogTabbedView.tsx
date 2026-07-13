@@ -761,11 +761,23 @@ export function WorldDialogTabbedView({
             .then(async ([instance, playerSnapshot]) => {
                 const playerSnapshotRecord = record(playerSnapshot);
                 const playerContext = record(playerSnapshotRecord.context);
-                const snapshotPlayers = Array.isArray(
-                    playerSnapshotRecord.players
-                )
-                    ? playerSnapshotRecord.players
-                    : [];
+                const snapshotPlayers = (
+                    Array.isArray(playerSnapshotRecord.players)
+                        ? playerSnapshotRecord.players
+                        : []
+                ).map((player) => {
+                    const source = record(player);
+                    const userId = firstText(source.userId, source.user_id);
+                    return {
+                        id: userId,
+                        userId,
+                        displayName: firstText(
+                            source.displayName,
+                            source.display_name
+                        ),
+                        joinedAt: firstText(source.joinedAt, source.joined_at)
+                    };
+                });
                 const instanceRecord = instance || {};
                 const ownerUserRecord = record(instanceRecord.ownerUser);
                 const ownerRecord = record(instanceRecord.owner);

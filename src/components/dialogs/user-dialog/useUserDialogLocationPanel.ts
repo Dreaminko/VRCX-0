@@ -394,11 +394,16 @@ export function useUserDialogLocationPanel({
                         playerSnapshotResult.status === 'fulfilled'
                             ? playerSnapshotResult.value
                             : null;
-                    const snapshotPlayers = Array.isArray(
-                        playerSnapshot?.players
-                    )
-                        ? playerSnapshot.players
-                        : [];
+                    const snapshotPlayers = (
+                        Array.isArray(playerSnapshot?.players)
+                            ? playerSnapshot.players
+                            : []
+                    ).map((player) => ({
+                        id: player.userId,
+                        userId: player.userId,
+                        displayName: player.displayName,
+                        joinedAt: player.joinedAt
+                    }));
                     const instanceOwnerId = resolveOwnerId(
                         instance,
                         parsedLocation.userId,
@@ -489,7 +494,7 @@ export function useUserDialogLocationPanel({
                         (user) => mergeLocationUser(rowsById, user)
                     );
 
-                    for (const player of playerSnapshot?.players || []) {
+                    for (const player of snapshotPlayers) {
                         const playerId = normalizeUserId(
                             player.userId || player.id
                         );
