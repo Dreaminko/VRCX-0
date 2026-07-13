@@ -201,6 +201,7 @@ impl RuntimeHostState {
             vr_overlay_runtime
                 .set_friends_panel_snapshot_provider(move || realtime_runtime.friend_snapshot());
         }
+        runtime_context.set_realtime_user_image_resolver(Arc::clone(&realtime_runtime));
         let session_runtime = Arc::new(SessionHostRuntime::new(
             runtime_context.session.clone(),
             runtime_context.event_bus.clone(),

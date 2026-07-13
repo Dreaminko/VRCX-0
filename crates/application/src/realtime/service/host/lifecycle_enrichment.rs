@@ -119,6 +119,15 @@ impl RealtimeHostRuntime {
         user_notification_image_url(&Value::Object(user), allow_user_icon)
     }
 
+    pub fn cached_user_notification_image_url(
+        &self,
+        endpoint: &str,
+        user_id: &str,
+        allow_user_icon: bool,
+    ) -> Option<String> {
+        self.cached_user_image_url(endpoint, user_id, allow_user_icon)
+    }
+
     fn enrich_notification_image(
         &self,
         endpoint: &str,

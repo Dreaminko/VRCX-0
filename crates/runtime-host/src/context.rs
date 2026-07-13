@@ -14,6 +14,7 @@ use vrcx_0_application::OverlayActivitySnapshot;
 use vrcx_0_application::OverlayActivitySurface;
 use vrcx_0_application::OverlayActivitySurfaceFilters;
 use vrcx_0_application::PrintCleanupQueue;
+use vrcx_0_application::RealtimeHostRuntime;
 use vrcx_0_application::RuntimeAuthScope;
 use vrcx_0_application::RuntimeBackgroundJobs;
 use vrcx_0_application::RuntimeDiagnostics;
@@ -29,12 +30,18 @@ use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::host_actions::RuntimeHost;
+use crate::notification::image_file::{
+    extract_file_id, extract_file_version, fallback_file_version,
+};
+use crate::notification::user_image::normalize_avatar_image_url_128;
 use crate::notification::{
     DesktopNotifier, DesktopNotifierSlot, NotificationDispatcher, NotificationDispatcherDeps,
+    RealtimeUserImageResolverSlot,
 };
 
 const WORLD_CACHE_WORKING_CAPACITY: u64 = 512;
 const WORLD_CACHE_WORKING_TTL: Duration = Duration::from_secs(30 * 60);
+const AVATAR_PREFETCH_MAX_PATCHES: usize = 8;
 
 #[derive(Clone)]
 struct OverlayActivityRuntimeEventSink {
@@ -92,6 +99,7 @@ pub struct RuntimeHostContext {
     pub config: ConfigRepository,
     pub tts: Arc<dyn TtsEngine>,
     notification_desktop_notifier: DesktopNotifierSlot,
+    realtime_user_image_resolver: RealtimeUserImageResolverSlot,
     overlay_activity_extra_sinks: Arc<Mutex<Vec<Arc<dyn OverlayActivitySink>>>>,
     game_log_snapshot: Arc<Mutex<RuntimeSnapshot>>,
     now_playing: Arc<Mutex<Value>>,
@@ -116,6 +124,7 @@ impl RuntimeHostContext {
         ));
         let tts: Arc<dyn TtsEngine> = Arc::new(SystemTtsEngine::new());
         let notification_desktop_notifier = DesktopNotifierSlot::default();
+        let realtime_user_image_resolver = RealtimeUserImageResolverSlot::default();
         let notification_sink: Arc<dyn OverlayActivitySink> =
             Arc::new(NotificationDispatcher::new(NotificationDispatcherDeps {
                 session: session.clone(),
@@ -124,6 +133,7 @@ impl RuntimeHostContext {
                 image_cache: Arc::clone(&image_cache),
                 web: Arc::clone(&web),
                 world_cache: Arc::clone(&world_cache),
+                realtime_user_image_resolver: realtime_user_image_resolver.clone(),
                 desktop: Arc::new(notification_desktop_notifier.clone()),
                 tts: Arc::clone(&tts),
                 diagnostics: diagnostics.clone(),
@@ -156,6 +166,7 @@ impl RuntimeHostContext {
             config,
             tts,
             notification_desktop_notifier,
+            realtime_user_image_resolver,
             overlay_activity_extra_sinks: Arc::new(Mutex::new(vec![notification_sink])),
             game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
             now_playing: Arc::new(Mutex::new(default_now_playing_value())),
@@ -183,6 +194,10 @@ impl RuntimeHostContext {
 
     pub fn set_notification_desktop_notifier(&self, desktop: Arc<dyn DesktopNotifier>) {
         self.notification_desktop_notifier.set(desktop);
+    }
+
+    pub fn set_realtime_user_image_resolver(&self, realtime_runtime: Arc<RealtimeHostRuntime>) {
+        self.realtime_user_image_resolver.set(realtime_runtime);
     }
 
     fn refresh_overlay_activity_sinks(&self) {
@@ -221,10 +236,14 @@ impl RuntimeHostContext {
     }
 
     pub fn observe_runtime_event(&self, event: &str, payload: &Value) {
-        if event != "gameLogSideEffect" {
-            return;
+        match event {
+            "gameLogSideEffect" => self.observe_game_log_side_effect(payload),
+            "realtimeFriendProjection" => self.prefetch_online_friend_avatars(payload),
+            _ => {}
         }
+    }
 
+    fn observe_game_log_side_effect(&self, payload: &Value) {
         let kind = payload
             .get("kind")
             .and_then(Value::as_str)
@@ -259,6 +278,63 @@ impl RuntimeHostContext {
                 }
             },
             _ => {}
+        }
+    }
+
+    fn prefetch_online_friend_avatars(&self, payload: &Value) {
+        let Some(patches) = payload.get("patches").and_then(Value::as_array) else {
+            return;
+        };
+        if patches.len() > AVATAR_PREFETCH_MAX_PATCHES {
+            return;
+        }
+        let Some(endpoint) = self
+            .session
+            .snapshot()
+            .realtime_context
+            .map(|context| context.endpoint)
+            .filter(|endpoint| !endpoint.is_empty())
+        else {
+            return;
+        };
+        let allow_user_icon = self
+            .config
+            .get_bool("displayVRCPlusIconsAsAvatar", true)
+            .unwrap_or(true);
+        for patch in patches {
+            let state_bucket = patch
+                .get("stateBucket")
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+            if state_bucket != "online" {
+                continue;
+            }
+            let user_id = patch
+                .get("userId")
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+            if !user_id.starts_with("usr_") {
+                continue;
+            }
+            let Some(raw_url) =
+                self.realtime_user_image_resolver
+                    .cached_url(&endpoint, user_id, allow_user_icon)
+            else {
+                continue;
+            };
+            let normalized = normalize_avatar_image_url_128(&raw_url, &endpoint);
+            let Some(file_id) = extract_file_id(&normalized) else {
+                continue;
+            };
+            let version = extract_file_version(&normalized, &file_id)
+                .unwrap_or_else(|| fallback_file_version(&normalized));
+            if version.is_empty() {
+                continue;
+            }
+            let image_cache = Arc::clone(&self.image_cache);
+            self.tasks.spawn(async move {
+                let _ = image_cache.get_image(&normalized, &file_id, &version).await;
+            });
         }
     }
 }

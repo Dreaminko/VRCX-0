@@ -548,6 +548,45 @@ fn unresolved_person_location_notification_persists_without_runtime_projection()
 }
 
 #[test]
+fn cached_user_notification_image_url_returns_none_before_cache_populated() -> Result<()> {
+    let (_dir, runtime, _active_session) =
+        runtime_with_active_session("cached-user-image-url-miss")?;
+
+    assert_eq!(
+        runtime.cached_user_notification_image_url(&runtime.active_endpoint(), "usr_target", true),
+        None
+    );
+    Ok(())
+}
+
+#[test]
+fn cached_user_notification_image_url_reads_realtime_cache_hit() -> Result<()> {
+    let (_dir, runtime, _active_session) =
+        runtime_with_active_session("cached-user-image-url-hit")?;
+    runtime.ingest_user_facts(vec![json!({
+        "user": {
+            "id": "usr_target",
+            "displayName": "Target",
+            "userIcon": "https://images.example/user-icon.png",
+            "profilePicOverride": "https://images.example/profile.png"
+        },
+        "source": "test",
+        "isFriend": false
+    })]);
+    let endpoint = runtime.active_endpoint();
+
+    assert_eq!(
+        runtime.cached_user_notification_image_url(&endpoint, "usr_target", true),
+        Some("https://images.example/user-icon.png".into())
+    );
+    assert_eq!(
+        runtime.cached_user_notification_image_url(&endpoint, "usr_target", false),
+        Some("https://images.example/profile.png".into())
+    );
+    Ok(())
+}
+
+#[test]
 fn notification_v2_update_sanitizes_id_like_names_before_persistence() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("notification-update-sanitize")?;

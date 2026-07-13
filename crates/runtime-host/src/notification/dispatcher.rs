@@ -2,7 +2,8 @@ use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use vrcx_0_application::{
     HostSessionRuntime, ImageCache, OverlayActivityDelivery, OverlayActivitySink,
-    OverlayActivitySnapshot, RuntimeDiagnostics, TaskSupervisor, WebClient, WorldCache,
+    OverlayActivitySnapshot, RealtimeHostRuntime, RuntimeDiagnostics, TaskSupervisor, WebClient,
+    WorldCache,
 };
 use vrcx_0_core::location::{format_display_location, is_meaningful_world_name, parse_location};
 use vrcx_0_host::overlay_notifications::{send_xs_notification, OvrToolkit};
@@ -11,10 +12,10 @@ use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 
 use super::discord::{build_discord_payload, DiscordDeps};
-use super::image_file::extract_file_id;
+use super::image_file::{extract_file_id, extract_file_version, fallback_file_version};
 use super::rendered::RenderedNotification;
 use super::webhook::send_json_webhook_with_retry;
-use crate::notification::user_image::UserImageCache;
+use crate::notification::user_image::{normalize_avatar_image_url_128, UserImageCache};
 use crate::vr_overlay::{OverlayLocale, OverlayLocalizer};
 
 const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
@@ -178,6 +179,34 @@ impl DesktopNotifier for DesktopNotifierSlot {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct RealtimeUserImageResolverSlot {
+    inner: Arc<Mutex<Option<Arc<RealtimeHostRuntime>>>>,
+}
+
+impl RealtimeUserImageResolverSlot {
+    pub fn set(&self, runtime: Arc<RealtimeHostRuntime>) {
+        match self.inner.lock() {
+            Ok(mut slot) => {
+                *slot = Some(runtime);
+            }
+            Err(error) => {
+                tracing::warn!("failed to set realtime user image resolver bridge: {error}");
+            }
+        }
+    }
+
+    pub(crate) fn cached_url(
+        &self,
+        endpoint: &str,
+        user_id: &str,
+        allow_user_icon: bool,
+    ) -> Option<String> {
+        let runtime = self.inner.lock().ok()?.clone()?;
+        runtime.cached_user_notification_image_url(endpoint, user_id, allow_user_icon)
+    }
+}
+
 pub struct NotificationDispatcher {
     session: HostSessionRuntime,
     config: ConfigRepository,
@@ -187,6 +216,7 @@ pub struct NotificationDispatcher {
     web: Arc<WebClient>,
     world_cache: Arc<WorldCache>,
     user_image_cache: Arc<UserImageCache>,
+    realtime_user_image_resolver: RealtimeUserImageResolverSlot,
     desktop: Arc<dyn DesktopNotifier>,
     tts: Arc<dyn TtsEngine>,
     diagnostics: RuntimeDiagnostics,
@@ -200,6 +230,7 @@ pub struct NotificationDispatcherDeps {
     pub image_cache: Arc<ImageCache>,
     pub web: Arc<WebClient>,
     pub world_cache: Arc<WorldCache>,
+    pub realtime_user_image_resolver: RealtimeUserImageResolverSlot,
     pub desktop: Arc<dyn DesktopNotifier>,
     pub tts: Arc<dyn TtsEngine>,
     pub diagnostics: RuntimeDiagnostics,
@@ -217,6 +248,7 @@ impl NotificationDispatcher {
             web: deps.web,
             world_cache: deps.world_cache,
             user_image_cache: Arc::new(UserImageCache::new()),
+            realtime_user_image_resolver: deps.realtime_user_image_resolver,
             desktop: deps.desktop,
             tts: deps.tts,
             diagnostics: deps.diagnostics,
@@ -250,6 +282,7 @@ impl OverlayActivitySink for NotificationDispatcher {
         let web = Arc::clone(&self.web);
         let db = Arc::clone(&self.db);
         let user_image_cache = Arc::clone(&self.user_image_cache);
+        let realtime_user_image_resolver = self.realtime_user_image_resolver.clone();
         let allow_user_icon = config_bool(&self.config, "displayVRCPlusIconsAsAvatar", true);
         let desktop = Arc::clone(&self.desktop);
         let tts = Arc::clone(&self.tts);
@@ -257,14 +290,17 @@ impl OverlayActivitySink for NotificationDispatcher {
 
         self.tasks.spawn(async move {
             let mut delivery = delivery;
-            resolve_delivery_world_name(
+            let needs_local_image = preferences.image_notifications && plan.needs_local_image();
+            let world_name_result = resolve_delivery_world_name(
                 world_cache.as_ref(),
                 web.as_ref(),
                 &endpoint,
-                &mut delivery,
-            )
-            .await;
-            if preferences.image_notifications && plan.needs_local_image() {
+                &delivery,
+            );
+            let actor_image_result = async {
+                if !needs_local_image {
+                    return None;
+                }
                 resolve_delivery_actor_image(
                     user_image_cache.as_ref(),
                     web.as_ref(),
@@ -272,9 +308,21 @@ impl OverlayActivitySink for NotificationDispatcher {
                     &endpoint,
                     allow_user_icon,
                     &current_user_id,
-                    &mut delivery,
+                    &realtime_user_image_resolver,
+                    &delivery,
                 )
-                .await;
+                .await
+            };
+            let (world_name_result, actor_image_result) =
+                tokio::join!(world_name_result, actor_image_result);
+            if let Some((world_name, display_location)) = world_name_result {
+                delivery.entry.content.world_name = world_name;
+                if !display_location.trim().is_empty() {
+                    delivery.entry.content.display_location = display_location;
+                }
+            }
+            if let Some(image_url) = actor_image_result {
+                delivery.entry.content.image_url = image_url;
             }
             let render = render_delivery(&delivery, locale);
             dispatch_rendered_notification(
@@ -410,10 +458,10 @@ async fn resolve_delivery_world_name(
     world_cache: &WorldCache,
     web: &WebClient,
     endpoint: &str,
-    delivery: &mut OverlayActivityDelivery,
-) {
+    delivery: &OverlayActivityDelivery,
+) -> Option<(String, String)> {
     if is_meaningful_world_name(&delivery.entry.content.world_name) {
-        return;
+        return None;
     }
     let world_id = {
         let content = &delivery.entry.content;
@@ -425,20 +473,16 @@ async fn resolve_delivery_world_name(
         }
     };
     if world_id.is_empty() {
-        return;
+        return None;
     }
-    let Some(name) = world_cache.resolve_name(web, endpoint, &world_id).await else {
-        return;
-    };
+    let name = world_cache.resolve_name(web, endpoint, &world_id).await?;
     let parsed = parse_location(&delivery.entry.content.location);
     let display_location =
         format_display_location(&parsed, &name, &delivery.entry.content.group_name);
-    delivery.entry.content.world_name = name;
-    if !display_location.trim().is_empty() {
-        delivery.entry.content.display_location = display_location;
-    }
+    Some((name, display_location))
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn resolve_delivery_actor_image(
     user_image_cache: &UserImageCache,
     web: &WebClient,
@@ -446,18 +490,19 @@ async fn resolve_delivery_actor_image(
     endpoint: &str,
     allow_user_icon: bool,
     current_user_id: &str,
-    delivery: &mut OverlayActivityDelivery,
-) {
-    let Some(actor_user_id) = delivery_actor_image_user_id(delivery, current_user_id) else {
-        return;
-    };
-    let Some(image_url) = user_image_cache
+    realtime_user_image_resolver: &RealtimeUserImageResolverSlot,
+    delivery: &OverlayActivityDelivery,
+) -> Option<String> {
+    let actor_user_id = delivery_actor_image_user_id(delivery, current_user_id)?;
+    if let Some(image_url) = realtime_user_image_resolver
+        .cached_url(endpoint, actor_user_id, allow_user_icon)
+        .map(|url| normalize_avatar_image_url_128(&url, endpoint))
+    {
+        return Some(image_url);
+    }
+    user_image_cache
         .resolve(web, db, endpoint, actor_user_id, allow_user_icon)
         .await
-    else {
-        return;
-    };
-    delivery.entry.content.image_url = image_url;
 }
 
 fn delivery_actor_image_user_id<'a>(
@@ -743,27 +788,6 @@ async fn resolve_local_image(image_cache: &ImageCache, image_url: &str) -> Optio
     image_cache.get_image(url, &file_id, &version).await.ok()
 }
 
-fn extract_file_version(value: &str, file_id: &str) -> Option<String> {
-    let marker = format!("/{file_id}/");
-    let start = value.find(&marker)? + marker.len();
-    let version = value[start..]
-        .chars()
-        .take_while(|ch| ch.is_ascii_digit())
-        .collect::<String>();
-    (!version.is_empty()).then_some(version)
-}
-
-fn fallback_file_version(value: &str) -> String {
-    value
-        .split('/')
-        .next_back()
-        .unwrap_or_default()
-        .split('?')
-        .next()
-        .unwrap_or_default()
-        .to_string()
-}
-
 async fn send_webhook_with_retry(
     discord_deps: &DiscordDeps<'_>,
     diagnostics: &RuntimeDiagnostics,
@@ -871,7 +895,10 @@ fn non_empty(value: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
-    use std::{path::PathBuf, sync::Arc};
+    use std::{
+        path::PathBuf,
+        sync::{Arc, Mutex},
+    };
 
     use serde_json::json;
     use vrcx_0_application::{
@@ -880,12 +907,14 @@ mod tests {
     };
     use vrcx_0_persistence::{config::ConfigRepository, memos::memo_save_user, DatabaseService};
 
+    use crate::notification::user_image::UserImageCache;
     use crate::vr_overlay::OverlayLocale;
 
     use super::{
         config_tts_name_mode, delivery_actor_image_user_id, generic_webhook_payload,
         notification_tts_text, overlay_notification_render, parse_webhook_fields, render_delivery,
-        NotificationDeliveryPreferences,
+        resolve_delivery_actor_image, NotificationDeliveryPreferences,
+        RealtimeUserImageResolverSlot,
     };
     use crate::notification::rendered::RenderedNotification;
 
@@ -1174,6 +1203,113 @@ mod tests {
         let dir = TestDir::new(name);
         let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap();
         (dir, db)
+    }
+
+    fn test_realtime_runtime(
+        name: &str,
+    ) -> (
+        TestDir,
+        Arc<vrcx_0_application::RealtimeHostRuntime>,
+        Arc<DatabaseService>,
+        Arc<vrcx_0_application::WebClient>,
+    ) {
+        let dir = TestDir::new(name);
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap());
+        let storage =
+            vrcx_0_persistence::storage::StorageService::new(&dir.path.join("storage.json"))
+                .unwrap();
+        let web = Arc::new(
+            vrcx_0_application::WebClient::new(
+                &storage,
+                db.as_ref(),
+                "wss://pipeline.vrchat.cloud".to_string(),
+                env!("CARGO_PKG_VERSION"),
+            )
+            .unwrap(),
+        );
+        let world_cache = Arc::new(vrcx_0_application::WorldCache::new(
+            Arc::clone(&db),
+            512,
+            std::time::Duration::from_secs(30 * 60),
+        ));
+        let runtime = Arc::new(vrcx_0_application::RealtimeHostRuntime::new(
+            vrcx_0_application::RealtimeHostRuntimeDeps {
+                db: Arc::clone(&db),
+                web: Arc::clone(&web),
+                event_bus: vrcx_0_application::RuntimeEventBus::new(),
+                sync: vrcx_0_application::RuntimeSyncEngine::new(),
+                tasks: vrcx_0_application::TaskSupervisor::new(),
+                session: vrcx_0_application::HostSessionRuntime::new(),
+                auth_scope: vrcx_0_application::RuntimeAuthScope::new(),
+                game_log_snapshot: Arc::new(Mutex::new(
+                    vrcx_0_application::RuntimeSnapshot::default(),
+                )),
+                overlay_activity: vrcx_0_application::OverlayActivityRuntime::default(),
+                world_cache,
+                print_cleanup: vrcx_0_application::PrintCleanupQueue::new(),
+                friend_note_change_sink: None,
+            },
+        ));
+        (dir, runtime, db, web)
+    }
+
+    #[tokio::test]
+    async fn resolve_delivery_actor_image_prefers_realtime_cache_over_api_fallback() {
+        let (_dir, runtime, db, web) = test_realtime_runtime("actor-image-cache-hit");
+        let endpoint = "https://api.vrchat.cloud/api/1";
+        runtime.record_user_profile(
+            endpoint,
+            &json!({
+                "id": "usr_traveler",
+                "displayName": "Traveler",
+                "userIcon": "https://api.vrchat.cloud/api/1/file/file_1234abcd-0000-1111-2222-abcdefabcdef/2/file",
+            }),
+        );
+        let resolver = RealtimeUserImageResolverSlot::default();
+        resolver.set(Arc::clone(&runtime));
+        let user_image_cache = UserImageCache::new();
+        let mut sample = delivery();
+        sample.entry.actor_user_id = "usr_traveler".into();
+
+        let image_url = resolve_delivery_actor_image(
+            &user_image_cache,
+            web.as_ref(),
+            db.as_ref(),
+            endpoint,
+            true,
+            "usr_self",
+            &resolver,
+            &sample,
+        )
+        .await;
+
+        assert_eq!(
+            image_url.as_deref(),
+            Some(
+                "https://api.vrchat.cloud/api/1/image/file_1234abcd-0000-1111-2222-abcdefabcdef/2/128"
+            )
+        );
+    }
+
+    #[tokio::test]
+    async fn resolve_delivery_actor_image_falls_back_to_none_when_uncached_and_endpoint_missing() {
+        let (_dir, _runtime, db, web) = test_realtime_runtime("actor-image-cache-miss");
+        let resolver = RealtimeUserImageResolverSlot::default();
+        let user_image_cache = UserImageCache::new();
+
+        let image_url = resolve_delivery_actor_image(
+            &user_image_cache,
+            web.as_ref(),
+            db.as_ref(),
+            "",
+            true,
+            "usr_self",
+            &resolver,
+            &delivery(),
+        )
+        .await;
+
+        assert_eq!(image_url, None);
     }
 
     fn text(

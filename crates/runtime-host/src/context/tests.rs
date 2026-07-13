@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use vrcx_0_application::{OverlayActivityScope, OverlayActivitySurface};
-use vrcx_0_persistence::DatabaseService;
+use vrcx_0_application::{ImageCache, OverlayActivityScope, OverlayActivitySurface, WebClient};
+use vrcx_0_persistence::{storage::StorageService, DatabaseService};
 
 use super::*;
 
@@ -228,4 +228,72 @@ fn backend_load_seeds_tts_filters_from_vr_when_desktop_is_off(
         OverlayActivityScope::Friends
     );
     Ok(())
+}
+
+fn test_context(name: &str) -> (TestDir, RuntimeHostContext) {
+    let dir = TestDir::new(name);
+    let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap());
+    let storage = StorageService::new(&dir.path.join("storage.json")).unwrap();
+    let web = Arc::new(
+        WebClient::new(
+            &storage,
+            db.as_ref(),
+            "wss://pipeline.vrchat.cloud".to_string(),
+            env!("CARGO_PKG_VERSION"),
+        )
+        .unwrap(),
+    );
+    let image_cache = Arc::new(
+        ImageCache::new(dir.path.join("ImageCache"), web.image_fetcher().unwrap()).unwrap(),
+    );
+    let context = RuntimeHostContext::new(db, web, image_cache);
+    (dir, context)
+}
+
+#[test]
+fn prefetch_online_friend_avatars_is_a_no_op_without_active_session() {
+    let (_dir, context) = test_context("prefetch-no-active-session");
+
+    context.observe_runtime_event(
+        "realtimeFriendProjection",
+        &json!({
+            "patches": [{
+                "userId": "usr_friend",
+                "stateBucket": "online",
+                "patch": {}
+            }]
+        }),
+    );
+}
+
+#[test]
+fn prefetch_online_friend_avatars_ignores_non_online_buckets() {
+    let (_dir, context) = test_context("prefetch-non-online-bucket");
+
+    context.observe_runtime_event(
+        "realtimeFriendProjection",
+        &json!({
+            "patches": [{
+                "userId": "usr_friend",
+                "stateBucket": "active",
+                "patch": {}
+            }]
+        }),
+    );
+}
+
+#[test]
+fn prefetch_online_friend_avatars_skips_bulk_baseline_projections() {
+    let (_dir, context) = test_context("prefetch-bulk-baseline");
+    let patches = (0..64)
+        .map(|index| {
+            json!({
+                "userId": format!("usr_friend_{index}"),
+                "stateBucket": "online",
+                "patch": {}
+            })
+        })
+        .collect::<Vec<_>>();
+
+    context.observe_runtime_event("realtimeFriendProjection", &json!({ "patches": patches }));
 }
