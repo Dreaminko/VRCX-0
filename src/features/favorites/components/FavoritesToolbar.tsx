@@ -183,7 +183,6 @@ function FavoritesToolbar({
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="rounded-full"
                         onClick={onManageShares}
                     >
                         <ExternalLinkIcon data-icon="inline-start" />
@@ -195,7 +194,6 @@ function FavoritesToolbar({
                     type="button"
                     size="icon-sm"
                     variant="ghost"
-                    className="rounded-full"
                     aria-label={t('common.actions.refresh')}
                     disabled={refreshing}
                     onClick={onRefresh}
@@ -214,7 +212,6 @@ function FavoritesToolbar({
                                 type="button"
                                 size="icon-sm"
                                 variant="ghost"
-                                className="rounded-full"
                                 aria-label={t('common.actions.configure')}
                             >
                                 <EllipsisIcon data-icon="inline-start" />

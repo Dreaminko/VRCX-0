@@ -75,7 +75,7 @@ function ShareCollectionButton({
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="shrink-0 rounded-full"
+                        className="shrink-0"
                         onClick={() => onShare(group)}
                     >
                         <Share2Icon data-icon="inline-start" />

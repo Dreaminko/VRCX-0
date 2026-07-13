@@ -153,7 +153,6 @@ function ShareCollectionSuccess({
                 <Button
                     type="button"
                     variant="outline"
-                    className="rounded-full transition-transform active:scale-[0.98]"
                     onClick={() => {
                         void openExternalLink(url);
                     }}
@@ -161,31 +160,17 @@ function ShareCollectionSuccess({
                     <ExternalLinkIcon data-icon="inline-start" />
                     {t('view.favorite.share_collection.action.open_share_page')}
                 </Button>
-                <Button
-                    type="button"
-                    className="rounded-full transition-transform active:scale-[0.98]"
-                    onClick={onCopy}
-                >
+                <Button type="button" onClick={onCopy}>
                     <CopyIcon data-icon="inline-start" />
                     {t('view.favorite.share_collection.action.copy_share_url')}
                 </Button>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    className="rounded-full transition-transform active:scale-[0.98]"
-                    onClick={onOpenManage}
-                >
+                <Button type="button" variant="ghost" onClick={onOpenManage}>
                     <ExternalLinkIcon data-icon="inline-start" />
                     {t('view.favorite.share_collection.action.open_manage')}
                 </Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={onDone}
-                >
+                <Button type="button" variant="outline" onClick={onDone}>
                     {t('view.favorite.share_collection.action.done')}
                 </Button>
             </div>
@@ -274,7 +259,6 @@ function ShareCollectionForm({
                 </div>
                 <Button
                     type="button"
-                    className="rounded-full transition-transform active:scale-[0.98]"
                     disabled={sharing || !title.trim() || !worldCount}
                     onClick={onCreate}
                 >
