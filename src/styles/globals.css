@@ -485,6 +485,20 @@
             ) !important;
         }
     }
+
+    @keyframes feed-row-arrive {
+        from {
+            background-color: color-mix(
+                in oklab,
+                var(--primary) 10%,
+                transparent
+            );
+        }
+
+        to {
+            background-color: transparent;
+        }
+    }
 }
 
 /* no real reason, I wanted it so I added it. XD */

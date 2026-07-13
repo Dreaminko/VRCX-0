@@ -326,3 +326,21 @@ export function resolveFeedStatusMeta(status: unknown) {
             return { label: normalizedStatus || 'Offline', className: '' };
     }
 }
+
+export function resolveFeedTypeMeta(type: unknown) {
+    const normalizedType = normalizeFeedId(type);
+    switch (normalizedType) {
+        case 'GPS':
+            return { className: 'bg-sky-500' };
+        case 'Online':
+            return { className: 'bg-[var(--status-online)]' };
+        case 'Offline':
+            return { className: 'bg-slate-400' };
+        case 'Status':
+        case 'Avatar':
+        case 'Bio':
+            return { className: 'bg-muted-foreground/40' };
+        default:
+            return { className: '' };
+    }
+}

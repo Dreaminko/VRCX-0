@@ -1,10 +1,10 @@
 import type { Column, Row } from '@tanstack/react-table';
-import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
+import { ChevronRightIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useKnownUserFacts } from '@/lib/useKnownUser';
-import { Badge } from '@/ui/shadcn/badge';
+import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
@@ -13,15 +13,17 @@ import type {
     FeedColumns,
     FeedFriendActions,
     FeedLocationActionPayload,
-    FeedRow
+    FeedRow,
+    FeedTableInstance
 } from '../feedTypes';
 import {
     FeedDetailCell,
     FeedUserLink,
     SortButton,
-    formatTimestamp,
-    formatTimestampLong
+    formatTimestampLong,
+    formatTimestampParts
 } from './FeedTableParts';
+import { FeedTypeIndicator } from './FeedTypeIndicator';
 
 type UseFeedColumnsOptions = {
     actions: FeedFriendActions;
@@ -43,22 +45,28 @@ function ExpanderCell({ row }: { row: Row<FeedRow> }) {
             size="icon-sm"
             onClick={() => row.toggleExpanded()}
         >
-            {row.getIsExpanded() ? (
-                <ChevronDownIcon data-icon="icon" />
-            ) : (
-                <ChevronRightIcon data-icon="icon" />
-            )}
+            <ChevronRightIcon
+                data-icon="icon"
+                className={cn(
+                    'transition-transform duration-150 ease-out',
+                    row.getIsExpanded() && 'rotate-90'
+                )}
+            />
         </Button>
     );
 }
 
 function DateCell({ row }: { row: Row<FeedRow> }) {
+    const { date, time } = formatTimestampParts(row.original.created_at);
     return (
         <Tooltip>
             <TooltipTrigger
                 render={
-                    <span className="text-muted-foreground text-sm">
-                        {formatTimestamp(row.original.created_at)}
+                    <span className="text-sm">
+                        <span className="text-muted-foreground">{date}</span>
+                        {time ? (
+                            <span className="text-foreground ml-1">{time}</span>
+                        ) : null}
                     </span>
                 }
             />
@@ -67,6 +75,28 @@ function DateCell({ row }: { row: Row<FeedRow> }) {
             </TooltipContent>
         </Tooltip>
     );
+}
+
+function resolveDisplayNameCellClassName(
+    row: Row<FeedRow>,
+    table: FeedTableInstance
+) {
+    const currentUserId = resolveFeedUserId(row.original);
+    if (!currentUserId) {
+        return '';
+    }
+
+    const visibleRows = table.getRowModel().rows;
+    const rowIndex = visibleRows.findIndex(
+        (visibleRow) => visibleRow.id === row.id
+    );
+    if (rowIndex <= 0) {
+        return '';
+    }
+
+    const previousRow = visibleRows[rowIndex - 1];
+    const previousUserId = resolveFeedUserId(previousRow.original);
+    return previousUserId === currentUserId ? 'text-muted-foreground' : '';
 }
 
 export function useFeedColumns({
@@ -117,7 +147,12 @@ export function useFeedColumns({
                     const typeLabel = row.original.type
                         ? t(`view.feed.filters.${String(row.original.type)}`)
                         : '';
-                    return <Badge variant="outline">{typeLabel}</Badge>;
+                    return (
+                        <FeedTypeIndicator
+                            label={typeLabel}
+                            type={row.original.type}
+                        />
+                    );
                 }
             },
             {
@@ -134,12 +169,19 @@ export function useFeedColumns({
                 header: ({ column }: { column: Column<FeedRow, unknown> }) => (
                     <SortButton column={column} label={t('table.feed.user')} />
                 ),
-                cell: ({ row }: { row: Row<FeedRow> }) => (
+                cell: ({
+                    row,
+                    table
+                }: {
+                    row: Row<FeedRow>;
+                    table: FeedTableInstance;
+                }) => (
                     <FeedUserLink
                         actions={actions}
                         cachedDisplayName={
                             friendLogNamesById[resolveFeedUserId(row.original)]
                         }
+                        className={resolveDisplayNameCellClassName(row, table)}
                         row={row.original}
                     />
                 )
