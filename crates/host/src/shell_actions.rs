@@ -69,6 +69,10 @@ pub fn open_existing_folder(path: &Path) -> Result<bool, Error> {
     Ok(true)
 }
 
+pub fn show_crashes_folder(app_data_dir: &Path) -> Result<bool, Error> {
+    open_existing_folder(&crate::panic::panic_dir(app_data_dir))
+}
+
 pub fn open_vrc_app_data_folder() -> Result<bool, Error> {
     open_existing_folder(&vrchat_paths::vrchat_app_data())
 }

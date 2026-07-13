@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 
 use std::sync::atomic::{AtomicBool, Ordering};
-
 use tauri::{AppHandle, State};
 use tauri_plugin_autostart::ManagerExt as _;
 
