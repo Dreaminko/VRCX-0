@@ -113,7 +113,23 @@ export default defineConfig(({ mode }) => {
         },
         server: {
             port: 9000,
-            strictPort: true
+            strictPort: true,
+            watch: {
+                ignored: [
+                    '**/.github/**',
+                    '**/.husky/**',
+                    '**/.vscode/**',
+                    '**/coverage/**',
+                    '**/crates/**',
+                    '**/docs/**',
+                    '**/images/**',
+                    '**/scripts/**',
+                    '**/signatures/**',
+                    '**/src-tauri/**',
+                    '**/target/**',
+                    '**/tools/**'
+                ]
+            }
         },
         build: {
             target: buildTarget.vite,
