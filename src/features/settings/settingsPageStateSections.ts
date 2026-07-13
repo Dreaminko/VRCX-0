@@ -1,6 +1,5 @@
 import type { AppDataDirState, TtsVoice } from '@/platform/tauri/bindings';
 import { openUGCPhotosFolder } from '@/services/shellIntegrationService';
-import { recordViewModeUsage } from '@/services/telemetry/telemetryViewModeUsage';
 import {
     normalizeAutoDeletePrintsLimit,
     normalizeFeedTimeDisplayMode
@@ -497,7 +496,6 @@ export function buildSettingsPageStateSections({
                     'feedTimeDisplayMode',
                     nextValue
                 );
-                recordViewModeUsage('feedTimeDisplayMode', nextValue);
             },
             onHideUserNotesChange: (checked: unknown) => {
                 saveBoolPreference(

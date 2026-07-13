@@ -152,22 +152,6 @@ pub struct ConfigSnapshotPayload {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ViewModeUsageEntry {
-    pub dimension: String,
-    pub used: Vec<String>,
-    pub switches: u32,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ViewModeUsagePayload {
-    #[serde(flatten)]
-    pub context: TelemetryContext,
-    pub modes: Vec<ViewModeUsageEntry>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct TelemetryErrorDetail {
     pub kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
