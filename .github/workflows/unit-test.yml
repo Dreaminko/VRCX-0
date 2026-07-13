@@ -28,8 +28,8 @@ jobs:
             native_locales: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.native_locales }}
             tauri_bindings: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.tauri_bindings }}
         steps:
-            - uses: actions/checkout@v5
-            - uses: dorny/paths-filter@v3
+            - uses: actions/checkout@v7
+            - uses: dorny/paths-filter@v4
               if: github.event_name != 'workflow_dispatch'
               id: filter
               with:
@@ -64,8 +64,8 @@ jobs:
         name: Vitest
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v5
-            - uses: actions/setup-node@v5
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v6
               with:
                   node-version: 24.x
                   cache: npm
@@ -82,7 +82,7 @@ jobs:
         name: Rust Coverage
         runs-on: ubuntu-24.04
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v7
             - name: Install Linux dependencies
               run: |
                   sudo apt-get update
@@ -119,8 +119,8 @@ jobs:
             - rust-coverage
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         steps:
-            - uses: actions/checkout@v5
-            - uses: actions/setup-node@v5
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v6
               with:
                   node-version: 24.x
             - uses: actions/download-artifact@v8
@@ -189,7 +189,7 @@ jobs:
             run:
                 shell: bash
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v7
             - uses: dtolnay/rust-toolchain@stable
             - uses: Swatinem/rust-cache@v2
               with:
@@ -202,7 +202,7 @@ jobs:
         needs: changes
         if: needs.changes.outputs.rust_backend == 'true'
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v7
             - name: Install Linux dependencies
               run: |
                   sudo apt-get update
@@ -230,7 +230,7 @@ jobs:
             run:
                 shell: bash
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v7
             - uses: dtolnay/rust-toolchain@stable
             - uses: Swatinem/rust-cache@v2
               with:
@@ -243,8 +243,8 @@ jobs:
         needs: changes
         if: needs.changes.outputs.native_locales == 'true'
         steps:
-            - uses: actions/checkout@v5
-            - uses: actions/setup-node@v5
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v6
               with:
                   node-version: 24.x
                   cache: npm
@@ -259,7 +259,7 @@ jobs:
         needs: changes
         if: needs.changes.outputs.tauri_bindings == 'true'
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v7
             - name: Install Linux dependencies
               run: |
                   sudo apt-get update
@@ -272,7 +272,7 @@ jobs:
                       libgtk-3-dev \
                       libayatana-appindicator3-dev \
                       librsvg2-dev
-            - uses: actions/setup-node@v5
+            - uses: actions/setup-node@v6
               with:
                   node-version: 24.x
                   cache: npm

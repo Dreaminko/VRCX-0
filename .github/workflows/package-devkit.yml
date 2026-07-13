@@ -75,7 +75,7 @@ jobs:
                       rust_target: x86_64-apple-darwin
                       output: VRCX-0_${version}_devkit_macos_x86_64.dmg
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
               with:
                   fetch-depth: 0
 

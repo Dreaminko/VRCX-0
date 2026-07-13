@@ -70,7 +70,7 @@ jobs:
                       rust_target: x86_64-apple-darwin
                       output: VRCX-0_${version}_preview_${timestamp}_macos_x86_64.dmg
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
 
             - uses: dtolnay/rust-toolchain@stable
 

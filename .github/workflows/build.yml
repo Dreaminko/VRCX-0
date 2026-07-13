@@ -27,8 +27,8 @@ jobs:
             frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.frontend }}
             rust: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.rust }}
         steps:
-            - uses: actions/checkout@v5
-            - uses: dorny/paths-filter@v3
+            - uses: actions/checkout@v7
+            - uses: dorny/paths-filter@v4
               if: github.event_name != 'workflow_dispatch'
               id: filter
               with:
@@ -59,8 +59,8 @@ jobs:
         needs: changes
         if: needs.changes.outputs.frontend == 'true'
         steps:
-            - uses: actions/checkout@v5
-            - uses: actions/setup-node@v5
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v6
               with:
                   node-version: 24.x
                   cache: npm
@@ -75,14 +75,14 @@ jobs:
         needs: changes
         if: needs.changes.outputs.frontend == 'true'
         steps:
-            - uses: actions/checkout@v5
-            - uses: actions/setup-node@v5
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v6
               with:
                   node-version: 24.x
                   cache: npm
             - run: npm ci
             - run: npm run build
-            - uses: actions/upload-artifact@v6
+            - uses: actions/upload-artifact@v7
               with:
                   name: frontend-dist
                   path: dist
@@ -94,7 +94,7 @@ jobs:
         needs: changes
         if: needs.changes.outputs.rust == 'true'
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v7
             - name: Install Linux dependencies
               run: |
                   sudo apt-get update
@@ -107,7 +107,7 @@ jobs:
                       libgtk-3-dev \
                       libayatana-appindicator3-dev \
                       librsvg2-dev
-            - uses: actions/setup-node@v5
+            - uses: actions/setup-node@v6
               with:
                   node-version: 24.x
             - uses: dtolnay/rust-toolchain@stable
@@ -145,7 +145,7 @@ jobs:
                       os: macos-latest
                       rust_target: x86_64-apple-darwin
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v7
             - name: Install Linux dependencies
               if: runner.os == 'Linux'
               run: |
