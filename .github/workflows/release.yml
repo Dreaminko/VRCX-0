@@ -163,9 +163,9 @@ jobs:
                           npm run tauri:build -- \
                           --config src-tauri/tauri.linux.conf.json \
                           --bundles deb,rpm
-                  else
-                      ${{ matrix.build_command }}
+                      exit 0
                   fi
+                  ${{ matrix.build_command }}
 
             - name: Prepare Linux release and updater assets
               if: runner.os == 'Linux'
