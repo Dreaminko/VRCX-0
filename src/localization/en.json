@@ -2137,7 +2137,13 @@
                         "header": "VRChat behavior",
                         "quit_header": "Close lingering VRChat processes",
                         "quit_description": "After VRChat exits, close any VRChat processes that are still running.",
-                        "deep_links": "Deep link behavior"
+                        "deep_links": "Open VRCX-0 from links",
+                        "deep_link_registration": "Open VRCX-0 links in Windows",
+                        "deep_link_registered": "VRCX-0 links are set to open in VRCX-0 for this Windows user.",
+                        "deep_link_not_registered": "Windows is not set up to open VRCX-0 links, or the setup points to an invalid installation.",
+                        "deep_link_repair": "Fix link opening",
+                        "deep_link_repair_success": "VRCX-0 links can now be opened",
+                        "deep_link_repair_failed": "Could not fix VRCX-0 link opening"
                     },
                     "storage": {
                         "header": "Storage & cleanup",
@@ -2247,7 +2253,7 @@
                         "enable_tooltip": "Translate user bios and world descriptions on demand."
                     },
                     "launch_commands": {
-                        "header": "Launch Commands (Deep Links)",
+                        "header": "Open VRCX-0 from links",
                         "default_launch_mode": "Default Launch Mode",
                         "default_launch_mode_vr": "VR Mode",
                         "default_launch_mode_desktop": "Desktop Mode"

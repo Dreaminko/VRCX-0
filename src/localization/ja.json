@@ -2133,7 +2133,13 @@
                         "header": "VRChat の動作",
                         "quit_header": "残っている VRChat プロセスを終了",
                         "quit_description": "VRChat の終了後も動作している VRChat プロセスを閉じます。",
-                        "deep_links": "ディープリンクの動作"
+                        "deep_links": "VRCX-0 の共有リンク",
+                        "deep_link_registration": "Windows で共有リンクを開く",
+                        "deep_link_registered": "この Windows ユーザーでは、VRCX-0 の共有リンクが VRCX-0 で開くように設定されています。",
+                        "deep_link_not_registered": "この Windows ユーザーでは、VRCX-0 の共有リンクを開く設定が見つからないか、正しくありません。",
+                        "deep_link_repair": "リンクを開く設定を修復",
+                        "deep_link_repair_success": "共有リンクを開く設定を修復しました",
+                        "deep_link_repair_failed": "共有リンクを開く設定を修復できませんでした"
                     },
                     "storage": {
                         "header": "保存先とクリーンアップ",
@@ -2243,7 +2249,7 @@
                         "enable_tooltip": "ユーザーの自己紹介を翻訳します"
                     },
                     "launch_commands": {
-                        "header": "VRCX-0の起動コマンド (Deep Links)",
+                        "header": "VRCX-0 の起動と共有リンク",
                         "default_launch_mode": "デフォルト起動モード",
                         "default_launch_mode_vr": "VR モード",
                         "default_launch_mode_desktop": "デスクトップモード"

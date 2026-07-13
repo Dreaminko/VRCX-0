@@ -2137,7 +2137,13 @@
                         "header": "Comportement de VRChat",
                         "quit_header": "Fermer les processus VRChat restants",
                         "quit_description": "Après la fermeture de VRChat, fermer les processus VRChat encore actifs.",
-                        "deep_links": "Comportement des liens profonds"
+                        "deep_links": "Ouverture des liens VRCX-0",
+                        "deep_link_registration": "Liens VRCX-0 dans Windows",
+                        "deep_link_registered": "Les liens VRCX-0 s’ouvrent avec VRCX-0 pour ce compte Windows.",
+                        "deep_link_not_registered": "Le réglage Windows permettant d’ouvrir les liens VRCX-0 est absent ou pointe vers une installation non valide.",
+                        "deep_link_repair": "Réparer l’ouverture des liens",
+                        "deep_link_repair_success": "L’ouverture des liens VRCX-0 a été réparée",
+                        "deep_link_repair_failed": "Impossible de réparer l’ouverture des liens VRCX-0"
                     },
                     "storage": {
                         "header": "Stockage et nettoyage",
@@ -2247,7 +2253,7 @@
                         "enable_tooltip": "Traduire les bios des utilisateurs et les descriptions des mondes à la demande."
                     },
                     "launch_commands": {
-                        "header": "Commandes de lancement (Deep Links)",
+                        "header": "Commandes déclenchées par les liens VRCX-0",
                         "default_launch_mode": "Mode de lancement par défaut",
                         "default_launch_mode_vr": "Mode VR",
                         "default_launch_mode_desktop": "Mode Bureau"

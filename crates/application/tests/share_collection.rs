@@ -2,8 +2,9 @@ use std::path::PathBuf;
 
 use serde_json::json;
 use vrcx_0_application::{
-    get_or_create_share_owner_key, prepare_share_collection_payload, share_collection_owner_hint,
-    ShareCollectionCreateInput, ShareCollectionDeps, SHARE_COLLECTION_MAX_WORLDS,
+    get_or_create_share_owner_token, is_valid_share_owner_token, prepare_share_collection_payload,
+    share_collection_owner_hint, ShareCollectionCreateInput, ShareCollectionDeps,
+    SHARE_COLLECTION_MAX_WORLDS,
 };
 use vrcx_0_persistence::{
     cache_entities::CacheEntityInput, memos::memo_save_world, worlds::world_cache_upsert,
@@ -57,13 +58,6 @@ fn world_entry(id: &str, release_status: &str, name: &str) -> CacheEntityInput {
     }
 }
 
-fn is_base64_url_no_pad(value: &str) -> bool {
-    value.len() == 43
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
-}
-
 fn is_lowercase_hex_sha256(value: &str) -> bool {
     value.len() == 64
         && value
@@ -72,25 +66,25 @@ fn is_lowercase_hex_sha256(value: &str) -> bool {
 }
 
 #[test]
-fn owner_key_is_stable_for_same_user_and_isolated_across_users() {
-    let (_dir, db) = test_services("owner-key");
+fn owner_token_requires_versioned_32_byte_base64url_format() {
+    let token = format!("w1.{}", "A".repeat(43));
 
-    let owner_key = get_or_create_share_owner_key(&db, " usr_current ").unwrap();
-    let same_owner_key = get_or_create_share_owner_key(&db, "usr_current").unwrap();
-    let other_owner_key = get_or_create_share_owner_key(&db, "usr_other").unwrap();
-
-    assert_eq!(owner_key, same_owner_key);
-    assert_ne!(owner_key, other_owner_key);
-    assert_ne!(owner_key, "usr_current");
-    assert!(is_base64_url_no_pad(&owner_key));
-    assert!(is_base64_url_no_pad(&other_owner_key));
+    assert!(is_valid_share_owner_token(&token));
+    assert!(!is_valid_share_owner_token(token.trim_start_matches("w1.")));
+    assert!(!is_valid_share_owner_token("w1.not+base64"));
+    assert!(!is_valid_share_owner_token(&format!(
+        "w1.{}",
+        "A".repeat(42)
+    )));
 }
 
-#[test]
-fn owner_key_requires_authenticated_user() {
+#[tokio::test]
+async fn owner_token_requires_authenticated_user_before_mint() {
     let (_dir, db) = test_services("owner-key-empty");
 
-    let error = get_or_create_share_owner_key(&db, "  ").unwrap_err();
+    let error = get_or_create_share_owner_token(&db, "  ")
+        .await
+        .unwrap_err();
     assert!(error
         .to_string()
         .contains("Share collection requires an authenticated user"));
@@ -109,7 +103,7 @@ fn owner_hint_is_deterministic_and_isolated_across_users() {
 }
 
 #[test]
-fn prepare_payload_gets_or_creates_owner_key_and_keeps_only_public_worlds_in_input_order() {
+fn prepare_payload_keeps_only_public_worlds_in_input_order() {
     let (_dir, db) = test_services("payload");
     world_cache_upsert(
         &db,
@@ -168,10 +162,6 @@ fn prepare_payload_gets_or_creates_owner_key_and_keeps_only_public_worlds_in_inp
 
     assert_eq!(prepared.payload.schema, 1);
     assert_eq!(
-        prepared.payload.owner_key,
-        get_or_create_share_owner_key(&db, "usr_current").unwrap()
-    );
-    assert_eq!(
         prepared.payload.owner_hint,
         share_collection_owner_hint("usr_current")
     );
@@ -202,7 +192,7 @@ fn prepare_payload_gets_or_creates_owner_key_and_keeps_only_public_worlds_in_inp
 }
 
 #[test]
-fn prepare_payload_requires_current_user_id_for_owner_key() {
+fn prepare_payload_requires_current_user_id_for_owner_hint() {
     let (_dir, db) = test_services("owner-key-payload");
     world_cache_upsert(
         &db,

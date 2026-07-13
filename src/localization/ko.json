@@ -2082,7 +2082,13 @@
                         "header": "VRChat 동작",
                         "quit_header": "남아 있는 VRChat 프로세스 종료",
                         "quit_description": "VRChat 종료 후에도 실행 중인 VRChat 프로세스를 닫습니다.",
-                        "deep_links": "딥 링크 동작"
+                        "deep_links": "VRCX-0 공유 링크",
+                        "deep_link_registration": "Windows에서 공유 링크 열기",
+                        "deep_link_registered": "현재 Windows 사용자 계정에서는 VRCX-0 공유 링크가 VRCX-0으로 열립니다.",
+                        "deep_link_not_registered": "현재 Windows 사용자 계정에 VRCX-0 공유 링크를 여는 설정이 없거나, 설정이 올바르지 않습니다.",
+                        "deep_link_repair": "링크 열기 설정 복구",
+                        "deep_link_repair_success": "공유 링크 열기 설정을 복구했습니다",
+                        "deep_link_repair_failed": "공유 링크 열기 설정을 복구하지 못했습니다"
                     },
                     "storage": {
                         "header": "저장소 및 정리",
@@ -2188,7 +2194,7 @@
                         "translation_api_key": "번역 API 키"
                     },
                     "launch_commands": {
-                        "header": "실행 명령(딥 링크)",
+                        "header": "VRCX-0 실행 및 공유 링크",
                         "default_launch_mode": "기본 실행 모드",
                         "default_launch_mode_vr": "VR 모드",
                         "default_launch_mode_desktop": "데스크탑 모드"

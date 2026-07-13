@@ -258,6 +258,12 @@ export const commands = {
     async appDrainPendingDeepLinks(): Promise<DeepLinkAction[]> {
         return await TAURI_INVOKE('app__drain_pending_deep_links');
     },
+    async appDeepLinkRegistrationStatus(): Promise<boolean | null> {
+        return await TAURI_INVOKE('app__deep_link_registration_status');
+    },
+    async appDeepLinkRegistrationRepair(): Promise<boolean | null> {
+        return await TAURI_INVOKE('app__deep_link_registration_repair');
+    },
     async appShareCollectionCreate(
         input: ShareCollectionCreateInput
     ): Promise<ShareCollectionCreateResult> {

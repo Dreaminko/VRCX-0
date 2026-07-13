@@ -20,8 +20,19 @@ const labels: Record<string, string> = {
     'view.settings.advanced.advanced.data_directory.source_default':
         'default directory',
     'view.settings.advanced.advanced.data_directory.source_persisted':
-        'custom directory'
+        'custom directory',
+    'view.settings.advanced.advanced_ui.behavior.deep_link_repair':
+        'Repair registration'
 };
+
+const commandMocks = vi.hoisted(() => ({
+    appDeepLinkRegistrationStatus: vi.fn(),
+    appDeepLinkRegistrationRepair: vi.fn()
+}));
+
+vi.mock('@/platform/tauri/bindings', () => ({
+    commands: commandMocks
+}));
 
 vi.mock('react-i18next', async (importOriginal) => ({
     ...(await importOriginal<typeof import('react-i18next')>()),
@@ -104,6 +115,12 @@ describe('SettingsAdvancedTab data directory states', () => {
     afterEach(cleanup);
 
     beforeEach(() => {
+        commandMocks.appDeepLinkRegistrationStatus
+            .mockReset()
+            .mockResolvedValue(null);
+        commandMocks.appDeepLinkRegistrationRepair
+            .mockReset()
+            .mockResolvedValue(true);
         vi.stubGlobal(
             'ResizeObserver',
             class {
@@ -112,6 +129,35 @@ describe('SettingsAdvancedTab data directory states', () => {
                 disconnect() {}
             }
         );
+    });
+
+    it('keeps the repair action available when registration status fails', async () => {
+        commandMocks.appDeepLinkRegistrationStatus.mockRejectedValueOnce(
+            new Error('registry value is malformed')
+        );
+
+        renderTab(createModel());
+
+        expect(
+            await screen.findByRole('button', {
+                name: 'Repair registration'
+            })
+        ).not.toBeNull();
+    });
+
+    it('keeps the repair action hidden on unsupported platforms', async () => {
+        renderTab(createModel());
+
+        await vi.waitFor(() => {
+            expect(
+                commandMocks.appDeepLinkRegistrationStatus
+            ).toHaveBeenCalledOnce();
+        });
+        expect(
+            screen.queryByRole('button', {
+                name: 'Repair registration'
+            })
+        ).toBeNull();
     });
 
     it('shows only Change folder for the default directory', () => {

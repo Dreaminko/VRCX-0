@@ -2139,7 +2139,13 @@
                         "header": "Поведение VRChat",
                         "quit_header": "Закрывать оставшиеся процессы VRChat",
                         "quit_description": "После выхода из VRChat закрывать все ещё работающие процессы VRChat.",
-                        "deep_links": "Поведение глубоких ссылок"
+                        "deep_links": "Открытие ссылок VRCX-0",
+                        "deep_link_registration": "Открывать ссылки VRCX-0 в приложении VRCX-0",
+                        "deep_link_registered": "Ссылки VRCX-0 для этого пользователя Windows будут открываться в приложении VRCX-0.",
+                        "deep_link_not_registered": "Windows не настроена на открытие ссылок VRCX-0 в приложении VRCX-0 либо путь к приложению указан неверно.",
+                        "deep_link_repair": "Исправить открытие ссылок",
+                        "deep_link_repair_success": "Ссылки VRCX-0 теперь будут открываться в приложении VRCX-0",
+                        "deep_link_repair_failed": "Не удалось исправить открытие ссылок VRCX-0"
                     },
                     "storage": {
                         "header": "Хранилище и очистка",
@@ -2249,7 +2255,7 @@
                         "enable_tooltip": "Переведите биоматериалы пользователей и описание мира по запросу."
                     },
                     "launch_commands": {
-                        "header": "Команды запуска (Deep Links)",
+                        "header": "Запуск VRCX-0 по ссылкам",
                         "default_launch_mode": "Режим запуска по умолчанию",
                         "default_launch_mode_vr": "Режим VR",
                         "default_launch_mode_desktop": "Режим рабочего стола"

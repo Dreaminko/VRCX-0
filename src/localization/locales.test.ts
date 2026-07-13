@@ -179,6 +179,33 @@ describe('advanced settings locale coverage', () => {
         readPath(en, advancedUiPrefix),
         advancedUiPrefix
     );
+    const linkOpeningKeys = [
+        'view.settings.advanced.advanced_ui.behavior.deep_links',
+        'view.settings.advanced.advanced_ui.behavior.deep_link_registration',
+        'view.settings.advanced.advanced_ui.behavior.deep_link_registered',
+        'view.settings.advanced.advanced_ui.behavior.deep_link_not_registered',
+        'view.settings.advanced.advanced_ui.behavior.deep_link_repair',
+        'view.settings.advanced.advanced_ui.behavior.deep_link_repair_success',
+        'view.settings.advanced.advanced_ui.behavior.deep_link_repair_failed',
+        'view.settings.advanced.advanced.launch_commands.header'
+    ];
+    const technicalDeepLinkTerms: Record<string, RegExp> = {
+        cs: /přímých odkazů/i,
+        de: /deep[ -]?links?/i,
+        en: /deep[ -]?links?/i,
+        es: /enlaces profundos/i,
+        fr: /liens profonds/i,
+        hu: /mélyhivatkoz/i,
+        ja: /ディープリンク/,
+        ko: /딕\s*링크/,
+        pl: /linków bezpośrednich/i,
+        pt: /links profundos/i,
+        ru: /глубоких ссылок/i,
+        th: /ดีปลิงก์/,
+        vi: /liên kết sâu/i,
+        'zh-CN': /深层链接/,
+        'zh-TW': /深層連結/
+    };
 
     it('keeps the reorganized advanced settings localized in every language', () => {
         for (const locale of languageCodes) {
@@ -195,6 +222,21 @@ describe('advanced settings locale coverage', () => {
                         readPath(en, key)
                     );
                 }
+            }
+        }
+    });
+
+    it('uses plain language for links that open VRCX-0', () => {
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            for (const key of linkOpeningKeys) {
+                const value = readPath(source, key);
+                if (typeof value !== 'string') {
+                    continue;
+                }
+                expect(value, `${locale} ${key}`).not.toMatch(
+                    technicalDeepLinkTerms[locale]
+                );
             }
         }
     });

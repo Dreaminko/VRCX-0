@@ -678,7 +678,13 @@
                         "header": "การทำงานของ VRChat",
                         "quit_header": "ปิดโปรเซส VRChat ที่ยังคงทำงาน",
                         "quit_description": "หลังออกจาก VRChat ให้ปิดโปรเซส VRChat ที่ยังคงทำงานอยู่",
-                        "deep_links": "การทำงานของดีปลิงก์"
+                        "deep_links": "การเปิดลิงก์แชร์ของ VRCX-0",
+                        "deep_link_registration": "การเปิดลิงก์แชร์ด้วย VRCX-0",
+                        "deep_link_registered": "ผู้ใช้ Windows คนนี้สามารถเปิดลิงก์แชร์ของ VRCX-0 ด้วย VRCX-0 ได้แล้ว",
+                        "deep_link_not_registered": "Windows ยังไม่ได้ตั้งค่าให้เปิดลิงก์แชร์ของ VRCX-0 ด้วย VRCX-0 หรือตำแหน่งของแอปไม่ถูกต้อง",
+                        "deep_link_repair": "แก้ไขการเปิดลิงก์",
+                        "deep_link_repair_success": "ลิงก์แชร์ของ VRCX-0 เปิดด้วย VRCX-0 ได้แล้ว",
+                        "deep_link_repair_failed": "ไม่สามารถแก้ไขการเปิดลิงก์แชร์ของ VRCX-0 ได้"
                     },
                     "storage": {
                         "header": "พื้นที่จัดเก็บและการล้างข้อมูล",

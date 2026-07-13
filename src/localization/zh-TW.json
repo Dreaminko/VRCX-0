@@ -2137,7 +2137,13 @@
                         "header": "VRChat 行為",
                         "quit_header": "關閉殘留的 VRChat 處理程序",
                         "quit_description": "VRChat 結束後，關閉仍在執行的 VRChat 處理程序。",
-                        "deep_links": "深層連結行為"
+                        "deep_links": "VRCX-0 分享連結",
+                        "deep_link_registration": "在 Windows 中開啟分享連結",
+                        "deep_link_registered": "目前的 Windows 使用者已設定為使用 VRCX-0 開啟分享連結。",
+                        "deep_link_not_registered": "目前的 Windows 使用者缺少使用 VRCX-0 開啟分享連結的設定，或該設定無效。",
+                        "deep_link_repair": "修復連結開啟設定",
+                        "deep_link_repair_success": "已修復分享連結的開啟設定",
+                        "deep_link_repair_failed": "無法修復分享連結的開啟設定"
                     },
                     "storage": {
                         "header": "儲存與清理",
@@ -2247,7 +2253,7 @@
                         "enable_tooltip": "翻譯用戶個人簡介"
                     },
                     "launch_commands": {
-                        "header": "啟動指令（Deep Links）",
+                        "header": "VRCX-0 啟動與分享連結",
                         "default_launch_mode": "預設啟動模式",
                         "default_launch_mode_vr": "VR 模式",
                         "default_launch_mode_desktop": "桌面模式"

@@ -86,6 +86,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::background_mode::app__get_backend_runtime_frontend_session_snapshot,
             commands::application::background_mode::app__ensure_main_window,
             commands::application::deep_link::app__drain_pending_deep_links,
+            commands::application::deep_link::app__deep_link_registration_status,
+            commands::application::deep_link::app__deep_link_registration_repair,
             commands::application::share_collection::app__share_collection_create,
             commands::application::share_collection::app__share_collection_open_manage,
             commands::application::share_collection::app__share_collection_preview,

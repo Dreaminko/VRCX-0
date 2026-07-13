@@ -755,7 +755,13 @@
                         "header": "Zachowanie VRChat",
                         "quit_header": "Zamykaj pozostałe procesy VRChat",
                         "quit_description": "Po zamknięciu VRChat zakończ wszystkie nadal działające procesy VRChat.",
-                        "deep_links": "Działanie linków bezpośrednich"
+                        "deep_links": "Otwieranie linków udostępnionych z VRCX-0",
+                        "deep_link_registration": "Otwieranie linków z VRCX-0 w aplikacji",
+                        "deep_link_registered": "Linki udostępnione z VRCX-0 mogą być otwierane w aplikacji VRCX-0 przez tego użytkownika systemu Windows.",
+                        "deep_link_not_registered": "System Windows nie jest skonfigurowany do otwierania linków udostępnionych z VRCX-0 w aplikacji VRCX-0 albo ścieżka do aplikacji jest nieprawidłowa.",
+                        "deep_link_repair": "Napraw otwieranie linków",
+                        "deep_link_repair_success": "Linki udostępnione z VRCX-0 można teraz otwierać w aplikacji VRCX-0",
+                        "deep_link_repair_failed": "Nie udało się naprawić otwierania linków udostępnionych z VRCX-0"
                     },
                     "storage": {
                         "header": "Pamięć i czyszczenie",

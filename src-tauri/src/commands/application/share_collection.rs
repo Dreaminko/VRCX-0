@@ -2,7 +2,7 @@
 
 use tauri::State;
 use vrcx_0_application::{
-    get_or_create_share_owner_key, import_shared_collection, preview_shared_collection,
+    get_or_create_share_owner_token, import_shared_collection, preview_shared_collection,
     share_collection_create, ImportCollectionDeps, ImportPreview, ImportResult,
     ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
 };
@@ -34,10 +34,11 @@ pub async fn app__share_collection_create(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__share_collection_open_manage(state: State<'_, AppState>) -> Result<(), AppError> {
+pub async fn app__share_collection_open_manage(state: State<'_, AppState>) -> Result<(), AppError> {
     let auth_scope = state.runtime_context.auth_scope.snapshot();
-    let owner_key = get_or_create_share_owner_key(state.db.as_ref(), &auth_scope.current_user_id)?;
-    let url = format!("{SHARE_EDITOR_ORIGIN}/mine#k={owner_key}");
+    let owner_token =
+        get_or_create_share_owner_token(state.db.as_ref(), &auth_scope.current_user_id).await?;
+    let url = format!("{SHARE_EDITOR_ORIGIN}/mine#k={owner_token}");
     Ok(shell_actions::open_link(&url)?)
 }
 

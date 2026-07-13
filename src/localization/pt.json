@@ -2137,7 +2137,13 @@
                         "header": "Comportamento do VRChat",
                         "quit_header": "Fechar processos restantes do VRChat",
                         "quit_description": "Após o VRChat encerrar, feche os processos do VRChat que ainda estiverem em execução.",
-                        "deep_links": "Comportamento de links profundos"
+                        "deep_links": "Abertura de links do VRCX-0",
+                        "deep_link_registration": "Links do VRCX-0 no Windows",
+                        "deep_link_registered": "Os links do VRCX-0 são abertos pelo VRCX-0 para este usuário do Windows.",
+                        "deep_link_not_registered": "A configuração do Windows para abrir links do VRCX-0 está ausente ou aponta para uma instalação inválida.",
+                        "deep_link_repair": "Reparar abertura de links",
+                        "deep_link_repair_success": "A abertura de links do VRCX-0 foi reparada",
+                        "deep_link_repair_failed": "Não foi possível reparar a abertura de links do VRCX-0"
                     },
                     "storage": {
                         "header": "Armazenamento e limpeza",
@@ -2247,7 +2253,7 @@
                         "enable_tooltip": "Traduzir bios de usuários"
                     },
                     "launch_commands": {
-                        "header": "Comandos de Inicialização (Deep Links)",
+                        "header": "Comandos acionados por links do VRCX-0",
                         "default_launch_mode": "Modo de Inicialização Padrão",
                         "default_launch_mode_vr": "Modo VR",
                         "default_launch_mode_desktop": "Modo Área de Trabalho"

@@ -2137,7 +2137,13 @@
                         "header": "Comportamiento de VRChat",
                         "quit_header": "Cerrar procesos restantes de VRChat",
                         "quit_description": "Después de cerrar VRChat, cierra cualquier proceso de VRChat que siga en ejecución.",
-                        "deep_links": "Comportamiento de enlaces profundos"
+                        "deep_links": "Apertura de enlaces de VRCX-0",
+                        "deep_link_registration": "Enlaces de VRCX-0 en Windows",
+                        "deep_link_registered": "Los enlaces de VRCX-0 se abren con VRCX-0 para este usuario de Windows.",
+                        "deep_link_not_registered": "Falta la configuración de Windows para abrir los enlaces de VRCX-0 o apunta a una instalación no válida.",
+                        "deep_link_repair": "Reparar la apertura de enlaces",
+                        "deep_link_repair_success": "Se ha reparado la apertura de enlaces de VRCX-0",
+                        "deep_link_repair_failed": "No se pudo reparar la apertura de enlaces de VRCX-0"
                     },
                     "storage": {
                         "header": "Almacenamiento y limpieza",
@@ -2247,7 +2253,7 @@
                         "enable_tooltip": "Traduce las biografías de usuarios y las descripciones de mundos cuando lo necesites."
                     },
                     "launch_commands": {
-                        "header": "Comandos de Lanzamiento (Enlaces Profundos)",
+                        "header": "Comandos activados mediante enlaces de VRCX-0",
                         "default_launch_mode": "Modo de inicio predeterminado",
                         "default_launch_mode_vr": "Modo VR",
                         "default_launch_mode_desktop": "Modo escritorio"

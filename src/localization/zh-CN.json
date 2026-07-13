@@ -2137,7 +2137,13 @@
                         "header": "VRChat 行为",
                         "quit_header": "关闭残留的 VRChat 进程",
                         "quit_description": "VRChat 退出后，关闭仍在运行的 VRChat 进程。",
-                        "deep_links": "深层链接行为"
+                        "deep_links": "VRCX-0 分享链接",
+                        "deep_link_registration": "在 Windows 中打开分享链接",
+                        "deep_link_registered": "当前 Windows 用户已设置为使用 VRCX-0 打开分享链接。",
+                        "deep_link_not_registered": "当前 Windows 用户缺少使用 VRCX-0 打开分享链接的设置，或该设置无效。",
+                        "deep_link_repair": "修复链接打开设置",
+                        "deep_link_repair_success": "已修复分享链接的打开设置",
+                        "deep_link_repair_failed": "无法修复分享链接的打开设置"
                     },
                     "storage": {
                         "header": "存储与清理",
@@ -2247,7 +2253,7 @@
                         "enable_tooltip": "用于翻译玩家的个人简介"
                     },
                     "launch_commands": {
-                        "header": "启动命令 / 客户端连接",
+                        "header": "VRCX-0 启动与分享链接",
                         "default_launch_mode": "默认启动模式",
                         "default_launch_mode_vr": "VR 模式",
                         "default_launch_mode_desktop": "桌面模式"

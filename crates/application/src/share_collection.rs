@@ -1,13 +1,12 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use vrcx_0_integrations::world_collections::{
-    create_world_collection, WorldCollectionCreatePayload, WorldCollectionPayloadWorld,
-    WORLD_COLLECTIONS_SITE_ORIGIN,
+    create_world_collection, mint_world_collection_token, WorldCollectionCreatePayload,
+    WorldCollectionPayloadWorld, WORLD_COLLECTIONS_SITE_ORIGIN,
 };
 use vrcx_0_persistence::{
     config::{get_json, set_json},
@@ -20,8 +19,10 @@ use crate::Error;
 
 pub const SHARE_COLLECTION_MAX_WORLDS: usize = 1_000;
 const SHARE_COLLECTION_WORLD_BATCH_SIZE: usize = 500;
-const SHARE_OWNER_KEYS_CONFIG_KEY: &str = "VRCX_ShareOwnerKeys";
-static SHARE_OWNER_KEYS_LOCK: Mutex<()> = Mutex::new(());
+const SHARE_OWNER_TOKENS_CONFIG_KEY: &str = "VRCX_ShareOwnerKeys";
+const SHARE_OWNER_TOKEN_PREFIX: &str = "w1.";
+const SHARE_OWNER_TOKEN_BYTES: usize = 32;
+static SHARE_OWNER_TOKENS_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -57,8 +58,8 @@ pub fn prepare_share_collection_payload(
     input: ShareCollectionCreateInput,
 ) -> Result<PreparedShareCollection, Error> {
     let title = normalize_title(&input.title)?;
-    let owner_key = get_or_create_share_owner_key(deps.db, deps.current_user_id)?;
-    let owner_hint = share_collection_owner_hint(deps.current_user_id);
+    let current_user_id = require_current_user_id(deps.current_user_id)?;
+    let owner_hint = share_collection_owner_hint(current_user_id);
     let author_name = deps.current_user_display_name.trim().to_string();
     let normalized_world_ids = normalize_world_ids(&input.world_ids);
     let truncated = normalized_world_ids.len() > SHARE_COLLECTION_MAX_WORLDS;
@@ -109,7 +110,6 @@ pub fn prepare_share_collection_payload(
     Ok(PreparedShareCollection {
         payload: WorldCollectionCreatePayload {
             schema: 1,
-            owner_key,
             owner_hint,
             title,
             listed: input.listed,
@@ -126,9 +126,12 @@ pub async fn share_collection_create(
     deps: ShareCollectionDeps<'_>,
     input: ShareCollectionCreateInput,
 ) -> Result<ShareCollectionCreateResult, Error> {
+    let db = deps.db;
+    let current_user_id = deps.current_user_id;
     let prepared = prepare_share_collection_payload(deps, input)?;
+    let owner_token = get_or_create_share_owner_token(db, current_user_id).await?;
     let world_count = prepared.payload.worlds.len() as i64;
-    let response = create_world_collection(&prepared.payload)
+    let response = create_world_collection(&owner_token, &prepared.payload)
         .await
         .map_err(|error| Error::Custom(error.to_string()))?;
     let id = response.id;
@@ -166,50 +169,92 @@ fn payload_world_from_row(
     }
 }
 
-pub fn get_or_create_share_owner_key(db: &DatabaseService, user_id: &str) -> Result<String, Error> {
-    let user_id = user_id.trim();
-    if user_id.is_empty() {
+pub async fn get_or_create_share_owner_token(
+    db: &DatabaseService,
+    user_id: &str,
+) -> Result<String, Error> {
+    let user_id = require_current_user_id(user_id)?;
+    let _guard = SHARE_OWNER_TOKENS_LOCK.lock().await;
+    let mut owner_tokens = read_share_owner_tokens(db)?;
+    if let Some(owner_token) = share_owner_token_for_user(&owner_tokens, user_id)? {
+        return Ok(owner_token);
+    }
+
+    let owner_hint = share_collection_owner_hint(user_id);
+    let response = mint_world_collection_token(&owner_hint)
+        .await
+        .map_err(|error| Error::Custom(error.to_string()))?;
+    if !is_valid_share_owner_token(&response.token) {
         return Err(Error::Custom(
-            "Share collection requires an authenticated user.".into(),
+            "Share collection token service returned an invalid token.".into(),
         ));
     }
-
-    let _guard = SHARE_OWNER_KEYS_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let mut owner_keys = read_share_owner_keys(db)?;
-    if let Some(owner_key) = owner_keys.get(user_id) {
-        return Ok(owner_key.clone());
-    }
-
-    let owner_key = generate_share_owner_key()?;
-    owner_keys.insert(user_id.to_string(), owner_key.clone());
-    write_share_owner_keys(db, &owner_keys)?;
-    Ok(owner_key)
+    set_share_owner_token(&mut owner_tokens, user_id, &response.token)?;
+    set_json(db, SHARE_OWNER_TOKENS_CONFIG_KEY, &owner_tokens)?;
+    Ok(response.token)
 }
 
 pub fn share_collection_owner_hint(user_id: &str) -> String {
     hex::encode(Sha256::digest(user_id.trim().as_bytes()))
 }
 
-fn generate_share_owner_key() -> Result<String, Error> {
-    let mut owner_key_bytes = [0_u8; 32];
-    getrandom::fill(&mut owner_key_bytes)
-        .map_err(|error| Error::Custom(format!("failed to generate share owner key: {error}")))?;
-    Ok(URL_SAFE_NO_PAD.encode(owner_key_bytes))
+pub fn is_valid_share_owner_token(token: &str) -> bool {
+    let Some(encoded) = token.strip_prefix(SHARE_OWNER_TOKEN_PREFIX) else {
+        return false;
+    };
+    URL_SAFE_NO_PAD
+        .decode(encoded)
+        .map(|bytes| bytes.len() == SHARE_OWNER_TOKEN_BYTES)
+        .unwrap_or(false)
 }
 
-fn read_share_owner_keys(db: &DatabaseService) -> Result<HashMap<String, String>, Error> {
-    let raw = get_json(db, SHARE_OWNER_KEYS_CONFIG_KEY, serde_json::json!({}))?;
-    Ok(serde_json::from_value(raw).unwrap_or_default())
+fn require_current_user_id(user_id: &str) -> Result<&str, Error> {
+    let user_id = user_id.trim();
+    if user_id.is_empty() {
+        return Err(Error::Custom(
+            "Share collection requires an authenticated user.".into(),
+        ));
+    }
+    Ok(user_id)
 }
 
-fn write_share_owner_keys(
-    db: &DatabaseService,
-    owner_keys: &HashMap<String, String>,
+fn read_share_owner_tokens(db: &DatabaseService) -> Result<serde_json::Value, Error> {
+    let raw = get_json(db, SHARE_OWNER_TOKENS_CONFIG_KEY, serde_json::json!({}))?;
+    if raw.is_object() {
+        Ok(raw)
+    } else {
+        Err(Error::Custom(
+            "Share collection token storage is not a JSON object.".into(),
+        ))
+    }
+}
+
+fn share_owner_token_for_user(
+    owner_tokens: &serde_json::Value,
+    user_id: &str,
+) -> Result<Option<String>, Error> {
+    let owner_tokens = owner_tokens.as_object().ok_or_else(|| {
+        Error::Custom("Share collection token storage is not a JSON object.".into())
+    })?;
+    Ok(owner_tokens
+        .get(user_id)
+        .and_then(serde_json::Value::as_str)
+        .filter(|token| is_valid_share_owner_token(token))
+        .map(str::to_string))
+}
+
+fn set_share_owner_token(
+    owner_tokens: &mut serde_json::Value,
+    user_id: &str,
+    token: &str,
 ) -> Result<(), Error> {
-    let value = serde_json::to_value(owner_keys)?;
-    set_json(db, SHARE_OWNER_KEYS_CONFIG_KEY, &value)?;
+    let owner_tokens = owner_tokens.as_object_mut().ok_or_else(|| {
+        Error::Custom("Share collection token storage is not a JSON object.".into())
+    })?;
+    owner_tokens.insert(
+        user_id.to_string(),
+        serde_json::Value::String(token.to_string()),
+    );
     Ok(())
 }
 
@@ -235,4 +280,46 @@ fn normalize_world_ids(world_ids: &[String]) -> Vec<String> {
         normalized.push(world_id.to_string());
     }
     normalized
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::{set_share_owner_token, share_owner_token_for_user};
+
+    fn valid_token() -> String {
+        format!("w1.{}", "A".repeat(43))
+    }
+
+    #[test]
+    fn invalid_current_token_is_treated_as_missing_without_dropping_other_entries() {
+        let mut owner_tokens = json!({
+            "usr_current": "legacy-unversioned-token",
+            "usr_valid": valid_token(),
+            "usr_broken": { "unexpected": true }
+        });
+
+        assert_eq!(
+            share_owner_token_for_user(&owner_tokens, "usr_current").unwrap(),
+            None
+        );
+        assert_eq!(
+            share_owner_token_for_user(&owner_tokens, "usr_valid").unwrap(),
+            Some(valid_token())
+        );
+        set_share_owner_token(&mut owner_tokens, "usr_current", &valid_token()).unwrap();
+
+        assert_eq!(owner_tokens["usr_valid"], json!(valid_token()));
+        assert_eq!(owner_tokens["usr_broken"], json!({ "unexpected": true }));
+        assert_eq!(owner_tokens["usr_current"], json!(valid_token()));
+    }
+
+    #[test]
+    fn non_object_token_storage_fails_closed() {
+        let mut owner_tokens = json!(["unexpected"]);
+
+        assert!(share_owner_token_for_user(&owner_tokens, "usr_current").is_err());
+        assert!(set_share_owner_token(&mut owner_tokens, "usr_current", &valid_token()).is_err());
+    }
 }

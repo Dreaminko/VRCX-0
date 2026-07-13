@@ -2139,7 +2139,13 @@
                         "header": "Chování VRChatu",
                         "quit_header": "Ukončit zbývající procesy VRChatu",
                         "quit_description": "Po ukončení VRChatu zavře všechny procesy VRChatu, které stále běží.",
-                        "deep_links": "Chování přímých odkazů"
+                        "deep_links": "Otevírání odkazů VRCX-0",
+                        "deep_link_registration": "Odkazy VRCX-0 ve Windows",
+                        "deep_link_registered": "Odkazy VRCX-0 se v tomto uživatelském účtu Windows otevírají v aplikaci VRCX-0.",
+                        "deep_link_not_registered": "Nastavení Windows pro otevírání odkazů VRCX-0 chybí nebo odkazuje na neplatnou instalaci.",
+                        "deep_link_repair": "Opravit otevírání odkazů",
+                        "deep_link_repair_success": "Otevírání odkazů VRCX-0 bylo opraveno",
+                        "deep_link_repair_failed": "Otevírání odkazů VRCX-0 se nepodařilo opravit"
                     },
                     "storage": {
                         "header": "Úložiště a čištění",
@@ -2249,7 +2255,7 @@
                         "enable_tooltip": "Na vyžádání přeloží uživatelská bio a popisy světů."
                     },
                     "launch_commands": {
-                        "header": "Spouštěcí příkazy (Deep Links)",
+                        "header": "Příkazy spouštěné odkazy VRCX-0",
                         "default_launch_mode": "Výchozí režim spuštění",
                         "default_launch_mode_vr": "Režim VR",
                         "default_launch_mode_desktop": "Desktopový režim"

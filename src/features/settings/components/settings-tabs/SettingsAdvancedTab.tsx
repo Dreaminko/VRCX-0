@@ -1,6 +1,9 @@
 import { FolderOpenIcon, MoreHorizontalIcon, Trash2Icon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
+import { commands } from '@/platform/tauri/bindings';
 import { Alert, AlertDescription, AlertTitle } from '@/ui/shadcn/alert';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -50,6 +53,87 @@ function DataDirectoryPath({ value }: DataDirectoryPathProps) {
         <div className="bg-muted/40 text-muted-foreground w-full min-w-0 rounded-md border px-2 py-1 font-mono text-xs break-all">
             {value || '-'}
         </div>
+    );
+}
+
+function DeepLinkRegistrationField() {
+    const { t } = useTranslation();
+    const [registered, setRegistered] = useState<boolean | null>();
+    const [repairing, setRepairing] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+
+        commands
+            .appDeepLinkRegistrationStatus()
+            .then((status) => {
+                if (active) {
+                    setRegistered(status);
+                }
+            })
+            .catch(() => {
+                if (active) {
+                    setRegistered(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    if (registered === undefined || registered === null) {
+        return null;
+    }
+
+    async function repairRegistration() {
+        setRepairing(true);
+        try {
+            const status = await commands.appDeepLinkRegistrationRepair();
+            setRegistered(status);
+            if (status) {
+                toast.success(
+                    t(
+                        'view.settings.advanced.advanced_ui.behavior.deep_link_repair_success'
+                    )
+                );
+            } else {
+                toast.error(
+                    t(
+                        'view.settings.advanced.advanced_ui.behavior.deep_link_repair_failed'
+                    )
+                );
+            }
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : String(error));
+        } finally {
+            setRepairing(false);
+        }
+    }
+
+    return (
+        <Field
+            label={t(
+                'view.settings.advanced.advanced_ui.behavior.deep_link_registration'
+            )}
+            description={t(
+                registered
+                    ? 'view.settings.advanced.advanced_ui.behavior.deep_link_registered'
+                    : 'view.settings.advanced.advanced_ui.behavior.deep_link_not_registered'
+            )}
+        >
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={repairing}
+                onClick={() => void repairRegistration()}
+            >
+                {t(
+                    'view.settings.advanced.advanced_ui.behavior.deep_link_repair'
+                )}
+            </Button>
+        </Field>
     );
 }
 
@@ -125,6 +209,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                         'view.settings.advanced.advanced_ui.behavior.deep_links'
                     )}
                 />
+                <DeepLinkRegistrationField />
                 <Field
                     label={t(
                         'view.settings.advanced.advanced.launch_commands.default_launch_mode'
