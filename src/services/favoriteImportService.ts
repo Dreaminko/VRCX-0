@@ -32,7 +32,7 @@ interface FavoriteTypeConfig {
     remoteGroupsKey: FavoriteRemoteGroupsKey;
     localGroupsKey: FavoriteLocalGroupsKey;
     localFavoritesKey: FavoriteLocalFavoritesKey;
-    getProfile(id: string, endpoint: string): Promise<any>;
+    getProfile(id: string, endpoint: string): Promise<unknown>;
     addLocal(id: string, groupName: string): Promise<void>;
 }
 
@@ -43,7 +43,7 @@ const TYPE_CONFIG: Record<string, FavoriteTypeConfig> = {
         remoteGroupsKey: 'favoriteAvatarGroups',
         localGroupsKey: 'localAvatarFavoriteGroups',
         localFavoritesKey: 'localAvatarFavorites',
-        async getProfile(id: any, endpoint: any) {
+        async getProfile(id, endpoint) {
             const profile = await avatarProfileRepository.getAvatarProfile({
                 avatarId: id,
                 endpoint
@@ -51,7 +51,7 @@ const TYPE_CONFIG: Record<string, FavoriteTypeConfig> = {
             await avatarCacheRepository.addAvatarToCache(profile);
             return profile;
         },
-        async addLocal(id: any, groupName: any) {
+        async addLocal(id, groupName) {
             await favoritePersistenceRepository.addAvatarToFavorites(
                 id,
                 groupName
@@ -64,7 +64,7 @@ const TYPE_CONFIG: Record<string, FavoriteTypeConfig> = {
         remoteGroupsKey: 'favoriteWorldGroups',
         localGroupsKey: 'localWorldFavoriteGroups',
         localFavoritesKey: 'localWorldFavorites',
-        async getProfile(id: any, endpoint: any) {
+        async getProfile(id, endpoint) {
             const profile = await worldProfileRepository.getWorldProfile({
                 worldId: id,
                 endpoint
@@ -76,7 +76,7 @@ const TYPE_CONFIG: Record<string, FavoriteTypeConfig> = {
             });
             return profile;
         },
-        async addLocal(id: any, groupName: any) {
+        async addLocal(id, groupName) {
             await favoritePersistenceRepository.addWorldToFavorites(
                 id,
                 groupName
@@ -89,13 +89,13 @@ const TYPE_CONFIG: Record<string, FavoriteTypeConfig> = {
         remoteGroupsKey: 'favoriteFriendGroups',
         localGroupsKey: 'localFriendFavoriteGroups',
         localFavoritesKey: 'localFriendFavorites',
-        async getProfile(id: any, endpoint: any) {
+        async getProfile(id, endpoint) {
             return userProfileRepository.getUserProfile({
                 userId: id,
                 endpoint
             });
         },
-        async addLocal(id: any, groupName: any) {
+        async addLocal(id, groupName) {
             await favoritePersistenceRepository.addFriendToLocalFavorites(
                 id,
                 groupName
@@ -103,6 +103,30 @@ const TYPE_CONFIG: Record<string, FavoriteTypeConfig> = {
         }
     }
 };
+
+const SHARED_WORLD_IMPORT_INTERVAL_MS = 500;
+
+type LocalWorldIdImportOptions = {
+    worldIds: readonly string[];
+    groupName: string;
+    onProgress?(processed: number, total: number): void;
+};
+
+export type LocalWorldIdImportResult = {
+    importedCount: number;
+    failedCount: number;
+    totalCount: number;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
 
 function normalizeType(type: unknown): string {
     const normalized = normalizeString(type);
@@ -202,8 +226,8 @@ export async function processFavoriteImportList() {
     }
 
     const ids = extractIds(type, store.input);
-    const existingIds = new Set(store.rows.map((row: any) => row.id));
-    const pendingIds = ids.filter((id: any) => !existingIds.has(id));
+    const existingIds = new Set(store.rows.map((row) => row.id));
+    const pendingIds = ids.filter((id) => !existingIds.has(id));
     const auth = getRuntimeAuth();
     const sessionId = store.sessionId;
 
@@ -237,7 +261,7 @@ export async function processFavoriteImportList() {
                     break;
                 }
                 nextState.addRow({
-                    ...profile,
+                    ...(isRecord(profile) ? profile : {}),
                     id
                 });
             } catch (error) {
@@ -286,9 +310,8 @@ export async function importFavoriteImportRows() {
 
     const { remoteGroups } = getFavoriteGroups(type);
     const remoteGroup = state.remoteGroupName
-        ? remoteGroups.find(
-              (group: any) => group.name === state.remoteGroupName
-          ) || null
+        ? remoteGroups.find((group) => group.name === state.remoteGroupName) ||
+          null
         : null;
     const localGroupName = state.localGroupName || '';
 
@@ -403,6 +426,52 @@ export async function importFavoriteImportRows() {
             )
         });
     }
+}
+
+export async function importWorldIdsToLocalGroup({
+    worldIds,
+    groupName,
+    onProgress
+}: LocalWorldIdImportOptions): Promise<LocalWorldIdImportResult> {
+    const normalizedGroupName = groupName.trim();
+    if (!normalizedGroupName) {
+        throw new Error('Local world favorite group name is required.');
+    }
+
+    const ids = extractIds('world', worldIds.join('\n'));
+    const totalCount = ids.length;
+    const config = TYPE_CONFIG.world;
+    const endpoint = getRuntimeAuth().endpoint;
+    let importedCount = 0;
+    let failedCount = 0;
+
+    await favoritePersistenceRepository.createLocalFavoriteGroup({
+        kind: 'world',
+        groupName: normalizedGroupName
+    });
+
+    for (let index = 0; index < ids.length; index += 1) {
+        if (index > 0) {
+            await delay(SHARED_WORLD_IMPORT_INTERVAL_MS);
+        }
+        const worldId = ids[index];
+        try {
+            await config.getProfile(worldId, endpoint);
+            await config.addLocal(worldId, normalizedGroupName);
+            importedCount += 1;
+        } catch (error) {
+            failedCount += 1;
+            console.warn(`Failed to import shared world ${worldId}:`, error);
+        } finally {
+            onProgress?.(index + 1, totalCount);
+        }
+    }
+
+    if (importedCount > 0) {
+        await refreshFavoritesSnapshot();
+    }
+
+    return { importedCount, failedCount, totalCount };
 }
 
 export function clearFavoriteImportRows() {

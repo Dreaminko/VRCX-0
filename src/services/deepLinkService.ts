@@ -7,11 +7,14 @@ import shareCollectionRepository from '@/repositories/shareCollectionRepository'
 import { isCollectionShortcode } from '@/shared/constants/collectionShare';
 import { isWorldId } from '@/shared/constants/vrchatIds';
 import { useModalStore } from '@/state/modalStore';
+import { useWorldCollectionImportStore } from '@/state/worldCollectionImportStore';
 
 import { openWorldDialog } from './dialogService';
+import { importWorldIdsToLocalGroup } from './favoriteImportService';
 import i18n from './i18nService';
 
 const DEEP_LINK_ARRIVED_EVENT = 'deepLinkArrived';
+let sharedCollectionImportQueue = Promise.resolve();
 
 type DeepLinkEventUnsubscribe = () => void;
 
@@ -53,7 +56,14 @@ export function handleDeepLinkAction(action: DeepLinkAction): void {
             break;
         case 'importCollection':
             if (isCollectionShortcode(action.collectionId)) {
-                void importSharedCollectionFlow(action.collectionId);
+                sharedCollectionImportQueue = sharedCollectionImportQueue
+                    .then(() => importSharedCollectionFlow(action.collectionId))
+                    .catch((error) => {
+                        console.warn(
+                            'Failed to run shared collection import:',
+                            error
+                        );
+                    });
             } else {
                 console.warn(
                     'Ignored deep link with invalid collection id:',
@@ -89,58 +99,58 @@ async function importSharedCollectionFlow(collectionId: string): Promise<void> {
         return;
     }
 
-    if (!preview.worldCount) {
+    const worldCount = preview.worldIds.length;
+    if (!worldCount) {
         toast.error(i18n.t('deep_link.import_collection.toast.empty'));
         return;
     }
 
-    const title = preview.title || collectionId;
-    const author =
-        preview.authorName ||
-        i18n.t('deep_link.import_collection.unknown_author');
-    const worldNames = preview.worlds
-        .map((world) => world.name)
-        .filter((name) => name.trim().length > 0)
-        .slice(0, 5)
-        .join(', ');
-    const baseDescription = i18n.t(
-        'deep_link.import_collection.confirm.description',
-        {
-            title,
-            author,
-            count: preview.worldCount
-        }
-    );
-    const description = worldNames
-        ? [
-              baseDescription,
-              i18n.t('deep_link.import_collection.confirm.worlds_preview', {
-                  names: worldNames
-              })
-          ].join('\n')
-        : baseDescription;
-
-    const confirmation = await useModalStore.getState().confirm({
-        title: i18n.t('deep_link.import_collection.confirm.title'),
-        description,
+    const prompt = await useModalStore.getState().prompt({
+        title: i18n.t('deep_link.import_collection.prompt.title'),
+        description: i18n.t('deep_link.import_collection.prompt.description', {
+            count: worldCount
+        }),
+        inputValue: preview.title || collectionId,
+        pattern: /\S/,
         confirmText: i18n.t('deep_link.import_collection.confirm.confirm'),
         cancelText: i18n.t('deep_link.import_collection.confirm.cancel')
     });
-    if (!confirmation.ok) {
+    if (!prompt.ok || typeof prompt.value !== 'string') {
+        return;
+    }
+    const groupName = prompt.value.trim();
+    if (!groupName) {
         return;
     }
 
+    useWorldCollectionImportStore.getState().start(worldCount);
     try {
-        const result =
-            await shareCollectionRepository.importSharedCollection(
-                collectionId
+        const result = await importWorldIdsToLocalGroup({
+            worldIds: preview.worldIds,
+            groupName,
+            onProgress: (progress) =>
+                useWorldCollectionImportStore.getState().setProgress(progress)
+        });
+        if (!result.importedCount) {
+            toast.error(
+                i18n.t('deep_link.import_collection.toast.import_failed')
             );
+            return;
+        }
         toast.success(
             i18n.t('deep_link.import_collection.toast.import_success', {
                 count: result.importedCount,
-                title: result.groupKey
+                title: groupName
             })
         );
+        if (result.failedCount > 0) {
+            toast.error(
+                i18n.t(
+                    'deep_link.import_collection.toast.import_partial_failed',
+                    { count: result.failedCount }
+                )
+            );
+        }
     } catch (error) {
         toast.error(
             errorMessage(
@@ -148,5 +158,7 @@ async function importSharedCollectionFlow(collectionId: string): Promise<void> {
                 i18n.t('deep_link.import_collection.toast.import_failed')
             )
         );
+    } finally {
+        useWorldCollectionImportStore.getState().finish();
     }
 }

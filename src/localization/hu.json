@@ -2,6 +2,10 @@
     "language": "Magyar (hu)",
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "Helyi világkollekció létrehozása",
+                "description": "Adj nevet a(z) {count} világot tartalmazó helyi kollekciónak."
+            },
             "confirm": {
                 "title": "Importálod a világgyűjteményt?",
                 "description": "„{title}” · szerző: {author} · {count} világ",
@@ -10,6 +14,7 @@
                 "cancel": "Mégse"
             },
             "toast": {
+                "import_partial_failed": "A rendszer kihagyott {count} világot, amelyet nem sikerült importálni",
                 "preview_failed": "Nem sikerült betölteni a megosztott gyűjteményt",
                 "empty": "Ebben a megosztott gyűjteményben nincs importálható világ",
                 "import_success": "{count} világ importálva ide: „{title}”",
@@ -1582,6 +1587,7 @@
         "routes": {}
     },
     "status_bar": {
+        "world_collection_importing": "Világkollekció importálása ({progress}/{total})",
         "modify_proxy_address": "Modify proxy address",
         "proxy_disabled": "Proxy disabled",
         "proxy_enabled_direct": "Proxy enabled, connecting directly",

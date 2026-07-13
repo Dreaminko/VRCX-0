@@ -2,6 +2,10 @@
     "language": "ภาษาไทย (th)",
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "สร้างคอลเลกชันโลกในเครื่อง",
+                "description": "ตั้งชื่อคอลเลกชันในเครื่องที่จะเก็บโลก {count} แห่ง"
+            },
             "confirm": {
                 "title": "นำเข้าคอลเลกชันโลกนี้หรือไม่?",
                 "description": "\"{title}\" โดย {author} · {count} โลก",
@@ -10,6 +14,7 @@
                 "cancel": "ยกเลิก"
             },
             "toast": {
+                "import_partial_failed": "ข้ามโลก {count} แห่งที่นำเข้าไม่สำเร็จ",
                 "preview_failed": "โหลดคอลเลกชันที่แชร์ไม่สำเร็จ",
                 "empty": "คอลเลกชันที่แชร์นี้ไม่มีโลกที่นำเข้าได้",
                 "import_success": "นำเข้า {count} โลกไปยัง \"{title}\" แล้ว",
@@ -1766,6 +1771,7 @@
         "routes": {}
     },
     "status_bar": {
+        "world_collection_importing": "กำลังนำเข้าคอลเลกชันโลก ({progress}/{total})",
         "modify_proxy_address": "Modify proxy address",
         "proxy_disabled": "Proxy disabled",
         "proxy_enabled_direct": "Proxy enabled, connecting directly",

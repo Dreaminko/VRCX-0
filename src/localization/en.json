@@ -47,6 +47,10 @@
     },
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "Create local world collection",
+                "description": "Choose a name for the local collection that will receive {count} worlds."
+            },
             "confirm": {
                 "title": "Import world collection?",
                 "description": "\"{title}\" by {author} · {count} worlds",
@@ -55,6 +59,7 @@
                 "cancel": "Cancel"
             },
             "toast": {
+                "import_partial_failed": "Skipped {count} worlds that could not be imported",
                 "preview_failed": "Failed to load shared collection",
                 "empty": "This shared collection has no importable worlds",
                 "import_success": "Imported {count} worlds into \"{title}\"",
@@ -4966,6 +4971,7 @@
         "mobile_sidebar_description": "Displays the mobile sidebar."
     },
     "status_bar": {
+        "world_collection_importing": "Importing world collection ({progress}/{total})",
         "game": "Game",
         "game_stopped": "VRChat is not running",
         "game_last_session": "Last Session",

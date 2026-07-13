@@ -14,5 +14,6 @@ pub mod social_circles;
 pub mod trust;
 pub mod user_facts;
 pub mod vrchat_endpoints;
+pub mod vrchat_ids;
 pub mod vrchat_log_reader;
 pub mod vrchat_registry_policy;

@@ -330,11 +330,15 @@ describe('deep link locale coverage', () => {
         'deep_link.import_collection.confirm.worlds_preview',
         'deep_link.import_collection.confirm.confirm',
         'deep_link.import_collection.confirm.cancel',
+        'deep_link.import_collection.prompt.title',
+        'deep_link.import_collection.prompt.description',
         'deep_link.import_collection.toast.preview_failed',
         'deep_link.import_collection.toast.empty',
         'deep_link.import_collection.toast.import_success',
         'deep_link.import_collection.toast.import_failed',
-        'deep_link.import_collection.unknown_author'
+        'deep_link.import_collection.toast.import_partial_failed',
+        'deep_link.import_collection.unknown_author',
+        'status_bar.world_collection_importing'
     ];
 
     it('keeps deep link labels in every locale source file', () => {

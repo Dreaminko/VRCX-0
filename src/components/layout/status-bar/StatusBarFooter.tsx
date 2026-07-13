@@ -191,6 +191,7 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
             timezoneOptions,
             visibility,
             visibleClocks,
+            worldCollectionImport,
             vrcStatus,
             zoomLevel,
             zoomLabel,
@@ -463,6 +464,15 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                     </div>
 
                     <div className="text-muted-foreground flex shrink-0 items-center justify-end overflow-hidden">
+                        <StatusSegment
+                            visible={worldCollectionImport.active}
+                            showDot={false}
+                            label={t('status_bar.world_collection_importing', {
+                                progress: worldCollectionImport.progress,
+                                total: worldCollectionImport.total
+                            })}
+                            className="text-muted-foreground -ml-px border-l"
+                        />
                         <StatusSegment
                             visible={friendProfileLoadVisible}
                             showDot={false}

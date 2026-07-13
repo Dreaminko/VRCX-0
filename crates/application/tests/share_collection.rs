@@ -171,6 +171,7 @@ fn prepare_payload_keeps_only_public_worlds_in_input_order() {
     assert_eq!(prepared.payload.author_name, "Scenic Curator");
     assert!(prepared.payload.updated_at > 0);
     assert_eq!(prepared.payload.worlds.len(), 2);
+    assert!(prepared.skipped_worlds.is_empty());
     assert_eq!(
         prepared.payload.worlds[0].world_id,
         "wrld_33333333-3333-3333-3333-333333333333"
@@ -189,6 +190,74 @@ fn prepare_payload_keeps_only_public_worlds_in_input_order() {
         "wrld_11111111-1111-1111-1111-111111111111"
     );
     assert_eq!(prepared.payload.worlds[1].comment, "");
+    assert_eq!(
+        prepared.payload.worlds[1].thumbnail_image_url,
+        prepared.payload.worlds[1].image_url
+    );
+}
+
+#[test]
+fn prepare_payload_skips_worlds_missing_required_share_information() {
+    let (_dir, db) = test_services("incomplete");
+    let complete_id = "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    let missing_author_id = "wrld_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+    let missing_name_id = "wrld_cccccccc-cccc-cccc-cccc-cccccccccccc";
+    let missing_author_name_id = "wrld_dddddddd-dddd-dddd-dddd-dddddddddddd";
+    let missing_image_id = "wrld_eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+    let missing_cache_id = "wrld_ffffffff-ffff-ffff-ffff-ffffffffffff";
+    world_cache_upsert(&db, world_entry(complete_id, "public", "Complete")).unwrap();
+    let mut missing_author = world_entry(missing_author_id, "public", "Missing author");
+    missing_author.author_id = json!("");
+    world_cache_upsert(&db, missing_author).unwrap();
+    let missing_name = world_entry(missing_name_id, "public", "");
+    world_cache_upsert(&db, missing_name).unwrap();
+    let mut missing_author_name =
+        world_entry(missing_author_name_id, "public", "Missing author name");
+    missing_author_name.author_name = json!("");
+    world_cache_upsert(&db, missing_author_name).unwrap();
+    let mut missing_image = world_entry(missing_image_id, "public", "Missing image");
+    missing_image.image_url = json!("");
+    missing_image.thumbnail_image_url = json!("thumbnail-only-value");
+    world_cache_upsert(&db, missing_image).unwrap();
+
+    let prepared = prepare_share_collection_payload(
+        ShareCollectionDeps {
+            db: &db,
+            current_user_id: "usr_current",
+            current_user_display_name: "Current User",
+        },
+        ShareCollectionCreateInput {
+            title: "Mixed group".to_string(),
+            listed: false,
+            include_notes: false,
+            world_ids: vec![
+                complete_id.to_string(),
+                missing_author_id.to_string(),
+                missing_name_id.to_string(),
+                missing_author_name_id.to_string(),
+                missing_image_id.to_string(),
+                missing_cache_id.to_string(),
+            ],
+        },
+    )
+    .unwrap();
+
+    assert_eq!(prepared.payload.worlds.len(), 1);
+    assert_eq!(prepared.payload.worlds[0].world_id, complete_id);
+    assert_eq!(
+        prepared
+            .skipped_worlds
+            .iter()
+            .map(|world| world.name.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "Missing author",
+            "",
+            "Missing author name",
+            "Missing image",
+            ""
+        ]
+    );
 }
 
 #[test]

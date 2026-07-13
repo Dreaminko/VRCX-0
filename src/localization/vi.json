@@ -2,6 +2,10 @@
     "language": "Tiếng Việt (vi)",
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "Tạo bộ sưu tập thế giới cục bộ",
+                "description": "Đặt tên cho bộ sưu tập cục bộ sẽ chứa {count} thế giới."
+            },
             "confirm": {
                 "title": "Nhập bộ sưu tập thế giới này?",
                 "description": "\"{title}\" bởi {author} · {count} thế giới",
@@ -10,6 +14,7 @@
                 "cancel": "Hủy"
             },
             "toast": {
+                "import_partial_failed": "Đã bỏ qua {count} thế giới không thể nhập",
                 "preview_failed": "Không tải được bộ sưu tập được chia sẻ",
                 "empty": "Bộ sưu tập được chia sẻ này không có thế giới nào để nhập",
                 "import_success": "Đã nhập {count} thế giới vào \"{title}\"",
@@ -1582,6 +1587,7 @@
         "routes": {}
     },
     "status_bar": {
+        "world_collection_importing": "Đang nhập bộ sưu tập thế giới ({progress}/{total})",
         "modify_proxy_address": "Modify proxy address",
         "proxy_disabled": "Proxy disabled",
         "proxy_enabled_direct": "Proxy enabled, connecting directly",

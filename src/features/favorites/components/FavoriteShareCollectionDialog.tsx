@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import shareCollectionRepository, {
     type ShareCollectionCreateResult
 } from '@/repositories/shareCollectionRepository';
@@ -52,7 +53,8 @@ type FavoriteShareCollectionDialogProps = {
 
 type ShareCollectionSuccessProps = {
     url: string;
-    skippedWorlds: number;
+    skippedWorldCount: number;
+    skippedIncompleteWorlds: ShareCollectionCreateResult['skippedWorlds'];
     onCopy(): void;
     onOpenManage(): void;
     onDone(): void;
@@ -80,10 +82,6 @@ type ShareCollectionFormProps = {
     onIncludeNotesChange(value: boolean): void;
     onCreate(): void;
 };
-
-function errorMessage(error: unknown, fallback: string): string {
-    return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function ShareOptionField({
     id,
@@ -114,7 +112,8 @@ function ShareOptionField({
 
 function ShareCollectionSuccess({
     url,
-    skippedWorlds,
+    skippedWorldCount,
+    skippedIncompleteWorlds,
     onCopy,
     onOpenManage,
     onDone
@@ -129,13 +128,37 @@ function ShareCollectionSuccess({
                     {t('view.favorite.share_collection.success.ready')}
                 </span>
             </div>
-            {skippedWorlds > 0 ? (
+            {skippedWorldCount > 0 ? (
                 <Alert>
                     <TriangleAlertIcon />
-                    <AlertDescription>
-                        {t('view.favorite.share_collection.success.skipped', {
-                            count: skippedWorlds
-                        })}
+                    <AlertDescription className="grid gap-2">
+                        <span>
+                            {t(
+                                'view.favorite.share_collection.success.skipped',
+                                {
+                                    count: skippedWorldCount
+                                }
+                            )}
+                        </span>
+                        {skippedIncompleteWorlds.length > 0 ? (
+                            <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5">
+                                {skippedIncompleteWorlds.map((world, index) => (
+                                    <li key={`${world.worldId}:${index}`}>
+                                        {t(
+                                            'view.favorite.share_collection.success.skipped_incomplete',
+                                            {
+                                                world:
+                                                    world.name.trim() ||
+                                                    world.worldId ||
+                                                    t(
+                                                        'view.favorites.empty.world_fallback'
+                                                    )
+                                            }
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : null}
                     </AlertDescription>
                 </Alert>
             ) : null}
@@ -291,7 +314,7 @@ export function FavoriteShareCollectionDialog({
     const [result, setResult] = useState<ShareCollectionCreateResult | null>(
         null
     );
-    const [skippedWorlds, setSkippedWorlds] = useState(0);
+    const [skippedWorldCount, setSkippedWorldCount] = useState(0);
     const shareWorlds = useMemo(
         () => buildShareCollectionWorldIds(items),
         [items]
@@ -304,7 +327,7 @@ export function FavoriteShareCollectionDialog({
         setListed(false);
         setIncludeNotes(false);
         setResult(null);
-        setSkippedWorlds(0);
+        setSkippedWorldCount(0);
     }, [group?.label, open]);
 
     async function copyShareUrl(url: string): Promise<void> {
@@ -313,7 +336,7 @@ export function FavoriteShareCollectionDialog({
                 'view.favorite.share_collection.toast.copy_success'
             ),
             errorMessage: (error) =>
-                errorMessage(
+                userFacingErrorMessage(
                     error,
                     t('view.favorite.share_collection.toast.copy_failed')
                 )
@@ -335,13 +358,14 @@ export function FavoriteShareCollectionDialog({
                     includeNotes,
                     worldIds: shareWorlds.worldIds
                 });
-            setSkippedWorlds(
-                Math.max(submittedWorldCount - nextResult.worldCount, 0)
+            setSkippedWorldCount(
+                shareWorlds.skippedWorlds.length +
+                    Math.max(submittedWorldCount - nextResult.worldCount, 0)
             );
             setResult(nextResult);
         } catch (error) {
             toast.error(
-                errorMessage(
+                userFacingErrorMessage(
                     error,
                     t('view.favorite.share_collection.toast.create_failed')
                 )
@@ -387,7 +411,11 @@ export function FavoriteShareCollectionDialog({
                 {result ? (
                     <ShareCollectionSuccess
                         url={result.url}
-                        skippedWorlds={skippedWorlds}
+                        skippedWorldCount={skippedWorldCount}
+                        skippedIncompleteWorlds={[
+                            ...shareWorlds.skippedWorlds,
+                            ...result.skippedWorlds
+                        ]}
                         onCopy={() => {
                             void copyShareUrl(result.url);
                         }}

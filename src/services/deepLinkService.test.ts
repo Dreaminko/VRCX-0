@@ -6,10 +6,10 @@ const mocks = vi.hoisted(() => ({
             () => Promise<import('@/platform/tauri/bindings').DeepLinkAction[]>
         >(),
     eventHandler: null as ((payload: unknown) => void) | null,
-    confirm: vi.fn(),
+    prompt: vi.fn(),
     openWorldDialog: vi.fn(),
     previewSharedCollection: vi.fn(),
-    importSharedCollection: vi.fn(),
+    importWorldIdsToLocalGroup: vi.fn(),
     toastSuccess: vi.fn(),
     toastError: vi.fn(),
     unsubscribe: vi.fn(),
@@ -38,8 +38,7 @@ vi.mock('@/platform/tauri/client', () => ({
 
 vi.mock('@/repositories/shareCollectionRepository', () => ({
     default: {
-        previewSharedCollection: mocks.previewSharedCollection,
-        importSharedCollection: mocks.importSharedCollection
+        previewSharedCollection: mocks.previewSharedCollection
     }
 }));
 
@@ -47,10 +46,14 @@ vi.mock('@/services/dialogService', () => ({
     openWorldDialog: mocks.openWorldDialog
 }));
 
+vi.mock('@/services/favoriteImportService', () => ({
+    importWorldIdsToLocalGroup: mocks.importWorldIdsToLocalGroup
+}));
+
 vi.mock('@/state/modalStore', () => ({
     useModalStore: {
         getState: () => ({
-            confirm: mocks.confirm
+            prompt: mocks.prompt
         })
     }
 }));
@@ -105,14 +108,9 @@ describe('deepLinkService', () => {
         ]);
         mocks.previewSharedCollection.mockResolvedValueOnce({
             title: 'Scenic picks',
-            authorName: 'Someone',
-            worldCount: 2,
-            worlds: [
-                { worldId: 'wrld_a', name: 'A', imageUrl: '' },
-                { worldId: 'wrld_b', name: 'B', imageUrl: '' }
-            ]
+            worldIds: [WORLD_ID, WORLD_ID.replace(/ab$/, 'ac')]
         });
-        mocks.confirm.mockResolvedValueOnce({ ok: false, reason: 'cancel' });
+        mocks.prompt.mockResolvedValueOnce({ ok: false, reason: 'cancel' });
 
         mocks.eventHandler?.({});
 
@@ -122,23 +120,32 @@ describe('deepLinkService', () => {
             );
         });
         await vi.waitFor(() => {
-            expect(mocks.confirm).toHaveBeenCalled();
+            expect(mocks.prompt).toHaveBeenCalled();
         });
-        expect(mocks.importSharedCollection).not.toHaveBeenCalled();
+        expect(mocks.importWorldIdsToLocalGroup).not.toHaveBeenCalled();
     });
 
     it('imports the collection after confirmation and shows a success toast', () => {
+        const secondWorldId = WORLD_ID.replace(/ab$/, 'ac');
         mocks.previewSharedCollection.mockResolvedValueOnce({
             title: 'Scenic picks',
-            authorName: 'Someone',
-            worldCount: 1,
-            worlds: [{ worldId: 'wrld_a', name: 'A', imageUrl: '' }]
+            worldIds: [WORLD_ID, secondWorldId]
         });
-        mocks.confirm.mockResolvedValueOnce({ ok: true, reason: 'ok' });
-        mocks.importSharedCollection.mockResolvedValueOnce({
-            groupKey: 'Scenic picks',
-            importedCount: 1
+        mocks.prompt.mockResolvedValueOnce({
+            ok: true,
+            reason: 'ok',
+            value: ' My local worlds '
         });
+        mocks.importWorldIdsToLocalGroup.mockImplementationOnce(
+            async ({ onProgress }) => {
+                onProgress?.(2, 2);
+                return {
+                    importedCount: 1,
+                    failedCount: 1,
+                    totalCount: 2
+                };
+            }
+        );
 
         handleDeepLinkAction({
             type: 'importCollection',
@@ -146,9 +153,81 @@ describe('deepLinkService', () => {
         });
 
         return vi.waitFor(() => {
-            expect(mocks.importSharedCollection).toHaveBeenCalledWith('Z9xY12');
+            expect(mocks.importWorldIdsToLocalGroup).toHaveBeenCalledWith({
+                worldIds: [WORLD_ID, secondWorldId],
+                groupName: 'My local worlds',
+                onProgress: expect.any(Function)
+            });
             expect(mocks.toastSuccess).toHaveBeenCalled();
+            expect(mocks.toastError).toHaveBeenCalledWith(
+                'deep_link.import_collection.toast.import_partial_failed:{"count":1}'
+            );
         });
+    });
+
+    it('serializes collection imports so their progress cannot overlap', async () => {
+        let releaseFirstImport: () => void = () => {};
+        const firstImportGate = new Promise<void>((resolve) => {
+            releaseFirstImport = resolve;
+        });
+        mocks.previewSharedCollection
+            .mockResolvedValueOnce({
+                title: 'First collection',
+                worldIds: [WORLD_ID]
+            })
+            .mockResolvedValueOnce({
+                title: 'Second collection',
+                worldIds: [WORLD_ID.replace(/ab$/, 'ac')]
+            });
+        mocks.prompt
+            .mockResolvedValueOnce({
+                ok: true,
+                reason: 'ok',
+                value: 'First local group'
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                reason: 'ok',
+                value: 'Second local group'
+            });
+        mocks.importWorldIdsToLocalGroup
+            .mockImplementationOnce(async () => {
+                await firstImportGate;
+                return {
+                    importedCount: 1,
+                    failedCount: 0,
+                    totalCount: 1
+                };
+            })
+            .mockResolvedValueOnce({
+                importedCount: 1,
+                failedCount: 0,
+                totalCount: 1
+            });
+
+        handleDeepLinkAction({
+            type: 'importCollection',
+            collectionId: 'First12'
+        });
+        handleDeepLinkAction({
+            type: 'importCollection',
+            collectionId: 'Second2'
+        });
+
+        await vi.waitFor(() => {
+            expect(mocks.importWorldIdsToLocalGroup).toHaveBeenCalledTimes(1);
+        });
+        expect(mocks.previewSharedCollection).toHaveBeenCalledTimes(1);
+
+        releaseFirstImport();
+
+        await vi.waitFor(() => {
+            expect(mocks.importWorldIdsToLocalGroup).toHaveBeenCalledTimes(2);
+        });
+        expect(mocks.previewSharedCollection).toHaveBeenNthCalledWith(
+            2,
+            'Second2'
+        );
     });
 
     it('opens worlds from actions', () => {
@@ -162,9 +241,7 @@ describe('deepLinkService', () => {
     it('shows a toast when a shared collection has no importable worlds', () => {
         mocks.previewSharedCollection.mockResolvedValueOnce({
             title: 'Empty',
-            authorName: '',
-            worldCount: 0,
-            worlds: []
+            worldIds: []
         });
 
         handleDeepLinkAction({
@@ -174,7 +251,7 @@ describe('deepLinkService', () => {
 
         return vi.waitFor(() => {
             expect(mocks.toastError).toHaveBeenCalled();
-            expect(mocks.confirm).not.toHaveBeenCalled();
+            expect(mocks.prompt).not.toHaveBeenCalled();
         });
     });
 

@@ -47,6 +47,10 @@
     },
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "로컬 월드 컬렉션 만들기",
+                "description": "월드 {count}개를 저장할 로컬 컬렉션 이름을 입력하세요."
+            },
             "confirm": {
                 "title": "월드 컬렉션을 가져올까요?",
                 "description": "'{title}' · 작성자 {author} · 월드 {count}개",
@@ -55,6 +59,7 @@
                 "cancel": "취소"
             },
             "toast": {
+                "import_partial_failed": "가져오지 못한 월드 {count}개를 건너뛰었습니다",
                 "preview_failed": "공유 컬렉션을 불러오지 못했습니다.",
                 "empty": "이 공유 컬렉션에는 가져올 수 있는 월드가 없습니다.",
                 "import_success": "{count}개의 월드를 '{title}'에 가져왔습니다.",
@@ -4890,6 +4895,7 @@
         "mobile_sidebar_description": "모바일 사이드바를 표시합니다."
     },
     "status_bar": {
+        "world_collection_importing": "월드 컬렉션 가져오는 중 ({progress}/{total})",
         "game": "게임",
         "game_last_session": "마지막 세션",
         "servers": "서버",

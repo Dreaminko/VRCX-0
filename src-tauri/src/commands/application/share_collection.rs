@@ -2,9 +2,8 @@
 
 use tauri::State;
 use vrcx_0_application::{
-    get_or_create_share_owner_token, import_shared_collection, preview_shared_collection,
-    share_collection_create, ImportCollectionDeps, ImportPreview, ImportResult,
-    ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
+    get_or_create_share_owner_token, preview_shared_collection, share_collection_create,
+    ImportPreview, ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
 };
 use vrcx_0_host::shell_actions;
 
@@ -46,21 +45,4 @@ pub async fn app__share_collection_open_manage(state: State<'_, AppState>) -> Re
 #[specta::specta]
 pub async fn app__share_collection_preview(id: String) -> Result<ImportPreview, AppError> {
     Ok(preview_shared_collection(&id).await?)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__share_collection_import(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<ImportResult, AppError> {
-    let result = import_shared_collection(
-        ImportCollectionDeps {
-            db: state.db.as_ref(),
-        },
-        &id,
-    )
-    .await?;
-    state.realtime_runtime.sync_world_cache_favorites_from_db();
-    Ok(result)
 }

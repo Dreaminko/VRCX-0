@@ -47,6 +47,10 @@
     },
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "ローカルのワールドコレクションを作成",
+                "description": "{count} 件のワールドを保存するローカルコレクション名を入力してください。"
+            },
             "confirm": {
                 "title": "ワールドコレクションをインポートしますか？",
                 "description": "「{title}」・作者 {author}・{count} 件のワールド",
@@ -55,6 +59,7 @@
                 "cancel": "キャンセル"
             },
             "toast": {
+                "import_partial_failed": "{count} 件のワールドをインポートできなかったためスキップしました",
                 "preview_failed": "共有コレクションの読み込みに失敗しました",
                 "empty": "この共有コレクションにはインポート可能なワールドがありません",
                 "import_success": "{count} 件のワールドを「{title}」にインポートしました",
@@ -4958,6 +4963,7 @@
         "mobile_sidebar_description": "モバイルサイドバーを表示します。"
     },
     "status_bar": {
+        "world_collection_importing": "ワールドコレクションをインポート中（{progress}/{total}）",
         "game": "VRChat",
         "game_stopped": "VRChat は実行されていません",
         "game_last_session": "最終セッション",

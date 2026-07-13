@@ -4,6 +4,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use vrcx_0_core::vrchat_ids::is_world_id;
 use vrcx_0_integrations::world_collections::{
     create_world_collection, mint_world_collection_token, WorldCollectionCreatePayload,
     WorldCollectionPayloadWorld, WORLD_COLLECTIONS_SITE_ORIGIN,
@@ -42,7 +43,15 @@ pub struct ShareCollectionDeps<'a> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PreparedShareCollection {
     pub payload: WorldCollectionCreatePayload,
+    pub skipped_worlds: Vec<ShareCollectionSkippedWorld>,
     pub truncated: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ShareCollectionSkippedWorld {
+    pub world_id: String,
+    pub name: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
@@ -51,6 +60,7 @@ pub struct ShareCollectionCreateResult {
     pub id: String,
     pub url: String,
     pub world_count: i64,
+    pub skipped_worlds: Vec<ShareCollectionSkippedWorld>,
 }
 
 pub fn prepare_share_collection_payload(
@@ -92,18 +102,35 @@ pub fn prepare_share_collection_payload(
     }
 
     let mut worlds = Vec::new();
+    let mut skipped_worlds = Vec::new();
     for world_id in capped_world_ids {
         let Some(row) = rows_by_id.get(&world_id) else {
+            skipped_worlds.push(ShareCollectionSkippedWorld {
+                world_id,
+                name: String::new(),
+            });
             continue;
         };
         if !row.release_status.eq_ignore_ascii_case("public") {
+            continue;
+        }
+        if row.id.trim().is_empty()
+            || row.name.trim().is_empty()
+            || row.author_id.trim().is_empty()
+            || row.author_name.trim().is_empty()
+            || row.image_url.trim().is_empty()
+        {
+            skipped_worlds.push(ShareCollectionSkippedWorld {
+                world_id: row.id.clone(),
+                name: row.name.trim().to_string(),
+            });
             continue;
         }
         worlds.push(payload_world_from_row(row, &memos_by_id));
     }
     if worlds.is_empty() {
         return Err(Error::Custom(
-            "Share collection has no public cached worlds to upload.".into(),
+            "Share collection has no complete public cached worlds to upload.".into(),
         ));
     }
 
@@ -118,6 +145,7 @@ pub fn prepare_share_collection_payload(
             updated_at: Utc::now().timestamp(),
             worlds,
         },
+        skipped_worlds,
         truncated,
     })
 }
@@ -130,16 +158,29 @@ pub async fn share_collection_create(
     let current_user_id = deps.current_user_id;
     let prepared = prepare_share_collection_payload(deps, input)?;
     let owner_token = get_or_create_share_owner_token(db, current_user_id).await?;
-    let world_count = prepared.payload.worlds.len() as i64;
     let response = create_world_collection(&owner_token, &prepared.payload)
         .await
         .map_err(|error| Error::Custom(error.to_string()))?;
+    let server_skipped_count = response.skipped_worlds.len();
+    let world_count = prepared
+        .payload
+        .worlds
+        .len()
+        .saturating_sub(server_skipped_count) as i64;
+    let mut skipped_worlds = prepared.skipped_worlds;
+    skipped_worlds.extend(response.skipped_worlds.into_iter().map(|world| {
+        ShareCollectionSkippedWorld {
+            world_id: world.world_id,
+            name: world.name,
+        }
+    }));
     let id = response.id;
     let url = format!("{WORLD_COLLECTIONS_SITE_ORIGIN}/c/{id}");
     Ok(ShareCollectionCreateResult {
         id,
         url,
         world_count,
+        skipped_worlds,
     })
 }
 
@@ -148,10 +189,10 @@ fn payload_world_from_row(
     memos_by_id: &HashMap<String, String>,
 ) -> WorldCollectionPayloadWorld {
     let comment = memos_by_id.get(&row.id).cloned().unwrap_or_default();
-    let image_url = if row.image_url.trim().is_empty() {
-        row.thumbnail_image_url.clone()
-    } else {
+    let thumbnail_image_url = if row.thumbnail_image_url.trim().is_empty() {
         row.image_url.clone()
+    } else {
+        row.thumbnail_image_url.clone()
     };
     WorldCollectionPayloadWorld {
         world_id: row.id.clone(),
@@ -159,10 +200,10 @@ fn payload_world_from_row(
         name: row.name.clone(),
         author_name: row.author_name.clone(),
         created_at: row.created_at.clone(),
-        image_url,
+        image_url: row.image_url.clone(),
         description: row.description.clone(),
         release_status: row.release_status.clone(),
-        thumbnail_image_url: row.thumbnail_image_url.clone(),
+        thumbnail_image_url,
         comment,
         updated_at: row.updated_at.clone(),
         version: row.version,
@@ -271,7 +312,7 @@ fn normalize_world_ids(world_ids: &[String]) -> Vec<String> {
     let mut normalized = Vec::new();
     for world_id in world_ids {
         let world_id = world_id.trim();
-        if !world_id.starts_with("wrld_") {
+        if !is_world_id(world_id) {
             continue;
         }
         if !seen.insert(world_id) {

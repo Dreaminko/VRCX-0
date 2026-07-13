@@ -2,6 +2,10 @@
     "language": "Polski (pl)",
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "Utwórz lokalną kolekcję światów",
+                "description": "Wybierz nazwę lokalnej kolekcji dla {count} światów."
+            },
             "confirm": {
                 "title": "Zaimportować kolekcję światów?",
                 "description": "„{title}” od {author} · {count} światów",
@@ -10,6 +14,7 @@
                 "cancel": "Anuluj"
             },
             "toast": {
+                "import_partial_failed": "Pominięto {count} światów, których nie udało się zaimportować",
                 "preview_failed": "Nie udało się wczytać udostępnionej kolekcji",
                 "empty": "Ta udostępniona kolekcja nie zawiera światów do zaimportowania",
                 "import_success": "Zaimportowano {count} światów do „{title}”",
@@ -1930,6 +1935,7 @@
         "routes": {}
     },
     "status_bar": {
+        "world_collection_importing": "Importowanie kolekcji światów ({progress}/{total})",
         "modify_proxy_address": "Modify proxy address",
         "proxy_disabled": "Proxy disabled",
         "proxy_enabled_direct": "Proxy enabled, connecting directly",

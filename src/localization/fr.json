@@ -47,6 +47,10 @@
     },
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "Créer une collection locale de mondes",
+                "description": "Choisissez un nom pour la collection locale qui recevra {count} mondes."
+            },
             "confirm": {
                 "title": "Importer la collection de mondes ?",
                 "description": "« {title} » par {author} · {count} mondes",
@@ -55,6 +59,7 @@
                 "cancel": "Annuler"
             },
             "toast": {
+                "import_partial_failed": "{count} mondes impossibles à importer ont été ignorés",
                 "preview_failed": "Échec du chargement de la collection partagée",
                 "empty": "Cette collection partagée ne contient aucun monde importable",
                 "import_success": "{count} mondes importés dans « {title} »",
@@ -4962,6 +4967,7 @@
         "mobile_sidebar_description": "Affiche la barre latérale mobile."
     },
     "status_bar": {
+        "world_collection_importing": "Importation de la collection de mondes ({progress}/{total})",
         "game": "Jeu",
         "game_stopped": "VRChat n'est pas en cours d'exécution",
         "game_last_session": "Dernière session",

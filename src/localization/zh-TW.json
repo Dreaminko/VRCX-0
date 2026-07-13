@@ -47,6 +47,10 @@
     },
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "新增本機世界收藏",
+                "description": "為即將匯入的 {count} 個世界輸入本機收藏夾名稱。"
+            },
             "confirm": {
                 "title": "匯入世界合集？",
                 "description": "「{title}」· 作者 {author} · 共 {count} 個世界",
@@ -55,6 +59,7 @@
                 "cancel": "取消"
             },
             "toast": {
+                "import_partial_failed": "有 {count} 個世界匯入失敗，已略過",
                 "preview_failed": "載入共享合集失敗",
                 "empty": "此共享合集沒有可匯入的世界",
                 "import_success": "已將 {count} 個世界匯入到「{title}」",
@@ -4966,6 +4971,7 @@
         "mobile_sidebar_description": "顯示移動端側邊欄。"
     },
     "status_bar": {
+        "world_collection_importing": "正在匯入世界收藏（{progress}/{total}）",
         "game": "遊戲",
         "game_stopped": "VRChat 未在執行",
         "game_last_session": "上次活動",

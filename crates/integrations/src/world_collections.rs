@@ -39,8 +39,18 @@ pub struct WorldCollectionPayloadWorld {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorldCollectionSkippedWorld {
+    pub world_id: String,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorldCollectionCreateResponse {
     pub id: String,
+    #[serde(default)]
+    pub skipped_worlds: Vec<WorldCollectionSkippedWorld>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -220,8 +230,8 @@ pub async fn fetch_world_collection(
 #[cfg(test)]
 mod tests {
     use super::{
-        redact_secret, WorldCollectionCreatePayload, WorldCollectionSnapshotResponse,
-        WorldCollectionTokenMintRequest,
+        redact_secret, WorldCollectionCreatePayload, WorldCollectionCreateResponse,
+        WorldCollectionSnapshotResponse, WorldCollectionTokenMintRequest,
     };
 
     #[test]
@@ -276,5 +286,25 @@ mod tests {
         .expect("nullable note should match the public API contract");
 
         assert_eq!(snapshot.note, None);
+    }
+
+    #[test]
+    fn create_response_accepts_skipped_world_summaries() {
+        let response: WorldCollectionCreateResponse = serde_json::from_value(serde_json::json!({
+            "id": "AbC123z",
+            "skippedWorlds": [
+                { "worldId": "legacy-world-id", "name": "Incomplete world" }
+            ]
+        }))
+        .expect("skipped world summaries should match the create API contract");
+
+        assert_eq!(response.id, "AbC123z");
+        assert_eq!(response.skipped_worlds.len(), 1);
+        assert_eq!(response.skipped_worlds[0].world_id, "legacy-world-id");
+
+        let legacy: WorldCollectionCreateResponse =
+            serde_json::from_value(serde_json::json!({ "id": "AbC123z" }))
+                .expect("older create responses should remain compatible");
+        assert!(legacy.skipped_worlds.is_empty());
     }
 }

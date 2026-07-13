@@ -38,6 +38,7 @@ import {
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
+import { useWorldCollectionImportStore } from '@/state/worldCollectionImportStore';
 import { ContextMenu, ContextMenuTrigger } from '@/ui/shadcn/context-menu';
 
 import { StatusBarContextMenuContent } from './status-bar/StatusBarContextMenuContent';
@@ -284,6 +285,15 @@ export function AppStatusBar() {
     const proxyEnabled = usePreferencesStore((state) => state.proxyEnabled);
     const proxyServer = usePreferencesStore((state) => state.proxyServer);
     const zoomLevel = useShellStore((state) => state.zoomLevel);
+    const worldCollectionImportActive = useWorldCollectionImportStore(
+        (state) => state.active
+    );
+    const worldCollectionImportProgress = useWorldCollectionImportStore(
+        (state) => state.progress
+    );
+    const worldCollectionImportTotal = useWorldCollectionImportStore(
+        (state) => state.total
+    );
     const [proxyEditorOpen, setProxyEditorOpen] = useState(false);
     const [proxyDraftEnabled, setProxyDraftEnabled] = useState(proxyEnabled);
     const [proxyDraftServer, setProxyDraftServer] = useState(proxyServer);
@@ -363,6 +373,18 @@ export function AppStatusBar() {
             friendProfileLoadProcessedFriends,
             friendProfileLoadStatus,
             friendProfileLoadTotalFriends
+        ]
+    );
+    const worldCollectionImport = useMemo(
+        () => ({
+            active: worldCollectionImportActive,
+            progress: worldCollectionImportProgress,
+            total: worldCollectionImportTotal
+        }),
+        [
+            worldCollectionImportActive,
+            worldCollectionImportProgress,
+            worldCollectionImportTotal
         ]
     );
     const vrcStatus = useMemo(
@@ -763,6 +785,7 @@ export function AppStatusBar() {
         timezoneOptions,
         visibility,
         visibleClocks,
+        worldCollectionImport,
         vrcStatus,
         zoomLabel: formatZoomPercentage(currentZoomLevel),
         zoomLevel: currentZoomLevel,

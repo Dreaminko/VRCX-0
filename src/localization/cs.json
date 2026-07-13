@@ -47,6 +47,10 @@
     },
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "Vytvořit místní kolekci světů",
+                "description": "Zvolte název místní kolekce pro {count} světů."
+            },
             "confirm": {
                 "title": "Importovat kolekci světů?",
                 "description": "„{title}“ od {author} · {count} světů",
@@ -55,6 +59,7 @@
                 "cancel": "Zrušit"
             },
             "toast": {
+                "import_partial_failed": "Bylo přeskočeno {count} světů, které se nepodařilo importovat",
                 "preview_failed": "Sdílenou kolekci se nepodařilo načíst",
                 "empty": "Tato sdílená kolekce neobsahuje žádné světy k importu",
                 "import_success": "Bylo importováno {count} světů do „{title}“",
@@ -4964,6 +4969,7 @@
         "mobile_sidebar_description": "Zobrazí mobilní postranní panel."
     },
     "status_bar": {
+        "world_collection_importing": "Importuji kolekci světů ({progress}/{total})",
         "game": "Hra",
         "game_stopped": "VRChat neběží",
         "game_last_session": "Poslední relace",

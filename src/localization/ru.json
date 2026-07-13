@@ -47,6 +47,10 @@
     },
     "deep_link": {
         "import_collection": {
+            "prompt": {
+                "title": "Создать локальную коллекцию миров",
+                "description": "Введите имя локальной коллекции для {count} миров."
+            },
             "confirm": {
                 "title": "Импортировать коллекцию миров?",
                 "description": "«{title}» · автор {author} · миров: {count}",
@@ -55,6 +59,7 @@
                 "cancel": "Отмена"
             },
             "toast": {
+                "import_partial_failed": "Пропущено миров, которые не удалось импортировать: {count}",
                 "preview_failed": "Не удалось загрузить общую коллекцию",
                 "empty": "В этой общей коллекции нет миров для импорта",
                 "import_success": "Импортировано {count} миров в «{title}»",
@@ -4964,6 +4969,7 @@
         "mobile_sidebar_description": "Показывает мобильную боковую панель."
     },
     "status_bar": {
+        "world_collection_importing": "Импорт коллекции миров ({progress}/{total})",
         "game": "Игра",
         "game_stopped": "VRChat не работает",
         "game_last_session": "Последняя сессия",

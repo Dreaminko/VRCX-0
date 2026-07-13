@@ -51,6 +51,12 @@ export type StatusBarFriendProfileLoad = {
     totalFriends?: unknown;
 };
 
+export type StatusBarWorldCollectionImport = {
+    active: boolean;
+    progress: number;
+    total: number;
+};
+
 export type StatusBarNowPlaying = {
     length?: unknown;
     name?: string | null;
@@ -117,6 +123,7 @@ export type StatusBarFooterModel = {
     timezoneOptions: StatusBarTimezoneOption[];
     visibility: StatusBarVisibility;
     visibleClocks: StatusBarClock[];
+    worldCollectionImport: StatusBarWorldCollectionImport;
     vrcStatus: Pick<
         VrcStatusState,
         'summary' | 'status' | 'refreshing' | 'error' | 'lastFetchedAt'

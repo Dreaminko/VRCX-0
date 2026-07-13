@@ -117,10 +117,7 @@ pub use groups::{
     VrchatGroupUserInput,
 };
 pub use image_cache::{save_ugc_image_to_file, ImageCache};
-pub use import_collection::{
-    import_shared_collection, preview_shared_collection, ImportCollectionDeps, ImportPreview,
-    ImportPreviewWorld, ImportResult,
-};
+pub use import_collection::{preview_shared_collection, ImportPreview};
 pub use instance_launch::{
     evaluate_instance_action_gates, join_instance_launch, InstanceActionGateTarget,
     InstanceActionGates, InstanceActionGatesBatchInput, InstanceActionGatesBatchOutput,
@@ -213,7 +210,7 @@ pub use share_collection::{
     get_or_create_share_owner_token, is_valid_share_owner_token, prepare_share_collection_payload,
     share_collection_create, share_collection_owner_hint, PreparedShareCollection,
     ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
-    SHARE_COLLECTION_MAX_WORLDS,
+    ShareCollectionSkippedWorld, SHARE_COLLECTION_MAX_WORLDS,
 };
 pub use social_baseline::{
     apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,

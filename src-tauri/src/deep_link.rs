@@ -1,5 +1,7 @@
 use std::sync::Mutex;
 
+use vrcx_0_core::vrchat_ids::is_world_id;
+
 pub const DEEP_LINK_ARRIVED_EVENT: &str = "deepLinkArrived";
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
@@ -55,26 +57,6 @@ pub fn parse_deep_link(value: &str) -> Option<DeepLinkAction> {
 
 fn is_collection_id(value: &str) -> bool {
     (6..=12).contains(&value.len()) && value.bytes().all(|byte| byte.is_ascii_alphanumeric())
-}
-
-fn is_world_id(value: &str) -> bool {
-    let Some(uuid) = value.strip_prefix("wrld_") else {
-        return false;
-    };
-    is_uuid(uuid)
-}
-
-fn is_uuid(value: &str) -> bool {
-    if value.len() != 36 {
-        return false;
-    }
-    value.bytes().enumerate().all(|(index, byte)| {
-        if matches!(index, 8 | 13 | 18 | 23) {
-            byte == b'-'
-        } else {
-            byte.is_ascii_hexdigit()
-        }
-    })
 }
 
 #[cfg(test)]
