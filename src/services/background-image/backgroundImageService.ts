@@ -25,7 +25,7 @@ import {
     type VrcxCssLayer,
     setVrcxCssLayer,
     setVrcxCssLayersSuppressed
-} from '../vrcxCssLayerService';
+} from '../vrcx0CssLayerService';
 import {
     createBackgroundImageFilesSource,
     createBackgroundImageFolderSource,

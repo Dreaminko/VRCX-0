@@ -514,18 +514,28 @@
     --owner-cyan: #3fe1c8;
 }
 
-.owner-dialog {
-    border: 2px solid transparent;
-    background:
-        linear-gradient(var(--popover), var(--popover)) padding-box,
-        conic-gradient(
-                from var(--owner-angle),
-                var(--owner-gold),
-                var(--owner-violet),
-                var(--owner-cyan),
-                var(--owner-gold)
-            )
-            border-box;
+.owner-dialog::before {
+    position: absolute;
+    inset: 0;
+    padding: 2px;
+    border-radius: inherit;
+    background: conic-gradient(
+        from var(--owner-angle),
+        var(--owner-gold),
+        var(--owner-violet),
+        var(--owner-cyan),
+        var(--owner-gold)
+    );
+    content: '';
+    pointer-events: none;
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
     animation: owner-spin 10s linear infinite;
 }
 
@@ -560,7 +570,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .owner-dialog {
+    .owner-dialog::before {
         animation: none;
     }
 }

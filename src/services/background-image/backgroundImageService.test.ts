@@ -54,7 +54,7 @@ vi.mock('../themeService', () => ({
     setCommunityThemeAppearanceControl: mocks.setCommunityThemeAppearanceControl
 }));
 
-vi.mock('../vrcxCssLayerService', () => ({
+vi.mock('../vrcx0CssLayerService', () => ({
     setVrcxCssLayer: mocks.setVrcxCssLayer,
     setVrcxCssLayersSuppressed: mocks.setVrcxCssLayersSuppressed
 }));

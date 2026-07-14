@@ -39,7 +39,7 @@ import {
     resolveThemeColor,
     setCommunityThemeAppearanceControl
 } from './themeService';
-import { setVrcxCssLayers } from './vrcxCssLayerService';
+import { setVrcxCssLayers } from './vrcx0CssLayerService';
 
 const INSTALLED_THEME_LAYER = 'installed-theme';
 const LOCAL_PREVIEW_LAYER = 'local-theme-preview';

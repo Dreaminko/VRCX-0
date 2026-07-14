@@ -4,7 +4,7 @@ import {
     PersonStandingIcon,
     UsersIcon
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,6 +19,7 @@ import {
     convertFileUrlToImageUrl,
     userImage
 } from '@/services/entityMediaService';
+import { setRgb } from '@/services/vrcx0CssLayerService';
 import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
@@ -642,6 +643,21 @@ export function QuickSearchDialog({
         results.joinedGroups.length;
 
     const selectResult = useQuickSearchSelectResult({ onOpenChange, setQuery });
+    function handleSearchCommand(event: KeyboardEvent<HTMLInputElement>) {
+        const value = event.currentTarget.value;
+        if (
+            event.key !== 'Enter' ||
+            event.nativeEvent.isComposing ||
+            (value !== '/rgb-mode:on' && value !== '/rgb-mode:off')
+        ) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        setRgb(value === '/rgb-mode:on');
+        setQuery('');
+        onOpenChange(false);
+    }
 
     return (
         <Dialog
@@ -671,6 +687,7 @@ export function QuickSearchDialog({
                         value={query}
                         aria-label={t('side_panel.search_input_placeholder')}
                         placeholder={t('side_panel.search_input_placeholder')}
+                        onKeyDownCapture={handleSearchCommand}
                         onValueChange={setQuery}
                     />
                     <CommandList className="max-h-[min(400px,50vh)]">
