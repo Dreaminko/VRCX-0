@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 use chrono::{DateTime, Local, TimeZone, Utc};
 use vrcx_0_persistence::config::ConfigRepository;
@@ -13,7 +13,9 @@ use crate::background::RuntimeBackgroundJobs;
 use crate::event_bus::RuntimeEventBus;
 use crate::task_supervisor::TaskSupervisor;
 
-use super::pipeline::{backup_file_name, create_delivery_temporary, DeliveryAttempt};
+use super::pipeline::{
+    active_stage_percent, backup_file_name, create_delivery_temporary, DeliveryAttempt,
+};
 use super::scheduler::is_auto_backup_due;
 use vrcx_0_persistence::VRCX0_SCHEMA_VERSION_KEY as DATABASE_VERSION_KEY;
 
@@ -108,6 +110,77 @@ fn backup_names_keep_manual_files_out_of_auto_rotation_pattern() {
 }
 
 #[test]
+fn stage_progress_handles_multi_gibibyte_files_and_reserves_completion() {
+    let eight_gib = 8 * 1024 * 1024 * 1024;
+    assert_eq!(active_stage_percent(0, eight_gib), 0);
+    assert_eq!(active_stage_percent(eight_gib / 2, eight_gib), 50);
+    assert_eq!(active_stage_percent(eight_gib, eight_gib), 99);
+}
+
+#[test]
+fn progress_events_are_rate_limited_without_suppressing_boundaries() {
+    let dir = TestDir::new("progress-rate-limit");
+    let runtime = test_runtime(&dir);
+    runtime.begin_running(
+        ProfileBackupKind::Manual,
+        ProfileBackupPhase::Snapshot,
+        None,
+    );
+    runtime.inner.event_bus.take_events_for_test();
+
+    let start = Instant::now();
+    runtime.inner.state.lock().unwrap().last_progress_event_at = Some(start);
+    runtime.update_progress_at(
+        ProfileBackupPhase::Snapshot,
+        Some(1),
+        start + Duration::from_millis(5),
+    );
+    runtime.update_progress_at(
+        ProfileBackupPhase::Snapshot,
+        Some(2),
+        start + Duration::from_millis(20),
+    );
+    runtime.update_progress_at(
+        ProfileBackupPhase::Snapshot,
+        Some(3),
+        start + Duration::from_millis(21),
+    );
+    runtime.update_progress_at(
+        ProfileBackupPhase::Deliver,
+        Some(0),
+        start + Duration::from_millis(21),
+    );
+    runtime.update_progress_at(
+        ProfileBackupPhase::Deliver,
+        None,
+        start + Duration::from_millis(21),
+    );
+    runtime.update_progress_at(
+        ProfileBackupPhase::Deliver,
+        Some(100),
+        start + Duration::from_millis(21),
+    );
+
+    let statuses = runtime
+        .inner
+        .event_bus
+        .take_events_for_test()
+        .into_iter()
+        .map(|event| serde_json::from_value::<ProfileBackupStatus>(event.payload).unwrap())
+        .map(|status| (status.phase, status.percent))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        statuses,
+        vec![
+            (Some(ProfileBackupPhase::Snapshot), Some(2)),
+            (Some(ProfileBackupPhase::Deliver), Some(0)),
+            (Some(ProfileBackupPhase::Deliver), None),
+            (Some(ProfileBackupPhase::Deliver), Some(100)),
+        ]
+    );
+}
+
+#[test]
 fn initial_delivery_preserves_an_existing_temporary_file_but_retry_replaces_it() {
     let dir = TestDir::new("delivery-temporary");
     let temporary_path = dir.0.join("backup.vrcx0backup.tmp");
@@ -149,12 +222,15 @@ fn manual_backup_runs_off_thread_and_finishes_with_revisioned_outcome() {
         assert_eq!(mode, 0o600);
     }
 
-    let revisions = runtime
+    let events = runtime
         .inner
         .event_bus
         .take_events_for_test()
         .into_iter()
         .filter(|event| event.name == "profileBackupStatus")
+        .collect::<Vec<_>>();
+    let revisions = events
+        .iter()
         .filter_map(|event| {
             event
                 .payload
@@ -163,6 +239,28 @@ fn manual_backup_runs_off_thread_and_finishes_with_revisioned_outcome() {
         })
         .collect::<Vec<_>>();
     assert!(revisions.windows(2).all(|pair| pair[0] < pair[1]));
+    assert!(events.iter().any(|event| {
+        event.payload.get("phase").and_then(|value| value.as_str()) == Some("snapshot")
+            && event
+                .payload
+                .get("percent")
+                .is_some_and(serde_json::Value::is_null)
+    }));
+    assert!(events.iter().any(|event| {
+        event.payload.get("phase").and_then(|value| value.as_str()) == Some("package")
+            && event
+                .payload
+                .get("percent")
+                .and_then(|value| value.as_u64())
+                == Some(100)
+    }));
+    assert!(events.iter().any(|event| {
+        event.payload.get("phase").and_then(|value| value.as_str()) == Some("deliver")
+            && event
+                .payload
+                .get("percent")
+                .is_some_and(serde_json::Value::is_null)
+    }));
 }
 
 #[test]
@@ -288,7 +386,11 @@ fn dismiss_error_does_not_change_or_emit_a_running_status() {
     let dir = TestDir::new("dismiss-running");
     let runtime = test_runtime(&dir);
 
-    runtime.begin_running(ProfileBackupKind::Manual, ProfileBackupPhase::Snapshot, 12);
+    runtime.begin_running(
+        ProfileBackupKind::Manual,
+        ProfileBackupPhase::Snapshot,
+        Some(12),
+    );
     runtime.inner.event_bus.take_events_for_test();
     let before = runtime.current_status();
 

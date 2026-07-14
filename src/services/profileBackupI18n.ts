@@ -1,9 +1,17 @@
 import type {
     ProfileBackupErrorCode,
+    ProfileBackupPhase,
+    ProfileBackupStatus,
     ProfileRestoreFailureCode
 } from './profileBackupService';
 
 const UNKNOWN_ERROR_KEY = 'profile_backup.error.unknown';
+
+const PROFILE_BACKUP_PHASE_KEYS: Record<ProfileBackupPhase, string> = {
+    snapshot: 'profile_backup.phase_snapshot',
+    package: 'profile_backup.phase_package',
+    deliver: 'profile_backup.phase_deliver'
+};
 
 const PROFILE_BACKUP_ERROR_KEYS: Record<ProfileBackupErrorCode, string> = {
     operationBusy: 'profile_backup.error.busy',
@@ -46,6 +54,18 @@ const PROFILE_RESTORE_VALIDATION_ERROR_KEYS: Record<
 
 export function profileBackupErrorKey(code: ProfileBackupErrorCode): string {
     return PROFILE_BACKUP_ERROR_KEYS[code] ?? UNKNOWN_ERROR_KEY;
+}
+
+export function profileBackupPhaseKey(status: ProfileBackupStatus): string {
+    if (status.phase === 'deliver' && status.percent === null) {
+        return 'profile_backup.phase_finalize';
+    }
+    if (status.phase) {
+        return PROFILE_BACKUP_PHASE_KEYS[status.phase];
+    }
+    return status.kind === 'auto'
+        ? 'profile_backup.automatic_running'
+        : 'profile_backup.manual_running';
 }
 
 export function profileRestoreFailureKey(

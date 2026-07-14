@@ -20,6 +20,7 @@
         "phase_snapshot": "Przygotowywanie danych…",
         "phase_package": "Tworzenie kopii…",
         "phase_deliver": "Zapisywanie w lokalizacji kopii…",
+        "phase_finalize": "Kończenie zapisywania…",
         "backup_now": "Utwórz kopię teraz…",
         "backup_now_confirm": "Utwórz kopię",
         "restore": "Przywracanie danych",

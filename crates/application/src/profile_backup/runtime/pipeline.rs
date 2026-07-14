@@ -56,7 +56,7 @@ impl ProfileBackupRuntime {
                 Some(pending.archive),
             );
         }
-        self.begin_running(pending.kind, ProfileBackupPhase::Deliver, 70);
+        self.begin_running(pending.kind, ProfileBackupPhase::Deliver, Some(0));
         self.spawn_delivery(pending, guard, DeliveryAttempt::Retry);
         self.accepted_action()
     }
@@ -126,7 +126,7 @@ impl ProfileBackupRuntime {
             kind,
             retain_extra: settings.auto_retain_extra,
         };
-        self.begin_running(kind, ProfileBackupPhase::Snapshot, 0);
+        self.begin_running(kind, ProfileBackupPhase::Snapshot, None);
         let runtime = self.clone();
         self.inner
             .tasks
@@ -160,8 +160,7 @@ impl ProfileBackupRuntime {
         if stop_token.is_stop_requested() {
             return;
         }
-        self.update_progress(ProfileBackupPhase::Snapshot, 50);
-        self.update_progress(ProfileBackupPhase::Package, 50);
+        self.update_progress(ProfileBackupPhase::Package, Some(0));
         let db_version = match read_profile_database_version(&snapshot) {
             Ok(version) => version,
             Err(error) => {
@@ -181,8 +180,10 @@ impl ProfileBackupRuntime {
                 kind: pending.kind,
             },
             &mut |bytes, total| {
-                let percent = 50 + (bytes.saturating_mul(19) / total.max(1)).min(19) as u8;
-                self.update_progress(ProfileBackupPhase::Package, percent);
+                self.update_progress(
+                    ProfileBackupPhase::Package,
+                    Some(active_stage_percent(bytes, total)),
+                );
             },
         );
         let _ = fs::remove_file(&snapshot);
@@ -199,7 +200,7 @@ impl ProfileBackupRuntime {
         if stop_token.is_stop_requested() {
             return;
         }
-        self.update_progress(ProfileBackupPhase::Package, 70);
+        self.update_progress(ProfileBackupPhase::Package, Some(100));
         self.set_pending_delivery(Some(pending.clone()));
         self.run_delivery(pending, guard, stop_token, DeliveryAttempt::Initial);
     }
@@ -225,7 +226,7 @@ impl ProfileBackupRuntime {
         stop_token: TaskStopToken,
         attempt: DeliveryAttempt,
     ) {
-        self.update_progress(ProfileBackupPhase::Deliver, 70);
+        self.update_progress(ProfileBackupPhase::Deliver, Some(0));
         if let Err(error) = self.deliver_archive(&pending, &stop_token, attempt) {
             let backup_error = classify_io_error(error, BackupStage::Target, &pending.target_dir);
             self.finish_failure(pending.kind, backup_error, Some(pending));
@@ -234,7 +235,7 @@ impl ProfileBackupRuntime {
         if stop_token.is_stop_requested() {
             return;
         }
-        self.update_progress(ProfileBackupPhase::Deliver, 100);
+        self.update_progress(ProfileBackupPhase::Deliver, Some(100));
         let final_path = pending.target_dir.join(&pending.file_name);
         let _ = fs::remove_file(&pending.archive);
         self.set_pending_delivery(None);
@@ -283,9 +284,12 @@ impl ProfileBackupRuntime {
                 }
                 writer.write_all(&buffer[..read])?;
                 copied += read as u64;
-                let percent = 70 + ((copied.saturating_mul(29) / total).min(29) as u8);
-                self.update_progress(ProfileBackupPhase::Deliver, percent);
+                self.update_progress(
+                    ProfileBackupPhase::Deliver,
+                    Some(active_stage_percent(copied, total)),
+                );
             }
+            self.update_progress(ProfileBackupPhase::Deliver, None);
             writer.flush()?;
             writer.get_ref().sync_all()?;
             drop(writer);
@@ -330,6 +334,10 @@ impl ProfileBackupRuntime {
         };
         self.finish_failure(kind, backup_error, None);
     }
+}
+
+pub(super) fn active_stage_percent(processed: u64, total: u64) -> u8 {
+    (processed.saturating_mul(100) / total.max(1)).min(99) as u8
 }
 
 #[derive(Clone, Copy)]

@@ -89,6 +89,7 @@
         "phase_snapshot": "Příprava dat…",
         "phase_package": "Vytváření zálohy…",
         "phase_deliver": "Ukládání do umístění záloh…",
+        "phase_finalize": "Dokončování ukládání…",
         "backup_now": "Zálohovat nyní…",
         "backup_now_confirm": "Vytvořit zálohu",
         "restore": "Obnovit data",

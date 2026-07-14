@@ -9,7 +9,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;
@@ -32,6 +32,7 @@ const AUTO_JOB: &str = "profileBackup";
 const AUTO_CADENCE: Duration = Duration::from_secs(3 * 60 * 60);
 const AUTO_START_DELAY: Duration = Duration::from_secs(60);
 const ORPHAN_TEMP_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+const PROGRESS_EVENT_INTERVAL: Duration = Duration::from_millis(20);
 
 #[derive(Clone)]
 pub struct ProfileBackupRuntime {
@@ -56,6 +57,7 @@ struct ProfileBackupRuntimeInner {
 struct ProfileBackupRuntimeState {
     status: ProfileBackupStatus,
     pending_delivery: Option<PendingDelivery>,
+    last_progress_event_at: Option<Instant>,
 }
 
 #[derive(Clone)]
@@ -165,34 +167,60 @@ impl ProfileBackupRuntime {
         snapshot
     }
 
-    fn begin_running(&self, kind: ProfileBackupKind, phase: ProfileBackupPhase, percent: u8) {
+    fn begin_running(
+        &self,
+        kind: ProfileBackupKind,
+        phase: ProfileBackupPhase,
+        percent: Option<u8>,
+    ) {
+        let now = Instant::now();
         self.update_status(|state| {
             state.status.state = ProfileBackupState::Running;
             state.status.kind = Some(kind);
             state.status.phase = Some(phase);
-            state.status.percent = Some(percent);
+            state.status.percent = percent.map(|value| value.min(100));
             state.status.error = None;
             state.status.last_outcome = None;
+            state.last_progress_event_at = Some(now);
         });
     }
 
-    fn update_progress(&self, phase: ProfileBackupPhase, percent: u8) {
-        let should_update = self
-            .inner
-            .state
-            .lock()
-            .map(|state| {
-                state.status.state == ProfileBackupState::Running
-                    && (state.status.phase != Some(phase)
-                        || state.status.percent != Some(percent.min(100)))
-            })
-            .unwrap_or(false);
-        if should_update {
-            self.update_status(|state| {
+    fn update_progress(&self, phase: ProfileBackupPhase, percent: Option<u8>) {
+        self.update_progress_at(phase, percent, Instant::now());
+    }
+
+    fn update_progress_at(&self, phase: ProfileBackupPhase, percent: Option<u8>, now: Instant) {
+        let percent = percent.map(|value| value.min(100));
+        let snapshot = match self.inner.state.lock() {
+            Ok(mut state) => {
+                let phase_changed = state.status.phase != Some(phase);
+                if state.status.state != ProfileBackupState::Running
+                    || (!phase_changed && state.status.percent == percent)
+                {
+                    return;
+                }
+                let boundary = phase_changed
+                    || percent.is_none()
+                    || percent == Some(0)
+                    || percent == Some(100);
+                let interval_elapsed = state.last_progress_event_at.is_none_or(|last| {
+                    now.saturating_duration_since(last) >= PROGRESS_EVENT_INTERVAL
+                });
+                if !boundary && !interval_elapsed {
+                    return;
+                }
                 state.status.phase = Some(phase);
-                state.status.percent = Some(percent.min(100));
-            });
-        }
+                state.status.percent = percent;
+                state.last_progress_event_at = Some(now);
+                state.status.revision = state.status.revision.saturating_add(1);
+                state.status.clone()
+            }
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to update profile backup status");
+                return;
+            }
+        };
+        self.inner.event_bus.emit("profileBackupStatus", snapshot);
     }
 
     fn finish_success(&self, kind: ProfileBackupKind, final_path: PathBuf) {

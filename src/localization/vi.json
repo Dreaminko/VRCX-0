@@ -20,6 +20,7 @@
         "phase_snapshot": "Đang chuẩn bị dữ liệu…",
         "phase_package": "Đang tạo bản sao lưu…",
         "phase_deliver": "Đang lưu vào vị trí sao lưu…",
+        "phase_finalize": "Đang hoàn tất quá trình lưu…",
         "backup_now": "Sao lưu ngay…",
         "backup_now_confirm": "Tạo bản sao lưu",
         "restore": "Khôi phục dữ liệu",

@@ -10,7 +10,10 @@ import { useTranslation } from 'react-i18next';
 
 import { ProxySettingsEditor } from '@/components/proxy/ProxySettingsEditor';
 import { cn } from '@/lib/utils';
-import { profileBackupErrorKey } from '@/services/profileBackupI18n';
+import {
+    profileBackupErrorKey,
+    profileBackupPhaseKey
+} from '@/services/profileBackupI18n';
 import {
     DEFAULT_ZOOM_LEVEL,
     MAX_ZOOM_LEVEL,
@@ -476,9 +479,9 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                             showDot={false}
                             label={t(
                                 profileBackup.status.state === 'running'
-                                    ? profileBackup.status.kind === 'auto'
-                                        ? 'profile_backup.automatic_running'
-                                        : 'profile_backup.manual_running'
+                                    ? profileBackupPhaseKey(
+                                          profileBackup.status
+                                      )
                                     : profileBackup.status.state === 'retryable'
                                       ? 'profile_backup.retryable_short'
                                       : 'profile_backup.error_short'

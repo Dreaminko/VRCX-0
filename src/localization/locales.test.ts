@@ -308,6 +308,18 @@ describe('profile backup locale coverage', () => {
         expect(readPath(ja, 'profile_backup.restore_and_restart')).toBe(
             '復元して再起動'
         );
+        expect(readPath(ja, 'profile_backup.phase_snapshot')).toBe(
+            'データを準備しています…'
+        );
+        expect(readPath(ja, 'profile_backup.phase_package')).toBe(
+            'バックアップを作成しています…'
+        );
+        expect(readPath(ja, 'profile_backup.phase_deliver')).toBe(
+            'バックアップ先に保存しています…'
+        );
+        expect(readPath(ja, 'profile_backup.phase_finalize')).toBe(
+            '保存を完了しています…'
+        );
 
         const japaneseProfileBackupText = requiredProfileBackupKeys
             .map((key) => readPath(ja, key))

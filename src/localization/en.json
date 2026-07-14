@@ -89,6 +89,7 @@
         "phase_snapshot": "Preparing data…",
         "phase_package": "Creating backup…",
         "phase_deliver": "Saving to the backup location…",
+        "phase_finalize": "Finishing up…",
         "backup_now": "Back up now…",
         "backup_now_confirm": "Create backup",
         "restore": "Restore data",

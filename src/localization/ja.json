@@ -89,6 +89,7 @@
         "phase_snapshot": "データを準備しています…",
         "phase_package": "バックアップを作成しています…",
         "phase_deliver": "バックアップ先に保存しています…",
+        "phase_finalize": "保存を完了しています…",
         "backup_now": "今すぐバックアップ…",
         "backup_now_confirm": "バックアップを作成",
         "restore": "データの復元",

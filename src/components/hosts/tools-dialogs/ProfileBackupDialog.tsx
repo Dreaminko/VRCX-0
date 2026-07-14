@@ -2,6 +2,7 @@ import {
     CalendarClockIcon,
     DatabaseBackupIcon,
     FolderOpenIcon,
+    LoaderCircleIcon,
     RotateCcwIcon,
     SaveIcon,
     ShieldAlertIcon,
@@ -13,12 +14,14 @@ import { toast } from 'sonner';
 
 import { useProfileBackupSettings } from '@/features/tools/useProfileBackupSettings';
 import { formatDateTime } from '@/lib/dateTime';
-import { profileBackupErrorKey } from '@/services/profileBackupI18n';
+import {
+    profileBackupErrorKey,
+    profileBackupPhaseKey
+} from '@/services/profileBackupI18n';
 import {
     discardPendingProfileBackup,
     dismissProfileBackupError,
     retryProfileBackupDelivery,
-    type ProfileBackupPhase,
     type ProfileBackupStatus
 } from '@/services/profileBackupService';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
@@ -39,21 +42,6 @@ type ProfileBackupDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
-
-const PROFILE_BACKUP_PHASE_KEYS: Record<ProfileBackupPhase, string> = {
-    snapshot: 'profile_backup.phase_snapshot',
-    package: 'profile_backup.phase_package',
-    deliver: 'profile_backup.phase_deliver'
-};
-
-function getRunningPhaseKey(status: ProfileBackupStatus): string {
-    if (status.phase) {
-        return PROFILE_BACKUP_PHASE_KEYS[status.phase];
-    }
-    return status.kind === 'auto'
-        ? 'profile_backup.automatic_running'
-        : 'profile_backup.manual_running';
-}
 
 function getStatusTitleKey(status: ProfileBackupStatus): string {
     switch (status.state) {
@@ -120,7 +108,8 @@ export function ProfileBackupDialog({
           })
         : t('profile_backup.no_automatic_backup');
     const statusTitleKey = getStatusTitleKey(status);
-    const runningPhaseKey = getRunningPhaseKey(status);
+    const runningPhaseKey = profileBackupPhaseKey(status);
+    const runningPhaseLabel = t(runningPhaseKey);
 
     async function runStatusAction(action: 'retry' | 'discard' | 'dismiss') {
         setStatusActionRunning(true);
@@ -232,20 +221,33 @@ export function ProfileBackupDialog({
                                     <div className="text-sm font-medium">
                                         {t(statusTitleKey)}
                                     </div>
-                                    {isRunning ? (
+                                    {isRunning && status.percent !== null ? (
                                         <span className="text-muted-foreground text-xs tabular-nums">
-                                            {status.percent === null
-                                                ? '—'
-                                                : `${status.percent}%`}
+                                            {`${status.percent}%`}
                                         </span>
                                     ) : null}
                                 </div>
                                 {isRunning ? (
                                     <div className="space-y-2 pt-2">
-                                        <div className="text-muted-foreground text-xs">
-                                            {t(runningPhaseKey)}
+                                        <div
+                                            role="status"
+                                            aria-live="polite"
+                                            className="text-muted-foreground flex items-center gap-1.5 text-xs"
+                                        >
+                                            {status.percent === null ? (
+                                                <LoaderCircleIcon
+                                                    aria-hidden="true"
+                                                    className="size-3 animate-spin motion-reduce:animate-none"
+                                                />
+                                            ) : null}
+                                            {runningPhaseLabel}
                                         </div>
-                                        <Progress value={status.percent ?? 0} />
+                                        {status.percent !== null ? (
+                                            <Progress
+                                                aria-label={runningPhaseLabel}
+                                                value={status.percent}
+                                            />
+                                        ) : null}
                                     </div>
                                 ) : (
                                     <div className="space-y-3 pt-2">

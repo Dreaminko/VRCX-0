@@ -89,6 +89,7 @@
         "phase_snapshot": "Préparation des données…",
         "phase_package": "Création de la sauvegarde…",
         "phase_deliver": "Enregistrement dans l’emplacement de sauvegarde…",
+        "phase_finalize": "Finalisation de l’enregistrement…",
         "backup_now": "Sauvegarder maintenant…",
         "backup_now_confirm": "Créer la sauvegarde",
         "restore": "Restaurer les données",
