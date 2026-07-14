@@ -3,7 +3,7 @@ import {
     LogInIcon,
     LogOutIcon,
     MapPinIcon,
-    MessageSquareTextIcon,
+    PencilLineIcon,
     PersonStandingIcon
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -17,7 +17,7 @@ const TYPE_ICONS: Record<string, { Icon: LucideIcon; className: string }> = {
     Online: { Icon: LogInIcon, className: 'text-[var(--status-online)]' },
     Offline: { Icon: LogOutIcon, className: 'text-slate-400' },
     Status: {
-        Icon: MessageSquareTextIcon,
+        Icon: PencilLineIcon,
         className: 'text-muted-foreground/70'
     },
     Avatar: { Icon: PersonStandingIcon, className: 'text-muted-foreground/70' },
