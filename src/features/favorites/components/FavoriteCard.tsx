@@ -14,6 +14,7 @@ import {
     resolveSidebarStatusDotClassName,
     type SidebarFriendRecord
 } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
+import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
 import { UserStatusDot } from '@/components/UserStatusDot';
 import { cn } from '@/lib/utils';
 import { copyTextToClipboard } from '@/services/clipboardService';
@@ -123,6 +124,11 @@ const FavoriteCard = memo(function FavoriteCard({
     const currentAvatarId = currentUserSnapshot?.currentAvatar || '';
     const isFriendCard = item.kind === 'friend';
     const isCoverTier = densityConfig.layout === 'cover';
+    const friendHoverCardProps = {
+        userId: item.id,
+        seed: item.seedData ?? null,
+        disabled: !isFriendCard
+    };
 
     const Icon = isFriendCard
         ? UserIcon
@@ -531,16 +537,18 @@ const FavoriteCard = memo(function FavoriteCard({
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5 px-2.5 py-2">
                     <div className="flex min-w-0 items-center gap-1.5">
-                        <span
-                            className="truncate font-medium"
-                            style={
-                                item.titleColor
-                                    ? { color: item.titleColor }
-                                    : undefined
-                            }
-                        >
-                            {item.title}
-                        </span>
+                        <UserHoverCard {...friendHoverCardProps}>
+                            <span
+                                className="truncate font-medium"
+                                style={
+                                    item.titleColor
+                                        ? { color: item.titleColor }
+                                        : undefined
+                                }
+                            >
+                                {item.title}
+                            </span>
+                        </UserHoverCard>
                         {item.isUnavailable ? (
                             <TriangleAlertIcon className="text-destructive size-4 shrink-0" />
                         ) : null}
@@ -577,57 +585,61 @@ const FavoriteCard = memo(function FavoriteCard({
             )}
             {...cardShellProps}
         >
-            <div
-                className={cn(
-                    'relative flex shrink-0 items-center justify-center',
-                    isFriendCard
-                        ? 'ml-2 overflow-visible'
-                        : 'bg-muted overflow-hidden rounded-sm'
-                )}
-                style={{
-                    width: `${densityConfig.mediaWidth}px`,
-                    height: `${densityConfig.mediaHeight}px`
-                }}
-            >
-                <span
+            <UserHoverCard {...friendHoverCardProps}>
+                <div
                     className={cn(
-                        'flex size-full items-center justify-center overflow-hidden',
-                        isFriendCard && 'bg-muted rounded-full border'
+                        'relative flex shrink-0 items-center justify-center',
+                        isFriendCard
+                            ? 'ml-2 overflow-visible'
+                            : 'bg-muted overflow-hidden rounded-sm'
                     )}
+                    style={{
+                        width: `${densityConfig.mediaWidth}px`,
+                        height: `${densityConfig.mediaHeight}px`
+                    }}
                 >
-                    {item.imageSmallUrl || item.imageUrl ? (
-                        <img
-                            src={item.imageSmallUrl || item.imageUrl}
-                            alt={item.title}
-                            loading="lazy"
-                            className="size-full object-cover"
+                    <span
+                        className={cn(
+                            'flex size-full items-center justify-center overflow-hidden',
+                            isFriendCard && 'bg-muted rounded-full border'
+                        )}
+                    >
+                        {item.imageSmallUrl || item.imageUrl ? (
+                            <img
+                                src={item.imageSmallUrl || item.imageUrl}
+                                alt={item.title}
+                                loading="lazy"
+                                className="size-full object-cover"
+                            />
+                        ) : (
+                            <Icon className="text-muted-foreground size-4" />
+                        )}
+                    </span>
+                    {isFriendCard ? (
+                        <UserStatusDot
+                            statusDotClassName={statusDotClassName}
+                            className="absolute -right-0.5 -bottom-0.5 z-10 size-3.75"
                         />
-                    ) : (
-                        <Icon className="text-muted-foreground size-4" />
+                    ) : null}
+                    {renderSelectionCheckbox(
+                        'absolute inset-0 z-20 flex items-center justify-center'
                     )}
-                </span>
-                {isFriendCard ? (
-                    <UserStatusDot
-                        statusDotClassName={statusDotClassName}
-                        className="absolute -right-0.5 -bottom-0.5 z-10 size-3.75"
-                    />
-                ) : null}
-                {renderSelectionCheckbox(
-                    'absolute inset-0 z-20 flex items-center justify-center'
-                )}
-            </div>
+                </div>
+            </UserHoverCard>
             <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-1.5">
-                    <span
-                        className="truncate font-medium"
-                        style={
-                            item.titleColor
-                                ? { color: item.titleColor }
-                                : undefined
-                        }
-                    >
-                        {item.title}
-                    </span>
+                    <UserHoverCard {...friendHoverCardProps}>
+                        <span
+                            className="truncate font-medium"
+                            style={
+                                item.titleColor
+                                    ? { color: item.titleColor }
+                                    : undefined
+                            }
+                        >
+                            {item.title}
+                        </span>
+                    </UserHoverCard>
                     {item.isUnavailable ? (
                         <TriangleAlertIcon className="text-destructive size-4 shrink-0" />
                     ) : null}

@@ -4,7 +4,7 @@ import {
     resolveSidebarStatusDotClassName,
     type SidebarFriendRecord
 } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
-import { UserStatusAvatar } from '@/components/UserStatusAvatar';
+import { UserDetailTile } from '@/components/UserDetailTile';
 import {
     createInstanceUserRow,
     firstText,
@@ -19,7 +19,6 @@ import { openUserDialog } from '@/services/dialogService';
 import { userImage } from '@/services/entityMediaService';
 import { userStatusLabel } from '@/shared/utils/userStatus';
 import { useRuntimeStore } from '@/state/runtimeStore';
-import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
 
 export { firstText, isGroupId, mergeInstanceUsers, normalizeInstanceUsers };
@@ -218,39 +217,22 @@ export function InstanceUserTiles({ instance }: { instance: unknown }) {
                 const subtitle = instanceUserSubtitle(user, t);
                 const travelingTimestamp = instanceUserTravelingTimestamp(user);
                 return (
-                    <Button
+                    <UserDetailTile
                         key={`${userId || displayName || 'user'}:${index}`}
-                        type="button"
-                        variant="ghost"
-                        className="h-auto w-44 justify-start gap-2 px-1.5 py-1.5 text-left font-normal"
-                        onClick={() => {
-                            if (!userId) {
-                                return;
-                            }
-                            openUserDialog({
-                                userId,
-                                title: displayName || undefined,
-                                seedData: user
-                            });
-                        }}
-                    >
-                        <UserStatusAvatar
-                            imageUrl={image}
-                            statusDotClassName={dotClassName}
-                        />
-                        <span className="min-w-0 flex-1 overflow-hidden">
-                            <span
-                                className="block truncate leading-snug font-medium"
-                                style={
-                                    typeof user.$userColour === 'string'
-                                        ? { color: user.$userColour }
-                                        : undefined
-                                }
-                            >
-                                {displayName}
-                            </span>
-                            {travelingTimestamp ? (
-                                <span className="text-muted-foreground block truncate text-xs">
+                        userId={userId}
+                        seed={user}
+                        className="w-44"
+                        imageUrl={image}
+                        statusDotClassName={dotClassName}
+                        displayName={displayName}
+                        nameStyle={
+                            typeof user.$userColour === 'string'
+                                ? { color: user.$userColour }
+                                : undefined
+                        }
+                        subline={
+                            travelingTimestamp ? (
+                                <>
                                     <Spinner
                                         aria-hidden="true"
                                         aria-label={undefined}
@@ -260,14 +242,22 @@ export function InstanceUserTiles({ instance }: { instance: unknown }) {
                                     {timeToText(
                                         Date.now() - travelingTimestamp
                                     )}
-                                </span>
-                            ) : subtitle ? (
-                                <span className="text-muted-foreground block truncate text-xs">
-                                    {subtitle}
-                                </span>
-                            ) : null}
-                        </span>
-                    </Button>
+                                </>
+                            ) : (
+                                subtitle || undefined
+                            )
+                        }
+                        onOpen={() => {
+                            if (!userId) {
+                                return;
+                            }
+                            openUserDialog({
+                                userId,
+                                title: displayName || undefined,
+                                seedData: user
+                            });
+                        }}
+                    />
                 );
             })}
         </div>
