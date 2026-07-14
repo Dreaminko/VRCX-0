@@ -3115,6 +3115,7 @@ export type ExternalApiYoutubeVideoInput = {
 export type FavoriteTransferInput = {
     endpoint?: string;
     kind?: string;
+    mode: FavoriteTransferMode;
     source: FavoriteTransferSource;
     target: FavoriteTransferTarget;
     items?: FavoriteTransferItem[];
@@ -3133,13 +3134,22 @@ export type FavoriteTransferItemResult = {
     remoteFavorite: RawJson | null;
     localAffected: number;
 };
-export type FavoriteTransferItemStatus = 'moved' | 'copied' | 'failed';
+export type FavoriteTransferItemStatus =
+    | 'moved'
+    | 'copied'
+    | 'skippedAlreadyPresent'
+    | 'restoredToSource'
+    | 'savedToLocalFallback'
+    | 'targetAddedSourceDeleteFailed'
+    | 'failed';
 export type FavoriteTransferLocation = 'remote' | 'local';
+export type FavoriteTransferMode = 'move' | 'copy';
 export type FavoriteTransferResult = {
     total: number;
     succeeded: number;
     failed: number;
     localChanged: boolean;
+    remoteChanged: boolean;
     items: FavoriteTransferItemResult[];
 };
 export type FavoriteTransferSource = {
@@ -3151,7 +3161,10 @@ export type FavoriteTransferStage =
     | 'deleteRemote'
     | 'addRemote'
     | 'addLocal'
-    | 'moveLocal';
+    | 'deleteLocal'
+    | 'moveLocal'
+    | 'restoreRemoteToSource'
+    | 'saveLocalFallback';
 export type FavoriteTransferTarget = {
     location: FavoriteTransferLocation;
     group?: string;

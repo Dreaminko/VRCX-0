@@ -168,6 +168,20 @@ impl RealtimeHostRuntime {
         self.world_cache.sync_favorites_from_db();
     }
 
+    pub fn notify_favorites_changed(&self, kind: &str, local_changed: bool, remote_changed: bool) {
+        let kind = normalize_favorites_changed_kind(kind);
+        if kind == "world" && local_changed {
+            self.sync_world_cache_favorites_from_db();
+        }
+        self.deps
+            .event_bus
+            .emit_favorites_changed(FavoritesChangedPayload {
+                kind,
+                local: local_changed,
+                remote: remote_changed,
+            });
+    }
+
     pub fn expire_notification(&self, user_id: String, notification_id: String) -> Result<()> {
         let user_id = user_id.trim().to_string();
         let notification_id = notification_id.trim().to_string();
@@ -310,4 +324,12 @@ impl RealtimeHostRuntime {
             .sync
             .record("realtime", "idle", "Realtime transport stopped.", 0);
     }
+}
+
+fn normalize_favorites_changed_kind(kind: &str) -> String {
+    match kind.trim() {
+        "vrcPlusWorld" => "world",
+        other => other,
+    }
+    .to_string()
 }

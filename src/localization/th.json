@@ -234,10 +234,15 @@
                 }
             },
             "label": {
-                "the_favorites_baseline_did_not_finish_loading": "โหลดรายการโปรดไม่เสร็จสมบูรณ์"
+                "the_favorites_baseline_did_not_finish_loading": "โหลดรายการโปรดไม่เสร็จสมบูรณ์",
+                "online_favorites_copy_hint": "รายการโปรดออนไลน์ย้ายได้เฉพาะระหว่างกลุ่มออนไลน์เท่านั้น รายการที่ถูกเพิ่มเป็นรายการโปรดออนไลน์อยู่แล้วไม่สามารถคัดลอกไปยังกลุ่มออนไลน์อื่นได้"
             },
             "loading": {
                 "loading_favorites_baseline": "กำลังโหลดรายการโปรด"
+            },
+            "action": {
+                "copy_ids": "คัดลอกรหัส",
+                "copy_to": "คัดลอกไปยัง"
             }
         },
         "friend_log": {
@@ -878,6 +883,19 @@
             "modal": {
                 "delete_notification_log_entry": "นำการแจ้งเตือนออกหรือไม่?",
                 "delete_the_local_value_log_entry": "นำการแจ้งเตือน {value} นี้ออกจากประวัติหรือไม่?"
+            }
+        },
+        "favorites": {
+            "toast": {
+                "favorites_refresh_unavailable": "ไม่สามารถรีเฟรชรายการโปรดได้เนื่องจากยังไม่ได้ลงชื่อเข้าใช้บัญชี"
+            },
+            "dynamic": {
+                "moved_value_favorites": "ย้ายรายการโปรดแล้ว {value} รายการ",
+                "copied_value_favorites": "คัดลอกรายการโปรดแล้ว {value} รายการ",
+                "restored_value_to_source_after_failed_move": "ย้าย {value} รายการไม่สำเร็จ จึงคืนกลับไปยังกลุ่มต้นทางแล้ว",
+                "saved_value_to_local_fallback_group": "{value} รายการซิงค์ออนไลน์ไม่สำเร็จ จึงบันทึกลงกลุ่มในเครื่อง {value2} แล้ว",
+                "target_added_value_source_delete_failed": "{value} รายการถูกเพิ่มไปยังปลายทางแล้ว แต่ลบออกจากต้นทางไม่สำเร็จ ตอนนี้จึงมีอยู่ทั้งสองที่",
+                "skipped_value_already_present": "{value} รายการมีอยู่ในกลุ่มปลายทางแล้ว จึงข้ามไป"
             }
         }
     },

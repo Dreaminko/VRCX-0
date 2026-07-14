@@ -17,7 +17,7 @@ use vrcx_0_vrchat_client::http_api::ApiScope;
 use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
 use vrcx_0_vrchat_client::users as remote_users;
 
-use crate::event_bus::RuntimeEventBus;
+use crate::event_bus::{FavoritesChangedPayload, RuntimeEventBus};
 use crate::game_log::RuntimeSnapshot;
 use crate::overlay_activity::OverlayActivityRuntime;
 use crate::prints::cleanup::{PrintCleanupDeps, PrintCleanupQueue, PrintCleanupTrigger};

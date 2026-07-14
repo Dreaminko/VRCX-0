@@ -979,7 +979,8 @@
                 "group_visibility_changed": "グループ表示状態を変更しました",
                 "local_favorite_group_renamed": "ローカルお気に入りグループの名前を変更しました",
                 "the_favorites_baseline_did_not_finish_loading": "お気に入りの読み込みが完了しませんでした",
-                "try_a_different_search_term": "別の検索語を試してください"
+                "try_a_different_search_term": "別の検索語を試してください",
+                "online_favorites_copy_hint": "オンラインのお気に入りはオンライングループ間でのみ移動できます。すでにオンラインでお気に入り登録済みの項目は、別のオンライングループへコピーできません。"
             },
             "success": {
                 "favorite_removed": "お気に入りを削除しました",
@@ -1003,7 +1004,9 @@
                 "remove_favorite": "お気に入りから削除",
                 "export_favorite": "お気に入りをエクスポート",
                 "move": "移動",
-                "move_to": "移動先"
+                "move_to": "移動先",
+                "copy_ids": "IDをコピー",
+                "copy_to": "コピー先"
             },
             "empty": {
                 "no_favorite_groups_loaded": "お気に入りグループが読み込まれていません",
@@ -2576,7 +2579,8 @@
                 "failed_to_select_avatar": "アバターの選択に失敗しました",
                 "failed_to_create_local_favorite_group": "ローカルお気に入りグループの作成に失敗しました",
                 "failed_to_copy_selected_favorites": "選択したお気に入りのコピーに失敗しました",
-                "failed_to_move_selected_favorites": "選択したお気に入りの移動に失敗しました"
+                "failed_to_move_selected_favorites": "選択したお気に入りの移動に失敗しました",
+                "favorites_refresh_unavailable": "アカウントにログインしていないため、お気に入りを更新できません"
             },
             "modal": {
                 "remove_local_favorite": "ローカルお気に入りを削除しますか？",
@@ -2625,7 +2629,13 @@
                 "removed_value_value_failed": "{value} を削除しました。{value2} 件失敗しました",
                 "search_results_singular": "{count} 件の結果",
                 "search_results_plural": "{count} 件の結果",
-                "transferred_value_value_failed": "{value} 件を処理しました。{value2} 件が失敗しました"
+                "transferred_value_value_failed": "{value} 件を処理しました。{value2} 件が失敗しました",
+                "moved_value_favorites": "{value} 件のお気に入りを移動しました",
+                "copied_value_favorites": "{value} 件のお気に入りをコピーしました",
+                "restored_value_to_source_after_failed_move": "{value} 件は移動に失敗したため、元のグループに戻しました",
+                "saved_value_to_local_fallback_group": "{value} 件はオンラインに同期できなかったため、ローカルの {value2} グループに保存しました",
+                "target_added_value_source_delete_failed": "{value} 件は移動先には追加されましたが、移動元からの削除に失敗したため、両方に残っています",
+                "skipped_value_already_present": "{value} 件はすでに対象のグループに存在していたためスキップしました"
             }
         },
         "friends": {

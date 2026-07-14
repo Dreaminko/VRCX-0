@@ -83,8 +83,8 @@ pub use event_bus::{RuntimeEventBus, RuntimeEventSink};
 pub use favorite_transfer::{
     favorite_transfer_plan_for_item, transfer_favorites, FavoriteTransferDeps,
     FavoriteTransferInput, FavoriteTransferItem, FavoriteTransferItemResult,
-    FavoriteTransferItemStatus, FavoriteTransferLocation, FavoriteTransferResult,
-    FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
+    FavoriteTransferItemStatus, FavoriteTransferLocation, FavoriteTransferMode,
+    FavoriteTransferResult, FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
 pub use game_client::{
     GameClientActions, GameClientCacheActions, GameClientLocationSource, GameClientRuntime,

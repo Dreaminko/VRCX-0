@@ -210,10 +210,15 @@
                 }
             },
             "label": {
-                "the_favorites_baseline_did_not_finish_loading": "Chưa tải xong mục yêu thích"
+                "the_favorites_baseline_did_not_finish_loading": "Chưa tải xong mục yêu thích",
+                "online_favorites_copy_hint": "Mục yêu thích trực tuyến chỉ có thể di chuyển giữa các nhóm trực tuyến. Các mục đã được yêu thích trực tuyến không thể sao chép sang nhóm trực tuyến khác."
             },
             "loading": {
                 "loading_favorites_baseline": "Đang tải mục yêu thích"
+            },
+            "action": {
+                "copy_ids": "Sao chép ID",
+                "copy_to": "Sao chép vào"
             }
         },
         "friend_log": {
@@ -755,6 +760,19 @@
             "modal": {
                 "delete_notification_log_entry": "Xóa thông báo?",
                 "delete_the_local_value_log_entry": "Xóa thông báo {value} này khỏi lịch sử?"
+            }
+        },
+        "favorites": {
+            "toast": {
+                "favorites_refresh_unavailable": "Không thể làm mới mục yêu thích khi chưa đăng nhập tài khoản"
+            },
+            "dynamic": {
+                "moved_value_favorites": "Đã di chuyển {value} mục yêu thích",
+                "copied_value_favorites": "Đã sao chép {value} mục yêu thích",
+                "restored_value_to_source_after_failed_move": "{value} mục di chuyển thất bại nên đã được khôi phục về nhóm gốc",
+                "saved_value_to_local_fallback_group": "{value} mục không thể đồng bộ trực tuyến nên đã được lưu vào nhóm cục bộ {value2}",
+                "target_added_value_source_delete_failed": "{value} mục đã được thêm vào đích nhưng xóa khỏi nguồn thất bại, hiện tồn tại ở cả hai nơi",
+                "skipped_value_already_present": "{value} mục đã có sẵn trong nhóm đích nên đã được bỏ qua"
             }
         }
     },

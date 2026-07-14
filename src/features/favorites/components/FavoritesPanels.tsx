@@ -253,7 +253,7 @@ export function FavoritesContentPanel({
         ].join(':'),
         showGroupLabel: viewData.isSearchActive
     });
-    const showCopyButton = selection.selectedContentItems.some(
+    const showCopyIdsButton = selection.selectedContentItems.some(
         (item: any) => item.source !== 'local'
     );
     const title = viewData.isSearchActive
@@ -283,7 +283,10 @@ export function FavoritesContentPanel({
         }
         selection.clearSelection();
     });
-    const handleCopySelection = useStableEvent(favoriteCommands.copySelection);
+    const handleCopyIds = useStableEvent(favoriteCommands.copySelection);
+    const handleCopySelection = useStableEvent(
+        favoriteCommands.bulkCopySelection
+    );
     const handleMoveSelection = useStableEvent(
         favoriteCommands.bulkMoveSelection
     );
@@ -483,10 +486,12 @@ export function FavoritesContentPanel({
                     selectedCount={selection.selectedContentItems.length}
                     isAllSelected={selection.isAllSelected}
                     moveTargets={favoriteCommands.moveTargets}
-                    showCopyButton={showCopyButton}
+                    copyTargets={favoriteCommands.copyTargets}
+                    showCopyIdsButton={showCopyIdsButton}
                     actionsDisabled={selection.avatarSelectionActionsDisabled}
                     onSelectAll={selection.toggleSelectAll}
                     onClearSelection={handleClearSelection}
+                    onCopyIds={handleCopyIds}
                     onCopySelection={handleCopySelection}
                     onMoveSelection={handleMoveSelection}
                     onBulkRemove={handleBulkRemoveSelection}

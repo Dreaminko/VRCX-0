@@ -260,10 +260,15 @@
                 }
             },
             "label": {
-                "the_favorites_baseline_did_not_finish_loading": "Nie udało się wczytać wszystkich ulubionych"
+                "the_favorites_baseline_did_not_finish_loading": "Nie udało się wczytać wszystkich ulubionych",
+                "online_favorites_copy_hint": "Ulubione online można przenosić tylko między grupami online. Elementów już dodanych do ulubionych online nie można skopiować do innej grupy online."
             },
             "loading": {
                 "loading_favorites_baseline": "Wczytywanie ulubionych"
+            },
+            "action": {
+                "copy_ids": "Kopiuj ID",
+                "copy_to": "Kopiuj do"
             }
         },
         "friend_log": {
@@ -968,6 +973,19 @@
             "modal": {
                 "delete_notification_log_entry": "Usunąć powiadomienie?",
                 "delete_the_local_value_log_entry": "Usunąć powiadomienie „{value}” z historii?"
+            }
+        },
+        "favorites": {
+            "toast": {
+                "favorites_refresh_unavailable": "Nie można odświeżyć ulubionych bez zalogowanego konta"
+            },
+            "dynamic": {
+                "moved_value_favorites": "Przeniesiono {value} ulubionych",
+                "copied_value_favorites": "Skopiowano {value} ulubionych",
+                "restored_value_to_source_after_failed_move": "Nie udało się przenieść {value} elementów – przywrócono je do grupy źródłowej",
+                "saved_value_to_local_fallback_group": "Nie udało się zsynchronizować online {value} elementów – zapisano je w lokalnej grupie {value2}",
+                "target_added_value_source_delete_failed": "{value} elementów dodano do grupy docelowej, ale nie udało się ich usunąć ze źródłowej, więc teraz istnieją w obu miejscach",
+                "skipped_value_already_present": "{value} elementów było już w grupie docelowej i zostały pominięte"
             }
         }
     },

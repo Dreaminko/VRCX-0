@@ -21,6 +21,11 @@ import mediaRepository from '@/repositories/vrchatMediaRepository';
 import { printCleanupWarningMessageKey } from '@/shared/utils/printFavoriteMessages';
 import { normalizeString } from '@/shared/utils/string';
 import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint';
+import {
+    type FavoriteRevisionKind,
+    useFavoriteRevisionStore
+} from '@/state/favoriteRevisionStore';
+import type { FavoriteKind } from '@/state/favoriteStoreTypes';
 import { useNotificationStore } from '@/state/notificationStore';
 import { usePrintFavoriteStore } from '@/state/printFavoriteStore';
 import {
@@ -32,6 +37,7 @@ import { useSessionStore } from '@/state/sessionStore';
 import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
 import { resumeFrontendSessionFromBackendRuntime } from './backendRuntimeSessionResumeService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
+import { refreshLocalFavoritesForKinds } from './favoriteLocalRefreshService';
 import {
     applyFriendProfileLoadStatusPayload,
     isFriendProfileLoadTerminalStatus
@@ -65,6 +71,7 @@ type RuntimeEventName =
     | 'runtimeGroupInstancesProjection'
     | 'overlayActivitySnapshot'
     | 'printsAutoCleanup'
+    | 'favoritesChanged'
     | 'friendProfileLoadStatus'
     | 'realtimeFriendProjection'
     | 'realtimeUserProjection'
@@ -75,6 +82,12 @@ type RuntimeEventName =
     | 'realtimeInstanceQueueProjection'
     | 'updateIsGameRunning'
     | 'browserFocus';
+
+type FavoritesChangedEventPayload = {
+    kind: string;
+    local: boolean;
+    remote: boolean;
+};
 
 type RuntimeEventPayloadMap = {
     addGameLogEvent: unknown;
@@ -87,6 +100,7 @@ type RuntimeEventPayloadMap = {
     runtimeGroupInstancesProjection: RuntimeGroupInstancesProjection;
     overlayActivitySnapshot: OverlayActivitySnapshot;
     printsAutoCleanup: PrintAutoCleanupEvent;
+    favoritesChanged: FavoritesChangedEventPayload;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
     realtimeUserProjection: unknown;
@@ -692,6 +706,30 @@ function refreshPrintFavoritesAfterCleanup(): void {
         });
 }
 
+function normalizeFavoritesChangedKind(kind: string): FavoriteRevisionKind {
+    return kind === 'friend' || kind === 'world' || kind === 'avatar'
+        ? kind
+        : 'unknown';
+}
+
+function handleFavoritesChangedEvent(
+    payload: FavoritesChangedEventPayload
+): void {
+    const kind = normalizeFavoritesChangedKind(payload.kind);
+    useFavoriteRevisionStore.getState().bumpRevision({
+        kind,
+        remote: Boolean(payload.remote)
+    });
+    if (!payload.local) {
+        return;
+    }
+    const kinds: FavoriteKind[] =
+        kind === 'unknown' ? ['friend', 'world', 'avatar'] : [kind];
+    refreshLocalFavoritesForKinds(kinds).catch((error: unknown) => {
+        console.warn('Failed to refresh local favorites after change:', error);
+    });
+}
+
 function handleRuntimeEvent(
     name: RuntimeEventName,
     payload: RuntimeEventPayloadMap[RuntimeEventName]
@@ -721,6 +759,14 @@ function handleRuntimeEvent(
         usePrintFavoriteStore.getState().applyPrintCleanup(printCleanupEvent);
         refreshPrintFavoritesAfterCleanup();
         showPrintCleanupToast(printCleanupEvent);
+        return;
+    }
+
+    if (name === 'favoritesChanged') {
+        runtimeStore.recordRuntimeEvent(name, payload);
+        handleFavoritesChangedEvent(
+            payload as RuntimeEventPayloadMap['favoritesChanged']
+        );
         return;
     }
 
@@ -900,6 +946,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'runtimeGroupInstancesProjection',
         'overlayActivitySnapshot',
         'printsAutoCleanup',
+        'favoritesChanged',
         'friendProfileLoadStatus',
         'gameClientEvent',
         'runtimeWorkerError',

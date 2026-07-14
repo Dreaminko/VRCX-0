@@ -983,7 +983,8 @@
                 "group_visibility_changed": "Visibilité du groupe modifiée",
                 "local_favorite_group_renamed": "Groupe de favoris local renommé",
                 "the_favorites_baseline_did_not_finish_loading": "Le chargement des favoris n'est pas terminé",
-                "try_a_different_search_term": "Essayez un autre terme de recherche"
+                "try_a_different_search_term": "Essayez un autre terme de recherche",
+                "online_favorites_copy_hint": "Les favoris en ligne ne peuvent être déplacés qu'entre groupes en ligne. Les éléments déjà mis en favori en ligne ne peuvent pas être copiés vers un autre groupe en ligne."
             },
             "success": {
                 "favorite_removed": "Favori retiré",
@@ -1007,7 +1008,9 @@
                 "remove_favorite": "Retirer le favori",
                 "export_favorite": "Exporter le favori",
                 "move": "Déplacer",
-                "move_to": "Déplacer vers"
+                "move_to": "Déplacer vers",
+                "copy_ids": "Copier les ID",
+                "copy_to": "Copier vers"
             },
             "empty": {
                 "no_favorite_groups_loaded": "Aucun groupe de favoris chargé",
@@ -2580,7 +2583,8 @@
                 "failed_to_select_avatar": "Échec de la sélection de l'avatar",
                 "failed_to_create_local_favorite_group": "Échec de la création du groupe de favoris local",
                 "failed_to_copy_selected_favorites": "Échec de la copie des favoris sélectionnés",
-                "failed_to_move_selected_favorites": "Échec du déplacement des favoris sélectionnés"
+                "failed_to_move_selected_favorites": "Échec du déplacement des favoris sélectionnés",
+                "favorites_refresh_unavailable": "Impossible d'actualiser les favoris sans compte connecté"
             },
             "modal": {
                 "remove_local_favorite": "Retirer le favori local ?",
@@ -2629,7 +2633,13 @@
                 "removed_value_value_failed": "{value} retiré(s) ; {value2} en échec",
                 "search_results_singular": "{count} résultat",
                 "search_results_plural": "{count} résultats",
-                "transferred_value_value_failed": "{value} transféré(s) ; {value2} en échec"
+                "transferred_value_value_failed": "{value} transféré(s) ; {value2} en échec",
+                "moved_value_favorites": "{value} favoris déplacés",
+                "copied_value_favorites": "{value} favoris copiés",
+                "restored_value_to_source_after_failed_move": "{value} n'ont pas pu être déplacés et ont été restaurés dans le groupe d'origine",
+                "saved_value_to_local_fallback_group": "{value} n'ont pas pu être synchronisés en ligne et ont été enregistrés dans le groupe local {value2}",
+                "target_added_value_source_delete_failed": "{value} ont été ajoutés à la destination, mais la suppression de la source a échoué ; ils existent donc désormais aux deux endroits",
+                "skipped_value_already_present": "{value} étaient déjà dans le groupe de destination et ont été ignorés"
             }
         },
         "friends": {

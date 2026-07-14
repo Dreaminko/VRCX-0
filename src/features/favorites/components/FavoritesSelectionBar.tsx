@@ -1,4 +1,5 @@
 import { CopyIcon, MoveRightIcon, Trash2Icon, XIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
@@ -19,11 +20,13 @@ type FavoritesSelectionBarProps = {
     selectedCount: number;
     isAllSelected: boolean;
     moveTargets: FavoriteGroup[];
-    showCopyButton: boolean;
+    copyTargets: FavoriteGroup[];
+    showCopyIdsButton: boolean;
     actionsDisabled: boolean;
     onSelectAll(): void;
     onClearSelection(): void;
-    onCopySelection(): void;
+    onCopyIds(): void;
+    onCopySelection(target: FavoriteGroup): void;
     onMoveSelection(target: FavoriteGroup): void;
     onBulkRemove(): void;
 };
@@ -38,14 +41,84 @@ function favoriteMoveTargetLabel(target: FavoriteGroup): string {
     return target.label;
 }
 
+function FavoriteTransferTargetsMenu({
+    icon,
+    triggerLabel,
+    triggerTitle,
+    listLabel,
+    targets,
+    selectedCount,
+    actionsDisabled,
+    onSelect
+}: {
+    icon: ReactNode;
+    triggerLabel: string;
+    triggerTitle?: string;
+    listLabel: string;
+    targets: FavoriteGroup[];
+    selectedCount: number;
+    actionsDisabled: boolean;
+    onSelect(target: FavoriteGroup): void;
+}) {
+    const remoteTargets = targets.filter(
+        (target) => target.source === 'remote'
+    );
+    const localTargets = targets.filter((target) => target.source === 'local');
+    const showSeparator = remoteTargets.length > 0 && localTargets.length > 0;
+
+    function renderTargetItems(items: FavoriteGroup[], prefix: string) {
+        return items.map((target) => (
+            <DropdownMenuItem
+                key={`${prefix}:${target.key}`}
+                disabled={isFavoriteMoveTargetOverCapacity(
+                    target,
+                    selectedCount
+                )}
+                onClick={() => onSelect(target)}
+            >
+                {favoriteMoveTargetLabel(target)}
+            </DropdownMenuItem>
+        ));
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={actionsDisabled || targets.length === 0}
+                        title={triggerTitle}
+                    >
+                        {icon}
+                        {triggerLabel}
+                    </Button>
+                }
+            />
+            <DropdownMenuContent align="center" className="w-64">
+                <DropdownMenuGroup>
+                    <DropdownMenuLabel>{listLabel}</DropdownMenuLabel>
+                    {renderTargetItems(remoteTargets, 'remote')}
+                    {showSeparator ? <DropdownMenuSeparator /> : null}
+                    {renderTargetItems(localTargets, 'local')}
+                </DropdownMenuGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
 function FavoritesSelectionBar({
     selectedCount,
     isAllSelected,
     moveTargets,
-    showCopyButton,
+    copyTargets,
+    showCopyIdsButton,
     actionsDisabled,
     onSelectAll,
     onClearSelection,
+    onCopyIds,
     onCopySelection,
     onMoveSelection,
     onBulkRemove
@@ -55,16 +128,6 @@ function FavoritesSelectionBar({
     if (selectedCount === 0) {
         return null;
     }
-
-    const remoteMoveTargets = moveTargets.filter(
-        (target) => target.source === 'remote'
-    );
-    const localMoveTargets = moveTargets.filter(
-        (target) => target.source === 'local'
-    );
-    const hasMoveTargets = moveTargets.length > 0;
-    const showMoveSeparator =
-        remoteMoveTargets.length > 0 && localMoveTargets.length > 0;
 
     return (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-2">
@@ -84,67 +147,39 @@ function FavoritesSelectionBar({
                         ? t('view.favorite.deselect_all')
                         : t('view.favorite.select_all')}
                 </Button>
-                {showCopyButton ? (
+                {showCopyIdsButton ? (
                     <Button
                         type="button"
                         size="sm"
                         variant="ghost"
                         disabled={actionsDisabled}
-                        onClick={onCopySelection}
+                        onClick={onCopyIds}
                     >
                         <CopyIcon data-icon="inline-start" />
-                        {t('common.actions.copy')}
+                        {t('view.favorite.action.copy_ids')}
                     </Button>
                 ) : null}
-                <DropdownMenu>
-                    <DropdownMenuTrigger
-                        render={
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                disabled={actionsDisabled || !hasMoveTargets}
-                            >
-                                <MoveRightIcon data-icon="inline-start" />
-                                {t('view.favorite.action.move')}
-                            </Button>
-                        }
-                    />
-                    <DropdownMenuContent align="center" className="w-64">
-                        <DropdownMenuGroup>
-                            <DropdownMenuLabel>
-                                {t('view.favorite.action.move_to')}
-                            </DropdownMenuLabel>
-                            {remoteMoveTargets.map((target) => (
-                                <DropdownMenuItem
-                                    key={`remote:${target.key}`}
-                                    disabled={isFavoriteMoveTargetOverCapacity(
-                                        target,
-                                        selectedCount
-                                    )}
-                                    onClick={() => onMoveSelection(target)}
-                                >
-                                    {favoriteMoveTargetLabel(target)}
-                                </DropdownMenuItem>
-                            ))}
-                            {showMoveSeparator ? (
-                                <DropdownMenuSeparator />
-                            ) : null}
-                            {localMoveTargets.map((target) => (
-                                <DropdownMenuItem
-                                    key={`local:${target.key}`}
-                                    disabled={isFavoriteMoveTargetOverCapacity(
-                                        target,
-                                        selectedCount
-                                    )}
-                                    onClick={() => onMoveSelection(target)}
-                                >
-                                    {favoriteMoveTargetLabel(target)}
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <FavoriteTransferTargetsMenu
+                    icon={<CopyIcon data-icon="inline-start" />}
+                    triggerLabel={t('view.favorite.action.copy_to')}
+                    triggerTitle={t(
+                        'view.favorite.label.online_favorites_copy_hint'
+                    )}
+                    listLabel={t('view.favorite.action.copy_to')}
+                    targets={copyTargets}
+                    selectedCount={selectedCount}
+                    actionsDisabled={actionsDisabled}
+                    onSelect={onCopySelection}
+                />
+                <FavoriteTransferTargetsMenu
+                    icon={<MoveRightIcon data-icon="inline-start" />}
+                    triggerLabel={t('view.favorite.action.move')}
+                    listLabel={t('view.favorite.action.move_to')}
+                    targets={moveTargets}
+                    selectedCount={selectedCount}
+                    actionsDisabled={actionsDisabled}
+                    onSelect={onMoveSelection}
+                />
                 <Button
                     type="button"
                     size="sm"

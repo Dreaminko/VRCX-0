@@ -983,7 +983,8 @@
                 "group_visibility_changed": "Group visibility changed",
                 "local_favorite_group_renamed": "Local favorite group renamed",
                 "the_favorites_baseline_did_not_finish_loading": "Favorites didn't finish loading",
-                "try_a_different_search_term": "Try a different search term"
+                "try_a_different_search_term": "Try a different search term",
+                "online_favorites_copy_hint": "Online favorites can only be moved between online groups. Items already favorited online can't be copied into another online group."
             },
             "success": {
                 "favorite_removed": "Favorite removed",
@@ -1007,7 +1008,9 @@
                 "remove_favorite": "Remove favorite",
                 "export_favorite": "Export favorite",
                 "move": "Move",
-                "move_to": "Move to"
+                "move_to": "Move to",
+                "copy_ids": "Copy IDs",
+                "copy_to": "Copy to"
             },
             "empty": {
                 "no_favorite_groups_loaded": "No favorite groups loaded",
@@ -2580,7 +2583,8 @@
                 "failed_to_select_avatar": "Failed to select avatar",
                 "failed_to_create_local_favorite_group": "Failed to create local favorite group",
                 "failed_to_copy_selected_favorites": "Failed to copy selected favorites",
-                "failed_to_move_selected_favorites": "Failed to move selected favorites"
+                "failed_to_move_selected_favorites": "Failed to move selected favorites",
+                "favorites_refresh_unavailable": "Can't refresh favorites without a signed-in account"
             },
             "modal": {
                 "remove_local_favorite": "Remove local favorite?",
@@ -2629,7 +2633,13 @@
                 "removed_value_value_failed": "Removed {value}; {value2} failed",
                 "search_results_singular": "{count} result",
                 "search_results_plural": "{count} results",
-                "transferred_value_value_failed": "Transferred {value}; {value2} failed"
+                "transferred_value_value_failed": "Transferred {value}; {value2} failed",
+                "moved_value_favorites": "Moved {value} favorites",
+                "copied_value_favorites": "Copied {value} favorites",
+                "restored_value_to_source_after_failed_move": "{value} failed to move and were restored to the source group",
+                "saved_value_to_local_fallback_group": "{value} couldn't sync online and were saved to the local {value2} group",
+                "target_added_value_source_delete_failed": "{value} were added to the target group, but removing them from the source failed, so they now exist in both",
+                "skipped_value_already_present": "{value} were already in the target group and were skipped"
             }
         },
         "friends": {

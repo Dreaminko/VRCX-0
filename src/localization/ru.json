@@ -985,7 +985,8 @@
                 "group_visibility_changed": "Изменение видимости группы",
                 "local_favorite_group_renamed": "Местная избранная группа",
                 "the_favorites_baseline_did_not_finish_loading": "Избранное загрузилось не полностью",
-                "try_a_different_search_term": "Попробуйте другой термин поиска"
+                "try_a_different_search_term": "Попробуйте другой термин поиска",
+                "online_favorites_copy_hint": "Онлайн-избранное можно перемещать только между онлайн-группами. Элементы, уже добавленные в онлайн-избранное, нельзя скопировать в другую онлайн-группу."
             },
             "success": {
                 "favorite_removed": "Избранный удаляется",
@@ -1009,7 +1010,9 @@
                 "remove_favorite": "Удалить избранный",
                 "export_favorite": "Экспорт избранное",
                 "move": "Двигайся.",
-                "move_to": "Перейти к"
+                "move_to": "Перейти к",
+                "copy_ids": "Копировать ID",
+                "copy_to": "Копировать в"
             },
             "empty": {
                 "no_favorite_groups_loaded": "Избранные группы не загружены",
@@ -2582,7 +2585,8 @@
                 "failed_to_select_avatar": "Не удалось выбрать аватар",
                 "failed_to_create_local_favorite_group": "Не удалось создать местную избранную группу",
                 "failed_to_copy_selected_favorites": "Не удалось скопировать выбранные элементы избранного",
-                "failed_to_move_selected_favorites": "Не удалось перенести выбранные элементы избранного"
+                "failed_to_move_selected_favorites": "Не удалось перенести выбранные элементы избранного",
+                "favorites_refresh_unavailable": "Не удаётся обновить избранное без входа в аккаунт"
             },
             "modal": {
                 "remove_local_favorite": "Удалить локальное избранное?",
@@ -2631,7 +2635,13 @@
                 "removed_value_value_failed": "Удалено: {value}; ошибка: {value2}",
                 "search_results_singular": "{count} результат",
                 "search_results_plural": "{count} результаты",
-                "transferred_value_value_failed": "Перенесено: {value}; ошибка: {value2}"
+                "transferred_value_value_failed": "Перенесено: {value}; ошибка: {value2}",
+                "moved_value_favorites": "Перемещено {value} элементов избранного",
+                "copied_value_favorites": "Скопировано {value} элементов избранного",
+                "restored_value_to_source_after_failed_move": "{value} не удалось переместить, они были возвращены в исходную группу",
+                "saved_value_to_local_fallback_group": "{value} не удалось синхронизировать онлайн, они сохранены в локальной группе {value2}",
+                "target_added_value_source_delete_failed": "{value} добавлены в целевую группу, но удалить их из исходной не удалось, поэтому теперь они есть в обеих",
+                "skipped_value_already_present": "{value} уже были в целевой группе и были пропущены"
             }
         },
         "friends": {

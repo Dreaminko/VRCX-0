@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 
 import { openFavoriteImportDialog } from '@/services/favoriteImportService';
+import { useFavoriteStore } from '@/state/favoriteStore';
 
 import type {
     FavoriteGroup,
@@ -70,6 +71,9 @@ export function useFavoritesActions({
     const [refreshing, setRefreshing] = useState(false);
     const [removingFavoriteKey, setRemovingFavoriteKey] = useState('');
     const removingFavoriteKeyRef = useRef('');
+    const remoteFavoritesByObjectId = useFavoriteStore(
+        (state) => state.remoteFavoritesByObjectId
+    );
     const collectionActions = useFavoritesCollectionActions({
         allItems,
         currentEndpoint,
@@ -117,6 +121,7 @@ export function useFavoritesActions({
         kind,
         localGroups,
         refreshFavorites: collectionActions.refreshFavorites,
+        remoteFavoritesByObjectId,
         remoteGroups,
         selectedContentItems,
         selectedGroupKey,

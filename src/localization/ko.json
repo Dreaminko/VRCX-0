@@ -954,7 +954,8 @@
                 "vrchat_favorites": "VRChat 즐겨찾기",
                 "review_the_csv_content_before_copying_it_to_the_clipboard": "클립보드에 복사하기 전에 CSV 콘텐츠를 검토하세요.",
                 "vrchat_group": "VRChat 그룹",
-                "all_vrchat_favorites": "모든 VRChat 즐겨찾기"
+                "all_vrchat_favorites": "모든 VRChat 즐겨찾기",
+                "online_favorites_copy_hint": "온라인 즐겨찾기는 온라인 그룹 간에만 이동할 수 있습니다. 이미 온라인에 즐겨찾기된 항목은 다른 온라인 그룹으로 복사할 수 없습니다."
             },
             "success": {
                 "favorite_removed": "즐겨찾기가 삭제되었습니다.",
@@ -978,7 +979,9 @@
                 "remove_favorite": "즐겨찾기 삭제",
                 "export_favorite": "즐겨찾기 내보내기",
                 "move": "이동",
-                "move_to": "이동 위치"
+                "move_to": "이동 위치",
+                "copy_ids": "ID 복사",
+                "copy_to": "복사 위치"
             },
             "empty": {
                 "no_favorite_groups_loaded": "즐겨찾는 그룹이 로드되지 않았습니다.",
@@ -2525,7 +2528,8 @@
                 "failed_to_create_local_favorite_group": "로컬 즐겨찾기 그룹을 생성하지 못했습니다.",
                 "failed_to_copy_selected_favorites": "선택한 즐겨찾기를 복사하지 못했습니다.",
                 "failed_to_move_selected_favorites": "선택한 즐겨찾기를 이동하지 못했습니다.",
-                "failed_to_remove_vrchat_favorite": "VRChat 즐겨찾기를 제거하지 못했습니다."
+                "failed_to_remove_vrchat_favorite": "VRChat 즐겨찾기를 제거하지 못했습니다.",
+                "favorites_refresh_unavailable": "로그인된 계정이 없어 즐겨찾기를 새로고침할 수 없습니다"
             },
             "modal": {
                 "remove_local_favorite": "로컬 즐겨찾기를 삭제하시겠습니까?",
@@ -2574,7 +2578,13 @@
                 "removed_value_value_failed": "{value} 삭제됨; {value2} 실패",
                 "search_results_singular": "{count} 결과",
                 "search_results_plural": "{count} 결과",
-                "transferred_value_value_failed": "{value}개 처리됨; {value2}개 실패"
+                "transferred_value_value_failed": "{value}개 처리됨; {value2}개 실패",
+                "moved_value_favorites": "즐겨찾기 {value}개를 이동했습니다",
+                "copied_value_favorites": "즐겨찾기 {value}개를 복사했습니다",
+                "restored_value_to_source_after_failed_move": "{value}개 이동에 실패하여 원래 그룹으로 복원했습니다",
+                "saved_value_to_local_fallback_group": "{value}개를 온라인에 동기화하지 못해 로컬 {value2} 그룹에 저장했습니다",
+                "target_added_value_source_delete_failed": "{value}개가 대상 그룹에 추가되었지만 원본 삭제에 실패하여 양쪽에 모두 남아 있습니다",
+                "skipped_value_already_present": "{value}개가 이미 대상 그룹에 있어 건너뛰었습니다"
             }
         },
         "friends": {

@@ -983,7 +983,8 @@
                 "group_visibility_changed": "已更改分组可见性",
                 "local_favorite_group_renamed": "重命名本地收藏分组成功",
                 "the_favorites_baseline_did_not_finish_loading": "收藏分组数据尚未加载完成",
-                "try_a_different_search_term": "尝试其他搜索词"
+                "try_a_different_search_term": "尝试其他搜索词",
+                "online_favorites_copy_hint": "在线收藏只能在在线分组之间移动；已在线收藏的项目无法复制到另一个在线分组。"
             },
             "success": {
                 "favorite_removed": "已移除收藏",
@@ -1007,7 +1008,9 @@
                 "remove_favorite": "移除收藏",
                 "export_favorite": "导出收藏",
                 "move": "移动",
-                "move_to": "移动到"
+                "move_to": "移动到",
+                "copy_ids": "复制 ID",
+                "copy_to": "复制到"
             },
             "empty": {
                 "no_favorite_groups_loaded": "收藏分组未被加载",
@@ -2580,7 +2583,8 @@
                 "failed_to_select_avatar": "切换模型失败",
                 "failed_to_create_local_favorite_group": "创建本地收藏分组失败",
                 "failed_to_copy_selected_favorites": "复制所选收藏失败",
-                "failed_to_move_selected_favorites": "移动所选收藏失败"
+                "failed_to_move_selected_favorites": "移动所选收藏失败",
+                "favorites_refresh_unavailable": "尚未登录账号，暂时无法刷新收藏"
             },
             "modal": {
                 "remove_local_favorite": "移除本地收藏？",
@@ -2629,7 +2633,13 @@
                 "removed_value_value_failed": "已移除 {value}；{value2} 个失败",
                 "search_results_singular": "{count} 条结果",
                 "search_results_plural": "{count} 条结果",
-                "transferred_value_value_failed": "已处理 {value} 个；{value2} 个失败"
+                "transferred_value_value_failed": "已处理 {value} 个；{value2} 个失败",
+                "moved_value_favorites": "已移动 {value} 个收藏",
+                "copied_value_favorites": "已复制 {value} 个收藏",
+                "restored_value_to_source_after_failed_move": "{value} 项移动失败，已还原到原分组",
+                "saved_value_to_local_fallback_group": "{value} 项无法同步到在线，已保存到本地的 {value2} 分组",
+                "target_added_value_source_delete_failed": "{value} 项已添加到目标分组，但从源分组删除失败，现在两处都存在",
+                "skipped_value_already_present": "{value} 项已存在于目标分组，已跳过"
             }
         },
         "friends": {

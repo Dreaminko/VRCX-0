@@ -19,6 +19,14 @@ pub trait RuntimeEventSink: Send + Sync {
     fn emit(&self, event: &str, payload: Value);
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FavoritesChangedPayload {
+    pub kind: String,
+    pub local: bool,
+    pub remote: bool,
+}
+
 #[cfg(any(test, feature = "test-utils"))]
 #[derive(Clone, Debug)]
 pub struct RuntimeEventForTest {
@@ -210,5 +218,9 @@ impl RuntimeEventBus {
 
     pub fn emit_friend_profile_load_status(&self, payload: FriendProfileLoadStatusPayload) {
         self.emit("friendProfileLoadStatus", payload);
+    }
+
+    pub fn emit_favorites_changed(&self, payload: FavoritesChangedPayload) {
+        self.emit("favoritesChanged", payload);
     }
 }

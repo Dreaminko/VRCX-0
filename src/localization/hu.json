@@ -210,10 +210,15 @@
                 }
             },
             "label": {
-                "the_favorites_baseline_did_not_finish_loading": "A kedvencek betöltése nem fejeződött be"
+                "the_favorites_baseline_did_not_finish_loading": "A kedvencek betöltése nem fejeződött be",
+                "online_favorites_copy_hint": "Az online kedvencek csak online csoportok között helyezhetők át. A már online kedvencként megjelölt elemek nem másolhatók egy másik online csoportba."
             },
             "loading": {
                 "loading_favorites_baseline": "Kedvencek betöltése"
+            },
+            "action": {
+                "copy_ids": "ID-k másolása",
+                "copy_to": "Másolás ide"
             }
         },
         "friend_log": {
@@ -755,6 +760,19 @@
             "modal": {
                 "delete_notification_log_entry": "Eltávolítod az értesítést?",
                 "delete_the_local_value_log_entry": "Eltávolítod az előzményekből ezt az értesítést: {value}?"
+            }
+        },
+        "favorites": {
+            "toast": {
+                "favorites_refresh_unavailable": "Bejelentkezett fiók nélkül nem lehet frissíteni a kedvenceket"
+            },
+            "dynamic": {
+                "moved_value_favorites": "{value} kedvenc áthelyezve",
+                "copied_value_favorites": "{value} kedvenc másolva",
+                "restored_value_to_source_after_failed_move": "{value} elem áthelyezése sikertelen volt, ezért visszaálltak a forráscsoportba",
+                "saved_value_to_local_fallback_group": "{value} elemet nem sikerült online szinkronizálni, ezért a helyi {value2} csoportba kerültek mentésre",
+                "target_added_value_source_delete_failed": "{value} elem hozzáadva a célhoz, de a forrásból való törlés sikertelen volt, így most mindkét helyen megtalálható",
+                "skipped_value_already_present": "{value} elem már szerepelt a célcsoportban, ezért kimaradt"
             }
         }
     },

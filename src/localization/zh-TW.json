@@ -983,7 +983,8 @@
                 "group_visibility_changed": "分組可見性已更改",
                 "local_favorite_group_renamed": "本機收藏分組已重新命名",
                 "the_favorites_baseline_did_not_finish_loading": "收藏基線資料尚未載入完成",
-                "try_a_different_search_term": "嘗試其他搜尋詞"
+                "try_a_different_search_term": "嘗試其他搜尋詞",
+                "online_favorites_copy_hint": "線上收藏只能在線上分組之間移動；已於線上收藏的項目無法複製到另一個線上分組。"
             },
             "success": {
                 "favorite_removed": "收藏已移除",
@@ -1007,7 +1008,9 @@
                 "remove_favorite": "移除收藏",
                 "export_favorite": "匯出收藏",
                 "move": "移動",
-                "move_to": "移動至"
+                "move_to": "移動至",
+                "copy_ids": "複製 ID",
+                "copy_to": "複製到"
             },
             "empty": {
                 "no_favorite_groups_loaded": "未載入到收藏分組",
@@ -2580,7 +2583,8 @@
                 "failed_to_select_avatar": "切換角色失敗",
                 "failed_to_create_local_favorite_group": "建立本機收藏分組失敗",
                 "failed_to_copy_selected_favorites": "複製所選收藏失敗",
-                "failed_to_move_selected_favorites": "無法移動已選中的「收藏」"
+                "failed_to_move_selected_favorites": "無法移動已選中的「收藏」",
+                "favorites_refresh_unavailable": "尚未登入帳號，暫時無法重新整理收藏"
             },
             "modal": {
                 "remove_local_favorite": "移除本機收藏？",
@@ -2629,7 +2633,13 @@
                 "removed_value_value_failed": "已移除 {value}；{value2} 個失敗",
                 "search_results_singular": "{count} 條結果",
                 "search_results_plural": "{count} 條結果",
-                "transferred_value_value_failed": "已轉移 {value}; {value2} 失敗"
+                "transferred_value_value_failed": "已轉移 {value}; {value2} 失敗",
+                "moved_value_favorites": "已移動 {value} 個收藏",
+                "copied_value_favorites": "已複製 {value} 個收藏",
+                "restored_value_to_source_after_failed_move": "{value} 項移動失敗，已還原到原分組",
+                "saved_value_to_local_fallback_group": "{value} 項無法同步至線上，已儲存到本機的 {value2} 分組",
+                "target_added_value_source_delete_failed": "{value} 項已新增到目標分組，但從來源分組刪除失敗，現在兩處皆存在",
+                "skipped_value_already_present": "{value} 項已存在於目標分組，已略過"
             }
         },
         "friends": {

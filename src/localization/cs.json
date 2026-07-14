@@ -985,7 +985,8 @@
                 "group_visibility_changed": "Viditelnost skupiny změněna",
                 "local_favorite_group_renamed": "Lokální skupina oblíbených přejmenována",
                 "the_favorites_baseline_did_not_finish_loading": "Oblíbené položky se nenačetly celé",
-                "try_a_different_search_term": "Zkuste jiný hledaný výraz"
+                "try_a_different_search_term": "Zkuste jiný hledaný výraz",
+                "online_favorites_copy_hint": "Online oblíbené položky lze přesouvat pouze mezi online skupinami. Položky, které jsou již online oblíbené, nelze zkopírovat do jiné online skupiny."
             },
             "success": {
                 "favorite_removed": "Odebráno z oblíbených",
@@ -1009,7 +1010,9 @@
                 "remove_favorite": "Odebrat z oblíbených",
                 "export_favorite": "Exportovat oblíbené",
                 "move": "Přesunout",
-                "move_to": "Přesunout do"
+                "move_to": "Přesunout do",
+                "copy_ids": "Kopírovat ID",
+                "copy_to": "Kopírovat do"
             },
             "empty": {
                 "no_favorite_groups_loaded": "Nejsou načteny žádné skupiny oblíbených",
@@ -2582,7 +2585,8 @@
                 "failed_to_select_avatar": "Nepodařilo se vybrat avatara",
                 "failed_to_create_local_favorite_group": "Nepodařilo se vytvořit lokální skupinu oblíbených",
                 "failed_to_copy_selected_favorites": "Nepodařilo se zkopírovat vybrané oblíbené položky",
-                "failed_to_move_selected_favorites": "Nepodařilo se přesunout vybrané oblíbené položky"
+                "failed_to_move_selected_favorites": "Nepodařilo se přesunout vybrané oblíbené položky",
+                "favorites_refresh_unavailable": "Bez přihlášeného účtu nelze oblíbené položky obnovit"
             },
             "modal": {
                 "remove_local_favorite": "Odebrat lokální oblíbenou položku?",
@@ -2631,7 +2635,13 @@
                 "removed_value_value_failed": "Odebráno {value}; {value2} selhalo",
                 "search_results_singular": "{count} výsledek",
                 "search_results_plural": "{count} výsledků",
-                "transferred_value_value_failed": "Přesunuto {value}; {value2} selhalo"
+                "transferred_value_value_failed": "Přesunuto {value}; {value2} selhalo",
+                "moved_value_favorites": "Přesunuto {value} oblíbených položek",
+                "copied_value_favorites": "Zkopírováno {value} oblíbených položek",
+                "restored_value_to_source_after_failed_move": "{value} položek se nepodařilo přesunout a byly obnoveny do zdrojové skupiny",
+                "saved_value_to_local_fallback_group": "{value} položek se nepodařilo synchronizovat online a byly uloženy do místní skupiny {value2}",
+                "target_added_value_source_delete_failed": "{value} položek bylo přidáno do cíle, ale odstranění ze zdroje selhalo, takže nyní existují na obou místech",
+                "skipped_value_already_present": "{value} položek už bylo v cílové skupině a bylo přeskočeno"
             }
         },
         "friends": {

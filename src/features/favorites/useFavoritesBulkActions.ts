@@ -2,8 +2,12 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import type { FavoriteTransferItemResult } from '@/platform/tauri/bindings';
+import type {
+    FavoriteTransferItemResult,
+    FavoriteTransferMode
+} from '@/platform/tauri/bindings';
 import favoriteTransferRepository from '@/repositories/favoriteTransferRepository';
+import type { FavoriteRecord } from '@/state/favoriteStoreTypes';
 import { useModalStore } from '@/state/modalStore';
 
 import type {
@@ -13,12 +17,15 @@ import type {
     FavoriteSource
 } from './favoritesTypes';
 import {
+    buildFavoriteCopyTargets,
+    buildFavoriteMoveTargets,
     buildFavoriteTransferFailureDescription,
     buildFavoriteTransferInput,
     buildFavoriteTransferSuccessfulKeys,
-    buildFavoriteTransferTargets,
+    FAVORITE_TRANSFER_RECOVERED_GROUP_NAME,
     groupFavoriteItemsBySourceGroup,
-    resolveFavoriteSourceGroup
+    resolveFavoriteSourceGroup,
+    summarizeFavoriteTransferStatuses
 } from './favoriteTransfer';
 
 export function useFavoritesBulkActions({
@@ -28,6 +35,7 @@ export function useFavoritesBulkActions({
     kind,
     localGroups,
     refreshFavorites,
+    remoteFavoritesByObjectId,
     remoteGroups,
     selectedContentItems,
     selectedGroupKey,
@@ -46,6 +54,7 @@ export function useFavoritesBulkActions({
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
     refreshFavorites(options?: { silent?: boolean }): Promise<void>;
+    remoteFavoritesByObjectId: Record<string, FavoriteRecord | undefined>;
     remoteGroups: FavoriteGroup[];
     selectedContentItems: FavoriteItem[];
     selectedGroupKey: string;
@@ -56,13 +65,41 @@ export function useFavoritesBulkActions({
     const confirm = useModalStore((state) => state.confirm);
     const moveTargets = useMemo(
         () =>
-            buildFavoriteTransferTargets({
+            buildFavoriteMoveTargets({
                 remoteGroups,
                 localGroups,
                 selectedSource,
-                selectedGroupKey
+                selectedGroupKey,
+                selectedItems: selectedContentItems,
+                remoteFavoritesByObjectId
             }),
-        [localGroups, remoteGroups, selectedGroupKey, selectedSource]
+        [
+            localGroups,
+            remoteFavoritesByObjectId,
+            remoteGroups,
+            selectedContentItems,
+            selectedGroupKey,
+            selectedSource
+        ]
+    );
+    const copyTargets = useMemo(
+        () =>
+            buildFavoriteCopyTargets({
+                remoteGroups,
+                localGroups,
+                selectedSource,
+                selectedGroupKey,
+                selectedItems: selectedContentItems,
+                remoteFavoritesByObjectId
+            }),
+        [
+            localGroups,
+            remoteFavoritesByObjectId,
+            remoteGroups,
+            selectedContentItems,
+            selectedGroupKey,
+            selectedSource
+        ]
     );
 
     async function bulkRemoveSelection() {
@@ -123,17 +160,59 @@ export function useFavoritesBulkActions({
         );
     }
 
-    async function bulkMoveSelection(targetGroup: FavoriteGroup) {
+    function describeFavoriteTransferNotices(
+        summary: ReturnType<typeof summarizeFavoriteTransferStatuses>
+    ): string[] {
+        const notices: string[] = [];
+        if (summary.restoredToSource > 0) {
+            notices.push(
+                t(
+                    'view.favorites.dynamic.restored_value_to_source_after_failed_move',
+                    { value: summary.restoredToSource }
+                )
+            );
+        }
+        if (summary.savedToLocalFallback > 0) {
+            notices.push(
+                t(
+                    'view.favorites.dynamic.saved_value_to_local_fallback_group',
+                    {
+                        value: summary.savedToLocalFallback,
+                        value2: FAVORITE_TRANSFER_RECOVERED_GROUP_NAME
+                    }
+                )
+            );
+        }
+        if (summary.targetAddedSourceDeleteFailed > 0) {
+            notices.push(
+                t(
+                    'view.favorites.dynamic.target_added_value_source_delete_failed',
+                    { value: summary.targetAddedSourceDeleteFailed }
+                )
+            );
+        }
+        if (summary.skippedAlreadyPresent > 0) {
+            notices.push(
+                t('view.favorites.dynamic.skipped_value_already_present', {
+                    value: summary.skippedAlreadyPresent
+                })
+            );
+        }
+        return notices;
+    }
+
+    async function bulkTransferSelection(
+        targetGroup: FavoriteGroup,
+        mode: FavoriteTransferMode
+    ) {
         if (!selectedContentItems.length) {
             return;
         }
         const batches = groupFavoriteItemsBySourceGroup(selectedContentItems);
         let succeeded = 0;
         let failed = 0;
-        let sawCopy = false;
-        let sawMove = false;
         const successfulKeys = new Set<string>();
-        const failedResults: FavoriteTransferItemResult[] = [];
+        const allResults: FavoriteTransferItemResult[] = [];
         let thrownErrorMessage = '';
 
         for (const batchItems of batches) {
@@ -148,6 +227,7 @@ export function useFavoritesBulkActions({
                         buildFavoriteTransferInput({
                             endpoint: currentEndpoint,
                             kind,
+                            mode,
                             sourceGroup,
                             targetGroup,
                             selectedItems: batchItems
@@ -160,19 +240,7 @@ export function useFavoritesBulkActions({
                 )) {
                     successfulKeys.add(key);
                 }
-                for (const item of result.items) {
-                    if (item.status === 'failed') {
-                        failedResults.push(item);
-                    }
-                }
-                if (
-                    sourceGroup.source === 'local' &&
-                    targetGroup.source === 'remote'
-                ) {
-                    sawCopy = true;
-                } else {
-                    sawMove = true;
-                }
+                allResults.push(...result.items);
             } catch (error) {
                 failed += batchItems.length;
                 if (!thrownErrorMessage && error instanceof Error) {
@@ -187,34 +255,69 @@ export function useFavoritesBulkActions({
                 current.filter((key) => !successfulKeys.has(key))
             );
         }
-        if (failed === 0) {
-            const successMessage =
-                sawCopy && !sawMove
-                    ? t('view.favorite.success.selected_favorites_copied')
-                    : t('view.favorite.success.selected_favorites_moved');
+
+        const summary = summarizeFavoriteTransferStatuses(allResults);
+        const notices = describeFavoriteTransferNotices(summary);
+        const noticeDescription = notices.join('\n');
+        const successMessage =
+            mode === 'copy'
+                ? t('view.favorites.dynamic.copied_value_favorites', {
+                      value: summary.succeeded
+                  })
+                : t('view.favorites.dynamic.moved_value_favorites', {
+                      value: summary.succeeded
+                  });
+
+        if (failed === 0 && notices.length === 0) {
             toast.success(successMessage);
             return;
         }
+
+        if (failed === 0) {
+            toast.warning(
+                successMessage,
+                noticeDescription
+                    ? { description: noticeDescription }
+                    : undefined
+            );
+            return;
+        }
+
         const fallbackMessage =
             thrownErrorMessage ||
             t('view.favorites.toast.failed_to_move_selected_favorites');
-        const description = buildFavoriteTransferFailureDescription({
-            results: failedResults,
+        const failureDescription = buildFavoriteTransferFailureDescription({
+            results: allResults.filter((item) => item.status === 'failed'),
             selectedItems: selectedContentItems,
             fallbackMessage
         });
+        const combinedDescription = [noticeDescription, failureDescription]
+            .filter(Boolean)
+            .join('\n');
         toast.error(
             t('view.favorites.dynamic.transferred_value_value_failed', {
                 value: succeeded,
                 value2: failed
             }),
-            description ? { description } : undefined
+            combinedDescription
+                ? { description: combinedDescription }
+                : undefined
         );
     }
 
+    function bulkMoveSelection(targetGroup: FavoriteGroup) {
+        return bulkTransferSelection(targetGroup, 'move');
+    }
+
+    function bulkCopySelection(targetGroup: FavoriteGroup) {
+        return bulkTransferSelection(targetGroup, 'copy');
+    }
+
     return {
+        bulkCopySelection,
         bulkMoveSelection,
         bulkRemoveSelection,
+        copyTargets,
         moveTargets
     };
 }
