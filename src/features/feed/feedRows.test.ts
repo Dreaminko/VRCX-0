@@ -13,7 +13,6 @@ import {
     resolveFeedLocationForDisplay,
     resolveFeedFriendStateBucket,
     resolveFeedStatusMeta,
-    resolveFeedTypeMeta,
     resolveFeedUserDisplayName,
     resolveFeedUserId,
     toDateInputValue,
@@ -162,13 +161,6 @@ describe('feed row helpers', () => {
             label: 'Offline',
             className: ''
         });
-        expect(resolveFeedTypeMeta('GPS')).toEqual({
-            className: 'bg-sky-500'
-        });
-        expect(resolveFeedTypeMeta('Online')).toEqual({
-            className: 'bg-[var(--status-online)]'
-        });
-        expect(resolveFeedTypeMeta('unknown')).toEqual({ className: '' });
     });
 
     it('determines which feed row types can expand based on whether they carry new information', () => {

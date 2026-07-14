@@ -77,7 +77,7 @@ function FeedLocationLink({
                     'text-muted-foreground [&_button:hover]:text-foreground max-w-full text-sm',
                     className
                 )}
-                worldNameClassName="text-foreground"
+                worldNameClassName="text-foreground/85 font-normal"
             />
         </span>
     );

@@ -1,21 +1,42 @@
+import {
+    FileTextIcon,
+    LogInIcon,
+    LogOutIcon,
+    MapPinIcon,
+    MessageSquareTextIcon,
+    PersonStandingIcon
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
-import { resolveFeedTypeMeta } from '../feedRows';
+import { normalizeFeedId } from '../feedRows';
+
+const TYPE_ICONS: Record<string, { Icon: LucideIcon; className: string }> = {
+    GPS: { Icon: MapPinIcon, className: 'text-sky-500' },
+    Online: { Icon: LogInIcon, className: 'text-[var(--status-online)]' },
+    Offline: { Icon: LogOutIcon, className: 'text-slate-400' },
+    Status: {
+        Icon: MessageSquareTextIcon,
+        className: 'text-muted-foreground/70'
+    },
+    Avatar: { Icon: PersonStandingIcon, className: 'text-muted-foreground/70' },
+    Bio: { Icon: FileTextIcon, className: 'text-muted-foreground/70' }
+};
 
 function FeedTypeIndicator({ label, type }: { label: string; type: unknown }) {
-    const meta = resolveFeedTypeMeta(type);
+    const meta = TYPE_ICONS[normalizeFeedId(type)];
     return (
         <span className="inline-flex min-w-0 items-center gap-1.5">
-            {meta.className ? (
-                <span
+            {meta ? (
+                <meta.Icon
                     aria-hidden="true"
-                    className={cn(
-                        'size-2 shrink-0 rounded-full',
-                        meta.className
-                    )}
+                    className={cn('size-3.5 shrink-0', meta.className)}
                 />
             ) : null}
-            <span className="truncate text-sm">{label}</span>
+            <span className="text-foreground/80 truncate text-sm font-normal">
+                {label}
+            </span>
         </span>
     );
 }

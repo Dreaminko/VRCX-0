@@ -13,8 +13,7 @@ import type {
     FeedColumns,
     FeedFriendActions,
     FeedLocationActionPayload,
-    FeedRow,
-    FeedTableInstance
+    FeedRow
 } from '../feedTypes';
 import {
     FeedDetailCell,
@@ -43,6 +42,7 @@ function ExpanderCell({ row }: { row: Row<FeedRow> }) {
             type="button"
             variant="ghost"
             size="icon-sm"
+            className="text-muted-foreground hover:text-foreground"
             onClick={() => row.toggleExpanded()}
         >
             <ChevronRightIcon
@@ -62,10 +62,12 @@ function DateCell({ row }: { row: Row<FeedRow> }) {
         <Tooltip>
             <TooltipTrigger
                 render={
-                    <span className="text-sm">
-                        <span className="text-muted-foreground">{date}</span>
+                    <span className="text-sm font-normal tabular-nums">
+                        <span className="text-muted-foreground/80">{date}</span>
                         {time ? (
-                            <span className="text-foreground ml-1">{time}</span>
+                            <span className="text-foreground/75 ml-1">
+                                {time}
+                            </span>
                         ) : null}
                     </span>
                 }
@@ -75,28 +77,6 @@ function DateCell({ row }: { row: Row<FeedRow> }) {
             </TooltipContent>
         </Tooltip>
     );
-}
-
-function resolveDisplayNameCellClassName(
-    row: Row<FeedRow>,
-    table: FeedTableInstance
-) {
-    const currentUserId = resolveFeedUserId(row.original);
-    if (!currentUserId) {
-        return '';
-    }
-
-    const visibleRows = table.getRowModel().rows;
-    const rowIndex = visibleRows.findIndex(
-        (visibleRow) => visibleRow.id === row.id
-    );
-    if (rowIndex <= 0) {
-        return '';
-    }
-
-    const previousRow = visibleRows[rowIndex - 1];
-    const previousUserId = resolveFeedUserId(previousRow.original);
-    return previousUserId === currentUserId ? 'text-muted-foreground' : '';
 }
 
 export function useFeedColumns({
@@ -169,19 +149,12 @@ export function useFeedColumns({
                 header: ({ column }: { column: Column<FeedRow, unknown> }) => (
                     <SortButton column={column} label={t('table.feed.user')} />
                 ),
-                cell: ({
-                    row,
-                    table
-                }: {
-                    row: Row<FeedRow>;
-                    table: FeedTableInstance;
-                }) => (
+                cell: ({ row }: { row: Row<FeedRow> }) => (
                     <FeedUserLink
                         actions={actions}
                         cachedDisplayName={
                             friendLogNamesById[resolveFeedUserId(row.original)]
                         }
-                        className={resolveDisplayNameCellClassName(row, table)}
                         row={row.original}
                     />
                 )
@@ -201,15 +174,21 @@ export function useFeedColumns({
                         .join(' '),
                 enableSorting: false,
                 meta: { label: t('table.feed.detail') },
-                header: () => t('table.feed.detail'),
+                header: () => (
+                    <span className="text-muted-foreground text-xs tracking-wide uppercase">
+                        {t('table.feed.detail')}
+                    </span>
+                ),
                 minSize: 100,
                 cell: ({ row }: { row: Row<FeedRow> }) => (
-                    <FeedDetailCell
-                        loadingHistoryKey={loadingPreviousInstancesKey}
-                        onNewInstance={actions.openFeedNewInstance}
-                        onOpenPreviousInstances={onOpenPreviousInstances}
-                        row={row.original}
-                    />
+                    <div className="text-foreground/80 font-normal">
+                        <FeedDetailCell
+                            loadingHistoryKey={loadingPreviousInstancesKey}
+                            onNewInstance={actions.openFeedNewInstance}
+                            onOpenPreviousInstances={onOpenPreviousInstances}
+                            row={row.original}
+                        />
+                    </div>
                 )
             }
         ],

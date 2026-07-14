@@ -79,7 +79,7 @@ export function FeedTableShell({
 
     return (
         <>
-            <DataTableSurface>
+            <DataTableSurface className="border-border/70">
                 <DataTableScrollArea>
                     <DataTableColumnDndProvider table={table}>
                         <Table
@@ -94,7 +94,7 @@ export function FeedTableShell({
                                         <Fragment key={row.id}>
                                             <TableRow
                                                 className={cn(
-                                                    'h-9',
+                                                    'border-border/40 hover:bg-muted/35 h-9',
                                                     row.getCanExpand() &&
                                                         'cursor-pointer',
                                                     arrivals.has(row.id) &&
@@ -132,7 +132,7 @@ export function FeedTableShell({
                                                 </DataTableColumnSortableContext>
                                             </TableRow>
                                             {row.getIsExpanded() ? (
-                                                <TableRow className="bg-muted/30">
+                                                <TableRow className="border-border/40 bg-muted/20">
                                                     <TableCell
                                                         colSpan={
                                                             row.getVisibleCells()
