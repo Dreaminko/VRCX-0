@@ -91,6 +91,7 @@
                 "feed_query_failed": "ไม่สามารถโหลดฟีดได้"
             },
             "label": {
+                "online_for": "ออนไลน์เป็นเวลา {duration}",
                 "favorites_are_still_hydrating": "กำลังโหลดรายการโปรด"
             }
         },

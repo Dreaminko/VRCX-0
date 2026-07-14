@@ -637,6 +637,7 @@
             },
             "label": {
                 "previous_avatar": "Avatar précédent",
+                "online_for": "En ligne depuis {duration}",
                 "rows": "lignes",
                 "favorites_are_still_hydrating": "Les favoris sont encore en cours de chargement",
                 "favorites_only": "Favoris uniquement"

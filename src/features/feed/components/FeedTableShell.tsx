@@ -132,7 +132,7 @@ export function FeedTableShell({
                                                 </DataTableColumnSortableContext>
                                             </TableRow>
                                             {row.getIsExpanded() ? (
-                                                <TableRow>
+                                                <TableRow className="bg-muted/30">
                                                     <TableCell
                                                         colSpan={
                                                             row.getVisibleCells()

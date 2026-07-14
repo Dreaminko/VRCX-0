@@ -81,6 +81,7 @@
                 "feed_query_failed": "Nem sikerült betölteni a hírfolyamot"
             },
             "label": {
+                "online_for": "Online {duration} ideig",
                 "favorites_are_still_hydrating": "A kedvencek még betöltés alatt állnak"
             }
         },

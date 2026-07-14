@@ -637,6 +637,7 @@
             },
             "label": {
                 "previous_avatar": "Předchozí avatar",
+                "online_for": "Online po dobu {duration}",
                 "rows": "řádků",
                 "favorites_are_still_hydrating": "Oblíbené se ještě načítají",
                 "favorites_only": "Pouze oblíbení"

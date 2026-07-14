@@ -81,6 +81,7 @@
                 "feed_query_failed": "Không thể tải bảng tin"
             },
             "label": {
+                "online_for": "Trực tuyến trong {duration}",
                 "favorites_are_still_hydrating": "Vẫn đang tải mục yêu thích"
             }
         },

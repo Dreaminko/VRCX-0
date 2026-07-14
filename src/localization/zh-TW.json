@@ -637,6 +637,7 @@
             },
             "label": {
                 "previous_avatar": "上一個角色",
+                "online_for": "本次上線 {duration}",
                 "rows": "行",
                 "favorites_are_still_hydrating": "收藏仍在載入",
                 "favorites_only": "僅收藏"

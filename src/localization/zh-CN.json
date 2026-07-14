@@ -637,6 +637,7 @@
             },
             "label": {
                 "previous_avatar": "上一个模型",
+                "online_for": "本次在线 {duration}",
                 "rows": "行",
                 "favorites_are_still_hydrating": "收藏仍在加载",
                 "favorites_only": "仅显示收藏（分组）"

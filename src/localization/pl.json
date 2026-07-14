@@ -110,6 +110,7 @@
                 "feed_query_failed": "Nie udało się wczytać aktywności"
             },
             "label": {
+                "online_for": "Online przez {duration}",
                 "favorites_are_still_hydrating": "Ulubione nadal się wczytują"
             }
         },

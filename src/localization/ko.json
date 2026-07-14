@@ -630,6 +630,7 @@
             },
             "label": {
                 "previous_avatar": "이전 아바타",
+                "online_for": "온라인 시간 {duration}",
                 "rows": "행",
                 "favorites_are_still_hydrating": "즐겨찾기를 아직 불러오는 중입니다.",
                 "favorites_only": "즐겨찾기만"

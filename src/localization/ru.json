@@ -637,6 +637,7 @@
             },
             "label": {
                 "previous_avatar": "Предыдущий аватар",
+                "online_for": "В сети {duration}",
                 "rows": "ряды",
                 "favorites_are_still_hydrating": "Избранное всё ещё загружается",
                 "favorites_only": "Только избранное"

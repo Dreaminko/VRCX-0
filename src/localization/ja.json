@@ -637,6 +637,7 @@
             },
             "label": {
                 "previous_avatar": "前のアバター",
+                "online_for": "オンライン時間 {duration}",
                 "rows": "行",
                 "favorites_are_still_hydrating": "お気に入りを読み込み中です",
                 "favorites_only": "お気に入りのみ"
