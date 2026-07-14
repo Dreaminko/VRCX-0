@@ -105,11 +105,10 @@ pub fn app__deep_link_registration_status(app: AppHandle) -> Result<Option<bool>
 fn deep_link_registration_status(app: &AppHandle) -> Result<Option<bool>, AppError> {
     #[cfg(any(windows, target_os = "linux"))]
     {
-        return app
-            .deep_link()
+        app.deep_link()
             .is_registered(APP_DEEP_LINK_SCHEME)
             .map(Some)
-            .map_err(|error| AppError::Custom(error.to_string()));
+            .map_err(|error| AppError::Custom(error.to_string()))
     }
 
     #[cfg(target_os = "macos")]
