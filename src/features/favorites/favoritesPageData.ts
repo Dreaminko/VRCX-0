@@ -122,7 +122,6 @@ function buildLocalFavoriteGroups(
         key: name,
         label: name,
         count: Array.isArray(source[name]) ? source[name].length : 0,
-        capacity: 0,
         visibility: ''
     }));
 }

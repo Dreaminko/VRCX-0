@@ -195,6 +195,21 @@ describe('favorite transfer helpers', () => {
         ).toBe(false);
     });
 
+    it('treats a zero capacity as unlimited instead of always full', () => {
+        expect(
+            isFavoriteMoveTargetOverCapacity(
+                {
+                    key: 'Local A',
+                    source: 'local',
+                    label: 'Local A',
+                    count: 500,
+                    capacity: 0
+                },
+                999
+            )
+        ).toBe(false);
+    });
+
     it('groups selected items by their originating source and group for safe cross-group moves', () => {
         const groupAItem: FavoriteItem = {
             ...remoteItem,

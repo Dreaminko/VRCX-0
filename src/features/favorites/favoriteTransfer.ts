@@ -114,7 +114,7 @@ export function isFavoriteMoveTargetOverCapacity(
     target: FavoriteGroup,
     additionalCount: number
 ): boolean {
-    if (typeof target.capacity !== 'number') {
+    if (typeof target.capacity !== 'number' || target.capacity <= 0) {
         return false;
     }
     const currentCount = typeof target.count === 'number' ? target.count : 0;

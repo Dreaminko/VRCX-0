@@ -32,7 +32,7 @@ type FavoritesSelectionBarProps = {
 };
 
 function favoriteMoveTargetLabel(target: FavoriteGroup): string {
-    if (typeof target.capacity === 'number') {
+    if (typeof target.capacity === 'number' && target.capacity > 0) {
         return `${target.label} (${target.count ?? 0}/${target.capacity})`;
     }
     if (typeof target.count === 'number') {
