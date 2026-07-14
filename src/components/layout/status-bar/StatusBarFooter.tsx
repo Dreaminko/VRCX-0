@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ProxySettingsEditor } from '@/components/proxy/ProxySettingsEditor';
 import { cn } from '@/lib/utils';
+import { profileBackupErrorKey } from '@/services/profileBackupI18n';
 import {
     DEFAULT_ZOOM_LEVEL,
     MAX_ZOOM_LEVEL,
@@ -184,6 +185,7 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
             mutualGraph,
             nowPlaying,
             proxyEditor,
+            profileBackup,
             proxyEnabled,
             proxyServer,
             runtimeGameState,
@@ -464,6 +466,53 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                     </div>
 
                     <div className="text-muted-foreground flex shrink-0 items-center justify-end overflow-hidden">
+                        <StatusSegment
+                            visible={profileBackup.status.state !== 'idle'}
+                            active={profileBackup.status.state === 'running'}
+                            warn={
+                                profileBackup.status.state === 'retryable' ||
+                                profileBackup.status.state === 'error'
+                            }
+                            showDot={false}
+                            label={t(
+                                profileBackup.status.state === 'running'
+                                    ? profileBackup.status.kind === 'auto'
+                                        ? 'profile_backup.automatic_running'
+                                        : 'profile_backup.manual_running'
+                                    : profileBackup.status.state === 'retryable'
+                                      ? 'profile_backup.retryable_short'
+                                      : 'profile_backup.error_short'
+                            )}
+                            value={
+                                profileBackup.status.state === 'running' &&
+                                profileBackup.status.percent !== null
+                                    ? `${profileBackup.status.percent}%`
+                                    : undefined
+                            }
+                            tooltip={
+                                profileBackup.status.error
+                                    ? t(
+                                          profileBackupErrorKey(
+                                              profileBackup.status.error.code
+                                          )
+                                      )
+                                    : undefined
+                            }
+                            onClick={
+                                profileBackup.status.state === 'retryable' ||
+                                profileBackup.status.state === 'error'
+                                    ? profileBackup.onOpenDetails
+                                    : undefined
+                            }
+                            className="text-muted-foreground -ml-px border-l"
+                            labelClassName={
+                                profileBackup.status.state === 'retryable' ||
+                                profileBackup.status.state === 'error'
+                                    ? 'text-destructive'
+                                    : undefined
+                            }
+                            valueClassName="text-muted-foreground"
+                        />
                         <StatusSegment
                             visible={worldCollectionImport.active}
                             showDot={false}

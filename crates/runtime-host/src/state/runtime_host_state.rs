@@ -32,8 +32,9 @@ pub struct BackendRuntimeFrontendSessionSnapshot {
 pub struct RuntimeHostState {
     pub app_data_dir: AppDataDirResolution,
     pub paths: AppPaths,
-    pub storage: StorageService,
+    pub storage: Arc<StorageService>,
     pub db: Arc<DatabaseService>,
+    pub profile_backup: ProfileBackupRuntime,
     pub discord_rpc: Arc<DiscordRpc>,
     pub process_monitor: ProcessMonitor,
     pub log_watcher: LogWatcher,
@@ -108,6 +109,12 @@ impl RuntimeHostState {
         let migration_paths = LegacyMigrationPaths::from_app_data(paths.app_data.clone());
         consume_pending_legacy_migration(&migration_paths)?;
 
+        let pending_profile_restore =
+            consume_pending_profile_restore(&paths.app_data, &paths.db_file)?;
+        if let Err(error) = cleanup_profile_backup_artifacts(&paths.app_data) {
+            tracing::warn!(error = %error, "failed to clean up profile backup artifacts");
+        }
+
         let (legacy_vrcx_source, legacy_vrcx_migration_status) =
             vrcx_0_persistence::legacy_vrcx::discover_legacy_vrcx_migration(
                 &paths.db_file,
@@ -115,9 +122,29 @@ impl RuntimeHostState {
             );
         let legacy_vrcx_available = legacy_vrcx_migration_status.available;
 
-        let storage = StorageService::new(&paths.config_file)?;
+        let storage = Arc::new(StorageService::new(&paths.config_file)?);
 
-        let db = Arc::new(DatabaseService::new(&paths.db_file)?);
+        let db = match DatabaseService::new(&paths.db_file) {
+            Ok(db) => {
+                if let Some(pending) = pending_profile_restore {
+                    if let Err(error) = pending.finalize() {
+                        tracing::warn!(
+                            error = %error,
+                            "failed to finalize profile restore; journal remains for the next start"
+                        );
+                    }
+                }
+                db
+            }
+            Err(error) => {
+                let Some(pending) = pending_profile_restore else {
+                    return Err(error.into());
+                };
+                pending.rollback(ProfileRestoreFailureCode::DatabaseOpenFailed)?;
+                DatabaseService::new(&paths.db_file)?
+            }
+        };
+        let db = Arc::new(db);
         let discord_rpc = Arc::new(DiscordRpc::new());
         let process_monitor = ProcessMonitor::new();
         let web_user_agent_version = web_ua_app_version(&app_version, is_headless);
@@ -135,6 +162,19 @@ impl RuntimeHostState {
             Arc::clone(&web),
             Arc::clone(&image_cache),
         ));
+        let profile_backup = ProfileBackupRuntime::new(
+            paths.app_data.clone(),
+            Arc::clone(&db),
+            Arc::clone(&storage),
+            runtime_context.event_bus.clone(),
+            runtime_context.tasks.clone(),
+            runtime_context.background_jobs.clone(),
+            app_version.clone(),
+        );
+        let profile_backup_target = profile_backup.settings().auto_target_dir;
+        if !profile_backup_target.is_empty() {
+            host_file_access.register_path(profile_backup_target);
+        }
         register_persisted_user_generated_content_path_grant(
             &host_file_access,
             runtime_context.config(),
@@ -223,6 +263,7 @@ impl RuntimeHostState {
             paths,
             storage,
             db,
+            profile_backup,
             discord_rpc,
             process_monitor,
             log_watcher,

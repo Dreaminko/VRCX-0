@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
         >(),
     runtimeGroupInstancesRefresh: vi.fn<() => Promise<null>>(),
     appCheckGameRunning: vi.fn<() => Promise<null>>(),
+    profileBackupCurrentStatus: vi.fn(),
     bindDeepLinkEvents: vi.fn<() => Promise<() => void>>(),
     drainPendingDeepLinks: vi.fn<() => Promise<void>>(),
     deepLinkUnsubscribe: vi.fn(),
@@ -36,6 +37,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appCheckGameRunning: mocks.appCheckGameRunning,
+        appProfileBackupCurrentStatus: mocks.profileBackupCurrentStatus,
         appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
         appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh
     }
@@ -88,6 +90,7 @@ vi.mock('./deepLinkService', () => ({
 }));
 
 import { useFriendRosterStore } from '@/state/friendRosterStore';
+import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 import { useUserFactsStore } from '@/state/userFactsStore';
@@ -130,6 +133,7 @@ describe('runtimeEventBridgeService', () => {
         useFriendRosterStore.getState().resetRoster();
         useSessionStore.getState().resetSessionState();
         useUserFactsStore.getState().resetUserFacts();
+        useProfileBackupStore.getState().resetProfileBackupState();
         vi.useRealTimers();
         mocks.isHostCapabilityAvailable.mockReturnValue(false);
         mocks.subscribe.mockResolvedValue(() => {});
@@ -138,6 +142,15 @@ describe('runtimeEventBridgeService', () => {
         );
         mocks.runtimeGroupInstancesRefresh.mockResolvedValue(null);
         mocks.appCheckGameRunning.mockResolvedValue(null);
+        mocks.profileBackupCurrentStatus.mockResolvedValue({
+            revision: 0,
+            state: 'idle',
+            kind: null,
+            phase: null,
+            percent: null,
+            error: null,
+            lastOutcome: null
+        });
         mocks.bindDeepLinkEvents.mockResolvedValue(mocks.deepLinkUnsubscribe);
         mocks.drainPendingDeepLinks.mockResolvedValue(undefined);
         mocks.resumeFrontendSessionFromBackendRuntime.mockResolvedValue(false);
@@ -172,6 +185,40 @@ describe('runtimeEventBridgeService', () => {
             'drain-deep-links'
         ]);
         expect(mocks.drainPendingDeepLinks).toHaveBeenCalledTimes(1);
+    });
+
+    it('hydrates backup status after subscribing and applies newer events', async () => {
+        const handlers = new Map<string, (payload: unknown) => void>();
+        mocks.subscribe.mockImplementation(async (name, handler) => {
+            handlers.set(name, handler);
+            return () => {};
+        });
+        mocks.profileBackupCurrentStatus.mockResolvedValueOnce({
+            revision: 3,
+            state: 'running',
+            kind: 'auto',
+            phase: 'snapshot',
+            percent: 15,
+            error: null,
+            lastOutcome: null
+        });
+
+        await bindRuntimeEvents();
+        handlers.get('profileBackupStatus')?.({
+            revision: 4,
+            state: 'running',
+            kind: 'auto',
+            phase: 'package',
+            percent: 60,
+            error: null,
+            lastOutcome: null
+        });
+
+        expect(useProfileBackupStore.getState().status).toMatchObject({
+            revision: 4,
+            phase: 'package',
+            percent: 60
+        });
     });
 
     it('records GameLog persistence fallback as telemetry without frontend ingest', async () => {

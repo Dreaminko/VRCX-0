@@ -18,6 +18,7 @@ pub mod memos;
 pub mod mutual_graph;
 pub mod notifications;
 pub mod player_list;
+pub mod profile_backup;
 pub mod realtime;
 pub mod screenshot_cache;
 pub mod social_aggregates;
@@ -34,6 +35,7 @@ pub mod maintenance {
     };
 }
 
+pub use database::schema::VRCX0_SCHEMA_VERSION_KEY;
 pub use database::{optimize_database, DatabaseService, DatabaseUpgradeStatus};
 pub use error::Error;
 

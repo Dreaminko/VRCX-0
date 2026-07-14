@@ -6,13 +6,16 @@ edition = "2021"
 [dependencies]
 chrono = { workspace = true }
 dirs = { workspace = true }
+fs4 = { workspace = true }
 rusqlite = { workspace = true, features = ["bundled", "backup"] }
 sea-query = { version = "1.0.1", default-features = false, features = [
     "backend-sqlite"
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 specta.workspace = true
 thiserror = { workspace = true }
 tracing = { workspace = true }
 vrcx-0-core = { path = "../core" }
+zip = { workspace = true }

@@ -454,6 +454,52 @@ export const commands = {
             reason
         });
     },
+    async appProfileBackupGetSettings(): Promise<ProfileBackupSettings> {
+        return await TAURI_INVOKE('app__profile_backup_get_settings');
+    },
+    async appProfileBackupSetSettings(
+        settings: ProfileBackupSettings
+    ): Promise<ProfileBackupSettings> {
+        return await TAURI_INVOKE('app__profile_backup_set_settings', {
+            settings
+        });
+    },
+    async appProfileBackupRunManual(
+        targetDir: string
+    ): Promise<ProfileBackupActionOutcome> {
+        return await TAURI_INVOKE('app__profile_backup_run_manual', {
+            targetDir
+        });
+    },
+    async appProfileBackupRetryDelivery(): Promise<ProfileBackupActionOutcome> {
+        return await TAURI_INVOKE('app__profile_backup_retry_delivery');
+    },
+    async appProfileBackupDiscardPending(): Promise<ProfileBackupActionOutcome> {
+        return await TAURI_INVOKE('app__profile_backup_discard_pending');
+    },
+    async appProfileBackupDismissError(): Promise<ProfileBackupStatus> {
+        return await TAURI_INVOKE('app__profile_backup_dismiss_error');
+    },
+    async appProfileBackupCurrentStatus(): Promise<ProfileBackupStatus> {
+        return await TAURI_INVOKE('app__profile_backup_current_status');
+    },
+    async appProfileRestoreValidate(
+        path: string
+    ): Promise<ProfileRestoreValidationOutcome> {
+        return await TAURI_INVOKE('app__profile_restore_validate', { path });
+    },
+    async appProfileRestoreRequest(
+        path: string,
+        expectedSha256: string
+    ): Promise<ProfileRestoreValidationOutcome> {
+        return await TAURI_INVOKE('app__profile_restore_request', {
+            path,
+            expectedSha256
+        });
+    },
+    async appProfileRestoreTakeLastResult(): Promise<ProfileRestoreResult | null> {
+        return await TAURI_INVOKE('app__profile_restore_take_last_result');
+    },
     async appConfigSetValues(entries: ConfigWriteEntry[]): Promise<null> {
         return await TAURI_INVOKE('app__config_set_values', { entries });
     },
@@ -3891,6 +3937,113 @@ export type PrintFavoriteState = {
     favoriteIds: string[];
     maxFavorites: number;
     warning: CleanupWarning | null;
+};
+export type ProfileBackupActionOutcome = {
+    accepted: boolean;
+    status: ProfileBackupStatus;
+    error: ProfileBackupError | null;
+};
+export type ProfileBackupError = {
+    code: ProfileBackupErrorCode;
+    path: string | null;
+};
+export type ProfileBackupErrorCode =
+    | 'operationBusy'
+    | 'deliveryPending'
+    | 'pendingRestore'
+    | 'directoryUnavailable'
+    | 'permissionDenied'
+    | 'localDiskFull'
+    | 'targetDiskFull'
+    | 'deviceRemoved'
+    | 'alreadyExists'
+    | 'artifactMissing'
+    | 'snapshotFailed'
+    | 'packageFailed'
+    | 'io';
+export type ProfileBackupKind = 'auto' | 'manual';
+export type ProfileBackupOutcome = {
+    revision: number;
+    kind: ProfileBackupKind;
+    succeeded: boolean;
+    fileName: string | null;
+    errorCode: ProfileBackupErrorCode | null;
+};
+export type ProfileBackupPhase = 'snapshot' | 'package' | 'deliver';
+export type ProfileBackupSettings = {
+    autoEnabled: boolean;
+    autoIntervalDays: number;
+    autoRetainExtra: number;
+    autoTargetDir: string;
+    lastAutoAt: string | null;
+};
+export type ProfileBackupState = 'idle' | 'running' | 'retryable' | 'error';
+export type ProfileBackupStatus = {
+    revision: number;
+    state: ProfileBackupState;
+    kind: ProfileBackupKind | null;
+    phase: ProfileBackupPhase | null;
+    percent: number | null;
+    error: ProfileBackupError | null;
+    lastOutcome: ProfileBackupOutcome | null;
+};
+export type ProfileRestoreAppVersionCheck = 'compatible';
+export type ProfileRestoreArchiveCheck = 'valid';
+export type ProfileRestoreDataDisposition =
+    | 'replaced'
+    | 'rolledBack'
+    | 'unchanged';
+export type ProfileRestoreDatabaseCheck = 'valid';
+export type ProfileRestoreDatabaseVersionCheck = 'compatible';
+export type ProfileRestoreFailure = {
+    code: ProfileRestoreFailureCode;
+    path?: string | null;
+};
+export type ProfileRestoreFailureCode =
+    | 'operationBusy'
+    | 'pendingRestore'
+    | 'invalidArchive'
+    | 'invalidEntries'
+    | 'unsupportedManifestVersion'
+    | 'invalidAppVersion'
+    | 'newerAppVersion'
+    | 'newerDatabaseVersion'
+    | 'contentSizeMismatch'
+    | 'contentHashMismatch'
+    | 'sourceFileChanged'
+    | 'databaseCheckFailed'
+    | 'notProfileDatabase'
+    | 'databaseVersionMismatch'
+    | 'stagingCorrupted'
+    | 'databaseOpenFailed'
+    | 'io';
+export type ProfileRestoreManifestSummary = {
+    appVersion: string;
+    dbVersion: number;
+    createdAt: string;
+    platform: string;
+    kind: ProfileBackupKind;
+};
+export type ProfileRestoreResult = {
+    status: ProfileRestoreResultStatus;
+    dataDisposition: ProfileRestoreDataDisposition;
+    sourceFileName: string;
+    failure?: ProfileRestoreFailure | null;
+};
+export type ProfileRestoreResultStatus = 'succeeded' | 'failed';
+export type ProfileRestoreValidation = {
+    manifest: ProfileRestoreManifestSummary;
+    sourceFileName: string;
+    stagedSha256: string;
+    stagedBytes: number;
+    archive: ProfileRestoreArchiveCheck;
+    appVersion: ProfileRestoreAppVersionCheck;
+    databaseVersion: ProfileRestoreDatabaseVersionCheck;
+    database: ProfileRestoreDatabaseCheck;
+};
+export type ProfileRestoreValidationOutcome = {
+    validation?: ProfileRestoreValidation | null;
+    failure?: ProfileRestoreFailure | null;
 };
 export type ProxySettingsTestInput = { proxy?: string };
 export type ProxySettingsTestResult = {

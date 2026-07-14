@@ -36,6 +36,7 @@ import {
     SECONDS_PER_MINUTE
 } from '@/shared/constants/time';
 import { usePreferencesStore } from '@/state/preferencesStore';
+import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
 import { useWorldCollectionImportStore } from '@/state/worldCollectionImportStore';
@@ -294,6 +295,10 @@ export function AppStatusBar() {
     const worldCollectionImportTotal = useWorldCollectionImportStore(
         (state) => state.total
     );
+    const profileBackupStatus = useProfileBackupStore((state) => state.status);
+    const setSystemHostOpen = useRuntimeStore(
+        (state) => state.setSystemHostOpen
+    );
     const [proxyEditorOpen, setProxyEditorOpen] = useState(false);
     const [proxyDraftEnabled, setProxyDraftEnabled] = useState(proxyEnabled);
     const [proxyDraftServer, setProxyDraftServer] = useState(proxyServer);
@@ -386,6 +391,13 @@ export function AppStatusBar() {
             worldCollectionImportProgress,
             worldCollectionImportTotal
         ]
+    );
+    const profileBackup = useMemo(
+        () => ({
+            status: profileBackupStatus,
+            onOpenDetails: () => setSystemHostOpen('profileBackupOpen', true)
+        }),
+        [profileBackupStatus, setSystemHostOpen]
     );
     const vrcStatus = useMemo(
         () => ({
@@ -778,6 +790,7 @@ export function AppStatusBar() {
             server: proxyDraftServer,
             testing: proxyTesting
         },
+        profileBackup,
         proxyEnabled,
         proxyServer,
         runtimeGameState,

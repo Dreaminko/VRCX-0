@@ -555,7 +555,8 @@ const initialState: RuntimeStoreState = {
         exportFriendsListOpen: false,
         exportAvatarsListOpen: false,
         editInviteMessagesOpen: false,
-        llmEndpointsOpen: false
+        llmEndpointsOpen: false,
+        profileBackupOpen: false
     },
     changelogTargetVersion: '',
     databaseUpgrade: {

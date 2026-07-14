@@ -25,6 +25,7 @@ mod noninteractive_auth;
 mod overlay_activity;
 mod prints;
 mod process_monitor;
+mod profile_backup;
 mod proxy;
 mod realtime;
 mod registry_backup;
@@ -167,6 +168,13 @@ pub use prints::{
 pub use process_monitor::{
     GameProcessEvent, GameProcessEventSink, GameProcessMonitorActions, GameProcessStatus,
     ProcessMonitor,
+};
+pub use profile_backup::{
+    ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
+    ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,
+    ProfileBackupState, ProfileBackupStatus, ProfileRestoreDataDisposition, ProfileRestoreFailure,
+    ProfileRestoreFailureCode, ProfileRestoreResult, ProfileRestoreResultStatus,
+    ProfileRestoreValidation, ProfileRestoreValidationOutcome,
 };
 pub use proxy::{test_proxy_connectivity, ProxySettingsTestResult};
 pub use realtime::{

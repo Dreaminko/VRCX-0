@@ -36,10 +36,11 @@ use vrcx_0_application::{
     FriendProjection, GameProcessEvent, GameProcessEventSink, ImageCache, LoginSuccessRecordInput,
     LogoutRecordInput, ModerationSyncDeps, ModerationSyncRefreshInput, NonInteractiveAuthError,
     OverlayActivitySnapshot, OverlayFavoriteGroups, PrintCleanupDeps, PrintCleanupTrigger,
-    ProcessMonitor, RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest,
-    RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
-    RuntimeBackgroundJobs, RuntimeEventSink, SavedCredentialLoginStartInput, SessionHostRuntime,
-    SocialBaselineDeps, SocialFavoritesBaselineInput, SocialFriendRosterBaselineInput, WebClient,
+    ProcessMonitor, ProfileBackupRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
+    RealtimeStopRequest, RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult,
+    RegistryBackupSnapshot, RuntimeBackgroundJobs, RuntimeEventSink,
+    SavedCredentialLoginStartInput, SessionHostRuntime, SocialBaselineDeps,
+    SocialFavoritesBaselineInput, SocialFriendRosterBaselineInput, WebClient,
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::json::RawJson;
@@ -57,6 +58,9 @@ use vrcx_0_persistence::legacy_migration::{
     cleanup_legacy_updater_files, consume_pending_legacy_migration, LegacyMigrationPaths,
 };
 use vrcx_0_persistence::legacy_vrcx::{LegacyVrcxMigrationStatus, LegacyVrcxSource};
+use vrcx_0_persistence::profile_backup::{
+    cleanup_profile_backup_artifacts, consume_pending_profile_restore, ProfileRestoreFailureCode,
+};
 use vrcx_0_persistence::screenshot_cache::MetadataCacheDb;
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;

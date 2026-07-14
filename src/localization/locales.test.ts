@@ -241,6 +241,84 @@ describe('advanced settings locale coverage', () => {
     });
 });
 
+describe('profile backup locale coverage', () => {
+    const profileBackupPrefix = 'profile_backup';
+    const requiredProfileBackupKeys = collectStringPaths(
+        readPath(en, profileBackupPrefix),
+        profileBackupPrefix
+    ).sort();
+
+    it('keeps every backup and restore label in all 15 locales', () => {
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            const localizedKeys = collectStringPaths(
+                readPath(source, profileBackupPrefix),
+                profileBackupPrefix
+            ).sort();
+            expect(localizedKeys, locale).toEqual(requiredProfileBackupKeys);
+
+            for (const key of requiredProfileBackupKeys) {
+                const value = readPath(source, key);
+                expect(value, `${locale} ${key}`).toEqual(expect.any(String));
+                if (typeof value !== 'string') {
+                    continue;
+                }
+                expect(value.trim()).not.toBe('');
+                expect(value).not.toBe(key);
+                expect(collectPlaceholders(value), `${locale} ${key}`).toEqual(
+                    collectPlaceholders(String(readPath(en, key)))
+                );
+            }
+        }
+    });
+
+    it('does not fall back to English for the primary user actions', () => {
+        const primaryKeys = [
+            'profile_backup.header',
+            'profile_backup.tools_description',
+            'profile_backup.unencrypted_warning_title',
+            'profile_backup.retry_save',
+            'profile_backup.restore_and_restart'
+        ];
+
+        for (const locale of languageCodes) {
+            if (locale === 'en') {
+                continue;
+            }
+            const source = readLocaleSource(locale);
+            for (const key of primaryKeys) {
+                expect(readPath(source, key), `${locale} ${key}`).not.toBe(
+                    readPath(en, key)
+                );
+            }
+        }
+    });
+
+    it('uses natural Japanese product language without internal pipeline terms', () => {
+        expect(readPath(ja, 'profile_backup.header')).toBe(
+            'バックアップと復元'
+        );
+        expect(readPath(ja, 'profile_backup.location_not_set')).toBe(
+            'バックアップ先が選択されていません'
+        );
+        expect(readPath(ja, 'profile_backup.retry_save')).toBe('保存を再試行');
+        expect(
+            readPath(ja, 'profile_backup.unencrypted_warning_title')
+        ).toContain('暗号化されていません');
+        expect(readPath(ja, 'profile_backup.restore_and_restart')).toBe(
+            '復元して再起動'
+        );
+
+        const japaneseProfileBackupText = requiredProfileBackupKeys
+            .map((key) => readPath(ja, key))
+            .filter((value): value is string => typeof value === 'string')
+            .join('\n');
+        expect(japaneseProfileBackupText).not.toMatch(
+            /ステージング|アーティファクト|ロールバック|スナップショット|デリバリー/
+        );
+    });
+});
+
 describe('custom font locale coverage', () => {
     const fontKeyPrefix = 'view.settings.appearance.appearance';
     const fontKeys = (keys: string[]) =>
@@ -407,6 +485,13 @@ function collectStringPaths(source: unknown, prefix: string): string[] {
             ? [path]
             : collectStringPaths(value, path);
     });
+}
+
+function collectPlaceholders(value: string): string[] {
+    return Array.from(
+        value.matchAll(/\{([^{}]+)\}/g),
+        (match) => match[1]
+    ).sort();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

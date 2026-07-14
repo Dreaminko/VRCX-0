@@ -13,7 +13,10 @@ const DATABASE_OPTIMIZE_INITIAL_DELAY_SECONDS: u64 = 3_600;
 const DATABASE_OPTIMIZE_INTERVAL_SECONDS: u64 = 86_400;
 const CANCELLABLE_SLEEP_CHUNK_SECONDS: u64 = 5;
 
-async fn sleep_until_due_or_stopped(total: Duration, stop_token: &TaskStopToken) -> bool {
+pub(crate) async fn sleep_until_due_or_stopped(
+    total: Duration,
+    stop_token: &TaskStopToken,
+) -> bool {
     let mut remaining = total;
     while !remaining.is_zero() {
         if stop_token.is_stop_requested() {

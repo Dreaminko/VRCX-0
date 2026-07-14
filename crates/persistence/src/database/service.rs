@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
@@ -77,6 +78,43 @@ impl DatabaseService {
 
     pub fn db_path(&self) -> &Path {
         &self.db_path
+    }
+
+    pub fn is_main_mode(&self) -> bool {
+        self.inner
+            .read()
+            .map(|inner| matches!(&*inner, DatabaseMode::Main(_)))
+            .unwrap_or(false)
+    }
+
+    pub fn vacuum_into(&self, dest: &Path) -> Result<(), Error> {
+        let inner = self
+            .inner
+            .read()
+            .map_err(|error| Error::Database(error.to_string()))?;
+        if !matches!(&*inner, DatabaseMode::Main(_)) {
+            return Err(Error::Database(
+                "Database snapshot is unavailable in the current mode.".into(),
+            ));
+        }
+
+        if dest.exists() {
+            fs::remove_file(dest)?;
+        }
+
+        let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|error| Error::Database(error.to_string()))?;
+        conn.busy_timeout(std::time::Duration::from_secs(5))
+            .map_err(|error| Error::Database(error.to_string()))?;
+        let dest = dest
+            .to_str()
+            .ok_or_else(|| {
+                Error::Database("Database snapshot destination path is not valid UTF-8.".into())
+            })?
+            .to_owned();
+        conn.execute("VACUUM INTO ?1", [&dest])
+            .map_err(map_profile_backup_sqlite_error)?;
+        Ok(())
     }
 
     pub(crate) fn execute(
@@ -459,6 +497,19 @@ impl DatabaseService {
     }
 }
 
+fn map_profile_backup_sqlite_error(error: rusqlite::Error) -> Error {
+    if matches!(
+        &error,
+        rusqlite::Error::SqliteFailure(code, _) if code.code == rusqlite::ErrorCode::DiskFull
+    ) {
+        return Error::Io(io::Error::new(
+            io::ErrorKind::StorageFull,
+            error.to_string(),
+        ));
+    }
+    Error::Database(error.to_string())
+}
+
 pub fn optimize_database(db: &DatabaseService) -> Result<(), Error> {
     db.execute_non_query("PRAGMA optimize", &Default::default())?;
     Ok(())
@@ -808,5 +859,70 @@ mod tests {
         let rows = db.execute("SELECT COUNT(*) FROM transaction_items", &empty)?;
         assert_eq!(rows[0][0], serde_json::json!(0));
         Ok(())
+    }
+
+    #[test]
+    fn profile_backup_vacuum_into_snapshots_content_and_replaces_existing_destination(
+    ) -> Result<(), Error> {
+        let dir = TestDir::new("profile-backup-vacuum");
+        let db_path = dir.path.join("VRCX-0.sqlite3");
+        let snapshot_path = dir.path.join("snapshot.sqlite3");
+        let db = DatabaseService::new(&db_path)?;
+        let empty = HashMap::new();
+        db.execute_non_query(
+            "CREATE TABLE snapshot_items (id INTEGER PRIMARY KEY, value TEXT NOT NULL)",
+            &empty,
+        )?;
+        db.execute_non_query(
+            "INSERT INTO snapshot_items (value) VALUES ('complete')",
+            &empty,
+        )?;
+        fs::write(&snapshot_path, b"replace me")?;
+
+        db.vacuum_into(&snapshot_path)?;
+
+        let snapshot = Connection::open_with_flags(snapshot_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|error| Error::Database(error.to_string()))?;
+        let value: String = snapshot
+            .query_row("SELECT value FROM snapshot_items", [], |row| row.get(0))
+            .map_err(|error| Error::Database(error.to_string()))?;
+        assert_eq!(value, "complete");
+        Ok(())
+    }
+
+    #[test]
+    fn profile_backup_vacuum_into_rejects_upgrade_mode() -> Result<(), Error> {
+        let dir = TestDir::new("profile-backup-upgrade-mode");
+        let db_path = dir.path.join("VRCX-0.sqlite3");
+        let db = DatabaseService::new(&db_path)?;
+        let empty = HashMap::new();
+        db.execute_non_query(
+            "CREATE TABLE configs (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+            &empty,
+        )?;
+        db.execute_non_query(
+            "INSERT INTO configs (key, value) VALUES ('config:vrcx_0_databaseversion', '18')",
+            &empty,
+        )?;
+        db.begin_upgrade(18, 18)?;
+
+        let result = db.vacuum_into(&dir.path.join("snapshot.sqlite3"));
+
+        assert!(result.is_err());
+        db.fail_upgrade("test complete".into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn profile_backup_maps_sqlite_disk_full_to_storage_full_io() {
+        let sqlite_error = rusqlite::Error::SqliteFailure(
+            rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_FULL),
+            None,
+        );
+
+        assert!(matches!(
+            map_profile_backup_sqlite_error(sqlite_error),
+            Error::Io(error) if error.kind() == std::io::ErrorKind::StorageFull
+        ));
     }
 }

@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
+import type { ProfileBackupStatus } from '@/services/profileBackupService';
 import type { VrcStatusState } from '@/state/runtimeStore';
 
 export type StatusBarVisibilityKey =
@@ -55,6 +56,11 @@ export type StatusBarWorldCollectionImport = {
     active: boolean;
     progress: number;
     total: number;
+};
+
+export type StatusBarProfileBackup = {
+    status: ProfileBackupStatus;
+    onOpenDetails: () => unknown;
 };
 
 export type StatusBarNowPlaying = {
@@ -116,6 +122,7 @@ export type StatusBarFooterModel = {
     onStepZoomLevel: (delta: number) => unknown;
     onUpdateClockTimezone: (index: number, offsetValue: unknown) => unknown;
     proxyEditor: StatusBarProxyEditorState;
+    profileBackup: StatusBarProfileBackup;
     proxyEnabled: boolean;
     proxyServer: string;
     runtimeGameState: StatusBarRuntimeGameState;

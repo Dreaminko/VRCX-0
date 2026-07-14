@@ -28,6 +28,7 @@ import {
 import type { FavoriteKind } from '@/state/favoriteStoreTypes';
 import { useNotificationStore } from '@/state/notificationStore';
 import { usePrintFavoriteStore } from '@/state/printFavoriteStore';
+import { useProfileBackupStore } from '@/state/profileBackupStore';
 import {
     createGroupInstancesState,
     useRuntimeStore
@@ -47,6 +48,10 @@ import { applyRuntimeGameLogProjection } from './gameLogIngestService';
 import { handleGameRunningUpdate } from './gameStateService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
 import i18n from './i18nService';
+import {
+    getCurrentProfileBackupStatus,
+    type ProfileBackupStatus
+} from './profileBackupService';
 import { handleRealtimeInstanceQueueProjection } from './realtimeInstanceQueueService';
 import {
     handleRealtimeCurrentUserProjection,
@@ -71,6 +76,7 @@ type RuntimeEventName =
     | 'runtimeGroupInstancesProjection'
     | 'overlayActivitySnapshot'
     | 'printsAutoCleanup'
+    | 'profileBackupStatus'
     | 'favoritesChanged'
     | 'friendProfileLoadStatus'
     | 'realtimeFriendProjection'
@@ -100,6 +106,7 @@ type RuntimeEventPayloadMap = {
     runtimeGroupInstancesProjection: RuntimeGroupInstancesProjection;
     overlayActivitySnapshot: OverlayActivitySnapshot;
     printsAutoCleanup: PrintAutoCleanupEvent;
+    profileBackupStatus: ProfileBackupStatus;
     favoritesChanged: FavoritesChangedEventPayload;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
@@ -762,6 +769,15 @@ function handleRuntimeEvent(
         return;
     }
 
+    if (name === 'profileBackupStatus') {
+        useProfileBackupStore
+            .getState()
+            .applyStatus(
+                payload as RuntimeEventPayloadMap['profileBackupStatus']
+            );
+        return;
+    }
+
     if (name === 'favoritesChanged') {
         runtimeStore.recordRuntimeEvent(name, payload);
         handleFavoritesChangedEvent(
@@ -946,6 +962,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'runtimeGroupInstancesProjection',
         'overlayActivitySnapshot',
         'printsAutoCleanup',
+        'profileBackupStatus',
         'favoritesChanged',
         'friendProfileLoadStatus',
         'gameClientEvent',
@@ -967,6 +984,13 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         for (const name of events) {
             const unsubscribe = await subscribeRuntimeEvent(name);
             unsubscribers.push(unsubscribe);
+        }
+        try {
+            useProfileBackupStore
+                .getState()
+                .applyStatus(await getCurrentProfileBackupStatus());
+        } catch (error) {
+            console.warn('Failed to hydrate profile backup status:', error);
         }
     } catch (error) {
         unsubscribeRuntimeEvents(unsubscribers);
