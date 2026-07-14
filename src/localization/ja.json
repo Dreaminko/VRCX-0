@@ -23,7 +23,7 @@
         },
         "settings": {
             "playbook_mode": "分析モード",
-            "playbook_mode_description": "アシスタントがツールをどう使って回答するかを制御します。通常は自動でOK。ガイド：非力なローカルモデルを最適なツールへ導き、回答を安定させます。オープン：全ツールを開放し、強力なモデルが自由に、より深く分析できます。",
+            "playbook_mode_description": "アシスタントが回答時にツールをどう使うかを設定します。通常は「自動」のままで問題ありません。「ガイド」は性能の低いローカルモデルを最適なツールへ誘導して回答を安定させ、「オープン」はすべてのツールを開放して高性能なモデルに自由に深く分析させます。",
             "playbook_mode_auto": "自動（エンドポイント基準）",
             "playbook_mode_guided": "ガイド（ローカル / 非力なモデル）",
             "playbook_mode_open": "オープン（強力なモデル）"
@@ -40,7 +40,7 @@
         }
     },
     "user_hover_card": {
-        "note_local": "ローカルメモ",
+        "note_local": "ローカルノート",
         "note_synced": "VRChatノート",
         "last_online": "最終オンライン {duration}前",
         "in_private_world": "プライベートワールド"
@@ -146,8 +146,8 @@
             "title": "お気に入りフレンド",
             "all": "すべて",
             "empty": "オンラインのお気に入りフレンドはいません",
-            "note": "VRChat メモ",
-            "memo": "ローカルメモ",
+            "note": "ノート",
+            "memo": "ローカルノート",
             "open": "開く",
             "request": "参加を申請",
             "invite": "招待",
@@ -808,7 +808,7 @@
             "filter": "フィルター",
             "error": {
                 "selected_avatar_style_is_not_available": "選択したアバタースタイルは利用できません",
-                "style_list_could_not_be_loaded_unknown_style_selections_will": "スタイル一覧を読み込めませんでした。不明なスタイル選択は保持されます",
+                "style_list_could_not_be_loaded_unknown_style_selections_will": "スタイル一覧を読み込めませんでした。不明なスタイルの選択はそのまま保持されます",
                 "selected_image_is_too_large": "選択した画像が大きすぎます",
                 "selected_file_is_not_an_image": "選択したファイルは画像ではありません",
                 "avatar_inventory_failed_to_load": "アバターインベントリの読み込みに失敗しました"
@@ -980,7 +980,7 @@
                 "local_favorite_group_renamed": "ローカルお気に入りグループの名前を変更しました",
                 "the_favorites_baseline_did_not_finish_loading": "お気に入りの読み込みが完了しませんでした",
                 "try_a_different_search_term": "別の検索語を試してください",
-                "online_favorites_copy_hint": "オンラインのお気に入りはオンライングループ間でのみ移動できます。すでにオンラインでお気に入り登録済みの項目は、別のオンライングループへコピーできません。"
+                "online_favorites_copy_hint": "オンラインのお気に入りは、オンライングループ間でのみ移動できます。すでにオンラインのお気に入りに登録されているアイテムは、別のオンライングループへコピーできません。"
             },
             "success": {
                 "favorite_removed": "お気に入りを削除しました",
@@ -1077,7 +1077,7 @@
                     "forget_success": "保存した共有情報を削除しました",
                     "forget_failed": "保存した共有情報を削除できませんでした",
                     "no_worlds": "このグループには共有できるワールド ID がありません",
-                    "too_many": "一度に共有できる世界は最大 {cap} 件です。グループを分割してください。",
+                    "too_many": "一度に共有できるワールドは最大 {cap} 件です。グループを分割してください。",
                     "skipped": "共有しました。{count} 件をスキップしました(未同期または非公開)。"
                 }
             }
@@ -1240,7 +1240,7 @@
         "friend_list": {
             "bulk_unfriend": "一括フレンド解除モード",
             "bulk_unfriend_selection": "フレンド解除",
-            "load": "不足するエントリを読み込む",
+            "load": "不足しているエントリを読み込む",
             "load_cancel": "キャンセル",
             "favorites_only_tooltip": "お気に入りのみ",
             "search_placeholder": "検索...",
@@ -1257,7 +1257,7 @@
             },
             "label": {
                 "friend_details_are_already_loaded": "フレンド詳細はすでに読み込まれています",
-                "shared_connections_are_opted_out_for_the_current_account": "現在のアカウントでは共有つながりがオプトアウトされています",
+                "shared_connections_are_opted_out_for_the_current_account": "現在のアカウントは共有つながりを無効にしています",
                 "showing": "表示中",
                 "of": "/",
                 "friend": "フレンド",
@@ -1607,7 +1607,7 @@
                 "deleting_metadata": "メタデータを削除中",
                 "uploading_screenshot": "ギャラリーにアップロード中",
                 "searching_screenshots": "スクリーンショットを検索中",
-                "resolving_file_list_and_metadata_summaries": "ファイル一覧とメタデータ概要を解決中",
+                "resolving_file_list_and_metadata_summaries": "ファイル一覧とメタデータ概要を取得中",
                 "loading_screenshot": "スクリーンショットを読み込み中",
                 "fetching_embedded_metadata_and_file_details": "埋め込みメタデータとファイル詳細を取得中"
             },
@@ -1802,7 +1802,7 @@
                     "status_label": "状態",
                     "port_active_connections": "ポート {port}、アクティブ接続 {count}",
                     "client_config": "クライアント設定",
-                    "client_config_description": "クライアントに合わせて選択してください。Claude Code: 一度だけ実行する `claude mcp add` ターミナルコマンド。汎用 (HTTP): HTTP直接接続のJSON設定、追加ツール不要。汎用 (mcp-remote): ネイティブHTTP非対応クライアント（例: Claude Desktop）向けにNode.jsプロキシ経由でトンネリングするJSON設定；PATHにNode.jsが必要です。LAN 接続を有効にすると、コピーした設定には `YOUR-LAN-IP` が入ります。別のデバイスで使う前に、このコンピューターのローカル IP に置き換えてください。",
+                    "client_config_description": "クライアントに合わせて選択してください。Claude Code の場合は、一度だけ実行する `claude mcp add` ターミナルコマンドです。汎用 (HTTP) は、追加ツール不要で HTTP に直接接続するための JSON 設定です。汎用 (mcp-remote) は、HTTP にネイティブ対応していないクライアント（Claude Desktop など）向けに Node.js プロキシ経由で中継する JSON 設定で、PATH に Node.js が必要です。LAN 接続を有効にすると、コピーした設定には `YOUR-LAN-IP` と入ります。別のデバイスで使う前に、このコンピューターのローカル IP アドレスに置き換えてください。",
                     "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "汎用 (mcp-remote)",
                     "copy_generic": "汎用 (HTTP)",
@@ -2205,7 +2205,7 @@
                     },
                     "vrchat_quit_fix": {
                         "header": "VRChat 終了時にプロセスを強制終了",
-                        "description": "ゲーム終了時、VRChat のプロセスを強制終了"
+                        "description": "ゲーム終了時に VRChat のプロセスを強制終了します"
                     },
                     "auto_cache_management": {
                         "header": "キャッシュの自動管理",
@@ -2782,7 +2782,7 @@
             "custom_css": {
                 "header": "カスタム CSS",
                 "enabled_summary": "Override CSS が有効です（{count} bytes）。",
-                "disabled_summary": "任意の最後の CSS レイヤーです。現在は無効です。",
+                "disabled_summary": "必要に応じて最後に適用される CSS レイヤーです。現在は無効です。",
                 "edit": "編集",
                 "hide_editor": "エディターを閉じる"
             },
@@ -2807,7 +2807,7 @@
             "settings": {
                 "header": "背景画像",
                 "description": "デイリー画像ソース、またはローカル画像ソースを背景に使用します。",
-                "apod_note": "NASA APOD は copyright フィールドがない画像だけを使用します。",
+                "apod_note": "NASA APOD は著作権情報のない画像のみを使用します。",
                 "custom_source": "ローカル画像",
                 "custom_source_description": "画像 1 枚なら固定背景、複数画像またはフォルダーならローテーションになります。",
                 "folder_first_level_note": "フォルダーは直下の画像だけを読み込みます。サブフォルダーは読み込みません。",
@@ -2882,7 +2882,7 @@
             "run_policy_short_always": "毎回起動",
             "run_policy_short_skipIfRunning": "実行中はスキップ",
             "stop_policy_keepRunning": "実行を継続",
-            "stop_policy_closeByVrcx": "VRCX-0 が終了",
+            "stop_policy_closeByVrcx": "VRCX-0 が終了させる",
             "stop_policy_short_keepRunning": "継続",
             "stop_policy_short_closeByVrcx": "終了",
             "delete": "削除",
@@ -3257,7 +3257,7 @@
                 "status_presets_are_limited_to_value": "ステータスプリセットは {value} 個までです",
                 "unfriended_value": "{value} をフレンドから解除しました",
                 "value": "{value}?",
-                "value_user": "{value} ユーザーですか？",
+                "value_user": "このユーザーを{value}しますか？",
                 "value_request_sent": "{value} リクエストを送信しました",
                 "value_updated": "{value}を更新しました",
                 "value_copied": "{value}をコピーしました",
@@ -3802,7 +3802,7 @@
             },
             "dynamic": {
                 "leave_value": "{value} を退出しますか？",
-                "value_group_user": "{value} グループユーザーですか？",
+                "value_group_user": "このユーザーを{value}しますか？",
                 "value_completed": "{value} が完了しました",
                 "search_value": "{value} を検索",
                 "no_value": "{value}はありません",
@@ -4128,7 +4128,7 @@
             "secondary_style": "サブスタイル"
         },
         "allowed_video_player_domains": {
-            "header": "ビデオプレーヤーでの使用が許可されているのドメイン"
+            "header": "ビデオプレーヤーでの使用を許可するドメイン"
         },
         "config_json": {
             "header": "VRChat Config JSON",
@@ -4256,7 +4256,7 @@
                 },
                 "systemSafety": {
                     "label": "システムと安全",
-                    "description": "システムイベント、外部アプリ項目、ブロック/ミュート関連のアクティビティです。",
+                    "description": "システムイベント、外部アプリからの通知、ブロックやミュートに関するアクティビティです。",
                     "example": "イベント、ブロック"
                 },
                 "media": {
@@ -4659,7 +4659,7 @@
         },
         "table_entries_settings": {
             "header": "テーブルの最大数",
-            "description": "データベースからUIページに読み込まれるエントリの量を制限します。テーブル数が多いとRAM使用量とパフォーマンスに影響を及ぼす可能性があります。",
+            "description": "データベースから画面に読み込むエントリ数を制限します。値を大きくしすぎると、RAM 使用量やパフォーマンスに影響することがあります。",
             "table_max_entries": "読み込むエントリの最大数",
             "table_max_entries_error": "{min}〜{max}の数字を入力してください。",
             "table_max_entries_hint": "{min}〜{max}の数字を入力してください。",
@@ -5287,9 +5287,9 @@
             "local_instance_history_for_a_selected_user": "選択したユーザーのインスタンス履歴です。",
             "current_players": "現在のプレイヤー",
             "search": "検索",
-            "world_and_group_search_route": "ワールドとグループ検索ルートです。",
+            "world_and_group_search_route": "ワールドとグループを検索するページです。",
             "dashboard": "ダッシュボード",
-            "dashboard_shell_with_embedded_widgets_and_suppor": "埋め込みウィジェットと対応ページパネルを持つダッシュボードシェルです。",
+            "dashboard_shell_with_embedded_widgets_and_suppor": "埋め込みウィジェットと各ページのパネルを備えたダッシュボードです。",
             "favorite_friends": "お気に入りのフレンド",
             "favorite_friends_groups_and_local_cache_view": "お気に入りフレンドグループとローカルキャッシュのビューです。",
             "favorite_worlds": "お気に入りのワールド",
@@ -5297,7 +5297,7 @@
             "favorite_avatars": "お気に入りのアバター",
             "favorite_avatars_groups_and_local_cache_view": "お気に入りアバターグループとローカルキャッシュのビューです。",
             "friend_history": "フレンド履歴",
-            "friend_relationship_history_table_backed_by_loca": "ローカル SQL を使ったフレンド関係履歴テーブルです。",
+            "friend_relationship_history_table_backed_by_loca": "ローカルの SQL データベースに基づくフレンド関係の履歴一覧です。",
             "moderation": "モデレーション",
             "moderation_history_table": "モデレーション履歴テーブルです。",
             "my_avatars": "自分のアバター",
@@ -5307,11 +5307,11 @@
             "friends": "フレンド",
             "friend_management_table_and_roster_details": "フレンド管理テーブルと一覧詳細です。",
             "charts": "チャート",
-            "charts_landing_route": "チャートのランディングルートです。",
+            "charts_landing_route": "チャート機能のトップページです。",
             "charts_mutual": "チャート: 共通フレンド",
             "mutual_friends_graph_over_cached_data": "キャッシュデータに基づく共通フレンドグラフです。",
             "tools": "ツール",
-            "tools_landing_route_and_folder_shortcuts": "ツールのランディングルートとフォルダーショートカットです。",
+            "tools_landing_route_and_folder_shortcuts": "ツール機能のトップページとフォルダーショートカットです。",
             "gallery": "ギャラリー",
             "gallery_browser_and_media_actions": "ギャラリーブラウザーとメディア操作です。",
             "inventory": "インベントリ",
@@ -5322,7 +5322,7 @@
             "vrchat_log_viewer_for_local_output_logs": "ローカル VRChat output log ビューアーです。",
             "settings": "設定",
             "settings_and_diagnostics": "設定と診断です。",
-            "current_instance_player_roster_rebuilt_from_local_activity_data": "ローカルアクティビティデータから現在のインスタンスのプレイヤー一覧を再構築しました。",
+            "current_instance_player_roster_rebuilt_from_local_activity_data": "ローカルのアクティビティデータから再構築した、現在のインスタンスのプレイヤー一覧です。",
             "themes": "テーマ",
             "themes_description": "テーマソースとカスタム CSS の管理です。"
         }
