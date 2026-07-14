@@ -3,7 +3,8 @@ use std::{borrow::Cow, sync::OnceLock};
 use serde_json::{json, Value};
 use vrcx_0_application::OverlayActivityText;
 use vrcx_0_core::location::{
-    access_type_label, format_display_location_with_labels, parse_location, DisplayLocationLabels,
+    access_type_label, format_display_location_with_labels,
+    format_display_location_with_labels_and_instance, parse_location, DisplayLocationLabels,
     ParsedLocation,
 };
 use vrcx_0_i18n::{collapse_whitespace, interpolate, parse_catalog, Catalog};
@@ -45,11 +46,19 @@ impl OverlayLocale {
 
 pub(crate) struct OverlayLocalizer {
     locale: OverlayLocale,
+    show_instance_id: bool,
 }
 
 impl OverlayLocalizer {
     pub(crate) fn new(locale: OverlayLocale) -> Self {
-        Self { locale }
+        Self::with_instance_id(locale, false)
+    }
+
+    pub(crate) fn with_instance_id(locale: OverlayLocale, show_instance_id: bool) -> Self {
+        Self {
+            locale,
+            show_instance_id,
+        }
     }
 
     pub(crate) fn text(&self, text: &OverlayActivityText) -> String {
@@ -98,7 +107,13 @@ impl OverlayLocalizer {
         let parsed = parse_location(location);
         let labels = self.access_labels(AccessLabelCase::Lower);
         let labels = labels.as_display();
-        format_display_location_with_labels(&parsed, world_name, group_name, &labels)
+        format_display_location_with_labels_and_instance(
+            &parsed,
+            world_name,
+            group_name,
+            &labels,
+            self.show_instance_id,
+        )
     }
 
     pub(crate) fn panel_display_location(
@@ -508,6 +523,44 @@ mod tests {
         assert_eq!(
             zh_cn.display_location("wrld_a:1~friends(usr_a)", "Friend World", ""),
             "Friend World 仅限好友"
+        );
+    }
+
+    #[test]
+    fn display_location_appends_instance_id_when_enabled() {
+        let localizer = OverlayLocalizer::with_instance_id(OverlayLocale::En, true);
+
+        assert_eq!(
+            localizer.display_location("wrld_a:12345~region(use)", "Public World", ""),
+            "Public World Public #12345"
+        );
+        assert_eq!(
+            localizer.display_location(
+                "wrld_a:12345~group(grp_a)~groupAccessType(plus)",
+                "Group World",
+                "Group Name",
+            ),
+            "Group World Group+(Group Name) #12345"
+        );
+    }
+
+    #[test]
+    fn display_location_omits_instance_id_when_disabled() {
+        let localizer = OverlayLocalizer::new(OverlayLocale::En);
+
+        assert_eq!(
+            localizer.display_location("wrld_a:12345~region(use)", "Public World", ""),
+            "Public World Public"
+        );
+    }
+
+    #[test]
+    fn panel_display_location_never_appends_instance_id() {
+        let localizer = OverlayLocalizer::with_instance_id(OverlayLocale::En, true);
+
+        assert_eq!(
+            localizer.panel_display_location("wrld_a:12345~region(use)", "Public World", ""),
+            "Public World Public"
         );
     }
 

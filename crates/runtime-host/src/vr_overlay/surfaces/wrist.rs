@@ -89,6 +89,7 @@ pub struct WristOverlayFrameInput {
     pub footer: WristRuntimeFooter,
     pub options: WristOverlayRenderOptions,
     pub locale: String,
+    pub show_instance_id_in_location: bool,
     pub captured_at_ms: i64,
 }
 
@@ -103,7 +104,10 @@ pub struct WristRuntimeFooter {
 }
 
 pub fn build_wrist_surface_model(input: WristOverlayFrameInput) -> WristSurfaceModel {
-    let localizer = OverlayLocalizer::new(OverlayLocale::from_config(&input.locale));
+    let localizer = OverlayLocalizer::with_instance_id(
+        OverlayLocale::from_config(&input.locale),
+        input.show_instance_id_in_location,
+    );
     let feed_rows = input
         .activity
         .entries
@@ -627,6 +631,26 @@ mod tests {
         );
     }
 
+    #[test]
+    fn feed_detail_appends_instance_id_when_enabled() {
+        let mut entry = entry("GPS", "wrld_1:12345~region(use)", "Test World");
+        entry.content.title.fallback = "Ada".to_string();
+        entry.content.body = OverlayActivityText {
+            key: "notifications.gps".to_string(),
+            fallback: "is in Test World".to_string(),
+            params: json!({ "location": "Test World" }),
+        };
+
+        assert_eq!(
+            feed_line_with_instance_id(&entry, "en", true).detail,
+            "Ada is in Test World Public #12345"
+        );
+        assert_eq!(
+            feed_line_with_instance_id(&entry, "en", false).detail,
+            "Ada is in Test World Public"
+        );
+    }
+
     fn entry(activity_type: &str, location: &str, world_name: &str) -> OverlayActivityEntry {
         OverlayActivityEntry {
             sequence: 1,
@@ -658,6 +682,18 @@ mod tests {
 
     fn feed_line(entry: &OverlayActivityEntry, locale: &str) -> FeedLine {
         let localizer = OverlayLocalizer::new(OverlayLocale::from_config(locale));
+        feed_line_from_activity(entry, &localizer)
+    }
+
+    fn feed_line_with_instance_id(
+        entry: &OverlayActivityEntry,
+        locale: &str,
+        show_instance_id: bool,
+    ) -> FeedLine {
+        let localizer = OverlayLocalizer::with_instance_id(
+            OverlayLocale::from_config(locale),
+            show_instance_id,
+        );
         feed_line_from_activity(entry, &localizer)
     }
 }

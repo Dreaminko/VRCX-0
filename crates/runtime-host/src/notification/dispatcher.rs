@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 use vrcx_0_application::{
     HostSessionRuntime, ImageCache, OverlayActivityDelivery, OverlayActivitySink,
@@ -52,6 +53,7 @@ pub struct NotificationDeliveryPreferences {
     pub webhook_url: String,
     pub webhook_format: String,
     pub webhook_fields: Vec<String>,
+    pub show_instance_id_in_location: bool,
 }
 
 impl Default for NotificationDeliveryPreferences {
@@ -72,6 +74,7 @@ impl Default for NotificationDeliveryPreferences {
             webhook_url: String::new(),
             webhook_format: "generic".into(),
             webhook_fields: default_webhook_fields(),
+            show_instance_id_in_location: false,
         }
     }
 }
@@ -324,7 +327,8 @@ impl OverlayActivitySink for NotificationDispatcher {
             if let Some(image_url) = actor_image_result {
                 delivery.entry.content.image_url = image_url;
             }
-            let render = render_delivery(&delivery, locale);
+            let render =
+                render_delivery(&delivery, locale, preferences.show_instance_id_in_location);
             dispatch_rendered_notification(
                 delivery,
                 preferences,
@@ -368,7 +372,7 @@ async fn dispatch_rendered_notification(
     diagnostics: RuntimeDiagnostics,
 ) {
     if plan.tts {
-        let text = notification_tts_text(db.as_ref(), &delivery, &render, &preferences);
+        let text = notification_tts_text(db.as_ref(), &delivery, &render, &preferences, locale);
         if let Err(error) = tts.speak(&text, non_empty(&preferences.notification_tts_voice_native))
         {
             tracing::warn!("[TTS] notification speak failed: {error}");
@@ -526,8 +530,9 @@ fn delivery_actor_image_user_id<'a>(
 fn render_delivery(
     delivery: &OverlayActivityDelivery,
     locale: OverlayLocale,
+    show_instance_id: bool,
 ) -> RenderedNotification {
-    let localizer = OverlayLocalizer::new(locale);
+    let localizer = OverlayLocalizer::with_instance_id(locale, show_instance_id);
     let entry = &delivery.entry;
     let title = localizer.activity_text(
         &entry.content.title,
@@ -572,7 +577,13 @@ fn notification_tts_text(
     delivery: &OverlayActivityDelivery,
     render: &RenderedNotification,
     preferences: &NotificationDeliveryPreferences,
+    locale: OverlayLocale,
 ) -> String {
+    let render = if preferences.show_instance_id_in_location {
+        Cow::Owned(render_delivery(delivery, locale, false))
+    } else {
+        Cow::Borrowed(render)
+    };
     let name_mode = notification_tts_name_mode(&preferences.notification_tts_name_mode);
     if name_mode == "username" {
         return render.text.clone();
@@ -651,6 +662,7 @@ fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPreference
             "generic",
         )),
         webhook_fields: parse_webhook_fields(&config_string(config, "webhookFields", "")),
+        show_instance_id_in_location: config_bool(config, "VRCX_showInstanceIdInLocation", false),
     }
 }
 
@@ -980,7 +992,7 @@ mod tests {
         render.text = "Traveler waved at Traveler".into();
 
         assert_eq!(
-            notification_tts_text(&db, &delivery(), &render, &preferences),
+            notification_tts_text(&db, &delivery(), &render, &preferences, OverlayLocale::En),
             "Pilot waved at Traveler"
         );
     }
@@ -995,8 +1007,38 @@ mod tests {
         };
 
         assert_eq!(
-            notification_tts_text(&db, &delivery(), &rendered(), &preferences),
+            notification_tts_text(
+                &db,
+                &delivery(),
+                &rendered(),
+                &preferences,
+                OverlayLocale::En
+            ),
             "Traveler, Pilot joined Named World"
+        );
+    }
+
+    #[test]
+    fn notification_tts_text_omits_instance_id_even_when_display_shows_it() {
+        let (_dir, db) = test_db("tts-omits-instance-id");
+        let mut delivery = delivery();
+        delivery.entry.content.location = "wrld_named:12345~region(use)".into();
+        delivery.entry.content.title = text("", "Traveler", json!({}));
+        delivery.entry.content.body = text(
+            "notifications.gps",
+            "is in Named World Public",
+            json!({ "location": "Named World Public" }),
+        );
+        let preferences = NotificationDeliveryPreferences {
+            show_instance_id_in_location: true,
+            ..NotificationDeliveryPreferences::default()
+        };
+        let render = render_delivery(&delivery, OverlayLocale::En, true);
+
+        assert!(render.text.contains("#12345"));
+        assert_eq!(
+            notification_tts_text(&db, &delivery, &render, &preferences, OverlayLocale::En),
+            "Traveler is in Named World Public"
         );
     }
 
@@ -1046,13 +1088,40 @@ mod tests {
             json!({ "location": "Group World groupPlus(Group Name)" }),
         );
 
-        let render = render_delivery(&delivery, OverlayLocale::ZhCn);
+        let render = render_delivery(&delivery, OverlayLocale::ZhCn, false);
 
         assert_eq!(
             render.text,
             "Traveler 现在位于 Group World 群组+(Group Name)"
         );
         assert_eq!(render.display_location, "Group World 群组+(Group Name)");
+    }
+
+    #[test]
+    fn render_delivery_appends_instance_id_when_enabled() {
+        let mut delivery = delivery();
+        delivery.entry.actor_display_name = "Traveler".into();
+        delivery.entry.content.location =
+            "wrld_named:123~group(grp_a)~groupAccessType(plus)".into();
+        delivery.entry.content.world_name = "Group World".into();
+        delivery.entry.content.group_name = "Group Name".into();
+        delivery.entry.content.title = text("", "Traveler", json!({}));
+        delivery.entry.content.body = text(
+            "notifications.gps",
+            "is in Group World groupPlus(Group Name)",
+            json!({ "location": "Group World groupPlus(Group Name)" }),
+        );
+
+        let render = render_delivery(&delivery, OverlayLocale::ZhCn, true);
+
+        assert_eq!(
+            render.text,
+            "Traveler 现在位于 Group World 群组+(Group Name) #123"
+        );
+        assert_eq!(
+            render.display_location,
+            "Group World 群组+(Group Name) #123"
+        );
     }
 
     #[test]
@@ -1106,7 +1175,7 @@ mod tests {
             delivery.entry.content.title = title;
             delivery.entry.content.body = body;
 
-            let render = render_delivery(&delivery, OverlayLocale::En);
+            let render = render_delivery(&delivery, OverlayLocale::En, false);
 
             assert_eq!(render.title, expected_title, "{activity_type}");
             assert_eq!(render.body, expected_body, "{activity_type}");
@@ -1127,12 +1196,30 @@ mod tests {
         delivery.entry.content.group_name = "Group Name".into();
         delivery.entry.content.display_location = "Group World groupPlus(Group Name)".into();
 
-        let render = render_delivery(&delivery, OverlayLocale::ZhCn);
+        let render = render_delivery(&delivery, OverlayLocale::ZhCn, false);
         let payload = generic_webhook_payload(&delivery, &render, &["location".into()]);
 
         assert_eq!(
             payload.get("location").and_then(|value| value.as_str()),
             Some("Group World 群组+(Group Name)")
+        );
+    }
+
+    #[test]
+    fn generic_webhook_location_appends_instance_id_when_enabled() {
+        let mut delivery = delivery();
+        delivery.entry.content.location =
+            "wrld_named:123~group(grp_a)~groupAccessType(plus)".into();
+        delivery.entry.content.world_name = "Group World".into();
+        delivery.entry.content.group_name = "Group Name".into();
+        delivery.entry.content.display_location = "Group World groupPlus(Group Name)".into();
+
+        let render = render_delivery(&delivery, OverlayLocale::ZhCn, true);
+        let payload = generic_webhook_payload(&delivery, &render, &["location".into()]);
+
+        assert_eq!(
+            payload.get("location").and_then(|value| value.as_str()),
+            Some("Group World 群组+(Group Name) #123")
         );
     }
 

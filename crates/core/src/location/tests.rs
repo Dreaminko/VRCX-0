@@ -264,6 +264,90 @@ fn display_location_can_format_instance_access_with_labels() {
 }
 
 #[test]
+fn display_location_with_instance_appends_instance_name_when_enabled() {
+    assert_eq!(
+        format_display_location_with_instance(
+            &parse_location("wrld_a:12345~region(use)"),
+            "Public World",
+            "",
+            true,
+        ),
+        "Public World public #12345"
+    );
+    assert_eq!(
+        format_display_location_with_instance(
+            &parse_location("wrld_a:12345~group(grp_a)~groupAccessType(plus)"),
+            "Group World",
+            "Group Name",
+            true,
+        ),
+        "Group World groupPlus(Group Name) #12345"
+    );
+}
+
+#[test]
+fn display_location_with_instance_omits_suffix_when_disabled() {
+    assert_eq!(
+        format_display_location_with_instance(
+            &parse_location("wrld_a:12345~region(use)"),
+            "Public World",
+            "",
+            false,
+        ),
+        "Public World public"
+    );
+}
+
+#[test]
+fn display_location_with_instance_ignores_flag_for_sentinels_and_bare_world() {
+    for tag in ["offline", "private", "traveling"] {
+        assert_eq!(
+            format_display_location_with_instance(&parse_location(tag), "Ignored", "", true),
+            format_display_location(&parse_location(tag), "Ignored", "")
+        );
+    }
+    assert_eq!(
+        format_display_location_with_instance(&parse_location("wrld_only"), "Some World", "", true),
+        "Some World"
+    );
+}
+
+#[test]
+fn display_location_with_labels_and_instance_appends_instance_name() {
+    let labels = DisplayLocationLabels {
+        public: "Public",
+        invite: "Invite",
+        invite_plus: "Invite+",
+        friends: "Friends",
+        friends_plus: "Friends+",
+        group: "Group",
+        group_public: "Group Public",
+        group_plus: "Group+",
+    };
+
+    assert_eq!(
+        format_display_location_with_labels_and_instance(
+            &parse_location("wrld_a:12345~group(grp_a)~groupAccessType(plus)"),
+            "Group World",
+            "Group Name",
+            &labels,
+            true,
+        ),
+        "Group World Group+(Group Name) #12345"
+    );
+    assert_eq!(
+        format_display_location_with_labels_and_instance(
+            &parse_location("wrld_a:12345~group(grp_a)~groupAccessType(plus)"),
+            "Group World",
+            "Group Name",
+            &labels,
+            false,
+        ),
+        "Group World Group+(Group Name)"
+    );
+}
+
+#[test]
 fn access_type_label_selects_group_variants() {
     let labels = DisplayLocationLabels {
         public: "Public",

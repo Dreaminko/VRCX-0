@@ -33,6 +33,7 @@ pub const HMD_NOTIFICATION_OPACITY_CONFIG_KEY: &str = "hmdNotificationOpacity";
 pub const HMD_NOTIFICATION_POSITION_CONFIG_KEY: &str = "hmdNotificationPosition";
 const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
 const DATE_TIME_HOUR12_CONFIG_KEY: &str = "dtHour12";
+const SHOW_INSTANCE_ID_IN_LOCATION_CONFIG_KEY: &str = "VRCX_showInstanceIdInLocation";
 pub(in crate::vr_overlay) const FRIENDS_PANEL_RUNTIME_ENABLED: bool = false;
 
 pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntimeConfig {
@@ -108,6 +109,9 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
     let dt_hour12 = config
         .get_bool(DATE_TIME_HOUR12_CONFIG_KEY, false)
         .unwrap_or(false);
+    let show_instance_id_in_location = config
+        .get_bool(SHOW_INSTANCE_ID_IN_LOCATION_CONFIG_KEY, false)
+        .unwrap_or(false);
 
     VrOverlayRuntimeConfig {
         start_mode,
@@ -132,6 +136,7 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
         },
         locale,
         dt_hour12,
+        show_instance_id_in_location,
     }
 }
 

@@ -20,10 +20,12 @@ pub(crate) struct HmdToastView {
 pub(crate) struct MainOverlayFrameInput {
     pub toasts: Vec<HmdToastView>,
     pub locale: OverlayLocale,
+    pub show_instance_id_in_location: bool,
 }
 
 pub(crate) fn build_main_surface_model(input: MainOverlayFrameInput) -> MainSurfaceModel {
-    let localizer = OverlayLocalizer::new(input.locale);
+    let localizer =
+        OverlayLocalizer::with_instance_id(input.locale, input.show_instance_id_in_location);
     MainSurfaceModel {
         size: OverlaySize::new(960, 528),
         dark_background: true,

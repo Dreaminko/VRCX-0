@@ -49,6 +49,7 @@ fn wrist_builder_keeps_renderer_model_free_of_application_entry_shape() {
         },
         options: WristOverlayRenderOptions::default(),
         locale: "zh-CN".to_string(),
+        show_instance_id_in_location: false,
         captured_at_ms: 42,
     });
 
@@ -93,6 +94,7 @@ fn wrist_builder_preserves_actor_relation_for_renderer_highlighting() {
         footer: WristRuntimeFooter::default(),
         options: WristOverlayRenderOptions::default(),
         locale: "en".to_string(),
+        show_instance_id_in_location: false,
         captured_at_ms: 42,
     });
 
@@ -123,6 +125,7 @@ fn wrist_builder_keeps_enough_feed_rows_for_expanded_compact_layout() {
         footer: WristRuntimeFooter::default(),
         options: WristOverlayRenderOptions::default(),
         locale: "en".to_string(),
+        show_instance_id_in_location: false,
         captured_at_ms: 42,
     });
 

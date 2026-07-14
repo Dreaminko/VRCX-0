@@ -139,13 +139,15 @@ impl VrOverlayRuntime {
             self.release_hmd_renderer_on_current_thread();
             return;
         }
-        let frame = match self.render_hmd_frame(toasts, config.locale) {
-            Ok(frame) => frame,
-            Err(error) => {
-                tracing::warn!(error = %error, "failed to render HMD overlay frame");
-                return;
-            }
-        };
+        let frame =
+            match self.render_hmd_frame(toasts, config.locale, config.show_instance_id_in_location)
+            {
+                Ok(frame) => frame,
+                Err(error) => {
+                    tracing::warn!(error = %error, "failed to render HMD overlay frame");
+                    return;
+                }
+            };
         if let Err(error) = manager.update_surface_frame(&surface_id, frame) {
             tracing::warn!(error = %error, "failed to update HMD overlay frame");
             return;
@@ -193,8 +195,13 @@ impl VrOverlayRuntime {
         &self,
         toasts: Vec<HmdToastView>,
         locale: OverlayLocale,
+        show_instance_id_in_location: bool,
     ) -> Result<RgbaFrame, String> {
-        let model = build_main_surface_model(MainOverlayFrameInput { toasts, locale });
+        let model = build_main_surface_model(MainOverlayFrameInput {
+            toasts,
+            locale,
+            show_instance_id_in_location,
+        });
         render_slint_hmd_frame(&model)
     }
 

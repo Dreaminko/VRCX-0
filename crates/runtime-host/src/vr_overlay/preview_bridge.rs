@@ -131,6 +131,7 @@ mod tests {
             footer: Default::default(),
             options: Default::default(),
             locale: "zh-CN".to_string(),
+            show_instance_id_in_location: false,
             captured_at_ms: 42,
         };
         let snapshot = WristOverlayPreviewSnapshot::from_frame_input(input.clone());

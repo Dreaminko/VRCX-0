@@ -170,6 +170,7 @@ pub(super) struct VrOverlayRuntimeConfig {
     pub(in crate::vr_overlay) render: WristOverlayRenderOptions,
     pub(in crate::vr_overlay) locale: OverlayLocale,
     pub(in crate::vr_overlay) dt_hour12: bool,
+    pub(in crate::vr_overlay) show_instance_id_in_location: bool,
 }
 
 impl Default for VrOverlayRuntimeConfig {
@@ -185,6 +186,7 @@ impl Default for VrOverlayRuntimeConfig {
             render: WristOverlayRenderOptions::default(),
             locale: OverlayLocale::default(),
             dt_hour12: false,
+            show_instance_id_in_location: false,
         }
     }
 }
@@ -2291,6 +2293,7 @@ pub(super) fn build_wrist_frame_input(
         },
         options: config.render,
         locale: config.locale.as_str().to_string(),
+        show_instance_id_in_location: config.show_instance_id_in_location,
         captured_at_ms,
     }
 }
@@ -2589,6 +2592,19 @@ pub(crate) mod tests {
 
         assert_eq!(base.surface_config_key(), translated.surface_config_key());
         assert!(!base.should_clear_device_snapshot_for(translated));
+    }
+
+    #[test]
+    fn show_instance_id_in_location_is_render_only_config() {
+        let base = VrOverlayRuntimeConfig::default();
+        let mut with_instance_id = base;
+        with_instance_id.show_instance_id_in_location = true;
+
+        assert_eq!(
+            base.surface_config_key(),
+            with_instance_id.surface_config_key()
+        );
+        assert!(!base.should_clear_device_snapshot_for(with_instance_id));
     }
 
     #[test]
