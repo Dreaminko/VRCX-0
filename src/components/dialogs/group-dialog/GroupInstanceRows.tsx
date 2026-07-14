@@ -263,6 +263,7 @@ export function GroupInstanceRows({
                                     }
                                     playerCount={playerCount}
                                     capacity={capacity}
+                                    instanceClickAction="world"
                                     showGroupName={false}
                                     showPlayerSummary={false}
                                     hint={worldName}
