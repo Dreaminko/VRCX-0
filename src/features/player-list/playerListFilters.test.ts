@@ -13,8 +13,6 @@ const rows: PlayerListFilterableRow[] = [
         note: 'Host helper',
         isFriend: true,
         isFavorite: true,
-        isMaster: true,
-        isModerator: false,
         isBlocked: false,
         isMuted: false,
         isAvatarInteractionDisabled: false,
@@ -27,8 +25,6 @@ const rows: PlayerListFilterableRow[] = [
         note: '',
         isFriend: false,
         isFavorite: false,
-        isMaster: false,
-        isModerator: false,
         isBlocked: false,
         isMuted: true,
         isAvatarInteractionDisabled: false,
@@ -41,8 +37,6 @@ const rows: PlayerListFilterableRow[] = [
         note: 'Stage moderator',
         isFriend: true,
         isFavorite: false,
-        isMaster: false,
-        isModerator: true,
         isBlocked: false,
         isMuted: false,
         isAvatarInteractionDisabled: false,
@@ -64,10 +58,6 @@ describe('playerListFilters', () => {
 
     it('applies the selected quick scope before the search query', () => {
         expect(filterPlayerListRows(rows, '', 'favorite')).toEqual([rows[0]]);
-        expect(filterPlayerListRows(rows, '', 'role')).toEqual([
-            rows[0],
-            rows[2]
-        ]);
         expect(filterPlayerListRows(rows, 'guest', 'friend')).toEqual([
             rows[2]
         ]);
@@ -82,7 +72,6 @@ describe('playerListFilters', () => {
             all: 3,
             friend: 2,
             favorite: 1,
-            role: 2,
             restricted: 2
         });
     });

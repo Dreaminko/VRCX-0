@@ -1,6 +1,7 @@
 import { userImage } from '@/services/entityMediaService';
 import { normalizeString } from '@/shared/utils/string';
 import { normalizeProfileLanguageRows } from '@/shared/utils/userLanguage';
+import { computeTrustLevel } from '@/shared/utils/userTransforms';
 
 import { resolvePlatformMeta } from './playerListDisplay';
 import { parseTimeMs, resolvePlayerRowUserId } from './playerListRows';
@@ -79,16 +80,35 @@ function normalizeUserRef(
     }
 
     const id = normalizeString(source.id || source.userId || fallbackUserId);
+    const trust = computeTrustLevel(
+        Array.isArray(source.tags)
+            ? source.tags.filter(
+                  (tag): tag is string => typeof tag === 'string'
+              )
+            : [],
+        normalizeString(source.developerType)
+    );
+    const hasUpstreamTrust = hasProfileText(source.$trustClass);
 
     return {
         ...source,
         id: id || source.id,
-        $trustLevel: source.$trustLevel || '',
-        $trustClass: source.$trustClass || '',
-        $trustSortNum: Number(source.$trustSortNum ?? 0) || 0,
-        $isModerator: Boolean(source.$isModerator),
-        $isTroll: Boolean(source.$isTroll),
-        $isProbableTroll: Boolean(source.$isProbableTroll),
+        $trustLevel: hasUpstreamTrust
+            ? normalizeString(source.$trustLevel)
+            : trust.trustLevel,
+        $trustClass: hasUpstreamTrust
+            ? normalizeString(source.$trustClass)
+            : trust.trustClass,
+        $trustSortNum: hasUpstreamTrust
+            ? Number(source.$trustSortNum ?? 0) || 0
+            : trust.trustSortNum,
+        $isModerator: hasUpstreamTrust
+            ? Boolean(source.$isModerator)
+            : trust.isModerator,
+        $isTroll: hasUpstreamTrust ? Boolean(source.$isTroll) : trust.isTroll,
+        $isProbableTroll: hasUpstreamTrust
+            ? Boolean(source.$isProbableTroll)
+            : trust.isProbableTroll,
         $platform: source.$platform || ''
     };
 }

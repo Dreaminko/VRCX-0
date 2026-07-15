@@ -21,7 +21,6 @@ const FILTER_SCOPES = [
     'all',
     'friend',
     'favorite',
-    'role',
     'restricted'
 ] satisfies readonly PlayerListFilterScope[];
 
@@ -55,7 +54,6 @@ export function PlayerListToolbar({
         all: t('view.player_list.label.all'),
         friend: t('view.player_list.label.friends'),
         favorite: t('view.player_list.label.favorites'),
-        role: t('view.player_list.label.roles'),
         restricted: t('view.player_list.label.restricted')
     };
 

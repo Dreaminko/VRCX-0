@@ -3,6 +3,30 @@ import { describe, expect, it } from 'vitest';
 import { enrichPlayerListRows } from './playerListEnrichment';
 
 describe('enrichPlayerListRows', () => {
+    it('derives the current user trust level from raw auth tags', () => {
+        const [row] = enrichPlayerListRows({
+            clockNow: Date.parse('2026-05-01T00:00:00.000Z'),
+            context: {},
+            currentUserId: 'usr_self',
+            currentUserSnapshot: {
+                id: 'usr_self',
+                displayName: 'Current User',
+                tags: ['system_trust_veteran'],
+                developerType: 'none'
+            },
+            favoriteFriendIds: new Set(),
+            friendsById: {},
+            playerSourceRows: [
+                { userId: 'usr_self', displayName: 'Current User' }
+            ]
+        });
+
+        expect(row.isCurrentUser).toBe(true);
+        expect(row.trustLevel).toBe('Trusted User');
+        expect(row.trustClass).toBe('x-tag-veteran');
+        expect(row.trustSortNum).toBe(5);
+    });
+
     it('uses full profile fields while keeping fresher friend presence fields', () => {
         const [row] = enrichPlayerListRows({
             clockNow: Date.parse('2026-05-01T00:00:00.000Z'),

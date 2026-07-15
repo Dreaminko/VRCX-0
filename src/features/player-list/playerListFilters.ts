@@ -6,7 +6,6 @@ export type PlayerListFilterScope =
     | 'all'
     | 'friend'
     | 'favorite'
-    | 'role'
     | 'restricted';
 
 export type PlayerListFilterableRow = Pick<
@@ -17,8 +16,6 @@ export type PlayerListFilterableRow = Pick<
     | 'isChatBoxMuted'
     | 'isFavorite'
     | 'isFriend'
-    | 'isMaster'
-    | 'isModerator'
     | 'isMuted'
     | 'note'
     | 'timeoutTime'
@@ -29,10 +26,6 @@ export type PlayerListScopeCounts = Record<PlayerListFilterScope, number>;
 
 function normalizedSearchText(value: unknown): string {
     return normalizeString(value).normalize('NFKC').toLowerCase();
-}
-
-function isRolePlayer(row: PlayerListFilterableRow): boolean {
-    return row.isMaster === true || row.isModerator === true;
 }
 
 function isRestrictedPlayer(row: PlayerListFilterableRow): boolean {
@@ -54,8 +47,6 @@ function matchesScope(
             return row.isFriend;
         case 'favorite':
             return row.isFavorite;
-        case 'role':
-            return isRolePlayer(row);
         case 'restricted':
             return isRestrictedPlayer(row);
         case 'all':
@@ -96,14 +87,11 @@ export function countPlayerListScopes(
             if (row.isFavorite) {
                 counts.favorite += 1;
             }
-            if (isRolePlayer(row)) {
-                counts.role += 1;
-            }
             if (isRestrictedPlayer(row)) {
                 counts.restricted += 1;
             }
             return counts;
         },
-        { all: 0, friend: 0, favorite: 0, role: 0, restricted: 0 }
+        { all: 0, friend: 0, favorite: 0, restricted: 0 }
     );
 }

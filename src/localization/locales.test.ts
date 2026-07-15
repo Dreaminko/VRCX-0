@@ -246,7 +246,6 @@ describe('player list filter locale coverage', () => {
         'view.player_list.label.all',
         'view.player_list.label.friends',
         'view.player_list.label.favorites',
-        'view.player_list.label.roles',
         'view.player_list.label.restricted',
         'view.player_list.label.search_placeholder'
     ];
@@ -266,18 +265,15 @@ describe('player list filter locale coverage', () => {
         expect(readPath(en, 'view.player_list.label.restricted')).toBe(
             'Restricted'
         );
-        expect(readPath(ja, 'view.player_list.label.roles')).toBe('役職');
         expect(readPath(ja, 'view.player_list.label.restricted')).toBe(
             '制限あり'
         );
         expect(readPath(ja, 'view.player_list.label.search_placeholder')).toBe(
             'プレイヤー名・メモ・ユーザーIDを検索'
         );
-        expect(readPath(zhCn, 'view.player_list.label.roles')).toBe('房间角色');
         expect(readPath(zhCn, 'view.player_list.label.restricted')).toBe(
             '已限制'
         );
-        expect(readPath(zhTw, 'view.player_list.label.roles')).toBe('房間角色');
         expect(readPath(zhTw, 'view.player_list.label.restricted')).toBe(
             '有限制'
         );
@@ -324,7 +320,8 @@ describe('profile backup locale coverage', () => {
             'profile_backup.restore_and_restart',
             'profile_backup.restore_completed',
             'profile_backup.clear_rollback',
-            'profile_backup.rollback_cleanup_confirm_title'
+            'profile_backup.rollback_cleanup_confirm_title',
+            'profile_backup.rollback_cleanup_confirm_description'
         ];
 
         for (const locale of languageCodes) {
@@ -336,6 +333,50 @@ describe('profile backup locale coverage', () => {
                 expect(readPath(source, key), `${locale} ${key}`).not.toBe(
                     readPath(en, key)
                 );
+            }
+        }
+    });
+
+    it('describes rollback cleanup without profile jargon', () => {
+        const key = 'profile_backup.rollback_cleanup_confirm_description';
+        for (const locale of languageCodes) {
+            expect(
+                String(readPath(readLocaleSource(locale), key)),
+                locale
+            ).not.toMatch(/\bprofile\b/i);
+        }
+
+        expect(readPath(ja, key)).toBe(
+            '復元前に保持されたデータを完全に削除します。この操作は取り消せません。現在使用中のデータには影響しません。'
+        );
+        expect(readPath(zhCn, key)).toBe(
+            '这会永久删除恢复前保留的回滚数据，且无法撤销。当前使用的数据不会受影响。'
+        );
+        expect(readPath(zhTw, key)).toBe(
+            '這會永久刪除復原前保留的回復資料，且無法復原。目前使用中的資料不會受到影響。'
+        );
+    });
+
+    it('does not suffix backup and restore copy with ellipses', () => {
+        const keysWithoutEllipses = [
+            'profile_backup.change_folder',
+            'profile_backup.phase_snapshot',
+            'profile_backup.phase_package',
+            'profile_backup.phase_deliver',
+            'profile_backup.phase_finalize',
+            'profile_backup.backup_now',
+            'profile_backup.restore_from_backup',
+            'profile_backup.validating_restore',
+            'profile_backup.restarting_to_restore'
+        ];
+
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            for (const key of keysWithoutEllipses) {
+                expect(
+                    String(readPath(source, key)),
+                    `${locale} ${key}`
+                ).not.toMatch(/(?:\.{3}|…)$/);
             }
         }
     });
@@ -358,16 +399,16 @@ describe('profile backup locale coverage', () => {
             '復元前のデータを削除'
         );
         expect(readPath(ja, 'profile_backup.phase_snapshot')).toBe(
-            'データを準備しています…'
+            'データを準備しています'
         );
         expect(readPath(ja, 'profile_backup.phase_package')).toBe(
-            'バックアップを作成しています…'
+            'バックアップを作成しています'
         );
         expect(readPath(ja, 'profile_backup.phase_deliver')).toBe(
-            'バックアップ先に保存しています…'
+            'バックアップ先に保存しています'
         );
         expect(readPath(ja, 'profile_backup.phase_finalize')).toBe(
-            '保存を完了しています…'
+            '保存を完了しています'
         );
         expect(readPath(ja, 'profile_backup.background_backup_notice')).toBe(
             'このダイアログを閉じても、バックアップはバックグラウンドで続行されます。'
