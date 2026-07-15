@@ -335,6 +335,25 @@ impl RealtimeFriendsRuntime {
             .is_some_and(|baseline| baseline.friends_by_id.contains_key(normalized_user_id))
     }
 
+    pub(crate) fn friend_state_sequence_for_user(
+        &self,
+        generation: u64,
+        user_id: &str,
+    ) -> Option<u64> {
+        let normalized_user_id = user_id.trim();
+        if normalized_user_id.is_empty() {
+            return None;
+        }
+        let state = self.lock_state();
+        let baseline = state.baseline.as_ref()?;
+        if baseline.generation != generation
+            || !baseline.friends_by_id.contains_key(normalized_user_id)
+        {
+            return None;
+        }
+        Some(current_friend_state_sequence(&state, normalized_user_id))
+    }
+
     pub fn apply_ws_message(
         &self,
         payload: &RealtimeWsMessagePayload,
@@ -365,6 +384,34 @@ impl RealtimeFriendsRuntime {
         profile: serde_json::Value,
         received_at: &str,
     ) -> RealtimeFriendApplyResult {
+        self.apply_refetched_user_profile_inner(generation, user_id, None, profile, received_at)
+    }
+
+    pub(crate) fn apply_refetched_user_profile_if_sequence(
+        &self,
+        generation: u64,
+        user_id: &str,
+        expected_sequence: u64,
+        profile: serde_json::Value,
+        received_at: &str,
+    ) -> RealtimeFriendApplyResult {
+        self.apply_refetched_user_profile_inner(
+            generation,
+            user_id,
+            Some(expected_sequence),
+            profile,
+            received_at,
+        )
+    }
+
+    fn apply_refetched_user_profile_inner(
+        &self,
+        generation: u64,
+        user_id: &str,
+        expected_sequence: Option<u64>,
+        profile: serde_json::Value,
+        received_at: &str,
+    ) -> RealtimeFriendApplyResult {
         let mut state = self.lock_state();
         let Some(baseline) = state.baseline.as_ref() else {
             return RealtimeFriendApplyResult::MissingBaseline;
@@ -377,6 +424,11 @@ impl RealtimeFriendsRuntime {
             return RealtimeFriendApplyResult::Ignored;
         }
         if !baseline.friends_by_id.contains_key(normalized_user_id) {
+            return RealtimeFriendApplyResult::Ignored;
+        }
+        if expected_sequence.is_some_and(|expected_sequence| {
+            current_friend_state_sequence(&state, normalized_user_id) != expected_sequence
+        }) {
             return RealtimeFriendApplyResult::Ignored;
         }
         let content = json!({
@@ -457,6 +509,14 @@ impl RealtimeFriendsRuntime {
     fn lock_state(&self) -> std::sync::MutexGuard<'_, RealtimeFriendState> {
         self.state.lock().unwrap_or_else(|error| error.into_inner())
     }
+}
+
+fn current_friend_state_sequence(state: &RealtimeFriendState, user_id: &str) -> u64 {
+    state
+        .friend_state_sequence_by_user
+        .get(user_id)
+        .copied()
+        .unwrap_or_default()
 }
 
 fn record_output_friend_state_sequence(

@@ -366,7 +366,7 @@ impl RealtimeHostRuntime {
             return;
         }
         let now_ms = chrono::Utc::now().timestamp_millis();
-        let (active, refetch_ids) = {
+        let (active, refetches) = {
             let mut state = match self.state.lock() {
                 Ok(state) => state,
                 Err(error) => {
@@ -385,10 +385,14 @@ impl RealtimeHostRuntime {
             {
                 return;
             }
-            let mut refetch_ids = Vec::new();
+            let mut refetches = Vec::new();
             for user_id in user_ids {
                 let user_id = user_id.trim().to_string();
-                if user_id.is_empty() || refetch_ids.contains(&user_id) {
+                if user_id.is_empty()
+                    || refetches
+                        .iter()
+                        .any(|(refetch_user_id, _)| refetch_user_id == &user_id)
+                {
                     continue;
                 }
                 let recent = state
@@ -401,18 +405,26 @@ impl RealtimeHostRuntime {
                 if recent {
                     continue;
                 }
+                let Some(expected_sequence) = self
+                    .friends
+                    .friend_state_sequence_for_user(active.generation, &user_id)
+                else {
+                    continue;
+                };
                 state
                     .friend_profile_refetches
                     .insert(user_id.clone(), now_ms);
-                refetch_ids.push(user_id);
+                refetches.push((user_id, expected_sequence));
             }
-            (active, refetch_ids)
+            (active, refetches)
         };
-        for user_id in refetch_ids {
+        for (user_id, expected_sequence) in refetches {
             let runtime = Arc::clone(self);
             let active = active.clone();
             self.deps.tasks.spawn(async move {
-                runtime.refetch_friend_profile(active, user_id).await;
+                runtime
+                    .refetch_friend_profile(active, user_id, expected_sequence)
+                    .await;
             });
         }
     }
@@ -421,6 +433,7 @@ impl RealtimeHostRuntime {
         self: Arc<Self>,
         active: ActiveRealtimeContext,
         user_id: String,
+        expected_sequence: u64,
     ) {
         {
             let state = match self.state.lock() {
@@ -504,9 +517,10 @@ impl RealtimeHostRuntime {
                     return;
                 }
             }
-            match self.friends.apply_refetched_user_profile(
+            match self.friends.apply_refetched_user_profile_if_sequence(
                 active.generation,
                 &user_id,
+                expected_sequence,
                 profile,
                 &chrono::Utc::now().to_rfc3339(),
             ) {
