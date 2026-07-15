@@ -187,7 +187,7 @@ fn reconcile_friend_roster_baseline(
         tracing::warn!("Friend roster baseline friendsById decode failed during reconciliation");
         return false;
     };
-    reconcile_friend_roster_records(deps.db.as_ref(), &output.user_id, &friends_by_id)
+    reconcile_friend_roster_records(deps.db.as_ref(), &output.user_id, &friends_by_id).changed
 }
 
 fn replace_friend_roster_baseline_snapshot(
@@ -218,29 +218,35 @@ pub fn apply_friend_roster_baseline_sync_outcome(
     Ok(true)
 }
 
+#[derive(Default)]
+pub(crate) struct FriendRosterReconcileOutcome {
+    pub(crate) changed: bool,
+    pub(crate) feed_entries: Vec<Value>,
+}
+
 pub(crate) fn reconcile_friend_roster_records(
     db: &DatabaseService,
     user_id: &str,
     friends_by_id: &HashMap<String, FriendRecord>,
-) -> bool {
+) -> FriendRosterReconcileOutcome {
     let initialized =
         config_get_bool(db, &format!("friendLogInit_{user_id}"), false).unwrap_or(false);
     if !initialized {
-        return false;
+        return FriendRosterReconcileOutcome::default();
     }
 
     let existing = match friend_log_current_list(db, user_id.to_string()) {
         Ok(rows) => rows,
         Err(error) => {
             tracing::warn!("friend-log reconciliation read failed: {error}");
-            return false;
+            return FriendRosterReconcileOutcome::default();
         }
     };
 
-    let existing_names: HashMap<&str, &str> = existing
+    let existing_by_id = existing
         .iter()
-        .map(|row| (row.user_id.as_str(), row.display_name.as_str()))
-        .collect();
+        .map(|row| (row.user_id.as_str(), row))
+        .collect::<HashMap<_, _>>();
     let expected_set: HashSet<&str> = friends_by_id.keys().map(String::as_str).collect();
 
     let created_at = chrono::Utc::now().to_rfc3339();
@@ -250,26 +256,51 @@ pub(crate) fn reconcile_friend_roster_records(
         if friend_id == user_id {
             continue;
         }
-        if let Some(existing_name) = existing_names.get(friend_id.as_str()) {
-            let next_name = entry.display_name.trim();
-            if next_name.is_empty() || next_name == "Unknown" || next_name == existing_name.trim() {
-                continue;
-            }
-        }
         let trust_level = entry
             .extra
             .get("$trustLevel")
             .or_else(|| entry.extra.get("trustLevel"))
             .map(value_as_string)
             .unwrap_or_default();
+        let existing_row = existing_by_id.get(friend_id.as_str()).copied();
+        let next_name = entry.display_name.trim();
+        let meaningful_name = !next_name.is_empty() && next_name != "Unknown";
+        let name_changed =
+            existing_row.is_some_and(|row| meaningful_name && next_name != row.display_name.trim());
+        let trust_differs =
+            existing_row.is_some_and(|row| trust_level_differs(&row.trust_level, &trust_level));
+        if existing_row.is_some() && !name_changed && !trust_differs {
+            continue;
+        }
+        let display_name = if meaningful_name {
+            entry.display_name.clone()
+        } else {
+            existing_row
+                .map(|row| row.display_name.clone())
+                .unwrap_or_default()
+        };
+        let friend_number = existing_row.map(|row| row.friend_number).unwrap_or(0);
         batch.friend_log_upserts.push(FriendLogUpsert {
             target_user_id: friend_id.clone(),
-            display_name: entry.display_name.clone(),
-            trust_level,
-            friend_number: 0,
+            display_name: display_name.clone(),
+            trust_level: trust_level.clone(),
+            friend_number,
             created_at: created_at.clone(),
             force_history: false,
         });
+        if existing_row.is_some_and(|row| trust_level_changed(&row.trust_level, &trust_level)) {
+            let previous_trust_level = existing_row
+                .map(|row| row.trust_level.clone())
+                .unwrap_or_default();
+            batch.feed_entries.push(trust_level_feed_entry(
+                &created_at,
+                friend_id,
+                &display_name,
+                &trust_level,
+                &previous_trust_level,
+                friend_number,
+            ));
+        }
     }
 
     for row in &existing {
@@ -283,14 +314,17 @@ pub(crate) fn reconcile_friend_roster_records(
     }
 
     if batch.friend_log_upserts.is_empty() && batch.friend_log_deletes.is_empty() {
-        return false;
+        return FriendRosterReconcileOutcome::default();
     }
 
     match write_realtime_batch(db, user_id, &batch) {
-        Ok(counts) => counts.affected_count > 0,
+        Ok(counts) => FriendRosterReconcileOutcome {
+            changed: counts.affected_count > 0,
+            feed_entries: batch.feed_entries,
+        },
         Err(error) => {
             tracing::warn!("friend-log reconciliation write failed: {error}");
-            false
+            FriendRosterReconcileOutcome::default()
         }
     }
 }

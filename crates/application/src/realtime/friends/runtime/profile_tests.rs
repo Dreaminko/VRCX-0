@@ -3,6 +3,89 @@ mod tests {
     use super::super::*;
 
     #[test]
+    fn refetched_profile_trust_change_upserts_and_projects_once() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "offline".into(),
+                        state_bucket: "offline".into(),
+                        location: "offline".into(),
+                        extra: [
+                            ("$trustLevel".into(), json!("User")),
+                            ("trustLevel".into(), json!("User")),
+                            ("tags".into(), json!(["system_trust_known"])),
+                        ]
+                        .into_iter()
+                        .collect(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        let profile = json!({
+            "id": "usr_friend",
+            "displayName": "Friend",
+            "state": "offline",
+            "location": "offline",
+            "tags": ["system_trust_veteran"]
+        });
+
+        let RealtimeFriendApplyResult::Output(first) = runtime.apply_refetched_user_profile(
+            1,
+            "usr_friend",
+            profile.clone(),
+            "2026-05-15T00:00:01Z",
+        ) else {
+            panic!("trust-changing profile should produce an output");
+        };
+        assert_eq!(first.persistence.friend_log_upserts.len(), 1);
+        assert_eq!(
+            first.persistence.friend_log_upserts[0].trust_level,
+            "Trusted User"
+        );
+        assert_eq!(
+            first
+                .persistence
+                .feed_entries
+                .iter()
+                .filter(|entry| entry["type"] == "TrustLevel")
+                .count(),
+            1
+        );
+        assert_eq!(
+            first
+                .projection
+                .feed_entries
+                .iter()
+                .filter(|entry| entry["type"] == "TrustLevel")
+                .count(),
+            1
+        );
+
+        if let RealtimeFriendApplyResult::Output(second) =
+            runtime.apply_refetched_user_profile(1, "usr_friend", profile, "2026-05-15T00:00:02Z")
+        {
+            assert!(second.persistence.friend_log_upserts.is_empty());
+            assert!(second
+                .persistence
+                .feed_entries
+                .iter()
+                .all(|entry| entry["type"] != "TrustLevel"));
+        }
+    }
+
+    #[test]
     fn refetched_friend_profile_updates_offline_real_location_to_online() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
 import vrchatFriendRepository from '@/repositories/vrchatFriendRepository';
 import vrchatToolsRepository from '@/repositories/vrchatToolsRepository';
+import { recordFriendRequestHistory } from '@/services/friendLogMutationService';
 import friendRelationshipService from '@/services/friendRelationshipService';
 import { sendBoopToUser } from '@/services/inviteDeliveryService';
 import {
@@ -343,6 +344,12 @@ export function useUserDialogActions({
                         userId: rosterUserId,
                         endpoint: requestEndpoint
                     });
+                    await recordFriendRequestHistory({
+                        currentUserId: normalizedCurrentUserId,
+                        targetUserId: rosterUserId,
+                        displayName: requestProfile?.displayName,
+                        type: 'FriendRequest'
+                    });
                 }
                 const isNowFriend = incomingNotification
                     ? true
@@ -417,6 +424,12 @@ export function useUserDialogActions({
                     await vrchatFriendRepository.cancelFriendRequest({
                         userId: rosterUserId,
                         endpoint: requestEndpoint
+                    });
+                    await recordFriendRequestHistory({
+                        currentUserId: normalizedCurrentUserId,
+                        targetUserId: rosterUserId,
+                        displayName: requestProfile?.displayName,
+                        type: 'CancelFriendRequest'
                     });
                 }
                 if (

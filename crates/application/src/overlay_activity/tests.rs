@@ -79,6 +79,40 @@ fn friend_projection_feed_entries_are_ingested_with_canonical_activity_types() {
 }
 
 #[test]
+fn trust_level_friend_projection_preserves_new_level_in_overlay_content() {
+    let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
+        "version": 1,
+        "wrist": {
+            "types": {
+                "TrustLevel": {
+                    "scope": "friends",
+                    "favoriteGroupKeys": "all"
+                }
+            }
+        }
+    })));
+    runtime.set_friend_user_ids(["usr_friend"]);
+    runtime.ingest_friend_projection(&FriendProjection {
+        feed_entries: vec![json!({
+            "type": "TrustLevel",
+            "created_at": "2026-05-31T00:01:00.000Z",
+            "userId": "usr_friend",
+            "displayName": "Friend",
+            "trustLevel": "Trusted User",
+            "previousTrustLevel": "Known User",
+            "friendNumber": 7
+        })],
+        ..FriendProjection::default()
+    });
+
+    let entries = runtime.snapshot().entries;
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].activity_type, "TrustLevel");
+    assert_eq!(entries[0].content.body.params["trustLevel"], "Trusted User");
+    assert_eq!(entries[0].content.body.fallback, "trust level Trusted User");
+}
+
+#[test]
 fn player_joining_friend_feed_matches_everyone_in_instance_scope() {
     let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
         "version": 1,

@@ -96,6 +96,25 @@ pub(super) fn friend_log_upsert(
     }
 }
 
+pub(crate) fn trust_level_feed_entry(
+    created_at: &str,
+    user_id: &str,
+    display_name: &str,
+    trust_level: &str,
+    previous_trust_level: &str,
+    friend_number: i64,
+) -> Value {
+    json!({
+        "created_at": created_at,
+        "type": "TrustLevel",
+        "userId": user_id,
+        "displayName": display_name,
+        "trustLevel": trust_level,
+        "previousTrustLevel": previous_trust_level,
+        "friendNumber": friend_number,
+    })
+}
+
 pub(super) fn add_profile_diff_feed_entries(
     output: &mut RealtimeFriendOutput,
     user_id: &str,

@@ -2,6 +2,53 @@
 mod tests {
     use super::super::*;
 
+    fn friend_with_trust() -> FriendRecord {
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            state: "offline".into(),
+            state_bucket: "offline".into(),
+            location: "offline".into(),
+            extra: [
+                ("$trustLevel".into(), json!("User")),
+                ("trustLevel".into(), json!("User")),
+                ("tags".into(), json!(["system_trust_known"])),
+            ]
+            .into_iter()
+            .collect(),
+            ..FriendRecord::default()
+        }
+    }
+
+    fn assert_trust_change(output: &RealtimeFriendOutput) {
+        assert_eq!(output.persistence.friend_log_upserts.len(), 1);
+        assert_eq!(
+            output.persistence.friend_log_upserts[0].trust_level,
+            "Trusted User"
+        );
+        let entries = output
+            .persistence
+            .feed_entries
+            .iter()
+            .filter(|entry| entry["type"] == "TrustLevel")
+            .collect::<Vec<_>>();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0]["userId"], "usr_friend");
+        assert_eq!(entries[0]["displayName"], "Friend");
+        assert_eq!(entries[0]["trustLevel"], "Trusted User");
+        assert_eq!(entries[0]["previousTrustLevel"], "User");
+        assert_eq!(
+            output
+                .projection
+                .feed_entries
+                .iter()
+                .filter(|entry| entry["type"] == "TrustLevel")
+                .count(),
+            1
+        );
+        assert!(output.projection.friend_log_changed);
+    }
+
     #[test]
     fn friend_online_writes_online_feed_and_projection() {
         let runtime = RealtimeFriendsRuntime::new();
@@ -219,6 +266,149 @@ mod tests {
             assert!(second.persistence.friend_log_upserts.is_empty());
             assert!(!second.projection.friend_log_changed);
         }
+    }
+
+    #[test]
+    fn trust_change_from_realtime_profile_events_upserts_and_projects_once() {
+        let events = [
+            json!({
+                "type": "friend-update",
+                "content": {
+                    "userId": "usr_friend",
+                    "user": {
+                        "id": "usr_friend",
+                        "displayName": "Friend",
+                        "tags": ["system_trust_veteran"]
+                    }
+                }
+            }),
+            json!({
+                "type": "friend-online",
+                "content": {
+                    "userId": "usr_friend",
+                    "user": {
+                        "id": "usr_friend",
+                        "displayName": "Friend",
+                        "location": "wrld_1:123",
+                        "tags": ["system_trust_veteran"]
+                    }
+                }
+            }),
+            json!({
+                "type": "friend-location",
+                "content": {
+                    "userId": "usr_friend",
+                    "location": "wrld_1:123",
+                    "user": {
+                        "id": "usr_friend",
+                        "displayName": "Friend",
+                        "tags": ["system_trust_veteran"]
+                    }
+                }
+            }),
+        ];
+
+        for event in events {
+            let runtime = RealtimeFriendsRuntime::new();
+            runtime.set_baseline(
+                FriendRosterBaseline {
+                    current_user_id: "usr_self".into(),
+                    friends_by_id: [("usr_friend".to_string(), friend_with_trust())]
+                        .into_iter()
+                        .collect(),
+                    ..FriendRosterBaseline::default()
+                },
+                1,
+                0,
+            );
+            let payload = RealtimeWsMessagePayload {
+                json: event,
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            };
+
+            let RealtimeFriendApplyResult::Output(first) = runtime.apply_ws_message(&payload)
+            else {
+                panic!("trust-changing friend event should produce an output");
+            };
+            assert_trust_change(&first);
+            let friend = runtime
+                .snapshot()
+                .unwrap()
+                .friends_by_id
+                .get("usr_friend")
+                .cloned()
+                .unwrap();
+            assert_eq!(friend.extra["$trustLevel"], "Trusted User");
+            assert_eq!(friend.extra["trustLevel"], "Trusted User");
+
+            if let RealtimeFriendApplyResult::Output(second) = runtime.apply_ws_message(&payload) {
+                assert!(second.persistence.friend_log_upserts.is_empty());
+                assert!(second
+                    .persistence
+                    .feed_entries
+                    .iter()
+                    .all(|entry| entry["type"] != "TrustLevel"));
+            }
+        }
+    }
+
+    #[test]
+    fn legacy_equivalent_trust_change_updates_current_without_feed() {
+        let runtime = RealtimeFriendsRuntime::new();
+        let mut friend = friend_with_trust();
+        friend
+            .extra
+            .insert("$trustLevel".into(), json!("Veteran User"));
+        friend
+            .extra
+            .insert("trustLevel".into(), json!("Veteran User"));
+        friend
+            .extra
+            .insert("tags".into(), json!(["system_trust_veteran"]));
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [("usr_friend".to_string(), friend)].into_iter().collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let RealtimeFriendApplyResult::Output(output) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-update",
+                    "content": {
+                        "userId": "usr_friend",
+                        "user": {
+                            "id": "usr_friend",
+                            "tags": ["system_trust_veteran"]
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("legacy-equivalent trust change should update current state");
+        };
+
+        assert_eq!(output.persistence.friend_log_upserts.len(), 1);
+        assert_eq!(
+            output.persistence.friend_log_upserts[0].trust_level,
+            "Trusted User"
+        );
+        assert!(output
+            .persistence
+            .feed_entries
+            .iter()
+            .all(|entry| entry["type"] != "TrustLevel"));
+        assert_eq!(
+            runtime.snapshot().unwrap().friends_by_id["usr_friend"].extra["$trustLevel"],
+            "Trusted User"
+        );
     }
 
     #[test]

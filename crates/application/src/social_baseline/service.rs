@@ -157,10 +157,10 @@ mod remote;
 
 pub use favorites::build_favorites_baseline;
 use favorites::CurrentUserSnapshotView;
-pub(crate) use friends::reconcile_friend_roster_records;
 pub use friends::{
     apply_friend_roster_baseline_sync_outcome, build_friend_roster_baseline,
     build_friend_roster_baseline_deferred,
 };
 use friends::{build_friend_state_map, build_snapshot_friend_ids};
+pub(crate) use friends::{reconcile_friend_roster_records, FriendRosterReconcileOutcome};
 use remote::{execute_vrchat_json_request, fetch_paged_array, refetch_users_concurrent};

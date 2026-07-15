@@ -44,6 +44,7 @@ impl RealtimeHostRuntime {
             ));
         }
         let mut friends_by_id = friends_by_id;
+        let mut pending_feed_entries = Vec::new();
         let friend_owner = self.lock_friend_owner();
         let (generation, previous_active) = {
             let mut state = self
@@ -79,6 +80,7 @@ impl RealtimeHostRuntime {
             if let Some(pending) = state.pending_friend_baseline.take() {
                 if pending.session == session {
                     friends_by_id = pending.friends_by_id;
+                    pending_feed_entries = pending.feed_entries;
                 }
             }
             state.friend_messages_paused = false;
@@ -110,6 +112,17 @@ impl RealtimeHostRuntime {
                 current_user_snapshot,
             );
         }
+        let baseline_revision = self
+            .friends
+            .snapshot()
+            .map(|snapshot| snapshot.baseline_revision)
+            .unwrap_or(0);
+        self.apply_persisted_friend_feed_entries_owned(
+            &friend_owner,
+            generation,
+            baseline_revision,
+            pending_feed_entries,
+        );
         drop(friend_owner);
         self.user_cache.clear();
         self.user_query_cache.clear();

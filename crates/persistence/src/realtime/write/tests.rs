@@ -191,6 +191,171 @@ fn display_name_change_on_update_writes_display_name_history() -> Result<(), cra
 }
 
 #[test]
+fn trust_change_on_update_writes_trust_history() -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-trust-change");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let upsert = |name: &str, trust: &str, created_at: &str| RealtimePersistenceBatch {
+        friend_log_upserts: vec![FriendLogUpsert {
+            target_user_id: "usr_friend".into(),
+            display_name: name.into(),
+            trust_level: trust.into(),
+            friend_number: 12,
+            created_at: created_at.into(),
+            force_history: false,
+        }],
+        ..RealtimePersistenceBatch::default()
+    };
+
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &upsert("Friend", "Known User", "2026-05-15T00:00:00Z"),
+    )?;
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &upsert("Friend", "Trusted User", "2026-05-15T00:00:01Z"),
+    )?;
+
+    let history = db.execute(
+        "SELECT display_name, trust_level, previous_trust_level, friend_number FROM usrself_friend_log_history WHERE user_id = @user_id AND type = 'TrustLevel'",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0][0], json!("Friend"));
+    assert_eq!(history[0][1], json!("Trusted User"));
+    assert_eq!(history[0][2], json!("Known User"));
+    assert_eq!(history[0][3], json!(12));
+    Ok(())
+}
+
+#[test]
+fn simultaneous_name_and_trust_change_writes_both_histories() -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-name-trust-change");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let batch = |name: &str, trust: &str, created_at: &str| RealtimePersistenceBatch {
+        friend_log_upserts: vec![FriendLogUpsert {
+            target_user_id: "usr_friend".into(),
+            display_name: name.into(),
+            trust_level: trust.into(),
+            friend_number: 12,
+            created_at: created_at.into(),
+            force_history: false,
+        }],
+        ..RealtimePersistenceBatch::default()
+    };
+
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &batch("Old Name", "Known User", "2026-05-15T00:00:00Z"),
+    )?;
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &batch("New Name", "Trusted User", "2026-05-15T00:00:01Z"),
+    )?;
+
+    let history = db.execute(
+        "SELECT type FROM usrself_friend_log_history WHERE user_id = @user_id AND type IN ('DisplayName', 'TrustLevel') ORDER BY type",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert_eq!(
+        history,
+        vec![vec![json!("DisplayName")], vec![json!("TrustLevel")]]
+    );
+    Ok(())
+}
+
+#[test]
+fn empty_same_and_legacy_equivalent_trust_values_skip_history() -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-trust-skip");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let batch = |trust: &str| RealtimePersistenceBatch {
+        friend_log_upserts: vec![FriendLogUpsert {
+            target_user_id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            trust_level: trust.into(),
+            friend_number: 12,
+            created_at: "2026-05-15T00:00:00Z".into(),
+            force_history: false,
+        }],
+        ..RealtimePersistenceBatch::default()
+    };
+
+    write_realtime_batch(&db, "usr_self", &batch("Trusted User"))?;
+    write_realtime_batch(&db, "usr_self", &batch(""))?;
+    write_realtime_batch(&db, "usr_self", &batch("Trusted User"))?;
+    write_realtime_batch(&db, "usr_self", &batch("Veteran User"))?;
+
+    let history = db.execute(
+        "SELECT trust_level FROM usrself_friend_log_history WHERE user_id = @user_id AND type = 'TrustLevel'",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    let current = db.execute(
+        "SELECT trust_level FROM usrself_friend_log_current WHERE user_id = @user_id",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert!(history.is_empty());
+    assert_eq!(current[0][0], json!("Veteran User"));
+    Ok(())
+}
+
+#[test]
+fn failed_trust_batch_rolls_back_current_and_history() -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-trust-rollback");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Friend".into(),
+                trust_level: "Known User".into(),
+                friend_number: 12,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+
+    let result = write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Friend".into(),
+                trust_level: "Trusted User".into(),
+                friend_number: 12,
+                created_at: "2026-05-15T00:00:01Z".into(),
+                force_history: false,
+            }],
+            feed_entries: vec![json!({
+                "created_at": "2026-05-15T00:00:01Z",
+                "type": "InvalidTrustFeed"
+            })],
+            ..RealtimePersistenceBatch::default()
+        },
+    );
+    assert!(result.is_err());
+
+    let current = db.execute(
+        "SELECT trust_level FROM usrself_friend_log_current WHERE user_id = @user_id",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    let history = db.execute(
+        "SELECT trust_level FROM usrself_friend_log_history WHERE user_id = @user_id AND type = 'TrustLevel'",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert_eq!(current[0][0], json!("Known User"));
+    assert!(history.is_empty());
+    Ok(())
+}
+
+#[test]
 fn unchanged_or_unknown_display_name_skips_display_name_history() -> Result<(), crate::Error> {
     let dir = TestDir::new("realtime-display-name-skip");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
@@ -268,6 +433,32 @@ fn rejects_invalid_realtime_feed_entry_type() {
             feed_entries: vec![json!({
                 "created_at": "2026-05-15T00:00:00Z",
                 "type": "UnknownFeedType",
+            })],
+            ..RealtimePersistenceBatch::default()
+        },
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, crate::Error::InvalidData(_)));
+}
+
+#[test]
+fn rejects_trust_feed_without_matching_friend_log_upsert() {
+    let dir = TestDir::new("realtime-unpaired-trust-feed");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap();
+
+    let error = write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            feed_entries: vec![json!({
+                "created_at": "2026-05-15T00:00:00Z",
+                "type": "TrustLevel",
+                "userId": "usr_friend",
+                "displayName": "Friend",
+                "trustLevel": "Trusted User",
+                "previousTrustLevel": "Known User",
+                "friendNumber": 7
             })],
             ..RealtimePersistenceBatch::default()
         },

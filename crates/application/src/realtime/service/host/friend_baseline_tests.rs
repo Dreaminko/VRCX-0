@@ -659,16 +659,8 @@ fn reconcile_records_display_name_change_for_existing_friend() -> Result<()> {
     .into_iter()
     .collect();
 
-    assert!(reconcile_friend_roster_records(
-        &db,
-        "usr_self",
-        &friends_by_id
-    ));
-    assert!(!reconcile_friend_roster_records(
-        &db,
-        "usr_self",
-        &friends_by_id
-    ));
+    assert!(reconcile_friend_roster_records(&db, "usr_self", &friends_by_id).changed);
+    assert!(!reconcile_friend_roster_records(&db, "usr_self", &friends_by_id).changed);
 
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
     assert_eq!(current.len(), 1);
@@ -687,6 +679,207 @@ fn reconcile_records_display_name_change_for_existing_friend() -> Result<()> {
     assert_eq!(history.len(), 1);
     assert_eq!(history[0].display_name, "New Name");
     assert_eq!(history[0].previous_display_name, "Old Name");
+    Ok(())
+}
+
+#[test]
+fn reconcile_records_and_projects_trust_only_change_once() -> Result<()> {
+    let dir = TestDir::new("reconcile-trust-level");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    config_store::set_bool(&db, "friendLogInit_usr_self", true)?;
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Friend".into(),
+                trust_level: "Known User".into(),
+                friend_number: 7,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    let friends_by_id = [(
+        "usr_friend".to_string(),
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            extra: [("$trustLevel".into(), json!("Trusted User"))]
+                .into_iter()
+                .collect(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect();
+
+    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id);
+    assert!(outcome.changed);
+    assert_eq!(outcome.feed_entries.len(), 1);
+    assert_eq!(outcome.feed_entries[0]["type"], "TrustLevel");
+    assert_eq!(outcome.feed_entries[0]["trustLevel"], "Trusted User");
+    assert_eq!(outcome.feed_entries[0]["previousTrustLevel"], "Known User");
+    assert_eq!(outcome.feed_entries[0]["friendNumber"], 7);
+    assert!(!reconcile_friend_roster_records(&db, "usr_self", &friends_by_id).changed);
+
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current[0].trust_level, "Trusted User");
+    let history = vrcx_0_persistence::friends::friend_log_history_query(
+        &db,
+        vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
+            user_id: "usr_self".into(),
+            target_user_id: "usr_friend".into(),
+            types: vec!["TrustLevel".into()],
+        },
+    )?;
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].trust_level, "Trusted User");
+    assert_eq!(history[0].previous_trust_level, "Known User");
+    Ok(())
+}
+
+#[test]
+fn reconcile_updates_legacy_equivalent_trust_without_history_or_feed() -> Result<()> {
+    let dir = TestDir::new("reconcile-equivalent-trust");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    config_store::set_bool(&db, "friendLogInit_usr_self", true)?;
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Friend".into(),
+                trust_level: "Veteran User".into(),
+                friend_number: 7,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    let friends_by_id = [(
+        "usr_friend".to_string(),
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            extra: [("$trustLevel".into(), json!("Trusted User"))]
+                .into_iter()
+                .collect(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect();
+
+    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id);
+
+    assert!(outcome.changed);
+    assert!(outcome.feed_entries.is_empty());
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current[0].trust_level, "Trusted User");
+    let history = vrcx_0_persistence::friends::friend_log_history_query(
+        &db,
+        vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
+            user_id: "usr_self".into(),
+            target_user_id: "usr_friend".into(),
+            types: vec!["TrustLevel".into()],
+        },
+    )?;
+    assert!(history.is_empty());
+    Ok(())
+}
+
+#[test]
+fn first_friend_log_initialization_does_not_create_history_or_feed() -> Result<()> {
+    let dir = TestDir::new("reconcile-first-init");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let friends_by_id = [(
+        "usr_friend".to_string(),
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            extra: [("$trustLevel".into(), json!("Trusted User"))]
+                .into_iter()
+                .collect(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect();
+
+    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id);
+
+    assert!(!outcome.changed);
+    assert!(outcome.feed_entries.is_empty());
+    assert!(vrcx_0_persistence::friends::friend_log_history_query(
+        &db,
+        vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
+            user_id: "usr_self".into(),
+            target_user_id: String::new(),
+            types: Vec::new(),
+        },
+    )?
+    .is_empty());
+    Ok(())
+}
+
+#[test]
+fn active_baseline_trust_change_fans_out_after_atomic_persistence() -> Result<()> {
+    let (_dir, runtime, active_session) = runtime_with_active_session("active-baseline-trust")?;
+    config_store::set_bool(runtime.deps.db.as_ref(), "friendLogInit_usr_self", true)?;
+    write_realtime_batch(
+        runtime.deps.db.as_ref(),
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Friend".into(),
+                trust_level: "Known User".into(),
+                friend_number: 7,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    let watermark = runtime.capture_friend_baseline_watermark()?;
+    let friend = FriendRecord {
+        id: "usr_friend".into(),
+        display_name: "Friend".into(),
+        extra: [("$trustLevel".into(), json!("Trusted User"))]
+            .into_iter()
+            .collect(),
+        ..FriendRecord::default()
+    };
+
+    let outcome = runtime.sync_friend_snapshot_with_watermark(
+        active_session.user_id,
+        active_session.endpoint,
+        active_session.websocket,
+        watermark,
+        [("usr_friend".to_string(), friend)].into_iter().collect(),
+    )?;
+
+    assert!(outcome.friend_log_changed);
+    let events = runtime.deps.event_bus.take_events_for_test();
+    let trust_entries = events
+        .iter()
+        .filter(|event| event.name == "realtimeFriendProjection")
+        .flat_map(|event| {
+            event.payload["feedEntries"]
+                .as_array()
+                .into_iter()
+                .flatten()
+        })
+        .filter(|entry| entry["type"] == "TrustLevel")
+        .collect::<Vec<_>>();
+    assert_eq!(trust_entries.len(), 1);
+    assert_eq!(trust_entries[0]["trustLevel"], "Trusted User");
+    assert_eq!(trust_entries[0]["previousTrustLevel"], "Known User");
     Ok(())
 }
 

@@ -18,6 +18,35 @@ impl RealtimeHostRuntime {
         self.apply_friend_output_owned(&owner, output);
     }
 
+    pub(super) fn apply_persisted_friend_feed_entries_owned(
+        self: &Arc<Self>,
+        _owner: &FriendOwnerGuard<'_>,
+        generation: u64,
+        baseline_revision: u64,
+        feed_entries: Vec<Value>,
+    ) {
+        if feed_entries.is_empty() {
+            return;
+        }
+        let projection = FriendProjection {
+            generation,
+            baseline_revision,
+            feed_entries,
+            ..FriendProjection::default()
+        };
+        if !self.is_friend_projection_current(&projection) {
+            self.friends
+                .clear_baseline_if_revision(projection.generation, projection.baseline_revision);
+            return;
+        }
+        self.deps
+            .overlay_activity
+            .ingest_friend_projection(&projection);
+        self.deps
+            .event_bus
+            .emit_realtime_friend_projection(projection);
+    }
+
     pub(super) fn apply_friend_output_owned(
         self: &Arc<Self>,
         _owner: &FriendOwnerGuard<'_>,

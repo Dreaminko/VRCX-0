@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use vrcx_0_core::friends::{normalize_state_bucket, FriendRecord, FriendRosterBaseline};
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
+use vrcx_0_core::trust::{compute_trust_level, trust_level_changed, trust_level_differs};
 use vrcx_0_persistence::realtime::{FriendLogDelete, FriendLogUpsert};
 
 use super::super::{
@@ -38,5 +39,5 @@ mod presence_tests;
 mod profile_tests;
 
 pub use event_patch::is_friend_event_type;
-pub(crate) use persistence::player_joining_feed_entry;
+pub(crate) use persistence::{player_joining_feed_entry, trust_level_feed_entry};
 pub use state::RealtimeFriendsRuntime;

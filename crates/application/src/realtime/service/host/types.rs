@@ -22,6 +22,7 @@ pub(super) struct ActiveRealtimeContext {
 pub(super) struct PendingFriendBaseline {
     pub(super) session: RealtimeSessionContext,
     pub(super) friends_by_id: HashMap<String, FriendRecord>,
+    pub(super) feed_entries: Vec<Value>,
 }
 
 #[derive(Default)]

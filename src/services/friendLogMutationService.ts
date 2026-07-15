@@ -1,4 +1,6 @@
-import type { FriendLogHistoryEntry } from '@/repositories/friendLogHistoryRepository';
+import friendLogHistoryRepository, {
+    type FriendLogHistoryEntry
+} from '@/repositories/friendLogHistoryRepository';
 import friendLogRepository, {
     type FriendLogCurrentEntry
 } from '@/repositories/friendLogRepository';
@@ -172,6 +174,50 @@ function buildFriendHistoryEntry(
 export function signalFriendLogChanged() {
     useFriendLogStore.getState().bumpRevision();
     useShellStore.getState().notifyMenu('friend-log');
+}
+
+export async function recordFriendRequestHistory({
+    currentUserId,
+    targetUserId,
+    displayName,
+    type,
+    nowIso = () => new Date().toJSON()
+}: {
+    currentUserId?: unknown;
+    targetUserId?: unknown;
+    displayName?: unknown;
+    type: 'FriendRequest' | 'CancelFriendRequest';
+    nowIso?: () => string;
+}): Promise<boolean> {
+    const normalizedCurrentUserId = normalizeUserId(currentUserId);
+    const normalizedTargetUserId = normalizeUserId(targetUserId);
+    if (
+        !normalizedCurrentUserId ||
+        !normalizedTargetUserId ||
+        normalizedCurrentUserId === normalizedTargetUserId
+    ) {
+        return false;
+    }
+
+    try {
+        await enqueueFriendLogMutation(normalizedCurrentUserId, async () => {
+            await friendLogHistoryRepository.addFriendLogHistory(
+                normalizedCurrentUserId,
+                {
+                    created_at: nowIso(),
+                    type,
+                    userId: normalizedTargetUserId,
+                    displayName:
+                        normalizeUserId(displayName) || normalizedTargetUserId
+                }
+            );
+            signalFriendLogChanged();
+        });
+        return true;
+    } catch (error) {
+        console.warn(`Failed to record ${type} friend history:`, error);
+        return false;
+    }
 }
 
 export async function recordFriendLogFriendByUserId({

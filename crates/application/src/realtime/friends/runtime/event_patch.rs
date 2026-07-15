@@ -1,7 +1,8 @@
 use super::persistence::{
     add_location_metadata, add_profile_diff_feed_entries, friend_log_upsert,
     friend_relationship_feed_entry, gps_feed_entry, is_online_state, meaningful_name,
-    online_offline_feed_entry, player_joining_feed_entry, value_equal_for_diff, FriendChangedProps,
+    online_offline_feed_entry, player_joining_feed_entry, trust_level_feed_entry,
+    value_equal_for_diff, FriendChangedProps,
 };
 use super::projection::resolve_state_bucket;
 use super::state::{PendingOffline, RealtimeFriendState, PENDING_OFFLINE_DELAY_MS};
@@ -88,9 +89,10 @@ fn apply_friend_event_with_options(
     match message_type {
         "friend-add" => {
             let user_id = event_user_id(content)?;
-            let patch =
+            let mut patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let previous = get_friend_value(state, &user_id);
+            normalize_patch_trust(&mut patch, previous.as_ref());
             let state_bucket =
                 resolve_state_bucket(content, &patch, previous.as_ref(), false, "offline");
             let already_friend = previous.is_some();
@@ -163,6 +165,7 @@ fn apply_friend_event_with_options(
                 return None;
             }
             let previous = get_friend_value(state, &user_id);
+            normalize_patch_trust(&mut patch, previous.as_ref());
             let changes = FriendChangedProps::from_patch(&patch, previous.as_ref());
             output.friend_note_changed |= changes.has("note");
             let state_bucket = if options.trust_event_state {
@@ -191,7 +194,7 @@ fn apply_friend_event_with_options(
                     patch_object.insert("pendingOffline".into(), Value::Bool(false));
                 }
             }
-            record_display_name_change(
+            record_profile_identity_change(
                 &mut output,
                 &user_id,
                 &patch,
@@ -229,9 +232,10 @@ fn apply_friend_event_with_options(
             let previous = previous_record.as_ref().map(record_to_value);
             let user_patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
-            let patch = online_patch(content, user_patch, previous.as_ref(), now, "online");
+            let mut patch = online_patch(content, user_patch, previous.as_ref(), now, "online");
+            normalize_patch_trust(&mut patch, previous.as_ref());
             output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
-            record_display_name_change(
+            record_profile_identity_change(
                 &mut output,
                 &user_id,
                 &patch,
@@ -354,6 +358,7 @@ fn apply_friend_event_with_options(
             };
             let mut patch =
                 online_patch(content, user_patch, previous.as_ref(), now, &state_bucket);
+            normalize_patch_trust(&mut patch, previous.as_ref());
             let start_pending_offline = !preserve_pending_offline
                 && !has_online_location
                 && has_offline_location
@@ -390,7 +395,7 @@ fn apply_friend_event_with_options(
                 }
             }
             output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
-            record_display_name_change(
+            record_profile_identity_change(
                 &mut output,
                 &user_id,
                 &patch,
@@ -537,7 +542,7 @@ fn remember_gps_event(state: &mut RealtimeFriendState, user_id: &str, location: 
         .insert(location.to_string(), now_ms);
 }
 
-fn record_display_name_change(
+fn record_profile_identity_change(
     output: &mut RealtimeFriendOutput,
     user_id: &str,
     patch: &Value,
@@ -549,20 +554,91 @@ fn record_display_name_change(
         return;
     };
     let next_name = meaningful_name(patch, user_id);
-    if next_name.is_empty() || next_name == meaningful_name(previous, user_id) {
+    let name_changed = !next_name.is_empty() && next_name != meaningful_name(previous, user_id);
+    let previous_trust_level = first_owned([
+        string_field(previous.get("$trustLevel")),
+        string_field(previous.get("trustLevel")),
+    ]);
+    let trust_level = first_owned([
+        string_field(patch.get("$trustLevel")),
+        string_field(patch.get("trustLevel")),
+        previous_trust_level.clone(),
+    ]);
+    let trust_differs = trust_level_differs(&previous_trust_level, &trust_level);
+    let trust_changed = trust_level_changed(&previous_trust_level, &trust_level);
+    if !name_changed && !trust_differs {
         return;
     }
-    output
-        .persistence
-        .friend_log_upserts
-        .push(friend_log_upsert(
-            user_id,
-            patch,
-            Some(previous),
-            state_bucket,
+    let upsert = friend_log_upsert(user_id, patch, Some(previous), state_bucket, &now.iso);
+    if trust_changed {
+        output.persistence.feed_entries.push(trust_level_feed_entry(
             &now.iso,
+            user_id,
+            &upsert.display_name,
+            &trust_level,
+            &previous_trust_level,
+            upsert.friend_number,
         ));
+    }
+    output.persistence.friend_log_upserts.push(upsert);
     output.projection.friend_log_changed = true;
+}
+
+fn normalize_patch_trust(patch: &mut Value, previous: Option<&Value>) {
+    let Some(object) = patch.as_object_mut() else {
+        return;
+    };
+    let explicit_trust_level = first_owned([
+        string_field(object.get("$trustLevel")),
+        string_field(object.get("trustLevel")),
+    ]);
+    let has_trust_metadata = object.contains_key("tags") || object.contains_key("developerType");
+    if explicit_trust_level.is_empty() && !has_trust_metadata {
+        return;
+    }
+
+    let tags = object
+        .get("tags")
+        .and_then(Value::as_array)
+        .or_else(|| {
+            previous
+                .and_then(|value| value.get("tags"))
+                .and_then(Value::as_array)
+        })
+        .map(|values| {
+            values
+                .iter()
+                .map(|value| string_field(Some(value)))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let developer_type = object
+        .get("developerType")
+        .and_then(Value::as_str)
+        .or_else(|| {
+            previous
+                .and_then(|value| value.get("developerType"))
+                .and_then(Value::as_str)
+        })
+        .unwrap_or("");
+    let trust = compute_trust_level(&tags, developer_type);
+    let trust_level = if has_trust_metadata {
+        trust.trust_level.clone()
+    } else {
+        explicit_trust_level
+    };
+    object.insert("trustLevel".into(), Value::String(trust_level.clone()));
+    object.insert("$trustLevel".into(), Value::String(trust_level));
+    if has_trust_metadata {
+        object.insert("$trustClass".into(), Value::String(trust.trust_class));
+        object.insert("$trustSortNum".into(), json!(trust.trust_sort_num));
+        object.insert("$isModerator".into(), Value::Bool(trust.is_moderator));
+        object.insert("$isTroll".into(), Value::Bool(trust.is_troll));
+        object.insert(
+            "$isProbableTroll".into(),
+            Value::Bool(trust.is_probable_troll),
+        );
+    }
 }
 
 fn patch_changes_note(patch: &Value, previous: Option<&Value>) -> bool {

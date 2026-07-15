@@ -1,11 +1,15 @@
 use super::*;
-use vrcx_0_core::trust::{compute_trust_level, compute_user_platform};
+use vrcx_0_core::trust::{
+    compute_trust_level, compute_user_platform, trust_level_changed, trust_level_differs,
+};
 use vrcx_0_persistence::config::get_bool as config_get_bool;
 use vrcx_0_persistence::friends::friend_log_current_list;
 use vrcx_0_persistence::realtime::{
     write_realtime_batch, FriendLogDelete, FriendLogUpsert, RealtimePersistenceBatch,
 };
 use vrcx_0_vrchat_client::auth::current_user_get_input;
+
+use crate::realtime::friends::trust_level_feed_entry;
 
 mod baseline;
 mod entry;
@@ -27,9 +31,9 @@ use profile::{
 #[cfg(test)]
 use baseline::collect_suspicious_friend_ids;
 
-pub(crate) use baseline::reconcile_friend_roster_records;
 pub use baseline::{
     apply_friend_roster_baseline_sync_outcome, build_friend_roster_baseline,
     build_friend_roster_baseline_deferred,
 };
+pub(crate) use baseline::{reconcile_friend_roster_records, FriendRosterReconcileOutcome};
 pub(super) use state_map::{build_friend_state_map, build_snapshot_friend_ids};

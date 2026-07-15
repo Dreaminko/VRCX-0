@@ -139,8 +139,9 @@ impl RealtimeHostRuntime {
                     friends_by_id: friends_by_id.clone(),
                 };
                 state.pending_friend_baseline = Some(PendingFriendBaseline {
-                    session: requested_session,
+                    session: requested_session.clone(),
                     friends_by_id,
+                    feed_entries: Vec::new(),
                 });
                 drop(state);
                 self.deps.sync.record(
@@ -152,12 +153,30 @@ impl RealtimeHostRuntime {
                 self.deps
                     .overlay_activity
                     .set_friend_user_ids(pending_snapshot.friends_by_id.keys().cloned());
-                let friend_log_changed = reconcile_friend_log
-                    && reconcile_friend_roster_records(
+                let reconcile_outcome = if reconcile_friend_log {
+                    reconcile_friend_roster_records(
                         self.deps.db.as_ref(),
                         &pending_snapshot.current_user_id,
                         &pending_snapshot.friends_by_id,
-                    );
+                    )
+                } else {
+                    FriendRosterReconcileOutcome::default()
+                };
+                let FriendRosterReconcileOutcome {
+                    changed: friend_log_changed,
+                    feed_entries,
+                } = reconcile_outcome;
+                if !feed_entries.is_empty() {
+                    let mut state = self
+                        .state
+                        .lock()
+                        .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
+                    if let Some(pending) = state.pending_friend_baseline.as_mut() {
+                        if pending.session == requested_session {
+                            pending.feed_entries = feed_entries;
+                        }
+                    }
+                }
                 return Ok(FriendBaselineSyncOutcome {
                     result: FriendBaselineResult {
                         accepted: true,
@@ -283,6 +302,20 @@ impl RealtimeHostRuntime {
                 }
             }
         }
+        let reconcile_outcome = if reconcile_friend_log {
+            canonical_snapshot
+                .as_ref()
+                .map(|snapshot| {
+                    reconcile_friend_roster_records(
+                        self.deps.db.as_ref(),
+                        &snapshot.current_user_id,
+                        &snapshot.friends_by_id,
+                    )
+                })
+                .unwrap_or_default()
+        } else {
+            FriendRosterReconcileOutcome::default()
+        };
         if baseline_projection.is_some() || !confirmed_feed_entries.is_empty() {
             let mut projection = baseline_projection.unwrap_or(FriendProjection {
                 generation: result.generation,
@@ -305,14 +338,16 @@ impl RealtimeHostRuntime {
                 },
             );
         }
-        let friend_log_changed = reconcile_friend_log
-            && canonical_snapshot.as_ref().is_some_and(|snapshot| {
-                reconcile_friend_roster_records(
-                    self.deps.db.as_ref(),
-                    &snapshot.current_user_id,
-                    &snapshot.friends_by_id,
-                )
-            });
+        let FriendRosterReconcileOutcome {
+            changed: friend_log_changed,
+            feed_entries,
+        } = reconcile_outcome;
+        self.apply_persisted_friend_feed_entries_owned(
+            &owner,
+            result.generation,
+            result.baseline_revision,
+            feed_entries,
+        );
         for (user_id, token, delay_ms) in baseline_schedules {
             let runtime = Arc::clone(self);
             self.deps.tasks.spawn(async move {

@@ -52,7 +52,9 @@ use crate::realtime::{
     RealtimeWsStatusPayload,
 };
 use crate::session::HostSessionRuntime;
-use crate::social_baseline::service::reconcile_friend_roster_records;
+use crate::social_baseline::service::{
+    reconcile_friend_roster_records, FriendRosterReconcileOutcome,
+};
 use crate::sync::RuntimeSyncEngine;
 use crate::task_supervisor::TaskSupervisor;
 use crate::web_client::WebClient;

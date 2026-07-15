@@ -13,6 +13,7 @@ type SharedFeedNotificationEntry = Record<string, unknown> & {
     message?: unknown;
     status?: unknown;
     statusDescription?: unknown;
+    trustLevel?: unknown;
 };
 
 export async function pushSharedFeedNotification(
@@ -29,6 +30,7 @@ export async function pushSharedFeedNotification(
         entry?.message ||
         entry?.status ||
         entry?.statusDescription ||
+        entry?.trustLevel ||
         '';
     useNotificationStore.getState().pushNotification({
         level: 'info',
