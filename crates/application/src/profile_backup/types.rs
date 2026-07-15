@@ -102,6 +102,33 @@ pub struct ProfileBackupActionOutcome {
     pub error: Option<ProfileBackupError>,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum ProfileRestoreProgressOperation {
+    Validate,
+    Prepare,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum ProfileRestoreProgressPhase {
+    CopyArchive,
+    ExtractDatabase,
+    CheckDatabase,
+    VerifyStaging,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileRestoreProgress {
+    pub revision: u64,
+    pub operation: ProfileRestoreProgressOperation,
+    pub phase: ProfileRestoreProgressPhase,
+    pub processed_bytes: u64,
+    pub total_bytes: Option<u64>,
+    pub percent: Option<u8>,
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileRestoreRollbackState {

@@ -105,7 +105,7 @@ pub enum ProfileRestoreFailureCode {
     NewerDatabaseVersion,
     ContentSizeMismatch,
     ContentHashMismatch,
-    SourceFileChanged,
+    ValidationExpired,
     DatabaseCheckFailed,
     NotProfileDatabase,
     DatabaseVersionMismatch,

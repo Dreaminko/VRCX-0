@@ -18,8 +18,8 @@ use super::super::{
 };
 use super::artifacts::has_pending_profile_restore;
 use super::filesystem::{
-    create_private_file, remove_directory_if_exists, remove_file_if_exists, source_file_name,
-    sync_directory,
+    create_private_file, hash_file_with_progress, remove_directory_if_exists,
+    remove_file_if_exists, source_file_name, sync_directory,
 };
 
 const STAGED_ARCHIVE_FILE_NAME: &str = "profile-restore-package.vrcx0backup";
@@ -28,10 +28,32 @@ const TAR_BLOCK_BYTES: usize = 512;
 pub(super) const MAX_RESTORE_ARCHIVE_BYTES: u64 = MAX_PROFILE_DATABASE_BYTES + 16 * 1024 * 1024;
 pub(super) const RESTORE_FREE_SPACE_RESERVE_BYTES: u64 = 512 * 1024 * 1024;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProfileRestoreWorkPhase {
+    CopyArchive,
+    ExtractDatabase,
+    CheckDatabase,
+    VerifyStaging,
+}
+
 pub fn validate_and_stage_profile_restore(
     source: &Path,
     app_data: &Path,
     current_app_version: &str,
+) -> Result<ProfileRestoreValidationOutcome, Error> {
+    validate_and_stage_profile_restore_with_progress(
+        source,
+        app_data,
+        current_app_version,
+        |_, _, _| {},
+    )
+}
+
+pub fn validate_and_stage_profile_restore_with_progress(
+    source: &Path,
+    app_data: &Path,
+    current_app_version: &str,
+    mut progress: impl FnMut(ProfileRestoreWorkPhase, u64, Option<u64>),
 ) -> Result<ProfileRestoreValidationOutcome, Error> {
     let path = Some(source.to_string_lossy().into_owned());
     if has_pending_profile_restore(app_data) {
@@ -48,12 +70,13 @@ pub fn validate_and_stage_profile_restore(
     let staged_db = pending_dir.join(DATABASE_FILE_NAME);
 
     let result = (|| {
-        copy_archive_with_budget(source, &staged_archive, &pending_dir)?;
+        copy_archive_with_budget(source, &staged_archive, &pending_dir, &mut progress)?;
         validate_archive_streaming(
             &staged_archive,
             &staged_db,
             current_app_version,
             source_file_name(source),
+            &mut progress,
         )
     })();
 
@@ -82,11 +105,12 @@ fn validate_archive_streaming(
     staged_db: &Path,
     current_app_version: &str,
     source_file_name: String,
+    progress: &mut impl FnMut(ProfileRestoreWorkPhase, u64, Option<u64>),
 ) -> Result<ProfileRestoreValidation, ProfileRestoreFailureCode> {
     let mut archive_file = File::open(archive_path).map_err(|_| ProfileRestoreFailureCode::Io)?;
     let temporary_db = staged_db.with_extension("sqlite3.tmp");
     remove_file_if_exists(&temporary_db).map_err(|_| ProfileRestoreFailureCode::Io)?;
-    let streamed = read_streamed_restore_entries(&mut archive_file, &temporary_db);
+    let streamed = read_streamed_restore_entries(&mut archive_file, &temporary_db, progress);
     let (manifest_bytes, database) = match streamed {
         Ok(value) => value,
         Err(code) => {
@@ -108,7 +132,19 @@ fn validate_archive_streaming(
     }
     remove_file_if_exists(staged_db).map_err(|_| ProfileRestoreFailureCode::Io)?;
     fs::rename(&temporary_db, staged_db).map_err(|_| ProfileRestoreFailureCode::Io)?;
+    progress(ProfileRestoreWorkPhase::CheckDatabase, 0, None);
     validate_profile_database(staged_db, manifest.db_version)?;
+    let (staged_sha256, staged_bytes) = hash_file_with_progress(staged_db, |processed, total| {
+        progress(
+            ProfileRestoreWorkPhase::VerifyStaging,
+            processed,
+            Some(total),
+        );
+    })
+    .map_err(|_| ProfileRestoreFailureCode::Io)?;
+    if staged_sha256 != database.sha256 || staged_bytes != database.bytes {
+        return Err(ProfileRestoreFailureCode::StagingCorrupted);
+    }
 
     Ok(ProfileRestoreValidation {
         manifest: ProfileRestoreManifestSummary {
@@ -131,6 +167,7 @@ fn validate_archive_streaming(
 fn read_streamed_restore_entries(
     archive_file: &mut File,
     temporary_db: &Path,
+    progress: &mut impl FnMut(ProfileRestoreWorkPhase, u64, Option<u64>),
 ) -> Result<(Vec<u8>, StreamedDatabase), ProfileRestoreFailureCode> {
     let reader = BufReader::new(archive_file);
     let mut decoder = zstd::stream::read::Decoder::with_buffer(reader)
@@ -165,7 +202,12 @@ fn read_streamed_restore_entries(
                     if database.is_some() {
                         return Err(ProfileRestoreFailureCode::InvalidEntries);
                     }
-                    database = Some(read_database_entry(&mut entry, size, temporary_db)?);
+                    database = Some(read_database_entry(
+                        &mut entry,
+                        size,
+                        temporary_db,
+                        progress,
+                    )?);
                 }
                 _ => return Err(ProfileRestoreFailureCode::InvalidEntries),
             }
@@ -256,6 +298,7 @@ fn read_database_entry<R: Read>(
     entry: &mut R,
     expected_size: u64,
     temporary_db: &Path,
+    progress: &mut impl FnMut(ProfileRestoreWorkPhase, u64, Option<u64>),
 ) -> Result<StreamedDatabase, ProfileRestoreFailureCode> {
     if expected_size > MAX_PROFILE_DATABASE_BYTES {
         return Err(ProfileRestoreFailureCode::InvalidArchive);
@@ -265,6 +308,11 @@ fn read_database_entry<R: Read>(
     let mut hasher = Sha256::new();
     let mut bytes = 0_u64;
     let mut buffer = [0_u8; 128 * 1024];
+    progress(
+        ProfileRestoreWorkPhase::ExtractDatabase,
+        0,
+        Some(expected_size),
+    );
     loop {
         let read = entry
             .read(&mut buffer)
@@ -283,6 +331,11 @@ fn read_database_entry<R: Read>(
             .map_err(|_| ProfileRestoreFailureCode::Io)?;
         hasher.update(&buffer[..read]);
         bytes = next;
+        progress(
+            ProfileRestoreWorkPhase::ExtractDatabase,
+            bytes,
+            Some(expected_size),
+        );
     }
     output
         .sync_all()
@@ -339,6 +392,7 @@ fn copy_archive_with_budget(
     source: &Path,
     destination: &Path,
     space_path: &Path,
+    progress: &mut impl FnMut(ProfileRestoreWorkPhase, u64, Option<u64>),
 ) -> Result<(), ProfileRestoreFailureCode> {
     let path_metadata = fs::metadata(source).map_err(|_| ProfileRestoreFailureCode::Io)?;
     if !path_metadata.file_type().is_file() {
@@ -352,14 +406,39 @@ fn copy_archive_with_budget(
         return Err(ProfileRestoreFailureCode::InvalidArchive);
     }
     let available = fs4::available_space(space_path).map_err(|_| ProfileRestoreFailureCode::Io)?;
-    copy_open_archive_with_budget(&mut input, metadata.len(), available, destination)
+    copy_open_archive_with_budget_and_progress(
+        &mut input,
+        metadata.len(),
+        available,
+        destination,
+        |processed, total| {
+            progress(ProfileRestoreWorkPhase::CopyArchive, processed, Some(total));
+        },
+    )
 }
 
+#[cfg(test)]
 pub(super) fn copy_open_archive_with_budget(
     input: &mut File,
     initial_len: u64,
     available_bytes: u64,
     destination: &Path,
+) -> Result<(), ProfileRestoreFailureCode> {
+    copy_open_archive_with_budget_and_progress(
+        input,
+        initial_len,
+        available_bytes,
+        destination,
+        |_, _| {},
+    )
+}
+
+pub(super) fn copy_open_archive_with_budget_and_progress(
+    input: &mut File,
+    initial_len: u64,
+    available_bytes: u64,
+    destination: &Path,
+    mut progress: impl FnMut(u64, u64),
 ) -> Result<(), ProfileRestoreFailureCode> {
     ensure_restore_archive_copy_budget(initial_len, available_bytes)?;
     let copy_limit = initial_len
@@ -369,6 +448,7 @@ pub(super) fn copy_open_archive_with_budget(
         .seek(SeekFrom::Start(0))
         .map_err(|_| ProfileRestoreFailureCode::Io)?;
     let mut output = create_private_file(destination).map_err(|_| ProfileRestoreFailureCode::Io)?;
+    progress(0, initial_len);
     let copy_result = (|| {
         let mut copied = 0_u64;
         let mut buffer = [0_u8; 128 * 1024];
@@ -387,6 +467,7 @@ pub(super) fn copy_open_archive_with_budget(
             copied = copied
                 .checked_add(read as u64)
                 .ok_or(ProfileRestoreFailureCode::InvalidArchive)?;
+            progress(copied, initial_len);
         }
         if copied != initial_len {
             return Err(ProfileRestoreFailureCode::InvalidArchive);

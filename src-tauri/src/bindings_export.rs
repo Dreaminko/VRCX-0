@@ -2,9 +2,9 @@ use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, Builder, ErrorHandlingMode};
 use vrcx_0_application::{
     BackendRuntimeTelemetry, FriendProjection, GameLogProjection, HostSessionProjection,
-    OverlayActivitySnapshot, ParsedLocation, PrintAutoCleanupEvent, RealtimeCurrentUserProjection,
-    RealtimeEntryCorrection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
-    RealtimeNotificationProjection, RealtimeWsStatusPayload,
+    OverlayActivitySnapshot, ParsedLocation, PrintAutoCleanupEvent, ProfileRestoreProgress,
+    RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeWsStatusPayload,
 };
 use vrcx_0_harness::{
     AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,
@@ -33,6 +33,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         .typ::<OverlayActivitySnapshot>()
         .typ::<ParsedLocation>()
         .typ::<PrintAutoCleanupEvent>()
+        .typ::<ProfileRestoreProgress>()
         .typ::<RealtimeCurrentUserProjection>()
         .typ::<RealtimeEntryCorrection>()
         .typ::<RealtimeInstanceClosedProjection>()
@@ -137,6 +138,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::profile_backup::app__profile_backup_current_status,
             commands::application::profile_backup::app__profile_restore_validate,
             commands::application::profile_backup::app__profile_restore_request,
+            commands::application::profile_backup::app__profile_restore_discard_staged,
             commands::application::profile_backup::app__profile_restore_take_last_result,
             commands::application::profile_backup::app__profile_restore_rollback_state,
             commands::application::profile_backup::app__profile_restore_clear_rollback,

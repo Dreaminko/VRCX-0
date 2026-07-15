@@ -221,6 +221,31 @@ describe('runtimeEventBridgeService', () => {
         });
     });
 
+    it('routes restore progress to the active global restore flow', async () => {
+        const handlers = new Map<string, (payload: unknown) => void>();
+        mocks.subscribe.mockImplementation(async (name, handler) => {
+            handlers.set(name, handler);
+            return () => {};
+        });
+        useProfileBackupStore.getState().beginRestoreValidation();
+
+        await bindRuntimeEvents();
+        handlers.get('profileRestoreProgress')?.({
+            revision: 9,
+            operation: 'validate',
+            phase: 'extractDatabase',
+            processedBytes: 25,
+            totalBytes: 100,
+            percent: 25
+        });
+
+        expect(useProfileBackupStore.getState().restoreProgress).toMatchObject({
+            revision: 9,
+            phase: 'extractDatabase',
+            percent: 25
+        });
+    });
+
     it('records GameLog persistence fallback as telemetry without frontend ingest', async () => {
         const handlers = new Map<string, (payload: unknown) => void>();
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

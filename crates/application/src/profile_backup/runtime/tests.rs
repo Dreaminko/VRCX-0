@@ -6,7 +6,8 @@ use std::time::{Duration, Instant, SystemTime};
 use chrono::{DateTime, Local, TimeZone, Utc};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::profile_backup::{
-    DATABASE_FILE_NAME, RESTORE_JOURNAL_FILE_NAME, RESTORE_ROLLBACK_DIRECTORY,
+    create_backup_archive, ProfileBackupManifestMetadata, DATABASE_FILE_NAME,
+    RESTORE_JOURNAL_FILE_NAME, RESTORE_PENDING_DIRECTORY, RESTORE_ROLLBACK_DIRECTORY,
 };
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;
@@ -27,6 +28,7 @@ use super::{
     ProfileBackupStatus, AUTO_JOB,
 };
 use crate::profile_backup::ProfileBackupErrorCode;
+use crate::profile_backup::{ProfileRestoreFailureCode, ProfileRestoreProgress};
 
 struct TestDir(PathBuf);
 
@@ -68,6 +70,162 @@ fn test_runtime(dir: &TestDir) -> ProfileBackupRuntime {
         RuntimeBackgroundJobs::new(),
         "2.13.0".into(),
     )
+}
+
+fn create_restore_archive(dir: &TestDir, name: &str) -> PathBuf {
+    let database = dir.0.join(format!("{name}.sqlite3"));
+    let connection = rusqlite::Connection::open(&database).unwrap();
+    connection
+        .execute_batch(
+            "CREATE TABLE configs (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             INSERT INTO configs (key, value) VALUES
+             ('config:vrcx_0_databaseversion', '18');",
+        )
+        .unwrap();
+    drop(connection);
+    let archive = dir.0.join(format!("{name}.vrcx0backup"));
+    create_backup_archive(
+        &database,
+        &archive,
+        ProfileBackupManifestMetadata {
+            app_version: "2.13.0".into(),
+            db_version: 18,
+            created_at: "2026-07-15T00:00:00Z".into(),
+            platform: "windows".into(),
+            kind: ProfileBackupKind::Manual,
+        },
+    )
+    .unwrap();
+    archive
+}
+
+#[test]
+fn restore_confirmation_uses_the_validated_staging_after_source_removal() {
+    let dir = TestDir::new("restore-staged-source");
+    let runtime = test_runtime(&dir);
+    let source = create_restore_archive(&dir, "restore-source");
+
+    let validation = runtime.validate_restore(&source).validation.unwrap();
+    fs::remove_file(source).unwrap();
+    let outcome = runtime.request_restore(&validation.staged_sha256);
+
+    assert!(outcome.validation.is_some());
+    assert!(runtime
+        .inner
+        .app_data
+        .join(RESTORE_JOURNAL_FILE_NAME)
+        .is_file());
+}
+
+#[test]
+fn restore_confirmation_rejects_expired_and_corrupted_staging() {
+    let expired_dir = TestDir::new("restore-expired");
+    let expired_runtime = test_runtime(&expired_dir);
+    let source = create_restore_archive(&expired_dir, "expired-source");
+    expired_runtime.validate_restore(&source);
+    let expired = expired_runtime.request_restore("wrong-sha");
+    assert_eq!(
+        expired.failure.unwrap().code,
+        ProfileRestoreFailureCode::ValidationExpired
+    );
+    assert!(!expired_runtime
+        .inner
+        .app_data
+        .join(RESTORE_JOURNAL_FILE_NAME)
+        .exists());
+
+    let corrupt_dir = TestDir::new("restore-corrupt");
+    let corrupt_runtime = test_runtime(&corrupt_dir);
+    let source = create_restore_archive(&corrupt_dir, "corrupt-source");
+    let validation = corrupt_runtime
+        .validate_restore(&source)
+        .validation
+        .unwrap();
+    fs::write(
+        corrupt_runtime
+            .inner
+            .app_data
+            .join(RESTORE_PENDING_DIRECTORY)
+            .join(DATABASE_FILE_NAME),
+        b"changed",
+    )
+    .unwrap();
+    let corrupted = corrupt_runtime.request_restore(&validation.staged_sha256);
+    assert_eq!(
+        corrupted.failure.unwrap().code,
+        ProfileRestoreFailureCode::StagingCorrupted
+    );
+    assert!(!corrupt_runtime
+        .inner
+        .app_data
+        .join(RESTORE_JOURNAL_FILE_NAME)
+        .exists());
+}
+
+#[test]
+fn restore_progress_has_indeterminate_database_check_and_determinate_hashes() {
+    let dir = TestDir::new("restore-progress");
+    let runtime = test_runtime(&dir);
+    let source = create_restore_archive(&dir, "progress-source");
+
+    let validation = runtime.validate_restore(&source).validation.unwrap();
+    let validate_events = runtime
+        .inner
+        .event_bus
+        .take_events_for_test()
+        .into_iter()
+        .filter(|event| event.name == "profileRestoreProgress")
+        .map(|event| serde_json::from_value::<ProfileRestoreProgress>(event.payload).unwrap())
+        .collect::<Vec<_>>();
+    assert!(validate_events.iter().any(|event| {
+        event.phase == super::ProfileRestoreProgressPhase::CheckDatabase
+            && event.percent.is_none()
+            && event.total_bytes.is_none()
+    }));
+    assert!(validate_events.iter().any(|event| {
+        event.phase == super::ProfileRestoreProgressPhase::VerifyStaging
+            && event.percent == Some(100)
+    }));
+
+    runtime.request_restore(&validation.staged_sha256);
+    let prepare_events = runtime
+        .inner
+        .event_bus
+        .take_events_for_test()
+        .into_iter()
+        .filter(|event| event.name == "profileRestoreProgress")
+        .map(|event| serde_json::from_value::<ProfileRestoreProgress>(event.payload).unwrap())
+        .collect::<Vec<_>>();
+    assert!(prepare_events.iter().any(|event| {
+        event.operation == super::ProfileRestoreProgressOperation::Prepare
+            && event.phase == super::ProfileRestoreProgressPhase::VerifyStaging
+            && event.percent == Some(100)
+    }));
+}
+
+#[test]
+fn discard_staged_restore_is_idempotent_and_expires_validation() {
+    let dir = TestDir::new("restore-discard");
+    let runtime = test_runtime(&dir);
+    let source = create_restore_archive(&dir, "discard-source");
+    let validation = runtime.validate_restore(&source).validation.unwrap();
+
+    runtime.discard_staged_restore().unwrap();
+    runtime.discard_staged_restore().unwrap();
+
+    assert!(!runtime
+        .inner
+        .app_data
+        .join(RESTORE_PENDING_DIRECTORY)
+        .exists());
+    assert_eq!(
+        runtime
+            .request_restore(&validation.staged_sha256)
+            .failure
+            .unwrap()
+            .code,
+        ProfileRestoreFailureCode::ValidationExpired
+    );
 }
 
 fn wait_for_status(

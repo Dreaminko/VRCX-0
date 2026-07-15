@@ -50,7 +50,8 @@ import { isHostCapabilityAvailable } from './hostCapabilityService';
 import i18n from './i18nService';
 import {
     getCurrentProfileBackupStatus,
-    type ProfileBackupStatus
+    type ProfileBackupStatus,
+    type ProfileRestoreProgress
 } from './profileBackupService';
 import { handleRealtimeInstanceQueueProjection } from './realtimeInstanceQueueService';
 import {
@@ -77,6 +78,7 @@ type RuntimeEventName =
     | 'overlayActivitySnapshot'
     | 'printsAutoCleanup'
     | 'profileBackupStatus'
+    | 'profileRestoreProgress'
     | 'favoritesChanged'
     | 'friendProfileLoadStatus'
     | 'realtimeFriendProjection'
@@ -107,6 +109,7 @@ type RuntimeEventPayloadMap = {
     overlayActivitySnapshot: OverlayActivitySnapshot;
     printsAutoCleanup: PrintAutoCleanupEvent;
     profileBackupStatus: ProfileBackupStatus;
+    profileRestoreProgress: ProfileRestoreProgress;
     favoritesChanged: FavoritesChangedEventPayload;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
@@ -778,6 +781,15 @@ function handleRuntimeEvent(
         return;
     }
 
+    if (name === 'profileRestoreProgress') {
+        useProfileBackupStore
+            .getState()
+            .applyRestoreProgress(
+                payload as RuntimeEventPayloadMap['profileRestoreProgress']
+            );
+        return;
+    }
+
     if (name === 'favoritesChanged') {
         runtimeStore.recordRuntimeEvent(name, payload);
         handleFavoritesChangedEvent(
@@ -963,6 +975,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'overlayActivitySnapshot',
         'printsAutoCleanup',
         'profileBackupStatus',
+        'profileRestoreProgress',
         'favoritesChanged',
         'friendProfileLoadStatus',
         'gameClientEvent',

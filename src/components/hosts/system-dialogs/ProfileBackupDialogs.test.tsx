@@ -1,12 +1,20 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, waitFor } from '@testing-library/react';
+import {
+    cleanup,
+    fireEvent,
+    render,
+    screen,
+    waitFor
+} from '@testing-library/react';
 import { StrictMode, type ComponentProps, type PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     toastError: vi.fn(),
     toastSuccess: vi.fn(),
+    discard: vi.fn(),
+    request: vi.fn(),
     translate: (key: string) => key
 }));
 
@@ -22,7 +30,8 @@ vi.mock('sonner', () => ({
 }));
 
 vi.mock('@/services/profileBackupService', () => ({
-    requestProfileRestore: vi.fn()
+    discardStagedProfileRestore: mocks.discard,
+    requestProfileRestore: mocks.request
 }));
 
 vi.mock('@/ui/shadcn/alert-dialog', () => ({
@@ -52,15 +61,40 @@ vi.mock('@/ui/shadcn/button', () => ({
     )
 }));
 
+vi.mock('@/ui/shadcn/progress', () => ({
+    Progress: ({ value }: { value: number }) => (
+        <div aria-label="restore-progress" data-value={value} />
+    )
+}));
+
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 
 import { ProfileBackupDialogs } from './ProfileBackupDialogs';
+
+const restoreValidation = {
+    sourceFileName: 'profile.vrcx0backup',
+    stagedSha256: 'abc123',
+    stagedBytes: 1024,
+    archive: 'valid',
+    appVersion: 'compatible',
+    databaseVersion: 'compatible',
+    database: 'valid',
+    manifest: {
+        createdAt: '2026-07-15T00:00:00Z',
+        appVersion: '2.13.0',
+        dbVersion: 18,
+        platform: 'windows',
+        kind: 'manual'
+    }
+} as const;
 
 describe('ProfileBackupDialogs', () => {
     beforeEach(() => {
         sessionStorage.clear();
         mocks.toastError.mockReset();
         mocks.toastSuccess.mockReset();
+        mocks.discard.mockReset();
+        mocks.request.mockReset();
         useProfileBackupStore.getState().resetProfileBackupState();
     });
 
@@ -93,5 +127,71 @@ describe('ProfileBackupDialogs', () => {
             expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
         });
         expect(mocks.toastError).not.toHaveBeenCalled();
+    });
+
+    it('shows determinate phase progress but not a fake database percentage', () => {
+        useProfileBackupStore.getState().beginRestoreValidation();
+        useProfileBackupStore.getState().applyRestoreProgress({
+            revision: 1,
+            operation: 'validate',
+            phase: 'copyArchive',
+            processedBytes: 50,
+            totalBytes: 100,
+            percent: 50
+        });
+        const view = render(<ProfileBackupDialogs />);
+
+        expect(
+            screen.getByText('profile_backup.restore_progress_copy')
+        ).toBeTruthy();
+        expect(screen.getByText('50%')).toBeTruthy();
+        expect(
+            screen.getByLabelText('restore-progress').getAttribute('data-value')
+        ).toBe('50');
+
+        useProfileBackupStore.getState().applyRestoreProgress({
+            revision: 2,
+            operation: 'validate',
+            phase: 'checkDatabase',
+            processedBytes: 0,
+            totalBytes: null,
+            percent: null
+        });
+        view.rerender(<ProfileBackupDialogs />);
+
+        expect(
+            screen.getByText('profile_backup.restore_progress_database_check')
+        ).toBeTruthy();
+        expect(screen.queryByText('50%')).toBeNull();
+        expect(screen.queryByLabelText('restore-progress')).toBeNull();
+    });
+
+    it('discards staged data when the confirmation is cancelled', async () => {
+        mocks.discard.mockResolvedValue(null);
+        useProfileBackupStore
+            .getState()
+            .showRestoreConfirmation(restoreValidation);
+        render(<ProfileBackupDialogs />);
+
+        fireEvent.click(screen.getByText('common.actions.cancel'));
+        fireEvent.click(screen.getByText('common.actions.cancel'));
+
+        await waitFor(() => expect(mocks.discard).toHaveBeenCalledTimes(1));
+        expect(useProfileBackupStore.getState().restoreFlow).toBe('idle');
+    });
+
+    it('submits only the confirmed staged hash and enters preparation once', () => {
+        mocks.request.mockReturnValue(new Promise(() => {}));
+        useProfileBackupStore
+            .getState()
+            .showRestoreConfirmation(restoreValidation);
+        render(<ProfileBackupDialogs />);
+
+        fireEvent.click(screen.getByText('profile_backup.restore_and_restart'));
+
+        expect(mocks.request).toHaveBeenCalledTimes(1);
+        expect(mocks.request).toHaveBeenCalledWith('abc123');
+        expect(useProfileBackupStore.getState().restoreFlow).toBe('preparing');
+        expect(screen.queryByText('common.actions.cancel')).toBeNull();
     });
 });

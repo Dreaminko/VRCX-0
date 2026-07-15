@@ -9,9 +9,14 @@ pub use artifacts::{
     take_last_profile_restore_result,
 };
 pub use journal::{
-    consume_pending_profile_restore, request_staged_profile_restore, PendingProfileRestore,
+    consume_pending_profile_restore, request_staged_profile_restore,
+    request_staged_profile_restore_with_progress, PendingProfileRestore,
+    RequestStagedProfileRestoreError,
 };
-pub use validation::{read_profile_database_version, validate_and_stage_profile_restore};
+pub use validation::{
+    read_profile_database_version, validate_and_stage_profile_restore,
+    validate_and_stage_profile_restore_with_progress, ProfileRestoreWorkPhase,
+};
 
 #[cfg(test)]
 mod tests;

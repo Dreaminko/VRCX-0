@@ -14,7 +14,7 @@ use super::super::{
     RESTORE_PENDING_DIRECTORY, RESTORE_ROLLBACK_DIRECTORY,
 };
 use super::filesystem::{
-    ensure_rollback_directory, hash_file, install_staged_database,
+    ensure_rollback_directory, hash_file, hash_file_with_progress, install_staged_database,
     move_database_family_to_rollback, prune_rollback_directories, remove_database_family,
     remove_directory_if_exists, remove_file_if_exists, restore_database_family_from_rollback,
     sync_directory_durable, valid_rollback_directory_name, write_restore_result,
@@ -92,21 +92,40 @@ pub fn request_staged_profile_restore(
     app_data: &Path,
     validation: &ProfileRestoreValidation,
 ) -> Result<(), Error> {
+    request_staged_profile_restore_with_progress(app_data, validation, |_, _| {}).map_err(|error| {
+        match error {
+            RequestStagedProfileRestoreError::StagingCorrupted => Error::InvalidData(
+                "The staged profile restore database changed after validation.".into(),
+            ),
+            RequestStagedProfileRestoreError::Other(error) => error,
+        }
+    })
+}
+
+pub enum RequestStagedProfileRestoreError {
+    StagingCorrupted,
+    Other(Error),
+}
+
+pub fn request_staged_profile_restore_with_progress(
+    app_data: &Path,
+    validation: &ProfileRestoreValidation,
+    progress: impl FnMut(u64, u64),
+) -> Result<(), RequestStagedProfileRestoreError> {
     let journal_path = app_data.join(RESTORE_JOURNAL_FILE_NAME);
     if journal_path.exists() {
-        return Err(Error::InvalidData(
+        return Err(RequestStagedProfileRestoreError::Other(Error::InvalidData(
             "A profile restore request is already pending.".into(),
-        ));
+        )));
     }
 
     let staged_db = app_data
         .join(RESTORE_PENDING_DIRECTORY)
         .join(DATABASE_FILE_NAME);
-    let (sha256, bytes) = hash_file(&staged_db)?;
+    let (sha256, bytes) = hash_file_with_progress(&staged_db, progress)
+        .map_err(RequestStagedProfileRestoreError::Other)?;
     if sha256 != validation.staged_sha256 || bytes != validation.staged_bytes {
-        return Err(Error::InvalidData(
-            "The staged profile restore database changed after validation.".into(),
-        ));
+        return Err(RequestStagedProfileRestoreError::StagingCorrupted);
     }
 
     let rollback_directory_name = Utc::now().format("%Y%m%d-%H%M%S").to_string();
@@ -114,9 +133,9 @@ pub fn request_staged_profile_restore(
         .join(RESTORE_ROLLBACK_DIRECTORY)
         .join(&rollback_directory_name);
     if rollback_dir.exists() {
-        return Err(Error::InvalidData(
+        return Err(RequestStagedProfileRestoreError::Other(Error::InvalidData(
             "The profile restore rollback destination already exists.".into(),
-        ));
+        )));
     }
 
     let journal = RestoreJournal {
@@ -128,7 +147,7 @@ pub fn request_staged_profile_restore(
         manifest: validation.manifest.clone(),
         rollback_directory_name,
     };
-    write_new_journal(&journal_path, &journal)
+    write_new_journal(&journal_path, &journal).map_err(RequestStagedProfileRestoreError::Other)
 }
 
 pub fn consume_pending_profile_restore(

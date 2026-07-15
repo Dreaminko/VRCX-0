@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
     ProfileBackupStatus,
+    ProfileRestoreProgress,
     ProfileRestoreResult,
     ProfileRestoreRollbackState,
     ProfileRestoreValidation
@@ -58,14 +59,50 @@ describe('profileBackupStore', () => {
             }
         };
 
+        useProfileBackupStore.getState().beginRestoreValidation();
+        useProfileBackupStore.getState().showRestoreConfirmation(validation);
+
+        expect(useProfileBackupStore.getState().restoreFlow).toBe('confirm');
+        expect(useProfileBackupStore.getState().restoreValidation).toEqual(
+            validation
+        );
+    });
+
+    it('accepts only current-operation restore progress with a newer revision', () => {
+        const progress = (
+            revision: number,
+            operation: ProfileRestoreProgress['operation']
+        ): ProfileRestoreProgress => ({
+            revision,
+            operation,
+            phase: 'copyArchive',
+            processedBytes: 50,
+            totalBytes: 100,
+            percent: 50
+        });
+
+        useProfileBackupStore.getState().beginRestoreValidation();
         useProfileBackupStore
             .getState()
-            .openRestoreDialog('D:\\backup.vrcx0backup', validation);
+            .applyRestoreProgress(progress(2, 'validate'));
+        useProfileBackupStore
+            .getState()
+            .applyRestoreProgress(progress(1, 'validate'));
+        useProfileBackupStore
+            .getState()
+            .applyRestoreProgress(progress(3, 'prepare'));
 
-        expect(useProfileBackupStore.getState().restoreDialog).toEqual({
-            path: 'D:\\backup.vrcx0backup',
-            validation
-        });
+        expect(useProfileBackupStore.getState().restoreProgress).toEqual(
+            progress(2, 'validate')
+        );
+
+        useProfileBackupStore.getState().beginRestorePreparation();
+        useProfileBackupStore
+            .getState()
+            .applyRestoreProgress(progress(4, 'prepare'));
+        expect(useProfileBackupStore.getState().restoreProgress).toEqual(
+            progress(4, 'prepare')
+        );
     });
 
     it('keeps the notified outcome revision across a WebView reload', async () => {

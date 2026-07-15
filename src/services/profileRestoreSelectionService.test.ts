@@ -1,18 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    dismiss: vi.fn(),
     error: vi.fn(),
-    loading: vi.fn(() => 'restore-validation'),
     openFile: vi.fn(),
     validate: vi.fn()
 }));
 
 vi.mock('sonner', () => ({
     toast: {
-        dismiss: mocks.dismiss,
-        error: mocks.error,
-        loading: mocks.loading
+        error: mocks.error
     }
 }));
 
@@ -36,9 +32,7 @@ import { selectProfileBackupToRestore } from './profileRestoreSelectionService';
 
 describe('selectProfileBackupToRestore', () => {
     beforeEach(() => {
-        mocks.dismiss.mockClear();
         mocks.error.mockClear();
-        mocks.loading.mockClear();
         mocks.openFile.mockReset();
         mocks.validate.mockReset();
         useProfileBackupStore.getState().resetProfileBackupState();
@@ -78,10 +72,10 @@ describe('selectProfileBackupToRestore', () => {
         expect(mocks.validate).toHaveBeenCalledWith(
             'E:\\Backups\\profile.vrcx0backup'
         );
-        expect(useProfileBackupStore.getState().restoreDialog?.path).toBe(
-            'E:\\Backups\\profile.vrcx0backup'
-        );
-        expect(mocks.dismiss).toHaveBeenCalledWith('restore-validation');
+        expect(useProfileBackupStore.getState().restoreFlow).toBe('confirm');
+        expect(
+            useProfileBackupStore.getState().restoreValidation?.sourceFileName
+        ).toBe('profile.vrcx0backup');
     });
 
     it('keeps the confirmation closed when validation fails', async () => {
@@ -93,7 +87,7 @@ describe('selectProfileBackupToRestore', () => {
 
         await expect(selectProfileBackupToRestore()).resolves.toBe(false);
 
-        expect(useProfileBackupStore.getState().restoreDialog).toBeNull();
+        expect(useProfileBackupStore.getState().restoreFlow).toBe('idle');
         expect(mocks.error).toHaveBeenCalledWith(
             'profile_backup.error.invalid_archive'
         );

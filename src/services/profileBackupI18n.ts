@@ -43,7 +43,7 @@ const PROFILE_RESTORE_VALIDATION_ERROR_KEYS: Record<
     newerDatabaseVersion: 'profile_backup.error.newer_database_version',
     contentSizeMismatch: 'profile_backup.error.checksum_mismatch',
     contentHashMismatch: 'profile_backup.error.checksum_mismatch',
-    sourceFileChanged: 'profile_backup.error.source_changed',
+    validationExpired: 'profile_backup.error.validation_expired',
     databaseCheckFailed: 'profile_backup.error.database_corrupt',
     notProfileDatabase: 'profile_backup.error.not_vrcx0_profile',
     databaseVersionMismatch: 'profile_backup.error.database_corrupt',

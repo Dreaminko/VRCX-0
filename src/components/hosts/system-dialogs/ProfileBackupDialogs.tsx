@@ -3,7 +3,7 @@ import {
     CircleCheckIcon,
     LoaderCircleIcon
 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -13,7 +13,9 @@ import {
     profileRestoreFailureKey
 } from '@/services/profileBackupI18n';
 import {
+    discardStagedProfileRestore,
     requestProfileRestore,
+    type ProfileRestoreProgress,
     type ProfileRestoreValidation
 } from '@/services/profileBackupService';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
@@ -27,6 +29,53 @@ import {
     AlertDialogTitle
 } from '@/ui/shadcn/alert-dialog';
 import { Button } from '@/ui/shadcn/button';
+import { Progress } from '@/ui/shadcn/progress';
+
+const RESTORE_PHASE_KEYS = {
+    copyArchive: 'profile_backup.restore_progress_copy',
+    extractDatabase: 'profile_backup.restore_progress_extract',
+    checkDatabase: 'profile_backup.restore_progress_database_check',
+    verifyStaging: 'profile_backup.restore_progress_verify_staging'
+} as const;
+
+type RestoreProgressViewProps = {
+    progress: ProfileRestoreProgress | null;
+    fallback: string;
+};
+
+function RestoreProgressView({ progress, fallback }: RestoreProgressViewProps) {
+    const { t } = useTranslation();
+    if (!progress) {
+        return (
+            <div className="text-muted-foreground flex items-center gap-3 text-sm">
+                <LoaderCircleIcon className="size-5 animate-spin motion-reduce:animate-none" />
+                <span>{fallback}</span>
+            </div>
+        );
+    }
+
+    const label = t(RESTORE_PHASE_KEYS[progress.phase]);
+    if (progress.percent === null) {
+        return (
+            <div className="text-muted-foreground flex items-center gap-3 text-sm">
+                <LoaderCircleIcon className="size-5 animate-spin motion-reduce:animate-none" />
+                <span>{label}</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-4 text-sm">
+                <span>{label}</span>
+                <span className="text-muted-foreground tabular-nums">
+                    {progress.percent}%
+                </span>
+            </div>
+            <Progress value={progress.percent} />
+        </div>
+    );
+}
 
 function RestoreMetadata({
     validation
@@ -83,17 +132,21 @@ export function ProfileBackupDialogs() {
     const claimOutcomeNotification = useProfileBackupStore(
         (state) => state.claimOutcomeNotification
     );
-    const restoreDialog = useProfileBackupStore((state) => state.restoreDialog);
-    const restoreRequesting = useProfileBackupStore(
-        (state) => state.restoreRequesting
+    const restoreFlow = useProfileBackupStore((state) => state.restoreFlow);
+    const restoreValidation = useProfileBackupStore(
+        (state) => state.restoreValidation
     );
-    const closeRestoreDialog = useProfileBackupStore(
-        (state) => state.closeRestoreDialog
+    const restoreProgress = useProfileBackupStore(
+        (state) => state.restoreProgress
     );
-    const setRestoreRequesting = useProfileBackupStore(
-        (state) => state.setRestoreRequesting
+    const beginRestorePreparation = useProfileBackupStore(
+        (state) => state.beginRestorePreparation
     );
-    const restartingText = t('profile_backup.restarting_to_restore');
+    const closeRestoreFlow = useProfileBackupStore(
+        (state) => state.closeRestoreFlow
+    );
+    const restoreActionPending = useRef(false);
+    const isBusy = restoreFlow === 'validating' || restoreFlow === 'preparing';
 
     useEffect(() => {
         const outcome = status.lastOutcome;
@@ -116,17 +169,22 @@ export function ProfileBackupDialogs() {
     }, [claimOutcomeNotification, status.lastOutcome, t]);
 
     async function confirmRestore() {
-        if (!restoreDialog || restoreRequesting) {
+        if (
+            restoreFlow !== 'confirm' ||
+            !restoreValidation ||
+            restoreActionPending.current
+        ) {
             return;
         }
-        setRestoreRequesting(true);
+        restoreActionPending.current = true;
+        beginRestorePreparation();
         try {
             const outcome = await requestProfileRestore(
-                restoreDialog.path,
-                restoreDialog.validation.stagedSha256
+                restoreValidation.stagedSha256
             );
             if (!outcome.validation) {
-                setRestoreRequesting(false);
+                restoreActionPending.current = false;
+                closeRestoreFlow();
                 toast.error(
                     t(
                         outcome.failure
@@ -136,17 +194,45 @@ export function ProfileBackupDialogs() {
                 );
             }
         } catch {
-            setRestoreRequesting(false);
+            restoreActionPending.current = false;
+            closeRestoreFlow();
             toast.error(t('profile_backup.restore_request_failed'));
         }
     }
 
+    async function cancelRestore() {
+        if (restoreFlow !== 'confirm' || restoreActionPending.current) {
+            return;
+        }
+        restoreActionPending.current = true;
+        try {
+            await discardStagedProfileRestore();
+        } catch {
+            toast.error(t('profile_backup.error.io'));
+        } finally {
+            restoreActionPending.current = false;
+            closeRestoreFlow();
+        }
+    }
+
+    let title = t('profile_backup.validating_restore');
+    let description = t('profile_backup.restore_validation_description');
+    let progressFallback = title;
+    if (restoreFlow === 'confirm') {
+        title = t('profile_backup.restore_confirm_title');
+        description = t('profile_backup.restore_confirm_description');
+    } else if (restoreFlow === 'preparing') {
+        title = t('profile_backup.preparing_restore');
+        description = t('profile_backup.restore_prepare_description');
+        progressFallback = title;
+    }
+
     return (
         <AlertDialog
-            open={Boolean(restoreDialog)}
+            open={restoreFlow !== 'idle'}
             onOpenChange={(open) => {
-                if (!open && !restoreRequesting) {
-                    closeRestoreDialog();
+                if (!open && restoreFlow === 'confirm') {
+                    void cancelRestore();
                 }
             }}
         >
@@ -155,48 +241,42 @@ export function ProfileBackupDialogs() {
                     <AlertDialogMedia className="bg-destructive/10 text-destructive">
                         <ArchiveRestoreIcon />
                     </AlertDialogMedia>
-                    <AlertDialogTitle>
-                        {t('profile_backup.restore_confirm_title')}
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>{title}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        {restoreRequesting
-                            ? restartingText
-                            : t('profile_backup.restore_confirm_description')}
+                        {description}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                {restoreDialog ? (
-                    <RestoreMetadata validation={restoreDialog.validation} />
+                {restoreFlow === 'confirm' && restoreValidation ? (
+                    <RestoreMetadata validation={restoreValidation} />
+                ) : isBusy ? (
+                    <RestoreProgressView
+                        progress={restoreProgress}
+                        fallback={progressFallback}
+                    />
                 ) : null}
-                <AlertDialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={restoreRequesting}
-                        onClick={closeRestoreDialog}
-                    >
-                        {t('common.actions.cancel')}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        disabled={restoreRequesting}
-                        onClick={() => {
-                            void confirmRestore();
-                        }}
-                    >
-                        {restoreRequesting ? (
-                            <LoaderCircleIcon
-                                className="animate-spin motion-reduce:animate-none"
-                                data-icon="inline-start"
-                            />
-                        ) : (
+                {restoreFlow === 'confirm' ? (
+                    <AlertDialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                void cancelRestore();
+                            }}
+                        >
+                            {t('common.actions.cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => {
+                                void confirmRestore();
+                            }}
+                        >
                             <ArchiveRestoreIcon data-icon="inline-start" />
-                        )}
-                        {restoreRequesting
-                            ? restartingText
-                            : t('profile_backup.restore_and_restart')}
-                    </Button>
-                </AlertDialogFooter>
+                            {t('profile_backup.restore_and_restart')}
+                        </Button>
+                    </AlertDialogFooter>
+                ) : null}
             </AlertDialogContent>
         </AlertDialog>
     );

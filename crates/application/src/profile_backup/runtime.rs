@@ -21,6 +21,8 @@ use crate::task_supervisor::TaskSupervisor;
 use super::types::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupState, ProfileBackupStatus,
+    ProfileRestoreProgress, ProfileRestoreProgressOperation, ProfileRestoreProgressPhase,
+    ProfileRestoreValidation,
 };
 
 const AUTO_ENABLED_KEY: &str = "VRCX_ProfileBackupAutoEnabled";
@@ -58,6 +60,9 @@ struct ProfileBackupRuntimeState {
     status: ProfileBackupStatus,
     pending_delivery: Option<PendingDelivery>,
     last_progress_event_at: Option<Instant>,
+    validated_restore: Option<ProfileRestoreValidation>,
+    restore_progress_revision: u64,
+    last_restore_progress_event_at: Option<Instant>,
 }
 
 #[derive(Clone)]
@@ -221,6 +226,67 @@ impl ProfileBackupRuntime {
             }
         };
         self.inner.event_bus.emit("profileBackupStatus", snapshot);
+    }
+
+    fn update_restore_progress(
+        &self,
+        operation: ProfileRestoreProgressOperation,
+        phase: ProfileRestoreProgressPhase,
+        processed_bytes: u64,
+        total_bytes: Option<u64>,
+    ) {
+        self.update_restore_progress_at(
+            operation,
+            phase,
+            processed_bytes,
+            total_bytes,
+            Instant::now(),
+        );
+    }
+
+    fn update_restore_progress_at(
+        &self,
+        operation: ProfileRestoreProgressOperation,
+        phase: ProfileRestoreProgressPhase,
+        processed_bytes: u64,
+        total_bytes: Option<u64>,
+        now: Instant,
+    ) {
+        let percent = total_bytes.map(|total| {
+            processed_bytes
+                .min(total)
+                .saturating_mul(100)
+                .checked_div(total)
+                .unwrap_or(100) as u8
+        });
+        let snapshot = match self.inner.state.lock() {
+            Ok(mut state) => {
+                let boundary = percent.is_none() || percent == Some(0) || percent == Some(100);
+                let interval_elapsed = state.last_restore_progress_event_at.is_none_or(|last| {
+                    now.saturating_duration_since(last) >= PROGRESS_EVENT_INTERVAL
+                });
+                if !boundary && !interval_elapsed {
+                    return;
+                }
+                state.restore_progress_revision = state.restore_progress_revision.saturating_add(1);
+                state.last_restore_progress_event_at = Some(now);
+                ProfileRestoreProgress {
+                    revision: state.restore_progress_revision,
+                    operation,
+                    phase,
+                    processed_bytes,
+                    total_bytes,
+                    percent,
+                }
+            }
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to update profile restore progress");
+                return;
+            }
+        };
+        self.inner
+            .event_bus
+            .emit("profileRestoreProgress", snapshot);
     }
 
     fn finish_success(&self, kind: ProfileBackupKind, final_path: PathBuf) {

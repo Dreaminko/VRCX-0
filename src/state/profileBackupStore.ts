@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type {
     ProfileBackupStatus,
+    ProfileRestoreProgress,
     ProfileRestoreResult,
     ProfileRestoreRollbackState,
     ProfileRestoreValidation
@@ -39,17 +40,29 @@ function writeNotifiedOutcomeRevision(revision: number) {
     }
 }
 
-type ProfileRestoreDialogState = {
-    path: string;
-    validation: ProfileRestoreValidation;
-};
+type ProfileRestoreFlow = 'idle' | 'validating' | 'confirm' | 'preparing';
+
+function restoreOperationForFlow(
+    flow: ProfileRestoreFlow
+): ProfileRestoreProgress['operation'] | null {
+    switch (flow) {
+        case 'validating':
+            return 'validate';
+        case 'preparing':
+            return 'prepare';
+        default:
+            return null;
+    }
+}
 
 type ProfileBackupStore = {
     status: ProfileBackupStatus;
     lastAppliedRevision: number;
     lastNotifiedOutcomeRevision: number;
-    restoreDialog: ProfileRestoreDialogState | null;
-    restoreRequesting: boolean;
+    restoreFlow: ProfileRestoreFlow;
+    restoreValidation: ProfileRestoreValidation | null;
+    restoreProgress: ProfileRestoreProgress | null;
+    lastRestoreProgressRevision: number;
     startupRestoreResult: ProfileRestoreResult | null;
     startupRestoreResultChecked: boolean;
     restoreRollbackState: ProfileRestoreRollbackState | null;
@@ -57,9 +70,11 @@ type ProfileBackupStore = {
     restoreRollbackCleanupRunning: boolean;
     applyStatus(status: ProfileBackupStatus): void;
     claimOutcomeNotification(revision: number): boolean;
-    openRestoreDialog(path: string, validation: ProfileRestoreValidation): void;
-    closeRestoreDialog(): void;
-    setRestoreRequesting(requesting: boolean): void;
+    beginRestoreValidation(): void;
+    showRestoreConfirmation(validation: ProfileRestoreValidation): void;
+    beginRestorePreparation(): void;
+    applyRestoreProgress(progress: ProfileRestoreProgress): void;
+    closeRestoreFlow(): void;
     beginStartupRestoreResultCheck(): boolean;
     setStartupRestoreResult(result: ProfileRestoreResult | null): void;
     clearStartupRestoreResult(): void;
@@ -90,8 +105,10 @@ export const useProfileBackupStore = create<ProfileBackupStore>((set, get) => ({
     status: createIdleStatus(),
     lastAppliedRevision: -1,
     lastNotifiedOutcomeRevision: readNotifiedOutcomeRevision(),
-    restoreDialog: null,
-    restoreRequesting: false,
+    restoreFlow: 'idle',
+    restoreValidation: null,
+    restoreProgress: null,
+    lastRestoreProgressRevision: -1,
     startupRestoreResult: null,
     startupRestoreResultChecked: false,
     restoreRollbackState: null,
@@ -116,17 +133,44 @@ export const useProfileBackupStore = create<ProfileBackupStore>((set, get) => ({
         set({ lastNotifiedOutcomeRevision: revision });
         return true;
     },
-    openRestoreDialog(path, validation) {
+    beginRestoreValidation() {
         set({
-            restoreDialog: { path, validation },
-            restoreRequesting: false
+            restoreFlow: 'validating',
+            restoreValidation: null,
+            restoreProgress: null
         });
     },
-    closeRestoreDialog() {
-        set({ restoreDialog: null, restoreRequesting: false });
+    showRestoreConfirmation(restoreValidation) {
+        set({
+            restoreFlow: 'confirm',
+            restoreValidation,
+            restoreProgress: null
+        });
     },
-    setRestoreRequesting(restoreRequesting) {
-        set({ restoreRequesting });
+    beginRestorePreparation() {
+        set({ restoreFlow: 'preparing', restoreProgress: null });
+    },
+    applyRestoreProgress(restoreProgress) {
+        set((state) => {
+            if (
+                restoreProgress.revision <= state.lastRestoreProgressRevision ||
+                restoreProgress.operation !==
+                    restoreOperationForFlow(state.restoreFlow)
+            ) {
+                return state;
+            }
+            return {
+                restoreProgress,
+                lastRestoreProgressRevision: restoreProgress.revision
+            };
+        });
+    },
+    closeRestoreFlow() {
+        set({
+            restoreFlow: 'idle',
+            restoreValidation: null,
+            restoreProgress: null
+        });
     },
     beginStartupRestoreResultCheck() {
         if (get().startupRestoreResultChecked) {
@@ -178,8 +222,10 @@ export const useProfileBackupStore = create<ProfileBackupStore>((set, get) => ({
             status: createIdleStatus(),
             lastAppliedRevision: -1,
             lastNotifiedOutcomeRevision: readNotifiedOutcomeRevision(),
-            restoreDialog: null,
-            restoreRequesting: false,
+            restoreFlow: 'idle',
+            restoreValidation: null,
+            restoreProgress: null,
+            lastRestoreProgressRevision: -1,
             startupRestoreResult: null,
             startupRestoreResultChecked: false,
             restoreRollbackState: null,

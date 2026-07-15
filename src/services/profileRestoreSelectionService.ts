@@ -34,9 +34,7 @@ export async function selectProfileBackupToRestore(
             return false;
         }
 
-        const toastId = toast.loading(
-            i18n.t('profile_backup.validating_restore')
-        );
+        useProfileBackupStore.getState().beginRestoreValidation();
         try {
             const outcome = await validateProfileRestore(path);
             if (!outcome.validation) {
@@ -47,17 +45,17 @@ export async function selectProfileBackupToRestore(
                             : 'profile_backup.error.unknown'
                     )
                 );
+                useProfileBackupStore.getState().closeRestoreFlow();
                 return false;
             }
             useProfileBackupStore
                 .getState()
-                .openRestoreDialog(path, outcome.validation);
+                .showRestoreConfirmation(outcome.validation);
             return true;
         } catch {
+            useProfileBackupStore.getState().closeRestoreFlow();
             toast.error(i18n.t('profile_backup.restore_validation_failed'));
             return false;
-        } finally {
-            toast.dismiss(toastId);
         }
     } finally {
         selectionPending = false;

@@ -117,24 +117,30 @@ pub async fn app__profile_restore_validate(
 pub async fn app__profile_restore_request(
     app_handle: AppHandle,
     state: State<'_, AppState>,
-    path: String,
     expected_sha256: String,
 ) -> Result<ProfileRestoreValidationOutcome, AppError> {
     let runtime = state.profile_backup.clone();
-    let file_access = state.host_file_access.clone();
-    let app_paths = state.paths.clone();
-    let source = PathBuf::from(path);
-    let outcome = tauri::async_runtime::spawn_blocking(move || {
-        file_access.ensure_read_allowed(&source, &app_paths)?;
-        Ok::<_, AppError>(runtime.request_restore(&source, &expected_sha256))
-    })
-    .await
-    .map_err(|error| AppError::Custom(format!("profile restore request task: {error}")))??;
+    let outcome =
+        tauri::async_runtime::spawn_blocking(move || runtime.request_restore(&expected_sha256))
+            .await
+            .map_err(|error| AppError::Custom(format!("profile restore request task: {error}")))?;
     if outcome.validation.is_some() {
         super::super::host::window::stop_runtime_services(&app_handle);
         app_handle.request_restart();
     }
     Ok(outcome)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__profile_restore_discard_staged(
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let runtime = state.profile_backup.clone();
+    tauri::async_runtime::spawn_blocking(move || runtime.discard_staged_restore())
+        .await
+        .map_err(|error| AppError::Custom(format!("profile restore discard task: {error}")))??;
+    Ok(())
 }
 
 #[tauri::command]

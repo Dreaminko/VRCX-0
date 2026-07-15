@@ -24,6 +24,9 @@ export type {
     ProfileRestoreFailureCode,
     ProfileRestoreManifestSummary,
     ProfileRestoreResult,
+    ProfileRestoreProgress,
+    ProfileRestoreProgressOperation,
+    ProfileRestoreProgressPhase,
     ProfileRestoreRollbackCleanupOutcome,
     ProfileRestoreRollbackState,
     ProfileRestoreValidation,
@@ -69,10 +72,13 @@ export function validateProfileRestore(
 }
 
 export function requestProfileRestore(
-    path: string,
     expectedSha256: string
 ): Promise<ProfileRestoreValidationOutcome> {
-    return commands.appProfileRestoreRequest(path, expectedSha256);
+    return commands.appProfileRestoreRequest(expectedSha256);
+}
+
+export async function discardStagedProfileRestore(): Promise<void> {
+    await commands.appProfileRestoreDiscardStaged();
 }
 
 export function takeLastProfileRestoreResult(): Promise<ProfileRestoreResult | null> {

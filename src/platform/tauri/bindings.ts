@@ -489,13 +489,14 @@ export const commands = {
         return await TAURI_INVOKE('app__profile_restore_validate', { path });
     },
     async appProfileRestoreRequest(
-        path: string,
         expectedSha256: string
     ): Promise<ProfileRestoreValidationOutcome> {
         return await TAURI_INVOKE('app__profile_restore_request', {
-            path,
             expectedSha256
         });
+    },
+    async appProfileRestoreDiscardStaged(): Promise<null> {
+        return await TAURI_INVOKE('app__profile_restore_discard_staged');
     },
     async appProfileRestoreTakeLastResult(): Promise<ProfileRestoreResult | null> {
         return await TAURI_INVOKE('app__profile_restore_take_last_result');
@@ -4029,7 +4030,7 @@ export type ProfileRestoreFailureCode =
     | 'newerDatabaseVersion'
     | 'contentSizeMismatch'
     | 'contentHashMismatch'
-    | 'sourceFileChanged'
+    | 'validationExpired'
     | 'databaseCheckFailed'
     | 'notProfileDatabase'
     | 'databaseVersionMismatch'
@@ -4043,6 +4044,20 @@ export type ProfileRestoreManifestSummary = {
     platform: string;
     kind: ProfileBackupKind;
 };
+export type ProfileRestoreProgress = {
+    revision: number;
+    operation: ProfileRestoreProgressOperation;
+    phase: ProfileRestoreProgressPhase;
+    processedBytes: number;
+    totalBytes: number | null;
+    percent: number | null;
+};
+export type ProfileRestoreProgressOperation = 'validate' | 'prepare';
+export type ProfileRestoreProgressPhase =
+    | 'copyArchive'
+    | 'extractDatabase'
+    | 'checkDatabase'
+    | 'verifyStaging';
 export type ProfileRestoreResult = {
     status: ProfileRestoreResultStatus;
     dataDisposition: ProfileRestoreDataDisposition;

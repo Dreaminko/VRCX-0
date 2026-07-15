@@ -175,7 +175,8 @@ pub use profile_backup::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,
     ProfileBackupState, ProfileBackupStatus, ProfileRestoreDataDisposition, ProfileRestoreFailure,
-    ProfileRestoreFailureCode, ProfileRestoreResult, ProfileRestoreResultStatus,
+    ProfileRestoreFailureCode, ProfileRestoreProgress, ProfileRestoreProgressOperation,
+    ProfileRestoreProgressPhase, ProfileRestoreResult, ProfileRestoreResultStatus,
     ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState, ProfileRestoreValidation,
     ProfileRestoreValidationOutcome,
 };

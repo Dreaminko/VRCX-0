@@ -222,10 +222,19 @@ pub(super) fn valid_rollback_directory_name(value: &str) -> bool {
 }
 
 pub(super) fn hash_file(path: &Path) -> Result<(String, u64), Error> {
+    hash_file_with_progress(path, |_, _| {})
+}
+
+pub(super) fn hash_file_with_progress(
+    path: &Path,
+    mut progress: impl FnMut(u64, u64),
+) -> Result<(String, u64), Error> {
     let mut file = File::open(path)?;
+    let total = file.metadata()?.len();
     let mut hasher = Sha256::new();
     let mut bytes = 0_u64;
     let mut buffer = [0_u8; 128 * 1024];
+    progress(0, total);
     loop {
         let read = file.read(&mut buffer)?;
         if read == 0 {
@@ -235,6 +244,7 @@ pub(super) fn hash_file(path: &Path) -> Result<(String, u64), Error> {
         bytes = bytes
             .checked_add(read as u64)
             .ok_or_else(|| Error::InvalidData("The hashed file size overflowed.".into()))?;
+        progress(bytes, total);
     }
     Ok((sha256_hex(hasher.finalize()), bytes))
 }

@@ -11,9 +11,65 @@ use crate::profile_backup::{
 };
 
 use super::super::validation::{
-    copy_open_archive_with_budget, ensure_restore_archive_copy_budget, MAX_RESTORE_ARCHIVE_BYTES,
-    RESTORE_FREE_SPACE_RESERVE_BYTES,
+    copy_open_archive_with_budget, ensure_restore_archive_copy_budget,
+    validate_and_stage_profile_restore_with_progress, ProfileRestoreWorkPhase,
+    MAX_RESTORE_ARCHIVE_BYTES, RESTORE_FREE_SPACE_RESERVE_BYTES,
 };
+
+#[test]
+fn profile_backup_restore_reports_real_stage_progress() {
+    let dir = TestDir::new("progress");
+    let source = create_profile_backup(
+        &dir.0,
+        "progress-source",
+        "1.2.3",
+        VRCX0_SCHEMA_VERSION,
+        VRCX0_SCHEMA_VERSION,
+        "progress",
+    );
+    let app_data = dir.0.join("app-data");
+    let archive_bytes = fs::metadata(&source).unwrap().len();
+    let mut events = Vec::new();
+
+    let outcome = validate_and_stage_profile_restore_with_progress(
+        &source,
+        &app_data,
+        "1.2.3",
+        |phase, processed, total| events.push((phase, processed, total)),
+    )
+    .unwrap();
+    let validation = outcome.validation.unwrap();
+
+    for phase in [
+        ProfileRestoreWorkPhase::CopyArchive,
+        ProfileRestoreWorkPhase::ExtractDatabase,
+        ProfileRestoreWorkPhase::VerifyStaging,
+    ] {
+        let stage = events
+            .iter()
+            .filter(|event| event.0 == phase)
+            .collect::<Vec<_>>();
+        assert_eq!(stage.first().unwrap().1, 0);
+        let total = stage.first().unwrap().2.unwrap();
+        assert_eq!(stage.last().unwrap().1, total);
+        assert!(stage.windows(2).all(|pair| pair[0].1 <= pair[1].1));
+        assert!(stage.iter().all(|event| event.2 == Some(total)));
+        if phase == ProfileRestoreWorkPhase::CopyArchive {
+            assert_eq!(total, archive_bytes);
+        } else {
+            assert_eq!(total, validation.staged_bytes);
+        }
+    }
+
+    let database_check = events
+        .iter()
+        .filter(|event| event.0 == ProfileRestoreWorkPhase::CheckDatabase)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        database_check,
+        vec![&(ProfileRestoreWorkPhase::CheckDatabase, 0, None,)]
+    );
+}
 use super::common::{
     create_profile_backup, manifest_for_database, rejected_code,
     write_archive_with_decompressed_trailing_data, write_concatenated_archives,
