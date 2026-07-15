@@ -2632,6 +2632,12 @@
                 "chatbox_muted": "Чат-бокс заглушен",
                 "timeout": "Время ожидания",
                 "age_verified": "Проверенный возраст",
+                "all": "Все",
+                "friends": "Друзья",
+                "favorites": "Избранное",
+                "roles": "Роли",
+                "restricted": "С ограничениями",
+                "search_placeholder": "Поиск игроков, заметок или ID пользователей",
                 "rebuilding_the_current_instance_roster_from_game_log_history": "Восстановление списка игроков текущего инстанса на основе истории игрового журнала"
             },
             "error": {

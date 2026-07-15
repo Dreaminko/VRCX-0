@@ -2630,6 +2630,12 @@
                 "chatbox_muted": "Chatbox stummgeschaltet",
                 "timeout": "Timeout",
                 "age_verified": "Alter verifiziert",
+                "all": "Alle",
+                "friends": "Freunde",
+                "favorites": "Favoriten",
+                "roles": "Rollen",
+                "restricted": "Eingeschränkt",
+                "search_placeholder": "Spieler, Notizen oder Benutzer-IDs suchen",
                 "rebuilding_the_current_instance_roster_from_game_log_history": "Aktuelle Instanzliste wird aus dem Spiel-Log-Verlauf rekonstruiert"
             },
             "error": {

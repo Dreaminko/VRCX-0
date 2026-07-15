@@ -846,6 +846,14 @@
             }
         },
         "player_list": {
+            "label": {
+                "all": "Összes",
+                "friends": "Barátok",
+                "favorites": "Kedvencek",
+                "roles": "Szerepkörök",
+                "restricted": "Korlátozott",
+                "search_placeholder": "Játékosok, jegyzetek vagy felhasználói azonosítók keresése"
+            },
             "empty": {
                 "no_user_id_was_found_for_this_player_row": "Nem található ennek a játékosnak a profilja",
                 "no_players_reconstructed_for_this_instance_yet": "Még nem találhatók jelenlegi játékosok",

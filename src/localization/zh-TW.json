@@ -2630,6 +2630,12 @@
                 "chatbox_muted": "聊天框已靜音",
                 "timeout": "超時",
                 "age_verified": "已年齡驗證",
+                "all": "全部",
+                "friends": "好友",
+                "favorites": "收藏",
+                "roles": "房間角色",
+                "restricted": "有限制",
+                "search_placeholder": "搜尋暱稱、備註或用戶 ID",
                 "rebuilding_the_current_instance_roster_from_game_log_history": "正在從遊戲紀錄歷史重建目前房間用戶列表"
             },
             "error": {

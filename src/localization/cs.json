@@ -2632,6 +2632,12 @@
                 "chatbox_muted": "Chatbox ztlumen",
                 "timeout": "Timeout",
                 "age_verified": "Věk ověřen",
+                "all": "Všichni",
+                "friends": "Přátelé",
+                "favorites": "Oblíbení",
+                "roles": "Role",
+                "restricted": "Omezení",
+                "search_placeholder": "Hledat hráče, poznámky nebo ID uživatelů",
                 "rebuilding_the_current_instance_roster_from_game_log_history": "Obnovování seznamu hráčů aktuální instance z historie záznamu hry"
             },
             "error": {

@@ -241,6 +241,49 @@ describe('advanced settings locale coverage', () => {
     });
 });
 
+describe('player list filter locale coverage', () => {
+    const requiredKeys = [
+        'view.player_list.label.all',
+        'view.player_list.label.friends',
+        'view.player_list.label.favorites',
+        'view.player_list.label.roles',
+        'view.player_list.label.restricted',
+        'view.player_list.label.search_placeholder'
+    ];
+
+    it('keeps every room filter label in all supported locales', () => {
+        for (const locale of languageCodes) {
+            const source = readLocaleSource(locale);
+            for (const key of requiredKeys) {
+                const value = readPath(source, key);
+                expect(value, `${locale} ${key}`).toEqual(expect.any(String));
+                expect(String(value).trim(), `${locale} ${key}`).not.toBe('');
+            }
+        }
+    });
+
+    it('uses concise native wording in the core locales', () => {
+        expect(readPath(en, 'view.player_list.label.restricted')).toBe(
+            'Restricted'
+        );
+        expect(readPath(ja, 'view.player_list.label.roles')).toBe('役職');
+        expect(readPath(ja, 'view.player_list.label.restricted')).toBe(
+            '制限あり'
+        );
+        expect(readPath(ja, 'view.player_list.label.search_placeholder')).toBe(
+            'プレイヤー名・メモ・ユーザーIDを検索'
+        );
+        expect(readPath(zhCn, 'view.player_list.label.roles')).toBe('房间角色');
+        expect(readPath(zhCn, 'view.player_list.label.restricted')).toBe(
+            '已限制'
+        );
+        expect(readPath(zhTw, 'view.player_list.label.roles')).toBe('房間角色');
+        expect(readPath(zhTw, 'view.player_list.label.restricted')).toBe(
+            '有限制'
+        );
+    });
+});
+
 describe('profile backup locale coverage', () => {
     const profileBackupPrefix = 'profile_backup';
     const requiredProfileBackupKeys = collectStringPaths(

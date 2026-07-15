@@ -1057,6 +1057,14 @@
             }
         },
         "player_list": {
+            "label": {
+                "all": "Wszyscy",
+                "friends": "Znajomi",
+                "favorites": "Ulubieni",
+                "roles": "Role",
+                "restricted": "Ograniczeni",
+                "search_placeholder": "Szukaj graczy, notatek lub identyfikatorów użytkowników"
+            },
             "empty": {
                 "no_user_id_was_found_for_this_player_row": "Nie udało się znaleźć profilu tego gracza",
                 "no_players_reconstructed_for_this_instance_yet": "Nie znaleziono jeszcze obecnych graczy",

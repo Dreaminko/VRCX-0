@@ -319,31 +319,15 @@ export function enrichPlayerListRows({
             row.ageVerificationStatus === '18+' ||
             userRef?.ageVerificationStatus === '18+'
         );
-        const moderationTags = normalizedUserId
-            ? [isBlocked ? 'blocked' : '', isMuted ? 'muted' : ''].filter(
-                  Boolean
-              )
-            : [];
-        const moderationSeverity =
-            moderationTags[0] === 'blocked'
-                ? 'blocked'
-                : moderationTags[0] === 'muted'
-                  ? 'muted'
-                  : '';
+        let moderationSeverity: PlayerListRow['moderationSeverity'] = '';
+        if (normalizedUserId) {
+            if (isBlocked) {
+                moderationSeverity = 'blocked';
+            } else if (isMuted) {
+                moderationSeverity = 'muted';
+            }
+        }
         const joinedAtTime = parseTimeMs(row.joinedAt || row.joinedAtMs);
-        const iconWeight =
-            (isCurrentUser ? 1000 : 0) +
-            (row.isMaster ? 1000 : 0) +
-            (row.isModerator ? 500 : 0) +
-            (isFavorite ? 500 : 0) +
-            (friend ? 250 : 0) -
-            (isBlocked ? 100 : 0) -
-            (isMuted ? 50 : 0) -
-            (isAvatarInteractionDisabled ? 20 : 0) +
-            (isChatBoxMuted ? -10 : 0) +
-            (timeoutTime ? -5 : 0) +
-            (ageVerified ? 5 : 0);
-
         return {
             ...row,
             displayName: resolvedDisplayName,
@@ -371,9 +355,7 @@ export function enrichPlayerListRows({
             isChatBoxMuted,
             timeoutTime,
             moderationSeverity,
-            moderationTags,
             ageVerified,
-            iconWeight,
             timerMs:
                 joinedAtTime > 0 ? Math.max(clockNow - joinedAtTime, 0) : 0,
             worldName: context.worldName,

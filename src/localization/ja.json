@@ -2626,6 +2626,12 @@
                 "chatbox_muted": "チャットボックスミュート",
                 "timeout": "タイムアウト",
                 "age_verified": "年齢確認済み",
+                "all": "すべて",
+                "friends": "フレンド",
+                "favorites": "お気に入り",
+                "roles": "役職",
+                "restricted": "制限あり",
+                "search_placeholder": "プレイヤー名・メモ・ユーザーIDを検索",
                 "rebuilding_the_current_instance_roster_from_game_log_history": "ゲームログ履歴から現在のインスタンスのプレイヤー一覧を再構築中"
             },
             "error": {

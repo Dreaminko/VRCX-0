@@ -2630,6 +2630,12 @@
                 "chatbox_muted": "Bulle de chat en sourdine",
                 "timeout": "Exclu temporairement",
                 "age_verified": "Âge vérifié",
+                "all": "Tous",
+                "friends": "Amis",
+                "favorites": "Favoris",
+                "roles": "Rôles",
+                "restricted": "Restreints",
+                "search_placeholder": "Rechercher des joueurs, des notes ou des ID utilisateur",
                 "rebuilding_the_current_instance_roster_from_game_log_history": "Reconstruction de la liste des joueurs de l'instance actuelle à partir de l'historique du journal de jeu"
             },
             "error": {

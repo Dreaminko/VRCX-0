@@ -75,6 +75,10 @@ describe('playerListState', () => {
             ])
         ).toEqual([{ id: 'displayName', desc: false }]);
 
+        expect(sanitizePlayerListSorting([{ id: 'icon', desc: true }])).toEqual(
+            DEFAULT_PLAYER_LIST_SORTING
+        );
+
         expect(
             sanitizePlayerListColumnVisibility({
                 avatar: false,

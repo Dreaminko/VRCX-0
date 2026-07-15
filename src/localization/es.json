@@ -2630,6 +2630,12 @@
                 "chatbox_muted": "Chatbox silenciado",
                 "timeout": "Tiempo de espera",
                 "age_verified": "Edad verificada",
+                "all": "Todos",
+                "friends": "Amigos",
+                "favorites": "Favoritos",
+                "roles": "Roles",
+                "restricted": "Restringidos",
+                "search_placeholder": "Buscar jugadores, notas o ID de usuario",
                 "rebuilding_the_current_instance_roster_from_game_log_history": "Reconstruyendo la lista de jugadores de la instancia actual a partir del historial del registro de juego"
             },
             "error": {

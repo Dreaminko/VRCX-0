@@ -91,12 +91,8 @@ describe('enrichPlayerListRows', () => {
         });
 
         expect(rows[0].moderationSeverity).toBe('blocked');
-        expect(rows[0].moderationTags).toEqual(['blocked']);
         expect(rows[1].moderationSeverity).toBe('muted');
-        expect(rows[1].moderationTags).toEqual(['muted']);
         expect(rows[2].moderationSeverity).toBe('blocked');
-        expect(rows[2].moderationTags).toEqual(['blocked', 'muted']);
         expect(rows[3].moderationSeverity).toBe('');
-        expect(rows[3].moderationTags).toEqual([]);
     });
 });

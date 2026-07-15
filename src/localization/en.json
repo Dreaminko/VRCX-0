@@ -2630,6 +2630,12 @@
                 "chatbox_muted": "Chatbox muted",
                 "timeout": "Timeout",
                 "age_verified": "Age verified",
+                "all": "All",
+                "friends": "Friends",
+                "favorites": "Favorites",
+                "roles": "Roles",
+                "restricted": "Restricted",
+                "search_placeholder": "Search players, notes, or user IDs",
                 "rebuilding_the_current_instance_roster_from_game_log_history": "Rebuilding the current instance roster from game-log history"
             },
             "error": {

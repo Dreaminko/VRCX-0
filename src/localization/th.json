@@ -969,6 +969,14 @@
             }
         },
         "player_list": {
+            "label": {
+                "all": "ทั้งหมด",
+                "friends": "เพื่อน",
+                "favorites": "รายการโปรด",
+                "roles": "บทบาท",
+                "restricted": "มีข้อจำกัด",
+                "search_placeholder": "ค้นหาผู้เล่น บันทึก หรือ ID ผู้ใช้"
+            },
             "empty": {
                 "no_user_id_was_found_for_this_player_row": "ไม่พบโปรไฟล์ของผู้เล่นนี้",
                 "no_players_reconstructed_for_this_instance_yet": "ยังไม่พบผู้เล่นปัจจุบัน",

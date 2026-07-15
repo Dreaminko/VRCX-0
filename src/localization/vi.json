@@ -846,6 +846,14 @@
             }
         },
         "player_list": {
+            "label": {
+                "all": "Tất cả",
+                "friends": "Bạn bè",
+                "favorites": "Yêu thích",
+                "roles": "Vai trò",
+                "restricted": "Bị hạn chế",
+                "search_placeholder": "Tìm người chơi, ghi chú hoặc ID người dùng"
+            },
             "empty": {
                 "no_user_id_was_found_for_this_player_row": "Không tìm thấy hồ sơ của người chơi này",
                 "no_players_reconstructed_for_this_instance_yet": "Chưa tìm thấy người chơi hiện tại",
