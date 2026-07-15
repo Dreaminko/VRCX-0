@@ -783,6 +783,7 @@
         },
         "friends_locations": {
             "online": "Online",
+            "other_online": "Weitere Online-Freunde",
             "favorite": "Favoriten",
             "same_instance": "Gleiche Instanz",
             "active": "Aktiv",

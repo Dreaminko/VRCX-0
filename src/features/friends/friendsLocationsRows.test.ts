@@ -4,9 +4,11 @@ import {
     buildFavoriteGroupLabelsByFriendId,
     buildSameInstanceGroups,
     compareFavoriteGroups,
+    isFriendInPrivateLocation,
     isOnlineFriend,
     normalizeDisplayText,
     normalizeFriendsLocationId,
+    partitionFriendsByPrivateLocation,
     resolveDisplayWorldName,
     resolveFavoriteGroupLabels,
     resolveFriendsLocationsCurrentInviteLocation,
@@ -180,6 +182,25 @@ describe('friends locations row helpers', () => {
         expect(resolveWorldDialogTarget({ rawLocation: 'wrld_123:456' })).toBe(
             'wrld_123:456'
         );
+    });
+
+    it('separates private locations from visible or unknown locations', () => {
+        expect(isFriendInPrivateLocation({ location: 'private' })).toBe(true);
+        expect(isFriendInPrivateLocation({ stateBucket: 'online' })).toBe(
+            false
+        );
+        expect(isFriendInPrivateLocation({ location: 'wrld_123:456' })).toBe(
+            false
+        );
+
+        const visible = { id: 'usr_visible', location: 'wrld_123:456' };
+        const privateFriend = { id: 'usr_private', location: 'private' };
+        expect(
+            partitionFriendsByPrivateLocation([privateFriend, visible])
+        ).toEqual({
+            visibleLocation: [visible],
+            privateLocation: [privateFriend]
+        });
     });
 
     it('sorts favorite groups by configured order before display label', () => {

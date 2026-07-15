@@ -783,6 +783,7 @@
         },
         "friends_locations": {
             "online": "Онлайн",
+            "other_online": "Другие друзья в сети",
             "favorite": "Избранное",
             "same_instance": "Тот же пример",
             "active": "Активен",

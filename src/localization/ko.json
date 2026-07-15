@@ -776,6 +776,7 @@
         },
         "friends_locations": {
             "online": "온라인",
+            "other_online": "그 외 온라인 친구",
             "favorite": "즐겨찾기",
             "same_instance": "동일한 인스턴스",
             "active": "활성",

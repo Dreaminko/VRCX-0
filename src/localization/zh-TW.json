@@ -783,6 +783,7 @@
         },
         "friends_locations": {
             "online": "上線",
+            "other_online": "其他上線好友",
             "favorite": "收藏",
             "same_instance": "在同個房間",
             "active": "活躍",

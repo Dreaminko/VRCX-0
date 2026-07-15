@@ -161,6 +161,9 @@
         "pending_offline": "Függőben lévő offline"
     },
     "view": {
+        "friends_locations": {
+            "other_online": "További online barátok"
+        },
         "login": {
             "savedAccounts": "Mentett fiókok",
             "login": "Bejelentkezés",

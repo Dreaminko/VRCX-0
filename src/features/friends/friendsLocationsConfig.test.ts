@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    buildFriendsLocationsSegmentOptions,
     FRIENDS_LOCATIONS_SEGMENTS,
     parseConfigArray,
     safeJsonParse
@@ -8,6 +9,7 @@ import {
 import {
     DEFAULT_FRIENDS_LOCATIONS_DENSITY,
     FRIENDS_LOCATIONS_DENSITY_OPTIONS,
+    getFriendsLocationsCardRowHeight,
     getFriendsLocationsDensityConfig,
     sanitizeFriendsLocationsDensity
 } from './friendsLocationsDensity';
@@ -17,6 +19,24 @@ describe('friends locations config helpers', () => {
         expect(
             FRIENDS_LOCATIONS_SEGMENTS.map((segment) => segment.value)
         ).toEqual(['online', 'favorite', 'same-instance', 'active', 'offline']);
+    });
+
+    it('adds current counts without changing segment order', () => {
+        expect(
+            buildFriendsLocationsSegmentOptions({
+                online: 12,
+                favorite: 3,
+                'same-instance': 2,
+                active: 4,
+                offline: 80
+            }).map(({ value, count }) => [value, count])
+        ).toEqual([
+            ['online', 12],
+            ['favorite', 3],
+            ['same-instance', 2],
+            ['active', 4],
+            ['offline', 80]
+        ]);
     });
 
     it('parses JSON config arrays and drops empty entries', () => {
@@ -49,7 +69,9 @@ describe('friends locations config helpers', () => {
             value: 'standard',
             avatarSize: 44,
             gridMinWidth: 200,
-            rowHeight: 158,
+            rowHeight: 132,
+            statusOnlyRowHeight: 112,
+            identityRowHeight: 64,
             locationLineClamp: 2,
             statusLineClamp: 1,
             showStatusDescription: true,
@@ -60,9 +82,16 @@ describe('friends locations config helpers', () => {
             avatarSize: 32,
             gridMinWidth: 180,
             rowHeight: 72,
+            statusOnlyRowHeight: 52,
+            identityRowHeight: 52,
             locationLineClamp: 1,
             showStatusDescription: false,
             layout: 'item'
         });
+
+        const standard = getFriendsLocationsDensityConfig('standard');
+        expect(getFriendsLocationsCardRowHeight(standard, 'full')).toBe(132);
+        expect(getFriendsLocationsCardRowHeight(standard, 'status')).toBe(112);
+        expect(getFriendsLocationsCardRowHeight(standard, 'identity')).toBe(64);
     });
 });

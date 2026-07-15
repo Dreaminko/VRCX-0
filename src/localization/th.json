@@ -163,6 +163,9 @@
         "pending_offline": "กำลังจะออฟไลน์"
     },
     "view": {
+        "friends_locations": {
+            "other_online": "เพื่อนออนไลน์คนอื่น ๆ"
+        },
         "login": {
             "savedAccounts": "บัญชีที่บันทึกไว้",
             "login": "เข้าสู่ระบบ",

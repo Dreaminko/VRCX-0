@@ -219,6 +219,7 @@
             }
         },
         "friends_locations": {
+            "other_online": "Pozostali znajomi online",
             "loading_more": "Ładowanie więcej..."
         },
         "game_log": {

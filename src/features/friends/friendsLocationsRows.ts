@@ -349,6 +349,28 @@ export function isOnlineFriend(
     );
 }
 
+export function isFriendInPrivateLocation(
+    friend: FriendLocationFriend | null | undefined
+) {
+    const target = resolveLocationTarget(friend);
+    return target.isPrivate;
+}
+
+export function partitionFriendsByPrivateLocation<
+    TFriend extends FriendLocationFriend
+>(friends: TFriend[]) {
+    const visibleLocation: TFriend[] = [];
+    const privateLocation: TFriend[] = [];
+    for (const friend of friends) {
+        if (isFriendInPrivateLocation(friend)) {
+            privateLocation.push(friend);
+        } else {
+            visibleLocation.push(friend);
+        }
+    }
+    return { visibleLocation, privateLocation };
+}
+
 export function isShareableInstanceLocation(location: unknown) {
     const parsed = parseLocation(location);
     return Boolean(

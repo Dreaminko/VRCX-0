@@ -51,7 +51,7 @@ type FriendsLocationsSectionHeaderProps = {
     onOpenGroup: (section: FriendsLocationsSection) => void;
 };
 
-type FriendsLocationsFavoriteGroupHeaderProps = {
+type FriendsLocationsCollapsibleGroupHeaderProps = {
     section: FriendsLocationsSection;
     onToggle: BivariantCallback<[string | undefined]>;
 };
@@ -119,9 +119,11 @@ export function FriendsLocationsSectionHeader({
                     </Badge>
                 </div>
             </div>
-            {section.worldId || section.groupId ? (
+            {(section.worldId && section.displayInstanceInfo !== false) ||
+            section.groupId ? (
                 <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                    {section.worldId ? (
+                    {section.worldId &&
+                    section.displayInstanceInfo !== false ? (
                         <Button
                             type="button"
                             size="xs"
@@ -149,10 +151,10 @@ export function FriendsLocationsSectionHeader({
     );
 }
 
-export function FriendsLocationsFavoriteGroupHeader({
+export function FriendsLocationsCollapsibleGroupHeader({
     section,
     onToggle
-}: FriendsLocationsFavoriteGroupHeaderProps) {
+}: FriendsLocationsCollapsibleGroupHeaderProps) {
     return (
         <Button
             type="button"
@@ -216,6 +218,7 @@ export function FriendsLocationCardItem({
             isTraveling={isTravelingLocation}
             travelingLocation={travelingLocation}
             densityConfig={densityConfig}
+            contentMode={section.cardContentMode}
             displayInstanceInfo={section.displayInstanceInfo !== false}
             canUseFriendLocation={
                 !friendIsCurrentUser && friendLocationAvailable

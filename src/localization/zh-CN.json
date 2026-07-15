@@ -783,6 +783,7 @@
         },
         "friends_locations": {
             "online": "在线",
+            "other_online": "其他在线好友",
             "favorite": "具有分组的好友",
             "same_instance": "同一房间",
             "active": "活跃中（仅登录网页端）",

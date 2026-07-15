@@ -783,6 +783,7 @@
         },
         "friends_locations": {
             "online": "オンライン",
+            "other_online": "その他のオンラインフレンド",
             "favorite": "お気に入り",
             "same_instance": "同じインスタンス",
             "active": "アクティブ",

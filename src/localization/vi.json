@@ -161,6 +161,9 @@
         "pending_offline": "Đang chờ Offline"
     },
     "view": {
+        "friends_locations": {
+            "other_online": "Bạn bè khác đang trực tuyến"
+        },
         "login": {
             "savedAccounts": "Tài khoản đã lưu",
             "login": "Đăng nhập",

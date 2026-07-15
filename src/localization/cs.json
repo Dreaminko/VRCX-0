@@ -783,6 +783,7 @@
         },
         "friends_locations": {
             "online": "Online",
+            "other_online": "Ostatní přátelé online",
             "favorite": "Oblíbení",
             "same_instance": "Stejná instance",
             "active": "Aktivní",
