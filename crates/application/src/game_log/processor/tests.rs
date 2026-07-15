@@ -10,7 +10,11 @@ use crate::event_bus::RuntimeEventBus;
 use crate::game_log::runtime_state::RuntimeSnapshot;
 use crate::game_log::NoopGameLogHostActions;
 use crate::image_cache::ImageCache;
-use crate::overlay_activity::{OverlayActivityFilters, OverlayActivityRuntime};
+use crate::overlay_activity::{
+    OverlayActivityDelivery, OverlayActivityFilters, OverlayActivityRuntime, OverlayActivitySink,
+    OverlayActivitySnapshot, OverlayFavoriteGroups,
+};
+use crate::realtime::FriendProjection;
 use crate::sync::RuntimeSyncEngine;
 use crate::task_supervisor::TaskSupervisor;
 use crate::web_client::WebClient;
@@ -18,6 +22,25 @@ use crate::Result;
 use crate::RuntimeAuthScope;
 
 use super::{GameLogProcessor, GameLogProcessorDeps, GameLogWorkerJob};
+
+#[derive(Clone, Default)]
+struct RecordingOverlaySink {
+    deliveries: Arc<Mutex<Vec<OverlayActivityDelivery>>>,
+}
+
+impl OverlayActivitySink for RecordingOverlaySink {
+    fn emit_overlay_activity_snapshot(&self, _snapshot: OverlayActivitySnapshot) {}
+
+    fn emit_overlay_activity_delivery(&self, delivery: OverlayActivityDelivery) {
+        self.deliveries.lock().unwrap().push(delivery);
+    }
+}
+
+impl RecordingOverlaySink {
+    fn take_deliveries(&self) -> Vec<OverlayActivityDelivery> {
+        std::mem::take(&mut *self.deliveries.lock().unwrap())
+    }
+}
 
 struct TestDir {
     path: PathBuf,
@@ -317,6 +340,91 @@ fn allows_later_current_instance_join_overlay_notifications() -> Result<()> {
     let entries = processor.deps.overlay_activity.snapshot().entries;
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].actor_user_id, "usr_late");
+    Ok(())
+}
+
+#[test]
+fn game_log_presence_enables_current_instance_gps_surface_filtering() -> Result<()> {
+    let (_dir, _db, processor) = test_processor("runtime-gamelog-gps-surface-filter")?;
+    let overlay = &processor.deps.overlay_activity;
+    overlay.set_filters(OverlayActivityFilters::from_json(serde_json::json!({
+        "version": 1,
+        "wrist": { "types": {
+            "OnPlayerJoined": { "scope": "off", "favoriteGroupKeys": "all" },
+            "GPS": { "scope": "selectedFavorites", "favoriteGroupKeys": ["fav-selected"] }
+        } },
+        "desktop": { "types": {
+            "OnPlayerJoined": { "scope": "off", "favoriteGroupKeys": "all" },
+            "GPS": { "scope": "friends", "favoriteGroupKeys": "all" }
+        } },
+        "vr": { "types": {
+            "OnPlayerJoined": { "scope": "friends", "favoriteGroupKeys": "all" },
+            "GPS": { "scope": "selectedFavorites", "favoriteGroupKeys": ["fav-selected"] }
+        } },
+        "hmd": { "types": {
+            "OnPlayerJoined": { "scope": "friends", "favoriteGroupKeys": "all" },
+            "GPS": { "scope": "selectedFavorites", "favoriteGroupKeys": ["fav-selected"] }
+        } },
+        "webhook": { "types": {
+            "OnPlayerJoined": { "scope": "off", "favoriteGroupKeys": "all" },
+            "GPS": { "scope": "off", "favoriteGroupKeys": "all" }
+        } },
+        "tts": { "types": {
+            "OnPlayerJoined": { "scope": "off", "favoriteGroupKeys": "all" },
+            "GPS": { "scope": "off", "favoriteGroupKeys": "all" }
+        } }
+    })));
+    overlay.set_friend_user_ids(["usr_selected"]);
+    overlay.set_favorite_groups(OverlayFavoriteGroups::from_pairs([(
+        "fav-selected",
+        ["usr_selected"].as_slice(),
+    )]));
+    let sink = RecordingOverlaySink::default();
+    overlay.set_sink(sink.clone());
+    overlay.set_delivery_armed(true);
+    let location_at = (chrono::Utc::now() - chrono::Duration::seconds(40)).to_rfc3339();
+    let joined_at = chrono::Utc::now().to_rfc3339();
+
+    processor.handle_jobs(vec![
+        GameLogWorkerJob::Event(event(
+            &location_at,
+            GameLogEventKind::Location {
+                location: "wrld_current:123".into(),
+                world_name: "Current World".into(),
+            },
+        )),
+        GameLogWorkerJob::Event(event(
+            &joined_at,
+            GameLogEventKind::PlayerJoined {
+                display_name: "Selected Friend".into(),
+                user_id: "usr_selected".into(),
+            },
+        )),
+    ])?;
+
+    let joined = sink.take_deliveries();
+    assert_eq!(joined.len(), 1);
+    assert!(joined[0].vr);
+    assert!(joined[0].hmd);
+    overlay.ingest_friend_projection(&FriendProjection {
+        feed_entries: vec![serde_json::json!({
+            "type": "GPS",
+            "created_at": chrono::Utc::now().to_rfc3339(),
+            "userId": "usr_selected",
+            "displayName": "Selected Friend",
+            "location": "wrld_current:123"
+        })],
+        ..FriendProjection::default()
+    });
+
+    let gps = sink.take_deliveries();
+    assert_eq!(gps.len(), 1);
+    assert!(gps[0].desktop);
+    assert!(!gps[0].vr);
+    assert!(!gps[0].hmd);
+    let entries = overlay.snapshot().entries;
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].activity_type, "GPS");
     Ok(())
 }
 

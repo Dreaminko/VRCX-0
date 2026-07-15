@@ -63,6 +63,12 @@ pub struct GameLogProcessorDeps {
 
 impl GameLogProcessorDeps {
     fn set_game_log_snapshot(&self, snapshot: RuntimeSnapshot) {
+        let current_location = snapshot.location.clone();
+        let current_player_user_ids = snapshot
+            .players
+            .iter()
+            .map(|player| player.user_id.clone())
+            .collect::<Vec<_>>();
         match self.snapshot.lock() {
             Ok(mut current) => {
                 *current = snapshot;
@@ -71,6 +77,8 @@ impl GameLogProcessorDeps {
                 tracing::warn!("failed to lock game log snapshot: {error}");
             }
         }
+        self.overlay_activity
+            .set_current_instance_presence(&current_location, current_player_user_ids);
     }
 }
 
