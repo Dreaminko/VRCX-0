@@ -30,10 +30,10 @@ use vrcx_0_application::{
     current_user_from_cookie, parse_current_user_response, probe_current_user_from_cookie,
     record_login_success, record_logout, refresh_background_current_user,
     refresh_background_group_instances, refresh_player_moderations,
-    run_background_presence_automation, saved_credential_login_start, saved_snapshot,
-    AuthenticatedRuntimeSession, BackendRuntime, BackendRuntimeMode, BackendRuntimePhase,
-    BackendRuntimeSnapshot, BackendRuntimeTelemetry, BackgroundCapabilitySession,
-    BackgroundDiscordPresenceCommand, BackgroundDiscordPresenceState,
+    run_background_presence_automation, saved_credential_login_start,
+    saved_credential_session_data, saved_snapshot, AuthenticatedRuntimeSession, BackendRuntime,
+    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, BackendRuntimeTelemetry,
+    BackgroundCapabilitySession, BackgroundDiscordPresenceCommand, BackgroundDiscordPresenceState,
     BackgroundPresenceAutomationState, BackgroundPresenceFactsInput, CookieSessionProbe,
     FriendProjection, GameProcessEvent, GameProcessEventSink, ImageCache, LoginSuccessRecordInput,
     LogoutRecordInput, ModerationSyncDeps, ModerationSyncRefreshInput, NonInteractiveAuthError,
@@ -105,7 +105,6 @@ use runtime_host_state::VrOverlayProcessSink;
 pub use runtime_host_state::{
     BackendRuntimeFrontendSessionSnapshot, RuntimeHostOptions, RuntimeHostState,
 };
-const SAVED_CREDENTIALS_KEY: &str = "savedCredentials";
 const PROFILE_LOCK_FILE: &str = "runtime.lock";
 const REGISTRY_BACKUP_MAINTENANCE_JOB: &str = "registryBackupMaintenance";
 const REGISTRY_BACKUP_MAINTENANCE_CADENCE_SECONDS: u64 = 3 * 60 * 60;

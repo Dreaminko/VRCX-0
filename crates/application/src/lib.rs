@@ -59,8 +59,10 @@ pub use async_runtime_policy::{
     recommended_tokio_worker_threads, recommended_tokio_worker_threads_for,
 };
 pub use auth_credentials::{
-    delete_saved_credential, record_login_success, record_logout, saved_credential_login_start,
-    saved_snapshot, LoginSuccessRecordInput, LogoutRecordInput, SavedCredentialLoginStartInput,
+    delete_saved_credential, migrate_saved_credential_secrets, record_login_success, record_logout,
+    saved_credential_login_start, saved_credential_session_data, saved_snapshot,
+    LoginSuccessRecordInput, LogoutRecordInput, SavedCredentialLoginStartInput,
+    SavedCredentialSessionData,
 };
 pub use auth_scope::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
 pub use backend_runtime::{

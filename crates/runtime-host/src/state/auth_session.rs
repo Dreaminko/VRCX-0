@@ -44,25 +44,15 @@ impl RuntimeHostState {
         endpoint_override: Option<String>,
         snapshot: serde_json::Value,
     ) -> std::result::Result<AuthenticatedRuntimeSession, NonInteractiveAuthError> {
-        let raw_saved_credentials = self
-            .runtime_context
-            .config()
-            .get_json(SAVED_CREDENTIALS_KEY, serde_json::json!({}))
+        let saved_record = saved_credential_session_data(self.runtime_context.config(), &user_id)
             .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))?;
-        let saved_record = raw_saved_credentials.get(&user_id).cloned();
-        let saved_endpoint = saved_record
-            .as_ref()
-            .and_then(|record| record.get("loginParams"))
-            .and_then(|login_params| string_field(login_params, "endpoint"))
-            .unwrap_or_default();
+        let (saved_endpoint, websocket, saved_cookies) = saved_record.map_or_else(
+            || (String::new(), String::new(), None),
+            |record| (record.endpoint, record.websocket, record.cookies),
+        );
         let endpoint = endpoint_override
             .filter(|value| !value.trim().is_empty())
             .unwrap_or(saved_endpoint);
-        let websocket = saved_record
-            .as_ref()
-            .and_then(|record| record.get("loginParams"))
-            .and_then(|login_params| string_field(login_params, "websocket"))
-            .unwrap_or_default();
 
         match probe_current_user_from_cookie(
             self.web.as_ref(),
@@ -90,12 +80,7 @@ impl RuntimeHostState {
             }
         }
 
-        if let Some(cookies) = saved_record
-            .as_ref()
-            .and_then(|record| record.get("cookies"))
-            .and_then(serde_json::Value::as_str)
-            .filter(|cookies| !cookies.trim().is_empty())
-        {
+        if let Some(cookies) = saved_cookies.as_deref() {
             if let Err(error) = self.web.set_cookies(cookies) {
                 tracing::warn!(error = %error, "failed to restore saved auth cookies");
             } else {

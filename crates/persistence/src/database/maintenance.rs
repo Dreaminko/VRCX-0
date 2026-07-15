@@ -19,6 +19,10 @@ use crate::Error;
 
 use super::DatabaseService;
 
+pub fn vacuum_after_secret_migration(db: &DatabaseService) -> Result<(), Error> {
+    db.checkpoint_and_vacuum()
+}
+
 #[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UserTableContextOutput {

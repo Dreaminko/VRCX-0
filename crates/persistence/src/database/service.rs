@@ -188,6 +188,33 @@ impl DatabaseService {
         }
     }
 
+    pub(crate) fn checkpoint_and_vacuum(&self) -> Result<(), Error> {
+        let inner = self
+            .inner
+            .read()
+            .map_err(|e| Error::Database(e.to_string()))?;
+        let conn = match &*inner {
+            DatabaseMode::Main(main) => main
+                .writer
+                .lock()
+                .map_err(|e| Error::Database(e.to_string()))?,
+            DatabaseMode::Upgrade(upgrade) => upgrade
+                .conn
+                .lock()
+                .map_err(|e| Error::Database(e.to_string()))?,
+            DatabaseMode::Closed => {
+                return Err(Error::Database(
+                    "Database connection is temporarily unavailable.".into(),
+                ));
+            }
+        };
+        checkpoint(&conn)?;
+        conn.execute_batch("VACUUM;")
+            .map_err(|e| Error::Database(e.to_string()))?;
+        checkpoint(&conn)?;
+        Ok(())
+    }
+
     pub fn begin_upgrade(&self, from_version: i64, to_version: i64) -> Result<(), Error> {
         let mut inner = self
             .inner
@@ -617,6 +644,7 @@ fn configure_connection(conn: &Connection) -> Result<(), Error> {
         "PRAGMA locking_mode=NORMAL;
          PRAGMA busy_timeout=5000;
          PRAGMA journal_mode=WAL;
+         PRAGMA secure_delete=ON;
          PRAGMA optimize=0x10002;",
     )
     .map_err(|e| Error::Database(e.to_string()))?;
@@ -635,8 +663,14 @@ fn configure_read_connection(conn: &Connection) -> Result<(), Error> {
 }
 
 fn checkpoint(conn: &Connection) -> Result<(), Error> {
-    conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+    let busy = conn
+        .query_row("PRAGMA wal_checkpoint(TRUNCATE);", [], |row| {
+            row.get::<_, i64>(0)
+        })
         .map_err(|e| Error::Database(e.to_string()))?;
+    if busy != 0 {
+        return Err(Error::Database("WAL checkpoint remained busy.".into()));
+    }
     Ok(())
 }
 
@@ -829,6 +863,17 @@ mod tests {
             rows,
             vec![vec![serde_json::json!("trusted"), serde_json::json!(4)]]
         );
+        Ok(())
+    }
+
+    #[test]
+    fn configured_writer_enables_secure_delete() -> Result<(), Error> {
+        let conn = Connection::open_in_memory().map_err(|e| Error::Database(e.to_string()))?;
+        configure_connection(&conn)?;
+        let enabled = conn
+            .query_row("PRAGMA secure_delete;", [], |row| row.get::<_, i64>(0))
+            .map_err(|e| Error::Database(e.to_string()))?;
+        assert_eq!(enabled, 1);
         Ok(())
     }
 

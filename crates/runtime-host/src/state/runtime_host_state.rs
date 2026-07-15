@@ -92,6 +92,78 @@ impl GameProcessEventSink for VrOverlayProcessSink {
     }
 }
 
+fn run_secret_startup(
+    initialize: impl FnOnce(),
+    is_encrypting_writes: impl FnOnce() -> bool,
+    migrate_cookies: impl FnOnce() -> Result<()>,
+    migrate_saved_credentials: impl FnOnce() -> Result<()>,
+    read_cleanup_completed: impl FnOnce() -> Result<bool>,
+    cleanup: impl FnOnce() -> Result<()>,
+    record_cleanup_completed: impl FnOnce() -> Result<()>,
+) {
+    initialize();
+    let mut migrations_succeeded = true;
+    if let Err(error) = migrate_cookies() {
+        migrations_succeeded = false;
+        tracing::warn!(error = %error, "failed to migrate stored cookies to encrypted form");
+    }
+    if let Err(error) = migrate_saved_credentials() {
+        migrations_succeeded = false;
+        tracing::warn!(error = %error, "failed to migrate saved credentials to encrypted form");
+    }
+    let cleanup_completed = match read_cleanup_completed() {
+        Ok(completed) => completed,
+        Err(error) => {
+            tracing::warn!(error = %error, "failed to read secret migration cleanup state");
+            false
+        }
+    };
+    if !is_encrypting_writes() || !migrations_succeeded || cleanup_completed {
+        return;
+    }
+    if let Err(error) = cleanup() {
+        tracing::warn!(error = %error, "failed to remove plaintext remnants after secret migration");
+        return;
+    }
+    if let Err(error) = record_cleanup_completed() {
+        tracing::warn!(error = %error, "failed to record completed secret migration cleanup");
+    }
+}
+
+fn prepare_secrets_at_rest(db: &Arc<DatabaseService>, is_headless: bool) {
+    let config = vrcx_0_persistence::config::ConfigRepository::new(Arc::clone(db));
+    run_secret_startup(
+        || {
+            vrcx_0_persistence::secrets::init_secrets(
+                vrcx_0_host::machine_key::derive_secrets_key(),
+                !is_headless,
+            );
+        },
+        vrcx_0_persistence::secrets::is_encrypting_writes,
+        || {
+            vrcx_0_persistence::cookies::migrate_default_cookies(db)?;
+            Ok(())
+        },
+        || {
+            vrcx_0_application::migrate_saved_credential_secrets(&config)?;
+            Ok(())
+        },
+        || {
+            Ok(config.get_bool(
+                vrcx_0_persistence::secrets::CLEANUP_COMPLETED_CONFIG_KEY,
+                false,
+            )?)
+        },
+        || Ok(vrcx_0_persistence::maintenance::vacuum_after_secret_migration(db)?),
+        || {
+            Ok(config.set_bool(
+                vrcx_0_persistence::secrets::CLEANUP_COMPLETED_CONFIG_KEY,
+                true,
+            )?)
+        },
+    );
+}
+
 impl RuntimeHostState {
     pub fn new(options: RuntimeHostOptions) -> Result<Self> {
         let RuntimeHostOptions {
@@ -145,6 +217,7 @@ impl RuntimeHostState {
             }
         };
         let db = Arc::new(db);
+        prepare_secrets_at_rest(&db, is_headless);
         let discord_rpc = Arc::new(DiscordRpc::new());
         let process_monitor = ProcessMonitor::new();
         let web_user_agent_version = web_ua_app_version(&app_version, is_headless);
@@ -310,6 +383,136 @@ fn register_persisted_user_generated_content_path_grant(
         host_file_access.register_path(ugc_path);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod secret_startup_tests {
+    use super::run_secret_startup;
+    use crate::{Error, Result};
+    use std::cell::{Cell, RefCell};
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Step {
+        Initialize,
+        MigrateCookies,
+        MigrateSavedCredentials,
+        ReadCleanupCompleted,
+        IsEncryptingWrites,
+        Cleanup,
+        RecordCleanupCompleted,
+    }
+
+    fn run(
+        fail_at: Option<Step>,
+        encrypting_writes: bool,
+        cleanup_completed: bool,
+    ) -> (Vec<Step>, bool) {
+        let events = RefCell::new(Vec::new());
+        let cleanup_recorded = Cell::new(false);
+        let step = |current| -> Result<()> {
+            events.borrow_mut().push(current);
+            if fail_at == Some(current) {
+                return Err(Error::Custom(format!("{current:?} failed")));
+            }
+            Ok(())
+        };
+
+        run_secret_startup(
+            || events.borrow_mut().push(Step::Initialize),
+            || {
+                events.borrow_mut().push(Step::IsEncryptingWrites);
+                encrypting_writes
+            },
+            || step(Step::MigrateCookies),
+            || step(Step::MigrateSavedCredentials),
+            || {
+                step(Step::ReadCleanupCompleted)?;
+                Ok(cleanup_completed)
+            },
+            || step(Step::Cleanup),
+            || {
+                step(Step::RecordCleanupCompleted)?;
+                cleanup_recorded.set(true);
+                Ok(())
+            },
+        );
+
+        (events.into_inner(), cleanup_recorded.get())
+    }
+
+    #[test]
+    fn secret_startup_runs_all_steps_in_order() {
+        let (events, cleanup_recorded) = run(None, true, false);
+
+        assert_eq!(
+            events,
+            vec![
+                Step::Initialize,
+                Step::MigrateCookies,
+                Step::MigrateSavedCredentials,
+                Step::ReadCleanupCompleted,
+                Step::IsEncryptingWrites,
+                Step::Cleanup,
+                Step::RecordCleanupCompleted,
+            ]
+        );
+        assert!(cleanup_recorded);
+    }
+
+    #[test]
+    fn secret_startup_requires_both_migrations_before_cleanup() {
+        for failed_step in [Step::MigrateCookies, Step::MigrateSavedCredentials] {
+            let (events, cleanup_recorded) = run(Some(failed_step), true, false);
+
+            assert_eq!(
+                events,
+                vec![
+                    Step::Initialize,
+                    Step::MigrateCookies,
+                    Step::MigrateSavedCredentials,
+                    Step::ReadCleanupCompleted,
+                    Step::IsEncryptingWrites,
+                ]
+            );
+            assert!(!cleanup_recorded);
+        }
+    }
+
+    #[test]
+    fn secret_startup_skips_cleanup_when_disabled_or_already_completed() {
+        for (encrypting_writes, cleanup_completed) in [(false, false), (true, true)] {
+            let (events, cleanup_recorded) = run(None, encrypting_writes, cleanup_completed);
+
+            assert!(!events.contains(&Step::Cleanup));
+            assert!(!cleanup_recorded);
+        }
+    }
+
+    #[test]
+    fn secret_startup_does_not_record_failed_cleanup() {
+        let (events, cleanup_recorded) = run(Some(Step::Cleanup), true, false);
+
+        assert!(events.contains(&Step::Cleanup));
+        assert!(!events.contains(&Step::RecordCleanupCompleted));
+        assert!(!cleanup_recorded);
+    }
+
+    #[test]
+    fn secret_startup_retries_when_cleanup_state_cannot_be_read() {
+        let (events, cleanup_recorded) = run(Some(Step::ReadCleanupCompleted), true, false);
+
+        assert!(events.contains(&Step::Cleanup));
+        assert!(cleanup_recorded);
+    }
+
+    #[test]
+    fn secret_startup_keeps_cleanup_retryable_when_recording_fails() {
+        let (events, cleanup_recorded) = run(Some(Step::RecordCleanupCompleted), true, false);
+
+        assert!(events.contains(&Step::Cleanup));
+        assert!(events.contains(&Step::RecordCleanupCompleted));
+        assert!(!cleanup_recorded);
+    }
 }
 
 #[cfg(test)]
