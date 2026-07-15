@@ -3,20 +3,24 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('react-i18next', () => ({
-    useTranslation: () => ({
-        t: (key: string) =>
-            ({
-                'profile_backup.rollback_data_retained':
-                    'Pre-restore data retained',
-                'profile_backup.rollback_retained_description':
-                    'Can be cleared after checking the restore.',
-                'profile_backup.rollback_cleanup_protected':
-                    'Protected while restore is pending.',
-                'profile_backup.clear_rollback': 'Clear rollback data'
-            })[key] ?? key
-    })
-}));
+vi.mock('react-i18next', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('react-i18next')>();
+    return {
+        ...actual,
+        useTranslation: () => ({
+            t: (key: string) =>
+                ({
+                    'profile_backup.rollback_data_retained':
+                        'Pre-restore data retained',
+                    'profile_backup.rollback_retained_description':
+                        'Can be cleared after checking the restore.',
+                    'profile_backup.rollback_cleanup_protected':
+                        'Protected while restore is pending.',
+                    'profile_backup.clear_rollback': 'Clear rollback data'
+                })[key] ?? key
+        })
+    };
+});
 
 import { ProfileRestoreRollbackCleanup } from './ProfileBackupDialog';
 
