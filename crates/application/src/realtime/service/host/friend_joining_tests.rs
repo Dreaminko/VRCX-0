@@ -102,6 +102,13 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
     assert_eq!(entries[0].activity_type, "OnPlayerJoining");
     assert_eq!(entries[0].actor_user_id, "usr_friend");
     assert_eq!(entries[0].content.body.fallback, "is joining");
+    let events = runtime.deps.event_bus.take_events_for_test();
+    assert!(events
+        .iter()
+        .filter(|event| event.name == "realtimeFriendProjection")
+        .all(|event| event.payload["feedEntries"]
+            .as_array()
+            .is_some_and(Vec::is_empty)));
     Ok(())
 }
 
@@ -144,5 +151,14 @@ fn initial_traveling_baseline_emits_player_joining() -> Result<()> {
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].activity_type, "OnPlayerJoining");
     assert_eq!(entries[0].actor_user_id, "usr_friend");
+    let events = runtime.deps.event_bus.take_events_for_test();
+    let projection = events
+        .iter()
+        .find(|event| event.name == "realtimeFriendProjection")
+        .expect("traveling baseline should emit a friend projection");
+    assert!(projection.payload["feedEntries"]
+        .as_array()
+        .unwrap()
+        .is_empty());
     Ok(())
 }

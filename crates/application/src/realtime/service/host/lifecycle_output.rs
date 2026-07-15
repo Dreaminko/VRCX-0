@@ -59,6 +59,9 @@ impl RealtimeHostRuntime {
         self.deps
             .overlay_activity
             .ingest_friend_projection(&projection);
+        projection
+            .feed_entries
+            .retain(|entry| !is_player_joining_entry(entry));
         if friend_note_changed {
             if let Some(sink) = &self.deps.friend_note_change_sink {
                 sink();
