@@ -15,11 +15,26 @@ import {
 } from '@/services/profileBackupService';
 import {
     openFileSelectorDialog,
-    openFolderSelectorDialog
+    openFolderSelectorDialog,
+    saveFileSelectorDialog
 } from '@/services/shellIntegrationService';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 
 type NumericProfileBackupSetting = 'autoIntervalDays' | 'autoRetainExtra';
+
+function manualBackupDefaultFileName(now: Date): string {
+    const date = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0')
+    ].join('');
+    const time = [
+        String(now.getHours()).padStart(2, '0'),
+        String(now.getMinutes()).padStart(2, '0'),
+        String(now.getSeconds()).padStart(2, '0')
+    ].join('');
+    return `VRCX-0-backup-${date}-${time}.vrcx0backup`;
+}
 
 function clampInteger(value: unknown, min: number, max: number): number {
     const parsed = Number.parseInt(String(value), 10);
@@ -250,11 +265,16 @@ export function useProfileBackupSettings(enabled: boolean) {
         manualBackupRunningRef.current = true;
         setStartingManualBackup(true);
         try {
-            const targetDir = await selectBackupFolder(settings.autoTargetDir);
-            if (!targetDir) {
+            const targetPath = await saveFileSelectorDialog(
+                settings.autoTargetDir,
+                manualBackupDefaultFileName(new Date()),
+                '.vrcx0backup',
+                `${t('profile_backup.file_filter')} (*.vrcx0backup)|*.vrcx0backup`
+            );
+            if (!targetPath) {
                 return;
             }
-            const outcome = await runManualProfileBackup(targetDir);
+            const outcome = await runManualProfileBackup(targetPath);
             applyStatus(outcome.status);
             if (!outcome.accepted) {
                 toast.error(
@@ -282,7 +302,7 @@ export function useProfileBackupSettings(enabled: boolean) {
             path = await openFileSelectorDialog(
                 settings?.autoTargetDir || '',
                 '.vrcx0backup',
-                `${t('profile_backup.file_filter')} (*.vrcx0backup;*.zip)|*.vrcx0backup;*.zip`
+                `${t('profile_backup.file_filter')} (*.vrcx0backup)|*.vrcx0backup`
             );
         } catch {
             toast.error(t('profile_backup.file_selection_failed'));

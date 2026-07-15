@@ -5,7 +5,7 @@ mod types;
 
 pub use archive::{
     commit_file_without_overwrite, create_backup_archive, create_backup_archive_with_progress,
-    select_auto_backups_for_removal,
+    is_auto_backup_file_name, select_auto_backups_for_removal,
 };
 pub use restore::{
     cleanup_profile_backup_artifacts, consume_pending_profile_restore,

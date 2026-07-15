@@ -42,14 +42,14 @@ pub async fn app__profile_backup_set_settings(
 #[specta::specta]
 pub async fn app__profile_backup_run_manual(
     state: State<'_, AppState>,
-    target_dir: String,
+    target_path: String,
 ) -> Result<ProfileBackupActionOutcome, AppError> {
     let runtime = state.profile_backup.clone();
     let file_access = state.host_file_access.clone();
     let app_paths = state.paths.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        file_access.ensure_write_allowed(&target_dir, &app_paths)?;
-        Ok::<_, AppError>(runtime.run_manual(target_dir))
+        file_access.ensure_write_allowed(&target_path, &app_paths)?;
+        Ok::<_, AppError>(runtime.run_manual(target_path))
     })
     .await
     .map_err(|error| AppError::Custom(format!("manual profile backup task: {error}")))?

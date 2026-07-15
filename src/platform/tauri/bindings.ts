@@ -465,10 +465,10 @@ export const commands = {
         });
     },
     async appProfileBackupRunManual(
-        targetDir: string
+        targetPath: string
     ): Promise<ProfileBackupActionOutcome> {
         return await TAURI_INVOKE('app__profile_backup_run_manual', {
-            targetDir
+            targetPath
         });
     },
     async appProfileBackupRetryDelivery(): Promise<ProfileBackupActionOutcome> {
@@ -2327,6 +2327,19 @@ export const commands = {
     ): Promise<string> {
         return await TAURI_INVOKE('app__open_file_selector_dialog', {
             defaultPath,
+            defaultExt,
+            defaultFilter
+        });
+    },
+    async appSaveFileSelectorDialog(
+        defaultPath: string | null,
+        defaultName: string | null,
+        defaultExt: string | null,
+        defaultFilter: string | null
+    ): Promise<string> {
+        return await TAURI_INVOKE('app__save_file_selector_dialog', {
+            defaultPath,
+            defaultName,
             defaultExt,
             defaultFilter
         });

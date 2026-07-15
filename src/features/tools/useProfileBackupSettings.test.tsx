@@ -12,9 +12,12 @@ const mocks = vi.hoisted(() => ({
     getSettings: vi.fn(),
     runManual: vi.fn(),
     setSettings: vi.fn(),
+    selectFile: vi.fn(),
     selectFolder: vi.fn(),
+    selectSaveFile: vi.fn(),
     toastError: vi.fn(),
-    translate: (key: string) => key
+    translate: (key: string) => key,
+    validateRestore: vi.fn()
 }));
 
 vi.mock('react-i18next', () => ({
@@ -33,12 +36,13 @@ vi.mock('@/services/profileBackupService', () => ({
     getProfileBackupSettings: mocks.getSettings,
     runManualProfileBackup: mocks.runManual,
     setProfileBackupSettings: mocks.setSettings,
-    validateProfileRestore: vi.fn()
+    validateProfileRestore: mocks.validateRestore
 }));
 
 vi.mock('@/services/shellIntegrationService', () => ({
-    openFileSelectorDialog: vi.fn(),
-    openFolderSelectorDialog: mocks.selectFolder
+    openFileSelectorDialog: mocks.selectFile,
+    openFolderSelectorDialog: mocks.selectFolder,
+    saveFileSelectorDialog: mocks.selectSaveFile
 }));
 
 import { useProfileBackupStore } from '@/state/profileBackupStore';
@@ -101,13 +105,18 @@ describe('useProfileBackupSettings', () => {
             .mockReset()
             .mockImplementation(async (settings) => settings);
         mocks.selectFolder.mockReset().mockResolvedValue('E:\\Profile');
+        mocks.selectFile.mockReset().mockResolvedValue('');
+        mocks.selectSaveFile
+            .mockReset()
+            .mockResolvedValue('E:\\Profile\\My backup.vrcx0backup');
+        mocks.validateRestore.mockReset();
         mocks.toastError.mockReset();
         useProfileBackupStore.getState().resetProfileBackupState();
     });
 
     afterEach(cleanup);
 
-    it('starts the manual backup after the folder is selected', async () => {
+    it('starts the manual backup after the save location is selected', async () => {
         render(<HookHarness onValue={(value) => (current = value)} />);
 
         await waitFor(() => {
@@ -117,8 +126,16 @@ describe('useProfileBackupSettings', () => {
             await current?.startManualBackup();
         });
 
-        expect(mocks.runManual).toHaveBeenCalledWith('E:\\Profile');
-        expect(mocks.selectFolder.mock.invocationCallOrder[0]).toBeLessThan(
+        expect(mocks.selectSaveFile).toHaveBeenCalledWith(
+            'D:\\Backups',
+            expect.stringMatching(/^VRCX-0-backup-\d{8}-\d{6}\.vrcx0backup$/),
+            '.vrcx0backup',
+            'profile_backup.file_filter (*.vrcx0backup)|*.vrcx0backup'
+        );
+        expect(mocks.runManual).toHaveBeenCalledWith(
+            'E:\\Profile\\My backup.vrcx0backup'
+        );
+        expect(mocks.selectSaveFile.mock.invocationCallOrder[0]).toBeLessThan(
             mocks.runManual.mock.invocationCallOrder[0]
         );
     });
@@ -140,9 +157,9 @@ describe('useProfileBackupSettings', () => {
         expect(mocks.selectFolder).not.toHaveBeenCalled();
     });
 
-    it('allows only one manual flow while folder selection is pending', async () => {
-        const folderSelection = deferred<string>();
-        mocks.selectFolder.mockReturnValue(folderSelection.promise);
+    it('allows only one manual flow while the save dialog is pending', async () => {
+        const saveSelection = deferred<string>();
+        mocks.selectSaveFile.mockReturnValue(saveSelection.promise);
         render(<HookHarness onValue={(value) => (current = value)} />);
 
         await waitFor(() => {
@@ -155,12 +172,39 @@ describe('useProfileBackupSettings', () => {
         await act(async () => {
             const first = value.startManualBackup();
             const second = value.startManualBackup();
-            folderSelection.resolve('E:\\Profile');
+            saveSelection.resolve('E:\\Profile\\manual.vrcx0backup');
             await Promise.all([first, second]);
         });
 
-        expect(mocks.selectFolder).toHaveBeenCalledTimes(1);
+        expect(mocks.selectSaveFile).toHaveBeenCalledTimes(1);
         expect(mocks.runManual).toHaveBeenCalledTimes(1);
+    });
+
+    it('restores any file name with the backup extension filter', async () => {
+        mocks.selectFile.mockResolvedValue(
+            'E:\\Profile\\anything-at-all.vrcx0backup'
+        );
+        mocks.validateRestore.mockResolvedValue({
+            validation: null,
+            failure: null
+        });
+        render(<HookHarness onValue={(value) => (current = value)} />);
+
+        await waitFor(() => {
+            expect(current?.settings).toEqual(initialSettings);
+        });
+        await act(async () => {
+            await current?.selectBackupToRestore();
+        });
+
+        expect(mocks.selectFile).toHaveBeenCalledWith(
+            'D:\\Backups',
+            '.vrcx0backup',
+            'profile_backup.file_filter (*.vrcx0backup)|*.vrcx0backup'
+        );
+        expect(mocks.validateRestore).toHaveBeenCalledWith(
+            'E:\\Profile\\anything-at-all.vrcx0backup'
+        );
     });
 
     it('reloads the last automatic backup time after an automatic success', async () => {

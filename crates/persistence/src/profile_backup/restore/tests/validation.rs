@@ -1,7 +1,8 @@
 use std::fs::{self, File, OpenOptions};
-use std::io::Write;
+use std::io::{Cursor, Write};
 
 use rusqlite::Connection;
+use tar::EntryType;
 
 use crate::database::schema::VRCX0_SCHEMA_VERSION;
 use crate::profile_backup::{
@@ -14,7 +15,9 @@ use super::super::validation::{
     RESTORE_FREE_SPACE_RESERVE_BYTES,
 };
 use super::common::{
-    create_profile_backup, manifest_for_database, rejected_code, write_custom_archive,
+    create_profile_backup, manifest_for_database, rejected_code,
+    write_archive_with_decompressed_trailing_data, write_concatenated_archives,
+    write_custom_archive, write_custom_archive_with_types, write_pax_archive,
     write_profile_database, TestDir,
 };
 
@@ -46,14 +49,6 @@ fn profile_backup_restore_hardening_rejects_invalid_entry_sets() {
             ProfileRestoreFailureCode::InvalidEntries,
         ),
         (
-            "directory",
-            vec![
-                (format!("{DATABASE_FILE_NAME}/"), Vec::new()),
-                (MANIFEST_FILE_NAME.into(), manifest.clone()),
-            ],
-            ProfileRestoreFailureCode::InvalidEntries,
-        ),
-        (
             "traversal",
             vec![
                 ("../VRCX-0.sqlite3".into(), db_bytes.clone()),
@@ -79,20 +74,42 @@ fn profile_backup_restore_hardening_rejects_invalid_entry_sets() {
         &duplicate_archive,
         vec![
             (DATABASE_FILE_NAME.into(), db_bytes.clone()),
-            ("manifest.jsonx".into(), manifest),
+            (DATABASE_FILE_NAME.into(), db_bytes.clone()),
         ],
     );
-    let mut duplicate_bytes = fs::read(&duplicate_archive).unwrap();
-    let old_name = b"manifest.jsonx";
-    for start in 0..=duplicate_bytes.len() - old_name.len() {
-        if duplicate_bytes[start..start + old_name.len()] == *old_name {
-            duplicate_bytes[start..start + old_name.len()]
-                .copy_from_slice(DATABASE_FILE_NAME.as_bytes());
-        }
-    }
-    fs::write(&duplicate_archive, duplicate_bytes).unwrap();
     assert_eq!(
         rejected_code(&duplicate_archive, &dir.0.join("app-duplicate"), "1.2.3"),
+        ProfileRestoreFailureCode::InvalidEntries
+    );
+
+    for (name, entry_type) in [
+        ("directory", EntryType::Directory),
+        ("symlink", EntryType::Symlink),
+        ("gnu-long-name", EntryType::GNULongName),
+    ] {
+        let archive = dir.0.join(format!("{name}.vrcx0backup"));
+        write_custom_archive_with_types(
+            &archive,
+            vec![
+                (DATABASE_FILE_NAME.into(), db_bytes.clone(), entry_type),
+                (
+                    MANIFEST_FILE_NAME.into(),
+                    manifest.clone(),
+                    EntryType::Regular,
+                ),
+            ],
+        );
+        assert_eq!(
+            rejected_code(&archive, &dir.0.join(format!("app-{name}")), "1.2.3"),
+            ProfileRestoreFailureCode::InvalidEntries,
+            "{name}"
+        );
+    }
+
+    let pax_archive = dir.0.join("pax.vrcx0backup");
+    write_pax_archive(&pax_archive, &db_bytes, &manifest);
+    assert_eq!(
+        rejected_code(&pax_archive, &dir.0.join("app-pax"), "1.2.3"),
         ProfileRestoreFailureCode::InvalidEntries
     );
 }
@@ -188,7 +205,7 @@ fn profile_backup_restore_rejects_hash_size_and_compatibility_failures() {
 fn profile_backup_restore_rejects_non_archives_and_non_profile_databases() {
     let dir = TestDir::new("invalid-inputs");
     let not_archive = dir.0.join("not-archive.vrcx0backup");
-    fs::write(&not_archive, b"not zip").unwrap();
+    fs::write(&not_archive, b"not zstd").unwrap();
     assert_eq!(
         rejected_code(&not_archive, &dir.0.join("not-archive-app"), "1.2.3"),
         ProfileRestoreFailureCode::InvalidArchive
@@ -215,6 +232,121 @@ fn profile_backup_restore_rejects_non_archives_and_non_profile_databases() {
     assert_eq!(
         rejected_code(&plain_backup, &dir.0.join("plain-app"), "1.2.3"),
         ProfileRestoreFailureCode::NotProfileDatabase
+    );
+}
+
+#[test]
+fn profile_backup_restore_rejects_corrupt_zstd_and_tar_data() {
+    let dir = TestDir::new("corrupt-archive");
+    let db_path = dir.0.join("valid.sqlite3");
+    write_profile_database(&db_path, VRCX0_SCHEMA_VERSION, "valid");
+    let db_bytes = fs::read(db_path).unwrap();
+    let manifest = serde_json::to_vec(&manifest_for_database(&db_bytes)).unwrap();
+
+    let truncated = dir.0.join("truncated-zstd.vrcx0backup");
+    write_custom_archive(
+        &truncated,
+        vec![
+            (DATABASE_FILE_NAME.into(), db_bytes),
+            (MANIFEST_FILE_NAME.into(), manifest),
+        ],
+    );
+    let truncated_len = fs::metadata(&truncated).unwrap().len();
+    OpenOptions::new()
+        .write(true)
+        .open(&truncated)
+        .unwrap()
+        .set_len(truncated_len - 1)
+        .unwrap();
+    assert_eq!(
+        rejected_code(&truncated, &dir.0.join("app-truncated"), "1.2.3"),
+        ProfileRestoreFailureCode::InvalidArchive
+    );
+
+    let corrupt_tar = dir.0.join("corrupt-tar.vrcx0backup");
+    fs::write(
+        &corrupt_tar,
+        zstd::stream::encode_all(Cursor::new(b"not a complete tar header"), 5).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        rejected_code(&corrupt_tar, &dir.0.join("app-corrupt-tar"), "1.2.3"),
+        ProfileRestoreFailureCode::InvalidArchive
+    );
+}
+
+#[test]
+fn profile_backup_restore_rejects_data_after_tar_or_zstd_frame() {
+    let dir = TestDir::new("trailing-data");
+    let db_path = dir.0.join("valid.sqlite3");
+    write_profile_database(&db_path, VRCX0_SCHEMA_VERSION, "valid");
+    let db_bytes = fs::read(db_path).unwrap();
+    let manifest = serde_json::to_vec(&manifest_for_database(&db_bytes)).unwrap();
+    let entries = vec![
+        (DATABASE_FILE_NAME.into(), db_bytes),
+        (MANIFEST_FILE_NAME.into(), manifest),
+    ];
+
+    let decompressed_trailing = dir.0.join("decompressed-trailing.vrcx0backup");
+    write_archive_with_decompressed_trailing_data(
+        &decompressed_trailing,
+        entries.clone(),
+        b"smuggled",
+    );
+    assert_eq!(
+        rejected_code(
+            &decompressed_trailing,
+            &dir.0.join("app-decompressed-trailing"),
+            "1.2.3"
+        ),
+        ProfileRestoreFailureCode::InvalidArchive
+    );
+
+    let zero_padded = dir.0.join("zero-padded.vrcx0backup");
+    write_archive_with_decompressed_trailing_data(&zero_padded, entries.clone(), &[0; 512]);
+    assert_eq!(
+        rejected_code(&zero_padded, &dir.0.join("app-zero-padded"), "1.2.3"),
+        ProfileRestoreFailureCode::InvalidArchive
+    );
+
+    let concatenated_tar = dir.0.join("concatenated-tar.vrcx0backup");
+    write_concatenated_archives(
+        &concatenated_tar,
+        vec![vec![entries[0].clone()], vec![entries[1].clone()]],
+    );
+    assert_eq!(
+        rejected_code(
+            &concatenated_tar,
+            &dir.0.join("app-concatenated-tar"),
+            "1.2.3"
+        ),
+        ProfileRestoreFailureCode::InvalidEntries
+    );
+
+    let raw_trailing = dir.0.join("raw-trailing.vrcx0backup");
+    write_custom_archive(&raw_trailing, entries.clone());
+    OpenOptions::new()
+        .append(true)
+        .open(&raw_trailing)
+        .unwrap()
+        .write_all(b"smuggled")
+        .unwrap();
+    assert_eq!(
+        rejected_code(&raw_trailing, &dir.0.join("app-raw-trailing"), "1.2.3"),
+        ProfileRestoreFailureCode::InvalidArchive
+    );
+
+    let second_frame = dir.0.join("second-frame.vrcx0backup");
+    write_custom_archive(&second_frame, entries);
+    OpenOptions::new()
+        .append(true)
+        .open(&second_frame)
+        .unwrap()
+        .write_all(&zstd::stream::encode_all(Cursor::new(b"smuggled"), 5).unwrap())
+        .unwrap();
+    assert_eq!(
+        rejected_code(&second_frame, &dir.0.join("app-second-frame"), "1.2.3"),
+        ProfileRestoreFailureCode::InvalidArchive
     );
 }
 
@@ -280,64 +412,6 @@ fn profile_backup_restore_rejects_non_regular_source() {
         rejected_code(&dir.0, &dir.0.join("app"), "1.2.3"),
         ProfileRestoreFailureCode::InvalidArchive
     );
-}
-
-#[test]
-fn profile_backup_restore_stream_rejects_unlisted_third_local_entry() {
-    let dir = TestDir::new("orphan-local-entry");
-    let db_path = dir.0.join("valid.sqlite3");
-    write_profile_database(&db_path, VRCX0_SCHEMA_VERSION, "valid");
-    let db_bytes = fs::read(db_path).unwrap();
-    let manifest = serde_json::to_vec(&manifest_for_database(&db_bytes)).unwrap();
-    let source = dir.0.join("orphan-local.vrcx0backup");
-    write_custom_archive(
-        &source,
-        vec![
-            (DATABASE_FILE_NAME.into(), db_bytes),
-            (MANIFEST_FILE_NAME.into(), manifest),
-            ("unlisted.txt".into(), b"orphan".to_vec()),
-        ],
-    );
-    fs::write(&source, hide_last_central_entry(fs::read(&source).unwrap())).unwrap();
-
-    assert_eq!(
-        rejected_code(&source, &dir.0.join("app"), "1.2.3"),
-        ProfileRestoreFailureCode::InvalidEntries
-    );
-}
-
-fn hide_last_central_entry(mut archive: Vec<u8>) -> Vec<u8> {
-    let eocd = archive
-        .windows(4)
-        .rposition(|window| window == b"PK\x05\x06")
-        .unwrap();
-    let central_offset =
-        u32::from_le_bytes(archive[eocd + 16..eocd + 20].try_into().unwrap()) as usize;
-    let mut retained_end = central_offset;
-    for _ in 0..2 {
-        let name_len = u16::from_le_bytes(
-            archive[retained_end + 28..retained_end + 30]
-                .try_into()
-                .unwrap(),
-        ) as usize;
-        let extra_len = u16::from_le_bytes(
-            archive[retained_end + 30..retained_end + 32]
-                .try_into()
-                .unwrap(),
-        ) as usize;
-        let comment_len = u16::from_le_bytes(
-            archive[retained_end + 32..retained_end + 34]
-                .try_into()
-                .unwrap(),
-        ) as usize;
-        retained_end += 46 + name_len + extra_len + comment_len;
-    }
-    archive.drain(retained_end..eocd);
-    let new_eocd = retained_end;
-    archive[new_eocd + 8..new_eocd + 12].copy_from_slice(&2_u16.to_le_bytes().repeat(2));
-    archive[new_eocd + 12..new_eocd + 16]
-        .copy_from_slice(&((retained_end - central_offset) as u32).to_le_bytes());
-    archive
 }
 
 #[cfg(unix)]

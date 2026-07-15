@@ -14,7 +14,8 @@ use crate::event_bus::RuntimeEventBus;
 use crate::task_supervisor::TaskSupervisor;
 
 use super::pipeline::{
-    active_stage_percent, backup_file_name, create_delivery_temporary, DeliveryAttempt,
+    active_stage_percent, backup_file_name, compression_workers, create_delivery_temporary,
+    is_backup_temporary_file_name, DeliveryAttempt,
 };
 use super::scheduler::is_auto_backup_due;
 use vrcx_0_persistence::VRCX0_SCHEMA_VERSION_KEY as DATABASE_VERSION_KEY;
@@ -118,6 +119,15 @@ fn stage_progress_handles_multi_gibibyte_files_and_reserves_completion() {
 }
 
 #[test]
+fn compression_workers_preserve_one_core_for_manual_backups_and_disable_mt_for_auto() {
+    assert_eq!(compression_workers(ProfileBackupKind::Auto, 32), 0);
+    assert_eq!(compression_workers(ProfileBackupKind::Manual, 1), 1);
+    assert_eq!(compression_workers(ProfileBackupKind::Manual, 2), 1);
+    assert_eq!(compression_workers(ProfileBackupKind::Manual, 8), 7);
+    assert_eq!(compression_workers(ProfileBackupKind::Manual, 32), 16);
+}
+
+#[test]
 fn progress_events_are_rate_limited_without_suppressing_boundaries() {
     let dir = TestDir::new("progress-rate-limit");
     let runtime = test_runtime(&dir);
@@ -203,7 +213,7 @@ fn manual_backup_runs_off_thread_and_finishes_with_revisioned_outcome() {
     fs::create_dir_all(&target).unwrap();
     let runtime = test_runtime(&dir);
 
-    let accepted = runtime.run_manual(&target);
+    let accepted = runtime.run_manual(target.join("Custom profile.vrcx0backup"));
     assert!(accepted.accepted);
     assert_eq!(accepted.status.state, ProfileBackupState::Running);
 
@@ -211,6 +221,10 @@ fn manual_backup_runs_off_thread_and_finishes_with_revisioned_outcome() {
     let outcome = completed.last_outcome.unwrap();
     assert!(outcome.succeeded);
     assert_eq!(outcome.revision, completed.revision);
+    assert_eq!(
+        outcome.file_name.as_deref(),
+        Some("Custom profile.vrcx0backup")
+    );
     let final_path = target.join(outcome.file_name.unwrap());
     assert!(final_path.is_file());
 
@@ -264,18 +278,67 @@ fn manual_backup_runs_off_thread_and_finishes_with_revisioned_outcome() {
 }
 
 #[test]
+fn manual_backup_rejects_a_modified_extension() {
+    let dir = TestDir::new("manual-extension");
+    let target = dir.0.join("target");
+    fs::create_dir_all(&target).unwrap();
+    let runtime = test_runtime(&dir);
+
+    let outcome = runtime.run_manual(target.join("Custom profile.zip"));
+
+    assert!(!outcome.accepted);
+    assert_eq!(
+        outcome.error.unwrap().code,
+        ProfileBackupErrorCode::DirectoryUnavailable
+    );
+    assert_eq!(runtime.current_status().state, ProfileBackupState::Idle);
+}
+
+#[test]
+fn manual_backup_rejects_the_automatic_rotation_namespace() {
+    let dir = TestDir::new("manual-auto-name");
+    let target = dir.0.join("target");
+    fs::create_dir_all(&target).unwrap();
+    let runtime = test_runtime(&dir);
+
+    let outcome = runtime.run_manual(target.join("VRCX-0-backup-auto-20260715-120000.vrcx0backup"));
+
+    assert!(!outcome.accepted);
+    assert_eq!(
+        outcome.error.unwrap().code,
+        ProfileBackupErrorCode::AlreadyExists
+    );
+    assert_eq!(runtime.current_status().state, ProfileBackupState::Idle);
+}
+
+#[test]
+fn orphan_cleanup_recognizes_custom_backup_file_names() {
+    assert!(is_backup_temporary_file_name("My profile.vrcx0backup.tmp"));
+    assert!(!is_backup_temporary_file_name("My profile.tmp"));
+    assert!(!is_backup_temporary_file_name("My profile.vrcx0backup"));
+}
+
+#[test]
 fn delivery_failure_keeps_artifact_for_explicit_retry() {
     let dir = TestDir::new("retry");
     let target = dir.0.join("removable-target");
     let runtime = test_runtime(&dir);
 
-    assert!(runtime.run_manual(&target).accepted);
+    assert!(
+        runtime
+            .run_manual(target.join("manual.vrcx0backup"))
+            .accepted
+    );
     let retryable = wait_for_status(&runtime, ProfileBackupState::Retryable);
     assert_eq!(
         retryable.error.as_ref().unwrap().code,
         ProfileBackupErrorCode::DirectoryUnavailable
     );
-    assert!(!runtime.run_manual(&target).accepted);
+    assert!(
+        !runtime
+            .run_manual(target.join("manual.vrcx0backup"))
+            .accepted
+    );
 
     fs::create_dir_all(&target).unwrap();
     let file_name = retryable
@@ -298,11 +361,7 @@ fn auto_delivery_failure_is_recorded_and_next_cycle_runs_a_fresh_backup() {
     let target = dir.0.join("removable-target");
     let runtime = test_runtime(&dir);
 
-    assert!(
-        runtime
-            .start_backup(ProfileBackupKind::Auto, target.clone())
-            .accepted
-    );
+    assert!(runtime.start_auto_backup(target.clone()).accepted);
     let retryable = wait_for_status(&runtime, ProfileBackupState::Retryable);
     let stale_archive = runtime
         .inner
@@ -331,11 +390,7 @@ fn auto_delivery_failure_is_recorded_and_next_cycle_runs_a_fresh_backup() {
     );
 
     fs::create_dir_all(&target).unwrap();
-    assert!(
-        runtime
-            .start_backup(ProfileBackupKind::Auto, target.clone())
-            .accepted
-    );
+    assert!(runtime.start_auto_backup(target.clone()).accepted);
     let completed = wait_for_status(&runtime, ProfileBackupState::Idle);
     let outcome = completed.last_outcome.unwrap();
     assert!(outcome.succeeded);
@@ -355,7 +410,7 @@ fn pending_restore_journal_blocks_new_backups() {
     )
     .unwrap();
 
-    let outcome = runtime.run_manual(&target);
+    let outcome = runtime.run_manual(target.join("manual.vrcx0backup"));
     assert!(!outcome.accepted);
     assert_eq!(
         outcome.error.unwrap().code,
@@ -370,10 +425,14 @@ fn manual_pending_delivery_blocks_auto_cycle_with_dedicated_code() {
     let target = dir.0.join("removable-target");
     let runtime = test_runtime(&dir);
 
-    assert!(runtime.run_manual(&target).accepted);
+    assert!(
+        runtime
+            .run_manual(target.join("manual.vrcx0backup"))
+            .accepted
+    );
     wait_for_status(&runtime, ProfileBackupState::Retryable);
 
-    let outcome = runtime.start_backup(ProfileBackupKind::Auto, target.clone());
+    let outcome = runtime.start_auto_backup(target.clone());
     assert!(!outcome.accepted);
     assert_eq!(
         outcome.error.unwrap().code,

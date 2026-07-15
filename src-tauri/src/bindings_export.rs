@@ -453,6 +453,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::shell::app__background_image_files_resolve,
             commands::host::shell::app__open_background_image_files_selector_dialog,
             commands::host::shell::app__open_file_selector_dialog,
+            commands::host::shell::app__save_file_selector_dialog,
             commands::host::shell::app__open_folder_selector_dialog,
             commands::host::shell::app__save_vrc_reg_json_file,
             commands::host::theme_debug::app__community_theme_debug_load_local_theme,

@@ -84,6 +84,21 @@ export async function openFileSelectorDialog(
     return typeof selected === 'string' ? selected : '';
 }
 
+export async function saveFileSelectorDialog(
+    defaultPath: string,
+    defaultName: string,
+    defaultExt: string,
+    defaultFilter: string
+): Promise<string> {
+    const selected = await commands.appSaveFileSelectorDialog(
+        defaultPath,
+        defaultName,
+        defaultExt,
+        defaultFilter
+    );
+    return typeof selected === 'string' ? selected : '';
+}
+
 export async function openCalendarFile(icsContent: string): Promise<void> {
     await commands.appOpenCalendarFile(icsContent);
 }

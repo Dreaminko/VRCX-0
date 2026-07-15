@@ -5,14 +5,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OpenFlags};
 use sha2::{Digest, Sha256};
-use zip::write::SimpleFileOptions;
-use zip::{CompressionMethod, ZipWriter};
+use tar::{Builder, EntryType, Header};
 
 use crate::database::schema::VRCX0_SCHEMA_VERSION;
 use crate::profile_backup::{
     create_backup_archive, ProfileBackupContent, ProfileBackupKind, ProfileBackupManifest,
     ProfileBackupManifestMetadata, ProfileRestoreFailureCode, ProfileRestoreValidation,
-    DATABASE_FILE_NAME,
+    DATABASE_FILE_NAME, MANIFEST_FILE_NAME,
 };
 
 use super::super::super::archive::sha256_hex;
@@ -130,13 +129,95 @@ pub(super) fn manifest_for_database(bytes: &[u8]) -> ProfileBackupManifest {
 }
 
 pub(super) fn write_custom_archive(path: &Path, entries: Vec<(String, Vec<u8>)>) {
-    let mut writer = ZipWriter::new(File::create(path).unwrap());
-    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
-    for (name, bytes) in entries {
-        writer.start_file(name, options).unwrap();
-        writer.write_all(&bytes).unwrap();
+    write_custom_archive_with_types(
+        path,
+        entries
+            .into_iter()
+            .map(|(name, bytes)| (name, bytes, EntryType::Regular))
+            .collect(),
+    );
+}
+
+pub(super) fn write_custom_archive_with_types(
+    path: &Path,
+    entries: Vec<(String, Vec<u8>, EntryType)>,
+) {
+    let encoder = zstd::stream::write::Encoder::new(File::create(path).unwrap(), 5).unwrap();
+    let mut builder = Builder::new(encoder);
+    for (name, bytes, entry_type) in entries {
+        append_tar_entry(&mut builder, name.as_bytes(), &bytes, entry_type);
     }
-    writer.finish().unwrap().sync_all().unwrap();
+    let encoder = builder.into_inner().unwrap();
+    encoder.finish().unwrap().sync_all().unwrap();
+}
+
+pub(super) fn write_pax_archive(path: &Path, database: &[u8], manifest: &[u8]) {
+    let encoder = zstd::stream::write::Encoder::new(File::create(path).unwrap(), 5).unwrap();
+    let mut builder = Builder::new(encoder);
+    builder
+        .append_pax_extensions([("path", b"../VRCX-0.sqlite3".as_slice())])
+        .unwrap();
+    append_tar_entry(
+        &mut builder,
+        DATABASE_FILE_NAME.as_bytes(),
+        database,
+        EntryType::Regular,
+    );
+    append_tar_entry(
+        &mut builder,
+        MANIFEST_FILE_NAME.as_bytes(),
+        manifest,
+        EntryType::Regular,
+    );
+    let encoder = builder.into_inner().unwrap();
+    encoder.finish().unwrap().sync_all().unwrap();
+}
+
+pub(super) fn write_archive_with_decompressed_trailing_data(
+    path: &Path,
+    entries: Vec<(String, Vec<u8>)>,
+    trailing: &[u8],
+) {
+    let mut builder = Builder::new(Vec::new());
+    for (name, bytes) in entries {
+        append_tar_entry(&mut builder, name.as_bytes(), &bytes, EntryType::Regular);
+    }
+    let mut tar_bytes = builder.into_inner().unwrap();
+    tar_bytes.extend_from_slice(trailing);
+    let mut encoder = zstd::stream::write::Encoder::new(File::create(path).unwrap(), 5).unwrap();
+    encoder.write_all(&tar_bytes).unwrap();
+    encoder.finish().unwrap().sync_all().unwrap();
+}
+
+pub(super) fn write_concatenated_archives(path: &Path, archives: Vec<Vec<(String, Vec<u8>)>>) {
+    let mut decompressed = Vec::new();
+    for entries in archives {
+        let mut builder = Builder::new(Vec::new());
+        for (name, bytes) in entries {
+            append_tar_entry(&mut builder, name.as_bytes(), &bytes, EntryType::Regular);
+        }
+        decompressed.extend_from_slice(&builder.into_inner().unwrap());
+    }
+    let mut encoder = zstd::stream::write::Encoder::new(File::create(path).unwrap(), 5).unwrap();
+    encoder.write_all(&decompressed).unwrap();
+    encoder.finish().unwrap().sync_all().unwrap();
+}
+
+fn append_tar_entry<W: Write>(
+    builder: &mut Builder<W>,
+    name: &[u8],
+    bytes: &[u8],
+    entry_type: EntryType,
+) {
+    assert!(name.len() <= 100);
+    let mut header = Header::new_gnu();
+    header.as_mut_bytes()[..name.len()].copy_from_slice(name);
+    header.set_size(bytes.len() as u64);
+    header.set_entry_type(entry_type);
+    header.set_mode(0o600);
+    header.set_mtime(0);
+    header.set_cksum();
+    builder.append(&header, bytes).unwrap();
 }
 
 pub(super) fn prepare_restore(

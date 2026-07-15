@@ -6,8 +6,9 @@ use std::time::SystemTime;
 use chrono::{DateTime, Local, Utc};
 use vrcx_0_persistence::profile_backup::{
     commit_file_without_overwrite, create_backup_archive_with_progress,
-    has_pending_profile_restore, read_profile_database_version, select_auto_backups_for_removal,
-    ProfileBackupManifestMetadata, BACKUP_STAGING_DIRECTORY, DATABASE_FILE_NAME,
+    has_pending_profile_restore, is_auto_backup_file_name, read_profile_database_version,
+    select_auto_backups_for_removal, ProfileBackupManifestMetadata, BACKUP_STAGING_DIRECTORY,
+    DATABASE_FILE_NAME,
 };
 use vrcx_0_persistence::Error as PersistenceError;
 
@@ -20,8 +21,47 @@ use super::{
 };
 
 impl ProfileBackupRuntime {
-    pub fn run_manual(&self, target_dir: impl Into<PathBuf>) -> ProfileBackupActionOutcome {
-        self.start_backup(ProfileBackupKind::Manual, target_dir.into())
+    pub fn run_manual(&self, target_path: impl Into<PathBuf>) -> ProfileBackupActionOutcome {
+        let target_path = target_path.into();
+        let Some(file_name) = target_path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+        else {
+            return self.rejected_action(
+                ProfileBackupErrorCode::DirectoryUnavailable,
+                Some(target_path),
+            );
+        };
+        if target_path.extension().and_then(|value| value.to_str()) != Some("vrcx0backup") {
+            return self.rejected_action(
+                ProfileBackupErrorCode::DirectoryUnavailable,
+                Some(target_path),
+            );
+        }
+        if is_auto_backup_file_name(&file_name) {
+            return self.rejected_action(ProfileBackupErrorCode::AlreadyExists, Some(target_path));
+        }
+        let Some(target_dir) = target_path
+            .parent()
+            .filter(|value| !value.as_os_str().is_empty())
+            .map(Path::to_path_buf)
+        else {
+            return self.rejected_action(
+                ProfileBackupErrorCode::DirectoryUnavailable,
+                Some(target_path),
+            );
+        };
+        self.start_backup(ProfileBackupKind::Manual, target_dir, file_name)
+    }
+
+    pub(super) fn start_auto_backup(&self, target_dir: PathBuf) -> ProfileBackupActionOutcome {
+        self.start_backup(
+            ProfileBackupKind::Auto,
+            target_dir,
+            backup_file_name(ProfileBackupKind::Auto, Local::now()),
+        )
     }
 
     pub fn retry_delivery(&self) -> ProfileBackupActionOutcome {
@@ -65,6 +105,7 @@ impl ProfileBackupRuntime {
         &self,
         kind: ProfileBackupKind,
         target_dir: PathBuf,
+        file_name: String,
     ) -> ProfileBackupActionOutcome {
         let Some(guard) = OperationGuard::try_acquire(&self.inner.operation_running) else {
             return self.rejected_action(ProfileBackupErrorCode::OperationBusy, None);
@@ -114,7 +155,6 @@ impl ProfileBackupRuntime {
             }
         }
         let settings = self.settings();
-        let file_name = backup_file_name(kind, Local::now());
         let pending = PendingDelivery {
             archive: self
                 .inner
@@ -169,6 +209,9 @@ impl ProfileBackupRuntime {
                 return;
             }
         };
+        let available_parallelism = std::thread::available_parallelism()
+            .map(std::num::NonZeroUsize::get)
+            .unwrap_or(1);
         let archive_result = create_backup_archive_with_progress(
             &snapshot,
             &pending.archive,
@@ -179,6 +222,7 @@ impl ProfileBackupRuntime {
                 platform: std::env::consts::OS.into(),
                 kind: pending.kind,
             },
+            compression_workers(pending.kind, available_parallelism),
             &mut |bytes, total| {
                 self.update_progress(
                     ProfileBackupPhase::Package,
@@ -340,6 +384,13 @@ pub(super) fn active_stage_percent(processed: u64, total: u64) -> u8 {
     (processed.saturating_mul(100) / total.max(1)).min(99) as u8
 }
 
+pub(super) fn compression_workers(kind: ProfileBackupKind, available_parallelism: usize) -> u32 {
+    match kind {
+        ProfileBackupKind::Auto => 0,
+        ProfileBackupKind::Manual => available_parallelism.saturating_sub(1).clamp(1, 16) as u32,
+    }
+}
+
 #[derive(Clone, Copy)]
 enum BackupStage {
     Snapshot,
@@ -426,9 +477,7 @@ fn cleanup_orphan_temporary_files(directory: &Path) {
         let matches = path
             .file_name()
             .and_then(|name| name.to_str())
-            .is_some_and(|name| {
-                name.starts_with("VRCX-0-backup-") && name.ends_with(".vrcx0backup.tmp")
-            });
+            .is_some_and(is_backup_temporary_file_name);
         if !matches {
             continue;
         }
@@ -442,6 +491,10 @@ fn cleanup_orphan_temporary_files(directory: &Path) {
             let _ = fs::remove_file(path);
         }
     }
+}
+
+pub(super) fn is_backup_temporary_file_name(name: &str) -> bool {
+    name.ends_with(".vrcx0backup.tmp")
 }
 
 fn rotate_auto_backups(directory: &Path, retain_extra: u8) {

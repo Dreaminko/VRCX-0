@@ -37,9 +37,9 @@ export function setProfileBackupSettings(
 }
 
 export function runManualProfileBackup(
-    targetDir: string
+    targetPath: string
 ): Promise<ProfileBackupActionOutcome> {
-    return commands.appProfileBackupRunManual(targetDir);
+    return commands.appProfileBackupRunManual(targetPath);
 }
 
 export function retryProfileBackupDelivery(): Promise<ProfileBackupActionOutcome> {

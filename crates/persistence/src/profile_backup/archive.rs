@@ -1,11 +1,10 @@
 use std::fmt::Write as _;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
-use zip::write::SimpleFileOptions;
-use zip::{CompressionMethod, ZipWriter};
+use tar::{Builder, EntryType, Header};
 
 use crate::Error;
 
@@ -23,13 +22,14 @@ pub fn create_backup_archive(
     archive: &Path,
     metadata: ProfileBackupManifestMetadata,
 ) -> Result<ProfileBackupManifest, Error> {
-    create_backup_archive_with_progress(snapshot, archive, metadata, &mut |_, _| {})
+    create_backup_archive_with_progress(snapshot, archive, metadata, 0, &mut |_, _| {})
 }
 
 pub fn create_backup_archive_with_progress(
     snapshot: &Path,
     archive: &Path,
     metadata: ProfileBackupManifestMetadata,
+    compression_workers: u32,
     progress: &mut dyn FnMut(u64, u64),
 ) -> Result<ProfileBackupManifest, Error> {
     let path_metadata = fs::metadata(snapshot)?;
@@ -66,39 +66,27 @@ pub fn create_backup_archive_with_progress(
         open_options.mode(0o600);
     }
     let archive_file = open_options.open(archive)?;
-    let mut writer = ZipWriter::new(archive_file);
-    let options = SimpleFileOptions::default()
-        .compression_method(CompressionMethod::Deflated)
-        .unix_permissions(0o600);
-
-    writer
-        .start_file(DATABASE_FILE_NAME, options.large_file(true))
-        .map_err(zip_error)?;
-    let mut hasher = Sha256::new();
-    let mut bytes = 0_u64;
-    let mut buffer = [0_u8; 128 * 1024];
-    while bytes < initial_len {
-        let read_limit = usize::try_from((initial_len - bytes).min(buffer.len() as u64))
-            .map_err(|_| Error::InvalidData("The profile backup snapshot is invalid.".into()))?;
-        let read = snapshot_file.read(&mut buffer[..read_limit])?;
-        if read == 0 {
-            return Err(Error::InvalidData(
-                "The profile backup snapshot changed while it was being read.".into(),
-            ));
+    let mut encoder = zstd::Encoder::new(archive_file, 5)?;
+    if compression_workers > 0 {
+        if let Err(error) = encoder.multithread(compression_workers) {
+            tracing::warn!(
+                "Failed to enable multithreaded profile backup compression; falling back to one thread: {error}"
+            );
         }
-        hasher.update(&buffer[..read]);
-        writer.write_all(&buffer[..read])?;
-        bytes = bytes
-            .checked_add(read as u64)
-            .ok_or_else(|| Error::InvalidData("The profile backup snapshot is invalid.".into()))?;
-        progress(bytes, initial_len);
     }
-    let mut probe = [0_u8; 1];
-    if snapshot_file.read(&mut probe)? != 0 {
-        return Err(Error::InvalidData(
-            "The profile backup snapshot changed while it was being read.".into(),
-        ));
+    let mut builder = Builder::new(encoder);
+    let mut database_header = regular_tar_header(initial_len);
+    let mut snapshot_reader = SnapshotArchiveReader::new(&mut snapshot_file, initial_len, progress);
+    let append_result = builder.append_data(
+        &mut database_header,
+        DATABASE_FILE_NAME,
+        &mut snapshot_reader,
+    );
+    if let Some(error) = snapshot_reader.take_failure() {
+        return Err(error);
     }
+    append_result?;
+    let (hasher, bytes) = snapshot_reader.finish()?;
 
     let manifest = ProfileBackupManifest {
         manifest_version: MANIFEST_VERSION,
@@ -114,13 +102,116 @@ pub fn create_backup_archive_with_progress(
         }],
     };
 
-    writer
-        .start_file(MANIFEST_FILE_NAME, options)
-        .map_err(zip_error)?;
-    writer.write_all(&serde_json::to_vec_pretty(&manifest)?)?;
-    let archive_file = writer.finish().map_err(zip_error)?;
+    let manifest_bytes = serde_json::to_vec_pretty(&manifest)?;
+    let mut manifest_header = regular_tar_header(manifest_bytes.len() as u64);
+    builder.append_data(
+        &mut manifest_header,
+        MANIFEST_FILE_NAME,
+        manifest_bytes.as_slice(),
+    )?;
+    let encoder = builder.into_inner()?;
+    let archive_file = encoder.finish()?;
     archive_file.sync_all()?;
     Ok(manifest)
+}
+
+fn regular_tar_header(size: u64) -> Header {
+    let mut header = Header::new_gnu();
+    header.set_size(size);
+    header.set_entry_type(EntryType::Regular);
+    header.set_mode(0o600);
+    header.set_mtime(0);
+    header.set_cksum();
+    header
+}
+
+struct SnapshotArchiveReader<'a> {
+    file: &'a mut File,
+    remaining: u64,
+    bytes: u64,
+    hasher: Sha256,
+    progress: &'a mut dyn FnMut(u64, u64),
+    total: u64,
+    failure: Option<SnapshotReadFailure>,
+}
+
+impl<'a> SnapshotArchiveReader<'a> {
+    fn new(file: &'a mut File, total: u64, progress: &'a mut dyn FnMut(u64, u64)) -> Self {
+        Self {
+            file,
+            remaining: total,
+            bytes: 0,
+            hasher: Sha256::new(),
+            progress,
+            total,
+            failure: None,
+        }
+    }
+
+    fn take_failure(&mut self) -> Option<Error> {
+        self.failure.take().map(|failure| match failure {
+            SnapshotReadFailure::Changed => snapshot_changed_error(),
+            SnapshotReadFailure::Invalid => {
+                Error::InvalidData("The profile backup snapshot is invalid.".into())
+            }
+        })
+    }
+
+    fn finish(self) -> Result<(Sha256, u64), Error> {
+        if self.remaining != 0 {
+            return Err(snapshot_changed_error());
+        }
+        let mut probe = [0_u8; 1];
+        if self.file.read(&mut probe)? != 0 {
+            return Err(snapshot_changed_error());
+        }
+        Ok((self.hasher, self.bytes))
+    }
+}
+
+impl Read for SnapshotArchiveReader<'_> {
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        if self.remaining == 0 || buffer.is_empty() {
+            return Ok(0);
+        }
+        let read_limit =
+            usize::try_from(self.remaining.min(buffer.len() as u64)).map_err(|_| {
+                self.failure = Some(SnapshotReadFailure::Invalid);
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "Invalid profile backup snapshot",
+                )
+            })?;
+        let read = self.file.read(&mut buffer[..read_limit])?;
+        if read == 0 {
+            self.failure = Some(SnapshotReadFailure::Changed);
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Profile backup snapshot changed while being read",
+            ));
+        }
+        let Some(bytes) = self.bytes.checked_add(read as u64) else {
+            self.failure = Some(SnapshotReadFailure::Invalid);
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Invalid profile backup snapshot",
+            ));
+        };
+        self.hasher.update(&buffer[..read]);
+        self.bytes = bytes;
+        self.remaining -= read as u64;
+        (self.progress)(self.bytes, self.total);
+        Ok(read)
+    }
+}
+
+enum SnapshotReadFailure {
+    Changed,
+    Invalid,
+}
+
+fn snapshot_changed_error() -> Error {
+    Error::InvalidData("The profile backup snapshot changed while it was being read.".into())
 }
 
 pub fn commit_file_without_overwrite(temporary: &Path, final_path: &Path) -> Result<(), Error> {
@@ -194,7 +285,7 @@ pub fn select_auto_backups_for_removal(
     matching.into_iter().skip(retain).collect()
 }
 
-fn is_auto_backup_file_name(name: &str) -> bool {
+pub fn is_auto_backup_file_name(name: &str) -> bool {
     let Some(timestamp) = name
         .strip_prefix(AUTO_BACKUP_PREFIX)
         .and_then(|value| value.strip_suffix(BACKUP_SUFFIX))
@@ -230,10 +321,6 @@ pub(crate) fn sha256_hex(digest: impl AsRef<[u8]>) -> String {
         write!(&mut output, "{byte:02x}").unwrap();
     }
     output
-}
-
-fn zip_error(error: zip::result::ZipError) -> Error {
-    Error::InvalidData(error.to_string())
 }
 
 #[cfg(test)]
@@ -288,76 +375,41 @@ mod tests {
             serde_json::from_str::<ProfileBackupManifest>(&encoded).unwrap(),
             manifest
         );
-        let mut zip = zip::ZipArchive::new(File::open(archive).unwrap()).unwrap();
-        assert_eq!(zip.len(), 2);
-        assert_eq!(zip.by_index(0).unwrap().name(), DATABASE_FILE_NAME);
-        assert_eq!(zip.by_index(1).unwrap().name(), MANIFEST_FILE_NAME);
+        let decoder = zstd::Decoder::new(File::open(archive).unwrap()).unwrap();
+        let mut tar = tar::Archive::new(decoder);
+        let mut entries = tar.entries().unwrap();
+
+        let mut database_entry = entries.next().unwrap().unwrap();
+        assert_eq!(
+            database_entry.path().unwrap().as_ref(),
+            Path::new(DATABASE_FILE_NAME)
+        );
+        assert_eq!(database_entry.header().entry_type(), EntryType::Regular);
+        assert_eq!(database_entry.header().mode().unwrap(), 0o600);
+        assert_eq!(database_entry.header().mtime().unwrap(), 0);
+        let mut database_bytes = Vec::new();
+        database_entry.read_to_end(&mut database_bytes).unwrap();
+        assert_eq!(database_bytes, b"sqlite snapshot");
+        drop(database_entry);
+
+        let mut manifest_entry = entries.next().unwrap().unwrap();
+        assert_eq!(
+            manifest_entry.path().unwrap().as_ref(),
+            Path::new(MANIFEST_FILE_NAME)
+        );
+        assert_eq!(manifest_entry.header().entry_type(), EntryType::Regular);
+        assert_eq!(manifest_entry.header().mode().unwrap(), 0o600);
+        assert_eq!(manifest_entry.header().mtime().unwrap(), 0);
+        let mut manifest_bytes = Vec::new();
+        manifest_entry.read_to_end(&mut manifest_bytes).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<ProfileBackupManifest>(&manifest_bytes).unwrap(),
+            manifest
+        );
+        drop(manifest_entry);
+
+        assert!(entries.next().is_none());
         assert_eq!(manifest.contents[0].bytes, 15);
-    }
-
-    #[test]
-    fn profile_backup_database_entry_uses_zip64_local_and_central_metadata() {
-        let dir = TestDir::new("zip64-database-entry");
-        let snapshot = dir.0.join(DATABASE_FILE_NAME);
-        let archive = dir.0.join("backup.vrcx0backup");
-        fs::write(&snapshot, b"sqlite snapshot").unwrap();
-        create_backup_archive(
-            &snapshot,
-            &archive,
-            ProfileBackupManifestMetadata {
-                app_version: "1.2.3".into(),
-                db_version: 18,
-                created_at: "2026-07-14T07:30:00Z".into(),
-                platform: "windows".into(),
-                kind: ProfileBackupKind::Manual,
-            },
-        )
-        .unwrap();
-
-        let bytes = fs::read(&archive).unwrap();
-        assert_eq!(&bytes[18..26], &[0xff; 8]);
-        let local_name_len = u16::from_le_bytes(bytes[26..28].try_into().unwrap()) as usize;
-        let local_extra_len = u16::from_le_bytes(bytes[28..30].try_into().unwrap()) as usize;
-        let local_extra = &bytes[30 + local_name_len..30 + local_name_len + local_extra_len];
-        assert!(contains_zip64_extra(local_extra));
-
-        let central = bytes
-            .windows(4)
-            .position(|window| window == b"PK\x01\x02")
-            .unwrap();
-        let central_name_len =
-            u16::from_le_bytes(bytes[central + 28..central + 30].try_into().unwrap()) as usize;
-        let central_extra_len =
-            u16::from_le_bytes(bytes[central + 30..central + 32].try_into().unwrap()) as usize;
-        let central_extra = &bytes
-            [central + 46 + central_name_len..central + 46 + central_name_len + central_extra_len];
-        assert!(contains_zip64_extra(central_extra));
-
-        let mut zip = zip::ZipArchive::new(File::open(archive).unwrap()).unwrap();
-        assert_eq!(zip.by_name(DATABASE_FILE_NAME).unwrap().size(), 15);
-    }
-
-    fn contains_zip64_extra(extra: &[u8]) -> bool {
-        let mut cursor = 0_usize;
-        while cursor + 4 <= extra.len() {
-            let id = u16::from_le_bytes(extra[cursor..cursor + 2].try_into().unwrap());
-            let size =
-                u16::from_le_bytes(extra[cursor + 2..cursor + 4].try_into().unwrap()) as usize;
-            let Some(end) = cursor
-                .checked_add(4)
-                .and_then(|value| value.checked_add(size))
-            else {
-                return false;
-            };
-            if end > extra.len() {
-                return false;
-            }
-            if id == 0x0001 {
-                return true;
-            }
-            cursor = end;
-        }
-        false
     }
 
     #[test]

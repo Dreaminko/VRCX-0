@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{BufReader, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::time::Duration;
 
@@ -24,6 +24,7 @@ use super::filesystem::{
 
 const STAGED_ARCHIVE_FILE_NAME: &str = "profile-restore-package.vrcx0backup";
 const MAX_MANIFEST_BYTES: u64 = 64 * 1024;
+const TAR_BLOCK_BYTES: usize = 512;
 pub(super) const MAX_RESTORE_ARCHIVE_BYTES: u64 = MAX_PROFILE_DATABASE_BYTES + 16 * 1024 * 1024;
 pub(super) const RESTORE_FREE_SPACE_RESERVE_BYTES: u64 = 512 * 1024 * 1024;
 
@@ -131,47 +132,95 @@ fn read_streamed_restore_entries(
     archive_file: &mut File,
     temporary_db: &Path,
 ) -> Result<(Vec<u8>, StreamedDatabase), ProfileRestoreFailureCode> {
+    let reader = BufReader::new(archive_file);
+    let mut decoder = zstd::stream::read::Decoder::with_buffer(reader)
+        .map_err(|_| ProfileRestoreFailureCode::InvalidArchive)?
+        .single_frame();
     let mut manifest = None;
     let mut database = None;
-    for _ in 0..2 {
-        let mut entry = zip::read::read_zipfile_from_stream(archive_file)
+
+    {
+        let mut archive = tar::Archive::new(&mut decoder);
+        let mut entries = archive
+            .entries()
             .map_err(|_| ProfileRestoreFailureCode::InvalidArchive)?
-            .ok_or(ProfileRestoreFailureCode::InvalidEntries)?;
-        match entry.name_raw() {
-            name if name == MANIFEST_FILE_NAME.as_bytes() => {
-                if manifest.is_some() {
-                    return Err(ProfileRestoreFailureCode::InvalidEntries);
-                }
-                manifest = Some(read_manifest_entry(&mut entry)?);
+            .raw(true);
+        for _ in 0..2 {
+            let mut entry = entries
+                .next()
+                .ok_or(ProfileRestoreFailureCode::InvalidEntries)?
+                .map_err(|_| ProfileRestoreFailureCode::InvalidArchive)?;
+            if entry.header().entry_type() != tar::EntryType::Regular {
+                return Err(ProfileRestoreFailureCode::InvalidEntries);
             }
-            name if name == DATABASE_FILE_NAME.as_bytes() => {
-                if database.is_some() {
-                    return Err(ProfileRestoreFailureCode::InvalidEntries);
+            let size = entry.size();
+            match entry.path_bytes().as_ref() {
+                name if name == MANIFEST_FILE_NAME.as_bytes() => {
+                    if manifest.is_some() {
+                        return Err(ProfileRestoreFailureCode::InvalidEntries);
+                    }
+                    manifest = Some(read_manifest_entry(&mut entry, size)?);
                 }
-                database = Some(read_database_entry(&mut entry, temporary_db)?);
+                name if name == DATABASE_FILE_NAME.as_bytes() => {
+                    if database.is_some() {
+                        return Err(ProfileRestoreFailureCode::InvalidEntries);
+                    }
+                    database = Some(read_database_entry(&mut entry, size, temporary_db)?);
+                }
+                _ => return Err(ProfileRestoreFailureCode::InvalidEntries),
             }
-            _ => return Err(ProfileRestoreFailureCode::InvalidEntries),
+        }
+        match entries.next() {
+            None => {}
+            Some(Ok(_)) => return Err(ProfileRestoreFailureCode::InvalidEntries),
+            Some(Err(_)) => return Err(ProfileRestoreFailureCode::InvalidArchive),
         }
     }
-    match zip::read::read_zipfile_from_stream(archive_file) {
-        Ok(None) => {}
-        Ok(Some(_)) => return Err(ProfileRestoreFailureCode::InvalidEntries),
-        Err(_) => return Err(ProfileRestoreFailureCode::InvalidArchive),
-    }
+
+    ensure_second_tar_end_block(&mut decoder)?;
+    ensure_stream_eof(&mut decoder)?;
+    let mut compressed_reader = decoder.finish();
+    ensure_stream_eof(&mut compressed_reader)?;
+
     Ok((
         manifest.ok_or(ProfileRestoreFailureCode::InvalidEntries)?,
         database.ok_or(ProfileRestoreFailureCode::InvalidEntries)?,
     ))
 }
 
+fn ensure_second_tar_end_block(reader: &mut impl Read) -> Result<(), ProfileRestoreFailureCode> {
+    let mut block = [0_u8; TAR_BLOCK_BYTES];
+    reader
+        .read_exact(&mut block)
+        .map_err(|_| ProfileRestoreFailureCode::InvalidArchive)?;
+    if block.iter().all(|byte| *byte == 0) {
+        Ok(())
+    } else {
+        Err(ProfileRestoreFailureCode::InvalidArchive)
+    }
+}
+
+fn ensure_stream_eof(reader: &mut impl Read) -> Result<(), ProfileRestoreFailureCode> {
+    let mut probe = [0_u8; 1];
+    if reader
+        .read(&mut probe)
+        .map_err(|_| ProfileRestoreFailureCode::InvalidArchive)?
+        == 0
+    {
+        Ok(())
+    } else {
+        Err(ProfileRestoreFailureCode::InvalidArchive)
+    }
+}
+
 fn read_manifest_entry<R: Read>(
-    entry: &mut zip::read::ZipFile<'_, R>,
+    entry: &mut R,
+    expected_size: u64,
 ) -> Result<Vec<u8>, ProfileRestoreFailureCode> {
-    if entry.size() > MAX_MANIFEST_BYTES {
+    if expected_size > MAX_MANIFEST_BYTES {
         return Err(ProfileRestoreFailureCode::InvalidArchive);
     }
-    let expected_size = entry.size();
-    let mut bytes = Vec::with_capacity(entry.size() as usize);
+    let mut bytes = Vec::with_capacity(expected_size as usize);
     read_entry_to_vec(entry, expected_size, MAX_MANIFEST_BYTES, &mut bytes)?;
     if bytes.len() as u64 != expected_size {
         return Err(ProfileRestoreFailureCode::InvalidArchive);
@@ -180,7 +229,7 @@ fn read_manifest_entry<R: Read>(
 }
 
 fn read_entry_to_vec<R: Read>(
-    entry: &mut zip::read::ZipFile<'_, R>,
+    entry: &mut R,
     expected_size: u64,
     limit: u64,
     output: &mut Vec<u8>,
@@ -204,13 +253,13 @@ fn read_entry_to_vec<R: Read>(
 }
 
 fn read_database_entry<R: Read>(
-    entry: &mut zip::read::ZipFile<'_, R>,
+    entry: &mut R,
+    expected_size: u64,
     temporary_db: &Path,
 ) -> Result<StreamedDatabase, ProfileRestoreFailureCode> {
-    if entry.size() > MAX_PROFILE_DATABASE_BYTES {
+    if expected_size > MAX_PROFILE_DATABASE_BYTES {
         return Err(ProfileRestoreFailureCode::InvalidArchive);
     }
-    let expected_size = entry.size();
     let mut output =
         create_private_file(temporary_db).map_err(|_| ProfileRestoreFailureCode::Io)?;
     let mut hasher = Sha256::new();

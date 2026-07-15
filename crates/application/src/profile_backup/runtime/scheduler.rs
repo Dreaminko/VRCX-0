@@ -8,9 +8,8 @@ use vrcx_0_persistence::storage::StorageService;
 use crate::background::sleep_until_due_or_stopped;
 
 use super::{
-    ProfileBackupKind, ProfileBackupRuntime, AUTO_CADENCE, AUTO_ENABLED_KEY,
-    AUTO_INTERVAL_DAYS_KEY, AUTO_JOB, AUTO_RETAIN_EXTRA_KEY, AUTO_START_DELAY, AUTO_TARGET_DIR_KEY,
-    LAST_AUTO_AT_KEY,
+    ProfileBackupRuntime, AUTO_CADENCE, AUTO_ENABLED_KEY, AUTO_INTERVAL_DAYS_KEY, AUTO_JOB,
+    AUTO_RETAIN_EXTRA_KEY, AUTO_START_DELAY, AUTO_TARGET_DIR_KEY, LAST_AUTO_AT_KEY,
 };
 use crate::profile_backup::ProfileBackupSettings;
 
@@ -122,10 +121,7 @@ impl ProfileBackupRuntime {
         self.inner
             .background_jobs
             .mark_running(AUTO_JOB, "Profile backup is running.");
-        let outcome = self.start_backup(
-            ProfileBackupKind::Auto,
-            PathBuf::from(settings.auto_target_dir),
-        );
+        let outcome = self.start_auto_backup(PathBuf::from(settings.auto_target_dir));
         if !outcome.accepted {
             self.inner.background_jobs.mark_scheduled(
                 AUTO_JOB,
