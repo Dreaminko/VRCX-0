@@ -37,7 +37,7 @@ type RuntimeNotificationOptions = {
     title: string;
     error: unknown;
 };
-type BootstrapRetryKey = 'friends' | 'favorites';
+type BootstrapRetryKey = 'friends' | 'favorites' | 'realtime';
 type BootstrapRetryState = Record<
     BootstrapRetryKey,
     {
@@ -277,9 +277,11 @@ export function startAuthenticatedRuntimeServices() {
     let activityWarmupStarted = false;
     let realtimeTransportStarted = false;
     let realtimeTransportOwner: RealtimeTransportOwner = 'none';
+    let realtimeTransportAttemptId = 0;
     const bootstrapRetryState: BootstrapRetryState = {
         friends: { timer: null, attempt: 0 },
-        favorites: { timer: null, attempt: 0 }
+        favorites: { timer: null, attempt: 0 },
+        realtime: { timer: null, attempt: 0 }
     };
     let requestBootstrapUpdate = () => {};
 
@@ -298,6 +300,7 @@ export function startAuthenticatedRuntimeServices() {
     const clearBootstrapRetries = () => {
         clearBootstrapRetry('friends');
         clearBootstrapRetry('favorites');
+        clearBootstrapRetry('realtime');
     };
 
     const resetContext = (context: AuthenticatedRuntimeContext | null) => {
@@ -425,6 +428,7 @@ export function startAuthenticatedRuntimeServices() {
         context: AuthenticatedRuntimeContext,
         runId: number
     ) => {
+        const attemptId = ++realtimeTransportAttemptId;
         realtimeTransportStarted = true;
         realtimeTransportOwner = 'frontend';
         startRealtimeTransport({
@@ -432,11 +436,30 @@ export function startAuthenticatedRuntimeServices() {
             endpoint: context.endpoint,
             websocket: context.websocket,
             currentUserSnapshot: context.currentUserSnapshot
-        }).catch((error: unknown) => {
-            if (isActiveRun(runId, context)) {
+        })
+            .then(() => {
+                if (
+                    isActiveRun(runId, context) &&
+                    realtimeTransportOwner === 'frontend' &&
+                    realtimeTransportAttemptId === attemptId
+                ) {
+                    clearBootstrapRetry('realtime');
+                }
+            })
+            .catch((error: unknown) => {
+                if (
+                    !isActiveRun(runId, context) ||
+                    realtimeTransportOwner !== 'frontend' ||
+                    realtimeTransportAttemptId !== attemptId
+                ) {
+                    return;
+                }
+
+                realtimeTransportStarted = false;
+                realtimeTransportOwner = 'none';
+                scheduleBootstrapRetry('realtime', runId, context);
                 console.warn('Realtime transport bootstrap failed:', error);
-            }
-        });
+            });
     };
 
     const update = () => {
@@ -480,6 +503,7 @@ export function startAuthenticatedRuntimeServices() {
         }
 
         if (!sessionState.isFriendsLoaded) {
+            clearBootstrapRetry('realtime');
             if (realtimeTransportStarted) {
                 realtimeTransportStarted = false;
                 if (realtimeTransportOwner === 'frontend') {
@@ -497,6 +521,7 @@ export function startAuthenticatedRuntimeServices() {
         }
 
         if (backendOwnsRealtime) {
+            clearBootstrapRetry('realtime');
             if (realtimeTransportOwner === 'frontend') {
                 stopRealtimeTransport({ updateStatus: false });
             }
@@ -513,7 +538,10 @@ export function startAuthenticatedRuntimeServices() {
             return;
         }
 
-        if (!realtimeTransportStarted) {
+        if (
+            !realtimeTransportStarted &&
+            bootstrapRetryState.realtime.timer === null
+        ) {
             runRealtimeTransport(context, runId);
         }
     };
