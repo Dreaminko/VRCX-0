@@ -2,19 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import {
-    profileBackupErrorKey,
-    profileRestoreFailureKey
-} from '@/services/profileBackupI18n';
+import { profileBackupErrorKey } from '@/services/profileBackupI18n';
 import {
     getProfileBackupSettings,
     runManualProfileBackup,
     setProfileBackupSettings,
-    validateProfileRestore,
     type ProfileBackupSettings
 } from '@/services/profileBackupService';
+import { selectProfileBackupToRestore } from '@/services/profileRestoreSelectionService';
 import {
-    openFileSelectorDialog,
     openFolderSelectorDialog,
     saveFileSelectorDialog
 } from '@/services/shellIntegrationService';
@@ -46,9 +42,6 @@ function clampInteger(value: unknown, min: number, max: number): number {
 
 export function useProfileBackupSettings(enabled: boolean) {
     const { t } = useTranslation();
-    const openRestoreDialog = useProfileBackupStore(
-        (state) => state.openRestoreDialog
-    );
     const applyStatus = useProfileBackupStore((state) => state.applyStatus);
     const lastOutcome = useProfileBackupStore(
         (state) => state.status.lastOutcome
@@ -297,37 +290,10 @@ export function useProfileBackupSettings(enabled: boolean) {
         if (validatingRestore) {
             return;
         }
-        let path = '';
-        try {
-            path = await openFileSelectorDialog(
-                settings?.autoTargetDir || '',
-                '.vrcx0backup',
-                `${t('profile_backup.file_filter')} (*.vrcx0backup)|*.vrcx0backup`
-            );
-        } catch {
-            toast.error(t('profile_backup.file_selection_failed'));
-            return;
-        }
-        if (!path) {
-            return;
-        }
-
         setValidatingRestore(true);
-        const toastId = toast.loading(t('profile_backup.validating_restore'));
         try {
-            const outcome = await validateProfileRestore(path);
-            if (!outcome.validation) {
-                const errorKey = outcome.failure
-                    ? profileRestoreFailureKey(outcome.failure.code)
-                    : 'profile_backup.error.unknown';
-                toast.error(t(errorKey));
-                return;
-            }
-            openRestoreDialog(path, outcome.validation);
-        } catch {
-            toast.error(t('profile_backup.restore_validation_failed'));
+            await selectProfileBackupToRestore(settings?.autoTargetDir || '');
         } finally {
-            toast.dismiss(toastId);
             setValidatingRestore(false);
         }
     }

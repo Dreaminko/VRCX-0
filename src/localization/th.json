@@ -171,6 +171,8 @@
             "login": "เข้าสู่ระบบ",
             "register": "สมัครสมาชิก",
             "forgotPassword": "ลืมรหัสผ่าน?",
+            "useOtherAccount": "เข้าสู่ระบบด้วยบัญชีอื่น",
+            "backToSavedAccounts": "กลับไปที่รายการบัญชีที่บันทึกไว้",
             "proxy_settings": "ตั้งค่าพร็อกซี",
             "field": {
                 "username": "ชื่อผู้ใช้หรืออีเมล",
@@ -1913,6 +1915,8 @@
     },
     "status_bar": {
         "world_collection_importing": "กำลังนำเข้าคอลเลกชันโลก ({progress}/{total})",
+        "servers_issue": "เซิร์ฟเวอร์ VRChat กำลังมีปัญหา",
+        "view_status": "ดูสถานะเซิร์ฟเวอร์",
         "modify_proxy_address": "Modify proxy address",
         "proxy_disabled": "Proxy disabled",
         "proxy_enabled_direct": "Proxy enabled, connecting directly",

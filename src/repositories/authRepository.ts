@@ -12,6 +12,7 @@ export type SavedCredentialsMap = Record<string, SavedCredentialRecord>;
 export type SavedAuthSnapshot = Record<string, unknown> & {
     lastUserLoggedIn: unknown;
     savedCredentialCount: unknown;
+    savedCredentials?: SavedCredentialsMap;
     autoLoginStatus: string;
     autoLoginReason: string;
     autoLoginDelayEnabled: unknown;

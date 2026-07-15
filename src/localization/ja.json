@@ -653,6 +653,8 @@
             "signingIn": "サインイン中...",
             "register": "新規登録",
             "forgotPassword": "パスワードを忘れた場合",
+            "useOtherAccount": "別のアカウントでログイン",
+            "backToSavedAccounts": "アカウント一覧に戻る",
             "proxy_settings": "プロキシ設定",
             "proxy_description": "ログイン前に使うプロキシサーバーを設定します。127.0.0.1:7890、http://127.0.0.1:7890、socks5://127.0.0.1:7890 に対応しています。",
             "field": {
@@ -5097,7 +5099,9 @@
         "game_stopped": "VRChat は実行されていません",
         "game_last_session": "最終セッション",
         "servers": "サーバー",
+        "servers_issue": "VRChatのサーバーで障害が発生しています",
         "servers_ok": "VRChat サーバーは正常に動作しています",
+        "view_status": "稼働状況を確認",
         "steamvr": "SteamVR",
         "proxy": "プロキシ",
         "realtime_connection": "リアルタイム",

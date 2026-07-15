@@ -646,6 +646,8 @@
             "signingIn": "로그인 중...",
             "register": "가입",
             "forgotPassword": "비밀번호를 잊어버리셨나요?",
+            "useOtherAccount": "다른 계정으로 로그인",
+            "backToSavedAccounts": "저장된 계정 목록으로 돌아가기",
             "proxy_settings": "프록시 설정",
             "field": {
                 "username": "닉네임 혹은 이메일",
@@ -5028,6 +5030,8 @@
         "game": "게임",
         "game_last_session": "마지막 세션",
         "servers": "서버",
+        "servers_issue": "VRChat 서버에 문제가 발생했습니다",
+        "view_status": "서버 상태 보기",
         "proxy": "프록시",
         "realtime_connection": "실시간",
         "ws_connected": "연결됨",

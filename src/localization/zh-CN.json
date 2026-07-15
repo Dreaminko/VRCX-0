@@ -653,6 +653,8 @@
             "signingIn": "正在登录...",
             "register": "注册",
             "forgotPassword": "忘记密码？",
+            "useOtherAccount": "使用其他账号登录",
+            "backToSavedAccounts": "返回账号列表",
             "proxy_settings": "代理设置",
             "proxy_description": "设置登录前使用的代理服务器。支持 Socks5 和 Http 协议",
             "field": {
@@ -5105,7 +5107,9 @@
         "game_stopped": "VRChat 目前没有运行",
         "game_last_session": "上次会话",
         "servers": "服务器状态",
+        "servers_issue": "VRChat 服务器出现异常",
         "servers_ok": "VRChat 服务目前一切正常",
+        "view_status": "查看服务状态",
         "steamvr": "SteamVR",
         "proxy": "代理服务器",
         "realtime_connection": "实时连接",

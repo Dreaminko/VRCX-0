@@ -439,7 +439,7 @@ async function finalizeSuccessfulLogin(
 async function restoreAuthSnapshotOnFailure(
     error: AuthExecutionError,
     { credentialSubmission = false }: { credentialSubmission?: boolean } = {}
-) {
+): Promise<never> {
     const shouldClearAutoLoginTarget = Boolean(
         isVrchatSessionRecoveryError(error)
     );

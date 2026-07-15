@@ -187,6 +187,8 @@
             "login": "Zaloguj się",
             "register": "Zarejestruj się",
             "forgotPassword": "Nie pamiętasz hasła?",
+            "useOtherAccount": "Zaloguj się na inne konto",
+            "backToSavedAccounts": "Wróć do zapisanych kont",
             "proxy_settings": "Ustawienia proxy",
             "field": {
                 "username": "Nazwa użytkownika lub e-mail",
@@ -2075,6 +2077,8 @@
     },
     "status_bar": {
         "world_collection_importing": "Importowanie kolekcji światów ({progress}/{total})",
+        "servers_issue": "Problemy z serwerami VRChat",
+        "view_status": "Sprawdź stan",
         "modify_proxy_address": "Modify proxy address",
         "proxy_disabled": "Proxy disabled",
         "proxy_enabled_direct": "Proxy enabled, connecting directly",

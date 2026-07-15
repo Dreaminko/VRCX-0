@@ -653,6 +653,8 @@
             "signingIn": "Iniciando sesión...",
             "register": "Registrarse",
             "forgotPassword": "¿Olvidaste tu contraseña?",
+            "useOtherAccount": "Usar otra cuenta",
+            "backToSavedAccounts": "Volver a las cuentas guardadas",
             "proxy_settings": "Configuración de proxy",
             "proxy_description": "Establece el servidor proxy usado antes de iniciar sesión. Admite 127.0.0.1:7890, http://127.0.0.1:7890 y socks5://127.0.0.1:7890.",
             "field": {
@@ -5101,7 +5103,9 @@
         "game_stopped": "VRChat no se está ejecutando",
         "game_last_session": "Última sesión",
         "servers": "Servidores",
+        "servers_issue": "Problemas con los servidores de VRChat",
         "servers_ok": "Los servidores de VRChat funcionan correctamente",
+        "view_status": "Ver estado",
         "steamvr": "SteamVR",
         "proxy": "Proxy",
         "realtime_connection": "Tiempo real",

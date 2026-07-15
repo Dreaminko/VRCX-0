@@ -653,6 +653,8 @@
             "signingIn": "Přihlašování...",
             "register": "Registrace",
             "forgotPassword": "Zepomenuté heslo?",
+            "useOtherAccount": "Použít jiný účet",
+            "backToSavedAccounts": "Zpět na uložené účty",
             "proxy_settings": "Nastavení proxy",
             "proxy_description": "Nastavte proxy server, který se použije před přihlášením. Podporováno je 127.0.0.1:7890, http://127.0.0.1:7890 a socks5://127.0.0.1:7890.",
             "field": {
@@ -5103,7 +5105,9 @@
         "game_stopped": "VRChat neběží",
         "game_last_session": "Poslední relace",
         "servers": "Servery",
+        "servers_issue": "Problémy se servery VRChat",
         "servers_ok": "Servery VRChat jsou v provozu",
+        "view_status": "Zobrazit stav",
         "steamvr": "SteamVR",
         "proxy": "Proxy",
         "realtime_connection": "V reálném čase",

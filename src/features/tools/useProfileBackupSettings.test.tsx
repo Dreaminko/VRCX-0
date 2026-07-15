@@ -12,7 +12,6 @@ const mocks = vi.hoisted(() => ({
     getSettings: vi.fn(),
     runManual: vi.fn(),
     setSettings: vi.fn(),
-    selectFile: vi.fn(),
     selectFolder: vi.fn(),
     selectSaveFile: vi.fn(),
     toastError: vi.fn(),
@@ -35,12 +34,14 @@ vi.mock('sonner', () => ({
 vi.mock('@/services/profileBackupService', () => ({
     getProfileBackupSettings: mocks.getSettings,
     runManualProfileBackup: mocks.runManual,
-    setProfileBackupSettings: mocks.setSettings,
-    validateProfileRestore: mocks.validateRestore
+    setProfileBackupSettings: mocks.setSettings
+}));
+
+vi.mock('@/services/profileRestoreSelectionService', () => ({
+    selectProfileBackupToRestore: mocks.validateRestore
 }));
 
 vi.mock('@/services/shellIntegrationService', () => ({
-    openFileSelectorDialog: mocks.selectFile,
     openFolderSelectorDialog: mocks.selectFolder,
     saveFileSelectorDialog: mocks.selectSaveFile
 }));
@@ -105,7 +106,6 @@ describe('useProfileBackupSettings', () => {
             .mockReset()
             .mockImplementation(async (settings) => settings);
         mocks.selectFolder.mockReset().mockResolvedValue('E:\\Profile');
-        mocks.selectFile.mockReset().mockResolvedValue('');
         mocks.selectSaveFile
             .mockReset()
             .mockResolvedValue('E:\\Profile\\My backup.vrcx0backup');
@@ -180,14 +180,8 @@ describe('useProfileBackupSettings', () => {
         expect(mocks.runManual).toHaveBeenCalledTimes(1);
     });
 
-    it('restores any file name with the backup extension filter', async () => {
-        mocks.selectFile.mockResolvedValue(
-            'E:\\Profile\\anything-at-all.vrcx0backup'
-        );
-        mocks.validateRestore.mockResolvedValue({
-            validation: null,
-            failure: null
-        });
+    it('starts the shared restore selection from the automatic backup folder', async () => {
+        mocks.validateRestore.mockResolvedValue(false);
         render(<HookHarness onValue={(value) => (current = value)} />);
 
         await waitFor(() => {
@@ -197,14 +191,7 @@ describe('useProfileBackupSettings', () => {
             await current?.selectBackupToRestore();
         });
 
-        expect(mocks.selectFile).toHaveBeenCalledWith(
-            'D:\\Backups',
-            '.vrcx0backup',
-            'profile_backup.file_filter (*.vrcx0backup)|*.vrcx0backup'
-        );
-        expect(mocks.validateRestore).toHaveBeenCalledWith(
-            'E:\\Profile\\anything-at-all.vrcx0backup'
-        );
+        expect(mocks.validateRestore).toHaveBeenCalledWith('D:\\Backups');
     });
 
     it('reloads the last automatic backup time after an automatic success', async () => {
