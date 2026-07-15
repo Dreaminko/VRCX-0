@@ -7,5 +7,6 @@ pub use types::{
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupSettings, ProfileBackupState,
     ProfileBackupStatus, ProfileRestoreDataDisposition, ProfileRestoreFailure,
     ProfileRestoreFailureCode, ProfileRestoreResult, ProfileRestoreResultStatus,
-    ProfileRestoreValidation, ProfileRestoreValidationOutcome,
+    ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState, ProfileRestoreValidation,
+    ProfileRestoreValidationOutcome,
 };

@@ -4,7 +4,8 @@ mod journal;
 mod validation;
 
 pub use artifacts::{
-    cleanup_profile_backup_artifacts, discard_staged_profile_restore, has_pending_profile_restore,
+    cleanup_profile_backup_artifacts, clear_profile_restore_rollbacks,
+    discard_staged_profile_restore, has_pending_profile_restore, profile_restore_rollback_count,
     take_last_profile_restore_result,
 };
 pub use journal::{

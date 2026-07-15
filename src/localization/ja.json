@@ -119,6 +119,14 @@
         "checks_passed": "ファイル、バージョン、データベースの整合性を確認しました。",
         "backup_saved": "バックアップを保存しました",
         "restore_succeeded": "バックアップからデータを復元しました",
+        "restore_completed": "復元が完了しました",
+        "rollback_data_retained": "復元前のデータを保持しています",
+        "rollback_retained_description": "復元前のデータを保持しています。復元結果に問題がないことを確認してから削除できます。",
+        "clear_rollback": "復元前のデータを削除",
+        "rollback_cleanup_confirm_title": "復元前のデータを削除しますか？",
+        "rollback_cleanup_confirm_description": "復元前に保持されたデータを完全に削除します。この操作は取り消せません。現在のプロフィールは変更されません。",
+        "rollback_cleanup_protected": "復元処理が完了するまで、このデータは保護されているため削除できません。",
+        "rollback_cleanup_succeeded": "復元前のデータを削除しました",
         "restore_failed_title": "バックアップを復元できませんでした",
         "restore_failed_unchanged": "現在のデータは変更されていません。",
         "restore_failed_rolled_back": "復元前のデータに戻しました。",
@@ -153,6 +161,11 @@
             "newer_database_version": "このバックアップは新しいデータベース形式を使用しています。VRCX-0 を更新してから、もう一度お試しください。",
             "database_corrupt": "バックアップ内のデータベースが破損しています。",
             "not_vrcx0_profile": "このファイルに VRCX-0 のバックアップデータがありません。"
+        },
+        "rollback_error": {
+            "busy": "別のバックアップまたは復元処理が進行中です。完了してからもう一度お試しください。",
+            "protected": "復元処理が完了していないため、復元前のデータは保護されています。",
+            "io": "復元前のデータを削除できませんでした。ファイルへのアクセス権を確認して、もう一度お試しください。"
         },
         "restore_failure": {
             "staging_corrupted": "復元用に準備したバックアップが最終確認に合格しませんでした。",

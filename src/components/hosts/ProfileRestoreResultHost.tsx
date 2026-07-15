@@ -2,6 +2,10 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import {
+    PROFILE_RESTORE_ROLLBACK_TOAST_ID,
+    useProfileRestoreRollback
+} from '@/features/tools/useProfileRestoreRollback';
 import { profileRestoreFailureKey } from '@/services/profileBackupI18n';
 import { takeLastProfileRestoreResult } from '@/services/profileBackupService';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
@@ -33,6 +37,8 @@ export function ProfileRestoreResultHost() {
     const clearRestoreResult = useProfileBackupStore(
         (state) => state.clearStartupRestoreResult
     );
+    const { refreshRollbackState, confirmAndClearRollback } =
+        useProfileRestoreRollback();
 
     useEffect(() => {
         if (!backendRuntimeSnapshotHydrated || !beginRestoreResultCheck()) {
@@ -44,8 +50,38 @@ export function ProfileRestoreResultHost() {
                     return;
                 }
                 if (result.status === 'succeeded') {
-                    toast.success(t('profile_backup.restore_succeeded'), {
-                        description: result.sourceFileName || undefined
+                    void refreshRollbackState().then((rollbackState) => {
+                        if (
+                            rollbackState &&
+                            rollbackState.count > 0 &&
+                            rollbackState.cleanupAllowed
+                        ) {
+                            toast.success(
+                                t('profile_backup.restore_completed'),
+                                {
+                                    id: PROFILE_RESTORE_ROLLBACK_TOAST_ID,
+                                    description: t(
+                                        'profile_backup.rollback_retained_description'
+                                    ),
+                                    duration: Infinity,
+                                    position: 'bottom-right',
+                                    closeButton: true,
+                                    action: {
+                                        label: t(
+                                            'profile_backup.clear_rollback'
+                                        ),
+                                        onClick: (event) => {
+                                            event.preventDefault();
+                                            void confirmAndClearRollback();
+                                        }
+                                    }
+                                }
+                            );
+                            return;
+                        }
+                        toast.success(t('profile_backup.restore_succeeded'), {
+                            description: result.sourceFileName || undefined
+                        });
                     });
                     return;
                 }
@@ -57,6 +93,8 @@ export function ProfileRestoreResultHost() {
     }, [
         backendRuntimeSnapshotHydrated,
         beginRestoreResultCheck,
+        confirmAndClearRollback,
+        refreshRollbackState,
         setRestoreResult,
         t
     ]);

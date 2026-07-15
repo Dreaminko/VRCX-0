@@ -119,6 +119,14 @@
         "checks_passed": "파일, 버전 및 데이터베이스 무결성 검사를 통과했습니다.",
         "backup_saved": "백업을 저장했습니다",
         "restore_succeeded": "백업에서 데이터를 복원했습니다",
+        "restore_completed": "복원이 완료되었습니다",
+        "rollback_data_retained": "복원 전 데이터를 보관했습니다",
+        "rollback_retained_description": "복원 전 데이터를 보관했습니다. 복원 결과에 문제가 없는지 확인한 후 삭제할 수 있습니다.",
+        "clear_rollback": "복원 전 데이터 삭제",
+        "rollback_cleanup_confirm_title": "복원 전 데이터를 삭제할까요?",
+        "rollback_cleanup_confirm_description": "복원 전에 보관한 데이터를 영구적으로 삭제합니다. 이 작업은 취소할 수 없으며 현재 프로필은 변경되지 않습니다.",
+        "rollback_cleanup_protected": "복원이 아직 진행 중인 동안에는 이 데이터가 보호되어 삭제할 수 없습니다.",
+        "rollback_cleanup_succeeded": "복원 전 데이터를 삭제했습니다",
         "restore_failed_title": "백업을 복원하지 못했습니다",
         "restore_failed_unchanged": "현재 데이터는 변경되지 않았습니다.",
         "restore_failed_rolled_back": "VRCX-0가 복원 전 데이터로 되돌렸습니다.",
@@ -153,6 +161,11 @@
             "newer_database_version": "더 최신 데이터베이스 형식을 사용하는 백업입니다. VRCX-0를 업데이트한 뒤 다시 시도하세요.",
             "database_corrupt": "백업의 데이터베이스가 손상되었습니다.",
             "not_vrcx0_profile": "이 파일에는 VRCX-0 백업 데이터가 없습니다."
+        },
+        "rollback_error": {
+            "busy": "다른 백업 또는 복원 작업이 진행 중입니다. 완료된 후 다시 시도하세요.",
+            "protected": "복원이 아직 완료되지 않아 복원 전 데이터가 보호되어 있습니다.",
+            "io": "복원 전 데이터를 삭제하지 못했습니다. 파일 접근 권한을 확인한 후 다시 시도하세요."
         },
         "restore_failure": {
             "staging_corrupted": "복원을 위해 준비한 데이터가 마지막 무결성 검사를 통과하지 못했습니다.",

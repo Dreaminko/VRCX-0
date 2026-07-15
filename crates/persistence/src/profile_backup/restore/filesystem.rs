@@ -138,10 +138,9 @@ pub(super) fn prune_rollback_directories(
     retain: usize,
     active: Option<&str>,
 ) -> Result<(), Error> {
-    let root = app_data.join(RESTORE_ROLLBACK_DIRECTORY);
-    if !root.exists() {
+    let Some(root) = existing_rollback_root(app_data)? else {
         return Ok(());
-    }
+    };
     let now = SystemTime::now();
     let max_age = Duration::from_secs(30 * 24 * 60 * 60);
     let mut directories = Vec::new();
@@ -187,6 +186,30 @@ pub(super) fn prune_rollback_directories(
         }
     }
     Ok(())
+}
+
+pub(super) fn existing_rollback_root(app_data: &Path) -> Result<Option<PathBuf>, Error> {
+    let root = app_data.join(RESTORE_ROLLBACK_DIRECTORY);
+    let metadata = match fs::symlink_metadata(&root) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(Error::Io(error)),
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(Error::InvalidData(format!(
+            "Profile restore rollback root is not a directory: {}",
+            root.display()
+        )));
+    }
+    let canonical_app_data = fs::canonicalize(app_data)?;
+    let canonical_root = fs::canonicalize(&root)?;
+    if canonical_root != canonical_app_data.join(RESTORE_ROLLBACK_DIRECTORY) {
+        return Err(Error::InvalidData(format!(
+            "Profile restore rollback root escapes app data: {}",
+            root.display()
+        )));
+    }
+    Ok(Some(root))
 }
 
 pub(super) fn valid_rollback_directory_name(value: &str) -> bool {

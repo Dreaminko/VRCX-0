@@ -6,7 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     takeLastResult: vi.fn(),
-    toastSuccess: vi.fn()
+    getRollbackState: vi.fn(),
+    clearRollback: vi.fn(),
+    toastSuccess: vi.fn(),
+    toastError: vi.fn(),
+    toastDismiss: vi.fn()
 }));
 
 vi.mock('react-i18next', () => ({
@@ -20,17 +24,32 @@ vi.mock('react-i18next', () => ({
                     'The backup could not be restored',
                 'profile_backup.restore_failure.db_open_failed':
                     'The restored database could not be opened.',
-                'profile_backup.restore_succeeded': 'Data restored from backup'
+                'profile_backup.restore_succeeded': 'Data restored from backup',
+                'profile_backup.restore_completed': 'Restore complete',
+                'profile_backup.rollback_retained_description':
+                    'Pre-restore data retained.',
+                'profile_backup.clear_rollback': 'Clear rollback data',
+                'profile_backup.rollback_cleanup_confirm_title':
+                    'Clear rollback data?',
+                'profile_backup.rollback_cleanup_confirm_description':
+                    'This cannot be undone.',
+                'common.actions.cancel': 'Cancel'
             })[key] ?? key
     })
 }));
 
 vi.mock('sonner', () => ({
-    toast: { success: mocks.toastSuccess }
+    toast: {
+        success: mocks.toastSuccess,
+        error: mocks.toastError,
+        dismiss: mocks.toastDismiss
+    }
 }));
 
 vi.mock('@/services/profileBackupService', () => ({
-    takeLastProfileRestoreResult: mocks.takeLastResult
+    takeLastProfileRestoreResult: mocks.takeLastResult,
+    getProfileRestoreRollbackState: mocks.getRollbackState,
+    clearProfileRestoreRollback: mocks.clearRollback
 }));
 
 vi.mock('@/state/runtimeStore', () => ({
@@ -65,6 +84,7 @@ vi.mock('@/ui/shadcn/button', () => ({
     )
 }));
 
+import { useModalStore } from '@/state/modalStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 
 import { ProfileRestoreResultHost } from './ProfileRestoreResultHost';
@@ -72,7 +92,16 @@ import { ProfileRestoreResultHost } from './ProfileRestoreResultHost';
 describe('ProfileRestoreResultHost', () => {
     beforeEach(() => {
         mocks.takeLastResult.mockReset();
+        mocks.getRollbackState.mockReset();
+        mocks.getRollbackState.mockResolvedValue({
+            count: 0,
+            cleanupAllowed: false
+        });
+        mocks.clearRollback.mockReset();
         mocks.toastSuccess.mockReset();
+        mocks.toastError.mockReset();
+        mocks.toastDismiss.mockReset();
+        useModalStore.getState().resetModalState();
         useProfileBackupStore.getState().resetProfileBackupState();
     });
 
@@ -110,6 +139,109 @@ describe('ProfileRestoreResultHost', () => {
             expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
         });
         expect(mocks.takeLastResult).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows one permanent bottom-right cleanup toast for retained rollback data', async () => {
+        mocks.takeLastResult.mockResolvedValue({
+            status: 'succeeded',
+            dataDisposition: 'replaced',
+            sourceFileName: 'backup.vrcx0backup',
+            failure: null
+        });
+        mocks.getRollbackState.mockResolvedValue({
+            count: 1,
+            cleanupAllowed: true
+        });
+        const view = render(<ProfileRestoreResultHost />);
+
+        await waitFor(() => {
+            expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
+        });
+        const [title, options] = mocks.toastSuccess.mock.calls[0];
+        expect(title).toBe('Restore complete');
+        expect(options).toMatchObject({
+            id: 'profile-restore-rollback-retained',
+            description: 'Pre-restore data retained.',
+            duration: Infinity,
+            position: 'bottom-right',
+            closeButton: true,
+            action: { label: 'Clear rollback data' }
+        });
+
+        const preventDefault = vi.fn();
+        options.action.onClick({ preventDefault });
+        expect(preventDefault).toHaveBeenCalledTimes(1);
+        expect(mocks.clearRollback).not.toHaveBeenCalled();
+
+        view.rerender(<ProfileRestoreResultHost />);
+        expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses the ordinary success toast when rollback data cannot be offered for cleanup', async () => {
+        mocks.takeLastResult.mockResolvedValue({
+            status: 'succeeded',
+            dataDisposition: 'replaced',
+            sourceFileName: 'backup.vrcx0backup',
+            failure: null
+        });
+        mocks.getRollbackState.mockRejectedValue(new Error('unavailable'));
+
+        render(<ProfileRestoreResultHost />);
+
+        await waitFor(() => {
+            expect(mocks.toastSuccess).toHaveBeenCalledWith(
+                'Data restored from backup',
+                { description: 'backup.vrcx0backup' }
+            );
+        });
+    });
+
+    it('does not offer cleanup while rollback data is protected', async () => {
+        mocks.takeLastResult.mockResolvedValue({
+            status: 'succeeded',
+            dataDisposition: 'replaced',
+            sourceFileName: 'backup.vrcx0backup',
+            failure: null
+        });
+        mocks.getRollbackState.mockResolvedValue({
+            count: 1,
+            cleanupAllowed: false
+        });
+
+        render(<ProfileRestoreResultHost />);
+
+        await waitFor(() => {
+            expect(mocks.toastSuccess).toHaveBeenCalledWith(
+                'Data restored from backup',
+                { description: 'backup.vrcx0backup' }
+            );
+        });
+    });
+
+    it('can show the cleanup reminder again for a new restore result', async () => {
+        mocks.takeLastResult.mockResolvedValue({
+            status: 'succeeded',
+            dataDisposition: 'replaced',
+            sourceFileName: 'backup.vrcx0backup',
+            failure: null
+        });
+        mocks.getRollbackState.mockResolvedValue({
+            count: 1,
+            cleanupAllowed: true
+        });
+        const first = render(<ProfileRestoreResultHost />);
+        await waitFor(() => {
+            expect(mocks.toastSuccess).toHaveBeenCalledTimes(1);
+        });
+        first.unmount();
+
+        useProfileBackupStore.getState().resetProfileBackupState();
+        render(<ProfileRestoreResultHost />);
+
+        await waitFor(() => {
+            expect(mocks.toastSuccess).toHaveBeenCalledTimes(2);
+        });
+        expect(mocks.takeLastResult).toHaveBeenCalledTimes(2);
     });
 
     it('shows a dedicated typed failure dialog after rollback', async () => {

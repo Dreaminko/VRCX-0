@@ -119,6 +119,14 @@
         "checks_passed": "文件、版本和数据库完整性检查均已通过。",
         "backup_saved": "备份已保存",
         "restore_succeeded": "已从备份恢复数据",
+        "restore_completed": "恢复完成",
+        "rollback_data_retained": "已保留恢复前的回滚数据",
+        "rollback_retained_description": "已保留恢复前的回滚数据。确认恢复结果正常后可清理。",
+        "clear_rollback": "清理回滚数据",
+        "rollback_cleanup_confirm_title": "清理回滚数据？",
+        "rollback_cleanup_confirm_description": "这会永久删除恢复前保留的回滚数据，且无法撤销。当前 profile 不会被修改。",
+        "rollback_cleanup_protected": "恢复流程尚未结束，当前回滚数据受保护，暂时无法清理。",
+        "rollback_cleanup_succeeded": "已清理回滚数据",
         "restore_failed_title": "无法恢复备份",
         "restore_failed_unchanged": "当前数据未被更改。",
         "restore_failed_rolled_back": "已恢复到操作前的数据。",
@@ -153,6 +161,11 @@
             "newer_database_version": "此备份使用较新的数据库格式。请更新 VRCX-0 后重试。",
             "database_corrupt": "备份中的数据库已损坏。",
             "not_vrcx0_profile": "此文件不包含 VRCX-0 备份数据。"
+        },
+        "rollback_error": {
+            "busy": "正在进行其他备份或恢复操作，请等待完成后重试。",
+            "protected": "恢复流程尚未结束，回滚数据当前受保护。",
+            "io": "无法清理回滚数据，请检查文件访问权限后重试。"
         },
         "restore_failure": {
             "staging_corrupted": "准备恢复的数据未通过最终完整性检查。",

@@ -73,3 +73,18 @@ export function profileRestoreFailureKey(
 ): string {
     return PROFILE_RESTORE_VALIDATION_ERROR_KEYS[code] ?? UNKNOWN_ERROR_KEY;
 }
+
+export function profileRestoreRollbackErrorKey(
+    code: ProfileBackupErrorCode
+): string {
+    switch (code) {
+        case 'operationBusy':
+            return 'profile_backup.rollback_error.busy';
+        case 'pendingRestore':
+            return 'profile_backup.rollback_error.protected';
+        case 'io':
+            return 'profile_backup.rollback_error.io';
+        default:
+            return UNKNOWN_ERROR_KEY;
+    }
+}

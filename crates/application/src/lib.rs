@@ -176,7 +176,8 @@ pub use profile_backup::{
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,
     ProfileBackupState, ProfileBackupStatus, ProfileRestoreDataDisposition, ProfileRestoreFailure,
     ProfileRestoreFailureCode, ProfileRestoreResult, ProfileRestoreResultStatus,
-    ProfileRestoreValidation, ProfileRestoreValidationOutcome,
+    ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState, ProfileRestoreValidation,
+    ProfileRestoreValidationOutcome,
 };
 pub use proxy::{test_proxy_connectivity, ProxySettingsTestResult};
 pub use realtime::{

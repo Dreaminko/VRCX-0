@@ -50,6 +50,14 @@
         "checks_passed": "A fájl, a verzió és az adatbázis integritásának ellenőrzése sikeres.",
         "backup_saved": "Biztonsági mentés elmentve",
         "restore_succeeded": "Adatok visszaállítva a biztonsági mentésből",
+        "restore_completed": "A visszaállítás befejeződött",
+        "rollback_data_retained": "A visszaállítás előtti adatok megmaradtak",
+        "rollback_retained_description": "A visszaállítás előtti adatok megmaradtak. A visszaállítás eredményének ellenőrzése után törölhetők.",
+        "clear_rollback": "Megőrzött adatok törlése",
+        "rollback_cleanup_confirm_title": "Törli a megőrzött adatokat?",
+        "rollback_cleanup_confirm_description": "A visszaállítás előtt megőrzött adatok véglegesen törlődnek. Ez nem vonható vissza, és a jelenlegi profil nem változik.",
+        "rollback_cleanup_protected": "Ezek az adatok védelem alatt állnak, amíg egy visszaállítás függőben van, ezért még nem törölhetők.",
+        "rollback_cleanup_succeeded": "A megőrzött adatok törölve",
         "restore_failed_title": "A biztonsági mentést nem sikerült visszaállítani",
         "restore_failed_unchanged": "A jelenlegi adataid nem változtak.",
         "restore_failed_rolled_back": "A VRCX-0 visszaállította a művelet előtti adatokat.",
@@ -84,6 +92,11 @@
             "newer_database_version": "Ez a mentés újabb adatbázis-formátumot használ. Frissítsd a VRCX-0-t, majd próbáld újra.",
             "database_corrupt": "A biztonsági mentésben lévő adatbázis sérült.",
             "not_vrcx0_profile": "Ez a fájl nem tartalmaz VRCX-0 biztonsági mentési adatokat."
+        },
+        "rollback_error": {
+            "busy": "Egy másik biztonsági mentési vagy visszaállítási művelet folyamatban van. Próbálja újra annak befejezése után.",
+            "protected": "A megőrzött adatok védelem alatt állnak, amíg a visszaállítás függőben van.",
+            "io": "A megőrzött adatok nem törölhetők. Ellenőrizze a fájlhozzáférést, majd próbálja újra."
         },
         "restore_failure": {
             "staging_corrupted": "A visszaállításhoz előkészített adatok nem mentek át az utolsó sértetlenségi ellenőrzésen.",

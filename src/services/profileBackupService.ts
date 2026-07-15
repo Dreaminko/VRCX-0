@@ -4,6 +4,8 @@ import {
     type ProfileBackupSettings,
     type ProfileBackupStatus,
     type ProfileRestoreResult,
+    type ProfileRestoreRollbackCleanupOutcome,
+    type ProfileRestoreRollbackState,
     type ProfileRestoreValidationOutcome
 } from '@/platform/tauri/bindings';
 
@@ -22,6 +24,8 @@ export type {
     ProfileRestoreFailureCode,
     ProfileRestoreManifestSummary,
     ProfileRestoreResult,
+    ProfileRestoreRollbackCleanupOutcome,
+    ProfileRestoreRollbackState,
     ProfileRestoreValidation,
     ProfileRestoreValidationOutcome
 } from '@/platform/tauri/bindings';
@@ -73,4 +77,12 @@ export function requestProfileRestore(
 
 export function takeLastProfileRestoreResult(): Promise<ProfileRestoreResult | null> {
     return commands.appProfileRestoreTakeLastResult();
+}
+
+export function getProfileRestoreRollbackState(): Promise<ProfileRestoreRollbackState> {
+    return commands.appProfileRestoreRollbackState();
+}
+
+export function clearProfileRestoreRollback(): Promise<ProfileRestoreRollbackCleanupOutcome> {
+    return commands.appProfileRestoreClearRollback();
 }

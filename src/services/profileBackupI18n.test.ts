@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { profileBackupPhaseKey } from './profileBackupI18n';
+import {
+    profileBackupPhaseKey,
+    profileRestoreRollbackErrorKey
+} from './profileBackupI18n';
 import type {
     ProfileBackupPhase,
     ProfileBackupStatus
@@ -38,5 +41,15 @@ describe('profileBackupPhaseKey', () => {
         expect(profileBackupPhaseKey(runningStatus('snapshot', null))).toBe(
             'profile_backup.phase_snapshot'
         );
+    });
+});
+
+describe('profileRestoreRollbackErrorKey', () => {
+    it.each([
+        ['operationBusy', 'profile_backup.rollback_error.busy'],
+        ['pendingRestore', 'profile_backup.rollback_error.protected'],
+        ['io', 'profile_backup.rollback_error.io']
+    ] as const)('maps %s to a rollback-specific message', (code, key) => {
+        expect(profileRestoreRollbackErrorKey(code)).toBe(key);
     });
 });

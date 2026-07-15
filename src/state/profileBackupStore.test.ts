@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
     ProfileBackupStatus,
     ProfileRestoreResult,
+    ProfileRestoreRollbackState,
     ProfileRestoreValidation
 } from '@/services/profileBackupService';
 
@@ -110,5 +111,75 @@ describe('profileBackupStore', () => {
         expect(
             useProfileBackupStore.getState().startupRestoreResult
         ).toBeNull();
+    });
+
+    it('hides rollback state while refreshing and ignores stale responses', () => {
+        const retained: ProfileRestoreRollbackState = {
+            count: 1,
+            cleanupAllowed: true
+        };
+        useProfileBackupStore.getState().setRestoreRollbackState(retained);
+
+        const first = useProfileBackupStore
+            .getState()
+            .beginRestoreRollbackStateRefresh();
+        expect(
+            useProfileBackupStore.getState().restoreRollbackState
+        ).toBeNull();
+        const second = useProfileBackupStore
+            .getState()
+            .beginRestoreRollbackStateRefresh();
+
+        expect(
+            useProfileBackupStore
+                .getState()
+                .completeRestoreRollbackStateRefresh(first, retained)
+        ).toBe(false);
+        expect(
+            useProfileBackupStore
+                .getState()
+                .completeRestoreRollbackStateRefresh(second, retained)
+        ).toBe(true);
+        expect(useProfileBackupStore.getState().restoreRollbackState).toEqual(
+            retained
+        );
+    });
+
+    it('allows only one rollback cleanup confirmation at a time', () => {
+        expect(
+            useProfileBackupStore.getState().beginRestoreRollbackCleanup()
+        ).toBe(true);
+        expect(
+            useProfileBackupStore.getState().beginRestoreRollbackCleanup()
+        ).toBe(false);
+
+        useProfileBackupStore.getState().finishRestoreRollbackCleanup();
+
+        expect(
+            useProfileBackupStore.getState().beginRestoreRollbackCleanup()
+        ).toBe(true);
+    });
+
+    it('prevents an in-flight refresh from overwriting cleanup state', () => {
+        const refresh = useProfileBackupStore
+            .getState()
+            .beginRestoreRollbackStateRefresh();
+        useProfileBackupStore.getState().setRestoreRollbackState({
+            count: 0,
+            cleanupAllowed: false
+        });
+
+        expect(
+            useProfileBackupStore
+                .getState()
+                .completeRestoreRollbackStateRefresh(refresh, {
+                    count: 1,
+                    cleanupAllowed: true
+                })
+        ).toBe(false);
+        expect(useProfileBackupStore.getState().restoreRollbackState).toEqual({
+            count: 0,
+            cleanupAllowed: false
+        });
     });
 });

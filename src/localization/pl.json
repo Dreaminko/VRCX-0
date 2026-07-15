@@ -50,6 +50,14 @@
         "checks_passed": "Sprawdzenie pliku, wersji i integralności bazy danych zakończyło się pomyślnie.",
         "backup_saved": "Kopia została zapisana",
         "restore_succeeded": "Dane zostały przywrócone z kopii",
+        "restore_completed": "Przywracanie zakończone",
+        "rollback_data_retained": "Zachowano dane sprzed przywracania",
+        "rollback_retained_description": "Zachowano dane sprzed przywracania. Można je usunąć po sprawdzeniu wyniku.",
+        "clear_rollback": "Usuń zachowane dane",
+        "rollback_cleanup_confirm_title": "Usunąć zachowane dane?",
+        "rollback_cleanup_confirm_description": "Dane zachowane przed przywracaniem zostaną trwale usunięte. Tej operacji nie można cofnąć, a bieżący profil nie zostanie zmieniony.",
+        "rollback_cleanup_protected": "Te dane są chronione, dopóki oczekuje przywracanie, i nie można ich jeszcze usunąć.",
+        "rollback_cleanup_succeeded": "Zachowane dane zostały usunięte",
         "restore_failed_title": "Nie udało się przywrócić kopii",
         "restore_failed_unchanged": "Bieżące dane nie zostały zmienione.",
         "restore_failed_rolled_back": "VRCX-0 przywrócił dane sprzed rozpoczęcia operacji.",
@@ -84,6 +92,11 @@
             "newer_database_version": "Ta kopia korzysta z nowszego formatu bazy danych. Zaktualizuj VRCX-0 i spróbuj ponownie.",
             "database_corrupt": "Baza danych w tej kopii jest uszkodzona.",
             "not_vrcx0_profile": "Ten plik nie zawiera danych kopii zapasowej VRCX-0."
+        },
+        "rollback_error": {
+            "busy": "Trwa inna operacja kopii zapasowej lub przywracania. Spróbuj ponownie po jej zakończeniu.",
+            "protected": "Zachowane dane są chronione, dopóki przywracanie oczekuje na zakończenie.",
+            "io": "Nie udało się usunąć zachowanych danych. Sprawdź dostęp do plików i spróbuj ponownie."
         },
         "restore_failure": {
             "staging_corrupted": "Dane przygotowane do przywrócenia nie przeszły końcowego sprawdzenia spójności.",

@@ -23,12 +23,24 @@ fn profile_backup_restore_roundtrip_keeps_journal_until_database_open_succeeds()
     let dir = TestDir::new("roundtrip");
     let (app_data, db_path, validation) = prepare_restore(&dir, "roundtrip");
     assert!(has_pending_profile_restore(&app_data));
+    let old_rollback = app_data
+        .join(RESTORE_ROLLBACK_DIRECTORY)
+        .join("20990710-000000");
+    fs::create_dir_all(&old_rollback).unwrap();
+    fs::write(old_rollback.join(DATABASE_FILE_NAME), b"old rollback").unwrap();
 
     let pending = consume_pending_profile_restore(&app_data, &db_path)
         .unwrap()
         .unwrap();
     assert!(has_pending_profile_restore(&app_data));
     assert_eq!(read_restore_value(&db_path), "new");
+    assert!(!old_rollback.exists());
+    assert_eq!(
+        fs::read_dir(app_data.join(RESTORE_ROLLBACK_DIRECTORY))
+            .unwrap()
+            .count(),
+        1
+    );
 
     let result = pending.finalize().unwrap();
     assert_eq!(result.status, ProfileRestoreResultStatus::Succeeded);

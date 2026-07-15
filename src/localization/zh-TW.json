@@ -119,6 +119,14 @@
         "checks_passed": "檔案、版本與資料庫完整性檢查皆已通過。",
         "backup_saved": "備份已儲存",
         "restore_succeeded": "已從備份復原資料",
+        "restore_completed": "復原完成",
+        "rollback_data_retained": "已保留復原前的回復資料",
+        "rollback_retained_description": "已保留復原前的回復資料。確認復原結果正常後即可清理。",
+        "clear_rollback": "清理回復資料",
+        "rollback_cleanup_confirm_title": "清理回復資料？",
+        "rollback_cleanup_confirm_description": "這會永久刪除復原前保留的回復資料，且無法復原。目前的 profile 不會被修改。",
+        "rollback_cleanup_protected": "復原流程尚未完成，目前的回復資料受到保護，暫時無法清理。",
+        "rollback_cleanup_succeeded": "已清理回復資料",
         "restore_failed_title": "無法復原備份",
         "restore_failed_unchanged": "目前的資料未被變更。",
         "restore_failed_rolled_back": "已回復到復原前的資料。",
@@ -153,6 +161,11 @@
             "newer_database_version": "此備份使用較新的資料庫格式。請更新 VRCX-0 後再試一次。",
             "database_corrupt": "備份中的資料庫已損毀。",
             "not_vrcx0_profile": "此檔案不包含 VRCX-0 備份資料。"
+        },
+        "rollback_error": {
+            "busy": "正在進行其他備份或復原操作，請等待完成後再試一次。",
+            "protected": "復原流程尚未完成，回復資料目前受到保護。",
+            "io": "無法清理回復資料，請檢查檔案存取權限後再試一次。"
         },
         "restore_failure": {
             "staging_corrupted": "準備復原的資料未通過最後的完整性檢查。",

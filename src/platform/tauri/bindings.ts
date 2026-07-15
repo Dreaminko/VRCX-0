@@ -500,6 +500,12 @@ export const commands = {
     async appProfileRestoreTakeLastResult(): Promise<ProfileRestoreResult | null> {
         return await TAURI_INVOKE('app__profile_restore_take_last_result');
     },
+    async appProfileRestoreRollbackState(): Promise<ProfileRestoreRollbackState> {
+        return await TAURI_INVOKE('app__profile_restore_rollback_state');
+    },
+    async appProfileRestoreClearRollback(): Promise<ProfileRestoreRollbackCleanupOutcome> {
+        return await TAURI_INVOKE('app__profile_restore_clear_rollback');
+    },
     async appConfigSetValues(entries: ConfigWriteEntry[]): Promise<null> {
         return await TAURI_INVOKE('app__config_set_values', { entries });
     },
@@ -4044,6 +4050,15 @@ export type ProfileRestoreResult = {
     failure?: ProfileRestoreFailure | null;
 };
 export type ProfileRestoreResultStatus = 'succeeded' | 'failed';
+export type ProfileRestoreRollbackCleanupOutcome = {
+    accepted: boolean;
+    state: ProfileRestoreRollbackState;
+    error: ProfileBackupError | null;
+};
+export type ProfileRestoreRollbackState = {
+    count: number;
+    cleanupAllowed: boolean;
+};
 export type ProfileRestoreValidation = {
     manifest: ProfileRestoreManifestSummary;
     sourceFileName: string;

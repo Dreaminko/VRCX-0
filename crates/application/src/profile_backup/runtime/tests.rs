@@ -5,7 +5,9 @@ use std::time::{Duration, Instant, SystemTime};
 
 use chrono::{DateTime, Local, TimeZone, Utc};
 use vrcx_0_persistence::config::ConfigRepository;
-use vrcx_0_persistence::profile_backup::{DATABASE_FILE_NAME, RESTORE_JOURNAL_FILE_NAME};
+use vrcx_0_persistence::profile_backup::{
+    DATABASE_FILE_NAME, RESTORE_JOURNAL_FILE_NAME, RESTORE_ROLLBACK_DIRECTORY,
+};
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;
 
@@ -417,6 +419,99 @@ fn pending_restore_journal_blocks_new_backups() {
         ProfileBackupErrorCode::PendingRestore
     );
     assert_eq!(runtime.current_status().state, ProfileBackupState::Idle);
+}
+
+#[test]
+fn restore_rollback_cleanup_rejects_pending_restore_without_removing_data() {
+    let dir = TestDir::new("rollback-pending");
+    let runtime = test_runtime(&dir);
+    let rollback = runtime
+        .inner
+        .app_data
+        .join(RESTORE_ROLLBACK_DIRECTORY)
+        .join("20990710-000000");
+    fs::create_dir_all(&rollback).unwrap();
+    let rollback_database = rollback.join(DATABASE_FILE_NAME);
+    fs::write(&rollback_database, b"rollback").unwrap();
+    fs::write(
+        runtime.inner.app_data.join(RESTORE_JOURNAL_FILE_NAME),
+        b"{}",
+    )
+    .unwrap();
+
+    let state = runtime.restore_rollback_state().unwrap();
+    assert_eq!(state.count, 1);
+    assert!(!state.cleanup_allowed);
+
+    let outcome = runtime.clear_restore_rollback();
+    assert!(!outcome.accepted);
+    assert_eq!(outcome.state, state);
+    assert_eq!(
+        outcome.error.unwrap().code,
+        ProfileBackupErrorCode::PendingRestore
+    );
+    assert!(rollback_database.exists());
+}
+
+#[test]
+fn restore_rollback_cleanup_returns_refreshed_empty_state() {
+    let dir = TestDir::new("rollback-clear");
+    let runtime = test_runtime(&dir);
+    let rollback = runtime
+        .inner
+        .app_data
+        .join(RESTORE_ROLLBACK_DIRECTORY)
+        .join("20990710-000000");
+    fs::create_dir_all(&rollback).unwrap();
+    fs::write(rollback.join(DATABASE_FILE_NAME), b"rollback").unwrap();
+
+    let outcome = runtime.clear_restore_rollback();
+
+    assert!(outcome.accepted);
+    assert_eq!(outcome.state.count, 0);
+    assert!(!outcome.state.cleanup_allowed);
+    assert!(outcome.error.is_none());
+}
+
+#[test]
+fn restore_rollback_cleanup_reports_busy_and_io_errors() {
+    let busy_dir = TestDir::new("rollback-busy");
+    let busy_runtime = test_runtime(&busy_dir);
+    let busy_rollback = busy_runtime
+        .inner
+        .app_data
+        .join(RESTORE_ROLLBACK_DIRECTORY)
+        .join("20990710-000000");
+    fs::create_dir_all(&busy_rollback).unwrap();
+    fs::write(busy_rollback.join(DATABASE_FILE_NAME), b"rollback").unwrap();
+    busy_runtime
+        .inner
+        .operation_running
+        .store(true, std::sync::atomic::Ordering::Release);
+
+    let busy = busy_runtime.clear_restore_rollback();
+    assert!(!busy.accepted);
+    assert_eq!(
+        busy.error.unwrap().code,
+        ProfileBackupErrorCode::OperationBusy
+    );
+    assert_eq!(busy.state.count, 1);
+    busy_runtime
+        .inner
+        .operation_running
+        .store(false, std::sync::atomic::Ordering::Release);
+
+    let io_dir = TestDir::new("rollback-io");
+    let io_runtime = test_runtime(&io_dir);
+    fs::write(
+        io_runtime.inner.app_data.join(RESTORE_ROLLBACK_DIRECTORY),
+        b"not a directory",
+    )
+    .unwrap();
+
+    let io = io_runtime.clear_restore_rollback();
+    assert!(!io.accepted);
+    assert_eq!(io.error.unwrap().code, ProfileBackupErrorCode::Io);
 }
 
 #[test]

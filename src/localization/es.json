@@ -119,6 +119,14 @@
         "checks_passed": "Se superaron las comprobaciones del archivo, la versión y la integridad de la base de datos.",
         "backup_saved": "Copia guardada",
         "restore_succeeded": "Datos restaurados desde la copia",
+        "restore_completed": "Restauración completada",
+        "rollback_data_retained": "Datos anteriores a la restauración conservados",
+        "rollback_retained_description": "Se han conservado los datos anteriores a la restauración. Puedes eliminarlos después de comprobar el resultado.",
+        "clear_rollback": "Eliminar datos conservados",
+        "rollback_cleanup_confirm_title": "¿Eliminar los datos conservados?",
+        "rollback_cleanup_confirm_description": "Los datos conservados antes de la restauración se eliminarán de forma permanente. Esta acción no se puede deshacer y no modificará el perfil actual.",
+        "rollback_cleanup_protected": "Estos datos están protegidos mientras haya una restauración pendiente y todavía no se pueden eliminar.",
+        "rollback_cleanup_succeeded": "Datos conservados eliminados",
         "restore_failed_title": "No se pudo restaurar la copia",
         "restore_failed_unchanged": "Tus datos actuales no se modificaron.",
         "restore_failed_rolled_back": "VRCX-0 ha recuperado los datos anteriores a la restauración.",
@@ -153,6 +161,11 @@
             "newer_database_version": "Esta copia usa un formato de base de datos más reciente. Actualiza VRCX-0 e inténtalo de nuevo.",
             "database_corrupt": "La base de datos de esta copia está dañada.",
             "not_vrcx0_profile": "Este archivo no contiene datos de copia de VRCX-0."
+        },
+        "rollback_error": {
+            "busy": "Hay otra operación de copia o restauración en curso. Inténtalo de nuevo cuando termine.",
+            "protected": "Los datos conservados están protegidos mientras la restauración siga pendiente.",
+            "io": "No se pudieron eliminar los datos conservados. Comprueba el acceso a los archivos e inténtalo de nuevo."
         },
         "restore_failure": {
             "staging_corrupted": "Los datos preparados para la restauración no superaron la comprobación de integridad final.",

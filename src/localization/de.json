@@ -119,6 +119,14 @@
         "checks_passed": "Datei-, Versions- und Datenbankintegritätsprüfung erfolgreich.",
         "backup_saved": "Sicherung gespeichert",
         "restore_succeeded": "Daten aus Sicherung wiederhergestellt",
+        "restore_completed": "Wiederherstellung abgeschlossen",
+        "rollback_data_retained": "Daten vor der Wiederherstellung aufbewahrt",
+        "rollback_retained_description": "Die Daten von vor der Wiederherstellung wurden aufbewahrt. Nach Prüfung des Ergebnisses können sie gelöscht werden.",
+        "clear_rollback": "Aufbewahrte Daten löschen",
+        "rollback_cleanup_confirm_title": "Aufbewahrte Daten löschen?",
+        "rollback_cleanup_confirm_description": "Die vor der Wiederherstellung aufbewahrten Daten werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden. Das aktuelle Profil bleibt unverändert.",
+        "rollback_cleanup_protected": "Diese Daten sind geschützt, solange eine Wiederherstellung aussteht, und können noch nicht gelöscht werden.",
+        "rollback_cleanup_succeeded": "Aufbewahrte Daten gelöscht",
         "restore_failed_title": "Die Sicherung konnte nicht wiederhergestellt werden",
         "restore_failed_unchanged": "Deine aktuellen Daten wurden nicht geändert.",
         "restore_failed_rolled_back": "VRCX-0 hat die Daten von vor der Wiederherstellung wiederhergestellt.",
@@ -153,6 +161,11 @@
             "newer_database_version": "Diese Sicherung verwendet ein neueres Datenbankformat. Aktualisiere VRCX-0 und versuche es erneut.",
             "database_corrupt": "Die Datenbank in dieser Sicherung ist beschädigt.",
             "not_vrcx0_profile": "Diese Datei enthält keine VRCX-0-Sicherungsdaten."
+        },
+        "rollback_error": {
+            "busy": "Ein anderer Sicherungs- oder Wiederherstellungsvorgang läuft. Versuche es nach dessen Abschluss erneut.",
+            "protected": "Die aufbewahrten Daten sind geschützt, solange die Wiederherstellung aussteht.",
+            "io": "Die aufbewahrten Daten konnten nicht gelöscht werden. Prüfe den Dateizugriff und versuche es erneut."
         },
         "restore_failure": {
             "staging_corrupted": "Die zur Wiederherstellung vorbereiteten Daten haben die abschließende Integritätsprüfung nicht bestanden.",

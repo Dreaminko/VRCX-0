@@ -184,7 +184,7 @@ pub fn consume_pending_profile_restore(
 
     let advance = (|| -> Result<(), Error> {
         if journal.phase == RestoreJournalPhase::Staged {
-            prune_rollback_directories(app_data, 1, None)?;
+            prune_rollback_directories(app_data, 0, None)?;
             ensure_rollback_directory(app_data, &rollback_dir)?;
             advance_journal_phase(
                 &journal_path,

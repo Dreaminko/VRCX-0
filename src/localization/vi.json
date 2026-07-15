@@ -50,6 +50,14 @@
         "checks_passed": "Đã vượt qua kiểm tra tệp, phiên bản và tính toàn vẹn của cơ sở dữ liệu.",
         "backup_saved": "Đã lưu bản sao lưu",
         "restore_succeeded": "Đã khôi phục dữ liệu từ bản sao lưu",
+        "restore_completed": "Khôi phục hoàn tất",
+        "rollback_data_retained": "Đã giữ lại dữ liệu trước khi khôi phục",
+        "rollback_retained_description": "Dữ liệu trước khi khôi phục đã được giữ lại. Bạn có thể xóa sau khi xác nhận kết quả khôi phục bình thường.",
+        "clear_rollback": "Xóa dữ liệu đã giữ lại",
+        "rollback_cleanup_confirm_title": "Xóa dữ liệu đã giữ lại?",
+        "rollback_cleanup_confirm_description": "Dữ liệu được giữ lại trước khi khôi phục sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác và không thay đổi hồ sơ hiện tại.",
+        "rollback_cleanup_protected": "Dữ liệu này được bảo vệ trong khi quá trình khôi phục còn chờ hoàn tất và chưa thể xóa.",
+        "rollback_cleanup_succeeded": "Đã xóa dữ liệu được giữ lại",
         "restore_failed_title": "Không thể khôi phục bản sao lưu",
         "restore_failed_unchanged": "Dữ liệu hiện tại của bạn không bị thay đổi.",
         "restore_failed_rolled_back": "VRCX-0 đã trở về dữ liệu trước khi khôi phục.",
@@ -84,6 +92,11 @@
             "newer_database_version": "Bản sao lưu này dùng định dạng cơ sở dữ liệu mới hơn. Hãy cập nhật VRCX-0 rồi thử lại.",
             "database_corrupt": "Cơ sở dữ liệu trong bản sao lưu bị hỏng.",
             "not_vrcx0_profile": "Tệp này không chứa dữ liệu sao lưu VRCX-0."
+        },
+        "rollback_error": {
+            "busy": "Một thao tác sao lưu hoặc khôi phục khác đang diễn ra. Hãy thử lại sau khi hoàn tất.",
+            "protected": "Dữ liệu được giữ lại đang được bảo vệ trong khi quá trình khôi phục còn chờ hoàn tất.",
+            "io": "Không thể xóa dữ liệu được giữ lại. Hãy kiểm tra quyền truy cập tệp rồi thử lại."
         },
         "restore_failure": {
             "staging_corrupted": "Dữ liệu đã chuẩn bị để khôi phục không vượt qua bước kiểm tra tính toàn vẹn cuối cùng.",

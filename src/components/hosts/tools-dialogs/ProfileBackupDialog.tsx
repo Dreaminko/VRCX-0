@@ -5,11 +5,12 @@ import {
     RotateCcwIcon,
     SaveIcon
 } from 'lucide-react';
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { useProfileBackupSettings } from '@/features/tools/useProfileBackupSettings';
+import { useProfileRestoreRollback } from '@/features/tools/useProfileRestoreRollback';
 import { formatDateTime } from '@/lib/dateTime';
 import {
     profileBackupErrorKey,
@@ -19,7 +20,8 @@ import {
     discardPendingProfileBackup,
     dismissProfileBackupError,
     retryProfileBackupDelivery,
-    type ProfileBackupStatus
+    type ProfileBackupStatus,
+    type ProfileRestoreRollbackState
 } from '@/services/profileBackupService';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { Alert, AlertDescription, AlertTitle } from '@/ui/shadcn/alert';
@@ -54,6 +56,47 @@ type ProfileBackupDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
+
+type ProfileRestoreRollbackCleanupProps = {
+    state: ProfileRestoreRollbackState | null;
+    cleanupRunning: boolean;
+    onClear: () => void;
+};
+
+export function ProfileRestoreRollbackCleanup({
+    state,
+    cleanupRunning,
+    onClear
+}: ProfileRestoreRollbackCleanupProps) {
+    const { t } = useTranslation();
+    if (!state || state.count === 0) {
+        return null;
+    }
+    return (
+        <div className="bg-muted/30 flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">
+                    {t('profile_backup.rollback_data_retained')}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    {t(
+                        state.cleanupAllowed
+                            ? 'profile_backup.rollback_retained_description'
+                            : 'profile_backup.rollback_cleanup_protected'
+                    )}
+                </p>
+            </div>
+            <Button
+                type="button"
+                variant="outline"
+                disabled={cleanupRunning || !state.cleanupAllowed}
+                onClick={onClear}
+            >
+                {t('profile_backup.clear_rollback')}
+            </Button>
+        </div>
+    );
+}
 
 function getStatusTitleKey(status: ProfileBackupStatus): string {
     switch (status.state) {
@@ -123,6 +166,12 @@ export function ProfileBackupDialog({
         selectBackupToRestore
     } = useProfileBackupSettings(open);
     const [statusActionRunning, setStatusActionRunning] = useState(false);
+    const {
+        rollbackState,
+        cleanupRunning,
+        refreshRollbackState,
+        confirmAndClearRollback
+    } = useProfileRestoreRollback();
     const isRunning = status.state === 'running';
     const automaticEnabled = Boolean(settings?.autoEnabled);
     const disabled = loading || saving || !settings || isRunning;
@@ -138,6 +187,12 @@ export function ProfileBackupDialog({
     const statusTitleKey = getStatusTitleKey(status);
     const runningPhaseKey = profileBackupPhaseKey(status);
     const runningPhaseLabel = t(runningPhaseKey);
+
+    useLayoutEffect(() => {
+        if (open) {
+            void refreshRollbackState();
+        }
+    }, [open, refreshRollbackState]);
 
     async function runStatusAction(action: 'retry' | 'discard' | 'dismiss') {
         setStatusActionRunning(true);
@@ -447,28 +502,37 @@ export function ProfileBackupDialog({
 
                     <Separator />
 
-                    <section className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <div className="min-w-0 flex-1">
-                            <h3 className="font-heading text-sm font-medium">
-                                {t('profile_backup.restore')}
-                            </h3>
-                            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                                {t('profile_backup.restore_description')}
-                            </p>
+                    <section className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                            <div className="min-w-0 flex-1">
+                                <h3 className="font-heading text-sm font-medium">
+                                    {t('profile_backup.restore')}
+                                </h3>
+                                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                                    {t('profile_backup.restore_description')}
+                                </p>
+                            </div>
+                            <div className="sm:self-center">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={disabled || validatingRestore}
+                                    onClick={() => {
+                                        void selectBackupToRestore();
+                                    }}
+                                >
+                                    <RotateCcwIcon data-icon="inline-start" />
+                                    {t('profile_backup.restore_from_backup')}
+                                </Button>
+                            </div>
                         </div>
-                        <div className="sm:self-center">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={disabled || validatingRestore}
-                                onClick={() => {
-                                    void selectBackupToRestore();
-                                }}
-                            >
-                                <RotateCcwIcon data-icon="inline-start" />
-                                {t('profile_backup.restore_from_backup')}
-                            </Button>
-                        </div>
+                        <ProfileRestoreRollbackCleanup
+                            state={rollbackState}
+                            cleanupRunning={cleanupRunning}
+                            onClear={() => {
+                                void confirmAndClearRollback();
+                            }}
+                        />
                     </section>
                 </div>
             </DialogContent>

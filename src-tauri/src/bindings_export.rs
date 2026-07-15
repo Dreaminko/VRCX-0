@@ -138,6 +138,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::profile_backup::app__profile_restore_validate,
             commands::application::profile_backup::app__profile_restore_request,
             commands::application::profile_backup::app__profile_restore_take_last_result,
+            commands::application::profile_backup::app__profile_restore_rollback_state,
+            commands::application::profile_backup::app__profile_restore_clear_rollback,
             commands::local::config::app__config_set_values,
             commands::local::config::app__config_list_values,
             commands::local::config::app__config_remove_value,

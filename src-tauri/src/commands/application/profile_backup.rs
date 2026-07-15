@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, State};
 use vrcx_0_application::{
     ProfileBackupActionOutcome, ProfileBackupSettings, ProfileBackupStatus, ProfileRestoreResult,
+    ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState,
     ProfileRestoreValidationOutcome,
 };
 
@@ -147,4 +148,28 @@ pub async fn app__profile_restore_take_last_result(
             .await
             .map_err(|error| AppError::Custom(format!("profile restore result task: {error}")))??,
     )
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__profile_restore_rollback_state(
+    state: State<'_, AppState>,
+) -> Result<ProfileRestoreRollbackState, AppError> {
+    let runtime = state.profile_backup.clone();
+    Ok(
+        tauri::async_runtime::spawn_blocking(move || runtime.restore_rollback_state())
+            .await
+            .map_err(|error| AppError::Custom(format!("profile rollback state task: {error}")))??,
+    )
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__profile_restore_clear_rollback(
+    state: State<'_, AppState>,
+) -> Result<ProfileRestoreRollbackCleanupOutcome, AppError> {
+    let runtime = state.profile_backup.clone();
+    tauri::async_runtime::spawn_blocking(move || runtime.clear_restore_rollback())
+        .await
+        .map_err(|error| AppError::Custom(format!("profile rollback cleanup task: {error}")))
 }

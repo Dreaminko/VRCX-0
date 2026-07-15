@@ -119,6 +119,14 @@
         "checks_passed": "File, version, and database integrity checks passed.",
         "backup_saved": "Backup saved",
         "restore_succeeded": "Data restored from backup",
+        "restore_completed": "Restore complete",
+        "rollback_data_retained": "Pre-restore data retained",
+        "rollback_retained_description": "Data from before the restore has been retained. You can clear it after confirming the restored data is correct.",
+        "clear_rollback": "Clear rollback data",
+        "rollback_cleanup_confirm_title": "Clear rollback data?",
+        "rollback_cleanup_confirm_description": "This permanently deletes the data retained from before the restore and cannot be undone. Your current profile will not be changed.",
+        "rollback_cleanup_protected": "This data is protected while a restore is still pending and cannot be cleared yet.",
+        "rollback_cleanup_succeeded": "Rollback data cleared",
         "restore_failed_title": "The backup could not be restored",
         "restore_failed_unchanged": "Your current data was not changed.",
         "restore_failed_rolled_back": "VRCX-0 returned to the data from before the restore.",
@@ -153,6 +161,11 @@
             "newer_database_version": "This backup uses a newer database format. Update VRCX-0 and try again.",
             "database_corrupt": "The database in this backup is damaged.",
             "not_vrcx0_profile": "This file does not contain VRCX-0 backup data."
+        },
+        "rollback_error": {
+            "busy": "Another backup or restore operation is in progress. Try again when it finishes.",
+            "protected": "The rollback data is protected while the restore is still pending.",
+            "io": "The rollback data could not be cleared. Check file access and try again."
         },
         "restore_failure": {
             "staging_corrupted": "The prepared backup did not pass its final integrity check.",

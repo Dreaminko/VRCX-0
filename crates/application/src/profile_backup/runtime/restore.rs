@@ -1,16 +1,18 @@
 use std::path::Path;
 
 use vrcx_0_persistence::profile_backup::{
-    cleanup_profile_backup_artifacts, discard_staged_profile_restore, has_pending_profile_restore,
+    cleanup_profile_backup_artifacts, clear_profile_restore_rollbacks,
+    discard_staged_profile_restore, has_pending_profile_restore, profile_restore_rollback_count,
     request_staged_profile_restore, take_last_profile_restore_result,
-    validate_and_stage_profile_restore,
+    validate_and_stage_profile_restore, RESTORE_ROLLBACK_DIRECTORY,
 };
 
 use crate::Result;
 
 use super::{OperationGuard, ProfileBackupRuntime};
 use crate::profile_backup::{
-    ProfileRestoreFailure, ProfileRestoreFailureCode, ProfileRestoreResult,
+    ProfileBackupError, ProfileBackupErrorCode, ProfileRestoreFailure, ProfileRestoreFailureCode,
+    ProfileRestoreResult, ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState,
     ProfileRestoreValidationOutcome,
 };
 
@@ -97,6 +99,54 @@ impl ProfileBackupRuntime {
     pub fn cleanup_startup_artifacts(&self) -> Result<()> {
         Ok(cleanup_profile_backup_artifacts(&self.inner.app_data)?)
     }
+
+    pub fn restore_rollback_state(&self) -> Result<ProfileRestoreRollbackState> {
+        let count = profile_restore_rollback_count(&self.inner.app_data)?;
+        Ok(ProfileRestoreRollbackState {
+            count,
+            cleanup_allowed: count > 0 && !has_pending_profile_restore(&self.inner.app_data),
+        })
+    }
+
+    pub fn clear_restore_rollback(&self) -> ProfileRestoreRollbackCleanupOutcome {
+        let Some(_guard) = OperationGuard::try_acquire(&self.inner.operation_running) else {
+            return rollback_cleanup_rejected(
+                self.restore_rollback_state().unwrap_or_default(),
+                ProfileBackupErrorCode::OperationBusy,
+                None,
+            );
+        };
+        let rollback_path = self.inner.app_data.join(RESTORE_ROLLBACK_DIRECTORY);
+        let state = match self.restore_rollback_state() {
+            Ok(state) => state,
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to inspect profile restore rollbacks");
+                return rollback_cleanup_rejected(
+                    self.restore_rollback_state().unwrap_or_default(),
+                    ProfileBackupErrorCode::Io,
+                    Some(&rollback_path),
+                );
+            }
+        };
+        if has_pending_profile_restore(&self.inner.app_data) {
+            return rollback_cleanup_rejected(state, ProfileBackupErrorCode::PendingRestore, None);
+        }
+        if let Err(error) = clear_profile_restore_rollbacks(&self.inner.app_data) {
+            tracing::warn!(error = %error, "failed to clear profile restore rollbacks");
+            return rollback_cleanup_rejected(
+                state,
+                ProfileBackupErrorCode::Io,
+                Some(&rollback_path),
+            );
+        }
+        match self.restore_rollback_state() {
+            Ok(state) => rollback_cleanup_outcome(true, state, None),
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to refresh profile restore rollbacks");
+                rollback_cleanup_rejected(state, ProfileBackupErrorCode::Io, Some(&rollback_path))
+            }
+        }
+    }
 }
 
 fn restore_rejected(
@@ -107,4 +157,31 @@ fn restore_rejected(
         validation: None,
         failure: Some(ProfileRestoreFailure { code, path }),
     }
+}
+
+fn rollback_cleanup_outcome(
+    accepted: bool,
+    state: ProfileRestoreRollbackState,
+    error: Option<ProfileBackupError>,
+) -> ProfileRestoreRollbackCleanupOutcome {
+    ProfileRestoreRollbackCleanupOutcome {
+        accepted,
+        state,
+        error,
+    }
+}
+
+fn rollback_cleanup_rejected(
+    state: ProfileRestoreRollbackState,
+    code: ProfileBackupErrorCode,
+    path: Option<&Path>,
+) -> ProfileRestoreRollbackCleanupOutcome {
+    rollback_cleanup_outcome(
+        false,
+        state,
+        Some(ProfileBackupError {
+            code,
+            path: path.map(|path| path.to_string_lossy().into_owned()),
+        }),
+    )
 }

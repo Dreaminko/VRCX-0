@@ -278,7 +278,10 @@ describe('profile backup locale coverage', () => {
             'profile_backup.tools_description',
             'profile_backup.background_backup_notice',
             'profile_backup.retry_save',
-            'profile_backup.restore_and_restart'
+            'profile_backup.restore_and_restart',
+            'profile_backup.restore_completed',
+            'profile_backup.clear_rollback',
+            'profile_backup.rollback_cleanup_confirm_title'
         ];
 
         for (const locale of languageCodes) {
@@ -304,6 +307,12 @@ describe('profile backup locale coverage', () => {
         expect(readPath(ja, 'profile_backup.retry_save')).toBe('保存を再試行');
         expect(readPath(ja, 'profile_backup.restore_and_restart')).toBe(
             '復元して再起動'
+        );
+        expect(readPath(ja, 'profile_backup.restore_completed')).toBe(
+            '復元が完了しました'
+        );
+        expect(readPath(ja, 'profile_backup.clear_rollback')).toBe(
+            '復元前のデータを削除'
         );
         expect(readPath(ja, 'profile_backup.phase_snapshot')).toBe(
             'データを準備しています…'

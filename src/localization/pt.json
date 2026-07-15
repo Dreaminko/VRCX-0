@@ -119,6 +119,14 @@
         "checks_passed": "As verificações do arquivo, da versão e da integridade do banco de dados foram concluídas.",
         "backup_saved": "Backup salvo",
         "restore_succeeded": "Dados restaurados do backup",
+        "restore_completed": "Restauração concluída",
+        "rollback_data_retained": "Dados anteriores à restauração mantidos",
+        "rollback_retained_description": "Os dados anteriores à restauração foram mantidos. Você pode excluí-los depois de confirmar o resultado.",
+        "clear_rollback": "Excluir dados mantidos",
+        "rollback_cleanup_confirm_title": "Excluir os dados mantidos?",
+        "rollback_cleanup_confirm_description": "Os dados mantidos antes da restauração serão excluídos permanentemente. Esta ação não pode ser desfeita e não altera o perfil atual.",
+        "rollback_cleanup_protected": "Esses dados estão protegidos enquanto houver uma restauração pendente e ainda não podem ser excluídos.",
+        "rollback_cleanup_succeeded": "Dados mantidos excluídos",
         "restore_failed_title": "Não foi possível restaurar o backup",
         "restore_failed_unchanged": "Seus dados atuais não foram alterados.",
         "restore_failed_rolled_back": "O VRCX-0 retornou aos dados anteriores à restauração.",
@@ -153,6 +161,11 @@
             "newer_database_version": "Este backup usa um formato de banco de dados mais recente. Atualize o VRCX-0 e tente novamente.",
             "database_corrupt": "O banco de dados deste backup está danificado.",
             "not_vrcx0_profile": "Este arquivo não contém dados de backup do VRCX-0."
+        },
+        "rollback_error": {
+            "busy": "Há outra operação de backup ou restauração em andamento. Tente novamente quando ela terminar.",
+            "protected": "Os dados mantidos estão protegidos enquanto a restauração estiver pendente.",
+            "io": "Não foi possível excluir os dados mantidos. Verifique o acesso aos arquivos e tente novamente."
         },
         "restore_failure": {
             "staging_corrupted": "Os dados preparados para a restauração não passaram na verificação final de integridade.",

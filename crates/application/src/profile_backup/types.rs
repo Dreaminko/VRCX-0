@@ -101,3 +101,18 @@ pub struct ProfileBackupActionOutcome {
     pub status: ProfileBackupStatus,
     pub error: Option<ProfileBackupError>,
 }
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileRestoreRollbackState {
+    pub count: u32,
+    pub cleanup_allowed: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileRestoreRollbackCleanupOutcome {
+    pub accepted: bool,
+    pub state: ProfileRestoreRollbackState,
+    pub error: Option<ProfileBackupError>,
+}

@@ -119,6 +119,14 @@
         "checks_passed": "Les vérifications du fichier, de la version et de l’intégrité de la base de données ont réussi.",
         "backup_saved": "Sauvegarde enregistrée",
         "restore_succeeded": "Données restaurées depuis la sauvegarde",
+        "restore_completed": "Restauration terminée",
+        "rollback_data_retained": "Données antérieures à la restauration conservées",
+        "rollback_retained_description": "Les données antérieures à la restauration ont été conservées. Vous pourrez les supprimer après avoir vérifié le résultat.",
+        "clear_rollback": "Supprimer les données conservées",
+        "rollback_cleanup_confirm_title": "Supprimer les données conservées ?",
+        "rollback_cleanup_confirm_description": "Les données conservées avant la restauration seront définitivement supprimées. Cette action est irréversible et ne modifiera pas le profil actuel.",
+        "rollback_cleanup_protected": "Ces données sont protégées tant qu’une restauration est en attente et ne peuvent pas encore être supprimées.",
+        "rollback_cleanup_succeeded": "Données conservées supprimées",
         "restore_failed_title": "La sauvegarde n’a pas pu être restaurée",
         "restore_failed_unchanged": "Vos données actuelles n’ont pas été modifiées.",
         "restore_failed_rolled_back": "VRCX-0 a rétabli les données antérieures à la restauration.",
@@ -153,6 +161,11 @@
             "newer_database_version": "Cette sauvegarde utilise un format de base de données plus récent. Mettez VRCX-0 à jour et réessayez.",
             "database_corrupt": "La base de données de cette sauvegarde est endommagée.",
             "not_vrcx0_profile": "Ce fichier ne contient pas de données de sauvegarde VRCX-0."
+        },
+        "rollback_error": {
+            "busy": "Une autre opération de sauvegarde ou de restauration est en cours. Réessayez une fois celle-ci terminée.",
+            "protected": "Les données conservées sont protégées tant que la restauration est en attente.",
+            "io": "Les données conservées n’ont pas pu être supprimées. Vérifiez l’accès aux fichiers et réessayez."
         },
         "restore_failure": {
             "staging_corrupted": "Les données préparées pour la restauration n’ont pas réussi la dernière vérification d’intégrité.",

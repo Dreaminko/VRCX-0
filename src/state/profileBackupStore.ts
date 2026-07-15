@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type {
     ProfileBackupStatus,
     ProfileRestoreResult,
+    ProfileRestoreRollbackState,
     ProfileRestoreValidation
 } from '@/services/profileBackupService';
 
@@ -51,6 +52,9 @@ type ProfileBackupStore = {
     restoreRequesting: boolean;
     startupRestoreResult: ProfileRestoreResult | null;
     startupRestoreResultChecked: boolean;
+    restoreRollbackState: ProfileRestoreRollbackState | null;
+    restoreRollbackStateRequestRevision: number;
+    restoreRollbackCleanupRunning: boolean;
     applyStatus(status: ProfileBackupStatus): void;
     claimOutcomeNotification(revision: number): boolean;
     openRestoreDialog(path: string, validation: ProfileRestoreValidation): void;
@@ -59,6 +63,14 @@ type ProfileBackupStore = {
     beginStartupRestoreResultCheck(): boolean;
     setStartupRestoreResult(result: ProfileRestoreResult | null): void;
     clearStartupRestoreResult(): void;
+    beginRestoreRollbackStateRefresh(): number;
+    completeRestoreRollbackStateRefresh(
+        revision: number,
+        state: ProfileRestoreRollbackState | null
+    ): boolean;
+    setRestoreRollbackState(state: ProfileRestoreRollbackState): void;
+    beginRestoreRollbackCleanup(): boolean;
+    finishRestoreRollbackCleanup(): void;
     resetProfileBackupState(): void;
 };
 
@@ -82,6 +94,9 @@ export const useProfileBackupStore = create<ProfileBackupStore>((set, get) => ({
     restoreRequesting: false,
     startupRestoreResult: null,
     startupRestoreResultChecked: false,
+    restoreRollbackState: null,
+    restoreRollbackStateRequestRevision: 0,
+    restoreRollbackCleanupRunning: false,
     applyStatus(status) {
         set((current) => {
             if (status.revision <= current.lastAppliedRevision) {
@@ -126,15 +141,51 @@ export const useProfileBackupStore = create<ProfileBackupStore>((set, get) => ({
     clearStartupRestoreResult() {
         set({ startupRestoreResult: null });
     },
-    resetProfileBackupState() {
+    beginRestoreRollbackStateRefresh() {
+        const revision = get().restoreRollbackStateRequestRevision + 1;
         set({
+            restoreRollbackState: null,
+            restoreRollbackStateRequestRevision: revision
+        });
+        return revision;
+    },
+    completeRestoreRollbackStateRefresh(revision, restoreRollbackState) {
+        if (revision !== get().restoreRollbackStateRequestRevision) {
+            return false;
+        }
+        set({ restoreRollbackState });
+        return true;
+    },
+    setRestoreRollbackState(restoreRollbackState) {
+        set((state) => ({
+            restoreRollbackState,
+            restoreRollbackStateRequestRevision:
+                state.restoreRollbackStateRequestRevision + 1
+        }));
+    },
+    beginRestoreRollbackCleanup() {
+        if (get().restoreRollbackCleanupRunning) {
+            return false;
+        }
+        set({ restoreRollbackCleanupRunning: true });
+        return true;
+    },
+    finishRestoreRollbackCleanup() {
+        set({ restoreRollbackCleanupRunning: false });
+    },
+    resetProfileBackupState() {
+        set((state) => ({
             status: createIdleStatus(),
             lastAppliedRevision: -1,
             lastNotifiedOutcomeRevision: readNotifiedOutcomeRevision(),
             restoreDialog: null,
             restoreRequesting: false,
             startupRestoreResult: null,
-            startupRestoreResultChecked: false
-        });
+            startupRestoreResultChecked: false,
+            restoreRollbackState: null,
+            restoreRollbackStateRequestRevision:
+                state.restoreRollbackStateRequestRevision + 1,
+            restoreRollbackCleanupRunning: false
+        }));
     }
 }));

@@ -119,6 +119,14 @@
         "checks_passed": "Kontrola souboru, verze a integrity databáze proběhla úspěšně.",
         "backup_saved": "Záloha byla uložena",
         "restore_succeeded": "Data byla obnovena ze zálohy",
+        "restore_completed": "Obnovení bylo dokončeno",
+        "rollback_data_retained": "Data před obnovením byla zachována",
+        "rollback_retained_description": "Data před obnovením byla zachována. Po ověření výsledku obnovení je můžete odstranit.",
+        "clear_rollback": "Odstranit zachovaná data",
+        "rollback_cleanup_confirm_title": "Odstranit zachovaná data?",
+        "rollback_cleanup_confirm_description": "Data zachovaná před obnovením budou trvale odstraněna. Tuto akci nelze vrátit zpět a aktuální profil se nezmění.",
+        "rollback_cleanup_protected": "Tato data jsou chráněna, dokud nebude dokončeno čekající obnovení, a zatím je nelze odstranit.",
+        "rollback_cleanup_succeeded": "Zachovaná data byla odstraněna",
         "restore_failed_title": "Zálohu se nepodařilo obnovit",
         "restore_failed_unchanged": "Vaše současná data nebyla změněna.",
         "restore_failed_rolled_back": "VRCX-0 se vrátil k datům před obnovením.",
@@ -153,6 +161,11 @@
             "newer_database_version": "Tato záloha používá novější formát databáze. Aktualizujte VRCX-0 a zkuste to znovu.",
             "database_corrupt": "Databáze v této záloze je poškozená.",
             "not_vrcx0_profile": "Tento soubor neobsahuje zálohu dat VRCX-0."
+        },
+        "rollback_error": {
+            "busy": "Probíhá jiná operace zálohování nebo obnovení. Zkuste to znovu po jejím dokončení.",
+            "protected": "Zachovaná data jsou chráněna, dokud nebude dokončeno čekající obnovení.",
+            "io": "Zachovaná data se nepodařilo odstranit. Zkontrolujte přístup k souborům a zkuste to znovu."
         },
         "restore_failure": {
             "staging_corrupted": "Data připravená k obnovení neprošla závěrečnou kontrolou integrity.",

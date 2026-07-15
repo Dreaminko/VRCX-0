@@ -8,10 +8,10 @@ pub use archive::{
     is_auto_backup_file_name, select_auto_backups_for_removal,
 };
 pub use restore::{
-    cleanup_profile_backup_artifacts, consume_pending_profile_restore,
-    discard_staged_profile_restore, has_pending_profile_restore, read_profile_database_version,
-    request_staged_profile_restore, take_last_profile_restore_result,
-    validate_and_stage_profile_restore, PendingProfileRestore,
+    cleanup_profile_backup_artifacts, clear_profile_restore_rollbacks,
+    consume_pending_profile_restore, discard_staged_profile_restore, has_pending_profile_restore,
+    profile_restore_rollback_count, read_profile_database_version, request_staged_profile_restore,
+    take_last_profile_restore_result, validate_and_stage_profile_restore, PendingProfileRestore,
 };
 pub(crate) use types::MAX_PROFILE_DATABASE_BYTES;
 pub use types::{
