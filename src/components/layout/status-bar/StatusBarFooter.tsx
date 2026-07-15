@@ -408,7 +408,7 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                 vrcStatus.refreshing && 'animate-pulse',
                                 vrcStatusHasIssue
                                     ? vrcStatusIsMajor
-                                        ? 'bg-destructive'
+                                        ? 'bg-[var(--status-busy)]'
                                         : 'bg-[var(--status-askme)]'
                                     : undefined
                             )}
