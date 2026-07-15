@@ -276,7 +276,7 @@ describe('profile backup locale coverage', () => {
         const primaryKeys = [
             'profile_backup.header',
             'profile_backup.tools_description',
-            'profile_backup.unencrypted_warning_title',
+            'profile_backup.background_backup_notice',
             'profile_backup.retry_save',
             'profile_backup.restore_and_restart'
         ];
@@ -302,9 +302,6 @@ describe('profile backup locale coverage', () => {
             'バックアップ先が選択されていません'
         );
         expect(readPath(ja, 'profile_backup.retry_save')).toBe('保存を再試行');
-        expect(
-            readPath(ja, 'profile_backup.unencrypted_warning_title')
-        ).toContain('暗号化されていません');
         expect(readPath(ja, 'profile_backup.restore_and_restart')).toBe(
             '復元して再起動'
         );
@@ -319,6 +316,9 @@ describe('profile backup locale coverage', () => {
         );
         expect(readPath(ja, 'profile_backup.phase_finalize')).toBe(
             '保存を完了しています…'
+        );
+        expect(readPath(ja, 'profile_backup.background_backup_notice')).toBe(
+            'このダイアログを閉じても、バックアップはバックグラウンドで続行されます。'
         );
 
         const japaneseProfileBackupText = requiredProfileBackupKeys

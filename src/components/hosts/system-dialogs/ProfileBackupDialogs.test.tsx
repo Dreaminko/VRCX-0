@@ -40,6 +40,9 @@ vi.mock('@/ui/shadcn/alert-dialog', () => ({
     AlertDialogHeader: ({ children }: PropsWithChildren) => (
         <header>{children}</header>
     ),
+    AlertDialogMedia: ({ children }: PropsWithChildren) => (
+        <div>{children}</div>
+    ),
     AlertDialogTitle: ({ children }: PropsWithChildren) => <h1>{children}</h1>
 }));
 

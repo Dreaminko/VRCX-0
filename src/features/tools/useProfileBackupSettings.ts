@@ -17,7 +17,6 @@ import {
     openFileSelectorDialog,
     openFolderSelectorDialog
 } from '@/services/shellIntegrationService';
-import { useModalStore } from '@/state/modalStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 
 type NumericProfileBackupSetting = 'autoIntervalDays' | 'autoRetainExtra';
@@ -32,7 +31,6 @@ function clampInteger(value: unknown, min: number, max: number): number {
 
 export function useProfileBackupSettings(enabled: boolean) {
     const { t } = useTranslation();
-    const confirm = useModalStore((state) => state.confirm);
     const openRestoreDialog = useProfileBackupStore(
         (state) => state.openRestoreDialog
     );
@@ -224,17 +222,6 @@ export function useProfileBackupSettings(enabled: boolean) {
                 }
                 nextSettings = { ...settings, autoTargetDir: selected };
             }
-            if (enabled) {
-                const result = await confirm({
-                    title: t('profile_backup.unencrypted_warning_title'),
-                    description: t('profile_backup.unencrypted_warning'),
-                    confirmText: t('profile_backup.enable_automatic'),
-                    cancelText: t('common.actions.cancel')
-                });
-                if (!result.ok) {
-                    return;
-                }
-            }
             await persistSettings({ ...nextSettings, autoEnabled: enabled });
         } finally {
             autoEnabledTogglingRef.current = false;
@@ -265,15 +252,6 @@ export function useProfileBackupSettings(enabled: boolean) {
         try {
             const targetDir = await selectBackupFolder(settings.autoTargetDir);
             if (!targetDir) {
-                return;
-            }
-            const result = await confirm({
-                title: t('profile_backup.unencrypted_warning_title'),
-                description: t('profile_backup.unencrypted_warning'),
-                confirmText: t('profile_backup.backup_now_confirm'),
-                cancelText: t('common.actions.cancel')
-            });
-            if (!result.ok) {
                 return;
             }
             const outcome = await runManualProfileBackup(targetDir);

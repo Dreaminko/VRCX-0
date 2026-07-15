@@ -23,6 +23,7 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
+    AlertDialogMedia,
     AlertDialogTitle
 } from '@/ui/shadcn/alert-dialog';
 import { Button } from '@/ui/shadcn/button';
@@ -49,7 +50,7 @@ function RestoreMetadata({
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-3 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-2.5 text-emerald-800 dark:text-emerald-200">
+            <div className="flex items-center gap-3 rounded-md border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-2.5 text-emerald-800 dark:text-emerald-200">
                 <CircleCheckIcon className="size-5 shrink-0" />
                 <div>
                     <div className="text-sm font-medium">
@@ -60,7 +61,7 @@ function RestoreMetadata({
                     </div>
                 </div>
             </div>
-            <dl className="bg-muted/20 grid gap-x-5 gap-y-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
+            <dl className="bg-muted/20 grid gap-x-5 gap-y-3 rounded-md border p-4 text-sm sm:grid-cols-2">
                 {rows.map(([label, value]) => (
                     <div key={label} className="min-w-0 space-y-1">
                         <dt className="text-muted-foreground text-xs">
@@ -151,23 +152,17 @@ export function ProfileBackupDialogs() {
         >
             <AlertDialogContent className="sm:max-w-lg">
                 <AlertDialogHeader>
-                    <div className="flex items-start gap-3">
-                        <div className="bg-destructive/10 text-destructive flex size-10 shrink-0 items-center justify-center rounded-xl">
-                            <ArchiveRestoreIcon className="size-5" />
-                        </div>
-                        <div className="min-w-0 space-y-2">
-                            <AlertDialogTitle>
-                                {t('profile_backup.restore_confirm_title')}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {restoreRequesting
-                                    ? restartingText
-                                    : t(
-                                          'profile_backup.restore_confirm_description'
-                                      )}
-                            </AlertDialogDescription>
-                        </div>
-                    </div>
+                    <AlertDialogMedia className="bg-destructive/10 text-destructive">
+                        <ArchiveRestoreIcon />
+                    </AlertDialogMedia>
+                    <AlertDialogTitle>
+                        {t('profile_backup.restore_confirm_title')}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {restoreRequesting
+                            ? restartingText
+                            : t('profile_backup.restore_confirm_description')}
+                    </AlertDialogDescription>
                 </AlertDialogHeader>
                 {restoreDialog ? (
                     <RestoreMetadata validation={restoreDialog.validation} />

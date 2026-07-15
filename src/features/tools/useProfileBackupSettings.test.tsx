@@ -9,7 +9,6 @@ import type {
 } from '@/services/profileBackupService';
 
 const mocks = vi.hoisted(() => ({
-    confirm: vi.fn(),
     getSettings: vi.fn(),
     runManual: vi.fn(),
     setSettings: vi.fn(),
@@ -40,12 +39,6 @@ vi.mock('@/services/profileBackupService', () => ({
 vi.mock('@/services/shellIntegrationService', () => ({
     openFileSelectorDialog: vi.fn(),
     openFolderSelectorDialog: mocks.selectFolder
-}));
-
-vi.mock('@/state/modalStore', () => ({
-    useModalStore: (
-        selector: (state: { confirm: typeof mocks.confirm }) => unknown
-    ) => selector({ confirm: mocks.confirm })
 }));
 
 import { useProfileBackupStore } from '@/state/profileBackupStore';
@@ -102,10 +95,11 @@ describe('useProfileBackupSettings', () => {
 
     beforeEach(() => {
         current = null;
-        mocks.confirm.mockReset();
         mocks.getSettings.mockReset().mockResolvedValue(initialSettings);
         mocks.runManual.mockReset().mockResolvedValue(acceptedOutcome);
-        mocks.setSettings.mockReset();
+        mocks.setSettings
+            .mockReset()
+            .mockImplementation(async (settings) => settings);
         mocks.selectFolder.mockReset().mockResolvedValue('E:\\Profile');
         mocks.toastError.mockReset();
         useProfileBackupStore.getState().resetProfileBackupState();
@@ -113,28 +107,7 @@ describe('useProfileBackupSettings', () => {
 
     afterEach(cleanup);
 
-    it('confirms the unencrypted sensitive backup before starting a manual run', async () => {
-        mocks.confirm.mockResolvedValue({ ok: false });
-        render(<HookHarness onValue={(value) => (current = value)} />);
-
-        await waitFor(() => {
-            expect(current?.settings).toEqual(initialSettings);
-        });
-        await act(async () => {
-            await current?.startManualBackup();
-        });
-
-        expect(mocks.confirm).toHaveBeenCalledWith({
-            title: 'profile_backup.unencrypted_warning_title',
-            description: 'profile_backup.unencrypted_warning',
-            confirmText: 'profile_backup.backup_now_confirm',
-            cancelText: 'common.actions.cancel'
-        });
-        expect(mocks.runManual).not.toHaveBeenCalled();
-    });
-
-    it('starts the manual backup only after the folder and warning are accepted', async () => {
-        mocks.confirm.mockResolvedValue({ ok: true });
+    it('starts the manual backup after the folder is selected', async () => {
         render(<HookHarness onValue={(value) => (current = value)} />);
 
         await waitFor(() => {
@@ -146,17 +119,30 @@ describe('useProfileBackupSettings', () => {
 
         expect(mocks.runManual).toHaveBeenCalledWith('E:\\Profile');
         expect(mocks.selectFolder.mock.invocationCallOrder[0]).toBeLessThan(
-            mocks.confirm.mock.invocationCallOrder[0]
-        );
-        expect(mocks.confirm.mock.invocationCallOrder[0]).toBeLessThan(
             mocks.runManual.mock.invocationCallOrder[0]
         );
+    });
+
+    it('enables automatic backups without a confirmation', async () => {
+        render(<HookHarness onValue={(value) => (current = value)} />);
+
+        await waitFor(() => {
+            expect(current?.settings).toEqual(initialSettings);
+        });
+        await act(async () => {
+            await current?.setAutoEnabled(true);
+        });
+
+        expect(mocks.setSettings).toHaveBeenCalledWith({
+            ...initialSettings,
+            autoEnabled: true
+        });
+        expect(mocks.selectFolder).not.toHaveBeenCalled();
     });
 
     it('allows only one manual flow while folder selection is pending', async () => {
         const folderSelection = deferred<string>();
         mocks.selectFolder.mockReturnValue(folderSelection.promise);
-        mocks.confirm.mockResolvedValue({ ok: true });
         render(<HookHarness onValue={(value) => (current = value)} />);
 
         await waitFor(() => {
@@ -174,7 +160,6 @@ describe('useProfileBackupSettings', () => {
         });
 
         expect(mocks.selectFolder).toHaveBeenCalledTimes(1);
-        expect(mocks.confirm).toHaveBeenCalledTimes(1);
         expect(mocks.runManual).toHaveBeenCalledTimes(1);
     });
 

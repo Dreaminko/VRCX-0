@@ -1,12 +1,9 @@
 import {
     CalendarClockIcon,
-    DatabaseBackupIcon,
     FolderOpenIcon,
     LoaderCircleIcon,
     RotateCcwIcon,
-    SaveIcon,
-    ShieldAlertIcon,
-    VaultIcon
+    SaveIcon
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,8 +31,23 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel
+} from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+    InputGroupText
+} from '@/ui/shadcn/input-group';
 import { Progress } from '@/ui/shadcn/progress';
+import { Separator } from '@/ui/shadcn/separator';
 import { Switch } from '@/ui/shadcn/switch';
 
 type ProfileBackupDialogProps = {
@@ -58,18 +70,34 @@ function getStatusTitleKey(status: ProfileBackupStatus): string {
     }
 }
 
-function BackupPath({ value }: { value: string }) {
+function BackupPath({
+    value,
+    disabled,
+    onChoose
+}: {
+    value: string;
+    disabled: boolean;
+    onChoose: () => void;
+}) {
     const { t } = useTranslation();
     return (
-        <div
-            className="bg-background/60 text-muted-foreground flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-xs"
-            title={value || undefined}
-        >
-            <FolderOpenIcon className="size-3.5 shrink-0" />
-            <span className="truncate">
-                {value || t('profile_backup.location_not_set')}
-            </span>
-        </div>
+        <InputGroup title={value || undefined}>
+            <InputGroupInput
+                readOnly
+                disabled={disabled}
+                value={value}
+                placeholder={t('profile_backup.location_not_set')}
+                aria-label={t('profile_backup.change_folder')}
+            />
+            <InputGroupAddon>
+                <FolderOpenIcon />
+            </InputGroupAddon>
+            <InputGroupAddon align="inline-end">
+                <InputGroupButton disabled={disabled} onClick={onChoose}>
+                    {t('profile_backup.change_folder')}
+                </InputGroupButton>
+            </InputGroupAddon>
+        </InputGroup>
     );
 }
 
@@ -158,46 +186,22 @@ export function ProfileBackupDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
-                    <Alert className="border-amber-500/25 bg-amber-500/[0.06] text-amber-950 dark:text-amber-100">
-                        <ShieldAlertIcon className="text-amber-600 dark:text-amber-400" />
-                        <AlertTitle>
-                            {t('profile_backup.unencrypted_warning_title')}
-                        </AlertTitle>
-                        <AlertDescription className="text-amber-900/75 dark:text-amber-100/70">
-                            {t('profile_backup.unencrypted_warning')}
-                        </AlertDescription>
-                    </Alert>
-
-                    <section className="bg-card/70 overflow-hidden rounded-xl border shadow-sm">
-                        <div className="flex items-start gap-4 p-4 sm:items-center">
-                            <div className="bg-primary/10 text-primary border-primary/15 flex size-10 shrink-0 items-center justify-center rounded-xl border">
-                                <VaultIcon className="size-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <h3 className="font-heading text-sm font-medium">
-                                        {t('profile_backup.automatic')}
-                                    </h3>
-                                    <span
-                                        className={
-                                            automaticEnabled
-                                                ? 'bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[0.7rem] font-medium'
-                                                : 'bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[0.7rem] font-medium'
-                                        }
-                                    >
-                                        {t(
-                                            automaticEnabled
-                                                ? 'profile_backup.automatic_on'
-                                                : 'profile_backup.automatic_off'
-                                        )}
-                                    </span>
-                                </div>
-                                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+                    <section className="flex flex-col gap-4">
+                        <Field
+                            orientation="horizontal"
+                            data-disabled={disabled}
+                        >
+                            <FieldContent>
+                                <FieldLabel htmlFor="profile-backup-automatic">
+                                    {t('profile_backup.automatic')}
+                                </FieldLabel>
+                                <FieldDescription>
                                     {t('profile_backup.automatic_description')}
-                                </p>
-                            </div>
+                                </FieldDescription>
+                            </FieldContent>
                             <Switch
+                                id="profile-backup-automatic"
                                 checked={automaticEnabled}
                                 disabled={disabled}
                                 aria-label={t(
@@ -207,154 +211,153 @@ export function ProfileBackupDialog({
                                     void setAutoEnabled(checked);
                                 }}
                             />
-                        </div>
+                        </Field>
 
                         {status.state !== 'idle' ? (
-                            <div
-                                className={
-                                    isRunning
-                                        ? 'border-primary/15 bg-primary/[0.04] border-y px-4 py-3'
-                                        : 'border-destructive/20 bg-destructive/[0.04] border-y px-4 py-3'
-                                }
+                            <Alert
+                                variant={isRunning ? 'default' : 'destructive'}
                             >
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="text-sm font-medium">
-                                        {t(statusTitleKey)}
-                                    </div>
+                                <AlertTitle className="flex items-center justify-between gap-3">
+                                    <span>{t(statusTitleKey)}</span>
                                     {isRunning && status.percent !== null ? (
                                         <span className="text-muted-foreground text-xs tabular-nums">
                                             {`${status.percent}%`}
                                         </span>
                                     ) : null}
-                                </div>
-                                {isRunning ? (
-                                    <div className="space-y-2 pt-2">
-                                        <div
-                                            role="status"
-                                            aria-live="polite"
-                                            className="text-muted-foreground flex items-center gap-1.5 text-xs"
-                                        >
-                                            {status.percent === null ? (
-                                                <LoaderCircleIcon
-                                                    aria-hidden="true"
-                                                    className="size-3 animate-spin motion-reduce:animate-none"
+                                </AlertTitle>
+                                <AlertDescription>
+                                    {isRunning ? (
+                                        <div className="flex flex-col gap-2 pt-1">
+                                            <div
+                                                role="status"
+                                                aria-live="polite"
+                                                className="text-muted-foreground flex items-center gap-1.5 text-xs"
+                                            >
+                                                {status.percent === null ? (
+                                                    <LoaderCircleIcon
+                                                        aria-hidden="true"
+                                                        className="size-3 animate-spin motion-reduce:animate-none"
+                                                    />
+                                                ) : null}
+                                                {runningPhaseLabel}
+                                            </div>
+                                            {status.percent !== null ? (
+                                                <Progress
+                                                    aria-label={
+                                                        runningPhaseLabel
+                                                    }
+                                                    value={status.percent}
                                                 />
                                             ) : null}
-                                            {runningPhaseLabel}
+                                            <p className="text-muted-foreground text-xs leading-relaxed">
+                                                {t(
+                                                    'profile_backup.background_backup_notice'
+                                                )}
+                                            </p>
                                         </div>
-                                        {status.percent !== null ? (
-                                            <Progress
-                                                aria-label={runningPhaseLabel}
-                                                value={status.percent}
-                                            />
-                                        ) : null}
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3 pt-2">
-                                        <p className="text-muted-foreground text-xs leading-relaxed">
-                                            {t(statusErrorKey)}
-                                        </p>
-                                        {status.error?.path ? (
-                                            <div className="bg-background/60 rounded-lg border p-2 text-xs break-all">
-                                                {status.error.path}
+                                    ) : (
+                                        <div className="flex flex-col gap-3 pt-1">
+                                            <p className="text-xs leading-relaxed">
+                                                {t(statusErrorKey)}
+                                            </p>
+                                            {status.error?.path ? (
+                                                <div className="bg-background/60 rounded-md border p-2 text-xs break-all">
+                                                    {status.error.path}
+                                                </div>
+                                            ) : null}
+                                            <div className="flex flex-wrap justify-end gap-2">
+                                                {status.state ===
+                                                'retryable' ? (
+                                                    <>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={
+                                                                statusActionRunning
+                                                            }
+                                                            onClick={() => {
+                                                                void runStatusAction(
+                                                                    'discard'
+                                                                );
+                                                            }}
+                                                        >
+                                                            {t(
+                                                                'profile_backup.discard_backup'
+                                                            )}
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            disabled={
+                                                                statusActionRunning
+                                                            }
+                                                            onClick={() => {
+                                                                void runStatusAction(
+                                                                    'retry'
+                                                                );
+                                                            }}
+                                                        >
+                                                            {t(
+                                                                'profile_backup.retry_save'
+                                                            )}
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        disabled={
+                                                            statusActionRunning
+                                                        }
+                                                        onClick={() => {
+                                                            void runStatusAction(
+                                                                'dismiss'
+                                                            );
+                                                        }}
+                                                    >
+                                                        {t(
+                                                            'profile_backup.dismiss_error'
+                                                        )}
+                                                    </Button>
+                                                )}
                                             </div>
-                                        ) : null}
-                                        <div className="flex flex-wrap justify-end gap-2">
-                                            {status.state === 'retryable' ? (
-                                                <>
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="outline"
-                                                        disabled={
-                                                            statusActionRunning
-                                                        }
-                                                        onClick={() => {
-                                                            void runStatusAction(
-                                                                'discard'
-                                                            );
-                                                        }}
-                                                    >
-                                                        {t(
-                                                            'profile_backup.discard_backup'
-                                                        )}
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        disabled={
-                                                            statusActionRunning
-                                                        }
-                                                        onClick={() => {
-                                                            void runStatusAction(
-                                                                'retry'
-                                                            );
-                                                        }}
-                                                    >
-                                                        {t(
-                                                            'profile_backup.retry_save'
-                                                        )}
-                                                    </Button>
-                                                </>
-                                            ) : (
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    disabled={
-                                                        statusActionRunning
-                                                    }
-                                                    onClick={() => {
-                                                        void runStatusAction(
-                                                            'dismiss'
-                                                        );
-                                                    }}
-                                                >
-                                                    {t(
-                                                        'profile_backup.dismiss_error'
-                                                    )}
-                                                </Button>
-                                            )}
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </AlertDescription>
+                            </Alert>
                         ) : null}
 
-                        <div className="space-y-4 p-4">
-                            <div className="flex items-center gap-2 text-xs">
-                                <CalendarClockIcon className="text-muted-foreground size-4" />
-                                <span className="text-muted-foreground">
-                                    {t('profile_backup.last_automatic_backup')}
-                                </span>
-                                <span className="font-medium">
-                                    {lastAutomaticBackup}
-                                </span>
-                            </div>
-
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <FieldGroup className="gap-4">
+                            <Field>
+                                <div className="flex items-center gap-2 text-xs">
+                                    <CalendarClockIcon className="text-muted-foreground size-4" />
+                                    <span className="text-muted-foreground">
+                                        {t(
+                                            'profile_backup.last_automatic_backup'
+                                        )}
+                                    </span>
+                                    <span className="font-medium">
+                                        {lastAutomaticBackup}
+                                    </span>
+                                </div>
                                 <BackupPath
                                     value={settings?.autoTargetDir || ''}
-                                />
-                                <Button
-                                    type="button"
-                                    variant="outline"
                                     disabled={disabled}
-                                    onClick={() => {
+                                    onChoose={() => {
                                         void chooseAutomaticBackupFolder();
                                     }}
-                                >
-                                    <FolderOpenIcon data-icon="inline-start" />
-                                    {t('profile_backup.change_folder')}
-                                </Button>
-                            </div>
+                                />
+                            </Field>
 
                             <div className="grid gap-3 sm:grid-cols-2">
-                                <label className="bg-background/40 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-                                    <span className="text-sm font-medium">
+                                <Field>
+                                    <FieldLabel htmlFor="profile-backup-interval">
                                         {t('profile_backup.interval')}
-                                    </span>
-                                    <span className="flex items-center gap-2">
-                                        <Input
+                                    </FieldLabel>
+                                    <InputGroup>
+                                        <InputGroupInput
+                                            id="profile-backup-interval"
                                             type="number"
                                             min={1}
                                             max={30}
@@ -373,21 +376,23 @@ export function ProfileBackupDialog({
                                                     'autoIntervalDays'
                                                 );
                                             }}
-                                            className="w-20"
                                             aria-label={t(
                                                 'profile_backup.interval'
                                             )}
                                         />
-                                        <span className="text-muted-foreground text-xs">
-                                            {t('profile_backup.days')}
-                                        </span>
-                                    </span>
-                                </label>
-                                <label className="bg-background/40 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-                                    <span className="text-sm font-medium">
+                                        <InputGroupAddon align="inline-end">
+                                            <InputGroupText>
+                                                {t('profile_backup.days')}
+                                            </InputGroupText>
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="profile-backup-keep-count">
                                         {t('profile_backup.keep_count')}
-                                    </span>
+                                    </FieldLabel>
                                     <Input
+                                        id="profile-backup-keep-count"
                                         type="number"
                                         min={2}
                                         max={6}
@@ -406,20 +411,18 @@ export function ProfileBackupDialog({
                                                 'autoRetainExtra'
                                             );
                                         }}
-                                        className="w-20"
                                         aria-label={t(
                                             'profile_backup.keep_count'
                                         )}
                                     />
-                                </label>
+                                </Field>
                             </div>
-                        </div>
+                        </FieldGroup>
                     </section>
 
-                    <section className="flex flex-col gap-4 px-1 sm:flex-row sm:items-center">
-                        <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
-                            <DatabaseBackupIcon className="size-5" />
-                        </div>
+                    <Separator />
+
+                    <section className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         <div className="min-w-0 flex-1">
                             <h3 className="font-heading text-sm font-medium">
                                 {t('profile_backup.manual_backup')}
@@ -442,32 +445,29 @@ export function ProfileBackupDialog({
                         </div>
                     </section>
 
-                    <section className="bg-card/40 relative overflow-hidden rounded-xl border border-amber-500/25 p-4">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                                <RotateCcwIcon className="size-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <h3 className="font-heading text-sm font-medium">
-                                    {t('profile_backup.restore')}
-                                </h3>
-                                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                                    {t('profile_backup.restore_description')}
-                                </p>
-                            </div>
-                            <div className="sm:self-center">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={disabled || validatingRestore}
-                                    onClick={() => {
-                                        void selectBackupToRestore();
-                                    }}
-                                >
-                                    <RotateCcwIcon data-icon="inline-start" />
-                                    {t('profile_backup.restore_from_backup')}
-                                </Button>
-                            </div>
+                    <Separator />
+
+                    <section className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-heading text-sm font-medium">
+                                {t('profile_backup.restore')}
+                            </h3>
+                            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                                {t('profile_backup.restore_description')}
+                            </p>
+                        </div>
+                        <div className="sm:self-center">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={disabled || validatingRestore}
+                                onClick={() => {
+                                    void selectBackupToRestore();
+                                }}
+                            >
+                                <RotateCcwIcon data-icon="inline-start" />
+                                {t('profile_backup.restore_from_backup')}
+                            </Button>
                         </div>
                     </section>
                 </div>
