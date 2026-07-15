@@ -364,6 +364,13 @@
         },
         "friend_log": {
             "filter_placeholder": "Filtruj",
+            "all_types": "Wszystkie typy",
+            "selected_types": "Wybrano typów: {count}",
+            "groups": {
+                "relationships": "Relacje ze znajomymi",
+                "requests": "Zaproszenia do znajomych",
+                "profile_changes": "Zmiany profilu"
+            },
             "search_placeholder": "Szukaj",
             "filters": {
                 "Friend": "Nowy znajomy",

@@ -1181,6 +1181,13 @@
         },
         "friend_log": {
             "filter_placeholder": "Filtrovat",
+            "all_types": "Všechny typy",
+            "selected_types": "Vybráno typů: {count}",
+            "groups": {
+                "relationships": "Vztahy přátel",
+                "requests": "Žádosti o přátelství",
+                "profile_changes": "Změny profilu"
+            },
             "search_placeholder": "Vyhledat",
             "filters": {
                 "Friend": "Nový přítel",

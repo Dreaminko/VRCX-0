@@ -314,6 +314,13 @@
         },
         "friend_log": {
             "filter_placeholder": "Szűrés",
+            "all_types": "Összes típus",
+            "selected_types": "{count} típus kiválasztva",
+            "groups": {
+                "relationships": "Baráti kapcsolatok",
+                "requests": "Barátkérelmek",
+                "profile_changes": "Profilmódosítások"
+            },
             "search_placeholder": "Keresés",
             "loading": {
                 "loading_the_friend_history_snapshot": "Barátelőzmények betöltése"

@@ -1175,6 +1175,13 @@
         },
         "friend_log": {
             "filter_placeholder": "フィルター",
+            "all_types": "すべての種類",
+            "selected_types": "{count} 種類を選択",
+            "groups": {
+                "relationships": "フレンド関係",
+                "requests": "フレンドリクエスト",
+                "profile_changes": "プロフィール変更"
+            },
             "search_placeholder": "検索...",
             "filters": {
                 "Friend": "新しいフレンド",

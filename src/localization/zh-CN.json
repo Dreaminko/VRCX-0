@@ -1179,6 +1179,13 @@
         },
         "friend_log": {
             "filter_placeholder": "筛选好友日志",
+            "all_types": "全部类型",
+            "selected_types": "已选 {count} 类",
+            "groups": {
+                "relationships": "好友关系",
+                "requests": "好友申请",
+                "profile_changes": "资料变化"
+            },
             "search_placeholder": "搜索好友日志",
             "filters": {
                 "Friend": "新的好友",

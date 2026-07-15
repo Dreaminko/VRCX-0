@@ -1181,6 +1181,13 @@
         },
         "friend_log": {
             "filter_placeholder": "Фильтр",
+            "all_types": "Все типы",
+            "selected_types": "Выбрано типов: {count}",
+            "groups": {
+                "relationships": "Дружеские связи",
+                "requests": "Заявки в друзья",
+                "profile_changes": "Изменения профиля"
+            },
             "search_placeholder": "Поиск",
             "filters": {
                 "Friend": "Новый друг",

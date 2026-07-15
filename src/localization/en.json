@@ -1179,6 +1179,13 @@
         },
         "friend_log": {
             "filter_placeholder": "Filter",
+            "all_types": "All types",
+            "selected_types": "{count} types selected",
+            "groups": {
+                "relationships": "Friend relationships",
+                "requests": "Friend requests",
+                "profile_changes": "Profile changes"
+            },
             "search_placeholder": "Search",
             "filters": {
                 "Friend": "New friend",

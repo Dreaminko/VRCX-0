@@ -1179,6 +1179,13 @@
         },
         "friend_log": {
             "filter_placeholder": "篩選好友紀錄",
+            "all_types": "全部類型",
+            "selected_types": "已選 {count} 類",
+            "groups": {
+                "relationships": "好友關係",
+                "requests": "好友邀請",
+                "profile_changes": "資料變更"
+            },
             "search_placeholder": "搜尋好友紀錄",
             "filters": {
                 "Friend": "新好友",

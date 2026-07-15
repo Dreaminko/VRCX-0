@@ -1150,6 +1150,13 @@
         },
         "friend_log": {
             "filter_placeholder": "필터",
+            "all_types": "모든 유형",
+            "selected_types": "{count}개 유형 선택됨",
+            "groups": {
+                "relationships": "친구 관계",
+                "requests": "친구 요청",
+                "profile_changes": "프로필 변경"
+            },
             "search_placeholder": "검색",
             "filters": {
                 "Friend": "새로운 친구",

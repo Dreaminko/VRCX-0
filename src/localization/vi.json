@@ -314,6 +314,13 @@
         },
         "friend_log": {
             "filter_placeholder": "Lọc",
+            "all_types": "Tất cả loại",
+            "selected_types": "Đã chọn {count} loại",
+            "groups": {
+                "relationships": "Quan hệ bạn bè",
+                "requests": "Lời mời kết bạn",
+                "profile_changes": "Thay đổi hồ sơ"
+            },
             "search_placeholder": "Tìm kiếm",
             "loading": {
                 "loading_the_friend_history_snapshot": "Đang tải lịch sử bạn bè"

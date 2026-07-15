@@ -338,6 +338,13 @@
         },
         "friend_log": {
             "filter_placeholder": "ตัวกรอง",
+            "all_types": "ทุกประเภท",
+            "selected_types": "เลือกแล้ว {count} ประเภท",
+            "groups": {
+                "relationships": "ความสัมพันธ์เพื่อน",
+                "requests": "คำขอเป็นเพื่อน",
+                "profile_changes": "การเปลี่ยนแปลงโปรไฟล์"
+            },
             "search_placeholder": "ค้นหา",
             "filters": {
                 "Friend": "เพื่อนใหม่",
