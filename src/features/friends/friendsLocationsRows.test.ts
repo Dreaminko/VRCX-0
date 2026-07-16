@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import * as friendsLocationsRows from './friendsLocationsRows';
 import {
     buildFavoriteGroupLabelsByFriendId,
     buildSameInstanceGroups,
@@ -23,6 +24,38 @@ import {
 } from './friendsLocationsSearch';
 
 describe('friends locations row helpers', () => {
+    it('keeps the public helper facade stable', () => {
+        expect(Object.keys(friendsLocationsRows).sort()).toEqual([
+            'buildFavoriteGroupLabelsByFriendId',
+            'buildFriendSections',
+            'buildSameInstanceGroups',
+            'buildSameInstanceSections',
+            'compareFavoriteGroups',
+            'isFriendInPrivateLocation',
+            'isOnlineFriend',
+            'isRawWorldReference',
+            'isSentinelLocationValue',
+            'isShareableInstanceLocation',
+            'normalizeDisplayText',
+            'normalizeFriendsLocationId',
+            'partitionFriendsByPrivateLocation',
+            'resolveDisplayWorldName',
+            'resolveFavoriteGroupLabels',
+            'resolveFriendGroupName',
+            'resolveFriendTravelingWorldId',
+            'resolveFriendTravelingWorldName',
+            'resolveFriendWorldName',
+            'resolveFriendsLocationsCurrentInviteLocation',
+            'resolveInstanceSectionDescriptor',
+            'resolveLocationSummary',
+            'resolveLocationTarget',
+            'resolvePresenceLocation',
+            'resolveWorldDialogTarget',
+            'resolveWorldIdCandidate',
+            'uniqueFriendsById'
+        ]);
+    });
+
     it('normalizes ids and display text from strings and location-like objects', () => {
         expect(normalizeFriendsLocationId('  usr_1  ')).toBe('usr_1');
         expect(normalizeFriendsLocationId({ tag: 'wrld_1:123' })).toBe(

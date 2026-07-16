@@ -11,11 +11,13 @@ const tauriMock = vi.hoisted(() => ({
 
 vi.mock('@/platform/tauri/bindings', () => ({ commands: tauriMock.commands }));
 
-import groupProfileRepository, { normalize } from './groupProfileRepository';
+import * as groupProfileExports from './groupProfileRepository';
 import type {
     GroupAuditLogRow,
     GroupMemberRow
 } from './groupProfileRepository';
+
+const { default: groupProfileRepository, normalize } = groupProfileExports;
 
 describe('GroupProfileRepository', () => {
     beforeEach(() => {
@@ -27,6 +29,20 @@ describe('GroupProfileRepository', () => {
                 raw: {}
             });
         }
+    });
+
+    it('keeps the frozen facade aligned with public named exports', () => {
+        expect(Object.isFrozen(groupProfileRepository)).toBe(true);
+        expect(groupProfileExports.default).toBe(groupProfileRepository);
+        expect(
+            Object.keys(groupProfileExports)
+                .filter((key) => key !== 'default')
+                .toSorted()
+        ).toEqual(
+            Object.keys(groupProfileRepository)
+                .filter((key) => key !== 'fetchGroupProfile')
+                .toSorted()
+        );
     });
 
     it('normalizes group profile fields, counts, roles, and public group URL', () => {

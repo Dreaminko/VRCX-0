@@ -126,6 +126,59 @@ function createBackendRuntimeSnapshot(): BackendRuntimeSnapshot {
     };
 }
 
+async function bindCapturedRuntimeEvents(): Promise<{
+    handlers: Map<string, (payload: unknown) => void>;
+    cleanup: () => void;
+}> {
+    const handlers = new Map<string, (payload: unknown) => void>();
+    mocks.subscribe.mockImplementation((name, handler) => {
+        handlers.set(name, handler);
+        return Promise.resolve(() => {});
+    });
+    return {
+        handlers,
+        cleanup: await bindRuntimeEvents()
+    };
+}
+
+function setBackendRealtimeOwner({
+    userId = 'usr_owner',
+    authReady = true,
+    sessionReady = true,
+    friendProfileLoadStatus,
+    friendProfileLoadRunId = 1
+}: {
+    userId?: string;
+    authReady?: boolean;
+    sessionReady?: boolean;
+    friendProfileLoadStatus?: 'running' | 'cancelling';
+    friendProfileLoadRunId?: number;
+} = {}): BackendRuntimeSnapshot {
+    const snapshot: BackendRuntimeSnapshot = {
+        ...createBackendRuntimeSnapshot(),
+        phase: 'running',
+        authStatus: 'authenticated',
+        authUserId: userId,
+        wsStatus: 'connected'
+    };
+    useRuntimeStore.getState().setBackendRuntimeSnapshot(snapshot);
+    if (authReady) {
+        useRuntimeStore.getState().setAuthBootstrap({
+            currentUserId: userId
+        });
+    }
+    if (friendProfileLoadStatus) {
+        useRuntimeStore.getState().setFriendProfileLoadState({
+            runId: friendProfileLoadRunId,
+            status: friendProfileLoadStatus
+        });
+    }
+    if (sessionReady) {
+        useSessionStore.getState().setSessionPhase('ready');
+    }
+    return snapshot;
+}
+
 describe('runtimeEventBridgeService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -185,6 +238,63 @@ describe('runtimeEventBridgeService', () => {
             'drain-deep-links'
         ]);
         expect(mocks.drainPendingDeepLinks).toHaveBeenCalledTimes(1);
+    });
+
+    it('unsubscribes earlier runtime events when a later subscription fails', async () => {
+        const unsubscribe = vi.fn();
+        mocks.subscribe.mockImplementation(async (name) => {
+            if (name === 'gameLogProjection') {
+                throw new Error('subscription failed');
+            }
+            return unsubscribe;
+        });
+
+        await expect(bindRuntimeEvents()).rejects.toThrow(
+            'subscription failed'
+        );
+
+        expect(unsubscribe).toHaveBeenCalledTimes(2);
+        expect(useSessionStore.getState().transportStatus).toBe('disconnected');
+        expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
+    });
+
+    it('cleans subscriptions and pending batches when deep-link startup fails', async () => {
+        vi.useFakeTimers();
+        const handlers = new Map<string, (payload: unknown) => void>();
+        const runtimeUnsubscribe = vi.fn();
+        mocks.subscribe.mockImplementation((name, handler) => {
+            handlers.set(name, handler);
+            return Promise.resolve(runtimeUnsubscribe);
+        });
+        mocks.bindDeepLinkEvents.mockImplementation(async () => {
+            setBackendRealtimeOwner({
+                friendProfileLoadStatus: 'running'
+            });
+            handlers.get('realtimeUserProjection')?.({
+                source: 'friendProfileBulkLoad',
+                users: [
+                    {
+                        id: 'usr_pending',
+                        endpoint: 'api.vrchat.cloud',
+                        displayName: 'Pending Friend'
+                    }
+                ]
+            });
+            return mocks.deepLinkUnsubscribe;
+        });
+        mocks.drainPendingDeepLinks.mockRejectedValue(
+            new Error('deep-link startup failed')
+        );
+
+        await expect(bindRuntimeEvents()).rejects.toThrow(
+            'deep-link startup failed'
+        );
+        await vi.advanceTimersByTimeAsync(10_000);
+
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(23);
+        expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
+        expect(useSessionStore.getState().transportStatus).toBe('disconnected');
+        expect(useUserFactsStore.getState().usersByKey).toEqual({});
     });
 
     it('hydrates backup status after subscribing and applies newer events', async () => {
@@ -342,30 +452,124 @@ describe('runtimeEventBridgeService', () => {
         ).toBe(1);
     });
 
-    it('batches friend profile projections into one store update', async () => {
-        vi.useFakeTimers();
-        const handlers = new Map<string, (payload: unknown) => void>();
-        mocks.subscribe.mockImplementation((name, handler) => {
-            handlers.set(name, handler);
-            return Promise.resolve(() => {});
+    it('keeps only the latest queued backend projection generation before session readiness', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        const runningSnapshot = setBackendRealtimeOwner({
+            authReady: false,
+            sessionReady: false
         });
-        const cleanup = await bindRuntimeEvents();
-        const snapshot = createBackendRuntimeSnapshot();
-        useRuntimeStore.getState().setBackendRuntimeSnapshot({
-            ...snapshot,
-            phase: 'running',
-            authStatus: 'authenticated',
-            authUserId: 'usr_owner',
-            wsStatus: 'connected'
+
+        handlers.get('realtimeUserProjection')?.({
+            generation: 1,
+            users: [
+                {
+                    id: 'usr_stale',
+                    endpoint: 'api.vrchat.cloud',
+                    displayName: 'Stale User'
+                }
+            ]
+        });
+        handlers.get('realtimeUserProjection')?.({
+            generation: 2,
+            users: [
+                {
+                    id: 'usr_latest',
+                    endpoint: 'api.vrchat.cloud',
+                    displayName: 'Latest User'
+                }
+            ]
         });
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserId: 'usr_owner'
         });
-        useRuntimeStore.getState().setFriendProfileLoadState({
-            runId: 1,
-            status: 'running'
+        useSessionStore.getState().setSessionPhase('ready');
+
+        handlers.get('backendRuntimeTelemetry')?.({
+            snapshot: runningSnapshot
+        });
+        await vi.waitFor(() => {
+            expect(
+                Object.values(useUserFactsStore.getState().usersByKey).map(
+                    (user) => user.id
+                )
+            ).toEqual(['usr_latest']);
+        });
+    });
+
+    it('prunes queued backend projections when the runtime user changes', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        const oldUserSnapshot = setBackendRealtimeOwner({
+            userId: 'usr_old_owner',
+            authReady: false,
+            sessionReady: false
+        });
+        handlers.get('realtimeUserProjection')?.({
+            generation: 1,
+            users: [
+                {
+                    id: 'usr_stale',
+                    endpoint: 'api.vrchat.cloud',
+                    displayName: 'Stale User'
+                }
+            ]
+        });
+
+        handlers.get('backendRuntimeTelemetry')?.({
+            snapshot: {
+                ...oldUserSnapshot,
+                authUserId: 'usr_new_owner'
+            }
+        });
+        await Promise.resolve();
+        useRuntimeStore.getState().setAuthBootstrap({
+            currentUserId: 'usr_old_owner'
         });
         useSessionStore.getState().setSessionPhase('ready');
+        handlers.get('backendRuntimeTelemetry')?.({
+            snapshot: oldUserSnapshot
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(useUserFactsStore.getState().usersByKey).toEqual({});
+    });
+
+    it('drops queued backend projections during unbind', async () => {
+        const firstBinding = await bindCapturedRuntimeEvents();
+        setBackendRealtimeOwner({
+            authReady: false,
+            sessionReady: false
+        });
+        firstBinding.handlers.get('realtimeUserProjection')?.({
+            generation: 1,
+            users: [
+                {
+                    id: 'usr_stale',
+                    endpoint: 'api.vrchat.cloud',
+                    displayName: 'Stale User'
+                }
+            ]
+        });
+        firstBinding.cleanup();
+
+        const secondBinding = await bindCapturedRuntimeEvents();
+        const runningSnapshot = setBackendRealtimeOwner();
+        secondBinding.handlers.get('backendRuntimeTelemetry')?.({
+            snapshot: runningSnapshot
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(useUserFactsStore.getState().usersByKey).toEqual({});
+        secondBinding.cleanup();
+    });
+
+    it('batches friend profile projections into one store update', async () => {
+        vi.useFakeTimers();
+        const { handlers, cleanup } = await bindCapturedRuntimeEvents();
+        setBackendRealtimeOwner({
+            friendProfileLoadStatus: 'running'
+        });
         let rosterUpdates = 0;
         let userFactUpdates = 0;
         const unsubscribeRoster = useFriendRosterStore.subscribe(() => {
@@ -425,32 +629,37 @@ describe('runtimeEventBridgeService', () => {
         cleanup();
     });
 
+    it('drops pending friend profile projections during unbind', async () => {
+        vi.useFakeTimers();
+        const { handlers, cleanup } = await bindCapturedRuntimeEvents();
+        setBackendRealtimeOwner({
+            friendProfileLoadStatus: 'running'
+        });
+
+        handlers.get('realtimeUserProjection')?.({
+            source: 'friendProfileBulkLoad',
+            users: [
+                {
+                    id: 'usr_pending',
+                    endpoint: 'api.vrchat.cloud',
+                    displayName: 'Pending Friend'
+                }
+            ]
+        });
+        cleanup();
+        await vi.advanceTimersByTimeAsync(10_000);
+
+        expect(useUserFactsStore.getState().usersByKey).toEqual({});
+    });
+
     it.each(['running', 'cancelling'] as const)(
         'applies normal realtime projections immediately while profile loading is %s',
         async (status) => {
             vi.useFakeTimers();
-            const handlers = new Map<string, (payload: unknown) => void>();
-            mocks.subscribe.mockImplementation((name, handler) => {
-                handlers.set(name, handler);
-                return Promise.resolve(() => {});
+            const { handlers, cleanup } = await bindCapturedRuntimeEvents();
+            setBackendRealtimeOwner({
+                friendProfileLoadStatus: status
             });
-            const cleanup = await bindRuntimeEvents();
-            const snapshot = createBackendRuntimeSnapshot();
-            useRuntimeStore.getState().setBackendRuntimeSnapshot({
-                ...snapshot,
-                phase: 'running',
-                authStatus: 'authenticated',
-                authUserId: 'usr_owner',
-                wsStatus: 'connected'
-            });
-            useRuntimeStore.getState().setAuthBootstrap({
-                currentUserId: 'usr_owner'
-            });
-            useRuntimeStore.getState().setFriendProfileLoadState({
-                runId: 1,
-                status
-            });
-            useSessionStore.getState().setSessionPhase('ready');
 
             handlers.get('realtimeUserProjection')?.({
                 source: 'friendProfileBulkLoad',
@@ -532,28 +741,11 @@ describe('runtimeEventBridgeService', () => {
 
     it('flushes pending friend profile projections when the load becomes terminal', async () => {
         vi.useFakeTimers();
-        const handlers = new Map<string, (payload: unknown) => void>();
-        mocks.subscribe.mockImplementation((name, handler) => {
-            handlers.set(name, handler);
-            return Promise.resolve(() => {});
+        const { handlers, cleanup } = await bindCapturedRuntimeEvents();
+        setBackendRealtimeOwner({
+            friendProfileLoadStatus: 'running',
+            friendProfileLoadRunId: 100
         });
-        const cleanup = await bindRuntimeEvents();
-        const snapshot = createBackendRuntimeSnapshot();
-        useRuntimeStore.getState().setBackendRuntimeSnapshot({
-            ...snapshot,
-            phase: 'running',
-            authStatus: 'authenticated',
-            authUserId: 'usr_owner',
-            wsStatus: 'connected'
-        });
-        useRuntimeStore.getState().setAuthBootstrap({
-            currentUserId: 'usr_owner'
-        });
-        useRuntimeStore.getState().setFriendProfileLoadState({
-            runId: 100,
-            status: 'running'
-        });
-        useSessionStore.getState().setSessionPhase('ready');
 
         handlers.get('realtimeUserProjection')?.({
             source: 'friendProfileBulkLoad',

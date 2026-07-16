@@ -1,6 +1,30 @@
 use super::*;
 
 #[test]
+fn matches_frontend_location_parser_parity_cases() {
+    let cases: Value = serde_json::from_str(include_str!(
+        "../../../../src/shared/utils/locationParserParityCases.json"
+    ))
+    .expect("location parser parity fixture must be valid JSON");
+
+    for case in cases
+        .as_array()
+        .expect("location parser parity fixture must contain an array")
+    {
+        let name = case["name"]
+            .as_str()
+            .expect("location parser parity case must have a name");
+        let tag = case["tag"]
+            .as_str()
+            .expect("location parser parity case must have a tag");
+        let parsed =
+            serde_json::to_value(parse_location(tag)).expect("parsed location must serialize");
+
+        assert_eq!(parsed, case["expected"], "{name}");
+    }
+}
+
+#[test]
 fn sentinels_short_circuit_without_world() {
     for (tag, is_offline, is_private, is_traveling) in [
         ("offline", true, false, false),

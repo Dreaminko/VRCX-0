@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
     disableBackgroundImage: vi.fn(),
     isBackgroundImageActive: vi.fn(),
     migrateLegacyNasaApodCommunityTheme: vi.fn(),
+    registerCommunityThemeAppearanceHandlers: vi.fn(),
     applyThemeColor: vi.fn(),
     resolveThemeMode: vi.fn(),
     clearThemeColorInlineProperties: vi.fn(),
@@ -74,7 +75,8 @@ vi.mock('./appearanceConflictCoordinator', () => ({
     isBackgroundImageAppearanceActive: mocks.isBackgroundImageActive,
     migrateLegacyNasaApodCommunityThemeForBackgroundImage:
         mocks.migrateLegacyNasaApodCommunityTheme,
-    registerCommunityThemeAppearanceHandlers: vi.fn()
+    registerCommunityThemeAppearanceHandlers:
+        mocks.registerCommunityThemeAppearanceHandlers
 }));
 
 vi.mock('./themeService', () => ({
@@ -226,6 +228,36 @@ describe('communityThemeService characterization', () => {
     afterEach(() => {
         vi.useRealTimers();
         vi.unstubAllGlobals();
+    });
+
+    it('keeps the public facade and registers the appearance handlers', async () => {
+        const { service } = await loadCommunityThemeService();
+
+        expect(Object.keys(service).sort()).toEqual([
+            'clearCommunityThemeOverrideCss',
+            'deleteInstalledCommunityTheme',
+            'disableCommunityThemeOverrideCss',
+            'disableInstalledCommunityTheme',
+            'enableInstalledCommunityTheme',
+            'getCommunityThemeOverrideCssSnapshot',
+            'initializeCommunityThemes',
+            'installCommunityTheme',
+            'isCommunityThemeAccentControlled',
+            'loadCatalog',
+            'loadLocalCommunityThemePreview',
+            'saveCommunityThemeOverrideCss',
+            'startLocalCommunityThemePreviewWatch',
+            'stopLocalCommunityThemePreview',
+            'stopLocalCommunityThemePreviewWatch'
+        ]);
+        expect(
+            mocks.registerCommunityThemeAppearanceHandlers
+        ).toHaveBeenCalledWith({
+            disableInstalledCommunityTheme:
+                service.disableInstalledCommunityTheme,
+            stopLocalCommunityThemePreview:
+                service.stopLocalCommunityThemePreview
+        });
     });
 
     it('loads the community theme catalog and records catalog failures', async () => {

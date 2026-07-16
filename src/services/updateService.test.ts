@@ -37,11 +37,13 @@ vi.mock('@/platform/tauri/updater', () => ({
 
 import {
     discardPendingUpdate,
+    downloadAndInstallUpdate,
     downloadUpdate,
     getPreviewStableReleaseUpdateMode,
     handlePreviewStableReleaseUpdateCheck,
     installPendingUpdate
 } from './updateService';
+import * as updateService from './updateService';
 
 function release({ publishedAt }: { publishedAt: string }) {
     return {
@@ -72,6 +74,33 @@ function installableRelease() {
         target: 'windows-x86_64-stable'
     };
 }
+
+describe('updateService facade', () => {
+    it('preserves the public runtime exports', () => {
+        expect(Object.keys(updateService).sort()).toEqual([
+            'canInstallUpdatesOnPlatform',
+            'checkInstallableUpdate',
+            'defaultBranchForVersion',
+            'discardPendingUpdate',
+            'downloadAndInstallUpdate',
+            'downloadUpdate',
+            'fetchBranchReleases',
+            'fetchLatestBranchRelease',
+            'formatReleaseDisplayVersion',
+            'getPreviewStableReleaseUpdateMode',
+            'getUpdaterManifestAssetName',
+            'getUpdaterTarget',
+            'handlePreviewStableReleaseUpdateCheck',
+            'hasUpdateForBranch',
+            'installPendingUpdate',
+            'isNoPendingUpdateError',
+            'isPendingUpdateVersionMismatchError',
+            'normalizeGitHubRelease',
+            'normalizeReleaseList',
+            'sanitizeBranch'
+        ]);
+    });
+});
 
 describe('updateService preview stable update checks', () => {
     beforeEach(() => {
@@ -355,6 +384,51 @@ describe('updateService pending update downloads', () => {
             rawJson: {}
         });
         await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+    });
+
+    it('installs the shared pending download instead of starting a second download', async () => {
+        let resolveDownload: (
+            value: TauriUpdateMetadata | null
+        ) => void = () => {};
+        let markDownloadStarted: () => void = () => {};
+        const downloadStarted = new Promise<void>((resolve) => {
+            markDownloadStarted = resolve;
+        });
+        const metadata = {
+            currentVersion: '2.6.0',
+            version: '2.7.0',
+            date: null,
+            body: null,
+            rawJson: {}
+        };
+        mocks.downloadTauriUpdate.mockImplementation(() => {
+            markDownloadStarted();
+            return new Promise((resolve) => {
+                resolveDownload = resolve;
+            });
+        });
+        mocks.installPendingTauriUpdate.mockResolvedValue(metadata);
+
+        const download = downloadUpdate(installableRelease(), {
+            hostPlatform: 'windows',
+            hostArch: 'x86_64',
+            linuxPackageKind: ''
+        });
+        await downloadStarted;
+        const install = downloadAndInstallUpdate(installableRelease(), {
+            hostPlatform: 'windows',
+            hostArch: 'x86_64',
+            linuxPackageKind: ''
+        });
+
+        resolveDownload(metadata);
+        await expect(Promise.all([download, install])).resolves.toEqual([
+            metadata,
+            metadata
+        ]);
+        expect(mocks.downloadTauriUpdate).toHaveBeenCalledTimes(1);
+        expect(mocks.downloadAndInstallTauriUpdate).not.toHaveBeenCalled();
+        expect(mocks.installPendingTauriUpdate).toHaveBeenCalledWith('2.7.0');
     });
 
     it('wraps pending install and discard commands', async () => {
