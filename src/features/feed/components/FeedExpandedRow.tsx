@@ -125,18 +125,6 @@ function FeedExpandedRow({
         );
     }
 
-    if (row?.type === 'Offline') {
-        return (
-            <ExpandedRowShell>
-                <div className="max-w-2xl">
-                    {t('view.feed.label.online_for', {
-                        duration: timeToText(row.time)
-                    })}
-                </div>
-            </ExpandedRowShell>
-        );
-    }
-
     if (row?.type === 'Status') {
         return (
             <ExpandedRowShell>

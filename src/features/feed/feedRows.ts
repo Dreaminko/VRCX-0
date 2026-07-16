@@ -146,9 +146,8 @@ export function canExpandFeedRow(row: FeedRow): boolean {
         case 'GPS':
             return Boolean(row.previousLocation);
         case 'Online':
-            return false;
         case 'Offline':
-            return Boolean(row.time);
+            return false;
         case 'Status':
             return (
                 String(row.statusDescription || '') !==

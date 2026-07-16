@@ -174,7 +174,7 @@ describe('feed row helpers', () => {
             canExpandFeedRow({ type: 'Online', previousLocation: 'wrld_1:1' })
         ).toBe(false);
         expect(canExpandFeedRow({ type: 'Offline', time: 0 })).toBe(false);
-        expect(canExpandFeedRow({ type: 'Offline', time: 42 })).toBe(true);
+        expect(canExpandFeedRow({ type: 'Offline', time: 42 })).toBe(false);
         expect(
             canExpandFeedRow({
                 type: 'Status',
