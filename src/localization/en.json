@@ -4197,6 +4197,7 @@
             "flip_v": "Flip Vertical",
             "zoom_in": "Zoom In",
             "zoom_out": "Zoom Out",
+            "zoom_level": "Zoom level",
             "mode_fit": "Switch to Fit Mode",
             "mode_free": "Switch to Free Mode",
             "reset": "Reset"

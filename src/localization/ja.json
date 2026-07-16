@@ -4192,6 +4192,7 @@
             "flip_v": "上下を反転",
             "zoom_in": "拡大",
             "zoom_out": "縮小",
+            "zoom_level": "ズーム倍率",
             "mode_fit": "フィットモードに切り替え",
             "mode_free": "自由切り抜きに切り替え",
             "reset": "リセット"

@@ -4197,6 +4197,7 @@
             "flip_v": "Vertikal spiegeln",
             "zoom_in": "Vergrößern",
             "zoom_out": "Verkleinern",
+            "zoom_level": "Zoomstufe",
             "mode_fit": "Zum Einpassungsmodus wechseln",
             "mode_free": "Zum freien Modus wechseln",
             "reset": "Zurücksetzen"

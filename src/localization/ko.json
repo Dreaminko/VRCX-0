@@ -4138,6 +4138,7 @@
             "flip_v": "수직 뒤집기",
             "zoom_in": "확대",
             "zoom_out": "축소",
+            "zoom_level": "확대/축소 수준",
             "mode_fit": "맞춤 모드로 전환",
             "mode_free": "무료 모드로 전환",
             "reset": "재설정"

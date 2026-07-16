@@ -4199,6 +4199,7 @@
             "flip_v": "Překlopit svisle",
             "zoom_in": "Přiblížit",
             "zoom_out": "Oddálit",
+            "zoom_level": "Úroveň přiblížení",
             "mode_fit": "Přepnout na režim Přizpůsobit",
             "mode_free": "Přepnout na volný režim",
             "reset": "Resetovat"

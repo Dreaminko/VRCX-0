@@ -4197,6 +4197,7 @@
             "flip_v": "Espelhar Verticalmente",
             "zoom_in": "Ampliar",
             "zoom_out": "Reduzir",
+            "zoom_level": "Nível de zoom",
             "mode_fit": "Mudar para Modo Ajustar",
             "mode_free": "Mudar para Modo Livre",
             "reset": "Redefinir"

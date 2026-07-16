@@ -4197,6 +4197,7 @@
             "flip_v": "垂直翻轉",
             "zoom_in": "放大",
             "zoom_out": "縮小",
+            "zoom_level": "縮放比例",
             "mode_fit": "切換為適應模式",
             "mode_free": "切換為自由模式",
             "reset": "重設"
