@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import vrchatToolsRepository from '@/repositories/vrchatToolsRepository';
 import { openUserDialog } from '@/services/dialogService';
@@ -287,7 +288,7 @@ export function NoteExportDialog({ open, onOpenChange }: any) {
                                                         }
                                                     }}
                                                 >
-                                                    <img
+                                                    <FadeInImage
                                                         src={userImage(
                                                             row.ref,
                                                             true,
@@ -296,6 +297,9 @@ export function NoteExportDialog({ open, onOpenChange }: any) {
                                                         alt=""
                                                         className="size-full object-cover"
                                                         loading="lazy"
+                                                        fallback={
+                                                            <span className="bg-muted block size-10 rounded-full border" />
+                                                        }
                                                     />
                                                 </Button>
                                             ) : (

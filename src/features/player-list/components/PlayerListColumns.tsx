@@ -18,6 +18,7 @@ import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import { getNameColour, openExternalLink } from '@/services/entityMediaService';
@@ -44,11 +45,16 @@ function HeaderLabel({ children }: { children: ReactNode }) {
 
 function AvatarCell({ row }: { row: Row<PlayerListRow> }) {
     return row.original.avatarUrl ? (
-        <img
+        <FadeInImage
             src={row.original.avatarUrl}
             alt={row.original.displayName || 'Player avatar'}
             loading="lazy"
             className="size-4 rounded-sm object-cover"
+            fallback={
+                <span className="bg-muted flex size-4 items-center justify-center rounded-sm">
+                    <UserIcon className="text-muted-foreground size-3" />
+                </span>
+            }
         />
     ) : (
         <span className="bg-muted flex size-4 items-center justify-center rounded-sm">
@@ -314,10 +320,11 @@ function BioLinksCell({ row }: { row: Row<PlayerListRow> }) {
                                           }}
                                       >
                                           {faviconUrl ? (
-                                              <img
+                                              <FadeInImage
                                                   src={faviconUrl}
                                                   alt=""
                                                   className="size-4"
+                                                  fallback={null}
                                               />
                                           ) : (
                                               <ExternalLinkIcon data-icon="inline-start" />

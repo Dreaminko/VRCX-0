@@ -17,6 +17,7 @@ import {
 import { ResizableTableCell } from '@/components/data-table/ResizableTableParts';
 import { EmptyState } from '@/components/layout/PageScaffold';
 import { LocationWorld } from '@/components/LocationWorld';
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import { defaultWorldCacheInfo } from '@/lib/worldAssetBundle';
@@ -157,11 +158,17 @@ export function CurrentWorldHeader({
                 }
             >
                 {imageUrl ? (
-                    <img
+                    <FadeInImage
                         src={imageUrl}
                         alt=""
                         loading="lazy"
                         className="size-full object-cover"
+                        fallback={
+                            <UsersIcon
+                                data-icon="inline-start"
+                                className="text-muted-foreground"
+                            />
+                        }
                     />
                 ) : (
                     <UsersIcon

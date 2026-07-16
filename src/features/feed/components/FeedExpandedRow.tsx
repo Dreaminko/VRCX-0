@@ -2,6 +2,7 @@ import { ArrowRightIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { timeToText } from '@/lib/dateTime';
 import { useModalStore } from '@/state/modalStore';
 import { Button } from '@/ui/shadcn/button';
@@ -59,7 +60,7 @@ function AvatarColumn({
                 aria-label={label}
                 onClick={onOpenPreview}
             >
-                <img
+                <FadeInImage
                     src={imageUrl}
                     alt={imageAlt}
                     className="h-30 w-40 rounded-lg border object-cover"

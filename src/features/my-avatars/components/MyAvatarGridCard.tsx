@@ -12,6 +12,7 @@ import {
 import type { CSSProperties, ElementType, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';
 import { getAvailablePlatforms } from '@/shared/utils/avatarPlatform';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -226,11 +227,16 @@ export function MyAvatarGridCard({
                                 }}
                             >
                                 {avatar?.thumbnailImageUrl ? (
-                                    <img
+                                    <FadeInImage
                                         src={avatar.thumbnailImageUrl}
                                         alt={avatar?.name || 'Avatar'}
                                         className="h-full w-full object-cover"
                                         loading="lazy"
+                                        fallback={
+                                            <div className="text-muted-foreground grid h-full w-full place-items-center [&>svg]:size-6">
+                                                <PersonStandingIcon />
+                                            </div>
+                                        }
                                     />
                                 ) : (
                                     <div className="text-muted-foreground grid h-full w-full place-items-center [&>svg]:size-6">

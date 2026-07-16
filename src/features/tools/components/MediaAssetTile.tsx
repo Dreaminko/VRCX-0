@@ -1,5 +1,6 @@
 import { MoreHorizontalIcon, ImageIcon } from 'lucide-react';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -138,11 +139,14 @@ export function MediaAssetTile({
                                 className: imageClassName
                             })
                         ) : imageUrl ? (
-                            <img
+                            <FadeInImage
                                 src={imageUrl}
                                 alt={alt || safeTitle}
                                 loading="lazy"
                                 className={imageClassName}
+                                fallback={
+                                    <PlaceholderIcon className="size-8" />
+                                }
                             />
                         ) : (
                             <PlaceholderIcon className="size-8" />

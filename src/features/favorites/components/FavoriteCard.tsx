@@ -10,6 +10,7 @@ import { memo, type KeyboardEvent, type MouseEvent, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Location } from '@/components/Location';
+import { FadeInImage } from '@/components/media/FadeInImage';
 import {
     resolveSidebarStatusDotClassName,
     type SidebarFriendRecord
@@ -487,7 +488,7 @@ const FavoriteCard = memo(function FavoriteCard({
                     }}
                 >
                     {item.imageUrl && !item.isUnavailable ? (
-                        <img
+                        <FadeInImage
                             src={
                                 densityConfig.value === 'compact'
                                     ? item.imageSmallUrl || item.imageUrl
@@ -496,6 +497,11 @@ const FavoriteCard = memo(function FavoriteCard({
                             alt={item.title}
                             loading="lazy"
                             className="size-full object-cover"
+                            fallback={
+                                <span className="flex size-full items-center justify-center">
+                                    <Icon className="text-muted-foreground size-8" />
+                                </span>
+                            }
                         />
                     ) : (
                         <span className="flex size-full items-center justify-center">
@@ -605,11 +611,14 @@ const FavoriteCard = memo(function FavoriteCard({
                         )}
                     >
                         {item.imageSmallUrl || item.imageUrl ? (
-                            <img
+                            <FadeInImage
                                 src={item.imageSmallUrl || item.imageUrl}
                                 alt={item.title}
                                 loading="lazy"
                                 className="size-full object-cover"
+                                fallback={
+                                    <Icon className="text-muted-foreground size-4" />
+                                }
                             />
                         ) : (
                             <Icon className="text-muted-foreground size-4" />

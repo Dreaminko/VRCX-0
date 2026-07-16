@@ -2,6 +2,7 @@ import { CheckIcon, UserIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';
 import { userImage } from '@/services/entityMediaService';
 import { Checkbox } from '@/ui/shadcn/checkbox';
@@ -34,11 +35,14 @@ export function UserPickerRow({
         <span className="flex w-full items-center p-1.5 text-left text-sm">
             <span className="bg-muted mr-2.5 flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border">
                 {imageUrl ? (
-                    <img
+                    <FadeInImage
                         src={imageUrl}
                         alt=""
                         loading="lazy"
                         className="size-full object-cover"
+                        fallback={
+                            <UserIcon className="text-muted-foreground size-4" />
+                        }
                     />
                 ) : (
                     <UserIcon className="text-muted-foreground size-4" />

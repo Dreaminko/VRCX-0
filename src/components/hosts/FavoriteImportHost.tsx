@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import {
     openAvatarDialog,
     openUserDialog,
@@ -345,10 +346,13 @@ export function FavoriteImportHost() {
                                     <TableRow key={row.id}>
                                         <TableCell>
                                             {getRowImage(row) ? (
-                                                <img
+                                                <FadeInImage
                                                     alt=""
                                                     src={getRowImage(row)}
                                                     className="size-10 rounded object-cover"
+                                                    fallback={
+                                                        <div className="bg-muted size-10 rounded" />
+                                                    }
                                                 />
                                             ) : (
                                                 <div className="bg-muted size-10 rounded" />
