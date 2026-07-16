@@ -275,6 +275,19 @@ export const commands = {
     async appShareCollectionPreview(id: string): Promise<ImportPreview> {
         return await TAURI_INVOKE('app__share_collection_preview', { id });
     },
+    async appSharedCollectionImportStart(
+        input: SharedCollectionImportStartInput
+    ): Promise<SharedCollectionImportStatus> {
+        return await TAURI_INVOKE('app__shared_collection_import_start', {
+            input
+        });
+    },
+    async appSharedCollectionImportStatus(): Promise<SharedCollectionImportStatus> {
+        return await TAURI_INVOKE('app__shared_collection_import_status');
+    },
+    async appSharedCollectionImportCancel(): Promise<SharedCollectionImportStatus> {
+        return await TAURI_INVOKE('app__shared_collection_import_cancel');
+    },
     async appTelemetryRecordEvent(event: TelemetryClientEvent): Promise<null> {
         return await TAURI_INVOKE('app__telemetry_record_event', { event });
     },
@@ -1205,6 +1218,9 @@ export const commands = {
     },
     async appRuntimeGroupInstancesRefresh(): Promise<null> {
         return await TAURI_INVOKE('app__runtime_group_instances_refresh');
+    },
+    async appRuntimeDiscordReconcileRequest(): Promise<number> {
+        return await TAURI_INVOKE('app__runtime_discord_reconcile_request');
     },
     async appRuntimeBackgroundJobRecord(
         input: RuntimeJobRecordInput
@@ -2235,12 +2251,6 @@ export const commands = {
     },
     async appOpenDiscordProfile(discordId: string): Promise<null> {
         return await TAURI_INVOKE('app__open_discord_profile', { discordId });
-    },
-    async discordSetActive(active: boolean): Promise<boolean> {
-        return await TAURI_INVOKE('discord__set_active', { active });
-    },
-    async discordSetAssets(payload: JsonValue): Promise<boolean> {
-        return await TAURI_INVOKE('discord__set_assets', { payload });
     },
     async appGetFileBase64(path: string): Promise<string> {
         return await TAURI_INVOKE('app__get_file_base64', { path });
@@ -4285,6 +4295,29 @@ export type ShareCollectionCreateResult = {
     skippedWorlds: ShareCollectionSkippedWorld[];
 };
 export type ShareCollectionSkippedWorld = { worldId: string; name: string };
+export type SharedCollectionImportStartInput = {
+    worldIds: string[];
+    groupName: string;
+};
+export type SharedCollectionImportState =
+    | 'idle'
+    | 'running'
+    | 'cancelling'
+    | 'completed'
+    | 'cancelled'
+    | 'error';
+export type SharedCollectionImportStatus = {
+    runId: string;
+    status: SharedCollectionImportState;
+    total: number;
+    processed: number;
+    imported: number;
+    failed: number;
+    groupName: string;
+    startedAt: string | null;
+    finishedAt: string | null;
+    lastError: string | null;
+};
 export type SocialFavoritesBaselineInput = {
     userId?: string;
     endpoint?: string;

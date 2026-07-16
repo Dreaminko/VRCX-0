@@ -34,6 +34,7 @@ mod runtime_output;
 mod screenshots;
 mod session;
 mod share_collection;
+mod shared_collection_import;
 mod social_baseline;
 mod sync;
 mod task_supervisor;
@@ -77,7 +78,7 @@ pub use background_capabilities::{
     BackgroundDiscordActivityPayload, BackgroundDiscordPresenceCommand,
     BackgroundDiscordPresenceState, BackgroundGroupInstancesRefresh,
     BackgroundPresenceAutomationResult, BackgroundPresenceAutomationState, BackgroundPresenceFacts,
-    BackgroundPresenceFactsInput, PresencePlayer,
+    BackgroundPresenceFactsInput, DiscordPresenceLabels, PresencePlayer,
 };
 pub use config::validate_config_writes;
 pub use diagnostics::RuntimeDiagnostics;
@@ -223,6 +224,12 @@ pub use share_collection::{
     share_collection_create, share_collection_owner_hint, PreparedShareCollection,
     ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
     ShareCollectionSkippedWorld, SHARE_COLLECTION_MAX_WORLDS,
+};
+pub use shared_collection_import::{
+    prepare_shared_collection_import, run_shared_collection_import, PreparedSharedCollectionImport,
+    SharedCollectionImportActions, SharedCollectionImportProgress, SharedCollectionImportResult,
+    SharedCollectionImportStartInput, SharedCollectionImportState, SharedCollectionImportStatus,
+    VrchatSharedCollectionImportActions, SHARED_COLLECTION_IMPORT_MAX_WORLDS,
 };
 pub use social_baseline::{
     apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,

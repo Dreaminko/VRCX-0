@@ -28,10 +28,19 @@ impl RuntimeAuthScope {
         endpoint: impl AsRef<str>,
     ) -> RuntimeAuthScopeSnapshot {
         let mut state = self.lock_state();
+        let current_user_id = normalize_text(user_id);
+        let endpoint = normalize_endpoint(endpoint);
+        let active = !current_user_id.is_empty();
+        if state.current_user_id == current_user_id
+            && state.endpoint == endpoint
+            && state.active == active
+        {
+            return state.clone();
+        }
         state.generation = state.generation.saturating_add(1);
-        state.current_user_id = normalize_text(user_id);
-        state.endpoint = normalize_endpoint(endpoint);
-        state.active = !state.current_user_id.is_empty();
+        state.current_user_id = current_user_id;
+        state.endpoint = endpoint;
+        state.active = active;
         state.clone()
     }
 
@@ -75,6 +84,9 @@ mod tests {
         assert!(scope.matches("usr_current", "https://api.example.test/api/1"));
         assert!(scope.matches("usr_current", "https://api.example.test/api/1/"));
         assert!(!scope.matches("usr_other", "https://api.example.test/api/1"));
+
+        let unchanged = scope.set(" usr_current ", "https://api.example.test/api/1/");
+        assert_eq!(unchanged.generation, snapshot.generation);
 
         let default_endpoint = scope.set("usr_current", "");
         assert_eq!(default_endpoint.endpoint, "https://api.vrchat.cloud/api/1");

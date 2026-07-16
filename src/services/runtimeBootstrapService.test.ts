@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     setTrayIconNotification: vi.fn(),
-    bootstrapActivityCache: vi.fn(),
     startRuntimeAuthFailureRecovery: vi.fn(),
     bootstrapFavorites: vi.fn(),
     bootstrapFriendRoster: vi.fn(),
@@ -22,10 +21,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/services/shellIntegrationService', () => ({
     setTrayIconNotification: mocks.setTrayIconNotification
-}));
-
-vi.mock('./activityCacheService', () => ({
-    bootstrapActivityCache: mocks.bootstrapActivityCache
 }));
 
 vi.mock('./authSessionRecoveryService', () => ({
@@ -167,10 +162,6 @@ describe('runtimeBootstrapService', () => {
         mocks.setI18nLanguage.mockResolvedValue(undefined);
         mocks.bootstrapFriendRoster.mockResolvedValue(undefined);
         mocks.bootstrapFavorites.mockResolvedValue(undefined);
-        mocks.bootstrapActivityCache.mockResolvedValue({
-            userId: 'usr_self',
-            stale: false
-        });
         mocks.startRealtimeTransport.mockResolvedValue(undefined);
         mocks.initializeReactRuntime.mockResolvedValue(undefined);
         mocks.bindRuntimeEvents.mockResolvedValue(undefined);
@@ -238,10 +229,6 @@ describe('runtimeBootstrapService', () => {
         expect(mocks.bootstrapFavorites).toHaveBeenCalledWith({
             userId: 'usr_self',
             endpoint: 'https://api.example',
-            currentUserSnapshot
-        });
-        expect(mocks.bootstrapActivityCache).toHaveBeenCalledWith({
-            userId: 'usr_self',
             currentUserSnapshot
         });
         expect(mocks.startRealtimeTransport).not.toHaveBeenCalled();

@@ -26,7 +26,6 @@ import {
 import { useSessionStore } from '@/state/sessionStore';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
-import { resetActivityCacheState } from './activityCacheService';
 import { resetReactAutoLoginThrottle } from './authAutoLoginState';
 import { runWithRuntimeAuthFailureRecoverySuppressed } from './authSessionRecoveryService';
 import {
@@ -195,7 +194,6 @@ export function resetCurrentUserRuntimeAuth() {
     useFavoriteStore.getState().resetFavorites();
     useFeedLiveStore.getState().resetFeedLive();
     resetDomainFacts();
-    resetActivityCacheState();
     useRuntimeStore
         .getState()
         .setGroupInstancesState(createGroupInstancesState());

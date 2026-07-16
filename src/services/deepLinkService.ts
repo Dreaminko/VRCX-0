@@ -1,7 +1,10 @@
 import { toast } from 'sonner';
 
 import { commands } from '@/platform/tauri/bindings';
-import type { DeepLinkAction } from '@/platform/tauri/bindings';
+import type {
+    DeepLinkAction,
+    SharedCollectionImportStatus
+} from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
 import shareCollectionRepository from '@/repositories/shareCollectionRepository';
 import { isCollectionShortcode } from '@/shared/constants/collectionShare';
@@ -10,22 +13,46 @@ import { useModalStore } from '@/state/modalStore';
 import { useWorldCollectionImportStore } from '@/state/worldCollectionImportStore';
 
 import { openWorldDialog } from './dialogService';
-import { importWorldIdsToLocalGroup } from './favoriteImportService';
 import i18n from './i18nService';
 
 const DEEP_LINK_ARRIVED_EVENT = 'deepLinkArrived';
+const SHARED_COLLECTION_IMPORT_STATUS_EVENT = 'sharedCollectionImportStatus';
 let sharedCollectionImportQueue = Promise.resolve();
+const sharedCollectionImportWaiters = new Map<
+    string,
+    (status: SharedCollectionImportStatus) => void
+>();
 
 type DeepLinkEventUnsubscribe = () => void;
 
 export async function bindDeepLinkEvents(): Promise<DeepLinkEventUnsubscribe> {
-    const unsubscribe = await tauriClient.events.subscribe(
-        DEEP_LINK_ARRIVED_EVENT,
-        () => {
-            drainPendingDeepLinks().catch(logPendingDeepLinkDrainFailure);
+    const unsubscribes: DeepLinkEventUnsubscribe[] = [];
+    try {
+        unsubscribes.push(
+            await tauriClient.events.subscribe(DEEP_LINK_ARRIVED_EVENT, () => {
+                drainPendingDeepLinks().catch(logPendingDeepLinkDrainFailure);
+            })
+        );
+        unsubscribes.push(
+            await tauriClient.events.subscribe<SharedCollectionImportStatus>(
+                SHARED_COLLECTION_IMPORT_STATUS_EVENT,
+                handleSharedCollectionImportStatus
+            )
+        );
+        handleSharedCollectionImportStatus(
+            await commands.appSharedCollectionImportStatus()
+        );
+    } catch (error) {
+        for (const unsubscribe of unsubscribes.reverse()) {
+            unsubscribe();
         }
-    );
-    return unsubscribe;
+        throw error;
+    }
+    return () => {
+        for (const unsubscribe of unsubscribes.reverse()) {
+            unsubscribe();
+        }
+    };
 }
 
 export async function drainPendingDeepLinks(): Promise<void> {
@@ -79,7 +106,78 @@ function logPendingDeepLinkDrainFailure(error: unknown): void {
 }
 
 function errorMessage(error: unknown, fallback: string): string {
-    return error instanceof Error && error.message ? error.message : fallback;
+    if (error instanceof Error && error.message) {
+        return error.message;
+    }
+    if (typeof error === 'string' && error.trim()) {
+        return error.trim();
+    }
+    return fallback;
+}
+
+function isTerminalSharedCollectionImport(
+    status: SharedCollectionImportStatus
+) {
+    return (
+        status.status === 'completed' ||
+        status.status === 'cancelled' ||
+        status.status === 'error'
+    );
+}
+
+function handleSharedCollectionImportStatus(
+    status: SharedCollectionImportStatus
+): void {
+    useWorldCollectionImportStore.getState().hydrate(status);
+    if (!isTerminalSharedCollectionImport(status)) {
+        return;
+    }
+    const resolve = sharedCollectionImportWaiters.get(status.runId);
+    if (resolve) {
+        sharedCollectionImportWaiters.delete(status.runId);
+        resolve(status);
+    }
+}
+
+function waitForSharedCollectionImport(
+    runId: string
+): Promise<SharedCollectionImportStatus> {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = (status: SharedCollectionImportStatus) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            sharedCollectionImportWaiters.delete(runId);
+            resolve(status);
+        };
+        sharedCollectionImportWaiters.set(runId, finish);
+        commands
+            .appSharedCollectionImportStatus()
+            .then((status) => {
+                handleSharedCollectionImportStatus(status);
+                if (
+                    status.runId === runId &&
+                    isTerminalSharedCollectionImport(status)
+                ) {
+                    finish(status);
+                }
+            })
+            .catch((error: unknown) => {
+                if (!settled) {
+                    settled = true;
+                    sharedCollectionImportWaiters.delete(runId);
+                    reject(error);
+                }
+            });
+    });
+}
+
+export async function cancelSharedCollectionImport(): Promise<void> {
+    handleSharedCollectionImportStatus(
+        await commands.appSharedCollectionImportCancel()
+    );
 }
 
 async function importSharedCollectionFlow(collectionId: string): Promise<void> {
@@ -123,31 +221,44 @@ async function importSharedCollectionFlow(collectionId: string): Promise<void> {
         return;
     }
 
-    useWorldCollectionImportStore.getState().start(worldCount);
     try {
-        const result = await importWorldIdsToLocalGroup({
+        const started = await commands.appSharedCollectionImportStart({
             worldIds: preview.worldIds,
-            groupName,
-            onProgress: (progress) =>
-                useWorldCollectionImportStore.getState().setProgress(progress)
+            groupName
         });
-        if (!result.importedCount) {
+        handleSharedCollectionImportStatus(started);
+        const result = isTerminalSharedCollectionImport(started)
+            ? started
+            : await waitForSharedCollectionImport(started.runId);
+        if (result.status === 'cancelled') {
             toast.error(
-                i18n.t('deep_link.import_collection.toast.import_failed')
+                errorMessage(
+                    result.lastError,
+                    i18n.t('deep_link.import_collection.toast.import_failed')
+                )
+            );
+            return;
+        }
+        if (result.status === 'error' || !result.imported) {
+            toast.error(
+                errorMessage(
+                    result.lastError,
+                    i18n.t('deep_link.import_collection.toast.import_failed')
+                )
             );
             return;
         }
         toast.success(
             i18n.t('deep_link.import_collection.toast.import_success', {
-                count: result.importedCount,
-                title: groupName
+                count: result.imported,
+                title: result.groupName
             })
         );
-        if (result.failedCount > 0) {
+        if (result.failed > 0) {
             toast.error(
                 i18n.t(
                     'deep_link.import_collection.toast.import_partial_failed',
-                    { count: result.failedCount }
+                    { count: result.failed }
                 )
             );
         }
@@ -158,7 +269,5 @@ async function importSharedCollectionFlow(collectionId: string): Promise<void> {
                 i18n.t('deep_link.import_collection.toast.import_failed')
             )
         );
-    } finally {
-        useWorldCollectionImportStore.getState().finish();
     }
 }

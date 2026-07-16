@@ -26,6 +26,14 @@ const shellOutputPath = path.join(
     'localization',
     'shell_strings.json'
 );
+const discordPresenceOutputPath = path.join(
+    repoRoot,
+    'crates',
+    'runtime-host',
+    'src',
+    'state',
+    'discord_presence.json'
+);
 
 const languageCodes = JSON.parse(fs.readFileSync(languageCodesPath, 'utf8'));
 if (
@@ -168,6 +176,49 @@ const overlayPathKeys = [
         ['overlay', 'discord', 'title', 'offline']
     ]
 ];
+const discordPresencePathKeys = [
+    ['discord.access.public', ['dialog', 'new_instance', 'access_type_public']],
+    [
+        'discord.access.invite_plus',
+        ['dialog', 'new_instance', 'access_type_invite_plus']
+    ],
+    ['discord.access.invite', ['dialog', 'new_instance', 'access_type_invite']],
+    ['discord.access.friends', ['dialog', 'new_instance', 'access_type_friend']],
+    [
+        'discord.access.friends_plus',
+        ['dialog', 'new_instance', 'access_type_friend_plus']
+    ],
+    ['discord.access.group', ['dialog', 'new_instance', 'access_type_group']],
+    [
+        'discord.access.group_public',
+        ['dialog', 'new_instance', 'group_access_type_public']
+    ],
+    [
+        'discord.access.group_plus',
+        ['dialog', 'new_instance', 'group_access_type_plus']
+    ],
+    [
+        'discord.access.group_members',
+        ['dialog', 'new_instance', 'group_access_type_members']
+    ],
+    ['discord.status.active', ['dialog', 'user', 'status', 'active']],
+    ['discord.status.join_me', ['dialog', 'user', 'status', 'join_me']],
+    ['discord.status.ask_me', ['dialog', 'user', 'status', 'ask_me']],
+    ['discord.status.busy', ['dialog', 'user', 'status', 'busy']],
+    ['discord.status.offline', ['dialog', 'user', 'status', 'offline']],
+    [
+        'discord.platform.desktop',
+        ['view', 'settings', 'discord_presence', 'rpc', 'desktop']
+    ],
+    [
+        'discord.platform.vr',
+        ['view', 'settings', 'discord_presence', 'rpc', 'vr']
+    ],
+    [
+        'discord.private_world',
+        ['view', 'settings', 'discord_presence', 'rpc', 'private_world']
+    ]
+];
 const shellPathKeys = pathKeysFromDottedKeys([
     'nativeShell.tray.open',
     'nativeShell.tray.backgroundMode',
@@ -242,6 +293,18 @@ assertCatalogCoverage(
 );
 writeCatalog(shellOutputPath, shellCatalog);
 
+const discordPresenceCatalog = buildFallbackPathCatalog(
+    languageCodes,
+    discordPresencePathKeys
+);
+assertCatalogCoverage(
+    discordPresenceCatalog,
+    languageCodes,
+    discordPresencePathKeys.map(([key]) => key),
+    discordPresenceOutputPath
+);
+writeCatalog(discordPresenceOutputPath, discordPresenceCatalog);
+
 function buildOverlayCatalog() {
     const catalog = createCatalog();
 
@@ -279,6 +342,30 @@ function buildPathCatalog(locales, pathKeys) {
             readLocale(locale),
             pathKeys
         );
+    }
+
+    return catalog;
+}
+
+function buildFallbackPathCatalog(locales, pathKeys) {
+    const catalog = createCatalog();
+    const fallbackSource = readLocale(catalog.fallbackLocale);
+
+    for (const locale of locales) {
+        const source = readLocale(locale);
+        const entries = {};
+        for (const [outputKey, sourcePath] of pathKeys) {
+            const value = readPath(source, sourcePath);
+            const fallback = readPath(fallbackSource, sourcePath);
+            if (typeof fallback !== 'string') {
+                throw new Error(
+                    `${localePath(catalog.fallbackLocale)} is missing ${outputKey}`
+                );
+            }
+            entries[outputKey] =
+                typeof value === 'string' && value.trim() ? value : fallback;
+        }
+        catalog.locales[locale] = entries;
     }
 
     return catalog;

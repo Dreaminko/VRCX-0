@@ -93,6 +93,12 @@ pub async fn app__runtime_group_instances_refresh(
 
 #[tauri::command]
 #[specta::specta]
+pub fn app__runtime_discord_reconcile_request(state: State<'_, AppState>) -> u64 {
+    state.request_discord_reconcile()
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn app__runtime_background_job_record(
     state: State<'_, AppState>,
     input: RuntimeJobRecordInput,

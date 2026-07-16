@@ -104,28 +104,8 @@ const TYPE_CONFIG: Record<string, FavoriteTypeConfig> = {
     }
 };
 
-const SHARED_WORLD_IMPORT_INTERVAL_MS = 500;
-
-type LocalWorldIdImportOptions = {
-    worldIds: readonly string[];
-    groupName: string;
-    onProgress?(processed: number, total: number): void;
-};
-
-export type LocalWorldIdImportResult = {
-    importedCount: number;
-    failedCount: number;
-    totalCount: number;
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
-}
-
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
 }
 
 function normalizeType(type: unknown): string {
@@ -426,52 +406,6 @@ export async function importFavoriteImportRows() {
             )
         });
     }
-}
-
-export async function importWorldIdsToLocalGroup({
-    worldIds,
-    groupName,
-    onProgress
-}: LocalWorldIdImportOptions): Promise<LocalWorldIdImportResult> {
-    const normalizedGroupName = groupName.trim();
-    if (!normalizedGroupName) {
-        throw new Error('Local world favorite group name is required.');
-    }
-
-    const ids = extractIds('world', worldIds.join('\n'));
-    const totalCount = ids.length;
-    const config = TYPE_CONFIG.world;
-    const endpoint = getRuntimeAuth().endpoint;
-    let importedCount = 0;
-    let failedCount = 0;
-
-    await favoritePersistenceRepository.createLocalFavoriteGroup({
-        kind: 'world',
-        groupName: normalizedGroupName
-    });
-
-    for (let index = 0; index < ids.length; index += 1) {
-        if (index > 0) {
-            await delay(SHARED_WORLD_IMPORT_INTERVAL_MS);
-        }
-        const worldId = ids[index];
-        try {
-            await config.getProfile(worldId, endpoint);
-            await config.addLocal(worldId, normalizedGroupName);
-            importedCount += 1;
-        } catch (error) {
-            failedCount += 1;
-            console.warn(`Failed to import shared world ${worldId}:`, error);
-        } finally {
-            onProgress?.(index + 1, totalCount);
-        }
-    }
-
-    if (importedCount > 0) {
-        await refreshFavoritesSnapshot();
-    }
-
-    return { importedCount, failedCount, totalCount };
 }
 
 export function clearFavoriteImportRows() {

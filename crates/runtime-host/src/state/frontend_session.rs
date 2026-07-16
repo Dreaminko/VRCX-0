@@ -124,7 +124,7 @@ impl RuntimeHostState {
         let display_name = string_field(&current_user_snapshot, "displayName")
             .or_else(|| string_field(&current_user_snapshot, "username"))
             .unwrap_or_else(|| user_id.clone());
-        self.runtime_context.auth_scope.set(&user_id, &endpoint);
+        let auth_scope = self.runtime_context.auth_scope.set(&user_id, &endpoint);
         let snapshot = BackendRuntimeFrontendSessionSnapshot {
             authenticated: true,
             user_id: user_id.clone(),
@@ -149,9 +149,10 @@ impl RuntimeHostState {
             *slot = Some(snapshot);
         }
         self.backend_runtime
-            .set_auth_success(user_id, display_name.clone());
+            .set_auth_success(user_id.clone(), display_name.clone());
         let snapshot = self.backend_runtime.set_phase(BackendRuntimePhase::Running);
         self.emit_backend_runtime_telemetry_snapshot("authSuccess", display_name, snapshot);
+        self.schedule_activity_warmup(user_id, auth_scope.generation);
         self.start_gui_background_capability_loops();
     }
 }

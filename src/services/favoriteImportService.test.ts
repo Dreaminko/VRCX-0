@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
     getAvatarProfile: vi.fn(),
     addAvatarToFavorites: vi.fn(),
     addWorldToFavorites: vi.fn(),
-    createLocalFavoriteGroup: vi.fn(),
     addFriendToLocalFavorites: vi.fn(),
     addWorldToCache: vi.fn(),
     getUserProfile: vi.fn(),
@@ -35,7 +34,6 @@ vi.mock('@/repositories/favoritePersistenceRepository', () => ({
     default: {
         addAvatarToFavorites: mocks.addAvatarToFavorites,
         addWorldToFavorites: mocks.addWorldToFavorites,
-        createLocalFavoriteGroup: mocks.createLocalFavoriteGroup,
         addFriendToLocalFavorites: mocks.addFriendToLocalFavorites,
         addWorldToCache: mocks.addWorldToCache
     }
@@ -108,7 +106,6 @@ describe('favoriteImportService parsing and validation', () => {
         mocks.addWorldToCache.mockResolvedValue(undefined);
         mocks.addAvatarToFavorites.mockResolvedValue(undefined);
         mocks.addWorldToFavorites.mockResolvedValue(undefined);
-        mocks.createLocalFavoriteGroup.mockResolvedValue(undefined);
         mocks.addFriendToLocalFavorites.mockResolvedValue(undefined);
         mocks.addFavorite.mockResolvedValue(undefined);
         mocks.bootstrapFavorites.mockResolvedValue(undefined);
@@ -259,71 +256,5 @@ describe('favoriteImportService parsing and validation', () => {
             currentUserSnapshot: { id: 'usr_self' }
         });
         expect(useFavoriteImportStore.getState().rows).toEqual([]);
-    });
-
-    it('imports shared world ids sequentially into a local group and reports progress', async () => {
-        const secondWorldId = 'wrld_00000000-0000-0000-0000-000000000004';
-        const progress = vi.fn();
-        mocks.getWorldProfile
-            .mockResolvedValueOnce({
-                id: WORLD_ID,
-                name: 'First world',
-                createdAt: '2026-01-01T00:00:00Z',
-                updatedAt: '2026-01-02T00:00:00Z'
-            })
-            .mockResolvedValueOnce({
-                id: secondWorldId,
-                name: 'Second world',
-                createdAt: '2026-01-01T00:00:00Z',
-                updatedAt: '2026-01-02T00:00:00Z'
-            });
-        const { importWorldIdsToLocalGroup } =
-            await import('./favoriteImportService');
-
-        const result = await importWorldIdsToLocalGroup({
-            worldIds: [WORLD_ID, 'invalid', secondWorldId],
-            groupName: ' Shared worlds ',
-            onProgress: progress
-        });
-
-        expect(mocks.createLocalFavoriteGroup).toHaveBeenCalledWith({
-            kind: 'world',
-            groupName: 'Shared worlds'
-        });
-        expect(mocks.getWorldProfile).toHaveBeenNthCalledWith(1, {
-            worldId: WORLD_ID,
-            endpoint: 'https://api.example.test'
-        });
-        expect(mocks.addWorldToFavorites).toHaveBeenNthCalledWith(
-            1,
-            WORLD_ID,
-            'Shared worlds'
-        );
-        expect(mocks.getWorldProfile).toHaveBeenNthCalledWith(2, {
-            worldId: secondWorldId,
-            endpoint: 'https://api.example.test'
-        });
-        expect(mocks.addWorldToFavorites).toHaveBeenNthCalledWith(
-            2,
-            secondWorldId,
-            'Shared worlds'
-        );
-        expect(mocks.addWorldToCache).toHaveBeenCalledTimes(2);
-        expect(mocks.addWorldToCache.mock.invocationCallOrder[0]).toBeLessThan(
-            mocks.addWorldToFavorites.mock.invocationCallOrder[0]
-        );
-        expect(mocks.addWorldToCache.mock.invocationCallOrder[1]).toBeLessThan(
-            mocks.addWorldToFavorites.mock.invocationCallOrder[1]
-        );
-        expect(progress.mock.calls).toEqual([
-            [1, 2],
-            [2, 2]
-        ]);
-        expect(result).toEqual({
-            importedCount: 2,
-            failedCount: 0,
-            totalCount: 2
-        });
-        expect(mocks.bootstrapFavorites).toHaveBeenCalledTimes(1);
     });
 });

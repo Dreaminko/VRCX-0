@@ -50,6 +50,7 @@ pub struct RuntimeHostState {
     pub image_cache: Arc<ImageCache>,
     pub host_file_access: HostFileAccess,
     pub screenshot_cache: MetadataCacheDb,
+    pub shared_collection_import: SharedCollectionImportRuntime,
 
     pub auto_launch: AutoAppLaunchManager,
     pub legacy_vrcx_available: bool,
@@ -60,6 +61,8 @@ pub struct RuntimeHostState {
     pub(super) background_auth_recovery_running: Arc<AtomicBool>,
     pub(super) registry_backup_maintenance_running: Arc<AtomicBool>,
     pub(super) background_capabilities_running: Arc<AtomicBool>,
+    pub(super) discord_reconcile_generation: Arc<AtomicU64>,
+    pub(super) activity_warmup_generation: Arc<AtomicU64>,
     pub(super) background_group_instances_refresh_running: Arc<AtomicBool>,
     pub(super) registry_backup_lock: Arc<Mutex<()>>,
     pub(super) backend_frontend_session: Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
@@ -320,6 +323,14 @@ impl RuntimeHostState {
             runtime_context.event_bus.clone(),
         ));
         let screenshot_cache = MetadataCacheDb::new(&paths.app_data.join("metadataCache.db"))?;
+        let shared_collection_import = SharedCollectionImportRuntime::new(
+            Arc::clone(&db),
+            Arc::clone(&web),
+            Arc::clone(&runtime_context.world_cache),
+            runtime_context.event_bus.clone(),
+            runtime_context.tasks.clone(),
+            runtime_context.auth_scope.clone(),
+        );
 
         let app_launcher_enabled = runtime_context
             .config()
@@ -352,6 +363,7 @@ impl RuntimeHostState {
             image_cache,
             host_file_access,
             screenshot_cache,
+            shared_collection_import,
             auto_launch,
             legacy_vrcx_available,
             legacy_vrcx_source,
@@ -361,6 +373,8 @@ impl RuntimeHostState {
             background_auth_recovery_running: Arc::new(AtomicBool::new(false)),
             registry_backup_maintenance_running: Arc::new(AtomicBool::new(false)),
             background_capabilities_running: Arc::new(AtomicBool::new(false)),
+            discord_reconcile_generation: Arc::new(AtomicU64::new(0)),
+            activity_warmup_generation: Arc::new(AtomicU64::new(0)),
             background_group_instances_refresh_running: Arc::new(AtomicBool::new(false)),
             registry_backup_lock: Arc::new(Mutex::new(())),
             backend_frontend_session: Arc::new(Mutex::new(None)),
@@ -370,6 +384,12 @@ impl RuntimeHostState {
 
     pub fn start_telemetry_runtime(&self) {
         self.telemetry.start();
+    }
+
+    pub fn request_discord_reconcile(&self) -> u64 {
+        self.discord_reconcile_generation
+            .fetch_add(1, Ordering::AcqRel)
+            .saturating_add(1)
     }
 }
 

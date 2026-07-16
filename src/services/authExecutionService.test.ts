@@ -19,7 +19,6 @@ const mocks = vi.hoisted(() => ({
     getCurrentUser: vi.fn(),
     clearEntityQueryCache: vi.fn(),
     clearAvatarNameCache: vi.fn(),
-    resetActivityCacheState: vi.fn(),
     resetReactAutoLoginThrottle: vi.fn(),
     runWithRuntimeAuthFailureRecoverySuppressed: vi.fn(),
     applySavedAuthSnapshot: vi.fn(),
@@ -83,10 +82,6 @@ vi.mock('@/repositories/webRepository', () => ({
         clearCookies: mocks.clearCookies,
         clearAuthCookies: mocks.clearAuthCookies
     }
-}));
-
-vi.mock('./activityCacheService', () => ({
-    resetActivityCacheState: mocks.resetActivityCacheState
 }));
 
 vi.mock('./authAutoLoginState', () => ({

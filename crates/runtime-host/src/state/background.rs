@@ -198,6 +198,7 @@ impl RuntimeHostState {
         let vr_overlay_runtime = Arc::clone(&self.vr_overlay_runtime);
         let runtime_context = Arc::clone(&self.runtime_context);
         let discord_rpc = Arc::clone(&self.discord_rpc);
+        let discord_reconcile_generation = Arc::clone(&self.discord_reconcile_generation);
 
         self.runtime_context
             .tasks
@@ -207,6 +208,8 @@ impl RuntimeHostState {
                 let mut discord_success_info: Option<String> = None;
                 let mut next_presence = Instant::now();
                 let mut next_discord = Instant::now();
+                let mut observed_discord_reconcile_generation =
+                    discord_reconcile_generation.load(Ordering::Acquire);
                 let mut next_current_user = Instant::now();
                 let mut next_group_instances = Instant::now();
                 let mut next_overlay_activity_config = Instant::now();
@@ -231,6 +234,12 @@ impl RuntimeHostState {
                     }
 
                     let now = Instant::now();
+                    if observe_discord_reconcile_request(
+                        discord_reconcile_generation.as_ref(),
+                        &mut observed_discord_reconcile_generation,
+                    ) {
+                        next_discord = now;
+                    }
                     let scope_key =
                         background_capability_session_scope_key(&session_slot).unwrap_or_default();
                     if scope_key != active_scope_key {
@@ -555,5 +564,40 @@ pub(super) fn read_group_order(user_id: &str) -> Value {
     match serde_json::from_str::<Value>(&raw) {
         Ok(value) if value.is_array() => value,
         _ => json!([]),
+    }
+}
+
+fn observe_discord_reconcile_request(generation: &AtomicU64, observed: &mut u64) -> bool {
+    let requested = generation.load(Ordering::Acquire);
+    if requested == *observed {
+        return false;
+    }
+    *observed = requested;
+    true
+}
+
+#[cfg(test)]
+mod discord_reconcile_tests {
+    use super::*;
+
+    #[test]
+    fn observes_each_reconcile_generation_once() {
+        let generation = AtomicU64::new(0);
+        let mut observed = 0;
+
+        assert!(!observe_discord_reconcile_request(
+            &generation,
+            &mut observed
+        ));
+        generation.fetch_add(1, Ordering::AcqRel);
+        assert!(observe_discord_reconcile_request(
+            &generation,
+            &mut observed
+        ));
+        assert_eq!(observed, 1);
+        assert!(!observe_discord_reconcile_request(
+            &generation,
+            &mut observed
+        ));
     }
 }

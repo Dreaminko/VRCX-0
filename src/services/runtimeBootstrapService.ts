@@ -4,7 +4,6 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 import { DEFAULT_TIME_UNIT_LABELS, useShellStore } from '@/state/shellStore';
 
-import { bootstrapActivityCache } from './activityCacheService';
 import { startRuntimeAuthFailureRecovery } from './authSessionRecoveryService';
 import { bootstrapFavorites } from './favoriteBootstrapService';
 import { bootstrapFriendRoster } from './friendBootstrapService';
@@ -274,7 +273,6 @@ export function startAuthenticatedRuntimeServices() {
     let activeRunId = 0;
     let friendBootstrapStarted = false;
     let favoritesBootstrapStarted = false;
-    let activityWarmupStarted = false;
     let realtimeTransportStarted = false;
     let realtimeTransportOwner: RealtimeTransportOwner = 'none';
     let realtimeTransportAttemptId = 0;
@@ -308,7 +306,6 @@ export function startAuthenticatedRuntimeServices() {
         activeRunId += 1;
         friendBootstrapStarted = false;
         favoritesBootstrapStarted = false;
-        activityWarmupStarted = false;
         realtimeTransportStarted = false;
         realtimeTransportOwner = 'none';
         clearBootstrapRetries();
@@ -403,27 +400,6 @@ export function startAuthenticatedRuntimeServices() {
             });
     };
 
-    const runActivityWarmup = (
-        context: AuthenticatedRuntimeContext,
-        runId: number
-    ) => {
-        activityWarmupStarted = true;
-        bootstrapActivityCache({
-            userId: context.userId,
-            currentUserSnapshot: context.currentUserSnapshot
-        }).catch((error: unknown) => {
-            if (!isActiveRun(runId, context)) {
-                return;
-            }
-
-            pushRuntimeNotification({
-                level: 'warning',
-                title: 'Activity warm-up failed',
-                error
-            });
-        });
-    };
-
     const runRealtimeTransport = (
         context: AuthenticatedRuntimeContext,
         runId: number
@@ -496,10 +472,6 @@ export function startAuthenticatedRuntimeServices() {
             bootstrapRetryState.favorites.timer === null
         ) {
             runFavoritesBootstrap(context, runId);
-        }
-
-        if (!activityWarmupStarted) {
-            runActivityWarmup(context, runId);
         }
 
         if (!sessionState.isFriendsLoaded) {

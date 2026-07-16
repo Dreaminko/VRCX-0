@@ -9,10 +9,6 @@ import {
     stopCurrentAvatarWearTimer
 } from '@/services/avatarWearTimeService';
 import {
-    queueDiscordPresenceGameStopCloseAttempts,
-    refreshDiscordPresence
-} from '@/services/discordPresenceService';
-import {
     isRuntimeGameClientLifecycleActive,
     resetRuntimeCrashRelaunchDecision,
     shouldSkipFrontendCrashRelaunch,
@@ -261,10 +257,14 @@ async function handleGameStopped(
     resetGameLogSessionState(stoppedAt);
 
     clearStoppedGameLocationSnapshot(previousGameState, currentUserSnapshot);
-    queueDiscordPresenceGameStopCloseAttempts();
-    await refreshDiscordPresence({ force: true }).catch((error: unknown) => {
-        console.warn('Discord presence refresh after game stop failed:', error);
-    });
+    await commands
+        .appRuntimeDiscordReconcileRequest()
+        .catch((error: unknown) => {
+            console.warn(
+                'Discord presence reconcile after game stop failed:',
+                error
+            );
+        });
 
     const results = await Promise.allSettled([
         persistGameStopSession(previousGameState),
@@ -488,14 +488,14 @@ export async function handleGameRunningUpdate(payload: unknown = {}) {
     }
 
     if (shouldRefreshDiscordPresence) {
-        await refreshDiscordPresence({ force: true }).catch(
-            (error: unknown) => {
+        await commands
+            .appRuntimeDiscordReconcileRequest()
+            .catch((error: unknown) => {
                 console.warn(
-                    'Discord presence refresh after game state update failed:',
+                    'Discord presence reconcile after game state update failed:',
                     error
                 );
-            }
-        );
+            });
     }
 }
 

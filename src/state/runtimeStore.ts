@@ -22,17 +22,6 @@ type TransportState = Record<string, unknown> & {
     lastDisconnectedAt: string | null;
 };
 
-type ActivityState = Record<string, unknown> & {
-    currentUserId: string | null;
-    status: string;
-    detail: string;
-    cachedRangeDays: number;
-    sessionCount: number;
-    fullCacheReady: boolean;
-    lastUpdatedAt: string | null;
-    lastReadyAt: string | null;
-};
-
 type MutualGraphState = Record<string, unknown> & {
     runId: number;
     status: string;
@@ -191,7 +180,6 @@ type RuntimeStore = {
         downloadedVersion: string | null;
         downloadProgress: number;
     };
-    activity: ActivityState;
     mutualGraph: MutualGraphState;
     friendProfileLoad: FriendProfileLoadState;
     transport: TransportState;
@@ -248,8 +236,6 @@ type RuntimeStore = {
     setAuthBootstrap(payload: Partial<RuntimeStore['auth']>): void;
     setHostCapabilities(payload?: Record<string, unknown> | null): void;
     setUpdateLoopState(patch: Record<string, unknown>): void;
-    setActivityState(patch: Partial<ActivityState>): void;
-    resetActivityState(): void;
     setMutualGraphState(patch: Partial<MutualGraphState>): void;
     resetMutualGraphState(): void;
     setFriendProfileLoadState(patch: Partial<FriendProfileLoadState>): void;
@@ -299,19 +285,6 @@ function createTransportState(): TransportState {
         reconnectCount: 0,
         lastConnectedAt: null,
         lastDisconnectedAt: null
-    };
-}
-
-function createActivityState(): ActivityState {
-    return {
-        currentUserId: null,
-        status: 'idle',
-        detail: '',
-        cachedRangeDays: 0,
-        sessionCount: 0,
-        fullCacheReady: false,
-        lastUpdatedAt: null,
-        lastReadyAt: null
     };
 }
 
@@ -440,8 +413,6 @@ type RuntimeStoreState = Omit<
     | 'setAuthBootstrap'
     | 'setHostCapabilities'
     | 'setUpdateLoopState'
-    | 'setActivityState'
-    | 'resetActivityState'
     | 'setMutualGraphState'
     | 'resetMutualGraphState'
     | 'setFriendProfileLoadState'
@@ -500,7 +471,6 @@ const initialState: RuntimeStoreState = {
         downloadedVersion: null,
         downloadProgress: 0
     },
-    activity: createActivityState(),
     mutualGraph: createMutualGraphState(),
     friendProfileLoad: createFriendProfileLoadState(),
     transport: createTransportState(),
@@ -639,24 +609,6 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
                 ...patch
             }
         }));
-    },
-    setActivityState(patch: Partial<ActivityState>) {
-        set((state) => ({
-            activity: {
-                ...state.activity,
-                ...patch,
-                lastUpdatedAt: new Date().toISOString(),
-                lastReadyAt:
-                    patch?.status === 'ready' || patch?.fullCacheReady
-                        ? new Date().toISOString()
-                        : state.activity.lastReadyAt
-            }
-        }));
-    },
-    resetActivityState() {
-        set({
-            activity: createActivityState()
-        });
     },
     setMutualGraphState(patch: Partial<MutualGraphState>) {
         set((state) => ({

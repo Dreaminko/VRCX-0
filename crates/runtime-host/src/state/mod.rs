@@ -5,7 +5,7 @@ use std::path::Path;
 #[cfg(target_os = "windows")]
 use std::path::PathBuf;
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
     Arc, Mutex, MutexGuard,
 };
 use std::time::{Duration, Instant};
@@ -21,7 +21,7 @@ use crate::{
     },
     GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime, HostFileAccess,
     HostGameLogEventFanout, HostLogLocationSnapshotScanner, HostRegistryBackupActions, LogWatcher,
-    Result, RuntimeHostContext, RuntimeHostEventSink,
+    Result, RuntimeHostContext, RuntimeHostEventSink, SharedCollectionImportRuntime,
 };
 use vrcx_0_application::{
     auth_response_error_message, build_favorites_baseline, build_friend_roster_baseline,
@@ -62,6 +62,7 @@ use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
+mod activity_warmup;
 mod auth_session;
 mod background;
 mod background_auth;

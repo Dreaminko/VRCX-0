@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
     appAuthFailureNotificationShow: vi.fn(),
     recordLogout: vi.fn(),
     clearAuthCookies: vi.fn(),
-    resetActivityCacheState: vi.fn(),
     canAttemptReactAutoLogin: vi.fn(),
     recordReactAutoLoginAttempt: vi.fn(),
     executeCookieSessionRestore: vi.fn(),
@@ -44,10 +43,6 @@ vi.mock('@/repositories/webRepository', () => ({
     default: {
         clearAuthCookies: mocks.clearAuthCookies
     }
-}));
-
-vi.mock('./activityCacheService', () => ({
-    resetActivityCacheState: mocks.resetActivityCacheState
 }));
 
 vi.mock('./authAutoLoginState', () => ({

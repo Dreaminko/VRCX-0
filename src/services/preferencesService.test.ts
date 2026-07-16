@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
     appOverlayActivityFiltersReload: vi.fn(),
     appVrOverlayEnabledSet: vi.fn(),
     appReadConfigFile: vi.fn(),
+    appRuntimeDiscordReconcileRequest: vi.fn(),
     appWriteConfigFile: vi.fn(),
     appSystemCulture: vi.fn(),
     getRawValue: vi.fn(),
@@ -26,7 +27,6 @@ const mocks = vi.hoisted(() => ({
     storageGetString: vi.fn(),
     storageSetString: vi.fn(),
     publishPreferenceChanged: vi.fn(),
-    refreshDiscordPresence: vi.fn(),
     configureRecentActionCooldown: vi.fn(),
     readRecentActionCooldown: vi.fn(),
     applyAppFontPreferences: vi.fn(),
@@ -48,6 +48,8 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appOverlayActivityFiltersReload: mocks.appOverlayActivityFiltersReload,
         appVrOverlayEnabledSet: mocks.appVrOverlayEnabledSet,
         appReadConfigFile: mocks.appReadConfigFile,
+        appRuntimeDiscordReconcileRequest:
+            mocks.appRuntimeDiscordReconcileRequest,
         appWriteConfigFile: mocks.appWriteConfigFile,
         appSystemCulture: mocks.appSystemCulture
     }
@@ -85,10 +87,6 @@ vi.mock('@/shared/events/preferenceEvents', () => ({
 
 vi.mock('./changelogService', () => ({
     POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY: 'showPostUpdateChangelogToast'
-}));
-
-vi.mock('./discordPresenceService', () => ({
-    refreshDiscordPresence: mocks.refreshDiscordPresence
 }));
 
 vi.mock('./recentActionService', () => ({
@@ -282,7 +280,7 @@ describe('preferencesService characterization', () => {
         mocks.appVrOverlayConfigReload.mockResolvedValue(undefined);
         mocks.appLanguageChanged.mockResolvedValue(undefined);
         mocks.appRestartApplication.mockResolvedValue(undefined);
-        mocks.refreshDiscordPresence.mockResolvedValue(undefined);
+        mocks.appRuntimeDiscordReconcileRequest.mockResolvedValue(1);
         mocks.readRecentActionCooldown.mockReturnValue({
             enabled: false,
             minutes: 60
@@ -774,9 +772,9 @@ describe('preferencesService characterization', () => {
                 2
             )
         );
-        expect(mocks.refreshDiscordPresence).toHaveBeenCalledWith({
-            force: true
-        });
+        expect(mocks.appRuntimeDiscordReconcileRequest).toHaveBeenCalledTimes(
+            1
+        );
         expect(usePreferencesStore.getState().discordActive).toBe(true);
     });
 

@@ -9,7 +9,6 @@ import webRepository from '@/repositories/webRepository';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
-import { resetActivityCacheState } from './activityCacheService';
 import {
     AUTO_LOGIN_MAX_ATTEMPTS,
     canAttemptReactAutoLogin,
@@ -222,7 +221,6 @@ function setSignedOutSessionState() {
         isFavoritesLoaded: false,
         sessionPhase: 'signed_out'
     });
-    resetActivityCacheState();
 }
 
 export async function executeReactAutoLogin(

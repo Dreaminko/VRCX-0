@@ -4,6 +4,7 @@ use tauri::State;
 use vrcx_0_application::{
     get_or_create_share_owner_token, preview_shared_collection, share_collection_create,
     ImportPreview, ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
+    SharedCollectionImportStartInput, SharedCollectionImportStatus,
 };
 use vrcx_0_host::shell_actions;
 
@@ -45,4 +46,29 @@ pub async fn app__share_collection_open_manage(state: State<'_, AppState>) -> Re
 #[specta::specta]
 pub async fn app__share_collection_preview(id: String) -> Result<ImportPreview, AppError> {
     Ok(preview_shared_collection(&id).await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__shared_collection_import_start(
+    state: State<'_, AppState>,
+    input: SharedCollectionImportStartInput,
+) -> Result<SharedCollectionImportStatus, AppError> {
+    Ok(state.shared_collection_import.start(input)?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__shared_collection_import_status(
+    state: State<'_, AppState>,
+) -> SharedCollectionImportStatus {
+    state.shared_collection_import.status()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__shared_collection_import_cancel(
+    state: State<'_, AppState>,
+) -> SharedCollectionImportStatus {
+    state.shared_collection_import.cancel()
 }

@@ -3,6 +3,7 @@ use super::*;
 impl RuntimeHostState {
     pub fn stop_backend_runtime(&self, reason: impl Into<String>) -> BackendRuntimeSnapshot {
         let reason = reason.into();
+        self.shared_collection_import.cancel();
         self.backend_runtime
             .set_phase(BackendRuntimePhase::Stopping);
         self.realtime_runtime.stop(RealtimeStopRequest::default());
@@ -57,6 +58,7 @@ impl RuntimeHostState {
         &self,
         reason: impl Into<String>,
     ) -> BackendRuntimeSnapshot {
+        self.shared_collection_import.cancel();
         self.clear_backend_frontend_session();
         let snapshot = self.backend_runtime.clear_authentication();
         self.emit_backend_runtime_telemetry_snapshot("authCleared", reason, snapshot.clone());
@@ -148,9 +150,11 @@ impl RuntimeHostState {
         &self,
         session: AuthenticatedRuntimeSession,
     ) -> Result<BackendRuntimeSnapshot> {
-        self.runtime_context
+        let auth_scope = self
+            .runtime_context
             .auth_scope
             .set(&session.user_id, &session.endpoint);
+        let activity_warmup_user_id = session.user_id.clone();
         vrcx_0_persistence::maintenance::user_tables_ensure(
             self.db.as_ref(),
             session.user_id.clone(),
@@ -204,6 +208,7 @@ impl RuntimeHostState {
             print_cleanup_trigger,
         );
         self.backend_runtime.set_phase(BackendRuntimePhase::Running);
+        self.schedule_activity_warmup(activity_warmup_user_id, auth_scope.generation);
         if self.backend_runtime.snapshot().mode == BackendRuntimeMode::Background {
             self.start_gui_background_registry_backup_loop();
         }

@@ -43,6 +43,11 @@ pub(in crate::state) async fn run_background_presence_tick(
             session: session.clone(),
             is_game_running: host_session.is_game_running,
             is_steamvr_running: host_session.is_steamvr_running,
+            is_game_no_vr: context
+                .runtime_context
+                .config()
+                .get_bool("isGameNoVR", false)
+                .unwrap_or(false),
             last_game_started_at: host_session.last_game_started_at,
             game_log_snapshot: context.runtime_context.game_log_snapshot(),
             now_playing: context.runtime_context.now_playing(),
