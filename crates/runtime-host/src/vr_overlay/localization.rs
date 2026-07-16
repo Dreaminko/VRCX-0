@@ -10,6 +10,39 @@ use vrcx_0_core::location::{
 use vrcx_0_i18n::{collapse_whitespace, interpolate, parse_catalog, Catalog};
 
 const OVERLAY_NOTIFICATIONS_JSON: &str = include_str!("localization/overlay_notifications.json");
+
+const ACCESS_LABEL_KEYS: [&str; 8] = [
+    "overlay.access.public",
+    "overlay.access.invite",
+    "overlay.access.invite_plus",
+    "overlay.access.friends",
+    "overlay.access.friends_plus",
+    "overlay.access.group",
+    "overlay.access.group_public",
+    "overlay.access.group_plus",
+];
+
+const DISCORD_TITLE_KEYS: &[(&str, &str)] = &[
+    ("invite", "overlay.discord.title.invite"),
+    ("requestInvite", "overlay.discord.title.request_invite"),
+    ("inviteResponse", "overlay.discord.title.invite_response"),
+    (
+        "requestInviteResponse",
+        "overlay.discord.title.request_invite_response",
+    ),
+    ("GPS", "overlay.discord.title.gps"),
+    ("Status", "overlay.discord.title.status"),
+    ("AvatarChange", "overlay.discord.title.avatar_change"),
+    ("Online", "overlay.discord.title.online"),
+    ("Offline", "overlay.discord.title.offline"),
+];
+
+const STATUS_LABEL_KEYS: &[(&[&str], &str)] = &[
+    (&["active"], "overlay.status.active"),
+    (&["join me", "joinme"], "overlay.status.join_me"),
+    (&["ask me", "askme"], "overlay.status.ask_me"),
+    (&["busy"], "overlay.status.busy"),
+];
 const EN_LOCALE: &str = "en";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -196,6 +229,8 @@ impl OverlayLocalizer {
     }
 
     fn access_labels(&self, case: AccessLabelCase) -> LocalizedAccessLabels {
+        let [public_key, invite_key, invite_plus_key, friends_key, friends_plus_key, group_key, group_public_key, group_plus_key] =
+            ACCESS_LABEL_KEYS;
         let (
             public_fallback,
             invite_fallback,
@@ -227,23 +262,15 @@ impl OverlayLocalizer {
                 "groupPlus",
             ),
         };
-        let group = self.label("overlay.access.group", group_fallback);
+        let group = self.label(group_key, group_fallback);
         LocalizedAccessLabels {
-            public: self.label("overlay.access.public", public_fallback),
-            invite: self.label("overlay.access.invite", invite_fallback),
-            invite_plus: self.label("overlay.access.invite_plus", invite_plus_fallback),
-            friends: self.label("overlay.access.friends", friends_fallback),
-            friends_plus: self.label("overlay.access.friends_plus", friends_plus_fallback),
-            group_public: self.group_access_label(
-                &group,
-                "overlay.access.group_public",
-                group_public_fallback,
-            ),
-            group_plus: self.group_access_label(
-                &group,
-                "overlay.access.group_plus",
-                group_plus_fallback,
-            ),
+            public: self.label(public_key, public_fallback),
+            invite: self.label(invite_key, invite_fallback),
+            invite_plus: self.label(invite_plus_key, invite_plus_fallback),
+            friends: self.label(friends_key, friends_fallback),
+            friends_plus: self.label(friends_plus_key, friends_plus_fallback),
+            group_public: self.group_access_label(&group, group_public_key, group_public_fallback),
+            group_plus: self.group_access_label(&group, group_plus_key, group_plus_fallback),
             group,
         }
     }
@@ -331,28 +358,16 @@ pub(crate) fn discord_embed_kind(activity_type: &str) -> DiscordEmbedKind {
 }
 
 pub(crate) fn discord_title_key(activity_type: &str) -> Option<&'static str> {
-    match activity_type {
-        "invite" => Some("overlay.discord.title.invite"),
-        "requestInvite" => Some("overlay.discord.title.request_invite"),
-        "inviteResponse" => Some("overlay.discord.title.invite_response"),
-        "requestInviteResponse" => Some("overlay.discord.title.request_invite_response"),
-        "GPS" => Some("overlay.discord.title.gps"),
-        "Status" => Some("overlay.discord.title.status"),
-        "AvatarChange" => Some("overlay.discord.title.avatar_change"),
-        "Online" => Some("overlay.discord.title.online"),
-        "Offline" => Some("overlay.discord.title.offline"),
-        _ => None,
-    }
+    DISCORD_TITLE_KEYS
+        .iter()
+        .find_map(|(candidate, key)| (*candidate == activity_type).then_some(*key))
 }
 
 fn status_label_key(status: &str) -> Option<&'static str> {
-    match status.trim().to_ascii_lowercase().as_str() {
-        "active" => Some("overlay.status.active"),
-        "join me" | "joinme" => Some("overlay.status.join_me"),
-        "ask me" | "askme" => Some("overlay.status.ask_me"),
-        "busy" => Some("overlay.status.busy"),
-        _ => None,
-    }
+    let normalized = status.trim().to_ascii_lowercase();
+    STATUS_LABEL_KEYS
+        .iter()
+        .find_map(|(aliases, key)| aliases.contains(&normalized.as_str()).then_some(*key))
 }
 
 fn catalog() -> &'static Catalog {
@@ -505,6 +520,22 @@ mod tests {
             )),
             "has invited you to hello"
         );
+    }
+
+    #[test]
+    fn mapped_overlay_keys_exist_in_every_locale() {
+        let mut keys = ACCESS_LABEL_KEYS.to_vec();
+        keys.extend(DISCORD_TITLE_KEYS.iter().map(|(_, key)| *key));
+        keys.extend(STATUS_LABEL_KEYS.iter().map(|(_, key)| *key));
+
+        for (locale, values) in catalog().locales() {
+            for key in &keys {
+                assert!(
+                    values.contains_key(*key),
+                    "overlay locale {locale} is missing mapped key {key}"
+                );
+            }
+        }
     }
 
     #[test]
