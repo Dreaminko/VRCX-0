@@ -120,6 +120,124 @@ mod tests {
     }
 
     #[test]
+    fn friend_update_status_visibility_changes_emit_private_and_restored_gps() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_old:123".into(),
+                        status: "join me".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let RealtimeFriendApplyResult::Output(arrived) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-location",
+                    "content": {
+                        "userId": "usr_friend",
+                        "location": "wrld_current:456",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "Friend",
+                            "state": "online"
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("arrival should produce an output");
+        };
+        assert_eq!(
+            arrived.persistence.feed_entries[0]["location"],
+            "wrld_current:456"
+        );
+
+        let apply_status_update = |status: &str, location: &str, received_at: &str| {
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-update",
+                    "content": {
+                        "userId": "usr_friend",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "Friend",
+                            "state": "online",
+                            "status": status,
+                            "location": location
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: received_at.into(),
+            })
+        };
+
+        let RealtimeFriendApplyResult::Output(private) =
+            apply_status_update("ask me", "private", "2026-05-15T00:01:00Z")
+        else {
+            panic!("private status update should produce an output");
+        };
+        assert_eq!(private.persistence.feed_entries.len(), 2);
+        assert_eq!(private.persistence.feed_entries[0]["type"], "GPS");
+        assert_eq!(private.persistence.feed_entries[0]["location"], "private");
+        assert_eq!(private.persistence.feed_entries[0]["worldName"], "");
+        assert_eq!(private.persistence.feed_entries[0]["groupName"], "");
+        assert_eq!(
+            private.persistence.feed_entries[0]["previousLocation"],
+            "wrld_current:456"
+        );
+        assert_eq!(private.persistence.feed_entries[1]["type"], "Status");
+        assert_eq!(private.projection.patches[0].patch["location"], "private");
+        assert_eq!(
+            private.projection.patches[0].patch["$location"]["isPrivate"],
+            true
+        );
+
+        let RealtimeFriendApplyResult::Output(restored) =
+            apply_status_update("active", "wrld_current:456", "2026-05-15T00:02:00Z")
+        else {
+            panic!("visible status update should produce an output");
+        };
+        assert_eq!(restored.persistence.feed_entries.len(), 2);
+        assert_eq!(restored.persistence.feed_entries[0]["type"], "GPS");
+        assert_eq!(
+            restored.persistence.feed_entries[0]["location"],
+            "wrld_current:456"
+        );
+        assert_eq!(
+            restored.persistence.feed_entries[0]["previousLocation"],
+            "private"
+        );
+        assert_eq!(restored.persistence.feed_entries[1]["type"], "Status");
+        assert_eq!(
+            restored.projection.patches[0].patch["$location"]["worldId"],
+            "wrld_current"
+        );
+        assert_eq!(
+            restored.projection.patches[0].patch["$location_at"],
+            1_778_803_320_000i64
+        );
+    }
+
+    #[test]
     fn friend_location_embedded_user_location_matches_vue_spread_order() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(

@@ -241,13 +241,17 @@ pub(super) fn gps_feed_entry(
 ) -> Option<Value> {
     let previous_location = resolve_gps_previous_location(previous);
     let location = string_field(patch.get("location"));
-    if !is_real_location(&previous_location)
-        || !is_real_location(&location)
+    if !is_gps_feed_location(&previous_location)
+        || !is_gps_feed_location(&location)
         || previous_location == location
     {
         return None;
     }
-    let (world_name, group_name) = resolve_location_name(&location, patch, Some(previous));
+    let (world_name, group_name) = if is_real_location(&location) {
+        resolve_location_name(&location, patch, Some(previous))
+    } else {
+        (String::new(), String::new())
+    };
     Some(json!({
         "created_at": created_at,
         "type": "GPS",
@@ -509,4 +513,15 @@ pub(super) fn is_real_location(location: &str) -> bool {
             | "private"
             | "private:private"
     )
+}
+
+pub(super) fn is_private_location(location: &str) -> bool {
+    matches!(
+        location.trim().to_ascii_lowercase().as_str(),
+        "private" | "private:private"
+    )
+}
+
+fn is_gps_feed_location(location: &str) -> bool {
+    is_real_location(location) || is_private_location(location)
 }

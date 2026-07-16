@@ -1,7 +1,7 @@
 use super::persistence::{
     add_location_metadata, add_profile_diff_feed_entries, friend_log_upsert,
-    friend_relationship_feed_entry, gps_feed_entry, is_online_state, meaningful_name,
-    online_offline_feed_entry, player_joining_feed_entry, trust_level_feed_entry,
+    friend_relationship_feed_entry, gps_feed_entry, is_online_state, is_private_location,
+    meaningful_name, online_offline_feed_entry, player_joining_feed_entry, trust_level_feed_entry,
     value_equal_for_diff, FriendChangedProps,
 };
 use super::projection::resolve_state_bucket;
@@ -167,6 +167,10 @@ fn apply_friend_event_with_options(
             let previous = get_friend_value(state, &user_id);
             normalize_patch_trust(&mut patch, previous.as_ref());
             let changes = FriendChangedProps::from_patch(&patch, previous.as_ref());
+            let location_changed = changes.has("location");
+            if location_changed {
+                normalize_friend_update_location_patch(&mut patch, previous.as_ref(), now);
+            }
             output.friend_note_changed |= changes.has("note");
             let state_bucket = if options.trust_event_state {
                 resolve_state_bucket(
@@ -203,6 +207,19 @@ fn apply_friend_event_with_options(
                 now,
             );
             if options.emit_profile_diff_feed {
+                if location_changed {
+                    if let Some(previous) = previous.as_ref() {
+                        add_gps_feed_entry_if_not_repeated(
+                            state,
+                            &mut output,
+                            &user_id,
+                            &patch,
+                            previous,
+                            now,
+                            false,
+                        );
+                    }
+                }
                 add_profile_diff_feed_entries(
                     &mut output,
                     &user_id,
@@ -668,7 +685,12 @@ fn add_gps_feed_entry_if_not_repeated(
         return;
     };
     let location = string_field(entry.get("location"));
-    if should_suppress_repeated_gps(state, user_id, &location, now.timestamp_ms) {
+    let previous_location = string_field(entry.get("previousLocation"));
+    let crosses_private_boundary =
+        is_private_location(&location) || is_private_location(&previous_location);
+    if !crosses_private_boundary
+        && should_suppress_repeated_gps(state, user_id, &location, now.timestamp_ms)
+    {
         return;
     }
     remember_gps_event(state, user_id, &location, now.timestamp_ms);
@@ -907,38 +929,72 @@ pub(super) fn online_patch(
         Some(event_traveling.as_str()),
         fallback.and_then(|value| value.get("travelingToLocation").and_then(Value::as_str)),
     ]);
-    let parsed_location = parse_location(&location);
-    let parsed_traveling = parse_location(&traveling);
     patch.insert("location".into(), Value::String(location.clone()));
+    insert_location_projection(&mut patch, &location, "worldId", "instanceId", "$location");
+    if !event_world.is_empty() {
+        patch.insert("worldId".into(), Value::String(event_world));
+    }
     patch.insert(
-        "worldId".into(),
-        Value::String(
-            first_non_empty([event_world.as_str(), parsed_location.world_id.as_str()]).to_string(),
-        ),
+        "travelingToLocation".into(),
+        Value::String(traveling.clone()),
     );
-    patch.insert(
-        "instanceId".into(),
-        Value::String(parsed_location.instance_id.clone()),
-    );
-    patch.insert("travelingToLocation".into(), Value::String(traveling));
-    patch.insert(
-        "travelingToWorld".into(),
-        Value::String(parsed_traveling.world_id.clone()),
-    );
-    patch.insert(
-        "travelingToInstance".into(),
-        Value::String(parsed_traveling.instance_id.clone()),
-    );
-    patch.insert(
-        "$location".into(),
-        parsed_location.to_frontend_value(&location),
-    );
-    patch.insert(
-        "$travelingToLocation".into(),
-        parsed_traveling.to_frontend_value(&string_field(patch.get("travelingToLocation"))),
+    insert_location_projection(
+        &mut patch,
+        &traveling,
+        "travelingToWorld",
+        "travelingToInstance",
+        "$travelingToLocation",
     );
     add_location_metadata(&mut patch, previous, now.timestamp_ms);
     Value::Object(patch)
+}
+
+fn insert_location_projection(
+    patch: &mut Map<String, Value>,
+    location: &str,
+    world_id_key: &str,
+    instance_id_key: &str,
+    projection_key: &str,
+) {
+    let parsed = parse_location(location);
+    patch.insert(world_id_key.into(), Value::String(parsed.world_id.clone()));
+    patch.insert(
+        instance_id_key.into(),
+        Value::String(parsed.instance_id.clone()),
+    );
+    patch.insert(projection_key.into(), parsed.to_frontend_value(location));
+}
+
+fn normalize_friend_update_location_patch(
+    patch: &mut Value,
+    previous: Option<&Value>,
+    now: &EventTime,
+) {
+    let Some(patch) = patch.as_object_mut() else {
+        return;
+    };
+    let Some(location) = patch
+        .get("location")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+    else {
+        return;
+    };
+    insert_location_projection(patch, &location, "worldId", "instanceId", "$location");
+    if let Some(traveling_to_location) = patch
+        .get("travelingToLocation")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+    {
+        insert_location_projection(
+            patch,
+            &traveling_to_location,
+            "travelingToWorld",
+            "travelingToInstance",
+            "$travelingToLocation",
+        );
+    }
+    add_location_metadata(patch, previous, now.timestamp_ms);
 }
 
 pub(super) fn offline_like_patch(content: &Value, user_id: &str, state_bucket: &str) -> Value {
