@@ -240,7 +240,8 @@
             "retry": "재시도"
         },
         "error": {
-            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "VRChat에서 인스턴스 열기에 실패했습니다. 자체 초대로 돌아갑니다."
+            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "VRChat에서 인스턴스 열기에 실패했습니다. 자체 초대로 돌아갑니다.",
+            "failed_to_save_memo": "로컬 메모를 저장하지 못했습니다."
         },
         "affinity": {
             "friend": "친구",

@@ -240,7 +240,8 @@
             "retry": "Zkusit znovu"
         },
         "error": {
-            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Nepodařilo se otevřít instanci ve VRChat, použije se pozvání sebe sama"
+            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Nepodařilo se otevřít instanci ve VRChat, použije se pozvání sebe sama",
+            "failed_to_save_memo": "Nepodařilo se uložit lokální poznámku"
         },
         "affinity": {
             "friend": "Přítel",

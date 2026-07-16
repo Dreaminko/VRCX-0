@@ -7,6 +7,7 @@ import {
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import type {
     GroupDialogJson,
     GroupProfileRecord,
@@ -129,7 +130,7 @@ function GroupAnnouncementPanel({
                             )
                         }
                     >
-                        <img
+                        <FadeInImage
                             src={convertFileUrlToImageUrl(
                                 announcement.imageUrl,
                                 128
@@ -336,7 +337,7 @@ export function GroupDialogTabPanels({
                         })}
                         onClick={() => onPreviewImage(bannerUrl, groupTitle)}
                     >
-                        <img
+                        <FadeInImage
                             src={bannerUrl}
                             alt={group.name || 'Group banner'}
                             className="aspect-[6/1] w-full object-cover"

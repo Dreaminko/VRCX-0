@@ -13,7 +13,9 @@ import {
     type ReactNode
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
@@ -30,7 +32,13 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
+import {
+    Tabs,
+    TabsContent,
+    TabsIndicator,
+    TabsList,
+    TabsTrigger
+} from '@/ui/shadcn/tabs';
 import { Textarea } from '@/ui/shadcn/textarea';
 
 type ClassNameAndChildren = {
@@ -185,10 +193,11 @@ function EntityDialogHeader({
                 )}
             >
                 {imageUrl ? (
-                    <img
+                    <FadeInImage
                         src={imageUrl}
                         alt={imageAlt || ''}
                         className="size-full object-cover"
+                        fallback={imagePlaceholder}
                     />
                 ) : (
                     imagePlaceholder
@@ -313,11 +322,12 @@ function EntityDialogTabs({
                     <TabsTrigger
                         key={tab.value}
                         value={tab.value}
-                        className="text-muted-foreground after:bg-primary hover:text-foreground data-active:text-primary h-11 flex-none rounded-none border-0 bg-transparent px-3 shadow-none after:bottom-0 data-active:bg-transparent data-active:shadow-none"
+                        className="text-muted-foreground hover:text-foreground data-active:text-primary h-11 flex-none rounded-none border-0 bg-transparent px-3 shadow-none after:hidden data-active:bg-transparent data-active:shadow-none"
                     >
                         {tab.label}
                     </TabsTrigger>
                 ))}
+                <TabsIndicator />
             </TabsList>
             {children}
         </Tabs>
@@ -358,6 +368,7 @@ function EntityMemoTextarea({
     placeholder?: string;
     onSave?: (value: string) => void | Promise<void>;
 }) {
+    const { t } = useTranslation();
     const normalizedValue = typeof value === 'string' ? value : '';
     const [draft, setDraft] = useState(normalizedValue);
     const [saving, setSaving] = useState(false);
@@ -373,6 +384,13 @@ function EntityMemoTextarea({
         setSaving(true);
         try {
             await onSave(draft);
+        } catch (error) {
+            toast.error(
+                userFacingErrorMessage(
+                    error,
+                    t('common.error.failed_to_save_memo')
+                )
+            );
         } finally {
             setSaving(false);
         }
@@ -520,19 +538,13 @@ function EntityRawJson<TValue>({
     const [snapshot, setSnapshot] = useState(() =>
         valueFactory ? valueFactory() : value
     );
-    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         setSnapshot(valueFactory ? valueFactory() : value);
     }, [value]);
 
-    async function refreshJson() {
-        setRefreshing(true);
-        try {
-            setSnapshot(valueFactory ? valueFactory() : value);
-        } finally {
-            setRefreshing(false);
-        }
+    function refreshJson() {
+        setSnapshot(valueFactory ? valueFactory() : value);
     }
 
     return (
@@ -545,13 +557,8 @@ function EntityRawJson<TValue>({
                     onClick={() => {
                         refreshJson();
                     }}
-                    disabled={refreshing}
                 >
-                    {refreshing ? (
-                        <Spinner data-icon="inline-start" />
-                    ) : (
-                        <RefreshCwIcon data-icon="inline-start" />
-                    )}
+                    <RefreshCwIcon data-icon="inline-start" />
                     {t('common.actions.refresh')}
                 </Button>
             </div>
@@ -602,7 +609,7 @@ function EntityInfoBlock({
                 'group/info-item flex items-start rounded-lg px-2 py-1.5 text-left text-sm transition-colors outline-none [&>svg:not([class*=size-])]:size-3.5',
                 full ? 'w-full' : wide ? 'w-80' : 'w-44',
                 onClick
-                    ? 'hover:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 cursor-pointer focus-visible:ring-3'
+                    ? 'hover:bg-muted active:bg-muted/70 focus-visible:border-ring focus-visible:ring-ring/50 cursor-pointer focus-visible:ring-3'
                     : 'cursor-default'
             )}
         >

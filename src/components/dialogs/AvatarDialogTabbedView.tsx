@@ -2,6 +2,7 @@ import { CopyIcon, ExternalLinkIcon, PersonStandingIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import type { AvatarDialogJson } from '@/domain/entities/profileEntities';
 import { cn } from '@/lib/utils';
 import { openUserDialog } from '@/services/dialogService';
@@ -260,7 +261,7 @@ function AvatarDialogOverviewSection({
                     )}
                 >
                     {imageUrl ? (
-                        <img
+                        <FadeInImage
                             src={imageUrl}
                             alt={
                                 avatar.name || avatar.id || avatarFallbackLabel

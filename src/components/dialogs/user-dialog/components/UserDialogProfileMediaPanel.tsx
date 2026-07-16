@@ -12,6 +12,7 @@ import {
     PageToolbar,
     PageToolbarRow
 } from '@/components/layout/PageScaffold';
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';
 import mediaRepository from '@/repositories/mediaRepository';
 import { extractFileId } from '@/shared/utils/fileUtils';
@@ -127,7 +128,7 @@ function ProfileMediaThumbnail({
         >
             <div className="bg-muted text-muted-foreground flex size-full items-center justify-center overflow-hidden">
                 {imageUrl ? (
-                    <img
+                    <FadeInImage
                         src={imageUrl}
                         alt={displayName || file.id}
                         loading="lazy"

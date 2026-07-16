@@ -22,6 +22,7 @@ import { isValidElement, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FavoriteActionMenu } from '@/components/favorites/FavoriteActionMenu';
+import { FadeInImage } from '@/components/media/FadeInImage';
 import type { WorldProfileRecord } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
@@ -520,7 +521,7 @@ export function WorldDialogOverviewSection({
                     )}
                 >
                     {imageUrl ? (
-                        <img
+                        <FadeInImage
                             src={imageUrl}
                             alt={world.name || world.id || 'World'}
                             className="size-full object-cover"

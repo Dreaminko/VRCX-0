@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import mediaRepository from '@/repositories/mediaRepository';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { photonEmojiId, photonEmojis } from '@/shared/constants/photonEmojis';
@@ -295,7 +296,7 @@ export function BoopEmojiDialog({
                                                         )
                                                     }
                                                 >
-                                                    <img
+                                                    <FadeInImage
                                                         src={imageUrl}
                                                         alt={
                                                             emoji.name ||

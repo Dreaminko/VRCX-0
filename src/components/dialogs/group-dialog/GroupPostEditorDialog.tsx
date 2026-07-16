@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import type { GroupProfileRecord } from '@/domain/entities/profileEntities';
 import { cn } from '@/lib/utils';
 import mediaRepository from '@/repositories/mediaRepository';
@@ -336,7 +337,7 @@ export function GroupPostEditorDialog({
                                         }
                                     >
                                         {option.image ? (
-                                            <img
+                                            <FadeInImage
                                                 src={option.image}
                                                 alt=""
                                                 className="size-12 shrink-0 rounded object-cover"

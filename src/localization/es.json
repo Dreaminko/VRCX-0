@@ -240,7 +240,8 @@
             "retry": "Reintentar"
         },
         "error": {
-            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "No se pudo abrir la instancia en VRChat, se recurrirá a una autoinvitación"
+            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "No se pudo abrir la instancia en VRChat, se recurrirá a una autoinvitación",
+            "failed_to_save_memo": "No se pudo guardar la nota local"
         },
         "affinity": {
             "friend": "Amigo",

@@ -240,7 +240,8 @@
             "retry": "重試"
         },
         "error": {
-            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "無法在 VRChat 中開啟房間，改用自我邀請"
+            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "無法在 VRChat 中開啟房間，改用自我邀請",
+            "failed_to_save_memo": "儲存本機備註失敗"
         },
         "affinity": {
             "friend": "好友",

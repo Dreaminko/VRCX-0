@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { InstanceActionBar } from '@/components/instances/InstanceActionBar';
 import { Location } from '@/components/Location';
 import { LocationWorld } from '@/components/LocationWorld';
+import { FadeInImage } from '@/components/media/FadeInImage';
 import type {
     EntityRecord,
     UserProfileEntity
@@ -536,7 +537,7 @@ function UserDialogProfileLinksPanel({
                         }
                     >
                         {representedGroup.iconUrl ? (
-                            <img
+                            <FadeInImage
                                 src={convertFileUrlToImageUrl(
                                     representedGroup.iconUrl,
                                     128
@@ -645,7 +646,7 @@ function UserDialogBioPanel({
                             onClick={() => openExternalLink(link)}
                         >
                             {getFaviconUrl(link) ? (
-                                <img
+                                <FadeInImage
                                     src={getFaviconUrl(link)}
                                     alt=""
                                     className="size-4"

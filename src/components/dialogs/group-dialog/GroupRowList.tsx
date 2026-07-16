@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import type {
     EntityRecord,
     GroupProfileRecord
@@ -82,7 +83,7 @@ function PostList({
                                         onPreviewImage?.(image, title)
                                     }
                                 >
-                                    <img
+                                    <FadeInImage
                                         src={convertFileUrlToImageUrl(
                                             image,
                                             128
@@ -263,7 +264,7 @@ function PhotoGalleryRows({
                                     }
                                 >
                                     {image ? (
-                                        <img
+                                        <FadeInImage
                                             src={image}
                                             alt={getGroupRowLabel(row)}
                                             className="max-h-52 w-full object-contain"
@@ -368,7 +369,7 @@ export function RowList({
                         }}
                     >
                         {image ? (
-                            <img
+                            <FadeInImage
                                 src={image}
                                 alt=""
                                 className="mr-2.5 size-9 shrink-0 rounded-full object-cover"

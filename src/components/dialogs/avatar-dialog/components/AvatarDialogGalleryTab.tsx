@@ -1,6 +1,7 @@
 import { ImageIcon, UploadIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { Button } from '@/ui/shadcn/button';
 
 import {
@@ -69,7 +70,7 @@ export function AvatarDialogGalleryTab({
                                         onClick={onOpenGalleryPreview}
                                     >
                                         {currentGalleryImage ? (
-                                            <img
+                                            <FadeInImage
                                                 src={currentGalleryImage}
                                                 alt=""
                                                 className="size-full object-contain"

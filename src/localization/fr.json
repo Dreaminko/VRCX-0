@@ -240,7 +240,8 @@
             "retry": "Réessayer"
         },
         "error": {
-            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Impossible d'ouvrir l'instance dans VRChat, basculement vers une auto-invitation"
+            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Impossible d'ouvrir l'instance dans VRChat, basculement vers une auto-invitation",
+            "failed_to_save_memo": "Échec de l'enregistrement de la note locale"
         },
         "affinity": {
             "friend": "Ami",

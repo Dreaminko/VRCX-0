@@ -240,7 +240,8 @@
             "retry": "重试"
         },
         "error": {
-            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "无法在 VRChat 中打开房间，将向自身发送游戏内邀请"
+            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "无法在 VRChat 中打开房间，将向自身发送游戏内邀请",
+            "failed_to_save_memo": "保存本地备注失败"
         },
         "affinity": {
             "friend": "好友",

@@ -240,7 +240,8 @@
             "retry": "Повторить"
         },
         "error": {
-            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Не удалось открыть инстанс в VRChat, отправляется самоприглашение"
+            "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Не удалось открыть инстанс в VRChat, отправляется самоприглашение",
+            "failed_to_save_memo": "Не удалось сохранить локальную заметку"
         },
         "affinity": {
             "friend": "Друг",

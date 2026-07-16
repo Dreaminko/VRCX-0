@@ -10,6 +10,7 @@ import {
 import { isValidElement, type ComponentType, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { UserStatusDot } from '@/components/UserStatusDot';
 import type { UserBadgeRecord } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
@@ -495,12 +496,15 @@ export function UserDialogHeaderSection({
                         )}
                     >
                         {imageUrl ? (
-                            <img
+                            <FadeInImage
                                 src={imageUrl}
                                 alt={
                                     profile.displayName || profile.id || 'User'
                                 }
                                 className="size-full object-cover"
+                                fallback={
+                                    <UsersIcon className="text-muted-foreground size-8" />
+                                }
                             />
                         ) : (
                             <UsersIcon className="text-muted-foreground size-8" />
@@ -515,7 +519,7 @@ export function UserDialogHeaderSection({
                             className="bg-background/90 absolute right-3 bottom-3 size-16 overflow-hidden rounded-full border-2 border-white p-0 shadow-md"
                             onClick={onOpenUserIcon}
                         >
-                            <img
+                            <FadeInImage
                                 src={userIconUrl}
                                 alt=""
                                 className="size-full object-cover"

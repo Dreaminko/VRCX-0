@@ -2,6 +2,7 @@ import { LockIcon, PersonStandingIcon, UserIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { resolveSidebarStatusDotClassName } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { UserDetailTile } from '@/components/UserDetailTile';
 import type { EntityRecord } from '@/domain/entities/profileEntities';
@@ -146,7 +147,7 @@ export function EntityList({
                     <>
                         <span className="relative size-9 shrink-0">
                             {image ? (
-                                <img
+                                <FadeInImage
                                     src={image}
                                     alt=""
                                     className={cn(

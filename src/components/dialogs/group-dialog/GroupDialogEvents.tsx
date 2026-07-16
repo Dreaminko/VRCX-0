@@ -7,6 +7,7 @@ import {
     getEventGroupId,
     getEventId
 } from '@/components/hosts/tools-dialogs/toolsDialogUtils';
+import { FadeInImage } from '@/components/media/FadeInImage';
 import type { GroupProfileRecord } from '@/domain/entities/profileEntities';
 import { formatDateTime } from '@/lib/dateTime';
 import type { GroupCalendarEventRecord } from '@/repositories/vrchatToolsRepository';
@@ -216,7 +217,7 @@ export function GroupEventSummary({
                     >
                         <span className="bg-muted flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md">
                             {bannerUrl ? (
-                                <img
+                                <FadeInImage
                                     src={bannerUrl}
                                     alt=""
                                     className="size-full object-cover"

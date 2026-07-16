@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
@@ -102,7 +103,7 @@ function AvatarOwnerRow({ avatar, selected, onToggle }: any) {
                 onClick={onToggle}
             >
                 {imageUrl ? (
-                    <img
+                    <FadeInImage
                         src={imageUrl}
                         alt=""
                         className="mr-2.5 size-9 shrink-0 rounded-full object-cover"
