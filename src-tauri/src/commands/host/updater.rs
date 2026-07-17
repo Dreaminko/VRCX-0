@@ -11,7 +11,7 @@ use crate::state::AppState;
 #[tauri::command]
 #[specta::specta]
 pub fn app__app_update_status_get(state: State<'_, AppState>) -> AppUpdateStatusSnapshot {
-    state.app_update.hydration_snapshot()
+    state.desktop.app_update.hydration_snapshot()
 }
 
 #[tauri::command]
@@ -19,7 +19,7 @@ pub fn app__app_update_status_get(state: State<'_, AppState>) -> AppUpdateStatus
 pub async fn app__app_update_check_run(
     state: State<'_, AppState>,
 ) -> Result<AppUpdateStatusSnapshot, AppError> {
-    Ok(state.app_update.check_now().await)
+    Ok(state.desktop.app_update.check_now().await)
 }
 
 #[tauri::command]
@@ -27,7 +27,7 @@ pub async fn app__app_update_check_run(
 pub fn app__app_update_download_status_get(
     state: State<'_, AppState>,
 ) -> AppUpdateDownloadStatusSnapshot {
-    state.app_update.download_status()
+    state.desktop.app_update.download_status()
 }
 
 #[tauri::command]
@@ -37,6 +37,7 @@ pub async fn app__app_update_install_confirm(
     version: String,
 ) -> Result<UpdaterMetadata, AppError> {
     state
+        .desktop
         .app_update
         .install(&version)
         .await
@@ -50,6 +51,7 @@ pub async fn app__app_update_background_download_preference_changed(
     enabled: bool,
 ) -> Result<(), AppError> {
     state
+        .desktop
         .app_update
         .set_auto_background_download_preference(enabled)
         .await;

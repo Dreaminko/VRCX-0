@@ -160,9 +160,9 @@ impl RealtimeHostRuntime {
                     "Friend baseline cached until realtime transport starts.",
                     friend_count as u64,
                 );
-                self.deps
-                    .overlay_activity
-                    .set_friend_user_ids(pending_snapshot.friends_by_id.keys().cloned());
+                self.set_activity_friend_user_ids(
+                    pending_snapshot.friends_by_id.keys().cloned().collect(),
+                );
                 let reconcile_outcome = if reconcile_friend_log {
                     let roster_order =
                         roster_order_from_friend_records(&pending_snapshot.friends_by_id);
@@ -300,9 +300,7 @@ impl RealtimeHostRuntime {
             None
         };
         if let Some(snapshot) = canonical_snapshot.as_ref() {
-            self.deps
-                .overlay_activity
-                .set_friend_user_ids(snapshot.friends_by_id.keys().cloned());
+            self.set_activity_friend_user_ids(snapshot.friends_by_id.keys().cloned().collect());
             #[cfg(test)]
             {
                 let hook = self
@@ -380,9 +378,7 @@ impl RealtimeHostRuntime {
                 .snapshot()
                 .filter(|snapshot| snapshot.generation == active.generation);
             if let Some(snapshot) = snapshot.as_ref() {
-                self.deps
-                    .overlay_activity
-                    .set_friend_user_ids(snapshot.friends_by_id.keys().cloned());
+                self.set_activity_friend_user_ids(snapshot.friends_by_id.keys().cloned().collect());
             }
             snapshot
         } else {

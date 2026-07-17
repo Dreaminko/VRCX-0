@@ -117,6 +117,12 @@ impl RealtimeHostRuntime {
             self.record_invite_automation_skip(InviteAutomationSkipReason::Disabled);
             return Ok(false);
         }
+        if !location.local_game_context_available {
+            self.record_invite_automation_skip(
+                InviteAutomationSkipReason::LocalGameContextUnavailable,
+            );
+            return Ok(false);
+        }
         if !location.is_game_running {
             self.record_invite_automation_skip(InviteAutomationSkipReason::GameNotRunning);
             return Ok(false);
@@ -229,21 +235,24 @@ impl RealtimeHostRuntime {
         &self,
         session: &RealtimeSessionContext,
     ) -> InviteLocationFacts {
-        let host_session = self.deps.session.snapshot();
-        let game_log = self
-            .deps
-            .game_log_snapshot
-            .lock()
-            .map(|snapshot| snapshot.clone())
-            .unwrap_or_default();
+        let local_game_context = self.deps.local_game_context.snapshot();
         let closed_locations = self
             .state
             .lock()
             .map(|state| state.invite_automation.closed_locations())
             .unwrap_or_default();
-        let current_location = game_log.location.trim().to_string();
+        let (local_game_context_available, is_game_running, current_location) =
+            match local_game_context {
+                LocalGameContextSnapshot::Unavailable => (false, false, String::new()),
+                LocalGameContextSnapshot::Available {
+                    is_game_running,
+                    location,
+                    ..
+                } => (true, is_game_running, location.trim().to_string()),
+            };
         InviteLocationFacts {
-            is_game_running: host_session.is_game_running,
+            local_game_context_available,
+            is_game_running,
             last_location: current_location.clone(),
             current_location,
             current_user_id: session.user_id.clone(),

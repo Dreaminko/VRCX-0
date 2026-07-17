@@ -3,6 +3,12 @@ use super::*;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 
 impl RealtimeHostRuntime {
+    pub(super) fn set_activity_friend_user_ids(&self, user_ids: Vec<String>) {
+        if let Some(activity_sink) = &self.deps.activity_sink {
+            activity_sink.set_friend_user_ids(user_ids);
+        }
+    }
+
     pub(super) fn lock_friend_owner(&self) -> FriendOwnerGuard<'_> {
         FriendOwnerGuard {
             _guard: self
@@ -39,9 +45,9 @@ impl RealtimeHostRuntime {
                 .clear_baseline_if_revision(projection.generation, projection.baseline_revision);
             return;
         }
-        self.deps
-            .overlay_activity
-            .ingest_friend_projection(&projection);
+        if let Some(activity_sink) = &self.deps.activity_sink {
+            activity_sink.ingest_friend_projection(&projection);
+        }
         self.deps
             .event_bus
             .emit_realtime_friend_projection(projection);
@@ -88,9 +94,9 @@ impl RealtimeHostRuntime {
                     false
                 }
             };
-        self.deps
-            .overlay_activity
-            .ingest_friend_projection(&projection);
+        if let Some(activity_sink) = &self.deps.activity_sink {
+            activity_sink.ingest_friend_projection(&projection);
+        }
         projection
             .feed_entries
             .retain(|entry| !is_player_joining_entry(entry));
@@ -147,14 +153,20 @@ impl RealtimeHostRuntime {
         if !projection.feed_entries.iter().any(is_player_joining_entry) {
             return;
         }
-        let session = self.deps.session.snapshot();
-        let game_log = self
-            .deps
-            .game_log_snapshot
-            .lock()
-            .map(|snapshot| snapshot.clone())
-            .unwrap_or_default();
-        let current_location = game_log.location.trim();
+        let local_game_context = self.deps.local_game_context.snapshot();
+        let (is_game_running, current_location, player_user_ids) = match &local_game_context {
+            LocalGameContextSnapshot::Unavailable => (false, "", &[][..]),
+            LocalGameContextSnapshot::Available {
+                is_game_running,
+                location,
+                player_user_ids,
+                ..
+            } => (
+                *is_game_running,
+                location.trim(),
+                player_user_ids.as_slice(),
+            ),
+        };
         let current_user_id = current_user_id.trim();
         projection.feed_entries.retain(|entry| {
             if !is_player_joining_entry(entry) {
@@ -170,15 +182,14 @@ impl RealtimeHostRuntime {
                 .and_then(Value::as_str)
                 .map(str::trim)
                 .unwrap_or_default();
-            session.is_game_running
+            is_game_running
                 && !current_location.is_empty()
                 && destination == current_location
                 && !user_id.is_empty()
                 && user_id != current_user_id
-                && !game_log
-                    .players
+                && !player_user_ids
                     .iter()
-                    .any(|player| player.user_id.trim() == user_id)
+                    .any(|player_user_id| player_user_id == user_id)
         });
     }
 
@@ -214,9 +225,9 @@ impl RealtimeHostRuntime {
             }
         }
         if self.projection_has_visible_notification_work(&projection) {
-            self.deps
-                .overlay_activity
-                .ingest_notification_projection(&projection);
+            if let Some(activity_sink) = &self.deps.activity_sink {
+                activity_sink.ingest_notification_projection(&projection);
+            }
             self.deps
                 .event_bus
                 .emit_realtime_notification_projection(projection.clone());
@@ -313,9 +324,9 @@ impl RealtimeHostRuntime {
                     .record_failure("realtimeInstanceClosed", error.to_string());
             }
         }
-        self.deps
-            .overlay_activity
-            .ingest_instance_closed_projection(&projection);
+        if let Some(activity_sink) = &self.deps.activity_sink {
+            activity_sink.ingest_instance_closed_projection(&projection);
+        }
         self.deps
             .event_bus
             .emit_realtime_instance_closed_projection(projection);

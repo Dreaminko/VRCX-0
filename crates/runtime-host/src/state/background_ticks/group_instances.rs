@@ -7,11 +7,11 @@ use vrcx_0_application::{
 };
 use vrcx_0_persistence::DatabaseService;
 
-use crate::RuntimeHostContext;
+use crate::{GroupOrderSource, RuntimeHostContext};
 
 use super::super::{
     background_capability_session, background_capability_session_matches, emit_background_error,
-    emit_background_info, gui_maintenance_runtime_mode, read_group_order, AtomicFlagGuard,
+    emit_background_info, gui_maintenance_runtime_mode, AtomicFlagGuard,
     BackendRuntimeFrontendSessionSnapshot, BACKGROUND_FACTS_REFRESH_JOB,
     BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
 };
@@ -24,6 +24,7 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
     backend_runtime: &BackendRuntime,
     background_jobs: &RuntimeBackgroundJobs,
     refresh_running: &Arc<AtomicBool>,
+    group_order_source: &dyn GroupOrderSource,
 ) {
     let Some(_refresh_guard) = AtomicFlagGuard::try_acquire(refresh_running) else {
         background_jobs.mark_scheduled(
@@ -72,7 +73,7 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
                     "userId": &session.current_user_id,
                     "endpoint": &session.endpoint,
                     "instances": refresh.instances,
-                    "groupOrder": read_group_order(&session.current_user_id),
+                    "groupOrder": group_order_source.read_group_order(&session.current_user_id),
                     "fetchedAt": refresh.fetched_at,
                 }));
             let detail = format!("group instance facts refreshed: {count} rows.");

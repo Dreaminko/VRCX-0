@@ -135,13 +135,12 @@ fn notification_cache_hit_enriches_avatar_image_for_runtime_delivery() -> Result
         "https://images.example/user-icon.png"
     );
 
-    let entries = runtime.deps.overlay_activity.snapshot().entries;
-    let entry = entries
-        .iter()
-        .find(|entry| entry.source_id == "notification:notif-avatar-cache-hit")
-        .expect("runtime delivery should be projected to overlay activity");
+    let delivered = runtime
+        .activity_sink_for_test()
+        .notification_by_id("notif-avatar-cache-hit")
+        .expect("runtime delivery should reach the activity sink");
     assert_eq!(
-        entry.content.image_url,
+        delivered["imageUrl"],
         "https://images.example/user-icon.png"
     );
     Ok(())
@@ -256,13 +255,12 @@ fn notification_avatar_fallback_skips_owner_receiver_when_sender_is_absent() -> 
     let projected = &projection.payload["upserts"][0]["notification"];
     assert!(projected["imageUrl"].is_null());
 
-    let entries = runtime.deps.overlay_activity.snapshot().entries;
-    let entry = entries
-        .iter()
-        .find(|entry| entry.source_id == "notification:notif-avatar-receiver")
-        .expect("runtime delivery should be projected to overlay activity");
-    assert!(entry.actor_user_id.is_empty());
-    assert!(entry.content.image_url.is_empty());
+    let delivered = runtime
+        .activity_sink_for_test()
+        .notification_by_id("notif-avatar-receiver")
+        .expect("runtime delivery should reach the activity sink");
+    assert!(delivered["senderUserId"].is_null());
+    assert!(delivered["imageUrl"].is_null());
     Ok(())
 }
 
@@ -318,13 +316,12 @@ fn notification_avatar_fallback_skips_current_user_sender() -> Result<()> {
     let projected = &projection.payload["upserts"][0]["notification"];
     assert!(projected["imageUrl"].is_null());
 
-    let entries = runtime.deps.overlay_activity.snapshot().entries;
-    let entry = entries
-        .iter()
-        .find(|entry| entry.source_id == "notification:notif-avatar-self-sender")
-        .expect("runtime delivery should be projected to overlay activity");
-    assert_eq!(entry.actor_user_id, "usr_self");
-    assert!(entry.content.image_url.is_empty());
+    let delivered = runtime
+        .activity_sink_for_test()
+        .notification_by_id("notif-avatar-self-sender")
+        .expect("runtime delivery should reach the activity sink");
+    assert_eq!(delivered["senderUserId"], "usr_self");
+    assert!(delivered["imageUrl"].is_null());
     Ok(())
 }
 

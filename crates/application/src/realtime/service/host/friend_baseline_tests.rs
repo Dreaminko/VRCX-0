@@ -3,71 +3,7 @@ use super::*;
 
 #[test]
 fn sync_friend_snapshot_updates_overlay_friend_scope() -> Result<()> {
-    let dir = TestDir::new("overlay-friend-scope");
-    let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
-    let storage = StorageService::new(&dir.path.join("storage.json"))?;
-    let web = Arc::new(WebClient::new(
-        &storage,
-        db.as_ref(),
-        "wss://pipeline.vrchat.cloud".to_string(),
-        env!("CARGO_PKG_VERSION"),
-    )?);
-    let session = HostSessionRuntime::new();
-    let host_session_generation =
-        session.set_realtime_context(crate::session::RealtimeSessionContext::new(
-            "usr_self".into(),
-            "https://api.vrchat.cloud/api/1".into(),
-            "wss://pipeline.vrchat.cloud".into(),
-        ));
-    let overlay_activity =
-        OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
-            "version": 1,
-            "wrist": {
-                "types": {
-                    "invite": {
-                        "scope": "friends",
-                        "favoriteGroupKeys": "all"
-                    }
-                }
-            }
-        })));
-    let world_cache = Arc::new(crate::world_cache::WorldCache::new(
-        Arc::clone(&db),
-        512,
-        Duration::from_secs(30 * 60),
-    ));
-    let runtime = Arc::new(RealtimeHostRuntime::new(RealtimeHostRuntimeDeps {
-        db,
-        web,
-        event_bus: RuntimeEventBus::new(),
-        sync: RuntimeSyncEngine::new(),
-        tasks: TaskSupervisor::new(),
-        session,
-        auth_scope: RuntimeAuthScope::new(),
-        game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
-        overlay_activity: overlay_activity.clone(),
-        world_cache,
-        print_cleanup: PrintCleanupQueue::new(),
-        friend_note_change_sink: None,
-    }));
-    let active_session = RealtimeSessionContext::new(
-        "usr_self".into(),
-        "https://api.vrchat.cloud/api/1".into(),
-        "wss://pipeline.vrchat.cloud".into(),
-    );
-    {
-        let mut state = runtime.state.lock().unwrap();
-        *state = RealtimeHostRuntimeState {
-            generation: 7,
-            active_context: Some(ActiveRealtimeContext {
-                session: active_session.clone(),
-                generation: 7,
-                client_run_id: 1,
-                session_generation: host_session_generation,
-            }),
-            ..RealtimeHostRuntimeState::default()
-        };
-    }
+    let (_dir, runtime, active_session) = runtime_with_active_session("overlay-friend-scope")?;
     let mut friends_by_id = HashMap::new();
     friends_by_id.insert(
         "usr_new".to_string(),
@@ -89,9 +25,11 @@ fn sync_friend_snapshot_updates_overlay_friend_scope() -> Result<()> {
     )?;
 
     assert!(result.accepted);
-    assert!(overlay_activity
-        .ingest_candidate(invite_candidate("usr_new"))
-        .is_some());
+    assert!(runtime
+        .activity_sink_for_test()
+        .friend_user_ids()
+        .iter()
+        .any(|user_id| user_id == "usr_new"));
     Ok(())
 }
 
@@ -1207,6 +1145,36 @@ fn causal_baseline_from_stopped_generation_is_not_cached() -> Result<()> {
 }
 
 #[test]
+fn stop_with_unavailable_local_game_context_skips_game_running_output() -> Result<()> {
+    let (_dir, runtime, _) = runtime_with_unavailable_game_context_active_session(
+        "stop-unavailable-local-game-context",
+    )?;
+    runtime.current_user.set_snapshot(
+        "usr_self".into(),
+        7,
+        json!({
+            "id": "usr_self",
+            "currentAvatar": "avtr_current",
+            "$previousAvatarSwapTime": 1_000
+        }),
+    );
+    runtime.deps.event_bus.take_events_for_test();
+
+    runtime.stop(RealtimeStopRequest {
+        generation: Some(7),
+        ..RealtimeStopRequest::default()
+    });
+
+    assert!(!runtime
+        .deps
+        .event_bus
+        .take_events_for_test()
+        .iter()
+        .any(|event| event.name == "realtimeCurrentUserProjection"));
+    Ok(())
+}
+
+#[test]
 fn sync_friend_snapshot_emits_projection_for_active_removals() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("baseline-removal")?;
     let mut initial_friends = HashMap::new();
@@ -1377,8 +1345,8 @@ fn friend_note_change_notifies_note_cache_sink() -> Result<()> {
         tasks: TaskSupervisor::new(),
         session,
         auth_scope: RuntimeAuthScope::new(),
-        game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
-        overlay_activity: OverlayActivityRuntime::default(),
+        local_game_context: Arc::new(UnavailableLocalGameContextSource),
+        activity_sink: None,
         world_cache,
         print_cleanup: PrintCleanupQueue::new(),
         friend_note_change_sink: Some({

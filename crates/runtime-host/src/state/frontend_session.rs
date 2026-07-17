@@ -69,9 +69,10 @@ impl RuntimeHostState {
             .lock()
             .ok()
             .and_then(|mut slot| slot.take());
-        self.runtime_context.overlay_activity.clear_runtime_state();
         self.authenticated_runtime.stop();
-        self.vr_overlay_runtime.clear_friends_panel_session_state();
+        if let Some(extension) = &self.profile_extension {
+            extension.clear_profile_session();
+        }
         self.runtime_context.session.clear_realtime_context();
         if let Some(previous) = previous {
             self.runtime_context
@@ -106,8 +107,9 @@ impl RuntimeHostState {
                 })
                 .unwrap_or(true);
             if scope_changed {
-                self.runtime_context.overlay_activity.clear_runtime_state();
-                self.vr_overlay_runtime.clear_friends_panel_session_state();
+                if let Some(extension) = &self.profile_extension {
+                    extension.profile_session_scope_changed();
+                }
             }
             *slot = Some(snapshot);
         }
@@ -146,7 +148,8 @@ impl RuntimeHostState {
         let snapshot = self.backend_runtime.set_phase(BackendRuntimePhase::Running);
         self.emit_backend_runtime_telemetry_snapshot("authSuccess", display_name, snapshot);
         self.schedule_activity_warmup(user_id, auth_scope.generation);
-        self.start_gui_background_capability_loops();
+        self.start_social_maintenance_loops();
+        self.start_profile_maintenance_loops();
         self.authenticated_runtime.start(session)
     }
 
@@ -187,7 +190,7 @@ impl RuntimeHostState {
     }
 }
 
-pub(super) fn update_backend_frontend_session_user_if_session_matches(
+pub fn update_backend_frontend_session_user_if_session_matches(
     session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
     expected: &BackgroundCapabilitySession,
     updated_user: &Value,
@@ -228,7 +231,7 @@ pub(super) fn update_backend_frontend_session_user_filtered_if_session_matches(
     update_backend_frontend_session_user_if_session_matches(session_slot, expected, &filtered)
 }
 
-pub(super) fn replace_backend_frontend_session_user_if_session_matches(
+pub fn replace_backend_frontend_session_user_if_session_matches(
     session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
     expected: &BackgroundCapabilitySession,
     snapshot: &Value,

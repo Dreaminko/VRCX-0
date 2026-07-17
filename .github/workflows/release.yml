@@ -26,6 +26,11 @@ jobs:
               with:
                   node-version: 24.x
 
+            - uses: dtolnay/rust-toolchain@stable
+
+            - name: Check headless dependencies
+              run: npm run rust:headless-deps:check
+
             - id: version
               name: Read release version
               run: |

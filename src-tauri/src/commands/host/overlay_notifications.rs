@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 use tauri::State;
-use vrcx_0_runtime_host::notification::{
+use vrcx_0_runtime_host_desktop::notification::{
     filter_generic_webhook_payload, parse_webhook_fields, webhook_local_time_string,
 };
 use vrcx_0_vrchat_client::web_client::WebExecuteRequest;

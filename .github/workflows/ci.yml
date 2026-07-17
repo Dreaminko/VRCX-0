@@ -143,6 +143,7 @@ jobs:
               with:
                   components: rustfmt, clippy
                   cache-key: ci-linux-x86_64
+            - run: npm run rust:headless-deps:check
             - run: npm run rust:fmt:check
             - run: mkdir -p dist && printf '<!doctype html><html><body></body></html>' > dist/index.html
             - run: npm run rust:clippy

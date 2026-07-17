@@ -2,23 +2,23 @@ use std::sync::Arc;
 
 use vrcx_0_application::{BackendRuntime, RuntimeEventSink};
 
-use crate::context::RuntimeHostContext;
+use crate::RuntimeHostProfileExtension;
 
 pub struct RuntimeHostEventSink<S> {
     backend_runtime: BackendRuntime,
-    context: Arc<RuntimeHostContext>,
+    profile_extension: Option<Arc<dyn RuntimeHostProfileExtension>>,
     inner: S,
 }
 
 impl<S> RuntimeHostEventSink<S> {
     pub fn new(
         backend_runtime: BackendRuntime,
-        context: Arc<RuntimeHostContext>,
+        profile_extension: Option<Arc<dyn RuntimeHostProfileExtension>>,
         inner: S,
     ) -> Self {
         Self {
             backend_runtime,
-            context,
+            profile_extension,
             inner,
         }
     }
@@ -29,7 +29,9 @@ where
     S: RuntimeEventSink,
 {
     fn emit(&self, event: &str, payload: serde_json::Value) {
-        self.context.observe_runtime_event(event, &payload);
+        if let Some(extension) = &self.profile_extension {
+            extension.observe_runtime_event(event, &payload);
+        }
 
         if event == "backendRuntimeTelemetry" && payload.get("snapshot").is_some() {
             self.inner.emit(event, payload);

@@ -10,9 +10,9 @@ use tauri::{AppHandle, State};
 
 use crate::error::AppError;
 use crate::state::AppState;
-use vrcx_0_host::shell_actions;
+use vrcx_0_host_desktop::shell_actions;
 
-use vrcx_0_host::host_capabilities::{require_host_capability, HostCapability};
+use vrcx_0_host_desktop::host_capabilities::{require_host_capability, HostCapability};
 
 const BACKGROUND_IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp"];
 

@@ -1,16 +1,17 @@
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, Builder, ErrorHandlingMode};
 use vrcx_0_application::{
-    BackendRuntimeTelemetry, FriendProjection, GameLogProjection, HostSessionProjection,
-    OverlayActivitySnapshot, ParsedLocation, PrintAutoCleanupEvent, ProfileRestoreProgress,
-    RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeWsStatusPayload,
+    BackendRuntimeTelemetry, FriendProjection, HostSessionProjection, ParsedLocation,
+    PrintAutoCleanupEvent, ProfileRestoreProgress, RealtimeCurrentUserProjection,
+    RealtimeEntryCorrection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
+    RealtimeNotificationProjection, RealtimeWsStatusPayload,
 };
+use vrcx_0_application_game::{GameLogProjection, OverlayActivitySnapshot};
 use vrcx_0_harness::{
     AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,
     AssistantToolResultEvent, AssistantTurnEntitiesEvent,
 };
-use vrcx_0_host::tts::TtsVoice;
+use vrcx_0_host_desktop::tts::TtsVoice;
 use vrcx_0_mcp::McpServerStatus;
 
 use crate::commands;

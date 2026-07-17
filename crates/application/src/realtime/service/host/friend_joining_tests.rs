@@ -1,6 +1,5 @@
 use super::test_support::*;
 use super::*;
-use crate::game_log::PlayerState;
 use crate::session::GameProcessStatus;
 
 fn joining_output(
@@ -30,6 +29,8 @@ fn joining_output(
 #[test]
 fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("player-joining")?;
+    let local_game_context = runtime.local_game_context_for_test();
+    let activity_sink = runtime.activity_sink_for_test();
     let baseline = runtime.sync_friend_snapshot(
         active_session.user_id.clone(),
         active_session.endpoint.clone(),
@@ -50,11 +51,8 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
         .collect(),
     )?;
     runtime.deps.event_bus.take_events_for_test();
-    runtime.deps.overlay_activity.set_delivery_armed(true);
-    {
-        let mut snapshot = runtime.deps.game_log_snapshot.lock().unwrap();
-        snapshot.location = "wrld_current:456".into();
-    }
+    activity_sink.take_friend_projections();
+    local_game_context.set_location("wrld_current:456");
     let apply_joining = |destination: &str| {
         runtime.apply_friend_output(joining_output(
             &active_session.user_id,
@@ -64,7 +62,10 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
     };
 
     apply_joining("wrld_current:456");
-    assert!(runtime.deps.overlay_activity.snapshot().entries.is_empty());
+    assert!(activity_sink
+        .take_friend_projections()
+        .iter()
+        .all(|projection| projection.feed_entries.is_empty()));
 
     runtime
         .deps
@@ -75,33 +76,29 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
             changed_at: "2026-07-13T09:59:00Z".into(),
         });
     apply_joining("wrld_other:789");
-    assert!(runtime.deps.overlay_activity.snapshot().entries.is_empty());
+    assert!(activity_sink
+        .take_friend_projections()
+        .iter()
+        .all(|projection| projection.feed_entries.is_empty()));
 
-    {
-        let mut snapshot = runtime.deps.game_log_snapshot.lock().unwrap();
-        snapshot.players = vec![PlayerState {
-            user_id: "usr_friend".into(),
-            display_name: "Friend".into(),
-            join_time_ms: Some(1),
-        }];
-    }
+    local_game_context.set_player_user_ids(vec!["usr_friend".into()]);
     apply_joining("wrld_current:456");
-    assert!(runtime.deps.overlay_activity.snapshot().entries.is_empty());
+    assert!(activity_sink
+        .take_friend_projections()
+        .iter()
+        .all(|projection| projection.feed_entries.is_empty()));
 
-    runtime
-        .deps
-        .game_log_snapshot
-        .lock()
-        .unwrap()
-        .players
-        .clear();
+    local_game_context.set_player_user_ids(Vec::new());
     apply_joining("wrld_current:456");
 
-    let entries = runtime.deps.overlay_activity.snapshot().entries;
+    let entries = activity_sink
+        .take_friend_projections()
+        .into_iter()
+        .flat_map(|projection| projection.feed_entries)
+        .collect::<Vec<_>>();
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].activity_type, "OnPlayerJoining");
-    assert_eq!(entries[0].actor_user_id, "usr_friend");
-    assert_eq!(entries[0].content.body.source_text(), "is joining");
+    assert_eq!(entries[0]["type"], "OnPlayerJoining");
+    assert_eq!(entries[0]["userId"], "usr_friend");
     let events = runtime.deps.event_bus.take_events_for_test();
     assert!(events
         .iter()
@@ -115,7 +112,8 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
 #[test]
 fn initial_traveling_baseline_emits_player_joining() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("baseline-player-joining")?;
-    runtime.deps.overlay_activity.set_delivery_armed(true);
+    let local_game_context = runtime.local_game_context_for_test();
+    let activity_sink = runtime.activity_sink_for_test();
     runtime
         .deps
         .session
@@ -124,7 +122,7 @@ fn initial_traveling_baseline_emits_player_joining() -> Result<()> {
             is_steamvr_running: true,
             changed_at: "2026-07-13T09:59:00Z".into(),
         });
-    runtime.deps.game_log_snapshot.lock().unwrap().location = "wrld_current:456".into();
+    local_game_context.set_location("wrld_current:456");
 
     runtime.sync_friend_snapshot(
         active_session.user_id,
@@ -147,10 +145,14 @@ fn initial_traveling_baseline_emits_player_joining() -> Result<()> {
         .collect(),
     )?;
 
-    let entries = runtime.deps.overlay_activity.snapshot().entries;
+    let entries = activity_sink
+        .take_friend_projections()
+        .into_iter()
+        .flat_map(|projection| projection.feed_entries)
+        .collect::<Vec<_>>();
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].activity_type, "OnPlayerJoining");
-    assert_eq!(entries[0].actor_user_id, "usr_friend");
+    assert_eq!(entries[0]["type"], "OnPlayerJoining");
+    assert_eq!(entries[0]["userId"], "usr_friend");
     let events = runtime.deps.event_bus.take_events_for_test();
     let projection = events
         .iter()

@@ -50,13 +50,27 @@ pub struct RealtimeTransportStartResult {
     pub session_generation: u64,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RealtimeCurrentUserAuthority {
+    pub local_game_context_available: bool,
     pub is_game_running: bool,
     pub game_log_enabled: bool,
     pub game_log_location: String,
     pub game_log_destination: String,
     pub game_log_world_name: String,
+}
+
+impl Default for RealtimeCurrentUserAuthority {
+    fn default() -> Self {
+        Self {
+            local_game_context_available: true,
+            is_game_running: false,
+            game_log_enabled: false,
+            game_log_location: String::new(),
+            game_log_destination: String::new(),
+            game_log_world_name: String::new(),
+        }
+    }
 }
 
 pub enum RealtimeFriendApplyResult {

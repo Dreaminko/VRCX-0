@@ -1,3 +1,4 @@
+mod activity_sink;
 mod app_update;
 mod async_runtime_policy;
 mod auth_credentials;
@@ -16,15 +17,12 @@ mod error;
 mod event_bus;
 mod favorite_import;
 mod favorite_transfer;
-mod game_client;
-mod game_log;
 pub mod groups;
 mod image_cache;
 mod import_collection;
 mod instance_launch;
-mod interruptible_sleep;
 mod local_favorites;
-mod log_watcher;
+mod local_game_context;
 mod login_session;
 mod media_upload;
 mod moderation_sync;
@@ -32,16 +30,13 @@ mod mutual_graph_fetch;
 mod noninteractive_auth;
 mod note_export;
 mod notification_actions;
-mod overlay_activity;
 mod prints;
 mod process_monitor;
 mod profile_backup;
 mod proxy;
 mod realtime;
-mod registry_backup;
 mod runtime_lifecycle;
 mod runtime_output;
-mod screenshots;
 mod session;
 mod share_collection;
 mod shared_collection_import;
@@ -52,21 +47,18 @@ mod task_supervisor;
 mod updater_port;
 pub mod vrchat_api;
 mod web_client;
-mod worker;
 mod world_cache;
 mod world_enrich;
 
 pub mod ports {
     pub use crate::event_bus::{RuntimeEventBus, RuntimeEventSink};
-    pub use crate::game_log::GameLogHostActions;
-    pub use crate::process_monitor::{
-        GameProcessEventSink, GameProcessMonitorActions, GameProcessStatus,
-    };
+    pub use crate::process_monitor::GameProcessEventSink;
     pub use crate::task_supervisor::{
         RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,
     };
 }
 
+pub use activity_sink::OverlayActivityInputSink;
 pub use app_update::{
     AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
     AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
@@ -96,13 +88,8 @@ pub use backend_runtime::{
 };
 pub use background::{RuntimeBackgroundJobSnapshot, RuntimeBackgroundJobs};
 pub use background_capabilities::{
-    build_background_discord_presence_command, build_background_presence_facts,
     refresh_background_current_user, refresh_background_group_instances,
-    run_background_presence_automation, BackgroundCapabilitySession,
-    BackgroundDiscordActivityPayload, BackgroundDiscordPresenceCommand,
-    BackgroundDiscordPresenceState, BackgroundGroupInstancesRefresh,
-    BackgroundPresenceAutomationResult, BackgroundPresenceAutomationState, BackgroundPresenceFacts,
-    BackgroundPresenceFactsInput, DiscordPresenceLabels, PresencePlayer,
+    BackgroundCapabilitySession, BackgroundGroupInstancesRefresh,
 };
 pub use batch_mutation::{
     run_avatar_content_tags_batch, run_group_leave_batch, run_group_visibility_batch,
@@ -131,21 +118,6 @@ pub use favorite_transfer::{
     FavoriteTransferItemStatus, FavoriteTransferLocation, FavoriteTransferMode,
     FavoriteTransferResult, FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
-pub use game_client::{
-    DebugLoggingOutcome, DebugLoggingOutcomeKind, GameClientActions, GameClientCacheActions,
-    GameClientDebugLoggingActions, GameClientLocationSource, GameClientRuntime,
-    GameClientRuntimeDeps, GameClientWindowActions, NoopGameClientCacheActions,
-    NoopGameClientWindowActions,
-};
-pub use game_log::{
-    duration_ms, game_log_sessions_query, parse_event_time_ms, player_key,
-    player_list_current_snapshot, world_id_from_location, GameLogHostActions, GameLogIngestEngine,
-    GameLogIngestOptions, GameLogIngestOutput, GameLogProcessEvent, GameLogProjection,
-    GameLogRuntime, GameLogRuntimeDeps, GameLogRuntimeState, GameLogSessionDto,
-    GameLogSessionEventDto, GameLogSessionMemberDto, GameLogSessionsQueryInput, GameLogSideEffect,
-    NoopGameLogHostActions, PlayerListSnapshotContext, PlayerListSnapshotOutput,
-    PlayerListSnapshotPlayer, PlayerState, RuntimeSnapshot, ScreenshotInput,
-};
 pub use groups::{
     ban_member, block_group, cancel_request, create_post, delete_invite, delete_post, edit_post,
     get_audit_log_types, get_bans, get_gallery, get_group, get_group_instances,
@@ -173,9 +145,8 @@ pub use instance_launch::{
 pub use local_favorites::{
     create_local_favorite_group, delete_local_favorite_group, rename_local_favorite_group,
 };
-pub use log_watcher::{
-    GameLogEvent, GameLogEventSink, LogLocationSnapshot, LogLocationSnapshotScanner, LogWatcher,
-    NoopLogLocationSnapshotScanner,
+pub use local_game_context::{
+    LocalGameContextSnapshot, LocalGameContextSource, UnavailableLocalGameContextSource,
 };
 pub use login_session::{
     AutoLoginOutcome, AutoLoginStartInput, LoginApi, LoginApiFuture, LoginFailureKind,
@@ -213,14 +184,6 @@ pub use notification_actions::{
     NotificationMarkSeenItemState, NotificationMarkSeenLocation, VrchatNotificationMarkSeenActions,
     NOTIFICATION_MARK_SEEN_MAX_ITEMS,
 };
-pub use overlay_activity::{
-    overlay_activity_type_definitions, OverlayActivityActorRelation, OverlayActivityCandidate,
-    OverlayActivityCategory, OverlayActivityContent, OverlayActivityDelivery, OverlayActivityEntry,
-    OverlayActivityFavoriteGroupKeys, OverlayActivityFilters, OverlayActivityRule,
-    OverlayActivityRuntime, OverlayActivityScope, OverlayActivitySink, OverlayActivitySnapshot,
-    OverlayActivitySurface, OverlayActivitySurfaceFilters, OverlayActivityText,
-    OverlayActivityTypeDefinition, OverlayFavoriteGroups,
-};
 pub use prints::{
     cleanup::{
         is_print_created_content_refresh, run_print_auto_cleanup, PrintAutoCleanupEvent,
@@ -228,10 +191,7 @@ pub use prints::{
     },
     favorites::{favorite_state, set_print_favorite, CleanupWarningKind, PrintFavoriteState},
 };
-pub use process_monitor::{
-    GameProcessEvent, GameProcessEventSink, GameProcessMonitorActions, GameProcessStatus,
-    ProcessMonitor,
-};
+pub use process_monitor::{GameProcessEvent, GameProcessEventSink};
 pub use profile_backup::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,
@@ -256,24 +216,9 @@ pub use realtime::{
     RealtimeStopRequest, RealtimeTransportStartResult, RealtimeWsMessagePayload,
     RealtimeWsStatusPayload, SyntheticFriendEventOutcome,
 };
-pub use registry_backup::{
-    registry_backup_create, registry_backup_delete, registry_backup_export_json,
-    registry_backup_import_json, registry_backup_list, registry_backup_maintenance_run,
-    registry_backup_restore, RegistryBackupHostActions, RegistryBackupMaintenanceMode,
-    RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
-};
 pub use runtime_lifecycle::{RuntimeLifecycle, RuntimeLifecycleSnapshot};
 pub use runtime_output::{
     format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputLine, RuntimeOutputMode,
-};
-pub use screenshots::{
-    add_screenshot_metadata, can_decode_image, delete_all_screenshot_metadata,
-    delete_text_metadata, ensure_screenshot_thumbnail, extra_screenshot_data, find_screenshots,
-    find_screenshots_json, get_screenshot_metadata, has_vrcx_metadata, is_path_inside_directory,
-    is_png_file, is_vrchat_screenshot_file_path, last_screenshot, list_screenshot_folder_images,
-    list_world_screenshots, read_png_dimensions, screenshot_folder_tree, screenshot_metadata_json,
-    start_screenshot_library_scan, write_vrcx_metadata, MetadataCacheDb, ScreenshotFolderTree,
-    ScreenshotLibraryImage, ScreenshotLibraryScanStatus, ScreenshotMetadata, ScreenshotSearchType,
 };
 pub use session::{
     GameProcessStatus as HostSessionGameProcessStatus, HostSessionProjection, HostSessionRuntime,
@@ -313,7 +258,7 @@ pub use updater_port::{
 pub use vrcx_0_core::location::ParsedLocation;
 pub use vrcx_0_media::ugc_image_files::UgcCategory;
 pub use web_client::WebClient;
-pub use worker::{OverflowPolicy, RuntimeJobHandler, RuntimePushReport};
 pub use world_cache::WorldCache;
+pub use world_enrich::world_id_from_location_or_id;
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -8666,15 +8666,18 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "vrcx-0-application",
+ "vrcx-0-application-game",
  "vrcx-0-core",
  "vrcx-0-harness",
  "vrcx-0-host",
+ "vrcx-0-host-desktop",
  "vrcx-0-i18n",
  "vrcx-0-integrations",
  "vrcx-0-mcp",
  "vrcx-0-media",
  "vrcx-0-persistence",
  "vrcx-0-runtime-host",
+ "vrcx-0-runtime-host-desktop",
  "vrcx-0-vrchat-client",
  "webkit2gtk-nvidia-quirk",
  "windows-sys 0.61.2",
@@ -8691,7 +8694,6 @@ dependencies = [
  "hex",
  "image",
  "moka",
- "percent-encoding",
  "rusqlite",
  "serde",
  "serde_json",
@@ -8701,6 +8703,27 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "vrcx-0-core",
+ "vrcx-0-integrations",
+ "vrcx-0-media",
+ "vrcx-0-persistence",
+ "vrcx-0-vrchat-client",
+]
+
+[[package]]
+name = "vrcx-0-application-game"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "image",
+ "percent-encoding",
+ "serde",
+ "serde_json",
+ "specta",
+ "tokio",
+ "tracing",
+ "url",
+ "vrcx-0-application",
  "vrcx-0-core",
  "vrcx-0-i18n",
  "vrcx-0-integrations",
@@ -8760,6 +8783,22 @@ dependencies = [
 name = "vrcx-0-host"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "dirs 6.0.0",
+ "machine-uid",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "specta",
+ "thiserror 2.0.18",
+ "tracing",
+ "vrcx-0-core",
+]
+
+[[package]]
+name = "vrcx-0-host-desktop"
+version = "0.1.0"
+dependencies = [
  "arboard",
  "ash",
  "base64 0.22.1",
@@ -8768,7 +8807,6 @@ dependencies = [
  "fontdb",
  "futures-util",
  "hex",
- "machine-uid",
  "open",
  "openvr",
  "openvr_sys",
@@ -8784,6 +8822,7 @@ dependencies = [
  "tracing",
  "url",
  "vrcx-0-core",
+ "vrcx-0-host",
  "vrcx-0-vr-overlay",
  "walkdir",
  "windows 0.62.2",
@@ -8899,7 +8938,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "iana-time-zone",
- "image",
  "serde",
  "serde_json",
  "specta",
@@ -8911,10 +8949,31 @@ dependencies = [
  "vrcx-0-application",
  "vrcx-0-core",
  "vrcx-0-host",
- "vrcx-0-i18n",
  "vrcx-0-integrations",
  "vrcx-0-media",
  "vrcx-0-persistence",
+ "vrcx-0-vrchat-client",
+]
+
+[[package]]
+name = "vrcx-0-runtime-host-desktop"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "image",
+ "serde",
+ "serde_json",
+ "specta",
+ "tokio",
+ "tracing",
+ "vrcx-0-application",
+ "vrcx-0-application-game",
+ "vrcx-0-core",
+ "vrcx-0-host",
+ "vrcx-0-host-desktop",
+ "vrcx-0-i18n",
+ "vrcx-0-persistence",
+ "vrcx-0-runtime-host",
  "vrcx-0-vr-overlay",
  "vrcx-0-vrchat-client",
 ]

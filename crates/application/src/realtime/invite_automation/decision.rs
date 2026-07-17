@@ -33,6 +33,7 @@ pub struct SenderAllowlist {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InviteLocationFacts {
+    pub local_game_context_available: bool,
     pub is_game_running: bool,
     pub current_location: String,
     pub last_location: String,
@@ -73,6 +74,7 @@ pub enum InviteAutomationSkipReason {
     Disabled,
     InvalidNotification,
     SenderNotAllowlisted,
+    LocalGameContextUnavailable,
     GameNotRunning,
     MissingCurrentSessionOrLocation,
     CurrentLocationNotInvitable,
@@ -87,6 +89,7 @@ impl InviteAutomationSkipReason {
             Self::Disabled => "disabled",
             Self::InvalidNotification => "invalid-notification",
             Self::SenderNotAllowlisted => "sender-not-allowlisted",
+            Self::LocalGameContextUnavailable => "local-game-context-unavailable",
             Self::GameNotRunning => "game-not-running",
             Self::MissingCurrentSessionOrLocation => "missing-current-session-or-location",
             Self::CurrentLocationNotInvitable => "current-location-not-invitable",
@@ -117,6 +120,9 @@ pub fn evaluate_invite_automation(input: &InviteAutomationInput) -> InviteDecisi
     }
     if !sender_allowed(&input.config, &input.allowlist) {
         return skip(InviteAutomationSkipReason::SenderNotAllowlisted);
+    }
+    if !input.location.local_game_context_available {
+        return skip(InviteAutomationSkipReason::LocalGameContextUnavailable);
     }
     if !input.location.is_game_running {
         return skip(InviteAutomationSkipReason::GameNotRunning);
@@ -228,6 +234,7 @@ mod tests {
                 group_keys_of_sender: HashSet::from(["friend:group_0".into()]),
             },
             location: InviteLocationFacts {
+                local_game_context_available: true,
                 is_game_running: true,
                 current_location: "wrld_private:12345~private(usr_self)".into(),
                 last_location: "wrld_private:12345~private(usr_self)".into(),
@@ -278,6 +285,19 @@ mod tests {
             evaluate_invite_automation(&input),
             InviteDecision::Skip {
                 reason: InviteAutomationSkipReason::GameNotRunning,
+            }
+        );
+    }
+
+    #[test]
+    fn skips_when_local_game_context_is_unavailable() {
+        let mut input = base_input();
+        input.location.local_game_context_available = false;
+
+        assert_eq!(
+            evaluate_invite_automation(&input),
+            InviteDecision::Skip {
+                reason: InviteAutomationSkipReason::LocalGameContextUnavailable,
             }
         );
     }

@@ -44,7 +44,9 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
                 state.queued_friend_messages.clear();
             }
             "connected" => {
-                self.runtime.deps.overlay_activity.set_delivery_armed(true);
+                if let Some(activity_sink) = &self.runtime.deps.activity_sink {
+                    activity_sink.set_delivery_armed(true);
+                }
                 self.runtime.resume_friend_messages_after_reconnect(
                     generation,
                     session_generation,
@@ -121,10 +123,9 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
         if let Some(mut projection) = apply_instance_queue_ws_message(generation, payload) {
             self.runtime
                 .enrich_instance_queue_projection(&mut projection);
-            self.runtime
-                .deps
-                .overlay_activity
-                .ingest_instance_queue_projection(&projection);
+            if let Some(activity_sink) = &self.runtime.deps.activity_sink {
+                activity_sink.ingest_instance_queue_projection(&projection);
+            }
             self.runtime
                 .deps
                 .event_bus
@@ -183,8 +184,7 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             let finished_active = active.clone();
             let final_current_user_output = self
                 .runtime
-                .current_user
-                .apply_game_running_state(generation, false);
+                .current_user_game_running_output(generation, false);
             state.active_context = None;
             state.friend_messages_paused = false;
             state.queued_friend_messages.clear();

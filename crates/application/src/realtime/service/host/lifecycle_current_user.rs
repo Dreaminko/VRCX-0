@@ -96,21 +96,28 @@ impl RealtimeHostRuntime {
     }
 
     pub(super) fn current_user_authority(&self) -> RealtimeCurrentUserAuthority {
-        let session = self.deps.session.snapshot();
-        let game_log_snapshot = self
-            .deps
-            .game_log_snapshot
-            .lock()
-            .map(|snapshot| snapshot.clone())
-            .unwrap_or_default();
+        let local_game_context = self.deps.local_game_context.snapshot();
         let game_log_disabled =
             config_store::get_bool(&self.deps.db, "gameLogDisabled", false).unwrap_or(false);
-        RealtimeCurrentUserAuthority {
-            is_game_running: session.is_game_running,
-            game_log_enabled: !game_log_disabled,
-            game_log_location: game_log_snapshot.location,
-            game_log_destination: game_log_snapshot.destination,
-            game_log_world_name: game_log_snapshot.world_name,
+        match local_game_context {
+            LocalGameContextSnapshot::Unavailable => RealtimeCurrentUserAuthority {
+                local_game_context_available: false,
+                ..RealtimeCurrentUserAuthority::default()
+            },
+            LocalGameContextSnapshot::Available {
+                is_game_running,
+                location,
+                destination,
+                world_name,
+                ..
+            } => RealtimeCurrentUserAuthority {
+                local_game_context_available: true,
+                is_game_running,
+                game_log_enabled: !game_log_disabled,
+                game_log_location: location,
+                game_log_destination: destination,
+                game_log_world_name: world_name,
+            },
         }
     }
 
@@ -119,12 +126,21 @@ impl RealtimeHostRuntime {
         generation: u64,
         is_game_running: bool,
     ) {
-        let Some(output) = self
-            .current_user
-            .apply_game_running_state(generation, is_game_running)
+        let Some(output) = self.current_user_game_running_output(generation, is_game_running)
         else {
             return;
         };
         self.apply_current_user_output(output);
+    }
+
+    pub(super) fn current_user_game_running_output(
+        &self,
+        generation: u64,
+        is_game_running: bool,
+    ) -> Option<RealtimeCurrentUserOutput> {
+        let mut authority = self.current_user_authority();
+        authority.is_game_running = is_game_running;
+        self.current_user
+            .apply_game_running_state(generation, authority)
     }
 }

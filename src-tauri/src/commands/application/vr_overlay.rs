@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use tauri::{AppHandle, Manager};
-use vrcx_0_runtime_host::vr_overlay::VrOverlayRuntimeSnapshot;
+use vrcx_0_runtime_host_desktop::vr_overlay::VrOverlayRuntimeSnapshot;
 
 use crate::error::AppError;
 use crate::state::AppState;

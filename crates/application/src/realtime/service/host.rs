@@ -18,8 +18,6 @@ use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
 use vrcx_0_vrchat_client::users as remote_users;
 
 use crate::event_bus::{FavoritesChangedPayload, RuntimeEventBus, RuntimeVrchatAuthFailurePayload};
-use crate::game_log::RuntimeSnapshot;
-use crate::overlay_activity::OverlayActivityRuntime;
 use crate::prints::cleanup::{PrintCleanupDeps, PrintCleanupQueue, PrintCleanupTrigger};
 use crate::process_monitor::{GameProcessEvent, GameProcessEventSink};
 use crate::realtime::connection::{
@@ -61,6 +59,7 @@ use crate::web_client::WebClient;
 use crate::world_enrich::is_meaningful_world_name;
 use crate::RuntimeAuthScope;
 use crate::{Error, Result};
+use crate::{LocalGameContextSnapshot, LocalGameContextSource, OverlayActivityInputSink};
 
 #[cfg(test)]
 mod friend_baseline_tests;

@@ -105,9 +105,7 @@ impl RealtimeHostRuntime {
                 generation,
                 0,
             );
-            self.deps
-                .overlay_activity
-                .set_friend_user_ids(friend_user_ids);
+            self.set_activity_friend_user_ids(friend_user_ids);
             self.current_user.set_snapshot(
                 session.user_id.clone(),
                 generation,
@@ -302,9 +300,8 @@ impl RealtimeHostRuntime {
             }
 
             let websocket_domain = normalize_websocket_domain(&active.session.websocket);
-            let final_current_user_output = self
-                .current_user
-                .apply_game_running_state(active.generation, false);
+            let final_current_user_output =
+                self.current_user_game_running_output(active.generation, false);
             state.generation = state.generation.saturating_add(1);
             state.active_context = None;
             state.pending_friend_baseline = None;

@@ -9,18 +9,16 @@ use vrcx_0_application::{
     build_favorites_baseline, build_friend_roster_baseline, AuthenticatedRuntimePhase,
     AuthenticatedRuntimePhaseSnapshot, AuthenticatedRuntimeSession,
     AuthenticatedRuntimeStepSnapshot, AuthenticatedRuntimeStepStatus, HostSessionRuntime,
-    OverlayActivityRuntime, OverlayFavoriteGroups, RealtimeHostRuntime, RealtimeStopRequest,
-    RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus, RuntimeVrchatAuthFailurePayload,
-    SocialBaselineDeps, SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput,
-    SocialFriendRosterBaselineInput, SocialFriendRosterBaselineOutput, TaskStopToken,
-    TaskSupervisor, WebClient,
+    RealtimeHostRuntime, RealtimeStopRequest, RuntimeAuthScope, RuntimeAuthScopeSnapshot,
+    RuntimeEventBus, RuntimeVrchatAuthFailurePayload, SocialBaselineDeps,
+    SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
+    SocialFriendRosterBaselineOutput, TaskStopToken, TaskSupervisor, WebClient,
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::vr_overlay::VrOverlayRuntime;
-use crate::{Error, Result};
+use crate::{Error, Result, RuntimeHostSnapshotCallback};
 
 const RETRY_DELAYS_SECONDS: [u64; 4] = [5, 15, 30, 60];
 const RETRY_SLEEP_POLL_INTERVAL: Duration = Duration::from_millis(250);
@@ -43,8 +41,7 @@ pub struct AuthenticatedRuntimeOrchestrator {
     auth_scope: RuntimeAuthScope,
     session: HostSessionRuntime,
     realtime_runtime: Arc<RealtimeHostRuntime>,
-    overlay_activity: OverlayActivityRuntime,
-    vr_overlay_runtime: Arc<VrOverlayRuntime>,
+    favorites_sink: Option<RuntimeHostSnapshotCallback>,
 }
 
 impl AuthenticatedRuntimeOrchestrator {
@@ -57,8 +54,7 @@ impl AuthenticatedRuntimeOrchestrator {
         auth_scope: RuntimeAuthScope,
         session: HostSessionRuntime,
         realtime_runtime: Arc<RealtimeHostRuntime>,
-        overlay_activity: OverlayActivityRuntime,
-        vr_overlay_runtime: Arc<VrOverlayRuntime>,
+        favorites_sink: Option<RuntimeHostSnapshotCallback>,
     ) -> Self {
         Self {
             snapshot: Arc::new(Mutex::new(AuthenticatedRuntimePhaseSnapshot::default())),
@@ -70,8 +66,7 @@ impl AuthenticatedRuntimeOrchestrator {
             auth_scope,
             session,
             realtime_runtime,
-            overlay_activity,
-            vr_overlay_runtime,
+            favorites_sink,
         }
     }
 
@@ -122,6 +117,12 @@ impl AuthenticatedRuntimeOrchestrator {
         }
         snapshot.favorites_baseline = Some(output);
         snapshot.updated_at = now_iso();
+    }
+
+    pub fn apply_favorites_snapshot(&self, snapshot: &Value) {
+        if let Some(favorites_sink) = &self.favorites_sink {
+            favorites_sink(snapshot);
+        }
     }
 
     pub fn start(
@@ -323,12 +324,7 @@ impl AuthenticatedRuntimeOrchestrator {
             {
                 Ok(output) => {
                     if let Some(snapshot) = output.snapshot.as_ref().map(RawJson::as_value) {
-                        self.vr_overlay_runtime
-                            .update_friends_panel_favorite_groups_from_baseline(snapshot);
-                        self.overlay_activity
-                            .set_favorite_groups(OverlayFavoriteGroups::from_map(
-                                favorite_group_membership_from_snapshot(snapshot),
-                            ));
+                        self.apply_favorites_snapshot(snapshot);
                     }
                     self.update_snapshot(run_id, |snapshot| {
                         snapshot.favorites =
@@ -695,9 +691,7 @@ fn friend_state_bucket(friend: &FriendRecord) -> &str {
     }
 }
 
-pub(crate) fn favorite_group_membership_from_snapshot(
-    snapshot: &Value,
-) -> HashMap<String, Vec<String>> {
+pub fn favorite_group_membership_from_snapshot(snapshot: &Value) -> HashMap<String, Vec<String>> {
     let mut groups = HashMap::new();
     append_favorite_group_membership(
         &mut groups,

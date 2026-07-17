@@ -3,8 +3,6 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::game_log::GameLogProjection;
-use crate::overlay_activity::OverlayActivitySnapshot;
 use crate::prints::cleanup::PrintAutoCleanupEvent;
 use crate::realtime::{
     FriendProfileLoadStatusPayload, FriendProjection, RealtimeCurrentUserProjection,
@@ -13,7 +11,6 @@ use crate::realtime::{
 };
 use crate::session::HostSessionProjection;
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
-use vrcx_0_persistence::game_log::GameLogWriteBatch;
 
 pub trait RuntimeEventSink: Send + Sync {
     fn emit(&self, event: &str, payload: Value);
@@ -93,43 +90,6 @@ impl RuntimeEventBus {
         std::mem::take(&mut *self.events.lock().unwrap())
     }
 
-    pub fn emit_game_log_side_effect(&self, kind: &str, payload: Value) {
-        self.emit(
-            "gameLogSideEffect",
-            serde_json::json!({
-                "kind": kind,
-                "payload": payload,
-            }),
-        );
-    }
-
-    pub fn emit_game_client_event(&self, kind: &str, payload: Value) {
-        self.emit(
-            "gameClientEvent",
-            serde_json::json!({
-                "kind": kind,
-                "payload": payload,
-            }),
-        );
-    }
-
-    pub fn emit_runtime_game_log_event(&self, raw: Vec<String>) {
-        self.emit(
-            "runtimeGameLogEvent",
-            serde_json::json!({
-                "runtimePersisted": true,
-                "raw": raw,
-            }),
-        );
-    }
-
-    pub fn emit_game_log_persisted(&self, count: u64) {
-        self.emit_backend_runtime_telemetry(serde_json::json!({
-            "kind": "gameLogPersisted",
-            "count": count,
-        }));
-    }
-
     pub fn emit_ws_persisted(&self, count: u64) {
         self.emit_backend_runtime_telemetry(serde_json::json!({
             "kind": "wsPersisted",
@@ -137,40 +97,11 @@ impl RuntimeEventBus {
         }));
     }
 
-    pub fn emit_game_log_projection(&self, projection: GameLogProjection) {
-        self.emit("gameLogProjection", projection);
-    }
-
-    pub fn emit_game_log_persistence_fallback(
-        &self,
-        batch: &GameLogWriteBatch,
-        raw_rows: Vec<Vec<String>>,
-        error: &str,
-    ) {
-        // Compatibility event name. This is telemetry-only; the WebView must not
-        // write the batch as a fallback for runtime-originated GameLog events.
-        self.emit(
-            "gameLogPersistenceFallback",
-            serde_json::json!({
-                "batch": batch,
-                "rawRows": raw_rows,
-                "error": error,
-            }),
-        );
-    }
-
-    pub fn emit_runtime_worker_error(&self, worker: &str, message: &str) {
-        self.emit(
-            "runtimeWorkerError",
-            serde_json::json!({
-                "worker": worker,
-                "message": message,
-            }),
-        );
-    }
-
-    pub fn emit_game_process_status(&self, payload: HostSessionProjection) {
-        self.emit("updateIsGameRunning", payload);
+    pub fn emit_game_log_persisted(&self, count: u64) {
+        self.emit_backend_runtime_telemetry(serde_json::json!({
+            "kind": "gameLogPersisted",
+            "count": count,
+        }));
     }
 
     pub fn emit_realtime_ws_status(&self, payload: RealtimeWsStatusPayload) {
@@ -223,8 +154,8 @@ impl RuntimeEventBus {
         self.emit("realtimeInstanceQueueProjection", payload);
     }
 
-    pub fn emit_overlay_activity_snapshot(&self, payload: OverlayActivitySnapshot) {
-        self.emit("overlayActivitySnapshot", payload);
+    pub fn emit_game_process_status(&self, payload: HostSessionProjection) {
+        self.emit("updateIsGameRunning", payload);
     }
 
     pub fn emit_prints_auto_cleanup(&self, payload: PrintAutoCleanupEvent) {

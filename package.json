@@ -34,6 +34,7 @@
         "rust:clippy:fix": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --fix --allow-dirty -- -D warnings",
         "rust:fmt": "cargo fmt --all",
         "rust:fmt:check": "cargo fmt --all -- --check",
+        "rust:headless-deps:check": "node ./scripts/check-headless-dependencies.mjs",
         "rust:test": "cargo test --workspace --exclude vrcx-0 --locked",
         "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
         "test": "vitest run",

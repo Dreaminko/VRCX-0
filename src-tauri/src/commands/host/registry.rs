@@ -6,9 +6,9 @@ use crate::error::AppError;
 use crate::state::AppState;
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use vrcx_0_host::vrchat_registry;
+use vrcx_0_host_desktop::vrchat_registry;
 
-use vrcx_0_host::host_capabilities::{require_host_capability, HostCapability};
+use vrcx_0_host_desktop::host_capabilities::{require_host_capability, HostCapability};
 
 #[tauri::command]
 #[specta::specta]

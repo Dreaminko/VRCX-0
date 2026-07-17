@@ -1,12 +1,11 @@
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 use vrcx_0_persistence::friends::{friend_log_history_query, FriendLogHistoryQueryInput};
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::overlay_activity::OverlayActivityRuntime;
 use crate::prints::cleanup::PrintCleanupQueue;
 use crate::realtime::{RealtimeHostRuntime, RealtimeHostRuntimeDeps};
 use crate::session::HostSessionRuntime;
@@ -14,7 +13,7 @@ use crate::sync::RuntimeSyncEngine;
 use crate::task_supervisor::TaskSupervisor;
 use crate::web_client::WebClient;
 use crate::world_cache::WorldCache;
-use crate::{RuntimeAuthScope, RuntimeEventBus, RuntimeSnapshot};
+use crate::{RuntimeAuthScope, RuntimeEventBus, UnavailableLocalGameContextSource};
 
 use super::super::types::SocialFriendMutationStatus;
 use super::*;
@@ -81,8 +80,8 @@ fn fixture(name: &str) -> Fixture {
         tasks: TaskSupervisor::new(),
         session: HostSessionRuntime::new(),
         auth_scope: auth_scope.clone(),
-        game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
-        overlay_activity: OverlayActivityRuntime::default(),
+        local_game_context: Arc::new(UnavailableLocalGameContextSource),
+        activity_sink: None,
         world_cache,
         print_cleanup: PrintCleanupQueue::new(),
         friend_note_change_sink: None,

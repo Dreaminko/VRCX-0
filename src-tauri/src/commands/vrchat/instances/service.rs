@@ -13,7 +13,7 @@ use vrcx_0_application::{
     InstanceLaunchInput, InstanceLaunchOutcome, InstanceLaunchPipe, RuntimeDiagnostics,
     RuntimeSyncEngine, WebClient,
 };
-use vrcx_0_host::host_capabilities::{require_host_capability, HostCapability};
+use vrcx_0_host_desktop::host_capabilities::{require_host_capability, HostCapability};
 use vrcx_0_persistence::DatabaseService;
 
 use crate::error::AppError;

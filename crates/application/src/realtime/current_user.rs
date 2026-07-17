@@ -221,8 +221,11 @@ impl RealtimeCurrentUserRuntime {
     pub fn apply_game_running_state(
         &self,
         generation: u64,
-        is_game_running: bool,
+        authority: RealtimeCurrentUserAuthority,
     ) -> Option<RealtimeCurrentUserOutput> {
+        if !authority.local_game_context_available {
+            return None;
+        }
         let mut state = self.lock_state();
         if state.generation != generation || state.current_user_id.is_empty() {
             return None;
@@ -231,13 +234,10 @@ impl RealtimeCurrentUserRuntime {
             &mut state,
             Map::new(),
             &EventTime::now(),
-            &RealtimeCurrentUserAuthority {
-                is_game_running,
-                ..RealtimeCurrentUserAuthority::default()
-            },
+            &authority,
             false,
             false,
-            is_game_running,
+            authority.is_game_running,
         )
     }
 
@@ -327,16 +327,20 @@ fn apply_current_user_patch(
     let (snapshot, mut persistence) = apply_avatar_wear_transition(
         RealtimeCurrentUserStateSnapshot::from_map(merged, &state.current_user_id),
         &previous,
+        authority.local_game_context_available,
         authority.is_game_running,
         now,
         records_current_avatar_history,
     );
-    if writes_location_fallback && !authority.is_game_running {
+    let writes_location_game_state = authority.local_game_context_available
+        && writes_location_fallback
+        && !authority.is_game_running;
+    if writes_location_game_state {
         if let Some(location_entry) = location_game_log_entry(&snapshot, now) {
             persistence.game_log_locations.push(location_entry);
         }
     }
-    let game_state_patch = if writes_location_fallback && !authority.is_game_running {
+    let game_state_patch = if writes_location_game_state {
         Some(location_game_state_patch(&snapshot, now))
     } else {
         None
@@ -359,7 +363,10 @@ fn apply_current_user_patch(
 fn game_log_authority_patch(
     authority: &RealtimeCurrentUserAuthority,
 ) -> Option<Map<String, Value>> {
-    if !authority.is_game_running || !authority.game_log_enabled {
+    if !authority.local_game_context_available
+        || !authority.is_game_running
+        || !authority.game_log_enabled
+    {
         return None;
     }
     let game_log_location = authority.game_log_location.trim();
@@ -410,6 +417,7 @@ fn game_log_authority_patch(
 fn apply_avatar_wear_transition(
     mut next: RealtimeCurrentUserStateSnapshot,
     previous: &RealtimeCurrentUserStateSnapshot,
+    local_game_context_available: bool,
     is_game_running: bool,
     now: &EventTime,
     records_current_avatar_history: bool,
@@ -418,6 +426,19 @@ fn apply_avatar_wear_transition(
     let next_avatar_id = next.current_avatar.clone();
     let previous_swap_time = previous.previous_avatar_swap_time;
     let mut persistence = RealtimePersistenceBatch::default();
+
+    if !local_game_context_available {
+        next.previous_avatar_swap_time = previous_swap_time;
+        match previous.raw.get("$previousAvatarSwapTime").cloned() {
+            Some(value) => {
+                next.raw.insert("$previousAvatarSwapTime".into(), value);
+            }
+            None => {
+                next.raw.remove("$previousAvatarSwapTime");
+            }
+        }
+        return (next, persistence);
+    }
 
     if !is_game_running {
         if !previous_avatar_id.is_empty() && previous_swap_time > 0 {
@@ -832,5 +853,52 @@ mod tests {
             output.projection.patch["$location"]["tag"],
             json!("wrld_auth:123")
         );
+    }
+
+    #[test]
+    fn unavailable_local_game_context_skips_game_dependent_side_effects() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot(
+            "usr_self".into(),
+            7,
+            json!({
+                "id": "usr_self",
+                "currentAvatar": "avtr_current",
+                "$previousAvatarSwapTime": 1_000
+            }),
+        );
+        let authority = RealtimeCurrentUserAuthority {
+            local_game_context_available: false,
+            ..RealtimeCurrentUserAuthority::default()
+        };
+
+        let output = runtime
+            .apply_ws_message(
+                7,
+                &RealtimeWsMessagePayload {
+                    json: json!({
+                        "type": "user-location",
+                        "content": {
+                            "userId": "usr_self",
+                            "location": "wrld_1:123",
+                            "travelingToLocation": "",
+                            "worldId": "wrld_1"
+                        }
+                    }),
+                    raw: String::new(),
+                    received_at: "2026-05-15T00:00:02Z".into(),
+                },
+                authority.clone(),
+            )
+            .expect("current user location output");
+
+        assert_eq!(output.projection.snapshot["location"], json!("wrld_1:123"));
+        assert_eq!(
+            output.projection.snapshot["$previousAvatarSwapTime"],
+            json!(1_000)
+        );
+        assert!(output.projection.game_state_patch.is_none());
+        assert!(output.persistence.is_empty());
+        assert!(runtime.apply_game_running_state(7, authority).is_none());
     }
 }

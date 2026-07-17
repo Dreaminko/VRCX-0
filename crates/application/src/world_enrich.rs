@@ -224,7 +224,7 @@ fn first_world_id<const N: usize>(values: [String; N]) -> String {
         .unwrap_or_default()
 }
 
-pub(crate) fn world_id_from_location_or_id(value: &str) -> String {
+pub fn world_id_from_location_or_id(value: &str) -> String {
     world_id_from_location(value)
 }
 
