@@ -74,6 +74,13 @@ zstd = { version = "0.13", features = ["zstdmt"] }
 
 [profile.dev]
 incremental = true
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.test]
+debug = false
 
 [profile.release]
 codegen-units = 1
