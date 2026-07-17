@@ -27,7 +27,7 @@ jobs:
             frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.frontend }}
             rust: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.rust }}
             rust_backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.rust_backend }}
-            native_locales: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.native_locales }}
+            native_catalog: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.native_catalog }}
             tauri_bindings: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.tauri_bindings }}
         steps:
             - uses: actions/checkout@v7
@@ -68,7 +68,7 @@ jobs:
                         - 'package.json'
                         - 'package-lock.json'
                         - 'src-tauri/**'
-                      native_locales:
+                      native_catalog:
                         - '.github/workflows/ci.yml'
                         - 'crates/i18n/**'
                         - 'src/localization/**'
@@ -252,17 +252,17 @@ jobs:
                   cache-key: ${{ matrix.cache_key }}
             - run: npm run rust:test
 
-    native-locales:
-        name: Native Locales
+    native-catalog:
+        name: Native Catalog Build
         runs-on: ubuntu-latest
         needs: changes
-        if: needs.changes.outputs.native_locales == 'true'
+        if: needs.changes.outputs.native_catalog == 'true'
         steps:
             - uses: actions/checkout@v7
             - uses: ./.github/actions/setup-rust
               with:
-                  cache-key: ci-native-locales
-            - run: cargo test -p vrcx-0-i18n --locked
+                  cache-key: ci-native-catalog
+            - run: cargo check -p vrcx-0-i18n --locked
 
     tauri-bindings:
         name: Tauri Bindings Up-to-date

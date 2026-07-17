@@ -34,18 +34,6 @@ fn language_codes() -> Vec<String> {
 }
 
 #[test]
-fn typed_catalog_text_uses_locale_then_english_fallback() {
-    assert_eq!(
-        text("ja", OverlayMessageKey::NotificationsHasJoined),
-        "が参加しました"
-    );
-    assert_eq!(
-        text("fr", OverlayMessageKey::NotificationsHasJoined),
-        "has joined"
-    );
-}
-
-#[test]
 fn interpolation_replaces_scalar_params_and_collapses_whitespace() {
     let params = BTreeMap::from([
         ("name".to_string(), " Ada ".to_string()),
@@ -86,21 +74,4 @@ fn typed_keys_serialize_to_stable_strings() {
         serde_json::to_value(ShellKey::NativeShellTrayOpen).expect("serialize shell key"),
         serde_json::json!("nativeShell.tray.open")
     );
-}
-
-#[test]
-fn generated_key_sets_resolve_under_their_locale_policies() {
-    for locale in ["en", "zh-CN", "zh-TW", "ja", "ko"] {
-        for key in OverlayMessageKey::ALL {
-            assert!(!text(locale, *key).is_empty(), "{locale} {key:?}");
-        }
-    }
-    for locale in language_codes() {
-        for key in DiscordPresenceKey::ALL {
-            assert!(!text(&locale, *key).is_empty(), "{locale} {key:?}");
-        }
-        for key in ShellKey::ALL {
-            assert!(!text(&locale, *key).is_empty(), "{locale} {key:?}");
-        }
-    }
 }

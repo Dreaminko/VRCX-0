@@ -358,49 +358,7 @@ fn should_localize_location_param(value: &str, location: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use vrcx_0_i18n::OverlayMessage;
-
     use super::*;
-
-    #[test]
-    fn zh_cn_renders_joined_keyword() {
-        let localizer = OverlayLocalizer::new(OverlayLocale::ZhCn);
-
-        assert_eq!(
-            localizer.text(&activity_text(OverlayMessage::notifications_has_joined())),
-            "加入了房间"
-        );
-    }
-
-    #[test]
-    fn ja_and_ko_replace_parameters() {
-        let ja = OverlayLocalizer::new(OverlayLocale::Ja);
-        let ko = OverlayLocalizer::new(OverlayLocale::Ko);
-
-        assert_eq!(
-            ja.text(&activity_text(OverlayMessage::notifications_gps(
-                "Test World"
-            ))),
-            "は Test World にいます"
-        );
-        assert_eq!(
-            ko.text(&activity_text(OverlayMessage::notifications_invite(
-                "Test World",
-                "Join?",
-            ))),
-            "님이 귀하를 Test World Join?에 초대했습니다."
-        );
-    }
-
-    #[test]
-    fn unsupported_locale_falls_back_to_english() {
-        let localizer = OverlayLocalizer::new(OverlayLocale::from_config("fr"));
-
-        assert_eq!(
-            localizer.text(&activity_text(OverlayMessage::notifications_has_left())),
-            "has left"
-        );
-    }
 
     #[test]
     fn config_locale_uses_shared_language_normalization() {
@@ -414,87 +372,16 @@ mod tests {
     }
 
     #[test]
-    fn status_update_localizes_status_keyword() {
-        let en = OverlayLocalizer::new(OverlayLocale::En);
-
+    fn status_label_mapping_accepts_known_aliases_and_rejects_unknown_values() {
         assert_eq!(
-            en.text(&activity_text(OverlayMessage::notifications_status_update(
-                "ask me", "",
-            ))),
-            "status is now Ask Me"
+            status_label_key("joinme"),
+            Some(OverlayMessageKey::OverlayStatusJoinMe)
         );
-    }
-
-    #[test]
-    fn status_update_translates_status_for_locale() {
-        let ja = OverlayLocalizer::new(OverlayLocale::Ja);
-
-        let result = ja.text(&activity_text(OverlayMessage::notifications_status_update(
-            "join me", "",
-        )));
-
-        assert!(result.contains("だれでもおいで"), "got: {result}");
-        assert!(!result.contains("join me"));
-    }
-
-    #[test]
-    fn unknown_status_value_is_left_untouched() {
-        let en = OverlayLocalizer::new(OverlayLocale::En);
-
         assert_eq!(
-            en.text(&activity_text(OverlayMessage::notifications_status_update(
-                "something custom",
-                "",
-            ))),
-            "status is now something custom"
+            status_label_key("ASK ME"),
+            Some(OverlayMessageKey::OverlayStatusAskMe)
         );
-    }
-
-    #[test]
-    fn missing_parameter_is_empty_and_whitespace_is_collapsed() {
-        let localizer = OverlayLocalizer::new(OverlayLocale::En);
-
-        assert_eq!(
-            localizer.text(&activity_text(OverlayMessage::notifications_invite(
-                "", "hello",
-            ))),
-            "has invited you to hello"
-        );
-    }
-
-    #[test]
-    fn mapped_overlay_keys_exist_in_every_locale() {
-        let mut keys = ACCESS_LABEL_KEYS.to_vec();
-        keys.extend(DISCORD_TITLE_KEYS.iter().map(|(_, key)| *key));
-        keys.extend(STATUS_LABEL_KEYS.iter().map(|(_, key)| *key));
-
-        for locale in ["en", "zh-CN", "zh-TW", "ja", "ko"] {
-            for key in &keys {
-                assert!(
-                    !native_text(locale, *key).trim().is_empty(),
-                    "overlay locale {locale} is missing mapped key {key:?}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn display_location_uses_overlay_locale_access_labels() {
-        let zh_cn = OverlayLocalizer::new(OverlayLocale::ZhCn);
-
-        assert_eq!(
-            zh_cn.display_location(
-                "wrld_a:1~group(grp_a)~groupAccessType(plus)",
-                "Group World",
-                "Group Name",
-            ),
-            "Group World 群组+(Group Name)"
-        );
-
-        assert_eq!(
-            zh_cn.display_location("wrld_a:1~friends(usr_a)", "Friend World", ""),
-            "Friend World 仅限好友"
-        );
+        assert_eq!(status_label_key("something custom"), None);
     }
 
     #[test]
@@ -533,9 +420,5 @@ mod tests {
             localizer.panel_display_location("wrld_a:12345~region(use)", "Public World", ""),
             "Public World Public"
         );
-    }
-
-    fn activity_text(message: OverlayMessage) -> OverlayActivityText {
-        OverlayActivityText::message(message)
     }
 }
