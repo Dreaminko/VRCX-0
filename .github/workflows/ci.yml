@@ -234,13 +234,13 @@ jobs:
                 include:
                     - label: Windows
                       os: windows-latest
-                      cache_key: ci-windows-x86_64
+                      cache_key: ci-test-windows-x86_64
                     - label: Linux
                       os: ubuntu-24.04
-                      cache_key: ci-linux-x86_64
+                      cache_key: ci-test-linux-x86_64
                     - label: macOS
                       os: macos-latest
-                      cache_key: ci-macos-aarch64
+                      cache_key: ci-test-macos-aarch64
         steps:
             - uses: actions/checkout@v7
             - uses: ./.github/actions/setup-linux-tauri
@@ -250,6 +250,7 @@ jobs:
             - uses: ./.github/actions/setup-rust
               with:
                   cache-key: ${{ matrix.cache_key }}
+                  save-cache: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
             - run: npm run rust:test
 
     native-catalog:
