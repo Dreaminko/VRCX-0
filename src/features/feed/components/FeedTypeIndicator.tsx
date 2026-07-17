@@ -18,23 +18,16 @@ const TYPE_ICONS: Record<string, { Icon: LucideIcon; className: string }> = {
     Offline: { Icon: LogOutIcon, className: 'text-slate-400' },
     Status: {
         Icon: PencilLineIcon,
-        className: 'text-muted-foreground opacity-70'
+        className: 'text-muted-foreground/70'
     },
-    Avatar: {
-        Icon: PersonStandingIcon,
-        className: 'text-muted-foreground opacity-70'
-    },
-    Bio: { Icon: FileTextIcon, className: 'text-muted-foreground opacity-70' }
+    Avatar: { Icon: PersonStandingIcon, className: 'text-muted-foreground/70' },
+    Bio: { Icon: FileTextIcon, className: 'text-muted-foreground/70' }
 };
 
 function FeedTypeIndicator({ label, type }: { label: string; type: unknown }) {
-    const normalizedId = normalizeFeedId(type);
-    const meta =
-        normalizedId in TYPE_ICONS
-            ? TYPE_ICONS[normalizedId as keyof typeof TYPE_ICONS]
-            : null;
+    const meta = TYPE_ICONS[normalizeFeedId(type)];
     return (
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className="inline-flex min-w-0 items-center gap-1.5">
             {meta ? (
                 <meta.Icon
                     aria-hidden="true"

@@ -129,7 +129,7 @@ function TypeFilterDropdown({
                     <Button
                         type="button"
                         variant="outline"
-                        className="h-9 min-w-44 justify-between"
+                        className="min-w-44 justify-between"
                     >
                         <span>
                             {selectedTypes.length
@@ -178,8 +178,10 @@ function TypeFilterDropdown({
 function TypeFilterToggleGroup({
     types,
     selectedTypes,
-    onSelectedTypesChange
+    onSelectedTypesChange,
+    className = 'flex min-w-0 flex-wrap items-center gap-1'
 }: {
+    className?: string;
     onSelectedTypesChange(types: GameLogFilterType[]): void;
     selectedTypes: readonly GameLogFilterType[];
     types: readonly GameLogFilterType[];
@@ -187,15 +189,11 @@ function TypeFilterToggleGroup({
     const { t } = useTranslation();
 
     return (
-        <div
-            className={
-                'border-border/50 bg-muted/50 flex min-w-0 flex-wrap items-center gap-1 rounded-lg'
-            }
-        >
+        <div className={className}>
             <Button
                 type="button"
                 variant={selectedTypes.length === 0 ? 'secondary' : 'ghost'}
-                size="lg"
+                size="sm"
                 onClick={() => onSelectedTypesChange([])}
             >
                 {t('view.search.avatar.all')}
@@ -203,7 +201,7 @@ function TypeFilterToggleGroup({
             <ToggleGroup
                 multiple
                 variant="default"
-                size="lg"
+                size="sm"
                 spacing={1}
                 value={[...selectedTypes]}
                 onValueChange={(nextTypes) => {

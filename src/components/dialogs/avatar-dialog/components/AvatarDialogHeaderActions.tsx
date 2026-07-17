@@ -95,7 +95,7 @@ export function AvatarDialogHeaderActions({
         <>
             <Button
                 type="button"
-                size="lg"
+                size="sm"
                 variant={canSelectAvatar ? 'default' : 'outline'}
                 className="min-w-0 flex-1"
                 aria-label={selectLabel}

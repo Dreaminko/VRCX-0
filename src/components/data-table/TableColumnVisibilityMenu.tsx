@@ -47,15 +47,11 @@ function renderColumnLockLabel(locked: boolean, t: TFunction) {
 export function TableColumnVisibilityMenu<TData extends RowData>({
     table,
     label,
-    onResetLayout,
-    size = 'icon-lg',
-    variant = 'ghost'
+    onResetLayout
 }: {
     table: Table<TData>;
     label?: string;
     onResetLayout?: ResetTableLayoutHandler<TData>;
-    size?: React.ComponentProps<typeof Button>['size'];
-    variant?: React.ComponentProps<typeof Button>['variant'];
 }) {
     const { t } = useTranslation();
 
@@ -76,8 +72,8 @@ export function TableColumnVisibilityMenu<TData extends RowData>({
                 render={
                     <Button
                         type="button"
-                        variant={variant}
-                        size={size}
+                        variant="outline"
+                        size="icon-sm"
                         aria-label={resolvedLabel}
                     >
                         <Settings2Icon data-icon="icon" />

@@ -1,4 +1,4 @@
-import { Columns3Icon, Table2Icon } from 'lucide-react';
+import { Columns3Icon, TableIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -33,7 +33,8 @@ function FeedViewModeToggle({
 
     return (
         <ToggleGroup
-            size="lg"
+            variant="outline"
+            size="sm"
             value={value ? [value] : []}
             onValueChange={(nextValue) => {
                 if (nextValue[0]) {
@@ -45,7 +46,7 @@ function FeedViewModeToggle({
                 <TooltipTrigger
                     render={
                         <ToggleGroupItem value="table" aria-label={tableLabel}>
-                            <Table2Icon data-icon="icon" />
+                            <TableIcon data-icon="icon" />
                         </ToggleGroupItem>
                     }
                 />
@@ -158,7 +159,7 @@ function FeedTableMode({ modeToggle }: { modeToggle: ReactNode }) {
                     onSearchEnter: filters.commitSearch,
                     onToggleFavoritesOnly: () =>
                         filters.setFavoritesOnly((current) => !current),
-                    setActiveSelectedTypes: filters.setActiveFilters
+                    onToggleFeedFilter: filters.toggleFeedFilter
                 }}
                 modeToggle={modeToggle}
                 table={table}
