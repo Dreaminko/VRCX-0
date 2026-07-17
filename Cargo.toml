@@ -78,9 +78,11 @@ debug = "line-tables-only"
 
 [profile.dev.package."*"]
 debug = false
+opt-level = 1
 
 [profile.test]
 debug = false
+opt-level = 0
 
 [profile.release]
 codegen-units = 1
