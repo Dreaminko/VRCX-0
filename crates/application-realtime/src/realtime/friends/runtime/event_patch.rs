@@ -1,13 +1,23 @@
 use super::persistence::{
-    add_location_metadata, add_profile_diff_feed_entries, friend_log_upsert,
-    friend_relationship_feed_entry, gps_feed_entry, is_online_state, is_private_location,
-    meaningful_name, online_offline_feed_entry, player_joining_feed_entry, trust_level_feed_entry,
+    add_profile_diff_feed_entries, friend_log_upsert, friend_relationship_feed_entry,
+    gps_feed_entry, is_online_state, is_private_location, meaningful_name,
+    online_offline_feed_entry, player_joining_feed_entry, trust_level_feed_entry,
     value_equal_for_diff, FriendChangedProps,
 };
 use super::projection::resolve_state_bucket;
 use super::state::{PendingOffline, RealtimeFriendState, PENDING_OFFLINE_DELAY_MS};
 use super::utils::*;
 use super::*;
+
+mod patch_builders;
+mod record_projection;
+
+use patch_builders::*;
+use record_projection::project_friend_record;
+pub(super) use record_projection::record_to_value;
+
+#[cfg(test)]
+use record_projection::{apply_value_patch_to_record, sanitize_record_extra};
 
 const GPS_REPEAT_WINDOW_MS: i64 = 5 * 60 * 1000;
 
@@ -623,63 +633,6 @@ fn record_profile_identity_change(
     output.projection.friend_log_changed = true;
 }
 
-fn normalize_patch_trust(patch: &mut Value, previous: Option<&Value>) {
-    let Some(object) = patch.as_object_mut() else {
-        return;
-    };
-    let explicit_trust_level = first_owned([
-        string_field(object.get("$trustLevel")),
-        string_field(object.get("trustLevel")),
-    ]);
-    let has_trust_metadata = object.contains_key("tags") || object.contains_key("developerType");
-    if explicit_trust_level.is_empty() && !has_trust_metadata {
-        return;
-    }
-
-    let tags = object
-        .get("tags")
-        .and_then(Value::as_array)
-        .or_else(|| {
-            previous
-                .and_then(|value| value.get("tags"))
-                .and_then(Value::as_array)
-        })
-        .map(|values| {
-            values
-                .iter()
-                .map(|value| string_field(Some(value)))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    let developer_type = object
-        .get("developerType")
-        .and_then(Value::as_str)
-        .or_else(|| {
-            previous
-                .and_then(|value| value.get("developerType"))
-                .and_then(Value::as_str)
-        })
-        .unwrap_or("");
-    let trust = compute_trust_level(&tags, developer_type);
-    let trust_level = if has_trust_metadata {
-        trust.trust_level.clone()
-    } else {
-        explicit_trust_level
-    };
-    object.insert("trustLevel".into(), Value::String(trust_level.clone()));
-    object.insert("$trustLevel".into(), Value::String(trust_level));
-    if has_trust_metadata {
-        object.insert("$trustClass".into(), Value::String(trust.trust_class));
-        object.insert("$trustSortNum".into(), json!(trust.trust_sort_num));
-        object.insert("$isModerator".into(), Value::Bool(trust.is_moderator));
-        object.insert("$isTroll".into(), Value::Bool(trust.is_troll));
-        object.insert(
-            "$isProbableTroll".into(),
-            Value::Bool(trust.is_probable_troll),
-        );
-    }
-}
-
 fn patch_changes_note(patch: &Value, previous: Option<&Value>) -> bool {
     let Some(next) = patch.get("note") else {
         return false;
@@ -747,310 +700,33 @@ pub(super) fn apply_patch_to_state_with_authority(
     state_bucket_authority: &str,
     created_at: &str,
 ) {
-    let mut record = state
+    let previous = state
         .baseline
         .as_ref()
         .and_then(|baseline| baseline.friends_by_id.get(user_id))
-        .cloned()
-        .unwrap_or_default();
-    let was_traveling = parse_location(&record.location).is_traveling;
-    if let Some(patch_object) = patch.as_object() {
-        apply_value_patch_to_record(&mut record, patch_object);
-    }
-    record.id = user_id.to_string();
-    record.state = state_bucket.to_string();
-    record.state_bucket = state_bucket.to_string();
-    sanitize_record_extra(&mut record);
-    if let Some(entry) = player_joining_feed_entry(user_id, was_traveling, &record, created_at) {
+        .cloned();
+    let projected = project_friend_record(
+        previous.as_ref(),
+        user_id,
+        patch,
+        state_bucket,
+        state_bucket_authority,
+    );
+    if let Some(entry) = player_joining_feed_entry(
+        user_id,
+        projected.was_traveling,
+        &projected.record,
+        created_at,
+    ) {
         output.projection.feed_entries.push(entry);
     }
 
-    let projection_patch = record_to_value(&record);
     if let Some(baseline) = state.baseline.as_mut() {
-        baseline.friends_by_id.insert(user_id.to_string(), record);
+        baseline
+            .friends_by_id
+            .insert(user_id.to_string(), projected.record);
     }
-    output.projection.patches.push(FriendProjectionPatch {
-        user_id: user_id.to_string(),
-        patch: projection_patch,
-        state_bucket: state_bucket.to_string(),
-        state_bucket_authority: Some(state_bucket_authority.to_string()),
-    });
-}
-
-pub(super) fn event_user_id(content: &Value) -> Option<String> {
-    let user_id = content
-        .get("userId")
-        .and_then(Value::as_str)
-        .or_else(|| {
-            content
-                .get("user")
-                .and_then(|user| user.get("id"))
-                .and_then(Value::as_str)
-        })
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    (!user_id.is_empty()).then_some(user_id)
-}
-
-pub(super) fn event_user_patch(content: &Value, user_id: &str) -> Option<Value> {
-    let user = content.get("user")?.as_object()?;
-    let mut patch = user.clone();
-    patch.insert("id".into(), Value::String(user_id.to_string()));
-    patch.remove("state");
-    vrcx_0_core::friends::strip_default_avatar_image(&mut patch);
-    Some(Value::Object(patch))
-}
-
-fn has_embedded_location_user(content: &Value) -> bool {
-    content
-        .get("user")
-        .and_then(|user| user.get("id"))
-        .and_then(Value::as_str)
-        .map(|id| !id.trim().is_empty())
-        .unwrap_or(false)
-}
-
-fn resolve_location_event_state_bucket(
-    content: &Value,
-    previous: Option<&Value>,
-    has_online_location: bool,
-) -> Option<String> {
-    if has_embedded_location_user(content) && has_online_location {
-        return Some("online".into());
-    }
-    for candidate in [
-        previous.and_then(|previous| previous.get("stateBucket")),
-        previous.and_then(|previous| previous.get("state")),
-    ] {
-        if let Some(normalized) = candidate
-            .and_then(Value::as_str)
-            .and_then(normalize_state_bucket)
-        {
-            return Some(normalized);
-        }
-    }
-    None
-}
-
-fn state_bucket_changed(previous: &Value, next_state_bucket: &str) -> bool {
-    [
-        previous.get("stateBucket").and_then(Value::as_str),
-        previous.get("state").and_then(Value::as_str),
-    ]
-    .iter()
-    .flatten()
-    .find_map(|state| normalize_state_bucket(state))
-    .map(|previous_state_bucket| previous_state_bucket != next_state_bucket)
-    .unwrap_or(false)
-}
-
-fn location_event_has_online_proof(content: &Value, user_patch: &Value) -> bool {
-    let content_locations = [
-        content.get("location").and_then(Value::as_str),
-        content.get("travelingToLocation").and_then(Value::as_str),
-    ];
-    if content_locations
-        .iter()
-        .flatten()
-        .any(|value| !value.trim().is_empty())
-    {
-        return content_locations
-            .iter()
-            .flatten()
-            .any(|value| is_online_location_proof(value));
-    }
-
-    let user_locations = [
-        user_patch.get("location").and_then(Value::as_str),
-        user_patch
-            .get("travelingToLocation")
-            .and_then(Value::as_str),
-    ];
-    user_locations
-        .iter()
-        .flatten()
-        .any(|value| is_online_location_proof(value))
-}
-
-fn location_event_has_offline_proof(content: &Value, user_patch: &Value) -> bool {
-    let content_locations = [
-        content.get("location").and_then(Value::as_str),
-        content.get("travelingToLocation").and_then(Value::as_str),
-    ];
-    if content_locations
-        .iter()
-        .flatten()
-        .any(|value| !value.trim().is_empty())
-    {
-        return content_locations
-            .iter()
-            .flatten()
-            .any(|value| is_offline_location_proof(value));
-    }
-
-    let user_locations = [
-        user_patch.get("location").and_then(Value::as_str),
-        user_patch
-            .get("travelingToLocation")
-            .and_then(Value::as_str),
-    ];
-    user_locations
-        .iter()
-        .flatten()
-        .any(|value| is_offline_location_proof(value))
-}
-
-fn is_online_location_proof(value: &str) -> bool {
-    let normalized = value.trim().to_ascii_lowercase();
-    !normalized.is_empty() && normalized != "offline" && normalized != "offline:offline"
-}
-
-fn is_offline_location_proof(value: &str) -> bool {
-    matches!(
-        value.trim().to_ascii_lowercase().as_str(),
-        "offline" | "offline:offline"
-    )
-}
-
-pub(super) fn online_patch(
-    content: &Value,
-    user_patch: serde_json::Value,
-    previous: Option<&Value>,
-    now: &EventTime,
-    state_bucket: &str,
-) -> serde_json::Value {
-    let mut patch = user_patch.as_object().cloned().unwrap_or_default();
-    if let Some(platform) = content.get("platform").and_then(Value::as_str) {
-        patch.insert("platform".into(), Value::String(platform.to_string()));
-    }
-    patch.insert("state".into(), Value::String(state_bucket.to_string()));
-    patch.insert("pendingOffline".into(), Value::Bool(false));
-
-    let event_location = first_string([
-        patch.get("location").and_then(Value::as_str),
-        content.get("location").and_then(Value::as_str),
-    ]);
-    let event_traveling = first_string([
-        patch.get("travelingToLocation").and_then(Value::as_str),
-        content.get("travelingToLocation").and_then(Value::as_str),
-    ]);
-    let event_world = first_string([
-        patch.get("worldId").and_then(Value::as_str),
-        content.get("worldId").and_then(Value::as_str),
-    ]);
-    let fallback = previous.filter(|previous| {
-        let location = string_field(previous.get("location")).to_ascii_lowercase();
-        !location.is_empty() && location != "offline" && location != "offline:offline"
-    });
-    let location = first_string([
-        Some(event_location.as_str()),
-        fallback.and_then(|value| value.get("location").and_then(Value::as_str)),
-    ]);
-    let traveling = first_string([
-        Some(event_traveling.as_str()),
-        fallback.and_then(|value| value.get("travelingToLocation").and_then(Value::as_str)),
-    ]);
-    patch.insert("location".into(), Value::String(location.clone()));
-    insert_location_projection(&mut patch, &location, "worldId", "instanceId", "$location");
-    if !event_world.is_empty() {
-        patch.insert("worldId".into(), Value::String(event_world));
-    }
-    patch.insert(
-        "travelingToLocation".into(),
-        Value::String(traveling.clone()),
-    );
-    insert_location_projection(
-        &mut patch,
-        &traveling,
-        "travelingToWorld",
-        "travelingToInstance",
-        "$travelingToLocation",
-    );
-    add_location_metadata(&mut patch, previous, now.timestamp_ms);
-    Value::Object(patch)
-}
-
-fn insert_location_projection(
-    patch: &mut Map<String, Value>,
-    location: &str,
-    world_id_key: &str,
-    instance_id_key: &str,
-    projection_key: &str,
-) {
-    let parsed = parse_location(location);
-    patch.insert(world_id_key.into(), Value::String(parsed.world_id.clone()));
-    patch.insert(
-        instance_id_key.into(),
-        Value::String(parsed.instance_id.clone()),
-    );
-    patch.insert(projection_key.into(), parsed.to_frontend_value(location));
-}
-
-fn normalize_friend_update_location_patch(
-    patch: &mut Value,
-    previous: Option<&Value>,
-    now: &EventTime,
-) {
-    let Some(patch) = patch.as_object_mut() else {
-        return;
-    };
-    let Some(location) = patch
-        .get("location")
-        .and_then(Value::as_str)
-        .map(str::to_string)
-    else {
-        return;
-    };
-    insert_location_projection(patch, &location, "worldId", "instanceId", "$location");
-    if let Some(traveling_to_location) = patch
-        .get("travelingToLocation")
-        .and_then(Value::as_str)
-        .map(str::to_string)
-    {
-        insert_location_projection(
-            patch,
-            &traveling_to_location,
-            "travelingToWorld",
-            "travelingToInstance",
-            "$travelingToLocation",
-        );
-    }
-    add_location_metadata(patch, previous, now.timestamp_ms);
-}
-
-pub(super) fn offline_like_patch(content: &Value, user_id: &str, state_bucket: &str) -> Value {
-    let mut patch = content
-        .get("user")
-        .and_then(Value::as_object)
-        .cloned()
-        .unwrap_or_default();
-    patch.remove("state");
-    patch.insert("id".into(), Value::String(user_id.to_string()));
-    if let Some(platform) = content.get("platform").and_then(Value::as_str) {
-        patch.insert("platform".into(), Value::String(platform.to_string()));
-    }
-    patch.insert("state".into(), Value::String(state_bucket.to_string()));
-    patch.insert("pendingOffline".into(), Value::Bool(false));
-    patch.insert("location".into(), Value::String("offline".into()));
-    patch.insert("worldId".into(), Value::String("offline".into()));
-    patch.insert("instanceId".into(), Value::String("".into()));
-    patch.insert(
-        "travelingToLocation".into(),
-        Value::String("offline".into()),
-    );
-    patch.insert("travelingToWorld".into(), Value::String("offline".into()));
-    patch.insert("travelingToInstance".into(), Value::String("".into()));
-    let parsed_offline = parse_location("offline");
-    patch.insert(
-        "$location".into(),
-        parsed_offline.to_frontend_value("offline"),
-    );
-    patch.insert(
-        "$travelingToLocation".into(),
-        parsed_offline.to_frontend_value("offline"),
-    );
-    Value::Object(patch)
+    output.projection.patches.push(projected.patch);
 }
 
 pub(super) fn get_friend_value(state: &RealtimeFriendState, user_id: &str) -> Option<Value> {
@@ -1059,109 +735,6 @@ pub(super) fn get_friend_value(state: &RealtimeFriendState, user_id: &str) -> Op
         .as_ref()
         .and_then(|baseline| baseline.friends_by_id.get(user_id))
         .map(record_to_value)
-}
-
-const FRIEND_NAMED_FIELD_KEYS: &[&str] = &[
-    "id",
-    "displayName",
-    "username",
-    "state",
-    "stateBucket",
-    "location",
-    "travelingToLocation",
-    "worldId",
-    "platform",
-    "lastPlatform",
-    "last_platform",
-    "status",
-    "statusDescription",
-    "bio",
-    "currentAvatarImageUrl",
-    "currentAvatarThumbnailImageUrl",
-    "currentAvatarAuthorId",
-    "currentAvatarName",
-];
-
-fn is_named_field_key(key: &str) -> bool {
-    FRIEND_NAMED_FIELD_KEYS.contains(&key)
-}
-
-fn patch_str(patch: &Map<String, Value>, keys: &[&str]) -> Option<String> {
-    for key in keys {
-        match patch.get(*key) {
-            Some(Value::String(value)) => return Some(value.clone()),
-            Some(Value::Null) | None => {}
-            Some(other) => {
-                tracing::warn!(
-                    "friend patch field `{}` has non-string value: {}",
-                    *key,
-                    other
-                );
-            }
-        }
-    }
-    None
-}
-
-fn apply_value_patch_to_record(record: &mut FriendRecord, patch: &Map<String, Value>) {
-    if let Some(value) = patch_str(patch, &["displayName"]) {
-        record.display_name = value;
-    }
-    if let Some(value) = patch_str(patch, &["username"]) {
-        record.username = value;
-    }
-    if let Some(value) = patch_str(patch, &["location"]) {
-        record.location = value;
-    }
-    if let Some(value) = patch_str(patch, &["travelingToLocation"]) {
-        record.traveling_to_location = value;
-    }
-    if let Some(value) = patch_str(patch, &["worldId"]) {
-        record.world_id = value;
-    }
-    if let Some(value) = patch_str(patch, &["platform"]) {
-        record.platform = value;
-    }
-    if let Some(value) = patch_str(patch, &["lastPlatform", "last_platform"]) {
-        record.last_platform = value;
-    }
-    if let Some(value) = patch_str(patch, &["status"]) {
-        record.status = value;
-    }
-    if let Some(value) = patch_str(patch, &["statusDescription"]) {
-        record.status_description = value;
-    }
-    if let Some(value) = patch_str(patch, &["bio"]) {
-        record.bio = value;
-    }
-    if let Some(value) = patch_str(patch, &["currentAvatarImageUrl"]) {
-        record.current_avatar_image_url = value;
-    }
-    if let Some(value) = patch_str(patch, &["currentAvatarThumbnailImageUrl"]) {
-        record.current_avatar_thumbnail_image_url = value;
-    }
-    if let Some(value) = patch_str(patch, &["currentAvatarAuthorId"]) {
-        record.current_avatar_author_id = value;
-    }
-    if let Some(value) = patch_str(patch, &["currentAvatarName"]) {
-        record.current_avatar_name = value;
-    }
-    for (key, value) in patch {
-        if is_named_field_key(key) {
-            continue;
-        }
-        record.extra.insert(key.clone(), value.clone());
-    }
-}
-
-fn sanitize_record_extra(record: &mut FriendRecord) {
-    for key in FRIEND_NAMED_FIELD_KEYS {
-        record.extra.remove(*key);
-    }
-}
-
-pub(super) fn record_to_value(record: &FriendRecord) -> Value {
-    serde_json::to_value(record).unwrap_or(Value::Null)
 }
 
 #[cfg(test)]

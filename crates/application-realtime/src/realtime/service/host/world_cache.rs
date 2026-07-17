@@ -127,15 +127,17 @@ impl RealtimeHostRuntime {
             let mut fetch_ids = Vec::new();
             for pending in candidates {
                 let recent = state
-                    .world_name_fetches
+                    .world_enrichment
+                    .fetches
                     .get(&pending.world_id)
                     .map(|last_ms| now_ms.saturating_sub(*last_ms) < WORLD_NAME_FETCH_THROTTLE_MS)
                     .unwrap_or(false);
-                let in_flight = state.world_name_fetch_inflight.contains(&pending.world_id);
+                let in_flight = state.world_enrichment.inflight.contains(&pending.world_id);
                 if let Some(entry) = pending.entry {
                     if !recent || in_flight {
                         state
-                            .pending_world_name_corrections
+                            .world_enrichment
+                            .pending_corrections
                             .entry(pending.world_id.clone())
                             .or_default()
                             .push(entry);
@@ -145,10 +147,12 @@ impl RealtimeHostRuntime {
                     continue;
                 }
                 state
-                    .world_name_fetches
+                    .world_enrichment
+                    .fetches
                     .insert(pending.world_id.clone(), now_ms);
                 state
-                    .world_name_fetch_inflight
+                    .world_enrichment
+                    .inflight
                     .insert(pending.world_id.clone());
                 fetch_ids.push(pending.world_id);
             }
@@ -179,9 +183,10 @@ impl RealtimeHostRuntime {
                     return;
                 }
             };
-            state.world_name_fetch_inflight.remove(world_id);
+            state.world_enrichment.inflight.remove(world_id);
             state
-                .pending_world_name_corrections
+                .world_enrichment
+                .pending_corrections
                 .remove(world_id)
                 .unwrap_or_default()
         };

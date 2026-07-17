@@ -55,16 +55,17 @@ impl RealtimeHostRuntime {
                     return;
                 }
             };
-            let cooldown = state.invite_automation.cooldown_view(&scope_key);
+            let cooldown = state.automation.invite.cooldown_view(&scope_key);
             if cooldown.is_pending {
                 Err(InviteAutomationSkipReason::Pending)
             } else if state
-                .invite_automation
+                .automation
+                .invite
                 .is_in_failure_backoff(&scope_key, now_ms)
             {
                 Err(InviteAutomationSkipReason::FailureBackoff)
             } else {
-                state.invite_automation.begin(&scope_key);
+                state.automation.invite.begin(&scope_key);
                 Ok(cooldown)
             }
         };
@@ -98,7 +99,7 @@ impl RealtimeHostRuntime {
             }
         };
         if let Ok(mut state) = self.state.lock() {
-            state.invite_automation.finish(&scope_key, outcome, now_ms);
+            state.automation.invite.finish(&scope_key, outcome, now_ms);
         }
     }
 
@@ -225,6 +226,7 @@ impl RealtimeHostRuntime {
     fn active_invite_session(&self) -> Option<RealtimeSessionContext> {
         self.state.lock().ok().and_then(|state| {
             state
+                .connection
                 .active_context
                 .as_ref()
                 .map(|active| active.session.clone())
@@ -239,7 +241,7 @@ impl RealtimeHostRuntime {
         let closed_locations = self
             .state
             .lock()
-            .map(|state| state.invite_automation.closed_locations())
+            .map(|state| state.automation.invite.closed_locations())
             .unwrap_or_default();
         let (local_game_context_available, is_game_running, current_location) =
             match local_game_context {

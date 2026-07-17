@@ -59,37 +59,37 @@ use vrcx_0_application_core::{
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 use vrcx_0_application_core::{RuntimeSyncEngine, TaskSupervisor, WebClient};
 
+mod automation;
+mod baseline;
+mod connection;
+mod current_user;
+mod enrichment;
+mod fanout;
 #[cfg(test)]
 mod friend_baseline_tests;
 #[cfg(test)]
 mod friend_joining_tests;
+mod friend_mutation;
+mod friend_profile;
 mod friend_profile_bulk_load;
 #[cfg(test)]
 mod friend_profile_bulk_load_tests;
-mod lifecycle_current_user;
-mod lifecycle_enrichment;
-mod lifecycle_friend_baseline;
-mod lifecycle_friend_messages;
-mod lifecycle_friend_mutation;
-mod lifecycle_friend_profile;
-mod lifecycle_invite_automation;
-mod lifecycle_output;
-mod lifecycle_session;
-mod lifecycle_world_cache;
+mod friend_queue;
+mod game_process;
 mod message_dispatch;
 #[cfg(test)]
 mod notification_enrichment_tests;
-mod persistence;
 #[cfg(test)]
 mod session_reconnect_tests;
+mod state;
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_support;
-mod types;
+mod world_cache;
 #[cfg(test)]
 mod world_cache_tests;
 
-use lifecycle_world_cache::WorldNameFetchOutcome;
+use world_cache::WorldNameFetchOutcome;
 
+pub use friend_mutation::SyntheticFriendEventOutcome;
 pub use friend_profile_bulk_load::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
-pub use lifecycle_friend_mutation::SyntheticFriendEventOutcome;
-pub use types::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};
+pub use state::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};

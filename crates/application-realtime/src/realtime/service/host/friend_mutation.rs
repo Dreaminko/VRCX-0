@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use super::types::PendingFriendBaseline;
+use super::state::PendingFriendBaseline;
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,8 +96,8 @@ impl RealtimeHostRuntime {
     ) -> std::result::Result<T, E> {
         let owner_user_id = owner_user_id.trim().to_string();
         let endpoint = normalize_vrchat_api_endpoint(Some(endpoint));
-        self.run_friend_log_current_mutation_with_state(mutation, move |state| {
-            let Some(pending) = state.pending_friend_baseline.as_mut() else {
+        self.run_friend_log_current_mutation_with_state(mutation, move |baseline| {
+            let Some(pending) = baseline.pending.as_mut() else {
                 return;
             };
             if pending.session.user_id.trim() == owner_user_id

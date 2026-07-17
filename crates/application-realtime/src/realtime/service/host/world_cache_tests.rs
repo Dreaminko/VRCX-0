@@ -71,7 +71,7 @@ fn feed_entry_correction_id_matches_frontend_golden_vectors() {
     for (input, expected) in vectors {
         let object = input.as_object().unwrap();
         assert_eq!(
-            super::lifecycle_enrichment::feed_entry_correction_id(object),
+            super::enrichment::feed_entry_correction_id(object),
             expected
         );
     }
@@ -148,8 +148,8 @@ fn failed_world_name_warm_drains_pending_corrections_without_emit() -> Result<()
     let (_dir, runtime, _active_session) = runtime_with_active_session("world-warm-failure-drain")?;
     {
         let mut state = runtime.state.lock().unwrap();
-        state.world_name_fetch_inflight.insert("wrld_fail".into());
-        state.pending_world_name_corrections.insert(
+        state.world_enrichment.inflight.insert("wrld_fail".into());
+        state.world_enrichment.pending_corrections.insert(
             "wrld_fail".into(),
             vec![PendingEntryCorrection {
                 stream: RealtimeEntryCorrectionStream::Feed,
@@ -163,9 +163,10 @@ fn failed_world_name_warm_drains_pending_corrections_without_emit() -> Result<()
     runtime.resolve_pending_world_corrections("wrld_fail", None);
 
     let state = runtime.state.lock().unwrap();
-    assert!(!state.world_name_fetch_inflight.contains("wrld_fail"));
+    assert!(!state.world_enrichment.inflight.contains("wrld_fail"));
     assert!(!state
-        .pending_world_name_corrections
+        .world_enrichment
+        .pending_corrections
         .contains_key("wrld_fail"));
     drop(state);
     assert!(runtime.deps.event_bus.take_events_for_test().is_empty());

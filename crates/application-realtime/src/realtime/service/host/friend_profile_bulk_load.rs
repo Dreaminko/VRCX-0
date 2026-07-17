@@ -4,7 +4,7 @@ use std::time::Duration;
 use futures_util::stream::{self, StreamExt};
 pub use vrcx_0_application_core::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
 
-use super::types::ActiveRealtimeContext;
+use super::state::ActiveRealtimeContext;
 use super::*;
 
 pub(super) const FRIEND_PROFILE_BULK_LOAD_CONCURRENCY: usize = 3;
@@ -146,7 +146,7 @@ impl RealtimeHostRuntime {
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            state.active_context.clone().ok_or_else(|| {
+            state.connection.active_context.clone().ok_or_else(|| {
                 Error::Custom(
                     "Friend profile bulk load requires an active realtime session.".into(),
                 )
@@ -494,7 +494,7 @@ impl RealtimeHostRuntime {
 #[cfg(test)]
 impl RealtimeHostRuntime {
     pub(super) fn test_force_friend_profile_bulk_load_running(&self, run_id: u64, total: u32) {
-        let owner = self.state.lock().unwrap().active_context.clone();
+        let owner = self.state.lock().unwrap().connection.active_context.clone();
         let mut bulk = self.friend_profile_bulk_load.lock().unwrap();
         bulk.run_id = run_id;
         bulk.status = FriendProfileBulkLoadStatus::Running;
@@ -517,7 +517,7 @@ impl RealtimeHostRuntime {
         loaded: bool,
         failed: bool,
     ) -> bool {
-        let Some(active) = self.state.lock().unwrap().active_context.clone() else {
+        let Some(active) = self.state.lock().unwrap().connection.active_context.clone() else {
             return false;
         };
         self.friend_profile_bulk_load_record_progress(run_id, &active, loaded, failed)

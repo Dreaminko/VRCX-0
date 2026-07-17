@@ -1,5 +1,5 @@
 use super::message_dispatch::json_string_field;
-use super::types::ActiveRealtimeContext;
+use super::state::ActiveRealtimeContext;
 use super::*;
 use crate::realtime::user_query_cache::UserQueryKind;
 use crate::realtime::RealtimeUserProjection;
@@ -43,7 +43,7 @@ impl RealtimeHostRuntime {
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            let Some(active) = state.active_context.clone() else {
+            let Some(active) = state.connection.active_context.clone() else {
                 return Ok(false);
             };
             if active.session.endpoint != requested_endpoint
@@ -97,6 +97,7 @@ impl RealtimeHostRuntime {
             .ok()
             .and_then(|state| {
                 state
+                    .connection
                     .active_context
                     .as_ref()
                     .map(|active| active.session.endpoint.clone())
@@ -119,7 +120,7 @@ impl RealtimeHostRuntime {
             return;
         }
         let (is_friend, is_current_user) = match self.state.lock() {
-            Ok(state) => match state.active_context.as_ref() {
+            Ok(state) => match state.connection.active_context.as_ref() {
                 Some(active) => (
                     self.friends.has_friend(active.generation, &user_id),
                     active.session.user_id == user_id,
@@ -374,7 +375,7 @@ impl RealtimeHostRuntime {
                     return;
                 }
             };
-            let Some(active) = state.active_context.clone() else {
+            let Some(active) = state.connection.active_context.clone() else {
                 return;
             };
             if active.generation != generation
@@ -396,7 +397,8 @@ impl RealtimeHostRuntime {
                     continue;
                 }
                 let recent = state
-                    .friend_profile_refetches
+                    .friend_profile
+                    .refetches
                     .get(&user_id)
                     .map(|last_ms| {
                         now_ms.saturating_sub(*last_ms) < FRIEND_PROFILE_REFETCH_THROTTLE_MS
@@ -412,7 +414,8 @@ impl RealtimeHostRuntime {
                     continue;
                 };
                 state
-                    .friend_profile_refetches
+                    .friend_profile
+                    .refetches
                     .insert(user_id.clone(), now_ms);
                 refetches.push((user_id, expected_sequence));
             }

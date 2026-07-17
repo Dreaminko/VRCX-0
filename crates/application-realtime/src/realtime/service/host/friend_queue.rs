@@ -1,4 +1,4 @@
-use super::types::{ActiveRealtimeContext, RealtimeHostRuntimeState, MAX_QUEUED_FRIEND_MESSAGES};
+use super::state::{ActiveRealtimeContext, RealtimeHostRuntimeState, MAX_QUEUED_FRIEND_MESSAGES};
 use super::*;
 
 impl RealtimeHostRuntime {
@@ -7,7 +7,7 @@ impl RealtimeHostRuntime {
         state: &RealtimeHostRuntimeState,
         projection: &FriendProjection,
     ) -> bool {
-        let Some(active) = state.active_context.as_ref() else {
+        let Some(active) = state.connection.active_context.as_ref() else {
             return false;
         };
         active.generation == projection.generation
@@ -25,6 +25,7 @@ impl RealtimeHostRuntime {
         session: &RealtimeSessionContext,
     ) -> bool {
         state
+            .connection
             .active_context
             .as_ref()
             .map(|active| {
@@ -45,15 +46,18 @@ impl RealtimeHostRuntime {
         generation: u64,
         payload: &RealtimeWsMessagePayload,
     ) {
-        if state.queued_friend_messages.len() >= MAX_QUEUED_FRIEND_MESSAGES {
-            state.queued_friend_messages.remove(0);
+        if state.connection.queued_friend_messages.len() >= MAX_QUEUED_FRIEND_MESSAGES {
+            state.connection.queued_friend_messages.remove(0);
             tracing::warn!(
                 generation,
                 max = MAX_QUEUED_FRIEND_MESSAGES,
                 "[Realtime] dropped oldest queued friend message during baseline refresh"
             );
         }
-        state.queued_friend_messages.push(payload.clone());
+        state
+            .connection
+            .queued_friend_messages
+            .push(payload.clone());
     }
 
     pub(super) fn handle_friend_ws_message(
@@ -126,11 +130,11 @@ impl RealtimeHostRuntime {
                 ) {
                     return;
                 }
-                if state.queued_friend_messages.is_empty() {
-                    state.friend_messages_paused = false;
+                if state.connection.queued_friend_messages.is_empty() {
+                    state.connection.friend_messages_paused = false;
                     return;
                 }
-                std::mem::take(&mut state.queued_friend_messages)
+                std::mem::take(&mut state.connection.queued_friend_messages)
             };
 
             for payload in queued_messages {
@@ -142,5 +146,33 @@ impl RealtimeHostRuntime {
                 );
             }
         }
+    }
+
+    pub(super) fn resume_friend_messages_after_reconnect(
+        self: &Arc<Self>,
+        generation: u64,
+        session_generation: u64,
+        session: &RealtimeSessionContext,
+    ) {
+        let active = {
+            let state = match self.state.lock() {
+                Ok(state) => state,
+                Err(error) => {
+                    tracing::warn!("realtime state lock failed: {error}");
+                    return;
+                }
+            };
+            if !self.is_message_current_locked(&state, generation, session_generation, session) {
+                return;
+            }
+            if !state.connection.friend_messages_paused {
+                return;
+            }
+            let Some(active) = state.connection.active_context.clone() else {
+                return;
+            };
+            active
+        };
+        self.drain_queued_friend_messages(active);
     }
 }

@@ -347,6 +347,7 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
         .state
         .lock()
         .unwrap()
+        .connection
         .active_context
         .clone()
         .unwrap();
@@ -454,6 +455,7 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
         .state
         .lock()
         .unwrap()
+        .connection
         .active_context
         .clone()
         .unwrap();
@@ -974,6 +976,7 @@ fn friend_owner_preserves_baseline_then_ws_output_order() -> Result<()> {
         .state
         .lock()
         .unwrap()
+        .connection
         .active_context
         .clone()
         .unwrap();
@@ -1139,7 +1142,8 @@ fn causal_baseline_from_stopped_generation_is_not_cached() -> Result<()> {
         .state
         .lock()
         .unwrap()
-        .pending_friend_baseline
+        .friend_baseline
+        .pending
         .is_none());
     Ok(())
 }
@@ -1363,16 +1367,14 @@ fn friend_note_change_notifies_note_cache_sink() -> Result<()> {
     );
     {
         let mut state = runtime.state.lock().unwrap();
-        *state = RealtimeHostRuntimeState {
+        *state = RealtimeHostRuntimeState::default();
+        state.connection.generation = 7;
+        state.connection.active_context = Some(ActiveRealtimeContext {
+            session: active_session.clone(),
             generation: 7,
-            active_context: Some(ActiveRealtimeContext {
-                session: active_session.clone(),
-                generation: 7,
-                client_run_id: 1,
-                session_generation: host_session_generation,
-            }),
-            ..RealtimeHostRuntimeState::default()
-        };
+            client_run_id: 1,
+            session_generation: host_session_generation,
+        });
     }
     let mut friend = FriendRecord {
         id: "usr_friend".to_string(),

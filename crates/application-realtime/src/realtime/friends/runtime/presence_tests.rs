@@ -20,6 +20,32 @@ mod tests {
         }
     }
 
+    fn runtime_with_online_friend(location: &str) -> RealtimeFriendsRuntime {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: location.into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        runtime
+    }
+
     fn assert_trust_change(output: &RealtimeFriendOutput) {
         assert_eq!(output.persistence.friend_log_upserts.len(), 1);
         assert_eq!(
@@ -889,5 +915,217 @@ mod tests {
             .unwrap();
         assert_eq!(fired.projection.patches[0].state_bucket, "active");
         assert_eq!(fired.projection.patches[0].patch["state"], json!("active"));
+    }
+
+    #[test]
+    fn friend_event_type_set_is_exact_and_state_only_update_is_ignored() {
+        for message_type in [
+            "friend-add",
+            "friend-delete",
+            "friend-update",
+            "friend-online",
+            "friend-active",
+            "friend-offline",
+            "friend-location",
+        ] {
+            assert!(is_friend_event_type(message_type), "{message_type}");
+        }
+        for message_type in [
+            "",
+            "friend",
+            "friend-request",
+            "notification",
+            "user-update",
+            "instance-queue",
+        ] {
+            assert!(!is_friend_event_type(message_type), "{message_type}");
+        }
+
+        let runtime = runtime_with_online_friend("wrld_1:123");
+        let before_snapshot = runtime.snapshot().expect("baseline snapshot");
+        let before_sequence = runtime.friend_state_sequence_for_user(1, "usr_friend");
+
+        let result = runtime.apply_ws_message(&RealtimeWsMessagePayload {
+            json: json!({
+                "type": "friend-update",
+                "content": {
+                    "userId": "usr_friend",
+                    "user": {
+                        "id": "usr_friend",
+                        "state": "offline"
+                    }
+                }
+            }),
+            raw: "{}".into(),
+            received_at: "2026-05-15T00:00:01Z".into(),
+        });
+
+        assert!(matches!(result, RealtimeFriendApplyResult::Ignored));
+        assert_eq!(runtime.snapshot(), Some(before_snapshot));
+        assert_eq!(
+            runtime.friend_state_sequence_for_user(1, "usr_friend"),
+            before_sequence
+        );
+    }
+
+    #[test]
+    fn friend_online_cancels_pending_offline_and_invalidates_its_timer() {
+        let runtime = runtime_with_online_friend("wrld_1:123");
+
+        let RealtimeFriendApplyResult::Output(pending) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-offline",
+                    "content": { "userId": "usr_friend" }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("friend-offline should schedule pending timer");
+        };
+        let PendingOfflineTimerAction::Schedule { token, .. } = pending.timer_action else {
+            panic!("online->offline should schedule pending timer");
+        };
+
+        let RealtimeFriendApplyResult::Output(online) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-online",
+                    "content": {
+                        "userId": "usr_friend",
+                        "location": "wrld_1:123",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "Friend"
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:01Z".into(),
+            })
+        else {
+            panic!("friend-online should cancel pending offline");
+        };
+
+        assert_eq!(online.timer_action, PendingOfflineTimerAction::None);
+        assert!(online.persistence.feed_entries.is_empty());
+        assert_eq!(online.projection.patches[0].state_bucket, "online");
+        assert_eq!(
+            online.projection.patches[0].patch["pendingOffline"],
+            json!(false)
+        );
+        assert!(runtime
+            .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
+            .is_none());
+    }
+
+    #[test]
+    fn friend_delete_clears_pending_and_gps_state_before_readd() {
+        let runtime = runtime_with_online_friend("wrld_a:1");
+
+        let RealtimeFriendApplyResult::Output(first_location) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-location",
+                    "content": {
+                        "userId": "usr_friend",
+                        "location": "wrld_b:2"
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("first location should produce an output");
+        };
+        assert_eq!(first_location.persistence.feed_entries[0]["type"], "GPS");
+
+        let RealtimeFriendApplyResult::Output(pending) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-offline",
+                    "content": { "userId": "usr_friend" }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:01Z".into(),
+            })
+        else {
+            panic!("friend-offline should schedule pending timer");
+        };
+        let PendingOfflineTimerAction::Schedule { token, .. } = pending.timer_action else {
+            panic!("online->offline should schedule pending timer");
+        };
+
+        let RealtimeFriendApplyResult::Output(deleted) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-delete",
+                    "content": { "userId": "usr_friend" }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:02Z".into(),
+            })
+        else {
+            panic!("friend-delete should produce an output");
+        };
+
+        assert_eq!(deleted.projection.removals, vec!["usr_friend"]);
+        assert!(deleted.projection.patches.is_empty());
+        assert!(deleted.projection.friend_log_changed);
+        assert_eq!(deleted.persistence.friend_log_deletes.len(), 1);
+        assert_eq!(
+            deleted.persistence.friend_log_deletes[0].target_user_id,
+            "usr_friend"
+        );
+        assert_eq!(deleted.persistence.feed_entries[0]["type"], "Unfriend");
+        assert!(runtime
+            .snapshot()
+            .expect("baseline snapshot")
+            .friends_by_id
+            .get("usr_friend")
+            .is_none());
+        assert!(runtime
+            .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
+            .is_none());
+
+        assert!(matches!(
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-add",
+                    "content": {
+                        "userId": "usr_friend",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "Friend",
+                            "location": "wrld_a:1"
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:03Z".into(),
+            }),
+            RealtimeFriendApplyResult::Output(_)
+        ));
+        let RealtimeFriendApplyResult::Output(second_location) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-location",
+                    "content": {
+                        "userId": "usr_friend",
+                        "location": "wrld_b:2"
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:04Z".into(),
+            })
+        else {
+            panic!("location after readd should produce an output");
+        };
+        assert!(second_location
+            .persistence
+            .feed_entries
+            .iter()
+            .any(|entry| entry["type"] == "GPS"));
     }
 }

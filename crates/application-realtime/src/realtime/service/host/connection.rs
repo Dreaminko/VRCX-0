@@ -1,4 +1,4 @@
-use super::types::{
+use super::state::{
     ActiveRealtimeContext, RealtimeHostRuntimeMessageSink, RealtimeHostRuntimeState,
 };
 use super::*;
@@ -52,9 +52,9 @@ impl RealtimeHostRuntime {
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            let previous_active = state.active_context.clone();
-            state.generation = state.generation.saturating_add(1);
-            (state.generation, previous_active)
+            let previous_active = state.connection.active_context.clone();
+            state.connection.generation = state.connection.generation.saturating_add(1);
+            (state.connection.generation, previous_active)
         };
         if let Some(previous_active) = previous_active {
             self.cancel_friend_profile_bulk_load_for_session(&previous_active);
@@ -71,26 +71,26 @@ impl RealtimeHostRuntime {
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            state.active_context = Some(ActiveRealtimeContext {
+            state.connection.active_context = Some(ActiveRealtimeContext {
                 session: session.clone(),
                 generation,
                 client_run_id,
                 session_generation,
             });
-            if let Some(pending) = state.pending_friend_baseline.take() {
+            if let Some(pending) = state.friend_baseline.pending.take() {
                 if pending.session == session {
                     friends_by_id = pending.friends_by_id;
                     pending_feed_entries = pending.feed_entries;
                     pending_projection = pending.projection;
                 }
             }
-            state.friend_messages_paused = false;
-            state.queued_friend_messages.clear();
-            state.friend_profile_refetches.clear();
-            state.world_name_fetches.clear();
-            state.world_name_fetch_inflight.clear();
-            state.pending_world_name_corrections.clear();
-            state.invite_automation.clear_all();
+            state.connection.friend_messages_paused = false;
+            state.connection.queued_friend_messages.clear();
+            state.friend_profile.refetches.clear();
+            state.world_enrichment.fetches.clear();
+            state.world_enrichment.inflight.clear();
+            state.world_enrichment.pending_corrections.clear();
+            state.automation.invite.clear_all();
             self.friends.clear();
             self.current_user.clear();
             let friend_user_ids = friends_by_id.keys().cloned().collect::<Vec<_>>();
@@ -278,12 +278,12 @@ impl RealtimeHostRuntime {
                 }
             };
 
-            let Some(active) = state.active_context.clone() else {
+            let Some(active) = state.connection.active_context.clone() else {
                 if request.has_scope() {
                     return;
                 }
-                state.generation = state.generation.saturating_add(1);
-                let _ = self.cancel_tx.send(state.generation);
+                state.connection.generation = state.connection.generation.saturating_add(1);
+                let _ = self.cancel_tx.send(state.connection.generation);
                 return;
             };
 
@@ -301,16 +301,16 @@ impl RealtimeHostRuntime {
             let websocket_domain = normalize_websocket_domain(&active.session.websocket);
             let final_current_user_output =
                 self.current_user_game_running_output(active.generation, false);
-            state.generation = state.generation.saturating_add(1);
-            state.active_context = None;
-            state.pending_friend_baseline = None;
-            state.friend_messages_paused = false;
-            state.queued_friend_messages.clear();
-            state.friend_profile_refetches.clear();
-            state.world_name_fetches.clear();
-            state.world_name_fetch_inflight.clear();
-            state.pending_world_name_corrections.clear();
-            let _ = self.cancel_tx.send(state.generation);
+            state.connection.generation = state.connection.generation.saturating_add(1);
+            state.connection.active_context = None;
+            state.friend_baseline.pending = None;
+            state.connection.friend_messages_paused = false;
+            state.connection.queued_friend_messages.clear();
+            state.friend_profile.refetches.clear();
+            state.world_enrichment.fetches.clear();
+            state.world_enrichment.inflight.clear();
+            state.world_enrichment.pending_corrections.clear();
+            let _ = self.cancel_tx.send(state.connection.generation);
             self.deps.session.clear_realtime_context();
             self.friends.clear();
             self.current_user.clear();

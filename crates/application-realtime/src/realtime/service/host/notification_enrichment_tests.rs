@@ -537,7 +537,8 @@ fn unresolved_person_location_notification_persists_without_runtime_projection()
             .state
             .lock()
             .unwrap()
-            .world_name_fetches
+            .world_enrichment
+            .fetches
             .contains_key("wrld_missing"),
         "notification resolver failures should register async world warm"
     );

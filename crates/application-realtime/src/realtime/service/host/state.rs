@@ -27,18 +27,43 @@ pub(super) struct PendingFriendBaseline {
 }
 
 #[derive(Default)]
-pub(super) struct RealtimeHostRuntimeState {
+pub(super) struct ConnectionState {
     pub(super) generation: u64,
-    pub(super) friend_log_sequence: u64,
     pub(super) active_context: Option<ActiveRealtimeContext>,
-    pub(super) pending_friend_baseline: Option<PendingFriendBaseline>,
     pub(super) friend_messages_paused: bool,
     pub(super) queued_friend_messages: Vec<RealtimeWsMessagePayload>,
-    pub(super) friend_profile_refetches: HashMap<String, i64>,
-    pub(super) world_name_fetches: HashMap<String, i64>,
-    pub(super) world_name_fetch_inflight: HashSet<String>,
-    pub(super) pending_world_name_corrections: HashMap<String, Vec<PendingEntryCorrection>>,
-    pub(super) invite_automation: InviteAutomationState,
+}
+
+#[derive(Default)]
+pub(super) struct FriendBaselineState {
+    pub(super) friend_log_sequence: u64,
+    pub(super) pending: Option<PendingFriendBaseline>,
+}
+
+#[derive(Default)]
+pub(super) struct FriendProfileState {
+    pub(super) refetches: HashMap<String, i64>,
+}
+
+#[derive(Default)]
+pub(super) struct WorldEnrichmentState {
+    pub(super) fetches: HashMap<String, i64>,
+    pub(super) inflight: HashSet<String>,
+    pub(super) pending_corrections: HashMap<String, Vec<PendingEntryCorrection>>,
+}
+
+#[derive(Default)]
+pub(super) struct AutomationState {
+    pub(super) invite: InviteAutomationState,
+}
+
+#[derive(Default)]
+pub(super) struct RealtimeHostRuntimeState {
+    pub(super) connection: ConnectionState,
+    pub(super) friend_baseline: FriendBaselineState,
+    pub(super) friend_profile: FriendProfileState,
+    pub(super) world_enrichment: WorldEnrichmentState,
+    pub(super) automation: AutomationState,
 }
 
 #[derive(Clone, Debug, Default)]

@@ -3,8 +3,8 @@ use super::friend_profile_bulk_load::{
     reserve_friend_profile_bulk_load_request_slot, select_friend_profile_bulk_load_targets,
     should_emit_friend_profile_bulk_load_progress, FriendProfileBulkLoadStatus,
 };
+use super::state::ActiveRealtimeContext;
 use super::test_support::*;
-use super::types::ActiveRealtimeContext;
 use super::*;
 use vrcx_0_application_core::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
 
@@ -209,7 +209,7 @@ fn start_replaces_run_owned_by_stale_realtime_session() -> Result<()> {
     runtime.test_force_friend_profile_bulk_load_running(5, 3);
     {
         let mut state = runtime.state.lock().unwrap();
-        let active = state.active_context.as_mut().unwrap();
+        let active = state.connection.active_context.as_mut().unwrap();
         active.generation = 8;
         active.client_run_id = 2;
     }
@@ -304,6 +304,7 @@ fn transport_finished_cancels_active_bulk_load_and_rejects_stale_progress() -> R
         .state
         .lock()
         .unwrap()
+        .connection
         .active_context
         .clone()
         .unwrap();
@@ -322,7 +323,13 @@ fn transport_finished_cancels_active_bulk_load_and_rejects_stale_progress() -> R
     assert_eq!(payload.status, FriendProfileBulkLoadStatus::Cancelled);
     assert_eq!(payload.processed, 0);
     assert!(payload.finished_at.is_some());
-    assert!(runtime.state.lock().unwrap().active_context.is_none());
+    assert!(runtime
+        .state
+        .lock()
+        .unwrap()
+        .connection
+        .active_context
+        .is_none());
     assert!(!runtime.test_friend_profile_bulk_load_record_progress(12, true, false));
     assert_eq!(runtime.friend_profile_bulk_load_status().processed, 0);
     Ok(())

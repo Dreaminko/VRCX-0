@@ -16,7 +16,7 @@ impl RealtimeHostRuntime {
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            let Some(active) = state.active_context.clone() else {
+            let Some(active) = state.connection.active_context.clone() else {
                 return Ok(false);
             };
             if active.session != requested_session

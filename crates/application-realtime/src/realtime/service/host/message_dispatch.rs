@@ -1,4 +1,4 @@
-use super::types::RealtimeHostRuntimeMessageSink;
+use super::state::RealtimeHostRuntimeMessageSink;
 use super::*;
 
 pub(super) fn json_string_field(value: Option<&Value>) -> String {
@@ -40,8 +40,8 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
                 ) {
                     return;
                 }
-                state.friend_messages_paused = true;
-                state.queued_friend_messages.clear();
+                state.connection.friend_messages_paused = true;
+                state.connection.queued_friend_messages.clear();
             }
             "connected" => {
                 if let Some(activity_sink) = &self.runtime.deps.activity_sink {
@@ -80,7 +80,7 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
 
         let message_type = payload.json.get("type").and_then(serde_json::Value::as_str);
         if message_type.map(is_friend_event_type).unwrap_or(false) {
-            if state.friend_messages_paused {
+            if state.connection.friend_messages_paused {
                 self.runtime
                     .queue_friend_message_locked(&mut state, generation, payload);
                 return;
@@ -167,7 +167,7 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
                     return;
                 }
             };
-            let Some(active) = state.active_context.as_ref() else {
+            let Some(active) = state.connection.active_context.as_ref() else {
                 return;
             };
             if active.generation != generation
@@ -180,10 +180,10 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             let final_current_user_output = self
                 .runtime
                 .current_user_game_running_output(generation, false);
-            state.active_context = None;
-            state.friend_messages_paused = false;
-            state.queued_friend_messages.clear();
-            state.friend_profile_refetches.clear();
+            state.connection.active_context = None;
+            state.connection.friend_messages_paused = false;
+            state.connection.queued_friend_messages.clear();
+            state.friend_profile.refetches.clear();
             self.runtime.friends.clear();
             self.runtime.current_user.clear();
             (final_current_user_output, finished_active)

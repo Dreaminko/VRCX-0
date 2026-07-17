@@ -361,4 +361,57 @@ mod tests {
         };
         assert!(second.projection.feed_entries.is_empty());
     }
+
+    #[test]
+    fn persisted_feed_precedes_ephemeral_joining_projection() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "offline".into(),
+                        state_bucket: "offline".into(),
+                        location: "offline".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let RealtimeFriendApplyResult::Output(output) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-online",
+                    "content": {
+                        "userId": "usr_friend",
+                        "location": "traveling",
+                        "travelingToLocation": "wrld_target:456",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "Friend"
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-07-13T10:00:00Z".into(),
+            })
+        else {
+            panic!("friend-online should produce persisted and ephemeral feed entries");
+        };
+
+        assert_eq!(output.persistence.feed_entries.len(), 1);
+        assert_eq!(output.persistence.feed_entries[0]["type"], "Online");
+        assert_eq!(output.projection.feed_entries.len(), 2);
+        assert_eq!(output.projection.feed_entries[0]["type"], "Online");
+        assert_eq!(output.projection.feed_entries[1]["type"], "OnPlayerJoining");
+    }
 }

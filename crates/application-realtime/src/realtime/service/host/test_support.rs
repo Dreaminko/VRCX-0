@@ -42,9 +42,9 @@ use vrcx_0_application_core::{
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
-pub(super) use super::types::{ActiveRealtimeContext, RealtimeHostRuntimeState};
+pub(super) use super::state::{ActiveRealtimeContext, RealtimeHostRuntimeState};
 #[cfg(test)]
-pub(super) use super::types::{PendingFriendBaseline, RealtimeHostRuntimeMessageSink};
+pub(super) use super::state::{PendingFriendBaseline, RealtimeHostRuntimeMessageSink};
 use super::*;
 
 impl RealtimeHostRuntime {
@@ -110,7 +110,7 @@ impl TestRealtimeHostRuntime {
         session: &RealtimeSessionContext,
         friends_by_id: HashMap<String, FriendRecord>,
     ) -> Result<()> {
-        self.runtime.state.lock().unwrap().active_context = None;
+        self.runtime.state.lock().unwrap().connection.active_context = None;
         self.runtime.friends.clear();
         self.runtime.sync_friend_snapshot(
             session.user_id.clone(),
@@ -128,6 +128,7 @@ impl TestRealtimeHostRuntime {
             .state
             .lock()
             .unwrap()
+            .connection
             .active_context
             .clone()
             .expect("test runtime should have an active realtime context");
@@ -377,16 +378,14 @@ fn runtime_with_active_session_game_context(
     );
     {
         let mut state = runtime.state.lock().unwrap();
-        *state = RealtimeHostRuntimeState {
+        *state = RealtimeHostRuntimeState::default();
+        state.connection.generation = 7;
+        state.connection.active_context = Some(ActiveRealtimeContext {
+            session: active_session.clone(),
             generation: 7,
-            active_context: Some(ActiveRealtimeContext {
-                session: active_session.clone(),
-                generation: 7,
-                client_run_id: 1,
-                session_generation: host_session_generation,
-            }),
-            ..RealtimeHostRuntimeState::default()
-        };
+            client_run_id: 1,
+            session_generation: host_session_generation,
+        });
     }
     Ok((
         dir,

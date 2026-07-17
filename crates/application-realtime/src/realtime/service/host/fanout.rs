@@ -1,4 +1,4 @@
-use super::types::FriendOwnerGuard;
+use super::state::FriendOwnerGuard;
 use super::*;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 
@@ -303,7 +303,7 @@ impl RealtimeHostRuntime {
             .and_then(Value::as_str)
         {
             if let Ok(mut state) = self.state.lock() {
-                state.invite_automation.record_closed_location(location);
+                state.automation.invite.record_closed_location(location);
             }
         }
         let persistence_attempted = !output.persistence.is_empty();

@@ -14,7 +14,7 @@ impl RealtimeHostRuntime {
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            state.active_context.clone()
+            state.connection.active_context.clone()
         };
         let Some(active) = active else {
             return Ok(());

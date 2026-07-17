@@ -1,4 +1,4 @@
-use super::types::{PendingFriendBaseline, RealtimeHostRuntimeState};
+use super::state::{FriendBaselineState, PendingFriendBaseline};
 use super::*;
 
 impl RealtimeHostRuntime {
@@ -9,6 +9,7 @@ impl RealtimeHostRuntime {
             .lock()
             .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
         let active_generation = state
+            .connection
             .active_context
             .as_ref()
             .map(|active| active.generation);
@@ -17,7 +18,7 @@ impl RealtimeHostRuntime {
             watermark.baseline_revision = None;
         }
         watermark.generation = active_generation;
-        watermark.friend_log_sequence = state.friend_log_sequence;
+        watermark.friend_log_sequence = state.friend_baseline.friend_log_sequence;
         Ok(watermark)
     }
 
@@ -31,14 +32,15 @@ impl RealtimeHostRuntime {
     pub(super) fn run_friend_log_current_mutation_with_state<T, E>(
         &self,
         mutation: impl FnOnce() -> std::result::Result<T, E>,
-        on_success: impl FnOnce(&mut RealtimeHostRuntimeState),
+        on_success: impl FnOnce(&mut FriendBaselineState),
     ) -> std::result::Result<T, E> {
         let _owner = self.lock_friend_owner();
         let result = mutation();
         if result.is_ok() {
             let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-            state.friend_log_sequence = state.friend_log_sequence.saturating_add(1);
-            on_success(&mut state);
+            state.friend_baseline.friend_log_sequence =
+                state.friend_baseline.friend_log_sequence.saturating_add(1);
+            on_success(&mut state.friend_baseline);
         }
         result
     }
@@ -94,9 +96,9 @@ impl RealtimeHostRuntime {
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            if causal_watermark
-                .is_some_and(|watermark| watermark.friend_log_sequence != state.friend_log_sequence)
-            {
+            if causal_watermark.is_some_and(|watermark| {
+                watermark.friend_log_sequence != state.friend_baseline.friend_log_sequence
+            }) {
                 self.deps.sync.record(
                     "realtimeFriends",
                     "ignored",
@@ -117,7 +119,7 @@ impl RealtimeHostRuntime {
                     ..FriendBaselineSyncOutcome::default()
                 });
             }
-            let Some(active) = state.active_context.clone() else {
+            let Some(active) = state.connection.active_context.clone() else {
                 if causal_watermark.is_some_and(|watermark| watermark.generation.is_some()) {
                     self.deps.sync.record(
                         "realtimeFriends",
@@ -147,7 +149,7 @@ impl RealtimeHostRuntime {
                     baseline_revision: 0,
                     friends_by_id: friends_by_id.clone(),
                 };
-                state.pending_friend_baseline = Some(PendingFriendBaseline {
+                state.friend_baseline.pending = Some(PendingFriendBaseline {
                     session: requested_session.clone(),
                     friends_by_id,
                     feed_entries: Vec::new(),
@@ -184,7 +186,7 @@ impl RealtimeHostRuntime {
                         .state
                         .lock()
                         .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-                    if let Some(pending) = state.pending_friend_baseline.as_mut() {
+                    if let Some(pending) = state.friend_baseline.pending.as_mut() {
                         if pending.session == requested_session {
                             pending.feed_entries = feed_entries;
                         }
@@ -399,34 +401,6 @@ impl RealtimeHostRuntime {
             snapshot: final_snapshot,
             friend_log_changed,
         })
-    }
-
-    pub(super) fn resume_friend_messages_after_reconnect(
-        self: &Arc<Self>,
-        generation: u64,
-        session_generation: u64,
-        session: &RealtimeSessionContext,
-    ) {
-        let active = {
-            let state = match self.state.lock() {
-                Ok(state) => state,
-                Err(error) => {
-                    tracing::warn!("realtime state lock failed: {error}");
-                    return;
-                }
-            };
-            if !self.is_message_current_locked(&state, generation, session_generation, session) {
-                return;
-            }
-            if !state.friend_messages_paused {
-                return;
-            }
-            let Some(active) = state.active_context.clone() else {
-                return;
-            };
-            active
-        };
-        self.drain_queued_friend_messages(active);
     }
 }
 
