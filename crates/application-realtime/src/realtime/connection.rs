@@ -17,7 +17,7 @@ use vrcx_0_core::realtime::RealtimeMessageParser;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::realtime::{RealtimeSessionContext, RealtimeWsMessagePayload, RealtimeWsStatusPayload};
-use crate::Error;
+use vrcx_0_application_core::Error;
 use vrcx_0_application_core::RuntimeEventBus;
 use vrcx_0_application_core::{HostSessionRuntime, WebClient};
 
@@ -583,7 +583,7 @@ mod tests {
         tx.send(2).unwrap();
 
         let result = wait_for_result_or_cancel(
-            std::future::pending::<std::result::Result<(), crate::Error>>(),
+            std::future::pending::<std::result::Result<(), vrcx_0_application_core::Error>>(),
             &mut rx,
             1,
             std::time::Duration::from_millis(50),
@@ -603,7 +603,7 @@ mod tests {
         let result = wait_for_result_or_cancel(
             async {
                 tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-                Ok::<_, crate::Error>(())
+                Ok::<_, vrcx_0_application_core::Error>(())
             },
             &mut rx,
             1,
@@ -621,7 +621,7 @@ mod tests {
         let (_tx, mut rx) = tokio::sync::watch::channel(1u64);
 
         let error = wait_for_result_or_cancel(
-            std::future::pending::<std::result::Result<(), crate::Error>>(),
+            std::future::pending::<std::result::Result<(), vrcx_0_application_core::Error>>(),
             &mut rx,
             1,
             std::time::Duration::from_millis(1),
@@ -650,7 +650,8 @@ mod tests {
 
     #[test]
     fn reconnect_retries_non_auth_errors_but_stops_on_auth_failure() {
-        let transient = RealtimeConnectionError::Other(crate::Error::Custom("closed".into()));
+        let transient =
+            RealtimeConnectionError::Other(vrcx_0_application_core::Error::Custom("closed".into()));
         assert!(!should_stop_after_connection_error(&transient));
 
         let auth = RealtimeConnectionError::AuthFailure {

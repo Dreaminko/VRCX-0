@@ -12,8 +12,8 @@ use vrcx_0_vrchat_client::http_api::{
 use vrcx_0_vrchat_client::{favorites as remote_favorites, friends as remote_friends};
 
 use crate::realtime::FriendBaselineSyncOutcome;
-use crate::{Error, Result};
 use vrcx_0_application_core::RuntimeAuthScope;
+use vrcx_0_application_core::{Error, Result};
 use vrcx_0_application_core::{HostSessionRuntime, WebClient};
 
 use crate::social_baseline::types::{

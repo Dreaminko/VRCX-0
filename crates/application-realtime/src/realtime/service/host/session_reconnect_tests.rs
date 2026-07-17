@@ -1,6 +1,6 @@
 use super::test_support::*;
 use super::*;
-use crate::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
+use vrcx_0_application_core::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
 
 #[derive(Clone, Copy)]
 struct DiscardTaskExecutor;

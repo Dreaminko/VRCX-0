@@ -9,8 +9,9 @@ use serde_json::Value;
 use vrcx_0_application_core::vrchat_api::media::{print_delete_input, prints_get_input};
 use vrcx_0_application_core::vrchat_api::VrchatScope;
 pub use vrcx_0_application_core::PrintAutoCleanupEvent;
-use vrcx_0_application_core::{RuntimeEventBus, TaskSupervisor, WebClient};
-use vrcx_0_core::realtime::RealtimeWsMessagePayload;
+pub use vrcx_0_application_core::PrintCleanupTrigger;
+use vrcx_0_application_core::{PrintCleanupInputSink, RuntimeEventBus, TaskSupervisor, WebClient};
+pub use vrcx_0_application_realtime::is_print_created_content_refresh;
 use vrcx_0_persistence::DatabaseService;
 
 use super::favorites::{
@@ -54,13 +55,6 @@ pub struct PrintCleanupSelection {
     pub warning: Option<CleanupWarning>,
 }
 
-#[derive(Clone, Debug)]
-pub struct PrintCleanupTrigger {
-    pub user_id: String,
-    pub endpoint: String,
-    pub reason: String,
-}
-
 #[derive(Clone)]
 pub struct PrintCleanupDeps {
     pub db: Arc<DatabaseService>,
@@ -102,6 +96,25 @@ impl PrintCleanupQueue {
                 );
             }
         });
+    }
+}
+
+#[derive(Clone)]
+pub struct PrintCleanupQueueSink {
+    queue: PrintCleanupQueue,
+    tasks: TaskSupervisor,
+    deps: PrintCleanupDeps,
+}
+
+impl PrintCleanupQueueSink {
+    pub fn new(queue: PrintCleanupQueue, tasks: TaskSupervisor, deps: PrintCleanupDeps) -> Self {
+        Self { queue, tasks, deps }
+    }
+}
+
+impl PrintCleanupInputSink for PrintCleanupQueueSink {
+    fn schedule_print_cleanup(&self, trigger: PrintCleanupTrigger) {
+        self.queue.schedule(&self.tasks, self.deps.clone(), trigger);
     }
 }
 
@@ -179,14 +192,6 @@ pub fn print_list_items_from_json(value: &Value) -> Vec<PrintListItem> {
             Some(PrintListItem { id, created_at })
         })
         .collect()
-}
-
-pub fn is_print_created_content_refresh(payload: &RealtimeWsMessagePayload) -> bool {
-    if text_field(&payload.json, "type") != "content-refresh" {
-        return false;
-    }
-    let content = payload.json.get("content").unwrap_or(&Value::Null);
-    text_field(content, "contentType") == "print" && text_field(content, "actionType") == "created"
 }
 
 pub async fn run_print_auto_cleanup(

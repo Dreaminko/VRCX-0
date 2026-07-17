@@ -8668,6 +8668,7 @@ dependencies = [
  "vrcx-0-application",
  "vrcx-0-application-core",
  "vrcx-0-application-game",
+ "vrcx-0-application-realtime",
  "vrcx-0-core",
  "vrcx-0-harness",
  "vrcx-0-host",
@@ -8693,7 +8694,6 @@ dependencies = [
  "futures-util",
  "hex",
  "image",
- "moka",
  "rusqlite",
  "serde",
  "serde_json",
@@ -8701,8 +8701,8 @@ dependencies = [
  "specta",
  "tokio",
  "tracing",
- "url",
  "vrcx-0-application-core",
+ "vrcx-0-application-realtime",
  "vrcx-0-core",
  "vrcx-0-integrations",
  "vrcx-0-media",
@@ -8752,6 +8752,24 @@ dependencies = [
  "vrcx-0-persistence",
  "vrcx-0-vrchat-client",
  "walkdir",
+]
+
+[[package]]
+name = "vrcx-0-application-realtime"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "futures-util",
+ "moka",
+ "serde",
+ "serde_json",
+ "specta",
+ "tokio",
+ "tracing",
+ "vrcx-0-application-core",
+ "vrcx-0-core",
+ "vrcx-0-persistence",
+ "vrcx-0-vrchat-client",
 ]
 
 [[package]]
@@ -8898,6 +8916,7 @@ dependencies = [
  "tracing",
  "vrcx-0-application",
  "vrcx-0-application-core",
+ "vrcx-0-application-realtime",
  "vrcx-0-core",
  "vrcx-0-persistence",
  "vrcx-0-runtime-host",
@@ -8970,6 +8989,7 @@ dependencies = [
  "uuid",
  "vrcx-0-application",
  "vrcx-0-application-core",
+ "vrcx-0-application-realtime",
  "vrcx-0-core",
  "vrcx-0-host",
  "vrcx-0-integrations",
@@ -8992,6 +9012,7 @@ dependencies = [
  "vrcx-0-application",
  "vrcx-0-application-core",
  "vrcx-0-application-game",
+ "vrcx-0-application-realtime",
  "vrcx-0-core",
  "vrcx-0-host",
  "vrcx-0-host-desktop",

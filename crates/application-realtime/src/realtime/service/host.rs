@@ -17,7 +17,6 @@ use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
 use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
 use vrcx_0_vrchat_client::users as remote_users;
 
-use crate::prints::cleanup::{PrintCleanupDeps, PrintCleanupQueue, PrintCleanupTrigger};
 use crate::realtime::connection::{
     run_realtime_transport, RealtimeMessageSink, RealtimeTransportDeps,
 };
@@ -51,12 +50,11 @@ use crate::social_baseline::service::{
     reconcile_friend_roster_records, FriendRosterReconcileOutcome,
 };
 use crate::world_enrich::is_meaningful_world_name;
-use crate::RuntimeAuthScope;
-use crate::{Error, Result};
-use crate::{LocalGameContextSnapshot, LocalGameContextSource, OverlayActivityInputSink};
 use vrcx_0_application_core::HostSessionRuntime;
 use vrcx_0_application_core::{
-    FavoritesChangedPayload, RuntimeEventBus, RuntimeVrchatAuthFailurePayload,
+    Error, FavoritesChangedPayload, LocalGameContextSnapshot, LocalGameContextSource,
+    OverlayActivityInputSink, PrintCleanupInputSink, PrintCleanupTrigger, Result, RuntimeAuthScope,
+    RuntimeEventBus, RuntimeVrchatAuthFailurePayload,
 };
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 use vrcx_0_application_core::{RuntimeSyncEngine, TaskSupervisor, WebClient};
@@ -65,8 +63,6 @@ use vrcx_0_application_core::{RuntimeSyncEngine, TaskSupervisor, WebClient};
 mod friend_baseline_tests;
 #[cfg(test)]
 mod friend_joining_tests;
-#[cfg(test)]
-mod friend_mutation_sink_tests;
 mod friend_profile_bulk_load;
 #[cfg(test)]
 mod friend_profile_bulk_load_tests;
@@ -86,8 +82,8 @@ mod notification_enrichment_tests;
 mod persistence;
 #[cfg(test)]
 mod session_reconnect_tests;
-#[cfg(test)]
-mod test_support;
+#[cfg(any(test, feature = "test-utils"))]
+pub mod test_support;
 mod types;
 #[cfg(test)]
 mod world_cache_tests;

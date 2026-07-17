@@ -3,9 +3,9 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use vrcx_0_persistence::DatabaseService;
 
-use crate::realtime::RealtimeHostRuntime;
 use vrcx_0_application_core::RuntimeAuthScope;
 use vrcx_0_application_core::WebClient;
+use vrcx_0_application_realtime::RealtimeHostRuntime;
 
 pub struct SocialMutationDeps<'a> {
     pub db: &'a DatabaseService,

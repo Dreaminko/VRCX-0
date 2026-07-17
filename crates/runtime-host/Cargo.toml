@@ -7,7 +7,8 @@ edition = "2021"
 default = []
 test-utils = [
     "vrcx-0-application/test-utils",
-    "vrcx-0-application-core/test-utils"
+    "vrcx-0-application-core/test-utils",
+    "vrcx-0-application-realtime/test-utils"
 ]
 
 [dependencies]
@@ -22,6 +23,7 @@ tokio = { workspace = true, features = ["time", "rt", "macros"] }
 tracing = { workspace = true }
 vrcx-0-application = { path = "../application" }
 vrcx-0-application-core = { path = "../application-core" }
+vrcx-0-application-realtime = { path = "../application-realtime" }
 vrcx-0-core = { path = "../core" }
 vrcx-0-host = { path = "../host" }
 vrcx-0-integrations = { path = "../integrations" }

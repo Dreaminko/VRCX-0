@@ -3,13 +3,13 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Map, Value};
-use vrcx_0_application::RealtimeHostRuntime;
 use vrcx_0_application_core::RuntimeEventBus;
 use vrcx_0_application_game::{
     OverlayActivityDelivery, OverlayActivityFilters, OverlayActivityRuntime, OverlayActivitySink,
     OverlayActivitySnapshot, OverlayActivitySurface, OverlayActivitySurfaceFilters,
     RuntimeGameEventBusExt, RuntimeSnapshot,
 };
+use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_host_desktop::tts::{SystemTtsEngine, TtsEngine};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_runtime_host::RuntimeHostContext;

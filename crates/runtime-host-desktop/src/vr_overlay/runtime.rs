@@ -9,12 +9,12 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Local, Timelike};
 use serde::Serialize;
-use vrcx_0_application::RealtimeFriendSnapshot;
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, TaskSupervisor};
 use vrcx_0_application_game::{
     GameLogEvent, GameLogEventSink, OverlayActivityDelivery, OverlayActivitySink,
     OverlayActivitySnapshot,
 };
+use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::log_watcher::GameLogEventKind;
 use vrcx_0_host_desktop::vr_overlay::{

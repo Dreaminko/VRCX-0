@@ -53,8 +53,9 @@ pub use interruptible_sleep::sleep_interruptibly;
 pub use ports::{
     BackgroundCapabilitySession, GameProcessEvent, GameProcessEventSink,
     HostRealtimeSessionContext, HostSessionGameProcessStatus, HostSessionProjection,
-    HostSessionRuntime, LocalGameContextSnapshot, LocalGameContextSource, NoopUpdaterPort,
-    OverlayActivityInputSink, SessionHostRuntime, UnavailableLocalGameContextSource,
+    HostSessionRuntime, LocalGameContextSnapshot, LocalGameContextSource,
+    NoopPrintCleanupInputSink, NoopUpdaterPort, OverlayActivityInputSink, PrintCleanupInputSink,
+    PrintCleanupTrigger, SessionHostRuntime, UnavailableLocalGameContextSource,
     UpdaterCheckRequest, UpdaterDownloadOutcome, UpdaterDownloadProgress, UpdaterInstallHandle,
     UpdaterMetadata, UpdaterPort, UpdaterProgressCallback,
 };

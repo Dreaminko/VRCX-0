@@ -2,8 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use vrcx_0_application::{
     evaluate_instance_action_gates, InstanceActionGateTarget, InstanceActionGates,
-    InstanceActionGatesBatchInput, RealtimeFriendSnapshot,
+    InstanceActionGatesBatchInput,
 };
+use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::{parse_location, world_id_from_location};
 use vrcx_0_persistence::favorites::favorite_list;

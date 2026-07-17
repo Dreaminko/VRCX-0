@@ -71,7 +71,7 @@ fn favorite_friend_groups_snapshot_preserves_remote_and_local_labels() {
 
 #[test]
 fn friends_panel_model_filters_favorites_and_keeps_note_memo_traveling() {
-    let snapshot = vrcx_0_application::RealtimeFriendSnapshot {
+    let snapshot = vrcx_0_application_realtime::RealtimeFriendSnapshot {
         current_user_id: "usr_self".to_string(),
         friends_by_id: [
             (
@@ -110,7 +110,7 @@ fn friends_panel_model_filters_favorites_and_keeps_note_memo_traveling() {
         ]
         .into_iter()
         .collect(),
-        ..vrcx_0_application::RealtimeFriendSnapshot::default()
+        ..vrcx_0_application_realtime::RealtimeFriendSnapshot::default()
     };
     let groups = FavoriteFriendGroupsSnapshot {
         groups: vec![FavoriteFriendGroupSnapshot {

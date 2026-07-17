@@ -361,7 +361,7 @@ fn test_realtime_runtime(
     name: &str,
 ) -> (
     TestDir,
-    Arc<vrcx_0_application::RealtimeHostRuntime>,
+    Arc<vrcx_0_application_realtime::RealtimeHostRuntime>,
     Arc<DatabaseService>,
     Arc<vrcx_0_application_core::WebClient>,
 ) {
@@ -383,8 +383,8 @@ fn test_realtime_runtime(
         512,
         std::time::Duration::from_secs(30 * 60),
     ));
-    let runtime = Arc::new(vrcx_0_application::RealtimeHostRuntime::new(
-        vrcx_0_application::RealtimeHostRuntimeDeps {
+    let runtime = Arc::new(vrcx_0_application_realtime::RealtimeHostRuntime::new(
+        vrcx_0_application_realtime::RealtimeHostRuntimeDeps {
             db: Arc::clone(&db),
             web: Arc::clone(&web),
             event_bus: vrcx_0_application_core::RuntimeEventBus::new(),
@@ -397,7 +397,7 @@ fn test_realtime_runtime(
             ),
             activity_sink: None,
             world_cache,
-            print_cleanup: vrcx_0_application::PrintCleanupQueue::new(),
+            print_cleanup: Arc::new(vrcx_0_application_core::NoopPrintCleanupInputSink),
             friend_note_change_sink: None,
         },
     ));

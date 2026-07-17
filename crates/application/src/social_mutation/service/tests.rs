@@ -6,12 +6,12 @@ use vrcx_0_persistence::friends::{friend_log_history_query, FriendLogHistoryQuer
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::prints::cleanup::PrintCleanupQueue;
-use crate::realtime::{RealtimeHostRuntime, RealtimeHostRuntimeDeps};
 use crate::{RuntimeAuthScope, RuntimeEventBus, UnavailableLocalGameContextSource};
 use vrcx_0_application_core::{
-    HostSessionRuntime, RuntimeSyncEngine, TaskSupervisor, WebClient, WorldCache,
+    HostSessionRuntime, NoopPrintCleanupInputSink, RuntimeSyncEngine, TaskSupervisor, WebClient,
+    WorldCache,
 };
+use vrcx_0_application_realtime::{RealtimeHostRuntime, RealtimeHostRuntimeDeps};
 
 use super::super::types::SocialFriendMutationStatus;
 use super::*;
@@ -81,7 +81,7 @@ fn fixture(name: &str) -> Fixture {
         local_game_context: Arc::new(UnavailableLocalGameContextSource),
         activity_sink: None,
         world_cache,
-        print_cleanup: PrintCleanupQueue::new(),
+        print_cleanup: Arc::new(NoopPrintCleanupInputSink),
         friend_note_change_sink: None,
     }));
     Fixture {

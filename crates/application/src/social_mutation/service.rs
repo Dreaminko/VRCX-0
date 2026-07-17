@@ -14,9 +14,9 @@ use vrcx_0_vrchat_client::http_api::{
 };
 use vrcx_0_vrchat_client::notifications::notification_accept_friend_request_input;
 
-use crate::realtime::SyntheticFriendEventOutcome;
 use crate::{Error, Result, RuntimeAuthScopeSnapshot};
 use vrcx_0_application_core::RuntimeVrchatAuthFailurePayload;
+use vrcx_0_application_realtime::SyntheticFriendEventOutcome;
 
 use super::types::{
     SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendRequestAcceptInput,

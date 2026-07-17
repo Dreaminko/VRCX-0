@@ -93,7 +93,7 @@ pub struct RealtimeHostRuntimeDeps {
     pub local_game_context: Arc<dyn LocalGameContextSource>,
     pub activity_sink: Option<Arc<dyn OverlayActivityInputSink>>,
     pub world_cache: Arc<WorldCache>,
-    pub print_cleanup: PrintCleanupQueue,
+    pub print_cleanup: Arc<dyn PrintCleanupInputSink>,
     pub friend_note_change_sink: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 

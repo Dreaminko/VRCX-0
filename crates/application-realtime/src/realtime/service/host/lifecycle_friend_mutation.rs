@@ -12,16 +12,13 @@ pub enum SyntheticFriendEventOutcome {
 }
 
 impl RealtimeHostRuntime {
-    pub(crate) fn emit_runtime_vrchat_auth_failure(
-        &self,
-        payload: RuntimeVrchatAuthFailurePayload,
-    ) {
+    pub fn emit_runtime_vrchat_auth_failure(&self, payload: RuntimeVrchatAuthFailurePayload) {
         self.deps
             .event_bus
             .emit_runtime_vrchat_auth_failure(payload);
     }
 
-    pub(crate) fn run_scoped_friend_log_removal<T, E>(
+    pub fn run_scoped_friend_log_removal<T, E>(
         &self,
         owner_user_id: &str,
         endpoint: &str,
@@ -47,7 +44,7 @@ impl RealtimeHostRuntime {
         })
     }
 
-    pub(crate) fn run_scoped_friend_log_upsert<T, E>(
+    pub fn run_scoped_friend_log_upsert<T, E>(
         &self,
         owner_user_id: &str,
         endpoint: &str,

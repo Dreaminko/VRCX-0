@@ -837,14 +837,13 @@ mod activity_output_tests {
     use std::time::Duration;
 
     use rmcp::handler::server::wrapper::Parameters;
-    use vrcx_0_application::{
-        MutualGraphFetchRuntime, PrintCleanupQueue, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
-    };
+    use vrcx_0_application::MutualGraphFetchRuntime;
     use vrcx_0_application_core::{
-        HostSessionRuntime, RuntimeAuthScope, RuntimeDiagnostics, RuntimeEventBus,
-        RuntimeSyncEngine, TaskSupervisor, UnavailableLocalGameContextSource, WebClient,
-        WorldCache,
+        HostSessionRuntime, NoopPrintCleanupInputSink, RuntimeAuthScope, RuntimeDiagnostics,
+        RuntimeEventBus, RuntimeSyncEngine, TaskSupervisor, UnavailableLocalGameContextSource,
+        WebClient, WorldCache,
     };
+    use vrcx_0_application_realtime::{RealtimeHostRuntime, RealtimeHostRuntimeDeps};
     use vrcx_0_persistence::{
         config::ConfigRepository, game_log::ensure_game_log_tables, storage::StorageService,
         DatabaseService,
@@ -911,7 +910,7 @@ mod activity_output_tests {
             local_game_context: Arc::new(UnavailableLocalGameContextSource),
             activity_sink: None,
             world_cache,
-            print_cleanup: PrintCleanupQueue::new(),
+            print_cleanup: Arc::new(NoopPrintCleanupInputSink),
             friend_note_change_sink: None,
         }));
         let runtime = crate::runtime::McpRuntime {

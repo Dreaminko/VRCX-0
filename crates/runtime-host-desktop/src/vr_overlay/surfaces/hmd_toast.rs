@@ -2,11 +2,11 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use vrcx_0_application::RealtimeFriendSnapshot;
 use vrcx_0_application_core::WorldCache;
 use vrcx_0_application_game::{
     OverlayActivityActorRelation, OverlayActivityDelivery, OverlayActivityEntry,
 };
+use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::{is_meaningful_world_name, world_id_from_location};
 use vrcx_0_vr_overlay::{AvatarBitmap, OverlaySurfaceId, RgbaFrame, MAIN_SURFACE_ID};

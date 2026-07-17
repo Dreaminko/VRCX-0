@@ -134,17 +134,23 @@ test('healthy workspace edges pass and the shell may declare Tauri', () => {
     assert.deepEqual(evaluateBackendMetadata(fixture), []);
 });
 
-test('application core edges stay acyclic across application and game owners', () => {
+test('application realtime edges stay acyclic across data and game owners', () => {
     const fixture = metadata([
         tauriShell(),
         workspacePackage('vrcx-0-application', [
+            workspaceDependency('vrcx-0-application-realtime')
+        ]),
+        workspacePackage('vrcx-0-application-realtime', [
             workspaceDependency('vrcx-0-application-core')
         ]),
         workspacePackage('vrcx-0-application-core', [
             workspaceDependency('vrcx-0-core')
         ]),
         workspacePackage('vrcx-0-application-game', [
-            workspaceDependency('vrcx-0-application-core')
+            workspaceDependency('vrcx-0-application-realtime')
+        ]),
+        workspacePackage('vrcx-0-headless', [
+            workspaceDependency('vrcx-0-application-realtime')
         ]),
         workspacePackage('vrcx-0-core')
     ]);
@@ -152,43 +158,85 @@ test('application core edges stay acyclic across application and game owners', (
     assert.deepEqual(evaluateBackendMetadata(fixture), []);
 });
 
-test('application core cannot depend on application or host owners', () => {
+test('application realtime cannot depend on higher-level or host owners', () => {
+    const devTargetDependency = {
+        kind: 'dev',
+        optional: true,
+        target: 'cfg(target_os = "windows")'
+    };
     const fixture = metadata([
         tauriShell(),
         workspacePackage('vrcx-0-application'),
-        workspacePackage('vrcx-0-application-core', [
-            workspaceDependency('vrcx-0-application'),
-            workspaceDependency('vrcx-0-host')
+        workspacePackage('vrcx-0-application-core'),
+        workspacePackage('vrcx-0-application-game'),
+        workspacePackage('vrcx-0-application-realtime', [
+            workspaceDependency('vrcx-0-application', devTargetDependency),
+            workspaceDependency(
+                'vrcx-0-application-game',
+                devTargetDependency
+            ),
+            workspaceDependency('vrcx-0-runtime-host', devTargetDependency),
+            workspaceDependency('vrcx-0-host', devTargetDependency),
+            dependency('tauri-plugin-dialog', devTargetDependency)
         ]),
-        workspacePackage('vrcx-0-host')
+        workspacePackage('vrcx-0-host'),
+        workspacePackage('vrcx-0-runtime-host')
     ]);
-    const rules = evaluateBackendMetadata(fixture).map(
+    const violations = evaluateBackendMetadata(fixture);
+    const rules = violations.map(
         (violation) => violation.rule
     );
 
-    assert.ok(rules.includes('dependency-direction'));
-    assert.ok(rules.includes('application-host-edge'));
-});
-
-test('optional target dev edges cannot reverse desktop or host boundaries', () => {
-    const fixture = metadata([
-        tauriShell(),
-        workspacePackage('vrcx-0-application', [
-            workspaceDependency('vrcx-0-host-desktop', {
-                kind: 'dev',
-                optional: true,
-                target: 'cfg(target_os = "windows")'
-            })
-        ]),
-        workspacePackage('vrcx-0-host-desktop')
-    ]);
-    const rules = evaluateBackendMetadata(fixture).map(
-        (violation) => violation.rule
-    );
-
+    for (const forbiddenDependency of [
+        'vrcx-0-application',
+        'vrcx-0-application-game',
+        'vrcx-0-runtime-host',
+        'vrcx-0-host'
+    ]) {
+        assert.ok(
+            violations.some(
+                (violation) =>
+                    violation.rule === 'dependency-direction' &&
+                    violation.message.includes(
+                        `vrcx-0-application-realtime -> ${forbiddenDependency}`
+                    )
+            ),
+            `${forbiddenDependency} should be rejected`
+        );
+    }
     assert.ok(rules.includes('dependency-direction'));
     assert.ok(rules.includes('desktop-reverse-edge'));
     assert.ok(rules.includes('application-host-edge'));
+    assert.ok(rules.includes('backend-tauri'));
+    assert.ok(
+        violations.some(
+            (violation) =>
+                violation.rule === 'backend-tauri' &&
+                violation.message.includes('dev, target=') &&
+                violation.message.includes('optional')
+        )
+    );
+});
+
+test('application core cannot depend on application realtime', () => {
+    const fixture = metadata([
+        tauriShell(),
+        workspacePackage('vrcx-0-application-core', [
+            workspaceDependency('vrcx-0-application-realtime')
+        ]),
+        workspacePackage('vrcx-0-application-realtime')
+    ]);
+    const violations = evaluateBackendMetadata(fixture);
+
+    assert.ok(
+        violations.some(
+            (violation) =>
+                violation.rule === 'dependency-direction' &&
+                violation.message.includes(
+                    'vrcx-0-application-core -> vrcx-0-application-realtime'
+                )
+        )
+    );
 });
 
 test('backend Tauri checks catch disabled direct and resolved transitive dependencies', () => {

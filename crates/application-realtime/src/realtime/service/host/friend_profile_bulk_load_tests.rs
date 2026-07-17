@@ -6,7 +6,7 @@ use super::friend_profile_bulk_load::{
 use super::test_support::*;
 use super::types::ActiveRealtimeContext;
 use super::*;
-use crate::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
+use vrcx_0_application_core::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
 
 #[derive(Clone, Copy)]
 struct DiscardTaskExecutor;
@@ -152,7 +152,7 @@ fn start_requires_active_realtime_session() -> Result<()> {
         local_game_context: Arc::new(UnavailableLocalGameContextSource),
         activity_sink: None,
         world_cache,
-        print_cleanup: PrintCleanupQueue::new(),
+        print_cleanup: Arc::new(vrcx_0_application_core::NoopPrintCleanupInputSink),
         friend_note_change_sink: None,
     }));
 

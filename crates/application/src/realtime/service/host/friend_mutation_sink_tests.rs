@@ -1,16 +1,25 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
+use serde_json::json;
+use vrcx_0_application_core::{Result, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
+use vrcx_0_application_realtime::test_support::{
+    runtime_with_active_session, TestRealtimeHostRuntime,
+};
+use vrcx_0_application_realtime::{
+    RealtimeSessionContext, RealtimeWsMessagePayload, SyntheticFriendEventOutcome,
+};
+use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_persistence::friends::{
     friend_log_current_list, friend_log_history_query, FriendLogHistoryQueryInput,
 };
-use vrcx_0_persistence::realtime::{FriendLogUpsert, RealtimePersistenceBatch};
+use vrcx_0_persistence::realtime::{
+    write_realtime_batch, FriendLogUpsert, RealtimePersistenceBatch,
+};
 
 use crate::social_mutation::types::SocialFriendMutationStatus;
 use crate::social_mutation::{apply_friend_request_accept_locally, apply_unfriend_locally};
-use crate::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, SocialMutationDeps};
-
-use super::test_support::*;
-use super::*;
+use crate::SocialMutationDeps;
 
 #[derive(Clone, Copy)]
 struct DiscardTaskExecutor;
@@ -33,18 +42,18 @@ impl RuntimeTaskHandle for FinishedTaskHandle {
     fn join_or_abort(&mut self, _timeout: Duration) {}
 }
 
-fn deps(runtime: &Arc<RealtimeHostRuntime>) -> SocialMutationDeps<'_> {
+fn deps(runtime: &TestRealtimeHostRuntime) -> SocialMutationDeps<'_> {
     SocialMutationDeps {
-        db: runtime.deps.db.as_ref(),
-        web: runtime.deps.web.as_ref(),
-        auth_scope: &runtime.deps.auth_scope,
+        db: runtime.database(),
+        web: runtime.web_client(),
+        auth_scope: runtime.auth_scope(),
         realtime: runtime,
     }
 }
 
-fn seed_friend_log_current(runtime: &Arc<RealtimeHostRuntime>, owner: &str, target: &str) {
+fn seed_friend_log_current(runtime: &TestRealtimeHostRuntime, owner: &str, target: &str) {
     write_realtime_batch(
-        runtime.deps.db.as_ref(),
+        runtime.database(),
         owner,
         &RealtimePersistenceBatch {
             friend_log_upserts: vec![FriendLogUpsert {
@@ -62,13 +71,13 @@ fn seed_friend_log_current(runtime: &Arc<RealtimeHostRuntime>, owner: &str, targ
 }
 
 fn history_rows(
-    runtime: &Arc<RealtimeHostRuntime>,
+    runtime: &TestRealtimeHostRuntime,
     owner: &str,
     target: &str,
     r#type: &str,
 ) -> usize {
     friend_log_history_query(
-        runtime.deps.db.as_ref(),
+        runtime.database(),
         FriendLogHistoryQueryInput {
             user_id: owner.to_string(),
             target_user_id: target.to_string(),
@@ -105,23 +114,11 @@ fn friend_add_payload(user_id: &str, display_name: &str) -> RealtimeWsMessagePay
 }
 
 fn prepare_pending_baseline(
-    runtime: &Arc<RealtimeHostRuntime>,
+    runtime: &TestRealtimeHostRuntime,
     session: &RealtimeSessionContext,
     friends_by_id: HashMap<String, FriendRecord>,
 ) -> Result<()> {
-    {
-        let mut state = runtime.state.lock().unwrap();
-        state.active_context = None;
-    }
-    runtime.friends.clear();
-    runtime.sync_friend_snapshot(
-        session.user_id.clone(),
-        session.endpoint.clone(),
-        session.websocket.clone(),
-        None,
-        friends_by_id,
-    )?;
-    Ok(())
+    runtime.prepare_pending_friend_baseline(session, friends_by_id)
 }
 
 #[test]
@@ -148,8 +145,8 @@ fn pending_unfriend_updates_start_baseline_and_emits_projection() -> Result<()> 
     );
     assert_eq!(outcome.status, SocialFriendMutationStatus::Applied);
 
-    runtime.deps.event_bus.take_events_for_test();
-    runtime.deps.tasks.set_executor(DiscardTaskExecutor);
+    runtime.take_events_for_test();
+    runtime.set_task_executor_for_test(DiscardTaskExecutor);
     let started = runtime.start(
         session.user_id.clone(),
         session.endpoint.clone(),
@@ -164,7 +161,7 @@ fn pending_unfriend_updates_start_baseline_and_emits_projection() -> Result<()> 
         .expect("started friend snapshot")
         .friends_by_id
         .contains_key("usr_friend"));
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| {
@@ -197,8 +194,8 @@ fn pending_accept_preserves_trusted_profile_state_on_start() -> Result<()> {
     );
     assert_eq!(outcome.status, SocialFriendMutationStatus::Applied);
 
-    runtime.deps.event_bus.take_events_for_test();
-    runtime.deps.tasks.set_executor(DiscardTaskExecutor);
+    runtime.take_events_for_test();
+    runtime.set_task_executor_for_test(DiscardTaskExecutor);
     let started = runtime.start(
         session.user_id.clone(),
         session.endpoint.clone(),
@@ -214,7 +211,7 @@ fn pending_accept_preserves_trusted_profile_state_on_start() -> Result<()> {
         .get("usr_target")
         .expect("accepted pending friend");
     assert_eq!(friend.state_bucket, "online");
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| {
@@ -258,16 +255,14 @@ fn unfriend_locally_applies_via_synthetic_event_when_baseline_present() -> Resul
 
     assert_eq!(outcome.status, SocialFriendMutationStatus::Applied);
     assert!(
-        friend_log_current_list(runtime.deps.db.as_ref(), active_session.user_id.clone())?
-            .is_empty()
+        friend_log_current_list(runtime.database(), active_session.user_id.clone())?.is_empty()
     );
     assert_eq!(
         history_rows(&runtime, &active_session.user_id, "usr_friend", "Unfriend"),
         1
     );
     assert!(!runtime
-        .friends
-        .snapshot()
+        .friend_snapshot()
         .expect("baseline snapshot")
         .friends_by_id
         .contains_key("usr_friend"));
@@ -305,17 +300,16 @@ fn unfriend_locally_with_stale_owner_falls_back_without_touching_active_roster()
 
     assert_eq!(outcome.status, SocialFriendMutationStatus::Applied);
     assert!(runtime
-        .friends
-        .snapshot()
+        .friend_snapshot()
         .expect("active baseline")
         .friends_by_id
         .contains_key("usr_friend"));
     assert!(
-        friend_log_current_list(runtime.deps.db.as_ref(), active_session.user_id.clone())?
+        friend_log_current_list(runtime.database(), active_session.user_id.clone())?
             .iter()
             .any(|row| row.user_id == "usr_friend")
     );
-    assert!(friend_log_current_list(runtime.deps.db.as_ref(), "usr_previous".into())?.is_empty());
+    assert!(friend_log_current_list(runtime.database(), "usr_previous".into())?.is_empty());
     assert_eq!(
         history_rows(&runtime, "usr_previous", "usr_friend", "Unfriend"),
         1
@@ -356,8 +350,7 @@ fn synthetic_event_with_stale_endpoint_reports_missing_baseline() -> Result<()> 
 
     assert_eq!(outcome, SyntheticFriendEventOutcome::MissingBaseline);
     assert!(runtime
-        .friends
-        .snapshot()
+        .friend_snapshot()
         .expect("active baseline")
         .friends_by_id
         .contains_key("usr_friend"));
@@ -391,14 +384,13 @@ fn accept_locally_applies_via_synthetic_event_when_baseline_present() -> Result<
     );
 
     assert_eq!(outcome.status, SocialFriendMutationStatus::Applied);
-    let current =
-        friend_log_current_list(runtime.deps.db.as_ref(), active_session.user_id.clone())?;
+    let current = friend_log_current_list(runtime.database(), active_session.user_id.clone())?;
     assert!(current.iter().any(|row| row.user_id == "usr_target"));
     assert_eq!(
         history_rows(&runtime, &active_session.user_id, "usr_target", "Friend"),
         1
     );
-    let snapshot = runtime.friends.snapshot().expect("baseline snapshot");
+    let snapshot = runtime.friend_snapshot().expect("baseline snapshot");
     let friend = snapshot
         .friends_by_id
         .get("usr_target")
@@ -437,19 +429,7 @@ fn unfriend_then_later_ws_friend_delete_records_exactly_one_unfriend_history() -
     );
     assert_eq!(outcome.status, SocialFriendMutationStatus::Applied);
 
-    let active = runtime
-        .state
-        .lock()
-        .unwrap()
-        .active_context
-        .clone()
-        .unwrap();
-    runtime.handle_friend_ws_message(
-        active.generation,
-        active.session_generation,
-        &active.session,
-        &friend_delete_payload("usr_friend"),
-    );
+    runtime.handle_active_friend_ws_message_for_test(&friend_delete_payload("usr_friend"));
 
     assert_eq!(
         history_rows(&runtime, &active_session.user_id, "usr_friend", "Unfriend"),
@@ -478,19 +458,7 @@ fn ws_friend_delete_then_later_unfriend_records_exactly_one_unfriend_history() -
     )?;
     seed_friend_log_current(&runtime, &active_session.user_id, "usr_friend");
 
-    let active = runtime
-        .state
-        .lock()
-        .unwrap()
-        .active_context
-        .clone()
-        .unwrap();
-    runtime.handle_friend_ws_message(
-        active.generation,
-        active.session_generation,
-        &active.session,
-        &friend_delete_payload("usr_friend"),
-    );
+    runtime.handle_active_friend_ws_message_for_test(&friend_delete_payload("usr_friend"));
 
     let outcome = apply_unfriend_locally(
         &deps(&runtime),
@@ -530,19 +498,7 @@ fn accept_then_later_ws_friend_add_records_exactly_one_friend_history() -> Resul
     );
     assert_eq!(outcome.status, SocialFriendMutationStatus::Applied);
 
-    let active = runtime
-        .state
-        .lock()
-        .unwrap()
-        .active_context
-        .clone()
-        .unwrap();
-    runtime.handle_friend_ws_message(
-        active.generation,
-        active.session_generation,
-        &active.session,
-        &friend_add_payload("usr_target", "Target"),
-    );
+    runtime.handle_active_friend_ws_message_for_test(&friend_add_payload("usr_target", "Target"));
 
     assert_eq!(
         history_rows(&runtime, &active_session.user_id, "usr_target", "Friend"),
@@ -563,19 +519,7 @@ fn ws_friend_add_then_later_accept_records_exactly_one_friend_history() -> Resul
         HashMap::new(),
     )?;
 
-    let active = runtime
-        .state
-        .lock()
-        .unwrap()
-        .active_context
-        .clone()
-        .unwrap();
-    runtime.handle_friend_ws_message(
-        active.generation,
-        active.session_generation,
-        &active.session,
-        &friend_add_payload("usr_target", "Target"),
-    );
+    runtime.handle_active_friend_ws_message_for_test(&friend_add_payload("usr_target", "Target"));
 
     let outcome = apply_friend_request_accept_locally(
         &deps(&runtime),

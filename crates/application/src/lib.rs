@@ -21,12 +21,11 @@ mod note_export;
 mod notification_actions;
 mod prints;
 mod profile_backup;
+#[cfg(test)]
 mod realtime;
 mod share_collection;
 mod shared_collection_import;
-mod social_baseline;
 mod social_mutation;
-mod world_enrich;
 
 pub use vrcx_0_application_core::{ports, vrchat_api};
 
@@ -140,7 +139,7 @@ pub use notification_actions::{
 pub use prints::{
     cleanup::{
         is_print_created_content_refresh, run_print_auto_cleanup, PrintAutoCleanupEvent,
-        PrintCleanupDeps, PrintCleanupQueue, PrintCleanupTrigger,
+        PrintCleanupDeps, PrintCleanupQueue, PrintCleanupQueueSink, PrintCleanupTrigger,
     },
     favorites::{favorite_state, set_print_favorite, CleanupWarningKind, PrintFavoriteState},
 };
@@ -153,20 +152,6 @@ pub use profile_backup::{
     ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState, ProfileRestoreValidation,
     ProfileRestoreValidationOutcome,
 };
-pub use realtime::{
-    is_friend_event_type, FriendBaselineCausalWatermark, FriendBaselineResult,
-    FriendBaselineSyncOutcome, FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
-    FriendProjection, FriendProjectionPatch, PendingOfflineTimerAction,
-    RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeCurrentUserProjection,
-    RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
-    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
-    RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
-    RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
-    RealtimeNotificationUpsert, RealtimeProjectionSource, RealtimeSessionContext,
-    RealtimeStopRequest, RealtimeTransportStartResult, RealtimeWsMessagePayload,
-    RealtimeWsStatusPayload, SyntheticFriendEventOutcome,
-};
 pub use share_collection::{
     get_or_create_share_owner_token, is_valid_share_owner_token, prepare_share_collection_payload,
     share_collection_create, share_collection_owner_hint, PreparedShareCollection,
@@ -178,12 +163,6 @@ pub use shared_collection_import::{
     SharedCollectionImportActions, SharedCollectionImportProgress, SharedCollectionImportResult,
     SharedCollectionImportStartInput, SharedCollectionImportState, SharedCollectionImportStatus,
     VrchatSharedCollectionImportActions, SHARED_COLLECTION_IMPORT_MAX_WORLDS,
-};
-pub use social_baseline::{
-    apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
-    build_friend_roster_baseline, build_friend_roster_baseline_deferred, SocialBaselineDeps,
-    SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
-    SocialFriendRosterBaselineOutput,
 };
 pub use social_mutation::{
     accept_friend_request, cancel_friend_request, send_friend_request, unfriend,
@@ -228,6 +207,26 @@ pub use vrcx_0_application_core::{RuntimeSyncEngine, RuntimeSyncSnapshot};
 pub use vrcx_0_application_core::{
     RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,
 };
-pub use world_enrich::world_id_from_location_or_id;
+pub use vrcx_0_application_realtime::world_id_from_location_or_id;
+pub use vrcx_0_application_realtime::{
+    apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
+    build_friend_roster_baseline, build_friend_roster_baseline_deferred, SocialBaselineDeps,
+    SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
+    SocialFriendRosterBaselineOutput,
+};
+pub use vrcx_0_application_realtime::{
+    is_friend_event_type, FriendBaselineCausalWatermark, FriendBaselineResult,
+    FriendBaselineSyncOutcome, FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
+    FriendProjection, FriendProjectionPatch, PendingOfflineTimerAction,
+    RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeCurrentUserProjection,
+    RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
+    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
+    RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
+    RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
+    RealtimeNotificationUpsert, RealtimeProjectionSource, RealtimeSessionContext,
+    RealtimeStopRequest, RealtimeTransportStartResult, RealtimeWsMessagePayload,
+    RealtimeWsStatusPayload, SyntheticFriendEventOutcome,
+};
 
 pub use vrcx_0_application_core::Result;

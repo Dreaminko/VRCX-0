@@ -273,7 +273,15 @@ impl RuntimeHostStateBuilder {
             local_game_context,
             activity_sink,
             world_cache: Arc::clone(&self.runtime_context.world_cache),
-            print_cleanup: self.runtime_context.print_cleanup.clone(),
+            print_cleanup: Arc::new(PrintCleanupQueueSink::new(
+                self.runtime_context.print_cleanup.clone(),
+                self.runtime_context.tasks.clone(),
+                PrintCleanupDeps {
+                    db: Arc::clone(&self.runtime_context.db),
+                    web: Arc::clone(&self.runtime_context.web),
+                    event_bus: self.runtime_context.event_bus.clone(),
+                },
+            )),
             friend_note_change_sink,
         }));
         let authenticated_runtime = AuthenticatedRuntimeOrchestrator::new(
