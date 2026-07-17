@@ -154,7 +154,7 @@ test('application activity and realtime edges stay acyclic across data and game 
         ]),
         workspacePackage('vrcx-0-application-game', [
             workspaceDependency('vrcx-0-application-activity'),
-            workspaceDependency('vrcx-0-application-realtime')
+            workspaceDependency('vrcx-0-application-core')
         ]),
         workspacePackage('vrcx-0-headless', [
             workspaceDependency('vrcx-0-application-activity'),
@@ -165,6 +165,46 @@ test('application activity and realtime edges stay acyclic across data and game 
     ]);
 
     assert.deepEqual(evaluateBackendMetadata(fixture), []);
+});
+
+test('application game cannot depend on application realtime', () => {
+    const fixture = metadata([
+        tauriShell(),
+        workspacePackage('vrcx-0-application-game', [
+            workspaceDependency('vrcx-0-application-realtime')
+        ]),
+        workspacePackage('vrcx-0-application-realtime')
+    ]);
+    const violations = evaluateBackendMetadata(fixture);
+
+    assert.ok(
+        violations.some(
+            (violation) =>
+                violation.rule === 'dependency-direction' &&
+                violation.message.includes(
+                    'vrcx-0-application-game -> vrcx-0-application-realtime'
+                )
+        )
+    );
+});
+
+test('headless cannot depend on MCP before the remote API phase', () => {
+    const fixture = metadata([
+        tauriShell(),
+        workspacePackage('vrcx-0-headless', [
+            workspaceDependency('vrcx-0-mcp')
+        ]),
+        workspacePackage('vrcx-0-mcp')
+    ]);
+    const violations = evaluateBackendMetadata(fixture);
+
+    assert.ok(
+        violations.some(
+            (violation) =>
+                violation.rule === 'dependency-direction' &&
+                violation.message.includes('vrcx-0-headless -> vrcx-0-mcp')
+        )
+    );
 });
 
 test('application activity cannot depend on higher-level, game, realtime, or host owners', () => {

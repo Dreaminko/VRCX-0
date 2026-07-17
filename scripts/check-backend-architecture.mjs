@@ -32,6 +32,11 @@ const dataFoundationPackages = [
     'vrcx-0-application-realtime',
     ...baseDataPackages
 ];
+const gameDataPackages = [
+    'vrcx-0-application-activity',
+    'vrcx-0-application-core',
+    ...baseDataPackages
+];
 const allowedWorkspaceDependencies = new Map([
     [
         tauriShellPackage,
@@ -61,7 +66,7 @@ const allowedWorkspaceDependencies = new Map([
         new Set(['vrcx-0-application-core', ...baseDataPackages])
     ],
     ['vrcx-0-application-core', new Set(baseDataPackages)],
-    ['vrcx-0-application-game', new Set(dataFoundationPackages)],
+    ['vrcx-0-application-game', new Set(gameDataPackages)],
     [
         'vrcx-0-application-realtime',
         new Set(['vrcx-0-application-core', ...baseDataPackages])
@@ -82,7 +87,6 @@ const allowedWorkspaceDependencies = new Map([
             'vrcx-0-application',
             ...dataFoundationPackages,
             'vrcx-0-host',
-            'vrcx-0-mcp',
             'vrcx-0-runtime-host'
         ])
     ],
