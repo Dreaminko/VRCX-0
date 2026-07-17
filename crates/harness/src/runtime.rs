@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use specta::Type;
 use tokio_util::sync::CancellationToken;
-use vrcx_0_application::{RuntimeEventBus, TaskSupervisor};
+use vrcx_0_application_core::{RuntimeEventBus, TaskSupervisor};
 use vrcx_0_integrations::llm::ToolDefinition;
 use vrcx_0_mcp::{spawn_in_process_tools, InProcessMcpTools, McpRuntime};
 use vrcx_0_runtime_host::RuntimeHostState;

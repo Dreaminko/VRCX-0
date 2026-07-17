@@ -3,13 +3,12 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::prints::cleanup::PrintAutoCleanupEvent;
-use crate::realtime::{
-    FriendProfileLoadStatusPayload, FriendProjection, RealtimeCurrentUserProjection,
-    RealtimeEntryCorrection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
-    RealtimeNotificationProjection,
+use crate::events::{
+    FriendProfileLoadStatusPayload, FriendProjection, PrintAutoCleanupEvent,
+    RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
 };
-use crate::session::HostSessionProjection;
+use crate::ports::HostSessionProjection;
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 
 pub trait RuntimeEventSink: Send + Sync {

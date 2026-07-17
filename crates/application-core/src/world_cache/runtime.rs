@@ -48,7 +48,7 @@ impl WorldCache {
         }
     }
 
-    pub(crate) fn init_load(&self) {
+    pub fn init_load(&self) {
         let favorite_ids = self.load_favorite_ids();
         let favorite_rows = self.load_world_rows(&favorite_ids);
         let recent_limit = i64::try_from(self.working_init_limit).unwrap_or(i64::MAX);
@@ -150,7 +150,7 @@ impl WorldCache {
         }
     }
 
-    pub(crate) fn clear_working(&self) {
+    pub fn clear_working(&self) {
         self.working.invalidate_all();
     }
 
@@ -175,7 +175,7 @@ impl WorldCache {
         None
     }
 
-    pub(crate) fn hydrate_from_payload(&self, world_value: &Value) -> Option<String> {
+    pub fn hydrate_from_payload(&self, world_value: &Value) -> Option<String> {
         let world_id = world_id(world_value);
         if world_id.is_empty() {
             return None;

@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use futures_util::stream::{self, StreamExt};
-use serde::{Deserialize, Serialize};
+pub use vrcx_0_application_core::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
 
 use super::types::ActiveRealtimeContext;
 use super::*;
@@ -13,32 +13,6 @@ const FRIEND_PROFILE_BULK_LOAD_BASE_DELAY_MS: u64 = 500;
 const PROGRESS_EMIT_MIN_INTERVAL_MS: i64 = 250;
 const PROGRESS_EMIT_MIN_PROCESSED_DELTA: u32 = 10;
 const FRIEND_PROFILE_BULK_LOAD_START_INTERVAL_MS: u64 = 1_000;
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub enum FriendProfileBulkLoadStatus {
-    #[default]
-    Idle,
-    Running,
-    Cancelling,
-    Completed,
-    Cancelled,
-    Error,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct FriendProfileLoadStatusPayload {
-    pub run_id: u64,
-    pub status: FriendProfileBulkLoadStatus,
-    pub total: u32,
-    pub processed: u32,
-    pub loaded: u32,
-    pub failed: u32,
-    pub started_at: String,
-    pub finished_at: Option<String>,
-    pub last_error: Option<String>,
-}
 
 #[derive(Default)]
 pub struct FriendProfileBulkLoadState {

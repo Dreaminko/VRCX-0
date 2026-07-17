@@ -17,9 +17,7 @@ use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
 use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
 use vrcx_0_vrchat_client::users as remote_users;
 
-use crate::event_bus::{FavoritesChangedPayload, RuntimeEventBus, RuntimeVrchatAuthFailurePayload};
 use crate::prints::cleanup::{PrintCleanupDeps, PrintCleanupQueue, PrintCleanupTrigger};
-use crate::process_monitor::{GameProcessEvent, GameProcessEventSink};
 use crate::realtime::connection::{
     run_realtime_transport, RealtimeMessageSink, RealtimeTransportDeps,
 };
@@ -49,17 +47,19 @@ use crate::realtime::{
     RealtimeProjectionSource, RealtimeSessionContext, RealtimeTransportStartResult,
     RealtimeWsStatusPayload,
 };
-use crate::session::HostSessionRuntime;
 use crate::social_baseline::service::{
     reconcile_friend_roster_records, FriendRosterReconcileOutcome,
 };
-use crate::sync::RuntimeSyncEngine;
-use crate::task_supervisor::TaskSupervisor;
-use crate::web_client::WebClient;
 use crate::world_enrich::is_meaningful_world_name;
 use crate::RuntimeAuthScope;
 use crate::{Error, Result};
 use crate::{LocalGameContextSnapshot, LocalGameContextSource, OverlayActivityInputSink};
+use vrcx_0_application_core::HostSessionRuntime;
+use vrcx_0_application_core::{
+    FavoritesChangedPayload, RuntimeEventBus, RuntimeVrchatAuthFailurePayload,
+};
+use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
+use vrcx_0_application_core::{RuntimeSyncEngine, TaskSupervisor, WebClient};
 
 #[cfg(test)]
 mod friend_baseline_tests;

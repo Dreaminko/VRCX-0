@@ -9,7 +9,7 @@ use serde_json::Value;
 use url::Url;
 
 use crate::{Error, ImageCache, Result, WebClient};
-use vrcx_0_application::save_ugc_image_to_file;
+use vrcx_0_application_core::save_ugc_image_to_file;
 use vrcx_0_media::image_processing;
 use vrcx_0_media::ugc_image_files::UgcCategory;
 use vrcx_0_persistence::config as config_store;

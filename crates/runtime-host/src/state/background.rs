@@ -244,7 +244,7 @@ pub(super) fn is_authenticated_maintenance_active(
 
 pub(super) fn is_authenticated_maintenance_active_snapshot(
     snapshot: &BackendRuntimeSnapshot,
-    auth_scope: &vrcx_0_application::RuntimeAuthScopeSnapshot,
+    auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
     snapshot.phase == BackendRuntimePhase::Running
         && snapshot.auth_status == "authenticated"
@@ -255,7 +255,7 @@ pub(super) fn is_authenticated_maintenance_active_snapshot(
 
 pub(super) fn background_session_scope_matches_auth(
     session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
-    auth_scope: &vrcx_0_application::RuntimeAuthScopeSnapshot,
+    auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
     background_capability_session(session_slot)
         .map(|session| background_session_matches_auth(&session, auth_scope))
@@ -264,7 +264,7 @@ pub(super) fn background_session_scope_matches_auth(
 
 pub(super) fn background_session_matches_auth(
     session: &BackgroundCapabilitySession,
-    auth_scope: &vrcx_0_application::RuntimeAuthScopeSnapshot,
+    auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
     auth_scope.active
         && session.current_user_id == auth_scope.current_user_id

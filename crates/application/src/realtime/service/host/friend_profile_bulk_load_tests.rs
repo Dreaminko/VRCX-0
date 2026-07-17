@@ -136,7 +136,7 @@ fn start_requires_active_realtime_session() -> Result<()> {
         "wss://pipeline.vrchat.cloud".to_string(),
         env!("CARGO_PKG_VERSION"),
     )?);
-    let world_cache = Arc::new(crate::world_cache::WorldCache::new(
+    let world_cache = Arc::new(vrcx_0_application_core::WorldCache::new(
         Arc::clone(&db),
         512,
         Duration::from_secs(30 * 60),

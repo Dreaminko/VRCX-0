@@ -5,15 +5,15 @@ use serde::Serialize;
 use tauri::{Emitter, Manager, Url};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
-use vrcx_0_application::RuntimeEventSink;
-use vrcx_0_application::{format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputMode};
-use vrcx_0_application::{BackendRuntimeMode, BackendRuntimePhase};
-use vrcx_0_application::{
+use vrcx_0_application_core::RuntimeEventSink;
+use vrcx_0_application_core::{format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputMode};
+use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase};
+use vrcx_0_application_core::{
     Error as ApplicationError, Result as ApplicationResult, UpdaterCheckRequest,
     UpdaterDownloadOutcome, UpdaterDownloadProgress, UpdaterInstallHandle, UpdaterMetadata,
     UpdaterPort, UpdaterProgressCallback,
 };
-use vrcx_0_application::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
+use vrcx_0_application_core::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
 use vrcx_0_host_desktop::host_capabilities::{is_host_capability_available, HostCapability};
 use vrcx_0_runtime_host_desktop::notification::DesktopNotifier;
 use vrcx_0_runtime_host_desktop::RuntimeHostActions;

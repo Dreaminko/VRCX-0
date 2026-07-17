@@ -12,9 +12,9 @@ use tokio::time::{sleep, Instant};
 use vrcx_0_persistence::mutual_graph::{MutualGraphMetaInput, MutualGraphSnapshotEntryInput};
 use vrcx_0_persistence::DatabaseService;
 
-use crate::vrchat_api::users::user_mutual_friends_get_input;
-use crate::vrchat_api::VrchatScope;
 use crate::{Error, Result, TaskSupervisor, WebClient};
+use vrcx_0_application_core::vrchat_api::users::user_mutual_friends_get_input;
+use vrcx_0_application_core::vrchat_api::VrchatScope;
 
 const MUTUAL_GRAPH_PAGE_SIZE: i64 = 100;
 const MUTUAL_GRAPH_REQUEST_INTERVAL_MS: u64 = 200;

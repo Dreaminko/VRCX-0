@@ -1,6 +1,6 @@
 use vrcx_0_persistence::DatabaseService;
 
-use crate::web_client::WebClient;
+use vrcx_0_application_core::WebClient;
 
 pub struct LegacyMediaUploadDeps<'a> {
     pub db: &'a DatabaseService,

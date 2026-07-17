@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
-use vrcx_0_application::{
-    HostSessionRuntime, ImageCache, RealtimeHostRuntime, RuntimeDiagnostics, TaskSupervisor,
-    WebClient, WorldCache,
+use vrcx_0_application::RealtimeHostRuntime;
+use vrcx_0_application_core::{
+    HostSessionRuntime, ImageCache, RuntimeDiagnostics, TaskSupervisor, WebClient, WorldCache,
 };
 use vrcx_0_application_game::{
     OverlayActivityDelivery, OverlayActivitySink, OverlayActivitySnapshot,

@@ -1,8 +1,8 @@
 use vrcx_0_persistence::favorites;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::config::{read_config_string_array, write_config_string_array};
 use crate::{Error, Result};
+use vrcx_0_application_core::{read_config_string_array, write_config_string_array};
 
 pub(crate) fn local_group_config_key(kind: &str) -> Result<&'static str> {
     match kind.trim() {

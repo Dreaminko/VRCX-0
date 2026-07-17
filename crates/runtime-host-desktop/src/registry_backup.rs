@@ -1,5 +1,5 @@
 use serde_json::Value;
-use vrcx_0_application::{Error, Result};
+use vrcx_0_application_core::{Error, Result};
 use vrcx_0_application_game::RegistryBackupHostActions;
 
 pub struct HostRegistryBackupActions;

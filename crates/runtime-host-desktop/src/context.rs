@@ -3,7 +3,8 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Map, Value};
-use vrcx_0_application::{RealtimeHostRuntime, RuntimeEventBus};
+use vrcx_0_application::RealtimeHostRuntime;
+use vrcx_0_application_core::RuntimeEventBus;
 use vrcx_0_application_game::{
     OverlayActivityDelivery, OverlayActivityFilters, OverlayActivityRuntime, OverlayActivitySink,
     OverlayActivitySnapshot, OverlayActivitySurface, OverlayActivitySurfaceFilters,

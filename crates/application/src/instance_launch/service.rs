@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use serde_json::Value;
 use vrcx_0_core::location::{parse_location, ParsedLocation};
 
-use crate::vrchat_api::VrchatApiResponse;
 use crate::{Error, Result};
+use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 
 use super::types::{
     InstanceActionGates, InstanceActionGatesBatchInput, InstanceActionGatesBatchOutput,

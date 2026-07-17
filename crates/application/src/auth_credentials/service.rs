@@ -8,8 +8,8 @@ use super::types::{
     LoginSuccessRecordInput, LogoutRecordInput, SavedCredentialLoginStartInput,
     SavedCredentialSessionData,
 };
-use crate::web_client::WebClient;
 use crate::{Error, LoginApi, Result};
+use vrcx_0_application_core::WebClient;
 
 const MAX_AUTO_LOGIN_DELAY_SECONDS: i64 = 10;
 const SAVED_CREDENTIALS_KEY: &str = "savedCredentials";
@@ -980,7 +980,7 @@ mod tests {
         LAST_USER_LOGGED_IN_KEY, SAVED_CREDENTIALS_KEY,
     };
     use crate::auth_credentials::types::LoginSuccessRecordInput;
-    use crate::web_client::WebClient;
+    use vrcx_0_application_core::WebClient;
     use vrcx_0_vrchat_client::http_api::HttpApiExecuteResponse;
 
     fn http_response(status: i32, data: serde_json::Value) -> HttpApiExecuteResponse {

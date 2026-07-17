@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::log_watcher::LogWatcher;
 use crate::{ensure_vrchat_launch_path_allowed, HostFileAccess, RuntimeHost, RuntimeHostContext};
-use vrcx_0_application::Error as RuntimeError;
-use vrcx_0_application::Result as RuntimeResult;
-use vrcx_0_application::{GameProcessEvent, GameProcessEventSink};
+use vrcx_0_application_core::Error as RuntimeError;
+use vrcx_0_application_core::Result as RuntimeResult;
+use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 use vrcx_0_application_game::{
     GameClientActions, GameClientCacheActions, GameClientDebugLoggingActions,
     GameClientLocationSource, GameClientRuntime, GameClientRuntimeDeps, GameClientWindowActions,

@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_application::HostSessionGameProcessStatus;
+use vrcx_0_application_core::HostSessionGameProcessStatus;
 
 use crate::adapters::host_file_access::ensure_vrchat_launch_path_allowed;
 use crate::error::AppError;

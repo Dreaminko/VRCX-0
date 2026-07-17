@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use vrcx_0_application::{BackendRuntime, RuntimeEventSink};
+use vrcx_0_application_core::{BackendRuntime, RuntimeEventSink};
 
 use crate::RuntimeHostProfileExtension;
 

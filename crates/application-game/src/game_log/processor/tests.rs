@@ -17,7 +17,7 @@ use crate::Result;
 use crate::RuntimeAuthScope;
 use crate::RuntimeEventBus;
 use crate::{RuntimeSyncEngine, TaskSupervisor, WebClient};
-use vrcx_0_application::FriendProjection;
+use vrcx_0_application_core::FriendProjection;
 
 use super::{GameLogProcessor, GameLogProcessorDeps, GameLogWorkerJob};
 

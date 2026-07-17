@@ -2,7 +2,7 @@ use super::*;
 use crate::vr_overlay::avatar_cache::tests::test_avatar_bitmap;
 use crate::vr_overlay::surfaces::friends::FRIENDS_PANEL_CATEGORY_SAME_INSTANCE;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use vrcx_0_application::WebClient;
+use vrcx_0_application_core::WebClient;
 use vrcx_0_application_game::{PlayerState, RuntimeSnapshot};
 use vrcx_0_host_desktop::vr_overlay::OverlayHand;
 use vrcx_0_vr_overlay::SlintPanelEvent;
@@ -118,7 +118,8 @@ pub(crate) fn test_context(
     );
     let image_fetcher = web.image_fetcher().unwrap();
     let image_cache = Arc::new(
-        vrcx_0_application::ImageCache::new(dir.path.join("ImageCache"), image_fetcher).unwrap(),
+        vrcx_0_application_core::ImageCache::new(dir.path.join("ImageCache"), image_fetcher)
+            .unwrap(),
     );
     let data = Arc::new(vrcx_0_runtime_host::RuntimeHostContext::new(
         Arc::clone(&db),

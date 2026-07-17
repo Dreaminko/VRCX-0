@@ -5,15 +5,15 @@ use std::sync::{
 use std::time::Instant;
 
 use serde_json::json;
-use vrcx_0_application::vrchat_api::{
+use vrcx_0_application::{
+    join_instance_launch, InstanceLaunchApiFuture, InstanceLaunchDeps, InstanceLaunchHttpClient,
+    InstanceLaunchInput, InstanceLaunchMode, InstanceLaunchOutcome, InstanceLaunchPipe,
+};
+use vrcx_0_application_core::vrchat_api::{
     execute_api_command,
     instances::{instance_self_invite_input, instance_short_name_get_input},
     notifications::{invite_send_input, request_invite_send_input},
     VrchatApiRequest, VrchatApiResponse, VrchatScope,
-};
-use vrcx_0_application::{
-    join_instance_launch, InstanceLaunchApiFuture, InstanceLaunchDeps, InstanceLaunchHttpClient,
-    InstanceLaunchInput, InstanceLaunchMode, InstanceLaunchOutcome, InstanceLaunchPipe,
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::parse_location;
@@ -197,7 +197,10 @@ impl InstanceLaunchHttpClient for RuntimeFriendsPanelActionApi {
 struct RuntimeFriendsPanelLaunchPipe;
 
 impl InstanceLaunchPipe for RuntimeFriendsPanelLaunchPipe {
-    fn try_open_vrchat_launch_url(&self, launch_url: &str) -> vrcx_0_application::Result<bool> {
+    fn try_open_vrchat_launch_url(
+        &self,
+        launch_url: &str,
+    ) -> vrcx_0_application_core::Result<bool> {
         Ok(vrcx_0_host_desktop::vrchat_ipc::vrcipc_send(launch_url))
     }
 }
@@ -305,7 +308,7 @@ async fn execute_friends_panel_api_command(
     context: &DesktopRuntimeHostContext,
     command: &'static str,
     request: VrchatApiRequest,
-) -> vrcx_0_application::Result<VrchatApiResponse> {
+) -> vrcx_0_application_core::Result<VrchatApiResponse> {
     execute_api_command(
         context.web.as_ref(),
         context.db.as_ref(),

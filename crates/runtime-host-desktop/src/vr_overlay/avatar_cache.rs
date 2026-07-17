@@ -5,7 +5,7 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
-use vrcx_0_application::WebClient;
+use vrcx_0_application_core::WebClient;
 use vrcx_0_vr_overlay::AvatarBitmap;
 
 const HMD_AVATAR_SIZE: u32 = 128;

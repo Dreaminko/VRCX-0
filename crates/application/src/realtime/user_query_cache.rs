@@ -7,8 +7,8 @@ use moka::Expiry;
 
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
-use crate::vrchat_api::VrchatApiResponse;
 use crate::Error;
+use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 
 const QUERY_CAPACITY: u64 = 256;
 

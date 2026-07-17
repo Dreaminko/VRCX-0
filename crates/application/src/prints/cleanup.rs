@@ -6,6 +6,10 @@ use std::sync::{
 use std::time::Duration;
 
 use serde_json::Value;
+use vrcx_0_application_core::vrchat_api::media::{print_delete_input, prints_get_input};
+use vrcx_0_application_core::vrchat_api::VrchatScope;
+pub use vrcx_0_application_core::PrintAutoCleanupEvent;
+use vrcx_0_application_core::{RuntimeEventBus, TaskSupervisor, WebClient};
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use vrcx_0_persistence::DatabaseService;
 
@@ -13,11 +17,6 @@ use super::favorites::{
     read_auto_delete_old_prints_enabled, read_auto_delete_prints_limit, read_favorite_ids,
     write_favorite_ids,
 };
-use crate::event_bus::RuntimeEventBus;
-use crate::task_supervisor::TaskSupervisor;
-use crate::vrchat_api::media::{print_delete_input, prints_get_input};
-use crate::vrchat_api::VrchatScope;
-use crate::web_client::WebClient;
 use crate::{Error, Result};
 
 pub const PRINT_HARD_CAP: i64 = 64;
@@ -67,14 +66,6 @@ pub struct PrintCleanupDeps {
     pub db: Arc<DatabaseService>,
     pub web: Arc<WebClient>,
     pub event_bus: RuntimeEventBus,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct PrintAutoCleanupEvent {
-    pub deleted: usize,
-    pub remaining: usize,
-    pub warning: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -334,9 +325,6 @@ mod tests {
         print_list_items_from_json, select_prints_to_delete, CleanupWarningKind, PrintCleanupDeps,
         PrintCleanupQueue, PrintCleanupTrigger, PrintListItem, PRINT_CLEANUP_DEBOUNCE,
     };
-    use crate::task_supervisor::{
-        RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskSupervisor,
-    };
     use serde_json::json;
     use std::collections::HashSet;
     use std::path::PathBuf;
@@ -345,6 +333,9 @@ mod tests {
         Arc,
     };
     use std::time::Duration;
+    use vrcx_0_application_core::{
+        RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskSupervisor,
+    };
     use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
     fn item(id: &str, created_at: &str) -> PrintListItem {
@@ -571,7 +562,7 @@ mod tests {
         PrintCleanupDeps {
             db,
             web,
-            event_bus: crate::event_bus::RuntimeEventBus::new(),
+            event_bus: vrcx_0_application_core::RuntimeEventBus::new(),
         }
     }
 }

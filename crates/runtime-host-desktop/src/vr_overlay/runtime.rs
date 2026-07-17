@@ -9,9 +9,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Local, Timelike};
 use serde::Serialize;
-use vrcx_0_application::{
-    GameProcessEvent, GameProcessEventSink, RealtimeFriendSnapshot, TaskSupervisor,
-};
+use vrcx_0_application::RealtimeFriendSnapshot;
+use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, TaskSupervisor};
 use vrcx_0_application_game::{
     GameLogEvent, GameLogEventSink, OverlayActivityDelivery, OverlayActivitySink,
     OverlayActivitySnapshot,
@@ -1954,14 +1953,17 @@ impl Default for VrOverlayRuntime {
 }
 
 impl GameProcessEventSink for VrOverlayRuntime {
-    fn on_game_process_event(&self, event: GameProcessEvent) -> vrcx_0_application::Result<()> {
+    fn on_game_process_event(
+        &self,
+        event: GameProcessEvent,
+    ) -> vrcx_0_application_core::Result<()> {
         self.update_process_status(event.is_game_running, event.is_steamvr_running);
         Ok(())
     }
 }
 
 impl GameLogEventSink for VrOverlayRuntime {
-    fn ingest_game_log_event(&self, event: &GameLogEvent) -> vrcx_0_application::Result<()> {
+    fn ingest_game_log_event(&self, event: &GameLogEvent) -> vrcx_0_application_core::Result<()> {
         match event.kind {
             GameLogEventKind::OpenVrInit => self.set_vr_mode(true),
             GameLogEventKind::DesktopMode => self.set_vr_mode(false),

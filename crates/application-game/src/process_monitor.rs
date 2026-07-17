@@ -4,7 +4,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use crate::log_watcher::LogWatcher;
-use vrcx_0_application::{GameProcessEvent, GameProcessEventSink};
+use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 
 const GAME_STOP_CONFIRMATION_POLLS: u8 = 3;
 
@@ -116,7 +116,7 @@ impl ProcessMonitor {
                     first_poll = false;
                 }
 
-                crate::interruptible_sleep::sleep_interruptibly(Duration::from_secs(1), || {
+                crate::sleep_interruptibly(Duration::from_secs(1), || {
                     !stop_requested.load(Ordering::Acquire)
                         && current_generation.load(Ordering::Acquire) == generation
                 });

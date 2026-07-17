@@ -3,7 +3,7 @@ pub(crate) use vrcx_0_core::location::is_meaningful_world_name;
 use vrcx_0_core::location::{format_display_location, parse_location, world_id_from_location};
 
 use crate::realtime::RealtimeEntryCorrectionStream;
-use crate::world_cache::WorldCache;
+use vrcx_0_application_core::WorldCache;
 
 #[derive(Clone, Debug)]
 pub(crate) struct PendingWorldNameResolution {

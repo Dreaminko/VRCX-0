@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use std::time::{Duration, Instant};
 
 use serde_json::Value;
-use vrcx_0_application::WebClient;
+use vrcx_0_application_core::WebClient;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::http_api::ApiScope;
 use vrcx_0_vrchat_client::users::user_get_input;

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use vrcx_0_application::{ImageCache, WebClient};
+use vrcx_0_application_core::{ImageCache, WebClient};
 use vrcx_0_application_game::{OverlayActivityScope, OverlayActivitySurface};
 use vrcx_0_persistence::{storage::StorageService, DatabaseService};
 

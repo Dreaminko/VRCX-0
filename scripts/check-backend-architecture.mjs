@@ -121,9 +121,6 @@ const allowedWorkspaceDependencies = new Map([
     ['vrcx-0-vr-overlay', new Set()],
     ['vrcx-0-vrchat-client', new Set(['vrcx-0-core'])]
 ]);
-const phaseETemporaryAllowedWorkspaceEdges = new Set([
-    'vrcx-0-application-game->vrcx-0-application'
-]);
 const forbiddenHeadlessPackages = [
     ['slint', /(?:^|[-_])slint(?:$|[-_])/i],
     ['openvr', /(?:^|[-_])openvr(?:$|[-_])/i],
@@ -333,7 +330,6 @@ export function evaluateBackendMetadata(metadata) {
         );
     }
     const adjacency = new Map();
-    const usedTemporaryEdges = new Set();
     const violations = [];
 
     for (const packageMetadata of workspacePackages) {
@@ -407,17 +403,10 @@ export function evaluateBackendMetadata(metadata) {
             }
             adjacency.get(sourceName).add(dependencyName);
 
-            const edge = `${sourceName}->${dependencyName}`;
-            const isTemporaryEdge =
-                phaseETemporaryAllowedWorkspaceEdges.has(edge);
-            if (isTemporaryEdge) {
-                usedTemporaryEdges.add(edge);
-            }
             if (
                 sourceName !== overlayDevtoolPackage &&
                 allowedDependencies &&
-                !allowedDependencies.has(dependencyName) &&
-                !isTemporaryEdge
+                !allowedDependencies.has(dependencyName)
             ) {
                 violations.push(
                     createViolation(
@@ -475,28 +464,6 @@ export function evaluateBackendMetadata(metadata) {
                     )
                 );
             }
-        }
-    }
-
-    for (const edge of phaseETemporaryAllowedWorkspaceEdges) {
-        const [sourceName] = edge.split('->');
-        if (
-            workspacePackageNames.has(sourceName) &&
-            !usedTemporaryEdges.has(edge)
-        ) {
-            const sourcePackage = workspacePackages.find(
-                (packageMetadata) => packageMetadata.name === sourceName
-            );
-            violations.push(
-                createViolation(
-                    'temporary-edge',
-                    normalizeManifestPath(
-                        sourcePackage.manifest_path,
-                        workspaceRoot
-                    ),
-                    `temporary workspace edge ${edge.replace('->', ' -> ')} is no longer present; remove its policy exemption in the same change`
-                )
-            );
         }
     }
 

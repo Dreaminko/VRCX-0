@@ -1,9 +1,9 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
 use serde_json::json;
-use vrcx_0_application::{
-    refresh_background_group_instances, BackendRuntime, BackgroundCapabilitySession,
-    RuntimeBackgroundJobs, WebClient,
+use vrcx_0_application::refresh_background_group_instances;
+use vrcx_0_application_core::{
+    BackendRuntime, BackgroundCapabilitySession, RuntimeBackgroundJobs, WebClient,
 };
 use vrcx_0_persistence::DatabaseService;
 

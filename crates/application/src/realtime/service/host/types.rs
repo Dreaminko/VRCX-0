@@ -1,8 +1,8 @@
 use super::*;
 use crate::realtime::invite_automation::runtime::InviteAutomationState;
-use crate::world_cache::WorldCache;
 use crate::world_enrich::PendingEntryCorrection;
 use std::collections::HashSet;
+use vrcx_0_application_core::WorldCache;
 
 pub(super) const MAX_QUEUED_FRIEND_MESSAGES: usize = 512;
 

@@ -5,7 +5,7 @@ use chrono::{SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::realtime::FriendProfileLoadStatusPayload;
+use crate::events::FriendProfileLoadStatusPayload;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]

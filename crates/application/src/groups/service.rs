@@ -3,9 +3,8 @@ use std::sync::Arc;
 use serde_json::Value;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::diagnostics::RuntimeDiagnostics;
-use crate::sync::RuntimeSyncEngine;
-use crate::vrchat_api::groups::{
+use crate::Result;
+use vrcx_0_application_core::vrchat_api::groups::{
     current_user_group_instances_get_input, gallery_get_input, group_block_input,
     group_get_no_params_input, group_paged_get_input, invite_delete_input, invite_send_input,
     join_input, join_request_respond_input, join_requests_get_input, leave_input, logs_get_input,
@@ -14,9 +13,10 @@ use crate::vrchat_api::groups::{
     profile_get_input, representation_set_input, request_cancel_input, unblock_input,
     user_group_instances_get_input, user_groups_get_input,
 };
-use crate::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
-use crate::web_client::WebClient;
-use crate::Result;
+use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
+use vrcx_0_application_core::RuntimeDiagnostics;
+use vrcx_0_application_core::RuntimeSyncEngine;
+use vrcx_0_application_core::WebClient;
 
 use super::types::{
     VrchatGroupGalleryInput, VrchatGroupIdInput, VrchatGroupJoinRequestRespondInput,

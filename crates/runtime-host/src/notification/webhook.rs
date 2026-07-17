@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use serde_json::Value;
-use vrcx_0_application::{RuntimeDiagnostics, WebClient};
+use vrcx_0_application_core::{RuntimeDiagnostics, WebClient};
 use vrcx_0_vrchat_client::web_client::WebExecuteRequest;
 
 const WEBHOOK_TIMEOUT: Duration = Duration::from_secs(10);

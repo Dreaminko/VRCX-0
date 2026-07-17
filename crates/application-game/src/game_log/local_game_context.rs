@@ -41,7 +41,7 @@ impl LocalGameContextSource for GameLogLocalGameContextSource {
 mod tests {
     use super::*;
     use crate::PlayerState;
-    use vrcx_0_application::HostSessionGameProcessStatus;
+    use vrcx_0_application_core::HostSessionGameProcessStatus;
 
     #[test]
     fn maps_session_and_game_log_state_to_local_game_context() {

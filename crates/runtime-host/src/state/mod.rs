@@ -20,14 +20,16 @@ use vrcx_0_application::{
     auth_response_error_message, current_user_from_cookie, parse_current_user_response,
     probe_current_user_from_cookie, record_login_success, record_logout,
     saved_credential_login_start, saved_credential_session_data, saved_snapshot,
-    AuthenticatedRuntimeSession, AuthenticatedSessionMaintenanceOutcome, BackendRuntime,
-    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, BackendRuntimeTelemetry,
-    BackgroundCapabilitySession, CookieSessionProbe, FavoriteImportRuntime, ImageCache, LoginApi,
-    LoginSession, LoginSessionState, LoginSuccessRecordInput, LogoutRecordInput,
-    NonInteractiveAuthError, PrintCleanupDeps, PrintCleanupTrigger, ProfileBackupRuntime,
-    RealtimeHostRuntime, RealtimeHostRuntimeDeps, RuntimeBackgroundJobs, RuntimeEventSink,
-    SavedCredentialLoginStartInput, UnavailableLocalGameContextSource, WebClient,
-    WebClientLoginApi,
+    AuthenticatedRuntimeSession, AuthenticatedSessionMaintenanceOutcome, CookieSessionProbe,
+    FavoriteImportRuntime, LoginApi, LoginSession, LoginSessionState, LoginSuccessRecordInput,
+    LogoutRecordInput, NonInteractiveAuthError, PrintCleanupDeps, PrintCleanupTrigger,
+    ProfileBackupRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
+    SavedCredentialLoginStartInput, WebClientLoginApi,
+};
+use vrcx_0_application_core::{
+    BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
+    BackendRuntimeTelemetry, BackgroundCapabilitySession, ImageCache, RuntimeBackgroundJobs,
+    RuntimeEventSink, UnavailableLocalGameContextSource, WebClient,
 };
 use vrcx_0_host::app_paths::{AppDataDirResolution, AppPaths};
 use vrcx_0_persistence::legacy_migration::{

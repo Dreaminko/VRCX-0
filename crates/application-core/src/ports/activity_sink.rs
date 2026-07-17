@@ -1,4 +1,4 @@
-use crate::realtime::{
+use crate::events::{
     FriendProjection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection,
 };

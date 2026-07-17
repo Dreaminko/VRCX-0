@@ -8,12 +8,10 @@ use vrcx_0_persistence::DatabaseService;
 
 use crate::prints::cleanup::PrintCleanupQueue;
 use crate::realtime::{RealtimeHostRuntime, RealtimeHostRuntimeDeps};
-use crate::session::HostSessionRuntime;
-use crate::sync::RuntimeSyncEngine;
-use crate::task_supervisor::TaskSupervisor;
-use crate::web_client::WebClient;
-use crate::world_cache::WorldCache;
 use crate::{RuntimeAuthScope, RuntimeEventBus, UnavailableLocalGameContextSource};
+use vrcx_0_application_core::{
+    HostSessionRuntime, RuntimeSyncEngine, TaskSupervisor, WebClient, WorldCache,
+};
 
 use super::super::types::SocialFriendMutationStatus;
 use super::*;

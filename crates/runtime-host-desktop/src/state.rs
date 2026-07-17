@@ -7,9 +7,10 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use vrcx_0_application::{
-    AppUpdateBuildInfo, AppUpdateRuntime, BackendRuntimeMode, BackendRuntimePhase,
-    GameProcessEvent, GameProcessEventSink, SessionHostRuntime,
+use vrcx_0_application::{AppUpdateBuildInfo, AppUpdateRuntime};
+use vrcx_0_application_core::{
+    BackendRuntimeMode, BackendRuntimePhase, GameProcessEvent, GameProcessEventSink,
+    SessionHostRuntime,
 };
 use vrcx_0_application_game::{
     GameLogLocalGameContextSource, OverlayActivitySnapshot, OverlayFavoriteGroups, ProcessMonitor,
@@ -65,7 +66,7 @@ pub struct DesktopRuntimeHostOptions {
     pub app_version: String,
     pub app_update_build_label: String,
     pub app_update_build_badge: String,
-    pub updater_port: Arc<dyn vrcx_0_application::UpdaterPort>,
+    pub updater_port: Arc<dyn vrcx_0_application_core::UpdaterPort>,
 }
 
 pub struct GameRuntimeBundle {
@@ -110,7 +111,10 @@ struct VrOverlayProcessSink {
 }
 
 impl GameProcessEventSink for VrOverlayProcessSink {
-    fn on_game_process_event(&self, event: GameProcessEvent) -> vrcx_0_application::Result<()> {
+    fn on_game_process_event(
+        &self,
+        event: GameProcessEvent,
+    ) -> vrcx_0_application_core::Result<()> {
         self.runtime.on_game_process_event(event)?;
         if event.is_game_running {
             if let Some(vr_mode) = self.log_watcher.current_vr_mode() {
@@ -451,7 +455,7 @@ impl DesktopRuntimeHostState {
 
     fn with_registry_backup_lock<T>(
         &self,
-        operation: impl FnOnce() -> vrcx_0_application::Result<T>,
+        operation: impl FnOnce() -> vrcx_0_application_core::Result<T>,
     ) -> Result<T> {
         let _guard = self.acquire_registry_backup_lock()?;
         Ok(operation()?)
@@ -716,7 +720,7 @@ impl DesktopRuntimeProfileExtension {
                             RegistryBackupMaintenanceMode::Silent,
                             "background-mode",
                         ),
-                        Err(error) => Err(vrcx_0_application::Error::Custom(format!(
+                        Err(error) => Err(vrcx_0_application_core::Error::Custom(format!(
                             "registry backup lock poisoned: {error}"
                         ))),
                     };
@@ -944,7 +948,7 @@ fn emit_game_log_watcher_status(state: &RuntimeHostState, status: &str) {
     let snapshot = state.backend_runtime.set_game_log_status(status);
     state.runtime_context.event_bus.emit(
         "backendRuntimeTelemetry",
-        vrcx_0_application::BackendRuntimeTelemetry {
+        vrcx_0_application_core::BackendRuntimeTelemetry {
             kind: "gameLogWatcher".into(),
             detail: status.into(),
             snapshot,
@@ -976,7 +980,9 @@ fn register_persisted_user_generated_content_path_grant(
     Ok(())
 }
 
-fn is_background_registry_maintenance_active(runtime: &vrcx_0_application::BackendRuntime) -> bool {
+fn is_background_registry_maintenance_active(
+    runtime: &vrcx_0_application_core::BackendRuntime,
+) -> bool {
     let snapshot = runtime.snapshot();
     snapshot.mode == BackendRuntimeMode::Background
         && snapshot.phase == BackendRuntimePhase::Running
@@ -1005,8 +1011,8 @@ fn desktop_session_scope_matches_auth(
 }
 
 fn session_matches_auth_scope(
-    session: Option<&vrcx_0_application::BackgroundCapabilitySession>,
-    auth_scope: &vrcx_0_application::RuntimeAuthScopeSnapshot,
+    session: Option<&vrcx_0_application_core::BackgroundCapabilitySession>,
+    auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
     session
         .map(|session| {
@@ -1020,7 +1026,7 @@ fn session_matches_auth_scope(
 }
 
 fn is_authenticated_maintenance_active_parts(
-    runtime: &vrcx_0_application::BackendRuntime,
+    runtime: &vrcx_0_application_core::BackendRuntime,
     runtime_context: &Arc<vrcx_0_runtime_host::RuntimeHostContext>,
     session_slot: &Arc<Mutex<Option<vrcx_0_runtime_host::BackendRuntimeFrontendSessionSnapshot>>>,
 ) -> bool {
@@ -1067,7 +1073,7 @@ fn observe_discord_reconcile_request(generation: &AtomicU64, observed: &mut u64)
 
 fn emit_profile_background_info(
     runtime_context: &Arc<vrcx_0_runtime_host::RuntimeHostContext>,
-    backend_runtime: &vrcx_0_application::BackendRuntime,
+    backend_runtime: &vrcx_0_application_core::BackendRuntime,
     detail: impl Into<String>,
 ) {
     emit_profile_background_output(runtime_context, backend_runtime, "backgroundInfo", detail);
@@ -1075,7 +1081,7 @@ fn emit_profile_background_info(
 
 fn emit_profile_background_error(
     runtime_context: &Arc<vrcx_0_runtime_host::RuntimeHostContext>,
-    backend_runtime: &vrcx_0_application::BackendRuntime,
+    backend_runtime: &vrcx_0_application_core::BackendRuntime,
     detail: impl Into<String>,
 ) {
     emit_profile_background_output(runtime_context, backend_runtime, "backgroundError", detail);
@@ -1083,7 +1089,7 @@ fn emit_profile_background_error(
 
 fn emit_profile_background_output(
     runtime_context: &Arc<vrcx_0_runtime_host::RuntimeHostContext>,
-    backend_runtime: &vrcx_0_application::BackendRuntime,
+    backend_runtime: &vrcx_0_application_core::BackendRuntime,
     kind: &str,
     detail: impl Into<String>,
 ) {
@@ -1095,7 +1101,7 @@ fn emit_profile_background_output(
     }
     runtime_context.event_bus.emit(
         "backendRuntimeTelemetry",
-        vrcx_0_application::BackendRuntimeTelemetry {
+        vrcx_0_application_core::BackendRuntimeTelemetry {
             kind: kind.into(),
             detail: detail.into(),
             snapshot,
@@ -1126,7 +1132,7 @@ mod background {
                 &generation,
                 &mut observed
             ));
-            let auth_scope = vrcx_0_application::RuntimeAuthScopeSnapshot {
+            let auth_scope = vrcx_0_application_core::RuntimeAuthScopeSnapshot {
                 current_user_id: "usr_test".into(),
                 endpoint: "https://api.vrchat.cloud/api/1".into(),
                 generation: 1,

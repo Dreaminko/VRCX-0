@@ -8666,6 +8666,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "vrcx-0-application",
+ "vrcx-0-application-core",
  "vrcx-0-application-game",
  "vrcx-0-core",
  "vrcx-0-harness",
@@ -8687,7 +8688,6 @@ dependencies = [
 name = "vrcx-0-application"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "base64 0.22.1",
  "chrono",
  "futures-util",
@@ -8698,6 +8698,27 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.0",
+ "specta",
+ "tokio",
+ "tracing",
+ "url",
+ "vrcx-0-application-core",
+ "vrcx-0-core",
+ "vrcx-0-integrations",
+ "vrcx-0-media",
+ "vrcx-0-persistence",
+ "vrcx-0-vrchat-client",
+]
+
+[[package]]
+name = "vrcx-0-application-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "moka",
+ "serde",
+ "serde_json",
  "specta",
  "thiserror 2.0.18",
  "tokio",
@@ -8723,7 +8744,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "vrcx-0-application",
+ "vrcx-0-application-core",
  "vrcx-0-core",
  "vrcx-0-i18n",
  "vrcx-0-integrations",
@@ -8758,7 +8779,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
- "vrcx-0-application",
+ "vrcx-0-application-core",
  "vrcx-0-integrations",
  "vrcx-0-mcp",
  "vrcx-0-persistence",
@@ -8774,7 +8795,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing-subscriber",
- "vrcx-0-application",
+ "vrcx-0-application-core",
  "vrcx-0-host",
  "vrcx-0-runtime-host",
 ]
@@ -8876,6 +8897,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "vrcx-0-application",
+ "vrcx-0-application-core",
  "vrcx-0-core",
  "vrcx-0-persistence",
  "vrcx-0-runtime-host",
@@ -8947,6 +8969,7 @@ dependencies = [
  "tracing",
  "uuid",
  "vrcx-0-application",
+ "vrcx-0-application-core",
  "vrcx-0-core",
  "vrcx-0-host",
  "vrcx-0-integrations",
@@ -8967,6 +8990,7 @@ dependencies = [
  "tokio",
  "tracing",
  "vrcx-0-application",
+ "vrcx-0-application-core",
  "vrcx-0-application-game",
  "vrcx-0-core",
  "vrcx-0-host",

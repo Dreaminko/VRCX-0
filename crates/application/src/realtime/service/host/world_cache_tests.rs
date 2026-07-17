@@ -88,7 +88,8 @@ fn world_cache_name_lookup_does_not_fallback_to_db_hot_path() -> Result<()> {
         db.as_ref(),
         cached_world_entry("wrld_db_only", "DB Only World", "2026-01-01T00:00:00.000Z"),
     )?;
-    let cache = crate::world_cache::WorldCache::new(Arc::clone(&db), 1, Duration::from_secs(60));
+    let cache =
+        vrcx_0_application_core::WorldCache::new(Arc::clone(&db), 1, Duration::from_secs(60));
 
     assert_eq!(cache.get_name("wrld_db_only"), None);
     drop(dir);
@@ -124,7 +125,8 @@ fn world_cache_init_pins_favorites_and_bounds_working_set() -> Result<()> {
         "wrld_favorite".into(),
         "Favorites".into(),
     )?;
-    let cache = crate::world_cache::WorldCache::new(Arc::clone(&db), 1, Duration::from_secs(60));
+    let cache =
+        vrcx_0_application_core::WorldCache::new(Arc::clone(&db), 1, Duration::from_secs(60));
 
     cache.init_load();
 

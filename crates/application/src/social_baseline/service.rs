@@ -11,11 +11,10 @@ use vrcx_0_vrchat_client::http_api::{
 };
 use vrcx_0_vrchat_client::{favorites as remote_favorites, friends as remote_friends};
 
-use crate::auth_scope::RuntimeAuthScope;
 use crate::realtime::FriendBaselineSyncOutcome;
-use crate::session::HostSessionRuntime;
-use crate::web_client::WebClient;
 use crate::{Error, Result};
+use vrcx_0_application_core::RuntimeAuthScope;
+use vrcx_0_application_core::{HostSessionRuntime, WebClient};
 
 use crate::social_baseline::types::{
     SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
@@ -114,7 +113,7 @@ fn unique_values(values: Vec<String>) -> Vec<String> {
 }
 
 fn get_config_array(deps: &SocialBaselineDeps, key: &str) -> Result<Vec<String>> {
-    crate::config::read_config_string_array(deps.db.as_ref(), key)
+    vrcx_0_application_core::read_config_string_array(deps.db.as_ref(), key)
 }
 
 fn auth_scope_matches(deps: &SocialBaselineDeps, user_id: &str, endpoint: &str) -> bool {

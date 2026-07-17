@@ -1,6 +1,6 @@
 use serde::Serialize;
 use specta::Type;
-use vrcx_0_application::RuntimeEventBus;
+use vrcx_0_application_core::RuntimeEventBus;
 
 use crate::entities::Entity;
 

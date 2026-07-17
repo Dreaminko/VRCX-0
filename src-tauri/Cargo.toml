@@ -49,6 +49,7 @@ vrcx-0-host-desktop = { path = "../crates/host-desktop" }
 vrcx-0-i18n = { path = "../crates/i18n" }
 vrcx-0-media = { path = "../crates/media" }
 vrcx-0-application = { path = "../crates/application" }
+vrcx-0-application-core = { path = "../crates/application-core" }
 vrcx-0-application-game = { path = "../crates/application-game" }
 vrcx-0-mcp = { path = "../crates/mcp" }
 vrcx-0-harness = { path = "../crates/harness" }

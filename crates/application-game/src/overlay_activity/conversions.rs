@@ -1,11 +1,11 @@
 use serde_json::{json, Value};
-
-use crate::game_log::{GameLogIngestOutput, GameLogSideEffect};
-use vrcx_0_application::world_id_from_location_or_id;
-use vrcx_0_application::{
+use vrcx_0_application_core::{
     FriendProjection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection,
 };
+use vrcx_0_core::location::world_id_from_location as world_id_from_location_or_id;
+
+use crate::game_log::{GameLogIngestOutput, GameLogSideEffect};
 
 use super::definitions::known_definition_for_type;
 use super::runtime::{first_non_empty, string_field};

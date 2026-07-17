@@ -1,5 +1,5 @@
-use vrcx_0_application::OverlayActivityInputSink;
-use vrcx_0_application::{
+use vrcx_0_application_core::OverlayActivityInputSink;
+use vrcx_0_application_core::{
     FriendProjection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection,
 };

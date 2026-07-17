@@ -363,14 +363,14 @@ fn test_realtime_runtime(
     TestDir,
     Arc<vrcx_0_application::RealtimeHostRuntime>,
     Arc<DatabaseService>,
-    Arc<vrcx_0_application::WebClient>,
+    Arc<vrcx_0_application_core::WebClient>,
 ) {
     let dir = TestDir::new(name);
     let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap());
     let storage =
         vrcx_0_persistence::storage::StorageService::new(&dir.path.join("storage.json")).unwrap();
     let web = Arc::new(
-        vrcx_0_application::WebClient::new(
+        vrcx_0_application_core::WebClient::new(
             &storage,
             db.as_ref(),
             "wss://pipeline.vrchat.cloud".to_string(),
@@ -378,7 +378,7 @@ fn test_realtime_runtime(
         )
         .unwrap(),
     );
-    let world_cache = Arc::new(vrcx_0_application::WorldCache::new(
+    let world_cache = Arc::new(vrcx_0_application_core::WorldCache::new(
         Arc::clone(&db),
         512,
         std::time::Duration::from_secs(30 * 60),
@@ -387,12 +387,14 @@ fn test_realtime_runtime(
         vrcx_0_application::RealtimeHostRuntimeDeps {
             db: Arc::clone(&db),
             web: Arc::clone(&web),
-            event_bus: vrcx_0_application::RuntimeEventBus::new(),
-            sync: vrcx_0_application::RuntimeSyncEngine::new(),
-            tasks: vrcx_0_application::TaskSupervisor::new(),
-            session: vrcx_0_application::HostSessionRuntime::new(),
-            auth_scope: vrcx_0_application::RuntimeAuthScope::new(),
-            local_game_context: Arc::new(vrcx_0_application::UnavailableLocalGameContextSource),
+            event_bus: vrcx_0_application_core::RuntimeEventBus::new(),
+            sync: vrcx_0_application_core::RuntimeSyncEngine::new(),
+            tasks: vrcx_0_application_core::TaskSupervisor::new(),
+            session: vrcx_0_application_core::HostSessionRuntime::new(),
+            auth_scope: vrcx_0_application_core::RuntimeAuthScope::new(),
+            local_game_context: Arc::new(
+                vrcx_0_application_core::UnavailableLocalGameContextSource,
+            ),
             activity_sink: None,
             world_cache,
             print_cleanup: vrcx_0_application::PrintCleanupQueue::new(),

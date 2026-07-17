@@ -5,7 +5,7 @@ use serde_json::json;
 use super::*;
 use crate::game_log::video::VideoInput;
 use crate::GameLogSideEffect;
-use vrcx_0_application::{
+use vrcx_0_application_core::{
     FriendProjection, RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
     RealtimeNotificationUpsert,
 };

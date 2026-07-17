@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serde_json::Value;
-use vrcx_0_application::{LocalGameContextSource, OverlayActivityInputSink};
+use vrcx_0_application_core::{LocalGameContextSource, OverlayActivityInputSink};
 
 use crate::{GroupOrderSource, RuntimeHostState};
 

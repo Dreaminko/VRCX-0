@@ -1,6 +1,7 @@
 use std::{future::Future, pin::Pin, time::Duration};
 
 use serde::{Deserialize, Serialize};
+use vrcx_0_application_core::RuntimeVrchatAuthFailurePayload;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::{
     http_api::{normalize_vrchat_api_endpoint, ApiScope},
@@ -8,8 +9,7 @@ use vrcx_0_vrchat_client::{
 };
 
 use crate::{
-    event_bus::RuntimeVrchatAuthFailurePayload, Error, Result, RuntimeAuthScope,
-    RuntimeAuthScopeSnapshot, RuntimeEventBus, WebClient,
+    Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus, WebClient,
 };
 
 pub const NOTE_EXPORT_MAX_ITEMS: usize = 1_000;

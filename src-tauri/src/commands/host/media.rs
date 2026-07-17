@@ -6,7 +6,7 @@ use tauri::{AppHandle, State};
 
 use crate::error::AppError;
 use crate::state::AppState;
-use vrcx_0_application::{save_ugc_image_to_file, UgcCategory};
+use vrcx_0_application_core::{save_ugc_image_to_file, UgcCategory};
 use vrcx_0_media::{image_processing, media_files};
 
 #[tauri::command]

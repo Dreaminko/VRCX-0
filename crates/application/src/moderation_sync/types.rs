@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 use vrcx_0_persistence::local_moderation::{LocalModerationOutput, RemoteModerationInput};
 use vrcx_0_persistence::DatabaseService;
 
-use crate::auth_scope::RuntimeAuthScope;
-use crate::session::HostSessionRuntime;
-use crate::web_client::WebClient;
+use vrcx_0_application_core::{HostSessionRuntime, RuntimeAuthScope, WebClient};
 
 pub struct ModerationSyncDeps<'a> {
     pub db: &'a DatabaseService,

@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use vrcx_0_application::{
+use vrcx_0_application::RealtimeHostRuntime;
+use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetry,
-    BackgroundCapabilitySession, RealtimeHostRuntime, RuntimeBackgroundJobs,
+    BackgroundCapabilitySession, RuntimeBackgroundJobs,
 };
 use vrcx_0_runtime_host::{
     replace_backend_frontend_session_user_if_session_matches,
@@ -24,7 +25,7 @@ pub(in crate::state) const BACKGROUND_DISCORD_CADENCE_SECONDS: u64 = 3;
 
 pub(in crate::state) struct BackgroundTickContext<'a> {
     pub(in crate::state) db: &'a Arc<vrcx_0_persistence::DatabaseService>,
-    pub(in crate::state) web: &'a Arc<vrcx_0_application::WebClient>,
+    pub(in crate::state) web: &'a Arc<vrcx_0_application_core::WebClient>,
     pub(in crate::state) session_slot:
         &'a Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
     pub(in crate::state) realtime_runtime: &'a Arc<RealtimeHostRuntime>,

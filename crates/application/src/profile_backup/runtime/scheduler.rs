@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use vrcx_0_persistence::profile_backup::has_pending_profile_restore;
 use vrcx_0_persistence::storage::StorageService;
 
-use crate::background::sleep_until_due_or_stopped;
+use vrcx_0_application_core::sleep_until_due_or_stopped;
 
 use super::{
     ProfileBackupRuntime, AUTO_CADENCE, AUTO_ENABLED_KEY, AUTO_INTERVAL_DAYS_KEY, AUTO_JOB,

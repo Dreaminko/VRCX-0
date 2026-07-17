@@ -243,7 +243,7 @@ fn thread_loop(inner: Arc<Inner>, log_dir: PathBuf, generation: u64) {
             }
         }
 
-        crate::interruptible_sleep::sleep_interruptibly(Duration::from_secs(1), || {
+        crate::sleep_interruptibly(Duration::from_secs(1), || {
             !inner.stop_requested.load(Ordering::Acquire)
                 && inner.generation.load(Ordering::Acquire) == generation
         });

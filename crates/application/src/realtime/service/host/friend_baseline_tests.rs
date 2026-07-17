@@ -1326,12 +1326,12 @@ fn friend_note_change_notifies_note_cache_sink() -> Result<()> {
     )?);
     let session = HostSessionRuntime::new();
     let host_session_generation =
-        session.set_realtime_context(crate::session::RealtimeSessionContext::new(
+        session.set_realtime_context(vrcx_0_application_core::HostRealtimeSessionContext::new(
             "usr_self".into(),
             "https://api.vrchat.cloud/api/1".into(),
             "wss://pipeline.vrchat.cloud".into(),
         ));
-    let world_cache = Arc::new(crate::world_cache::WorldCache::new(
+    let world_cache = Arc::new(vrcx_0_application_core::WorldCache::new(
         Arc::clone(&db),
         512,
         Duration::from_secs(30 * 60),

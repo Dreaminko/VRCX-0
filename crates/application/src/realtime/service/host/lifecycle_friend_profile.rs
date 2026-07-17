@@ -2,7 +2,7 @@ use super::message_dispatch::json_string_field;
 use super::types::ActiveRealtimeContext;
 use super::*;
 use crate::realtime::user_query_cache::UserQueryKind;
-use crate::vrchat_api::VrchatApiResponse;
+use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 
 const FRIEND_PROFILE_REFETCH_THROTTLE_MS: i64 = 10_000;

@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_application::{
-    AppUpdateDownloadStatusSnapshot, AppUpdateStatusSnapshot, UpdaterMetadata,
-};
+use vrcx_0_application::{AppUpdateDownloadStatusSnapshot, AppUpdateStatusSnapshot};
+use vrcx_0_application_core::UpdaterMetadata;
 
 use crate::error::AppError;
 use crate::state::AppState;

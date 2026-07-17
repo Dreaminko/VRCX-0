@@ -5,7 +5,10 @@ edition = "2021"
 
 [features]
 default = []
-test-utils = ["vrcx-0-application/test-utils"]
+test-utils = [
+    "vrcx-0-application/test-utils",
+    "vrcx-0-application-core/test-utils"
+]
 
 [dependencies]
 chrono = { workspace = true }
@@ -18,6 +21,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["time", "rt", "macros"] }
 tracing = { workspace = true }
 vrcx-0-application = { path = "../application" }
+vrcx-0-application-core = { path = "../application-core" }
 vrcx-0-core = { path = "../core" }
 vrcx-0-host = { path = "../host" }
 vrcx-0-integrations = { path = "../integrations" }

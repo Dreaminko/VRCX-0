@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Value};
-use vrcx_0_application::{BackendRuntime, RuntimeEventSink};
+use vrcx_0_application_core::{BackendRuntime, RuntimeEventSink};
 
 use super::*;
 

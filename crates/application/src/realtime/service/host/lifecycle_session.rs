@@ -59,14 +59,13 @@ impl RealtimeHostRuntime {
         if let Some(previous_active) = previous_active {
             self.cancel_friend_profile_bulk_load_for_session(&previous_active);
         }
-        let session_generation =
-            self.deps
-                .session
-                .set_realtime_context(crate::session::RealtimeSessionContext::new(
-                    session.user_id.clone(),
-                    session.endpoint.clone(),
-                    session.websocket.clone(),
-                ));
+        let session_generation = self.deps.session.set_realtime_context(
+            vrcx_0_application_core::HostRealtimeSessionContext::new(
+                session.user_id.clone(),
+                session.endpoint.clone(),
+                session.websocket.clone(),
+            ),
+        );
         {
             let mut state = self
                 .state

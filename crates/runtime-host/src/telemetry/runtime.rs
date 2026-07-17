@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use chrono::{Datelike, Local, Timelike};
 use uuid::Uuid;
-use vrcx_0_application::{
+use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeMode, HostSessionRuntime, TaskStopToken, TaskSupervisor,
 };
 use vrcx_0_host::{

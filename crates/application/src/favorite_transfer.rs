@@ -6,14 +6,14 @@ use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::cache_entities::CacheEntityInput;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::diagnostics::RuntimeDiagnostics;
-use crate::sync::RuntimeSyncEngine;
-use crate::vrchat_api::favorites::{
+use crate::{Error, Result};
+use vrcx_0_application_core::vrchat_api::favorites::{
     favorite_add_input, favorite_delete_input, favorite_limits_get_input, favorites_get_input,
 };
-use crate::vrchat_api::{execute_api_command, normalize_text, VrchatScope};
-use crate::web_client::WebClient;
-use crate::{Error, Result};
+use vrcx_0_application_core::vrchat_api::{execute_api_command, normalize_text, VrchatScope};
+use vrcx_0_application_core::RuntimeDiagnostics;
+use vrcx_0_application_core::RuntimeSyncEngine;
+use vrcx_0_application_core::WebClient;
 
 const FAVORITE_RECOVERED_GROUP: &str = "Recovered";
 const FAVORITE_TRANSFER_PAGE_SIZE: i64 = 300;

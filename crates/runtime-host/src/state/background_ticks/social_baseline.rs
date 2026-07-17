@@ -3,9 +3,10 @@ use std::{collections::HashMap, sync::Arc};
 use serde_json::json;
 use vrcx_0_application::{
     apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
-    build_friend_roster_baseline_deferred, FriendProjection, SocialBaselineDeps,
-    SocialFavoritesBaselineInput, SocialFriendRosterBaselineInput,
+    build_friend_roster_baseline_deferred, SocialBaselineDeps, SocialFavoritesBaselineInput,
+    SocialFriendRosterBaselineInput,
 };
+use vrcx_0_application_core::FriendProjection;
 use vrcx_0_core::{friends::FriendRecord, json::RawJson};
 
 use crate::authenticated_runtime::favorite_group_membership_from_snapshot;

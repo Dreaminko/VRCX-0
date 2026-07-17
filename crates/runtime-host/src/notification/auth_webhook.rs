@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use vrcx_0_application::{
+use vrcx_0_application_core::{
     BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, RuntimeDiagnostics, WebClient,
 };
 use vrcx_0_persistence::config::ConfigRepository;

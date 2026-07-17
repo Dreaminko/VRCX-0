@@ -2,7 +2,6 @@ mod background_capabilities;
 mod game_client;
 mod game_event_bus;
 mod game_log;
-mod interruptible_sleep;
 mod log_watcher;
 mod overlay_activity;
 mod process_monitor;
@@ -10,10 +9,10 @@ mod registry_backup;
 mod screenshots;
 mod worker;
 
-use vrcx_0_application::{
-    Error, HostSessionRuntime, ImageCache, LocalGameContextSnapshot, LocalGameContextSource,
-    Result, RuntimeAuthScope, RuntimeEventBus, RuntimeSyncEngine, TaskStopToken, TaskSupervisor,
-    WebClient, WorldCache,
+use vrcx_0_application_core::{
+    sleep_interruptibly, Error, HostSessionRuntime, ImageCache, LocalGameContextSnapshot,
+    LocalGameContextSource, Result, RuntimeAuthScope, RuntimeEventBus, RuntimeSyncEngine,
+    TaskStopToken, TaskSupervisor, WebClient, WorldCache,
 };
 
 pub use background_capabilities::{

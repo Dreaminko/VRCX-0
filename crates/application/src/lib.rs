@@ -1,28 +1,17 @@
-mod activity_sink;
 mod app_update;
-mod async_runtime_policy;
 mod auth_credentials;
-mod auth_scope;
 mod authenticated_runtime;
 mod authenticated_session_maintenance;
-mod backend_runtime;
-mod background;
 mod background_capabilities;
 mod batch_mutation;
-mod config;
 mod database_upgrade;
 mod database_upgrade_runtime;
-mod diagnostics;
-mod error;
-mod event_bus;
 mod favorite_import;
 mod favorite_transfer;
 pub mod groups;
-mod image_cache;
 mod import_collection;
 mod instance_launch;
 mod local_favorites;
-mod local_game_context;
 mod login_session;
 mod media_upload;
 mod moderation_sync;
@@ -31,42 +20,20 @@ mod noninteractive_auth;
 mod note_export;
 mod notification_actions;
 mod prints;
-mod process_monitor;
 mod profile_backup;
-mod proxy;
 mod realtime;
-mod runtime_lifecycle;
-mod runtime_output;
-mod session;
 mod share_collection;
 mod shared_collection_import;
 mod social_baseline;
 mod social_mutation;
-mod sync;
-mod task_supervisor;
-mod updater_port;
-pub mod vrchat_api;
-mod web_client;
-mod world_cache;
 mod world_enrich;
 
-pub mod ports {
-    pub use crate::event_bus::{RuntimeEventBus, RuntimeEventSink};
-    pub use crate::process_monitor::GameProcessEventSink;
-    pub use crate::task_supervisor::{
-        RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,
-    };
-}
+pub use vrcx_0_application_core::{ports, vrchat_api};
 
-pub use activity_sink::OverlayActivityInputSink;
 pub use app_update::{
     AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
     AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
     AppUpdateTargetResolver,
-};
-pub use async_runtime_policy::{
-    recommended_tokio_max_blocking_threads, recommended_tokio_max_blocking_threads_for,
-    recommended_tokio_worker_threads, recommended_tokio_worker_threads_for,
 };
 pub use auth_credentials::{
     delete_saved_credential, migrate_saved_credential_secrets, record_login_success, record_logout,
@@ -74,7 +41,6 @@ pub use auth_credentials::{
     LoginSuccessRecordInput, LogoutRecordInput, SavedCredentialLoginStartInput,
     SavedCredentialSessionData,
 };
-pub use auth_scope::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
 pub use authenticated_runtime::{
     AuthenticatedRuntimePhase, AuthenticatedRuntimePhaseSnapshot, AuthenticatedRuntimeStepSnapshot,
     AuthenticatedRuntimeStepStatus,
@@ -82,11 +48,6 @@ pub use authenticated_runtime::{
 pub use authenticated_session_maintenance::{
     run_authenticated_session_maintenance, AuthenticatedSessionMaintenanceOutcome,
 };
-pub use backend_runtime::{
-    BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
-    BackendRuntimeTelemetry,
-};
-pub use background::{RuntimeBackgroundJobSnapshot, RuntimeBackgroundJobs};
 pub use background_capabilities::{
     refresh_background_current_user, refresh_background_group_instances,
     BackgroundCapabilitySession, BackgroundGroupInstancesRefresh,
@@ -97,16 +58,12 @@ pub use batch_mutation::{
     BatchMutationItemState, BatchMutationResult, GroupLeaveBatchInput, GroupVisibility,
     GroupVisibilityBatchInput, VrchatBatchMutationActions, BATCH_MUTATION_MAX_ITEMS,
 };
-pub use config::validate_config_writes;
 pub use database_upgrade::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
     DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
     DatabaseUpgradeStage,
 };
 pub use database_upgrade_runtime::DatabaseUpgradeRuntime;
-pub use diagnostics::RuntimeDiagnostics;
-pub use error::Error;
-pub use event_bus::{RuntimeEventBus, RuntimeEventSink, RuntimeVrchatAuthFailurePayload};
 pub use favorite_import::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
     FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,
@@ -134,7 +91,6 @@ pub use groups::{
     VrchatGroupProfileInput, VrchatGroupRepresentationInput, VrchatGroupUserGroupsInput,
     VrchatGroupUserInput,
 };
-pub use image_cache::{save_ugc_image_to_file, ImageCache};
 pub use import_collection::{preview_shared_collection, ImportPreview};
 pub use instance_launch::{
     evaluate_instance_action_gates, join_instance_launch, InstanceActionGateTarget,
@@ -144,9 +100,6 @@ pub use instance_launch::{
 };
 pub use local_favorites::{
     create_local_favorite_group, delete_local_favorite_group, rename_local_favorite_group,
-};
-pub use local_game_context::{
-    LocalGameContextSnapshot, LocalGameContextSource, UnavailableLocalGameContextSource,
 };
 pub use login_session::{
     AutoLoginOutcome, AutoLoginStartInput, LoginApi, LoginApiFuture, LoginFailureKind,
@@ -191,7 +144,6 @@ pub use prints::{
     },
     favorites::{favorite_state, set_print_favorite, CleanupWarningKind, PrintFavoriteState},
 };
-pub use process_monitor::{GameProcessEvent, GameProcessEventSink};
 pub use profile_backup::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,
@@ -201,7 +153,6 @@ pub use profile_backup::{
     ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState, ProfileRestoreValidation,
     ProfileRestoreValidationOutcome,
 };
-pub use proxy::{test_proxy_connectivity, ProxySettingsTestResult};
 pub use realtime::{
     is_friend_event_type, FriendBaselineCausalWatermark, FriendBaselineResult,
     FriendBaselineSyncOutcome, FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
@@ -215,14 +166,6 @@ pub use realtime::{
     RealtimeNotificationUpsert, RealtimeProjectionSource, RealtimeSessionContext,
     RealtimeStopRequest, RealtimeTransportStartResult, RealtimeWsMessagePayload,
     RealtimeWsStatusPayload, SyntheticFriendEventOutcome,
-};
-pub use runtime_lifecycle::{RuntimeLifecycle, RuntimeLifecycleSnapshot};
-pub use runtime_output::{
-    format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputLine, RuntimeOutputMode,
-};
-pub use session::{
-    GameProcessStatus as HostSessionGameProcessStatus, HostSessionProjection, HostSessionRuntime,
-    RealtimeSessionContext as HostRealtimeSessionContext, SessionHostRuntime,
 };
 pub use share_collection::{
     get_or_create_share_owner_token, is_valid_share_owner_token, prepare_share_collection_payload,
@@ -247,18 +190,44 @@ pub use social_mutation::{
     SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendMutationStatus,
     SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
 };
-pub use sync::{RuntimeSyncEngine, RuntimeSyncSnapshot};
-pub use task_supervisor::{
-    RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,
+pub use vrcx_0_application_core::validate_config_writes;
+pub use vrcx_0_application_core::OverlayActivityInputSink;
+pub use vrcx_0_application_core::{
+    format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputLine, RuntimeOutputMode,
 };
-pub use updater_port::{
+pub use vrcx_0_application_core::{
+    recommended_tokio_max_blocking_threads, recommended_tokio_max_blocking_threads_for,
+    recommended_tokio_worker_threads, recommended_tokio_worker_threads_for,
+};
+pub use vrcx_0_application_core::{save_ugc_image_to_file, ImageCache};
+pub use vrcx_0_application_core::{test_proxy_connectivity, ProxySettingsTestResult};
+pub use vrcx_0_application_core::{
+    BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
+    BackendRuntimeTelemetry,
+};
+pub use vrcx_0_application_core::{
+    Error, RuntimeDiagnostics, RuntimeEventBus, RuntimeEventSink, RuntimeVrchatAuthFailurePayload,
+};
+pub use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
+pub use vrcx_0_application_core::{
+    HostRealtimeSessionContext, HostSessionGameProcessStatus, HostSessionProjection,
+    HostSessionRuntime, SessionHostRuntime,
+};
+pub use vrcx_0_application_core::{
+    LocalGameContextSnapshot, LocalGameContextSource, UnavailableLocalGameContextSource,
+};
+pub use vrcx_0_application_core::{
     NoopUpdaterPort, UpdaterCheckRequest, UpdaterDownloadOutcome, UpdaterDownloadProgress,
     UpdaterInstallHandle, UpdaterMetadata, UpdaterPort, UpdaterProgressCallback,
 };
-pub use vrcx_0_core::location::ParsedLocation;
-pub use vrcx_0_media::ugc_image_files::UgcCategory;
-pub use web_client::WebClient;
-pub use world_cache::WorldCache;
+pub use vrcx_0_application_core::{ParsedLocation, UgcCategory, WebClient, WorldCache};
+pub use vrcx_0_application_core::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
+pub use vrcx_0_application_core::{RuntimeBackgroundJobSnapshot, RuntimeBackgroundJobs};
+pub use vrcx_0_application_core::{RuntimeLifecycle, RuntimeLifecycleSnapshot};
+pub use vrcx_0_application_core::{RuntimeSyncEngine, RuntimeSyncSnapshot};
+pub use vrcx_0_application_core::{
+    RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,
+};
 pub use world_enrich::world_id_from_location_or_id;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub use vrcx_0_application_core::Result;

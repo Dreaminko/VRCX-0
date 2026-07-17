@@ -12,15 +12,15 @@ use vrcx_0_integrations::external_api::{self, ExternalApiScope};
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::{config, DatabaseService};
 
-use crate::background::sleep_until_due_or_stopped;
-use crate::event_bus::RuntimeEventBus;
-use crate::task_supervisor::TaskSupervisor;
-use crate::updater_port::{
+use crate::{Error, Result, RuntimeBackgroundJobs};
+use vrcx_0_application_core::sleep_until_due_or_stopped;
+use vrcx_0_application_core::RuntimeEventBus;
+use vrcx_0_application_core::TaskSupervisor;
+use vrcx_0_application_core::WebClient;
+use vrcx_0_application_core::{
     UpdaterCheckRequest, UpdaterDownloadProgress, UpdaterMetadata, UpdaterPort,
     UpdaterProgressCallback,
 };
-use crate::web_client::WebClient;
-use crate::{Error, Result, RuntimeBackgroundJobs};
 
 const GITHUB_RELEASES_URL: &str = "https://api.github.com/repos/Map1en/VRCX-0/releases";
 const APP_UPDATE_CHECK_JOB: &str = "appUpdateCheck";
@@ -494,7 +494,7 @@ impl DownloadPhase {
 struct PendingDownload {
     version: String,
     metadata: UpdaterMetadata,
-    handle: crate::updater_port::UpdaterInstallHandle,
+    handle: vrcx_0_application_core::UpdaterInstallHandle,
 }
 
 struct DownloadState {
@@ -818,7 +818,7 @@ impl AppUpdateRuntime {
             }
         }
 
-        let proxy = crate::proxy::load_proxy_url(&self.inner.storage);
+        let proxy = vrcx_0_application_core::load_proxy_url(&self.inner.storage);
         let request = UpdaterCheckRequest {
             manifest_url: release.manifest_url.clone(),
             target: release.target.clone(),
@@ -1077,7 +1077,7 @@ impl AppUpdateRuntime {
             .mark_running(APP_UPDATE_CHECK_JOB, "Checking for VRCX-0 updates.");
 
         let target = (self.inner.target_resolver)();
-        let proxy = crate::proxy::load_proxy_url(&self.inner.storage);
+        let proxy = vrcx_0_application_core::load_proxy_url(&self.inner.storage);
         let context = AppUpdateCheckContext {
             web: &self.inner.web,
             app_version: &self.inner.build.app_version,

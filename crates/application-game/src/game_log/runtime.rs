@@ -10,7 +10,7 @@ use crate::RuntimeAuthScope;
 use crate::WorldCache;
 use crate::{HostSessionRuntime, RuntimeSyncEngine, TaskSupervisor, WebClient};
 use crate::{ImageCache, RuntimeEventBus};
-use vrcx_0_application::GameProcessEvent;
+use vrcx_0_application_core::GameProcessEvent;
 
 use super::host::GameLogHostActions;
 use super::ingest::GameLogProcessEvent;

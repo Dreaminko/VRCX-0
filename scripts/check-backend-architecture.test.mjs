@@ -134,26 +134,40 @@ test('healthy workspace edges pass and the shell may declare Tauri', () => {
     assert.deepEqual(evaluateBackendMetadata(fixture), []);
 });
 
-test('temporary edge exemptions must remain in use until their policy is removed', () => {
-    const withTemporaryEdge = metadata([
+test('application core edges stay acyclic across application and game owners', () => {
+    const fixture = metadata([
         tauriShell(),
-        workspacePackage('vrcx-0-application'),
+        workspacePackage('vrcx-0-application', [
+            workspaceDependency('vrcx-0-application-core')
+        ]),
+        workspacePackage('vrcx-0-application-core', [
+            workspaceDependency('vrcx-0-core')
+        ]),
         workspacePackage('vrcx-0-application-game', [
-            workspaceDependency('vrcx-0-application')
-        ])
-    ]);
-    const withoutTemporaryEdge = metadata([
-        tauriShell(),
-        workspacePackage('vrcx-0-application'),
-        workspacePackage('vrcx-0-application-game')
+            workspaceDependency('vrcx-0-application-core')
+        ]),
+        workspacePackage('vrcx-0-core')
     ]);
 
-    assert.deepEqual(evaluateBackendMetadata(withTemporaryEdge), []);
-    assert.ok(
-        evaluateBackendMetadata(withoutTemporaryEdge).some(
-            (violation) => violation.rule === 'temporary-edge'
-        )
+    assert.deepEqual(evaluateBackendMetadata(fixture), []);
+});
+
+test('application core cannot depend on application or host owners', () => {
+    const fixture = metadata([
+        tauriShell(),
+        workspacePackage('vrcx-0-application'),
+        workspacePackage('vrcx-0-application-core', [
+            workspaceDependency('vrcx-0-application'),
+            workspaceDependency('vrcx-0-host')
+        ]),
+        workspacePackage('vrcx-0-host')
+    ]);
+    const rules = evaluateBackendMetadata(fixture).map(
+        (violation) => violation.rule
     );
+
+    assert.ok(rules.includes('dependency-direction'));
+    assert.ok(rules.includes('application-host-edge'));
 });
 
 test('optional target dev edges cannot reverse desktop or host boundaries', () => {

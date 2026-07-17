@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-pub(super) use vrcx_0_application::BackgroundCapabilitySession;
+pub(super) use vrcx_0_application_core::BackgroundCapabilitySession;
 
 pub(super) fn string_field(value: &Value, key: &str) -> Option<String> {
     value

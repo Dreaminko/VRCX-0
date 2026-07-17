@@ -30,14 +30,17 @@ impl HostGameLogEventFanout {
 }
 
 impl GameLogEventSink for HostGameLogEventFanout {
-    fn ingest_game_log_event(&self, event: &GameLogEvent) -> vrcx_0_application::Result<()> {
+    fn ingest_game_log_event(&self, event: &GameLogEvent) -> vrcx_0_application_core::Result<()> {
         for sink in &self.sinks {
             sink.ingest_game_log_event(event)?;
         }
         Ok(())
     }
 
-    fn ingest_game_log_events(&self, events: &[GameLogEvent]) -> vrcx_0_application::Result<()> {
+    fn ingest_game_log_events(
+        &self,
+        events: &[GameLogEvent],
+    ) -> vrcx_0_application_core::Result<()> {
         for sink in &self.sinks {
             sink.ingest_game_log_events(events)?;
         }

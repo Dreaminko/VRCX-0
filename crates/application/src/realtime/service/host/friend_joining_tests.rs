@@ -1,6 +1,6 @@
 use super::test_support::*;
 use super::*;
-use crate::session::GameProcessStatus;
+use vrcx_0_application_core::HostSessionGameProcessStatus as GameProcessStatus;
 
 fn joining_output(
     owner_user_id: &str,

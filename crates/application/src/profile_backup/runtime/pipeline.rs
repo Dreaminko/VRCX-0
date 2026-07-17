@@ -12,7 +12,7 @@ use vrcx_0_persistence::profile_backup::{
 };
 use vrcx_0_persistence::Error as PersistenceError;
 
-use crate::task_supervisor::TaskStopToken;
+use vrcx_0_application_core::TaskStopToken;
 
 use super::{
     OperationGuard, PendingDelivery, ProfileBackupActionOutcome, ProfileBackupError,

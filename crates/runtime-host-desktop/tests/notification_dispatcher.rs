@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use serde_json::json;
-use vrcx_0_application::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
+use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
 use vrcx_0_application_game::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
     OverlayActivityDelivery, OverlayActivityEntry,
@@ -176,7 +176,7 @@ fn backend_snapshot(
         game_log_persisted_count: 0,
         last_error: None,
         updated_at: "2026-07-03T08:30:00.000Z".into(),
-        friend_profile_load: vrcx_0_application::FriendProfileLoadStatusPayload::default(),
+        friend_profile_load: vrcx_0_application_core::FriendProfileLoadStatusPayload::default(),
     }
 }
 

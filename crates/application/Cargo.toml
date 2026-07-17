@@ -4,10 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-test-utils = []
+test-utils = ["vrcx-0-application-core/test-utils"]
 
 [dependencies]
-async-trait = { workspace = true }
 chrono = { workspace = true }
 base64 = { workspace = true }
 futures-util = "0.3"
@@ -16,7 +15,6 @@ moka = { version = "0.12", features = ["future", "sync"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
-thiserror = { workspace = true }
 tokio = { workspace = true, features = [
     "rt",
     "macros",
@@ -28,6 +26,7 @@ tokio = { workspace = true, features = [
 tracing = { workspace = true }
 url = { workspace = true }
 vrcx-0-core = { path = "../core" }
+vrcx-0-application-core = { path = "../application-core" }
 vrcx-0-integrations = { path = "../integrations" }
 vrcx-0-media = { path = "../media" }
 vrcx-0-persistence = { path = "../persistence" }
@@ -37,3 +36,4 @@ specta.workspace = true
 [dev-dependencies]
 image = { workspace = true }
 rusqlite = { workspace = true, features = ["bundled"] }
+vrcx-0-application-core = { path = "../application-core", features = ["test-utils"] }

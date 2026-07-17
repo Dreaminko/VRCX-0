@@ -838,8 +838,10 @@ mod activity_output_tests {
 
     use rmcp::handler::server::wrapper::Parameters;
     use vrcx_0_application::{
-        HostSessionRuntime, MutualGraphFetchRuntime, PrintCleanupQueue, RealtimeHostRuntime,
-        RealtimeHostRuntimeDeps, RuntimeAuthScope, RuntimeDiagnostics, RuntimeEventBus,
+        MutualGraphFetchRuntime, PrintCleanupQueue, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
+    };
+    use vrcx_0_application_core::{
+        HostSessionRuntime, RuntimeAuthScope, RuntimeDiagnostics, RuntimeEventBus,
         RuntimeSyncEngine, TaskSupervisor, UnavailableLocalGameContextSource, WebClient,
         WorldCache,
     };

@@ -2,7 +2,8 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use vrcx_0_application::{RealtimeFriendSnapshot, WorldCache};
+use vrcx_0_application::RealtimeFriendSnapshot;
+use vrcx_0_application_core::WorldCache;
 use vrcx_0_application_game::{
     OverlayActivityActorRelation, OverlayActivityDelivery, OverlayActivityEntry,
 };

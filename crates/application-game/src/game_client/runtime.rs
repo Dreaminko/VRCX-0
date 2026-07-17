@@ -7,7 +7,7 @@ use vrcx_0_persistence::DatabaseService;
 use crate::worker::{RuntimeWorker, RuntimeWorkerOptions};
 use crate::Result;
 use crate::{HostSessionRuntime, RuntimeEventBus, TaskSupervisor};
-use vrcx_0_application::GameProcessEvent;
+use vrcx_0_application_core::GameProcessEvent;
 
 use super::actions::{GameClientActions, GameClientDebugLoggingActions};
 use super::processor::{
