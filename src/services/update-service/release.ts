@@ -67,7 +67,7 @@ function platformIdForHost(
     return '';
 }
 
-export function getUpdaterTarget(
+function getUpdaterTarget(
     hostPlatform: unknown,
     hostArch: unknown = '',
     linuxPackageKind: unknown = ''
@@ -80,7 +80,7 @@ export function getUpdaterTarget(
     return platformId ? `${platformId}-stable` : '';
 }
 
-export function getUpdaterManifestAssetName(
+function getUpdaterManifestAssetName(
     hostPlatform: unknown,
     hostArch: unknown = '',
     linuxPackageKind: unknown = ''
@@ -199,32 +199,4 @@ export function normalizeReleaseList(
 
 export function sanitizeBranch(_branch?: unknown): keyof typeof branches {
     return 'Stable';
-}
-
-export function defaultBranchForVersion(_version?: unknown) {
-    return 'Stable';
-}
-
-export function hasUpdateForBranch(
-    branch: unknown,
-    currentVersion: unknown,
-    latestReleaseVersion: unknown
-) {
-    const currentParsed = parseReleaseVersion(String(currentVersion || ''));
-    const latestParsed = parseReleaseVersion(
-        String(latestReleaseVersion || '')
-    );
-
-    if (!currentParsed || !latestParsed) {
-        return false;
-    }
-
-    const normalizedBranch = sanitizeBranch(branch);
-    if (normalizedBranch !== 'Stable') {
-        return false;
-    }
-
-    return (
-        compareReleaseVersions(latestParsed.canonicalVersion, currentParsed) > 0
-    );
 }

@@ -1,12 +1,7 @@
 import { commands } from '@/platform/tauri/bindings';
 import { useSessionStore } from '@/state/sessionStore';
 
-import { APP_UPDATE_CHECK_INTERVAL_SECONDS } from './backgroundMaintenanceTiming';
-import { checkForAppUpdate } from './backgroundMaintenanceUpdateService';
-import {
-    recordRuntimeJobTelemetry,
-    runRuntimeTelemetryJob
-} from './runtimeJobTelemetryService';
+import { recordRuntimeJobTelemetry } from './runtimeJobTelemetryService';
 
 let running = false;
 
@@ -37,27 +32,14 @@ export async function runBackgroundMaintenanceTick() {
         });
     }
 
-    try {
-        if (dueJobs.has('appUpdateCheck')) {
-            await runRuntimeTelemetryJob(
-                {
-                    name: 'appUpdateCheck',
-                    cadenceSeconds: APP_UPDATE_CHECK_INTERVAL_SECONDS,
-                    detail: 'Running Rust-scheduled frontend maintenance task appUpdateCheck.'
-                },
-                checkForAppUpdate
-            );
-        }
-    } finally {
-        running = false;
-        if (hasDueJobs) {
-            recordRuntimeJobTelemetry({
-                name: 'backgroundMaintenanceTick',
-                owner: 'frontend',
-                status: 'completed',
-                detail: 'Rust-scheduled frontend maintenance tick completed.'
-            });
-        }
+    running = false;
+    if (hasDueJobs) {
+        recordRuntimeJobTelemetry({
+            name: 'backgroundMaintenanceTick',
+            owner: 'frontend',
+            status: 'completed',
+            detail: 'Rust-scheduled frontend maintenance tick completed.'
+        });
     }
 }
 

@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({
     canInstallUpdatesOnPlatform: vi.fn(),
     previewStableReleaseCheck: vi.fn(),
     getPreviewStableReleaseUpdateMode: vi.fn(),
-    fetchLatestBranchRelease: vi.fn(),
-    hasUpdateForBranch: vi.fn(),
+    appAppUpdateCheckRun: vi.fn(),
+    toNormalizedReleaseFromSnapshot: vi.fn(),
     downloadAndInstallUpdate: vi.fn()
 }));
 
@@ -22,9 +22,14 @@ vi.mock('@/services/updateService', () => ({
     canInstallUpdatesOnPlatform: mocks.canInstallUpdatesOnPlatform,
     getPreviewStableReleaseUpdateMode: mocks.getPreviewStableReleaseUpdateMode,
     downloadAndInstallUpdate: mocks.downloadAndInstallUpdate,
-    fetchLatestBranchRelease: mocks.fetchLatestBranchRelease,
     formatReleaseDisplayVersion: (value: unknown) => String(value || ''),
-    hasUpdateForBranch: mocks.hasUpdateForBranch
+    toNormalizedReleaseFromSnapshot: mocks.toNormalizedReleaseFromSnapshot
+}));
+
+vi.mock('@/platform/tauri/bindings', () => ({
+    commands: {
+        appAppUpdateCheckRun: mocks.appAppUpdateCheckRun
+    }
 }));
 
 vi.mock('@/services/entityMediaService', () => ({
@@ -91,6 +96,15 @@ describe('UpdaterDialog', () => {
             enabled: false,
             check: mocks.previewStableReleaseCheck
         });
+        mocks.appAppUpdateCheckRun.mockResolvedValue({
+            hasAvailableUpdate: false,
+            checkedAt: '',
+            detail: '',
+            error: null,
+            release: null,
+            shouldNotify: false
+        });
+        mocks.toNormalizedReleaseFromSnapshot.mockReturnValue(null);
     });
 
     it('uses the GitHub update action for preview checks even on installable platforms', () => {

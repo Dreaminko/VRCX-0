@@ -1,13 +1,9 @@
-import type { TauriUpdateMetadata } from '@/platform/tauri/bindings';
-
 export type UpdateOptions = {
     branch?: unknown;
     hostPlatform?: string;
     hostArch?: string;
     linuxPackageKind?: string;
     requireInstallerAsset?: boolean;
-    onProgress?: (progress: number) => void;
-    onDownloadProgress?: (progress: UpdateDownloadProgress) => void;
 };
 
 export type UpdateDownloadProgress = {
@@ -15,10 +11,6 @@ export type UpdateDownloadProgress = {
     totalBytes: number;
     percent: number;
 };
-
-export type UpdateDownloadProgressSubscriber = (
-    progress: UpdateDownloadProgress
-) => void;
 
 export type GitHubReleaseAsset = {
     state?: string;
@@ -50,5 +42,3 @@ export type NormalizedRelease = {
     body: string;
     updaterType: 'tauri' | 'manual';
 };
-
-export type InstallableUpdateRelease = NormalizedRelease & TauriUpdateMetadata;

@@ -1,3 +1,4 @@
+mod app_update;
 mod async_runtime_policy;
 mod auth_credentials;
 mod auth_scope;
@@ -41,6 +42,7 @@ mod social_baseline;
 mod social_mutation;
 mod sync;
 mod task_supervisor;
+mod updater_port;
 pub mod vrchat_api;
 mod web_client;
 mod worker;
@@ -58,6 +60,11 @@ pub mod ports {
     };
 }
 
+pub use app_update::{
+    AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
+    AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
+    AppUpdateTargetResolver,
+};
 pub use async_runtime_policy::{
     recommended_tokio_max_blocking_threads, recommended_tokio_max_blocking_threads_for,
     recommended_tokio_worker_threads, recommended_tokio_worker_threads_for,
@@ -254,6 +261,10 @@ pub use social_mutation::{
 pub use sync::{RuntimeSyncEngine, RuntimeSyncSnapshot};
 pub use task_supervisor::{
     RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,
+};
+pub use updater_port::{
+    NoopUpdaterPort, UpdaterCheckRequest, UpdaterDownloadOutcome, UpdaterDownloadProgress,
+    UpdaterInstallHandle, UpdaterMetadata, UpdaterPort, UpdaterProgressCallback,
 };
 pub use vrcx_0_core::location::ParsedLocation;
 pub use vrcx_0_media::ugc_image_files::UgcCategory;

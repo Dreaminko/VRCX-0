@@ -24,6 +24,18 @@ const mocks = vi.hoisted(() => ({
                 import('@/platform/tauri/bindings').BackendRuntimeSnapshot
             >
         >(),
+    getAppUpdateStatus:
+        vi.fn<
+            () => Promise<
+                import('@/platform/tauri/bindings').AppUpdateStatusSnapshot
+            >
+        >(),
+    getAppUpdateDownloadStatus:
+        vi.fn<
+            () => Promise<
+                import('@/platform/tauri/bindings').AppUpdateDownloadStatusSnapshot
+            >
+        >(),
     runtimeGroupInstancesRefresh: vi.fn<() => Promise<null>>(),
     appCheckGameRunning: vi.fn<() => Promise<null>>(),
     profileBackupCurrentStatus: vi.fn(),
@@ -42,6 +54,9 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appProfileBackupCurrentStatus: mocks.profileBackupCurrentStatus,
         appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
         appRuntimeAuthScopeGet: mocks.runtimeAuthScopeGet,
+        appAppUpdateStatusGet: mocks.getAppUpdateStatus,
+        appAppUpdateCheckRun: mocks.getAppUpdateStatus,
+        appAppUpdateDownloadStatusGet: mocks.getAppUpdateDownloadStatus,
         appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh
     }
 }));
@@ -200,6 +215,22 @@ describe('runtimeEventBridgeService', () => {
         mocks.getBackendRuntimeSnapshot.mockResolvedValue(
             createBackendRuntimeSnapshot()
         );
+        mocks.getAppUpdateStatus.mockResolvedValue({
+            hasAvailableUpdate: false,
+            checkedAt: '',
+            detail: '',
+            error: null,
+            release: null,
+            shouldNotify: false
+        });
+        mocks.getAppUpdateDownloadStatus.mockResolvedValue({
+            phase: 'idle',
+            version: null,
+            downloadedBytes: 0,
+            totalBytes: 0,
+            percent: 0,
+            error: null
+        });
         mocks.runtimeGroupInstancesRefresh.mockResolvedValue(null);
         mocks.appCheckGameRunning.mockResolvedValue(null);
         mocks.profileBackupCurrentStatus.mockResolvedValue({
@@ -304,7 +335,7 @@ describe('runtimeEventBridgeService', () => {
             'subscription failed'
         );
 
-        expect(unsubscribe).toHaveBeenCalledTimes(2);
+        expect(unsubscribe).toHaveBeenCalledTimes(5);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });
@@ -342,7 +373,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(24);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(27);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});

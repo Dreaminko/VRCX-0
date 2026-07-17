@@ -1,4 +1,5 @@
 import type {
+    AppUpdateStatusSnapshot,
     BackendRuntimeSnapshot,
     BackendRuntimeTelemetry,
     FriendProfileLoadStatusPayload,
@@ -11,7 +12,8 @@ import type {
     RealtimeEntryCorrection,
     RealtimeInstanceClosedProjection,
     RealtimeInstanceQueueProjection,
-    RealtimeNotificationProjection
+    RealtimeNotificationProjection,
+    UpdaterMetadata
 } from '@/platform/tauri/bindings';
 
 import type {
@@ -21,6 +23,9 @@ import type {
 
 export type RuntimeEventName =
     | 'addGameLogEvent'
+    | 'appUpdateStatus'
+    | 'appUpdateDownloadProgress'
+    | 'appUpdateInstalled'
     | 'backendRuntimeTelemetry'
     | 'gameLogProjection'
     | 'gameLogPersistenceFallback'
@@ -51,6 +56,20 @@ export type FavoritesChangedEventPayload = {
     remote: boolean;
 };
 
+// Hand-mirrored; must stay in sync with the Rust payload shapes emitted from crates/application/src/app_update.rs.
+export type AppUpdateDownloadProgressPayload = {
+    version: string;
+    phase: string;
+    downloadedBytes: number;
+    totalBytes: number;
+    percent: number;
+};
+
+export type AppUpdateInstalledPayload = {
+    version: string;
+    metadata: UpdaterMetadata;
+};
+
 export type RuntimeGroupInstance = Record<string, unknown> & {
     id?: string;
     instanceId?: string;
@@ -79,6 +98,9 @@ export type RuntimeVrchatAuthFailurePayload = {
 
 export type RuntimeEventPayloadMap = {
     addGameLogEvent: unknown;
+    appUpdateStatus: AppUpdateStatusSnapshot;
+    appUpdateDownloadProgress: AppUpdateDownloadProgressPayload;
+    appUpdateInstalled: AppUpdateInstalledPayload;
     backendRuntimeTelemetry: BackendRuntimeTelemetry;
     gameLogProjection: GameLogProjection;
     gameLogPersistenceFallback: unknown;

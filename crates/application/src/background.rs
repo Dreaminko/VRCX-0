@@ -123,25 +123,13 @@ impl RuntimeBackgroundJobs {
     }
 
     pub fn register_frontend_job_catalog(&self) {
-        for (name, cadence_seconds, initial_delay_seconds, detail) in [
-            (
-                "appUpdateCheck",
-                Some(10_800),
-                10_800,
-                "Update checks are scheduled by Rust and executed by frontend maintenance because they surface UI notifications.",
-            ),
-            (
-                "startupMaintenance",
-                None,
-                0,
-                "Startup maintenance is initiated by the frontend bootstrap because it may open UI.",
-            ),
-        ] {
-            self.register_job(name, "frontend", cadence_seconds, "scheduled", detail);
-            if let Some(cadence_seconds) = cadence_seconds {
-                self.register_frontend_schedule(name, cadence_seconds, initial_delay_seconds);
-            }
-        }
+        self.register_job(
+            "startupMaintenance",
+            "frontend",
+            None,
+            "scheduled",
+            "Startup maintenance is initiated by the frontend bootstrap because it may open UI.",
+        );
     }
 
     fn update_frontend_schedule_due(
@@ -272,27 +260,6 @@ impl RuntimeBackgroundJobs {
         }
         if let Ok(mut last_tick) = self.frontend_last_tick.lock() {
             *last_tick = None;
-        }
-    }
-
-    fn register_frontend_schedule(
-        &self,
-        name: &str,
-        cadence_seconds: u64,
-        initial_delay_seconds: u64,
-    ) {
-        match self.frontend_schedules.lock() {
-            Ok(mut schedules) => {
-                schedules
-                    .entry(name.to_string())
-                    .or_insert_with(|| FrontendMaintenanceSchedule {
-                        cadence_seconds,
-                        initial_delay_seconds,
-                        remaining_seconds: initial_delay_seconds as i64,
-                        last_checked: None,
-                    });
-            }
-            Err(error) => tracing::warn!("failed to lock frontend maintenance schedules: {error}"),
         }
     }
 

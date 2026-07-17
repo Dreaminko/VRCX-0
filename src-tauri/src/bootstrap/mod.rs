@@ -18,8 +18,8 @@ pub use protocol::{
     screenshot_thumbnail_protocol_response,
 };
 pub use setup::{
-    apply_linux_webkit_workaround, init_error_logging, init_tls_crypto_provider,
-    setup_app_with_data_dir, updater_public_key,
+    app_update_build_badge, app_update_build_label, apply_linux_webkit_workaround,
+    init_error_logging, init_tls_crypto_provider, setup_app_with_data_dir, updater_public_key,
 };
 pub(crate) use window::rebuild_main_window;
 pub use window::{

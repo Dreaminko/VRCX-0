@@ -6,6 +6,9 @@ pub struct RuntimeHostOptions {
     pub app_data_dir: AppDataDirResolution,
     pub app_version: String,
     pub is_headless: bool,
+    pub app_update_build_label: String,
+    pub app_update_build_badge: String,
+    pub updater_port: Arc<dyn vrcx_0_application::UpdaterPort>,
 }
 
 pub(super) fn web_ua_app_version(app_version: &str, is_headless: bool) -> String {
@@ -48,6 +51,7 @@ pub struct RuntimeHostState {
     pub vr_overlay_runtime: Arc<VrOverlayRuntime>,
     pub web: Arc<WebClient>,
     pub image_cache: Arc<ImageCache>,
+    pub app_update: AppUpdateRuntime,
     pub host_file_access: HostFileAccess,
     pub screenshot_cache: MetadataCacheDb,
     pub shared_collection_import: SharedCollectionImportRuntime,
@@ -175,6 +179,9 @@ impl RuntimeHostState {
             app_data_dir,
             app_version,
             is_headless,
+            app_update_build_label,
+            app_update_build_badge,
+            updater_port,
         } = options;
         let paths = AppPaths::from_app_data(app_data_dir.current_dir.clone());
         cleanup_legacy_updater_files(&paths.app_data);
@@ -238,6 +245,21 @@ impl RuntimeHostState {
             Arc::clone(&web),
             Arc::clone(&image_cache),
         ));
+        let app_update = AppUpdateRuntime::new(
+            Arc::clone(&web),
+            Arc::clone(&db),
+            Arc::clone(&storage),
+            runtime_context.event_bus.clone(),
+            runtime_context.background_jobs.clone(),
+            AppUpdateBuildInfo {
+                app_version: app_version.clone(),
+                build_label: app_update_build_label,
+                build_badge: app_update_build_badge,
+            },
+            Arc::new(|| vrcx_0_host::updater_policy::expected_updater_target().ok()),
+            updater_port,
+            runtime_context.tasks.clone(),
+        );
         let profile_backup = ProfileBackupRuntime::new(
             paths.app_data.clone(),
             Arc::clone(&db),
@@ -361,6 +383,7 @@ impl RuntimeHostState {
             vr_overlay_runtime,
             web,
             image_cache,
+            app_update,
             host_file_access,
             screenshot_cache,
             shared_collection_import,

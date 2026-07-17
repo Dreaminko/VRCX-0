@@ -6,14 +6,16 @@ import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
-import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
+import { handleAppUpdateStatusEvent } from './backgroundMaintenanceUpdateService';
+import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import {
     applyFriendProfileLoadStatusPayload,
     isFriendProfileLoadTerminalStatus
 } from './friendProfileLoadService';
 import { getCurrentProfileBackupStatus } from './profileBackupService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
+import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
 import {
     handleFavoritesChangedEvent,
     handlePrintCleanupEvent,
@@ -44,6 +46,10 @@ import type {
     RuntimeEventName,
     RuntimeEventPayloadMap
 } from './runtime-event-bridge/types';
+import {
+    handleAppUpdateDownloadProgressEvent,
+    handleAppUpdateInstalledEvent
+} from './updateInstallService';
 
 type RuntimeEventUnsubscribe = () => void;
 
@@ -105,6 +111,28 @@ function handleRuntimeEvent(
             payload as RuntimeEventPayloadMap['printsAutoCleanup'];
         runtimeStore.recordRuntimeEvent(name, payload);
         handlePrintCleanupEvent(printCleanupEvent);
+        return;
+    }
+
+    if (name === 'appUpdateStatus') {
+        void handleAppUpdateStatusEvent(
+            payload as RuntimeEventPayloadMap['appUpdateStatus']
+        );
+        void runForegroundUpdateRegistryBackupMaintenance();
+        return;
+    }
+
+    if (name === 'appUpdateDownloadProgress') {
+        handleAppUpdateDownloadProgressEvent(
+            payload as RuntimeEventPayloadMap['appUpdateDownloadProgress']
+        );
+        return;
+    }
+
+    if (name === 'appUpdateInstalled') {
+        handleAppUpdateInstalledEvent(
+            payload as RuntimeEventPayloadMap['appUpdateInstalled']
+        );
         return;
     }
 
@@ -211,6 +239,9 @@ export async function bindRuntimeEvents(): Promise<() => void> {
     const unsubscribers: RuntimeEventUnsubscribe[] = [];
     const events: RuntimeEventName[] = [
         'addGameLogEvent',
+        'appUpdateStatus',
+        'appUpdateDownloadProgress',
+        'appUpdateInstalled',
         'backendRuntimeTelemetry',
         'gameLogProjection',
         'gameLogPersistenceFallback',
@@ -249,6 +280,35 @@ export async function bindRuntimeEvents(): Promise<() => void> {
                 .applyStatus(await getCurrentProfileBackupStatus());
         } catch (error) {
             console.warn('Failed to hydrate profile backup status:', error);
+        }
+        try {
+            await handleAppUpdateStatusEvent(
+                await commands.appAppUpdateStatusGet()
+            );
+        } catch (error) {
+            console.warn('Failed to hydrate app update status:', error);
+        }
+        try {
+            await runForegroundUpdateRegistryBackupMaintenance();
+        } catch (error) {
+            console.warn(
+                'Failed to run registry backup maintenance during hydration:',
+                error
+            );
+        }
+        try {
+            const downloadStatus =
+                await commands.appAppUpdateDownloadStatusGet();
+            useRuntimeStore.getState().setUpdateLoopState({
+                autoDownloadState: downloadStatus.phase,
+                downloadedVersion: downloadStatus.version,
+                downloadProgress: downloadStatus.percent
+            });
+        } catch (error) {
+            console.warn(
+                'Failed to hydrate app update download status:',
+                error
+            );
         }
     } catch (error) {
         resetBackendRealtimeProjectionState();

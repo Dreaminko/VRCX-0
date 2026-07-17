@@ -11,7 +11,9 @@ use tracing_subscriber::Layer;
 use crate::deep_link::{parse_deep_link, DEEP_LINK_ARRIVED_EVENT};
 use crate::state::{AppState, BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY};
 
-use super::adapters::{start_host_services, start_mcp_server_if_enabled, TauriDesktopNotifier};
+use super::adapters::{
+    start_host_services, start_mcp_server_if_enabled, TauriDesktopNotifier, TauriUpdaterPort,
+};
 use super::autostart::{apply_autostart_window_state_if_needed, sync_autostart_from_db};
 use super::shared::app_language;
 use super::window::{configure_tray, create_main_window, disable_windows_default_context_menu};
@@ -67,6 +69,20 @@ pub fn updater_public_key() -> String {
     }
 }
 
+pub fn app_update_build_label() -> String {
+    option_env!("VRCX_0_BUILD_LABEL")
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase()
+}
+
+pub fn app_update_build_badge() -> String {
+    option_env!("VRCX_0_BUILD_BADGE")
+        .unwrap_or("")
+        .trim()
+        .to_string()
+}
+
 pub fn apply_linux_webkit_workaround() {
     #[cfg(target_os = "linux")]
     {
@@ -85,7 +101,9 @@ pub fn setup_app_with_data_dir(
     app: &mut tauri::App,
     app_data_dir: vrcx_0_host::app_paths::AppDataDirResolution,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let app_state = AppState::new(app_data_dir).expect("failed to initialize app state");
+    let updater_port = Arc::new(TauriUpdaterPort::new(app.handle().clone()));
+    let app_state =
+        AppState::new(app_data_dir, updater_port).expect("failed to initialize app state");
     let language = app_language(&app_state);
     app.manage(app_state);
 

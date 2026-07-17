@@ -1,35 +1,32 @@
 export type {
-    InstallableUpdateRelease,
     NormalizedRelease,
     UpdateDownloadProgress,
     UpdateOptions
 } from './update-service/types';
 
+export type {
+    AppUpdateReleaseSnapshot,
+    AppUpdateStatusSnapshot
+} from './update-service/appUpdateSnapshot';
+export { toNormalizedReleaseFromSnapshot } from './update-service/appUpdateSnapshot';
+
 export {
     canInstallUpdatesOnPlatform,
-    defaultBranchForVersion,
-    getUpdaterManifestAssetName,
-    getUpdaterTarget,
-    hasUpdateForBranch,
-    normalizeGitHubRelease,
-    normalizeReleaseList,
     sanitizeBranch
 } from './update-service/release';
 export {
     fetchBranchReleases,
     fetchLatestBranchRelease,
-    getPreviewStableReleaseUpdateMode,
-    handlePreviewStableReleaseUpdateCheck
+    getPreviewStableReleaseUpdateMode
 } from './update-service/github';
+export type {
+    AppUpdateDownloadProgressPayload,
+    AppUpdateDownloadStatusSnapshot,
+    AppUpdateInstalledPayload,
+    UpdaterMetadata
+} from './update-service/downloadInstall';
 export {
-    checkInstallableUpdate,
-    isNoPendingUpdateError,
-    isPendingUpdateVersionMismatchError
-} from './update-service/tauriRequest';
-export { downloadUpdate } from './update-service/download';
-export {
-    discardPendingUpdate,
-    downloadAndInstallUpdate,
-    installPendingUpdate
-} from './update-service/install';
+    confirmInstall,
+    getDownloadStatus
+} from './update-service/downloadInstall';
 export { formatReleaseDisplayVersion } from '@/shared/utils/releaseVersion';

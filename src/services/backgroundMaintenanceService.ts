@@ -4,10 +4,14 @@ export {
     refreshPlayerModerations
 } from './backgroundMaintenanceSessionService';
 export {
-    handleAutoBackgroundDownloadUpdatesPreferenceChange,
-    runStartupMaintenance
+    handleAppUpdateStatusEvent,
+    handleAutoBackgroundDownloadUpdatesPreferenceChange
 } from './backgroundMaintenanceUpdateService';
 export {
     resetBackgroundMaintenance,
     runBackgroundMaintenanceTick
 } from './backgroundMaintenanceSchedulerService';
+export {
+    runForegroundUpdateRegistryBackupMaintenance,
+    runStartupMaintenance
+} from './registryBackupMaintenanceService';

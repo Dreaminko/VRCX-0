@@ -2376,60 +2376,29 @@ export const commands = {
     async appExitApplication(): Promise<null> {
         return await TAURI_INVOKE('app__exit_application');
     },
-    async appCheckTauriUpdate(
-        manifestUrl: string,
-        target: string,
-        allowDowngrades: boolean,
-        proxy: string | null
-    ): Promise<TauriUpdateMetadata | null> {
-        return await TAURI_INVOKE('app__check_tauri_update', {
-            manifestUrl,
-            target,
-            allowDowngrades,
-            proxy
-        });
+    async appAppUpdateStatusGet(): Promise<AppUpdateStatusSnapshot> {
+        return await TAURI_INVOKE('app__app_update_status_get');
     },
-    async appDownloadTauriUpdate(
-        version: string,
-        manifestUrl: string,
-        target: string,
-        allowDowngrades: boolean,
-        proxy: string | null,
-        onEvent: TAURI_CHANNEL<TauriDownloadEvent>
-    ): Promise<TauriUpdateMetadata | null> {
-        return await TAURI_INVOKE('app__download_tauri_update', {
-            version,
-            manifestUrl,
-            target,
-            allowDowngrades,
-            proxy,
-            onEvent
-        });
+    async appAppUpdateCheckRun(): Promise<AppUpdateStatusSnapshot> {
+        return await TAURI_INVOKE('app__app_update_check_run');
     },
-    async appInstallPendingTauriUpdate(
+    async appAppUpdateDownloadStatusGet(): Promise<AppUpdateDownloadStatusSnapshot> {
+        return await TAURI_INVOKE('app__app_update_download_status_get');
+    },
+    async appAppUpdateInstallConfirm(
         version: string
-    ): Promise<TauriUpdateMetadata> {
-        return await TAURI_INVOKE('app__install_pending_tauri_update', {
+    ): Promise<UpdaterMetadata> {
+        return await TAURI_INVOKE('app__app_update_install_confirm', {
             version
         });
     },
-    async appDiscardPendingTauriUpdate(): Promise<null> {
-        return await TAURI_INVOKE('app__discard_pending_tauri_update');
-    },
-    async appDownloadAndInstallTauriUpdate(
-        manifestUrl: string,
-        target: string,
-        allowDowngrades: boolean,
-        proxy: string | null,
-        onEvent: TAURI_CHANNEL<TauriDownloadEvent>
-    ): Promise<TauriUpdateMetadata | null> {
-        return await TAURI_INVOKE('app__download_and_install_tauri_update', {
-            manifestUrl,
-            target,
-            allowDowngrades,
-            proxy,
-            onEvent
-        });
+    async appAppUpdateBackgroundDownloadPreferenceChanged(
+        enabled: boolean
+    ): Promise<null> {
+        return await TAURI_INVOKE(
+            'app__app_update_background_download_preference_changed',
+            { enabled }
+        );
     },
     async appCheckLegacyVrcxAvailable(): Promise<boolean> {
         return await TAURI_INVOKE('app__check_legacy_vrcx_available');
@@ -2940,6 +2909,34 @@ export type AppLauncherSnapshot = {
     testRuns: AppLauncherRun[];
 };
 export type AppLauncherStopPolicy = 'keepRunning' | 'closeByVrcx';
+export type AppUpdateDownloadStatusSnapshot = {
+    phase: string;
+    version: string | null;
+    downloadedBytes: number;
+    totalBytes: number;
+    percent: number;
+    error: string | null;
+};
+export type AppUpdateReleaseSnapshot = {
+    displayName: string;
+    tagName: string;
+    htmlUrl: string;
+    publishedAt: string;
+    body: string;
+    canonicalVersion: string;
+    displayVersion: string;
+    manifestUrl: string;
+    target: string;
+    updaterType: string;
+};
+export type AppUpdateStatusSnapshot = {
+    hasAvailableUpdate: boolean;
+    checkedAt: string;
+    detail: string;
+    error: string | null;
+    release: AppUpdateReleaseSnapshot | null;
+    shouldNotify: boolean;
+};
 export type AssistantDeltaEvent = {
     sessionId: string;
     turnId: string;
@@ -4340,17 +4337,6 @@ export type SocialFriendRosterBaselineOutput = {
     snapshot: RawJson | null;
     friendLogChanged: boolean;
 };
-export type TauriDownloadEvent =
-    | { event: 'Started'; data: { contentLength: number | null } }
-    | { event: 'Progress'; data: { chunkLength: number } }
-    | { event: 'Finished' };
-export type TauriUpdateMetadata = {
-    currentVersion: string;
-    version: string;
-    date: string | null;
-    body: string | null;
-    rawJson: JsonValue;
-};
 export type TelemetryClientEvent =
     | { type: 'pageVisit'; route: string }
     | {
@@ -4368,6 +4354,12 @@ export type TelemetryClientEvent =
     | { type: 'assistantTurnError'; code: string; summary: string | null };
 export type TtsVoice = { id: string; name: string; language: string };
 export type TurnStatus = 'running' | 'done' | 'error' | 'cancelled';
+export type UpdaterMetadata = {
+    currentVersion: string;
+    version: string;
+    date: string | null;
+    body: string | null;
+};
 export type UserMemoOutput = { userId: string; editedAt: string; memo: string };
 export type UserNoteOutput = {
     userId: string;
