@@ -17,6 +17,7 @@ import { Button } from '@/ui/shadcn/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger
@@ -255,33 +256,35 @@ export function NotificationDrawerRow({
                                                 }
                                             />
                                             <DropdownMenuContent align="end">
-                                                {showMarkRead ? (
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handlers.onMarkSeen(
-                                                                notification
-                                                            )
-                                                        }
-                                                    >
-                                                        <CheckIcon data-icon="inline-start" />
-                                                        {t(
-                                                            'side_panel.notification_center.mark_as_read'
-                                                        )}
-                                                    </DropdownMenuItem>
-                                                ) : null}
-                                                {overflowActions.map(
-                                                    (action) => (
+                                                <DropdownMenuGroup>
+                                                    {showMarkRead ? (
                                                         <DropdownMenuItem
-                                                            key={action.key}
-                                                            onClick={
-                                                                action.onClick
+                                                            onClick={() =>
+                                                                handlers.onMarkSeen(
+                                                                    notification
+                                                                )
                                                             }
                                                         >
-                                                            <action.Icon data-icon="inline-start" />
-                                                            {action.label}
+                                                            <CheckIcon data-icon="inline-start" />
+                                                            {t(
+                                                                'side_panel.notification_center.mark_as_read'
+                                                            )}
                                                         </DropdownMenuItem>
-                                                    )
-                                                )}
+                                                    ) : null}
+                                                    {overflowActions.map(
+                                                        (action) => (
+                                                            <DropdownMenuItem
+                                                                key={action.key}
+                                                                onClick={
+                                                                    action.onClick
+                                                                }
+                                                            >
+                                                                <action.Icon data-icon="inline-start" />
+                                                                {action.label}
+                                                            </DropdownMenuItem>
+                                                        )
+                                                    )}
+                                                </DropdownMenuGroup>
                                                 {showDelete ? (
                                                     <>
                                                         {showMarkRead ||
@@ -289,19 +292,21 @@ export function NotificationDrawerRow({
                                                             0 ? (
                                                             <DropdownMenuSeparator />
                                                         ) : null}
-                                                        <DropdownMenuItem
-                                                            variant="destructive"
-                                                            onClick={() =>
-                                                                handlers.onDeleteNotification(
-                                                                    notification
-                                                                )
-                                                            }
-                                                        >
-                                                            <Trash2Icon data-icon="inline-start" />
-                                                            {t(
-                                                                'view.notification.actions.delete_log'
-                                                            )}
-                                                        </DropdownMenuItem>
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuItem
+                                                                variant="destructive"
+                                                                onClick={() =>
+                                                                    handlers.onDeleteNotification(
+                                                                        notification
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Trash2Icon data-icon="inline-start" />
+                                                                {t(
+                                                                    'view.notification.actions.delete_log'
+                                                                )}
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
                                                     </>
                                                 ) : null}
                                             </DropdownMenuContent>

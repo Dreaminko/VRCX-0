@@ -20,6 +20,7 @@ import { Input } from '@/ui/shadcn/input';
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue
@@ -209,16 +210,21 @@ export function BoopEmojiDialog({
                                     />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={noDefaultEmojiValue}>
-                                        {t(
-                                            'view.notification.action.clear_selection'
-                                        )}
-                                    </SelectItem>
-                                    {photonEmojiRows.map((row) => (
-                                        <SelectItem key={row.id} value={row.id}>
-                                            {row.name}
+                                    <SelectGroup>
+                                        <SelectItem value={noDefaultEmojiValue}>
+                                            {t(
+                                                'view.notification.action.clear_selection'
+                                            )}
                                         </SelectItem>
-                                    ))}
+                                        {photonEmojiRows.map((row) => (
+                                            <SelectItem
+                                                key={row.id}
+                                                value={row.id}
+                                            >
+                                                {row.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
                                 </SelectContent>
                             </Select>
                             <Button
