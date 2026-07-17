@@ -112,7 +112,9 @@ function buildError(
     error: unknown
 ): string {
     const message = error instanceof Error ? error.message : String(error);
-    const subject = id ? `${TYPE_CONFIG[type].label}Id: ${id}` : TYPE_CONFIG[type].label;
+    const subject = id
+        ? `${TYPE_CONFIG[type].label}Id: ${id}`
+        : TYPE_CONFIG[type].label;
     return `${subject}\n${message}\n\n`;
 }
 

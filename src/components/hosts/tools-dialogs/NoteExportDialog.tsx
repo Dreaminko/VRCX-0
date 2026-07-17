@@ -5,10 +5,7 @@ import { toast } from 'sonner';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
-import {
-    commands,
-    type NoteExportStatus
-} from '@/platform/tauri/bindings';
+import { commands, type NoteExportStatus } from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
 import { openUserDialog } from '@/services/dialogService';
 import { userImage } from '@/services/entityMediaService';
@@ -157,9 +154,7 @@ export function NoteExportDialog({
         setProgress({ done: status.processed, total: status.total });
         setLoading(active);
 
-        const failedItem = status.items.find(
-            (item) => item.state === 'failed'
-        );
+        const failedItem = status.items.find((item) => item.state === 'failed');
         if (failedItem) {
             setErrors(
                 `Name: ${failedItem.displayName || failedItem.userId}\n${failedItem.error || status.lastError || t('dialog.note_export.failed_to_update_local_note')}\n\n`
@@ -175,11 +170,9 @@ export function NoteExportDialog({
         if (!open) {
             refreshRequestRef.current += 1;
             if (activeRunIdRef.current) {
-                void commands
-                    .appNoteExportCancel()
-                    .catch((error: unknown) => {
-                        console.warn('Failed to cancel note export:', error);
-                    });
+                void commands.appNoteExportCancel().catch((error: unknown) => {
+                    console.warn('Failed to cancel note export:', error);
+                });
             }
             return;
         }
@@ -204,10 +197,7 @@ export function NoteExportDialog({
             if (disposed) {
                 return;
             }
-            if (
-                status.status === 'running' ||
-                status.status === 'cancelling'
-            ) {
+            if (status.status === 'running' || status.status === 'cancelling') {
                 applyExportStatus(status);
             } else {
                 await refreshRows();

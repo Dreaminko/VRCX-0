@@ -261,7 +261,9 @@ describe('vrcNotificationStore', () => {
             useVrcNotificationStore.getState().markAllSeen()
         ).rejects.toThrow('IPC failed');
 
-        expect(notificationRepositoryMock.queryNotifications).toHaveBeenCalled();
+        expect(
+            notificationRepositoryMock.queryNotifications
+        ).toHaveBeenCalled();
         expect(useVrcNotificationStore.getState().rows[0]).toMatchObject({
             id: notification.id,
             seen: false

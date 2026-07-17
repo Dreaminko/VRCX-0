@@ -145,7 +145,10 @@ export function handleDebugLoggingOutcome(outcome: DebugLoggingOutcome): void {
         });
     } else if (outcome.kind === 'needsUserAction') {
         if (outcome.error) {
-            console.error('Failed to enable VRChat debug logging:', outcome.error);
+            console.error(
+                'Failed to enable VRChat debug logging:',
+                outcome.error
+            );
         }
         useModalStore.getState().alert({
             title: 'Enable debug logging',
@@ -153,10 +156,7 @@ export function handleDebugLoggingOutcome(outcome: DebugLoggingOutcome): void {
                 'VRCX-0 noticed VRChat debug logging is disabled. Enable debug logging in VRChat quick menu settings > debug > enable debug logging, then rejoin the instance or restart VRChat.'
         });
     } else if (outcome.kind === 'unavailable' && outcome.error) {
-        console.warn(
-            'Unable to inspect VRChat debug logging:',
-            outcome.error
-        );
+        console.warn('Unable to inspect VRChat debug logging:', outcome.error);
     }
 }
 
