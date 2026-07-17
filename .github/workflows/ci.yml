@@ -67,6 +67,8 @@ jobs:
                         - 'crates/**'
                         - 'package.json'
                         - 'package-lock.json'
+                        - 'scripts/create-rust-test-matrix.mjs'
+                        - 'scripts/create-rust-test-matrix.test.mjs'
                         - 'src-tauri/**'
                       native_catalog:
                         - '.github/workflows/ci.yml'
@@ -222,7 +224,69 @@ jobs:
                   if-no-files-found: error
                   retention-days: 7
 
-    rust-tests:
+    rust-test-plan:
+        name: Plan Rust Test Shards
+        runs-on: ubuntu-24.04
+        needs: changes
+        if: needs.changes.outputs.rust_backend == 'true'
+        outputs:
+            shards: ${{ steps.shards.outputs.shards }}
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: 24.x
+            - uses: dtolnay/rust-toolchain@stable
+            - name: Test Rust shard discovery
+              run: node --test ./scripts/create-rust-test-matrix.test.mjs
+            - id: shards
+              name: Resolve Rust test shards
+              run: echo "shards=$(npm run --silent rust:test:matrix)" >> "$GITHUB_OUTPUT"
+
+    rust-tests-linux:
+        name: Rust Tests (Linux / ${{ matrix.package }})
+        runs-on: ubuntu-24.04
+        needs:
+            - changes
+            - rust-test-plan
+        if: needs.changes.outputs.rust_backend == 'true'
+        defaults:
+            run:
+                shell: bash
+        strategy:
+            fail-fast: false
+            matrix:
+                include: ${{ fromJSON(needs.rust-test-plan.outputs.shards) }}
+        steps:
+            - uses: actions/checkout@v7
+            - uses: ./.github/actions/setup-rust
+              with:
+                  cache-key: ci-linux-x86_64
+            - name: Run crate tests
+              env:
+                  RUST_TEST_FEATURES: ${{ matrix.features }}
+                  RUST_TEST_PACKAGE: ${{ matrix.package }}
+              run: |
+                  if [[ -n "$RUST_TEST_FEATURES" ]]; then
+                      npm run rust:test:crate -- "$RUST_TEST_PACKAGE" --features "$RUST_TEST_FEATURES"
+                  else
+                      npm run rust:test:crate -- "$RUST_TEST_PACKAGE"
+                  fi
+
+    rust-tests-linux-gate:
+        name: Rust Tests (Linux)
+        runs-on: ubuntu-24.04
+        needs:
+            - changes
+            - rust-tests-linux
+        if: always() && needs.changes.outputs.rust_backend == 'true'
+        steps:
+            - name: Verify Linux Rust test shards
+              env:
+                  SHARD_RESULT: ${{ needs.rust-tests-linux.result }}
+              run: test "$SHARD_RESULT" = success
+
+    rust-tests-platforms:
         name: Rust Tests (${{ matrix.label }})
         runs-on: ${{ matrix.os }}
         needs: changes
@@ -237,18 +301,11 @@ jobs:
                     - label: Windows
                       os: windows-latest
                       cache_key: ci-test-windows-x86_64
-                    - label: Linux
-                      os: ubuntu-24.04
-                      cache_key: ci-test-linux-x86_64
                     - label: macOS
                       os: macos-latest
                       cache_key: ci-test-macos-aarch64
         steps:
             - uses: actions/checkout@v7
-            - uses: ./.github/actions/setup-linux-tauri
-              if: runner.os == 'Linux'
-              with:
-                  mode: ci
             - uses: ./.github/actions/setup-rust
               with:
                   cache-key: ${{ matrix.cache_key }}
