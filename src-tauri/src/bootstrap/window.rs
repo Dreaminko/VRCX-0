@@ -208,6 +208,7 @@ pub(super) fn create_main_window(
         builder = builder
             .decorations(true)
             .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true)
             .traffic_light_position(tauri::LogicalPosition::new(16.0, 16.0));
     }
     let state = app.state::<AppState>();
