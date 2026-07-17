@@ -1,81 +1,78 @@
-mod app_update;
-mod auth_credentials;
+mod auth;
 mod authenticated_runtime;
-mod authenticated_session_maintenance;
 mod background_capabilities;
-mod batch_mutation;
-mod database_upgrade;
-mod database_upgrade_runtime;
+mod collections;
 mod event_payloads;
-mod favorite_import;
-mod favorite_transfer;
-pub mod groups;
-mod import_collection;
-mod instance_launch;
-mod local_favorites;
-mod login_session;
-mod media_upload;
-mod moderation_sync;
-mod mutual_graph_fetch;
-mod noninteractive_auth;
-mod note_export;
-mod notification_actions;
-mod prints;
-mod profile_backup;
-#[cfg(test)]
-mod realtime;
-mod share_collection;
-mod shared_collection_import;
-mod social_mutation;
+mod favorites;
+mod media;
+mod social;
+mod system;
 
 pub use vrcx_0_application_core::{ports, vrchat_api};
 
-pub use app_update::{
-    AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
-    AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
-    AppUpdateTargetResolver,
+pub use auth::{
+    auth_response_error_message, current_user_from_cookie, parse_current_user_response,
+    probe_current_user_from_cookie, AuthenticatedRuntimeSession, CookieSessionProbe,
+    NonInteractiveAuthError,
 };
-pub use auth_credentials::{
+pub use auth::{
     delete_saved_credential, migrate_saved_credential_secrets, record_login_success, record_logout,
     saved_credential_login_start, saved_credential_session_data, saved_snapshot,
     LoginSuccessRecordInput, LogoutRecordInput, SavedCredentialLoginStartInput,
     SavedCredentialSessionData,
 };
+pub use auth::{run_authenticated_session_maintenance, AuthenticatedSessionMaintenanceOutcome};
+pub use auth::{
+    AutoLoginOutcome, AutoLoginStartInput, LoginApi, LoginApiFuture, LoginFailureKind,
+    LoginSession, LoginSessionRuntime, LoginSessionStartBasicInput,
+    LoginSessionStartCookieRestoreInput, LoginSessionStartSavedCredentialInput, LoginSessionState,
+    TwoFactorMethod, WebClientLoginApi,
+};
 pub use authenticated_runtime::{
     AuthenticatedRuntimePhase, AuthenticatedRuntimePhaseSnapshot, AuthenticatedRuntimeStepSnapshot,
     AuthenticatedRuntimeStepStatus,
-};
-pub use authenticated_session_maintenance::{
-    run_authenticated_session_maintenance, AuthenticatedSessionMaintenanceOutcome,
 };
 pub use background_capabilities::{
     refresh_background_current_user, refresh_background_group_instances,
     BackgroundCapabilitySession, BackgroundGroupInstancesRefresh,
 };
-pub use batch_mutation::{
-    run_avatar_content_tags_batch, run_group_leave_batch, run_group_visibility_batch,
-    AvatarContentTagsBatchInput, BatchMutationActions, BatchMutationItemResult,
-    BatchMutationItemState, BatchMutationResult, GroupLeaveBatchInput, GroupVisibility,
-    GroupVisibilityBatchInput, VrchatBatchMutationActions, BATCH_MUTATION_MAX_ITEMS,
+pub use collections::{
+    get_or_create_share_owner_token, is_valid_share_owner_token, prepare_share_collection_payload,
+    share_collection_create, share_collection_owner_hint, PreparedShareCollection,
+    ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
+    ShareCollectionSkippedWorld, SHARE_COLLECTION_MAX_WORLDS,
 };
-pub use database_upgrade::{
-    database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
-    DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
-    DatabaseUpgradeStage,
+pub use collections::{
+    prepare_shared_collection_import, run_shared_collection_import, PreparedSharedCollectionImport,
+    SharedCollectionImportActions, SharedCollectionImportProgress, SharedCollectionImportResult,
+    SharedCollectionImportStartInput, SharedCollectionImportState, SharedCollectionImportStatus,
+    VrchatSharedCollectionImportActions, SHARED_COLLECTION_IMPORT_MAX_WORLDS,
 };
-pub use database_upgrade_runtime::DatabaseUpgradeRuntime;
-pub use favorite_import::{
-    FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
-    FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,
-    FavoriteImportStatus, FavoriteImportTarget, FAVORITE_IMPORT_MAX_ITEMS,
+pub use collections::{preview_shared_collection, ImportPreview};
+pub use favorites::{
+    create_local_favorite_group, delete_local_favorite_group, rename_local_favorite_group,
 };
-pub use favorite_transfer::{
+pub use favorites::{
     favorite_transfer_plan_for_item, transfer_favorites, FavoriteTransferDeps,
     FavoriteTransferInput, FavoriteTransferItem, FavoriteTransferItemResult,
     FavoriteTransferItemStatus, FavoriteTransferLocation, FavoriteTransferMode,
     FavoriteTransferResult, FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
-pub use groups::{
+pub use favorites::{
+    FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
+    FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,
+    FavoriteImportStatus, FavoriteImportTarget, FAVORITE_IMPORT_MAX_ITEMS,
+};
+pub use media::{
+    prepare_media_upload_request, require_prepared_image_data, upload_legacy_entity_image,
+    LegacyEntityImageKind, LegacyEntityImageUploadInput, LegacyMediaUploadDeps,
+};
+pub use social::{
+    accept_friend_request, cancel_friend_request, send_friend_request, unfriend,
+    SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendMutationStatus,
+    SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
+};
+pub use social::{
     ban_member, block_group, cancel_request, create_post, delete_invite, delete_post, edit_post,
     get_audit_log_types, get_bans, get_gallery, get_group, get_group_instances,
     get_group_quick_moderation, get_invites, get_join_requests, get_logs, get_members, get_posts,
@@ -91,60 +88,56 @@ pub use groups::{
     VrchatGroupProfileInput, VrchatGroupRepresentationInput, VrchatGroupUserGroupsInput,
     VrchatGroupUserInput,
 };
-pub use import_collection::{preview_shared_collection, ImportPreview};
-pub use instance_launch::{
-    evaluate_instance_action_gates, join_instance_launch, InstanceActionGateTarget,
-    InstanceActionGates, InstanceActionGatesBatchInput, InstanceActionGatesBatchOutput,
-    InstanceLaunchApiFuture, InstanceLaunchDeps, InstanceLaunchHttpClient, InstanceLaunchInput,
-    InstanceLaunchMode, InstanceLaunchOutcome, InstanceLaunchPipe,
+pub use social::{
+    favorite_state, is_print_created_content_refresh, run_print_auto_cleanup, set_print_favorite,
+    CleanupWarningKind, PrintAutoCleanupEvent, PrintCleanupDeps, PrintCleanupQueue,
+    PrintCleanupQueueSink, PrintCleanupTrigger, PrintFavoriteState,
 };
-pub use local_favorites::{
-    create_local_favorite_group, delete_local_favorite_group, rename_local_favorite_group,
-};
-pub use login_session::{
-    AutoLoginOutcome, AutoLoginStartInput, LoginApi, LoginApiFuture, LoginFailureKind,
-    LoginSession, LoginSessionRuntime, LoginSessionStartBasicInput,
-    LoginSessionStartCookieRestoreInput, LoginSessionStartSavedCredentialInput, LoginSessionState,
-    TwoFactorMethod, WebClientLoginApi,
-};
-pub use media_upload::{
-    prepare_media_upload_request, require_prepared_image_data, upload_legacy_entity_image,
-    LegacyEntityImageKind, LegacyEntityImageUploadInput, LegacyMediaUploadDeps,
-};
-pub use moderation_sync::{
-    refresh_player_moderations, update_player_moderation, ModerationSyncDeps,
-    ModerationSyncMutationInput, ModerationSyncMutationOutput, ModerationSyncRefreshInput,
-    ModerationSyncRefreshOutput, RemoteModerationRow,
-};
-pub use mutual_graph_fetch::{
-    MutualGraphFetchCancelInput, MutualGraphFetchRuntime, MutualGraphFetchStartInput,
-    MutualGraphFetchStatus,
-};
-pub use noninteractive_auth::{
-    auth_response_error_message, current_user_from_cookie, parse_current_user_response,
-    probe_current_user_from_cookie, AuthenticatedRuntimeSession, CookieSessionProbe,
-    NonInteractiveAuthError,
-};
-pub use note_export::{
+pub use social::{
     prepare_note_export, run_note_export, NoteExportActions, NoteExportItemInput,
     NoteExportItemState, NoteExportItemStatus, NoteExportProgress, NoteExportResult,
     NoteExportStartInput, NoteExportState, NoteExportStatus, VrchatNoteExportActions,
     NOTE_EXPORT_MAX_ITEMS,
 };
-pub use notification_actions::{
+pub use social::{
+    refresh_player_moderations, update_player_moderation, ModerationSyncDeps,
+    ModerationSyncMutationInput, ModerationSyncMutationOutput, ModerationSyncRefreshInput,
+    ModerationSyncRefreshOutput, RemoteModerationRow,
+};
+pub use social::{
+    MutualGraphFetchCancelInput, MutualGraphFetchRuntime, MutualGraphFetchStartInput,
+    MutualGraphFetchStatus,
+};
+pub use system::DatabaseUpgradeRuntime;
+pub use system::{
+    database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
+    DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
+    DatabaseUpgradeStage,
+};
+pub use system::{
+    evaluate_instance_action_gates, join_instance_launch, InstanceActionGateTarget,
+    InstanceActionGates, InstanceActionGatesBatchInput, InstanceActionGatesBatchOutput,
+    InstanceLaunchApiFuture, InstanceLaunchDeps, InstanceLaunchHttpClient, InstanceLaunchInput,
+    InstanceLaunchMode, InstanceLaunchOutcome, InstanceLaunchPipe,
+};
+pub use system::{
     mark_notifications_seen_batch, NotificationMarkSeenActions, NotificationMarkSeenBatchInput,
     NotificationMarkSeenBatchItem, NotificationMarkSeenBatchResult, NotificationMarkSeenItemResult,
     NotificationMarkSeenItemState, NotificationMarkSeenLocation, VrchatNotificationMarkSeenActions,
     NOTIFICATION_MARK_SEEN_MAX_ITEMS,
 };
-pub use prints::{
-    cleanup::{
-        is_print_created_content_refresh, run_print_auto_cleanup, PrintAutoCleanupEvent,
-        PrintCleanupDeps, PrintCleanupQueue, PrintCleanupQueueSink, PrintCleanupTrigger,
-    },
-    favorites::{favorite_state, set_print_favorite, CleanupWarningKind, PrintFavoriteState},
+pub use system::{
+    run_avatar_content_tags_batch, run_group_leave_batch, run_group_visibility_batch,
+    AvatarContentTagsBatchInput, BatchMutationActions, BatchMutationItemResult,
+    BatchMutationItemState, BatchMutationResult, GroupLeaveBatchInput, GroupVisibility,
+    GroupVisibilityBatchInput, VrchatBatchMutationActions, BATCH_MUTATION_MAX_ITEMS,
 };
-pub use profile_backup::{
+pub use system::{
+    AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
+    AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
+    AppUpdateTargetResolver,
+};
+pub use system::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,
     ProfileBackupState, ProfileBackupStatus, ProfileRestoreDataDisposition, ProfileRestoreFailure,
@@ -152,23 +145,6 @@ pub use profile_backup::{
     ProfileRestoreProgressPhase, ProfileRestoreResult, ProfileRestoreResultStatus,
     ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState, ProfileRestoreValidation,
     ProfileRestoreValidationOutcome,
-};
-pub use share_collection::{
-    get_or_create_share_owner_token, is_valid_share_owner_token, prepare_share_collection_payload,
-    share_collection_create, share_collection_owner_hint, PreparedShareCollection,
-    ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
-    ShareCollectionSkippedWorld, SHARE_COLLECTION_MAX_WORLDS,
-};
-pub use shared_collection_import::{
-    prepare_shared_collection_import, run_shared_collection_import, PreparedSharedCollectionImport,
-    SharedCollectionImportActions, SharedCollectionImportProgress, SharedCollectionImportResult,
-    SharedCollectionImportStartInput, SharedCollectionImportState, SharedCollectionImportStatus,
-    VrchatSharedCollectionImportActions, SHARED_COLLECTION_IMPORT_MAX_WORLDS,
-};
-pub use social_mutation::{
-    accept_friend_request, cancel_friend_request, send_friend_request, unfriend,
-    SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendMutationStatus,
-    SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
 };
 pub use vrcx_0_application_core::validate_config_writes;
 pub use vrcx_0_application_core::OverlayActivityInputSink;
