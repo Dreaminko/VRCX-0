@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
+use vrcx_0_i18n::{render_overlay_message, OverlayMessage};
 
 use super::definitions::{
     default_activity_rules, default_rule, disabled_activity_rules, has_persisted_filter_rules,
@@ -233,13 +234,41 @@ pub struct OverlayActivityCandidate {
     pub payload: Value,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct OverlayActivityText {
-    pub key: String,
-    pub fallback: String,
-    #[serde(default)]
-    pub params: Value,
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, specta::Type)]
+#[serde(tag = "kind", content = "value", rename_all = "camelCase")]
+pub enum OverlayActivityText {
+    Message(OverlayMessage),
+    Literal(String),
+}
+
+impl Default for OverlayActivityText {
+    fn default() -> Self {
+        Self::Literal(String::new())
+    }
+}
+
+impl OverlayActivityText {
+    pub fn message(message: OverlayMessage) -> Self {
+        Self::Message(message)
+    }
+
+    pub fn literal(value: impl Into<String>) -> Self {
+        Self::Literal(value.into())
+    }
+
+    pub fn as_message(&self) -> Option<&OverlayMessage> {
+        match self {
+            Self::Message(message) => Some(message),
+            Self::Literal(_) => None,
+        }
+    }
+
+    pub fn source_text(&self) -> String {
+        match self {
+            Self::Message(message) => render_overlay_message("en", message),
+            Self::Literal(value) => value.trim().to_string(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, specta::Type)]

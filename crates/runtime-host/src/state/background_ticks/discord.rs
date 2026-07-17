@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::HashMap, sync::Arc};
 
 use serde_json::json;
 use vrcx_0_application::{
@@ -10,7 +7,7 @@ use vrcx_0_application::{
     DiscordPresenceLabels,
 };
 use vrcx_0_host::discord_rpc::DiscordRpc;
-use vrcx_0_i18n::{parse_catalog, Catalog};
+use vrcx_0_i18n::{text, DiscordPresenceKey};
 use vrcx_0_persistence::config::ConfigRepository;
 
 use super::super::{
@@ -20,42 +17,29 @@ use super::super::{
 use super::BackgroundTickContext;
 
 const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
-const DISCORD_PRESENCE_JSON: &str = include_str!("../discord_presence.json");
-
-fn discord_presence_catalog() -> &'static Catalog {
-    static CATALOG: OnceLock<Catalog> = OnceLock::new();
-    CATALOG.get_or_init(|| {
-        parse_catalog(
-            DISCORD_PRESENCE_JSON,
-            "Discord presence localization catalog",
-        )
-    })
-}
-
 fn discord_presence_labels(config: &ConfigRepository) -> DiscordPresenceLabels {
     let language = config
         .get_string(APP_LANGUAGE_CONFIG_KEY, "en")
         .unwrap_or_else(|_| "en".into());
-    let catalog = discord_presence_catalog();
-    let text = |key: &str, fallback: &str| catalog.text(&language, key, fallback);
+    let localized = |key| text(&language, key);
     DiscordPresenceLabels {
-        access_public: text("discord.access.public", "Public"),
-        access_invite_plus: text("discord.access.invite_plus", "Invite+"),
-        access_invite: text("discord.access.invite", "Invite"),
-        access_friends: text("discord.access.friends", "Friends"),
-        access_friends_plus: text("discord.access.friends_plus", "Friends+"),
-        access_group: text("discord.access.group", "Group"),
-        group_access_public: text("discord.access.group_public", "Public"),
-        group_access_plus: text("discord.access.group_plus", "Plus"),
-        group_access_members: text("discord.access.group_members", "Members"),
-        status_active: text("discord.status.active", "Active"),
-        status_join_me: text("discord.status.join_me", "Join Me"),
-        status_ask_me: text("discord.status.ask_me", "Ask Me"),
-        status_busy: text("discord.status.busy", "Do Not Disturb"),
-        status_offline: text("discord.status.offline", "Offline"),
-        platform_desktop: text("discord.platform.desktop", "Desktop"),
-        platform_vr: text("discord.platform.vr", "VR"),
-        private_world: text("discord.private_world", "Private World"),
+        access_public: localized(DiscordPresenceKey::DiscordAccessPublic),
+        access_invite_plus: localized(DiscordPresenceKey::DiscordAccessInvitePlus),
+        access_invite: localized(DiscordPresenceKey::DiscordAccessInvite),
+        access_friends: localized(DiscordPresenceKey::DiscordAccessFriends),
+        access_friends_plus: localized(DiscordPresenceKey::DiscordAccessFriendsPlus),
+        access_group: localized(DiscordPresenceKey::DiscordAccessGroup),
+        group_access_public: localized(DiscordPresenceKey::DiscordAccessGroupPublic),
+        group_access_plus: localized(DiscordPresenceKey::DiscordAccessGroupPlus),
+        group_access_members: localized(DiscordPresenceKey::DiscordAccessGroupMembers),
+        status_active: localized(DiscordPresenceKey::DiscordStatusActive),
+        status_join_me: localized(DiscordPresenceKey::DiscordStatusJoinMe),
+        status_ask_me: localized(DiscordPresenceKey::DiscordStatusAskMe),
+        status_busy: localized(DiscordPresenceKey::DiscordStatusBusy),
+        status_offline: localized(DiscordPresenceKey::DiscordStatusOffline),
+        platform_desktop: localized(DiscordPresenceKey::DiscordPlatformDesktop),
+        platform_vr: localized(DiscordPresenceKey::DiscordPlatformVr),
+        private_world: localized(DiscordPresenceKey::DiscordPrivateWorld),
     }
 }
 

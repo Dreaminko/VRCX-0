@@ -8702,6 +8702,7 @@ dependencies = [
  "tracing",
  "url",
  "vrcx-0-core",
+ "vrcx-0-i18n",
  "vrcx-0-integrations",
  "vrcx-0-media",
  "vrcx-0-persistence",
@@ -8796,6 +8797,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "specta",
 ]
 
 [[package]]

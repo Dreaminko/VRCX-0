@@ -9,6 +9,7 @@ use crate::realtime::{
     RealtimeNotificationUpsert,
 };
 use crate::GameLogSideEffect;
+use vrcx_0_i18n::{OverlayMessage, OverlayMessageKey};
 use vrcx_0_persistence::game_log::{
     GameLogEventEntry, GameLogExternalEntry, GameLogJoinLeaveEntry, GameLogWriteBatch,
 };
@@ -37,6 +38,27 @@ impl TestOverlayActivitySink {
     fn take_deliveries(&self) -> Vec<OverlayActivityDelivery> {
         std::mem::take(&mut *self.deliveries.lock().unwrap())
     }
+}
+
+#[test]
+fn activity_text_serializes_as_the_typed_tagged_contract() {
+    assert_eq!(
+        serde_json::to_value(OverlayActivityText::message(
+            OverlayMessage::notifications_gps("Test World")
+        ))
+        .expect("serialize message text"),
+        json!({
+            "kind": "message",
+            "value": {
+                "key": "notifications.gps",
+                "params": { "location": "Test World" }
+            }
+        })
+    );
+    assert_eq!(
+        serde_json::to_value(OverlayActivityText::default()).expect("serialize default text"),
+        json!({ "kind": "literal", "value": "" })
+    );
 }
 
 fn recent_candidate(activity_type: &str, user_id: &str) -> OverlayActivityCandidate {
@@ -108,8 +130,19 @@ fn trust_level_friend_projection_preserves_new_level_in_overlay_content() {
     let entries = runtime.snapshot().entries;
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].activity_type, "TrustLevel");
-    assert_eq!(entries[0].content.body.params["trustLevel"], "Trusted User");
-    assert_eq!(entries[0].content.body.fallback, "trust level Trusted User");
+    assert_eq!(
+        entries[0]
+            .content
+            .body
+            .as_message()
+            .expect("typed trust level message")
+            .params()["trustLevel"],
+        "Trusted User"
+    );
+    assert_eq!(
+        entries[0].content.body.source_text(),
+        "Trust level is now Trusted User"
+    );
 }
 
 #[test]
@@ -292,12 +325,17 @@ fn notification_projection_keeps_unresolved_direct_actor_with_user_id_title() {
 
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].actor_user_id, "usr_sender");
-    assert!(entries[0].content.title.key.is_empty());
-    assert_eq!(entries[0].content.title.fallback, "usr_sender");
+    assert_eq!(
+        entries[0].content.title,
+        OverlayActivityText::literal("usr_sender")
+    );
     let deliveries = sink.take_deliveries();
     assert_eq!(deliveries.len(), 1);
     assert!(deliveries[0].webhook);
-    assert_eq!(deliveries[0].entry.content.title.fallback, "usr_sender");
+    assert_eq!(
+        deliveries[0].entry.content.title.source_text(),
+        "usr_sender"
+    );
 }
 
 #[test]
@@ -496,10 +534,15 @@ fn queue_projection_only_ingests_ready_events() {
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].activity_type, "group.queueReady");
     assert_eq!(
-        entries[0].content.title.key,
-        "notifications.group_queue_ready_title"
+        entries[0]
+            .content
+            .title
+            .as_message()
+            .expect("typed queue-ready title")
+            .key(),
+        OverlayMessageKey::NotificationsGroupQueueReadyTitle
     );
-    assert_eq!(entries[0].content.summary, "Group queue ready");
+    assert_eq!(entries[0].content.summary, "Instance Queue Ready");
 }
 
 #[test]
@@ -622,7 +665,7 @@ fn game_log_event_and_external_batches_ingest_system_activity() {
             .collect::<Vec<_>>(),
         vec!["Event", "External"]
     );
-    assert_eq!(entries[0].content.body.fallback, "Something happened");
+    assert_eq!(entries[0].content.body.source_text(), "Something happened");
     assert_eq!(entries[1].actor_display_name, "External User");
 }
 

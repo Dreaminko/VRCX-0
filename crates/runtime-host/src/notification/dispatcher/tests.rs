@@ -6,8 +6,9 @@ use std::{
 use serde_json::json;
 use vrcx_0_application::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
-    OverlayActivityDelivery, OverlayActivityEntry,
+    OverlayActivityDelivery, OverlayActivityEntry, OverlayActivityText,
 };
+use vrcx_0_i18n::OverlayMessage;
 use vrcx_0_persistence::{config::ConfigRepository, memos::memo_save_user, DatabaseService};
 
 use crate::notification::user_image::UserImageCache;
@@ -113,12 +114,9 @@ fn notification_tts_text_omits_instance_id_even_when_display_shows_it() {
     let (_dir, db) = test_db("tts-omits-instance-id");
     let mut delivery = delivery();
     delivery.entry.content.location = "wrld_named:12345~region(use)".into();
-    delivery.entry.content.title = text("", "Traveler", json!({}));
-    delivery.entry.content.body = text(
-        "notifications.gps",
-        "is in Named World Public",
-        json!({ "location": "Named World Public" }),
-    );
+    delivery.entry.content.title = OverlayActivityText::literal("Traveler");
+    delivery.entry.content.body =
+        OverlayActivityText::message(OverlayMessage::notifications_gps("Named World Public"));
     let preferences = NotificationDeliveryPreferences {
         show_instance_id_in_location: true,
         ..NotificationDeliveryPreferences::default()
@@ -170,12 +168,10 @@ fn render_delivery_localizes_location_access_labels() {
     delivery.entry.content.location = "wrld_named:123~group(grp_a)~groupAccessType(plus)".into();
     delivery.entry.content.world_name = "Group World".into();
     delivery.entry.content.group_name = "Group Name".into();
-    delivery.entry.content.title = text("", "Traveler", json!({}));
-    delivery.entry.content.body = text(
-        "notifications.gps",
-        "is in Group World groupPlus(Group Name)",
-        json!({ "location": "Group World groupPlus(Group Name)" }),
-    );
+    delivery.entry.content.title = OverlayActivityText::literal("Traveler");
+    delivery.entry.content.body = OverlayActivityText::message(OverlayMessage::notifications_gps(
+        "Group World groupPlus(Group Name)",
+    ));
 
     let render = render_delivery(&delivery, OverlayLocale::ZhCn, false);
 
@@ -193,12 +189,10 @@ fn render_delivery_appends_instance_id_when_enabled() {
     delivery.entry.content.location = "wrld_named:123~group(grp_a)~groupAccessType(plus)".into();
     delivery.entry.content.world_name = "Group World".into();
     delivery.entry.content.group_name = "Group Name".into();
-    delivery.entry.content.title = text("", "Traveler", json!({}));
-    delivery.entry.content.body = text(
-        "notifications.gps",
-        "is in Group World groupPlus(Group Name)",
-        json!({ "location": "Group World groupPlus(Group Name)" }),
-    );
+    delivery.entry.content.title = OverlayActivityText::literal("Traveler");
+    delivery.entry.content.body = OverlayActivityText::message(OverlayMessage::notifications_gps(
+        "Group World groupPlus(Group Name)",
+    ));
 
     let render = render_delivery(&delivery, OverlayLocale::ZhCn, true);
 
@@ -217,41 +211,29 @@ fn render_delivery_localizes_generic_desktop_activity_keys() {
     let cases = [
         (
             "Bio",
-            text("", "Traveler", json!({})),
-            text("notifications.bio", "__missing_bio__", json!({})),
+            OverlayActivityText::literal("Traveler"),
+            OverlayActivityText::message(OverlayMessage::notifications_bio()),
             "Traveler",
             "updated bio",
         ),
         (
             "Event",
-            text(
-                "notifications.event_title",
-                "__missing_event_title__",
-                json!({}),
-            ),
-            text("", "General event message", json!({})),
+            OverlayActivityText::message(OverlayMessage::notifications_event_title()),
+            OverlayActivityText::literal("General event message"),
             "Event",
             "General event message",
         ),
         (
             "External",
-            text(
-                "notifications.external_title",
-                "__missing_external_title__",
-                json!({}),
-            ),
-            text("", "External app message", json!({})),
+            OverlayActivityText::message(OverlayMessage::notifications_external_title()),
+            OverlayActivityText::literal("External app message"),
             "External App",
             "External app message",
         ),
         (
             "VideoPlay",
-            text(
-                "notifications.video_play_title",
-                "__missing_video_play_title__",
-                json!({}),
-            ),
-            text("", "Desktop Video", json!({})),
+            OverlayActivityText::message(OverlayMessage::notifications_video_play_title()),
+            OverlayActivityText::literal("Desktop Video"),
             "Video Play",
             "Desktop Video",
         ),
@@ -480,16 +462,4 @@ async fn resolve_delivery_actor_image_falls_back_to_none_when_uncached_and_endpo
     .await;
 
     assert_eq!(image_url, None);
-}
-
-fn text(
-    key: &str,
-    fallback: &str,
-    params: serde_json::Value,
-) -> vrcx_0_application::OverlayActivityText {
-    vrcx_0_application::OverlayActivityText {
-        key: key.into(),
-        fallback: fallback.into(),
-        params,
-    }
 }

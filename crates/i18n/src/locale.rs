@@ -1,4 +1,4 @@
-use serde_json::Value;
+use std::collections::BTreeMap;
 
 pub fn resolve_locale<I, S>(language: &str, available_locales: I, fallback_locale: &str) -> String
 where
@@ -55,10 +55,7 @@ where
         .unwrap_or_else(|| fallback.to_string())
 }
 
-pub fn interpolate(template: &str, params: &Value) -> String {
-    let Some(params) = params.as_object() else {
-        return template.to_string();
-    };
+pub fn interpolate(template: &str, params: &BTreeMap<String, String>) -> String {
     let chars = template.chars().collect::<Vec<_>>();
     let mut output = String::with_capacity(template.len());
     let mut index = 0;
@@ -93,11 +90,6 @@ pub fn collapse_whitespace(value: &str) -> String {
     value.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-fn param_value(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(value)) => value.trim().to_string(),
-        Some(Value::Bool(value)) => value.to_string(),
-        Some(Value::Number(value)) => value.to_string(),
-        _ => String::new(),
-    }
+fn param_value(value: Option<&String>) -> String {
+    value.map_or_else(String::new, |value| value.trim().to_string())
 }

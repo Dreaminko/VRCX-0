@@ -368,16 +368,8 @@ fn hmd_entry(
         actor_user_id: "usr_actor".to_string(),
         actor_display_name: source_id.to_string(),
         content: vrcx_0_application::OverlayActivityContent {
-            title: vrcx_0_application::OverlayActivityText {
-                key: String::new(),
-                fallback: source_id.to_string(),
-                params: serde_json::json!({}),
-            },
-            body: vrcx_0_application::OverlayActivityText {
-                key: String::new(),
-                fallback: activity_type.to_string(),
-                params: serde_json::json!({}),
-            },
+            title: vrcx_0_application::OverlayActivityText::literal(source_id),
+            body: vrcx_0_application::OverlayActivityText::literal(activity_type),
             location: location.to_string(),
             ..vrcx_0_application::OverlayActivityContent::default()
         },

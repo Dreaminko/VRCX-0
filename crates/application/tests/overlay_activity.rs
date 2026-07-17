@@ -4,9 +4,10 @@ use vrcx_0_application::{
     overlay_activity_type_definitions, OverlayActivityCandidate, OverlayActivityCategory,
     OverlayActivityDelivery, OverlayActivityFavoriteGroupKeys, OverlayActivityFilters,
     OverlayActivityRule, OverlayActivityRuntime, OverlayActivityScope, OverlayActivitySink,
-    OverlayActivitySnapshot, OverlayActivitySurface, OverlayActivityTypeDefinition,
-    OverlayFavoriteGroups,
+    OverlayActivitySnapshot, OverlayActivitySurface, OverlayActivityText,
+    OverlayActivityTypeDefinition, OverlayFavoriteGroups,
 };
+use vrcx_0_i18n::OverlayMessageKey;
 
 #[test]
 fn activity_type_definitions_are_exported_from_backend() {
@@ -398,10 +399,13 @@ fn activity_content_is_built_from_feed_payload() {
     let entry = runtime.ingest_candidate(row).unwrap();
 
     assert_eq!(entry.content.icon, "location");
-    assert_eq!(entry.content.title.fallback, "Map User");
-    assert_eq!(entry.content.body.key, "notifications.gps");
+    assert_eq!(entry.content.title.source_text(), "Map User");
     assert_eq!(
-        entry.content.body.fallback,
+        entry.content.body.as_message().expect("GPS message").key(),
+        OverlayMessageKey::NotificationsGps
+    );
+    assert_eq!(
+        entry.content.body.source_text(),
         "is in Great World public(Group A)"
     );
     assert_eq!(
@@ -434,14 +438,23 @@ fn all_activity_types_build_desktop_safe_content() {
             "{} should build non-empty desktop summary",
             definition.key
         );
-        assert_desktop_text_key(&definition.key, "title", &entry.content.title.key);
-        assert_desktop_text_key(&definition.key, "body", &entry.content.body.key);
+        assert_desktop_text_key(&definition.key, "title", &entry.content.title);
+        assert_desktop_text_key(&definition.key, "body", &entry.content.body);
 
         match definition.key.as_str() {
-            "Bio" => assert_eq!(entry.content.body.key, "notifications.bio"),
-            "Event" => assert_eq!(entry.content.title.key, "notifications.event_title"),
-            "External" => assert_eq!(entry.content.title.key, "notifications.external_title"),
-            "VideoPlay" => assert_eq!(entry.content.title.key, "notifications.video_play_title"),
+            "Bio" => assert_message_key(&entry.content.body, OverlayMessageKey::NotificationsBio),
+            "Event" => assert_message_key(
+                &entry.content.title,
+                OverlayMessageKey::NotificationsEventTitle,
+            ),
+            "External" => assert_message_key(
+                &entry.content.title,
+                OverlayMessageKey::NotificationsExternalTitle,
+            ),
+            "VideoPlay" => assert_message_key(
+                &entry.content.title,
+                OverlayMessageKey::NotificationsVideoPlayTitle,
+            ),
             _ => {}
         }
     }
@@ -476,14 +489,13 @@ fn notification_content_uses_invite_details() {
     let entry = runtime.ingest_candidate(row).unwrap();
 
     assert_eq!(entry.content.icon, "invite");
-    assert_eq!(entry.content.title.fallback, "Sender");
-    assert_eq!(entry.content.body.key, "notifications.invite");
+    assert_eq!(entry.content.title.source_text(), "Sender");
+    let body = entry.content.body.as_message().expect("invite message");
+    assert_eq!(body.key(), OverlayMessageKey::NotificationsInvite);
+    assert_eq!(body.params()["location"], "Invite World");
+    assert_eq!(body.params()["message"], "come over");
     assert_eq!(
-        entry.content.body.params,
-        json!({ "location": "Invite World", "message": "come over" })
-    );
-    assert_eq!(
-        entry.content.body.fallback,
+        entry.content.body.source_text(),
         "has invited you to Invite World come over"
     );
     assert_eq!(entry.content.detail, "come over");
@@ -550,8 +562,16 @@ fn location_ids_are_not_shown_as_names() {
 
     let entry = runtime.ingest_candidate(row).unwrap();
 
-    assert_eq!(entry.content.body.fallback, "is in group");
-    assert_eq!(entry.content.body.params["location"], json!("group"));
+    assert_eq!(entry.content.body.source_text(), "is in group");
+    assert_eq!(
+        entry
+            .content
+            .body
+            .as_message()
+            .expect("GPS message")
+            .params()["location"],
+        "group"
+    );
     assert_eq!(entry.content.location, "wrld_1234:5678~group(grp_9999)");
 }
 
@@ -567,8 +587,16 @@ fn private_location_aligns_with_original_display() {
 
     let entry = runtime.ingest_candidate(row).unwrap();
 
-    assert_eq!(entry.content.body.fallback, "is in Private");
-    assert_eq!(entry.content.body.params["location"], json!("Private"));
+    assert_eq!(entry.content.body.source_text(), "is in Private");
+    assert_eq!(
+        entry
+            .content
+            .body
+            .as_message()
+            .expect("GPS message")
+            .params()["location"],
+        "Private"
+    );
 }
 
 #[derive(Clone, Default)]
@@ -660,9 +688,20 @@ fn representative_payload(activity_type: &str) -> Value {
     })
 }
 
-fn assert_desktop_text_key(activity_type: &str, field: &str, key: &str) {
-    assert!(
-        key.is_empty() || key.starts_with("notifications."),
-        "{activity_type} {field} should use a native notification key, got {key}"
+fn assert_desktop_text_key(activity_type: &str, field: &str, text: &OverlayActivityText) {
+    if let Some(message) = text.as_message() {
+        let key = serde_json::to_value(message.key()).expect("serialize overlay message key");
+        assert!(
+            key.as_str()
+                .is_some_and(|value| value.starts_with("notifications.")),
+            "{activity_type} {field} should use a native notification key, got {key}"
+        );
+    }
+}
+
+fn assert_message_key(text: &OverlayActivityText, expected: OverlayMessageKey) {
+    assert_eq!(
+        text.as_message().expect("typed overlay message").key(),
+        expected
     );
 }

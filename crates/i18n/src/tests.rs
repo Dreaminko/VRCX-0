@@ -1,11 +1,8 @@
+use std::collections::BTreeMap;
+
 use serde::Deserialize;
-use serde_json::json;
 
 use super::*;
-
-const LANGUAGE_CODES: &[&str] = &[
-    "cs", "de", "en", "es", "fr", "ja", "ko", "pt", "ru", "zh-CN", "zh-TW",
-];
 
 #[derive(Deserialize)]
 struct LocaleCase {
@@ -19,10 +16,7 @@ fn normalization_matches_shared_locale_cases() {
         "../../../src/localization/locale-cases.json"
     ))
     .expect("locale cases");
-    let available = LANGUAGE_CODES
-        .iter()
-        .map(|code| (*code).to_string())
-        .collect::<Vec<_>>();
+    let available = language_codes();
 
     for locale_case in cases {
         assert_eq!(
@@ -34,34 +28,79 @@ fn normalization_matches_shared_locale_cases() {
     }
 }
 
-#[test]
-fn catalog_text_uses_locale_then_fallback_then_call_site_fallback() {
-    let catalog = parse_catalog(
-        r#"{
-                "version": 1,
-                "fallbackLocale": "en",
-                "locales": {
-                    "en": { "hello": "Hello", "missingInJa": "Fallback" },
-                    "ja": { "hello": "こんにちは" }
-                }
-            }"#,
-        "test catalog",
-    );
+fn language_codes() -> Vec<String> {
+    serde_json::from_str(include_str!("../../../src/localization/languageCodes.json"))
+        .expect("language codes")
+}
 
-    assert_eq!(catalog.text("ja", "hello", "Hi"), "こんにちは");
-    assert_eq!(catalog.text("ja", "missingInJa", "Hi"), "Fallback");
-    assert_eq!(catalog.text("ja", "absent", "Hi"), "Hi");
+#[test]
+fn typed_catalog_text_uses_locale_then_english_fallback() {
+    assert_eq!(
+        text("ja", OverlayMessageKey::NotificationsHasJoined),
+        "が参加しました"
+    );
+    assert_eq!(
+        text("fr", OverlayMessageKey::NotificationsHasJoined),
+        "has joined"
+    );
 }
 
 #[test]
 fn interpolation_replaces_scalar_params_and_collapses_whitespace() {
-    let output = interpolate(
-        "{name} has invited you to {location} {message}",
-        &json!({ "name": " Ada ", "location": "Test World", "message": "" }),
-    );
+    let params = BTreeMap::from([
+        ("name".to_string(), " Ada ".to_string()),
+        ("location".to_string(), "Test World".to_string()),
+        ("message".to_string(), String::new()),
+    ]);
+    let output = interpolate("{name} has invited you to {location} {message}", &params);
 
     assert_eq!(
         collapse_whitespace(&output),
         "Ada has invited you to Test World"
     );
+}
+
+#[test]
+fn generated_overlay_constructor_keeps_typed_key_and_params() {
+    let message = OverlayMessage::notifications_gps("Test World");
+
+    assert_eq!(message.key(), OverlayMessageKey::NotificationsGps);
+    assert_eq!(
+        message.params().get("location").map(String::as_str),
+        Some("Test World")
+    );
+}
+
+#[test]
+fn typed_keys_serialize_to_stable_strings() {
+    assert_eq!(
+        serde_json::to_value(OverlayMessageKey::NotificationsGps).expect("serialize overlay key"),
+        serde_json::json!("notifications.gps")
+    );
+    assert_eq!(
+        serde_json::to_value(DiscordPresenceKey::DiscordStatusJoinMe)
+            .expect("serialize Discord key"),
+        serde_json::json!("discord.status.join_me")
+    );
+    assert_eq!(
+        serde_json::to_value(ShellKey::NativeShellTrayOpen).expect("serialize shell key"),
+        serde_json::json!("nativeShell.tray.open")
+    );
+}
+
+#[test]
+fn generated_key_sets_resolve_under_their_locale_policies() {
+    for locale in ["en", "zh-CN", "zh-TW", "ja", "ko"] {
+        for key in OverlayMessageKey::ALL {
+            assert!(!text(locale, *key).is_empty(), "{locale} {key:?}");
+        }
+    }
+    for locale in language_codes() {
+        for key in DiscordPresenceKey::ALL {
+            assert!(!text(&locale, *key).is_empty(), "{locale} {key:?}");
+        }
+        for key in ShellKey::ALL {
+            assert!(!text(&locale, *key).is_empty(), "{locale} {key:?}");
+        }
+    }
 }

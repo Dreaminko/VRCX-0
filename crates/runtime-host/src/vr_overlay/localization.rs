@@ -1,47 +1,58 @@
-use std::{borrow::Cow, sync::OnceLock};
+use std::{borrow::Cow, collections::BTreeMap};
 
-use serde_json::{json, Value};
 use vrcx_0_application::OverlayActivityText;
 use vrcx_0_core::location::{
     access_type_label, format_display_location_with_labels,
     format_display_location_with_labels_and_instance, parse_location, DisplayLocationLabels,
     ParsedLocation,
 };
-use vrcx_0_i18n::{collapse_whitespace, interpolate, parse_catalog, Catalog};
+use vrcx_0_i18n::{
+    collapse_whitespace, interpolate, resolve_locale, text as native_text, OverlayMessageKey,
+};
 
-const OVERLAY_NOTIFICATIONS_JSON: &str = include_str!("localization/overlay_notifications.json");
-
-const ACCESS_LABEL_KEYS: [&str; 8] = [
-    "overlay.access.public",
-    "overlay.access.invite",
-    "overlay.access.invite_plus",
-    "overlay.access.friends",
-    "overlay.access.friends_plus",
-    "overlay.access.group",
-    "overlay.access.group_public",
-    "overlay.access.group_plus",
+const ACCESS_LABEL_KEYS: [OverlayMessageKey; 8] = [
+    OverlayMessageKey::OverlayAccessPublic,
+    OverlayMessageKey::OverlayAccessInvite,
+    OverlayMessageKey::OverlayAccessInvitePlus,
+    OverlayMessageKey::OverlayAccessFriends,
+    OverlayMessageKey::OverlayAccessFriendsPlus,
+    OverlayMessageKey::OverlayAccessGroup,
+    OverlayMessageKey::OverlayAccessGroupPublic,
+    OverlayMessageKey::OverlayAccessGroupPlus,
 ];
 
-const DISCORD_TITLE_KEYS: &[(&str, &str)] = &[
-    ("invite", "overlay.discord.title.invite"),
-    ("requestInvite", "overlay.discord.title.request_invite"),
-    ("inviteResponse", "overlay.discord.title.invite_response"),
+const DISCORD_TITLE_KEYS: &[(&str, OverlayMessageKey)] = &[
+    ("invite", OverlayMessageKey::OverlayDiscordTitleInvite),
+    (
+        "requestInvite",
+        OverlayMessageKey::OverlayDiscordTitleRequestInvite,
+    ),
+    (
+        "inviteResponse",
+        OverlayMessageKey::OverlayDiscordTitleInviteResponse,
+    ),
     (
         "requestInviteResponse",
-        "overlay.discord.title.request_invite_response",
+        OverlayMessageKey::OverlayDiscordTitleRequestInviteResponse,
     ),
-    ("GPS", "overlay.discord.title.gps"),
-    ("Status", "overlay.discord.title.status"),
-    ("AvatarChange", "overlay.discord.title.avatar_change"),
-    ("Online", "overlay.discord.title.online"),
-    ("Offline", "overlay.discord.title.offline"),
+    ("GPS", OverlayMessageKey::OverlayDiscordTitleGps),
+    ("Status", OverlayMessageKey::OverlayDiscordTitleStatus),
+    (
+        "AvatarChange",
+        OverlayMessageKey::OverlayDiscordTitleAvatarChange,
+    ),
+    ("Online", OverlayMessageKey::OverlayDiscordTitleOnline),
+    ("Offline", OverlayMessageKey::OverlayDiscordTitleOffline),
 ];
 
-const STATUS_LABEL_KEYS: &[(&[&str], &str)] = &[
-    (&["active"], "overlay.status.active"),
-    (&["join me", "joinme"], "overlay.status.join_me"),
-    (&["ask me", "askme"], "overlay.status.ask_me"),
-    (&["busy"], "overlay.status.busy"),
+const STATUS_LABEL_KEYS: &[(&[&str], OverlayMessageKey)] = &[
+    (&["active"], OverlayMessageKey::OverlayStatusActive),
+    (
+        &["join me", "joinme"],
+        OverlayMessageKey::OverlayStatusJoinMe,
+    ),
+    (&["ask me", "askme"], OverlayMessageKey::OverlayStatusAskMe),
+    (&["busy"], OverlayMessageKey::OverlayStatusBusy),
 ];
 const EN_LOCALE: &str = "en";
 
@@ -57,7 +68,7 @@ pub(crate) enum OverlayLocale {
 
 impl OverlayLocale {
     pub(crate) fn from_config(value: &str) -> Self {
-        match catalog().resolve_locale(value).as_str() {
+        match resolve_locale(value, ["en", "zh-CN", "zh-TW", "ja", "ko"], EN_LOCALE).as_str() {
             "zh-CN" => Self::ZhCn,
             "zh-TW" => Self::ZhTw,
             "ja" => Self::Ja,
@@ -95,15 +106,12 @@ impl OverlayLocalizer {
     }
 
     pub(crate) fn text(&self, text: &OverlayActivityText) -> String {
-        let key = text.key.trim();
-        let fallback = text.fallback.trim();
-        if key.is_empty() {
-            return collapse_whitespace(fallback);
+        match text {
+            OverlayActivityText::Message(message) => {
+                self.message_text(message.key(), message.params())
+            }
+            OverlayActivityText::Literal(value) => collapse_whitespace(value),
         }
-
-        let template = catalog().text(self.locale.as_str(), key, fallback);
-        let params = self.localized_status_params(&text.params);
-        collapse_whitespace(&interpolate(&template, params.as_ref()))
     }
 
     pub(crate) fn activity_text(
@@ -113,22 +121,22 @@ impl OverlayLocalizer {
         world_name: &str,
         group_name: &str,
     ) -> String {
-        let mut localized = text.clone();
-        let Some(params) = localized.params.as_object_mut() else {
+        let Some(message) = text.as_message() else {
             return self.text(text);
         };
-        let should_replace = params
+        let should_replace = message
+            .params()
             .get("location")
-            .and_then(Value::as_str)
             .is_some_and(|value| should_localize_location_param(value, location));
         if !should_replace {
             return self.text(text);
         }
+        let mut params = message.params().clone();
         let display_location = self.display_location(location, world_name, group_name);
         if !display_location.is_empty() {
-            params.insert("location".to_string(), Value::String(display_location));
+            params.insert("location".to_string(), display_location);
         }
-        self.text(&localized)
+        self.message_text(message.key(), &params)
     }
 
     pub(crate) fn display_location(
@@ -138,7 +146,7 @@ impl OverlayLocalizer {
         group_name: &str,
     ) -> String {
         let parsed = parse_location(location);
-        let labels = self.access_labels(AccessLabelCase::Lower);
+        let labels = self.access_labels();
         let labels = labels.as_display();
         format_display_location_with_labels_and_instance(
             &parsed,
@@ -156,50 +164,50 @@ impl OverlayLocalizer {
         group_name: &str,
     ) -> String {
         let parsed = parse_location(location);
-        let labels = self.access_labels(AccessLabelCase::Title);
+        let labels = self.access_labels();
         let labels = labels.as_display();
         format_display_location_with_labels(&parsed, world_name, group_name, &labels)
     }
 
     pub(crate) fn friends_panel_strings(&self) -> vrcx_0_vr_overlay::FriendPanelStrings {
         vrcx_0_vr_overlay::FriendPanelStrings {
-            title: self.label("overlay.friends_panel.title", "Favorite Friends"),
-            all_label: self.label("overlay.friends_panel.all", "All"),
-            empty_label: self.label("overlay.friends_panel.empty", "No favorite friends online"),
-            note_label: self.label("overlay.friends_panel.note", "Note"),
-            memo_label: self.label("overlay.friends_panel.memo", "Local Note"),
-            open_label: self.label("overlay.friends_panel.open", "Open"),
-            request_label: self.label("overlay.friends_panel.request", "Request"),
-            invite_label: self.label("overlay.friends_panel.invite", "Invite"),
+            title: self.label(OverlayMessageKey::OverlayFriendsPanelTitle),
+            all_label: self.label(OverlayMessageKey::OverlayFriendsPanelAll),
+            empty_label: self.label(OverlayMessageKey::OverlayFriendsPanelEmpty),
+            note_label: self.label(OverlayMessageKey::OverlayFriendsPanelNote),
+            memo_label: self.label(OverlayMessageKey::OverlayFriendsPanelMemo),
+            open_label: self.label(OverlayMessageKey::OverlayFriendsPanelOpen),
+            request_label: self.label(OverlayMessageKey::OverlayFriendsPanelRequest),
+            invite_label: self.label(OverlayMessageKey::OverlayFriendsPanelInvite),
         }
     }
 
     pub(crate) fn friends_panel_traveling_label(&self) -> String {
-        self.label("overlay.friends_panel.traveling", "Traveling")
+        self.label(OverlayMessageKey::OverlayFriendsPanelTraveling)
     }
 
     pub(crate) fn friends_panel_favorites_online_label(&self) -> String {
-        self.label("overlay.friends_panel.favorites_online", "Favorites Online")
+        self.label(OverlayMessageKey::OverlayFriendsPanelFavoritesOnline)
     }
 
     pub(crate) fn friends_panel_same_instance_label(&self) -> String {
-        self.label("overlay.friends_panel.same_instance", "Same Instance")
+        self.label(OverlayMessageKey::OverlayFriendsPanelSameInstance)
     }
 
     pub(crate) fn friends_panel_local_favorites_label(&self) -> String {
-        self.label("overlay.friends_panel.local_favorites", "Local Favorites")
+        self.label(OverlayMessageKey::OverlayFriendsPanelLocalFavorites)
     }
 
     pub(crate) fn friends_panel_private_label(&self) -> String {
-        self.label("overlay.friends_panel.private", "Private")
+        self.label(OverlayMessageKey::OverlayFriendsPanelPrivate)
     }
 
     pub(crate) fn friends_panel_offline_label(&self) -> String {
-        self.label("overlay.friends_panel.offline", "Offline")
+        self.label(OverlayMessageKey::OverlayFriendsPanelOffline)
     }
 
     pub(super) fn generic_instance_location(&self) -> String {
-        self.label("overlay.generic_instance_location", "an instance")
+        self.label(OverlayMessageKey::OverlayGenericInstanceLocation)
     }
 
     pub(crate) fn discord_title(&self, activity_type: &str, name: &str) -> String {
@@ -207,8 +215,8 @@ impl OverlayLocalizer {
         let Some(key) = discord_title_key(activity_type) else {
             return name.to_string();
         };
-        let template = catalog().text(self.locale.as_str(), key, "{name}");
-        collapse_whitespace(&interpolate(&template, &json!({ "name": name })))
+        let params = BTreeMap::from([("name".to_string(), name.to_string())]);
+        self.message_text(key, &params)
     }
 
     pub(crate) fn status_text(&self, status: &str) -> String {
@@ -217,66 +225,35 @@ impl OverlayLocalizer {
             return String::new();
         }
         match status_label_key(status) {
-            Some(key) => self.label(key, status),
+            Some(key) => self.label(key),
             None => status.to_string(),
         }
     }
 
     pub(crate) fn access_label(&self, parsed: &ParsedLocation) -> String {
-        let labels = self.access_labels(AccessLabelCase::Title);
+        let labels = self.access_labels();
         let labels = labels.as_display();
         access_type_label(parsed, &labels).to_string()
     }
 
-    fn access_labels(&self, case: AccessLabelCase) -> LocalizedAccessLabels {
+    fn access_labels(&self) -> LocalizedAccessLabels {
         let [public_key, invite_key, invite_plus_key, friends_key, friends_plus_key, group_key, group_public_key, group_plus_key] =
             ACCESS_LABEL_KEYS;
-        let (
-            public_fallback,
-            invite_fallback,
-            invite_plus_fallback,
-            friends_fallback,
-            friends_plus_fallback,
-            group_fallback,
-            group_public_fallback,
-            group_plus_fallback,
-        ) = match case {
-            AccessLabelCase::Title => (
-                "Public",
-                "Invite",
-                "Invite+",
-                "Friends",
-                "Friends+",
-                "Group",
-                "Group Public",
-                "Group+",
-            ),
-            AccessLabelCase::Lower => (
-                "public",
-                "invite",
-                "invite+",
-                "friends",
-                "friends+",
-                "group",
-                "groupPublic",
-                "groupPlus",
-            ),
-        };
-        let group = self.label(group_key, group_fallback);
+        let group = self.label(group_key);
         LocalizedAccessLabels {
-            public: self.label(public_key, public_fallback),
-            invite: self.label(invite_key, invite_fallback),
-            invite_plus: self.label(invite_plus_key, invite_plus_fallback),
-            friends: self.label(friends_key, friends_fallback),
-            friends_plus: self.label(friends_plus_key, friends_plus_fallback),
-            group_public: self.group_access_label(&group, group_public_key, group_public_fallback),
-            group_plus: self.group_access_label(&group, group_plus_key, group_plus_fallback),
+            public: self.label(public_key),
+            invite: self.label(invite_key),
+            invite_plus: self.label(invite_plus_key),
+            friends: self.label(friends_key),
+            friends_plus: self.label(friends_plus_key),
+            group_public: self.group_access_label(&group, group_public_key),
+            group_plus: self.group_access_label(&group, group_plus_key),
             group,
         }
     }
 
-    fn group_access_label(&self, group: &str, key: &str, fallback: &str) -> String {
-        let label = self.label(key, fallback);
+    fn group_access_label(&self, group: &str, key: OverlayMessageKey) -> String {
+        let label = self.label(key);
         if label.starts_with(group) {
             label
         } else {
@@ -284,30 +261,31 @@ impl OverlayLocalizer {
         }
     }
 
-    fn label(&self, key: &str, fallback: &str) -> String {
-        collapse_whitespace(&catalog().text(self.locale.as_str(), key, fallback))
+    fn label(&self, key: OverlayMessageKey) -> String {
+        collapse_whitespace(&native_text(self.locale.as_str(), key))
     }
 
-    fn localized_status_params<'a>(&self, params: &'a Value) -> Cow<'a, Value> {
-        let Some(object) = params.as_object() else {
-            return Cow::Borrowed(params);
-        };
-        let Some(status) = object.get("status").and_then(Value::as_str) else {
+    fn message_text(&self, key: OverlayMessageKey, params: &BTreeMap<String, String>) -> String {
+        let template = native_text(self.locale.as_str(), key);
+        let params = self.localized_status_params(params);
+        collapse_whitespace(&interpolate(&template, params.as_ref()))
+    }
+
+    fn localized_status_params<'a>(
+        &self,
+        params: &'a BTreeMap<String, String>,
+    ) -> Cow<'a, BTreeMap<String, String>> {
+        let Some(status) = params.get("status") else {
             return Cow::Borrowed(params);
         };
         let Some(label_key) = status_label_key(status) else {
             return Cow::Borrowed(params);
         };
-        let label = self.label(label_key, status.trim());
-        let mut localized = object.clone();
-        localized.insert("status".to_string(), Value::String(label));
-        Cow::Owned(Value::Object(localized))
+        let label = self.label(label_key);
+        let mut localized = params.clone();
+        localized.insert("status".to_string(), label);
+        Cow::Owned(localized)
     }
-}
-
-enum AccessLabelCase {
-    Title,
-    Lower,
 }
 
 struct LocalizedAccessLabels {
@@ -357,27 +335,17 @@ pub(crate) fn discord_embed_kind(activity_type: &str) -> DiscordEmbedKind {
     }
 }
 
-pub(crate) fn discord_title_key(activity_type: &str) -> Option<&'static str> {
+pub(crate) fn discord_title_key(activity_type: &str) -> Option<OverlayMessageKey> {
     DISCORD_TITLE_KEYS
         .iter()
         .find_map(|(candidate, key)| (*candidate == activity_type).then_some(*key))
 }
 
-fn status_label_key(status: &str) -> Option<&'static str> {
+fn status_label_key(status: &str) -> Option<OverlayMessageKey> {
     let normalized = status.trim().to_ascii_lowercase();
     STATUS_LABEL_KEYS
         .iter()
         .find_map(|(aliases, key)| aliases.contains(&normalized.as_str()).then_some(*key))
-}
-
-fn catalog() -> &'static Catalog {
-    static CATALOG: OnceLock<Catalog> = OnceLock::new();
-    CATALOG.get_or_init(|| {
-        parse_catalog(
-            OVERLAY_NOTIFICATIONS_JSON,
-            "overlay notification locale catalog",
-        )
-    })
 }
 
 fn should_localize_location_param(value: &str, location: &str) -> bool {
@@ -390,7 +358,7 @@ fn should_localize_location_param(value: &str, location: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{json, Value};
+    use vrcx_0_i18n::OverlayMessage;
 
     use super::*;
 
@@ -399,11 +367,7 @@ mod tests {
         let localizer = OverlayLocalizer::new(OverlayLocale::ZhCn);
 
         assert_eq!(
-            localizer.text(&activity_text(
-                "notifications.has_joined",
-                json!({}),
-                "has joined"
-            )),
+            localizer.text(&activity_text(OverlayMessage::notifications_has_joined())),
             "加入了房间"
         );
     }
@@ -414,19 +378,16 @@ mod tests {
         let ko = OverlayLocalizer::new(OverlayLocale::Ko);
 
         assert_eq!(
-            ja.text(&activity_text(
-                "notifications.gps",
-                json!({ "location": "Test World" }),
-                "is in Test World"
-            )),
+            ja.text(&activity_text(OverlayMessage::notifications_gps(
+                "Test World"
+            ))),
             "は Test World にいます"
         );
         assert_eq!(
-            ko.text(&activity_text(
-                "notifications.invite",
-                json!({ "location": "Test World", "message": "Join?" }),
-                "invite Test World Join?"
-            )),
+            ko.text(&activity_text(OverlayMessage::notifications_invite(
+                "Test World",
+                "Join?",
+            ))),
             "님이 귀하를 Test World Join?에 초대했습니다."
         );
     }
@@ -436,7 +397,7 @@ mod tests {
         let localizer = OverlayLocalizer::new(OverlayLocale::from_config("fr"));
 
         assert_eq!(
-            localizer.text(&activity_text("notifications.has_left", json!({}), "left")),
+            localizer.text(&activity_text(OverlayMessage::notifications_has_left())),
             "has left"
         );
     }
@@ -457,11 +418,9 @@ mod tests {
         let en = OverlayLocalizer::new(OverlayLocale::En);
 
         assert_eq!(
-            en.text(&activity_text(
-                "notifications.status_update",
-                json!({ "status": "ask me", "description": "" }),
-                "status is now ask me"
-            )),
+            en.text(&activity_text(OverlayMessage::notifications_status_update(
+                "ask me", "",
+            ))),
             "status is now Ask Me"
         );
     }
@@ -470,11 +429,9 @@ mod tests {
     fn status_update_translates_status_for_locale() {
         let ja = OverlayLocalizer::new(OverlayLocale::Ja);
 
-        let result = ja.text(&activity_text(
-            "notifications.status_update",
-            json!({ "status": "join me", "description": "" }),
-            "status is now join me",
-        ));
+        let result = ja.text(&activity_text(OverlayMessage::notifications_status_update(
+            "join me", "",
+        )));
 
         assert!(result.contains("だれでもおいで"), "got: {result}");
         assert!(!result.contains("join me"));
@@ -485,26 +442,11 @@ mod tests {
         let en = OverlayLocalizer::new(OverlayLocale::En);
 
         assert_eq!(
-            en.text(&activity_text(
-                "notifications.status_update",
-                json!({ "status": "something custom", "description": "" }),
-                "status is now something custom"
-            )),
+            en.text(&activity_text(OverlayMessage::notifications_status_update(
+                "something custom",
+                "",
+            ))),
             "status is now something custom"
-        );
-    }
-
-    #[test]
-    fn missing_key_uses_fallback() {
-        let localizer = OverlayLocalizer::new(OverlayLocale::ZhCn);
-
-        assert_eq!(
-            localizer.text(&activity_text(
-                "notifications.not_real",
-                json!({}),
-                "fallback value"
-            )),
-            "fallback value"
         );
     }
 
@@ -513,11 +455,9 @@ mod tests {
         let localizer = OverlayLocalizer::new(OverlayLocale::En);
 
         assert_eq!(
-            localizer.text(&activity_text(
-                "notifications.invite",
-                json!({ "message": "hello" }),
-                "invite"
-            )),
+            localizer.text(&activity_text(OverlayMessage::notifications_invite(
+                "", "hello",
+            ))),
             "has invited you to hello"
         );
     }
@@ -528,11 +468,11 @@ mod tests {
         keys.extend(DISCORD_TITLE_KEYS.iter().map(|(_, key)| *key));
         keys.extend(STATUS_LABEL_KEYS.iter().map(|(_, key)| *key));
 
-        for (locale, values) in catalog().locales() {
+        for locale in ["en", "zh-CN", "zh-TW", "ja", "ko"] {
             for key in &keys {
                 assert!(
-                    values.contains_key(*key),
-                    "overlay locale {locale} is missing mapped key {key}"
+                    !native_text(locale, *key).trim().is_empty(),
+                    "overlay locale {locale} is missing mapped key {key:?}"
                 );
             }
         }
@@ -595,11 +535,7 @@ mod tests {
         );
     }
 
-    fn activity_text(key: &str, params: Value, fallback: &str) -> OverlayActivityText {
-        OverlayActivityText {
-            key: key.to_string(),
-            fallback: fallback.to_string(),
-            params,
-        }
+    fn activity_text(message: OverlayMessage) -> OverlayActivityText {
+        OverlayActivityText::message(message)
     }
 }

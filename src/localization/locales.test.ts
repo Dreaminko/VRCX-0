@@ -77,67 +77,6 @@ describe('normalizeLanguageCode', () => {
     });
 });
 
-describe('native shell locale coverage', () => {
-    const requiredMenuKeys = [
-        'nativeShell.menu.app.title',
-        'nativeShell.menu.app.about',
-        'nativeShell.menu.app.settings',
-        'nativeShell.menu.app.checkUpdates',
-        'nativeShell.menu.app.restart',
-        'nativeShell.menu.app.startBackgroundMode',
-        'nativeShell.menu.app.logout',
-        'nativeShell.menu.app.quit',
-        'nativeShell.menu.view.title',
-        'nativeShell.menu.view.notificationCenter',
-        'nativeShell.menu.view.quickSearch',
-        'nativeShell.menu.view.directAccess',
-        'nativeShell.menu.view.toggleNav',
-        'nativeShell.menu.view.toggleFriendsSidebar',
-        'nativeShell.menu.view.customNav',
-        'nativeShell.menu.view.themes',
-        'nativeShell.menu.view.zoomIn',
-        'nativeShell.menu.view.zoomOut',
-        'nativeShell.menu.view.resetZoom',
-        'nativeShell.menu.edit.title',
-        'nativeShell.menu.edit.undo',
-        'nativeShell.menu.edit.redo',
-        'nativeShell.menu.edit.cut',
-        'nativeShell.menu.edit.copy',
-        'nativeShell.menu.edit.paste',
-        'nativeShell.menu.edit.selectAll',
-        'nativeShell.menu.tools.title',
-        'nativeShell.menu.tools.allTools',
-        'nativeShell.menu.window.title',
-        'nativeShell.menu.window.minimize',
-        'nativeShell.menu.window.maximize',
-        'nativeShell.menu.window.close',
-        'nativeShell.menu.help.title',
-        'nativeShell.menu.help.changelog',
-        'nativeShell.menu.help.keyboardShortcuts',
-        'nativeShell.menu.help.reportIssue',
-        'nativeShell.menu.help.github',
-        'nativeShell.menu.help.discord',
-        'nativeShell.menu.help.qqGroup',
-        'nativeShell.menu.help.openDevtools',
-        'nativeShell.menu.help.supportVrcx'
-    ];
-
-    it('keeps native shell menu labels in every locale source file', () => {
-        for (const locale of languageCodes) {
-            const source = readLocaleSource(locale);
-            for (const key of requiredMenuKeys) {
-                const value = readPath(source, key);
-                expect(value, `${locale} ${key}`).toEqual(expect.any(String));
-                if (typeof value !== 'string') {
-                    continue;
-                }
-                expect(value.trim()).not.toBe('');
-                expect(value).not.toBe(key);
-            }
-        }
-    });
-});
-
 describe('settings locale coverage', () => {
     const requiredSettingsKeys = [
         'common.actions.configure',

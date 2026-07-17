@@ -101,7 +101,7 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].activity_type, "OnPlayerJoining");
     assert_eq!(entries[0].actor_user_id, "usr_friend");
-    assert_eq!(entries[0].content.body.fallback, "is joining");
+    assert_eq!(entries[0].content.body.source_text(), "is joining");
     let events = runtime.deps.event_bus.take_events_for_test();
     assert!(events
         .iter()

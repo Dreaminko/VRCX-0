@@ -164,16 +164,8 @@ fn activity_entry_with_relation(
         actor_display_name: format!("User {sequence}"),
         content: OverlayActivityContent {
             icon: String::new(),
-            title: OverlayActivityText {
-                key: String::new(),
-                fallback: summary.to_string(),
-                params: json!({}),
-            },
-            body: OverlayActivityText {
-                key: String::new(),
-                fallback: summary.to_string(),
-                params: json!({}),
-            },
+            title: OverlayActivityText::literal(summary),
+            body: OverlayActivityText::literal(summary),
             summary: summary.to_string(),
             detail: summary.to_string(),
             location: String::new(),
