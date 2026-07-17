@@ -81,6 +81,7 @@ function mergeAvatars(currentAvatar: any, rows: any) {
 }
 
 function AvatarOwnerRow({ avatar, selected, onToggle }: any) {
+    const { t } = useTranslation();
     const imageUrl = convertFileUrlToImageUrl(
         avatar.thumbnailImageUrl || avatar.imageUrl,
         128
@@ -131,7 +132,10 @@ function AvatarOwnerRow({ avatar, selected, onToggle }: any) {
             <Checkbox
                 checked={selected}
                 className="mx-2 shrink-0"
-                aria-label={`Select ${avatar.name || avatar.id || 'avatar'}`}
+                aria-label={t('accessibility.select_avatar', {
+                    avatar:
+                        avatar.name || avatar.id || t('accessibility.avatar')
+                })}
                 onCheckedChange={onToggle}
             />
         </div>

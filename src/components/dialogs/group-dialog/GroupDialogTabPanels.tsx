@@ -118,7 +118,11 @@ function GroupAnnouncementPanel({
                         type="button"
                         variant="ghost"
                         className="h-auto shrink-0 p-0"
-                        aria-label={`Preview ${announcement.title || 'announcement'} image`}
+                        aria-label={t('accessibility.preview_image', {
+                            item:
+                                announcement.title ||
+                                t('accessibility.announcement')
+                        })}
                         onClick={() =>
                             onPreviewImage(
                                 convertFileUrlToImageUrl(

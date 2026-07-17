@@ -195,9 +195,6 @@ async function scheduleCrashRelaunchIfNeeded(previousGameState: GameState) {
                                     .isSteamVRRunning
                         );
                     if (!steamVrRunning) {
-                        console.log(
-                            "SteamVR isn't running, not relaunching VRChat"
-                        );
                         return;
                     }
                 }

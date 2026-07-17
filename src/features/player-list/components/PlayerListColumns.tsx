@@ -298,6 +298,7 @@ function LanguageCell({ row }: { row: Row<PlayerListRow> }) {
 }
 
 function BioLinksCell({ row }: { row: Row<PlayerListRow> }) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1">
             {row.original.bioLinks.length
@@ -313,7 +314,10 @@ function BioLinksCell({ row }: { row: Row<PlayerListRow> }) {
                                           type="button"
                                           variant="ghost"
                                           size="icon-xs"
-                                          aria-label={`Open Link: ${linkLabel}`}
+                                          aria-label={t(
+                                              'accessibility.open_link',
+                                              { link: linkLabel }
+                                          )}
                                           onClick={(event) => {
                                               event.stopPropagation();
                                               openExternalLink(link);

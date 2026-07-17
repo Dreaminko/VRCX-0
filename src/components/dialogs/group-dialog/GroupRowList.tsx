@@ -78,7 +78,10 @@ function PostList({
                                     type="button"
                                     variant="ghost"
                                     className="mr-1.5 h-auto p-0 align-top"
-                                    aria-label={`Preview ${title} image`}
+                                    aria-label={t(
+                                        'accessibility.preview_image',
+                                        { item: title }
+                                    )}
                                     onClick={() =>
                                         onPreviewImage?.(image, title)
                                     }

@@ -595,7 +595,10 @@ function WorldAllowedDomainsDialog({
                                         type="button"
                                         size="icon-xs"
                                         disabled={saving}
-                                        aria-label={`Remove domain ${index + 1}`}
+                                        aria-label={t(
+                                            'accessibility.remove_domain',
+                                            { number: index + 1 }
+                                        )}
                                         onClick={() =>
                                             setUrlList((current) =>
                                                 current.filter(

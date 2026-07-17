@@ -321,7 +321,10 @@ export function UserSocialStatusDialog({
                                                 size="xs"
                                                 className="min-w-0 justify-start rounded-r-none border-r-0"
                                                 disabled={busy}
-                                                aria-label={`Apply status preset ${label}`}
+                                                aria-label={t(
+                                                    'accessibility.apply_status_preset',
+                                                    { preset: label }
+                                                )}
                                                 onClick={() => {
                                                     setDraft({
                                                         status: presetStatus,
@@ -350,7 +353,9 @@ export function UserSocialStatusDialog({
                                                 size="icon-xs"
                                                 className="shrink-0 rounded-l-none"
                                                 disabled={busy}
-                                                aria-label="Remove status preset"
+                                                aria-label={t(
+                                                    'accessibility.remove_status_preset'
+                                                )}
                                                 onClick={() =>
                                                     onRemovePreset(index)
                                                 }

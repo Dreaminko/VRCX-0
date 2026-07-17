@@ -362,6 +362,7 @@ export function PlayerListRows({
     emptyTitle?: string;
     emptyDescription?: string;
 }) {
+    const { t } = useTranslation();
     if (!hasRows) {
         return (
             <PlayerListEmptyRow
@@ -383,7 +384,12 @@ export function PlayerListRows({
                     'border-l-muted-foreground/50 bg-muted/40 hover:bg-muted/60'
             )}
             tabIndex={0}
-            aria-label={`Open ${row.original?.displayName || row.original?.userId || 'player'}`}
+            aria-label={t('accessibility.open_player', {
+                player:
+                    row.original?.displayName ||
+                    row.original?.userId ||
+                    t('accessibility.player')
+            })}
             onKeyDown={(event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') {
                     return;
