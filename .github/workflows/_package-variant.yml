@@ -28,8 +28,8 @@ jobs:
 
             - uses: dtolnay/rust-toolchain@stable
 
-            - name: Check headless dependencies
-              run: npm run rust:headless-deps:check
+            - name: Check backend architecture
+              run: npm run rust:architecture:check
 
             - id: metadata
               name: Resolve package variant
