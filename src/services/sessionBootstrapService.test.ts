@@ -2,12 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     appCheckGameRunning: vi.fn(),
+    appAuthenticatedSessionMaintenanceRun: vi.fn(),
     appRuntimeGroupInstancesRefresh: vi.fn(),
     appSyncFrontendAuthenticatedSession: vi.fn(),
     ensureUserTables: vi.fn(),
-    purgeAvatarFeedData: vi.fn(),
-    getConfigString: vi.fn(),
-    setConfigString: vi.fn(),
     isHostCapabilityAvailable: vi.fn(),
     showSQLiteErrorDialog: vi.fn(),
     syncStartupServicesTask: vi.fn()
@@ -16,6 +14,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appCheckGameRunning: mocks.appCheckGameRunning,
+        appAuthenticatedSessionMaintenanceRun:
+            mocks.appAuthenticatedSessionMaintenanceRun,
         appRuntimeGroupInstancesRefresh: mocks.appRuntimeGroupInstancesRefresh,
         appSyncFrontendAuthenticatedSession:
             mocks.appSyncFrontendAuthenticatedSession
@@ -24,15 +24,7 @@ vi.mock('@/platform/tauri/bindings', () => ({
 
 vi.mock('@/repositories/userSessionRepository', () => ({
     default: {
-        ensureUserTables: mocks.ensureUserTables,
-        purgeAvatarFeedData: mocks.purgeAvatarFeedData
-    }
-}));
-
-vi.mock('@/repositories/configRepository', () => ({
-    default: {
-        getString: mocks.getConfigString,
-        setString: mocks.setConfigString
+        ensureUserTables: mocks.ensureUserTables
     }
 }));
 
@@ -67,9 +59,16 @@ describe('sessionBootstrapService', () => {
             }
         });
         mocks.ensureUserTables.mockResolvedValue(undefined);
-        mocks.purgeAvatarFeedData.mockResolvedValue(undefined);
-        mocks.getConfigString.mockResolvedValue('Off');
-        mocks.setConfigString.mockResolvedValue(undefined);
+        mocks.appAuthenticatedSessionMaintenanceRun.mockResolvedValue({
+            userId: 'usr_self',
+            avatarCleanup: {
+                state: 'disabled',
+                retentionDays: null,
+                removedCount: 0,
+                cutoff: null,
+                completedAt: null
+            }
+        });
         mocks.isHostCapabilityAvailable.mockReturnValue(false);
         mocks.appCheckGameRunning.mockResolvedValue(null);
         mocks.appRuntimeGroupInstancesRefresh.mockResolvedValue(null);
@@ -86,6 +85,9 @@ describe('sessionBootstrapService', () => {
             displayName: 'Self'
         });
 
+        expect(
+            mocks.appAuthenticatedSessionMaintenanceRun
+        ).toHaveBeenCalledWith();
         expect(mocks.appSyncFrontendAuthenticatedSession).toHaveBeenCalledWith(
             'usr_self',
             'https://api.example.test/api/1',

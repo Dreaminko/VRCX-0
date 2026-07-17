@@ -35,6 +35,7 @@ import {
 } from './runtime-event-bridge/backendRuntimeHydration';
 import {
     handleBrowserFocusEvent,
+    handleDebugLoggingOutcome,
     handleGameClientEvent,
     handleGameLogPersistenceFallback,
     handleGameLogSideEffect,
@@ -287,6 +288,15 @@ export async function bindRuntimeEvents(): Promise<() => void> {
             );
         } catch (error) {
             console.warn('Failed to hydrate app update status:', error);
+        }
+        try {
+            const debugLoggingOutcome =
+                await commands.appGameClientDebugLoggingStatus();
+            if (debugLoggingOutcome) {
+                handleDebugLoggingOutcome(debugLoggingOutcome);
+            }
+        } catch (error) {
+            console.warn('Failed to hydrate debug logging status:', error);
         }
         try {
             await runForegroundUpdateRegistryBackupMaintenance();

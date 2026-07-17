@@ -2,6 +2,7 @@ mod app_update;
 mod async_runtime_policy;
 mod auth_credentials;
 mod auth_scope;
+mod authenticated_session_maintenance;
 mod backend_runtime;
 mod background;
 mod background_capabilities;
@@ -26,6 +27,7 @@ mod media_upload;
 mod moderation_sync;
 mod mutual_graph_fetch;
 mod noninteractive_auth;
+mod note_export;
 mod overlay_activity;
 mod prints;
 mod process_monitor;
@@ -77,6 +79,9 @@ pub use auth_credentials::{
     SavedCredentialSessionData,
 };
 pub use auth_scope::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
+pub use authenticated_session_maintenance::{
+    run_authenticated_session_maintenance, AuthenticatedSessionMaintenanceOutcome,
+};
 pub use backend_runtime::{
     BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
     BackendRuntimeTelemetry,
@@ -108,7 +113,8 @@ pub use favorite_transfer::{
     FavoriteTransferResult, FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
 pub use game_client::{
-    GameClientActions, GameClientCacheActions, GameClientLocationSource, GameClientRuntime,
+    DebugLoggingOutcome, DebugLoggingOutcomeKind, GameClientActions, GameClientCacheActions,
+    GameClientDebugLoggingActions, GameClientLocationSource, GameClientRuntime,
     GameClientRuntimeDeps, GameClientWindowActions, NoopGameClientCacheActions,
     NoopGameClientWindowActions,
 };
@@ -175,6 +181,12 @@ pub use noninteractive_auth::{
     auth_response_error_message, current_user_from_cookie, parse_current_user_response,
     probe_current_user_from_cookie, AuthenticatedRuntimeSession, CookieSessionProbe,
     NonInteractiveAuthError,
+};
+pub use note_export::{
+    prepare_note_export, run_note_export, NoteExportActions, NoteExportItemInput,
+    NoteExportItemState, NoteExportItemStatus, NoteExportProgress, NoteExportResult,
+    NoteExportStartInput, NoteExportState, NoteExportStatus, VrchatNoteExportActions,
+    NOTE_EXPORT_MAX_ITEMS,
 };
 pub use overlay_activity::{
     overlay_activity_type_definitions, OverlayActivityActorRelation, OverlayActivityCandidate,

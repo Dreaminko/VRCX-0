@@ -55,6 +55,7 @@ pub struct RuntimeHostState {
     pub host_file_access: HostFileAccess,
     pub screenshot_cache: MetadataCacheDb,
     pub shared_collection_import: SharedCollectionImportRuntime,
+    pub note_export: NoteExportRuntime,
 
     pub auto_launch: AutoAppLaunchManager,
     pub legacy_vrcx_available: bool,
@@ -70,6 +71,8 @@ pub struct RuntimeHostState {
     pub(super) background_group_instances_refresh_running: Arc<AtomicBool>,
     pub(super) registry_backup_lock: Arc<Mutex<()>>,
     pub(super) backend_frontend_session: Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
+    pub(super) authenticated_session_maintenance:
+        Arc<Mutex<Option<AuthenticatedSessionMaintenanceOutcome>>>,
     pub(super) _profile_lock: ProfileLock,
 }
 
@@ -353,6 +356,13 @@ impl RuntimeHostState {
             runtime_context.tasks.clone(),
             runtime_context.auth_scope.clone(),
         );
+        let note_export = NoteExportRuntime::new(
+            Arc::clone(&db),
+            Arc::clone(&web),
+            runtime_context.event_bus.clone(),
+            runtime_context.tasks.clone(),
+            runtime_context.auth_scope.clone(),
+        );
 
         let app_launcher_enabled = runtime_context
             .config()
@@ -387,6 +397,7 @@ impl RuntimeHostState {
             host_file_access,
             screenshot_cache,
             shared_collection_import,
+            note_export,
             auto_launch,
             legacy_vrcx_available,
             legacy_vrcx_source,
@@ -401,6 +412,7 @@ impl RuntimeHostState {
             background_group_instances_refresh_running: Arc::new(AtomicBool::new(false)),
             registry_backup_lock: Arc::new(Mutex::new(())),
             backend_frontend_session: Arc::new(Mutex::new(None)),
+            authenticated_session_maintenance: Arc::new(Mutex::new(None)),
             _profile_lock: profile_lock,
         })
     }

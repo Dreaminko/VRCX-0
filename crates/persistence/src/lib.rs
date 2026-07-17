@@ -28,12 +28,12 @@ pub mod worlds;
 
 pub mod maintenance {
     pub use crate::database::maintenance::{
-        database_maintenance_broken_game_log_display_names_get,
+        avatar_auto_cleanup_run, database_maintenance_broken_game_log_display_names_get,
         database_maintenance_broken_leave_entries_get,
         database_maintenance_max_friend_log_number_get, database_maintenance_run,
         database_maintenance_table_sizes_get, user_tables_ensure, vacuum_after_secret_migration,
-        BrokenGameLogDisplayNameOutput, DatabaseMaintenanceTask, MaintenanceTableSizesOutput,
-        UserTableContextOutput,
+        AvatarAutoCleanupOutcome, AvatarAutoCleanupState, BrokenGameLogDisplayNameOutput,
+        DatabaseMaintenanceTask, MaintenanceTableSizesOutput, UserTableContextOutput,
     };
 }
 

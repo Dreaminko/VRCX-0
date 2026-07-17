@@ -1,9 +1,11 @@
 import { commands } from '@/platform/tauri/bindings';
 import type {
+    DebugLoggingOutcome,
     GameLogProjection,
     HostSessionProjection
 } from '@/platform/tauri/bindings';
 import { normalizeString } from '@/shared/utils/string';
+import { useModalStore } from '@/state/modalStore';
 import { useNotificationStore } from '@/state/notificationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -52,6 +54,8 @@ function publishNowPlayingSharedFeed(payload: Record<string, unknown>): void {
         );
     });
 }
+
+let lastDebugLoggingCheckId = 0;
 
 function requestGameRunningStateRefresh(source: string): void {
     if (!isHostCapabilityAvailable('gameProcessMonitor')) {
@@ -122,6 +126,37 @@ export function handleGameClientEvent(payload: unknown): void {
     recordRuntimeGameClientEvent(kind, clientPayload);
     if (kind === 'notification') {
         useNotificationStore.getState().pushNotification(clientPayload);
+    } else if (kind === 'debugLoggingOutcome') {
+        handleDebugLoggingOutcome(clientPayload as DebugLoggingOutcome);
+    }
+}
+
+export function handleDebugLoggingOutcome(outcome: DebugLoggingOutcome): void {
+    if (outcome.checkId <= lastDebugLoggingCheckId) {
+        return;
+    }
+    lastDebugLoggingCheckId = outcome.checkId;
+    if (outcome.kind === 'repaired') {
+        useNotificationStore.getState().pushNotification({
+            level: 'info',
+            title: 'Enabled debug logging',
+            message:
+                'VRChat debug logging was disabled and has been re-enabled for game-log ingestion.'
+        });
+    } else if (outcome.kind === 'needsUserAction') {
+        if (outcome.error) {
+            console.error('Failed to enable VRChat debug logging:', outcome.error);
+        }
+        useModalStore.getState().alert({
+            title: 'Enable debug logging',
+            description:
+                'VRCX-0 noticed VRChat debug logging is disabled. Enable debug logging in VRChat quick menu settings > debug > enable debug logging, then rejoin the instance or restart VRChat.'
+        });
+    } else if (outcome.kind === 'unavailable' && outcome.error) {
+        console.warn(
+            'Unable to inspect VRChat debug logging:',
+            outcome.error
+        );
     }
 }
 

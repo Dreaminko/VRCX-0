@@ -16,16 +16,13 @@ import {
 } from '@/services/gameClientLifecycle';
 import { resetGameLogSessionState } from '@/services/gameLogIngestService';
 import {
-    isHostCapabilityAvailable,
     isHostCapabilitySupported,
     requireHostCapabilitySupported
 } from '@/services/hostCapabilityService';
 import { showSQLiteErrorDialog } from '@/services/sqliteErrorDialogService';
-import { MINUTE_MS, SECOND_MS } from '@/shared/constants/time';
 import { normalizeBoolean } from '@/shared/utils/coerce';
 import { isRealInstance } from '@/shared/utils/instance';
 import { normalizeString } from '@/shared/utils/string';
-import { useModalStore } from '@/state/modalStore';
 import { useNotificationStore } from '@/state/notificationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -36,24 +33,10 @@ type GameStatePatch = Parameters<RuntimeState['setGameState']>[0];
 type GameRunningPayload = Partial<HostSessionProjection> &
     Record<string, unknown>;
 
-let debugLoggingTimer: ReturnType<typeof window.setTimeout> | null = null;
 let crashRelaunchTimer: ReturnType<typeof window.setTimeout> | null = null;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
-}
-
-function scheduleDebugLoggingCheck(delayMs: number = MINUTE_MS) {
-    if (debugLoggingTimer !== null) {
-        window.clearTimeout(debugLoggingTimer);
-    }
-
-    debugLoggingTimer = window.setTimeout(() => {
-        debugLoggingTimer = null;
-        checkVRChatDebugLogging().catch((error: unknown) => {
-            console.warn('VRChat debug logging check failed:', error);
-        });
-    }, delayMs);
 }
 
 function clearCrashRelaunchTimer() {
@@ -349,65 +332,6 @@ function clearStoppedGameLocationSnapshot(
     }
 }
 
-export async function checkVRChatDebugLogging() {
-    if (!isHostCapabilityAvailable('registryPrefs')) {
-        return;
-    }
-
-    if (await configRepository.getBool('gameLogDisabled', false)) {
-        return;
-    }
-
-    let loggingEnabled;
-    try {
-        loggingEnabled =
-            await commands.appGetVrchatRegistryKey('LOGGING_ENABLED');
-    } catch (error) {
-        console.warn(
-            'Unable to read VRChat debug logging registry key:',
-            error
-        );
-        return;
-    }
-
-    if (
-        loggingEnabled === null ||
-        loggingEnabled === undefined ||
-        loggingEnabled === ''
-    ) {
-        return;
-    }
-
-    if (Number.parseInt(loggingEnabled, 10) === 1) {
-        return;
-    }
-
-    try {
-        const result = await commands.appSetVrchatRegistryKey(
-            'LOGGING_ENABLED',
-            1,
-            4
-        );
-        if (result) {
-            useNotificationStore.getState().pushNotification({
-                level: 'info',
-                title: 'Enabled debug logging',
-                message:
-                    'VRChat debug logging was disabled and has been re-enabled for game-log ingestion.'
-            });
-            return;
-        }
-    } catch (error) {
-        console.error('Failed to enable VRChat debug logging:', error);
-    }
-
-    useModalStore.getState().alert({
-        title: 'Enable debug logging',
-        description:
-            'VRCX-0 noticed VRChat debug logging is disabled. Enable debug logging in VRChat quick menu settings > debug > enable debug logging, then rejoin the instance or restart VRChat.'
-    });
-}
-
 export async function handleGameRunningUpdate(payload: unknown = {}) {
     const projection: GameRunningPayload = isRecord(payload)
         ? (payload as GameRunningPayload)
@@ -472,10 +396,6 @@ export async function handleGameRunningUpdate(payload: unknown = {}) {
             startCurrentAvatarWearTimer();
         }
         clearCrashRelaunchTimer();
-        scheduleDebugLoggingCheck(SECOND_MS);
-    } else if (debugLoggingTimer !== null) {
-        window.clearTimeout(debugLoggingTimer);
-        debugLoggingTimer = null;
     }
 
     if (
@@ -500,9 +420,5 @@ export async function handleGameRunningUpdate(payload: unknown = {}) {
 }
 
 export function stopGameStateService() {
-    if (debugLoggingTimer !== null) {
-        window.clearTimeout(debugLoggingTimer);
-        debugLoggingTimer = null;
-    }
     clearCrashRelaunchTimer();
 }

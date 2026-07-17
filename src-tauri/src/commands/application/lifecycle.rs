@@ -5,6 +5,7 @@ use tauri::State;
 
 use crate::error::AppError;
 use crate::state::AppState;
+use vrcx_0_application::{AuthenticatedSessionMaintenanceOutcome, DebugLoggingOutcome};
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -37,6 +38,22 @@ pub struct RuntimeFrontendScheduleJobDueClaimInput {
 
 fn default_frontend_owner() -> String {
     "frontend".into()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__game_client_debug_logging_status(
+    state: State<'_, AppState>,
+) -> Option<DebugLoggingOutcome> {
+    state.game_client_runtime.debug_logging_outcome()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__authenticated_session_maintenance_run(
+    state: State<'_, AppState>,
+) -> Result<AuthenticatedSessionMaintenanceOutcome, AppError> {
+    Ok(state.authenticated_session_maintenance()?)
 }
 
 #[tauri::command]

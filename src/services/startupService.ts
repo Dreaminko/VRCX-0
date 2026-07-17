@@ -10,11 +10,7 @@ import { initializeBackgroundImage } from './background-image/backgroundImageSer
 import { runStartupMaintenance } from './backgroundMaintenanceService';
 import { initializeCommunityThemes } from './communityThemeService';
 import { initializeDatabaseUpgradeFlow } from './databaseUpgradeService';
-import { checkVRChatDebugLogging } from './gameStateService';
-import {
-    initializeHostCapabilities,
-    isHostCapabilityAvailable
-} from './hostCapabilityService';
+import { initializeHostCapabilities } from './hostCapabilityService';
 import { loadPreferenceSnapshot } from './preferencesService';
 import { showSQLiteErrorDialog } from './sqliteErrorDialogService';
 import {
@@ -129,14 +125,6 @@ export async function initializeReactRuntime() {
         }
 
         await refreshSavedAuthSnapshot();
-        if (isHostCapabilityAvailable('registryPrefs')) {
-            checkVRChatDebugLogging().catch((error: unknown) => {
-                console.warn(
-                    'Startup VRChat debug logging check failed:',
-                    error
-                );
-            });
-        }
         runStartupMaintenance().catch((error: unknown) => {
             console.warn('Startup maintenance failed:', error);
         });

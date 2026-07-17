@@ -4,6 +4,7 @@ impl RuntimeHostState {
     pub fn stop_backend_runtime(&self, reason: impl Into<String>) -> BackendRuntimeSnapshot {
         let reason = reason.into();
         self.shared_collection_import.cancel();
+        self.note_export.cancel();
         self.backend_runtime
             .set_phase(BackendRuntimePhase::Stopping);
         self.realtime_runtime.stop(RealtimeStopRequest::default());
@@ -59,6 +60,7 @@ impl RuntimeHostState {
         reason: impl Into<String>,
     ) -> BackendRuntimeSnapshot {
         self.shared_collection_import.cancel();
+        self.note_export.cancel();
         self.clear_backend_frontend_session();
         let snapshot = self.backend_runtime.clear_authentication();
         self.emit_backend_runtime_telemetry_snapshot("authCleared", reason, snapshot.clone());
@@ -159,6 +161,7 @@ impl RuntimeHostState {
             self.db.as_ref(),
             session.user_id.clone(),
         )?;
+        self.run_authenticated_session_maintenance_for_user(&session.user_id)?;
         let snapshot = self
             .backend_runtime
             .set_auth_success(session.user_id.clone(), session.display_name.clone());

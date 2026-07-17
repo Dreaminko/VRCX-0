@@ -61,6 +61,9 @@ impl RuntimeHostState {
     }
 
     pub fn clear_backend_frontend_session(&self) {
+        if let Ok(mut maintenance) = self.authenticated_session_maintenance.lock() {
+            *maintenance = None;
+        }
         let previous = self
             .backend_frontend_session
             .lock()
@@ -154,6 +157,42 @@ impl RuntimeHostState {
         self.emit_backend_runtime_telemetry_snapshot("authSuccess", display_name, snapshot);
         self.schedule_activity_warmup(user_id, auth_scope.generation);
         self.start_gui_background_capability_loops();
+    }
+
+    pub fn authenticated_session_maintenance(
+        &self,
+    ) -> Result<AuthenticatedSessionMaintenanceOutcome> {
+        let scope = self.runtime_context.auth_scope.snapshot();
+        if !scope.active || scope.current_user_id.trim().is_empty() {
+            return Err(crate::Error::Custom(
+                "Authenticated session maintenance requires an active auth scope.".into(),
+            ));
+        }
+        self.run_authenticated_session_maintenance_for_user(&scope.current_user_id)
+    }
+
+    pub(super) fn run_authenticated_session_maintenance_for_user(
+        &self,
+        user_id: &str,
+    ) -> Result<AuthenticatedSessionMaintenanceOutcome> {
+        let user_id = user_id.trim();
+        let scope = self.runtime_context.auth_scope.snapshot();
+        if !scope.active || scope.current_user_id != user_id {
+            return Err(crate::Error::Custom(
+                "Authenticated session maintenance scope does not match the current user.".into(),
+            ));
+        }
+        let mut slot = self
+            .authenticated_session_maintenance
+            .lock()
+            .map_err(|error| crate::Error::Custom(format!("session maintenance lock: {error}")))?;
+        if let Some(current) = slot.as_ref().filter(|current| current.user_id == user_id) {
+            return Ok(current.clone());
+        }
+        let outcome =
+            vrcx_0_application::run_authenticated_session_maintenance(self.db.as_ref(), user_id)?;
+        *slot = Some(outcome.clone());
+        Ok(outcome)
     }
 }
 

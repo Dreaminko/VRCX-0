@@ -224,6 +224,12 @@ export const commands = {
     async appFriendProfileLoadCancel(): Promise<FriendProfileLoadStatusPayload> {
         return await TAURI_INVOKE('app__friend_profile_load_cancel');
     },
+    async appGameClientDebugLoggingStatus(): Promise<DebugLoggingOutcome | null> {
+        return await TAURI_INVOKE('app__game_client_debug_logging_status');
+    },
+    async appAuthenticatedSessionMaintenanceRun(): Promise<AuthenticatedSessionMaintenanceOutcome> {
+        return await TAURI_INVOKE('app__authenticated_session_maintenance_run');
+    },
     async appStartBackgroundMode(): Promise<BackendRuntimeSnapshot> {
         return await TAURI_INVOKE('app__start_background_mode');
     },
@@ -275,6 +281,17 @@ export const commands = {
     },
     async appSharedCollectionImportCancel(): Promise<SharedCollectionImportStatus> {
         return await TAURI_INVOKE('app__shared_collection_import_cancel');
+    },
+    async appNoteExportStart(
+        input: NoteExportStartInput
+    ): Promise<NoteExportStatus> {
+        return await TAURI_INVOKE('app__note_export_start', { input });
+    },
+    async appNoteExportStatus(): Promise<NoteExportStatus> {
+        return await TAURI_INVOKE('app__note_export_status');
+    },
+    async appNoteExportCancel(): Promise<NoteExportStatus> {
+        return await TAURI_INVOKE('app__note_export_cancel');
     },
     async appTelemetryRecordEvent(event: TelemetryClientEvent): Promise<null> {
         return await TAURI_INVOKE('app__telemetry_record_event', { event });
@@ -2960,6 +2977,10 @@ export type AuthenticatedRuntimeSession = {
     websocket: string;
     currentUser: JsonValue;
 };
+export type AuthenticatedSessionMaintenanceOutcome = {
+    userId: string;
+    avatarCleanup: AvatarAutoCleanupOutcome;
+};
 export type AuthorDetail = { id?: string; displayName?: string | null };
 export type AutoLoginOutcome =
     | { status: 'throttled'; snapshot: JsonValue }
@@ -2977,6 +2998,14 @@ export type AutoLoginOutcome =
           kind: LoginFailureKind;
           snapshot: JsonValue;
       };
+export type AvatarAutoCleanupOutcome = {
+    state: AvatarAutoCleanupState;
+    retentionDays: number | null;
+    removedCount: number;
+    cutoff: string | null;
+    completedAt: string | null;
+};
+export type AvatarAutoCleanupState = 'disabled' | 'notDue' | 'ran';
 export type AvatarCacheOutput = {
     id: string;
     authorId: string;
@@ -3149,6 +3178,17 @@ export type DatabaseUpgradeStatus = {
     failedAt?: string | null;
     reason?: string | null;
 };
+export type DebugLoggingOutcome = {
+    checkId: number;
+    kind: DebugLoggingOutcomeKind;
+    error: string | null;
+};
+export type DebugLoggingOutcomeKind =
+    | 'disabled'
+    | 'unavailable'
+    | 'enabled'
+    | 'repaired'
+    | 'needsUserAction';
 export type DeepLinkAction =
     | { type: 'openWorld'; worldId: string }
     | { type: 'importCollection'; collectionId: string };
@@ -3731,6 +3771,44 @@ export type MutualGraphSnapshotOutput = {
     friendIds: string[];
     links: MutualGraphLinkOutput[];
     meta: MutualGraphMetaOutput[];
+};
+export type NoteExportItemInput = {
+    userId: string;
+    displayName: string;
+    note: string;
+};
+export type NoteExportItemState =
+    | 'pending'
+    | 'succeeded'
+    | 'failed'
+    | 'notAttempted'
+    | 'cancelled';
+export type NoteExportItemStatus = {
+    userId: string;
+    displayName: string;
+    note: string;
+    state: NoteExportItemState;
+    error: string | null;
+};
+export type NoteExportStartInput = { items: NoteExportItemInput[] };
+export type NoteExportState =
+    | 'idle'
+    | 'running'
+    | 'cancelling'
+    | 'completed'
+    | 'cancelled'
+    | 'error';
+export type NoteExportStatus = {
+    runId: string;
+    status: NoteExportState;
+    total: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+    items: NoteExportItemStatus[];
+    startedAt: string | null;
+    finishedAt: string | null;
+    lastError: string | null;
 };
 export type NotificationListItemOutput = {
     id: string;

@@ -7,7 +7,7 @@ use vrcx_0_persistence::game_log::{write_batch, GameLogEventEntry, GameLogWriteB
 use vrcx_0_persistence::DatabaseService;
 
 use crate::event_bus::RuntimeEventBus;
-use crate::game_client::actions::GameClientActions;
+use crate::game_client::actions::{GameClientActions, GameClientDebugLoggingActions};
 use crate::game_client::lifecycle::{plan_crash_relaunch, CrashRelaunchConfig, CrashRelaunchPlan};
 use crate::session::HostSessionRuntime;
 use crate::task_supervisor::TaskSupervisor;
@@ -26,6 +26,24 @@ pub trait GameClientWindowActions: Send + Sync {
 
 pub trait GameClientCacheActions: Send + Sync {
     fn sweep_vrchat_cache(&self) -> Vec<String>;
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum DebugLoggingOutcomeKind {
+    Disabled,
+    Unavailable,
+    Enabled,
+    Repaired,
+    NeedsUserAction,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugLoggingOutcome {
+    pub check_id: u64,
+    pub kind: DebugLoggingOutcomeKind,
+    pub error: Option<String>,
 }
 
 #[derive(Default)]
@@ -55,17 +73,25 @@ pub struct GameClientProcessorDeps {
     pub cache_actions: Arc<dyn GameClientCacheActions>,
     pub location_source: Arc<dyn GameClientLocationSource>,
     pub window_actions: Arc<dyn GameClientWindowActions>,
+    pub debug_logging_actions: Arc<dyn GameClientDebugLoggingActions>,
 }
 
 #[derive(Default)]
 pub struct GameClientState {
     pub last_crash_at_ms: Option<i64>,
     pub current_location: String,
+    pub debug_logging_outcome: Option<DebugLoggingOutcome>,
+    pub debug_logging_check_id: u64,
+    pub debug_logging_generation: u64,
 }
 
 #[derive(Clone)]
 pub enum GameClientJob {
     GameStopped,
+    DebugLoggingCheck {
+        delay: std::time::Duration,
+        game_generation: Option<u64>,
+    },
 }
 
 #[derive(Clone)]
@@ -104,9 +130,53 @@ impl GameClientProcessor {
                         remember_error(&mut first_error, error);
                     }
                 },
+                GameClientJob::DebugLoggingCheck {
+                    delay,
+                    game_generation,
+                } => {
+                    if !delay.is_zero() {
+                        std::thread::sleep(delay);
+                    }
+                    if self.should_run_debug_logging_check(game_generation) {
+                        self.check_debug_logging();
+                    }
+                }
             }
         }
         first_error.map_or(Ok(()), Err)
+    }
+
+    fn check_debug_logging(&self) {
+        let (kind, error) = resolve_debug_logging_outcome(
+            config_store::get_bool(&self.deps.db, "gameLogDisabled", false).map_err(Into::into),
+            self.deps.debug_logging_actions.as_ref(),
+        );
+        let mut outcome = DebugLoggingOutcome {
+            check_id: 0,
+            kind,
+            error,
+        };
+        if let Ok(mut state) = self.state.lock() {
+            state.debug_logging_check_id = state.debug_logging_check_id.saturating_add(1);
+            outcome.check_id = state.debug_logging_check_id;
+            state.debug_logging_outcome = Some(outcome.clone());
+        }
+        self.deps.event_bus.emit_game_client_event(
+            "debugLoggingOutcome",
+            serde_json::to_value(outcome).unwrap_or_default(),
+        );
+    }
+
+    fn should_run_debug_logging_check(&self, game_generation: Option<u64>) -> bool {
+        let Some(expected_generation) = game_generation else {
+            return true;
+        };
+        let generation_matches = self
+            .state
+            .lock()
+            .map(|state| state.debug_logging_generation == expected_generation)
+            .unwrap_or(false);
+        generation_matches && self.is_game_running()
     }
 
     fn prepare_game_stopped(&self) -> Result<Option<CrashRelaunchPlan>> {
@@ -299,6 +369,35 @@ impl GameClientProcessor {
     }
 }
 
+fn resolve_debug_logging_outcome(
+    game_log_disabled: Result<bool>,
+    actions: &dyn GameClientDebugLoggingActions,
+) -> (DebugLoggingOutcomeKind, Option<String>) {
+    match game_log_disabled {
+        Ok(true) => (DebugLoggingOutcomeKind::Disabled, None),
+        Err(error) => (
+            DebugLoggingOutcomeKind::Unavailable,
+            Some(error.to_string()),
+        ),
+        Ok(false) => match actions.read_debug_logging_enabled() {
+            Ok(None) => (DebugLoggingOutcomeKind::Unavailable, None),
+            Ok(Some(true)) => (DebugLoggingOutcomeKind::Enabled, None),
+            Ok(Some(false)) => match actions.enable_debug_logging() {
+                Ok(true) => (DebugLoggingOutcomeKind::Repaired, None),
+                Ok(false) => (DebugLoggingOutcomeKind::NeedsUserAction, None),
+                Err(error) => (
+                    DebugLoggingOutcomeKind::NeedsUserAction,
+                    Some(error.to_string()),
+                ),
+            },
+            Err(error) => (
+                DebugLoggingOutcomeKind::Unavailable,
+                Some(error.to_string()),
+            ),
+        },
+    }
+}
+
 fn remember_error(first_error: &mut Option<Error>, error: Error) {
     if first_error.is_none() {
         *first_error = Some(error);
@@ -309,4 +408,58 @@ fn remember_error(first_error: &mut Option<Error>, error: Error) {
 
 fn now_iso() -> String {
     Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use super::*;
+
+    struct FakeDebugLoggingActions {
+        enabled: Option<bool>,
+        repair_succeeds: bool,
+        repair_attempts: AtomicUsize,
+    }
+
+    impl GameClientDebugLoggingActions for FakeDebugLoggingActions {
+        fn read_debug_logging_enabled(&self) -> Result<Option<bool>> {
+            Ok(self.enabled)
+        }
+
+        fn enable_debug_logging(&self) -> Result<bool> {
+            self.repair_attempts.fetch_add(1, Ordering::AcqRel);
+            Ok(self.repair_succeeds)
+        }
+    }
+
+    #[test]
+    fn debug_logging_disabled_game_log_skips_registry_repair() {
+        let actions = FakeDebugLoggingActions {
+            enabled: Some(false),
+            repair_succeeds: true,
+            repair_attempts: AtomicUsize::new(0),
+        };
+
+        let (kind, error) = resolve_debug_logging_outcome(Ok(true), &actions);
+
+        assert_eq!(kind, DebugLoggingOutcomeKind::Disabled);
+        assert_eq!(error, None);
+        assert_eq!(actions.repair_attempts.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
+    fn debug_logging_disabled_registry_value_is_repaired_once() {
+        let actions = FakeDebugLoggingActions {
+            enabled: Some(false),
+            repair_succeeds: true,
+            repair_attempts: AtomicUsize::new(0),
+        };
+
+        let (kind, error) = resolve_debug_logging_outcome(Ok(false), &actions);
+
+        assert_eq!(kind, DebugLoggingOutcomeKind::Repaired);
+        assert_eq!(error, None);
+        assert_eq!(actions.repair_attempts.load(Ordering::Acquire), 1);
+    }
 }

@@ -6,6 +6,7 @@ mod game_log;
 mod host_actions;
 mod host_file_access;
 mod log_watcher;
+mod note_export;
 pub mod notification;
 mod process_monitor;
 mod registry_backup;
@@ -25,6 +26,7 @@ pub use log_watcher::{
     GameLogEvent, GameLogEventSink, HostGameLogEventFanout, HostLogLocationSnapshotScanner,
     LogLocationSnapshot, LogWatcher,
 };
+pub use note_export::NoteExportRuntime;
 pub use process_monitor::HostGameProcessMonitorActions;
 pub use registry_backup::HostRegistryBackupActions;
 pub use shared_collection_import::SharedCollectionImportRuntime;

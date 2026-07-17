@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-#[cfg(any(test, feature = "test-utils"))]
 use std::time::Duration;
 
 use vrcx_0_persistence::config::ConfigRepository;
@@ -12,7 +11,7 @@ use crate::task_supervisor::TaskSupervisor;
 use crate::worker::{RuntimeWorker, RuntimeWorkerOptions};
 use crate::Result;
 
-use super::actions::GameClientActions;
+use super::actions::{GameClientActions, GameClientDebugLoggingActions};
 use super::processor::{
     GameClientCacheActions, GameClientJob, GameClientLocationSource, GameClientProcessor,
     GameClientProcessorDeps, GameClientState, GameClientWindowActions,
@@ -29,6 +28,7 @@ pub struct GameClientRuntimeDeps {
     pub cache_actions: Arc<dyn GameClientCacheActions>,
     pub location_source: Arc<dyn GameClientLocationSource>,
     pub window_actions: Arc<dyn GameClientWindowActions>,
+    pub debug_logging_actions: Arc<dyn GameClientDebugLoggingActions>,
 }
 
 pub struct GameClientRuntime {
@@ -50,6 +50,7 @@ impl GameClientRuntime {
                 cache_actions: deps.cache_actions,
                 location_source: deps.location_source,
                 window_actions: deps.window_actions,
+                debug_logging_actions: deps.debug_logging_actions,
             },
             Arc::clone(&state),
         );
@@ -60,6 +61,13 @@ impl GameClientRuntime {
             deps.event_bus,
             move |jobs| worker_processor.handle_jobs(jobs),
         );
+
+        if let Err(error) = worker.push_batch([GameClientJob::DebugLoggingCheck {
+            delay: Duration::ZERO,
+            game_generation: None,
+        }]) {
+            tracing::warn!("failed to schedule startup debug logging check: {error}");
+        }
 
         Self { state, worker }
     }
@@ -73,10 +81,25 @@ impl GameClientRuntime {
     }
 
     pub fn on_game_process_event(&self, event: GameProcessEvent) -> Result<()> {
-        if event.game_changed && !event.is_game_running {
-            self.enqueue_job(GameClientJob::GameStopped)?;
+        if event.game_changed {
+            let game_generation = self.advance_debug_logging_generation()?;
+            if event.is_game_running {
+                self.enqueue_job(GameClientJob::DebugLoggingCheck {
+                    delay: Duration::from_secs(1),
+                    game_generation: Some(game_generation),
+                })?;
+            } else {
+                self.enqueue_job(GameClientJob::GameStopped)?;
+            }
         }
         Ok(())
+    }
+
+    pub fn debug_logging_outcome(&self) -> Option<super::DebugLoggingOutcome> {
+        self.state
+            .lock()
+            .ok()
+            .and_then(|state| state.debug_logging_outcome.clone())
     }
 
     pub fn stop(&self) {
@@ -86,6 +109,15 @@ impl GameClientRuntime {
     fn enqueue_job(&self, job: GameClientJob) -> Result<()> {
         self.worker.push_batch([job])?;
         Ok(())
+    }
+
+    fn advance_debug_logging_generation(&self) -> Result<u64> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|error| crate::Error::Custom(format!("GameClient state lock: {error}")))?;
+        state.debug_logging_generation = state.debug_logging_generation.saturating_add(1);
+        Ok(state.debug_logging_generation)
     }
 
     #[cfg(any(test, feature = "test-utils"))]
