@@ -13,11 +13,11 @@ use vrcx_0_persistence::realtime::{
 };
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::auth::current_user_get_input;
-use vrcx_0_vrchat_client::http_api::ApiScope;
+use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
 use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
 use vrcx_0_vrchat_client::users as remote_users;
 
-use crate::event_bus::{FavoritesChangedPayload, RuntimeEventBus};
+use crate::event_bus::{FavoritesChangedPayload, RuntimeEventBus, RuntimeVrchatAuthFailurePayload};
 use crate::game_log::RuntimeSnapshot;
 use crate::overlay_activity::OverlayActivityRuntime;
 use crate::prints::cleanup::{PrintCleanupDeps, PrintCleanupQueue, PrintCleanupTrigger};
@@ -66,6 +66,8 @@ use crate::{Error, Result};
 mod friend_baseline_tests;
 #[cfg(test)]
 mod friend_joining_tests;
+#[cfg(test)]
+mod friend_mutation_sink_tests;
 mod friend_profile_bulk_load;
 #[cfg(test)]
 mod friend_profile_bulk_load_tests;
@@ -73,6 +75,7 @@ mod lifecycle_current_user;
 mod lifecycle_enrichment;
 mod lifecycle_friend_baseline;
 mod lifecycle_friend_messages;
+mod lifecycle_friend_mutation;
 mod lifecycle_friend_profile;
 mod lifecycle_invite_automation;
 mod lifecycle_output;
@@ -93,4 +96,5 @@ mod world_cache_tests;
 use lifecycle_world_cache::WorldNameFetchOutcome;
 
 pub use friend_profile_bulk_load::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
+pub use lifecycle_friend_mutation::SyntheticFriendEventOutcome;
 pub use types::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};

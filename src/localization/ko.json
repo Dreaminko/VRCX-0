@@ -3208,7 +3208,7 @@
                 "search_worlds": "세계 검색",
                 "search_favorite_worlds": "좋아하는 세계 검색",
                 "search_avatars": "아바타 검색",
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "친구 관계를 해제했습니다. 최신 상태를 보려면 새로고침하세요."
+                "unfriend_was_not_sent_because_the_active_account_changed": "Unfriend wasn't sent because the active account changed. Refresh and try again."
             },
             "loading": {
                 "loading_activity": "활동 로드 중...",
@@ -3289,6 +3289,7 @@
                 "failed_to_update_shared_connections_setting": "공유 연결 설정을 업데이트하지 못했습니다.",
                 "failed_to_update_badge": "배지를 업데이트하지 못했습니다.",
                 "failed_to_unfriend_user": "사용자의 친구를 해제하지 못했습니다.",
+                "applied_on_vrchat_but_local_update_failed": "Applied on VRChat, but the local update failed.",
                 "friend_request_accepted": "친구 요청이 수락되었습니다.",
                 "friend_request_sent": "친구 요청이 전송되었습니다",
                 "friend_request_declined": "친구 요청이 거부되었습니다.",

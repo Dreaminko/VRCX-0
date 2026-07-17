@@ -1015,39 +1015,6 @@ export const commands = {
     ): Promise<FriendLogHistoryOutput[]> {
         return await TAURI_INVOKE('app__friend_log_history_query', { query });
     },
-    async appFriendLogReplaceCurrent(
-        userId: string,
-        entries: FriendLogCurrentEntryInput[],
-        options: FriendLogReplaceOptionsInput
-    ): Promise<FriendLogMutationResult> {
-        return await TAURI_INVOKE('app__friend_log_replace_current', {
-            userId,
-            entries,
-            options
-        });
-    },
-    async appFriendLogDeleteCurrentArray(
-        userId: string,
-        targetUserIds: string[],
-        options: FriendLogDeleteOptionsInput
-    ): Promise<FriendLogMutationResult> {
-        return await TAURI_INVOKE('app__friend_log_delete_current_array', {
-            userId,
-            targetUserIds,
-            options
-        });
-    },
-    async appFriendLogUpsertCurrent(
-        userId: string,
-        entry: FriendLogCurrentEntryInput,
-        options: FriendLogUpsertOptionsInput
-    ): Promise<FriendLogMutationResult> {
-        return await TAURI_INVOKE('app__friend_log_upsert_current', {
-            userId,
-            entry,
-            options
-        });
-    },
     async appFriendLogDeleteCurrent(
         userId: string,
         targetUserId: string
@@ -1055,15 +1022,6 @@ export const commands = {
         return await TAURI_INVOKE('app__friend_log_delete_current', {
             userId,
             targetUserId
-        });
-    },
-    async appFriendLogHistoryAdd(
-        userId: string,
-        entries: FriendLogHistoryEntryInput[]
-    ): Promise<number> {
-        return await TAURI_INVOKE('app__friend_log_history_add', {
-            userId,
-            entries
         });
     },
     async appFriendLogHistoryDelete(
@@ -1532,23 +1490,6 @@ export const commands = {
         input: VrchatFriendUserInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_friend_status_get', { input });
-    },
-    async appVrchatFriendDelete(
-        input: VrchatFriendUserInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_friend_delete', { input });
-    },
-    async appVrchatFriendRequestCancel(
-        input: VrchatFriendCancelRequestInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_friend_request_cancel', {
-            input
-        });
-    },
-    async appVrchatFriendRequestSend(
-        input: VrchatFriendUserInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_friend_request_send', { input });
     },
     async appVrchatFriendsGet(
         input: VrchatFriendsGetInput
@@ -2061,6 +2002,30 @@ export const commands = {
         return await TAURI_INVOKE('app__social_friend_roster_baseline_get', {
             input
         });
+    },
+    async appSocialFriendRequestAccept(
+        input: SocialFriendRequestAcceptInput
+    ): Promise<SocialFriendMutationOutcome> {
+        return await TAURI_INVOKE('app__social_friend_request_accept', {
+            input
+        });
+    },
+    async appSocialFriendRequestCancel(
+        input: SocialFriendRequestCancelInput
+    ): Promise<SocialFriendMutationOutcome> {
+        return await TAURI_INVOKE('app__social_friend_request_cancel', {
+            input
+        });
+    },
+    async appSocialFriendRequestSend(
+        input: SocialFriendMutationInput
+    ): Promise<SocialFriendMutationOutcome> {
+        return await TAURI_INVOKE('app__social_friend_request_send', { input });
+    },
+    async appSocialUnfriend(
+        input: SocialFriendMutationInput
+    ): Promise<SocialFriendMutationOutcome> {
+        return await TAURI_INVOKE('app__social_unfriend', { input });
     },
     async appVrchatToolsCalendarsGet(
         input: VrchatToolsCalendarListInput
@@ -3355,20 +3320,11 @@ export type FriendBaselineResult = {
     baselineRevision: number;
     friendCount: number;
 };
-export type FriendLogCurrentEntryInput = {
-    userId?: string;
-    displayName?: string;
-    trustLevel?: string | null;
-    friendNumber?: JsonValue;
-};
 export type FriendLogCurrentOutput = {
     userId: string;
     displayName: string;
     trustLevel: string;
     friendNumber: number;
-};
-export type FriendLogDeleteOptionsInput = {
-    historyEntries?: FriendLogHistoryEntryInput[];
 };
 export type FriendLogHistoryEntryInput = {
     rowId?: JsonValue;
@@ -3396,21 +3352,6 @@ export type FriendLogHistoryQueryInput = {
     userId: string;
     targetUserId?: string;
     types?: string[];
-};
-export type FriendLogMutationResult = {
-    userId: string;
-    targetUserId: string;
-    count: number;
-    inserted?: boolean | null;
-    historyCount: number;
-};
-export type FriendLogReplaceOptionsInput = {
-    historyEntries?: FriendLogHistoryEntryInput[];
-    addedHistoryEntries?: FriendLogHistoryEntryInput[];
-};
-export type FriendLogUpsertOptionsInput = {
-    historyEntry?: FriendLogHistoryEntryInput | null;
-    forceHistory?: boolean;
 };
 export type FriendProfileBulkLoadStatus =
     | 'idle'
@@ -4358,6 +4299,32 @@ export type SocialFavoritesBaselineOutput = {
     count: number;
     snapshot: RawJson | null;
 };
+export type SocialFriendMutationInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    targetUserId: string;
+    targetDisplayName?: string;
+};
+export type SocialFriendMutationOutcome = {
+    status: SocialFriendMutationStatus;
+    targetUserId: string;
+    localError?: string | null;
+};
+export type SocialFriendMutationStatus = 'applied' | 'remoteOkLocalFailed';
+export type SocialFriendRequestAcceptInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    notificationId: string;
+    targetUserId: string;
+    targetDisplayName?: string;
+};
+export type SocialFriendRequestCancelInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    targetUserId: string;
+    targetDisplayName?: string;
+    notificationId?: string;
+};
 export type SocialFriendRosterBaselineInput = {
     userId?: string;
     endpoint?: string;
@@ -4545,11 +4512,6 @@ export type VrchatFavoriteWorldsInput = {
     ownerId?: string;
     userId?: string;
     tag?: string;
-};
-export type VrchatFriendCancelRequestInput = {
-    userId?: string;
-    notificationId?: string;
-    endpoint?: string;
 };
 export type VrchatFriendUserInput = { userId?: string; endpoint?: string };
 export type VrchatFriendsGetInput = {

@@ -3,11 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const serviceMocks = vi.hoisted(() => ({
     recordFriendPatch: vi.fn(),
     getFriendLogCurrent: vi.fn(),
-    upsertFriendLogCurrent: vi.fn(),
-    replaceFriendLogCurrent: vi.fn(),
-    deleteFriendLogCurrentArray: vi.fn(),
-    getConfigBool: vi.fn(),
-    setConfigBool: vi.fn(),
     socialFriendRosterBaselineGet: vi.fn(),
     vrchatUserGet: vi.fn(),
     vrchatFriendStatusGet: vi.fn(),
@@ -25,17 +20,7 @@ vi.mock('@/platform/tauri/bindings', () => ({
 
 vi.mock('@/repositories/friendLogRepository', () => ({
     default: {
-        getFriendLogCurrent: serviceMocks.getFriendLogCurrent,
-        upsertFriendLogCurrent: serviceMocks.upsertFriendLogCurrent,
-        replaceFriendLogCurrent: serviceMocks.replaceFriendLogCurrent,
-        deleteFriendLogCurrentArray: serviceMocks.deleteFriendLogCurrentArray
-    }
-}));
-
-vi.mock('@/repositories/configRepository', () => ({
-    default: {
-        getBool: serviceMocks.getConfigBool,
-        setBool: serviceMocks.setConfigBool
+        getFriendLogCurrent: serviceMocks.getFriendLogCurrent
     }
 }));
 
@@ -83,24 +68,6 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
             sessionPhase: 'ready'
         });
         serviceMocks.getFriendLogCurrent.mockResolvedValue([]);
-        serviceMocks.upsertFriendLogCurrent.mockResolvedValue({
-            userId: 'usr_self',
-            count: 1,
-            inserted: true,
-            historyCount: 1
-        });
-        serviceMocks.replaceFriendLogCurrent.mockResolvedValue({
-            userId: 'usr_self',
-            count: 1,
-            historyCount: 0
-        });
-        serviceMocks.deleteFriendLogCurrentArray.mockResolvedValue({
-            userId: 'usr_self',
-            count: 1,
-            historyCount: 1
-        });
-        serviceMocks.getConfigBool.mockResolvedValue(true);
-        serviceMocks.setConfigBool.mockResolvedValue(undefined);
         serviceMocks.vrchatUserGet.mockResolvedValue({
             status: 200,
             data: {}
@@ -398,66 +365,6 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
                 usr_live: { displayName: 'Live Friend' }
             }
         });
-    });
-
-    it('initializes friend log current in the background without creating friend history spam', async () => {
-        const { bootstrapFriendRoster } =
-            await import('./friendBootstrapService');
-        serviceMocks.getConfigBool.mockResolvedValue(false);
-        serviceMocks.getFriendLogCurrent.mockResolvedValue([]);
-        serviceMocks.socialFriendRosterBaselineGet.mockResolvedValue({
-            stale: false,
-            count: 2,
-            detail: 'fast roster',
-            snapshot: {
-                friendsById: {
-                    usr_a: {
-                        id: 'usr_a',
-                        displayName: 'Friend A',
-                        stateBucket: 'online'
-                    },
-                    usr_b: {
-                        id: 'usr_b',
-                        displayName: 'Friend B',
-                        stateBucket: 'offline'
-                    }
-                }
-            }
-        });
-
-        await bootstrapFriendRoster({
-            userId: 'usr_self',
-            endpoint: 'https://api.example.test',
-            currentUserSnapshot: {
-                id: 'usr_self',
-                friends: ['usr_a', 'usr_b'],
-                offlineFriends: ['usr_b'],
-                activeFriends: [],
-                onlineFriends: ['usr_a']
-            }
-        });
-
-        await vi.waitFor(() => {
-            expect(serviceMocks.replaceFriendLogCurrent).toHaveBeenCalledWith(
-                'usr_self',
-                [
-                    expect.objectContaining({
-                        userId: 'usr_a',
-                        displayName: 'Friend A'
-                    }),
-                    expect.objectContaining({
-                        userId: 'usr_b',
-                        displayName: 'Friend B'
-                    })
-                ],
-                { historyEntries: [], addedHistoryEntries: [] }
-            );
-        });
-        expect(serviceMocks.upsertFriendLogCurrent).not.toHaveBeenCalled();
-        expect(serviceMocks.setConfigBool).toHaveBeenCalledWith(
-            'friendLogInit_usr_self',
-            true
-        );
     });
 
     it('keeps the seeded roster visible when the Rust baseline fails', async () => {

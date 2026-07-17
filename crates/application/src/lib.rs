@@ -38,6 +38,7 @@ mod session;
 mod share_collection;
 mod shared_collection_import;
 mod social_baseline;
+mod social_mutation;
 mod sync;
 mod task_supervisor;
 pub mod vrchat_api;
@@ -202,7 +203,7 @@ pub use realtime::{
     RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
     RealtimeNotificationUpsert, RealtimeProjectionSource, RealtimeSessionContext,
     RealtimeStopRequest, RealtimeTransportStartResult, RealtimeWsMessagePayload,
-    RealtimeWsStatusPayload,
+    RealtimeWsStatusPayload, SyntheticFriendEventOutcome,
 };
 pub use registry_backup::{
     registry_backup_create, registry_backup_delete, registry_backup_export_json,
@@ -244,6 +245,11 @@ pub use social_baseline::{
     build_friend_roster_baseline, build_friend_roster_baseline_deferred, SocialBaselineDeps,
     SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
     SocialFriendRosterBaselineOutput,
+};
+pub use social_mutation::{
+    accept_friend_request, cancel_friend_request, send_friend_request, unfriend,
+    SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendMutationStatus,
+    SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
 };
 pub use sync::{RuntimeSyncEngine, RuntimeSyncSnapshot};
 pub use task_supervisor::{

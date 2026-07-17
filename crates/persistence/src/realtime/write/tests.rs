@@ -7,8 +7,8 @@ use crate::database::DatabaseService;
 use crate::game_log::GameLogLocationEntry;
 
 use super::{
-    normalize_user_table_prefix, write_realtime_batch, FriendLogUpsert, NotificationV2Update,
-    RealtimePersistenceBatch,
+    normalize_user_table_prefix, write_realtime_batch, FriendLogDelete, FriendLogUpsert,
+    NotificationV2Update, RealtimePersistenceBatch,
 };
 
 struct TestDir {
@@ -122,6 +122,69 @@ fn writes_friend_log_and_feed_rows() -> Result<(), crate::Error> {
     )?;
     assert_eq!(location_counts.affected_count, 1);
     assert_eq!(location_counts.game_log_affected_count, 1);
+    Ok(())
+}
+
+#[test]
+fn friend_and_unfriend_feed_markers_are_skipped_not_persisted_as_feed_rows(
+) -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-friend-unfriend-feed-marker");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Friend".into(),
+                trust_level: "Known".into(),
+                friend_number: 1,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            feed_entries: vec![json!({
+                "created_at": "2026-05-15T00:00:00Z",
+                "type": "Friend",
+                "userId": "usr_friend",
+                "displayName": "Friend",
+            })],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    let friend_history = db.execute(
+        "SELECT type FROM usrself_friend_log_history WHERE user_id = @user_id AND type = 'Friend'",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert_eq!(friend_history.len(), 1);
+
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_deletes: vec![FriendLogDelete {
+                target_user_id: "usr_friend".into(),
+                created_at: "2026-05-15T00:00:01Z".into(),
+            }],
+            feed_entries: vec![json!({
+                "created_at": "2026-05-15T00:00:01Z",
+                "type": "Unfriend",
+                "userId": "usr_friend",
+                "displayName": "Friend",
+            })],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    let current = db.execute(
+        "SELECT user_id FROM usrself_friend_log_current WHERE user_id = @user_id",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert!(current.is_empty());
+    let unfriend_history = db.execute(
+        "SELECT type FROM usrself_friend_log_history WHERE user_id = @user_id AND type = 'Unfriend'",
+        &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+    )?;
+    assert_eq!(unfriend_history.len(), 1);
     Ok(())
 }
 

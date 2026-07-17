@@ -15,5 +15,6 @@ pub mod realtime;
 pub mod registry_backup;
 pub mod share_collection;
 pub mod social_baseline;
+pub mod social_mutation;
 pub mod telemetry;
 pub mod vr_overlay;

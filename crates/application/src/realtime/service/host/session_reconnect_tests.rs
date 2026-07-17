@@ -149,6 +149,7 @@ fn passive_reconnect_resumes_stream_without_refetching_roster() -> Result<()> {
             .into_iter()
             .collect(),
             feed_entries: Vec::new(),
+            projection: FriendProjection::default(),
         });
     }
 

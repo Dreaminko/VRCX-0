@@ -4,16 +4,18 @@ const mocks = vi.hoisted(() => ({
     queryNotifications: vi.fn(),
     expireNotification: vi.fn(),
     hideRemoteNotification: vi.fn(),
-    acceptFriendRequest: vi.fn(),
     sendNotificationResponse: vi.fn(),
     sendInviteResponse: vi.fn(),
     sendInviteResponsePhoto: vi.fn(),
-    registerFriendLogExplicitAddIntent: vi.fn(),
-    recordFriendLogFriendByUserId: vi.fn(),
+    appSocialFriendRequestAccept: vi.fn(),
     sendBoopToUser: vi.fn(),
-    sendInviteToLocation: vi.fn(),
-    notifyMenu: vi.fn(),
-    clearFriendLogAddIntent: vi.fn()
+    sendInviteToLocation: vi.fn()
+}));
+
+vi.mock('@/platform/tauri/bindings', () => ({
+    commands: {
+        appSocialFriendRequestAccept: mocks.appSocialFriendRequestAccept
+    }
 }));
 
 vi.mock('@/repositories/notificationPersistenceRepository', () => ({
@@ -21,23 +23,10 @@ vi.mock('@/repositories/notificationPersistenceRepository', () => ({
         queryNotifications: mocks.queryNotifications,
         expireNotification: mocks.expireNotification,
         hideRemoteNotification: mocks.hideRemoteNotification,
-        acceptFriendRequest: mocks.acceptFriendRequest,
         sendNotificationResponse: mocks.sendNotificationResponse,
         sendInviteResponse: mocks.sendInviteResponse,
         sendInviteResponsePhoto: mocks.sendInviteResponsePhoto
     }
-}));
-
-vi.mock('@/state/shellStore', () => ({
-    useShellStore: {
-        getState: () => ({ notifyMenu: mocks.notifyMenu })
-    }
-}));
-
-vi.mock('./friendBootstrapService', () => ({
-    registerFriendLogExplicitAddIntent:
-        mocks.registerFriendLogExplicitAddIntent,
-    recordFriendLogFriendByUserId: mocks.recordFriendLogFriendByUserId
 }));
 
 vi.mock('./inviteDeliveryService', () => ({
@@ -68,15 +57,12 @@ describe('notificationActionService', () => {
         mocks.queryNotifications.mockResolvedValue([]);
         mocks.expireNotification.mockResolvedValue(undefined);
         mocks.hideRemoteNotification.mockResolvedValue(undefined);
-        mocks.acceptFriendRequest.mockResolvedValue(undefined);
         mocks.sendNotificationResponse.mockResolvedValue(undefined);
         mocks.sendInviteResponse.mockResolvedValue(undefined);
         mocks.sendInviteResponsePhoto.mockResolvedValue(undefined);
-        mocks.registerFriendLogExplicitAddIntent.mockReturnValue(
-            mocks.clearFriendLogAddIntent
-        );
-        mocks.recordFriendLogFriendByUserId.mockResolvedValue({
-            historyCount: 0
+        mocks.appSocialFriendRequestAccept.mockResolvedValue({
+            status: 'applied',
+            targetUserId: 'usr_sender'
         });
         mocks.sendBoopToUser.mockResolvedValue(undefined);
         mocks.sendInviteToLocation.mockResolvedValue(undefined);
@@ -240,61 +226,40 @@ describe('notificationActionService', () => {
         }
     );
 
-    it('accepts a friend request, records friend history, notifies the menu, and expires it', async () => {
-        const accepted = deferred<void>();
-        const recorded = deferred<{ historyCount: number }>();
-        mocks.acceptFriendRequest.mockReturnValue(accepted.promise);
-        mocks.recordFriendLogFriendByUserId.mockResolvedValue({
-            historyCount: 1
-        });
-        mocks.recordFriendLogFriendByUserId.mockReturnValue(recorded.promise);
+    it('accepts a friend request through the backend command and expires the notification', async () => {
+        const accepted = deferred<{ status: string; targetUserId: string }>();
+        mocks.appSocialFriendRequestAccept.mockReturnValue(accepted.promise);
         const { acceptFriendRequestNotification } =
             await import('./notificationActionService');
 
         const action = acceptFriendRequestNotification({
             currentUserId: 'usr_self',
             endpoint,
-            notification,
-            stateBucket: 'online'
+            notification
         });
 
-        expect(mocks.recordFriendLogFriendByUserId).not.toHaveBeenCalled();
         expect(mocks.expireNotification).not.toHaveBeenCalled();
-        accepted.resolve();
-        await vi.waitFor(() =>
-            expect(mocks.recordFriendLogFriendByUserId).toHaveBeenCalledTimes(1)
-        );
-        expect(mocks.expireNotification).not.toHaveBeenCalled();
-        recorded.resolve({ historyCount: 1 });
-        await expect(action).resolves.toEqual({ status: 'accepted' });
+        accepted.resolve({ status: 'applied', targetUserId: 'usr_sender' });
+        await expect(action).resolves.toEqual({
+            status: 'accepted',
+            outcome: { status: 'applied', targetUserId: 'usr_sender' }
+        });
 
-        expect(mocks.registerFriendLogExplicitAddIntent).toHaveBeenCalledWith({
-            currentUserId: 'usr_self',
-            targetUserId: 'usr_sender'
-        });
-        expect(mocks.acceptFriendRequest).toHaveBeenCalledWith({
-            id: 'notif_target',
-            endpoint
-        });
-        expect(mocks.recordFriendLogFriendByUserId).toHaveBeenCalledWith({
-            currentUserId: 'usr_self',
+        expect(mocks.appSocialFriendRequestAccept).toHaveBeenCalledWith({
+            ownerUserId: 'usr_self',
+            endpoint,
+            notificationId: 'notif_target',
             targetUserId: 'usr_sender',
-            targetUser: {
-                id: 'usr_sender',
-                displayName: 'Sender'
-            },
-            stateBucket: 'online'
+            targetDisplayName: 'Sender'
         });
-        expect(mocks.notifyMenu).toHaveBeenCalledWith('friend-log');
         expect(mocks.expireNotification).toHaveBeenCalledWith({
             userId: 'usr_self',
             id: 'notif_target'
         });
-        expect(mocks.clearFriendLogAddIntent).not.toHaveBeenCalled();
     });
 
     it('treats a missing remote friend request as resolved locally', async () => {
-        mocks.acceptFriendRequest.mockRejectedValue(
+        mocks.appSocialFriendRequestAccept.mockRejectedValue(
             Object.assign(new Error('not found'), { status: 404 })
         );
         const { acceptFriendRequestNotification } =
@@ -308,18 +273,16 @@ describe('notificationActionService', () => {
             })
         ).resolves.toEqual({ status: 'not-found' });
 
-        expect(mocks.clearFriendLogAddIntent).toHaveBeenCalledTimes(1);
-        expect(mocks.recordFriendLogFriendByUserId).not.toHaveBeenCalled();
         expect(mocks.expireNotification).toHaveBeenCalledWith({
             userId: 'usr_self',
             id: 'notif_target'
         });
     });
 
-    it('keeps a successful accept when friend log recording fails', async () => {
-        const logError = new Error('log failed');
-        mocks.recordFriendLogFriendByUserId.mockRejectedValue(logError);
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('treats a backend (404) fallback message as resolved locally', async () => {
+        mocks.appSocialFriendRequestAccept.mockRejectedValue(
+            new Error('VRChat social mutation request failed (404)')
+        );
         const { acceptFriendRequestNotification } =
             await import('./notificationActionService');
 
@@ -329,18 +292,41 @@ describe('notificationActionService', () => {
                 endpoint,
                 notification
             })
-        ).resolves.toEqual({ status: 'accepted' });
+        ).resolves.toEqual({ status: 'not-found' });
 
-        expect(mocks.clearFriendLogAddIntent).toHaveBeenCalledTimes(1);
-        expect(warn).toHaveBeenCalledWith(
-            'Friend log add recording failed:',
-            logError
-        );
         expect(mocks.expireNotification).toHaveBeenCalledWith({
             userId: 'usr_self',
             id: 'notif_target'
         });
-        warn.mockRestore();
+    });
+
+    it('reports a remote-ok-local-failed outcome without swallowing it', async () => {
+        mocks.appSocialFriendRequestAccept.mockResolvedValue({
+            status: 'remoteOkLocalFailed',
+            targetUserId: 'usr_sender',
+            localError: 'database failed'
+        });
+        const { acceptFriendRequestNotification } =
+            await import('./notificationActionService');
+
+        await expect(
+            acceptFriendRequestNotification({
+                currentUserId: 'usr_self',
+                endpoint,
+                notification
+            })
+        ).resolves.toEqual({
+            status: 'accepted',
+            outcome: {
+                status: 'remoteOkLocalFailed',
+                targetUserId: 'usr_sender',
+                localError: 'database failed'
+            }
+        });
+        expect(mocks.expireNotification).toHaveBeenCalledWith({
+            userId: 'usr_self',
+            id: 'notif_target'
+        });
     });
 
     it('rejects invalid action input before crossing repository or delivery boundaries', async () => {

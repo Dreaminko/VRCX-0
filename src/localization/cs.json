@@ -3269,7 +3269,7 @@
                 "search_worlds": "Hledat světy",
                 "search_favorite_worlds": "Hledat oblíbené světy",
                 "search_avatars": "Hledat avatary",
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "Odebráno z přátel. Obnovte stránku, abyste viděli aktuální stav."
+                "unfriend_was_not_sent_because_the_active_account_changed": "Unfriend wasn't sent because the active account changed. Refresh and try again."
             },
             "loading": {
                 "loading_activity": "Načítání aktivity...",
@@ -3351,6 +3351,7 @@
                 "failed_to_update_discord_connections_setting": "Nepodařilo se aktualizovat nastavení propojení s Discordem",
                 "failed_to_update_badge": "Nepodařilo se aktualizovat odznak",
                 "failed_to_unfriend_user": "Nepodařilo se odebrat uživatele z přátel",
+                "applied_on_vrchat_but_local_update_failed": "Applied on VRChat, but the local update failed.",
                 "friend_request_accepted": "Žádost o přátelství přijata",
                 "friend_request_sent": "Žádost o přátelství odeslána",
                 "friend_request_declined": "Žádost o přátelství odmítnuta",

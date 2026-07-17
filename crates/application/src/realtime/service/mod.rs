@@ -2,5 +2,5 @@ mod host;
 
 pub use host::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, RealtimeHostRuntime,
-    RealtimeHostRuntimeDeps, RealtimeStopRequest,
+    RealtimeHostRuntimeDeps, RealtimeStopRequest, SyntheticFriendEventOutcome,
 };

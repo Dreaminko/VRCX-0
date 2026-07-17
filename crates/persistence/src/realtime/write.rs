@@ -58,7 +58,10 @@ pub fn write_realtime_batch(
             counts.add_realtime_rows(delete_friend_log_current(tx, &user_prefix, entry)?);
         }
         for entry in &batch.feed_entries {
-            if entry_string(entry, "type") == "TrustLevel" {
+            if matches!(
+                entry_string(entry, "type").as_str(),
+                "TrustLevel" | "Friend" | "Unfriend"
+            ) {
                 continue;
             }
             counts.add_realtime_rows(insert_feed_entry(tx, &user_prefix, entry)?);

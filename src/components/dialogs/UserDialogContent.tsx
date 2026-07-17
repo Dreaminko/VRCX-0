@@ -328,7 +328,6 @@ export function UserDialogContent({
     } = useUserDialogActions({
         actionStatusRef,
         activeUserTargetRef,
-        applyFriendPatch,
         avatarOverrideState,
         canInviteFromCurrentLocation,
         confirm,

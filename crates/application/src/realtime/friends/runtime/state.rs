@@ -1,6 +1,6 @@
 use super::event_patch::{
     apply_friend_event, apply_patch_to_state, apply_refetched_friend_profile_event,
-    is_friend_event_type, record_to_value,
+    apply_trusted_friend_add_event, is_friend_event_type, record_to_value,
 };
 use super::persistence::{is_online_state, offline_feed_entry};
 use super::projection::state_bucket_from_patch;
@@ -358,6 +358,29 @@ impl RealtimeFriendsRuntime {
         &self,
         payload: &RealtimeWsMessagePayload,
     ) -> RealtimeFriendApplyResult {
+        self.apply_friend_message(payload, None, false)
+    }
+
+    pub(crate) fn apply_scoped_synthetic_message(
+        &self,
+        expected_owner_user_id: &str,
+        expected_endpoint: &str,
+        payload: &RealtimeWsMessagePayload,
+        trust_friend_add_profile_state: bool,
+    ) -> RealtimeFriendApplyResult {
+        self.apply_friend_message(
+            payload,
+            Some((expected_owner_user_id, expected_endpoint)),
+            trust_friend_add_profile_state,
+        )
+    }
+
+    fn apply_friend_message(
+        &self,
+        payload: &RealtimeWsMessagePayload,
+        expected_scope: Option<(&str, &str)>,
+        trust_friend_add_profile_state: bool,
+    ) -> RealtimeFriendApplyResult {
         let Some(message_type) = payload.json.get("type").and_then(Value::as_str) else {
             return RealtimeFriendApplyResult::Ignored;
         };
@@ -367,10 +390,22 @@ impl RealtimeFriendsRuntime {
         let content = payload.json.get("content").unwrap_or(&Value::Null);
         let now = EventTime::from_received_at(&payload.received_at);
         let mut state = self.lock_state();
-        if state.baseline.is_none() {
+        let Some(baseline) = state.baseline.as_ref() else {
+            return RealtimeFriendApplyResult::MissingBaseline;
+        };
+        if expected_scope.is_some_and(|(expected_owner_user_id, expected_endpoint)| {
+            baseline.current_user_id != expected_owner_user_id.trim()
+                || normalize_vrchat_api_endpoint(Some(&baseline.endpoint))
+                    != normalize_vrchat_api_endpoint(Some(expected_endpoint))
+        }) {
             return RealtimeFriendApplyResult::MissingBaseline;
         }
-        let Some(output) = apply_friend_event(&mut state, message_type, content, &now) else {
+        let output = if trust_friend_add_profile_state && message_type == "friend-add" {
+            apply_trusted_friend_add_event(&mut state, content, &now)
+        } else {
+            apply_friend_event(&mut state, message_type, content, &now)
+        };
+        let Some(output) = output else {
             return RealtimeFriendApplyResult::Ignored;
         };
         record_output_friend_state_sequence(&mut state, &output);

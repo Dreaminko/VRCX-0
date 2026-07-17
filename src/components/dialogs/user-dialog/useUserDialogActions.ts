@@ -10,9 +10,12 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
-import vrchatFriendRepository from '@/repositories/vrchatFriendRepository';
+import {
+    commands,
+    type SocialFriendMutationOutcome
+} from '@/platform/tauri/bindings';
 import vrchatToolsRepository from '@/repositories/vrchatToolsRepository';
-import { recordFriendRequestHistory } from '@/services/friendLogMutationService';
+import { signalFriendLogChanged } from '@/services/friendLogMutationService';
 import friendRelationshipService from '@/services/friendRelationshipService';
 import { sendBoopToUser } from '@/services/inviteDeliveryService';
 import {
@@ -23,7 +26,6 @@ import {
     hideRemoteAndExpireNotification
 } from '@/services/notificationActionService';
 import { recordRecentAction } from '@/services/recentActionService';
-import { useFriendRosterStore } from '@/state/friendRosterStore';
 
 import { normalizeUserId } from './userProfileFields';
 import type {
@@ -50,9 +52,6 @@ type Confirm = (options: Record<string, unknown>) => Promise<{ ok: boolean }>;
 type UseUserDialogActionsProps = {
     actionStatusRef: MutableRefObject<string>;
     activeUserTargetRef: RefObject<{ userId: string; endpoint?: string }>;
-    applyFriendPatch: ReturnType<
-        typeof useFriendRosterStore.getState
-    >['applyFriendPatch'];
     avatarOverrideState: AvatarOverrideState;
     canInviteFromCurrentLocation: boolean;
     confirm: Confirm;
@@ -81,7 +80,6 @@ type UseUserDialogActionsProps = {
 export function useUserDialogActions({
     actionStatusRef,
     activeUserTargetRef,
-    applyFriendPatch,
     avatarOverrideState,
     canInviteFromCurrentLocation,
     confirm,
@@ -192,7 +190,7 @@ export function useUserDialogActions({
             if (deleteResult.stale) {
                 toast.info(
                     t(
-                        'dialog.user.action.unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated'
+                        'dialog.user.action.unfriend_was_not_sent_because_the_active_account_changed'
                     )
                 );
             } else {
@@ -205,11 +203,19 @@ export function useUserDialogActions({
                           }
                         : currentProfile
                 );
-                toast.success(
-                    t('dialog.user.dynamic.unfriended_value', {
-                        value: friend?.displayName || rosterUserId
-                    })
-                );
+                if (deleteResult.localError) {
+                    toast.warning(
+                        t(
+                            'dialog.user.toast.applied_on_vrchat_but_local_update_failed'
+                        )
+                    );
+                } else {
+                    toast.success(
+                        t('dialog.user.dynamic.unfriended_value', {
+                            value: friend?.displayName || rosterUserId
+                        })
+                    );
+                }
             }
         } catch (error) {
             toast.error(
@@ -310,17 +316,13 @@ export function useUserDialogActions({
                     );
                     return;
                 }
-                let response = null;
+                let mutationOutcome: SocialFriendMutationOutcome | null = null;
                 if (action === 'accept') {
                     const acceptResult = await acceptFriendRequestNotification({
                         currentUserId,
                         endpoint: requestEndpoint,
                         notification: incomingNotification,
-                        targetUser: requestProfile,
-                        stateBucket:
-                            requestProfile?.stateBucket ||
-                            requestProfile?.state ||
-                            'offline'
+                        targetUser: requestProfile
                     });
                     if (acceptResult.status === 'not-found') {
                         if (
@@ -339,21 +341,20 @@ export function useUserDialogActions({
                         );
                         return;
                     }
+                    mutationOutcome = acceptResult.outcome;
                 } else {
-                    response = await vrchatFriendRepository.sendFriendRequest({
-                        userId: rosterUserId,
-                        endpoint: requestEndpoint
-                    });
-                    await recordFriendRequestHistory({
-                        currentUserId: normalizedCurrentUserId,
-                        targetUserId: rosterUserId,
-                        displayName: requestProfile?.displayName,
-                        type: 'FriendRequest'
-                    });
+                    mutationOutcome = await commands.appSocialFriendRequestSend(
+                        {
+                            ownerUserId: normalizedCurrentUserId,
+                            endpoint: requestEndpoint,
+                            targetUserId: rosterUserId,
+                            targetDisplayName: requestProfile?.displayName || ''
+                        }
+                    );
                 }
-                const isNowFriend = incomingNotification
-                    ? true
-                    : Boolean(response?.json?.success);
+                signalFriendLogChanged();
+
+                const isNowFriend = action === 'accept';
                 if (
                     !commitFriendRequestPatch({
                         isFriend: isNowFriend,
@@ -364,31 +365,22 @@ export function useUserDialogActions({
                 ) {
                     return;
                 }
-                if (isNowFriend) {
-                    applyFriendPatch({
-                        userId: rosterUserId,
-                        patch: {
-                            ...requestProfile,
-                            id: rosterUserId,
-                            isFriend: true,
-                            friendRequestStatus: '',
-                            incomingRequest: false,
-                            outgoingRequest: false
-                        },
-                        stateBucket:
-                            requestProfile?.stateBucket ||
-                            requestProfile?.state ||
-                            'offline'
-                    });
-                }
                 if (action === 'send') {
                     recordRecentAction(rosterUserId, 'Send Friend Request');
                 }
-                toast.success(
-                    isNowFriend
-                        ? t('dialog.user.toast.friend_request_accepted')
-                        : t('dialog.user.toast.friend_request_sent')
-                );
+                if (mutationOutcome?.status === 'remoteOkLocalFailed') {
+                    toast.warning(
+                        t(
+                            'dialog.user.toast.applied_on_vrchat_but_local_update_failed'
+                        )
+                    );
+                } else {
+                    toast.success(
+                        isNowFriend
+                            ? t('dialog.user.toast.friend_request_accepted')
+                            : t('dialog.user.toast.friend_request_sent')
+                    );
+                }
             } else {
                 incomingNotification =
                     action === 'decline'
@@ -414,6 +406,7 @@ export function useUserDialogActions({
                     );
                     return;
                 }
+                let cancelOutcome: SocialFriendMutationOutcome | null = null;
                 if (incomingNotification) {
                     await hideRemoteAndExpireNotification({
                         currentUserId,
@@ -421,16 +414,15 @@ export function useUserDialogActions({
                         notification: incomingNotification
                     });
                 } else {
-                    await vrchatFriendRepository.cancelFriendRequest({
-                        userId: rosterUserId,
-                        endpoint: requestEndpoint
-                    });
-                    await recordFriendRequestHistory({
-                        currentUserId: normalizedCurrentUserId,
-                        targetUserId: rosterUserId,
-                        displayName: requestProfile?.displayName,
-                        type: 'CancelFriendRequest'
-                    });
+                    cancelOutcome = await commands.appSocialFriendRequestCancel(
+                        {
+                            ownerUserId: normalizedCurrentUserId,
+                            endpoint: requestEndpoint,
+                            targetUserId: rosterUserId,
+                            targetDisplayName: requestProfile?.displayName || ''
+                        }
+                    );
+                    signalFriendLogChanged();
                 }
                 if (
                     !commitFriendRequestPatch({
@@ -441,11 +433,19 @@ export function useUserDialogActions({
                 ) {
                     return;
                 }
-                toast.success(
-                    action === 'decline'
-                        ? t('dialog.user.toast.friend_request_declined')
-                        : t('dialog.user.toast.friend_request_cancelled')
-                );
+                if (cancelOutcome?.status === 'remoteOkLocalFailed') {
+                    toast.warning(
+                        t(
+                            'dialog.user.toast.applied_on_vrchat_but_local_update_failed'
+                        )
+                    );
+                } else {
+                    toast.success(
+                        action === 'decline'
+                            ? t('dialog.user.toast.friend_request_declined')
+                            : t('dialog.user.toast.friend_request_cancelled')
+                    );
+                }
             }
         } catch (error) {
             const errorRecord =

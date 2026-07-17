@@ -1,10 +1,13 @@
 import { commands } from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
+import { createRequestError } from '@/repositories/vrchatRequest';
+import { normalizeVrchatEndpointKey } from '@/shared/vrchatEndpoint';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
+import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
 import {
     applyFriendProfileLoadStatusPayload,
     isFriendProfileLoadTerminalStatus
@@ -43,6 +46,37 @@ import type {
 } from './runtime-event-bridge/types';
 
 type RuntimeEventUnsubscribe = () => void;
+
+async function handleRuntimeVrchatAuthFailureEvent(
+    failure: RuntimeEventPayloadMap['runtimeVrchatAuthFailure']
+): Promise<void> {
+    if (failure.statusCode !== 401) {
+        return;
+    }
+    const authScope = await commands
+        .appRuntimeAuthScopeGet()
+        .catch((error: unknown) => {
+            console.warn('Failed to verify VRChat auth failure scope:', error);
+            return null;
+        });
+    if (
+        !authScope?.active ||
+        authScope.currentUserId !== failure.ownerUserId.trim() ||
+        normalizeVrchatEndpointKey(authScope.endpoint) !==
+            normalizeVrchatEndpointKey(failure.endpoint) ||
+        authScope.generation !== failure.authScopeGeneration
+    ) {
+        return;
+    }
+    void handleRuntimeAuthFailure(
+        createRequestError(
+            failure.reason,
+            failure.statusCode,
+            failure.path,
+            failure
+        )
+    );
+}
 
 function handleRuntimeEvent(
     name: RuntimeEventName,
@@ -153,6 +187,13 @@ function handleRuntimeEvent(
         return;
     }
 
+    if (name === 'runtimeVrchatAuthFailure') {
+        void handleRuntimeVrchatAuthFailureEvent(
+            payload as RuntimeEventPayloadMap['runtimeVrchatAuthFailure']
+        );
+        return;
+    }
+
     if (name === 'updateIsGameRunning') {
         handleUpdateIsGameRunning(
             payload as RuntimeEventPayloadMap['updateIsGameRunning']
@@ -183,6 +224,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'friendProfileLoadStatus',
         'gameClientEvent',
         'runtimeWorkerError',
+        'runtimeVrchatAuthFailure',
         'realtimeFriendProjection',
         'realtimeUserProjection',
         'realtimeEntryCorrection',

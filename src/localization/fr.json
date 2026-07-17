@@ -3267,7 +3267,7 @@
                 "search_worlds": "Rechercher des mondes",
                 "search_favorite_worlds": "Rechercher des mondes favoris",
                 "search_avatars": "Rechercher des avatars",
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "Retiré de vos amis. Actualisez pour afficher le statut le plus récent."
+                "unfriend_was_not_sent_because_the_active_account_changed": "Unfriend wasn't sent because the active account changed. Refresh and try again."
             },
             "loading": {
                 "loading_activity": "Chargement de l'activité...",
@@ -3349,6 +3349,7 @@
                 "failed_to_update_discord_connections_setting": "Échec de la mise à jour du paramètre des connexions Discord",
                 "failed_to_update_badge": "Échec de la mise à jour du badge",
                 "failed_to_unfriend_user": "Échec de la suppression de l'ami",
+                "applied_on_vrchat_but_local_update_failed": "Applied on VRChat, but the local update failed.",
                 "friend_request_accepted": "Demande d'ami acceptée",
                 "friend_request_sent": "Demande d'ami envoyée",
                 "friend_request_declined": "Demande d'ami refusée",

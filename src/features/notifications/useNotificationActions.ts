@@ -15,6 +15,7 @@ import {
     convertFileUrlToImageUrl,
     openExternalLink
 } from '@/services/entityMediaService';
+import { signalFriendLogChanged } from '@/services/friendLogMutationService';
 import {
     acceptFriendRequestNotification,
     acceptRequestInviteNotification,
@@ -253,9 +254,18 @@ export function useNotificationActions({
                 if (acceptResult.status === 'not-found') {
                     return;
                 }
-                toast.success(
-                    t('view.notification.success.friend_request_accepted')
-                );
+                signalFriendLogChanged();
+                if (acceptResult.outcome.status === 'remoteOkLocalFailed') {
+                    toast.warning(
+                        t(
+                            'dialog.user.toast.applied_on_vrchat_but_local_update_failed'
+                        )
+                    );
+                } else {
+                    toast.success(
+                        t('view.notification.success.friend_request_accepted')
+                    );
+                }
             } catch (error) {
                 toast.error(
                     error instanceof Error

@@ -119,7 +119,8 @@ mod tests {
                         "userId": "usr_added",
                         "user": {
                             "id": "usr_added",
-                            "displayName": "Added Friend"
+                            "displayName": "Added Friend",
+                            "state": "online"
                         }
                     }
                 }),
@@ -136,6 +137,7 @@ mod tests {
             output.persistence.feed_entries[0]["displayName"],
             "Added Friend"
         );
+        assert_eq!(output.projection.patches[0].state_bucket, "offline");
     }
 
     #[test]

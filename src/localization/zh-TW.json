@@ -3267,7 +3267,7 @@
                 "search_worlds": "搜尋世界",
                 "search_favorite_worlds": "搜尋收藏的世界",
                 "search_avatars": "搜尋角色",
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "已傳送解除好友請求，但本機狀態更新前活動工作階段已變更"
+                "unfriend_was_not_sent_because_the_active_account_changed": "由於目前登入帳號已變更，解除好友請求未送出。請重新整理後再試一次。"
             },
             "loading": {
                 "loading_activity": "正在載入活動",
@@ -3349,6 +3349,7 @@
                 "failed_to_update_discord_connections_setting": "更新 Discord 連線設定失敗",
                 "failed_to_update_badge": "更新徽章失敗",
                 "failed_to_unfriend_user": "解除用戶的好友關係失敗",
+                "applied_on_vrchat_but_local_update_failed": "已在 VRChat 上生效，但本機更新失敗。",
                 "friend_request_accepted": "好友請求已接受",
                 "friend_request_sent": "好友請求已傳送",
                 "friend_request_declined": "好友請求已拒絕",

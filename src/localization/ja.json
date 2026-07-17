@@ -3262,7 +3262,7 @@
                 "search_worlds": "ワールドを検索",
                 "search_favorite_worlds": "お気に入りワールドを検索",
                 "search_avatars": "アバターを検索",
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "フレンドを解除しました。最新の状態を確認するには更新してください"
+                "unfriend_was_not_sent_because_the_active_account_changed": "Unfriend wasn't sent because the active account changed. Refresh and try again."
             },
             "loading": {
                 "loading_activity": "活動を読み込み中",
@@ -3344,6 +3344,7 @@
                 "failed_to_update_discord_connections_setting": "Discord 接続設定を更新できませんでした",
                 "failed_to_update_badge": "バッジを更新できませんでした",
                 "failed_to_unfriend_user": "ユーザーのフレンド解除に失敗しました",
+                "applied_on_vrchat_but_local_update_failed": "Applied on VRChat, but the local update failed.",
                 "friend_request_accepted": "フレンド申請を承認しました",
                 "friend_request_sent": "フレンド申請を送信しました",
                 "friend_request_declined": "フレンド申請を辞退しました",

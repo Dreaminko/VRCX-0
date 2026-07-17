@@ -1037,7 +1037,10 @@
                 "header": "JSON"
             },
             "action": {
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "Đã hủy kết bạn. Hãy làm mới để xem trạng thái mới nhất."
+                "unfriend_was_not_sent_because_the_active_account_changed": "Unfriend wasn't sent because the active account changed. Refresh and try again."
+            },
+            "toast": {
+                "applied_on_vrchat_but_local_update_failed": "Applied on VRChat, but the local update failed."
             }
         },
         "world": {

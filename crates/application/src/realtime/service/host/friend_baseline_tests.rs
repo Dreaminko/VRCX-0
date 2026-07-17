@@ -545,7 +545,7 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
     )?;
 
     assert!(outcome.result.accepted);
-    assert!(outcome.friend_log_changed);
+    assert!(!outcome.friend_log_changed);
     assert!(!outcome
         .snapshot
         .expect("canonical friend snapshot")
@@ -659,8 +659,8 @@ fn reconcile_records_display_name_change_for_existing_friend() -> Result<()> {
     .into_iter()
     .collect();
 
-    assert!(reconcile_friend_roster_records(&db, "usr_self", &friends_by_id).changed);
-    assert!(!reconcile_friend_roster_records(&db, "usr_self", &friends_by_id).changed);
+    assert!(reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None).changed);
+    assert!(!reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None).changed);
 
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
     assert_eq!(current.len(), 1);
@@ -716,14 +716,14 @@ fn reconcile_records_and_projects_trust_only_change_once() -> Result<()> {
     .into_iter()
     .collect();
 
-    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id);
+    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
     assert!(outcome.changed);
     assert_eq!(outcome.feed_entries.len(), 1);
     assert_eq!(outcome.feed_entries[0]["type"], "TrustLevel");
     assert_eq!(outcome.feed_entries[0]["trustLevel"], "Trusted User");
     assert_eq!(outcome.feed_entries[0]["previousTrustLevel"], "Known User");
     assert_eq!(outcome.feed_entries[0]["friendNumber"], 7);
-    assert!(!reconcile_friend_roster_records(&db, "usr_self", &friends_by_id).changed);
+    assert!(!reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None).changed);
 
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
     assert_eq!(current[0].trust_level, "Trusted User");
@@ -775,7 +775,7 @@ fn reconcile_updates_legacy_equivalent_trust_without_history_or_feed() -> Result
     .into_iter()
     .collect();
 
-    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id);
+    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
 
     assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
@@ -794,26 +794,44 @@ fn reconcile_updates_legacy_equivalent_trust_without_history_or_feed() -> Result
 }
 
 #[test]
-fn first_friend_log_initialization_does_not_create_history_or_feed() -> Result<()> {
+fn first_time_baseline_init_fills_current_roster_without_history_or_feed() -> Result<()> {
     let dir = TestDir::new("reconcile-first-init");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
-    let friends_by_id = [(
-        "usr_friend".to_string(),
-        FriendRecord {
-            id: "usr_friend".into(),
-            display_name: "Friend".into(),
-            extra: [("$trustLevel".into(), json!("Trusted User"))]
-                .into_iter()
-                .collect(),
-            ..FriendRecord::default()
-        },
-    )]
+    let friends_by_id: HashMap<String, FriendRecord> = [
+        (
+            "usr_a_friend".to_string(),
+            FriendRecord {
+                id: "usr_a_friend".into(),
+                display_name: "A Friend".into(),
+                extra: [("$trustLevel".into(), json!("Trusted User"))]
+                    .into_iter()
+                    .collect(),
+                ..FriendRecord::default()
+            },
+        ),
+        (
+            "usr_b_friend".to_string(),
+            FriendRecord {
+                id: "usr_b_friend".into(),
+                display_name: "B Friend".into(),
+                ..FriendRecord::default()
+            },
+        ),
+    ]
     .into_iter()
     .collect();
 
-    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id);
+    assert!(!config_store::get_bool(
+        &db,
+        "friendLogInit_usr_self",
+        false
+    )?);
 
-    assert!(!outcome.changed);
+    let roster_order = ["usr_b_friend".to_string(), "usr_a_friend".to_string()];
+    let outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, Some(&roster_order));
+
+    assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
     assert!(vrcx_0_persistence::friends::friend_log_history_query(
         &db,
@@ -824,6 +842,97 @@ fn first_friend_log_initialization_does_not_create_history_or_feed() -> Result<(
         },
     )?
     .is_empty());
+
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current.len(), 2);
+    assert_eq!(current[0].user_id, "usr_b_friend");
+    assert_eq!(current[0].friend_number, 1);
+    assert_eq!(current[1].user_id, "usr_a_friend");
+    assert_eq!(current[1].friend_number, 2);
+    assert_eq!(current[1].trust_level, "Trusted User");
+    assert!(config_store::get_bool(
+        &db,
+        "friendLogInit_usr_self",
+        false
+    )?);
+    Ok(())
+}
+
+#[test]
+fn first_time_baseline_init_failure_leaves_flag_unset_for_retry() -> Result<()> {
+    let dir = TestDir::new("reconcile-first-init-failure");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let friends_by_id: HashMap<String, FriendRecord> = [(
+        "usr_friend".to_string(),
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect();
+
+    let failed_outcome = reconcile_friend_roster_records(&db, "usr!self", &friends_by_id, None);
+    assert!(!failed_outcome.changed);
+    assert!(!config_store::get_bool(
+        &db,
+        "friendLogInit_usr!self",
+        false
+    )?);
+
+    let retried_outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
+    assert!(retried_outcome.changed);
+    assert!(config_store::get_bool(
+        &db,
+        "friendLogInit_usr_self",
+        false
+    )?);
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn first_time_init_treats_friend_accepted_during_init_window_as_preexisting() -> Result<()> {
+    let dir = TestDir::new("reconcile-first-init-race");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let friends_by_id: HashMap<String, FriendRecord> = [
+        (
+            "usr_established".to_string(),
+            FriendRecord {
+                id: "usr_established".into(),
+                display_name: "Established".into(),
+                ..FriendRecord::default()
+            },
+        ),
+        (
+            "usr_just_accepted".to_string(),
+            FriendRecord {
+                id: "usr_just_accepted".into(),
+                display_name: "JustAccepted".into(),
+                ..FriendRecord::default()
+            },
+        ),
+    ]
+    .into_iter()
+    .collect();
+
+    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
+
+    assert!(outcome.changed);
+    assert!(outcome.feed_entries.is_empty());
+    let history = vrcx_0_persistence::friends::friend_log_history_query(
+        &db,
+        vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
+            user_id: "usr_self".into(),
+            target_user_id: "usr_just_accepted".into(),
+            types: vec!["Friend".into()],
+        },
+    )?;
+    assert!(history.is_empty());
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current.len(), 2);
     Ok(())
 }
 

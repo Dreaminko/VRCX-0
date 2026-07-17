@@ -187,11 +187,19 @@ export function useFriendListRowActions({
                     next.delete(normalizedUserId);
                     return next;
                 });
-                toast.success(
-                    t('view.friends.dynamic.unfriended_value', {
-                        value: friend.displayName || normalizedUserId
-                    })
-                );
+                if (result.localError) {
+                    toast.warning(
+                        t(
+                            'dialog.user.toast.applied_on_vrchat_but_local_update_failed'
+                        )
+                    );
+                } else {
+                    toast.success(
+                        t('view.friends.dynamic.unfriended_value', {
+                            value: friend.displayName || normalizedUserId
+                        })
+                    );
+                }
             }
             return {
                 ...result,

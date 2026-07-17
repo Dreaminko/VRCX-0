@@ -2,8 +2,11 @@ use super::*;
 use vrcx_0_core::trust::{
     compute_trust_level, compute_user_platform, trust_level_changed, trust_level_differs,
 };
-use vrcx_0_persistence::config::get_bool as config_get_bool;
-use vrcx_0_persistence::friends::friend_log_current_list;
+use vrcx_0_persistence::config::{get_bool as config_get_bool, set_bool as config_set_bool};
+use vrcx_0_persistence::friends::{
+    friend_log_current_list, friend_log_replace_current, FriendLogCurrentEntryInput,
+    FriendLogReplaceOptionsInput,
+};
 use vrcx_0_persistence::realtime::{
     write_realtime_batch, FriendLogDelete, FriendLogUpsert, RealtimePersistenceBatch,
 };

@@ -59,6 +59,23 @@ pub(super) fn apply_refetched_friend_profile_event(
     )
 }
 
+pub(super) fn apply_trusted_friend_add_event(
+    state: &mut RealtimeFriendState,
+    content: &Value,
+    now: &EventTime,
+) -> Option<RealtimeFriendOutput> {
+    apply_friend_event_with_options(
+        state,
+        "friend-add",
+        content,
+        now,
+        FriendEventOptions {
+            emit_profile_diff_feed: false,
+            trust_event_state: true,
+        },
+    )
+}
+
 #[derive(Clone, Copy)]
 struct FriendEventOptions {
     emit_profile_diff_feed: bool,
@@ -93,8 +110,13 @@ fn apply_friend_event_with_options(
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let previous = get_friend_value(state, &user_id);
             normalize_patch_trust(&mut patch, previous.as_ref());
-            let state_bucket =
-                resolve_state_bucket(content, &patch, previous.as_ref(), false, "offline");
+            let state_bucket = resolve_state_bucket(
+                content,
+                &patch,
+                previous.as_ref(),
+                options.trust_event_state,
+                "offline",
+            );
             let already_friend = previous.is_some();
             output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
             apply_patch_to_state(

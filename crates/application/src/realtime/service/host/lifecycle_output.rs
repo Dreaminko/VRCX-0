@@ -51,7 +51,7 @@ impl RealtimeHostRuntime {
         self: &Arc<Self>,
         _owner: &FriendOwnerGuard<'_>,
         mut output: RealtimeFriendOutput,
-    ) {
+    ) -> bool {
         let timer_action = output.timer_action.clone();
         let profile_refetch_user_ids = output.profile_refetch_user_ids.clone();
         let mut projection = output.projection.clone();
@@ -59,7 +59,7 @@ impl RealtimeHostRuntime {
         if !self.is_friend_projection_current(&projection) {
             self.friends
                 .clear_baseline_if_revision(projection.generation, projection.baseline_revision);
-            return;
+            return false;
         }
         self.retain_current_instance_joining_entries(&mut projection, &output.owner_user_id);
         let friend_note_changed = output.friend_note_changed;
@@ -67,24 +67,27 @@ impl RealtimeHostRuntime {
             self.enrich_projection_world_names(&mut projection.feed_entries);
         world_name_fetch_ids.extend(self.enrich_persistence_world_names(&mut output.persistence));
         let persistence_attempted = !output.persistence.is_empty();
-        match write_realtime_batch(&self.deps.db, &output.owner_user_id, &output.persistence) {
-            Ok(counts) => {
-                self.deps.sync.record(
-                    "realtimeFriends",
-                    "persisted",
-                    "Realtime friend projection persisted by Rust.",
-                    0,
-                );
-                self.emit_realtime_persisted(counts, persistence_attempted);
-            }
-            Err(error) => {
-                tracing::warn!("Realtime friend persistence failed: {error}");
-                self.deps
-                    .sync
-                    .record_failure("realtimeFriends", error.to_string());
-                projection.feed_entries.clear();
-            }
-        }
+        let persisted =
+            match write_realtime_batch(&self.deps.db, &output.owner_user_id, &output.persistence) {
+                Ok(counts) => {
+                    self.deps.sync.record(
+                        "realtimeFriends",
+                        "persisted",
+                        "Realtime friend projection persisted by Rust.",
+                        0,
+                    );
+                    self.emit_realtime_persisted(counts, persistence_attempted);
+                    true
+                }
+                Err(error) => {
+                    tracing::warn!("Realtime friend persistence failed: {error}");
+                    self.deps
+                        .sync
+                        .record_failure("realtimeFriends", error.to_string());
+                    projection.feed_entries.clear();
+                    false
+                }
+            };
         self.deps
             .overlay_activity
             .ingest_friend_projection(&projection);
@@ -133,6 +136,7 @@ impl RealtimeHostRuntime {
         }
         self.schedule_friend_profile_refetches(projection_generation, profile_refetch_user_ids);
         self.schedule_world_name_warm(world_name_fetch_ids);
+        persisted
     }
 
     fn retain_current_instance_joining_entries(

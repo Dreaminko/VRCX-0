@@ -8,6 +8,7 @@ use vrcx_0_core::friends::{normalize_state_bucket, FriendRecord, FriendRosterBas
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use vrcx_0_core::trust::{compute_trust_level, trust_level_changed, trust_level_differs};
 use vrcx_0_persistence::realtime::{FriendLogDelete, FriendLogUpsert};
+use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
 use super::super::{
     FriendBaselineCausalWatermark, FriendBaselineResult, FriendProjection, FriendProjectionPatch,

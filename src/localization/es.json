@@ -3267,7 +3267,7 @@
                 "search_worlds": "Buscar mundos",
                 "search_favorite_worlds": "Buscar mundos favoritos",
                 "search_avatars": "Buscar avatares",
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "Se eliminó de tus amigos. Actualiza para ver el estado más reciente."
+                "unfriend_was_not_sent_because_the_active_account_changed": "Unfriend wasn't sent because the active account changed. Refresh and try again."
             },
             "loading": {
                 "loading_activity": "Cargando actividad...",
@@ -3349,6 +3349,7 @@
                 "failed_to_update_discord_connections_setting": "No se pudo actualizar el ajuste de conexiones de Discord",
                 "failed_to_update_badge": "No se pudo actualizar la insignia",
                 "failed_to_unfriend_user": "No se pudo eliminar al usuario de tus amigos",
+                "applied_on_vrchat_but_local_update_failed": "Applied on VRChat, but the local update failed.",
                 "friend_request_accepted": "Solicitud de amistad aceptada",
                 "friend_request_sent": "Solicitud de amistad enviada",
                 "friend_request_declined": "Solicitud de amistad rechazada",

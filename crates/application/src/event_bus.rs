@@ -27,6 +27,17 @@ pub struct FavoritesChangedPayload {
     pub remote: bool,
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeVrchatAuthFailurePayload {
+    pub owner_user_id: String,
+    pub endpoint: String,
+    pub path: String,
+    pub reason: String,
+    pub status_code: i32,
+    pub auth_scope_generation: u64,
+}
+
 #[cfg(any(test, feature = "test-utils"))]
 #[derive(Clone, Debug)]
 pub struct RuntimeEventForTest {
@@ -164,6 +175,10 @@ impl RuntimeEventBus {
 
     pub fn emit_realtime_ws_status(&self, payload: RealtimeWsStatusPayload) {
         self.emit("realtimeWsStatus", payload);
+    }
+
+    pub fn emit_runtime_vrchat_auth_failure(&self, payload: RuntimeVrchatAuthFailurePayload) {
+        self.emit("runtimeVrchatAuthFailure", payload);
     }
 
     pub fn emit_backend_runtime_telemetry(&self, payload: Value) {

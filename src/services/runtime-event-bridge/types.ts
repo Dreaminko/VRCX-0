@@ -27,6 +27,7 @@ export type RuntimeEventName =
     | 'gameLogSideEffect'
     | 'gameClientEvent'
     | 'runtimeWorkerError'
+    | 'runtimeVrchatAuthFailure'
     | 'runtimeGroupInstancesProjection'
     | 'overlayActivitySnapshot'
     | 'printsAutoCleanup'
@@ -67,6 +68,15 @@ export type RuntimeGroupInstancesProjection = {
     groupOrder?: string[];
 };
 
+export type RuntimeVrchatAuthFailurePayload = {
+    ownerUserId: string;
+    endpoint: string;
+    path: string;
+    reason: string;
+    statusCode: number;
+    authScopeGeneration: number;
+};
+
 export type RuntimeEventPayloadMap = {
     addGameLogEvent: unknown;
     backendRuntimeTelemetry: BackendRuntimeTelemetry;
@@ -75,6 +85,7 @@ export type RuntimeEventPayloadMap = {
     gameLogSideEffect: unknown;
     gameClientEvent: unknown;
     runtimeWorkerError: unknown;
+    runtimeVrchatAuthFailure: RuntimeVrchatAuthFailurePayload;
     runtimeGroupInstancesProjection: RuntimeGroupInstancesProjection;
     overlayActivitySnapshot: OverlayActivitySnapshot;
     printsAutoCleanup: PrintAutoCleanupEvent;

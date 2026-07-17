@@ -3267,7 +3267,7 @@
                 "search_worlds": "搜索世界",
                 "search_favorite_worlds": "搜索收藏的世界",
                 "search_avatars": "搜索模型",
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "删除好友请求已发送，但更新本地状态前登录账号已切换，本地状态可能未同步"
+                "unfriend_was_not_sent_because_the_active_account_changed": "由于当前登录账号已切换，解除好友请求未发送。请刷新后重试。"
             },
             "loading": {
                 "loading_activity": "正在加载活动",
@@ -3349,6 +3349,7 @@
                 "failed_to_update_discord_connections_setting": "更新 Discord 连接设置失败",
                 "failed_to_update_badge": "更新徽章失败",
                 "failed_to_unfriend_user": "解除用户的好友关系失败",
+                "applied_on_vrchat_but_local_update_failed": "已在 VRChat 上生效，但本地更新失败。",
                 "friend_request_accepted": "好友请求已接受",
                 "friend_request_sent": "好友请求已发送",
                 "friend_request_declined": "好友请求已拒绝",

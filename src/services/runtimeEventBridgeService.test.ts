@@ -27,9 +27,11 @@ const mocks = vi.hoisted(() => ({
     runtimeGroupInstancesRefresh: vi.fn<() => Promise<null>>(),
     appCheckGameRunning: vi.fn<() => Promise<null>>(),
     profileBackupCurrentStatus: vi.fn(),
+    runtimeAuthScopeGet: vi.fn(),
     bindDeepLinkEvents: vi.fn<() => Promise<() => void>>(),
     drainPendingDeepLinks: vi.fn<() => Promise<void>>(),
     deepLinkUnsubscribe: vi.fn(),
+    handleRuntimeAuthFailure: vi.fn(),
     resumeFrontendSessionFromBackendRuntime:
         vi.fn<(snapshot: unknown) => Promise<boolean>>()
 }));
@@ -39,6 +41,7 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appCheckGameRunning: mocks.appCheckGameRunning,
         appProfileBackupCurrentStatus: mocks.profileBackupCurrentStatus,
         appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
+        appRuntimeAuthScopeGet: mocks.runtimeAuthScopeGet,
         appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh
     }
 }));
@@ -87,6 +90,10 @@ vi.mock('./backendRuntimeSessionResumeService', () => ({
 vi.mock('./deepLinkService', () => ({
     bindDeepLinkEvents: mocks.bindDeepLinkEvents,
     drainPendingDeepLinks: mocks.drainPendingDeepLinks
+}));
+
+vi.mock('./authSessionRecoveryService', () => ({
+    handleRuntimeAuthFailure: mocks.handleRuntimeAuthFailure
 }));
 
 import { useFriendRosterStore } from '@/state/friendRosterStore';
@@ -204,9 +211,53 @@ describe('runtimeEventBridgeService', () => {
             error: null,
             lastOutcome: null
         });
+        mocks.runtimeAuthScopeGet.mockResolvedValue({
+            currentUserId: 'usr_owner',
+            endpoint: 'https://api.vrchat.cloud/api/1',
+            generation: 7,
+            active: true
+        });
         mocks.bindDeepLinkEvents.mockResolvedValue(mocks.deepLinkUnsubscribe);
         mocks.drainPendingDeepLinks.mockResolvedValue(undefined);
         mocks.resumeFrontendSessionFromBackendRuntime.mockResolvedValue(false);
+    });
+
+    it('routes only current-scope structured VRChat 401 events to auth recovery', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        setBackendRealtimeOwner();
+        const handler = handlers.get('runtimeVrchatAuthFailure');
+        expect(handler).toBeTypeOf('function');
+
+        handler?.({
+            ownerUserId: 'usr_owner',
+            endpoint: 'https://api.vrchat.cloud/api/1/',
+            path: 'user/usr_target/friendRequest',
+            reason: 'Missing Credentials (401)',
+            statusCode: 401,
+            authScopeGeneration: 7
+        });
+
+        await vi.waitFor(() => {
+            expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledTimes(1);
+        });
+        expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'Missing Credentials (401)',
+                status: 401,
+                endpoint: 'user/usr_target/friendRequest'
+            })
+        );
+
+        handler?.({
+            ownerUserId: 'usr_owner',
+            endpoint: 'https://api.vrchat.cloud/api/1',
+            path: 'user/usr_target/friendRequest',
+            reason: 'Missing Credentials (401)',
+            statusCode: 401,
+            authScopeGeneration: 6
+        });
+        await Promise.resolve();
+        expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledTimes(1);
     });
 
     it('drains pending deep links after backend runtime snapshot hydration', async () => {
@@ -291,7 +342,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(23);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(24);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});

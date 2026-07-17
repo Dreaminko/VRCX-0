@@ -3269,7 +3269,7 @@
                 "search_worlds": "Поиски миров",
                 "search_favorite_worlds": "Поиск избранных миров",
                 "search_avatars": "Поиск аватаров",
-                "unfriend_request_sent_but_the_active_session_changed_before_local_state_was_updated": "Пользователь удалён из друзей. Обновите данные, чтобы увидеть актуальный статус."
+                "unfriend_was_not_sent_because_the_active_account_changed": "Unfriend wasn't sent because the active account changed. Refresh and try again."
             },
             "loading": {
                 "loading_activity": "Загрузка...",
@@ -3351,6 +3351,7 @@
                 "failed_to_update_discord_connections_setting": "Не удалось обновить настройку подключений Discord",
                 "failed_to_update_badge": "Ошибка обновления значка",
                 "failed_to_unfriend_user": "Не удалось удалить пользователя из друзей",
+                "applied_on_vrchat_but_local_update_failed": "Applied on VRChat, but the local update failed.",
                 "friend_request_accepted": "Запрос друга принят",
                 "friend_request_sent": "Направлено запрос друга",
                 "friend_request_declined": "Запрос друга отклонен",

@@ -31,5 +31,5 @@ pub use runtime_types::{
 };
 pub use service::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, RealtimeHostRuntime,
-    RealtimeHostRuntimeDeps, RealtimeStopRequest,
+    RealtimeHostRuntimeDeps, RealtimeStopRequest, SyntheticFriendEventOutcome,
 };

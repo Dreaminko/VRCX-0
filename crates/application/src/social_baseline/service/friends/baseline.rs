@@ -164,7 +164,8 @@ async fn build_friend_roster_baseline_inner(
         friend_log_changed: false,
     };
     if reconcile_friend_log {
-        output.friend_log_changed = reconcile_friend_roster_baseline(&deps, &output);
+        output.friend_log_changed =
+            reconcile_friend_roster_baseline(&deps, &output, Some(&expected_ids));
     }
     Ok(output)
 }
@@ -172,6 +173,7 @@ async fn build_friend_roster_baseline_inner(
 fn reconcile_friend_roster_baseline(
     deps: &SocialBaselineDeps,
     output: &SocialFriendRosterBaselineOutput,
+    roster_order: Option<&[String]>,
 ) -> bool {
     if output.stale {
         return false;
@@ -187,7 +189,13 @@ fn reconcile_friend_roster_baseline(
         tracing::warn!("Friend roster baseline friendsById decode failed during reconciliation");
         return false;
     };
-    reconcile_friend_roster_records(deps.db.as_ref(), &output.user_id, &friends_by_id).changed
+    reconcile_friend_roster_records(
+        deps.db.as_ref(),
+        &output.user_id,
+        &friends_by_id,
+        roster_order,
+    )
+    .changed
 }
 
 fn replace_friend_roster_baseline_snapshot(
@@ -224,15 +232,89 @@ pub(crate) struct FriendRosterReconcileOutcome {
     pub(crate) feed_entries: Vec<Value>,
 }
 
+fn init_friend_roster_records(
+    db: &DatabaseService,
+    user_id: &str,
+    friends_by_id: &HashMap<String, FriendRecord>,
+    roster_order: Option<&[String]>,
+) -> FriendRosterReconcileOutcome {
+    let mut ordered_friend_ids: Vec<&String> = friends_by_id
+        .keys()
+        .filter(|friend_id| friend_id.as_str() != user_id)
+        .collect();
+    match roster_order {
+        Some(order) => {
+            let position: HashMap<&str, usize> = order
+                .iter()
+                .enumerate()
+                .map(|(index, friend_id)| (friend_id.as_str(), index))
+                .collect();
+            ordered_friend_ids.sort_by(|left, right| {
+                match (position.get(left.as_str()), position.get(right.as_str())) {
+                    (Some(left_position), Some(right_position)) => {
+                        left_position.cmp(right_position)
+                    }
+                    (Some(_), None) => Ordering::Less,
+                    (None, Some(_)) => Ordering::Greater,
+                    (None, None) => left.cmp(right),
+                }
+            });
+        }
+        None => ordered_friend_ids.sort(),
+    }
+
+    let entries: Vec<FriendLogCurrentEntryInput> = ordered_friend_ids
+        .into_iter()
+        .enumerate()
+        .map(|(index, friend_id)| {
+            let entry = &friends_by_id[friend_id];
+            let trust_level = entry
+                .extra
+                .get("$trustLevel")
+                .or_else(|| entry.extra.get("trustLevel"))
+                .map(value_as_string)
+                .unwrap_or_default();
+            FriendLogCurrentEntryInput {
+                user_id: friend_id.clone(),
+                display_name: entry.display_name.clone(),
+                trust_level: Some(trust_level),
+                friend_number: Value::from((index + 1) as i64),
+            }
+        })
+        .collect();
+
+    match friend_log_replace_current(
+        db,
+        user_id.to_string(),
+        entries,
+        FriendLogReplaceOptionsInput::default(),
+    ) {
+        Ok(_) => {
+            if let Err(error) = config_set_bool(db, &format!("friendLogInit_{user_id}"), true) {
+                tracing::warn!("friend-log first-time init flag write failed: {error}");
+            }
+            FriendRosterReconcileOutcome {
+                changed: true,
+                feed_entries: Vec::new(),
+            }
+        }
+        Err(error) => {
+            tracing::warn!("friend-log first-time initialization failed: {error}");
+            FriendRosterReconcileOutcome::default()
+        }
+    }
+}
+
 pub(crate) fn reconcile_friend_roster_records(
     db: &DatabaseService,
     user_id: &str,
     friends_by_id: &HashMap<String, FriendRecord>,
+    roster_order: Option<&[String]>,
 ) -> FriendRosterReconcileOutcome {
     let initialized =
         config_get_bool(db, &format!("friendLogInit_{user_id}"), false).unwrap_or(false);
     if !initialized {
-        return FriendRosterReconcileOutcome::default();
+        return init_friend_roster_records(db, user_id, friends_by_id, roster_order);
     }
 
     let existing = match friend_log_current_list(db, user_id.to_string()) {

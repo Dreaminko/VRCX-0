@@ -1,4 +1,4 @@
-use super::types::PendingFriendBaseline;
+use super::types::{PendingFriendBaseline, RealtimeHostRuntimeState};
 use super::*;
 
 impl RealtimeHostRuntime {
@@ -25,11 +25,20 @@ impl RealtimeHostRuntime {
         &self,
         mutation: impl FnOnce() -> std::result::Result<T, E>,
     ) -> std::result::Result<T, E> {
+        self.run_friend_log_current_mutation_with_state(mutation, |_| {})
+    }
+
+    pub(super) fn run_friend_log_current_mutation_with_state<T, E>(
+        &self,
+        mutation: impl FnOnce() -> std::result::Result<T, E>,
+        on_success: impl FnOnce(&mut RealtimeHostRuntimeState),
+    ) -> std::result::Result<T, E> {
         let _owner = self.lock_friend_owner();
         let result = mutation();
         if result.is_ok() {
             let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
             state.friend_log_sequence = state.friend_log_sequence.saturating_add(1);
+            on_success(&mut state);
         }
         result
     }
@@ -142,6 +151,7 @@ impl RealtimeHostRuntime {
                     session: requested_session.clone(),
                     friends_by_id,
                     feed_entries: Vec::new(),
+                    projection: FriendProjection::default(),
                 });
                 drop(state);
                 self.deps.sync.record(
@@ -154,10 +164,13 @@ impl RealtimeHostRuntime {
                     .overlay_activity
                     .set_friend_user_ids(pending_snapshot.friends_by_id.keys().cloned());
                 let reconcile_outcome = if reconcile_friend_log {
+                    let roster_order =
+                        roster_order_from_friend_records(&pending_snapshot.friends_by_id);
                     reconcile_friend_roster_records(
                         self.deps.db.as_ref(),
                         &pending_snapshot.current_user_id,
                         &pending_snapshot.friends_by_id,
+                        roster_order.as_deref(),
                     )
                 } else {
                     FriendRosterReconcileOutcome::default()
@@ -306,10 +319,12 @@ impl RealtimeHostRuntime {
             canonical_snapshot
                 .as_ref()
                 .map(|snapshot| {
+                    let roster_order = roster_order_from_friend_records(&snapshot.friends_by_id);
                     reconcile_friend_roster_records(
                         self.deps.db.as_ref(),
                         &snapshot.current_user_id,
                         &snapshot.friends_by_id,
+                        roster_order.as_deref(),
                     )
                 })
                 .unwrap_or_default()
@@ -488,4 +503,25 @@ fn friend_record_state_bucket(record: &FriendRecord) -> String {
     vrcx_0_core::friends::normalize_state_bucket(&record.state_bucket)
         .or_else(|| vrcx_0_core::friends::normalize_state_bucket(&record.state))
         .unwrap_or_else(|| "offline".to_string())
+}
+
+fn roster_order_from_friend_records(
+    friends_by_id: &HashMap<String, FriendRecord>,
+) -> Option<Vec<String>> {
+    let mut numbered: Vec<(i64, String)> = friends_by_id
+        .iter()
+        .filter_map(|(user_id, record)| {
+            let number = record
+                .extra
+                .get("friendNumber")
+                .or_else(|| record.extra.get("$friendNumber"))
+                .and_then(Value::as_i64)?;
+            (number > 0).then(|| (number, user_id.clone()))
+        })
+        .collect();
+    if numbered.is_empty() {
+        return None;
+    }
+    numbered.sort_by_key(|(number, _)| *number);
+    Some(numbered.into_iter().map(|(_, user_id)| user_id).collect())
 }
