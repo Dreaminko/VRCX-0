@@ -386,6 +386,16 @@ export const commands = {
             playbookMode
         });
     },
+    async appLlmEndpointFollowCustomProxy(): Promise<boolean> {
+        return await TAURI_INVOKE('app__llm_endpoint_follow_custom_proxy');
+    },
+    async appLlmEndpointSetFollowCustomProxy(
+        enabled: boolean
+    ): Promise<boolean> {
+        return await TAURI_INVOKE('app__llm_endpoint_set_follow_custom_proxy', {
+            enabled
+        });
+    },
     async appLlmEndpointList(): Promise<LlmEndpointDto[]> {
         return await TAURI_INVOKE('app__llm_endpoint_list');
     },

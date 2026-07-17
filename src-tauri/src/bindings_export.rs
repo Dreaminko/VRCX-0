@@ -121,6 +121,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::assistant::app__assistant_runtime_status,
             commands::application::assistant::app__assistant_set_session_runtime,
             commands::application::assistant::app__assistant_set_default_runtime,
+            commands::application::llm_endpoint::app__llm_endpoint_follow_custom_proxy,
+            commands::application::llm_endpoint::app__llm_endpoint_set_follow_custom_proxy,
             commands::application::llm_endpoint::app__llm_endpoint_list,
             commands::application::llm_endpoint::app__llm_endpoint_upsert,
             commands::application::llm_endpoint::app__llm_endpoint_delete,

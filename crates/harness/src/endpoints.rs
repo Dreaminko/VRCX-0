@@ -16,6 +16,7 @@ use crate::error::HarnessError;
 use crate::session::random_hex;
 
 const LLM_ENDPOINTS_CONFIG_KEY: &str = "llm.endpoints";
+const LLM_FOLLOW_CUSTOM_PROXY_CONFIG_KEY: &str = "llm.followCustomProxy";
 const ASSISTANT_LAST_SELECTION_CONFIG_KEY: &str = "assistant.lastSelection";
 const LEGACY_MIGRATION_DONE_KEY: &str = "llm.endpoints.legacyMigrated";
 const TRANSLATION_ENDPOINT_ID_CONFIG_KEY: &str = "translationEndpointId";
@@ -117,15 +118,17 @@ impl Default for AssistantRuntimeSelection {
 #[derive(Clone)]
 pub struct EndpointStore {
     config: ConfigRepository,
+    custom_proxy_url: Option<String>,
     // Serializes read-modify-write of the endpoints blob across concurrent writers.
     write_lock: Arc<Mutex<()>>,
     migrated: Arc<AtomicBool>,
 }
 
 impl EndpointStore {
-    pub fn new(config: ConfigRepository) -> Self {
+    pub fn new(config: ConfigRepository, custom_proxy_url: Option<String>) -> Self {
         Self {
             config,
+            custom_proxy_url,
             write_lock: Arc::new(Mutex::new(())),
             migrated: Arc::new(AtomicBool::new(false)),
         }
@@ -225,7 +228,7 @@ impl EndpointStore {
     ) -> Result<Vec<String>, HarnessError> {
         self.ensure_migrated()?;
         let resolved = self.resolve_detect_target(&input)?;
-        let client = LlmClient::new(&resolved.base_url, &resolved.api_key, "");
+        let client = self.llm_client(&resolved.base_url, &resolved.api_key, "")?;
         let models = normalize_models(client.list_models().await?);
 
         if input.persist.unwrap_or(true) {
@@ -269,6 +272,12 @@ impl EndpointStore {
         })
     }
 
+    pub fn set_follow_custom_proxy(&self, enabled: bool) -> Result<bool, HarnessError> {
+        self.config
+            .set_bool(LLM_FOLLOW_CUSTOM_PROXY_CONFIG_KEY, enabled)?;
+        Ok(enabled)
+    }
+
     pub fn last_selection(&self) -> Result<AssistantRuntimeSelection, HarnessError> {
         self.ensure_migrated()?;
         self.read_last_selection_raw()
@@ -308,10 +317,33 @@ impl EndpointStore {
             .unwrap_or_else(|| {
                 DEFAULT_TRANSLATION_SYSTEM_PROMPT.replace("{targetLang}", &input.target_lang)
             });
-        let client = LlmClient::new(endpoint.base_url, endpoint.api_key, model);
+        let client = self.llm_client(&endpoint.base_url, &endpoint.api_key, model)?;
         Ok(client
             .complete_chat(&[ChatMessage::system(prompt), ChatMessage::user(input.text)])
             .await?)
+    }
+
+    pub(crate) fn llm_client(
+        &self,
+        base_url: &str,
+        api_key: &str,
+        model: &str,
+    ) -> Result<LlmClient, HarnessError> {
+        LlmClient::new(base_url, api_key, model, self.explicit_proxy_url()?)
+            .map_err(HarnessError::from)
+    }
+
+    pub fn follow_custom_proxy(&self) -> Result<bool, HarnessError> {
+        self.config
+            .get_bool(LLM_FOLLOW_CUSTOM_PROXY_CONFIG_KEY, true)
+            .map_err(HarnessError::from)
+    }
+
+    fn explicit_proxy_url(&self) -> Result<Option<&str>, HarnessError> {
+        if self.follow_custom_proxy()? {
+            return Ok(self.custom_proxy_url.as_deref());
+        }
+        Ok(None)
     }
 
     fn resolve_detect_target(
@@ -607,8 +639,32 @@ mod tests {
     }
 
     #[test]
+    fn custom_proxy_following_defaults_on_and_persists_globally() {
+        let config = test_config();
+        let proxy_url = "http://127.0.0.1:7890";
+        let store = EndpointStore::new(config.clone(), Some(proxy_url.into()));
+
+        assert!(store.follow_custom_proxy().unwrap());
+        assert_eq!(store.explicit_proxy_url().unwrap(), Some(proxy_url));
+        assert!(!store.set_follow_custom_proxy(false).unwrap());
+        assert_eq!(store.explicit_proxy_url().unwrap(), None);
+
+        let reloaded = EndpointStore::new(config, Some(proxy_url.into()));
+        assert!(!reloaded.follow_custom_proxy().unwrap());
+        assert_eq!(reloaded.explicit_proxy_url().unwrap(), None);
+    }
+
+    #[test]
+    fn custom_proxy_following_without_active_proxy_uses_system_behavior() {
+        let store = EndpointStore::new(test_config(), None);
+
+        assert!(store.follow_custom_proxy().unwrap());
+        assert_eq!(store.explicit_proxy_url().unwrap(), None);
+    }
+
+    #[test]
     fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
-        let store = EndpointStore::new(test_config());
+        let store = EndpointStore::new(test_config(), None);
         let saved = store
             .upsert(LlmEndpointUpsertInput {
                 id: None,
@@ -686,7 +742,7 @@ mod tests {
             .set_string(TRANSLATION_API_MODEL_CONFIG_KEY, "gpt-4o-mini")
             .unwrap();
 
-        let store = EndpointStore::new(config.clone());
+        let store = EndpointStore::new(config.clone(), None);
         let endpoints = store.list().unwrap();
         assert_eq!(endpoints.len(), 1);
         assert_eq!(endpoints[0].base_url, "https://api.openai.com/v1");
@@ -713,7 +769,7 @@ mod tests {
             .set_string(ASSISTANT_MODEL_CONFIG_KEY, "gpt-4o-mini")
             .unwrap();
 
-        let store = EndpointStore::new(config);
+        let store = EndpointStore::new(config, None);
         let migrated = store.list().unwrap();
         assert_eq!(migrated.len(), 1);
 
@@ -725,7 +781,7 @@ mod tests {
     #[test]
     fn delete_clears_last_selection_and_falls_back_translation_endpoint() {
         let config = test_config();
-        let store = EndpointStore::new(config.clone());
+        let store = EndpointStore::new(config.clone(), None);
         let first = store
             .upsert(LlmEndpointUpsertInput {
                 id: None,
