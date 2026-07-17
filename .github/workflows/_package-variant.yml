@@ -1,29 +1,46 @@
-name: Package Dev Kit
+name: Package Variant
 
 on:
-    workflow_run:
-        workflows: ['Package']
-        types:
-            - completed
-    workflow_dispatch:
-
-concurrency:
-    group: ${{ github.ref }}-package-devkit
-    cancel-in-progress: true
+    workflow_call:
+        inputs:
+            variant:
+                description: Package variant (preview or devkit).
+                required: true
+                type: string
 
 permissions:
     contents: read
 
 jobs:
     prepare:
-        name: Prepare Dev Kit metadata
+        name: Prepare Package Metadata
         runs-on: ubuntu-24.04
-        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         outputs:
+            build_script: ${{ steps.metadata.outputs.build_script }}
+            display_name: ${{ steps.metadata.outputs.display_name }}
             timestamp: ${{ steps.timestamp.outputs.timestamp }}
         steps:
+            - id: metadata
+              name: Resolve package variant
+              env:
+                  PACKAGE_VARIANT: ${{ inputs.variant }}
+              run: |
+                  case "$PACKAGE_VARIANT" in
+                      preview)
+                          echo "build_script=tauri:build:devtools" >> "$GITHUB_OUTPUT"
+                          echo "display_name=Preview" >> "$GITHUB_OUTPUT"
+                          ;;
+                      devkit)
+                          echo "build_script=tauri:build:devkit" >> "$GITHUB_OUTPUT"
+                          echo "display_name=Dev Kit" >> "$GITHUB_OUTPUT"
+                          ;;
+                      *)
+                          echo "Unknown package variant: $PACKAGE_VARIANT" >&2
+                          exit 1
+                          ;;
+                  esac
             - id: timestamp
-              name: Generate Dev Kit timestamp
+              name: Generate package timestamp
               run: |
                   node <<'NODE'
                   const fs = require('node:fs');
@@ -42,13 +59,13 @@ jobs:
                           parts[part.type] = part.value;
                           return parts;
                       }, {});
-                  const devKitTimestamp = `${timestampParts.year}${timestampParts.month}${timestampParts.day}-${timestampParts.hour}${timestampParts.minute}`;
+                  const timestamp = `${timestampParts.year}${timestampParts.month}${timestampParts.day}-${timestampParts.hour}${timestampParts.minute}`;
 
-                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `timestamp=${devKitTimestamp}\n`);
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `timestamp=${timestamp}\n`);
                   NODE
 
     package:
-        name: Dev Kit ${{ matrix.platform }}
+        name: ${{ needs.prepare.outputs.display_name }} ${{ matrix.platform }}
         needs: prepare
         runs-on: ${{ matrix.os }}
         defaults:
@@ -61,19 +78,15 @@ jobs:
                     - platform: windows_x86_64
                       os: windows-latest
                       rust_target: ''
-                      output: VRCX-0_${version}_devkit_windows_x86_64.exe
                     - platform: linux_x86_64
                       os: ubuntu-24.04
                       rust_target: ''
-                      output: VRCX-0_${version}_devkit_linux_x86_64.AppImage
                     - platform: macos_aarch64
                       os: macos-latest
                       rust_target: aarch64-apple-darwin
-                      output: VRCX-0_${version}_devkit_macos_aarch64.dmg
                     - platform: macos_x86_64
                       os: macos-latest
                       rust_target: x86_64-apple-darwin
-                      output: VRCX-0_${version}_devkit_macos_x86_64.dmg
         steps:
             - uses: actions/checkout@v7
               with:
@@ -85,68 +98,45 @@ jobs:
               if: matrix.rust_target != ''
               run: rustup target add "${{ matrix.rust_target }}"
 
-            - uses: actions/setup-node@v6
-              with:
-                  node-version: 24.x
-                  cache: npm
+            - uses: ./.github/actions/setup-node
 
-            - name: Install Linux dependencies
+            - uses: ./.github/actions/setup-linux-tauri
               if: runner.os == 'Linux'
-              run: |
-                  webkitgtk_version="2.44.0-2"
-
-                  sudo apt-get update
-                  sudo apt-get install -y --no-install-recommends \
-                      build-essential \
-                      curl \
-                      file \
-                      libayatana-appindicator3-dev \
-                      libssl-dev \
-                      libxdo-dev \
-                      librsvg2-dev \
-                      patchelf \
-                      rpm \
-                      wget
-                  sudo apt-get install -y --no-install-recommends \
-                      libgtk-3-dev \
-                      libwebkit2gtk-4.1-0="$webkitgtk_version" \
-                      libwebkit2gtk-4.1-dev="$webkitgtk_version" \
-                      libjavascriptcoregtk-4.1-0="$webkitgtk_version" \
-                      libjavascriptcoregtk-4.1-dev="$webkitgtk_version" \
-                      gir1.2-javascriptcoregtk-4.1="$webkitgtk_version" \
-                      gir1.2-webkit2-4.1="$webkitgtk_version"
-
-            - run: npm ci
+              with:
+                  mode: package
 
             - id: version
               name: Read package version
               run: |
                   version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
-
                   if [[ -z "$version" ]]; then
                       echo "Missing package version." >&2
                       exit 1
                   fi
-
                   echo "version=$version" >> "$GITHUB_OUTPUT"
 
             - name: Validate package version
+              if: inputs.variant == 'devkit'
               run: |
                   node scripts/prepare-release-version.ts \
                       --version "${{ steps.version.outputs.version }}" \
                       --dry-run
 
             - id: config
-              name: Prepare Dev Kit config
+              name: Prepare package config
+              env:
+                  MATRIX_PLATFORM: ${{ matrix.platform }}
+                  PACKAGE_VARIANT: ${{ inputs.variant }}
               run: |
                   node <<'NODE'
                   const fs = require('node:fs');
 
                   const platform = process.env.MATRIX_PLATFORM;
                   const runnerOs = process.env.RUNNER_OS;
+                  const variant = process.env.PACKAGE_VARIANT;
                   const tauriConfigPath = 'src-tauri/tauri.conf.json';
                   const linuxConfigPath = 'src-tauri/tauri.linux.conf.json';
-                  const outputConfigPath = `src-tauri/tauri.devkit.${platform}.conf.json`;
+                  const outputConfigPath = `src-tauri/tauri.${variant}.${platform}.conf.json`;
 
                   const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
                   let config = structuredClone(tauriConfig);
@@ -176,59 +166,81 @@ jobs:
                   fs.writeFileSync(outputConfigPath, `${JSON.stringify(config, null, 4)}\n`);
                   fs.appendFileSync(process.env.GITHUB_OUTPUT, `config=${outputConfigPath}\n`);
                   NODE
-              env:
-                  MATRIX_PLATFORM: ${{ matrix.platform }}
 
-            - name: Build Windows Dev Kit exe
+            - name: Build Windows package
               if: runner.os == 'Windows'
               env:
-                  VRCX_0_BUILD_LABEL: devkit
-                  VRCX_0_BUILD_BADGE: Dev Kit ${{ needs.prepare.outputs.timestamp }}
+                  BUILD_SCRIPT: ${{ needs.prepare.outputs.build_script }}
+                  PACKAGE_VARIANT: ${{ inputs.variant }}
+                  VRCX_0_BUILD_LABEL: ${{ inputs.variant }}
+                  VRCX_0_BUILD_BADGE: ${{ needs.prepare.outputs.display_name }} ${{ needs.prepare.outputs.timestamp }}
               run: |
-                  npm run tauri:build:devkit -- \
-                      --config "${{ steps.config.outputs.config }}" \
-                      --no-sign \
+                  args=(
+                      --config "${{ steps.config.outputs.config }}"
+                      --no-sign
                       --no-bundle
+                  )
+                  if [[ "$PACKAGE_VARIANT" == "preview" ]]; then
+                      args=(--debug "${args[@]}")
+                  fi
+                  npm run "$BUILD_SCRIPT" -- "${args[@]}"
 
-            - name: Build Linux Dev Kit AppImage
+            - name: Build Linux AppImage
               if: runner.os == 'Linux'
               env:
-                  VRCX_0_BUILD_LABEL: devkit
-                  VRCX_0_BUILD_BADGE: Dev Kit ${{ needs.prepare.outputs.timestamp }}
+                  BUILD_SCRIPT: ${{ needs.prepare.outputs.build_script }}
+                  VRCX_0_BUILD_LABEL: ${{ inputs.variant }}
+                  VRCX_0_BUILD_BADGE: ${{ needs.prepare.outputs.display_name }} ${{ needs.prepare.outputs.timestamp }}
                   VRCX_0_WEBKIT_BUILD_TARGET: safari17
               run: |
-                  npm run tauri:build:devkit -- \
+                  npm run "$BUILD_SCRIPT" -- \
                       --config "${{ steps.config.outputs.config }}" \
                       --bundles appimage
 
-            - name: Build macOS Dev Kit DMG
+            - name: Build macOS DMG
               if: runner.os == 'macOS'
               env:
-                  VRCX_0_BUILD_LABEL: devkit
-                  VRCX_0_BUILD_BADGE: Dev Kit ${{ needs.prepare.outputs.timestamp }}
+                  BUILD_SCRIPT: ${{ needs.prepare.outputs.build_script }}
+                  VRCX_0_BUILD_LABEL: ${{ inputs.variant }}
+                  VRCX_0_BUILD_BADGE: ${{ needs.prepare.outputs.display_name }} ${{ needs.prepare.outputs.timestamp }}
                   VRCX_0_WEBKIT_BUILD_TARGET: safari18.2
               run: |
-                  npm run tauri:build:devkit -- \
+                  npm run "$BUILD_SCRIPT" -- \
                       --target "${{ matrix.rust_target }}" \
                       --config "${{ steps.config.outputs.config }}" \
                       --bundles dmg
 
-            - name: Collect Dev Kit artifact
+            - id: collect
+              name: Collect package artifact
+              env:
+                  PACKAGE_VARIANT: ${{ inputs.variant }}
               run: |
-                  mkdir -p devkit-assets
+                  mkdir -p package-assets
                   version="${{ steps.version.outputs.version }}"
-                  output="${{ matrix.output }}"
-                  output="${output//\$\{version\}/$version}"
+                  timestamp="${{ needs.prepare.outputs.timestamp }}"
+
+                  if [[ "$PACKAGE_VARIANT" == "preview" ]]; then
+                      stem="VRCX-0_${version}_preview_${timestamp}"
+                      artifact_name="preview-${{ matrix.platform }}-${version}-${timestamp}"
+                  else
+                      stem="VRCX-0_${version}_devkit"
+                      artifact_name="devkit-${{ matrix.platform }}-${version}"
+                  fi
 
                   case "${{ matrix.platform }}" in
                       windows_x86_64)
-                          cp target/release/vrcx-0.exe "devkit-assets/$output"
+                          if [[ "$PACKAGE_VARIANT" == "preview" ]]; then
+                              source="target/debug/vrcx-0.exe"
+                          else
+                              source="target/release/vrcx-0.exe"
+                          fi
+                          cp "$source" "package-assets/${stem}_windows_x86_64.exe"
                           ;;
                       linux_x86_64)
-                          cp target/release/bundle/appimage/*.AppImage "devkit-assets/$output"
+                          cp target/release/bundle/appimage/*.AppImage "package-assets/${stem}_linux_x86_64.AppImage"
                           ;;
                       macos_aarch64|macos_x86_64)
-                          cp "target/${{ matrix.rust_target }}/release/bundle/dmg/"*.dmg "devkit-assets/$output"
+                          cp "target/${{ matrix.rust_target }}/release/bundle/dmg/"*.dmg "package-assets/${stem}_${{ matrix.platform }}.dmg"
                           ;;
                       *)
                           echo "Unknown platform: ${{ matrix.platform }}" >&2
@@ -236,10 +248,11 @@ jobs:
                           ;;
                   esac
 
-                  ls -la devkit-assets
+                  echo "artifact_name=$artifact_name" >> "$GITHUB_OUTPUT"
+                  ls -la package-assets
 
             - uses: actions/upload-artifact@v7
               with:
-                  name: devkit-${{ matrix.platform }}-${{ steps.version.outputs.version }}
-                  path: devkit-assets/*
+                  name: ${{ steps.collect.outputs.artifact_name }}
+                  path: package-assets/*
                   if-no-files-found: error
