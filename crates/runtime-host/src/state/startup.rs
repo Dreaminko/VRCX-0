@@ -3,6 +3,7 @@ use super::*;
 impl RuntimeHostState {
     pub fn stop_backend_runtime(&self, reason: impl Into<String>) -> BackendRuntimeSnapshot {
         let reason = reason.into();
+        self.favorite_import.cancel();
         self.shared_collection_import.cancel();
         self.note_export.cancel();
         self.backend_runtime
@@ -59,6 +60,7 @@ impl RuntimeHostState {
         &self,
         reason: impl Into<String>,
     ) -> BackendRuntimeSnapshot {
+        self.favorite_import.cancel();
         self.shared_collection_import.cancel();
         self.note_export.cancel();
         self.clear_backend_frontend_session();

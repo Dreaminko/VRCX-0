@@ -54,6 +54,7 @@ pub struct RuntimeHostState {
     pub app_update: AppUpdateRuntime,
     pub host_file_access: HostFileAccess,
     pub screenshot_cache: MetadataCacheDb,
+    pub favorite_import: FavoriteImportRuntime,
     pub shared_collection_import: SharedCollectionImportRuntime,
     pub note_export: NoteExportRuntime,
 
@@ -348,6 +349,14 @@ impl RuntimeHostState {
             runtime_context.event_bus.clone(),
         ));
         let screenshot_cache = MetadataCacheDb::new(&paths.app_data.join("metadataCache.db"))?;
+        let favorite_import = FavoriteImportRuntime::new(
+            Arc::clone(&db),
+            Arc::clone(&web),
+            Arc::clone(&runtime_context.world_cache),
+            runtime_context.event_bus.clone(),
+            runtime_context.tasks.clone(),
+            runtime_context.auth_scope.clone(),
+        );
         let shared_collection_import = SharedCollectionImportRuntime::new(
             Arc::clone(&db),
             Arc::clone(&web),
@@ -396,6 +405,7 @@ impl RuntimeHostState {
             app_update,
             host_file_access,
             screenshot_cache,
+            favorite_import,
             shared_collection_import,
             note_export,
             auto_launch,

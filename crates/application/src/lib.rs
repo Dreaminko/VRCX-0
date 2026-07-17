@@ -6,12 +6,14 @@ mod authenticated_session_maintenance;
 mod backend_runtime;
 mod background;
 mod background_capabilities;
+mod batch_mutation;
 mod config;
 mod database_upgrade;
 mod database_upgrade_runtime;
 mod diagnostics;
 mod error;
 mod event_bus;
+mod favorite_import;
 mod favorite_transfer;
 mod game_client;
 mod game_log;
@@ -28,6 +30,7 @@ mod moderation_sync;
 mod mutual_graph_fetch;
 mod noninteractive_auth;
 mod note_export;
+mod notification_actions;
 mod overlay_activity;
 mod prints;
 mod process_monitor;
@@ -96,6 +99,12 @@ pub use background_capabilities::{
     BackgroundPresenceAutomationResult, BackgroundPresenceAutomationState, BackgroundPresenceFacts,
     BackgroundPresenceFactsInput, DiscordPresenceLabels, PresencePlayer,
 };
+pub use batch_mutation::{
+    run_avatar_content_tags_batch, run_group_leave_batch, run_group_visibility_batch,
+    AvatarContentTagsBatchInput, BatchMutationActions, BatchMutationItemResult,
+    BatchMutationItemState, BatchMutationResult, GroupLeaveBatchInput, GroupVisibility,
+    GroupVisibilityBatchInput, VrchatBatchMutationActions, BATCH_MUTATION_MAX_ITEMS,
+};
 pub use config::validate_config_writes;
 pub use database_upgrade::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
@@ -106,6 +115,11 @@ pub use database_upgrade_runtime::DatabaseUpgradeRuntime;
 pub use diagnostics::RuntimeDiagnostics;
 pub use error::Error;
 pub use event_bus::{RuntimeEventBus, RuntimeEventSink};
+pub use favorite_import::{
+    FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
+    FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,
+    FavoriteImportStatus, FavoriteImportTarget, FAVORITE_IMPORT_MAX_ITEMS,
+};
 pub use favorite_transfer::{
     favorite_transfer_plan_for_item, transfer_favorites, FavoriteTransferDeps,
     FavoriteTransferInput, FavoriteTransferItem, FavoriteTransferItemResult,
@@ -187,6 +201,12 @@ pub use note_export::{
     NoteExportItemState, NoteExportItemStatus, NoteExportProgress, NoteExportResult,
     NoteExportStartInput, NoteExportState, NoteExportStatus, VrchatNoteExportActions,
     NOTE_EXPORT_MAX_ITEMS,
+};
+pub use notification_actions::{
+    mark_notifications_seen_batch, NotificationMarkSeenActions, NotificationMarkSeenBatchInput,
+    NotificationMarkSeenBatchItem, NotificationMarkSeenBatchResult, NotificationMarkSeenItemResult,
+    NotificationMarkSeenItemState, NotificationMarkSeenLocation, VrchatNotificationMarkSeenActions,
+    NOTIFICATION_MARK_SEEN_MAX_ITEMS,
 };
 pub use overlay_activity::{
     overlay_activity_type_definitions, OverlayActivityActorRelation, OverlayActivityCandidate,

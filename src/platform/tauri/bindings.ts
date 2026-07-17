@@ -282,6 +282,39 @@ export const commands = {
     async appSharedCollectionImportCancel(): Promise<SharedCollectionImportStatus> {
         return await TAURI_INVOKE('app__shared_collection_import_cancel');
     },
+    async appFavoriteImportStart(
+        input: FavoriteImportStartInput
+    ): Promise<FavoriteImportStatus> {
+        return await TAURI_INVOKE('app__favorite_import_start', { input });
+    },
+    async appFavoriteImportStatus(): Promise<FavoriteImportStatus> {
+        return await TAURI_INVOKE('app__favorite_import_status');
+    },
+    async appFavoriteImportCancel(): Promise<FavoriteImportStatus> {
+        return await TAURI_INVOKE('app__favorite_import_cancel');
+    },
+    async appAvatarContentTagsBatch(
+        input: AvatarContentTagsBatchInput
+    ): Promise<BatchMutationResult> {
+        return await TAURI_INVOKE('app__avatar_content_tags_batch', { input });
+    },
+    async appGroupVisibilityBatch(
+        input: GroupVisibilityBatchInput
+    ): Promise<BatchMutationResult> {
+        return await TAURI_INVOKE('app__group_visibility_batch', { input });
+    },
+    async appGroupLeaveBatch(
+        input: GroupLeaveBatchInput
+    ): Promise<BatchMutationResult> {
+        return await TAURI_INVOKE('app__group_leave_batch', { input });
+    },
+    async appNotificationMarkSeenBatch(
+        input: NotificationMarkSeenBatchInput
+    ): Promise<NotificationMarkSeenBatchResult> {
+        return await TAURI_INVOKE('app__notification_mark_seen_batch', {
+            input
+        });
+    },
     async appNoteExportStart(
         input: NoteExportStartInput
     ): Promise<NoteExportStatus> {
@@ -3019,6 +3052,10 @@ export type AvatarCacheOutput = {
     updated_at: string;
     version: number;
 };
+export type AvatarContentTagsBatchInput = {
+    avatarIds?: string[];
+    contentTags?: string[];
+};
 export type AvatarMemoOutput = {
     avatarId: string;
     editedAt: string;
@@ -3075,6 +3112,29 @@ export type BackendRuntimeTelemetry = {
 export type BackgroundImageFilesResolveInput = {
     paths: string[] | null;
     folderPath: string | null;
+};
+export type BatchMutationItemResult = {
+    id: string;
+    state: BatchMutationItemState;
+    message: string;
+    entity: RawJson | null;
+};
+export type BatchMutationItemState =
+    | 'updated'
+    | 'left'
+    | 'rolledBack'
+    | 'rollbackFailed'
+    | 'failed'
+    | 'notAttempted';
+export type BatchMutationResult = {
+    total: number;
+    succeeded: number;
+    failed: number;
+    appliedBeforeFailure: number;
+    rolledBack: number;
+    rollbackFailed: number;
+    items: BatchMutationItemResult[];
+    lastError: string | null;
 };
 export type BrokenGameLogDisplayNameOutput = {
     id: JsonValue;
@@ -3214,6 +3274,50 @@ export type ExternalApiVrcStatusInput = { path?: string };
 export type ExternalApiYoutubeVideoInput = {
     videoId?: string;
     apiKey?: string;
+};
+export type FavoriteImportItemResult = {
+    id: string;
+    state: FavoriteImportItemState;
+    message: string;
+    entity: RawJson | null;
+};
+export type FavoriteImportItemState = 'succeeded' | 'failed';
+export type FavoriteImportKind = 'avatar' | 'world' | 'friend';
+export type FavoriteImportLocation = 'remote' | 'local';
+export type FavoriteImportOperation = 'hydrate' | 'import';
+export type FavoriteImportStartInput = {
+    kind: FavoriteImportKind;
+    operation: FavoriteImportOperation;
+    ids?: string[];
+    target: FavoriteImportTarget | null;
+};
+export type FavoriteImportState =
+    | 'idle'
+    | 'running'
+    | 'cancelling'
+    | 'completed'
+    | 'cancelled'
+    | 'error';
+export type FavoriteImportStatus = {
+    runId: string;
+    status: FavoriteImportState;
+    operation: FavoriteImportOperation;
+    kind: FavoriteImportKind;
+    authScopeGeneration: number;
+    total: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+    cancelRequested: boolean;
+    items: FavoriteImportItemResult[];
+    startedAt: string | null;
+    finishedAt: string | null;
+    lastError: string | null;
+};
+export type FavoriteImportTarget = {
+    location: FavoriteImportLocation;
+    group?: string;
+    favoriteType?: string;
 };
 export type FavoriteTransferInput = {
     endpoint?: string;
@@ -3500,6 +3604,7 @@ export type GameLogSessionsQueryInput = {
     maxTableSize?: number;
     searchLimit?: number;
 };
+export type GroupLeaveBatchInput = { groupIds?: string[] };
 export type GroupQuickModerationActionInput = {
     currentUserId?: string;
     targetUserId?: string;
@@ -3534,6 +3639,11 @@ export type GroupQuickModerationOutput = {
     kickGroups: GroupQuickModerationGroup[];
     banGroups: GroupQuickModerationGroup[];
     membershipErrorCount: number;
+};
+export type GroupVisibility = 'visible' | 'friends' | 'hidden';
+export type GroupVisibilityBatchInput = {
+    groupIds?: string[];
+    visibility: GroupVisibility;
 };
 export type HostCapabilities = {
     platform: string;
@@ -3840,6 +3950,29 @@ export type NotificationListQueryInput = {
     limit?: number;
     includeUnseen?: boolean;
 };
+export type NotificationMarkSeenBatchInput = {
+    items?: NotificationMarkSeenBatchItem[];
+};
+export type NotificationMarkSeenBatchItem = {
+    id: string;
+    version: number;
+    location: NotificationMarkSeenLocation;
+};
+export type NotificationMarkSeenBatchResult = {
+    total: number;
+    succeeded: number;
+    failed: number;
+    items: NotificationMarkSeenItemResult[];
+    lastError: string | null;
+};
+export type NotificationMarkSeenItemResult = {
+    id: string;
+    state: NotificationMarkSeenItemState;
+    attempts: number;
+    message: string;
+};
+export type NotificationMarkSeenItemState = 'succeeded' | 'failed';
+export type NotificationMarkSeenLocation = 'remote' | 'local';
 export type NotificationRowsOutput = {
     v1Rows: NotificationV1RowOutput[];
     v2Rows: NotificationV2RowOutput[];

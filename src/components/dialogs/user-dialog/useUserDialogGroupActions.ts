@@ -3,6 +3,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { toast } from 'sonner';
 
 import type { EntityRecord } from '@/domain/entities/profileEntities';
+import { commands } from '@/platform/tauri/bindings';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
 import { setVrchatRegistryKey } from '@/services/shellIntegrationService';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -226,23 +227,14 @@ export function useUserDialogGroupActions({
         }
         setGroupActionId('__bulk_groups__');
         try {
-            const results = await Promise.allSettled(
-                selectedUserGroups.map((group) =>
-                    groupProfileRepository.setGroupMemberProps({
-                        groupId: groupIdForRow(group),
-                        userId: currentUserId,
-                        endpoint: currentEndpoint,
-                        params: { visibility }
-                    })
-                )
-            );
-            const failed = results.filter(
-                (result) => result.status === 'rejected'
-            ).length;
-            if (failed) {
+            const result = await commands.appGroupVisibilityBatch({
+                groupIds: selectedUserGroups.map(groupIdForRow),
+                visibility
+            });
+            if (result.failed) {
                 toast.error(
                     t('dialog.user.dynamic.failed_to_update_value_groups', {
-                        value: failed
+                        value: result.failed
                     })
                 );
             } else {
@@ -253,6 +245,12 @@ export function useUserDialogGroupActions({
                 );
             }
             await refreshGroupsAfterMembershipChange();
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('dialog.user.toast.failed_to_update_group_visibility')
+            );
         } finally {
             setGroupActionId('');
         }
@@ -276,21 +274,13 @@ export function useUserDialogGroupActions({
         }
         setGroupActionId('__bulk_groups__');
         try {
-            const results = await Promise.allSettled(
-                selectedUserGroups.map((group) =>
-                    groupProfileRepository.leaveGroup({
-                        groupId: groupIdForRow(group),
-                        endpoint: currentEndpoint
-                    })
-                )
-            );
-            const failed = results.filter(
-                (entry) => entry.status === 'rejected'
-            ).length;
-            if (failed) {
+            const result = await commands.appGroupLeaveBatch({
+                groupIds: selectedUserGroups.map(groupIdForRow)
+            });
+            if (result.failed) {
                 toast.error(
                     t('dialog.user.dynamic.failed_to_leave_value_groups', {
-                        value: failed
+                        value: result.failed
                     })
                 );
             } else {
@@ -302,6 +292,12 @@ export function useUserDialogGroupActions({
                 clearSelectedGroups();
             }
             await refreshGroupsAfterMembershipChange();
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('dialog.user.toast.failed_to_leave_group')
+            );
         } finally {
             setGroupActionId('');
         }

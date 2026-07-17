@@ -3,6 +3,7 @@ pub mod auth_scope;
 pub mod background_mode;
 pub mod deep_link;
 pub mod favorite_transfer;
+pub mod frontend_batch;
 pub mod group_quick_moderation;
 pub mod lifecycle;
 pub mod llm_endpoint;
