@@ -41,13 +41,7 @@ function FeedTypeIndicator({ label, type }: { label: string; type: unknown }) {
                     className={cn('size-3.5 shrink-0', meta.className)}
                 />
             ) : null}
-            <span
-                className="text-foreground/80 min-w-0 truncate text-sm font-normal"
-                style={{
-                    textBoxTrim: 'trim-both',
-                    textBoxEdge: 'cap alphabetic'
-                }}
-            >
+            <span className="text-foreground/80 min-w-0 truncate text-sm font-normal">
                 {label}
             </span>
         </span>
