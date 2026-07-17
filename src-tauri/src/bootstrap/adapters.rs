@@ -270,7 +270,8 @@ impl RuntimeTaskExecutor for TauriRuntimeTaskExecutor {
 pub(super) fn start_host_services(app: &tauri::AppHandle, state: &AppState) {
     state.set_event_sink(TauriRuntimeEventSink::new(app.clone()));
     state
-        .desktop_context
+        .desktop
+        .services
         .host
         .set_actions(TauriRuntimeHostActions::new(app.clone()));
     state

@@ -1,9 +1,29 @@
 use vrcx_0_persistence::config::ConfigRepository;
 
 use super::generic_webhook::{default_webhook_fields, is_default_webhook_field};
-use super::{notification_tts_name_mode, NotificationDeliveryPreferences};
+use super::NotificationDeliveryPreferences;
 
-pub(super) fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPreferences {
+pub(super) struct NotificationWebhookPreferences {
+    pub enabled: bool,
+    pub url: String,
+    pub format: String,
+    pub fields: Vec<String>,
+    pub show_instance_id_in_location: bool,
+}
+
+pub(super) fn load_webhook_preferences(
+    config: &ConfigRepository,
+) -> NotificationWebhookPreferences {
+    NotificationWebhookPreferences {
+        enabled: config_bool(config, "webhookEnabled", false),
+        url: config_string(config, "webhookUrl", ""),
+        format: normalize_webhook_format(&config_string(config, "webhookFormat", "generic")),
+        fields: parse_webhook_fields(&config_string(config, "webhookFields", "")),
+        show_instance_id_in_location: config_bool(config, "VRCX_showInstanceIdInLocation", false),
+    }
+}
+
+pub fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPreferences {
     NotificationDeliveryPreferences {
         desktop_toast: config_string(config, "desktopToast", "Never"),
         desktop_notification_sound: config_bool(config, "desktopNotificationSound", false),
@@ -28,7 +48,7 @@ pub(super) fn load_preferences(config: &ConfigRepository) -> NotificationDeliver
     }
 }
 
-pub(super) fn config_tts_name_mode(config: &ConfigRepository) -> String {
+pub fn config_tts_name_mode(config: &ConfigRepository) -> String {
     let configured = config_string(config, "notificationTTSNameMode", "");
     if !configured.trim().is_empty() {
         return notification_tts_name_mode(&configured).into();
@@ -47,7 +67,7 @@ fn config_string(config: &ConfigRepository, key: &str, default_value: &str) -> S
         .unwrap_or_else(|_| default_value.to_string())
 }
 
-pub(super) fn config_bool(config: &ConfigRepository, key: &str, default_value: bool) -> bool {
+pub fn config_bool(config: &ConfigRepository, key: &str, default_value: bool) -> bool {
     config.get_bool(key, default_value).unwrap_or(default_value)
 }
 
@@ -120,5 +140,13 @@ pub fn parse_webhook_fields(value: &str) -> Vec<String> {
         default_webhook_fields()
     } else {
         selected
+    }
+}
+
+pub fn notification_tts_name_mode(value: &str) -> &'static str {
+    match value {
+        "note" => "note",
+        "usernameAndNote" => "usernameAndNote",
+        _ => "username",
     }
 }

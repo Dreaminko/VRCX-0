@@ -42,14 +42,7 @@ pub use log_watcher::{
     GameLogEvent, GameLogEventSink, LogLocationSnapshot, LogLocationSnapshotScanner, LogWatcher,
     NoopLogLocationSnapshotScanner,
 };
-pub use overlay_activity::{
-    overlay_activity_type_definitions, OverlayActivityActorRelation, OverlayActivityCandidate,
-    OverlayActivityCategory, OverlayActivityContent, OverlayActivityDelivery, OverlayActivityEntry,
-    OverlayActivityFavoriteGroupKeys, OverlayActivityFilters, OverlayActivityRule,
-    OverlayActivityRuntime, OverlayActivityScope, OverlayActivitySink, OverlayActivitySnapshot,
-    OverlayActivitySurface, OverlayActivitySurfaceFilters, OverlayActivityText,
-    OverlayActivityTypeDefinition, OverlayFavoriteGroups,
-};
+pub use overlay_activity::OverlayActivityGameIngestExt;
 pub use process_monitor::{GameProcessMonitorActions, GameProcessStatus, ProcessMonitor};
 pub use registry_backup::{
     registry_backup_create, registry_backup_delete, registry_backup_export_json,

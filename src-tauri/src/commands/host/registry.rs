@@ -90,6 +90,7 @@ pub fn app__read_vrc_reg_json_file(
     filepath: String,
 ) -> Result<String, AppError> {
     state
+        .desktop
         .host_file_access
         .ensure_read_allowed(&filepath, &state.paths)?;
     Ok(vrchat_registry::read_reg_json_file(&filepath)?)

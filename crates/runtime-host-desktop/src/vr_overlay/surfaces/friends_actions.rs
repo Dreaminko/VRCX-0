@@ -19,7 +19,7 @@ use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::parse_location;
 use vrcx_0_vr_overlay::SlintPanelEvent;
 
-use crate::DesktopRuntimeHostContext;
+use crate::DesktopRuntimeServices;
 
 use super::super::runtime::{
     FriendsPanelActionKind, FriendsPanelActionRequest, InteractivePanelRuntimeState,
@@ -29,7 +29,7 @@ use super::friends::{first_non_empty, friend_action_location};
 
 impl VrOverlayRuntime {
     fn spawn_friends_panel_action(&self, action: FriendsPanelActionRequest) {
-        let Some(context) = self.context.as_ref().cloned() else {
+        let Some(services) = self.services.as_ref().cloned() else {
             return;
         };
         let Some(snapshot) = self.current_friends_panel_snapshot() else {
@@ -40,7 +40,7 @@ impl VrOverlayRuntime {
             self.set_friends_panel_status("Friend is no longer in the current roster.");
             return;
         };
-        let auth_snapshot = context.auth_scope.snapshot();
+        let auth_snapshot = services.data().auth_scope.snapshot();
         let endpoint =
             first_non_empty([snapshot.endpoint.as_str(), auth_snapshot.endpoint.as_str()])
                 .to_string();
@@ -52,10 +52,11 @@ impl VrOverlayRuntime {
             &frame_dirty,
             friends_panel_action_pending_message(action.kind),
         );
-        let tasks = context.tasks.clone();
+        let tasks = services.data().tasks.clone();
         tasks.spawn(async move {
             let message =
-                run_friends_panel_action(context, endpoint, current_location, record, action).await;
+                run_friends_panel_action(services, endpoint, current_location, record, action)
+                    .await;
             set_friends_panel_status_message(&panel, &frame_dirty, message);
         });
     }
@@ -132,7 +133,7 @@ impl VrOverlayRuntime {
         }
         if let Some(selected_category) = selected_category_to_persist {
             self.persist_friends_panel_selected_category(&selected_category);
-            if self.context.is_some() {
+            if self.services.is_some() {
                 self.rebuild_visible_friends_panel_model();
             }
         }
@@ -144,7 +145,7 @@ impl VrOverlayRuntime {
 }
 
 struct RuntimeFriendsPanelActionApi {
-    context: Arc<DesktopRuntimeHostContext>,
+    services: Arc<DesktopRuntimeServices>,
 }
 
 impl InstanceLaunchHttpClient for RuntimeFriendsPanelActionApi {
@@ -162,7 +163,7 @@ impl InstanceLaunchHttpClient for RuntimeFriendsPanelActionApi {
                 String::new(),
             )?;
             execute_friends_panel_api_command(
-                self.context.as_ref(),
+                self.services.as_ref(),
                 "vr_overlay.friends_panel.short_name",
                 request,
             )
@@ -185,7 +186,7 @@ impl InstanceLaunchHttpClient for RuntimeFriendsPanelActionApi {
                 short_name.to_string(),
             )?;
             execute_friends_panel_api_command(
-                self.context.as_ref(),
+                self.services.as_ref(),
                 "vr_overlay.friends_panel.self_invite",
                 request,
             )
@@ -206,7 +207,7 @@ impl InstanceLaunchPipe for RuntimeFriendsPanelLaunchPipe {
 }
 
 async fn run_friends_panel_action(
-    context: Arc<DesktopRuntimeHostContext>,
+    services: Arc<DesktopRuntimeServices>,
     endpoint: String,
     current_location: String,
     record: FriendRecord,
@@ -219,7 +220,7 @@ async fn run_friends_panel_action(
                 return "Open failed: friend location is not available.".to_string();
             }
             let api = RuntimeFriendsPanelActionApi {
-                context: Arc::clone(&context),
+                services: Arc::clone(&services),
             };
             let launch_pipe = RuntimeFriendsPanelLaunchPipe;
             match join_instance_launch(
@@ -255,7 +256,7 @@ async fn run_friends_panel_action(
                 Err(error) => return format!("Request invite failed: {error}"),
             };
             match execute_friends_panel_vrchat_request(
-                &context,
+                &services,
                 "vr_overlay.friends_panel.request_invite",
                 request,
             )
@@ -266,7 +267,7 @@ async fn run_friends_panel_action(
             }
         }
         FriendsPanelActionKind::Invite => {
-            let params = match friends_panel_invite_params(&context, &current_location) {
+            let params = match friends_panel_invite_params(&services, &current_location) {
                 Ok(params) => params,
                 Err(error) => return format!("Invite failed: {error}"),
             };
@@ -276,7 +277,7 @@ async fn run_friends_panel_action(
                 Err(error) => return format!("Invite failed: {error}"),
             };
             match execute_friends_panel_vrchat_request(
-                &context,
+                &services,
                 "vr_overlay.friends_panel.invite",
                 request,
             )
@@ -290,11 +291,11 @@ async fn run_friends_panel_action(
 }
 
 async fn execute_friends_panel_vrchat_request(
-    context: &DesktopRuntimeHostContext,
+    services: &DesktopRuntimeServices,
     command: &'static str,
     request: VrchatApiRequest,
 ) -> std::result::Result<(), String> {
-    let response = execute_friends_panel_api_command(context, command, request)
+    let response = execute_friends_panel_api_command(services, command, request)
         .await
         .map_err(|error| error.to_string())?;
     if (200..=299).contains(&response.status) {
@@ -305,15 +306,15 @@ async fn execute_friends_panel_vrchat_request(
 }
 
 async fn execute_friends_panel_api_command(
-    context: &DesktopRuntimeHostContext,
+    services: &DesktopRuntimeServices,
     command: &'static str,
     request: VrchatApiRequest,
 ) -> vrcx_0_application_core::Result<VrchatApiResponse> {
     execute_api_command(
-        context.web.as_ref(),
-        context.db.as_ref(),
-        &context.diagnostics,
-        &context.sync,
+        services.data().web.as_ref(),
+        services.data().db.as_ref(),
+        &services.data().diagnostics,
+        &services.data().sync,
         command,
         request,
         VrchatScope::Vrchat,
@@ -322,14 +323,15 @@ async fn execute_friends_panel_api_command(
 }
 
 fn friends_panel_invite_params(
-    context: &DesktopRuntimeHostContext,
+    services: &DesktopRuntimeServices,
     current_location: &str,
 ) -> std::result::Result<serde_json::Value, String> {
     let parsed = parse_location(current_location);
     if !parsed.is_real_instance || parsed.world_id.is_empty() || parsed.instance_id.is_empty() {
         return Err("current instance is not available".to_string());
     }
-    let world_name = context
+    let world_name = services
+        .data()
         .world_cache
         .get_name(&parsed.world_id)
         .unwrap_or_else(|| parsed.world_id.clone());

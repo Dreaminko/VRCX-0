@@ -1,7 +1,7 @@
 use super::*;
 use crate::vr_overlay::avatar_cache::tests::{test_avatar_bitmap, test_avatar_bitmap_with_red};
 use crate::vr_overlay::runtime::tests::{
-    friends_panel_snapshot, hmd_enabled_runtime_with_context, test_context,
+    friends_panel_snapshot, hmd_enabled_runtime_with_services, test_services,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
 use vrcx_0_core::friends::FriendRecord;
@@ -142,8 +142,8 @@ fn hmd_toast_queue_does_not_merge_join_leave_across_instances() {
 
 #[test]
 fn hmd_avatar_cache_hit_requires_friend_snapshot() {
-    let (_dir, _db, context) = test_context("hmd-avatar-friend-gate");
-    let runtime = hmd_enabled_runtime_with_context(context);
+    let (_dir, _db, services) = test_services("hmd-avatar-friend-gate");
+    let runtime = hmd_enabled_runtime_with_services(services);
     let url = "https://images.example/avatar/128";
     let bitmap = test_avatar_bitmap();
     runtime
@@ -190,8 +190,8 @@ fn hmd_avatar_cache_hit_requires_friend_snapshot() {
 
 #[test]
 fn hmd_snapshot_gap_does_not_drop_loaded_toast_avatar() {
-    let (_dir, _db, context) = test_context("hmd-avatar-snapshot-gap");
-    let runtime = hmd_enabled_runtime_with_context(context);
+    let (_dir, _db, services) = test_services("hmd-avatar-snapshot-gap");
+    let runtime = hmd_enabled_runtime_with_services(services);
     let snapshot_available = Arc::new(AtomicBool::new(true));
     let provider_available = Arc::clone(&snapshot_available);
     runtime.set_friends_panel_snapshot_provider(move || {
@@ -241,8 +241,8 @@ fn hmd_snapshot_gap_does_not_drop_loaded_toast_avatar() {
 
 #[test]
 fn hmd_non_friend_toast_hides_avatar_slot() {
-    let (_dir, _db, context) = test_context("hmd-non-friend-avatar-hidden");
-    let runtime = hmd_enabled_runtime_with_context(context);
+    let (_dir, _db, services) = test_services("hmd-non-friend-avatar-hidden");
+    let runtime = hmd_enabled_runtime_with_services(services);
     let entry = hmd_entry(
         "stranger-toast",
         "OnPlayerJoined",
@@ -259,8 +259,8 @@ fn hmd_non_friend_toast_hides_avatar_slot() {
 
 #[test]
 fn hmd_friend_toast_without_bitmap_keeps_avatar_slot() {
-    let (_dir, _db, context) = test_context("hmd-friend-avatar-slot");
-    let runtime = hmd_enabled_runtime_with_context(context);
+    let (_dir, _db, services) = test_services("hmd-friend-avatar-slot");
+    let runtime = hmd_enabled_runtime_with_services(services);
     runtime.set_friends_panel_snapshot_provider(|| {
         Some(friends_panel_snapshot(FriendRecord {
             id: "usr_actor".to_string(),
@@ -284,8 +284,8 @@ fn hmd_friend_toast_without_bitmap_keeps_avatar_slot() {
 
 #[test]
 fn hmd_avatar_uses_friend_record_url_before_direct_notification_image() {
-    let (_dir, _db, context) = test_context("hmd-avatar-record-url-first");
-    let runtime = hmd_enabled_runtime_with_context(context);
+    let (_dir, _db, services) = test_services("hmd-avatar-record-url-first");
+    let runtime = hmd_enabled_runtime_with_services(services);
     let selected_url = "https://images.example/profile/128";
     let direct_url = "https://images.example/direct/128";
     let selected_bitmap = test_avatar_bitmap_with_red(32);
@@ -363,15 +363,15 @@ fn hmd_entry(
         sequence: 1,
         source_id: source_id.to_string(),
         activity_type: activity_type.to_string(),
-        category: vrcx_0_application_game::OverlayActivityCategory::CurrentInstance,
+        category: vrcx_0_application_activity::OverlayActivityCategory::CurrentInstance,
         created_at: "2026-01-01T00:00:00Z".to_string(),
         actor_user_id: "usr_actor".to_string(),
         actor_display_name: source_id.to_string(),
-        content: vrcx_0_application_game::OverlayActivityContent {
-            title: vrcx_0_application_game::OverlayActivityText::literal(source_id),
-            body: vrcx_0_application_game::OverlayActivityText::literal(activity_type),
+        content: vrcx_0_application_activity::OverlayActivityContent {
+            title: vrcx_0_application_activity::OverlayActivityText::literal(source_id),
+            body: vrcx_0_application_activity::OverlayActivityText::literal(activity_type),
             location: location.to_string(),
-            ..vrcx_0_application_game::OverlayActivityContent::default()
+            ..vrcx_0_application_activity::OverlayActivityContent::default()
         },
         actor_relation: relation,
         payload: serde_json::json!({}),

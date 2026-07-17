@@ -87,6 +87,7 @@ fn connected_after_reconnect_without_snapshot_resumes_queued_friend_events() -> 
         &active_session,
         "connected",
     );
+    assert!(runtime.activity_sink_for_test().delivery_armed());
 
     let events = runtime.deps.event_bus.take_events_for_test();
     let projection = events

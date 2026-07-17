@@ -218,7 +218,7 @@ impl OverlayActivityRuntime {
         }
     }
 
-    pub(crate) fn set_current_instance_presence<I, S>(&self, location: &str, user_ids: I)
+    pub fn set_current_instance_presence<I, S>(&self, location: &str, user_ids: I)
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,

@@ -1,8 +1,7 @@
 use serde_json::{json, Value};
-use vrcx_0_application_game::OverlayActivityDelivery;
-pub use vrcx_0_runtime_host::notification::webhook_local_time_string;
+use vrcx_0_application_activity::OverlayActivityDelivery;
 
-use super::RenderedNotification;
+use super::{webhook_local_time_string, RenderedNotification};
 
 const DEFAULT_WEBHOOK_FIELDS: &[&str] = &[
     "version",
@@ -19,14 +18,14 @@ const DEFAULT_WEBHOOK_FIELDS: &[&str] = &[
     "localTime",
 ];
 
-pub(super) fn default_webhook_fields() -> Vec<String> {
+pub(crate) fn default_webhook_fields() -> Vec<String> {
     DEFAULT_WEBHOOK_FIELDS
         .iter()
         .map(|field| (*field).to_string())
         .collect()
 }
 
-pub(super) fn generic_webhook_payload(
+pub fn generic_webhook_payload(
     delivery: &OverlayActivityDelivery,
     render: &RenderedNotification,
     fields: &[String],
@@ -83,6 +82,6 @@ fn insert_generic_webhook_field(
     }
 }
 
-pub(super) fn is_default_webhook_field(field: &str) -> bool {
+pub(crate) fn is_default_webhook_field(field: &str) -> bool {
     DEFAULT_WEBHOOK_FIELDS.contains(&field)
 }

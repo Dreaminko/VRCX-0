@@ -8,15 +8,15 @@ use vrcx_0_persistence::DatabaseService;
 
 use crate::game_log::runtime_state::RuntimeSnapshot;
 use crate::game_log::NoopGameLogHostActions;
-use crate::overlay_activity::{
-    OverlayActivityDelivery, OverlayActivityFilters, OverlayActivityRuntime, OverlayActivitySink,
-    OverlayActivitySnapshot, OverlayFavoriteGroups,
-};
 use crate::ImageCache;
 use crate::Result;
 use crate::RuntimeAuthScope;
 use crate::RuntimeEventBus;
 use crate::{RuntimeSyncEngine, TaskSupervisor, WebClient};
+use vrcx_0_application_activity::{
+    OverlayActivityDelivery, OverlayActivityFilters, OverlayActivityRuntime, OverlayActivitySink,
+    OverlayActivitySnapshot, OverlayFavoriteGroups,
+};
 use vrcx_0_application_core::FriendProjection;
 
 use super::{GameLogProcessor, GameLogProcessorDeps, GameLogWorkerJob};

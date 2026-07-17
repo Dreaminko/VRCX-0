@@ -17,13 +17,14 @@ use crate::game_log::ingest::{
 };
 use crate::game_log::instance_media::InstanceMediaQueue;
 use crate::game_log::runtime_state::RuntimeSnapshot;
-use crate::overlay_activity::OverlayActivityRuntime;
+use crate::overlay_activity::OverlayActivityGameIngestExt;
 use crate::ImageCache;
 use crate::RuntimeAuthScope;
 use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
 use crate::{Error, Result};
 use crate::{RuntimeSyncEngine, TaskSupervisor, WebClient, WorldCache};
+use vrcx_0_application_activity::OverlayActivityRuntime;
 
 use self::side_effects::{dispatch_side_effect, GameLogSideEffectDeps};
 

@@ -8,13 +8,14 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 use vrcx_0_application::{AppUpdateBuildInfo, AppUpdateRuntime};
+use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
     BackendRuntimeMode, BackendRuntimePhase, GameProcessEvent, GameProcessEventSink,
     SessionHostRuntime,
 };
 use vrcx_0_application_game::{
-    GameLogLocalGameContextSource, OverlayActivitySnapshot, OverlayFavoriteGroups, ProcessMonitor,
-    RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
+    GameLogLocalGameContextSource, ProcessMonitor, RegistryBackupMaintenanceMode,
+    RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
 };
 use vrcx_0_host::app_paths::{AppDataDirResolution, AppPaths};
 use vrcx_0_host_desktop::auto_launch::{
@@ -41,7 +42,7 @@ use crate::vr_overlay::{
     VrOverlayRuntimeSnapshot, VR_OVERLAY_ENABLED_CONFIG_KEY,
 };
 use crate::{
-    DesktopRuntimeHostContext, GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime,
+    DesktopRuntimeServices, GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime,
     HostFileAccess, HostGameLogEventFanout, HostGameProcessMonitorActions,
     HostLogLocationSnapshotScanner, HostRegistryBackupActions, LogWatcher,
 };
@@ -80,6 +81,8 @@ pub struct GameRuntimeBundle {
 }
 
 pub struct DesktopRuntimeBundle {
+    pub services: Arc<DesktopRuntimeServices>,
+    pub host_file_access: HostFileAccess,
     pub discord_rpc: Arc<DiscordRpc>,
     pub vr_overlay_runtime: Arc<VrOverlayRuntime>,
     pub app_update: AppUpdateRuntime,
@@ -90,13 +93,10 @@ pub struct DesktopRuntimeHostState {
     runtime: RuntimeHostState,
     pub game: Arc<GameRuntimeBundle>,
     pub desktop: Arc<DesktopRuntimeBundle>,
-    pub desktop_context: Arc<DesktopRuntimeHostContext>,
-    pub host_file_access: HostFileAccess,
     extension: Arc<DesktopRuntimeProfileExtension>,
 }
 
 struct DesktopRuntimeProfileExtension {
-    context: Arc<DesktopRuntimeHostContext>,
     game: Arc<GameRuntimeBundle>,
     desktop: Arc<DesktopRuntimeBundle>,
     registry_backup_maintenance_running: Arc<AtomicBool>,
@@ -151,11 +151,11 @@ impl DesktopRuntimeHostState {
             &builder.profile_backup,
             builder.runtime_context.config(),
         )?;
-        let desktop_context = Arc::new(DesktopRuntimeHostContext::new(Arc::clone(
+        let desktop_services = Arc::new(DesktopRuntimeServices::new(Arc::clone(
             &builder.runtime_context,
         )));
-        let overlay_activity = desktop_context.overlay_activity();
-        let game_log_snapshot = desktop_context.game_log_snapshot_handle();
+        let overlay_activity = desktop_services.overlay_activity();
+        let game_log_snapshot = desktop_services.game_log_snapshot_handle();
         let discord_rpc = Arc::new(DiscordRpc::new());
         let process_monitor = ProcessMonitor::new();
         let telemetry = TelemetryRuntime::new(TelemetryRuntimeDeps {
@@ -193,17 +193,17 @@ impl DesktopRuntimeHostState {
             Arc::clone(&game_log_snapshot),
             overlay_activity.clone(),
         ));
-        let vr_overlay_runtime = Arc::new(VrOverlayRuntime::new(Arc::clone(&desktop_context)));
+        let vr_overlay_runtime = Arc::new(VrOverlayRuntime::new(Arc::clone(&desktop_services)));
         let vr_overlay_enabled = builder
             .runtime_context
             .config()
             .get_bool(VR_OVERLAY_ENABLED_CONFIG_KEY, false)?;
         vr_overlay_runtime.set_enabled(vr_overlay_enabled);
         vr_overlay_runtime.start_refresh_loop(builder.runtime_context.tasks.clone());
-        desktop_context.set_overlay_activity_extra_sink(Arc::new(VrOverlayActivitySink::new(
+        desktop_services.set_overlay_activity_extra_sink(Arc::new(VrOverlayActivitySink::new(
             Arc::clone(&vr_overlay_runtime),
         )));
-        start_preview_bridge_if_enabled(Arc::clone(&desktop_context));
+        start_preview_bridge_if_enabled(Arc::clone(&desktop_services));
         let game_log_sink: Arc<dyn GameLogEventSink> = Arc::new(HostGameLogEventFanout::new(vec![
             game_log_runtime.clone(),
             vr_overlay_runtime.clone(),
@@ -217,7 +217,7 @@ impl DesktopRuntimeHostState {
             log_watcher.clone(),
             host_file_access.clone(),
             builder.paths.clone(),
-            desktop_context.host.clone(),
+            desktop_services.host.clone(),
         ));
         let session_runtime = Arc::new(SessionHostRuntime::new(
             builder.runtime_context.session.clone(),
@@ -246,13 +246,14 @@ impl DesktopRuntimeHostState {
             auto_launch,
         });
         let desktop = Arc::new(DesktopRuntimeBundle {
+            services: Arc::clone(&desktop_services),
+            host_file_access: host_file_access.clone(),
             discord_rpc,
             vr_overlay_runtime,
             app_update,
             telemetry,
         });
         let extension = Arc::new(DesktopRuntimeProfileExtension {
-            context: Arc::clone(&desktop_context),
             game: Arc::clone(&game),
             desktop: Arc::clone(&desktop),
             registry_backup_maintenance_running: Arc::new(AtomicBool::new(false)),
@@ -272,17 +273,12 @@ impl DesktopRuntimeHostState {
         };
         let favorites_sink: RuntimeHostSnapshotCallback = {
             let vr_overlay_runtime = Arc::clone(&desktop.vr_overlay_runtime);
-            let overlay_activity = desktop_context.overlay_activity();
             Arc::new(move |snapshot: &Value| {
                 vr_overlay_runtime.update_friends_panel_favorite_groups_from_baseline(snapshot);
-                overlay_activity.set_favorite_groups(OverlayFavoriteGroups::from_map(
-                    vrcx_0_runtime_host::favorite_group_membership_from_snapshot(snapshot),
-                ));
             })
         };
         let runtime = builder.finish(RuntimeHostComposition {
             local_game_context,
-            activity_sink: Some(Arc::new(desktop_context.overlay_activity())),
             group_order_source: Arc::new(HostGroupOrderSource),
             friend_note_change_sink: Some(friend_note_change_sink),
             favorites_sink: Some(favorites_sink),
@@ -292,14 +288,14 @@ impl DesktopRuntimeHostState {
         desktop
             .vr_overlay_runtime
             .set_friends_panel_snapshot_provider(move || realtime_runtime.friend_snapshot());
-        desktop_context.set_realtime_user_image_resolver(Arc::clone(&runtime.realtime_runtime));
+        desktop
+            .services
+            .set_realtime_user_image_resolver(Arc::clone(&runtime.realtime_runtime));
 
         Ok(Self {
             runtime,
             game,
             desktop,
-            desktop_context,
-            host_file_access,
             extension,
         })
     }
@@ -349,11 +345,11 @@ impl DesktopRuntimeHostState {
     }
 
     pub fn overlay_activity_snapshot(&self) -> OverlayActivitySnapshot {
-        self.desktop_context.overlay_activity().snapshot()
+        self.desktop.services.overlay_activity().snapshot()
     }
 
     pub fn reload_overlay_activity_filters(&self) {
-        self.desktop_context.reload_overlay_activity_filters();
+        self.desktop.services.reload_overlay_activity_filters();
         self.desktop.vr_overlay_runtime.reconcile_current();
     }
 
@@ -478,7 +474,7 @@ impl Deref for DesktopRuntimeHostState {
 
 impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
     fn observe_runtime_event(&self, event: &str, payload: &Value) {
-        self.context.observe_runtime_event(event, payload);
+        self.desktop.services.observe_runtime_event(event, payload);
     }
 
     fn start_profile_services(&self, state: &RuntimeHostState) {
@@ -500,7 +496,6 @@ impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
     }
 
     fn clear_profile_session(&self) {
-        self.context.overlay_activity().clear_runtime_state();
         self.desktop
             .vr_overlay_runtime
             .clear_friends_panel_session_state();
@@ -827,8 +822,7 @@ impl DesktopRuntimeProfileExtension {
         let realtime_runtime = Arc::clone(&state.realtime_runtime);
         let authenticated_runtime = state.authenticated_runtime.clone();
         let runtime_context = Arc::clone(&state.runtime_context);
-        let desktop_context = Arc::clone(&self.context);
-        let vr_overlay_runtime = Arc::clone(&self.desktop.vr_overlay_runtime);
+        let desktop_services = Arc::clone(&self.desktop.services);
         let discord_rpc = Arc::clone(&self.desktop.discord_rpc);
         let discord_reconcile_generation = Arc::clone(&self.discord_reconcile_generation);
         state
@@ -873,14 +867,12 @@ impl DesktopRuntimeProfileExtension {
                         discord_state =
                             vrcx_0_application_game::BackgroundDiscordPresenceState::default();
                         discord_success_info = None;
-                        desktop_context.overlay_activity().clear_runtime_state();
-                        vr_overlay_runtime.clear_friends_panel_session_state();
                         next_presence = now;
                         next_discord = now;
                         next_overlay_activity_config = now;
                     }
                     if now >= next_overlay_activity_config {
-                        desktop_context.reload_overlay_activity_filters();
+                        desktop_services.reload_overlay_activity_filters();
                         next_overlay_activity_config = now
                             + Duration::from_secs(
                                 BACKGROUND_OVERLAY_ACTIVITY_CONFIG_CADENCE_SECONDS,
@@ -903,7 +895,7 @@ impl DesktopRuntimeProfileExtension {
                         session_slot: &session_slot,
                         realtime_runtime: &realtime_runtime,
                         runtime_context: &runtime_context,
-                        desktop_context: &desktop_context,
+                        desktop_services: &desktop_services,
                         backend_runtime: &backend_runtime,
                         background_jobs: &background_jobs,
                     };

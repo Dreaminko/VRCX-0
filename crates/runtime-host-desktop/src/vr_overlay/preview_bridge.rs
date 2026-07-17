@@ -7,7 +7,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::DesktopRuntimeHostContext;
+use crate::DesktopRuntimeServices;
 
 use super::{
     runtime::{build_wrist_frame_input, load_runtime_config},
@@ -53,17 +53,17 @@ pub fn default_preview_snapshot_path() -> PathBuf {
         })
 }
 
-pub fn start_preview_bridge_if_enabled(context: Arc<DesktopRuntimeHostContext>) {
+pub fn start_preview_bridge_if_enabled(services: Arc<DesktopRuntimeServices>) {
     if !cfg!(debug_assertions) || !preview_bridge_enabled() {
         return;
     }
 
-    let tasks = context.tasks.clone();
+    let tasks = services.data().tasks.clone();
     tasks.spawn_cancellable_thread("vr-overlay-devtool-preview-bridge", move |stop_token| {
         let path = default_preview_snapshot_path();
         let mut last_json = Vec::new();
         while !stop_token.is_stop_requested() {
-            match build_preview_snapshot(&context)
+            match build_preview_snapshot(&services)
                 .and_then(|snapshot| serde_json::to_vec_pretty(&snapshot).map_err(Into::into))
             {
                 Ok(json) if json != last_json => {
@@ -99,10 +99,10 @@ fn preview_bridge_enabled() -> bool {
 }
 
 fn build_preview_snapshot(
-    context: &DesktopRuntimeHostContext,
+    services: &DesktopRuntimeServices,
 ) -> Result<WristOverlayPreviewSnapshot, Box<dyn std::error::Error + Send + Sync>> {
-    let config = load_runtime_config(context.config());
-    let input = build_wrist_frame_input(context, config, Vec::new());
+    let config = load_runtime_config(services.data().config());
+    let input = build_wrist_frame_input(services, config, Vec::new());
     Ok(WristOverlayPreviewSnapshot::from_frame_input(input))
 }
 

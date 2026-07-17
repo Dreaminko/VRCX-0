@@ -27,6 +27,7 @@ const baseDataPackages = [
     'vrcx-0-vrchat-client'
 ];
 const dataFoundationPackages = [
+    'vrcx-0-application-activity',
     'vrcx-0-application-core',
     'vrcx-0-application-realtime',
     ...baseDataPackages
@@ -36,6 +37,7 @@ const allowedWorkspaceDependencies = new Map([
         tauriShellPackage,
         new Set([
             'vrcx-0-application',
+            'vrcx-0-application-activity',
             'vrcx-0-application-core',
             'vrcx-0-application-game',
             'vrcx-0-application-realtime',
@@ -54,6 +56,10 @@ const allowedWorkspaceDependencies = new Map([
         ])
     ],
     ['vrcx-0-application', new Set(dataFoundationPackages)],
+    [
+        'vrcx-0-application-activity',
+        new Set(['vrcx-0-application-core', ...baseDataPackages])
+    ],
     ['vrcx-0-application-core', new Set(baseDataPackages)],
     ['vrcx-0-application-game', new Set(dataFoundationPackages)],
     [

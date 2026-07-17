@@ -116,13 +116,17 @@ fn run_secret_startup(
     }
 }
 
-fn prepare_secrets_at_rest(db: &Arc<DatabaseService>, is_headless: bool) {
+fn prepare_secrets_at_rest(db: &Arc<DatabaseService>, profile: RuntimeHostProfile) {
     let config = vrcx_0_persistence::config::ConfigRepository::new(Arc::clone(db));
+    let allow_encrypted_writes = match profile {
+        RuntimeHostProfile::Desktop => true,
+        RuntimeHostProfile::HeadlessData => false,
+    };
     run_secret_startup(
         || {
             vrcx_0_persistence::secrets::init_secrets(
                 vrcx_0_host::machine_key::derive_secrets_key(),
-                !is_headless,
+                allow_encrypted_writes,
             );
         },
         vrcx_0_persistence::secrets::is_encrypting_writes,
@@ -196,7 +200,7 @@ impl RuntimeHostStateBuilder {
             }
         };
         let db = Arc::new(db);
-        prepare_secrets_at_rest(&db, profile == RuntimeHostProfile::HeadlessData);
+        prepare_secrets_at_rest(&db, profile);
         let web = Arc::new(WebClient::new(
             &storage,
             &db,
@@ -241,22 +245,24 @@ impl RuntimeHostStateBuilder {
     }
 
     pub fn finish(self, composition: RuntimeHostComposition) -> Result<RuntimeHostState> {
-        match (self.profile, composition.profile_extension.is_some()) {
-            (RuntimeHostProfile::Desktop, false) => {
-                return Err(crate::Error::Custom(
-                    "Desktop runtime profile requires a profile extension.".into(),
-                ));
+        match self.profile {
+            RuntimeHostProfile::Desktop => {
+                if composition.profile_extension.is_none() {
+                    return Err(crate::Error::Custom(
+                        "Desktop runtime profile requires a profile extension.".into(),
+                    ));
+                }
             }
-            (RuntimeHostProfile::HeadlessData, true) => {
-                return Err(crate::Error::Custom(
-                    "HeadlessData runtime profile must not receive a profile extension.".into(),
-                ));
+            RuntimeHostProfile::HeadlessData => {
+                if composition.profile_extension.is_some() {
+                    return Err(crate::Error::Custom(
+                        "HeadlessData runtime profile must not receive a profile extension.".into(),
+                    ));
+                }
             }
-            _ => {}
         }
         let RuntimeHostComposition {
             local_game_context,
-            activity_sink,
             group_order_source,
             friend_note_change_sink,
             favorites_sink,
@@ -271,7 +277,7 @@ impl RuntimeHostStateBuilder {
             session: self.runtime_context.session.clone(),
             auth_scope: self.runtime_context.auth_scope.clone(),
             local_game_context,
-            activity_sink,
+            activity_sink: Some(Arc::new(self.runtime_context.overlay_activity())),
             world_cache: Arc::clone(&self.runtime_context.world_cache),
             print_cleanup: Arc::new(PrintCleanupQueueSink::new(
                 self.runtime_context.print_cleanup.clone(),
@@ -284,6 +290,20 @@ impl RuntimeHostStateBuilder {
             )),
             friend_note_change_sink,
         }));
+        let favorites_sink = {
+            let overlay_activity = self.runtime_context.overlay_activity();
+            let profile_sink = favorites_sink;
+            Some(Arc::new(move |snapshot: &Value| {
+                overlay_activity.set_favorite_groups(
+                    vrcx_0_application_activity::OverlayFavoriteGroups::from_map(
+                        crate::favorite_group_membership_from_snapshot(snapshot),
+                    ),
+                );
+                if let Some(profile_sink) = &profile_sink {
+                    profile_sink(snapshot);
+                }
+            }) as crate::RuntimeHostSnapshotCallback)
+        };
         let authenticated_runtime = AuthenticatedRuntimeOrchestrator::new(
             Arc::clone(&self.db),
             Arc::clone(&self.web),
@@ -317,7 +337,6 @@ impl RuntimeHostStateBuilder {
             self.runtime_context.tasks.clone(),
             self.runtime_context.auth_scope.clone(),
         );
-
         Ok(RuntimeHostState {
             profile: self.profile,
             app_data_dir: self.app_data_dir,
@@ -354,14 +373,16 @@ impl RuntimeHostStateBuilder {
 
 impl RuntimeHostState {
     pub fn new(options: RuntimeHostOptions) -> Result<Self> {
-        if options.profile != RuntimeHostProfile::HeadlessData {
-            return Err(crate::Error::Custom(
-                "Desktop runtime profile must be constructed by runtime-host-desktop.".into(),
-            ));
+        match options.profile {
+            RuntimeHostProfile::Desktop => {
+                return Err(crate::Error::Custom(
+                    "Desktop runtime profile must be constructed by runtime-host-desktop.".into(),
+                ));
+            }
+            RuntimeHostProfile::HeadlessData => {}
         }
         RuntimeHostStateBuilder::new(options)?.finish(RuntimeHostComposition {
             local_game_context: Arc::new(UnavailableLocalGameContextSource),
-            activity_sink: None,
             group_order_source: Arc::new(UnavailableGroupOrderSource),
             friend_note_change_sink: None,
             favorites_sink: None,
@@ -594,7 +615,6 @@ mod profile_bundle_tests {
         })?
         .finish(RuntimeHostComposition {
             local_game_context: Arc::new(UnavailableLocalGameContextSource),
-            activity_sink: None,
             group_order_source: Arc::new(UnavailableGroupOrderSource),
             friend_note_change_sink: None,
             favorites_sink: None,

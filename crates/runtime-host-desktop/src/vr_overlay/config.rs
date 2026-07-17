@@ -143,18 +143,19 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vr_overlay::runtime::tests::{record_process_status, test_context};
+    use crate::vr_overlay::runtime::tests::{record_process_status, test_services};
     use crate::vr_overlay::runtime::VrOverlayRuntime;
     use std::sync::Arc;
 
     #[test]
     fn persisted_panel_enabled_setting_is_ignored_when_panel_is_hidden() {
-        let (_dir, _db, context) = test_context("vr-panel-hidden-config");
-        context
+        let (_dir, _db, services) = test_services("vr-panel-hidden-config");
+        services
+            .data()
             .config()
             .set_bool(VR_OVERLAY_PANEL_ENABLED_CONFIG_KEY, true)
             .unwrap();
-        let runtime = VrOverlayRuntime::new(Arc::clone(&context));
+        let runtime = VrOverlayRuntime::new(Arc::clone(&services));
 
         assert!(!runtime.current_runtime_config().panel_enabled);
 
@@ -170,8 +171,9 @@ mod tests {
 
     #[test]
     fn runtime_config_ignores_hidden_interactive_panel_all_friends_setting() {
-        let (_dir, _db, context) = test_context("vr-panel-all-friends-config");
-        context
+        let (_dir, _db, services) = test_services("vr-panel-all-friends-config");
+        services
+            .data()
             .config()
             .set_bool(
                 VR_OVERLAY_PANEL_ALL_FRIENDS_INCLUDES_FAVORITES_CONFIG_KEY,
@@ -179,7 +181,7 @@ mod tests {
             )
             .unwrap();
 
-        let config = load_runtime_config(context.config());
+        let config = load_runtime_config(services.data().config());
 
         assert!(config.panel_all_friends_includes_favorites);
     }

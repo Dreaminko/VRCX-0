@@ -1,7 +1,7 @@
 use serde_json::Value;
 use vrcx_0_persistence::game_log::GameLogWriteBatch;
 
-use crate::{GameLogProjection, OverlayActivitySnapshot, RuntimeEventBus};
+use crate::{GameLogProjection, RuntimeEventBus};
 
 pub trait RuntimeGameEventBusExt {
     fn emit_game_log_side_effect(&self, kind: &str, payload: Value);
@@ -15,7 +15,6 @@ pub trait RuntimeGameEventBusExt {
         error: &str,
     );
     fn emit_runtime_worker_error(&self, worker: &str, message: &str);
-    fn emit_overlay_activity_snapshot(&self, payload: OverlayActivitySnapshot);
 }
 
 impl RuntimeGameEventBusExt for RuntimeEventBus {
@@ -79,9 +78,5 @@ impl RuntimeGameEventBusExt for RuntimeEventBus {
                 "message": message,
             }),
         );
-    }
-
-    fn emit_overlay_activity_snapshot(&self, payload: OverlayActivitySnapshot) {
-        self.emit("overlayActivitySnapshot", payload);
     }
 }

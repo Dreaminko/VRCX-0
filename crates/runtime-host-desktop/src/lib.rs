@@ -11,7 +11,7 @@ mod registry_backup;
 mod state;
 pub mod vr_overlay;
 
-pub use context::DesktopRuntimeHostContext;
+pub use context::DesktopRuntimeServices;
 pub use game_client::GameClientHostRuntime;
 pub use game_log::GameLogHostRuntime;
 pub use host_actions::{RuntimeHost, RuntimeHostActions};
@@ -25,4 +25,4 @@ pub use registry_backup::HostRegistryBackupActions;
 pub use state::{
     DesktopRuntimeBundle, DesktopRuntimeHostOptions, DesktopRuntimeHostState, GameRuntimeBundle,
 };
-pub use vrcx_0_runtime_host::{Error, Result, RuntimeHostContext};
+pub use vrcx_0_runtime_host::{Error, Result};

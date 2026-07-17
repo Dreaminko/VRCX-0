@@ -147,7 +147,7 @@ async fn fetch_user_image(
     image_url_from_user(&user, allow_user_icon, endpoint)
 }
 
-pub(crate) struct UserImageSources<'a> {
+pub struct UserImageSources<'a> {
     pub user_icon: &'a str,
     pub profile_pic_override_thumbnail: &'a str,
     pub profile_pic_override: &'a str,
@@ -156,7 +156,7 @@ pub(crate) struct UserImageSources<'a> {
     pub current_avatar_image_url: &'a str,
 }
 
-pub(crate) fn user_image_url_128(
+pub fn user_image_url_128(
     sources: UserImageSources<'_>,
     allow_user_icon: bool,
     endpoint: &str,
@@ -176,7 +176,7 @@ pub(crate) fn user_image_url_128(
     Some(normalize_avatar_image_url_128(url, endpoint))
 }
 
-pub(crate) fn normalize_avatar_image_url_128(url: &str, endpoint: &str) -> String {
+pub fn normalize_avatar_image_url_128(url: &str, endpoint: &str) -> String {
     let url = url.trim();
     if url.is_empty() {
         return String::new();

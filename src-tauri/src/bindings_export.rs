@@ -1,13 +1,14 @@
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, Builder, ErrorHandlingMode};
 use vrcx_0_application::ProfileRestoreProgress;
+use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
     BackendRuntimeTelemetry, FriendProjection, HostSessionProjection, ParsedLocation,
     PrintAutoCleanupEvent, RealtimeCurrentUserProjection, RealtimeEntryCorrection,
     RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection,
 };
-use vrcx_0_application_game::{GameLogProjection, OverlayActivitySnapshot};
+use vrcx_0_application_game::GameLogProjection;
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_harness::{
     AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,

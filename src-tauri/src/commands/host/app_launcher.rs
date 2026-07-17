@@ -98,6 +98,7 @@ pub async fn app__app_launcher_target_pick(
     let picked = picked_app_launcher_target(path).map_err(AppError::Custom)?;
     if matches!(picked.kind, AppLauncherEntryKind::LocalApp) {
         state
+            .desktop
             .host_file_access
             .register_path(PathBuf::from(&picked.target));
     }

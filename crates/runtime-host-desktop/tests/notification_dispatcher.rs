@@ -2,21 +2,19 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use serde_json::json;
-use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
-use vrcx_0_application_game::{
+use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
     OverlayActivityDelivery, OverlayActivityEntry,
 };
+use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_runtime_host::notification::{
     auth_webhook_generic_payload, auth_webhook_is_enabled, auth_webhook_should_recover,
-    AuthWebhookEvent, AuthWebhookEventKind,
+    decide_notification_plan, AuthWebhookEvent, AuthWebhookEventKind,
+    NotificationDeliveryGameState, NotificationDeliveryPreferences,
 };
-use vrcx_0_runtime_host_desktop::notification::{
-    decide_notification_plan, DesktopNotifier, DesktopNotifierSlot, NotificationDeliveryGameState,
-    NotificationDeliveryPreferences,
-};
+use vrcx_0_runtime_host_desktop::notification::{DesktopNotifier, DesktopNotifierSlot};
 
 #[test]
 fn webhook_delivery_ignores_game_state_conditions() {

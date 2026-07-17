@@ -1,5 +1,5 @@
 use super::*;
-use crate::vr_overlay::runtime::tests::test_context;
+use crate::vr_overlay::runtime::tests::test_services;
 use crate::vr_overlay::runtime::{
     VrOverlayRuntime, VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY,
     VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY,
@@ -8,12 +8,13 @@ use std::sync::Arc;
 
 #[test]
 fn hidden_friends_panel_ignores_selected_category_config() {
-    let (_dir, _db, context) = test_context("friends-panel-category-config");
-    context
+    let (_dir, _db, services) = test_services("friends-panel-category-config");
+    services
+        .data()
         .config()
         .set_string(VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY, "friend:group_0")
         .unwrap();
-    let runtime = VrOverlayRuntime::new(Arc::clone(&context));
+    let runtime = VrOverlayRuntime::new(Arc::clone(&services));
 
     assert_eq!(
         runtime.load_friends_panel_selected_category(),
@@ -23,7 +24,8 @@ fn hidden_friends_panel_ignores_selected_category_config() {
     runtime.persist_friends_panel_selected_category(FRIENDS_PANEL_CATEGORY_FAVORITES_ONLINE);
 
     assert_eq!(
-        context
+        services
+            .data()
             .config()
             .get_string(VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY, "")
             .unwrap(),

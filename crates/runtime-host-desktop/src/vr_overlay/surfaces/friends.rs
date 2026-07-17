@@ -9,15 +9,15 @@ use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::{parse_location, world_id_from_location};
 use vrcx_0_persistence::favorites::favorite_list;
 use vrcx_0_persistence::memos::{memo_list_user_notes, memo_list_users};
+use vrcx_0_runtime_host::notification::{user_image_url_128, UserImageSources};
 use vrcx_0_vr_overlay::{
     AvatarBitmap, FavoriteFriendsPanelModel, FriendPanelCategory, FriendPanelRow,
     FriendPanelRowActions, FriendPanelRowPrimaryAction, FriendPanelStatusTone,
 };
 
-use crate::notification::user_image::{user_image_url_128, UserImageSources};
-use crate::DesktopRuntimeHostContext;
+use crate::DesktopRuntimeServices;
 
-use super::super::localization::{OverlayLocale, OverlayLocalizer};
+use super::super::localization::{OverlayLocale, OverlayLocalizer, OverlayPanelLocalizer};
 
 pub(crate) const FRIENDS_PANEL_CATEGORY_ALL: &str = "all";
 pub(crate) const FRIENDS_PANEL_CATEGORY_SAME_INSTANCE: &str = "sameInstance";
@@ -162,10 +162,10 @@ pub(crate) fn local_favorite_friend_groups_from_db(
 }
 
 pub(crate) fn load_friends_panel_notes(
-    context: &DesktopRuntimeHostContext,
+    services: &DesktopRuntimeServices,
     owner_user_id: String,
 ) -> HashMap<String, String> {
-    memo_list_user_notes(context.db.as_ref(), owner_user_id)
+    memo_list_user_notes(services.data().db.as_ref(), owner_user_id)
         .map(|notes| {
             notes
                 .into_iter()
@@ -177,9 +177,9 @@ pub(crate) fn load_friends_panel_notes(
 }
 
 pub(crate) fn load_friends_panel_memos(
-    context: &DesktopRuntimeHostContext,
+    services: &DesktopRuntimeServices,
 ) -> HashMap<String, String> {
-    memo_list_users(context.db.as_ref())
+    memo_list_users(services.data().db.as_ref())
         .map(|memos| {
             memos
                 .into_iter()

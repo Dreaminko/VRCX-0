@@ -30,7 +30,7 @@ pub(in crate::state) struct BackgroundTickContext<'a> {
         &'a Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
     pub(in crate::state) realtime_runtime: &'a Arc<RealtimeHostRuntime>,
     pub(in crate::state) runtime_context: &'a Arc<RuntimeHostContext>,
-    pub(in crate::state) desktop_context: &'a Arc<crate::DesktopRuntimeHostContext>,
+    pub(in crate::state) desktop_services: &'a Arc<crate::DesktopRuntimeServices>,
     pub(in crate::state) backend_runtime: &'a BackendRuntime,
     pub(in crate::state) background_jobs: &'a RuntimeBackgroundJobs,
 }

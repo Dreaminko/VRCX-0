@@ -70,6 +70,9 @@ impl RuntimeHostState {
             .ok()
             .and_then(|mut slot| slot.take());
         self.authenticated_runtime.stop();
+        self.runtime_context
+            .overlay_activity()
+            .clear_runtime_state();
         if let Some(extension) = &self.profile_extension {
             extension.clear_profile_session();
         }
@@ -107,6 +110,9 @@ impl RuntimeHostState {
                 })
                 .unwrap_or(true);
             if scope_changed {
+                self.runtime_context
+                    .overlay_activity()
+                    .clear_runtime_state();
                 if let Some(extension) = &self.profile_extension {
                     extension.profile_session_scope_changed();
                 }

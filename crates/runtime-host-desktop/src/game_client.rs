@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::log_watcher::LogWatcher;
-use crate::{ensure_vrchat_launch_path_allowed, HostFileAccess, RuntimeHost, RuntimeHostContext};
+use crate::{ensure_vrchat_launch_path_allowed, HostFileAccess, RuntimeHost};
 use vrcx_0_application_core::Error as RuntimeError;
 use vrcx_0_application_core::Result as RuntimeResult;
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
@@ -13,6 +13,7 @@ use vrcx_0_core::log_watcher::LogLocationSnapshot;
 use vrcx_0_host::app_paths::AppPaths;
 use vrcx_0_host_desktop::vrchat_registry;
 use vrcx_0_host_desktop::{asset_bundle_cache, game_launch, process_status};
+use vrcx_0_runtime_host::RuntimeHostContext;
 
 fn host_error(error: vrcx_0_host::Error) -> RuntimeError {
     match error {

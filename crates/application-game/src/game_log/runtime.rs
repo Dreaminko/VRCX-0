@@ -3,13 +3,13 @@ use std::sync::{Arc, Mutex};
 use vrcx_0_core::log_watcher::GameLogEvent;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::overlay_activity::OverlayActivityRuntime;
 use crate::worker::{RuntimeWorker, RuntimeWorkerOptions};
 use crate::Result;
 use crate::RuntimeAuthScope;
 use crate::WorldCache;
 use crate::{HostSessionRuntime, RuntimeSyncEngine, TaskSupervisor, WebClient};
 use crate::{ImageCache, RuntimeEventBus};
+use vrcx_0_application_activity::OverlayActivityRuntime;
 use vrcx_0_application_core::GameProcessEvent;
 
 use super::host::GameLogHostActions;

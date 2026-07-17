@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serde_json::Value;
-use vrcx_0_application_core::{LocalGameContextSource, OverlayActivityInputSink};
+use vrcx_0_application_core::LocalGameContextSource;
 
 use crate::{GroupOrderSource, RuntimeHostState};
 
@@ -31,7 +31,6 @@ pub trait RuntimeHostProfileExtension: Send + Sync {
 
 pub struct RuntimeHostComposition {
     pub local_game_context: Arc<dyn LocalGameContextSource>,
-    pub activity_sink: Option<Arc<dyn OverlayActivityInputSink>>,
     pub group_order_source: Arc<dyn GroupOrderSource>,
     pub friend_note_change_sink: Option<RuntimeHostCallback>,
     pub favorites_sink: Option<RuntimeHostSnapshotCallback>,

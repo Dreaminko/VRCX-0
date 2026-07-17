@@ -1,6 +1,6 @@
 use serde_json::{json, Map, Value};
 use std::sync::{Arc, Mutex};
-use vrcx_0_application_game::{
+use vrcx_0_application_activity::{
     overlay_activity_type_definitions, OverlayActivityCandidate, OverlayActivityCategory,
     OverlayActivityDelivery, OverlayActivityFavoriteGroupKeys, OverlayActivityFilters,
     OverlayActivityRule, OverlayActivityRuntime, OverlayActivityScope, OverlayActivitySink,

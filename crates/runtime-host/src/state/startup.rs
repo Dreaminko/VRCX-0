@@ -29,10 +29,11 @@ impl RuntimeHostState {
 
     pub fn set_gui_backend_runtime_mode(&self, mode: BackendRuntimeMode) -> BackendRuntimeSnapshot {
         let current = self.backend_runtime.snapshot();
-        if self.profile != RuntimeHostProfile::Desktop
-            || current.mode == BackendRuntimeMode::Headless
-            || mode == BackendRuntimeMode::Headless
-        {
+        match self.profile {
+            RuntimeHostProfile::Desktop => {}
+            RuntimeHostProfile::HeadlessData => return current,
+        }
+        if current.mode == BackendRuntimeMode::Headless || mode == BackendRuntimeMode::Headless {
             return current;
         }
         let snapshot = self.backend_runtime.set_mode(mode);
@@ -97,6 +98,9 @@ impl RuntimeHostState {
         cli_login_prompt: Option<Arc<dyn CliLoginPrompt>>,
     ) -> Result<BackendRuntimeSnapshot> {
         match (self.profile, mode) {
+            (RuntimeHostProfile::Desktop, BackendRuntimeMode::Foreground)
+            | (RuntimeHostProfile::Desktop, BackendRuntimeMode::Background)
+            | (RuntimeHostProfile::HeadlessData, BackendRuntimeMode::Headless) => {}
             (RuntimeHostProfile::Desktop, BackendRuntimeMode::Headless)
             | (RuntimeHostProfile::HeadlessData, BackendRuntimeMode::Foreground)
             | (RuntimeHostProfile::HeadlessData, BackendRuntimeMode::Background) => {
@@ -104,7 +108,6 @@ impl RuntimeHostState {
                     "Backend runtime mode does not match the configured host profile.".into(),
                 ));
             }
-            _ => {}
         }
         let Some(_start_guard) = BackendStartGuard::try_acquire(&self.backend_starting) else {
             return Ok(self.backend_runtime.snapshot());

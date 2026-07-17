@@ -9,7 +9,7 @@ use crate::state::AppState;
 #[tauri::command]
 #[specta::specta]
 pub async fn app__host_tts_voices(state: State<'_, AppState>) -> Result<Vec<TtsVoice>, AppError> {
-    let tts = state.desktop_context.tts();
+    let tts = state.desktop.services.tts();
     tauri::async_runtime::spawn_blocking(move || tts.voices())
         .await
         .map_err(|error| AppError::Custom(format!("TTS voice task failed: {error}")))
@@ -22,7 +22,7 @@ pub fn app__host_tts_speak(
     text: String,
     voice_id: Option<String>,
 ) -> Result<(), AppError> {
-    let tts = state.desktop_context.tts();
+    let tts = state.desktop.services.tts();
     tts.speak(&text, voice_id.as_deref())
         .map_err(AppError::from)
 }

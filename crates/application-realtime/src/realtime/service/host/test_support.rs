@@ -47,6 +47,24 @@ pub(super) use super::types::{ActiveRealtimeContext, RealtimeHostRuntimeState};
 pub(super) use super::types::{PendingFriendBaseline, RealtimeHostRuntimeMessageSink};
 use super::*;
 
+impl RealtimeHostRuntime {
+    pub fn ingest_notification_ws_message_for_test(
+        self: &Arc<Self>,
+        owner_user_id: &str,
+        endpoint: &str,
+        generation: u64,
+        payload: &RealtimeWsMessagePayload,
+    ) -> bool {
+        let Some(output) =
+            apply_notification_ws_message(owner_user_id, endpoint, generation, payload)
+        else {
+            return false;
+        };
+        self.apply_notification_output(output);
+        true
+    }
+}
+
 pub struct TestRealtimeHostRuntime {
     runtime: Arc<RealtimeHostRuntime>,
     #[cfg(test)]
@@ -143,6 +161,7 @@ pub(super) struct TestActivitySink {
 #[cfg(test)]
 #[derive(Default)]
 struct TestActivitySinkState {
+    delivery_armed: bool,
     friend_user_ids: Vec<String>,
     friend_projections: Vec<FriendProjection>,
     notification_projections: Vec<RealtimeNotificationProjection>,
@@ -150,6 +169,10 @@ struct TestActivitySinkState {
 
 #[cfg(test)]
 impl TestActivitySink {
+    pub(super) fn delivery_armed(&self) -> bool {
+        self.lock_state().delivery_armed
+    }
+
     fn lock_state(&self) -> std::sync::MutexGuard<'_, TestActivitySinkState> {
         self.state.lock().unwrap_or_else(|error| error.into_inner())
     }
@@ -179,7 +202,9 @@ impl OverlayActivityInputSink for TestActivitySink {
         self.lock_state().friend_user_ids = user_ids;
     }
 
-    fn set_delivery_armed(&self, _armed: bool) {}
+    fn set_delivery_armed(&self, armed: bool) {
+        self.lock_state().delivery_armed = armed;
+    }
 
     fn ingest_friend_projection(&self, projection: &FriendProjection) {
         self.lock_state()

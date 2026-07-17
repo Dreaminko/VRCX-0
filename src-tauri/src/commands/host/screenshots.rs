@@ -13,6 +13,7 @@ use vrcx_0_host_desktop::vrchat_paths;
 
 fn ensure_screenshot_read_allowed(state: &AppState, path: &str) -> Result<(), AppError> {
     state
+        .desktop
         .host_file_access
         .ensure_read_allowed(path, &state.paths)?;
     if !screenshot::is_vrchat_screenshot_file_path(Path::new(path)) {
@@ -25,6 +26,7 @@ fn ensure_screenshot_read_allowed(state: &AppState, path: &str) -> Result<(), Ap
 
 fn ensure_screenshot_write_allowed(state: &AppState, path: &str) -> Result<(), AppError> {
     state
+        .desktop
         .host_file_access
         .ensure_write_allowed(path, &state.paths)?;
     if !screenshot::is_vrchat_screenshot_file_path(Path::new(path)) {

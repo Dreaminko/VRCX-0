@@ -1,5 +1,5 @@
 use chrono::{DateTime, Local, Timelike};
-use vrcx_0_application_game::{
+use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityEntry,
     OverlayActivitySnapshot, OverlayActivityText,
 };
@@ -11,7 +11,7 @@ use vrcx_0_vr_overlay::{
     OverlayFooter, OverlaySize, WristSurfaceModel,
 };
 
-use super::super::localization::{OverlayLocale, OverlayLocalizer};
+use super::super::localization::{OverlayLocale, OverlayLocalizer, OverlayPanelLocalizer};
 
 const MAX_FEED_ROWS: usize = 24;
 
@@ -473,7 +473,7 @@ where
 #[cfg(test)]
 mod tests {
     use serde_json::Value;
-    use vrcx_0_application_game::{
+    use vrcx_0_application_activity::{
         OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
         OverlayActivityEntry, OverlayActivityText,
     };

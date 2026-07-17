@@ -80,8 +80,8 @@ pub(in crate::state) async fn run_background_discord_tick(
                 .get_bool("isGameNoVR", false)
                 .unwrap_or(false),
             last_game_started_at: host_session.last_game_started_at,
-            game_log_snapshot: context.desktop_context.game_log_snapshot(),
-            now_playing: context.desktop_context.now_playing(),
+            game_log_snapshot: context.desktop_services.game_log_snapshot(),
+            now_playing: context.desktop_services.now_playing(),
             friends_by_id,
             favorite_friend_groups_by_key: favorite_friend_groups_by_key.clone(),
         },

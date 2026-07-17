@@ -2,16 +2,15 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use vrcx_0_application_core::WorldCache;
-use vrcx_0_application_game::{
+use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityDelivery, OverlayActivityEntry,
 };
+use vrcx_0_application_core::WorldCache;
 use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::{is_meaningful_world_name, world_id_from_location};
+use vrcx_0_runtime_host::notification::normalize_avatar_image_url_128;
 use vrcx_0_vr_overlay::{AvatarBitmap, OverlaySurfaceId, RgbaFrame, MAIN_SURFACE_ID};
-
-use crate::notification::user_image::normalize_avatar_image_url_128;
 
 use super::super::localization::OverlayLocale;
 use super::super::manager::VrOverlayManager;
@@ -43,24 +42,25 @@ impl VrOverlayRuntime {
         }
         let entry = delivery.entry;
         let pending = self
-            .context
+            .services
             .as_ref()
             .cloned()
             .zip(unresolved_entry_world_id(&entry));
-        let Some((context, world_id)) = pending else {
+        let Some((services, world_id)) = pending else {
             self.deliver_hmd_toast(entry);
             return;
         };
         let runtime = Arc::clone(self);
-        let tasks = context.tasks.clone();
+        let tasks = services.data().tasks.clone();
         tasks.spawn(async move {
             let mut entry = entry;
-            let endpoint = context.auth_scope.snapshot().endpoint;
+            let endpoint = services.data().auth_scope.snapshot().endpoint;
             if !endpoint.trim().is_empty() {
-                let resolve =
-                    context
-                        .world_cache
-                        .resolve_name(context.web.as_ref(), &endpoint, &world_id);
+                let resolve = services.data().world_cache.resolve_name(
+                    services.data().web.as_ref(),
+                    &endpoint,
+                    &world_id,
+                );
                 if let Ok(Some(world_name)) =
                     tokio::time::timeout(HMD_TOAST_WORLD_RESOLVE_BUDGET, resolve).await
                 {
@@ -169,9 +169,9 @@ impl VrOverlayRuntime {
         };
         prune_expired_hmd_toasts(&mut queue, now);
         let friend_snapshot = self.current_friends_panel_snapshot();
-        if let Some(context) = &self.context {
+        if let Some(services) = &self.services {
             for toast in queue.iter_mut() {
-                refresh_cached_world_name(&context.world_cache, &mut toast.entry);
+                refresh_cached_world_name(&services.data().world_cache, &mut toast.entry);
             }
         }
         queue
@@ -217,7 +217,7 @@ impl VrOverlayRuntime {
     }
 
     fn spawn_avatar_fetch(self: &Arc<Self>, entry: &OverlayActivityEntry) {
-        let Some(context) = self.context.as_ref().cloned() else {
+        let Some(services) = self.services.as_ref().cloned() else {
             return;
         };
         let source_id = entry.source_id.trim().to_string();
@@ -235,13 +235,14 @@ impl VrOverlayRuntime {
             );
             return;
         };
-        let auth = context.auth_scope.snapshot();
+        let auth = services.data().auth_scope.snapshot();
         let endpoint = if snapshot_endpoint.trim().is_empty() {
             auth.endpoint.clone()
         } else {
             snapshot_endpoint
         };
-        let allow_user_icon = context
+        let allow_user_icon = services
+            .data()
             .config()
             .get_bool("displayVRCPlusIconsAsAvatar", true)
             .unwrap_or(true);
@@ -260,7 +261,7 @@ impl VrOverlayRuntime {
         let runtime = Arc::clone(self);
         let resolve_endpoint = endpoint.clone();
         let avatar_cache_generation = avatar_cache.generation();
-        let tasks = context.tasks.clone();
+        let tasks = services.data().tasks.clone();
         tasks.spawn(async move {
             let image_url = if initial_image_url.is_empty() {
                 if actor_user_id == auth.current_user_id {
@@ -268,8 +269,8 @@ impl VrOverlayRuntime {
                 }
                 user_image_cache
                     .resolve(
-                        context.web.as_ref(),
-                        context.db.as_ref(),
+                        services.data().web.as_ref(),
+                        services.data().db.as_ref(),
                         &resolve_endpoint,
                         &actor_user_id,
                         allow_user_icon,
@@ -288,7 +289,11 @@ impl VrOverlayRuntime {
                 return;
             }
             let Some(bitmap) = avatar_cache
-                .resolve(context.web.as_ref(), image_url.trim(), &actor_user_id)
+                .resolve(
+                    services.data().web.as_ref(),
+                    image_url.trim(),
+                    &actor_user_id,
+                )
                 .await
             else {
                 tracing::debug!(

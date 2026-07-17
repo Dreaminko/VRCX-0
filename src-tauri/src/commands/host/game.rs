@@ -81,6 +81,7 @@ pub fn app__start_game_from_path(
     launch_arguments: String,
 ) -> Result<bool, AppError> {
     require_host_capability_supported(HostCapability::GameLaunch)?;
-    let path = ensure_vrchat_launch_path_allowed(&state.host_file_access, &state.paths, &path)?;
+    let path =
+        ensure_vrchat_launch_path_allowed(&state.desktop.host_file_access, &state.paths, &path)?;
     Ok(game_launch::start_game_from_path(&path, &launch_arguments)?)
 }

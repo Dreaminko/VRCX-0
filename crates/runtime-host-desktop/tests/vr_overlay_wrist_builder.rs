@@ -1,5 +1,5 @@
 use serde_json::json;
-use vrcx_0_application_game::{
+use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
     OverlayActivityEntry, OverlayActivitySnapshot, OverlayActivityText,
 };

@@ -8666,6 +8666,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "vrcx-0-application",
+ "vrcx-0-application-activity",
  "vrcx-0-application-core",
  "vrcx-0-application-game",
  "vrcx-0-application-realtime",
@@ -8711,6 +8712,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "vrcx-0-application-activity"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "specta",
+ "vrcx-0-application-core",
+ "vrcx-0-core",
+ "vrcx-0-i18n",
+]
+
+[[package]]
 name = "vrcx-0-application-core"
 version = "0.1.0"
 dependencies = [
@@ -8744,6 +8758,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "vrcx-0-application-activity",
  "vrcx-0-application-core",
  "vrcx-0-core",
  "vrcx-0-i18n",
@@ -8988,10 +9003,12 @@ dependencies = [
  "tracing",
  "uuid",
  "vrcx-0-application",
+ "vrcx-0-application-activity",
  "vrcx-0-application-core",
  "vrcx-0-application-realtime",
  "vrcx-0-core",
  "vrcx-0-host",
+ "vrcx-0-i18n",
  "vrcx-0-integrations",
  "vrcx-0-media",
  "vrcx-0-persistence",
@@ -9010,6 +9027,7 @@ dependencies = [
  "tokio",
  "tracing",
  "vrcx-0-application",
+ "vrcx-0-application-activity",
  "vrcx-0-application-core",
  "vrcx-0-application-game",
  "vrcx-0-application-realtime",

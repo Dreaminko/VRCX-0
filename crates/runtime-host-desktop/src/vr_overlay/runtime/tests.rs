@@ -94,12 +94,12 @@ impl Drop for TestDir {
     }
 }
 
-pub(crate) fn test_context(
+pub(crate) fn test_services(
     name: &str,
 ) -> (
     TestDir,
     Arc<vrcx_0_persistence::DatabaseService>,
-    Arc<DesktopRuntimeHostContext>,
+    Arc<DesktopRuntimeServices>,
 ) {
     let dir = TestDir::new(name);
     let db = Arc::new(
@@ -126,12 +126,12 @@ pub(crate) fn test_context(
         web,
         image_cache,
     ));
-    let context = Arc::new(DesktopRuntimeHostContext::new(data));
-    (dir, db, context)
+    let services = Arc::new(DesktopRuntimeServices::new(data));
+    (dir, db, services)
 }
 
-fn friends_panel_enabled_runtime_with_context(
-    context: Arc<DesktopRuntimeHostContext>,
+fn friends_panel_enabled_runtime_with_services(
+    services: Arc<DesktopRuntimeServices>,
 ) -> VrOverlayRuntime {
     let config = VrOverlayRuntimeConfig {
         panel_enabled: true,
@@ -139,26 +139,28 @@ fn friends_panel_enabled_runtime_with_context(
     };
     VrOverlayRuntime::new_with_frame_producer_factory(
         true,
-        Some(context),
+        Some(services),
         config,
         Box::new(|| Box::<StaticWristFrameProducer>::default()),
     )
 }
 
-pub(crate) fn hmd_enabled_runtime_with_context(
-    context: Arc<DesktopRuntimeHostContext>,
+pub(crate) fn hmd_enabled_runtime_with_services(
+    services: Arc<DesktopRuntimeServices>,
 ) -> Arc<VrOverlayRuntime> {
-    context
+    services
+        .data()
         .config()
         .set_bool(HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY, true)
         .unwrap();
-    context
+    services
+        .data()
         .config()
         .set_string(HMD_NOTIFICATION_START_MODE_CONFIG_KEY, "steamvr")
         .unwrap();
     let runtime = Arc::new(VrOverlayRuntime::new_with_frame_producer_factory(
         true,
-        Some(context),
+        Some(services),
         VrOverlayRuntimeConfig {
             panel_enabled: true,
             hmd: HmdNotificationConfig {
@@ -671,15 +673,16 @@ fn overlay_activity_snapshot_marks_friends_panel_dirty_for_presence_changes() {
 
 #[test]
 fn game_log_player_snapshot_marks_same_instance_panel_dirty() {
-    let (_dir, _db, context) = test_context("friends-panel-game-log-same-instance");
-    context
+    let (_dir, _db, services) = test_services("friends-panel-game-log-same-instance");
+    services
+        .data()
         .config()
         .set_string(
             VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY,
             FRIENDS_PANEL_CATEGORY_SAME_INSTANCE,
         )
         .unwrap();
-    let runtime = friends_panel_enabled_runtime_with_context(Arc::clone(&context));
+    let runtime = friends_panel_enabled_runtime_with_services(Arc::clone(&services));
     runtime.set_friends_panel_snapshot_provider(|| {
         Some(RealtimeFriendSnapshot {
             current_user_id: "usr_self".to_string(),
@@ -720,7 +723,7 @@ fn game_log_player_snapshot_marks_same_instance_panel_dirty() {
         .rows
         .is_empty());
 
-    *context.game_log_snapshot_handle().lock().unwrap() = RuntimeSnapshot {
+    *services.game_log_snapshot_handle().lock().unwrap() = RuntimeSnapshot {
         location: "wrld_live:123".to_string(),
         players: vec![PlayerState {
             user_id: "usr_fallback".to_string(),
@@ -773,14 +776,14 @@ fn game_log_player_snapshot_marks_same_instance_panel_dirty() {
 
 #[test]
 fn friends_panel_presence_rebuild_reuses_open_memo_cache() {
-    let (_dir, db, context) = test_context("friends-panel-memo-cache");
+    let (_dir, db, services) = test_services("friends-panel-memo-cache");
     vrcx_0_persistence::memos::memo_save_user(
         db.as_ref(),
         "usr_friend".to_string(),
         "Cached memo".to_string(),
     )
     .unwrap();
-    let runtime = friends_panel_enabled_runtime_with_context(context);
+    let runtime = friends_panel_enabled_runtime_with_services(services);
     runtime.set_friends_panel_snapshot_provider(|| {
         Some(friends_panel_snapshot(FriendRecord {
             id: "usr_friend".to_string(),
@@ -1265,12 +1268,13 @@ fn friends_panel_avatar_url_follows_vrc_plus_icon_config() {
 
 #[test]
 fn friends_panel_avatar_refetches_when_config_selects_different_url() {
-    let (_dir, _db, context) = test_context("friends-panel-avatar-source-change");
-    context
+    let (_dir, _db, services) = test_services("friends-panel-avatar-source-change");
+    services
+        .data()
         .config()
         .set_bool("displayVRCPlusIconsAsAvatar", false)
         .unwrap();
-    let runtime = friends_panel_enabled_runtime_with_context(Arc::clone(&context));
+    let runtime = friends_panel_enabled_runtime_with_services(Arc::clone(&services));
     runtime.friends_panel_avatars.lock().unwrap().insert(
         "usr_avatar".into(),
         FriendsPanelAvatarCacheEntry {
@@ -1294,7 +1298,7 @@ fn friends_panel_avatar_refetches_when_config_selects_different_url() {
     };
 
     assert!(runtime.queue_friends_panel_avatar(
-        &context,
+        &services,
         "https://api.vrchat.cloud/api/1",
         &record
     ));

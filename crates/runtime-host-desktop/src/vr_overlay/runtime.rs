@@ -9,11 +9,11 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Local, Timelike};
 use serde::Serialize;
-use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, TaskSupervisor};
-use vrcx_0_application_game::{
-    GameLogEvent, GameLogEventSink, OverlayActivityDelivery, OverlayActivitySink,
-    OverlayActivitySnapshot,
+use vrcx_0_application_activity::{
+    OverlayActivityDelivery, OverlayActivitySink, OverlayActivitySnapshot,
 };
+use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, TaskSupervisor};
+use vrcx_0_application_game::{GameLogEvent, GameLogEventSink};
 use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::log_watcher::GameLogEventKind;
@@ -21,6 +21,7 @@ use vrcx_0_host_desktop::vr_overlay::{
     OverlayActivationButton, OverlayInputEvent, OverlayInputKind, OverlayPlacement,
     OverlaySurfaceConfig, VrDeviceSnapshot,
 };
+use vrcx_0_runtime_host::notification::UserImageCache;
 use vrcx_0_vr_overlay::{
     AvatarBitmap, FavoriteFriendsPanelModel, MainSurfaceModel, OverlaySize, OverlaySurfaceId,
     OverlayTransform, RgbaFrame, SlintHmdRenderer, SlintPanelHost, SlintPanelPointerEvent,
@@ -29,8 +30,7 @@ use vrcx_0_vr_overlay::{
     FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 
-use crate::notification::user_image::UserImageCache;
-use crate::DesktopRuntimeHostContext;
+use crate::DesktopRuntimeServices;
 
 use super::{
     avatar_cache::AvatarBitmapCache,
@@ -417,7 +417,7 @@ pub struct VrOverlayRuntime {
     device_refresh_requested: AtomicBool,
     interactive_degraded_logged: AtomicBool,
     backend_available: bool,
-    pub(crate) context: Option<Arc<DesktopRuntimeHostContext>>,
+    pub(crate) services: Option<Arc<DesktopRuntimeServices>>,
     config: Mutex<VrOverlayRuntimeConfig>,
     friends_panel_snapshot_provider: Mutex<Option<FriendsPanelSnapshotProvider>>,
     friends_panel_favorite_groups: Mutex<FavoriteFriendGroupsSnapshot>,
@@ -468,16 +468,16 @@ impl OverlayActivitySink for VrOverlayActivitySink {
 }
 
 impl VrOverlayRuntime {
-    pub fn new(context: Arc<DesktopRuntimeHostContext>) -> Self {
-        let config = load_runtime_config(context.config());
-        let producer_context = Arc::clone(&context);
+    pub fn new(services: Arc<DesktopRuntimeServices>) -> Self {
+        let config = load_runtime_config(services.data().config());
+        let producer_services = Arc::clone(&services);
         Self::new_with_frame_producer_factory(
             HostVrOverlayService::backend_available(),
-            Some(context.clone()),
+            Some(services.clone()),
             config,
             Box::new(move || {
                 Box::new(RuntimeWristFrameProducer::new(Arc::clone(
-                    &producer_context,
+                    &producer_services,
                 )))
             }),
         )
@@ -516,12 +516,12 @@ impl VrOverlayRuntime {
 
     fn new_with_frame_producer_factory(
         backend_available: bool,
-        context: Option<Arc<DesktopRuntimeHostContext>>,
+        services: Option<Arc<DesktopRuntimeServices>>,
         config: VrOverlayRuntimeConfig,
         frame_producer_factory: VrOverlayFrameProducerFactory,
     ) -> Self {
         let service_configs = Vec::new();
-        let service = if context.is_some() {
+        let service = if services.is_some() {
             HostVrOverlayService::new_with_preference(service_configs, config.backend)
         } else {
             HostVrOverlayService::new_noop(service_configs)
@@ -538,7 +538,7 @@ impl VrOverlayRuntime {
             device_refresh_requested: AtomicBool::new(false),
             interactive_degraded_logged: AtomicBool::new(false),
             backend_available,
-            context,
+            services,
             manager: Mutex::new(VrOverlayManager::new(service)),
             running_mirror: AtomicBool::new(false),
             active_backend_mirror: Mutex::new(None),
@@ -637,7 +637,7 @@ impl VrOverlayRuntime {
     }
 
     fn should_defer_slint_render_to_refresh_thread(&self) -> bool {
-        self.context.is_some() && !self.is_refresh_thread()
+        self.services.is_some() && !self.is_refresh_thread()
     }
 
     pub(crate) fn set_friends_panel_snapshot_provider<F>(&self, provider: F)
@@ -789,10 +789,10 @@ impl VrOverlayRuntime {
     }
 
     pub(crate) fn current_friends_panel_location_snapshot(&self) -> (String, Vec<String>) {
-        let Some(context) = &self.context else {
+        let Some(services) = &self.services else {
             return (String::new(), Vec::new());
         };
-        let game_log = context.game_log_snapshot();
+        let game_log = services.game_log_snapshot();
         let current_location = if game_log.location.trim().eq_ignore_ascii_case("traveling")
             && !game_log.destination.trim().is_empty()
         {
@@ -827,24 +827,24 @@ impl VrOverlayRuntime {
         if !current.groups.is_empty() {
             return current;
         }
-        let Some(context) = &self.context else {
+        let Some(services) = &self.services else {
             return current;
         };
-        local_favorite_friend_groups_from_db(context.db.as_ref()).unwrap_or_default()
+        local_favorite_friend_groups_from_db(services.data().db.as_ref()).unwrap_or_default()
     }
 
     fn current_friends_panel_note_memo_maps(
         &self,
         snapshot: &Option<RealtimeFriendSnapshot>,
     ) -> (HashMap<String, String>, HashMap<String, String>) {
-        let Some(context) = &self.context else {
+        let Some(services) = &self.services else {
             return (HashMap::new(), HashMap::new());
         };
         let owner_user_id = snapshot
             .as_ref()
             .map(|snapshot| snapshot.current_user_id.trim().to_string())
             .filter(|value| !value.is_empty())
-            .unwrap_or_else(|| context.auth_scope.snapshot().current_user_id);
+            .unwrap_or_else(|| services.data().auth_scope.snapshot().current_user_id);
         if let Ok(mut cache) = self.friends_panel_note_memo_cache.lock() {
             if cache.valid && cache.owner_user_id == owner_user_id {
                 return (
@@ -852,8 +852,8 @@ impl VrOverlayRuntime {
                     cache.memos_by_user_id.clone(),
                 );
             }
-            let notes_by_user_id = load_friends_panel_notes(context, owner_user_id.clone());
-            let memos_by_user_id = load_friends_panel_memos(context);
+            let notes_by_user_id = load_friends_panel_notes(services, owner_user_id.clone());
+            let memos_by_user_id = load_friends_panel_memos(services);
             *cache = FriendsPanelNoteMemoCache {
                 owner_user_id,
                 notes_by_user_id: notes_by_user_id.clone(),
@@ -863,8 +863,8 @@ impl VrOverlayRuntime {
             return (notes_by_user_id, memos_by_user_id);
         }
         (
-            load_friends_panel_notes(context, owner_user_id),
-            load_friends_panel_memos(context),
+            load_friends_panel_notes(services, owner_user_id),
+            load_friends_panel_memos(services),
         )
     }
 
@@ -872,7 +872,7 @@ impl VrOverlayRuntime {
         &self,
         snapshot: &Option<RealtimeFriendSnapshot>,
     ) -> HashMap<String, String> {
-        let Some(context) = &self.context else {
+        let Some(services) = &self.services else {
             return HashMap::new();
         };
         let Some(snapshot) = snapshot else {
@@ -881,7 +881,7 @@ impl VrOverlayRuntime {
         let mut names = HashMap::new();
         for record in snapshot.friends_by_id.values() {
             for world_id in friend_record_world_ids(record) {
-                if let Some(name) = context.world_cache.get_name(&world_id) {
+                if let Some(name) = services.data().world_cache.get_name(&world_id) {
                     names.insert(world_id, name);
                 }
             }
@@ -890,7 +890,7 @@ impl VrOverlayRuntime {
     }
 
     fn queue_friends_panel_assets(&self, model: &FavoriteFriendsPanelModel) {
-        let Some(context) = &self.context else {
+        let Some(services) = &self.services else {
             return;
         };
         let Some(snapshot) = self.current_friends_panel_snapshot() else {
@@ -906,7 +906,7 @@ impl VrOverlayRuntime {
             return;
         }
         let endpoint = if snapshot.endpoint.trim().is_empty() {
-            context.auth_scope.snapshot().endpoint
+            services.data().auth_scope.snapshot().endpoint
         } else {
             snapshot.endpoint.clone()
         };
@@ -920,18 +920,18 @@ impl VrOverlayRuntime {
         for user_id in &visible_user_ids {
             if let Some(record) = snapshot.friends_by_id.get(user_id) {
                 if avatar_fetch_budget > 0
-                    && self.queue_friends_panel_avatar(context, &endpoint, record)
+                    && self.queue_friends_panel_avatar(services, &endpoint, record)
                 {
                     avatar_fetch_budget -= 1;
                 }
-                self.queue_friends_panel_world_names(context, &endpoint, record);
+                self.queue_friends_panel_world_names(services, &endpoint, record);
             }
         }
     }
 
     fn queue_friends_panel_avatar(
         &self,
-        context: &Arc<DesktopRuntimeHostContext>,
+        services: &Arc<DesktopRuntimeServices>,
         endpoint: &str,
         record: &FriendRecord,
     ) -> bool {
@@ -940,7 +940,8 @@ impl VrOverlayRuntime {
             return false;
         }
         let endpoint = endpoint.to_string();
-        let allow_user_icon = context
+        let allow_user_icon = services
+            .data()
             .config()
             .get_bool("displayVRCPlusIconsAsAvatar", true)
             .unwrap_or(true);
@@ -965,7 +966,7 @@ impl VrOverlayRuntime {
         }
         drop(inflight);
 
-        let context = Arc::clone(context);
+        let services = Arc::clone(services);
         let user_image_cache = Arc::clone(&self.user_image_cache);
         let avatar_cache = Arc::clone(&self.avatar_bitmap_cache);
         let avatars = Arc::clone(&self.friends_panel_avatars);
@@ -975,13 +976,13 @@ impl VrOverlayRuntime {
         let dirty = Arc::clone(&self.friends_panel_model_dirty);
         let wake = Arc::clone(&self.refresh_wake);
         let user_id = user_id.to_string();
-        let tasks = context.tasks.clone();
+        let tasks = services.data().tasks.clone();
         tasks.spawn(async move {
             let image_url = if initial_image_url.is_empty() {
                 user_image_cache
                     .resolve(
-                        context.web.as_ref(),
-                        context.db.as_ref(),
+                        services.data().web.as_ref(),
+                        services.data().db.as_ref(),
                         &endpoint,
                         &user_id,
                         allow_user_icon,
@@ -993,7 +994,7 @@ impl VrOverlayRuntime {
             };
             if !image_url.trim().is_empty() {
                 if let Some(bitmap) = avatar_cache
-                    .resolve(context.web.as_ref(), image_url.trim(), &user_id)
+                    .resolve(services.data().web.as_ref(), image_url.trim(), &user_id)
                     .await
                 {
                     if insert_friends_panel_avatar_if_session_current(
@@ -1019,7 +1020,7 @@ impl VrOverlayRuntime {
 
     fn queue_friends_panel_world_names(
         &self,
-        context: &Arc<DesktopRuntimeHostContext>,
+        services: &Arc<DesktopRuntimeServices>,
         endpoint: &str,
         record: &FriendRecord,
     ) {
@@ -1027,7 +1028,7 @@ impl VrOverlayRuntime {
             return;
         }
         for world_id in friend_record_world_ids(record) {
-            if context.world_cache.get_name(&world_id).is_some() {
+            if services.data().world_cache.get_name(&world_id).is_some() {
                 continue;
             }
             let Ok(mut inflight) = self.friends_panel_world_resolves.lock() else {
@@ -1038,15 +1039,16 @@ impl VrOverlayRuntime {
             }
             drop(inflight);
 
-            let context = Arc::clone(context);
+            let services = Arc::clone(services);
             let inflight = Arc::clone(&self.friends_panel_world_resolves);
             let dirty = Arc::clone(&self.friends_panel_model_dirty);
             let endpoint = endpoint.to_string();
-            let tasks = context.tasks.clone();
+            let tasks = services.data().tasks.clone();
             tasks.spawn(async move {
-                let resolved = context
+                let resolved = services
+                    .data()
                     .world_cache
-                    .resolve_name(context.web.as_ref(), &endpoint, &world_id)
+                    .resolve_name(services.data().web.as_ref(), &endpoint, &world_id)
                     .await
                     .is_some();
                 if resolved {
@@ -1063,10 +1065,11 @@ impl VrOverlayRuntime {
         if !self.current_runtime_config().panel_enabled {
             return FRIENDS_PANEL_CATEGORY_ALL.to_string();
         }
-        let Some(context) = &self.context else {
+        let Some(services) = &self.services else {
             return FRIENDS_PANEL_CATEGORY_ALL.to_string();
         };
-        if let Ok(value) = context
+        if let Ok(value) = services
+            .data()
             .config()
             .get_string(VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY, "")
         {
@@ -1075,7 +1078,8 @@ impl VrOverlayRuntime {
                 return normalize_friends_panel_category_key(value);
             }
         }
-        context
+        services
+            .data()
             .config()
             .get_string(
                 VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY,
@@ -1090,10 +1094,11 @@ impl VrOverlayRuntime {
         if !self.current_runtime_config().panel_enabled {
             return;
         }
-        let Some(context) = &self.context else {
+        let Some(services) = &self.services else {
             return;
         };
-        if let Err(error) = context
+        if let Err(error) = services
+            .data()
             .config()
             .set_string(VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY, key)
         {
@@ -1392,10 +1397,10 @@ impl VrOverlayRuntime {
     }
 
     fn changed_runtime_config(&self) -> Option<VrOverlayRuntimeConfig> {
-        let Some(context) = &self.context else {
+        let Some(services) = &self.services else {
             return None;
         };
-        let next_config = load_runtime_config(context.config());
+        let next_config = load_runtime_config(services.data().config());
         let Ok(current_config) = self.config.lock() else {
             return None;
         };
@@ -1986,18 +1991,18 @@ impl GameLogEventSink for VrOverlayRuntime {
 }
 
 struct RuntimeWristFrameProducer {
-    context: Arc<DesktopRuntimeHostContext>,
+    services: Arc<DesktopRuntimeServices>,
 }
 
 impl RuntimeWristFrameProducer {
-    fn new(context: Arc<DesktopRuntimeHostContext>) -> Self {
-        Self { context }
+    fn new(services: Arc<DesktopRuntimeServices>) -> Self {
+        Self { services }
     }
 }
 
 impl VrOverlayFrameProducer for RuntimeWristFrameProducer {
     fn next_frame(&mut self, input: VrOverlayFrameInput) -> Result<RgbaFrame, String> {
-        let frame_input = build_wrist_frame_input(&self.context, input.config, input.devices);
+        let frame_input = build_wrist_frame_input(&self.services, input.config, input.devices);
         let model = build_wrist_surface_model(frame_input);
         render_slint_wrist_frame(&model)
     }
@@ -2273,15 +2278,15 @@ fn is_friends_panel_id(panel_id: &str) -> bool {
 }
 
 pub(super) fn build_wrist_frame_input(
-    context: &DesktopRuntimeHostContext,
+    services: &DesktopRuntimeServices,
     config: VrOverlayRuntimeConfig,
     devices: Vec<VrDeviceSnapshot>,
 ) -> WristOverlayFrameInput {
-    let game_log = context.game_log_snapshot();
+    let game_log = services.game_log_snapshot();
     let captured_at_ms = now_ms();
-    let mut activity = context.overlay_activity().snapshot();
+    let mut activity = services.overlay_activity().snapshot();
     for entry in &mut activity.entries {
-        refresh_cached_world_name(&context.world_cache, entry);
+        refresh_cached_world_name(&services.data().world_cache, entry);
     }
     WristOverlayFrameInput {
         activity,

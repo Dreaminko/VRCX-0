@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
 use crate::log_watcher::{GameLogEvent, GameLogEventSink, LogWatcher};
-use crate::{HostFileAccess, Result, RuntimeHostContext};
+use crate::{HostFileAccess, Result};
+use vrcx_0_application_activity::OverlayActivityRuntime;
 use vrcx_0_application_core::Error as RuntimeError;
 use vrcx_0_application_core::Result as RuntimeResult;
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 use vrcx_0_application_game::{
-    GameLogHostActions, GameLogRuntime, GameLogRuntimeDeps, OverlayActivityRuntime, RuntimeSnapshot,
+    GameLogHostActions, GameLogRuntime, GameLogRuntimeDeps, RuntimeSnapshot,
 };
 use vrcx_0_host::app_paths::AppPaths;
 use vrcx_0_host_desktop::{clipboard, game_launch, vrchat_paths};
+use vrcx_0_runtime_host::RuntimeHostContext;
 
 fn host_error(error: vrcx_0_host::Error) -> RuntimeError {
     match error {
