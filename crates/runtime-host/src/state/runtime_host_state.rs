@@ -52,6 +52,7 @@ pub struct RuntimeHostState {
     pub web: Arc<WebClient>,
     pub image_cache: Arc<ImageCache>,
     pub app_update: AppUpdateRuntime,
+    pub authenticated_runtime: AuthenticatedRuntimeOrchestrator,
     pub host_file_access: HostFileAccess,
     pub screenshot_cache: MetadataCacheDb,
     pub favorite_import: FavoriteImportRuntime,
@@ -344,6 +345,17 @@ impl RuntimeHostState {
                 .set_friends_panel_snapshot_provider(move || realtime_runtime.friend_snapshot());
         }
         runtime_context.set_realtime_user_image_resolver(Arc::clone(&realtime_runtime));
+        let authenticated_runtime = AuthenticatedRuntimeOrchestrator::new(
+            Arc::clone(&db),
+            Arc::clone(&web),
+            runtime_context.event_bus.clone(),
+            runtime_context.tasks.clone(),
+            runtime_context.auth_scope.clone(),
+            runtime_context.session.clone(),
+            Arc::clone(&realtime_runtime),
+            runtime_context.overlay_activity.clone(),
+            Arc::clone(&vr_overlay_runtime),
+        );
         let session_runtime = Arc::new(SessionHostRuntime::new(
             runtime_context.session.clone(),
             runtime_context.event_bus.clone(),
@@ -403,6 +415,7 @@ impl RuntimeHostState {
             web,
             image_cache,
             app_update,
+            authenticated_runtime,
             host_file_access,
             screenshot_cache,
             favorite_import,

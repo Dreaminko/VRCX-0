@@ -195,6 +195,7 @@ impl RuntimeHostState {
             Arc::clone(&self.background_group_instances_refresh_running);
         let session_slot = Arc::clone(&self.backend_frontend_session);
         let realtime_runtime = Arc::clone(&self.realtime_runtime);
+        let authenticated_runtime = self.authenticated_runtime.clone();
         let vr_overlay_runtime = Arc::clone(&self.vr_overlay_runtime);
         let runtime_context = Arc::clone(&self.runtime_context);
         let discord_rpc = Arc::clone(&self.discord_rpc);
@@ -213,11 +214,13 @@ impl RuntimeHostState {
                 let mut next_current_user = Instant::now();
                 let mut next_group_instances = Instant::now();
                 let mut next_overlay_activity_config = Instant::now();
-                let mut next_social = Instant::now();
+                let mut next_social = Instant::now()
+                    + Duration::from_secs(BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS);
                 let mut next_moderation = Instant::now();
                 let mut next_print_cleanup = Instant::now();
                 let mut favorite_friend_groups_by_key: HashMap<String, Vec<String>> =
                     HashMap::new();
+                let mut favorite_groups_initialized = false;
                 let mut active_scope_key =
                     background_capability_session_scope_key(&session_slot).unwrap_or_default();
                 let sleep_chunk = Duration::from_secs(1);
@@ -248,6 +251,7 @@ impl RuntimeHostState {
                         discord_state = BackgroundDiscordPresenceState::default();
                         discord_success_info = None;
                         favorite_friend_groups_by_key.clear();
+                        favorite_groups_initialized = false;
                         runtime_context.overlay_activity.clear_runtime_state();
                         vr_overlay_runtime.clear_friends_panel_session_state();
                         next_presence = now;
@@ -255,7 +259,8 @@ impl RuntimeHostState {
                         next_current_user = now;
                         next_group_instances = now;
                         next_overlay_activity_config = now;
-                        next_social = now;
+                        next_social = now
+                            + Duration::from_secs(BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS);
                         next_moderation = now;
                         next_print_cleanup = now;
                     }
@@ -307,7 +312,23 @@ impl RuntimeHostState {
                         runtime_context: &runtime_context,
                         backend_runtime: &backend_runtime,
                         background_jobs: &background_jobs,
+                        authenticated_runtime: &authenticated_runtime,
                     };
+
+                    if !favorite_groups_initialized {
+                        let snapshot = authenticated_runtime.snapshot();
+                        if let Some(favorites) = snapshot
+                            .favorites_baseline
+                            .as_ref()
+                            .and_then(|baseline| baseline.snapshot.as_ref())
+                        {
+                            favorite_friend_groups_by_key =
+                                crate::authenticated_runtime::favorite_group_membership_from_snapshot(
+                                    favorites.as_value(),
+                                );
+                            favorite_groups_initialized = true;
+                        }
+                    }
 
                     if now >= next_social {
                         run_background_social_baseline_refresh(

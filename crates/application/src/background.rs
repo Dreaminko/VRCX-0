@@ -57,14 +57,12 @@ pub struct RuntimeBackgroundJobSnapshot {
 pub struct RuntimeBackgroundJobs {
     inner: Arc<Mutex<BTreeMap<String, RuntimeBackgroundJobSnapshot>>>,
     frontend_schedules: Arc<Mutex<BTreeMap<String, FrontendMaintenanceSchedule>>>,
-    frontend_last_tick: Arc<Mutex<Option<Instant>>>,
     database_optimize_started: Arc<AtomicBool>,
 }
 
 #[derive(Clone, Debug)]
 struct FrontendMaintenanceSchedule {
     cadence_seconds: u64,
-    initial_delay_seconds: u64,
     remaining_seconds: i64,
     last_checked: Option<Instant>,
 }
@@ -151,32 +149,6 @@ impl RuntimeBackgroundJobs {
         false
     }
 
-    pub fn due_frontend_jobs(&self) -> Vec<String> {
-        let now = Instant::now();
-        let mut due = Vec::new();
-        let mut scheduled = Vec::new();
-        match self.frontend_schedules.lock() {
-            Ok(mut schedules) => {
-                for (name, schedule) in schedules.iter_mut() {
-                    if Self::update_frontend_schedule_due(schedule, now) {
-                        due.push(name.clone());
-                        scheduled.push((name.clone(), schedule.cadence_seconds));
-                    }
-                }
-            }
-            Err(error) => tracing::warn!("failed to lock frontend maintenance schedules: {error}"),
-        }
-
-        for (name, cadence_seconds) in scheduled {
-            self.mark_scheduled(
-                &name,
-                "Next Rust-scheduled frontend maintenance run is waiting.",
-                cadence_seconds,
-            );
-        }
-        due
-    }
-
     pub fn claim_frontend_job_due(
         &self,
         name: &str,
@@ -194,13 +166,11 @@ impl RuntimeBackgroundJobs {
                 let schedule = schedules.entry(name.to_string()).or_insert_with(|| {
                     FrontendMaintenanceSchedule {
                         cadence_seconds,
-                        initial_delay_seconds,
                         remaining_seconds: initial_delay_seconds as i64,
                         last_checked: None,
                     }
                 });
                 schedule.cadence_seconds = cadence_seconds;
-                schedule.initial_delay_seconds = initial_delay_seconds;
                 Self::update_frontend_schedule_due(schedule, now)
             }
             Err(error) => {
@@ -246,21 +216,6 @@ impl RuntimeBackgroundJobs {
             );
         }
         updated
-    }
-
-    pub fn reset_frontend_schedules(&self) {
-        match self.frontend_schedules.lock() {
-            Ok(mut schedules) => {
-                for schedule in schedules.values_mut() {
-                    schedule.remaining_seconds = schedule.initial_delay_seconds as i64;
-                    schedule.last_checked = None;
-                }
-            }
-            Err(error) => tracing::warn!("failed to lock frontend maintenance schedules: {error}"),
-        }
-        if let Ok(mut last_tick) = self.frontend_last_tick.lock() {
-            *last_tick = None;
-        }
     }
 
     pub fn mark_running(&self, name: &str, detail: impl Into<String>) {

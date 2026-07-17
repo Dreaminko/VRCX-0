@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     appCheckGameRunning: vi.fn(),
     appAuthenticatedSessionMaintenanceRun: vi.fn(),
+    appAuthenticatedRuntimeSessionStart: vi.fn(),
     appRuntimeGroupInstancesRefresh: vi.fn(),
-    appSyncFrontendAuthenticatedSession: vi.fn(),
+    applyAuthenticatedRuntimePhaseSnapshot: vi.fn(),
     ensureUserTables: vi.fn(),
     isHostCapabilityAvailable: vi.fn(),
     showSQLiteErrorDialog: vi.fn(),
@@ -16,10 +17,15 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appCheckGameRunning: mocks.appCheckGameRunning,
         appAuthenticatedSessionMaintenanceRun:
             mocks.appAuthenticatedSessionMaintenanceRun,
-        appRuntimeGroupInstancesRefresh: mocks.appRuntimeGroupInstancesRefresh,
-        appSyncFrontendAuthenticatedSession:
-            mocks.appSyncFrontendAuthenticatedSession
+        appAuthenticatedRuntimeSessionStart:
+            mocks.appAuthenticatedRuntimeSessionStart,
+        appRuntimeGroupInstancesRefresh: mocks.appRuntimeGroupInstancesRefresh
     }
+}));
+
+vi.mock('./authenticatedRuntimeService', () => ({
+    applyAuthenticatedRuntimePhaseSnapshot:
+        mocks.applyAuthenticatedRuntimePhaseSnapshot
 }));
 
 vi.mock('@/repositories/userSessionRepository', () => ({
@@ -72,7 +78,11 @@ describe('sessionBootstrapService', () => {
         mocks.isHostCapabilityAvailable.mockReturnValue(false);
         mocks.appCheckGameRunning.mockResolvedValue(null);
         mocks.appRuntimeGroupInstancesRefresh.mockResolvedValue(null);
-        mocks.appSyncFrontendAuthenticatedSession.mockResolvedValue(null);
+        mocks.appAuthenticatedRuntimeSessionStart.mockResolvedValue({
+            runId: 1,
+            userId: 'usr_self',
+            phase: 'starting'
+        });
     });
 
     it('syncs the backend frontend session before friend bootstrap is loaded', async () => {
@@ -88,7 +98,7 @@ describe('sessionBootstrapService', () => {
         expect(
             mocks.appAuthenticatedSessionMaintenanceRun
         ).toHaveBeenCalledWith();
-        expect(mocks.appSyncFrontendAuthenticatedSession).toHaveBeenCalledWith(
+        expect(mocks.appAuthenticatedRuntimeSessionStart).toHaveBeenCalledWith(
             'usr_self',
             'https://api.example.test/api/1',
             'wss://pipeline.example.test',
@@ -99,7 +109,7 @@ describe('sessionBootstrapService', () => {
         );
         expect(mocks.appRuntimeGroupInstancesRefresh).toHaveBeenCalledTimes(1);
         expect(
-            mocks.appSyncFrontendAuthenticatedSession.mock
+            mocks.appAuthenticatedRuntimeSessionStart.mock
                 .invocationCallOrder[0]
         ).toBeLessThan(
             mocks.appRuntimeGroupInstancesRefresh.mock.invocationCallOrder[0]

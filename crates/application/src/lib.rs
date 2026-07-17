@@ -2,6 +2,7 @@ mod app_update;
 mod async_runtime_policy;
 mod auth_credentials;
 mod auth_scope;
+mod authenticated_runtime;
 mod authenticated_session_maintenance;
 mod backend_runtime;
 mod background;
@@ -82,6 +83,10 @@ pub use auth_credentials::{
     SavedCredentialSessionData,
 };
 pub use auth_scope::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
+pub use authenticated_runtime::{
+    AuthenticatedRuntimePhase, AuthenticatedRuntimePhaseSnapshot, AuthenticatedRuntimeStepSnapshot,
+    AuthenticatedRuntimeStepStatus,
+};
 pub use authenticated_session_maintenance::{
     run_authenticated_session_maintenance, AuthenticatedSessionMaintenanceOutcome,
 };
@@ -114,7 +119,7 @@ pub use database_upgrade::{
 pub use database_upgrade_runtime::DatabaseUpgradeRuntime;
 pub use diagnostics::RuntimeDiagnostics;
 pub use error::Error;
-pub use event_bus::{RuntimeEventBus, RuntimeEventSink};
+pub use event_bus::{RuntimeEventBus, RuntimeEventSink, RuntimeVrchatAuthFailurePayload};
 pub use favorite_import::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
     FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,

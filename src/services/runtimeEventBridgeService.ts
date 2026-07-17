@@ -6,6 +6,11 @@ import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
+import {
+    applyAuthenticatedRuntimePhaseSnapshot,
+    handleAuthenticatedRuntimeRealtimeStatus,
+    resetAuthenticatedRuntimeMirror
+} from './authenticatedRuntimeService';
 import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
 import { handleAppUpdateStatusEvent } from './backgroundMaintenanceUpdateService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
@@ -163,6 +168,21 @@ function handleRuntimeEvent(
         return;
     }
 
+    if (name === 'authenticatedRuntimePhase') {
+        runtimeStore.recordRuntimeEvent(name, payload);
+        applyAuthenticatedRuntimePhaseSnapshot(
+            payload as RuntimeEventPayloadMap['authenticatedRuntimePhase']
+        );
+        return;
+    }
+
+    if (name === 'realtimeWsStatus') {
+        handleAuthenticatedRuntimeRealtimeStatus(
+            payload as RuntimeEventPayloadMap['realtimeWsStatus']
+        );
+        return;
+    }
+
     if (handleBackendRealtimeProjectionEvent(name, payload)) {
         return;
     }
@@ -237,9 +257,11 @@ function handleRuntimeEvent(
 
 export async function bindRuntimeEvents(): Promise<() => void> {
     resetBackendRealtimeProjectionState();
+    resetAuthenticatedRuntimeMirror();
     const unsubscribers: RuntimeEventUnsubscribe[] = [];
     const events: RuntimeEventName[] = [
         'addGameLogEvent',
+        'authenticatedRuntimePhase',
         'appUpdateStatus',
         'appUpdateDownloadProgress',
         'appUpdateInstalled',
@@ -261,6 +283,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'realtimeUserProjection',
         'realtimeEntryCorrection',
         'realtimeNotificationProjection',
+        'realtimeWsStatus',
         'realtimeCurrentUserProjection',
         'realtimeInstanceClosedProjection',
         'realtimeInstanceQueueProjection',
@@ -322,6 +345,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         }
     } catch (error) {
         resetBackendRealtimeProjectionState();
+        resetAuthenticatedRuntimeMirror();
         unsubscribeRuntimeEvents(unsubscribers);
         useRuntimeStore.getState().setShellState({
             backendRuntimeSnapshotHydrated: true,
@@ -346,10 +370,18 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         console.warn('Failed to hydrate backend runtime snapshot:', error);
     }
     try {
+        applyAuthenticatedRuntimePhaseSnapshot(
+            await commands.appAuthenticatedRuntimePhaseSnapshotGet()
+        );
+    } catch (error) {
+        console.warn('Failed to hydrate authenticated runtime phase:', error);
+    }
+    try {
         unsubscribers.push(await bindDeepLinkEvents());
         await drainPendingDeepLinks();
     } catch (error) {
         resetBackendRealtimeProjectionState();
+        resetAuthenticatedRuntimeMirror();
         unsubscribeRuntimeEvents(unsubscribers);
         useSessionStore.getState().setTransportStatus('disconnected');
         throw error;
@@ -360,6 +392,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
 
     return () => {
         resetBackendRealtimeProjectionState();
+        resetAuthenticatedRuntimeMirror();
         unsubscribeRuntimeEvents(unsubscribers);
         useSessionStore.getState().setTransportStatus('disconnected');
     };

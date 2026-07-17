@@ -60,6 +60,7 @@ pub async fn app__vrchat_auth_session_start(
         "running",
         "Starting a VRChat login session.",
     );
+    state.clear_backend_frontend_session();
     let web = Arc::clone(&state.web);
     let db = Arc::clone(&state.db);
     let config = state.runtime_context.config.clone();

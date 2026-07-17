@@ -129,49 +129,17 @@ export const commands = {
     async appHostTtsSpeak(text: string, voiceId: string | null): Promise<null> {
         return await TAURI_INVOKE('app__host_tts_speak', { text, voiceId });
     },
-    async appStartRealtimeTransport(
-        userId: string,
-        endpoint: string,
-        websocket: string,
-        clientRunId: number,
-        currentUserSnapshot: JsonValue,
-        friendsById: Partial<{ [key in string]: FriendRecord }>
-    ): Promise<RealtimeTransportStartResult> {
-        return await TAURI_INVOKE('app__start_realtime_transport', {
-            userId,
-            endpoint,
-            websocket,
-            clientRunId,
-            currentUserSnapshot,
-            friendsById
-        });
-    },
-    async appSyncFrontendAuthenticatedSession(
+    async appAuthenticatedRuntimeSessionStart(
         userId: string,
         endpoint: string,
         websocket: string,
         currentUserSnapshot: JsonValue
-    ): Promise<null> {
-        return await TAURI_INVOKE('app__sync_frontend_authenticated_session', {
+    ): Promise<AuthenticatedRuntimePhaseSnapshot> {
+        return await TAURI_INVOKE('app__authenticated_runtime_session_start', {
             userId,
             endpoint,
             websocket,
             currentUserSnapshot
-        });
-    },
-    async appSyncRealtimeFriendSnapshot(
-        userId: string,
-        endpoint: string,
-        websocket: string,
-        generation: number | null,
-        friendsById: Partial<{ [key in string]: FriendRecord }>
-    ): Promise<FriendBaselineResult> {
-        return await TAURI_INVOKE('app__sync_realtime_friend_snapshot', {
-            userId,
-            endpoint,
-            websocket,
-            generation,
-            friendsById
         });
     },
     async appSyncRealtimeCurrentUserSnapshot(
@@ -200,21 +168,6 @@ export const commands = {
             notificationId
         });
     },
-    async appStopRealtimeTransport(
-        userId: string | null,
-        endpoint: string | null,
-        websocket: string | null,
-        clientRunId: number | null,
-        generation: number | null
-    ): Promise<void> {
-        await TAURI_INVOKE('app__stop_realtime_transport', {
-            userId,
-            endpoint,
-            websocket,
-            clientRunId,
-            generation
-        });
-    },
     async appIngestUserFacts(entries: JsonValue[]): Promise<null> {
         return await TAURI_INVOKE('app__ingest_user_facts', { entries });
     },
@@ -229,6 +182,11 @@ export const commands = {
     },
     async appAuthenticatedSessionMaintenanceRun(): Promise<AuthenticatedSessionMaintenanceOutcome> {
         return await TAURI_INVOKE('app__authenticated_session_maintenance_run');
+    },
+    async appAuthenticatedRuntimePhaseSnapshotGet(): Promise<AuthenticatedRuntimePhaseSnapshot> {
+        return await TAURI_INVOKE(
+            'app__authenticated_runtime_phase_snapshot_get'
+        );
     },
     async appStartBackgroundMode(): Promise<BackendRuntimeSnapshot> {
         return await TAURI_INVOKE('app__start_background_mode');
@@ -1189,11 +1147,6 @@ export const commands = {
     async appClearAppDataDir(): Promise<AppDataDirState> {
         return await TAURI_INVOKE('app__clear_app_data_dir');
     },
-    async appRuntimeFrontendScheduleDueJobsGet(): Promise<string[]> {
-        return await TAURI_INVOKE(
-            'app__runtime_frontend_schedule_due_jobs_get'
-        );
-    },
     async appRuntimeFrontendScheduleJobDueClaim(
         input: RuntimeFrontendScheduleJobDueClaimInput
     ): Promise<boolean> {
@@ -1208,9 +1161,6 @@ export const commands = {
         return await TAURI_INVOKE('app__runtime_frontend_schedule_job_defer', {
             input
         });
-    },
-    async appRuntimeFrontendScheduleSchedulesReset(): Promise<void> {
-        await TAURI_INVOKE('app__runtime_frontend_schedule_schedules_reset');
     },
     async appRuntimeGroupInstancesRefresh(): Promise<null> {
         return await TAURI_INVOKE('app__runtime_group_instances_refresh');
@@ -3003,6 +2953,26 @@ export type AssistantTurnEntitiesEvent = {
     turnId: string;
     entities: Entity[];
 };
+export type AuthenticatedRuntimePhase =
+    | 'idle'
+    | 'starting'
+    | 'ready'
+    | 'stopped';
+export type AuthenticatedRuntimePhaseSnapshot = {
+    runId: number;
+    authScopeGeneration: number;
+    userId: string;
+    endpoint: string;
+    websocket: string;
+    phase: AuthenticatedRuntimePhase;
+    friends: AuthenticatedRuntimeStepSnapshot;
+    favorites: AuthenticatedRuntimeStepSnapshot;
+    realtime: AuthenticatedRuntimeStepSnapshot;
+    friendBaseline: SocialFriendRosterBaselineOutput | null;
+    favoritesBaseline: SocialFavoritesBaselineOutput | null;
+    realtimeTransport: RealtimeTransportStartResult | null;
+    updatedAt: string;
+};
 export type AuthenticatedRuntimeSession = {
     userId: string;
     displayName: string;
@@ -3010,6 +2980,18 @@ export type AuthenticatedRuntimeSession = {
     websocket: string;
     currentUser: JsonValue;
 };
+export type AuthenticatedRuntimeStepSnapshot = {
+    status: AuthenticatedRuntimeStepStatus;
+    attempt: number;
+    retryDelaySeconds: number | null;
+    detail: string;
+    lastError: string | null;
+};
+export type AuthenticatedRuntimeStepStatus =
+    | 'pending'
+    | 'running'
+    | 'retryWaiting'
+    | 'ready';
 export type AuthenticatedSessionMaintenanceOutcome = {
     userId: string;
     avatarCleanup: AvatarAutoCleanupOutcome;
@@ -3452,12 +3434,6 @@ export type FeedRowsQueryInput = {
     dateTo?: string;
     cursor?: FeedCursorInput | null;
 };
-export type FriendBaselineResult = {
-    accepted: boolean;
-    generation: number;
-    baselineRevision: number;
-    friendCount: number;
-};
 export type FriendLogCurrentOutput = {
     userId: string;
     displayName: string;
@@ -3523,33 +3499,6 @@ export type FriendProjectionPatch = {
     patch: JsonValue;
     stateBucket: string;
     stateBucketAuthority?: string | null;
-};
-export type FriendRecord = Partial<{
-    [key in string]:
-        | null
-        | boolean
-        | number
-        | string
-        | JsonValue[]
-        | Partial<{ [key in string]: JsonValue }>;
-}> & {
-    id?: string;
-    displayName?: string;
-    username?: string;
-    state?: string;
-    stateBucket?: string;
-    location?: string;
-    travelingToLocation?: string;
-    worldId?: string;
-    platform?: string;
-    lastPlatform?: string;
-    status?: string;
-    statusDescription?: string;
-    bio?: string;
-    currentAvatarImageUrl?: string;
-    currentAvatarThumbnailImageUrl?: string;
-    currentAvatarAuthorId?: string;
-    currentAvatarName?: string;
 };
 export type GameLogProjection = {
     currentLocation: string;

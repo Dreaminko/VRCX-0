@@ -38,7 +38,6 @@ import {
     resetDomainFacts
 } from './domainIngestionService';
 import i18n from './i18nService';
-import { stopRealtimeTransport } from './realtimeTransportService';
 import { bootstrapAuthenticatedSession } from './sessionBootstrapService';
 
 type AuthExecutionError = Error & {
@@ -166,7 +165,6 @@ function setAuthenticatingSessionState() {
 }
 
 export function resetCurrentUserRuntimeAuth() {
-    stopRealtimeTransport();
     clearEntityQueryCache();
     avatarProfileRepository.clearAvatarNameCache();
     useFriendRosterStore.getState().resetRoster();
@@ -190,7 +188,6 @@ function setCurrentUserRuntimeAuth(
     user: AuthUserRecord | null,
     { endpoint = '', websocket = '' }: Record<string, string> = {}
 ) {
-    stopRealtimeTransport({ updateStatus: false });
     clearEntityQueryCache();
     avatarProfileRepository.clearAvatarNameCache();
     useFriendRosterStore.getState().resetRoster();

@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use super::{
-    BackendRuntime, BackendRuntimeFrontendSessionSnapshot, DatabaseService, RealtimeHostRuntime,
-    RuntimeBackgroundJobs, RuntimeHostContext, VrOverlayRuntime, WebClient,
+    AuthenticatedRuntimeOrchestrator, BackendRuntime, BackendRuntimeFrontendSessionSnapshot,
+    DatabaseService, RealtimeHostRuntime, RuntimeBackgroundJobs, RuntimeHostContext,
+    VrOverlayRuntime, WebClient,
 };
 
 mod current_user;
@@ -30,4 +31,5 @@ pub(super) struct BackgroundTickContext<'a> {
     pub(super) runtime_context: &'a Arc<RuntimeHostContext>,
     pub(super) backend_runtime: &'a BackendRuntime,
     pub(super) background_jobs: &'a RuntimeBackgroundJobs,
+    pub(super) authenticated_runtime: &'a AuthenticatedRuntimeOrchestrator,
 }

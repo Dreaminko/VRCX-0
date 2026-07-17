@@ -151,17 +151,9 @@ pub fn restore_foreground_window_from_background_mode(
         return Ok(current);
     }
     let snapshot = state.set_gui_backend_runtime_mode(BackendRuntimeMode::Foreground);
-    defer_frontend_maintenance_after_background_restore(state);
     ensure_main_window(app)?;
     let _ = refresh_tray_menu(app, state);
     Ok(snapshot)
-}
-
-fn defer_frontend_maintenance_after_background_restore(state: &AppState) {
-    state
-        .runtime_context
-        .background_jobs
-        .defer_frontend_job("appUpdateCheck", 180);
 }
 
 fn normalize_background_resume_route(raw: &str) -> Option<String> {

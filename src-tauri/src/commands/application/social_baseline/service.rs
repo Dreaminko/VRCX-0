@@ -47,6 +47,9 @@ pub async fn app__social_favorites_baseline_get(
         .map_err(AppError::from);
     match &result {
         Ok(output) => {
+            state
+                .authenticated_runtime
+                .update_favorites_baseline(output.clone());
             let status = if output.stale { "stale" } else { "ok" };
             let sync_status = if output.stale { "stale" } else { "ready" };
             diagnostics.record_command(

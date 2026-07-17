@@ -8,7 +8,7 @@ impl RuntimeHostState {
         self.note_export.cancel();
         self.backend_runtime
             .set_phase(BackendRuntimePhase::Stopping);
-        self.realtime_runtime.stop(RealtimeStopRequest::default());
+        self.authenticated_runtime.stop();
         self.vr_overlay_runtime.stop();
         self.process_monitor.stop();
         self.log_watcher.stop();
@@ -173,36 +173,12 @@ impl RuntimeHostState {
             snapshot,
         );
 
-        let social_baseline = match self.build_backend_social_baseline(&session).await {
-            Ok(social_baseline) => social_baseline,
-            Err(error) => {
-                tracing::warn!(error = %error, "failed to build backend social baseline");
-                BackendSocialBaseline::default()
-            }
-        };
         self.set_backend_frontend_session(&session);
-        if let Some(snapshot) = &social_baseline.favorite_groups_snapshot {
-            self.vr_overlay_runtime
-                .update_friends_panel_favorite_groups_from_baseline(snapshot);
-        }
-        self.runtime_context
-            .overlay_activity
-            .set_favorite_groups(OverlayFavoriteGroups::from_map(
-                social_baseline.favorite_groups,
-            ));
         let print_cleanup_trigger = PrintCleanupTrigger {
             user_id: session.user_id.clone(),
             endpoint: session.endpoint.clone(),
             reason: "baseline".to_string(),
         };
-        self.realtime_runtime.start(
-            session.user_id,
-            session.endpoint,
-            session.websocket,
-            0,
-            session.current_user,
-            social_baseline.friends_by_id,
-        )?;
         self.runtime_context.print_cleanup.schedule(
             &self.runtime_context.tasks,
             PrintCleanupDeps {
@@ -213,6 +189,7 @@ impl RuntimeHostState {
             print_cleanup_trigger,
         );
         self.backend_runtime.set_phase(BackendRuntimePhase::Running);
+        self.authenticated_runtime.start(session)?;
         self.schedule_activity_warmup(activity_warmup_user_id, auth_scope.generation);
         if self.backend_runtime.snapshot().mode == BackendRuntimeMode::Background {
             self.start_gui_background_registry_backup_loop();

@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
                 import('@/platform/tauri/bindings').BackendRuntimeSnapshot
             >
         >(),
+    getAuthenticatedRuntimePhaseSnapshot: vi.fn(),
     getAppUpdateStatus:
         vi.fn<
             () => Promise<
@@ -53,6 +54,8 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appCheckGameRunning: mocks.appCheckGameRunning,
         appProfileBackupCurrentStatus: mocks.profileBackupCurrentStatus,
         appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
+        appAuthenticatedRuntimePhaseSnapshotGet:
+            mocks.getAuthenticatedRuntimePhaseSnapshot,
         appRuntimeAuthScopeGet: mocks.runtimeAuthScopeGet,
         appAppUpdateStatusGet: mocks.getAppUpdateStatus,
         appAppUpdateCheckRun: mocks.getAppUpdateStatus,
@@ -215,6 +218,39 @@ describe('runtimeEventBridgeService', () => {
         mocks.getBackendRuntimeSnapshot.mockResolvedValue(
             createBackendRuntimeSnapshot()
         );
+        mocks.getAuthenticatedRuntimePhaseSnapshot.mockResolvedValue({
+            runId: 0,
+            authScopeGeneration: 0,
+            userId: '',
+            endpoint: '',
+            websocket: '',
+            phase: 'idle',
+            friends: {
+                status: 'pending',
+                attempt: 0,
+                retryDelaySeconds: null,
+                detail: '',
+                lastError: null
+            },
+            favorites: {
+                status: 'pending',
+                attempt: 0,
+                retryDelaySeconds: null,
+                detail: '',
+                lastError: null
+            },
+            realtime: {
+                status: 'pending',
+                attempt: 0,
+                retryDelaySeconds: null,
+                detail: '',
+                lastError: null
+            },
+            friendBaseline: null,
+            favoritesBaseline: null,
+            realtimeTransport: null,
+            updatedAt: ''
+        });
         mocks.getAppUpdateStatus.mockResolvedValue({
             hasAvailableUpdate: false,
             checkedAt: '',
@@ -335,7 +371,7 @@ describe('runtimeEventBridgeService', () => {
             'subscription failed'
         );
 
-        expect(unsubscribe).toHaveBeenCalledTimes(5);
+        expect(unsubscribe).toHaveBeenCalledTimes(6);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });
@@ -373,7 +409,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(27);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(29);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});

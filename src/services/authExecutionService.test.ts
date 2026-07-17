@@ -22,7 +22,6 @@ const mocks = vi.hoisted(() => ({
     recordCurrentUserSnapshot: vi.fn(),
     resetDomainFacts: vi.fn(),
     t: vi.fn(),
-    stopRealtimeTransport: vi.fn(),
     bootstrapAuthenticatedSession: vi.fn(),
     confirm: vi.fn(),
     otpPrompt: vi.fn()
@@ -98,10 +97,6 @@ vi.mock('./i18nService', () => ({
     default: {
         t: mocks.t
     }
-}));
-
-vi.mock('./realtimeTransportService', () => ({
-    stopRealtimeTransport: mocks.stopRealtimeTransport
 }));
 
 vi.mock('./sessionBootstrapService', () => ({

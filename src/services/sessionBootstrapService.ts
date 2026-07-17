@@ -3,6 +3,7 @@ import userSessionRepository from '@/repositories/userSessionRepository';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
+import { applyAuthenticatedRuntimePhaseSnapshot } from './authenticatedRuntimeService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
 import { showSQLiteErrorDialog } from './sqliteErrorDialogService';
 import { syncStartupServicesTask } from './startupServicesStatus';
@@ -40,23 +41,17 @@ async function requestGameRunningStateRefresh(): Promise<boolean> {
     }
 }
 
-async function syncBackendFrontendSession(userId: string): Promise<void> {
+async function startBackendAuthenticatedRuntime(userId: string): Promise<void> {
     const auth = useRuntimeStore.getState().auth;
     const currentUserSnapshot = auth.currentUserSnapshot || { id: userId };
-    try {
-        await commands.appSyncFrontendAuthenticatedSession(
+    applyAuthenticatedRuntimePhaseSnapshot(
+        await commands.appAuthenticatedRuntimeSessionStart(
             userId,
             String(auth.currentUserEndpoint || ''),
             String(auth.currentUserWebsocket || ''),
             currentUserSnapshot
-        );
-    } catch (error) {
-        console.warn(
-            'Backend frontend session sync failed during session bootstrap:',
-            error
-        );
-        return;
-    }
+        )
+    );
     try {
         await commands.appRuntimeGroupInstancesRefresh();
     } catch (error) {
@@ -118,7 +113,7 @@ export async function bootstrapAuthenticatedSession(
             isFavoritesLoaded: false,
             sessionPhase: 'ready'
         });
-        await syncBackendFrontendSession(userId);
+        await startBackendAuthenticatedRuntime(userId);
         if (gameStateRestored) {
             await requestGameRunningStateRefresh();
         }

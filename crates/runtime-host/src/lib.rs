@@ -1,3 +1,4 @@
+mod authenticated_runtime;
 mod context;
 mod error;
 mod event_sink;
@@ -15,6 +16,7 @@ mod state;
 pub mod telemetry;
 pub mod vr_overlay;
 
+pub use authenticated_runtime::AuthenticatedRuntimeOrchestrator;
 pub use context::RuntimeHostContext;
 pub use error::{Error, Result};
 pub use event_sink::RuntimeHostEventSink;

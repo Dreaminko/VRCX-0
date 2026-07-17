@@ -1,4 +1,5 @@
 import type {
+    AuthenticatedRuntimePhaseSnapshot,
     AppUpdateStatusSnapshot,
     BackendRuntimeSnapshot,
     BackendRuntimeTelemetry,
@@ -13,6 +14,7 @@ import type {
     RealtimeInstanceClosedProjection,
     RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection,
+    RealtimeWsStatusPayload,
     UpdaterMetadata
 } from '@/platform/tauri/bindings';
 
@@ -23,6 +25,7 @@ import type {
 
 export type RuntimeEventName =
     | 'addGameLogEvent'
+    | 'authenticatedRuntimePhase'
     | 'appUpdateStatus'
     | 'appUpdateDownloadProgress'
     | 'appUpdateInstalled'
@@ -44,6 +47,7 @@ export type RuntimeEventName =
     | 'realtimeUserProjection'
     | 'realtimeEntryCorrection'
     | 'realtimeNotificationProjection'
+    | 'realtimeWsStatus'
     | 'realtimeCurrentUserProjection'
     | 'realtimeInstanceClosedProjection'
     | 'realtimeInstanceQueueProjection'
@@ -98,6 +102,7 @@ export type RuntimeVrchatAuthFailurePayload = {
 
 export type RuntimeEventPayloadMap = {
     addGameLogEvent: unknown;
+    authenticatedRuntimePhase: AuthenticatedRuntimePhaseSnapshot;
     appUpdateStatus: AppUpdateStatusSnapshot;
     appUpdateDownloadProgress: AppUpdateDownloadProgressPayload;
     appUpdateInstalled: AppUpdateInstalledPayload;
@@ -119,6 +124,7 @@ export type RuntimeEventPayloadMap = {
     realtimeUserProjection: unknown;
     realtimeEntryCorrection: RealtimeEntryCorrection;
     realtimeNotificationProjection: RealtimeNotificationProjection;
+    realtimeWsStatus: RealtimeWsStatusPayload;
     realtimeCurrentUserProjection: RealtimeCurrentUserProjection;
     realtimeInstanceClosedProjection: RealtimeInstanceClosedProjection;
     realtimeInstanceQueueProjection: RealtimeInstanceQueueProjection;

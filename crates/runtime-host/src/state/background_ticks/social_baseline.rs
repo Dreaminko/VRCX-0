@@ -8,10 +8,12 @@ use vrcx_0_application::{
 };
 use vrcx_0_core::{friends::FriendRecord, json::RawJson};
 
+use crate::authenticated_runtime::favorite_group_membership_from_snapshot;
+
 use super::super::{
     background_capability_session, emit_background_error, emit_background_info,
-    favorite_group_membership_from_snapshot, gui_maintenance_runtime_mode,
-    BACKGROUND_FACTS_REFRESH_JOB, BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS,
+    gui_maintenance_runtime_mode, BACKGROUND_FACTS_REFRESH_JOB,
+    BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS,
 };
 use super::BackgroundTickContext;
 
@@ -158,12 +160,15 @@ pub(in crate::state) async fn run_background_social_baseline_refresh(
                     )
                     .await
                     {
+                        context
+                            .authenticated_runtime
+                            .update_favorites_baseline(favorites_output.clone());
                         if let Some(snapshot) = favorites_output.snapshot {
                             let value = snapshot.into_value();
                             context
                                 .vr_overlay_runtime
                                 .update_friends_panel_favorite_groups_from_baseline(&value);
-                            let groups = favorite_group_membership_from_snapshot(value);
+                            let groups = favorite_group_membership_from_snapshot(&value);
                             context
                                 .runtime_context
                                 .overlay_activity

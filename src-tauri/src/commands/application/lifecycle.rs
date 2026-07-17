@@ -5,7 +5,9 @@ use tauri::State;
 
 use crate::error::AppError;
 use crate::state::AppState;
-use vrcx_0_application::{AuthenticatedSessionMaintenanceOutcome, DebugLoggingOutcome};
+use vrcx_0_application::{
+    AuthenticatedRuntimePhaseSnapshot, AuthenticatedSessionMaintenanceOutcome, DebugLoggingOutcome,
+};
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -58,8 +60,10 @@ pub fn app__authenticated_session_maintenance_run(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__runtime_frontend_schedule_due_jobs_get(state: State<'_, AppState>) -> Vec<String> {
-    state.runtime_context.background_jobs.due_frontend_jobs()
+pub fn app__authenticated_runtime_phase_snapshot_get(
+    state: State<'_, AppState>,
+) -> AuthenticatedRuntimePhaseSnapshot {
+    state.authenticated_runtime.snapshot()
 }
 
 #[tauri::command]
@@ -88,15 +92,6 @@ pub fn app__runtime_frontend_schedule_job_due_claim(
             input.cadence_seconds,
             input.initial_delay_seconds,
         )
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__runtime_frontend_schedule_schedules_reset(state: State<'_, AppState>) {
-    state
-        .runtime_context
-        .background_jobs
-        .reset_frontend_schedules();
 }
 
 #[tauri::command]

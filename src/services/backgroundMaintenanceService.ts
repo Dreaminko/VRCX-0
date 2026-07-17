@@ -8,10 +8,6 @@ export {
     handleAutoBackgroundDownloadUpdatesPreferenceChange
 } from './backgroundMaintenanceUpdateService';
 export {
-    resetBackgroundMaintenance,
-    runBackgroundMaintenanceTick
-} from './backgroundMaintenanceSchedulerService';
-export {
     runForegroundUpdateRegistryBackupMaintenance,
     runStartupMaintenance
 } from './registryBackupMaintenanceService';

@@ -19,30 +19,27 @@ use crate::{
         start_preview_bridge_if_enabled, VrOverlayActivitySink, VrOverlayRuntime,
         VrOverlayRuntimeSnapshot, VR_OVERLAY_ENABLED_CONFIG_KEY,
     },
-    GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime, HostFileAccess,
-    HostGameLogEventFanout, HostLogLocationSnapshotScanner, HostRegistryBackupActions, LogWatcher,
-    NoteExportRuntime, Result, RuntimeHostContext, RuntimeHostEventSink,
-    SharedCollectionImportRuntime,
+    AuthenticatedRuntimeOrchestrator, GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime,
+    HostFileAccess, HostGameLogEventFanout, HostLogLocationSnapshotScanner,
+    HostRegistryBackupActions, LogWatcher, NoteExportRuntime, Result, RuntimeHostContext,
+    RuntimeHostEventSink, SharedCollectionImportRuntime,
 };
 use vrcx_0_application::{
-    auth_response_error_message, build_favorites_baseline, build_friend_roster_baseline,
-    current_user_from_cookie, parse_current_user_response, probe_current_user_from_cookie,
-    record_login_success, record_logout, saved_credential_login_start,
-    saved_credential_session_data, saved_snapshot, AppUpdateBuildInfo, AppUpdateRuntime,
-    AuthenticatedRuntimeSession, AuthenticatedSessionMaintenanceOutcome, BackendRuntime,
-    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, BackendRuntimeTelemetry,
+    auth_response_error_message, current_user_from_cookie, parse_current_user_response,
+    probe_current_user_from_cookie, record_login_success, record_logout,
+    saved_credential_login_start, saved_credential_session_data, saved_snapshot,
+    AppUpdateBuildInfo, AppUpdateRuntime, AuthenticatedRuntimeSession,
+    AuthenticatedSessionMaintenanceOutcome, BackendRuntime, BackendRuntimeMode,
+    BackendRuntimePhase, BackendRuntimeSnapshot, BackendRuntimeTelemetry,
     BackgroundCapabilitySession, BackgroundDiscordPresenceState, BackgroundPresenceAutomationState,
     CookieSessionProbe, FavoriteImportRuntime, GameProcessEvent, GameProcessEventSink, ImageCache,
     LoginApi, LoginSession, LoginSessionState, LoginSuccessRecordInput, LogoutRecordInput,
-    NonInteractiveAuthError, OverlayActivitySnapshot, OverlayFavoriteGroups, PrintCleanupDeps,
-    PrintCleanupTrigger, ProcessMonitor, ProfileBackupRuntime, RealtimeHostRuntime,
-    RealtimeHostRuntimeDeps, RealtimeStopRequest, RegistryBackupMaintenanceMode,
-    RegistryBackupMaintenanceResult, RegistryBackupSnapshot, RuntimeBackgroundJobs,
-    RuntimeEventSink, SavedCredentialLoginStartInput, SessionHostRuntime, SocialBaselineDeps,
-    SocialFavoritesBaselineInput, SocialFriendRosterBaselineInput, WebClient, WebClientLoginApi,
+    NonInteractiveAuthError, OverlayActivitySnapshot, PrintCleanupDeps, PrintCleanupTrigger,
+    ProcessMonitor, ProfileBackupRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
+    RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
+    RuntimeBackgroundJobs, RuntimeEventSink, SavedCredentialLoginStartInput, SessionHostRuntime,
+    WebClient, WebClientLoginApi,
 };
-use vrcx_0_core::friends::FriendRecord;
-use vrcx_0_core::json::RawJson;
 use vrcx_0_host::app_paths::{AppDataDirResolution, AppPaths};
 use vrcx_0_host::auto_launch::{
     deserialize_app_launcher_entries, normalize_app_launcher_entries, AppLauncherEntry,
@@ -77,7 +74,7 @@ mod runtime_host_state;
 mod services;
 mod startup;
 
-use auth_session::{string_field, BackendSocialBaseline};
+use auth_session::string_field;
 pub use auth_session::{CliLoginPrompt, CliTwoFactorChoice};
 use background::{
     background_capability_session, background_capability_session_matches, emit_background_error,
@@ -91,7 +88,6 @@ use background_ticks::{
     run_background_social_baseline_refresh, BackgroundTickContext,
 };
 use frontend_session::{
-    favorite_group_membership_from_snapshot,
     replace_backend_frontend_session_user_if_session_matches, session_slot_matches,
     update_backend_frontend_session_user_filtered_if_session_matches,
     update_backend_frontend_session_user_if_session_matches,
