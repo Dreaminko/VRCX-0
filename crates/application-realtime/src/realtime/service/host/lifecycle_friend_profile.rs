@@ -2,6 +2,7 @@ use super::message_dispatch::json_string_field;
 use super::types::ActiveRealtimeContext;
 use super::*;
 use crate::realtime::user_query_cache::UserQueryKind;
+use crate::realtime::RealtimeUserProjection;
 use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 
@@ -154,13 +155,12 @@ impl RealtimeHostRuntime {
         if users.is_empty() {
             return;
         }
-        let mut payload = serde_json::json!({
-            "users": users.into_iter().map(Value::Object).collect::<Vec<_>>(),
-        });
-        if let Some(source) = source {
-            payload["source"] = serde_json::json!(source);
-        }
-        self.deps.event_bus.emit_realtime_user_projection(payload);
+        self.deps
+            .event_bus
+            .emit_realtime_user_projection(RealtimeUserProjection {
+                users: users.into_iter().map(Value::Object).collect(),
+                source,
+            });
     }
 
     pub(super) fn record_users_into_cache(&self, values: &[Value], options: &UserFactMergeOptions) {

@@ -39,7 +39,8 @@ pub use error::Error;
 #[cfg(any(test, feature = "test-utils"))]
 pub use event_bus::RuntimeEventForTest;
 pub use event_bus::{
-    FavoritesChangedPayload, RuntimeEventBus, RuntimeEventSink, RuntimeVrchatAuthFailurePayload,
+    FavoritesChangedPayload, RuntimeEventBus, RuntimeEventPayload, RuntimeEventSink,
+    RuntimeVrchatAuthFailurePayload,
 };
 pub use events::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, FriendProjection,
@@ -47,6 +48,7 @@ pub use events::{
     RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
     RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeProjectionSource,
+    RealtimeUserProjection,
 };
 pub use image_cache::{save_ugc_image_to_file, ImageCache};
 pub use interruptible_sleep::sleep_interruptibly;

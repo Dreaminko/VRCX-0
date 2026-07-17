@@ -10,6 +10,10 @@ use crate::game_client::actions::{GameClientActions, GameClientDebugLoggingActio
 use crate::game_client::lifecycle::{plan_crash_relaunch, CrashRelaunchConfig, CrashRelaunchPlan};
 use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
+use crate::{
+    CrashRelaunchDecisionPayload, GameClientEvent, RuntimeGameLogEventPayload,
+    RuntimeNotificationPayload,
+};
 use crate::{Error, Result};
 use crate::{HostSessionRuntime, TaskSupervisor};
 
@@ -121,11 +125,12 @@ impl GameClientProcessor {
                     Ok(None) => {}
                     Err(error) => {
                         self.deps.event_bus.emit_game_client_event(
-                            "crashRelaunchDecision",
-                            serde_json::json!({
-                                "handled": false,
-                                "error": error.to_string(),
-                            }),
+                            GameClientEvent::CrashRelaunchDecision(
+                                CrashRelaunchDecisionPayload::Failure {
+                                    handled: false,
+                                    error: error.to_string(),
+                                },
+                            ),
                         );
                         remember_error(&mut first_error, error);
                     }
@@ -161,10 +166,9 @@ impl GameClientProcessor {
             outcome.check_id = state.debug_logging_check_id;
             state.debug_logging_outcome = Some(outcome.clone());
         }
-        self.deps.event_bus.emit_game_client_event(
-            "debugLoggingOutcome",
-            serde_json::to_value(outcome).unwrap_or_default(),
-        );
+        self.deps
+            .event_bus
+            .emit_game_client_event(GameClientEvent::DebugLoggingOutcome(outcome));
     }
 
     fn should_run_debug_logging_check(&self, game_generation: Option<u64>) -> bool {
@@ -247,18 +251,17 @@ impl GameClientProcessor {
         }
         let removed_paths = self.deps.cache_actions.sweep_vrchat_cache();
         let removed_count = removed_paths.len();
-        self.deps.event_bus.emit_game_client_event(
-            "notification",
-            serde_json::json!({
-                "level": "info",
-                "title": "VRChat cache swept",
-                "message": if removed_count > 0 {
+        self.deps
+            .event_bus
+            .emit_game_client_event(GameClientEvent::Notification(RuntimeNotificationPayload {
+                level: "info".into(),
+                title: "VRChat cache swept".into(),
+                message: if removed_count > 0 {
                     format!("Removed {removed_count} cache entries.")
                 } else {
                     "No cache entries were removed.".to_string()
                 },
-            }),
-        );
+            }));
         Ok(())
     }
 
@@ -284,14 +287,17 @@ impl GameClientProcessor {
                 .start_game_from_path(&plan.launch_path_override, &plan.launch_arguments)?
         };
         if !launched {
-            self.deps.event_bus.emit_game_client_event(
-                "notification",
-                serde_json::json!({
-                    "level": "error",
-                    "title": "VRChat relaunch failed",
-                    "message": "Failed to find VRChat. Configure a custom launch path in launch options.",
-                }),
-            );
+            self.deps
+                .event_bus
+                .emit_game_client_event(GameClientEvent::Notification(
+                RuntimeNotificationPayload {
+                    level: "error".into(),
+                    title: "VRChat relaunch failed".into(),
+                    message:
+                        "Failed to find VRChat. Configure a custom launch path in launch options."
+                            .into(),
+                },
+            ));
             return Err(Error::Custom("VRChat crash relaunch failed".into()));
         }
 
@@ -314,14 +320,15 @@ impl GameClientProcessor {
     }
 
     fn emit_crash_relaunch_decision(&self, plan: Option<&CrashRelaunchPlan>, location: &str) {
-        self.deps.event_bus.emit_game_client_event(
-            "crashRelaunchDecision",
-            serde_json::json!({
-                "handled": plan.is_some(),
-                "location": location,
-                "delayMs": plan.map(|entry| entry.delay.as_millis() as u64),
-            }),
-        );
+        self.deps
+            .event_bus
+            .emit_game_client_event(GameClientEvent::CrashRelaunchDecision(
+                CrashRelaunchDecisionPayload::Evaluated {
+                    handled: plan.is_some(),
+                    location: location.into(),
+                    delay_ms: plan.map(|entry| entry.delay.as_millis() as u64),
+                },
+            ));
     }
 
     fn is_game_running(&self) -> bool {
@@ -345,20 +352,24 @@ impl GameClientProcessor {
             },
         )?;
         self.deps.event_bus.emit_game_log_persisted(affected_count);
-        self.deps.event_bus.emit_runtime_game_log_event(vec![
-            "runtime-game-client".into(),
-            created_at,
-            "event".into(),
-            CRASH_RELAUNCH_MESSAGE.into(),
-        ]);
-        self.deps.event_bus.emit_game_client_event(
-            "notification",
-            serde_json::json!({
-                "level": "warning",
-                "title": "VRChat crash detected",
-                "message": CRASH_RELAUNCH_MESSAGE,
-            }),
-        );
+        self.deps
+            .event_bus
+            .emit_runtime_game_log_event(RuntimeGameLogEventPayload {
+                runtime_persisted: true,
+                raw: vec![
+                    "runtime-game-client".into(),
+                    created_at,
+                    "event".into(),
+                    CRASH_RELAUNCH_MESSAGE.into(),
+                ],
+            });
+        self.deps
+            .event_bus
+            .emit_game_client_event(GameClientEvent::Notification(RuntimeNotificationPayload {
+                level: "warning".into(),
+                title: "VRChat crash detected".into(),
+                message: CRASH_RELAUNCH_MESSAGE.into(),
+            }));
         Ok(())
     }
 

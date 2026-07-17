@@ -2,6 +2,7 @@ mod authenticated_runtime;
 mod composition;
 mod context;
 mod error;
+mod event_payloads;
 mod event_sink;
 mod group_order;
 mod note_export;
@@ -20,6 +21,7 @@ pub use composition::{
 };
 pub use context::RuntimeHostContext;
 pub use error::{Error, Result};
+pub use event_payloads::RuntimeGroupInstancesProjection;
 pub use event_sink::RuntimeHostEventSink;
 pub use group_order::{GroupOrderSource, UnavailableGroupOrderSource};
 pub use note_export::NoteExportRuntime;

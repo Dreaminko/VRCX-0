@@ -23,6 +23,7 @@ use crate::RuntimeAuthScope;
 use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
 use crate::{Error, Result};
+use crate::{GameLogPersistenceFallbackPayload, RuntimeGameLogEventPayload};
 use crate::{RuntimeSyncEngine, TaskSupervisor, WebClient, WorldCache};
 use vrcx_0_application_activity::OverlayActivityRuntime;
 
@@ -193,7 +194,12 @@ impl GameLogProcessor {
                 self.deps.event_bus.emit_game_log_projection(projection);
             }
             for row in output.runtime_persisted_mirrors {
-                self.deps.event_bus.emit_runtime_game_log_event(row);
+                self.deps
+                    .event_bus
+                    .emit_runtime_game_log_event(RuntimeGameLogEventPayload {
+                        runtime_persisted: true,
+                        raw: row,
+                    });
             }
         }
         for side_effect in output.side_effects {
@@ -278,9 +284,13 @@ impl GameLogProcessor {
             Err(error) => {
                 let message = error.to_string();
                 self.deps.sync.record_failure("gameLog", &message);
-                self.deps
-                    .event_bus
-                    .emit_game_log_persistence_fallback(batch, raw_rows, &message);
+                self.deps.event_bus.emit_game_log_persistence_fallback(
+                    GameLogPersistenceFallbackPayload {
+                        batch: batch.clone(),
+                        raw_rows,
+                        error: message.clone(),
+                    },
+                );
                 tracing::warn!(
                     "GameLog batch write failed after retries; frontend fallback writes are disabled: {message}"
                 );

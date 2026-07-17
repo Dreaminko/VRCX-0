@@ -938,14 +938,14 @@ impl DesktopRuntimeProfileExtension {
 
 fn emit_game_log_watcher_status(state: &RuntimeHostState, status: &str) {
     let snapshot = state.backend_runtime.set_game_log_status(status);
-    state.runtime_context.event_bus.emit(
-        "backendRuntimeTelemetry",
-        vrcx_0_application_core::BackendRuntimeTelemetry {
+    state
+        .runtime_context
+        .event_bus
+        .emit(vrcx_0_application_core::BackendRuntimeTelemetry {
             kind: "gameLogWatcher".into(),
             detail: status.into(),
             snapshot,
-        },
-    );
+        });
 }
 
 fn register_desktop_file_access_grants(
@@ -1091,14 +1091,13 @@ fn emit_profile_background_output(
     {
         return;
     }
-    runtime_context.event_bus.emit(
-        "backendRuntimeTelemetry",
-        vrcx_0_application_core::BackendRuntimeTelemetry {
+    runtime_context
+        .event_bus
+        .emit(vrcx_0_application_core::BackendRuntimeTelemetry {
             kind: kind.into(),
             detail: detail.into(),
             snapshot,
-        },
-    );
+        });
 }
 
 #[cfg(test)]

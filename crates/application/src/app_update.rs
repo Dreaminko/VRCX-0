@@ -886,13 +886,10 @@ impl AppUpdateRuntime {
             Ok(()) => {
                 self.with_download_state(|state| *state = DownloadState::idle());
                 self.inner.download_notify.notify_waiters();
-                self.inner.event_bus.emit(
-                    "appUpdateInstalled",
-                    AppUpdateInstalledPayload {
-                        version,
-                        metadata: metadata.clone(),
-                    },
-                );
+                self.inner.event_bus.emit(AppUpdateInstalledPayload {
+                    version,
+                    metadata: metadata.clone(),
+                });
                 Ok(metadata)
             }
             Err(error) => {
@@ -945,16 +942,13 @@ impl AppUpdateRuntime {
         let Some(version) = snapshot.version.clone() else {
             return;
         };
-        self.inner.event_bus.emit(
-            "appUpdateDownloadProgress",
-            AppUpdateDownloadProgressPayload {
-                version,
-                phase: snapshot.phase.clone(),
-                downloaded_bytes: snapshot.downloaded_bytes,
-                total_bytes: snapshot.total_bytes,
-                percent: snapshot.percent,
-            },
-        );
+        self.inner.event_bus.emit(AppUpdateDownloadProgressPayload {
+            version,
+            phase: snapshot.phase.clone(),
+            downloaded_bytes: snapshot.downloaded_bytes,
+            total_bytes: snapshot.total_bytes,
+            percent: snapshot.percent,
+        });
     }
 
     fn maybe_run_queued_download(&self) {
@@ -1121,9 +1115,7 @@ impl AppUpdateRuntime {
             Ok(mut status) => *status = snapshot.clone(),
             Err(error) => tracing::warn!("failed to lock app update status: {error}"),
         }
-        self.inner
-            .event_bus
-            .emit("appUpdateStatus", snapshot.clone());
+        self.inner.event_bus.emit(snapshot.clone());
 
         match &snapshot.error {
             Some(error) => self

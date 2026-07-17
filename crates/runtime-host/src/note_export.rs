@@ -202,7 +202,7 @@ impl NoteExportRuntime {
     }
 
     fn emit_status(&self, status: NoteExportStatus) {
-        self.event_bus.emit("noteExportStatus", status);
+        self.event_bus.emit(status);
     }
 
     fn lock_inner(&self) -> std::sync::MutexGuard<'_, NoteExportRuntimeInner> {

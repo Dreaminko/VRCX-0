@@ -7,6 +7,9 @@ use crate::game_log::runtime_state::parse_event_time_ms;
 use crate::Result;
 use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
+use crate::{
+    GameLogSideEffectEvent, GameNoVrPayload, NowPlayingPayload, RuntimeNotificationPayload,
+};
 
 pub fn set_game_no_vr(
     db: &DatabaseService,
@@ -14,12 +17,9 @@ pub fn set_game_no_vr(
     no_vr: bool,
 ) -> Result<()> {
     config_store::set_bool(db, "isGameNoVR", no_vr)?;
-    event_bus.emit_game_log_side_effect(
-        "gameNoVR",
-        serde_json::json!({
-            "isGameNoVR": no_vr,
-        }),
-    );
+    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::GameNoVr(GameNoVrPayload {
+        is_game_no_vr: no_vr,
+    }));
     Ok(())
 }
 
@@ -46,14 +46,13 @@ pub fn handle_vrc_quit(
 
     let killed = host_actions.quit_game();
     if killed > 0 {
-        event_bus.emit_game_log_side_effect(
-            "notification",
-            serde_json::json!({
-                "level": "info",
-                "title": "VRChat quit cleanup",
-                "message": format!("Closed {killed} lingering VRChat process(es)."),
-            }),
-        );
+        event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::Notification(
+            RuntimeNotificationPayload {
+                level: "info".into(),
+                title: "VRChat quit cleanup".into(),
+                message: format!("Closed {killed} lingering VRChat process(es)."),
+            },
+        ));
     }
 }
 
@@ -65,12 +64,10 @@ pub fn emit_video_sync(event_bus: &RuntimeEventBus, timestamp: &str, created_at:
         .filter(|value| *value >= 0)
         .unwrap_or(0);
 
-    event_bus.emit_game_log_side_effect(
-        "nowPlaying",
-        serde_json::json!({
-            "position": position,
-            "startedAt": created_at,
-            "updatedAt": Utc::now().to_rfc3339(),
-        }),
-    );
+    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::NowPlaying(NowPlayingPayload {
+        position,
+        started_at: created_at.into(),
+        updated_at: Utc::now().to_rfc3339(),
+        ..Default::default()
+    }));
 }

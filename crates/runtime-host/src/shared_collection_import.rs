@@ -10,8 +10,8 @@ use vrcx_0_application::{
     SharedCollectionImportStatus, VrchatSharedCollectionImportActions,
 };
 use vrcx_0_application_core::{
-    RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus, TaskSupervisor, WebClient,
-    WorldCache,
+    FavoritesChangedPayload, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus,
+    TaskSupervisor, WebClient, WorldCache,
 };
 use vrcx_0_persistence::DatabaseService;
 
@@ -192,16 +192,18 @@ impl SharedCollectionImportRuntime {
         };
         if terminal.emit_favorites_changed {
             self.world_cache.sync_favorites_from_db();
-            self.event_bus.emit(
-                "favoritesChanged",
-                serde_json::json!({ "kind": "world", "local": true, "remote": false }),
-            );
+            self.event_bus
+                .emit_favorites_changed(FavoritesChangedPayload {
+                    kind: "world".into(),
+                    local: true,
+                    remote: false,
+                });
         }
         self.emit_status(terminal.status);
     }
 
     fn emit_status(&self, status: SharedCollectionImportStatus) {
-        self.event_bus.emit("sharedCollectionImportStatus", status);
+        self.event_bus.emit(status);
     }
 
     fn lock_inner(&self) -> std::sync::MutexGuard<'_, SharedCollectionImportRuntimeInner> {

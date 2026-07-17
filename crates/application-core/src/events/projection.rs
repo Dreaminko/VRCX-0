@@ -9,6 +9,14 @@ pub enum RealtimeProjectionSource {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct RealtimeUserProjection {
+    pub users: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<RealtimeProjectionSource>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct FriendProjectionPatch {
     pub user_id: String,
     pub patch: Value,

@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use chrono::Utc;
 use futures_util::StreamExt;
-use serde_json::{json, Value};
+use serde_json::Value;
 use tokio::sync::watch;
 use vrcx_0_vrchat_client::auth::session_get_input;
 use vrcx_0_vrchat_client::http_api::ApiScope;
@@ -457,10 +457,7 @@ async fn connect_once(
                             if message_type == "<missing>" {
                                 log_untyped_message_summary(attempt.generation, &payload.json);
                             }
-                            deps.event_bus.emit_backend_runtime_telemetry(json!({
-                                "kind": "wsMessage",
-                                "messageType": message_type,
-                            }));
+                            deps.event_bus.emit_ws_message_observed(message_type);
                             message_sink.handle_realtime_ws_message(
                                 attempt.generation,
                                 attempt.session_generation,

@@ -620,7 +620,7 @@ impl FavoriteImportRuntime {
     }
 
     fn emit_status(&self, status: FavoriteImportStatus) {
-        self.event_bus.emit("favoriteImportStatus", status);
+        self.event_bus.emit(status);
     }
 
     fn lock_inner(&self) -> std::sync::MutexGuard<'_, FavoriteImportRuntimeInner> {

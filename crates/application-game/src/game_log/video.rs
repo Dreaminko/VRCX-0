@@ -8,7 +8,10 @@ use vrcx_0_persistence::DatabaseService;
 
 use crate::Result;
 use crate::RuntimeGameEventBusExt;
-use crate::{RuntimeEventBus, WebClient};
+use crate::{
+    GameLogPersistenceFallbackPayload, GameLogSideEffectEvent, NowPlayingPayload, RuntimeEventBus,
+    RuntimeGameLogEventPayload, WebClient,
+};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct VideoInput {
@@ -106,7 +109,11 @@ pub async fn handle_video_play(
         Ok(affected_count) => affected_count,
         Err(error) => {
             let message = error.to_string();
-            event_bus.emit_game_log_persistence_fallback(&batch, vec![raw_row], &message);
+            event_bus.emit_game_log_persistence_fallback(GameLogPersistenceFallbackPayload {
+                batch,
+                raw_rows: vec![raw_row],
+                error: message.clone(),
+            });
             tracing::warn!(
                 "GameLog video write failed; frontend fallback writes are disabled: {message}"
             );
@@ -115,29 +122,29 @@ pub async fn handle_video_play(
     };
 
     event_bus.emit_game_log_persisted(affected_count);
-    event_bus.emit_runtime_game_log_event(raw_row);
+    event_bus.emit_runtime_game_log_event(RuntimeGameLogEventPayload {
+        runtime_persisted: true,
+        raw: raw_row,
+    });
 
-    event_bus.emit_game_log_side_effect(
-        "nowPlaying",
-        serde_json::json!({
-            "url": input.video_url,
-            "name": input.video_name,
-            "source": input.video_id,
-            "displayName": input.display_name,
-            "userId": input.user_id,
-            "location": input.location,
-            "thumbnailUrl": input.thumbnail_url,
-            "length": input.video_length,
-            "position": input.video_pos,
-            "startedAt": input.created_at,
-            "created_at": input.created_at,
-            "type": "VideoPlay",
-            "videoUrl": input.video_url,
-            "videoName": input.video_name,
-            "videoId": input.video_id,
-            "updatedAt": Utc::now().to_rfc3339(),
-        }),
-    );
+    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::NowPlaying(NowPlayingPayload {
+        url: Some(input.video_url.clone()),
+        name: Some(input.video_name.clone()),
+        source: Some(input.video_id.clone()),
+        display_name: Some(input.display_name),
+        user_id: Some(input.user_id),
+        location: Some(input.location),
+        thumbnail_url: Some(input.thumbnail_url),
+        length: Some(input.video_length),
+        position: input.video_pos,
+        started_at: input.created_at.clone(),
+        created_at: Some(input.created_at),
+        activity_type: Some("VideoPlay".into()),
+        video_url: Some(input.video_url),
+        video_name: Some(input.video_name),
+        video_id: Some(input.video_id),
+        updated_at: Utc::now().to_rfc3339(),
+    }));
 
     Ok(())
 }

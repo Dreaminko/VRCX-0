@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Value};
-use vrcx_0_application_core::{BackendRuntime, RuntimeEventSink};
+use vrcx_0_application_core::{BackendRuntime, BackendRuntimeTelemetry, RuntimeEventSink};
 
 use super::*;
 
@@ -77,7 +77,30 @@ fn ordinary_event_is_forwarded_unchanged_before_one_derived_telemetry_event() {
 }
 
 #[test]
-fn telemetry_with_snapshot_passes_through_without_observation() {
+fn typed_backend_runtime_telemetry_passes_through_without_observation() {
+    let backend_runtime = BackendRuntime::new();
+    let recording = RecordingSink::default();
+    let sink = RuntimeHostEventSink::new(backend_runtime.clone(), None, recording.clone());
+    let payload = serde_json::to_value(BackendRuntimeTelemetry {
+        kind: "runtimeStarted".into(),
+        detail: "ready".into(),
+        snapshot: backend_runtime.snapshot(),
+    })
+    .unwrap();
+
+    sink.emit("backendRuntimeTelemetry", payload.clone());
+
+    assert_eq!(
+        recording.events(),
+        vec![RecordedEvent {
+            name: "backendRuntimeTelemetry".into(),
+            payload,
+        }]
+    );
+}
+
+#[test]
+fn telemetry_with_invalid_snapshot_is_normalized_without_observation() {
     let backend_runtime = BackendRuntime::new();
     let recording = RecordingSink::default();
     let sink = RuntimeHostEventSink::new(backend_runtime.clone(), None, recording.clone());
@@ -87,33 +110,34 @@ fn telemetry_with_snapshot_passes_through_without_observation() {
         "snapshot": { "source": "upstream" }
     });
 
-    sink.emit("backendRuntimeTelemetry", payload.clone());
+    sink.emit("backendRuntimeTelemetry", payload);
 
-    assert_eq!(
-        recording.events(),
-        vec![RecordedEvent {
-            name: "backendRuntimeTelemetry".to_string(),
-            payload,
-        }]
-    );
+    let events = recording.events();
+    assert_eq!(events.len(), 1);
+    let event = &events[0];
+    assert_eq!(event.name, "backendRuntimeTelemetry");
+    assert_eq!(event.payload["kind"], "wsMessage");
+    assert_eq!(event.payload["detail"], "notification");
+    assert_eq!(event.payload["snapshot"]["wsMessageCounts"], json!({}));
     assert!(backend_runtime.snapshot().ws_message_counts.is_empty());
 }
 
 #[test]
-fn telemetry_without_snapshot_is_not_dropped_when_observer_has_no_output() {
+fn telemetry_without_snapshot_is_normalized_when_observer_has_no_output() {
+    let backend_runtime = BackendRuntime::new();
     let recording = RecordingSink::default();
-    let sink = RuntimeHostEventSink::new(BackendRuntime::new(), None, recording.clone());
+    let sink = RuntimeHostEventSink::new(backend_runtime, None, recording.clone());
     let payload = json!({ "kind": "runtimeStarted", "detail": "ready" });
 
-    sink.emit("backendRuntimeTelemetry", payload.clone());
+    sink.emit("backendRuntimeTelemetry", payload);
 
-    assert_eq!(
-        recording.events(),
-        vec![RecordedEvent {
-            name: "backendRuntimeTelemetry".to_string(),
-            payload,
-        }]
-    );
+    let events = recording.events();
+    assert_eq!(events.len(), 1);
+    let event = &events[0];
+    assert_eq!(event.name, "backendRuntimeTelemetry");
+    assert_eq!(event.payload["kind"], "runtimeStarted");
+    assert_eq!(event.payload["detail"], "ready");
+    assert!(event.payload["snapshot"].is_object());
 }
 
 #[test]

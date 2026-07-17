@@ -80,14 +80,15 @@ impl RuntimeHostState {
         if let Some(previous) = previous {
             self.runtime_context
                 .event_bus
-                .emit_runtime_group_instances_projection(json!({
-                    "status": "idle",
-                    "userId": previous.user_id,
-                    "endpoint": previous.endpoint,
-                    "instances": [],
-                    "groupOrder": [],
-                    "error": "",
-                }));
+                .emit(RuntimeGroupInstancesProjection {
+                    status: "idle".into(),
+                    user_id: previous.user_id,
+                    endpoint: previous.endpoint,
+                    fetched_at: None,
+                    error: Some(String::new()),
+                    instances: Some(Vec::new()),
+                    group_order: Some(Vec::new()),
+                });
         }
     }
 

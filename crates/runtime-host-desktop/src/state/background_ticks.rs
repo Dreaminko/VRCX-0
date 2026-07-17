@@ -106,12 +106,9 @@ fn emit_background_output(
     {
         return;
     }
-    runtime_context.event_bus.emit(
-        "backendRuntimeTelemetry",
-        BackendRuntimeTelemetry {
-            kind: kind.into(),
-            detail: detail.into(),
-            snapshot,
-        },
-    );
+    runtime_context.event_bus.emit(BackendRuntimeTelemetry {
+        kind: kind.into(),
+        detail: detail.into(),
+        snapshot,
+    });
 }

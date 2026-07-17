@@ -28,7 +28,7 @@ pub enum BackendRuntimePhase {
     Error,
 }
 
-#[derive(Clone, Debug, Serialize, specta::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct BackendRuntimeSnapshot {
     pub mode: BackendRuntimeMode,
@@ -47,7 +47,7 @@ pub struct BackendRuntimeSnapshot {
     pub friend_profile_load: FriendProfileLoadStatusPayload,
 }
 
-#[derive(Clone, Debug, Serialize, specta::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct BackendRuntimeTelemetry {
     pub kind: String,

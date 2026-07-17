@@ -10,6 +10,7 @@ use crate::screenshots as screenshot_domain;
 use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
 use crate::{Error, Result};
+use crate::{GameLogSideEffectEvent, ScreenshotProcessedPayload};
 
 const FALLBACK_LOCATION_MAX_AGE_MS: i64 = 15 * 60 * 1000;
 
@@ -71,12 +72,9 @@ pub async fn handle_screenshot(
         }
     }
 
-    event_bus.emit_game_log_side_effect(
-        "screenshotProcessed",
-        serde_json::json!({
-            "path": next_path,
-        }),
-    );
+    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::ScreenshotProcessed(
+        ScreenshotProcessedPayload { path: next_path },
+    ));
     Ok(())
 }
 

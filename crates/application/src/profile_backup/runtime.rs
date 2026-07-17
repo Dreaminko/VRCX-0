@@ -164,9 +164,7 @@ impl ProfileBackupRuntime {
                 return ProfileBackupStatus::default();
             }
         };
-        self.inner
-            .event_bus
-            .emit("profileBackupStatus", snapshot.clone());
+        self.inner.event_bus.emit(snapshot.clone());
         snapshot
     }
 
@@ -223,7 +221,7 @@ impl ProfileBackupRuntime {
                 return;
             }
         };
-        self.inner.event_bus.emit("profileBackupStatus", snapshot);
+        self.inner.event_bus.emit(snapshot);
     }
 
     fn update_restore_progress(
@@ -282,9 +280,7 @@ impl ProfileBackupRuntime {
                 return;
             }
         };
-        self.inner
-            .event_bus
-            .emit("profileRestoreProgress", snapshot);
+        self.inner.event_bus.emit(snapshot);
     }
 
     fn finish_success(&self, kind: ProfileBackupKind, final_path: PathBuf) {
@@ -364,7 +360,7 @@ impl ProfileBackupRuntime {
                 return;
             }
         };
-        self.inner.event_bus.emit("profileBackupStatus", snapshot);
+        self.inner.event_bus.emit(snapshot);
     }
 
     fn set_pending_delivery(&self, pending: Option<PendingDelivery>) {

@@ -13,8 +13,9 @@ use serde_json::{json, Value};
 
 use crate::{
     AuthenticatedRuntimeOrchestrator, GroupOrderSource, NoteExportRuntime, Result,
-    RuntimeHostComposition, RuntimeHostContext, RuntimeHostEventSink, RuntimeHostProfile,
-    RuntimeHostProfileExtension, SharedCollectionImportRuntime, UnavailableGroupOrderSource,
+    RuntimeGroupInstancesProjection, RuntimeHostComposition, RuntimeHostContext,
+    RuntimeHostEventSink, RuntimeHostProfile, RuntimeHostProfileExtension,
+    SharedCollectionImportRuntime, UnavailableGroupOrderSource,
 };
 use vrcx_0_application::{
     auth_response_error_message, current_user_from_cookie, parse_current_user_response,

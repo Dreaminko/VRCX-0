@@ -3,10 +3,11 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::backend_runtime::BackendRuntimeTelemetry;
 use crate::events::{
     FriendProfileLoadStatusPayload, FriendProjection, PrintAutoCleanupEvent,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeUserProjection,
 };
 use crate::ports::HostSessionProjection;
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
@@ -15,7 +16,11 @@ pub trait RuntimeEventSink: Send + Sync {
     fn emit(&self, event: &str, payload: Value);
 }
 
-#[derive(Clone, Debug, Serialize)]
+pub trait RuntimeEventPayload: Serialize + specta::Type {
+    const EVENT_NAME: &'static str;
+}
+
+#[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoritesChangedPayload {
     pub kind: String,
@@ -23,7 +28,7 @@ pub struct FavoritesChangedPayload {
     pub remote: bool,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeVrchatAuthFailurePayload {
     pub owner_user_id: String,
@@ -33,6 +38,57 @@ pub struct RuntimeVrchatAuthFailurePayload {
     pub status_code: i32,
     pub auth_scope_generation: u64,
 }
+
+#[derive(Clone, Debug, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+struct BackendRuntimeCountTelemetry {
+    kind: String,
+    count: u64,
+}
+
+#[derive(Clone, Debug, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+struct BackendRuntimeMessageTelemetry {
+    kind: String,
+    message_type: String,
+}
+
+macro_rules! runtime_event_payload {
+    ($payload:ty, $event:literal) => {
+        impl RuntimeEventPayload for $payload {
+            const EVENT_NAME: &'static str = $event;
+        }
+    };
+}
+
+runtime_event_payload!(FavoritesChangedPayload, "favoritesChanged");
+runtime_event_payload!(RuntimeVrchatAuthFailurePayload, "runtimeVrchatAuthFailure");
+runtime_event_payload!(BackendRuntimeCountTelemetry, "backendRuntimeTelemetry");
+runtime_event_payload!(BackendRuntimeMessageTelemetry, "backendRuntimeTelemetry");
+runtime_event_payload!(BackendRuntimeTelemetry, "backendRuntimeTelemetry");
+runtime_event_payload!(RealtimeWsStatusPayload, "realtimeWsStatus");
+runtime_event_payload!(FriendProjection, "realtimeFriendProjection");
+runtime_event_payload!(RealtimeUserProjection, "realtimeUserProjection");
+runtime_event_payload!(
+    RealtimeNotificationProjection,
+    "realtimeNotificationProjection"
+);
+runtime_event_payload!(RealtimeEntryCorrection, "realtimeEntryCorrection");
+runtime_event_payload!(
+    RealtimeCurrentUserProjection,
+    "realtimeCurrentUserProjection"
+);
+runtime_event_payload!(
+    RealtimeInstanceClosedProjection,
+    "realtimeInstanceClosedProjection"
+);
+runtime_event_payload!(
+    RealtimeInstanceQueueProjection,
+    "realtimeInstanceQueueProjection"
+);
+runtime_event_payload!(HostSessionProjection, "updateIsGameRunning");
+runtime_event_payload!(PrintAutoCleanupEvent, "printsAutoCleanup");
+runtime_event_payload!(FriendProfileLoadStatusPayload, "friendProfileLoadStatus");
 
 #[cfg(any(test, feature = "test-utils"))]
 #[derive(Clone, Debug)]
@@ -60,7 +116,8 @@ impl RuntimeEventBus {
         *self.sink.lock().unwrap() = Some(Arc::new(sink));
     }
 
-    pub fn emit<T: Serialize>(&self, event: &str, payload: T) {
+    pub fn emit<T: RuntimeEventPayload>(&self, payload: T) {
+        let event = T::EVENT_NAME;
         match serde_json::to_value(payload) {
             Ok(value) => self.emit_value(event, value),
             Err(error) => {
@@ -90,82 +147,115 @@ impl RuntimeEventBus {
     }
 
     pub fn emit_ws_persisted(&self, count: u64) {
-        self.emit_backend_runtime_telemetry(serde_json::json!({
-            "kind": "wsPersisted",
-            "count": count,
-        }));
+        self.emit(BackendRuntimeCountTelemetry {
+            kind: "wsPersisted".into(),
+            count,
+        });
     }
 
     pub fn emit_game_log_persisted(&self, count: u64) {
-        self.emit_backend_runtime_telemetry(serde_json::json!({
-            "kind": "gameLogPersisted",
-            "count": count,
-        }));
+        self.emit(BackendRuntimeCountTelemetry {
+            kind: "gameLogPersisted".into(),
+            count,
+        });
+    }
+
+    pub fn emit_ws_message_observed(&self, message_type: impl Into<String>) {
+        self.emit(BackendRuntimeMessageTelemetry {
+            kind: "wsMessage".into(),
+            message_type: message_type.into(),
+        });
     }
 
     pub fn emit_realtime_ws_status(&self, payload: RealtimeWsStatusPayload) {
-        self.emit("realtimeWsStatus", payload);
+        self.emit(payload);
     }
 
     pub fn emit_runtime_vrchat_auth_failure(&self, payload: RuntimeVrchatAuthFailurePayload) {
-        self.emit("runtimeVrchatAuthFailure", payload);
-    }
-
-    pub fn emit_backend_runtime_telemetry(&self, payload: Value) {
-        self.emit("backendRuntimeTelemetry", payload);
+        self.emit(payload);
     }
 
     pub fn emit_realtime_friend_projection(&self, payload: FriendProjection) {
-        self.emit("realtimeFriendProjection", payload);
+        self.emit(payload);
     }
 
-    pub fn emit_realtime_user_projection(&self, payload: Value) {
-        self.emit("realtimeUserProjection", payload);
+    pub fn emit_realtime_user_projection(&self, payload: RealtimeUserProjection) {
+        self.emit(payload);
     }
 
     pub fn emit_realtime_notification_projection(&self, payload: RealtimeNotificationProjection) {
-        self.emit("realtimeNotificationProjection", payload);
+        self.emit(payload);
     }
 
     pub fn emit_realtime_entry_correction(&self, payload: RealtimeEntryCorrection) {
-        self.emit("realtimeEntryCorrection", payload);
+        self.emit(payload);
     }
 
     pub fn emit_realtime_current_user_projection(&self, payload: RealtimeCurrentUserProjection) {
-        self.emit("realtimeCurrentUserProjection", payload);
-    }
-
-    pub fn emit_runtime_group_instances_projection(&self, payload: Value) {
-        self.emit("runtimeGroupInstancesProjection", payload);
+        self.emit(payload);
     }
 
     pub fn emit_realtime_instance_closed_projection(
         &self,
         payload: RealtimeInstanceClosedProjection,
     ) {
-        self.emit("realtimeInstanceClosedProjection", payload);
+        self.emit(payload);
     }
 
     pub fn emit_realtime_instance_queue_projection(
         &self,
         payload: RealtimeInstanceQueueProjection,
     ) {
-        self.emit("realtimeInstanceQueueProjection", payload);
+        self.emit(payload);
     }
 
     pub fn emit_game_process_status(&self, payload: HostSessionProjection) {
-        self.emit("updateIsGameRunning", payload);
+        self.emit(payload);
     }
 
     pub fn emit_prints_auto_cleanup(&self, payload: PrintAutoCleanupEvent) {
-        self.emit("printsAutoCleanup", payload);
+        self.emit(payload);
     }
 
     pub fn emit_friend_profile_load_status(&self, payload: FriendProfileLoadStatusPayload) {
-        self.emit("friendProfileLoadStatus", payload);
+        self.emit(payload);
     }
 
     pub fn emit_favorites_changed(&self, payload: FavoritesChangedPayload) {
-        self.emit("favoritesChanged", payload);
+        self.emit(payload);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::RuntimeEventBus;
+
+    #[test]
+    fn backend_runtime_observations_preserve_event_name_and_wire_shape() {
+        let bus = RuntimeEventBus::new();
+
+        bus.emit_ws_persisted(2);
+        bus.emit_game_log_persisted(3);
+        bus.emit_ws_message_observed("friend-location");
+
+        let events = bus.take_events_for_test();
+        assert_eq!(events.len(), 3);
+        assert_eq!(events[0].name, "backendRuntimeTelemetry");
+        assert_eq!(
+            events[0].payload,
+            json!({ "kind": "wsPersisted", "count": 2 })
+        );
+        assert_eq!(events[1].name, "backendRuntimeTelemetry");
+        assert_eq!(
+            events[1].payload,
+            json!({ "kind": "gameLogPersisted", "count": 3 })
+        );
+        assert_eq!(events[2].name, "backendRuntimeTelemetry");
+        assert_eq!(
+            events[2].payload,
+            json!({ "kind": "wsMessage", "messageType": "friend-location" })
+        );
     }
 }

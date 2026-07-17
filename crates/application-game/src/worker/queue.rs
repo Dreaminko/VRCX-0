@@ -7,6 +7,7 @@ use std::time::Instant;
 
 use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
+use crate::RuntimeWorkerErrorPayload;
 use crate::{Error, Result};
 
 const DEFAULT_CAPACITY: usize = 8192;
@@ -290,7 +291,10 @@ where
                 tracing::warn!("{} worker batch failed: {error}", inner.name);
                 inner
                     .event_bus
-                    .emit_runtime_worker_error(&inner.name, &error.to_string());
+                    .emit_runtime_worker_error(RuntimeWorkerErrorPayload {
+                        worker: inner.name.clone(),
+                        message: error.to_string(),
+                    });
             }
         }
 

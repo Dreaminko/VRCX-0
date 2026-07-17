@@ -217,14 +217,13 @@ impl RuntimeHostState {
         detail: impl Into<String>,
         snapshot: BackendRuntimeSnapshot,
     ) {
-        self.runtime_context.event_bus.emit(
-            "backendRuntimeTelemetry",
-            BackendRuntimeTelemetry {
+        self.runtime_context
+            .event_bus
+            .emit(BackendRuntimeTelemetry {
                 kind: kind.into(),
                 detail: detail.into(),
                 snapshot,
-            },
-        );
+            });
     }
 }
 
@@ -307,14 +306,11 @@ fn emit_background_output(
     {
         return;
     }
-    runtime_context.event_bus.emit(
-        "backendRuntimeTelemetry",
-        BackendRuntimeTelemetry {
-            kind: kind.into(),
-            detail: detail.into(),
-            snapshot,
-        },
-    );
+    runtime_context.event_bus.emit(BackendRuntimeTelemetry {
+        kind: kind.into(),
+        detail: detail.into(),
+        snapshot,
+    });
 }
 
 pub(super) fn background_capability_session(

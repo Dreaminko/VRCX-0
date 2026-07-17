@@ -1,13 +1,12 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
-use serde_json::json;
 use vrcx_0_application::refresh_background_group_instances;
 use vrcx_0_application_core::{
     BackendRuntime, BackgroundCapabilitySession, RuntimeBackgroundJobs, WebClient,
 };
 use vrcx_0_persistence::DatabaseService;
 
-use crate::{GroupOrderSource, RuntimeHostContext};
+use crate::{GroupOrderSource, RuntimeGroupInstancesProjection, RuntimeHostContext};
 
 use super::super::{
     background_capability_session, background_capability_session_matches, emit_background_error,
@@ -48,11 +47,15 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
     };
     runtime_context
         .event_bus
-        .emit_runtime_group_instances_projection(json!({
-            "status": "running",
-            "userId": &session.current_user_id,
-            "endpoint": &session.endpoint,
-        }));
+        .emit(RuntimeGroupInstancesProjection {
+            status: "running".into(),
+            user_id: session.current_user_id.clone(),
+            endpoint: session.endpoint.clone(),
+            fetched_at: None,
+            error: None,
+            instances: None,
+            group_order: None,
+        });
     match refresh_background_group_instances(web.as_ref(), db.as_ref(), &session).await {
         Ok(refresh) => {
             if !background_capability_session_matches(session_slot, &session) {
@@ -68,14 +71,17 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
             let count = refresh.instances.len();
             runtime_context
                 .event_bus
-                .emit_runtime_group_instances_projection(json!({
-                    "status": "ready",
-                    "userId": &session.current_user_id,
-                    "endpoint": &session.endpoint,
-                    "instances": refresh.instances,
-                    "groupOrder": group_order_source.read_group_order(&session.current_user_id),
-                    "fetchedAt": refresh.fetched_at,
-                }));
+                .emit(RuntimeGroupInstancesProjection {
+                    status: "ready".into(),
+                    user_id: session.current_user_id.clone(),
+                    endpoint: session.endpoint.clone(),
+                    fetched_at: Some(refresh.fetched_at),
+                    error: None,
+                    instances: Some(refresh.instances),
+                    group_order: Some(
+                        group_order_source.read_group_order(&session.current_user_id),
+                    ),
+                });
             let detail = format!("group instance facts refreshed: {count} rows.");
             emit_background_info(runtime_context, backend_runtime, detail.clone());
             background_jobs.mark_completed(BACKGROUND_FACTS_REFRESH_JOB, detail);
@@ -98,12 +104,15 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
             );
             runtime_context
                 .event_bus
-                .emit_runtime_group_instances_projection(json!({
-                    "status": "error",
-                    "userId": &session.current_user_id,
-                    "endpoint": &session.endpoint,
-                    "error": error.to_string(),
-                }));
+                .emit(RuntimeGroupInstancesProjection {
+                    status: "error".into(),
+                    user_id: session.current_user_id.clone(),
+                    endpoint: session.endpoint.clone(),
+                    fetched_at: None,
+                    error: Some(error.to_string()),
+                    instances: None,
+                    group_order: None,
+                });
             emit_background_error(
                 runtime_context,
                 backend_runtime,
@@ -133,20 +142,26 @@ fn emit_stale_group_instance_refresh_idle(
     if same_scope {
         runtime_context
             .event_bus
-            .emit_runtime_group_instances_projection(json!({
-                "status": "idle",
-                "userId": &session.current_user_id,
-                "endpoint": &session.endpoint,
-            }));
+            .emit(RuntimeGroupInstancesProjection {
+                status: "idle".into(),
+                user_id: session.current_user_id.clone(),
+                endpoint: session.endpoint.clone(),
+                fetched_at: None,
+                error: None,
+                instances: None,
+                group_order: None,
+            });
         return;
     }
     runtime_context
         .event_bus
-        .emit_runtime_group_instances_projection(json!({
-            "status": "idle",
-            "userId": &session.current_user_id,
-            "endpoint": &session.endpoint,
-            "instances": [],
-            "groupOrder": [],
-        }));
+        .emit(RuntimeGroupInstancesProjection {
+            status: "idle".into(),
+            user_id: session.current_user_id.clone(),
+            endpoint: session.endpoint.clone(),
+            fetched_at: None,
+            error: None,
+            instances: Some(Vec::new()),
+            group_order: Some(Vec::new()),
+        });
 }

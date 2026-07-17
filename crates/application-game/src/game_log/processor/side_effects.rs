@@ -13,6 +13,7 @@ use crate::game_log::screenshot as runtime_screenshot;
 use crate::game_log::video as runtime_video;
 use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
+use crate::{EmptyEventPayload, GameLogSideEffectEvent};
 use crate::{ImageCache, TaskSupervisor, WebClient};
 
 use super::GameLogProcessorDeps;
@@ -41,8 +42,8 @@ impl GameLogSideEffectDeps {
         }
     }
 
-    fn emit_side_effect(&self, kind: &str, payload: serde_json::Value) {
-        self.event_bus.emit_game_log_side_effect(kind, payload);
+    fn emit_side_effect(&self, event: GameLogSideEffectEvent) {
+        self.event_bus.emit_game_log_side_effect(event);
     }
 
     fn instance_media_deps(&self) -> InstanceMediaDeps {
@@ -79,7 +80,9 @@ pub(super) fn dispatch_side_effect(deps: GameLogSideEffectDeps, side_effect: Gam
             runtime_lifecycle::emit_video_sync(&deps.event_bus, &timestamp, &created_at);
         }
         GameLogSideEffect::NowPlayingReset => {
-            deps.emit_side_effect("nowPlayingReset", serde_json::json!({}));
+            deps.emit_side_effect(GameLogSideEffectEvent::NowPlayingReset(
+                EmptyEventPayload::default(),
+            ));
         }
         GameLogSideEffect::Screenshot(input) => {
             deps.tasks.clone().spawn(async move {

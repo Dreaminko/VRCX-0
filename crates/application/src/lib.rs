@@ -6,6 +6,7 @@ mod background_capabilities;
 mod batch_mutation;
 mod database_upgrade;
 mod database_upgrade_runtime;
+mod event_payloads;
 mod favorite_import;
 mod favorite_transfer;
 pub mod groups;

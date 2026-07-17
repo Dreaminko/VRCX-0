@@ -529,7 +529,7 @@ impl AuthenticatedRuntimeOrchestrator {
     }
 
     fn emit(&self, snapshot: AuthenticatedRuntimePhaseSnapshot) {
-        self.event_bus.emit("authenticatedRuntimePhase", snapshot);
+        self.event_bus.emit(snapshot);
     }
 
     fn lock_snapshot(&self) -> MutexGuard<'_, AuthenticatedRuntimePhaseSnapshot> {

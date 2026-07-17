@@ -3,4 +3,5 @@ pub use vrcx_0_application_core::{
     RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
     RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeProjectionSource,
+    RealtimeUserProjection,
 };
