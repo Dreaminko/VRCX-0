@@ -1,7 +1,6 @@
 use serde_json::{json, Map, Value};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::secrets;
-use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::auth::{config_get_input, current_user_get_input, login_basic_input};
 use vrcx_0_vrchat_client::http_api::{ApiScope, HttpApiExecuteResponse};
 
@@ -10,7 +9,7 @@ use super::types::{
     SavedCredentialSessionData,
 };
 use crate::web_client::WebClient;
-use crate::{Error, Result};
+use crate::{Error, LoginApi, Result};
 
 const MAX_AUTO_LOGIN_DELAY_SECONDS: i64 = 10;
 const SAVED_CREDENTIALS_KEY: &str = "savedCredentials";
@@ -190,7 +189,7 @@ pub fn record_logout(
 pub async fn saved_credential_login_start(
     config: &ConfigRepository,
     web: &WebClient,
-    db: &DatabaseService,
+    api: &dyn LoginApi,
     input: SavedCredentialLoginStartInput,
 ) -> Result<HttpApiExecuteResponse> {
     let user_id = normalize_text(input.user_id);
@@ -220,7 +219,7 @@ pub async fn saved_credential_login_start(
     }
 
     let endpoint = normalize_text(input.endpoint);
-    match probe_cookie_session(web, db, endpoint.clone(), &user_id, false).await? {
+    match probe_cookie_session(api, endpoint.clone(), &user_id, false).await? {
         CookieSessionProbe::Use(response) => return Ok(response),
         CookieSessionProbe::Fallback => {}
     }
@@ -241,13 +240,13 @@ pub async fn saved_credential_login_start(
         }
     }
 
-    match probe_cookie_session(web, db, endpoint.clone(), &user_id, true).await? {
+    match probe_cookie_session(api, endpoint.clone(), &user_id, true).await? {
         CookieSessionProbe::Use(response) => return Ok(response),
         CookieSessionProbe::Fallback => {}
     }
 
-    let config_response = web
-        .execute_api(config_get_input(endpoint.clone()), ApiScope::Vrchat, db)
+    let config_response = api
+        .execute(config_get_input(endpoint.clone()), ApiScope::Vrchat)
         .await?;
     if config_response.status == 403 {
         return Ok(config_response);
@@ -259,7 +258,7 @@ pub async fn saved_credential_login_start(
         "Saved credential login requires username.",
         "Saved credential login requires password.",
     )?;
-    web.execute_api(request, ApiScope::Vrchat, db).await
+    api.execute(request, ApiScope::Vrchat).await
 }
 
 enum CookieSessionProbe {
@@ -268,14 +267,13 @@ enum CookieSessionProbe {
 }
 
 async fn probe_cookie_session(
-    web: &WebClient,
-    db: &DatabaseService,
+    api: &dyn LoginApi,
     endpoint: String,
     expected_user_id: &str,
     allow_unmatched_two_factor: bool,
 ) -> Result<CookieSessionProbe> {
-    let config_response = web
-        .execute_api(config_get_input(endpoint.clone()), ApiScope::Vrchat, db)
+    let config_response = api
+        .execute(config_get_input(endpoint.clone()), ApiScope::Vrchat)
         .await?;
     if response_allows_saved_credential_fallback(&config_response) {
         return Ok(CookieSessionProbe::Fallback);
@@ -284,8 +282,8 @@ async fn probe_cookie_session(
         return Ok(CookieSessionProbe::Use(config_response));
     }
 
-    let current_user_response = web
-        .execute_api(current_user_get_input(endpoint), ApiScope::Vrchat, db)
+    let current_user_response = api
+        .execute(current_user_get_input(endpoint), ApiScope::Vrchat)
         .await?;
     if response_allows_saved_credential_fallback(&current_user_response) {
         return Ok(CookieSessionProbe::Fallback);
@@ -973,9 +971,25 @@ mod tests {
 
     use serde_json::json;
     use vrcx_0_persistence::config::ConfigRepository;
+    use vrcx_0_persistence::storage::StorageService;
     use vrcx_0_persistence::DatabaseService;
 
-    use super::{saved_snapshot, LAST_USER_LOGGED_IN_KEY, SAVED_CREDENTIALS_KEY};
+    use super::{
+        authenticated_response_user_mismatches, read_saved_credentials_map, record_login_success,
+        response_allows_saved_credential_fallback, response_requires_two_factor, saved_snapshot,
+        LAST_USER_LOGGED_IN_KEY, SAVED_CREDENTIALS_KEY,
+    };
+    use crate::auth_credentials::types::LoginSuccessRecordInput;
+    use crate::web_client::WebClient;
+    use vrcx_0_vrchat_client::http_api::HttpApiExecuteResponse;
+
+    fn http_response(status: i32, data: serde_json::Value) -> HttpApiExecuteResponse {
+        HttpApiExecuteResponse {
+            status,
+            data: data.to_string(),
+            raw: data,
+        }
+    }
 
     struct TestDir {
         path: PathBuf,
@@ -1051,6 +1065,157 @@ mod tests {
         );
         assert_eq!(snapshot["savedCredentials"]["usr_1"]["hasCookies"], true);
         assert_eq!(snapshot["savedCredentialFallbackAvailable"], true);
+        Ok(())
+    }
+
+    #[test]
+    fn response_allows_saved_credential_fallback_requires_401_and_missing_credentials_message() {
+        assert!(response_allows_saved_credential_fallback(&http_response(
+            401,
+            json!({ "error": { "message": "Missing Credentials" } })
+        )));
+        assert!(!response_allows_saved_credential_fallback(&http_response(
+            401,
+            json!({ "error": { "message": "Invalid Username/Email or Password" } })
+        )));
+        assert!(!response_allows_saved_credential_fallback(&http_response(
+            403,
+            json!({ "error": { "message": "Missing Credentials" } })
+        )));
+    }
+
+    #[test]
+    fn response_requires_two_factor_detects_nonempty_methods_array() {
+        assert!(response_requires_two_factor(&http_response(
+            200,
+            json!({ "requiresTwoFactorAuth": ["totp", "otp"] })
+        )));
+        assert!(!response_requires_two_factor(&http_response(
+            200,
+            json!({ "requiresTwoFactorAuth": [] })
+        )));
+        assert!(!response_requires_two_factor(&http_response(
+            200,
+            json!({ "id": "usr_1" })
+        )));
+    }
+
+    #[test]
+    fn authenticated_response_user_mismatches_flags_a_different_authenticated_user() {
+        assert!(authenticated_response_user_mismatches(
+            &http_response(200, json!({ "id": "usr_other" })),
+            "usr_expected"
+        ));
+        assert!(!authenticated_response_user_mismatches(
+            &http_response(200, json!({ "id": "usr_expected" })),
+            "usr_expected"
+        ));
+        assert!(
+            !authenticated_response_user_mismatches(
+                &http_response(
+                    200,
+                    json!({ "id": "usr_other", "requiresTwoFactorAuth": ["totp"] })
+                ),
+                "usr_expected"
+            ),
+            "an in-progress two-factor challenge is not a user mismatch"
+        );
+        assert!(!authenticated_response_user_mismatches(
+            &http_response(401, json!({ "id": "usr_other" })),
+            "usr_expected"
+        ));
+        assert!(!authenticated_response_user_mismatches(
+            &http_response(200, json!({ "id": "usr_other" })),
+            ""
+        ));
+    }
+
+    fn test_web_client(dir: &TestDir, db: &Arc<DatabaseService>) -> crate::Result<WebClient> {
+        let storage = StorageService::new(&dir.path.join("VRCX-0.json"))?;
+        WebClient::new(&storage, db.as_ref(), "https://app.example".into(), "2.9.2")
+    }
+
+    #[test]
+    fn record_login_success_without_save_credentials_does_not_persist_a_new_entry(
+    ) -> crate::Result<()> {
+        let dir = TestDir::new("login-success-no-save");
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
+        let config = ConfigRepository::new(Arc::clone(&db));
+        let web = test_web_client(&dir, &db)?;
+
+        record_login_success(
+            &config,
+            &web,
+            LoginSuccessRecordInput {
+                user: json!({ "id": "usr_new", "displayName": "New User" }),
+                login_params: json!({
+                    "username": "new@example.test",
+                    "password": "secret"
+                }),
+                stored_login_params: None,
+                save_credentials: false,
+            },
+        )?;
+
+        let saved_credentials = read_saved_credentials_map(&config)?;
+        assert!(
+            !saved_credentials.contains_key("usr_new"),
+            "headless/non-interactive logins must never persist a new saved credential"
+        );
+        assert_eq!(config.get_string(LAST_USER_LOGGED_IN_KEY, "")?, "usr_new");
+        Ok(())
+    }
+
+    #[test]
+    fn record_login_success_without_save_credentials_refreshes_an_existing_record_in_place(
+    ) -> crate::Result<()> {
+        let dir = TestDir::new("login-success-refresh-existing");
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
+        let config = ConfigRepository::new(Arc::clone(&db));
+        let web = test_web_client(&dir, &db)?;
+
+        config.set_string(
+            SAVED_CREDENTIALS_KEY,
+            &json!({
+                "usr_1": {
+                    "user": { "id": "usr_1", "displayName": "Old Name" },
+                    "loginParams": {
+                        "username": "login@example.com",
+                        "password": "original-secret"
+                    },
+                    "cookies": "stale-cookie"
+                }
+            })
+            .to_string(),
+        )?;
+
+        record_login_success(
+            &config,
+            &web,
+            LoginSuccessRecordInput {
+                user: json!({ "id": "usr_1", "displayName": "New Name" }),
+                login_params: json!({
+                    "username": "login@example.com",
+                    "password": "ignored-because-save-credentials-is-false"
+                }),
+                stored_login_params: None,
+                save_credentials: false,
+            },
+        )?;
+
+        let saved_credentials = read_saved_credentials_map(&config)?;
+        let record = saved_credentials
+            .get("usr_1")
+            .expect("existing saved credential must be kept");
+        assert_eq!(record["user"]["displayName"], "New Name");
+        assert_eq!(
+            record["loginParams"]["password"], "original-secret",
+            "save_credentials=false must never overwrite the stored password"
+        );
+        assert!(
+            record.get("cookies").is_none(),
+            "cookies must be synced from the live WebClient, which has none in this test"
+        );
         Ok(())
     }
 }

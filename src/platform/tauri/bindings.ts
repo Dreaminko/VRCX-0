@@ -1236,24 +1236,20 @@ export const commands = {
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_auth_config_get', { input });
     },
-    async appVrchatAuthCookieSessionRestore(
-        input: VrchatAuthEndpointInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_auth_cookie_session_restore', {
+    async appVrchatAuthAutoLoginStart(
+        input: VrchatAuthAutoLoginStartInput
+    ): Promise<AutoLoginOutcome> {
+        return await TAURI_INVOKE('app__vrchat_auth_auto_login_start', {
             input
         });
+    },
+    async appVrchatAuthAutoLoginThrottleReset(): Promise<void> {
+        await TAURI_INVOKE('app__vrchat_auth_auto_login_throttle_reset');
     },
     async appVrchatAuthCurrentUserGet(
         input: VrchatAuthEndpointInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_auth_current_user_get', {
-            input
-        });
-    },
-    async appVrchatAuthEmailOtpVerify(
-        input: VrchatAuthCodeInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_auth_email_otp_verify', {
             input
         });
     },
@@ -1264,34 +1260,10 @@ export const commands = {
             input
         });
     },
-    async appVrchatAuthLoginSuccessRecord(
-        input: VrchatAuthLoginSuccessRecordInput
-    ): Promise<JsonValue> {
-        return await TAURI_INVOKE('app__vrchat_auth_login_success_record', {
-            input
-        });
-    },
-    async appVrchatAuthLoginBasic(
-        input: VrchatAuthLoginBasicInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_auth_login_basic', { input });
-    },
-    async appVrchatAuthLoginBasicStart(
-        input: VrchatAuthLoginBasicInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_auth_login_basic_start', {
-            input
-        });
-    },
     async appVrchatAuthLogoutRecord(
         input: VrchatAuthLogoutRecordInput
     ): Promise<JsonValue> {
         return await TAURI_INVOKE('app__vrchat_auth_logout_record', { input });
-    },
-    async appVrchatAuthOtpVerify(
-        input: VrchatAuthCodeInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_auth_otp_verify', { input });
     },
     async appVrchatAuthSavedCredentialDelete(
         input: VrchatAuthSavedCredentialDeleteInput
@@ -1300,26 +1272,28 @@ export const commands = {
             input
         });
     },
-    async appVrchatAuthSavedCredentialLoginStart(
-        input: VrchatAuthSavedCredentialLoginStartInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE(
-            'app__vrchat_auth_saved_credential_login_start',
-            { input }
-        );
-    },
     async appVrchatAuthSavedSnapshotGet(): Promise<JsonValue> {
         return await TAURI_INVOKE('app__vrchat_auth_saved_snapshot_get');
+    },
+    async appVrchatAuthSessionCancel(): Promise<LoginSessionState> {
+        return await TAURI_INVOKE('app__vrchat_auth_session_cancel');
     },
     async appVrchatAuthSessionGet(
         input: VrchatAuthEndpointInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_auth_session_get', { input });
     },
-    async appVrchatAuthTotpVerify(
-        input: VrchatAuthCodeInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_auth_totp_verify', { input });
+    async appVrchatAuthSessionRespond(
+        input: VrchatAuthSessionRespondInput
+    ): Promise<LoginSessionState> {
+        return await TAURI_INVOKE('app__vrchat_auth_session_respond', {
+            input
+        });
+    },
+    async appVrchatAuthSessionStart(
+        input: VrchatAuthSessionStartInput
+    ): Promise<LoginSessionState> {
+        return await TAURI_INVOKE('app__vrchat_auth_session_start', { input });
     },
     async appVrchatAuthVisitsGet(
         input: VrchatAuthEndpointInput
@@ -2979,7 +2953,30 @@ export type AssistantTurnEntitiesEvent = {
     turnId: string;
     entities: Entity[];
 };
+export type AuthenticatedRuntimeSession = {
+    userId: string;
+    displayName: string;
+    endpoint: string;
+    websocket: string;
+    currentUser: JsonValue;
+};
 export type AuthorDetail = { id?: string; displayName?: string | null };
+export type AutoLoginOutcome =
+    | { status: 'throttled'; snapshot: JsonValue }
+    | { status: 'authenticated'; session: AuthenticatedRuntimeSession }
+    | {
+          status: 'challenge';
+          methods: string[];
+          mode: string;
+          error: string | null;
+      }
+    | { status: 'expired'; snapshot: JsonValue }
+    | {
+          status: 'failed';
+          reason: string;
+          kind: LoginFailureKind;
+          snapshot: JsonValue;
+      };
 export type AvatarCacheOutput = {
     id: string;
     authorId: string;
@@ -3615,6 +3612,23 @@ export type LogLocationSnapshot = {
     createdAt: string;
     fileName: string;
 };
+export type LoginFailureKind =
+    | 'invalidCredentials'
+    | 'missingCredentials'
+    | 'sessionInvalidated'
+    | 'twoFactorUnavailable'
+    | 'network'
+    | 'other';
+export type LoginSessionState =
+    | { status: 'authenticated'; session: AuthenticatedRuntimeSession }
+    | {
+          status: 'challenge';
+          methods: string[];
+          mode: string;
+          error: string | null;
+      }
+    | { status: 'failed'; reason: string; kind: LoginFailureKind }
+    | { status: 'cancelled' };
 export type MaintenanceTableSizesOutput = {
     gps: number;
     status: number;
@@ -4376,7 +4390,10 @@ export type VrOverlayRuntimeSnapshot = {
     steamvrRunning: boolean;
     activeBackend: string | null;
 };
-export type VrchatAuthCodeInput = { endpoint?: string; code?: string };
+export type VrchatAuthAutoLoginStartInput = {
+    endpoint?: string;
+    userId?: string;
+};
 export type VrchatAuthEndpointInput = { endpoint?: string };
 export type VrchatAuthFileAnalysisInput = {
     endpoint?: string;
@@ -4384,27 +4401,23 @@ export type VrchatAuthFileAnalysisInput = {
     version?: number;
     variant?: string;
 };
-export type VrchatAuthLoginBasicInput = {
-    endpoint?: string;
-    username?: string;
-    password?: string;
-};
-export type VrchatAuthLoginSuccessRecordInput = {
-    user?: JsonValue;
-    loginParams?: JsonValue;
-    storedLoginParams?: JsonValue | null;
-    saveCredentials?: boolean;
-};
 export type VrchatAuthLogoutRecordInput = {
     userOrUserId?: JsonValue;
     clearLastUserLoggedIn?: boolean | null;
     cookies?: JsonValue | null;
 };
 export type VrchatAuthSavedCredentialDeleteInput = { userId?: string };
-export type VrchatAuthSavedCredentialLoginStartInput = {
-    userId?: string;
-    endpoint?: string;
-};
+export type VrchatAuthSessionRespondInput = { method?: string; code?: string };
+export type VrchatAuthSessionStartInput =
+    | {
+          mode: 'basic';
+          endpoint?: string;
+          username?: string;
+          password?: string;
+          saveCredentials?: boolean;
+      }
+    | { mode: 'savedCredential'; endpoint?: string; userId?: string }
+    | { mode: 'cookieRestore'; endpoint?: string };
 export type VrchatAvatarEndpointInput = { endpoint?: string };
 export type VrchatAvatarFileInput = { endpoint?: string; fileId?: string };
 export type VrchatAvatarIdInput = { endpoint?: string; avatarId?: string };

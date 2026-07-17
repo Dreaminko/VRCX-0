@@ -31,13 +31,14 @@ use vrcx_0_application::{
     AuthenticatedRuntimeSession, BackendRuntime, BackendRuntimeMode, BackendRuntimePhase,
     BackendRuntimeSnapshot, BackendRuntimeTelemetry, BackgroundCapabilitySession,
     BackgroundDiscordPresenceState, BackgroundPresenceAutomationState, CookieSessionProbe,
-    GameProcessEvent, GameProcessEventSink, ImageCache, LoginSuccessRecordInput, LogoutRecordInput,
-    NonInteractiveAuthError, OverlayActivitySnapshot, OverlayFavoriteGroups, PrintCleanupDeps,
-    PrintCleanupTrigger, ProcessMonitor, ProfileBackupRuntime, RealtimeHostRuntime,
-    RealtimeHostRuntimeDeps, RealtimeStopRequest, RegistryBackupMaintenanceMode,
-    RegistryBackupMaintenanceResult, RegistryBackupSnapshot, RuntimeBackgroundJobs,
-    RuntimeEventSink, SavedCredentialLoginStartInput, SessionHostRuntime, SocialBaselineDeps,
-    SocialFavoritesBaselineInput, SocialFriendRosterBaselineInput, WebClient,
+    GameProcessEvent, GameProcessEventSink, ImageCache, LoginApi, LoginSession, LoginSessionState,
+    LoginSuccessRecordInput, LogoutRecordInput, NonInteractiveAuthError, OverlayActivitySnapshot,
+    OverlayFavoriteGroups, PrintCleanupDeps, PrintCleanupTrigger, ProcessMonitor,
+    ProfileBackupRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest,
+    RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
+    RuntimeBackgroundJobs, RuntimeEventSink, SavedCredentialLoginStartInput, SessionHostRuntime,
+    SocialBaselineDeps, SocialFavoritesBaselineInput, SocialFriendRosterBaselineInput, WebClient,
+    WebClientLoginApi,
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::json::RawJson;

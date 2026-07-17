@@ -21,6 +21,7 @@ mod instance_launch;
 mod interruptible_sleep;
 mod local_favorites;
 mod log_watcher;
+mod login_session;
 mod media_upload;
 mod moderation_sync;
 mod mutual_graph_fetch;
@@ -150,6 +151,12 @@ pub use local_favorites::{
 pub use log_watcher::{
     GameLogEvent, GameLogEventSink, LogLocationSnapshot, LogLocationSnapshotScanner, LogWatcher,
     NoopLogLocationSnapshotScanner,
+};
+pub use login_session::{
+    AutoLoginOutcome, AutoLoginStartInput, LoginApi, LoginApiFuture, LoginFailureKind,
+    LoginSession, LoginSessionRuntime, LoginSessionStartBasicInput,
+    LoginSessionStartCookieRestoreInput, LoginSessionStartSavedCredentialInput, LoginSessionState,
+    TwoFactorMethod, WebClientLoginApi,
 };
 pub use media_upload::{
     prepare_media_upload_request, require_prepared_image_data, upload_legacy_entity_image,

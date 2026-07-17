@@ -5,6 +5,7 @@ use std::time::Duration;
 use serde_json::{json, Map, Value};
 use vrcx_0_application::HostSessionRuntime;
 use vrcx_0_application::ImageCache;
+use vrcx_0_application::LoginSessionRuntime;
 use vrcx_0_application::MutualGraphFetchRuntime;
 use vrcx_0_application::OverlayActivityDelivery;
 use vrcx_0_application::OverlayActivityFilters;
@@ -94,6 +95,7 @@ pub struct RuntimeHostContext {
     pub auth_scope: RuntimeAuthScope,
     pub print_cleanup: PrintCleanupQueue,
     pub mutual_graph_fetch: MutualGraphFetchRuntime,
+    pub login_session: LoginSessionRuntime,
     pub overlay_activity: OverlayActivityRuntime,
     pub world_cache: Arc<WorldCache>,
     pub config: ConfigRepository,
@@ -161,6 +163,7 @@ impl RuntimeHostContext {
             auth_scope: RuntimeAuthScope::new(),
             print_cleanup: PrintCleanupQueue::new(),
             mutual_graph_fetch: MutualGraphFetchRuntime::new(),
+            login_session: LoginSessionRuntime::new(),
             overlay_activity,
             world_cache,
             config,

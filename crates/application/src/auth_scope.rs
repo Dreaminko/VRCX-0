@@ -96,4 +96,27 @@ mod tests {
         assert!(!cleared.active);
         assert!(!scope.matches("usr_current", "https://api.example.test/api/1"));
     }
+
+    #[test]
+    fn bumps_generation_when_switching_to_a_different_user() {
+        let scope = RuntimeAuthScope::new();
+
+        let first = scope.set("usr_a", "");
+        let switched = scope.set("usr_b", "");
+
+        assert_eq!(switched.current_user_id, "usr_b");
+        assert!(switched.generation > first.generation);
+    }
+
+    #[test]
+    fn bumps_generation_and_deactivates_when_cleared() {
+        let scope = RuntimeAuthScope::new();
+
+        let active = scope.set("usr_a", "");
+        let cleared = scope.set("", "");
+
+        assert!(active.active);
+        assert!(!cleared.active);
+        assert!(cleared.generation > active.generation);
+    }
 }
