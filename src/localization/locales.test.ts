@@ -5,16 +5,12 @@ import de from './de.json';
 import en from './en.json';
 import es from './es.json';
 import fr from './fr.json';
-import hu from './hu.json';
 import ja from './ja.json';
 import ko from './ko.json';
 import localeCases from './locale-cases.json';
 import { languageCodes, normalizeLanguageCode } from './locales';
-import pl from './pl.json';
 import pt from './pt.json';
 import ru from './ru.json';
-import th from './th.json';
-import vi from './vi.json';
 import zhCn from './zh-CN.json';
 import zhTw from './zh-TW.json';
 
@@ -24,14 +20,10 @@ const localeSources: Record<string, unknown> = {
     en,
     es,
     fr,
-    hu,
     ja,
     ko,
-    pl,
     pt,
     ru,
-    th,
-    vi,
     'zh-CN': zhCn,
     'zh-TW': zhTw
 };
@@ -194,14 +186,10 @@ describe('advanced settings locale coverage', () => {
         en: /deep[ -]?links?/i,
         es: /enlaces profundos/i,
         fr: /liens profonds/i,
-        hu: /mélyhivatkoz/i,
         ja: /ディープリンク/,
         ko: /딕\s*링크/,
-        pl: /linków bezpośrednich/i,
         pt: /links profundos/i,
         ru: /глубоких ссылок/i,
-        th: /ดีปลิงก์/,
-        vi: /liên kết sâu/i,
         'zh-CN': /深层链接/,
         'zh-TW': /深層連結/
     };
@@ -287,7 +275,7 @@ describe('profile backup locale coverage', () => {
         profileBackupPrefix
     ).sort();
 
-    it('keeps every backup and restore label in all 15 locales', () => {
+    it('keeps every backup and restore label in every supported locale', () => {
         for (const locale of languageCodes) {
             const source = readLocaleSource(locale);
             const localizedKeys = collectStringPaths(

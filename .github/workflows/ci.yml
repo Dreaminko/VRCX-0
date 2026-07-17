@@ -266,7 +266,7 @@ jobs:
             - uses: ./.github/actions/setup-node
             - run: npm run generate:native-locales
             - name: Verify native locale catalogs are regenerated
-              run: git diff --exit-code crates/runtime-host/src/vr_overlay/localization/overlay_notifications.json src-tauri/src/localization/shell_strings.json
+              run: git diff --exit-code crates/runtime-host/src/vr_overlay/localization/overlay_notifications.json crates/runtime-host/src/state/discord_presence.json src-tauri/src/localization/shell_strings.json
 
     tauri-bindings:
         name: Tauri Bindings Up-to-date

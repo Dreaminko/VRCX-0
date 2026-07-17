@@ -4,7 +4,7 @@ use serde_json::json;
 use super::*;
 
 const LANGUAGE_CODES: &[&str] = &[
-    "cs", "de", "en", "es", "fr", "hu", "ja", "ko", "pl", "pt", "ru", "th", "vi", "zh-CN", "zh-TW",
+    "cs", "de", "en", "es", "fr", "ja", "ko", "pt", "ru", "zh-CN", "zh-TW",
 ];
 
 #[derive(Deserialize)]

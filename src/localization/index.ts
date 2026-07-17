@@ -3,14 +3,10 @@ import deMessages from './de.json';
 import enMessages from './en.json';
 import esMessages from './es.json';
 import frMessages from './fr.json';
-import huMessages from './hu.json';
 import jaMessages from './ja.json';
 import koMessages from './ko.json';
-import plMessages from './pl.json';
 import ptMessages from './pt.json';
 import ruMessages from './ru.json';
-import thMessages from './th.json';
-import viMessages from './vi.json';
 import zhCnMessages from './zh-CN.json';
 import zhTwMessages from './zh-TW.json';
 
@@ -24,14 +20,10 @@ const localizedStrings: Record<string, LocalizedStringTable> = {
     en: enMessages,
     es: esMessages,
     fr: frMessages,
-    hu: huMessages,
     ja: jaMessages,
     ko: koMessages,
-    pl: plMessages,
     pt: ptMessages,
     ru: ruMessages,
-    th: thMessages,
-    vi: viMessages,
     'zh-CN': zhCnMessages,
     'zh-TW': zhTwMessages
 };
