@@ -5352,7 +5352,8 @@
                 "failed_upgrade_description": "上一次資料庫升級失敗。手動修復前，此資料庫無法使用。\n\n工作資料庫：{path}",
                 "failed_upgrade_description_with_reason": "上一次資料庫升級失敗。手動修復前，此資料庫無法使用。\n\n工作資料庫：{path}\n\n原因：{reason}",
                 "apply_upgrade_failed": "VRCX-0 應用本機資料庫升級失敗",
-                "legacy_migration_restart_failed": "VRCX-0 無法重新啟動以移轉你現有的 VRCX 資料。你可以再試一次，或略過此步驟，繼續使用目前的資料庫。"
+                "legacy_migration_restart_failed": "VRCX-0 無法重新啟動以移轉你現有的 VRCX 資料。你可以再試一次，或略過此步驟，繼續使用目前的資料庫。",
+                "newer_schema_requires_newer_app": "此資料庫使用結構版本 {value}，但目前的 VRCX-0 最高僅支援 {value2}。請安裝最新版 VRCX-0 後再開啟。"
             },
             "success": {
                 "database_update_complete": "資料庫更新完成"

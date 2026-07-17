@@ -1,7 +1,6 @@
 import { normalizeLanguageCode } from '@/localization/locales';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
-import databaseMaintenanceRepository from '@/repositories/databaseMaintenanceRepository';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 import { useShellStore } from '@/state/shellStore';
@@ -111,7 +110,6 @@ export async function initializeReactRuntime() {
             locale: normalizedLocale
         });
         await runNonCriticalStartupSync('zoom', applyZoomLevel(zoomLevel));
-        await databaseMaintenanceRepository.initGlobalTables();
         const databaseReady = await initializeDatabaseUpgradeFlow();
         sessionStore.setSessionState({ databaseReady });
         await loadPreferenceSnapshot();

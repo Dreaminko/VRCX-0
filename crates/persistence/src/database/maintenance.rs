@@ -11,7 +11,7 @@ use crate::database::schema::{
     add_column_if_missing, add_legacy_indexes, add_notification_indexes, add_v17_global_indexes,
     backfill_vrcx0_schema_version, drop_column_if_exists, ensure_global_store_tables,
     ensure_user_store_tables, read_vrcx0_schema_version, safe_identifier, select_table_names,
-    set_vrcx0_schema_version, table_column_names, VRCX0_SCHEMA_VERSION,
+    table_column_names, VRCX0_SCHEMA_VERSION,
 };
 use crate::game_log::ensure_game_log_tables;
 use crate::realtime::normalize_user_table_prefix;
@@ -69,7 +69,6 @@ pub enum DatabaseMaintenanceTask {
     AddNotificationPerformanceIndexes,
     AddV17PerformanceIndexes,
     AddPerformanceIndexes,
-    UpgradeDatabaseVersion,
     CleanLegendFromFriendLog,
     FixGameLogTraveling,
     FixNegativeGPS,
@@ -100,7 +99,6 @@ impl DatabaseMaintenanceTask {
             }
             task if task == "addV17PerformanceIndexes" => Ok(Self::AddV17PerformanceIndexes),
             task if task == "addPerformanceIndexes" => Ok(Self::AddPerformanceIndexes),
-            task if task == "upgradeDatabaseVersion" => Ok(Self::UpgradeDatabaseVersion),
             task if task == "cleanLegendFromFriendLog" => Ok(Self::CleanLegendFromFriendLog),
             task if task == "fixGameLogTraveling" => Ok(Self::FixGameLogTraveling),
             task if task == "fixNegativeGPS" => Ok(Self::FixNegativeGPS),
@@ -132,7 +130,6 @@ impl DatabaseMaintenanceTask {
             Self::AddNotificationPerformanceIndexes => "addNotificationPerformanceIndexes",
             Self::AddV17PerformanceIndexes => "addV17PerformanceIndexes",
             Self::AddPerformanceIndexes => "addPerformanceIndexes",
-            Self::UpgradeDatabaseVersion => "upgradeDatabaseVersion",
             Self::CleanLegendFromFriendLog => "cleanLegendFromFriendLog",
             Self::FixGameLogTraveling => "fixGameLogTraveling",
             Self::FixNegativeGPS => "fixNegativeGPS",
@@ -233,16 +230,6 @@ fn run_database_maintenance_task(
             add_legacy_indexes(db)?;
             add_v17_global_indexes(db)?;
             add_notification_indexes(db)?;
-        }
-        DatabaseMaintenanceTask::UpgradeDatabaseVersion => {
-            run_database_maintenance_task(db, DatabaseMaintenanceTask::UpdateTableForGroupNames)?;
-            run_database_maintenance_task(db, DatabaseMaintenanceTask::AddFriendLogFriendNumber)?;
-            run_database_maintenance_task(
-                db,
-                DatabaseMaintenanceTask::UpdateTableForAvatarHistory,
-            )?;
-            add_legacy_indexes(db)?;
-            set_vrcx0_schema_version(db, VRCX0_SCHEMA_VERSION)?;
         }
         DatabaseMaintenanceTask::CleanLegendFromFriendLog => {
             for table_name in select_table_names(db, "name LIKE '%_friend_log_history'")? {

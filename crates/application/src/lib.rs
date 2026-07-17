@@ -5,6 +5,8 @@ mod backend_runtime;
 mod background;
 mod background_capabilities;
 mod config;
+mod database_upgrade;
+mod database_upgrade_runtime;
 mod diagnostics;
 mod error;
 mod event_bus;
@@ -81,6 +83,12 @@ pub use background_capabilities::{
     BackgroundPresenceFactsInput, DiscordPresenceLabels, PresencePlayer,
 };
 pub use config::validate_config_writes;
+pub use database_upgrade::{
+    database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
+    DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
+    DatabaseUpgradeStage,
+};
+pub use database_upgrade_runtime::DatabaseUpgradeRuntime;
 pub use diagnostics::RuntimeDiagnostics;
 pub use error::Error;
 pub use event_bus::{RuntimeEventBus, RuntimeEventSink};

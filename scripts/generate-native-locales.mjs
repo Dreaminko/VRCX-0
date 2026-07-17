@@ -183,7 +183,10 @@ const discordPresencePathKeys = [
         ['dialog', 'new_instance', 'access_type_invite_plus']
     ],
     ['discord.access.invite', ['dialog', 'new_instance', 'access_type_invite']],
-    ['discord.access.friends', ['dialog', 'new_instance', 'access_type_friend']],
+    [
+        'discord.access.friends',
+        ['dialog', 'new_instance', 'access_type_friend']
+    ],
     [
         'discord.access.friends_plus',
         ['dialog', 'new_instance', 'access_type_friend_plus']

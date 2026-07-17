@@ -5350,7 +5350,8 @@
                 "failed_upgrade_description": "Předchozí aktualizace databáze se nezdařila. Tuto databázi nelze použít, dokud nebude ručně opravena.\n\nPracovní databáze: {path}",
                 "failed_upgrade_description_with_reason": "Předchozí aktualizace databáze se nezdařila. Tuto databázi nelze použít, dokud nebude ručně opravena.\n\nPracovní databáze: {path}\n\nDůvod: {reason}",
                 "apply_upgrade_failed": "Aplikaci VRCX-0 se nepodařilo provést místní aktualizaci databáze",
-                "legacy_migration_restart_failed": "Aplikaci VRCX-0 se nepodařilo restartovat kvůli migraci stávajících dat VRCX. Můžete to zkusit znovu, nebo migraci přeskočit a pokračovat se stávající databází."
+                "legacy_migration_restart_failed": "Aplikaci VRCX-0 se nepodařilo restartovat kvůli migraci stávajících dat VRCX. Můžete to zkusit znovu, nebo migraci přeskočit a pokračovat se stávající databází.",
+                "newer_schema_requires_newer_app": "Tato databáze používá verzi schématu {value}, ale tato verze VRCX-0 podporuje pouze verze do {value2}. Chcete-li ji otevřít, nainstalujte nejnovější verzi VRCX-0."
             },
             "success": {
                 "database_update_complete": "Aktualizace databáze dokončena"

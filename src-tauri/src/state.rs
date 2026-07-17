@@ -8,6 +8,7 @@ use crate::deep_link::PendingDeepLinks;
 use crate::error::AppError;
 use serde::Serialize;
 use tauri_plugin_updater::Update;
+use vrcx_0_application::DatabaseUpgradeRuntime;
 use vrcx_0_harness::AssistantController;
 use vrcx_0_host::app_paths::AppDataDirResolution;
 use vrcx_0_mcp::{McpRuntime, McpServerController};
@@ -21,6 +22,7 @@ pub struct AppState {
     pub log_watcher_compat_bridge: LogWatcherCompatBridge,
     pub pending_deep_links: PendingDeepLinks,
     pub pending_tauri_update: tokio::sync::Mutex<Option<PendingTauriUpdate>>,
+    pub database_upgrade: DatabaseUpgradeRuntime,
     assistant: tokio::sync::OnceCell<AssistantController>,
     background_resume_route: Mutex<Option<String>>,
     pub(crate) background_delay_generation: AtomicU64,
@@ -87,6 +89,11 @@ impl AppState {
             app_version: env!("CARGO_PKG_VERSION").into(),
             is_headless: false,
         })?;
+        let database_upgrade = DatabaseUpgradeRuntime::new(
+            runtime.db.clone(),
+            runtime.runtime_context.diagnostics.clone(),
+            runtime.runtime_context.background_jobs.clone(),
+        );
         let mcp_controller = McpServerController::new(McpRuntime::from_host(&runtime));
         let log_watcher_compat_bridge = LogWatcherCompatBridge::new();
 
@@ -96,6 +103,7 @@ impl AppState {
             log_watcher_compat_bridge,
             pending_deep_links: PendingDeepLinks::default(),
             pending_tauri_update: tokio::sync::Mutex::new(None),
+            database_upgrade,
             assistant: tokio::sync::OnceCell::new(),
             background_resume_route: Mutex::new(None),
             background_delay_generation: AtomicU64::new(0),

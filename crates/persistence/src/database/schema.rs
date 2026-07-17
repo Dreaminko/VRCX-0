@@ -345,7 +345,7 @@ pub(crate) fn add_legacy_indexes(db: &DatabaseService) -> Result<(), Error> {
     Ok(())
 }
 
-pub(crate) const VRCX0_SCHEMA_VERSION: i64 = 18;
+pub const VRCX0_SCHEMA_VERSION: i64 = 18;
 
 pub const VRCX0_SCHEMA_VERSION_KEY: &str = "VRCX_0_databaseVersion";
 const UPSTREAM_DATABASE_VERSION_KEY: &str = "databaseVersion";
@@ -386,6 +386,16 @@ pub(crate) fn backfill_vrcx0_schema_version(db: &DatabaseService) -> Result<(), 
         set_vrcx0_schema_version(db, shared)?;
     }
     Ok(())
+}
+
+pub fn prepare_vrcx0_schema_version(db: &DatabaseService) -> Result<i64, Error> {
+    backfill_vrcx0_schema_version(db)?;
+    read_vrcx0_schema_version(db)
+}
+
+pub fn write_database_schema_versions(db: &DatabaseService, version: i64) -> Result<(), Error> {
+    set_vrcx0_schema_version(db, version)?;
+    crate::config::set_string(db, UPSTREAM_DATABASE_VERSION_KEY, &version.to_string())
 }
 
 #[cfg(test)]

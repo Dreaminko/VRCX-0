@@ -18,23 +18,11 @@ export const commands = {
     async storageGetAll(): Promise<Partial<{ [key in string]: string }>> {
         return await TAURI_INVOKE('storage__get_all');
     },
-    async sqliteBeginUpgrade(
-        fromVersion: number,
-        toVersion: number
-    ): Promise<null> {
-        return await TAURI_INVOKE('sqlite__begin_upgrade', {
-            fromVersion,
-            toVersion
-        });
+    async appDatabaseUpgradePreflight(): Promise<DatabaseUpgradePreflight> {
+        return await TAURI_INVOKE('app__database_upgrade_preflight');
     },
-    async sqliteCommitUpgrade(): Promise<null> {
-        return await TAURI_INVOKE('sqlite__commit_upgrade');
-    },
-    async sqliteFailUpgrade(reason: string): Promise<null> {
-        return await TAURI_INVOKE('sqlite__fail_upgrade', { reason });
-    },
-    async sqliteGetFailedUpgrade(): Promise<DatabaseUpgradeStatus | null> {
-        return await TAURI_INVOKE('sqlite__get_failed_upgrade');
+    async appDatabaseUpgradeRun(): Promise<DatabaseUpgradeRunResult> {
+        return await TAURI_INVOKE('app__database_upgrade_run');
     },
     async webClearCookies(): Promise<null> {
         return await TAURI_INVOKE('web__clear_cookies');
@@ -3154,6 +3142,46 @@ export type CommunityThemeDebugLocalThemeOutput = {
 };
 export type ConfigReadEntry = { key: string; value: string };
 export type ConfigWriteEntry = { key: string; value: string };
+export type DatabaseUpgradePreflight = {
+    status: DatabaseUpgradePreflightStatus;
+    fromVersion: number;
+    toVersion: number;
+    stage?: DatabaseUpgradeStage | null;
+    result?: DatabaseUpgradeRunResult | null;
+    failedUpgrade?: DatabaseUpgradeStatus | null;
+};
+export type DatabaseUpgradePreflightStatus =
+    | 'current'
+    | 'upgradeRequired'
+    | 'running'
+    | 'finished'
+    | 'blocked'
+    | 'newerSchema';
+export type DatabaseUpgradeRunResult = {
+    status: DatabaseUpgradeRunStatus;
+    fromVersion: number;
+    toVersion: number;
+    failedStage?: DatabaseUpgradeStage | null;
+    error?: string | null;
+    failedUpgrade?: DatabaseUpgradeStatus | null;
+    repairWarning?: string | null;
+};
+export type DatabaseUpgradeRunStatus =
+    | 'current'
+    | 'upgraded'
+    | 'blocked'
+    | 'newerSchema'
+    | 'failed';
+export type DatabaseUpgradeStage =
+    | 'preflight'
+    | 'initializeSchema'
+    | 'createWorkCopy'
+    | 'legacyDataCleanup'
+    | 'legacySchemaMigration'
+    | 'performanceIndexes'
+    | 'optimize'
+    | 'writeVersion'
+    | 'commit';
 export type DatabaseUpgradeStatus = {
     fromVersion: number;
     toVersion: number;

@@ -5352,7 +5352,8 @@
                 "failed_upgrade_description": "上一次数据库升级失败，在手动修复前，此数据库将无法使用。\n\n当前工作数据库：{path}",
                 "failed_upgrade_description_with_reason": "上一次数据库升级失败。手动修复前，此数据库无法使用。\n\n当前工作数据库：{path}\n\n原因：{reason}",
                 "apply_upgrade_failed": "VRCX-0 应用本地数据库升级失败",
-                "legacy_migration_restart_failed": "VRCX-0 未能重启以迁移已有的 VRCX 数据。你可以重试，或跳过并继续使用当前数据库。"
+                "legacy_migration_restart_failed": "VRCX-0 未能重启以迁移已有的 VRCX 数据。你可以重试，或跳过并继续使用当前数据库。",
+                "newer_schema_requires_newer_app": "此数据库使用结构版本 {value}，但当前 VRCX-0 最高仅支持 {value2}。请安装最新版 VRCX-0 后再打开。"
             },
             "success": {
                 "database_update_complete": "数据库更新完成"

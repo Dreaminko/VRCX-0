@@ -5348,7 +5348,8 @@
                 "failed_upgrade_description": "La précédente mise à niveau de la base de données a échoué. Cette base de données ne peut pas être utilisée tant qu'elle n'est pas réparée manuellement.\n\nBase de données de travail : {path}",
                 "failed_upgrade_description_with_reason": "La précédente mise à niveau de la base de données a échoué. Cette base de données ne peut pas être utilisée tant qu'elle n'est pas réparée manuellement.\n\nBase de données de travail : {path}\n\nRaison : {reason}",
                 "apply_upgrade_failed": "VRCX-0 n'a pas pu appliquer une mise à niveau de la base de données locale",
-                "legacy_migration_restart_failed": "VRCX-0 n'a pas pu redémarrer pour migrer vos données VRCX existantes. Vous pouvez réessayer ou ignorer pour continuer avec la base de données actuelle."
+                "legacy_migration_restart_failed": "VRCX-0 n'a pas pu redémarrer pour migrer vos données VRCX existantes. Vous pouvez réessayer ou ignorer pour continuer avec la base de données actuelle.",
+                "newer_schema_requires_newer_app": "Cette base de données utilise le schéma {value}, mais cette version de VRCX-0 ne prend en charge que les schémas jusqu’à {value2}. Installez la dernière version de VRCX-0 pour l’ouvrir."
             },
             "success": {
                 "database_update_complete": "Mise à jour de la base de données terminée"

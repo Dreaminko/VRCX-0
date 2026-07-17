@@ -5274,7 +5274,8 @@
                 "failed_upgrade_description": "이전 데이터베이스 업그레이드가 실패했습니다. 이 데이터베이스는 수동으로 복구할 때까지 사용할 수 없습니다.\n\n작업 데이터베이스: {path}",
                 "failed_upgrade_description_with_reason": "이전 데이터베이스 업그레이드가 실패했습니다. 이 데이터베이스는 수동으로 복구할 때까지 사용할 수 없습니다.\n\n작업 데이터베이스: {path}\n\n이유: {reason}",
                 "apply_upgrade_failed": "VRCX-0이(가) 로컬 데이터베이스 업그레이드를 적용하지 못했습니다.",
-                "legacy_migration_restart_failed": "기존 VRCX 데이터를 마이그레이션하기 위한 VRCX-0 재시작에 실패했습니다. 다시 시도하거나 건너뛰고 현재 데이터베이스로 계속할 수 있습니다."
+                "legacy_migration_restart_failed": "기존 VRCX 데이터를 마이그레이션하기 위한 VRCX-0 재시작에 실패했습니다. 다시 시도하거나 건너뛰고 현재 데이터베이스로 계속할 수 있습니다.",
+                "newer_schema_requires_newer_app": "이 데이터베이스의 스키마 버전은 {value}이지만 현재 VRCX-0은 {value2}까지만 지원합니다. 최신 버전의 VRCX-0을 설치한 후 다시 여세요."
             },
             "action": {
                 "refresh_config_failed_after_upgrade": "VRCX-0이(가) 데이터베이스를 업그레이드했지만 로컬 구성을 새로 고치지 못했습니다. 응용 프로그램을 다시 시작하십시오",

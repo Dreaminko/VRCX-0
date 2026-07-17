@@ -37,7 +37,10 @@ pub mod maintenance {
     };
 }
 
-pub use database::schema::VRCX0_SCHEMA_VERSION_KEY;
+pub use database::schema::{
+    prepare_vrcx0_schema_version, write_database_schema_versions, VRCX0_SCHEMA_VERSION,
+    VRCX0_SCHEMA_VERSION_KEY,
+};
 pub use database::{optimize_database, DatabaseService, DatabaseUpgradeStatus};
 pub use error::Error;
 
