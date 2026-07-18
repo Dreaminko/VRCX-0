@@ -361,6 +361,11 @@ impl DataDirMigrationRuntime {
     }
 
     pub fn cleanup_migrated_data(&self) -> Result<Option<DataDirCleanupReport>> {
+        let Some(_guard) = OperationGuard::try_acquire(&self.inner.operation_gate) else {
+            return Err(Error::Custom(
+                "A profile or data directory operation is already running.".into(),
+            ));
+        };
         if !self.inner.db.is_main_mode() {
             return Err(Error::Custom(
                 "Migrated data cleanup requires the main database mode.".into(),
@@ -377,10 +382,20 @@ impl DataDirMigrationRuntime {
     }
 
     pub fn dismiss_cleanup(&self) -> Result<()> {
+        let Some(_guard) = OperationGuard::try_acquire(&self.inner.operation_gate) else {
+            return Err(Error::Custom(
+                "A profile or data directory operation is already running.".into(),
+            ));
+        };
         Ok(dismiss_data_dir_cleanup(&self.inner.control_dir)?)
     }
 
     pub fn mark_cleanup_prompted(&self, prompted_at: String) -> Result<()> {
+        let Some(_guard) = OperationGuard::try_acquire(&self.inner.operation_gate) else {
+            return Err(Error::Custom(
+                "A profile or data directory operation is already running.".into(),
+            ));
+        };
         let Some(mut pending) = read_data_dir_cleanup_pending(&self.inner.control_dir)? else {
             return Ok(());
         };

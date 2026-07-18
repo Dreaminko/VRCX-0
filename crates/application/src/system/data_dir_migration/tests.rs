@@ -130,6 +130,11 @@ fn migration_uses_the_profile_backup_operation_gate() {
         pointer_change.error.expect("operation busy error").code,
         DataDirMigrationErrorCode::OperationBusy
     );
+    assert!(runtime.cleanup_migrated_data().is_err());
+    assert!(runtime.dismiss_cleanup().is_err());
+    assert!(runtime
+        .mark_cleanup_prompted("2026-07-18T00:00:00Z".into())
+        .is_err());
 
     let outcome = runtime.run_migration(target, false);
 
