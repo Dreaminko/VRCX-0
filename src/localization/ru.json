@@ -5392,7 +5392,11 @@
                 "empty_title": "Нет групп для модерации",
                 "empty_description": "У вас пока нет прав модератора ни в одной из ваших групп.",
                 "permissions_degraded": "Не удалось проверить некоторые права группы. Список ниже может быть неполным.",
-                "member_count": "{count} участников"
+                "member_count": "{count} участников",
+                "rail_title": "Groups you moderate",
+                "select_a_group_title": "Select a group",
+                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
+                "moderator_hint": "You have moderation access in this group"
             }
         }
     },

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import {
@@ -19,6 +20,7 @@ import {
     openExternalLink
 } from '@/services/entityMediaService';
 import { vrchatGroupUrl } from '@/shared/constants/vrchatWebUrls';
+import { useDialogStore } from '@/state/dialogStore';
 
 import {
     EntityDialogScaffold,
@@ -55,7 +57,6 @@ import {
     resolveGroupDialogTab
 } from './groupDialogUtils';
 import { shouldShowGroupBadgeValue } from './GroupDialogViewParts';
-import { GroupModerationToolsDialog } from './GroupModerationToolsDialog';
 import { GroupPostEditorDialog } from './GroupPostEditorDialog';
 import { useGroupDialogLanguageRows } from './useGroupDialogLanguageRows';
 import { useGroupDialogPosts } from './useGroupDialogPosts';
@@ -78,6 +79,8 @@ export function GroupDialogTabbedView({
     groupView: GroupDialogView;
 }) {
     const { t } = useTranslation();
+    const navigate = useNavigate();
+    const closeDialog = useDialogStore((state) => state.closeDialog);
     const {
         group,
         detail,
@@ -136,7 +139,6 @@ export function GroupDialogTabbedView({
     });
     const [memberSort, setMemberSort] = useState('joinedAt:desc');
     const [memberRoleId, setMemberRoleId] = useState('');
-    const [moderationOpen, setModerationOpen] = useState(false);
     const gallerySignature = Array.isArray(group.galleries)
         ? group.galleries
               .map((gallery) => gallery.id || '')
@@ -686,7 +688,10 @@ export function GroupDialogTabbedView({
         onJoin,
         onLeave,
         onOpenGroupPage: () => openExternalLink(groupUrl),
-        onOpenModeration: () => setModerationOpen(true),
+        onOpenModeration: () => {
+            closeDialog();
+            navigate(`/tools/group-moderation/${group.id}`);
+        },
         onOpenOwner: openGroupOwner,
         onPreviewIcon: () => previewImage(iconUrl, groupTitle),
         onRefresh,
@@ -791,12 +796,6 @@ export function GroupDialogTabbedView({
                 onSubmit={(form: GroupPostForm) => {
                     submitGroupPost(form);
                 }}
-            />
-            <GroupModerationToolsDialog
-                open={moderationOpen}
-                onOpenChange={setModerationOpen}
-                group={group}
-                endpoint={currentEndpoint}
             />
         </EntityDialogScaffold>
     );

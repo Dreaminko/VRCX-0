@@ -5318,7 +5318,11 @@
                 "empty_title": "관리할 그룹이 없습니다",
                 "empty_description": "아직 어떤 그룹에서도 관리 권한이 없습니다.",
                 "permissions_degraded": "일부 그룹 권한을 확인하지 못했습니다. 아래 목록이 불완전할 수 있습니다.",
-                "member_count": "멤버 {count}명"
+                "member_count": "멤버 {count}명",
+                "rail_title": "Groups you moderate",
+                "select_a_group_title": "Select a group",
+                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
+                "moderator_hint": "You have moderation access in this group"
             }
         }
     },

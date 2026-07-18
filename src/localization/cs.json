@@ -5392,7 +5392,11 @@
                 "empty_title": "Žádné skupiny ke správě",
                 "empty_description": "V žádné ze svých skupin zatím nemáte moderátorská oprávnění.",
                 "permissions_degraded": "Některá oprávnění skupin se nepodařilo ověřit. Seznam níže může být neúplný.",
-                "member_count": "{count} členů"
+                "member_count": "{count} členů",
+                "rail_title": "Groups you moderate",
+                "select_a_group_title": "Select a group",
+                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
+                "moderator_hint": "You have moderation access in this group"
             }
         }
     },

@@ -5394,7 +5394,11 @@
                 "empty_title": "没有可管理的群组",
                 "empty_description": "你目前在任何群组中都没有管理权限。",
                 "permissions_degraded": "部分群组权限无法验证,以下列表可能不完整。",
-                "member_count": "{count} 名成员"
+                "member_count": "{count} 名成员",
+                "rail_title": "Groups you moderate",
+                "select_a_group_title": "Select a group",
+                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
+                "moderator_hint": "You have moderation access in this group"
             }
         }
     },

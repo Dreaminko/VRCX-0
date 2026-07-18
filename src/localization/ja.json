@@ -5386,7 +5386,11 @@
                 "empty_title": "管理できるグループがありません",
                 "empty_description": "まだどのグループでも管理権限を持っていません。",
                 "permissions_degraded": "一部のグループの権限を確認できませんでした。以下のリストは不完全な場合があります。",
-                "member_count": "メンバー {count} 人"
+                "member_count": "メンバー {count} 人",
+                "rail_title": "Groups you moderate",
+                "select_a_group_title": "Select a group",
+                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
+                "moderator_hint": "You have moderation access in this group"
             }
         }
     },

@@ -1,16 +1,15 @@
-import { LoaderCircleIcon, ShieldUserIcon } from 'lucide-react';
+import { LoaderCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { hasAnyGroupModerationPermission } from '@/components/dialogs/group-dialog/groupDialogUtils';
 import { GroupModerationToolsDialog } from '@/components/dialogs/group-dialog/GroupModerationToolsDialog';
-import { FadeInImage } from '@/components/media/FadeInImage';
+import { GroupModerationGroupIcon } from '@/components/hosts/tools-dialogs/group-moderation/GroupModerationGroupIcon';
+import { useModeratableGroups } from '@/components/hosts/tools-dialogs/group-moderation/useModeratableGroups';
 import type { GroupProfileRecord } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import type { UserGroupsOverviewGroup } from '@/platform/tauri/bindings';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
-import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -27,36 +26,12 @@ import {
 } from '@/ui/shadcn/empty';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 
-type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
-
 type GroupModerationPickerDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     currentUserId: string;
     endpoint: string;
 };
-
-function GroupIcon({ group }: { group: UserGroupsOverviewGroup }) {
-    const iconUrl = group.iconUrl
-        ? convertFileUrlToImageUrl(group.iconUrl, 128)
-        : '';
-    return (
-        <span className="bg-muted flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border">
-            {iconUrl ? (
-                <FadeInImage
-                    src={iconUrl}
-                    alt=""
-                    className="size-full object-cover"
-                    fallback={
-                        <ShieldUserIcon className="text-muted-foreground size-4" />
-                    }
-                />
-            ) : (
-                <ShieldUserIcon className="text-muted-foreground size-4" />
-            )}
-        </span>
-    );
-}
 
 export function GroupModerationPickerDialog({
     open,
@@ -65,11 +40,12 @@ export function GroupModerationPickerDialog({
     endpoint
 }: GroupModerationPickerDialogProps) {
     const { t } = useTranslation();
-    const [status, setStatus] = useState<LoadStatus>('idle');
-    const [error, setError] = useState('');
-    const [groups, setGroups] = useState<UserGroupsOverviewGroup[]>([]);
-    const [permissionsDegraded, setPermissionsDegraded] = useState(false);
-    const [reloadToken, setReloadToken] = useState(0);
+    const { status, error, groups, permissionsDegraded, reload } =
+        useModeratableGroups({
+            enabled: open,
+            currentUserId,
+            endpoint
+        });
     const [selectedGroup, setSelectedGroup] =
         useState<GroupProfileRecord | null>(null);
     const [selectLoadingGroupId, setSelectLoadingGroupId] = useState('');
@@ -78,52 +54,8 @@ export function GroupModerationPickerDialog({
         if (!open) {
             setSelectedGroup(null);
             setSelectLoadingGroupId('');
-            return;
         }
-
-        if (!currentUserId) {
-            setStatus('ready');
-            setGroups([]);
-            setPermissionsDegraded(false);
-            return;
-        }
-
-        let active = true;
-        setStatus('loading');
-        setError('');
-        groupProfileRepository
-            .getUserGroupsOverview({ userId: currentUserId, endpoint })
-            .then((output) => {
-                if (!active) {
-                    return;
-                }
-                setGroups(
-                    output.groups.filter((group) =>
-                        hasAnyGroupModerationPermission(group.permissions)
-                    )
-                );
-                setPermissionsDegraded(output.permissionsDegraded);
-                setStatus('ready');
-            })
-            .catch((requestError: unknown) => {
-                if (!active) {
-                    return;
-                }
-                setStatus('error');
-                setError(
-                    userFacingErrorMessage(
-                        requestError,
-                        t(
-                            'host.tools_dialogs.toast.failed_to_load_moderatable_groups'
-                        )
-                    )
-                );
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [open, currentUserId, endpoint, reloadToken, t]);
+    }, [open]);
 
     async function selectGroup(group: UserGroupsOverviewGroup) {
         if (selectLoadingGroupId) {
@@ -194,9 +126,7 @@ export function GroupModerationPickerDialog({
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                onClick={() =>
-                                    setReloadToken((token) => token + 1)
-                                }
+                                onClick={reload}
                             >
                                 {t('common.action.retry')}
                             </Button>
@@ -213,7 +143,9 @@ export function GroupModerationPickerDialog({
                                         className="h-auto justify-start gap-3 px-3 py-2"
                                         onClick={() => selectGroup(group)}
                                     >
-                                        <GroupIcon group={group} />
+                                        <GroupModerationGroupIcon
+                                            group={group}
+                                        />
                                         <span className="min-w-0 flex-1 text-left">
                                             <span className="block truncate font-semibold">
                                                 {group.name || group.groupId}

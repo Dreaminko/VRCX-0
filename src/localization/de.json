@@ -5390,7 +5390,11 @@
                 "empty_title": "Keine Gruppen zu moderieren",
                 "empty_description": "Du hast in keiner deiner Gruppen Moderationsrechte.",
                 "permissions_degraded": "Einige Gruppenberechtigungen konnten nicht überprüft werden. Die Liste unten ist möglicherweise unvollständig.",
-                "member_count": "{count} Mitglieder"
+                "member_count": "{count} Mitglieder",
+                "rail_title": "Groups you moderate",
+                "select_a_group_title": "Select a group",
+                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
+                "moderator_hint": "You have moderation access in this group"
             }
         }
     },
