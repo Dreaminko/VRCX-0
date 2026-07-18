@@ -64,10 +64,12 @@ pub fn emit_video_sync(event_bus: &RuntimeEventBus, timestamp: &str, created_at:
         .filter(|value| *value >= 0)
         .unwrap_or(0);
 
-    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::NowPlaying(NowPlayingPayload {
-        position,
-        started_at: created_at.into(),
-        updated_at: Utc::now().to_rfc3339(),
-        ..Default::default()
-    }));
+    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::NowPlaying(Box::new(
+        NowPlayingPayload {
+            position,
+            started_at: created_at.into(),
+            updated_at: Utc::now().to_rfc3339(),
+            ..Default::default()
+        },
+    )));
 }

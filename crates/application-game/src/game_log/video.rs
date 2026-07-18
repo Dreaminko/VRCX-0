@@ -127,24 +127,26 @@ pub async fn handle_video_play(
         raw: raw_row,
     });
 
-    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::NowPlaying(NowPlayingPayload {
-        url: Some(input.video_url.clone()),
-        name: Some(input.video_name.clone()),
-        source: Some(input.video_id.clone()),
-        display_name: Some(input.display_name),
-        user_id: Some(input.user_id),
-        location: Some(input.location),
-        thumbnail_url: Some(input.thumbnail_url),
-        length: Some(input.video_length),
-        position: input.video_pos,
-        started_at: input.created_at.clone(),
-        created_at: Some(input.created_at),
-        activity_type: Some("VideoPlay".into()),
-        video_url: Some(input.video_url),
-        video_name: Some(input.video_name),
-        video_id: Some(input.video_id),
-        updated_at: Utc::now().to_rfc3339(),
-    }));
+    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::NowPlaying(Box::new(
+        NowPlayingPayload {
+            url: Some(input.video_url.clone()),
+            name: Some(input.video_name.clone()),
+            source: Some(input.video_id.clone()),
+            display_name: Some(input.display_name),
+            user_id: Some(input.user_id),
+            location: Some(input.location),
+            thumbnail_url: Some(input.thumbnail_url),
+            length: Some(input.video_length),
+            position: input.video_pos,
+            started_at: input.created_at.clone(),
+            created_at: Some(input.created_at),
+            activity_type: Some("VideoPlay".into()),
+            video_url: Some(input.video_url),
+            video_name: Some(input.video_name),
+            video_id: Some(input.video_id),
+            updated_at: Utc::now().to_rfc3339(),
+        },
+    )));
 
     Ok(())
 }

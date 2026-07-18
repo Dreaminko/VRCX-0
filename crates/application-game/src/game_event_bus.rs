@@ -65,7 +65,7 @@ pub struct NowPlayingPayload {
 #[serde(tag = "kind", content = "payload")]
 pub enum GameLogSideEffectEvent {
     #[serde(rename = "nowPlaying")]
-    NowPlaying(NowPlayingPayload),
+    NowPlaying(Box<NowPlayingPayload>),
     #[serde(rename = "nowPlayingReset")]
     NowPlayingReset(EmptyEventPayload),
     #[serde(rename = "screenshotProcessed")]
@@ -209,12 +209,14 @@ mod tests {
     #[test]
     fn now_playing_sync_preserves_sparse_wire_shape() {
         assert_eq!(
-            serde_json::to_value(GameLogSideEffectEvent::NowPlaying(NowPlayingPayload {
-                position: 42,
-                started_at: "start".into(),
-                updated_at: "update".into(),
-                ..Default::default()
-            }))
+            serde_json::to_value(GameLogSideEffectEvent::NowPlaying(Box::new(
+                NowPlayingPayload {
+                    position: 42,
+                    started_at: "start".into(),
+                    updated_at: "update".into(),
+                    ..Default::default()
+                },
+            )))
             .unwrap(),
             json!({
                 "kind": "nowPlaying",
@@ -230,24 +232,26 @@ mod tests {
     #[test]
     fn now_playing_full_payload_preserves_legacy_aliases() {
         assert_eq!(
-            serde_json::to_value(GameLogSideEffectEvent::NowPlaying(NowPlayingPayload {
-                url: Some("url".into()),
-                name: Some("name".into()),
-                source: Some("source".into()),
-                display_name: Some("display".into()),
-                user_id: Some("usr_test".into()),
-                location: Some("wrld_test:1".into()),
-                thumbnail_url: Some("thumbnail".into()),
-                length: Some(120),
-                position: 42,
-                started_at: "start".into(),
-                created_at: Some("start".into()),
-                activity_type: Some("VideoPlay".into()),
-                video_url: Some("url".into()),
-                video_name: Some("name".into()),
-                video_id: Some("source".into()),
-                updated_at: "update".into(),
-            }))
+            serde_json::to_value(GameLogSideEffectEvent::NowPlaying(Box::new(
+                NowPlayingPayload {
+                    url: Some("url".into()),
+                    name: Some("name".into()),
+                    source: Some("source".into()),
+                    display_name: Some("display".into()),
+                    user_id: Some("usr_test".into()),
+                    location: Some("wrld_test:1".into()),
+                    thumbnail_url: Some("thumbnail".into()),
+                    length: Some(120),
+                    position: 42,
+                    started_at: "start".into(),
+                    created_at: Some("start".into()),
+                    activity_type: Some("VideoPlay".into()),
+                    video_url: Some("url".into()),
+                    video_name: Some("name".into()),
+                    video_id: Some("source".into()),
+                    updated_at: "update".into(),
+                },
+            )))
             .unwrap(),
             json!({
                 "kind": "nowPlaying",
