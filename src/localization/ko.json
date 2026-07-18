@@ -1499,6 +1499,12 @@
                 "empty": "도구를 여기로 드래그하거나 도구 메뉴에서 추가하세요.",
                 "actions": "도구 작업"
             },
+            "category": {
+                "social": "소셜",
+                "vrchat": "VRChat 설정 및 실행",
+                "data": "데이터 및 백업",
+                "debug": "디버깅"
+            },
             "group": {
                 "header": "그룹",
                 "calendar": "달력",

@@ -1528,6 +1528,12 @@
                 "empty": "把工具拖到这里，或从工具菜单添加。",
                 "actions": "工具操作"
             },
+            "category": {
+                "social": "社交",
+                "vrchat": "VRChat 配置与启动",
+                "data": "数据与备份",
+                "debug": "调试"
+            },
             "group": {
                 "header": "群组",
                 "calendar": "活动日历",

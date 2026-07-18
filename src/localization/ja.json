@@ -1524,6 +1524,12 @@
                 "empty": "ツールをここへドラッグするか、ツールメニューから追加します。",
                 "actions": "ツール操作"
             },
+            "category": {
+                "social": "ソーシャル",
+                "vrchat": "VRChat の設定と起動",
+                "data": "データとバックアップ",
+                "debug": "デバッグ"
+            },
             "group": {
                 "header": "グループ",
                 "calendar": "カレンダー",

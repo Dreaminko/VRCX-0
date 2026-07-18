@@ -1530,6 +1530,12 @@
                 "empty": "Přetáhněte sem nástroje, nebo je přidejte z nabídky nástroje.",
                 "actions": "Akce nástroje"
             },
+            "category": {
+                "social": "Sociální funkce",
+                "vrchat": "Nastavení a spuštění VRChatu",
+                "data": "Data a zálohy",
+                "debug": "Ladění"
+            },
             "group": {
                 "header": "Skupina",
                 "calendar": "Kalendář",

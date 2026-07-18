@@ -1528,6 +1528,12 @@
                 "empty": "Ziehe Werkzeuge hierher oder füge sie über ein Werkzeugmenü hinzu.",
                 "actions": "Werkzeugaktionen"
             },
+            "category": {
+                "social": "Soziales",
+                "vrchat": "VRChat-Einstellungen & Start",
+                "data": "Daten & Sicherungen",
+                "debug": "Debugging"
+            },
             "group": {
                 "header": "Gruppe",
                 "calendar": "Kalender",
