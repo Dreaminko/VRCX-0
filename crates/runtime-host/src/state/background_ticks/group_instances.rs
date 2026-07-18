@@ -1,10 +1,7 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
 use vrcx_0_application::refresh_background_group_instances;
-use vrcx_0_application_core::{
-    BackendRuntime, BackgroundCapabilitySession, RuntimeBackgroundJobs, WebClient,
-};
-use vrcx_0_persistence::DatabaseService;
+use vrcx_0_application_core::BackgroundCapabilitySession;
 
 use crate::{GroupOrderSource, RuntimeGroupInstancesProjection, RuntimeHostContext};
 
@@ -14,38 +11,35 @@ use super::super::{
     BackendRuntimeFrontendSessionSnapshot, BACKGROUND_FACTS_REFRESH_JOB,
     BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
 };
+use super::BackgroundTickContext;
 
 pub(in crate::state) async fn run_background_group_instance_refresh(
-    db: &Arc<DatabaseService>,
-    web: &Arc<WebClient>,
-    session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
-    runtime_context: &Arc<RuntimeHostContext>,
-    backend_runtime: &BackendRuntime,
-    background_jobs: &RuntimeBackgroundJobs,
+    context: &BackgroundTickContext<'_>,
     refresh_running: &Arc<AtomicBool>,
     group_order_source: &dyn GroupOrderSource,
 ) {
     let Some(_refresh_guard) = AtomicFlagGuard::try_acquire(refresh_running) else {
-        background_jobs.mark_scheduled(
+        context.background_jobs.mark_scheduled(
             BACKGROUND_FACTS_REFRESH_JOB,
             "Background group instance refresh is already running.",
             BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
         );
         return;
     };
-    background_jobs.mark_running(
+    context.background_jobs.mark_running(
         BACKGROUND_FACTS_REFRESH_JOB,
         "Refreshing background group instance facts.",
     );
-    let Some(session) = background_capability_session(session_slot) else {
-        background_jobs.mark_scheduled(
+    let Some(session) = background_capability_session(context.session_slot) else {
+        context.background_jobs.mark_scheduled(
             BACKGROUND_FACTS_REFRESH_JOB,
             "Background group instance refresh is waiting for an authenticated session.",
             BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
         );
         return;
     };
-    runtime_context
+    context
+        .runtime_context
         .event_bus
         .emit(RuntimeGroupInstancesProjection {
             status: "running".into(),
@@ -56,12 +50,18 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
             instances: None,
             group_order: None,
         });
-    match refresh_background_group_instances(web.as_ref(), db.as_ref(), &session).await {
+    match refresh_background_group_instances(context.web.as_ref(), context.db.as_ref(), &session)
+        .await
+    {
         Ok(refresh) => {
-            if !background_capability_session_matches(session_slot, &session) {
+            if !background_capability_session_matches(context.session_slot, &session) {
                 tracing::warn!("ignored stale background group instance refresh");
-                emit_stale_group_instance_refresh_idle(session_slot, runtime_context, &session);
-                background_jobs.mark_scheduled(
+                emit_stale_group_instance_refresh_idle(
+                    context.session_slot,
+                    context.runtime_context,
+                    &session,
+                );
+                context.background_jobs.mark_scheduled(
                     BACKGROUND_FACTS_REFRESH_JOB,
                     "Stale background group instance refresh ignored.",
                     BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
@@ -69,7 +69,8 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
                 return;
             }
             let count = refresh.instances.len();
-            runtime_context
+            context
+                .runtime_context
                 .event_bus
                 .emit(RuntimeGroupInstancesProjection {
                     status: "ready".into(),
@@ -83,14 +84,24 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
                     ),
                 });
             let detail = format!("group instance facts refreshed: {count} rows.");
-            emit_background_info(runtime_context, backend_runtime, detail.clone());
-            background_jobs.mark_completed(BACKGROUND_FACTS_REFRESH_JOB, detail);
+            emit_background_info(
+                context.runtime_context,
+                context.backend_runtime,
+                detail.clone(),
+            );
+            context
+                .background_jobs
+                .mark_completed(BACKGROUND_FACTS_REFRESH_JOB, detail);
         }
         Err(error) => {
-            if !background_capability_session_matches(session_slot, &session) {
+            if !background_capability_session_matches(context.session_slot, &session) {
                 tracing::warn!("ignored stale background group instance refresh error");
-                emit_stale_group_instance_refresh_idle(session_slot, runtime_context, &session);
-                background_jobs.mark_scheduled(
+                emit_stale_group_instance_refresh_idle(
+                    context.session_slot,
+                    context.runtime_context,
+                    &session,
+                );
+                context.background_jobs.mark_scheduled(
                     BACKGROUND_FACTS_REFRESH_JOB,
                     "Stale background group instance refresh error ignored.",
                     BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
@@ -98,11 +109,12 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
                 return;
             }
             tracing::warn!(
-                runtime_mode = %gui_maintenance_runtime_mode(backend_runtime),
+                runtime_mode = %gui_maintenance_runtime_mode(context.backend_runtime),
                 error = %error,
                 "GUI maintenance group instance network request failed"
             );
-            runtime_context
+            context
+                .runtime_context
                 .event_bus
                 .emit(RuntimeGroupInstancesProjection {
                     status: "error".into(),
@@ -114,14 +126,16 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
                     group_order: None,
                 });
             emit_background_error(
-                runtime_context,
-                backend_runtime,
+                context.runtime_context,
+                context.backend_runtime,
                 format!("group instance refresh failed: {error}."),
             );
-            background_jobs.mark_failed(BACKGROUND_FACTS_REFRESH_JOB, error.to_string());
+            context
+                .background_jobs
+                .mark_failed(BACKGROUND_FACTS_REFRESH_JOB, error.to_string());
         }
     }
-    background_jobs.mark_scheduled(
+    context.background_jobs.mark_scheduled(
         BACKGROUND_FACTS_REFRESH_JOB,
         "Next background group instance facts refresh is waiting.",
         BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,

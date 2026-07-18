@@ -79,13 +79,18 @@ impl RuntimeHostState {
     }
 
     pub async fn refresh_runtime_group_instances(&self) {
+        let context = BackgroundTickContext {
+            db: &self.db,
+            web: &self.web,
+            session_slot: &self.backend_frontend_session,
+            realtime_runtime: &self.realtime_runtime,
+            runtime_context: &self.runtime_context,
+            backend_runtime: &self.backend_runtime,
+            background_jobs: &self.runtime_context.background_jobs,
+            authenticated_runtime: &self.authenticated_runtime,
+        };
         run_background_group_instance_refresh(
-            &self.db,
-            &self.web,
-            &self.backend_frontend_session,
-            &self.runtime_context,
-            &self.backend_runtime,
-            &self.runtime_context.background_jobs,
+            &context,
             &self.background_group_instances_refresh_running,
             self.group_order_source.as_ref(),
         )

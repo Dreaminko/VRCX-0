@@ -95,6 +95,17 @@ impl RuntimeHostState {
                         next_print_cleanup = now;
                     }
 
+                    let tick_context = BackgroundTickContext {
+                        db: &db,
+                        web: &web,
+                        session_slot: &session_slot,
+                        realtime_runtime: &realtime_runtime,
+                        runtime_context: &runtime_context,
+                        backend_runtime: &backend_runtime,
+                        background_jobs: &background_jobs,
+                        authenticated_runtime: &authenticated_runtime,
+                    };
+
                     if now >= next_current_user {
                         run_background_current_user_refresh(
                             &db,
@@ -112,12 +123,7 @@ impl RuntimeHostState {
 
                     if now >= next_group_instances {
                         run_background_group_instance_refresh(
-                            &db,
-                            &web,
-                            &session_slot,
-                            &runtime_context,
-                            &backend_runtime,
-                            &background_jobs,
+                            &tick_context,
                             &group_instances_refresh_running,
                             group_order_source.as_ref(),
                         )
@@ -125,17 +131,6 @@ impl RuntimeHostState {
                         next_group_instances =
                             now + Duration::from_secs(BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS);
                     }
-
-                    let tick_context = BackgroundTickContext {
-                        db: &db,
-                        web: &web,
-                        session_slot: &session_slot,
-                        realtime_runtime: &realtime_runtime,
-                        runtime_context: &runtime_context,
-                        backend_runtime: &backend_runtime,
-                        background_jobs: &background_jobs,
-                        authenticated_runtime: &authenticated_runtime,
-                    };
 
                     if !favorite_groups_initialized {
                         let snapshot = authenticated_runtime.snapshot();
