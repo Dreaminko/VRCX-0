@@ -4444,6 +4444,10 @@
             "kick": "킥",
             "ban": "금지",
             "unban": "금지 해제",
+            "delete": "Delete",
+            "accept": "Accept",
+            "reject": "Reject",
+            "block": "Block",
             "display_name": "표시 이름",
             "created_at": "최초 업로드",
             "type": "유형",
@@ -4476,7 +4480,8 @@
             "export_logs_copied": "감사 로그 CSV가 클립보드에 복사되었습니다",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
-            "loaded_count": "{count}개 로드됨"
+            "loaded_count": "{count}개 로드됨",
+            "no_permission": "You don't have moderation permission for this group."
         },
         "group_post_edit": {
             "title": "제목"

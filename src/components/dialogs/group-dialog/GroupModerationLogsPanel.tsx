@@ -149,6 +149,73 @@ function formatLogData(data: unknown) {
     }
 }
 
+const AUDIT_LOG_DIFF_VALUE_MAX_LENGTH = 80;
+const AUDIT_LOG_DIFF_ARRAY_MAX_ITEMS = 5;
+
+interface AuditLogDiffField {
+    old?: unknown;
+    new?: unknown;
+}
+
+function isAuditLogDiffField(value: unknown): value is AuditLogDiffField {
+    return Boolean(
+        value &&
+            typeof value === 'object' &&
+            !Array.isArray(value) &&
+            ('old' in value || 'new' in value)
+    );
+}
+
+function isAuditLogDiffShape(
+    data: unknown
+): data is Record<string, AuditLogDiffField> {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        return false;
+    }
+    const entries = Object.values(data as Record<string, unknown>);
+    return entries.length > 0 && entries.every(isAuditLogDiffField);
+}
+
+function truncateAuditLogDiffText(value: string) {
+    return value.length > AUDIT_LOG_DIFF_VALUE_MAX_LENGTH
+        ? `${value.slice(0, AUDIT_LOG_DIFF_VALUE_MAX_LENGTH)}…`
+        : value;
+}
+
+function compactAuditLogDiffValue(value: unknown): string {
+    if (value === undefined) {
+        return '—';
+    }
+    if (value === null) {
+        return 'null';
+    }
+    if (Array.isArray(value)) {
+        const items = value
+            .slice(0, AUDIT_LOG_DIFF_ARRAY_MAX_ITEMS)
+            .map((item) => compactAuditLogDiffValue(item));
+        const remaining = value.length - AUDIT_LOG_DIFF_ARRAY_MAX_ITEMS;
+        return `[${items.join(', ')}${remaining > 0 ? `, +${remaining} more` : ''}]`;
+    }
+    if (typeof value === 'object') {
+        try {
+            return truncateAuditLogDiffText(JSON.stringify(value));
+        } catch {
+            return '[object]';
+        }
+    }
+    return truncateAuditLogDiffText(String(value));
+}
+
+export function describeGroupAuditLogDataDiff(data: unknown): string[] | null {
+    if (!isAuditLogDiffShape(data)) {
+        return null;
+    }
+    return Object.entries(data).map(
+        ([field, diff]) =>
+            `${field}: ${compactAuditLogDiffValue(diff.old)} → ${compactAuditLogDiffValue(diff.new)}`
+    );
+}
+
 function logRowKey(row: GroupAuditLogRow, index: number) {
     return row.id || `${row.created_at || ''}:${row.eventType || ''}:${index}`;
 }
@@ -363,6 +430,10 @@ export function GroupModerationLogsTable({
                                     const targetId = String(
                                         row.targetId || ''
                                     ).trim();
+                                    const diffLines =
+                                        describeGroupAuditLogDataDiff(
+                                            row.data
+                                        );
                                     const data = formatLogData(row.data);
                                     return (
                                         <TableRow key={logRowKey(row, index)}>
@@ -415,7 +486,21 @@ export function GroupModerationLogsTable({
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground max-w-80 align-top font-mono text-xs break-words whitespace-normal">
-                                                {data || '—'}
+                                                {diffLines ? (
+                                                    <div className="space-y-0.5">
+                                                        {diffLines.map(
+                                                            (line, lineIndex) => (
+                                                                <div
+                                                                    key={`${lineIndex}:${line}`}
+                                                                >
+                                                                    {line}
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    data || '—'
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     );

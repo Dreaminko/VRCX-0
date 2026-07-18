@@ -4508,6 +4508,10 @@
             "kick": "Vyhodit",
             "ban": "Zakázat",
             "unban": "Zrušit zákaz",
+            "delete": "Delete",
+            "accept": "Accept",
+            "reject": "Reject",
+            "block": "Block",
             "display_name": "Zobrazované jméno",
             "created_at": "Vytvořeno",
             "type": "Typ",
@@ -4540,7 +4544,8 @@
             "export_logs_copied": "CSV protokolu auditu zkopírováno do schránky",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
-            "loaded_count": "Načteno {count}"
+            "loaded_count": "Načteno {count}",
+            "no_permission": "You don't have moderation permission for this group."
         },
         "group_post_edit": {
             "title": "Název"

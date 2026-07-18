@@ -12,6 +12,7 @@ import groupProfileRepository from '@/repositories/groupProfileRepository';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
+import { Empty, EmptyHeader, EmptyTitle } from '@/ui/shadcn/empty';
 import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
 import {
@@ -579,6 +580,20 @@ export function GroupModerationWorkspace({
         } finally {
             setActionKey('');
         }
+    }
+
+    if (!activeTab) {
+        return (
+            <div className="min-h-0">
+                <Empty className="min-h-32 border">
+                    <EmptyHeader>
+                        <EmptyTitle>
+                            {t('dialog.group_member_moderation.no_permission')}
+                        </EmptyTitle>
+                    </EmptyHeader>
+                </Empty>
+            </div>
+        );
     }
 
     return (

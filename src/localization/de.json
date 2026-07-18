@@ -4506,6 +4506,10 @@
             "kick": "Kicken",
             "ban": "Bannen",
             "unban": "Bann aufheben",
+            "delete": "Delete",
+            "accept": "Accept",
+            "reject": "Reject",
+            "block": "Block",
             "display_name": "Anzeigename",
             "created_at": "Erstellt am",
             "type": "Typ",
@@ -4538,7 +4542,8 @@
             "export_logs_copied": "Audit-Protokoll-CSV in die Zwischenablage kopiert",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
-            "loaded_count": "{count} geladen"
+            "loaded_count": "{count} geladen",
+            "no_permission": "You don't have moderation permission for this group."
         },
         "group_post_edit": {
             "title": "Titel"

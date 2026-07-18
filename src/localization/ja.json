@@ -4498,6 +4498,10 @@
             "kick": "キック",
             "ban": "BAN",
             "unban": "BAN解除",
+            "delete": "Delete",
+            "accept": "Accept",
+            "reject": "Reject",
+            "block": "Block",
             "display_name": "表示名",
             "created_at": "作成日時",
             "type": "種類",
@@ -4530,7 +4534,8 @@
             "export_logs_copied": "監査ログのCSVをクリップボードにコピーしました",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
-            "loaded_count": "{count} 件読み込み済み"
+            "loaded_count": "{count} 件読み込み済み",
+            "no_permission": "You don't have moderation permission for this group."
         },
         "group_post_edit": {
             "title": "タイトル"

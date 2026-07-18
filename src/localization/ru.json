@@ -4508,6 +4508,10 @@
             "kick": "Кик",
             "ban": "Бан",
             "unban": "Разбанить",
+            "delete": "Delete",
+            "accept": "Accept",
+            "reject": "Reject",
+            "block": "Block",
             "display_name": "Отображаемое имя",
             "created_at": "Дата и время создания",
             "type": "Тип",
@@ -4540,7 +4544,8 @@
             "export_logs_copied": "CSV журнала аудита скопирован в буфер обмена",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
-            "loaded_count": "Загружено: {count}"
+            "loaded_count": "Загружено: {count}",
+            "no_permission": "You don't have moderation permission for this group."
         },
         "group_post_edit": {
             "title": "Заголовок"

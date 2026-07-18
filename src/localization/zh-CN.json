@@ -4506,6 +4506,10 @@
             "kick": "踢出",
             "ban": "封禁",
             "unban": "解除封禁",
+            "delete": "删除",
+            "accept": "接受",
+            "reject": "拒绝",
+            "block": "屏蔽",
             "display_name": "昵称",
             "created_at": "创建于",
             "type": "类型",
@@ -4538,7 +4542,8 @@
             "export_logs_copied": "审核日志 CSV 已复制到剪贴板",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
-            "loaded_count": "已加载 {count} 项"
+            "loaded_count": "已加载 {count} 项",
+            "no_permission": "你没有该群组的管理权限。"
         },
         "group_post_edit": {
             "title": "标题"

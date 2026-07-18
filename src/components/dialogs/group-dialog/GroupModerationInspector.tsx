@@ -27,6 +27,7 @@ import {
     getGroupRoleNameMap,
     type GroupModerationTabValue
 } from './groupDialogUtils';
+import { ModerationStatusBadge } from './ModerationStatusBadge';
 
 function isRecord(value: unknown): value is EntityRecord {
     return Boolean(value && typeof value === 'object');
@@ -140,7 +141,9 @@ export function GroupModerationInspector({
                     <div className="text-muted-foreground text-xs">
                         {t('dialog.group.label.status')}
                     </div>
-                    <div>{status}</div>
+                    <div>
+                        <ModerationStatusBadge status={status} />
+                    </div>
                 </div>
                 <div>
                     <div className="text-muted-foreground text-xs">

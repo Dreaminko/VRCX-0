@@ -184,6 +184,39 @@ export function moderationRowStatus(row: unknown) {
     );
 }
 
+export type GroupModerationStatusTone =
+    | 'neutral'
+    | 'active'
+    | 'pending'
+    | 'danger';
+
+export function moderationStatusTone(
+    status: string
+): GroupModerationStatusTone {
+    const value = status.toLowerCase();
+    if (!value || value === '—') {
+        return 'neutral';
+    }
+    if (value.includes('banned')) {
+        return 'danger';
+    }
+    if (
+        value.includes('invited') ||
+        value.includes('request') ||
+        value.includes('pending')
+    ) {
+        return 'pending';
+    }
+    if (
+        value.includes('member') ||
+        value.includes('active') ||
+        value.includes('joined')
+    ) {
+        return 'active';
+    }
+    return 'neutral';
+}
+
 export function moderationRowDate(row: unknown) {
     const source = record(row);
     return text(

@@ -42,6 +42,7 @@ import {
     type GroupModerationAction,
     type GroupModerationTab
 } from './groupModerationRows';
+import { ModerationStatusBadge } from './ModerationStatusBadge';
 
 function text(value: unknown): string {
     return typeof value === 'string' ? value : '';
@@ -144,11 +145,14 @@ export function GroupModerationTabPanel({
         visibleUserIds.every((userId) => selectedIds?.has(userId));
     const columnCount = selectable ? 6 : 5;
     const serverQueryActive = Boolean(server && server.query.trim());
-    const serverEmptyMessage = server
+    const clientQueryActive = !server && Boolean(search.trim());
+    const emptyMessage = server
         ? serverQueryActive
             ? t('common.no_matching_records')
             : t('dialog.group.empty.no_rows')
-        : t('dialog.group.empty.no_rows');
+        : clientQueryActive && rows.length
+          ? t('common.no_matching_records')
+          : t('dialog.group.empty.no_rows');
 
     return (
         <TabsContent
@@ -432,7 +436,11 @@ export function GroupModerationTabPanel({
                                                     '—'}
                                             </TableCell>
                                             <TableCell className="align-top text-xs whitespace-normal">
-                                                {moderationRowStatus(row)}
+                                                <ModerationStatusBadge
+                                                    status={moderationRowStatus(
+                                                        row
+                                                    )}
+                                                />
                                             </TableCell>
                                             <TableCell className="text-muted-foreground align-top text-xs">
                                                 {date
@@ -484,7 +492,7 @@ export function GroupModerationTabPanel({
                                         colSpan={columnCount}
                                         className="text-muted-foreground py-8 text-center text-sm"
                                     >
-                                        {serverEmptyMessage}
+                                        {emptyMessage}
                                     </TableCell>
                                 </TableRow>
                             )}
