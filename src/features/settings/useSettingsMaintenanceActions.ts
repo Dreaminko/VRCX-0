@@ -1,4 +1,5 @@
 import type { AppDataDirState } from '@/platform/tauri/bindings';
+import { formatDataDirMigrationBytes } from '@/services/dataDirMigrationI18n';
 import {
     cleanupMigratedDataDir,
     dismissDataDirCleanup,
@@ -73,6 +74,7 @@ type SettingsMaintenanceActionsDeps = {
     gameState: {
         isGameRunning: boolean | null;
     };
+    language?: string;
     mediaRepository: {
         cropAllPrints(path: string): Promise<unknown>;
         getUgcPhotoLocation(path: unknown): Promise<string>;
@@ -106,6 +108,7 @@ export function useSettingsMaintenanceActions({
     databaseMaintenanceRepository,
     feedRepository,
     gameState,
+    language,
     mediaRepository,
     prefs,
     prompt,
@@ -238,7 +241,10 @@ export function useSettingsMaintenanceActions({
                 'data_dir_migration.cleanup.confirm_description',
                 {
                     path: pending.oldDir,
-                    size: pending.bytes
+                    size: formatDataDirMigrationBytes(
+                        pending.bytes,
+                        language ?? 'en'
+                    )
                 }
             ),
             confirmText: t('data_dir_migration.cleanup.action'),

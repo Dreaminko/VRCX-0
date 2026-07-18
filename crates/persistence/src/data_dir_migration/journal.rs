@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use serde::Serialize;
 
 use crate::profile_backup::{create_private_file, replace_file_atomically, sync_directory_durable};
@@ -70,21 +71,90 @@ pub fn take_data_dir_migration_result(
 }
 
 pub fn read_data_dir_cleanup_pending(control_dir: &Path) -> Result<Option<DataDirCleanupPending>> {
-    read_json_if_exists(&control_dir.join(DATA_DIR_CLEANUP_PENDING_FILE_NAME))
+    Ok(read_data_dir_cleanup_pendings(control_dir)?
+        .into_iter()
+        .next())
+}
+
+pub fn read_data_dir_cleanup_pendings(control_dir: &Path) -> Result<Vec<DataDirCleanupPending>> {
+    let path = control_dir.join(DATA_DIR_CLEANUP_PENDING_FILE_NAME);
+    let Some(stored): Option<StoredDataDirCleanupPending> = read_json_if_exists(&path)? else {
+        return Ok(Vec::new());
+    };
+    Ok(match stored {
+        StoredDataDirCleanupPending::Single(pending) => vec![pending],
+        StoredDataDirCleanupPending::Queue(pending) => pending,
+    })
 }
 
 pub fn write_data_dir_cleanup_pending(
     control_dir: &Path,
     pending: &DataDirCleanupPending,
 ) -> Result<()> {
-    write_json_durable(
-        &control_dir.join(DATA_DIR_CLEANUP_PENDING_FILE_NAME),
-        pending,
-    )
+    let mut pending_queue = read_data_dir_cleanup_pendings(control_dir)?;
+    if pending_queue.is_empty() {
+        pending_queue.push(pending.clone());
+    } else {
+        pending_queue.remove(0);
+        if pending.dismissed {
+            pending_queue.push(pending.clone());
+        } else {
+            pending_queue.insert(0, pending.clone());
+        }
+    }
+    write_data_dir_cleanup_queue(control_dir, &pending_queue)
+}
+
+pub(super) fn append_data_dir_cleanup_pending(
+    control_dir: &Path,
+    pending: &DataDirCleanupPending,
+) -> Result<()> {
+    let mut pending_queue = read_data_dir_cleanup_pendings(control_dir)?;
+    if !pending_queue
+        .iter()
+        .any(|existing| same_cleanup_migration(existing, pending))
+    {
+        let insertion_index = pending_queue
+            .iter()
+            .position(|existing| existing.dismissed)
+            .unwrap_or(pending_queue.len());
+        pending_queue.insert(insertion_index, pending.clone());
+    }
+    write_data_dir_cleanup_queue(control_dir, &pending_queue)
 }
 
 pub fn remove_data_dir_cleanup_pending(control_dir: &Path) -> Result<()> {
-    remove_file_durable(&control_dir.join(DATA_DIR_CLEANUP_PENDING_FILE_NAME))
+    let mut pending_queue = read_data_dir_cleanup_pendings(control_dir)?;
+    if pending_queue.is_empty() {
+        return remove_file_durable(&control_dir.join(DATA_DIR_CLEANUP_PENDING_FILE_NAME));
+    }
+    pending_queue.remove(0);
+    write_data_dir_cleanup_queue(control_dir, &pending_queue)
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum StoredDataDirCleanupPending {
+    Single(DataDirCleanupPending),
+    Queue(Vec<DataDirCleanupPending>),
+}
+
+fn same_cleanup_migration(left: &DataDirCleanupPending, right: &DataDirCleanupPending) -> bool {
+    left.old_dir == right.old_dir
+        && left.migrated_at == right.migrated_at
+        && left.replaced_dir == right.replaced_dir
+}
+
+fn write_data_dir_cleanup_queue(
+    control_dir: &Path,
+    pending_queue: &[DataDirCleanupPending],
+) -> Result<()> {
+    let path = control_dir.join(DATA_DIR_CLEANUP_PENDING_FILE_NAME);
+    match pending_queue {
+        [] => remove_file_durable(&path),
+        [pending] => write_json_durable(&path, pending),
+        pending => write_json_durable(&path, &pending),
+    }
 }
 
 fn read_json_if_exists<T: DeserializeOwned>(path: &Path) -> Result<Option<T>> {

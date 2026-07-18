@@ -196,7 +196,7 @@ fn copy_detects_target_tampering_and_abort_reopens_source_database() -> Result<(
     let result = copy_frozen_database_to_staging_with_verification_hook(
         &frozen,
         &target,
-        |_, _| {},
+        |_, _| true,
         |staged_db| {
             let mut file = fs::OpenOptions::new().append(true).open(staged_db)?;
             file.write_all(b"tampered")?;
@@ -211,6 +211,34 @@ fn copy_detects_target_tampering_and_abort_reopens_source_database() -> Result<(
         "INSERT INTO migration_items (value) VALUES ('writable-again')",
         &empty,
     )?;
+    Ok(())
+}
+
+#[test]
+fn cancellable_copy_stops_before_finishing_the_database() -> Result<()> {
+    let dir = TestDir::new("copy-cancelled");
+    let source = dir.path.join("source");
+    let target = dir.path.join("target");
+    fs::create_dir(&source)?;
+    fs::create_dir(&target)?;
+    let db_path = source.join("VRCX-0.sqlite3");
+    fs::write(&db_path, vec![1_u8; 512 * 1024])?;
+    let frozen = FrozenDatabase {
+        db_path,
+        db_bytes: 512 * 1024,
+        wal_path: None,
+        wal_bytes: None,
+    };
+
+    let result = copy_frozen_database_to_staging_cancellable(&frozen, &target, |processed, _| {
+        processed == 0
+    });
+
+    assert!(result.is_err());
+    let partial = target
+        .join(DATA_DIR_MIGRATION_STAGING_DIRECTORY)
+        .join("VRCX-0.sqlite3");
+    assert!(fs::metadata(partial)?.len() < frozen.db_bytes);
     Ok(())
 }
 
@@ -318,6 +346,9 @@ fn finalize_is_idempotent_copies_best_effort_data_and_removes_only_pure_caches()
     assert!(!source.join("ImageCache").exists());
     assert!(!source.join("ws-events.jsonl").exists());
     assert_eq!(fs::read(source.join("unknown.txt"))?, b"unknown");
+    assert!(read_data_dir_cleanup_pending(&control)?.is_none());
+    complete_data_dir_migration(&control, &journal, &first)?;
+    complete_data_dir_migration(&control, &journal, &second)?;
     assert_eq!(
         read_data_dir_cleanup_pending(&control)?,
         Some(second.cleanup_pending)
@@ -455,7 +486,75 @@ fn cleanup_rejects_the_active_data_directory() -> Result<()> {
 }
 
 #[test]
-fn database_open_failure_clears_committed_control_state_before_recording_result() -> Result<()> {
+fn cleanup_completes_when_the_old_directory_was_already_removed() -> Result<()> {
+    let dir = TestDir::new("cleanup-missing");
+    let current = dir.path.join("current");
+    let old = dir.path.join("already-removed");
+    fs::create_dir(&current)?;
+    let pending = DataDirCleanupPending {
+        old_dir: old.to_string_lossy().into_owned(),
+        bytes: 0,
+        migrated_at: "2026-07-18T00:00:00Z".into(),
+        last_prompted_at: None,
+        dismissed: false,
+        replaced_dir: None,
+    };
+    write_data_dir_cleanup_pending(&dir.path, &pending)?;
+
+    let report = cleanup_migrated_data(&dir.path, &current, &pending)?;
+
+    assert!(report.skipped.is_empty());
+    assert_eq!(report.freed_bytes, 0);
+    assert!(read_data_dir_cleanup_pending(&dir.path)?.is_none());
+    Ok(())
+}
+
+#[test]
+fn cleanup_pending_queue_preserves_and_promotes_older_migrations() -> Result<()> {
+    let dir = TestDir::new("cleanup-queue");
+    let first = DataDirCleanupPending {
+        old_dir: dir.path.join("first").to_string_lossy().into_owned(),
+        bytes: 1,
+        migrated_at: "2026-07-18T00:00:00Z".into(),
+        last_prompted_at: None,
+        dismissed: false,
+        replaced_dir: None,
+    };
+    let second = DataDirCleanupPending {
+        old_dir: dir.path.join("second").to_string_lossy().into_owned(),
+        bytes: 2,
+        migrated_at: "2026-07-19T00:00:00Z".into(),
+        last_prompted_at: None,
+        dismissed: false,
+        replaced_dir: None,
+    };
+
+    super::journal::append_data_dir_cleanup_pending(&dir.path, &first)?;
+    super::journal::append_data_dir_cleanup_pending(&dir.path, &second)?;
+    super::journal::append_data_dir_cleanup_pending(&dir.path, &second)?;
+
+    assert_eq!(
+        read_data_dir_cleanup_pendings(&dir.path)?,
+        vec![first.clone(), second.clone()]
+    );
+    let mut dismissed_first = first.clone();
+    dismissed_first.dismissed = true;
+    write_data_dir_cleanup_pending(&dir.path, &dismissed_first)?;
+    super::journal::append_data_dir_cleanup_pending(&dir.path, &first)?;
+    assert_eq!(
+        read_data_dir_cleanup_pendings(&dir.path)?,
+        vec![second.clone(), dismissed_first.clone()]
+    );
+    remove_data_dir_cleanup_pending(&dir.path)?;
+    assert_eq!(
+        read_data_dir_cleanup_pending(&dir.path)?,
+        Some(dismissed_first)
+    );
+    Ok(())
+}
+
+#[test]
+fn database_open_failure_preserves_an_older_cleanup_pending() -> Result<()> {
     let dir = TestDir::new("database-open-failure");
     let source = dir.path.join("source");
     let target = dir.path.join("target");
@@ -466,7 +565,7 @@ fn database_open_failure_clears_committed_control_state_before_recording_result(
     write_data_dir_cleanup_pending(
         &dir.path,
         &DataDirCleanupPending {
-            old_dir: journal.source_dir.clone(),
+            old_dir: dir.path.join("older-source").to_string_lossy().into_owned(),
             bytes: 1,
             migrated_at: journal.requested_at.clone(),
             last_prompted_at: None,
@@ -478,7 +577,12 @@ fn database_open_failure_clears_committed_control_state_before_recording_result(
     record_data_dir_migration_database_open_failure(&dir.path, &journal)?;
 
     assert!(!has_pending_data_dir_migration(&dir.path));
-    assert!(read_data_dir_cleanup_pending(&dir.path)?.is_none());
+    assert_eq!(
+        read_data_dir_cleanup_pending(&dir.path)?
+            .expect("older cleanup pending")
+            .old_dir,
+        dir.path.join("older-source").to_string_lossy()
+    );
     assert_eq!(
         take_data_dir_migration_result(&dir.path)?
             .expect("database open failure result")

@@ -79,7 +79,23 @@ pub fn clear_data_dir_migration_staging(target_dir: &Path) -> Result<()> {
 pub fn copy_frozen_database_to_staging(
     frozen: &FrozenDatabase,
     target_dir: &Path,
-    progress: impl FnMut(u64, u64),
+    mut progress: impl FnMut(u64, u64),
+) -> Result<StagedDataDirMigration> {
+    copy_frozen_database_to_staging_with_verification_hook(
+        frozen,
+        target_dir,
+        |processed, total| {
+            progress(processed, total);
+            true
+        },
+        |_| Ok(()),
+    )
+}
+
+pub fn copy_frozen_database_to_staging_cancellable(
+    frozen: &FrozenDatabase,
+    target_dir: &Path,
+    progress: impl FnMut(u64, u64) -> bool,
 ) -> Result<StagedDataDirMigration> {
     copy_frozen_database_to_staging_with_verification_hook(frozen, target_dir, progress, |_| Ok(()))
 }
@@ -87,7 +103,7 @@ pub fn copy_frozen_database_to_staging(
 pub(super) fn copy_frozen_database_to_staging_with_verification_hook(
     frozen: &FrozenDatabase,
     target_dir: &Path,
-    mut progress: impl FnMut(u64, u64),
+    mut progress: impl FnMut(u64, u64) -> bool,
     after_database_copy: impl FnOnce(&Path) -> Result<()>,
 ) -> Result<StagedDataDirMigration> {
     clear_data_dir_migration_staging(target_dir)?;
@@ -98,7 +114,7 @@ pub(super) fn copy_frozen_database_to_staging_with_verification_hook(
         .db_bytes
         .checked_add(frozen.wal_bytes.unwrap_or(0))
         .ok_or_else(|| Error::InvalidData("Migration copy size overflowed.".into()))?;
-    progress(0, total);
+    ensure_copy_continues(progress(0, total))?;
 
     let staged_db = staging.join(PROFILE_DATABASE_FILE);
     let (db_sha256, db_bytes) =
@@ -181,7 +197,7 @@ pub fn install_staged_data_dir_database(
 }
 
 pub fn finalize_data_dir_migration(
-    control_dir: &Path,
+    _control_dir: &Path,
     journal: &PendingDataDirMigration,
 ) -> Result<DataDirMigrationFinalizeOutcome> {
     journal.validate()?;
@@ -218,7 +234,6 @@ pub fn finalize_data_dir_migration(
         dismissed: false,
         replaced_dir: journal.replaced_dir.clone(),
     };
-    super::journal::write_data_dir_cleanup_pending(control_dir, &cleanup_pending)?;
     Ok(DataDirMigrationFinalizeOutcome {
         cleanup_pending,
         warnings,
@@ -303,7 +318,7 @@ fn copy_file_with_hash(
     destination: &Path,
     progress_offset: u64,
     progress_total: u64,
-    progress: &mut impl FnMut(u64, u64),
+    progress: &mut impl FnMut(u64, u64) -> bool,
 ) -> Result<(String, u64)> {
     let mut input = File::open(source)?;
     let mut output = create_private_file(destination)?;
@@ -320,10 +335,23 @@ fn copy_file_with_hash(
         copied = copied
             .checked_add(read as u64)
             .ok_or_else(|| Error::InvalidData("Migration copy size overflowed.".into()))?;
-        progress(progress_offset.saturating_add(copied), progress_total);
+        ensure_copy_continues(progress(
+            progress_offset.saturating_add(copied),
+            progress_total,
+        ))?;
     }
     output.sync_all()?;
     Ok((crate::profile_backup::sha256_hex(hasher.finalize()), copied))
+}
+
+fn ensure_copy_continues(continue_copying: bool) -> Result<()> {
+    if continue_copying {
+        Ok(())
+    } else {
+        Err(Error::InvalidData(
+            "Data directory migration copy was cancelled.".into(),
+        ))
+    }
 }
 
 fn move_existing_profile_to_replaced_directory(target_dir: &Path) -> Result<Option<PathBuf>> {
@@ -457,6 +485,9 @@ fn remove_old_pure_caches(source_dir: &Path) -> Result<()> {
 }
 
 fn remove_cleanup_manifest(old_dir: &Path, report: &mut DataDirCleanupReport) -> Result<()> {
+    if !old_dir.exists() {
+        return Ok(());
+    }
     for name in [PROFILE_DATABASE_FILE]
         .into_iter()
         .chain(CLEANUP_FILES)

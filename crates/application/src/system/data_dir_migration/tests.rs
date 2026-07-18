@@ -124,6 +124,13 @@ fn migration_uses_the_profile_backup_operation_gate() {
     let _guard = OperationGuard::try_acquire(&gate).expect("operation guard");
     let (runtime, _) = test_runtime(source, control, db, gate, Arc::new(|_| Ok(())));
 
+    let pointer_change = runtime.switch_data_dir_pointer(target.clone());
+    assert!(!pointer_change.accepted);
+    assert_eq!(
+        pointer_change.error.expect("operation busy error").code,
+        DataDirMigrationErrorCode::OperationBusy
+    );
+
     let outcome = runtime.run_migration(target, false);
 
     assert!(!outcome.accepted);
@@ -250,6 +257,17 @@ fn migration_rejects_restore_legacy_and_cleanup_conflicts() {
     assert_eq!(
         cleanup.error.expect("cleanup conflict").code,
         DataDirMigrationErrorCode::CleanupConflict
+    );
+
+    std::fs::write(
+        control.join("data-dir-cleanup-pending.json"),
+        b"invalid cleanup state",
+    )
+    .unwrap();
+    let corrupt_cleanup = runtime.run_migration(dir.path.join("other-target"), false);
+    assert_eq!(
+        corrupt_cleanup.error.expect("cleanup state error").code,
+        DataDirMigrationErrorCode::Io
     );
 }
 

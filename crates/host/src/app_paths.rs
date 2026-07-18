@@ -168,6 +168,18 @@ pub fn validate_app_data_dir_selection(
     Ok(validation)
 }
 
+pub fn prepare_app_data_dir_migration_target(
+    path: impl AsRef<Path>,
+    current_dir: impl AsRef<Path>,
+) -> Result<AppDataDirValidation, Error> {
+    let validation = validate_app_data_dir_for_mode(path.as_ref(), true)?;
+    ensure_distinct_data_directories(
+        &validation.resolved_path(),
+        &current_dir.as_ref().canonicalize()?,
+    )?;
+    Ok(validation)
+}
+
 pub fn persist_app_data_dir(
     path: impl AsRef<Path>,
     current_dir: impl AsRef<Path>,
@@ -534,6 +546,20 @@ mod tests {
             assert!(validate_app_data_dir_selection(case_changed, &current).is_err());
             assert!(validate_app_data_dir_selection(extended, &current).is_err());
         }
+    }
+
+    #[test]
+    fn migration_target_preparation_creates_a_missing_directory() {
+        let dir = TestDir::new("migration-target-create");
+        let current = dir.path.join("current");
+        let target = dir.path.join("target");
+        std::fs::create_dir(&current).unwrap();
+
+        let validation = prepare_app_data_dir_migration_target(&target, &current).unwrap();
+
+        assert!(!validation.exists);
+        assert!(target.is_dir());
+        assert_eq!(validation.resolved_path(), target.canonicalize().unwrap());
     }
 
     #[test]

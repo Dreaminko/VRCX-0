@@ -6,12 +6,13 @@ use std::time::{Duration, Instant};
 use chrono::Utc;
 use vrcx_0_application_core::{Error, Result, RuntimeEventBus};
 use vrcx_0_persistence::data_dir_migration::{
-    cleanup_migrated_data, clear_data_dir_migration_staging, copy_frozen_database_to_staging,
-    dismiss_data_dir_cleanup, has_pending_data_dir_migration, install_staged_data_dir_database,
-    read_data_dir_cleanup_pending, remove_pending_data_dir_migration,
-    take_data_dir_migration_result, write_data_dir_cleanup_pending,
-    write_pending_data_dir_migration, DataDirCleanupPending, DataDirCleanupReport,
-    DataDirMigrationResult, PendingDataDirMigration,
+    cleanup_migrated_data, clear_data_dir_migration_staging,
+    copy_frozen_database_to_staging_cancellable, dismiss_data_dir_cleanup,
+    has_pending_data_dir_migration, install_staged_data_dir_database,
+    read_data_dir_cleanup_pending, read_data_dir_cleanup_pendings,
+    remove_pending_data_dir_migration, take_data_dir_migration_result,
+    write_data_dir_cleanup_pending, write_pending_data_dir_migration, DataDirCleanupPending,
+    DataDirCleanupReport, DataDirMigrationResult, PendingDataDirMigration,
 };
 use vrcx_0_persistence::profile_backup::has_pending_profile_restore;
 use vrcx_0_persistence::DatabaseService;
@@ -104,15 +105,18 @@ impl DataDirMigrationRuntime {
         if has_pending_data_dir_migration(&self.inner.control_dir) {
             return self.rejected(DataDirMigrationErrorCode::PendingMigration, None);
         }
-        if read_data_dir_cleanup_pending(&self.inner.control_dir)
-            .ok()
-            .flatten()
-            .is_some_and(|pending| paths_match(Path::new(&pending.old_dir), &target_dir))
-        {
-            return self.rejected(
-                DataDirMigrationErrorCode::CleanupConflict,
-                Some(&target_dir),
-            );
+        match self.cleanup_conflicts_with(&target_dir) {
+            Ok(true) => {
+                return self.rejected(
+                    DataDirMigrationErrorCode::CleanupConflict,
+                    Some(&target_dir),
+                );
+            }
+            Ok(false) => {}
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to inspect data directory cleanup state");
+                return self.rejected(DataDirMigrationErrorCode::Io, None);
+            }
         }
 
         self.inner.cancel_requested.store(false, Ordering::Release);
@@ -163,9 +167,14 @@ impl DataDirMigrationRuntime {
             None,
             true,
         );
-        let copied = copy_frozen_database_to_staging(&frozen, &target_dir, |processed, total| {
-            self.update_copy_progress(processed, total, &target_dir)
-        });
+        let copied = copy_frozen_database_to_staging_cancellable(
+            &frozen,
+            &target_dir,
+            |processed, total| {
+                self.update_copy_progress(processed, total, &target_dir);
+                !self.inner.cancel_requested.load(Ordering::Acquire)
+            },
+        );
         let copied = match copied {
             Ok(copied) => copied,
             Err(error) => {
@@ -173,7 +182,7 @@ impl DataDirMigrationRuntime {
                 return self.abort_after_freeze(
                     &target_dir,
                     DataDirMigrationErrorCode::CopyFailed,
-                    false,
+                    self.inner.cancel_requested.load(Ordering::Acquire),
                 );
             }
         };
@@ -280,8 +289,71 @@ impl DataDirMigrationRuntime {
         }
     }
 
+    pub fn switch_data_dir_pointer(&self, target_dir: PathBuf) -> DataDirMigrationActionOutcome {
+        let Some(_guard) = OperationGuard::try_acquire(&self.inner.operation_gate) else {
+            return self.rejected(DataDirMigrationErrorCode::OperationBusy, None);
+        };
+        if !self.inner.db.is_main_mode() {
+            return self.rejected(DataDirMigrationErrorCode::DatabaseUnavailable, None);
+        }
+        if has_pending_profile_restore(&self.inner.source_dir) {
+            return self.rejected(DataDirMigrationErrorCode::PendingRestore, None);
+        }
+        if self
+            .inner
+            .source_dir
+            .join("pending_vrcx_migration")
+            .is_file()
+        {
+            return self.rejected(DataDirMigrationErrorCode::PendingLegacyMigration, None);
+        }
+        if has_pending_data_dir_migration(&self.inner.control_dir) {
+            return self.rejected(DataDirMigrationErrorCode::PendingMigration, None);
+        }
+        match self.cleanup_conflicts_with(&target_dir) {
+            Ok(true) => {
+                return self.rejected(
+                    DataDirMigrationErrorCode::CleanupConflict,
+                    Some(&target_dir),
+                );
+            }
+            Ok(false) => {}
+            Err(error) => {
+                tracing::warn!(error = %error, "failed to inspect data directory cleanup state");
+                return self.rejected(DataDirMigrationErrorCode::Io, None);
+            }
+        }
+        if let Err(error) = (self.inner.pointer_committer)(&target_dir) {
+            tracing::warn!(error = %error, "failed to commit data directory pointer");
+            return self.failed(
+                DataDirMigrationErrorCode::PointerCommitFailed,
+                Some(&target_dir),
+            );
+        }
+        self.inner.cancel_requested.store(false, Ordering::Release);
+        let status = self.update_status(
+            DataDirMigrationState::Completed,
+            Some(DataDirMigrationPhase::Committing),
+            Some(100),
+            Some(&target_dir),
+            None,
+            true,
+        );
+        DataDirMigrationActionOutcome {
+            accepted: true,
+            status,
+            error: None,
+        }
+    }
+
     pub fn take_last_result(&self) -> Result<Option<DataDirMigrationResult>> {
         Ok(take_data_dir_migration_result(&self.inner.control_dir)?)
+    }
+
+    fn cleanup_conflicts_with(&self, target_dir: &Path) -> Result<bool> {
+        Ok(read_data_dir_cleanup_pendings(&self.inner.control_dir)?
+            .into_iter()
+            .any(|pending| paths_match(Path::new(&pending.old_dir), target_dir)))
     }
 
     pub fn cleanup_pending(&self) -> Result<Option<DataDirCleanupPending>> {

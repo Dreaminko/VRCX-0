@@ -84,6 +84,8 @@ export function profileRestoreRollbackErrorKey(
             return 'profile_backup.rollback_error.busy';
         case 'pendingRestore':
             return 'profile_backup.rollback_error.protected';
+        case 'pendingDataDirMigration':
+            return 'data_dir_migration.error.pendingMigration';
         case 'io':
             return 'profile_backup.rollback_error.io';
         default:

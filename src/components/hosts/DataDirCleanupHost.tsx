@@ -81,10 +81,16 @@ export function DataDirCleanupHost() {
         }
 
         async function checkStartupResult() {
-            const [result, state] = await Promise.all([
-                takeDataDirMigrationResult(),
-                getAppDataDirState()
-            ]);
+            const state = await getAppDataDirState();
+            const result = await takeDataDirMigrationResult().catch(
+                (error: unknown) => {
+                    console.warn(
+                        'Failed to read the data directory migration result:',
+                        error
+                    );
+                    return null;
+                }
+            );
             if (result?.status === 'databaseOpenFailed') {
                 toast.error(t('data_dir_migration.result.failed_title'), {
                     description: t(
