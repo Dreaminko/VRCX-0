@@ -1,5 +1,6 @@
 mod app_update;
 mod batch_mutation;
+mod data_dir_migration;
 mod database_upgrade;
 mod database_upgrade_runtime;
 mod instance_launch;
@@ -16,6 +17,11 @@ pub use batch_mutation::{
     AvatarContentTagsBatchInput, BatchMutationActions, BatchMutationItemResult,
     BatchMutationItemState, BatchMutationResult, GroupLeaveBatchInput, GroupVisibility,
     GroupVisibilityBatchInput, VrchatBatchMutationActions, BATCH_MUTATION_MAX_ITEMS,
+};
+pub use data_dir_migration::{
+    DataDirMigrationActionOutcome, DataDirMigrationError, DataDirMigrationErrorCode,
+    DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationRuntime, DataDirMigrationState,
+    DataDirMigrationStatus, DataDirPointerCommitter,
 };
 pub use database_upgrade::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
@@ -35,6 +41,7 @@ pub use notification_actions::{
     NotificationMarkSeenItemState, NotificationMarkSeenLocation, VrchatNotificationMarkSeenActions,
     NOTIFICATION_MARK_SEEN_MAX_ITEMS,
 };
+pub use profile_backup::ProfileOperationGate;
 pub use profile_backup::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,

@@ -22,9 +22,10 @@ use vrcx_0_application::{
     probe_current_user_from_cookie, record_login_success, record_logout,
     saved_credential_login_start, saved_credential_session_data, saved_snapshot,
     AuthenticatedRuntimeSession, AuthenticatedSessionMaintenanceOutcome, CookieSessionProbe,
-    FavoriteImportRuntime, LoginApi, LoginSession, LoginSessionState, LoginSuccessRecordInput,
-    LogoutRecordInput, NonInteractiveAuthError, PrintCleanupDeps, PrintCleanupQueueSink,
-    PrintCleanupTrigger, ProfileBackupRuntime, SavedCredentialLoginStartInput, WebClientLoginApi,
+    DataDirMigrationRuntime, FavoriteImportRuntime, LoginApi, LoginSession, LoginSessionState,
+    LoginSuccessRecordInput, LogoutRecordInput, NonInteractiveAuthError, PrintCleanupDeps,
+    PrintCleanupQueueSink, PrintCleanupTrigger, ProfileBackupRuntime,
+    SavedCredentialLoginStartInput, WebClientLoginApi,
 };
 use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
@@ -32,7 +33,16 @@ use vrcx_0_application_core::{
     RuntimeEventSink, UnavailableLocalGameContextSource, WebClient,
 };
 use vrcx_0_application_realtime::{RealtimeHostRuntime, RealtimeHostRuntimeDeps};
-use vrcx_0_host::app_paths::{AppDataDirResolution, AppPaths};
+use vrcx_0_host::app_paths::{
+    app_data_paths_match, commit_app_data_dir_pointer, AppDataDirResolution, AppDataDirSource,
+    AppPaths,
+};
+use vrcx_0_persistence::data_dir_migration::{
+    cleanup_interrupted_data_dir_migration, complete_data_dir_migration,
+    finalize_data_dir_migration, read_pending_data_dir_migration,
+    record_data_dir_migration_database_open_failure, DataDirMigrationFinalizeOutcome,
+    DataDirMigrationJournalPhase, PendingDataDirMigration,
+};
 use vrcx_0_persistence::legacy_migration::{
     consume_pending_legacy_migration, LegacyMigrationPaths,
 };

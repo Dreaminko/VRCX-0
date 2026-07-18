@@ -113,6 +113,7 @@ pub use social::{
     MutualGraphFetchStatus,
 };
 pub use system::DatabaseUpgradeRuntime;
+pub use system::ProfileOperationGate;
 pub use system::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
     DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
@@ -140,6 +141,11 @@ pub use system::{
     AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
     AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
     AppUpdateTargetResolver,
+};
+pub use system::{
+    DataDirMigrationActionOutcome, DataDirMigrationError, DataDirMigrationErrorCode,
+    DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationRuntime, DataDirMigrationState,
+    DataDirMigrationStatus, DataDirPointerCommitter,
 };
 pub use system::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,

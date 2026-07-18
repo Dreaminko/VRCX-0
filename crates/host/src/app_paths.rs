@@ -175,22 +175,28 @@ pub fn persist_app_data_dir(
     let default_dir = default_app_data_dir()?;
     let validation = validate_app_data_dir_selection(path.as_ref(), current_dir)?;
     let selected_path = PathBuf::from(&validation.path);
-    if paths_match(&selected_path, &default_dir) {
-        clear_persisted_app_data_dir()?;
-        return Ok(validation);
-    }
-
-    std::fs::create_dir_all(&default_dir)?;
-    let pointer = AppDataDirPointer {
-        data_dir: validation.path.clone(),
-    };
-    let json = serde_json::to_string_pretty(&pointer)?;
-    write_app_data_dir_pointer(&default_dir, &json)?;
+    commit_app_data_dir_pointer(&default_dir, &selected_path)?;
     Ok(validation)
 }
 
 pub fn clear_persisted_app_data_dir() -> Result<(), Error> {
     let default_dir = default_app_data_dir()?;
+    clear_app_data_dir_pointer(&default_dir)
+}
+
+pub fn commit_app_data_dir_pointer(default_dir: &Path, path: &Path) -> Result<(), Error> {
+    let resolved_path = path.canonicalize()?;
+    if app_data_paths_match(&resolved_path, default_dir) {
+        return clear_app_data_dir_pointer(default_dir);
+    }
+    let pointer = AppDataDirPointer {
+        data_dir: path_string(&resolved_path),
+    };
+    let json = serde_json::to_string_pretty(&pointer)?;
+    write_app_data_dir_pointer(default_dir, &json)
+}
+
+pub fn clear_app_data_dir_pointer(default_dir: &Path) -> Result<(), Error> {
     let pointer_path = app_data_dir_pointer_path(&default_dir);
     match std::fs::remove_file(&pointer_path) {
         Ok(()) => sync_directory_after_pointer_update(&default_dir),
@@ -420,10 +426,18 @@ fn ensure_directory_writable(path: &Path) -> Result<(), Error> {
     }
 }
 
-fn paths_match(left: &Path, right: &Path) -> bool {
+pub fn app_data_paths_match(left: &Path, right: &Path) -> bool {
     let left = left.canonicalize().unwrap_or_else(|_| left.to_path_buf());
     let right = right.canonicalize().unwrap_or_else(|_| right.to_path_buf());
-    left == right
+    #[cfg(windows)]
+    {
+        left.to_string_lossy()
+            .eq_ignore_ascii_case(&right.to_string_lossy())
+    }
+    #[cfg(not(windows))]
+    {
+        left == right
+    }
 }
 
 fn ensure_distinct_data_directories(selected: &Path, current: &Path) -> Result<(), Error> {
