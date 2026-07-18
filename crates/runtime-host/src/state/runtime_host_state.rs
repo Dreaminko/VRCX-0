@@ -658,8 +658,9 @@ mod profile_bundle_tests {
     use std::sync::atomic::AtomicUsize;
     use vrcx_0_host::app_paths::AppDataDirSource;
     use vrcx_0_persistence::data_dir_migration::{
-        take_data_dir_migration_result, write_pending_data_dir_migration,
-        DataDirMigrationResultStatus, PendingDataDirMigration, StagedDataDirMigration,
+        read_pending_data_dir_migration, take_data_dir_migration_result,
+        write_pending_data_dir_migration, DataDirMigrationResultStatus, PendingDataDirMigration,
+        StagedDataDirMigration,
     };
 
     #[derive(Default)]
@@ -780,6 +781,65 @@ mod profile_bundle_tests {
                 .status,
             DataDirMigrationResultStatus::DatabaseOpenFailed
         );
+        Ok(())
+    }
+
+    #[test]
+    fn interrupted_copy_is_cleaned_before_profile_startup() -> Result<()> {
+        let dir = TestDir::new("data-dir-migration-interrupted");
+        let source = dir.path.join("source");
+        let target = dir.path.join("target");
+        let staging = target.join(".migrate-staging");
+        std::fs::create_dir_all(&source)?;
+        std::fs::create_dir_all(&staging)?;
+        std::fs::write(staging.join("VRCX-0.sqlite3"), b"partial")?;
+        write_pending_data_dir_migration(
+            &source,
+            &PendingDataDirMigration::copying(
+                source.to_string_lossy().into_owned(),
+                target.to_string_lossy().into_owned(),
+                "2026-07-18T00:00:00Z".into(),
+                false,
+            ),
+        )?;
+
+        let mut resolution = persisted_resolution(&source);
+        assert!(prepare_data_dir_migration_startup(&mut resolution)?.is_none());
+        assert!(app_data_paths_match(&resolution.current_dir, &source));
+        assert!(!staging.exists());
+        assert!(read_pending_data_dir_migration(&source)?.is_none());
+        assert_eq!(
+            take_data_dir_migration_result(&source)?
+                .expect("migration result")
+                .status,
+            DataDirMigrationResultStatus::Interrupted
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn cli_override_leaves_switched_migration_pending() -> Result<()> {
+        let dir = TestDir::new("data-dir-migration-cli-override");
+        let control = dir.path.join("control");
+        let source = dir.path.join("source");
+        let target = dir.path.join("target");
+        let cli = dir.path.join("cli");
+        for path in [&control, &source, &target, &cli] {
+            std::fs::create_dir_all(path)?;
+        }
+        write_pending_data_dir_migration(&control, &switched_journal(&source, &target))?;
+        let mut resolution = AppDataDirResolution {
+            current_dir: cli.clone(),
+            default_dir: control.clone(),
+            persisted_dir: Some(source),
+            cli_dir: Some(cli.clone()),
+            source: AppDataDirSource::Cli,
+        };
+
+        assert!(prepare_data_dir_migration_startup(&mut resolution)?.is_none());
+        assert!(app_data_paths_match(&resolution.current_dir, &cli));
+        assert!(read_pending_data_dir_migration(&control)?.is_some());
+        assert!(take_data_dir_migration_result(&control)?.is_none());
         Ok(())
     }
 
