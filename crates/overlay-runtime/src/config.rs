@@ -34,7 +34,7 @@ pub const HMD_NOTIFICATION_POSITION_CONFIG_KEY: &str = "hmdNotificationPosition"
 const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
 const DATE_TIME_HOUR12_CONFIG_KEY: &str = "dtHour12";
 const SHOW_INSTANCE_ID_IN_LOCATION_CONFIG_KEY: &str = "VRCX_showInstanceIdInLocation";
-pub(in crate::vr_overlay) const FRIENDS_PANEL_RUNTIME_ENABLED: bool = false;
+pub(crate) const FRIENDS_PANEL_RUNTIME_ENABLED: bool = false;
 
 pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntimeConfig {
     let start_mode = config
@@ -143,8 +143,8 @@ pub(super) fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntime
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vr_overlay::runtime::tests::{record_process_status, test_services};
-    use crate::vr_overlay::runtime::VrOverlayRuntime;
+    use crate::runtime::tests::{record_process_status, test_services};
+    use crate::runtime::VrOverlayRuntime;
     use std::sync::Arc;
 
     #[test]

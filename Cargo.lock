@@ -8997,6 +8997,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "vrcx-0-overlay-runtime"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "image",
+ "serde",
+ "serde_json",
+ "specta",
+ "tokio",
+ "tracing",
+ "vrcx-0-application",
+ "vrcx-0-application-activity",
+ "vrcx-0-application-core",
+ "vrcx-0-application-game",
+ "vrcx-0-application-realtime",
+ "vrcx-0-core",
+ "vrcx-0-host-desktop",
+ "vrcx-0-i18n",
+ "vrcx-0-persistence",
+ "vrcx-0-runtime-host",
+ "vrcx-0-vr-overlay",
+]
+
+[[package]]
 name = "vrcx-0-persistence"
 version = "0.1.0"
 dependencies = [
@@ -9065,9 +9089,9 @@ dependencies = [
  "vrcx-0-host",
  "vrcx-0-host-desktop",
  "vrcx-0-i18n",
+ "vrcx-0-overlay-runtime",
  "vrcx-0-persistence",
  "vrcx-0-runtime-host",
- "vrcx-0-vr-overlay",
  "vrcx-0-vrchat-client",
 ]
 

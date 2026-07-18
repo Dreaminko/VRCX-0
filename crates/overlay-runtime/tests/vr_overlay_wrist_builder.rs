@@ -4,7 +4,7 @@ use vrcx_0_application_activity::{
     OverlayActivityEntry, OverlayActivitySnapshot, OverlayActivityText,
 };
 use vrcx_0_host_desktop::vr_overlay::{VrDeviceSnapshot, VrDeviceStatus};
-use vrcx_0_runtime_host_desktop::vr_overlay::{
+use vrcx_0_overlay_runtime::{
     build_wrist_surface_model, WristOverlayFrameInput, WristOverlayRenderOptions,
     WristRuntimeFooter,
 };

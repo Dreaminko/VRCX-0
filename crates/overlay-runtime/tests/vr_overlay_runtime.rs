@@ -1,7 +1,7 @@
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 use vrcx_0_application_game::{GameLogEvent, GameLogEventSink};
 use vrcx_0_core::log_watcher::GameLogEventKind;
-use vrcx_0_runtime_host_desktop::vr_overlay::VrOverlayRuntime;
+use vrcx_0_overlay_runtime::VrOverlayRuntime;
 
 #[test]
 fn runtime_starts_panel_listener_before_wrist_overlay_is_enabled() {

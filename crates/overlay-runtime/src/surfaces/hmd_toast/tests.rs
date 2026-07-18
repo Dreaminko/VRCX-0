@@ -1,6 +1,6 @@
 use super::*;
-use crate::vr_overlay::avatar_cache::tests::{test_avatar_bitmap, test_avatar_bitmap_with_red};
-use crate::vr_overlay::runtime::tests::{
+use crate::avatar_cache::tests::{test_avatar_bitmap, test_avatar_bitmap_with_red};
+use crate::runtime::tests::{
     friends_panel_snapshot, hmd_enabled_runtime_with_services, test_services,
 };
 use std::sync::atomic::{AtomicBool, Ordering};

@@ -33,7 +33,7 @@ pub(crate) struct HmdToastState {
 }
 
 impl VrOverlayRuntime {
-    pub(in crate::vr_overlay) fn ingest_hmd_delivery(
+    pub(crate) fn ingest_hmd_delivery(
         self: &Arc<Self>,
         delivery: OverlayActivityDelivery,
     ) {
@@ -118,14 +118,14 @@ impl VrOverlayRuntime {
         true
     }
 
-    pub(in crate::vr_overlay) fn clear_hmd_toasts(&self) {
+    pub(crate) fn clear_hmd_toasts(&self) {
         if let Ok(mut queue) = self.hmd_toasts.lock() {
             queue.clear();
         }
         self.release_hmd_renderer();
     }
 
-    pub(in crate::vr_overlay) fn push_hmd_frame(
+    pub(crate) fn push_hmd_frame(
         &self,
         manager: &mut VrOverlayManager<HostVrOverlayService>,
         config: VrOverlayRuntimeConfig,
@@ -416,7 +416,7 @@ fn unresolved_entry_world_id(entry: &OverlayActivityEntry) -> Option<String> {
     (!world_id.is_empty()).then_some(world_id)
 }
 
-pub(in crate::vr_overlay) fn refresh_cached_world_name(
+pub(crate) fn refresh_cached_world_name(
     world_cache: &WorldCache,
     entry: &mut OverlayActivityEntry,
 ) {

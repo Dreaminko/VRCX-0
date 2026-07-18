@@ -1,6 +1,6 @@
 use super::*;
-use crate::vr_overlay::runtime::tests::test_services;
-use crate::vr_overlay::runtime::{
+use crate::runtime::tests::test_services;
+use crate::runtime::{
     VrOverlayRuntime, VR_OVERLAY_FRIENDS_PANEL_GROUP_CONFIG_KEY,
     VR_OVERLAY_PANEL_SELECTED_CATEGORY_CONFIG_KEY,
 };

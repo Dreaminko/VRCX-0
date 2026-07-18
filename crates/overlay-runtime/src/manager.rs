@@ -183,7 +183,7 @@ mod tests {
     use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
     use super::{is_expected_overlay_start_wait, VrOverlayManager};
-    use crate::vr_overlay::{
+    use crate::{
         service::{OverlayBackendPreference, OverlayServiceStartError, VrOverlayServiceControl},
         VrOverlayEligibility,
     };

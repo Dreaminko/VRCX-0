@@ -15,7 +15,7 @@ use vrcx_0_vr_overlay::{
     FriendPanelRowActions, FriendPanelRowPrimaryAction, FriendPanelStatusTone,
 };
 
-use crate::DesktopRuntimeServices;
+use crate::VrOverlayRuntimeServices;
 
 use super::super::localization::{OverlayLocale, OverlayLocalizer, OverlayPanelLocalizer};
 
@@ -162,7 +162,7 @@ pub(crate) fn local_favorite_friend_groups_from_db(
 }
 
 pub(crate) fn load_friends_panel_notes(
-    services: &DesktopRuntimeServices,
+    services: &dyn VrOverlayRuntimeServices,
     owner_user_id: String,
 ) -> HashMap<String, String> {
     memo_list_user_notes(services.data().db.as_ref(), owner_user_id)
@@ -177,7 +177,7 @@ pub(crate) fn load_friends_panel_notes(
 }
 
 pub(crate) fn load_friends_panel_memos(
-    services: &DesktopRuntimeServices,
+    services: &dyn VrOverlayRuntimeServices,
 ) -> HashMap<String, String> {
     memo_list_users(services.data().db.as_ref())
         .map(|memos| {

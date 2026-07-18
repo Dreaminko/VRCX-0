@@ -30,7 +30,7 @@ use vrcx_0_vr_overlay::{
     FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 
-use crate::DesktopRuntimeServices;
+use crate::VrOverlayRuntimeServices;
 
 use super::{
     avatar_cache::AvatarBitmapCache,
@@ -51,7 +51,7 @@ use super::{
     WristOverlayFrameInput, WristOverlayRenderOptions, WristOverlaySizePreset, WristRuntimeFooter,
 };
 
-pub(in crate::vr_overlay) use super::config::{load_runtime_config, FRIENDS_PANEL_RUNTIME_ENABLED};
+pub(crate) use super::config::{load_runtime_config, FRIENDS_PANEL_RUNTIME_ENABLED};
 #[cfg(test)]
 pub use super::config::{
     HMD_NOTIFICATIONS_ENABLED_CONFIG_KEY, HMD_NOTIFICATION_START_MODE_CONFIG_KEY,
@@ -100,7 +100,7 @@ pub enum WristOverlayHand {
 }
 
 impl WristOverlayHand {
-    pub(in crate::vr_overlay) fn from_config(value: &str) -> Self {
+    pub(crate) fn from_config(value: &str) -> Self {
         match value.trim() {
             "right" => Self::Right,
             "both" => Self::Both,
@@ -119,7 +119,7 @@ pub enum HmdNotificationPosition {
 }
 
 impl HmdNotificationPosition {
-    pub(in crate::vr_overlay) fn from_config(value: &str) -> Self {
+    pub(crate) fn from_config(value: &str) -> Self {
         match value.trim() {
             "top" => Self::Top,
             "left" => Self::Left,
@@ -139,12 +139,12 @@ impl HmdNotificationPosition {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(in crate::vr_overlay) struct HmdNotificationConfig {
-    pub(in crate::vr_overlay) enabled: bool,
-    pub(in crate::vr_overlay) start_mode: WristOverlayStartMode,
-    pub(in crate::vr_overlay) timeout_ms: u64,
-    pub(in crate::vr_overlay) opacity_percent: u8,
-    pub(in crate::vr_overlay) position: HmdNotificationPosition,
+pub(crate) struct HmdNotificationConfig {
+    pub(crate) enabled: bool,
+    pub(crate) start_mode: WristOverlayStartMode,
+    pub(crate) timeout_ms: u64,
+    pub(crate) opacity_percent: u8,
+    pub(crate) position: HmdNotificationPosition,
 }
 
 impl Default for HmdNotificationConfig {
@@ -161,17 +161,17 @@ impl Default for HmdNotificationConfig {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct VrOverlayRuntimeConfig {
-    pub(in crate::vr_overlay) start_mode: WristOverlayStartMode,
-    pub(in crate::vr_overlay) backend: OverlayBackendPreference,
-    pub(in crate::vr_overlay) button: OverlayActivationButton,
-    pub(in crate::vr_overlay) hand: WristOverlayHand,
-    pub(in crate::vr_overlay) panel_enabled: bool,
-    pub(in crate::vr_overlay) panel_all_friends_includes_favorites: bool,
-    pub(in crate::vr_overlay) hmd: HmdNotificationConfig,
-    pub(in crate::vr_overlay) render: WristOverlayRenderOptions,
-    pub(in crate::vr_overlay) locale: OverlayLocale,
-    pub(in crate::vr_overlay) dt_hour12: bool,
-    pub(in crate::vr_overlay) show_instance_id_in_location: bool,
+    pub(crate) start_mode: WristOverlayStartMode,
+    pub(crate) backend: OverlayBackendPreference,
+    pub(crate) button: OverlayActivationButton,
+    pub(crate) hand: WristOverlayHand,
+    pub(crate) panel_enabled: bool,
+    pub(crate) panel_all_friends_includes_favorites: bool,
+    pub(crate) hmd: HmdNotificationConfig,
+    pub(crate) render: WristOverlayRenderOptions,
+    pub(crate) locale: OverlayLocale,
+    pub(crate) dt_hour12: bool,
+    pub(crate) show_instance_id_in_location: bool,
 }
 
 impl Default for VrOverlayRuntimeConfig {
@@ -232,10 +232,10 @@ struct FriendsPanelNoteMemoCache {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(in crate::vr_overlay) struct ActiveOverlaySurfaces {
+pub(crate) struct ActiveOverlaySurfaces {
     wrist: bool,
     hmd: bool,
-    pub(in crate::vr_overlay) panel_listener: bool,
+    pub(crate) panel_listener: bool,
     friends_panel: bool,
 }
 
@@ -417,7 +417,7 @@ pub struct VrOverlayRuntime {
     device_refresh_requested: AtomicBool,
     interactive_degraded_logged: AtomicBool,
     backend_available: bool,
-    pub(crate) services: Option<Arc<DesktopRuntimeServices>>,
+    pub(crate) services: Option<Arc<dyn VrOverlayRuntimeServices>>,
     config: Mutex<VrOverlayRuntimeConfig>,
     friends_panel_snapshot_provider: Mutex<Option<FriendsPanelSnapshotProvider>>,
     friends_panel_favorite_groups: Mutex<FavoriteFriendGroupsSnapshot>,
@@ -433,7 +433,7 @@ pub struct VrOverlayRuntime {
     devices: Mutex<Vec<VrDeviceSnapshot>>,
     pub(crate) hmd_toasts: Mutex<VecDeque<HmdToastState>>,
     pub(crate) interactive_panel: Arc<Mutex<InteractivePanelRuntimeState>>,
-    pub(in crate::vr_overlay) avatar_bitmap_cache: Arc<AvatarBitmapCache>,
+    pub(crate) avatar_bitmap_cache: Arc<AvatarBitmapCache>,
     pub(crate) user_image_cache: Arc<UserImageCache>,
     pub(crate) manager: Mutex<VrOverlayManager<HostVrOverlayService>>,
     running_mirror: AtomicBool,
@@ -468,8 +468,12 @@ impl OverlayActivitySink for VrOverlayActivitySink {
 }
 
 impl VrOverlayRuntime {
-    pub fn new(services: Arc<DesktopRuntimeServices>) -> Self {
+    pub fn new<S>(services: Arc<S>) -> Self
+    where
+        S: VrOverlayRuntimeServices + 'static,
+    {
         let config = load_runtime_config(services.data().config());
+        let services: Arc<dyn VrOverlayRuntimeServices> = services;
         let producer_services = Arc::clone(&services);
         Self::new_with_frame_producer_factory(
             HostVrOverlayService::backend_available(),
@@ -516,7 +520,7 @@ impl VrOverlayRuntime {
 
     fn new_with_frame_producer_factory(
         backend_available: bool,
-        services: Option<Arc<DesktopRuntimeServices>>,
+        services: Option<Arc<dyn VrOverlayRuntimeServices>>,
         config: VrOverlayRuntimeConfig,
         frame_producer_factory: VrOverlayFrameProducerFactory,
     ) -> Self {
@@ -640,7 +644,7 @@ impl VrOverlayRuntime {
         self.services.is_some() && !self.is_refresh_thread()
     }
 
-    pub(crate) fn set_friends_panel_snapshot_provider<F>(&self, provider: F)
+    pub fn set_friends_panel_snapshot_provider<F>(&self, provider: F)
     where
         F: Fn() -> Option<RealtimeFriendSnapshot> + Send + Sync + 'static,
     {
@@ -649,7 +653,7 @@ impl VrOverlayRuntime {
         }
     }
 
-    pub(crate) fn update_friends_panel_favorite_groups_from_baseline(
+    pub fn update_friends_panel_favorite_groups_from_baseline(
         &self,
         snapshot: &serde_json::Value,
     ) {
@@ -670,7 +674,7 @@ impl VrOverlayRuntime {
         }
     }
 
-    pub(crate) fn clear_friends_panel_session_state(&self) {
+    pub fn clear_friends_panel_session_state(&self) {
         self.friends_panel_avatar_session_generation
             .fetch_add(1, Ordering::AcqRel);
         if let Ok(mut current) = self.friends_panel_favorite_groups.lock() {
@@ -852,8 +856,9 @@ impl VrOverlayRuntime {
                     cache.memos_by_user_id.clone(),
                 );
             }
-            let notes_by_user_id = load_friends_panel_notes(services, owner_user_id.clone());
-            let memos_by_user_id = load_friends_panel_memos(services);
+            let notes_by_user_id =
+                load_friends_panel_notes(services.as_ref(), owner_user_id.clone());
+            let memos_by_user_id = load_friends_panel_memos(services.as_ref());
             *cache = FriendsPanelNoteMemoCache {
                 owner_user_id,
                 notes_by_user_id: notes_by_user_id.clone(),
@@ -863,8 +868,8 @@ impl VrOverlayRuntime {
             return (notes_by_user_id, memos_by_user_id);
         }
         (
-            load_friends_panel_notes(services, owner_user_id),
-            load_friends_panel_memos(services),
+            load_friends_panel_notes(services.as_ref(), owner_user_id),
+            load_friends_panel_memos(services.as_ref()),
         )
     }
 
@@ -931,7 +936,7 @@ impl VrOverlayRuntime {
 
     fn queue_friends_panel_avatar(
         &self,
-        services: &Arc<DesktopRuntimeServices>,
+        services: &Arc<dyn VrOverlayRuntimeServices>,
         endpoint: &str,
         record: &FriendRecord,
     ) -> bool {
@@ -1020,7 +1025,7 @@ impl VrOverlayRuntime {
 
     fn queue_friends_panel_world_names(
         &self,
-        services: &Arc<DesktopRuntimeServices>,
+        services: &Arc<dyn VrOverlayRuntimeServices>,
         endpoint: &str,
         record: &FriendRecord,
     ) {
@@ -1061,7 +1066,7 @@ impl VrOverlayRuntime {
         }
     }
 
-    pub(in crate::vr_overlay) fn load_friends_panel_selected_category(&self) -> String {
+    pub(crate) fn load_friends_panel_selected_category(&self) -> String {
         if !self.current_runtime_config().panel_enabled {
             return FRIENDS_PANEL_CATEGORY_ALL.to_string();
         }
@@ -1090,7 +1095,7 @@ impl VrOverlayRuntime {
             .unwrap_or_else(|| FRIENDS_PANEL_CATEGORY_ALL.to_string())
     }
 
-    pub(in crate::vr_overlay) fn persist_friends_panel_selected_category(&self, key: &str) {
+    pub(crate) fn persist_friends_panel_selected_category(&self, key: &str) {
         if !self.current_runtime_config().panel_enabled {
             return;
         }
@@ -1341,14 +1346,14 @@ impl VrOverlayRuntime {
         }
     }
 
-    pub(in crate::vr_overlay) fn is_hmd_surface_active(
+    pub(crate) fn is_hmd_surface_active(
         &self,
         config: VrOverlayRuntimeConfig,
     ) -> bool {
         self.active_surfaces(config).hmd
     }
 
-    pub(in crate::vr_overlay) fn active_surfaces(
+    pub(crate) fn active_surfaces(
         &self,
         config: VrOverlayRuntimeConfig,
     ) -> ActiveOverlaySurfaces {
@@ -1440,7 +1445,7 @@ impl VrOverlayRuntime {
         }
     }
 
-    pub(in crate::vr_overlay) fn current_runtime_config(&self) -> VrOverlayRuntimeConfig {
+    pub(crate) fn current_runtime_config(&self) -> VrOverlayRuntimeConfig {
         self.config.lock().map(|config| *config).unwrap_or_default()
     }
 
@@ -1553,7 +1558,7 @@ impl VrOverlayRuntime {
         }
     }
 
-    pub(in crate::vr_overlay) fn release_hmd_renderer(&self) {
+    pub(crate) fn release_hmd_renderer(&self) {
         if self.defer_slint_renderer_release(&self.hmd_frame_release_requested) {
             self.refresh_wake.notify();
             return;
@@ -1578,7 +1583,7 @@ impl VrOverlayRuntime {
         clear_slint_friends_panel_host();
     }
 
-    pub(in crate::vr_overlay) fn release_hmd_renderer_on_current_thread(&self) {
+    pub(crate) fn release_hmd_renderer_on_current_thread(&self) {
         self.hmd_frame_release_requested
             .store(false, Ordering::Release);
         clear_slint_hmd_renderer();
@@ -1991,18 +1996,19 @@ impl GameLogEventSink for VrOverlayRuntime {
 }
 
 struct RuntimeWristFrameProducer {
-    services: Arc<DesktopRuntimeServices>,
+    services: Arc<dyn VrOverlayRuntimeServices>,
 }
 
 impl RuntimeWristFrameProducer {
-    fn new(services: Arc<DesktopRuntimeServices>) -> Self {
+    fn new(services: Arc<dyn VrOverlayRuntimeServices>) -> Self {
         Self { services }
     }
 }
 
 impl VrOverlayFrameProducer for RuntimeWristFrameProducer {
     fn next_frame(&mut self, input: VrOverlayFrameInput) -> Result<RgbaFrame, String> {
-        let frame_input = build_wrist_frame_input(&self.services, input.config, input.devices);
+        let frame_input =
+            build_wrist_frame_input(self.services.as_ref(), input.config, input.devices);
         let model = build_wrist_surface_model(frame_input);
         render_slint_wrist_frame(&model)
     }
@@ -2029,7 +2035,7 @@ fn clear_slint_friends_panel_host() {
     });
 }
 
-pub(in crate::vr_overlay) fn render_slint_hmd_frame(
+pub(crate) fn render_slint_hmd_frame(
     model: &MainSurfaceModel,
 ) -> Result<RgbaFrame, String> {
     SLINT_HMD_RENDERER.with(|renderer| {
@@ -2278,13 +2284,13 @@ fn is_friends_panel_id(panel_id: &str) -> bool {
 }
 
 pub(super) fn build_wrist_frame_input(
-    services: &DesktopRuntimeServices,
+    services: &dyn VrOverlayRuntimeServices,
     config: VrOverlayRuntimeConfig,
     devices: Vec<VrDeviceSnapshot>,
 ) -> WristOverlayFrameInput {
     let game_log = services.game_log_snapshot();
     let captured_at_ms = now_ms();
-    let mut activity = services.overlay_activity().snapshot();
+    let mut activity = services.data().overlay_activity().snapshot();
     for entry in &mut activity.entries {
         refresh_cached_world_name(&services.data().world_cache, entry);
     }

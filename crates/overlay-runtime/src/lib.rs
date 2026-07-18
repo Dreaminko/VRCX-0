@@ -7,6 +7,7 @@ mod manager;
 mod preview_bridge;
 mod runtime;
 mod service;
+mod services;
 pub mod surfaces;
 
 pub use eligibility::{VrOverlayEligibility, WristOverlayStartMode};
@@ -22,6 +23,7 @@ pub use service::{
     HostVrOverlayService, OverlayBackendPreference, OverlayServiceStartError,
     VrOverlayServiceControl,
 };
+pub use services::VrOverlayRuntimeServices;
 pub use surfaces::wrist::{
     build_wrist_surface_model, WristOverlayFrameInput, WristOverlayRenderOptions,
     WristOverlaySizePreset, WristRuntimeFooter,

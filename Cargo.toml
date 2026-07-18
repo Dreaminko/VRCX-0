@@ -17,6 +17,7 @@ members = [
     "crates/application-game",
     "crates/runtime-host",
     "crates/runtime-host-desktop",
+    "crates/overlay-runtime",
     "crates/overlay-devtool",
     "crates/headless",
     "crates/mcp",
@@ -40,6 +41,7 @@ default-members = [
     "crates/application-game",
     "crates/runtime-host",
     "crates/runtime-host-desktop",
+    "crates/overlay-runtime",
     "crates/headless",
     "crates/mcp",
     "crates/harness"

@@ -9,7 +9,7 @@ pub mod notification;
 mod process_monitor;
 mod registry_backup;
 mod state;
-pub mod vr_overlay;
+pub use vrcx_0_overlay_runtime as vr_overlay;
 
 pub use context::DesktopRuntimeServices;
 pub use game_client::GameClientHostRuntime;

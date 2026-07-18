@@ -1,6 +1,6 @@
 use super::*;
-use crate::vr_overlay::avatar_cache::tests::test_avatar_bitmap;
-use crate::vr_overlay::surfaces::friends::FRIENDS_PANEL_CATEGORY_SAME_INSTANCE;
+use crate::avatar_cache::tests::test_avatar_bitmap;
+use crate::surfaces::friends::FRIENDS_PANEL_CATEGORY_SAME_INSTANCE;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use vrcx_0_application_core::WebClient;
 use vrcx_0_application_game::{PlayerState, RuntimeSnapshot};
@@ -10,6 +10,42 @@ use vrcx_0_vr_overlay::UvPoint;
 use vrcx_0_vr_overlay::{
     FriendPanelCategory, FriendPanelRow, FriendPanelRowActions, FriendPanelStatusTone,
 };
+
+pub(crate) struct TestOverlayRuntimeServices {
+    data: Arc<vrcx_0_runtime_host::RuntimeHostContext>,
+    game_log_snapshot: Arc<Mutex<RuntimeSnapshot>>,
+}
+
+impl TestOverlayRuntimeServices {
+    fn new(data: Arc<vrcx_0_runtime_host::RuntimeHostContext>) -> Self {
+        Self {
+            data,
+            game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
+        }
+    }
+
+    pub(crate) fn data(&self) -> &vrcx_0_runtime_host::RuntimeHostContext {
+        self.data.as_ref()
+    }
+
+    fn game_log_snapshot_handle(&self) -> Arc<Mutex<RuntimeSnapshot>> {
+        Arc::clone(&self.game_log_snapshot)
+    }
+}
+
+impl crate::VrOverlayRuntimeServices for TestOverlayRuntimeServices {
+    fn data(&self) -> &vrcx_0_runtime_host::RuntimeHostContext {
+        self.data()
+    }
+
+    fn game_log_snapshot(&self) -> RuntimeSnapshot {
+        self.game_log_snapshot
+            .lock()
+            .map(|snapshot| snapshot.clone())
+            .unwrap_or_default()
+    }
+
+}
 
 fn friends_panel_input(kind: OverlayInputKind, uv: UvPoint) -> OverlayInputEvent {
     OverlayInputEvent {
@@ -99,7 +135,7 @@ pub(crate) fn test_services(
 ) -> (
     TestDir,
     Arc<vrcx_0_persistence::DatabaseService>,
-    Arc<DesktopRuntimeServices>,
+    Arc<TestOverlayRuntimeServices>,
 ) {
     let dir = TestDir::new(name);
     let db = Arc::new(
@@ -126,12 +162,12 @@ pub(crate) fn test_services(
         web,
         image_cache,
     ));
-    let services = Arc::new(DesktopRuntimeServices::new(data));
+    let services = Arc::new(TestOverlayRuntimeServices::new(data));
     (dir, db, services)
 }
 
 fn friends_panel_enabled_runtime_with_services(
-    services: Arc<DesktopRuntimeServices>,
+    services: Arc<TestOverlayRuntimeServices>,
 ) -> VrOverlayRuntime {
     let config = VrOverlayRuntimeConfig {
         panel_enabled: true,
@@ -146,7 +182,7 @@ fn friends_panel_enabled_runtime_with_services(
 }
 
 pub(crate) fn hmd_enabled_runtime_with_services(
-    services: Arc<DesktopRuntimeServices>,
+    services: Arc<TestOverlayRuntimeServices>,
 ) -> Arc<VrOverlayRuntime> {
     services
         .data()
@@ -1297,8 +1333,9 @@ fn friends_panel_avatar_refetches_when_config_selects_different_url() {
         ..FriendRecord::default()
     };
 
+    let runtime_services: Arc<dyn crate::VrOverlayRuntimeServices> = services.clone();
     assert!(runtime.queue_friends_panel_avatar(
-        &services,
+        &runtime_services,
         "https://api.vrchat.cloud/api/1",
         &record
     ));

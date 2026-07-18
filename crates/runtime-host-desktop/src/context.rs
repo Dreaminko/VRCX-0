@@ -5,6 +5,7 @@ use vrcx_0_application_activity::{OverlayActivityRuntime, OverlayActivitySink};
 use vrcx_0_application_game::RuntimeSnapshot;
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_host_desktop::tts::{SystemTtsEngine, TtsEngine};
+use vrcx_0_overlay_runtime::VrOverlayRuntimeServices;
 use vrcx_0_runtime_host::notification::{
     extract_file_id, extract_file_version, fallback_file_version, normalize_avatar_image_url_128,
     RealtimeUserImageResolverSlot,
@@ -208,6 +209,16 @@ impl DesktopRuntimeServices {
                 let _ = image_cache.get_image(&normalized, &file_id, &version).await;
             });
         }
+    }
+}
+
+impl VrOverlayRuntimeServices for DesktopRuntimeServices {
+    fn data(&self) -> &RuntimeHostContext {
+        DesktopRuntimeServices::data(self)
+    }
+
+    fn game_log_snapshot(&self) -> RuntimeSnapshot {
+        DesktopRuntimeServices::game_log_snapshot(self)
     }
 }
 

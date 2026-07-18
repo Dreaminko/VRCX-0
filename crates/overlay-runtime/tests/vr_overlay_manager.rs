@@ -1,5 +1,5 @@
 use vrcx_0_host_desktop::vr_overlay::{OverlaySurfaceConfig, VrDeviceSnapshot};
-use vrcx_0_runtime_host_desktop::vr_overlay::{
+use vrcx_0_overlay_runtime::{
     OverlayServiceStartError, VrOverlayEligibility, VrOverlayManager, VrOverlayServiceControl,
     WristOverlayStartMode,
 };

@@ -19,7 +19,7 @@ use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::parse_location;
 use vrcx_0_vr_overlay::SlintPanelEvent;
 
-use crate::DesktopRuntimeServices;
+use crate::VrOverlayRuntimeServices;
 
 use super::super::runtime::{
     FriendsPanelActionKind, FriendsPanelActionRequest, InteractivePanelRuntimeState,
@@ -145,7 +145,7 @@ impl VrOverlayRuntime {
 }
 
 struct RuntimeFriendsPanelActionApi {
-    services: Arc<DesktopRuntimeServices>,
+    services: Arc<dyn VrOverlayRuntimeServices>,
 }
 
 impl InstanceLaunchHttpClient for RuntimeFriendsPanelActionApi {
@@ -207,7 +207,7 @@ impl InstanceLaunchPipe for RuntimeFriendsPanelLaunchPipe {
 }
 
 async fn run_friends_panel_action(
-    services: Arc<DesktopRuntimeServices>,
+    services: Arc<dyn VrOverlayRuntimeServices>,
     endpoint: String,
     current_location: String,
     record: FriendRecord,
@@ -256,7 +256,7 @@ async fn run_friends_panel_action(
                 Err(error) => return format!("Request invite failed: {error}"),
             };
             match execute_friends_panel_vrchat_request(
-                &services,
+                services.as_ref(),
                 "vr_overlay.friends_panel.request_invite",
                 request,
             )
@@ -267,7 +267,7 @@ async fn run_friends_panel_action(
             }
         }
         FriendsPanelActionKind::Invite => {
-            let params = match friends_panel_invite_params(&services, &current_location) {
+            let params = match friends_panel_invite_params(services.as_ref(), &current_location) {
                 Ok(params) => params,
                 Err(error) => return format!("Invite failed: {error}"),
             };
@@ -277,7 +277,7 @@ async fn run_friends_panel_action(
                 Err(error) => return format!("Invite failed: {error}"),
             };
             match execute_friends_panel_vrchat_request(
-                &services,
+                services.as_ref(),
                 "vr_overlay.friends_panel.invite",
                 request,
             )
@@ -291,7 +291,7 @@ async fn run_friends_panel_action(
 }
 
 async fn execute_friends_panel_vrchat_request(
-    services: &DesktopRuntimeServices,
+    services: &dyn VrOverlayRuntimeServices,
     command: &'static str,
     request: VrchatApiRequest,
 ) -> std::result::Result<(), String> {
@@ -306,7 +306,7 @@ async fn execute_friends_panel_vrchat_request(
 }
 
 async fn execute_friends_panel_api_command(
-    services: &DesktopRuntimeServices,
+    services: &dyn VrOverlayRuntimeServices,
     command: &'static str,
     request: VrchatApiRequest,
 ) -> vrcx_0_application_core::Result<VrchatApiResponse> {
@@ -323,7 +323,7 @@ async fn execute_friends_panel_api_command(
 }
 
 fn friends_panel_invite_params(
-    services: &DesktopRuntimeServices,
+    services: &dyn VrOverlayRuntimeServices,
     current_location: &str,
 ) -> std::result::Result<serde_json::Value, String> {
     let parsed = parse_location(current_location);
