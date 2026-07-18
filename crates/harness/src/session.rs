@@ -556,18 +556,12 @@ fn now_rfc3339() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::unique_test_database_path;
 
     const TEST_OWNER: &str = "usr_test";
 
     fn test_db() -> Arc<DatabaseService> {
-        let nonce = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let dir =
-            std::env::temp_dir().join(format!("vrcx-0-harness-{}-{nonce}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        Arc::new(DatabaseService::new(&dir.join("VRCX-0.sqlite3")).unwrap())
+        Arc::new(DatabaseService::new(&unique_test_database_path("vrcx-0-harness")).unwrap())
     }
 
     fn create_test_session(store: &SessionStore) -> Session {
