@@ -4537,7 +4537,8 @@
             "export_logs": "匯出記錄",
             "export_logs_copied": "稽核記錄 CSV 已複製到剪貼簿",
             "inspector_empty": "Select a row to view details",
-            "view_full_profile": "View full profile"
+            "view_full_profile": "View full profile",
+            "loaded_count": "已載入 {count} 項"
         },
         "group_post_edit": {
             "title": "標題"

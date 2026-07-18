@@ -4537,7 +4537,8 @@
             "export_logs": "Export Logs",
             "export_logs_copied": "Audit log CSV copied to clipboard",
             "inspector_empty": "Select a row to view details",
-            "view_full_profile": "View full profile"
+            "view_full_profile": "View full profile",
+            "loaded_count": "{count} loaded"
         },
         "group_post_edit": {
             "title": "Title"

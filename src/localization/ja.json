@@ -4529,7 +4529,8 @@
             "export_logs": "ログをエクスポート",
             "export_logs_copied": "監査ログのCSVをクリップボードにコピーしました",
             "inspector_empty": "Select a row to view details",
-            "view_full_profile": "View full profile"
+            "view_full_profile": "View full profile",
+            "loaded_count": "{count} 件読み込み済み"
         },
         "group_post_edit": {
             "title": "タイトル"

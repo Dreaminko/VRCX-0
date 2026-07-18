@@ -4537,7 +4537,8 @@
             "export_logs": "Exporter les journaux",
             "export_logs_copied": "CSV du journal d'audit copié dans le presse-papiers",
             "inspector_empty": "Select a row to view details",
-            "view_full_profile": "View full profile"
+            "view_full_profile": "View full profile",
+            "loaded_count": "{count} chargés"
         },
         "group_post_edit": {
             "title": "Titre"

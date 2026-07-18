@@ -4537,7 +4537,8 @@
             "export_logs": "Exportar Registros",
             "export_logs_copied": "CSV do registro de auditoria copiado para a área de transferência",
             "inspector_empty": "Select a row to view details",
-            "view_full_profile": "View full profile"
+            "view_full_profile": "View full profile",
+            "loaded_count": "{count} carregados"
         },
         "group_post_edit": {
             "title": "Título"

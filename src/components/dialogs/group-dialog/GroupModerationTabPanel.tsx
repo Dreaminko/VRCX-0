@@ -1,4 +1,4 @@
-import { DownloadIcon, RefreshCwIcon } from 'lucide-react';
+import { DownloadIcon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -47,6 +47,28 @@ function text(value: unknown): string {
     return typeof value === 'string' ? value : '';
 }
 
+const ALL_ROLES_VALUE = 'all';
+
+export interface GroupModerationServerSelectOption {
+    label: string;
+    value: string;
+}
+
+export interface GroupModerationServerControl {
+    query: string;
+    onQueryChange: (value: string) => void;
+    sort: string;
+    onSortChange: (value: string) => void;
+    sortOptions: GroupModerationServerSelectOption[];
+    roleId: string;
+    onRoleChange: (value: string) => void;
+    roleOptions: GroupModerationServerSelectOption[];
+    hasMore: boolean;
+    loadingMore: boolean;
+    onLoadMore: () => void;
+    loadedCount: number;
+}
+
 export function GroupModerationTabPanel({
     actionKey,
     activeTab,
@@ -68,6 +90,7 @@ export function GroupModerationTabPanel({
     search,
     selectable = false,
     selectedIds,
+    server,
     tab,
     toolbarExtra
 }: {
@@ -91,20 +114,27 @@ export function GroupModerationTabPanel({
     search: string;
     selectable?: boolean;
     selectedIds?: ReadonlySet<string>;
+    server?: GroupModerationServerControl;
     tab: GroupModerationTab;
     toolbarExtra?: ReactNode;
 }) {
     const { t } = useTranslation();
-    const filteredRows = rows.filter((row) => {
-        const query = search.trim().toLowerCase();
-        return !query || moderationRowSearchText(row, group).includes(query);
-    });
+    const filteredRows = server
+        ? rows
+        : rows.filter((row) => {
+              const query = search.trim().toLowerCase();
+              return (
+                  !query || moderationRowSearchText(row, group).includes(query)
+              );
+          });
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     const currentPageIndex = Math.min(pageIndex, totalPages - 1);
-    const visibleRows = filteredRows.slice(
-        currentPageIndex * pageSize,
-        currentPageIndex * pageSize + pageSize
-    );
+    const visibleRows = server
+        ? rows
+        : filteredRows.slice(
+              currentPageIndex * pageSize,
+              currentPageIndex * pageSize + pageSize
+          );
     const visibleUserIds = visibleRows
         .map((row) => moderationRowUserId(row))
         .filter(Boolean);
@@ -113,6 +143,12 @@ export function GroupModerationTabPanel({
         visibleUserIds.length > 0 &&
         visibleUserIds.every((userId) => selectedIds?.has(userId));
     const columnCount = selectable ? 6 : 5;
+    const serverQueryActive = Boolean(server && server.query.trim());
+    const serverEmptyMessage = server
+        ? serverQueryActive
+            ? t('common.no_matching_records')
+            : t('dialog.group.empty.no_rows')
+        : t('dialog.group.empty.no_rows');
 
     return (
         <TabsContent
@@ -148,39 +184,113 @@ export function GroupModerationTabPanel({
                     </Button>
                     {toolbarExtra}
                     <span className="text-muted-foreground text-sm">
-                        {filteredRows.length}/{rows.length}
+                        {server
+                            ? server.loadedCount
+                            : `${filteredRows.length}/${rows.length}`}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
                     <Input
-                        value={search}
-                        onChange={(event) => onSearchChange(event.target.value)}
+                        value={server ? server.query : search}
+                        onChange={(event) =>
+                            server
+                                ? server.onQueryChange(event.target.value)
+                                : onSearchChange(event.target.value)
+                        }
                         placeholder={t('dialog.group.dynamic.search_value', {
                             value: tab.label.toLowerCase()
                         })}
                         className="h-8 w-64"
                     />
-                    <Select
-                        value={String(pageSize)}
-                        onValueChange={(value) =>
-                            onPageSizeChange(
-                                Number.parseInt(value ?? '', 10) || 25
-                            )
-                        }
-                    >
-                        <SelectTrigger size="sm" className="w-24">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {[10, 25, 50, 100].map((size) => (
-                                    <SelectItem key={size} value={String(size)}>
-                                        {size}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
+                    {server ? (
+                        <>
+                            <Select
+                                value={server.sort}
+                                disabled={serverQueryActive}
+                                onValueChange={(value) =>
+                                    value && server.onSortChange(value)
+                                }
+                            >
+                                <SelectTrigger size="sm" className="w-44">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        {server.sortOptions.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            {server.roleOptions.length ? (
+                                <Select
+                                    value={server.roleId || ALL_ROLES_VALUE}
+                                    disabled={serverQueryActive}
+                                    onValueChange={(value) =>
+                                        server.onRoleChange(
+                                            value === ALL_ROLES_VALUE
+                                                ? ''
+                                                : (value ?? '')
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger size="sm" className="w-40">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            {server.roleOptions.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={
+                                                            option.value ||
+                                                            ALL_ROLES_VALUE
+                                                        }
+                                                        value={
+                                                            option.value ||
+                                                            ALL_ROLES_VALUE
+                                                        }
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                )
+                                            )}
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                            ) : null}
+                        </>
+                    ) : (
+                        <Select
+                            value={String(pageSize)}
+                            onValueChange={(value) =>
+                                onPageSizeChange(
+                                    Number.parseInt(value ?? '', 10) || 25
+                                )
+                            }
+                        >
+                            <SelectTrigger size="sm" className="w-24">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    {[10, 25, 50, 100].map((size) => (
+                                        <SelectItem
+                                            key={size}
+                                            value={String(size)}
+                                        >
+                                            {size}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
             {loading ? (
@@ -374,7 +484,7 @@ export function GroupModerationTabPanel({
                                         colSpan={columnCount}
                                         className="text-muted-foreground py-8 text-center text-sm"
                                     >
-                                        {t('dialog.group.empty.no_rows')}
+                                        {serverEmptyMessage}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -382,7 +492,31 @@ export function GroupModerationTabPanel({
                     </Table>
                 </div>
             ) : null}
-            {!loading && !error ? (
+            {!loading && !error && server ? (
+                <div className="mt-3 flex items-center justify-between">
+                    <span className="text-muted-foreground text-sm">
+                        {t('dialog.group_member_moderation.loaded_count', {
+                            count: server.loadedCount
+                        })}
+                    </span>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={!server.hasMore || server.loadingMore}
+                        onClick={server.onLoadMore}
+                    >
+                        {server.loadingMore ? (
+                            <Loader2Icon
+                                data-icon="inline-start"
+                                className="animate-spin"
+                            />
+                        ) : null}
+                        {t('common.load_more')}
+                    </Button>
+                </div>
+            ) : null}
+            {!loading && !error && !server ? (
                 <div className="mt-3 flex items-center justify-between">
                     <span className="text-muted-foreground text-sm">
                         {t('dialog.group.label.page')} {currentPageIndex + 1} /{' '}

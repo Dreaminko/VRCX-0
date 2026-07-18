@@ -15,6 +15,7 @@ import { Button } from '@/ui/shadcn/button';
 import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
 import {
+    getGroupRoleNameMap,
     hasGroupPermission,
     type GroupModerationTabValue
 } from './groupDialogUtils';
@@ -33,7 +34,14 @@ import {
     resolveGroupModerationActiveTab,
     type GroupModerationAction
 } from './groupModerationRows';
-import { GroupModerationTabPanel } from './GroupModerationTabPanel';
+import {
+    GroupModerationTabPanel,
+    type GroupModerationServerControl,
+    type GroupModerationServerSelectOption
+} from './GroupModerationTabPanel';
+import { useGroupMembersPagination } from './useGroupMembersPagination';
+
+const MEMBER_SEARCH_DEBOUNCE_MS = 300;
 
 function isEntityRecord(value: unknown): value is EntityRecord {
     return Boolean(value && typeof value === 'object');
@@ -74,15 +82,31 @@ export function GroupModerationWorkspace({
     const [focusedByTab, setFocusedByTab] = useState<Record<string, string>>(
         {}
     );
+    const [memberSearchInput, setMemberSearchInput] = useState('');
+    const [memberQuery, setMemberQuery] = useState('');
+    const [memberSort, setMemberSort] = useState('joinedAt:desc');
+    const [memberRoleId, setMemberRoleId] = useState('');
     const resetKeyRef = useRef('');
     const moderationTabs = useMemo(
         () => getGroupModerationTabs(t, group),
         [group.id, group.myMember, group.roles, t]
     );
     const resetKey = `${endpoint}\u0000${group.id || ''}`;
-    const rows = rowsByTab[activeTab] || [];
-    const loading = statusByTab[activeTab] === 'running';
-    const error = errorsByTab[activeTab] || '';
+    const members = useGroupMembersPagination({
+        groupId: group.id,
+        endpoint,
+        enabled: activeTab === 'members',
+        query: memberQuery,
+        sort: memberSort,
+        roleId: memberRoleId,
+        reloadToken
+    });
+    const isMembersTab = activeTab === 'members';
+    const rows = isMembersTab ? members.rows : rowsByTab[activeTab] || [];
+    const loading = isMembersTab
+        ? members.status === 'loading'
+        : statusByTab[activeTab] === 'running';
+    const error = isMembersTab ? members.error : errorsByTab[activeTab] || '';
     const selectedIds = selectedByTab[activeTab] || null;
     const selectedRows = selectedIds
         ? rows.filter((row) => selectedIds.has(moderationRowUserId(row)))
@@ -97,6 +121,44 @@ export function GroupModerationWorkspace({
     function focusRow(userId: string) {
         setFocusedByTab((current) => ({ ...current, [activeTab]: userId }));
     }
+
+    const memberSortOptions: GroupModerationServerSelectOption[] = useMemo(
+        () => [
+            {
+                value: 'joinedAt:desc',
+                label: t('dialog.group.members.sorting.joined_at_desc')
+            },
+            {
+                value: 'joinedAt:asc',
+                label: t('dialog.group.members.sorting.joined_at_asc')
+            }
+        ],
+        [t]
+    );
+    const memberRoleOptions: GroupModerationServerSelectOption[] = useMemo(() => {
+        const rolesById = getGroupRoleNameMap(group);
+        return [
+            { value: '', label: t('dialog.group.label.all_roles') },
+            ...Array.from(rolesById.entries()).map(([roleId, roleName]) => ({
+                value: roleId,
+                label: roleName
+            }))
+        ];
+    }, [group, t]);
+    const membersServerControl: GroupModerationServerControl = {
+        query: memberSearchInput,
+        onQueryChange: setMemberSearchInput,
+        sort: memberSort,
+        onSortChange: setMemberSort,
+        sortOptions: memberSortOptions,
+        roleId: memberRoleId,
+        onRoleChange: setMemberRoleId,
+        roleOptions: memberRoleOptions,
+        hasMore: members.hasMore,
+        loadingMore: members.loadingMore,
+        onLoadMore: members.loadMore,
+        loadedCount: members.rows.length
+    };
 
     useEffect(() => {
         if (resetKeyRef.current !== resetKey) {
@@ -115,6 +177,10 @@ export function GroupModerationWorkspace({
             setBulkProgress(null);
             setBanImportOpen(false);
             setFocusedByTab({});
+            setMemberSearchInput('');
+            setMemberQuery('');
+            setMemberSort('joinedAt:desc');
+            setMemberRoleId('');
             return;
         }
 
@@ -129,7 +195,16 @@ export function GroupModerationWorkspace({
     }, [activeTab]);
 
     useEffect(() => {
-        if (!activeTab || activeTab === 'logs') {
+        const timeoutId = setTimeout(() => {
+            setMemberQuery(memberSearchInput);
+        }, MEMBER_SEARCH_DEBOUNCE_MS);
+        return () => {
+            clearTimeout(timeoutId);
+        };
+    }, [memberSearchInput]);
+
+    useEffect(() => {
+        if (!activeTab || activeTab === 'logs' || activeTab === 'members') {
             return;
         }
 
@@ -141,32 +216,27 @@ export function GroupModerationWorkspace({
         setErrorsByTab((current) => ({ ...current, [activeTab]: '' }));
 
         const request =
-            activeTab === 'members'
-                ? groupProfileRepository.getAllGroupMembers({
+            activeTab === 'bans'
+                ? groupProfileRepository.getAllGroupBans({
                       groupId: group.id,
                       endpoint
                   })
-                : activeTab === 'bans'
-                  ? groupProfileRepository.getAllGroupBans({
+                : activeTab === 'invites'
+                  ? groupProfileRepository.getAllGroupInvites({
                         groupId: group.id,
                         endpoint
                     })
-                  : activeTab === 'invites'
-                    ? groupProfileRepository.getAllGroupInvites({
+                  : activeTab === 'requests'
+                    ? groupProfileRepository.getAllGroupJoinRequests({
                           groupId: group.id,
-                          endpoint
+                          endpoint,
+                          blocked: false
                       })
-                    : activeTab === 'requests'
-                      ? groupProfileRepository.getAllGroupJoinRequests({
-                            groupId: group.id,
-                            endpoint,
-                            blocked: false
-                        })
-                      : groupProfileRepository.getAllGroupJoinRequests({
-                            groupId: group.id,
-                            endpoint,
-                            blocked: true
-                        });
+                    : groupProfileRepository.getAllGroupJoinRequests({
+                          groupId: group.id,
+                          endpoint,
+                          blocked: true
+                      });
 
         request
             .then((nextRows) => {
@@ -478,17 +548,21 @@ export function GroupModerationWorkspace({
                     endpoint
                 });
             }
-            setRowsByTab((current) => ({
-                ...current,
-                [activeTab]: (current[activeTab] || []).filter(
-                    (item) => moderationRowUserId(item) !== userId
-                )
-            }));
-            setStatusByTab((current) => ({
-                ...current,
-                [activeTab]: 'ready'
-            }));
-            setErrorsByTab((current) => ({ ...current, [activeTab]: '' }));
+            if (activeTab === 'members') {
+                members.removeRow(userId);
+            } else {
+                setRowsByTab((current) => ({
+                    ...current,
+                    [activeTab]: (current[activeTab] || []).filter(
+                        (item) => moderationRowUserId(item) !== userId
+                    )
+                }));
+                setStatusByTab((current) => ({
+                    ...current,
+                    [activeTab]: 'ready'
+                }));
+                setErrorsByTab((current) => ({ ...current, [activeTab]: '' }));
+            }
             toast.success(
                 t('dialog.group.dynamic.value_completed', {
                     value: action.label
@@ -596,6 +670,11 @@ export function GroupModerationWorkspace({
                                         tab.value
                                     )}
                                     selectedIds={selectedIds || undefined}
+                                    server={
+                                        tab.value === 'members'
+                                            ? membersServerControl
+                                            : undefined
+                                    }
                                     tab={tab}
                                     toolbarExtra={
                                         tab.value === 'bans' &&
