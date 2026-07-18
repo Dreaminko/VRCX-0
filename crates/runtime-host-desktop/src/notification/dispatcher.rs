@@ -6,7 +6,6 @@ use vrcx_0_application_activity::{
 use vrcx_0_application_core::{
     HostSessionRuntime, ImageCache, TaskSupervisor, WebClient, WorldCache,
 };
-use vrcx_0_host_desktop::overlay_notifications::OvrToolkit;
 use vrcx_0_host_desktop::tts::TtsEngine;
 use vrcx_0_persistence::{config::ConfigRepository, DatabaseService};
 use vrcx_0_runtime_host::notification::{
@@ -18,16 +17,15 @@ use vrcx_0_runtime_host::notification::{
 };
 
 use super::desktop::{send_desktop_notification, DesktopNotifier};
-use super::ovrt::send_ovrt_notification;
+use super::overlay_transport::OverlayNotificationTransport;
 use super::tts::send_tts_notification;
-use super::xs_overlay::send_xs_overlay_notification;
 
 pub struct NotificationDispatcher {
     session: HostSessionRuntime,
     config: ConfigRepository,
     db: Arc<DatabaseService>,
     image_cache: Arc<ImageCache>,
-    ovrt: Arc<OvrToolkit>,
+    overlay_transport: Arc<OverlayNotificationTransport>,
     web: Arc<WebClient>,
     world_cache: Arc<WorldCache>,
     user_image_cache: Arc<UserImageCache>,
@@ -58,7 +56,7 @@ impl NotificationDispatcher {
             config: deps.config,
             db: deps.db,
             image_cache: deps.image_cache,
-            ovrt: Arc::new(OvrToolkit::new()),
+            overlay_transport: Arc::new(OverlayNotificationTransport::new()),
             web: deps.web,
             world_cache: deps.world_cache,
             user_image_cache: deps.user_image_cache,
@@ -91,7 +89,7 @@ impl OverlayActivitySink for NotificationDispatcher {
             .unwrap_or_default();
         let world_cache = Arc::clone(&self.world_cache);
         let image_cache = Arc::clone(&self.image_cache);
-        let ovrt = Arc::clone(&self.ovrt);
+        let overlay_transport = Arc::clone(&self.overlay_transport);
         let web = Arc::clone(&self.web);
         let db = Arc::clone(&self.db);
         let user_image_cache = Arc::clone(&self.user_image_cache);
@@ -145,7 +143,7 @@ impl OverlayActivitySink for NotificationDispatcher {
                 &render,
                 locale,
                 image_cache.as_ref(),
-                ovrt.as_ref(),
+                overlay_transport.as_ref(),
                 db.as_ref(),
                 desktop.as_ref(),
                 tts.as_ref(),
@@ -163,7 +161,7 @@ async fn dispatch_local_notification(
     render: &RenderedNotification,
     locale: OverlayLocale,
     image_cache: &ImageCache,
-    ovrt: &OvrToolkit,
+    overlay_transport: &OverlayNotificationTransport,
     db: &DatabaseService,
     desktop: &dyn DesktopNotifier,
     tts: &dyn TtsEngine,
@@ -182,12 +180,7 @@ async fn dispatch_local_notification(
     if plan.desktop {
         send_desktop_notification(desktop, render, preferences, local_image);
     }
-    if plan.xs {
-        send_xs_overlay_notification(render, preferences, local_image);
-    }
-    if plan.ovrt {
-        send_ovrt_notification(ovrt, plan, render, preferences, local_image);
-    }
+    overlay_transport.send(plan, render, preferences, local_image);
 }
 
 fn load_game_state(

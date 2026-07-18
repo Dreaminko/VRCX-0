@@ -5,6 +5,7 @@ use vrcx_0_application_activity::{OverlayActivityRuntime, OverlayActivitySink};
 use vrcx_0_application_game::RuntimeSnapshot;
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_host_desktop::tts::{SystemTtsEngine, TtsEngine};
+#[cfg(any(windows, target_os = "linux"))]
 use vrcx_0_overlay_runtime::VrOverlayRuntimeServices;
 use vrcx_0_runtime_host::notification::{
     extract_file_id, extract_file_version, fallback_file_version, normalize_avatar_image_url_128,
@@ -212,6 +213,7 @@ impl DesktopRuntimeServices {
     }
 }
 
+#[cfg(any(windows, target_os = "linux"))]
 impl VrOverlayRuntimeServices for DesktopRuntimeServices {
     fn data(&self) -> &RuntimeHostContext {
         DesktopRuntimeServices::data(self)

@@ -38,10 +38,7 @@ use vrcx_0_runtime_host::{
 };
 
 use crate::group_order::HostGroupOrderSource;
-use crate::vr_overlay::{
-    start_preview_bridge_if_enabled, VrOverlayActivitySink, VrOverlayRuntime,
-    VrOverlayRuntimeSnapshot, VR_OVERLAY_ENABLED_CONFIG_KEY,
-};
+use crate::vr_overlay::{DesktopVrOverlayRuntime, VrOverlayRuntimeSnapshot};
 use crate::{
     DesktopRuntimeServices, GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime,
     HostFileAccess, HostGameLogEventFanout, HostGameProcessMonitorActions,
@@ -85,7 +82,7 @@ pub struct DesktopRuntimeBundle {
     pub services: Arc<DesktopRuntimeServices>,
     pub host_file_access: HostFileAccess,
     pub discord_rpc: Arc<DiscordRpc>,
-    pub vr_overlay_runtime: Arc<VrOverlayRuntime>,
+    pub vr_overlay_runtime: Arc<DesktopVrOverlayRuntime>,
     pub app_update: AppUpdateRuntime,
     pub telemetry: TelemetryRuntime,
 }
@@ -107,7 +104,7 @@ struct DesktopRuntimeProfileExtension {
 }
 
 struct VrOverlayProcessSink {
-    runtime: Arc<VrOverlayRuntime>,
+    runtime: Arc<DesktopVrOverlayRuntime>,
     log_watcher: LogWatcher,
 }
 
@@ -116,13 +113,13 @@ impl GameProcessEventSink for VrOverlayProcessSink {
         &self,
         event: GameProcessEvent,
     ) -> vrcx_0_application_core::Result<()> {
-        self.runtime.on_game_process_event(event)?;
-        if event.is_game_running {
-            if let Some(vr_mode) = self.log_watcher.current_vr_mode() {
-                self.runtime.set_vr_mode(vr_mode);
-            }
-        }
-        Ok(())
+        let current_vr_mode = if event.is_game_running {
+            self.log_watcher.current_vr_mode()
+        } else {
+            None
+        };
+        self.runtime
+            .on_game_process_event(event, current_vr_mode)
     }
 }
 
@@ -194,17 +191,9 @@ impl DesktopRuntimeHostState {
             Arc::clone(&game_log_snapshot),
             overlay_activity.clone(),
         ));
-        let vr_overlay_runtime = Arc::new(VrOverlayRuntime::new(Arc::clone(&desktop_services)));
-        let vr_overlay_enabled = builder
-            .runtime_context
-            .config()
-            .get_bool(VR_OVERLAY_ENABLED_CONFIG_KEY, false)?;
-        vr_overlay_runtime.set_enabled(vr_overlay_enabled);
-        vr_overlay_runtime.start_refresh_loop(builder.runtime_context.tasks.clone());
-        desktop_services.set_overlay_activity_extra_sink(Arc::new(VrOverlayActivitySink::new(
-            Arc::clone(&vr_overlay_runtime),
-        )));
-        start_preview_bridge_if_enabled(Arc::clone(&desktop_services));
+        let vr_overlay_runtime = Arc::new(DesktopVrOverlayRuntime::new(Arc::clone(
+            &desktop_services,
+        ))?);
         let game_log_sink: Arc<dyn GameLogEventSink> = Arc::new(HostGameLogEventFanout::new(vec![
             game_log_runtime.clone(),
             vr_overlay_runtime.clone(),
@@ -275,7 +264,8 @@ impl DesktopRuntimeHostState {
         let favorites_sink: RuntimeHostSnapshotCallback = {
             let vr_overlay_runtime = Arc::clone(&desktop.vr_overlay_runtime);
             Arc::new(move |snapshot: &Value| {
-                vr_overlay_runtime.update_friends_panel_favorite_groups_from_baseline(snapshot);
+                vr_overlay_runtime
+                    .update_friends_panel_favorite_groups_from_baseline(snapshot);
             })
         };
         let runtime = builder.finish(RuntimeHostComposition {
@@ -325,19 +315,14 @@ impl DesktopRuntimeHostState {
     }
 
     pub fn set_vr_overlay_enabled(&self, enabled: bool) -> Result<VrOverlayRuntimeSnapshot> {
-        self.runtime_context
-            .config()
-            .set_bool(VR_OVERLAY_ENABLED_CONFIG_KEY, enabled)?;
-        self.desktop.vr_overlay_runtime.set_enabled(enabled);
-        Ok(self.desktop.vr_overlay_runtime.snapshot())
+        self.desktop.vr_overlay_runtime.set_enabled(enabled)
     }
 
-    pub fn reload_vr_overlay_config(&self) -> VrOverlayRuntimeSnapshot {
-        self.desktop.vr_overlay_runtime.reconcile_current();
-        self.desktop.vr_overlay_runtime.snapshot()
+    pub fn reload_vr_overlay_config(&self) -> Result<VrOverlayRuntimeSnapshot> {
+        self.desktop.vr_overlay_runtime.reload_config()
     }
 
-    pub fn vr_overlay_snapshot(&self) -> VrOverlayRuntimeSnapshot {
+    pub fn vr_overlay_snapshot(&self) -> Result<VrOverlayRuntimeSnapshot> {
         self.desktop.vr_overlay_runtime.snapshot()
     }
 

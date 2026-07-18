@@ -1,3 +1,5 @@
+#![cfg(any(windows, target_os = "linux"))]
+
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
