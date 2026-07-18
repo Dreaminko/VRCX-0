@@ -546,18 +546,6 @@ pub fn get_game_log_externals(
         .collect())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn join_leave_range_sql_orders_same_timestamp_rows_by_id() {
-        let sql = join_leave_entries_for_location_range_sql(true);
-
-        assert!(sql.contains("ORDER BY \"created_at\" ASC, \"id\" ASC"));
-    }
-}
-
 pub fn game_log_location_table_exists(db: &DatabaseService) -> Result<bool, Error> {
     Ok(!db
         .execute(&game_log_location_table_exists_sql(), &Default::default())?
@@ -601,5 +589,17 @@ pub fn get_last_game_log_date(db: &DatabaseService) -> Result<String, Error> {
         Ok(latest.clone())
     } else {
         Ok(now_string)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn join_leave_range_sql_orders_same_timestamp_rows_by_id() {
+        let sql = join_leave_entries_for_location_range_sql(true);
+
+        assert!(sql.contains("ORDER BY \"created_at\" ASC, \"id\" ASC"));
     }
 }

@@ -121,7 +121,7 @@ fn parse_group_config(value: &str) -> BTreeSet<String> {
     serde_json::from_str::<Vec<String>>(value)
         .unwrap_or_default()
         .into_iter()
-        .map(|value| normalize_text(value))
+        .map(normalize_text)
         .filter(|value| !value.is_empty())
         .collect()
 }
