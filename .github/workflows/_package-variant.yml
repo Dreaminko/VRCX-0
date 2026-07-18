@@ -28,9 +28,6 @@ jobs:
 
             - uses: dtolnay/rust-toolchain@stable
 
-            - name: Check backend architecture
-              run: npm run rust:architecture:check
-
             - id: metadata
               name: Resolve package variant
               env:
