@@ -129,7 +129,7 @@ fn group_overview_from_value(
     group: &Value,
     permission_map: &HashMap<String, Vec<String>>,
 ) -> Option<UserGroupsOverviewGroup> {
-    let group_id = object_string(group, &["id", "groupId"]);
+    let group_id = object_string(group, &["groupId", "id"]);
     if group_id.is_empty() {
         return None;
     }
@@ -314,6 +314,21 @@ mod tests {
         assert_eq!(groups[1].permissions, vec!["group-bans-manage".to_string()]);
         assert_eq!(groups[1].short_code, None);
         assert_eq!(groups[1].member_count, None);
+    }
+
+    #[test]
+    fn prefers_group_id_over_membership_record_id() {
+        let group_rows = vec![json!({
+            "id": "gmem_11111111-1111-1111-1111-111111111111",
+            "groupId": "grp_1",
+            "name": "Alpha"
+        })];
+        let permission_map = parse_permission_map(&json!({ "grp_1": ["group-bans-manage"] }));
+
+        let groups = build_overview_groups(&group_rows, &permission_map);
+
+        assert_eq!(groups[0].group_id, "grp_1");
+        assert_eq!(groups[0].permissions, vec!["group-bans-manage".to_string()]);
     }
 
     #[test]

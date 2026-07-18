@@ -523,7 +523,7 @@ fn string_array(value: Option<&Value>) -> Vec<String> {
 }
 
 fn group_from_value(group: &Value) -> Option<GroupQuickModerationGroup> {
-    let group_id = object_string(group, &["id", "groupId"]);
+    let group_id = object_string(group, &["groupId", "id"]);
     if group_id.is_empty() {
         return None;
     }
@@ -664,6 +664,26 @@ mod tests {
                 .map(|group| group.group_id.as_str())
                 .collect::<Vec<_>>(),
             vec!["grp_ban"]
+        );
+    }
+
+    #[test]
+    fn prefers_group_id_over_membership_record_id() {
+        let groups = vec![json!({
+            "id": "gmem_11111111-1111-1111-1111-111111111111",
+            "groupId": "grp_1",
+            "name": "Group",
+            "ownerId": "usr_owner"
+        })];
+        let permissions = parse_permission_map(&json!({ "grp_1": ["group-members-remove"] }));
+
+        let kick = groups_for_permission(&groups, &permissions, KICK_PERMISSION, "usr_target");
+
+        assert_eq!(
+            kick.iter()
+                .map(|group| group.group_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["grp_1"]
         );
     }
 
