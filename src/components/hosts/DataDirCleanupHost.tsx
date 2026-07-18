@@ -8,22 +8,16 @@ import {
     takeDataDirMigrationResult,
     type DataDirCleanupPending
 } from '@/services/dataDirMigrationService';
-import { dataDirMigrationWarningKey } from '@/services/dataDirMigrationI18n';
+import {
+    dataDirMigrationWarningKey,
+    formatDataDirMigrationBytes
+} from '@/services/dataDirMigrationI18n';
 import { getAppDataDirState } from '@/services/shellIntegrationService';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 const CLEANUP_TOAST_ID = 'data-dir-migration-cleanup';
 const REPROMPT_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
-
-function formatBytes(bytes: number, locale: string) {
-    return new Intl.NumberFormat(locale, {
-        style: 'unit',
-        unit: bytes >= 1024 ** 3 ? 'gigabyte' : 'megabyte',
-        unitDisplay: 'short',
-        maximumFractionDigits: 1
-    }).format(bytes / (bytes >= 1024 ** 3 ? 1024 ** 3 : 1024 ** 2));
-}
 
 export function DataDirCleanupHost() {
     const { t, i18n } = useTranslation();
@@ -40,7 +34,10 @@ export function DataDirCleanupHost() {
         checked.current = true;
 
         async function confirmAndCleanup(pending: DataDirCleanupPending) {
-            const size = formatBytes(pending.bytes, i18n.language);
+            const size = formatDataDirMigrationBytes(
+                pending.bytes,
+                i18n.language
+            );
             const result = await confirm({
                 title: t('data_dir_migration.cleanup.confirm_title'),
                 description: t(
@@ -68,7 +65,7 @@ export function DataDirCleanupHost() {
                             ? 'data_dir_migration.cleanup.completed_with_skipped'
                             : 'data_dir_migration.cleanup.freed',
                         {
-                            size: formatBytes(
+                            size: formatDataDirMigrationBytes(
                                 report.freedBytes,
                                 i18n.language
                             ),
@@ -135,7 +132,10 @@ export function DataDirCleanupHost() {
                 closeButton: true,
                 action: {
                     label: t('data_dir_migration.cleanup.action_with_size', {
-                        size: formatBytes(pending.bytes, i18n.language)
+                        size: formatDataDirMigrationBytes(
+                            pending.bytes,
+                            i18n.language
+                        )
                     }),
                     onClick: (event) => {
                         event.preventDefault();

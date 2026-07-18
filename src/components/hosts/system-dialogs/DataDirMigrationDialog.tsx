@@ -8,7 +8,9 @@ import {
 } from '@/services/dataDirMigrationService';
 import {
     dataDirMigrationErrorKey,
-    dataDirMigrationPhaseKey
+    dataDirMigrationModes,
+    dataDirMigrationPhaseKey,
+    formatDataDirMigrationBytes
 } from '@/services/dataDirMigrationI18n';
 import { restartApplication } from '@/services/shellIntegrationService';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
@@ -23,15 +25,6 @@ import {
 } from '@/ui/shadcn/alert-dialog';
 import { Button } from '@/ui/shadcn/button';
 import { Progress } from '@/ui/shadcn/progress';
-
-function formatBytes(bytes: number, locale: string) {
-    return new Intl.NumberFormat(locale, {
-        style: 'unit',
-        unit: bytes >= 1024 ** 3 ? 'gigabyte' : 'megabyte',
-        unitDisplay: 'short',
-        maximumFractionDigits: 1
-    }).format(bytes / (bytes >= 1024 ** 3 ? 1024 ** 3 : 1024 ** 2));
-}
 
 export function DataDirMigrationDialog() {
     const { t, i18n } = useTranslation();
@@ -56,17 +49,7 @@ export function DataDirMigrationDialog() {
     const completed = status.state === 'completed';
     const insufficientSpace = plan.availableBytes < plan.requiredBytes;
     const canStart = mode !== 'migrate' || !insufficientSpace;
-    const modes = [
-        ['migrate', 'data_dir_migration.mode.migrate'],
-        ...(plan.targetState === 'existingProfile'
-            ? ([
-                  [
-                      'adoptExisting',
-                      'data_dir_migration.mode.adoptExisting'
-                  ]
-              ] as const)
-            : ([['freshStart', 'data_dir_migration.mode.freshStart']] as const))
-    ] as const;
+    const modes = dataDirMigrationModes(plan.targetState);
 
     async function startMigration() {
         if (!canStart || !plan) {
@@ -159,11 +142,11 @@ export function DataDirMigrationDialog() {
                             </p>
                             <p className="text-muted-foreground">
                                 {t('data_dir_migration.space_summary', {
-                                    required: formatBytes(
+                                    required: formatDataDirMigrationBytes(
                                         plan.requiredBytes,
                                         i18n.language
                                     ),
-                                    available: formatBytes(
+                                    available: formatDataDirMigrationBytes(
                                         plan.availableBytes,
                                         i18n.language
                                     )
