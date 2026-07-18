@@ -25,7 +25,6 @@ type ToolDialogHostKey =
     | 'presenceRoomRulesOpen'
     | 'presenceInviteRequestsOpen'
     | 'groupCalendarOpen'
-    | 'groupModerationPickerOpen'
     | 'exportDiscordNamesOpen'
     | 'noteExportOpen'
     | 'exportFriendsListOpen'
@@ -38,7 +37,8 @@ const toolRouteMap = {
     gallery: '/tools/gallery',
     inventory: '/tools/inventory',
     'screenshot-metadata': '/tools/screenshot-metadata',
-    'vrchat-log': '/tools/vrchat-log'
+    'vrchat-log': '/tools/vrchat-log',
+    'group-moderation': '/tools/group-moderation'
 } satisfies Record<string, string>;
 
 const toolDialogHostMap: Record<string, ToolDialogHostKey> = {
@@ -47,7 +47,6 @@ const toolDialogHostMap: Record<string, ToolDialogHostKey> = {
     'presence-room-rules': 'presenceRoomRulesOpen',
     'presence-invite-requests': 'presenceInviteRequestsOpen',
     'group-calendar': 'groupCalendarOpen',
-    'group-moderation': 'groupModerationPickerOpen',
     'export-discord-names': 'exportDiscordNamesOpen',
     'note-export': 'noteExportOpen',
     'export-friends-list': 'exportFriendsListOpen',

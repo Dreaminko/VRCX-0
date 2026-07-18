@@ -14,7 +14,8 @@ type ToolAction =
               | 'screenshot-metadata'
               | 'gallery'
               | 'inventory'
-              | 'vrchat-log';
+              | 'vrchat-log'
+              | 'group-moderation';
       }
     | {
           type: 'app-api';
@@ -338,7 +339,7 @@ const toolDefinitions: ToolDefinition[] = [
         titleKey: 'view.tools.group.moderation',
         descriptionKey: 'view.tools.group.moderation_description',
         navEligible: true,
-        action: { type: 'dialog', dialogKey: 'group-moderation' }
+        action: { type: 'route', routeName: 'group-moderation' }
     },
     {
         key: 'discord-names',
