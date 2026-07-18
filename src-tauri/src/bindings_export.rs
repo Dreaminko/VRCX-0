@@ -430,6 +430,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::vrchat::media::service::app__vrchat_media_world_image_upload_legacy,
             commands::application::group_quick_moderation::app__user_group_quick_moderation_action,
             commands::application::group_quick_moderation::app__user_group_quick_moderation_get,
+            commands::application::user_groups_overview::app__user_groups_overview_get,
             commands::application::moderation_sync::app__moderation_sync_refresh,
             commands::application::moderation_sync::app__moderation_sync_update,
             commands::vrchat::notifications::service::app__vrchat_boop_send,

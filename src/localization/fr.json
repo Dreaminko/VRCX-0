@@ -1537,7 +1537,9 @@
             "group": {
                 "header": "Groupe",
                 "calendar": "Calendrier",
-                "calendar_description": "Calendrier des événements du groupe"
+                "calendar_description": "Calendrier des événements du groupe",
+                "moderation": "Modération du groupe",
+                "moderation_description": "Gérez les membres, bannissements, invitations et demandes d'adhésion des groupes que vous modérez."
             },
             "user": {
                 "discord_names_description": "Trouvez les noms d'utilisateur Discord de vos amis VRChat",
@@ -5354,7 +5356,17 @@
                 "failed_to_update_group_event_follow_state": "Impossible de mettre à jour cet événement",
                 "failed_to_download_ics_file": "Échec du téléchargement du fichier .ics",
                 "failed_to_save_ics_file": "Échec de l'enregistrement du fichier .ics",
-                "failed_to_copy_event_link": "Échec de la copie du lien de l'événement"
+                "failed_to_copy_event_link": "Échec de la copie du lien de l'événement",
+                "failed_to_load_moderatable_groups": "Échec du chargement des groupes que vous modérez",
+                "failed_to_open_group_moderation": "Échec de l'ouverture de la modération du groupe"
+            },
+            "group_moderation": {
+                "picker_description": "Choisissez un groupe pour gérer les membres, bannissements, invitations et demandes d'adhésion.",
+                "loading": "Chargement des groupes que vous modérez…",
+                "empty_title": "Aucun groupe à modérer",
+                "empty_description": "Vous n'avez pas encore de droits de modération dans vos groupes.",
+                "permissions_degraded": "Certaines autorisations de groupe n'ont pas pu être vérifiées. La liste ci-dessous peut être incomplète.",
+                "member_count": "{count} membres"
             }
         }
     },

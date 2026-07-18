@@ -218,6 +218,21 @@ export function hasGroupModerationPermission(group: unknown) {
     );
 }
 
+export function hasAnyGroupModerationPermission(
+    permissions: readonly string[] | null | undefined
+): boolean {
+    const list = Array.isArray(permissions) ? permissions : [];
+    if (list.includes('*')) {
+        return true;
+    }
+    const moderationPermissions = Object.values(
+        GROUP_MODERATION_TAB_PERMISSIONS
+    ).flat();
+    return moderationPermissions.some((permission) =>
+        list.includes(permission)
+    );
+}
+
 export function resolveGroupDialogTab(
     tabs: { value: string }[],
     preferred: string,

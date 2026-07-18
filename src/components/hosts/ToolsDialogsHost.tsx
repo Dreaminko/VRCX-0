@@ -7,6 +7,7 @@ import {
     ExportDiscordNamesDialog,
     ExportFriendsListDialog
 } from './tools-dialogs/ExportListDialogs';
+import { GroupModerationPickerDialog } from './tools-dialogs/group-moderation/GroupModerationPickerDialog';
 import { GroupCalendarDialog } from './tools-dialogs/GroupCalendarDialog';
 import { LlmEndpointsDialog } from './tools-dialogs/LlmEndpointsDialog';
 import { NoteExportDialog } from './tools-dialogs/NoteExportDialog';
@@ -36,6 +37,9 @@ export function ToolsDialogsHost() {
     );
     const groupCalendarOpen = useRuntimeStore(
         (state) => state.systemHosts.groupCalendarOpen
+    );
+    const groupModerationPickerOpen = useRuntimeStore(
+        (state) => state.systemHosts.groupModerationPickerOpen
     );
     const exportDiscordNamesOpen = useRuntimeStore(
         (state) => state.systemHosts.exportDiscordNamesOpen
@@ -93,6 +97,14 @@ export function ToolsDialogsHost() {
                 onOpenChange={(open: boolean) =>
                     setSystemHostOpen('groupCalendarOpen', open)
                 }
+            />
+            <GroupModerationPickerDialog
+                open={Boolean(groupModerationPickerOpen)}
+                onOpenChange={(open: boolean) =>
+                    setSystemHostOpen('groupModerationPickerOpen', open)
+                }
+                currentUserId={getCurrentUserId()}
+                endpoint={getEndpoint()}
             />
             <ExportDiscordNamesDialog
                 open={Boolean(exportDiscordNamesOpen)}

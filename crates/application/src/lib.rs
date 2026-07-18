@@ -94,6 +94,10 @@ pub use social::{
     PrintCleanupQueueSink, PrintCleanupTrigger, PrintFavoriteState,
 };
 pub use social::{
+    get_user_groups_overview, UserGroupsOverviewDeps, UserGroupsOverviewGroup,
+    UserGroupsOverviewInput, UserGroupsOverviewOutput,
+};
+pub use social::{
     prepare_note_export, run_note_export, NoteExportActions, NoteExportItemInput,
     NoteExportItemState, NoteExportItemStatus, NoteExportProgress, NoteExportResult,
     NoteExportStartInput, NoteExportState, NoteExportStatus, VrchatNoteExportActions,

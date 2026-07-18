@@ -1539,7 +1539,9 @@
             "group": {
                 "header": "Skupina",
                 "calendar": "Kalendář",
-                "calendar_description": "Kalendář skupinových akcí"
+                "calendar_description": "Kalendář skupinových akcí",
+                "moderation": "Moderace skupiny",
+                "moderation_description": "Spravujte členy, zákazy, pozvánky a žádosti o vstup u skupin, které moderujete."
             },
             "user": {
                 "discord_names_description": "Najděte Discord uživatelská jména svých přátel z VRChat",
@@ -5356,7 +5358,17 @@
                 "failed_to_update_group_event_follow_state": "Událost se nepodařilo aktualizovat",
                 "failed_to_download_ics_file": "Nepodařilo se stáhnout soubor .ics",
                 "failed_to_save_ics_file": "Nepodařilo se uložit soubor .ics",
-                "failed_to_copy_event_link": "Nepodařilo se zkopírovat odkaz na událost"
+                "failed_to_copy_event_link": "Nepodařilo se zkopírovat odkaz na událost",
+                "failed_to_load_moderatable_groups": "Nepodařilo se načíst skupiny, které moderujete",
+                "failed_to_open_group_moderation": "Nepodařilo se otevřít správu skupiny"
+            },
+            "group_moderation": {
+                "picker_description": "Vyberte skupinu pro správu členů, zákazů, pozvánek a žádostí o vstup.",
+                "loading": "Načítání skupin, které moderujete…",
+                "empty_title": "Žádné skupiny ke správě",
+                "empty_description": "V žádné ze svých skupin zatím nemáte moderátorská oprávnění.",
+                "permissions_degraded": "Některá oprávnění skupin se nepodařilo ověřit. Seznam níže může být neúplný.",
+                "member_count": "{count} členů"
             }
         }
     },

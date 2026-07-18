@@ -23,6 +23,10 @@ pub use groups::{
     VrchatGroupProfileInput, VrchatGroupRepresentationInput, VrchatGroupUserGroupsInput,
     VrchatGroupUserInput,
 };
+pub use groups::{
+    get_user_groups_overview, UserGroupsOverviewDeps, UserGroupsOverviewGroup,
+    UserGroupsOverviewInput, UserGroupsOverviewOutput,
+};
 pub use moderation_sync::{
     refresh_player_moderations, update_player_moderation, ModerationSyncDeps,
     ModerationSyncMutationInput, ModerationSyncMutationOutput, ModerationSyncRefreshInput,

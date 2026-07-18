@@ -520,6 +520,7 @@ const initialState: RuntimeStoreState = {
         presenceRoomRulesOpen: false,
         presenceInviteRequestsOpen: false,
         groupCalendarOpen: false,
+        groupModerationPickerOpen: false,
         exportDiscordNamesOpen: false,
         noteExportOpen: false,
         exportFriendsListOpen: false,

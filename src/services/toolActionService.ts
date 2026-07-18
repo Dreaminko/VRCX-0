@@ -25,6 +25,7 @@ type ToolDialogHostKey =
     | 'presenceRoomRulesOpen'
     | 'presenceInviteRequestsOpen'
     | 'groupCalendarOpen'
+    | 'groupModerationPickerOpen'
     | 'exportDiscordNamesOpen'
     | 'noteExportOpen'
     | 'exportFriendsListOpen'
@@ -46,6 +47,7 @@ const toolDialogHostMap: Record<string, ToolDialogHostKey> = {
     'presence-room-rules': 'presenceRoomRulesOpen',
     'presence-invite-requests': 'presenceInviteRequestsOpen',
     'group-calendar': 'groupCalendarOpen',
+    'group-moderation': 'groupModerationPickerOpen',
     'export-discord-names': 'exportDiscordNamesOpen',
     'note-export': 'noteExportOpen',
     'export-friends-list': 'exportFriendsListOpen',

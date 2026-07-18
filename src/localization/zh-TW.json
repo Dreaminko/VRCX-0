@@ -1537,7 +1537,9 @@
             "group": {
                 "header": "群組",
                 "calendar": "行事曆",
-                "calendar_description": "群組活動行事曆"
+                "calendar_description": "群組活動行事曆",
+                "moderation": "群組管理",
+                "moderation_description": "管理你擁有管理權限之群組的成員、封鎖、邀請與加入申請。"
             },
             "user": {
                 "discord_names_description": "尋找你 VRChat 好友的 Discord 用戶名稱",
@@ -5358,7 +5360,17 @@
                 "failed_to_update_group_event_follow_state": "無法更新此活動",
                 "failed_to_download_ics_file": "下載 .ics 檔案失敗",
                 "failed_to_save_ics_file": "儲存 .ics 檔案失敗",
-                "failed_to_copy_event_link": "複製活動連結失敗"
+                "failed_to_copy_event_link": "複製活動連結失敗",
+                "failed_to_load_moderatable_groups": "載入你有管理權限的群組失敗",
+                "failed_to_open_group_moderation": "開啟群組管理失敗"
+            },
+            "group_moderation": {
+                "picker_description": "選擇一個群組來管理成員、封鎖、邀請與加入申請。",
+                "loading": "正在載入你有管理權限的群組...",
+                "empty_title": "沒有可管理的群組",
+                "empty_description": "你目前在任何群組中都沒有管理權限。",
+                "permissions_degraded": "部分群組權限無法驗證,以下清單可能不完整。",
+                "member_count": "{count} 位成員"
             }
         }
     },

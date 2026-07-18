@@ -1537,7 +1537,9 @@
             "group": {
                 "header": "Group",
                 "calendar": "Calendar",
-                "calendar_description": "Group Events Calendar"
+                "calendar_description": "Group Events Calendar",
+                "moderation": "Group Moderation",
+                "moderation_description": "Manage members, bans, invites, and join requests for groups you moderate."
             },
             "user": {
                 "discord_names_description": "Find the Discord usernames of your VRChat friends",
@@ -5358,7 +5360,17 @@
                 "failed_to_update_group_event_follow_state": "Couldn't update this event",
                 "failed_to_download_ics_file": "Failed to download .ics file",
                 "failed_to_save_ics_file": "Failed to save .ics file",
-                "failed_to_copy_event_link": "Failed to copy event link"
+                "failed_to_copy_event_link": "Failed to copy event link",
+                "failed_to_load_moderatable_groups": "Failed to load groups you moderate",
+                "failed_to_open_group_moderation": "Failed to open group moderation"
+            },
+            "group_moderation": {
+                "picker_description": "Choose a group to manage members, bans, invites, and join requests.",
+                "loading": "Loading groups you moderate...",
+                "empty_title": "No groups to moderate",
+                "empty_description": "You don't have moderation permissions in any of your groups yet.",
+                "permissions_degraded": "Some group permissions couldn't be verified. The list below may be incomplete.",
+                "member_count": "{count} members"
             }
         }
     },

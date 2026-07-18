@@ -1537,7 +1537,9 @@
             "group": {
                 "header": "Grupo",
                 "calendar": "Calendario",
-                "calendar_description": "Calendario de eventos del grupo"
+                "calendar_description": "Calendario de eventos del grupo",
+                "moderation": "Moderación del grupo",
+                "moderation_description": "Administra miembros, baneos, invitaciones y solicitudes de unión de los grupos que moderas."
             },
             "user": {
                 "discord_names_description": "Encuentra los nombres de usuario de Discord de tus amigos de VRChat",
@@ -5354,7 +5356,17 @@
                 "failed_to_update_group_event_follow_state": "No se pudo actualizar este evento",
                 "failed_to_download_ics_file": "Error al descargar el archivo .ics",
                 "failed_to_save_ics_file": "Error al guardar el archivo .ics",
-                "failed_to_copy_event_link": "Error al copiar el enlace del evento"
+                "failed_to_copy_event_link": "Error al copiar el enlace del evento",
+                "failed_to_load_moderatable_groups": "Error al cargar los grupos que moderas",
+                "failed_to_open_group_moderation": "Error al abrir la moderación del grupo"
+            },
+            "group_moderation": {
+                "picker_description": "Elige un grupo para gestionar miembros, baneos, invitaciones y solicitudes de unión.",
+                "loading": "Cargando los grupos que moderas…",
+                "empty_title": "No hay grupos que moderar",
+                "empty_description": "Aún no tienes permisos de moderación en ninguno de tus grupos.",
+                "permissions_degraded": "No se pudieron verificar algunos permisos de grupo. La lista de abajo puede estar incompleta.",
+                "member_count": "{count} miembros"
             }
         }
     },

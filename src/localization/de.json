@@ -1537,7 +1537,9 @@
             "group": {
                 "header": "Gruppe",
                 "calendar": "Kalender",
-                "calendar_description": "Kalender für Gruppen-Events"
+                "calendar_description": "Kalender für Gruppen-Events",
+                "moderation": "Gruppenmoderation",
+                "moderation_description": "Verwalte Mitglieder, Sperren, Einladungen und Beitrittsanfragen für Gruppen, die du moderierst."
             },
             "user": {
                 "discord_names_description": "Finde die Discord-Benutzernamen deiner VRChat-Freunde",
@@ -5354,7 +5356,17 @@
                 "failed_to_update_group_event_follow_state": "Dieses Event konnte nicht aktualisiert werden",
                 "failed_to_download_ics_file": ".ics-Datei konnte nicht heruntergeladen werden",
                 "failed_to_save_ics_file": ".ics-Datei konnte nicht gespeichert werden",
-                "failed_to_copy_event_link": "Event-Link konnte nicht kopiert werden"
+                "failed_to_copy_event_link": "Event-Link konnte nicht kopiert werden",
+                "failed_to_load_moderatable_groups": "Gruppen, die du moderierst, konnten nicht geladen werden",
+                "failed_to_open_group_moderation": "Gruppenmoderation konnte nicht geöffnet werden"
+            },
+            "group_moderation": {
+                "picker_description": "Wähle eine Gruppe, um Mitglieder, Sperren, Einladungen und Beitrittsanfragen zu verwalten.",
+                "loading": "Gruppen, die du moderierst, werden geladen …",
+                "empty_title": "Keine Gruppen zu moderieren",
+                "empty_description": "Du hast in keiner deiner Gruppen Moderationsrechte.",
+                "permissions_degraded": "Einige Gruppenberechtigungen konnten nicht überprüft werden. Die Liste unten ist möglicherweise unvollständig.",
+                "member_count": "{count} Mitglieder"
             }
         }
     },

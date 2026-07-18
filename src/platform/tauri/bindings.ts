@@ -1858,6 +1858,11 @@ export const commands = {
             input
         });
     },
+    async appUserGroupsOverviewGet(
+        input: UserGroupsOverviewInput
+    ): Promise<UserGroupsOverviewOutput> {
+        return await TAURI_INVOKE('app__user_groups_overview_get', { input });
+    },
     async appModerationSyncRefresh(
         input: ModerationSyncRefreshInput
     ): Promise<ModerationSyncRefreshOutput> {
@@ -4791,6 +4796,23 @@ export type UpdaterMetadata = {
     version: string;
     date: string | null;
     body: string | null;
+};
+export type UserGroupsOverviewGroup = {
+    groupId: string;
+    name: string;
+    shortCode: string | null;
+    iconUrl: string | null;
+    memberCount: number | null;
+    permissions: string[];
+};
+export type UserGroupsOverviewInput = {
+    currentUserId?: string;
+    endpoint?: string;
+};
+export type UserGroupsOverviewOutput = {
+    currentUserId: string;
+    groups: UserGroupsOverviewGroup[];
+    permissionsDegraded: boolean;
 };
 export type UserMemoOutput = { userId: string; editedAt: string; memo: string };
 export type UserNoteOutput = {

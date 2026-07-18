@@ -1,6 +1,8 @@
+mod permissions;
 mod quick_moderation;
 mod service;
 mod types;
+mod user_groups_overview;
 
 pub use quick_moderation::{
     get_group_quick_moderation, run_group_quick_moderation_action, GroupQuickModerationActionInput,
@@ -21,4 +23,8 @@ pub use types::{
     VrchatGroupPostCreateInput, VrchatGroupPostDeleteInput, VrchatGroupPostEditInput,
     VrchatGroupProfileInput, VrchatGroupRepresentationInput, VrchatGroupUserGroupsInput,
     VrchatGroupUserInput,
+};
+pub use user_groups_overview::{
+    get_user_groups_overview, UserGroupsOverviewDeps, UserGroupsOverviewGroup,
+    UserGroupsOverviewInput, UserGroupsOverviewOutput,
 };

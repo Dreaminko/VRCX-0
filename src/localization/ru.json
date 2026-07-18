@@ -1539,7 +1539,9 @@
             "group": {
                 "header": "Группа",
                 "calendar": "Календарь",
-                "calendar_description": "Календарь групповых мероприятий"
+                "calendar_description": "Календарь групповых мероприятий",
+                "moderation": "Модерация группы",
+                "moderation_description": "Управляйте участниками, банами, приглашениями и заявками на вступление в группы, которые вы модерируете."
             },
             "user": {
                 "discord_names_description": "Найти имена пользователей Discord ваших друзей из VRChat",
@@ -5356,7 +5358,17 @@
                 "failed_to_update_group_event_follow_state": "Не удалось обновить это событие",
                 "failed_to_download_ics_file": "Не удалось загрузить файл .ics",
                 "failed_to_save_ics_file": "Не удалось сохранить файл .ics",
-                "failed_to_copy_event_link": "Не удалось скопировать ссылку на события"
+                "failed_to_copy_event_link": "Не удалось скопировать ссылку на события",
+                "failed_to_load_moderatable_groups": "Не удалось загрузить группы, которые вы модерируете",
+                "failed_to_open_group_moderation": "Не удалось открыть модерацию группы"
+            },
+            "group_moderation": {
+                "picker_description": "Выберите группу для управления участниками, банами, приглашениями и заявками на вступление.",
+                "loading": "Загрузка групп, которые вы модерируете…",
+                "empty_title": "Нет групп для модерации",
+                "empty_description": "У вас пока нет прав модератора ни в одной из ваших групп.",
+                "permissions_degraded": "Не удалось проверить некоторые права группы. Список ниже может быть неполным.",
+                "member_count": "{count} участников"
             }
         }
     },

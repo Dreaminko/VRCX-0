@@ -331,6 +331,16 @@ const toolDefinitions: ToolDefinition[] = [
         action: { type: 'dialog', dialogKey: 'group-calendar' }
     },
     {
+        key: 'group-moderation',
+        category: 'social',
+        iconKey: 'shield-user',
+        navIcon: 'lucide:ShieldUser',
+        titleKey: 'view.tools.group.moderation',
+        descriptionKey: 'view.tools.group.moderation_description',
+        navEligible: true,
+        action: { type: 'dialog', dialogKey: 'group-moderation' }
+    },
+    {
         key: 'discord-names',
         category: 'data',
         iconKey: 'users',

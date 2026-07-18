@@ -12,6 +12,7 @@ use vrcx_0_application_core::vrchat_api::groups::{
 use vrcx_0_application_core::vrchat_api::VrchatApiRequest;
 use vrcx_0_application_core::{HostSessionRuntime, RuntimeAuthScope};
 
+use super::super::permissions::{has_permission, parse_permission_map, permissions_for_group};
 use super::super::service::{execute_group_api_raw, GroupApiDeps};
 use super::types::{
     GroupQuickModerationActionInput, GroupQuickModerationActionOutput, GroupQuickModerationGroup,
@@ -519,40 +520,6 @@ fn string_array(value: Option<&Value>) -> Vec<String> {
         }
         None => Vec::new(),
     }
-}
-
-fn parse_permission_map(value: &Value) -> HashMap<String, Vec<String>> {
-    value
-        .as_object()
-        .map(|object| {
-            object
-                .iter()
-                .map(|(group_id, permissions)| (group_id.clone(), string_array(Some(permissions))))
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
-fn permissions_for_group(
-    group: &Value,
-    permission_map: &HashMap<String, Vec<String>>,
-    group_id: &str,
-) -> Vec<String> {
-    if let Some(permissions) = permission_map.get(group_id) {
-        return permissions.clone();
-    }
-    group
-        .as_object()
-        .and_then(|object| object.get("myMember"))
-        .and_then(Value::as_object)
-        .map(|member| string_array(member.get("permissions")))
-        .unwrap_or_default()
-}
-
-fn has_permission(permissions: &[String], permission: &str) -> bool {
-    permissions
-        .iter()
-        .any(|value| value == "*" || value == permission)
 }
 
 fn group_from_value(group: &Value) -> Option<GroupQuickModerationGroup> {

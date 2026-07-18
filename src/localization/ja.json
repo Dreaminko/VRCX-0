@@ -1533,7 +1533,9 @@
             "group": {
                 "header": "グループ",
                 "calendar": "カレンダー",
-                "calendar_description": "グループのイベントカレンダー"
+                "calendar_description": "グループのイベントカレンダー",
+                "moderation": "グループの管理",
+                "moderation_description": "管理権限を持つグループのメンバー、BAN、招待、参加リクエストを管理します。"
             },
             "user": {
                 "discord_names_description": "フレンドの Discord ユーザー名を取得",
@@ -5350,7 +5352,17 @@
                 "failed_to_update_group_event_follow_state": "このイベントを更新できませんでした",
                 "failed_to_download_ics_file": ".ics ファイルをダウンロードできませんでした",
                 "failed_to_save_ics_file": ".ics ファイルを保存できませんでした",
-                "failed_to_copy_event_link": "イベントリンクをコピーできませんでした"
+                "failed_to_copy_event_link": "イベントリンクをコピーできませんでした",
+                "failed_to_load_moderatable_groups": "管理権限を持つグループを読み込めませんでした",
+                "failed_to_open_group_moderation": "グループの管理を開けませんでした"
+            },
+            "group_moderation": {
+                "picker_description": "メンバー、BAN、招待、参加リクエストを管理するグループを選択してください。",
+                "loading": "管理権限を持つグループを読み込み中...",
+                "empty_title": "管理できるグループがありません",
+                "empty_description": "まだどのグループでも管理権限を持っていません。",
+                "permissions_degraded": "一部のグループの権限を確認できませんでした。以下のリストは不完全な場合があります。",
+                "member_count": "メンバー {count} 人"
             }
         }
     },

@@ -46,6 +46,7 @@ import {
     getGroupProfile,
     getUsersGroupInstances,
     getUserGroups,
+    getUserGroupsOverview,
     normalize
 } from './group-profile/profile';
 
@@ -54,6 +55,7 @@ const groupProfileRepository = Object.freeze({
     fetchGroupProfile,
     getGroupProfile,
     getUserGroups,
+    getUserGroupsOverview,
     getGroupPosts,
     getAllGroupPosts,
     createGroupPost,
@@ -96,6 +98,7 @@ export {
     normalize,
     getGroupProfile,
     getUserGroups,
+    getUserGroupsOverview,
     getGroupPosts,
     getAllGroupPosts,
     createGroupPost,

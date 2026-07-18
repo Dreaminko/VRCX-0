@@ -5,6 +5,7 @@ import {
     queryKeys
 } from '@/lib/entityQueryCache';
 import { commands } from '@/platform/tauri/bindings';
+import type { UserGroupsOverviewOutput } from '@/platform/tauri/bindings';
 import { createDefaultGroupRef } from '@/shared/utils/groupTransforms';
 
 import {
@@ -176,6 +177,32 @@ export async function getUserGroups({
         }
     });
     return rows.map((group) => normalize(isRecord(group) ? group : {}));
+}
+
+export async function getUserGroupsOverview({
+    userId,
+    endpoint = '',
+    force = false
+}: Pick<GroupUserInput, 'userId' | 'endpoint'> & {
+    force?: boolean;
+}): Promise<UserGroupsOverviewOutput> {
+    const normalizedUserId = normalizeEntityId(userId);
+    if (!normalizedUserId) {
+        throw new Error(
+            'GroupProfileRepository.getUserGroupsOverview requires a user id.'
+        );
+    }
+
+    return fetchCachedData<UserGroupsOverviewOutput>({
+        queryKey: queryKeys.userGroupsOverview(normalizedUserId, endpoint),
+        policy: entityQueryPolicies.groupCollection,
+        force,
+        queryFn: () =>
+            commands.appUserGroupsOverviewGet({
+                currentUserId: normalizedUserId,
+                endpoint
+            })
+    });
 }
 
 export async function getGroupInstances({

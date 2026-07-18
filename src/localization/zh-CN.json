@@ -1537,7 +1537,9 @@
             "group": {
                 "header": "群组",
                 "calendar": "活动日历",
-                "calendar_description": "查看活动日历"
+                "calendar_description": "查看活动日历",
+                "moderation": "群组管理",
+                "moderation_description": "管理你拥有管理权限的群组的成员、封禁、邀请与加入申请。"
             },
             "user": {
                 "discord_names_description": "查找好友的 Discord 名称（如果他们有写上去的话）",
@@ -5358,7 +5360,17 @@
                 "failed_to_update_group_event_follow_state": "更新群组活动关注状态失败",
                 "failed_to_download_ics_file": "下载 .ics 文件失败",
                 "failed_to_save_ics_file": "保存 .ics 文件失败",
-                "failed_to_copy_event_link": "复制活动链接失败"
+                "failed_to_copy_event_link": "复制活动链接失败",
+                "failed_to_load_moderatable_groups": "加载你有管理权限的群组失败",
+                "failed_to_open_group_moderation": "打开群组管理失败"
+            },
+            "group_moderation": {
+                "picker_description": "选择一个群组来管理成员、封禁、邀请与加入申请。",
+                "loading": "正在加载你有管理权限的群组...",
+                "empty_title": "没有可管理的群组",
+                "empty_description": "你目前在任何群组中都没有管理权限。",
+                "permissions_degraded": "部分群组权限无法验证,以下列表可能不完整。",
+                "member_count": "{count} 名成员"
             }
         }
     },

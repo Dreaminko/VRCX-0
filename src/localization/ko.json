@@ -1508,7 +1508,9 @@
             "group": {
                 "header": "그룹",
                 "calendar": "달력",
-                "calendar_description": "그룹 이벤트 캘린더"
+                "calendar_description": "그룹 이벤트 캘린더",
+                "moderation": "그룹 중재",
+                "moderation_description": "회원님이 관리하는 그룹의 멤버, 밴, 초대, 가입 요청을 관리하세요."
             },
             "export": {
                 "header": "수출",
@@ -5282,7 +5284,17 @@
                 "failed_to_update_group_event_follow_state": "이 이벤트를 업데이트하지 못했습니다.",
                 "failed_to_download_ics_file": ".ics 파일을 다운로드하지 못했습니다.",
                 "failed_to_save_ics_file": ".ics 파일을 저장하지 못했습니다.",
-                "failed_to_copy_event_link": "이벤트 링크를 복사하지 못했습니다."
+                "failed_to_copy_event_link": "이벤트 링크를 복사하지 못했습니다.",
+                "failed_to_load_moderatable_groups": "회원님이 관리하는 그룹을 불러오지 못했습니다.",
+                "failed_to_open_group_moderation": "그룹 관리를 열지 못했습니다."
+            },
+            "group_moderation": {
+                "picker_description": "멤버, 밴, 초대, 가입 요청을 관리할 그룹을 선택하세요.",
+                "loading": "회원님이 관리하는 그룹을 불러오는 중...",
+                "empty_title": "관리할 그룹이 없습니다",
+                "empty_description": "아직 어떤 그룹에서도 관리 권한이 없습니다.",
+                "permissions_degraded": "일부 그룹 권한을 확인하지 못했습니다. 아래 목록이 불완전할 수 있습니다.",
+                "member_count": "멤버 {count}명"
             }
         }
     },
