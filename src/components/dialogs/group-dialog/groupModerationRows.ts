@@ -150,17 +150,23 @@ export function moderationRowSubtitle(row: unknown) {
         .join(' | ');
 }
 
-export function moderationRowRoles(row: unknown, group: unknown) {
+export function moderationRowRoleIds(row: unknown): string[] {
     const source = record(row);
     const user = record(source.user);
-    const roles = getGroupRoleNameMap(group);
     const roleIds = Array.isArray(source.roleIds)
         ? source.roleIds
         : Array.isArray(user.roleIds)
           ? user.roleIds
           : [];
     return roleIds
-        .map((roleId) => roles.get(text(roleId)) || 'Role')
+        .map((roleId) => text(roleId))
+        .filter((roleId): roleId is string => Boolean(roleId));
+}
+
+export function moderationRowRoles(row: unknown, group: unknown) {
+    const roles = getGroupRoleNameMap(group);
+    return moderationRowRoleIds(row)
+        .map((roleId) => roles.get(roleId) || 'Role')
         .filter(Boolean)
         .join(', ');
 }

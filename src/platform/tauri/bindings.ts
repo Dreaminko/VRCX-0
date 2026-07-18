@@ -1573,6 +1573,20 @@ export const commands = {
             input
         });
     },
+    async appVrchatGroupMemberRoleAdd(
+        input: VrchatGroupMemberRoleInput
+    ): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE('app__vrchat_group_member_role_add', {
+            input
+        });
+    },
+    async appVrchatGroupMemberRoleRemove(
+        input: VrchatGroupMemberRoleInput
+    ): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE('app__vrchat_group_member_role_remove', {
+            input
+        });
+    },
     async appVrchatGroupMemberUnban(
         input: VrchatGroupUserInput
     ): Promise<HttpApiExecuteResponse> {
@@ -4999,6 +5013,12 @@ export type VrchatGroupMemberPropsInput = {
     groupId?: string;
     userId?: string;
     params: JsonValue | null;
+};
+export type VrchatGroupMemberRoleInput = {
+    endpoint?: string;
+    groupId?: string;
+    userId?: string;
+    roleId?: string;
 };
 export type VrchatGroupMembersInput = {
     endpoint?: string;

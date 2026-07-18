@@ -8,10 +8,11 @@ use vrcx_0_application_core::vrchat_api::groups::{
     current_user_group_instances_get_input, gallery_get_input, group_block_input,
     group_get_no_params_input, group_paged_get_input, invite_delete_input, invite_send_input,
     join_input, join_request_respond_input, join_requests_get_input, leave_input, logs_get_input,
-    member_ban_input, member_kick_input, member_props_set_input, member_unban_input,
-    members_get_input, members_search_input, post_create_input, post_delete_input, post_edit_input,
-    profile_get_input, representation_set_input, request_cancel_input, unblock_input,
-    user_group_instances_get_input, user_groups_get_input,
+    member_ban_input, member_kick_input, member_props_set_input, member_role_add_input,
+    member_role_remove_input, member_unban_input, members_get_input, members_search_input,
+    post_create_input, post_delete_input, post_edit_input, profile_get_input,
+    representation_set_input, request_cancel_input, unblock_input, user_group_instances_get_input,
+    user_groups_get_input,
 };
 use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
 use vrcx_0_application_core::RuntimeDiagnostics;
@@ -21,10 +22,10 @@ use vrcx_0_application_core::WebClient;
 use super::types::{
     VrchatGroupGalleryInput, VrchatGroupIdInput, VrchatGroupJoinRequestRespondInput,
     VrchatGroupJoinRequestsInput, VrchatGroupLogsInput, VrchatGroupMemberPropsInput,
-    VrchatGroupMembersInput, VrchatGroupMembersSearchInput, VrchatGroupPagedInput,
-    VrchatGroupPostCreateInput, VrchatGroupPostDeleteInput, VrchatGroupPostEditInput,
-    VrchatGroupProfileInput, VrchatGroupRepresentationInput, VrchatGroupUserGroupsInput,
-    VrchatGroupUserInput,
+    VrchatGroupMemberRoleInput, VrchatGroupMembersInput, VrchatGroupMembersSearchInput,
+    VrchatGroupPagedInput, VrchatGroupPostCreateInput, VrchatGroupPostDeleteInput,
+    VrchatGroupPostEditInput, VrchatGroupProfileInput, VrchatGroupRepresentationInput,
+    VrchatGroupUserGroupsInput, VrchatGroupUserInput,
 };
 
 #[derive(Clone)]
@@ -464,6 +465,36 @@ pub async fn unban_member(
         &deps,
         "app__vrchat_group_member_unban",
         format!("Unbanning {user_id} from group {group_id}."),
+        request,
+    )
+    .await
+}
+
+pub async fn add_member_role(
+    deps: GroupApiDeps,
+    input: VrchatGroupMemberRoleInput,
+) -> Result<VrchatApiResponse> {
+    let (group_id, user_id, role_id, request) =
+        member_role_add_input(input.endpoint, input.group_id, input.user_id, input.role_id)?;
+    execute_group_api(
+        &deps,
+        "app__vrchat_group_member_role_add",
+        format!("Adding role {role_id} to {user_id} in group {group_id}."),
+        request,
+    )
+    .await
+}
+
+pub async fn remove_member_role(
+    deps: GroupApiDeps,
+    input: VrchatGroupMemberRoleInput,
+) -> Result<VrchatApiResponse> {
+    let (group_id, user_id, role_id, request) =
+        member_role_remove_input(input.endpoint, input.group_id, input.user_id, input.role_id)?;
+    execute_group_api(
+        &deps,
+        "app__vrchat_group_member_role_remove",
+        format!("Removing role {role_id} from {user_id} in group {group_id}."),
         request,
     )
     .await

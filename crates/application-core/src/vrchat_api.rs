@@ -49,10 +49,11 @@ pub mod groups {
         group_get_no_params_input, group_paged_get_input, invite_delete_input, invite_send_input,
         join_input, join_request_respond_input, join_requests_get_input, leave_input,
         logs_get_input, member_ban_input, member_get_input, member_kick_input,
-        member_props_set_input, member_unban_input, members_get_input, members_search_input,
-        post_create_input, post_delete_input, post_edit_input, profile_get_input,
-        representation_set_input, request_cancel_input, unblock_input,
-        user_group_instances_get_input, user_group_permissions_get_input, user_groups_get_input,
+        member_props_set_input, member_role_add_input, member_role_remove_input,
+        member_unban_input, members_get_input, members_search_input, post_create_input,
+        post_delete_input, post_edit_input, profile_get_input, representation_set_input,
+        request_cancel_input, unblock_input, user_group_instances_get_input,
+        user_group_permissions_get_input, user_groups_get_input,
     };
 }
 

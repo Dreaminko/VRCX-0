@@ -101,6 +101,10 @@ export interface GroupUserInput extends GroupIdInput {
     userId?: unknown;
 }
 
+export interface GroupUserRoleInput extends GroupUserInput {
+    roleId?: unknown;
+}
+
 export interface GroupPostInput extends GroupIdInput {
     postId?: unknown;
     params?: Record<string, unknown>;

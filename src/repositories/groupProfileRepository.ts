@@ -25,6 +25,7 @@ import {
     setGroupRepresentation
 } from './group-profile/members';
 import {
+    addGroupMemberRole,
     banGroupMember,
     blockGroup,
     deleteBlockedGroupRequest,
@@ -36,6 +37,7 @@ import {
     getGroupInvites,
     getGroupJoinRequests,
     kickGroupMember,
+    removeGroupMemberRole,
     respondGroupJoinRequest,
     unbanGroupMember,
     unblockGroup
@@ -76,6 +78,8 @@ const groupProfileRepository = Object.freeze({
     deleteSentGroupInvite,
     respondGroupJoinRequest,
     deleteBlockedGroupRequest,
+    addGroupMemberRole,
+    removeGroupMemberRole,
     getGroupInstances,
     getGroupBans,
     getAllGroupBans,
@@ -119,6 +123,8 @@ export {
     deleteSentGroupInvite,
     respondGroupJoinRequest,
     deleteBlockedGroupRequest,
+    addGroupMemberRole,
+    removeGroupMemberRole,
     getGroupInstances,
     getGroupBans,
     getAllGroupBans,

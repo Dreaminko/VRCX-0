@@ -34,10 +34,11 @@ import { TabsContent } from '@/ui/shadcn/tabs';
 
 import { downloadJsonFile } from './groupDialogDownloads';
 import { GroupListState } from './GroupListState';
+import { GroupModerationLogsExportDialog } from './GroupModerationLogsExportDialog';
 
 const LOGS_PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-interface GroupAuditLogRow {
+export interface GroupAuditLogRow {
     actorDisplayName?: string;
     actorId?: string;
     created_at?: string;
@@ -66,6 +67,7 @@ interface GroupModerationLogsTableProps {
     };
     loading: boolean;
     onEventTypesChange: (eventTypes: string[]) => void;
+    onExport: () => void;
     onPageIndexChange: (pageIndex: number) => void;
     onPageSizeChange: (pageSize: number) => void;
     onReload: () => void;
@@ -165,6 +167,7 @@ export function GroupModerationLogsTable({
     group,
     loading,
     onEventTypesChange,
+    onExport,
     onPageIndexChange,
     onPageSizeChange,
     onReload,
@@ -217,6 +220,16 @@ export function GroupModerationLogsTable({
                     >
                         <DownloadIcon data-icon="inline-start" />
                         JSON
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={!rows.length}
+                        onClick={onExport}
+                    >
+                        <DownloadIcon data-icon="inline-start" />
+                        {t('dialog.group_member_moderation.export_logs')}
                     </Button>
                     {auditLogTypes.length ? (
                         <DropdownMenu>
@@ -480,6 +493,7 @@ export function GroupModerationLogsPanel({
     const [rows, setRows] = useState<GroupAuditLogRow[]>([]);
     const [search, setSearch] = useState('');
     const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
+    const [exportOpen, setExportOpen] = useState(false);
 
     useEffect(() => {
         if (!open) {
@@ -492,6 +506,7 @@ export function GroupModerationLogsPanel({
         setRows([]);
         setSearch('');
         setSelectedEventTypes([]);
+        setExportOpen(false);
     }, [endpoint, group.id, open]);
 
     useEffect(() => {
@@ -571,27 +586,35 @@ export function GroupModerationLogsPanel({
     }, [active, endpoint, group.id, open, reloadToken, selectedEventTypes, t]);
 
     return (
-        <GroupModerationLogsTable
-            auditLogTypes={auditLogTypes}
-            error={error}
-            group={group}
-            loading={loading}
-            onEventTypesChange={setSelectedEventTypes}
-            onPageIndexChange={setPageIndex}
-            onPageSizeChange={(nextPageSize) => {
-                setPageSize(nextPageSize);
-                setPageIndex(0);
-            }}
-            onReload={() => setReloadToken((value) => value + 1)}
-            onSearchChange={(nextSearch) => {
-                setSearch(nextSearch);
-                setPageIndex(0);
-            }}
-            pageIndex={pageIndex}
-            pageSize={pageSize}
-            rows={rows}
-            search={search}
-            selectedEventTypes={selectedEventTypes}
-        />
+        <>
+            <GroupModerationLogsTable
+                auditLogTypes={auditLogTypes}
+                error={error}
+                group={group}
+                loading={loading}
+                onEventTypesChange={setSelectedEventTypes}
+                onExport={() => setExportOpen(true)}
+                onPageIndexChange={setPageIndex}
+                onPageSizeChange={(nextPageSize) => {
+                    setPageSize(nextPageSize);
+                    setPageIndex(0);
+                }}
+                onReload={() => setReloadToken((value) => value + 1)}
+                onSearchChange={(nextSearch) => {
+                    setSearch(nextSearch);
+                    setPageIndex(0);
+                }}
+                pageIndex={pageIndex}
+                pageSize={pageSize}
+                rows={rows}
+                search={search}
+                selectedEventTypes={selectedEventTypes}
+            />
+            <GroupModerationLogsExportDialog
+                open={exportOpen}
+                onOpenChange={setExportOpen}
+                rows={rows}
+            />
+        </>
     );
 }

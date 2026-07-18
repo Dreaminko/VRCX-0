@@ -166,6 +166,19 @@ pub struct VrchatGroupUserInput {
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct VrchatGroupMemberRoleInput {
+    #[serde(default)]
+    pub(super) endpoint: String,
+    #[serde(default)]
+    pub(super) group_id: String,
+    #[serde(default)]
+    pub(super) user_id: String,
+    #[serde(default)]
+    pub(super) role_id: String,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct VrchatGroupJoinRequestRespondInput {
     #[serde(default)]
     pub(super) endpoint: String,

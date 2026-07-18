@@ -383,6 +383,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::vrchat::groups::service::app__vrchat_group_member_ban,
             commands::vrchat::groups::service::app__vrchat_group_member_kick,
             commands::vrchat::groups::service::app__vrchat_group_member_props_set,
+            commands::vrchat::groups::service::app__vrchat_group_member_role_add,
+            commands::vrchat::groups::service::app__vrchat_group_member_role_remove,
             commands::vrchat::groups::service::app__vrchat_group_member_unban,
             commands::vrchat::groups::service::app__vrchat_group_members_get,
             commands::vrchat::groups::service::app__vrchat_group_members_search,

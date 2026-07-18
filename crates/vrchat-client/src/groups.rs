@@ -633,6 +633,79 @@ pub fn member_props_set_input(
     ))
 }
 
+struct GroupMemberRoleActionInput<'a> {
+    endpoint: String,
+    group_id: String,
+    user_id: String,
+    role_id: String,
+    group_message: &'a str,
+    user_message: &'a str,
+    role_message: &'a str,
+    method: &'a str,
+}
+
+fn member_role_action_input(
+    input: GroupMemberRoleActionInput<'_>,
+) -> Result<(String, String, String, HttpApiRequestInput), HttpApiError> {
+    let group_id = require_text(input.group_id, input.group_message)?;
+    let user_id = require_text(input.user_id, input.user_message)?;
+    let role_id = require_text(input.role_id, input.role_message)?;
+    Ok((
+        group_id.clone(),
+        user_id.clone(),
+        role_id.clone(),
+        api_input(
+            input.endpoint,
+            input.method,
+            group_path(
+                &group_id,
+                &format!(
+                    "members/{}/roles/{}",
+                    encode_path_segment(&user_id),
+                    encode_path_segment(&role_id)
+                ),
+            ),
+            None,
+        ),
+    ))
+}
+
+pub fn member_role_add_input(
+    endpoint: String,
+    group_id: String,
+    user_id: String,
+    role_id: String,
+) -> Result<(String, String, String, HttpApiRequestInput), HttpApiError> {
+    member_role_action_input(GroupMemberRoleActionInput {
+        endpoint,
+        group_id,
+        user_id,
+        role_id,
+        group_message: "VrchatGroupMemberRoleAdd requires groupId.",
+        user_message: "VrchatGroupMemberRoleAdd requires userId.",
+        role_message: "VrchatGroupMemberRoleAdd requires roleId.",
+        method: "PUT",
+    })
+}
+
+pub fn member_role_remove_input(
+    endpoint: String,
+    group_id: String,
+    user_id: String,
+    role_id: String,
+) -> Result<(String, String, String, HttpApiRequestInput), HttpApiError> {
+    member_role_action_input(GroupMemberRoleActionInput {
+        endpoint,
+        group_id,
+        user_id,
+        role_id,
+        group_message: "VrchatGroupMemberRoleRemove requires groupId.",
+        user_message: "VrchatGroupMemberRoleRemove requires userId.",
+        role_message: "VrchatGroupMemberRoleRemove requires roleId.",
+        method: "DELETE",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -674,6 +747,38 @@ mod tests {
             member_unban_input(endpoint(), "grp 1".into(), "usr 1".into()).unwrap();
 
         assert_eq!(request.path.as_deref(), Some("groups/grp%201/bans/usr%201"));
+        assert_eq!(request.method.as_deref(), Some("DELETE"));
+    }
+
+    #[test]
+    fn member_role_add_puts_the_role_onto_the_member() {
+        let (group_id, user_id, role_id, request) =
+            member_role_add_input(endpoint(), "grp 1".into(), "usr 1".into(), "grol 1".into())
+                .unwrap();
+
+        assert_eq!(group_id, "grp 1");
+        assert_eq!(user_id, "usr 1");
+        assert_eq!(role_id, "grol 1");
+        assert_eq!(
+            request.path.as_deref(),
+            Some("groups/grp%201/members/usr%201/roles/grol%201")
+        );
+        assert_eq!(request.method.as_deref(), Some("PUT"));
+    }
+
+    #[test]
+    fn member_role_remove_deletes_the_role_from_the_member() {
+        let (group_id, user_id, role_id, request) =
+            member_role_remove_input(endpoint(), "grp 1".into(), "usr 1".into(), "grol 1".into())
+                .unwrap();
+
+        assert_eq!(group_id, "grp 1");
+        assert_eq!(user_id, "usr 1");
+        assert_eq!(role_id, "grol 1");
+        assert_eq!(
+            request.path.as_deref(),
+            Some("groups/grp%201/members/usr%201/roles/grol%201")
+        );
         assert_eq!(request.method.as_deref(), Some("DELETE"));
     }
 }

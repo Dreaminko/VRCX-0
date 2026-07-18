@@ -9,6 +9,7 @@ import {
     type GroupModerationRow,
     type GroupPageInput,
     type GroupUserInput,
+    type GroupUserRoleInput,
     normalizeEntityId,
     normalizeString,
     responseRows,
@@ -81,6 +82,58 @@ export async function unbanGroupMember({
             endpoint
         }),
         `groups/${encodeURIComponent(normalizedGroupId)}/bans/${encodeURIComponent(normalizedUserId)}`
+    );
+}
+
+export async function addGroupMemberRole({
+    groupId,
+    userId,
+    roleId,
+    endpoint = ''
+}: GroupUserRoleInput) {
+    const normalizedGroupId = normalizeEntityId(groupId);
+    const normalizedUserId = normalizeEntityId(userId);
+    const normalizedRoleId = normalizeEntityId(roleId);
+    if (!normalizedGroupId || !normalizedUserId || !normalizedRoleId) {
+        throw new Error(
+            'GroupProfileRepository.addGroupMemberRole requires group, user, and role ids.'
+        );
+    }
+
+    return unwrapVrchatGroupResponse(
+        await commands.appVrchatGroupMemberRoleAdd({
+            groupId: normalizedGroupId,
+            userId: normalizedUserId,
+            roleId: normalizedRoleId,
+            endpoint
+        }),
+        `groups/${encodeURIComponent(normalizedGroupId)}/members/${encodeURIComponent(normalizedUserId)}/roles/${encodeURIComponent(normalizedRoleId)}`
+    );
+}
+
+export async function removeGroupMemberRole({
+    groupId,
+    userId,
+    roleId,
+    endpoint = ''
+}: GroupUserRoleInput) {
+    const normalizedGroupId = normalizeEntityId(groupId);
+    const normalizedUserId = normalizeEntityId(userId);
+    const normalizedRoleId = normalizeEntityId(roleId);
+    if (!normalizedGroupId || !normalizedUserId || !normalizedRoleId) {
+        throw new Error(
+            'GroupProfileRepository.removeGroupMemberRole requires group, user, and role ids.'
+        );
+    }
+
+    return unwrapVrchatGroupResponse(
+        await commands.appVrchatGroupMemberRoleRemove({
+            groupId: normalizedGroupId,
+            userId: normalizedUserId,
+            roleId: normalizedRoleId,
+            endpoint
+        }),
+        `groups/${encodeURIComponent(normalizedGroupId)}/members/${encodeURIComponent(normalizedUserId)}/roles/${encodeURIComponent(normalizedRoleId)}`
     );
 }
 

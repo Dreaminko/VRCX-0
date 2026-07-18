@@ -184,7 +184,8 @@ export const GROUP_MODERATION_TAB_PERMISSIONS: Record<
     members: [
         'group-members-manage',
         'group-members-remove',
-        'group-bans-manage'
+        'group-bans-manage',
+        'group-roles-assign'
     ],
     bans: ['group-bans-manage'],
     invites: ['group-invites-manage'],

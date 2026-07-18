@@ -220,6 +220,7 @@ describe('GroupModerationLogsPanel', () => {
                 group: { id: 'grp_test' },
                 loading: false,
                 onEventTypesChange: vi.fn(),
+                onExport: vi.fn(),
                 onPageIndexChange: vi.fn(),
                 onPageSizeChange: vi.fn(),
                 onReload: vi.fn(),

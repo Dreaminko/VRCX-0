@@ -1,4 +1,5 @@
 import { DownloadIcon, RefreshCwIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type {
@@ -8,6 +9,7 @@ import type {
 import { formatDateFilter } from '@/lib/dateTime';
 import { openUserDialog } from '@/services/dialogService';
 import { Button } from '@/ui/shadcn/button';
+import { Checkbox } from '@/ui/shadcn/checkbox';
 import { Input } from '@/ui/shadcn/input';
 import {
     Select,
@@ -65,11 +67,16 @@ export function GroupModerationTabPanel({
     onReload,
     onRunAction,
     onSearchChange,
+    onToggleAllVisible,
+    onToggleRow,
     pageIndex,
     pageSize,
     rows,
     search,
-    tab
+    selectable = false,
+    selectedIds,
+    tab,
+    toolbarExtra
 }: {
     actionKey: string;
     activeTab: string;
@@ -81,11 +88,16 @@ export function GroupModerationTabPanel({
     onReload: () => void;
     onRunAction: (action: GroupModerationAction, row: EntityRecord) => void;
     onSearchChange: (value: string) => void;
+    onToggleAllVisible?: (userIds: string[], checked: boolean) => void;
+    onToggleRow?: (userId: string, checked: boolean) => void;
     pageIndex: number;
     pageSize: number;
     rows: EntityRecord[];
     search: string;
+    selectable?: boolean;
+    selectedIds?: ReadonlySet<string>;
     tab: GroupModerationTab;
+    toolbarExtra?: ReactNode;
 }) {
     const { t } = useTranslation();
     const filteredRows = rows.filter((row) => {
@@ -98,6 +110,14 @@ export function GroupModerationTabPanel({
         currentPageIndex * pageSize,
         currentPageIndex * pageSize + pageSize
     );
+    const visibleUserIds = visibleRows
+        .map((row) => moderationRowUserId(row))
+        .filter(Boolean);
+    const allVisibleSelected =
+        selectable &&
+        visibleUserIds.length > 0 &&
+        visibleUserIds.every((userId) => selectedIds?.has(userId));
+    const columnCount = selectable ? 6 : 5;
 
     return (
         <TabsContent
@@ -131,6 +151,7 @@ export function GroupModerationTabPanel({
                         <DownloadIcon data-icon="inline-start" />
                         JSON
                     </Button>
+                    {toolbarExtra}
                     <span className="text-muted-foreground text-sm">
                         {filteredRows.length}/{rows.length}
                     </span>
@@ -188,6 +209,23 @@ export function GroupModerationTabPanel({
                     <Table>
                         <TableHeader className="vrcx-0-table-header sticky top-0">
                             <TableRow>
+                                {selectable ? (
+                                    <TableHead className="w-10">
+                                        <Checkbox
+                                            checked={allVisibleSelected}
+                                            disabled={!visibleUserIds.length}
+                                            aria-label={t(
+                                                'dialog.group_member_moderation.select_all'
+                                            )}
+                                            onCheckedChange={(checked) =>
+                                                onToggleAllVisible?.(
+                                                    visibleUserIds,
+                                                    Boolean(checked)
+                                                )
+                                            }
+                                        />
+                                    </TableHead>
+                                ) : null}
                                 <TableHead className="w-56">
                                     {t('dialog.group.label.user')}
                                 </TableHead>
@@ -225,6 +263,29 @@ export function GroupModerationTabPanel({
                                         <TableRow
                                             key={`${label}:${date}:${index}`}
                                         >
+                                            {selectable ? (
+                                                <TableCell className="align-top">
+                                                    <Checkbox
+                                                        checked={Boolean(
+                                                            userId &&
+                                                            selectedIds?.has(
+                                                                userId
+                                                            )
+                                                        )}
+                                                        disabled={!userId}
+                                                        aria-label={label}
+                                                        onCheckedChange={(
+                                                            checked
+                                                        ) =>
+                                                            userId &&
+                                                            onToggleRow?.(
+                                                                userId,
+                                                                Boolean(checked)
+                                                            )
+                                                        }
+                                                    />
+                                                </TableCell>
+                                            ) : null}
                                             <TableCell className="align-top">
                                                 {userId ? (
                                                     <Button
@@ -315,7 +376,7 @@ export function GroupModerationTabPanel({
                             ) : (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={5}
+                                        colSpan={columnCount}
                                         className="text-muted-foreground py-8 text-center text-sm"
                                     >
                                         {t('dialog.group.empty.no_rows')}
