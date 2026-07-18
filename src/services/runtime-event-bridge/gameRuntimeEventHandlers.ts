@@ -133,9 +133,7 @@ export function handleGameClientEvent(
     }
     recordRuntimeGameClientEvent(event.kind, event.payload);
     if (event.kind === 'notification') {
-        useNotificationStore
-            .getState()
-            .pushNotification({ ...event.payload });
+        useNotificationStore.getState().pushNotification({ ...event.payload });
     } else if (event.kind === 'debugLoggingOutcome') {
         handleDebugLoggingOutcome(event.payload);
     }

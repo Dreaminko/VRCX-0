@@ -9,9 +9,7 @@ export type RuntimeEventPayloadMap = BackendRuntimeEventPayloadMap & {
 
 export type RuntimeEventName = keyof RuntimeEventPayloadMap;
 
-export type RuntimeEvent<
-    Name extends RuntimeEventName = RuntimeEventName
-> = {
+export type RuntimeEvent<Name extends RuntimeEventName = RuntimeEventName> = {
     [EventName in Name]: {
         name: EventName;
         payload: RuntimeEventPayloadMap[EventName];
