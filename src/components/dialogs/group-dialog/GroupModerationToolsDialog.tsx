@@ -26,7 +26,7 @@ export function GroupModerationToolsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[min(92vw,64rem)]">
+            <DialogContent className="sm:max-w-[min(94vw,76rem)]">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.group.actions.moderation_tools')}

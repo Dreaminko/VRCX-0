@@ -7,7 +7,6 @@ import type {
     GroupProfileRecord
 } from '@/domain/entities/profileEntities';
 import { formatDateFilter } from '@/lib/dateTime';
-import { openUserDialog } from '@/services/dialogService';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import { Input } from '@/ui/shadcn/input';
@@ -35,22 +34,14 @@ import {
     getGroupModerationActions,
     moderationRowDate,
     moderationRowLabel,
+    moderationRowNote,
     moderationRowRoles,
     moderationRowSearchText,
     moderationRowStatus,
-    moderationRowSubtitle,
     moderationRowUserId,
     type GroupModerationAction,
     type GroupModerationTab
 } from './groupModerationRows';
-
-function isRecord(value: unknown): value is EntityRecord {
-    return Boolean(value && typeof value === 'object');
-}
-
-function record(value: unknown): EntityRecord | null {
-    return isRecord(value) ? value : null;
-}
 
 function text(value: unknown): string {
     return typeof value === 'string' ? value : '';
@@ -60,8 +51,10 @@ export function GroupModerationTabPanel({
     actionKey,
     activeTab,
     error,
+    focusedUserId,
     group,
     loading,
+    onFocusRow,
     onPageIndexChange,
     onPageSizeChange,
     onReload,
@@ -81,8 +74,10 @@ export function GroupModerationTabPanel({
     actionKey: string;
     activeTab: string;
     error: string;
+    focusedUserId?: string;
     group: GroupProfileRecord;
     loading: boolean;
+    onFocusRow?: (userId: string) => void;
     onPageIndexChange: (value: number) => void;
     onPageSizeChange: (value: number) => void;
     onReload: () => void;
@@ -250,7 +245,6 @@ export function GroupModerationTabPanel({
                         <TableBody>
                             {visibleRows.length ? (
                                 visibleRows.map((row, index) => {
-                                    const user = record(row.user);
                                     const userId = moderationRowUserId(row);
                                     const label = moderationRowLabel(row);
                                     const date = moderationRowDate(row);
@@ -259,9 +253,17 @@ export function GroupModerationTabPanel({
                                         row,
                                         t
                                     );
+                                    const isFocused = Boolean(
+                                        userId && userId === focusedUserId
+                                    );
                                     return (
                                         <TableRow
                                             key={`${label}:${date}:${index}`}
+                                            className={
+                                                isFocused
+                                                    ? 'bg-muted/50'
+                                                    : undefined
+                                            }
                                         >
                                             {selectable ? (
                                                 <TableCell className="align-top">
@@ -293,11 +295,9 @@ export function GroupModerationTabPanel({
                                                         variant="ghost"
                                                         className="hover:text-primary h-auto max-w-52 justify-start truncate p-0 text-left font-medium"
                                                         onClick={() =>
-                                                            openUserDialog({
-                                                                userId,
-                                                                title: label,
-                                                                seedData: user
-                                                            })
+                                                            onFocusRow?.(
+                                                                userId
+                                                            )
                                                         }
                                                     >
                                                         {label}
@@ -318,12 +318,7 @@ export function GroupModerationTabPanel({
                                                     row,
                                                     group
                                                 ) ||
-                                                    text(row.description) ||
-                                                    text(row.note) ||
-                                                    text(row.managerNotes) ||
-                                                    moderationRowSubtitle(
-                                                        row
-                                                    ) ||
+                                                    moderationRowNote(row) ||
                                                     '—'}
                                             </TableCell>
                                             <TableCell className="align-top text-xs whitespace-normal">

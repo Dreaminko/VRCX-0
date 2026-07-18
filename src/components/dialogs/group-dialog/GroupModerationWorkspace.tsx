@@ -14,12 +14,16 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
-import { hasGroupPermission } from './groupDialogUtils';
+import {
+    hasGroupPermission,
+    type GroupModerationTabValue
+} from './groupDialogUtils';
 import { GroupModerationBanImportDialog } from './GroupModerationBanImportDialog';
 import {
     GroupModerationBulkPanel,
     type GroupModerationBulkProgress
 } from './GroupModerationBulkPanel';
+import { GroupModerationInspector } from './GroupModerationInspector';
 import { GroupModerationLogsPanel } from './GroupModerationLogsPanel';
 import {
     getGroupModerationTabs,
@@ -47,7 +51,9 @@ export function GroupModerationWorkspace({
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const [activeTab, setActiveTab] = useState('members');
+    const [activeTab, setActiveTab] = useState<GroupModerationTabValue | ''>(
+        'members'
+    );
     const [rowsByTab, setRowsByTab] = useState<Record<string, EntityRecord[]>>(
         {}
     );
@@ -65,6 +71,9 @@ export function GroupModerationWorkspace({
     const [bulkProgress, setBulkProgress] =
         useState<GroupModerationBulkProgress | null>(null);
     const [banImportOpen, setBanImportOpen] = useState(false);
+    const [focusedByTab, setFocusedByTab] = useState<Record<string, string>>(
+        {}
+    );
     const resetKeyRef = useRef('');
     const moderationTabs = useMemo(
         () => getGroupModerationTabs(t, group),
@@ -79,6 +88,15 @@ export function GroupModerationWorkspace({
         ? rows.filter((row) => selectedIds.has(moderationRowUserId(row)))
         : [];
     const bulkSelectable = BULK_SELECTABLE_TABS.has(activeTab);
+    const focusedUserId = focusedByTab[activeTab] || '';
+    const focusedRow = focusedUserId
+        ? rows.find((row) => moderationRowUserId(row) === focusedUserId) ||
+          null
+        : null;
+
+    function focusRow(userId: string) {
+        setFocusedByTab((current) => ({ ...current, [activeTab]: userId }));
+    }
 
     useEffect(() => {
         if (resetKeyRef.current !== resetKey) {
@@ -96,6 +114,7 @@ export function GroupModerationWorkspace({
             setBulkBusy(false);
             setBulkProgress(null);
             setBanImportOpen(false);
+            setFocusedByTab({});
             return;
         }
 
@@ -492,7 +511,9 @@ export function GroupModerationWorkspace({
         <div className="min-h-0">
             <Tabs
                 value={activeTab}
-                onValueChange={setActiveTab}
+                onValueChange={(value) =>
+                    setActiveTab(value as GroupModerationTabValue)
+                }
                 className="min-h-0 gap-0"
             >
                 <TabsList
@@ -529,67 +550,88 @@ export function GroupModerationWorkspace({
                         onRemoveRoles={runBulkRemoveRoles}
                     />
                 ) : null}
-                {moderationTabs.map((tab) =>
-                    tab.value === 'logs' ? (
-                        <GroupModerationLogsPanel
-                            key={tab.value}
-                            active={activeTab === 'logs'}
-                            endpoint={endpoint}
+                <div className="flex min-h-0 gap-4">
+                    <div className="min-w-0 flex-1">
+                        {moderationTabs.map((tab) =>
+                            tab.value === 'logs' ? (
+                                <GroupModerationLogsPanel
+                                    key={tab.value}
+                                    active={activeTab === 'logs'}
+                                    endpoint={endpoint}
+                                    group={group}
+                                    open
+                                />
+                            ) : (
+                                <GroupModerationTabPanel
+                                    key={tab.value}
+                                    actionKey={actionKey}
+                                    activeTab={activeTab}
+                                    error={error}
+                                    focusedUserId={focusedUserId}
+                                    group={group}
+                                    loading={loading}
+                                    onFocusRow={focusRow}
+                                    onPageIndexChange={setPageIndex}
+                                    onPageSizeChange={(
+                                        nextPageSize: number
+                                    ) => {
+                                        setPageSize(nextPageSize);
+                                        setPageIndex(0);
+                                    }}
+                                    onReload={() =>
+                                        setReloadToken((value) => value + 1)
+                                    }
+                                    onRunAction={runModerationAction}
+                                    onSearchChange={(nextSearch: string) => {
+                                        setSearch(nextSearch);
+                                        setPageIndex(0);
+                                    }}
+                                    onToggleAllVisible={toggleSelectedVisible}
+                                    onToggleRow={toggleSelectedRow}
+                                    pageIndex={pageIndex}
+                                    pageSize={pageSize}
+                                    rows={rows}
+                                    search={search}
+                                    selectable={BULK_SELECTABLE_TABS.has(
+                                        tab.value
+                                    )}
+                                    selectedIds={selectedIds || undefined}
+                                    tab={tab}
+                                    toolbarExtra={
+                                        tab.value === 'bans' &&
+                                        hasGroupPermission(
+                                            group,
+                                            'group-bans-manage'
+                                        ) ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setBanImportOpen(true)
+                                                }
+                                            >
+                                                <UploadIcon data-icon="inline-start" />
+                                                {t(
+                                                    'dialog.group_member_moderation.import_bans'
+                                                )}
+                                            </Button>
+                                        ) : null
+                                    }
+                                />
+                            )
+                        )}
+                    </div>
+                    {activeTab !== 'logs' ? (
+                        <GroupModerationInspector
+                            row={focusedRow}
                             group={group}
-                            open
-                        />
-                    ) : (
-                        <GroupModerationTabPanel
-                            key={tab.value}
+                            tabValue={activeTab || 'members'}
                             actionKey={actionKey}
-                            activeTab={activeTab}
-                            error={error}
-                            group={group}
-                            loading={loading}
-                            onPageIndexChange={setPageIndex}
-                            onPageSizeChange={(nextPageSize: number) => {
-                                setPageSize(nextPageSize);
-                                setPageIndex(0);
-                            }}
-                            onReload={() =>
-                                setReloadToken((value) => value + 1)
-                            }
                             onRunAction={runModerationAction}
-                            onSearchChange={(nextSearch: string) => {
-                                setSearch(nextSearch);
-                                setPageIndex(0);
-                            }}
-                            onToggleAllVisible={toggleSelectedVisible}
-                            onToggleRow={toggleSelectedRow}
-                            pageIndex={pageIndex}
-                            pageSize={pageSize}
-                            rows={rows}
-                            search={search}
-                            selectable={BULK_SELECTABLE_TABS.has(tab.value)}
-                            selectedIds={selectedIds || undefined}
-                            tab={tab}
-                            toolbarExtra={
-                                tab.value === 'bans' &&
-                                hasGroupPermission(
-                                    group,
-                                    'group-bans-manage'
-                                ) ? (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setBanImportOpen(true)}
-                                    >
-                                        <UploadIcon data-icon="inline-start" />
-                                        {t(
-                                            'dialog.group_member_moderation.import_bans'
-                                        )}
-                                    </Button>
-                                ) : null
-                            }
                         />
-                    )
-                )}
+                    ) : null}
+                </div>
             </Tabs>
             <GroupModerationBanImportDialog
                 open={banImportOpen}

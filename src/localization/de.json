@@ -4535,7 +4535,9 @@
             "import_bans_done": "Fertig. {success}/{total} Benutzer gebannt.",
             "import_bans_cancelled": "Abgebrochen. {success}/{total} Benutzer gebannt.",
             "export_logs": "Protokolle exportieren",
-            "export_logs_copied": "Audit-Protokoll-CSV in die Zwischenablage kopiert"
+            "export_logs_copied": "Audit-Protokoll-CSV in die Zwischenablage kopiert",
+            "inspector_empty": "Select a row to view details",
+            "view_full_profile": "View full profile"
         },
         "group_post_edit": {
             "title": "Titel"

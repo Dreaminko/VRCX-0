@@ -4535,7 +4535,9 @@
             "import_bans_done": "Done. Banned {success}/{total} users.",
             "import_bans_cancelled": "Cancelled. Banned {success}/{total} users.",
             "export_logs": "Export Logs",
-            "export_logs_copied": "Audit log CSV copied to clipboard"
+            "export_logs_copied": "Audit log CSV copied to clipboard",
+            "inspector_empty": "Select a row to view details",
+            "view_full_profile": "View full profile"
         },
         "group_post_edit": {
             "title": "Title"

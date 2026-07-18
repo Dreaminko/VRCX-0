@@ -4537,7 +4537,9 @@
             "import_bans_done": "Hotovo. Zakázáno {success}/{total} uživatelů.",
             "import_bans_cancelled": "Zrušeno. Zakázáno {success}/{total} uživatelů.",
             "export_logs": "Exportovat protokoly",
-            "export_logs_copied": "CSV protokolu auditu zkopírováno do schránky"
+            "export_logs_copied": "CSV protokolu auditu zkopírováno do schránky",
+            "inspector_empty": "Select a row to view details",
+            "view_full_profile": "View full profile"
         },
         "group_post_edit": {
             "title": "Název"

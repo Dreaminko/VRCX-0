@@ -196,6 +196,16 @@ export function moderationRowDate(row: unknown) {
     );
 }
 
+export function moderationRowNote(row: unknown): string {
+    const source = record(row);
+    return (
+        text(source.description) ||
+        text(source.note) ||
+        text(source.managerNotes) ||
+        moderationRowSubtitle(row)
+    );
+}
+
 export function moderationRowSearchText(row: unknown, group: unknown) {
     const source = record(row);
     return [
