@@ -1,11 +1,10 @@
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use chrono::{DateTime, FixedOffset, NaiveDate, SecondsFormat, TimeZone, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::{SecondsFormat, Utc};
+use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::Notify;
 use vrcx_0_integrations::external_api::{self, ExternalApiScope};
@@ -22,52 +21,20 @@ use vrcx_0_application_core::{
     UpdaterProgressCallback,
 };
 
+mod release;
+#[cfg(test)]
+mod tests;
+
+use self::release::{
+    is_release_newer_than_current, is_stable_release_newer_than_preview_build, normalize_release,
+    parse_preview_build_timestamp_ms, version_sort_key, GitHubRelease,
+};
+
 const GITHUB_RELEASES_URL: &str = "https://api.github.com/repos/Map1en/VRCX-0/releases";
 const APP_UPDATE_CHECK_JOB: &str = "appUpdateCheck";
 const APP_UPDATE_CHECK_INTERVAL_SECONDS: u64 = 10_800;
-const PREVIEW_LABELS: [&str; 2] = ["preview", "test"];
-const TOKYO_UTC_OFFSET_SECONDS: i32 = 9 * 3600;
-const MAX_MAJOR_VERSION: u32 = 99;
-const MAX_MINOR_VERSION: u32 = 999;
-const MAX_PATCH_VERSION: u32 = 999;
 const CONFIG_AUTO_INSTALL_ON_STARTUP: &str = "autoInstallUpdatesOnStartup";
 const CONFIG_AUTO_BACKGROUND_DOWNLOAD: &str = "autoBackgroundDownloadUpdates";
-
-#[derive(Debug, Clone, Deserialize, Default)]
-struct GitHubReleaseAsset {
-    #[serde(default)]
-    state: Option<String>,
-    #[serde(default)]
-    name: Option<String>,
-    #[serde(default)]
-    browser_download_url: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-struct GitHubRelease {
-    #[serde(default)]
-    tag_name: Option<String>,
-    #[serde(default)]
-    assets: Vec<GitHubReleaseAsset>,
-    #[serde(default)]
-    html_url: Option<String>,
-    #[serde(default)]
-    name: Option<String>,
-    #[serde(default)]
-    prerelease: bool,
-    #[serde(default)]
-    published_at: Option<String>,
-    #[serde(default)]
-    body: Option<String>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct ParsedReleaseVersion {
-    major: u32,
-    minor: u32,
-    patch: u32,
-    canonical_version: String,
-}
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -154,188 +121,6 @@ fn update_available_outcome(
 
 fn now_iso() -> String {
     Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
-}
-
-fn parse_numeric_component(component: &str, allow_zero: bool) -> Option<u32> {
-    if component.is_empty() || !component.bytes().all(|byte| byte.is_ascii_digit()) {
-        return None;
-    }
-    if component.len() > 1 && component.starts_with('0') {
-        return None;
-    }
-    let value: u32 = component.parse().ok()?;
-    if !allow_zero && value == 0 {
-        return None;
-    }
-    Some(value)
-}
-
-fn parse_release_version(version: &str) -> Option<ParsedReleaseVersion> {
-    let trimmed = version.trim();
-    let trimmed = trimmed.strip_prefix('v').unwrap_or(trimmed);
-    let mut parts = trimmed.split('.');
-    let major_str = parts.next()?;
-    let minor_str = parts.next()?;
-    let patch_str = parts.next()?;
-    if parts.next().is_some() {
-        return None;
-    }
-    let major = parse_numeric_component(major_str, false)?;
-    let minor = parse_numeric_component(minor_str, true)?;
-    let patch = parse_numeric_component(patch_str, true)?;
-    if major > MAX_MAJOR_VERSION || minor > MAX_MINOR_VERSION || patch > MAX_PATCH_VERSION {
-        return None;
-    }
-    Some(ParsedReleaseVersion {
-        major,
-        minor,
-        patch,
-        canonical_version: format!("{major}.{minor}.{patch}"),
-    })
-}
-
-fn compare_release_versions(left: &str, right: &str) -> Ordering {
-    match (parse_release_version(left), parse_release_version(right)) {
-        (None, None) => Ordering::Equal,
-        (None, Some(_)) => Ordering::Less,
-        (Some(_), None) => Ordering::Greater,
-        (Some(left), Some(right)) => {
-            (left.major, left.minor, left.patch).cmp(&(right.major, right.minor, right.patch))
-        }
-    }
-}
-
-fn is_release_newer_than_current(
-    release: &AppUpdateReleaseSnapshot,
-    current_version: &str,
-) -> bool {
-    compare_release_versions(&release.canonical_version, current_version) == Ordering::Greater
-}
-
-fn is_preview_build_label(build_label: &str) -> bool {
-    PREVIEW_LABELS.contains(&build_label.trim().to_ascii_lowercase().as_str())
-}
-
-fn parse_preview_badge_timestamp_ms(build_badge: &str) -> Option<i64> {
-    let badge = build_badge.trim();
-    if !badge.is_ascii() {
-        return None;
-    }
-    let prefix = badge.get(0..7)?;
-    if !prefix.eq_ignore_ascii_case("preview") {
-        return None;
-    }
-    let remainder = &badge[7..];
-    let trimmed = remainder.trim_start();
-    if trimmed.len() == remainder.len() || trimmed.len() != 13 {
-        return None;
-    }
-    if trimmed.as_bytes()[8] != b'-' {
-        return None;
-    }
-    let date_part = &trimmed[0..8];
-    let time_part = &trimmed[9..13];
-    if !date_part.bytes().all(|byte| byte.is_ascii_digit())
-        || !time_part.bytes().all(|byte| byte.is_ascii_digit())
-    {
-        return None;
-    }
-
-    let year: i32 = date_part[0..4].parse().ok()?;
-    let month: u32 = date_part[4..6].parse().ok()?;
-    let day: u32 = date_part[6..8].parse().ok()?;
-    let hour: u32 = time_part[0..2].parse().ok()?;
-    let minute: u32 = time_part[2..4].parse().ok()?;
-    if !(1..=12).contains(&month) || !(1..=31).contains(&day) || hour > 23 || minute > 59 {
-        return None;
-    }
-
-    let tokyo_offset = FixedOffset::east_opt(TOKYO_UTC_OFFSET_SECONDS)?;
-    let naive_date = NaiveDate::from_ymd_opt(year, month, day)?;
-    let naive_datetime = naive_date.and_hms_opt(hour, minute, 0)?;
-    let tokyo_datetime = tokyo_offset.from_local_datetime(&naive_datetime).single()?;
-    Some(tokyo_datetime.timestamp_millis())
-}
-
-fn parse_preview_build_timestamp_ms(build_label: &str, build_badge: &str) -> Option<i64> {
-    if !is_preview_build_label(build_label) {
-        return None;
-    }
-    parse_preview_badge_timestamp_ms(build_badge)
-}
-
-fn is_stable_release_newer_than_preview_build(
-    release: &AppUpdateReleaseSnapshot,
-    preview_build_timestamp_ms: i64,
-) -> bool {
-    DateTime::parse_from_rfc3339(&release.published_at)
-        .map(|published_at| published_at.timestamp_millis() > preview_build_timestamp_ms)
-        .unwrap_or(false)
-}
-
-fn manifest_asset_name_for_target(target: &str) -> Option<&'static str> {
-    if target.starts_with("windows-") {
-        Some("latest_windows.json")
-    } else if target.starts_with("linux-") || target.starts_with("macos-") {
-        Some("latest_linux_and_macos.json")
-    } else {
-        None
-    }
-}
-
-fn resolve_manifest_asset(assets: &[GitHubReleaseAsset], target: &str) -> Option<String> {
-    let manifest_name = manifest_asset_name_for_target(target)?;
-    assets
-        .iter()
-        .find(|asset| {
-            asset.state.as_deref() == Some("uploaded")
-                && asset.name.as_deref() == Some(manifest_name)
-        })
-        .and_then(|asset| asset.browser_download_url.clone())
-        .filter(|url| !url.trim().is_empty())
-}
-
-fn normalize_release(
-    release: &GitHubRelease,
-    target: Option<&str>,
-    require_installer_asset: bool,
-) -> Option<AppUpdateReleaseSnapshot> {
-    let tag_name = release.tag_name.clone().unwrap_or_default();
-    let parsed = parse_release_version(&tag_name)?;
-    let manifest = target.and_then(|target| {
-        resolve_manifest_asset(&release.assets, target).map(|url| (url, target.to_string()))
-    });
-    if require_installer_asset && manifest.is_none() {
-        return None;
-    }
-    let (manifest_url, resolved_target, updater_type) = match manifest {
-        Some((url, target)) => (url, target, "tauri"),
-        None => (String::new(), String::new(), "manual"),
-    };
-    let display_name = release
-        .name
-        .clone()
-        .filter(|name| !name.trim().is_empty())
-        .unwrap_or_else(|| format!("VRCX-0 {}", parsed.canonical_version));
-
-    Some(AppUpdateReleaseSnapshot {
-        display_name,
-        tag_name,
-        html_url: release.html_url.clone().unwrap_or_default(),
-        published_at: release.published_at.clone().unwrap_or_default(),
-        body: release.body.clone().unwrap_or_default(),
-        canonical_version: parsed.canonical_version.clone(),
-        display_version: parsed.canonical_version,
-        manifest_url,
-        target: resolved_target,
-        updater_type: updater_type.to_string(),
-    })
-}
-
-fn version_sort_key(canonical_version: &str) -> (u32, u32, u32) {
-    parse_release_version(canonical_version)
-        .map(|parsed| (parsed.major, parsed.minor, parsed.patch))
-        .unwrap_or_default()
 }
 
 async fn fetch_releases(web: &WebClient) -> Result<Vec<GitHubRelease>> {
@@ -1134,147 +919,5 @@ impl AppUpdateRuntime {
         );
 
         snapshot
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn asset(name: &str, state: &str, url: &str) -> GitHubReleaseAsset {
-        GitHubReleaseAsset {
-            state: Some(state.into()),
-            name: Some(name.into()),
-            browser_download_url: Some(url.into()),
-        }
-    }
-
-    fn release(tag_name: &str, prerelease: bool, assets: Vec<GitHubReleaseAsset>) -> GitHubRelease {
-        GitHubRelease {
-            tag_name: Some(tag_name.into()),
-            assets,
-            html_url: Some("https://github.com/Map1en/VRCX-0/releases/tag/v1.2.3".into()),
-            name: None,
-            prerelease,
-            published_at: Some("2026-07-16T12:00:00Z".into()),
-            body: Some("Release notes.".into()),
-        }
-    }
-
-    #[test]
-    fn parses_valid_release_versions() {
-        let parsed = parse_release_version("v1.2.3").expect("valid version parses");
-        assert_eq!((parsed.major, parsed.minor, parsed.patch), (1, 2, 3));
-        assert_eq!(parsed.canonical_version, "1.2.3");
-
-        let parsed = parse_release_version("2.0.0").expect("valid version parses");
-        assert_eq!((parsed.major, parsed.minor, parsed.patch), (2, 0, 0));
-    }
-
-    #[test]
-    fn rejects_invalid_release_versions() {
-        assert!(parse_release_version("").is_none());
-        assert!(parse_release_version("1.2").is_none());
-        assert!(parse_release_version("1.2.3.4").is_none());
-        assert!(parse_release_version("01.2.3").is_none());
-        assert!(parse_release_version("1.02.3").is_none());
-        assert!(parse_release_version("0.1.0").is_none());
-        assert!(parse_release_version("abc").is_none());
-    }
-
-    #[test]
-    fn compares_release_versions_numerically() {
-        assert_eq!(compare_release_versions("1.2.3", "1.2.3"), Ordering::Equal);
-        assert_eq!(
-            compare_release_versions("1.10.0", "1.9.0"),
-            Ordering::Greater
-        );
-        assert_eq!(compare_release_versions("1.2.3", "1.2.4"), Ordering::Less);
-        assert_eq!(compare_release_versions("bad", "1.0.0"), Ordering::Less);
-        assert_eq!(compare_release_versions("1.0.0", "bad"), Ordering::Greater);
-    }
-
-    #[test]
-    fn detects_preview_build_labels_case_insensitively() {
-        assert!(is_preview_build_label("preview"));
-        assert!(is_preview_build_label("Preview"));
-        assert!(is_preview_build_label("test"));
-        assert!(!is_preview_build_label("stable"));
-        assert!(!is_preview_build_label("devkit"));
-        assert!(!is_preview_build_label(""));
-    }
-
-    #[test]
-    fn parses_preview_badge_timestamp_from_tokyo_local_time() {
-        let timestamp_ms = parse_preview_badge_timestamp_ms("Preview 20260716-1230")
-            .expect("valid preview badge parses");
-        let expected = FixedOffset::east_opt(TOKYO_UTC_OFFSET_SECONDS)
-            .unwrap()
-            .from_local_datetime(
-                &NaiveDate::from_ymd_opt(2026, 7, 16)
-                    .unwrap()
-                    .and_hms_opt(12, 30, 0)
-                    .unwrap(),
-            )
-            .single()
-            .unwrap()
-            .timestamp_millis();
-        assert_eq!(timestamp_ms, expected);
-    }
-
-    #[test]
-    fn rejects_malformed_preview_badges() {
-        assert!(parse_preview_badge_timestamp_ms("Preview20260716-1230").is_none());
-        assert!(parse_preview_badge_timestamp_ms("Preview 2026071-1230").is_none());
-        assert!(parse_preview_badge_timestamp_ms("Preview 20261316-1230").is_none());
-        assert!(parse_preview_badge_timestamp_ms("Preview 20260732-1230").is_none());
-        assert!(parse_preview_badge_timestamp_ms("Preview 20260716-2460").is_none());
-        assert!(parse_preview_badge_timestamp_ms("Stable 20260716-1230").is_none());
-        assert!(parse_preview_badge_timestamp_ms("").is_none());
-    }
-
-    #[test]
-    fn parse_preview_build_timestamp_requires_preview_label() {
-        assert!(parse_preview_build_timestamp_ms("stable", "Preview 20260716-1230").is_none());
-        assert!(parse_preview_build_timestamp_ms("preview", "Preview 20260716-1230").is_some());
-    }
-
-    #[test]
-    fn normalize_release_requires_matching_installer_asset_when_required() {
-        let release = release(
-            "v1.2.3",
-            false,
-            vec![asset(
-                "latest_windows.json",
-                "uploaded",
-                "https://github.com/Map1en/VRCX-0/releases/download/v1.2.3/latest_windows.json",
-            )],
-        );
-
-        let normalized = normalize_release(&release, Some("windows-x86_64-stable"), true)
-            .expect("release with matching asset normalizes");
-        assert_eq!(normalized.updater_type, "tauri");
-        assert_eq!(normalized.target, "windows-x86_64-stable");
-        assert!(!normalized.manifest_url.is_empty());
-
-        assert!(normalize_release(&release, Some("macos-aarch64-stable"), true).is_none());
-        let notify_only = normalize_release(&release, Some("macos-aarch64-stable"), false)
-            .expect("notify-only normalize succeeds without a matching asset");
-        assert_eq!(notify_only.updater_type, "manual");
-        assert!(notify_only.manifest_url.is_empty());
-    }
-
-    #[test]
-    fn normalize_release_rejects_unparseable_tag_names() {
-        let release = release("not-a-version", false, Vec::new());
-        assert!(normalize_release(&release, None, false).is_none());
-    }
-
-    #[test]
-    fn is_release_newer_than_current_compares_canonical_versions() {
-        let newer = normalize_release(&release("v2.0.0", false, Vec::new()), None, false).unwrap();
-        assert!(is_release_newer_than_current(&newer, "1.9.9"));
-        assert!(!is_release_newer_than_current(&newer, "2.0.0"));
-        assert!(!is_release_newer_than_current(&newer, "2.0.1"));
     }
 }
