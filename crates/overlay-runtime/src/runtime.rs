@@ -653,10 +653,7 @@ impl VrOverlayRuntime {
         }
     }
 
-    pub fn update_friends_panel_favorite_groups_from_baseline(
-        &self,
-        snapshot: &serde_json::Value,
-    ) {
+    pub fn update_friends_panel_favorite_groups_from_baseline(&self, snapshot: &serde_json::Value) {
         let next = favorite_friend_groups_snapshot_from_baseline(snapshot);
         if let Ok(mut current) = self.friends_panel_favorite_groups.lock() {
             *current = next;
@@ -1346,17 +1343,11 @@ impl VrOverlayRuntime {
         }
     }
 
-    pub(crate) fn is_hmd_surface_active(
-        &self,
-        config: VrOverlayRuntimeConfig,
-    ) -> bool {
+    pub(crate) fn is_hmd_surface_active(&self, config: VrOverlayRuntimeConfig) -> bool {
         self.active_surfaces(config).hmd
     }
 
-    pub(crate) fn active_surfaces(
-        &self,
-        config: VrOverlayRuntimeConfig,
-    ) -> ActiveOverlaySurfaces {
+    pub(crate) fn active_surfaces(&self, config: VrOverlayRuntimeConfig) -> ActiveOverlaySurfaces {
         self.active_surfaces_for_state(
             config,
             self.game_running.load(Ordering::Acquire),
@@ -2035,9 +2026,7 @@ fn clear_slint_friends_panel_host() {
     });
 }
 
-pub(crate) fn render_slint_hmd_frame(
-    model: &MainSurfaceModel,
-) -> Result<RgbaFrame, String> {
+pub(crate) fn render_slint_hmd_frame(model: &MainSurfaceModel) -> Result<RgbaFrame, String> {
     SLINT_HMD_RENDERER.with(|renderer| {
         renderer
             .borrow_mut()

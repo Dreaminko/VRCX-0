@@ -44,7 +44,6 @@ impl crate::VrOverlayRuntimeServices for TestOverlayRuntimeServices {
             .map(|snapshot| snapshot.clone())
             .unwrap_or_default()
     }
-
 }
 
 fn friends_panel_input(kind: OverlayInputKind, uv: UvPoint) -> OverlayInputEvent {

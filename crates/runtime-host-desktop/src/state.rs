@@ -118,8 +118,7 @@ impl GameProcessEventSink for VrOverlayProcessSink {
         } else {
             None
         };
-        self.runtime
-            .on_game_process_event(event, current_vr_mode)
+        self.runtime.on_game_process_event(event, current_vr_mode)
     }
 }
 
@@ -191,9 +190,8 @@ impl DesktopRuntimeHostState {
             Arc::clone(&game_log_snapshot),
             overlay_activity.clone(),
         ));
-        let vr_overlay_runtime = Arc::new(DesktopVrOverlayRuntime::new(Arc::clone(
-            &desktop_services,
-        ))?);
+        let vr_overlay_runtime =
+            Arc::new(DesktopVrOverlayRuntime::new(Arc::clone(&desktop_services))?);
         let game_log_sink: Arc<dyn GameLogEventSink> = Arc::new(HostGameLogEventFanout::new(vec![
             game_log_runtime.clone(),
             vr_overlay_runtime.clone(),
@@ -264,8 +262,7 @@ impl DesktopRuntimeHostState {
         let favorites_sink: RuntimeHostSnapshotCallback = {
             let vr_overlay_runtime = Arc::clone(&desktop.vr_overlay_runtime);
             Arc::new(move |snapshot: &Value| {
-                vr_overlay_runtime
-                    .update_friends_panel_favorite_groups_from_baseline(snapshot);
+                vr_overlay_runtime.update_friends_panel_favorite_groups_from_baseline(snapshot);
             })
         };
         let runtime = builder.finish(RuntimeHostComposition {

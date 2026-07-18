@@ -33,10 +33,7 @@ pub(crate) struct HmdToastState {
 }
 
 impl VrOverlayRuntime {
-    pub(crate) fn ingest_hmd_delivery(
-        self: &Arc<Self>,
-        delivery: OverlayActivityDelivery,
-    ) {
+    pub(crate) fn ingest_hmd_delivery(self: &Arc<Self>, delivery: OverlayActivityDelivery) {
         if !delivery.hmd || !self.is_hmd_surface_active(self.current_runtime_config()) {
             return;
         }

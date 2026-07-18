@@ -10,12 +10,12 @@ use crate::DesktopRuntimeServices;
 #[cfg(any(windows, target_os = "linux"))]
 use vrcx_0_application_core::GameProcessEventSink;
 #[cfg(any(windows, target_os = "linux"))]
-use vrcx_0_persistence::config::ConfigRepository;
-#[cfg(any(windows, target_os = "linux"))]
 use vrcx_0_overlay_runtime::{
     start_preview_bridge_if_enabled, VrOverlayActivitySink, VrOverlayRuntime,
     VR_OVERLAY_ENABLED_CONFIG_KEY,
 };
+#[cfg(any(windows, target_os = "linux"))]
+use vrcx_0_persistence::config::ConfigRepository;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -147,10 +147,7 @@ impl DesktopVrOverlayRuntime {
         self.runtime.invalidate_friends_panel_note_memo_cache();
     }
 
-    pub fn update_friends_panel_favorite_groups_from_baseline(
-        &self,
-        snapshot: &serde_json::Value,
-    ) {
+    pub fn update_friends_panel_favorite_groups_from_baseline(&self, snapshot: &serde_json::Value) {
         #[cfg(any(windows, target_os = "linux"))]
         self.runtime
             .update_friends_panel_favorite_groups_from_baseline(snapshot);
@@ -164,8 +161,7 @@ impl DesktopVrOverlayRuntime {
         F: Fn() -> Option<RealtimeFriendSnapshot> + Send + Sync + 'static,
     {
         #[cfg(any(windows, target_os = "linux"))]
-        self.runtime
-            .set_friends_panel_snapshot_provider(provider);
+        self.runtime.set_friends_panel_snapshot_provider(provider);
 
         #[cfg(not(any(windows, target_os = "linux")))]
         let _ = provider;
@@ -194,10 +190,7 @@ impl DesktopVrOverlayRuntime {
 }
 
 impl GameLogEventSink for DesktopVrOverlayRuntime {
-    fn ingest_game_log_event(
-        &self,
-        event: &GameLogEvent,
-    ) -> vrcx_0_application_core::Result<()> {
+    fn ingest_game_log_event(&self, event: &GameLogEvent) -> vrcx_0_application_core::Result<()> {
         #[cfg(any(windows, target_os = "linux"))]
         {
             self.runtime.ingest_game_log_event(event)
