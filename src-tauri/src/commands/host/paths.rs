@@ -74,9 +74,13 @@ pub fn app__get_app_data_dir_state(
 #[tauri::command]
 #[specta::specta]
 pub fn app__validate_app_data_dir(
+    state: State<'_, AppState>,
     path: String,
 ) -> Result<app_paths::AppDataDirValidation, AppError> {
-    Ok(app_paths::validate_app_data_dir_selection(path)?)
+    Ok(app_paths::validate_app_data_dir_selection(
+        path,
+        &state.runtime.app_data_dir.current_dir,
+    )?)
 }
 
 #[tauri::command]
@@ -86,7 +90,7 @@ pub fn app__set_app_data_dir(
     path: String,
 ) -> Result<app_paths::AppDataDirState, AppError> {
     ensure_data_dir_settings_available(&state)?;
-    app_paths::persist_app_data_dir(path)?;
+    app_paths::persist_app_data_dir(path, &state.runtime.app_data_dir.current_dir)?;
     Ok(app_paths::app_data_dir_state(&state.runtime.app_data_dir)?)
 }
 
