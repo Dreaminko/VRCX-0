@@ -2,7 +2,8 @@ use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, Builder, ErrorHandlingMode};
 use vrcx_0_application::{
     AppUpdateDownloadProgressPayload, AppUpdateInstalledPayload, AppUpdateStatusSnapshot,
-    AuthenticatedRuntimePhaseSnapshot, ProfileBackupStatus, ProfileRestoreProgress,
+    AuthenticatedRuntimePhaseSnapshot, DataDirMigrationStatus, ProfileBackupStatus,
+    ProfileRestoreProgress,
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
@@ -48,6 +49,7 @@ struct BackendRuntimeEventPayloadMap {
     prints_auto_cleanup: PrintAutoCleanupEvent,
     profile_backup_status: ProfileBackupStatus,
     profile_restore_progress: ProfileRestoreProgress,
+    data_dir_migration: DataDirMigrationStatus,
     favorites_changed: FavoritesChangedPayload,
     friend_profile_load_status: FriendProfileLoadStatusPayload,
     realtime_friend_projection: FriendProjection,
@@ -309,6 +311,14 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::paths::app__validate_app_data_dir,
             commands::host::paths::app__set_app_data_dir,
             commands::host::paths::app__clear_app_data_dir,
+            commands::host::paths::app__plan_data_dir_migration,
+            commands::host::paths::app__request_data_dir_migration,
+            commands::host::paths::app__cancel_data_dir_migration,
+            commands::host::paths::app__data_dir_migration_current_status,
+            commands::host::paths::app__take_data_dir_migration_result,
+            commands::host::paths::app__cleanup_migrated_data_dir,
+            commands::host::paths::app__dismiss_data_dir_cleanup,
+            commands::host::paths::app__mark_data_dir_cleanup_prompted,
             commands::application::lifecycle::app__runtime_frontend_schedule_job_due_claim,
             commands::application::lifecycle::app__runtime_frontend_schedule_job_defer,
             commands::application::lifecycle::app__runtime_group_instances_refresh,

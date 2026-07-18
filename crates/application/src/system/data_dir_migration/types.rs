@@ -1,5 +1,15 @@
 use serde::{Deserialize, Serialize};
 use vrcx_0_application_core::RuntimeEventPayload;
+use vrcx_0_persistence::data_dir_migration::DataDirMigrationTargetState;
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DataDirMigrationPlan {
+    pub target_path: String,
+    pub required_bytes: u64,
+    pub available_bytes: u64,
+    pub target_state: DataDirMigrationTargetState,
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]

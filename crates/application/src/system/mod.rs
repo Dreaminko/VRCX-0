@@ -20,8 +20,8 @@ pub use batch_mutation::{
 };
 pub use data_dir_migration::{
     DataDirMigrationActionOutcome, DataDirMigrationError, DataDirMigrationErrorCode,
-    DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationRuntime, DataDirMigrationState,
-    DataDirMigrationStatus, DataDirPointerCommitter,
+    DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan, DataDirMigrationRuntime,
+    DataDirMigrationState, DataDirMigrationStatus, DataDirPointerCommitter,
 };
 pub use database_upgrade::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,

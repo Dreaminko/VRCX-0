@@ -69,6 +69,77 @@
         }
     },
     "language": "中文（简体） (zh-CN)",
+    "data_dir_migration": {
+        "title": "迁移 VRCX-0 数据",
+        "description": "选择 VRCX-0 如何使用所选文件夹。",
+        "completed_title": "数据迁移完成",
+        "completed_description": "重启 VRCX-0 后将开始使用新的数据目录。",
+        "error_short": "数据迁移失败",
+        "start": "开始迁移",
+        "restart_now": "立即重启",
+        "restart_later": "稍后重启",
+        "create_backup_first": "先创建备份",
+        "space_summary": "需要：{required} · 可用：{available}",
+        "insufficient_space": "可用空间不足，无法迁移数据。",
+        "contents_notice": "将复制数据库、应用设置以及相册索引和缩略图；图片缓存会在新目录重新下载。旧数据会保留，直到你确认清理。",
+        "unsupported_storage_warning": "请勿选择网络盘、云同步文件夹（如 OneDrive 或 iCloud）或可移动磁盘。数据库在这些位置可能损坏，此类配置不受支持。",
+        "mode": {
+            "migrate": "迁移当前数据（推荐）",
+            "adoptExisting": "使用此文件夹中已有的 VRCX-0 配置",
+            "freshStart": "在此文件夹中创建全新配置"
+        },
+        "target": {
+            "empty": "所选文件夹为空。",
+            "existingProfile": "所选文件夹已有 VRCX-0 配置；覆盖迁移前会先完整保留它。",
+            "foreignContent": "所选文件夹还包含其他文件；VRCX-0 只会管理自己的文件。"
+        },
+        "phase": {
+            "preparing": "正在准备迁移",
+            "freezing": "正在冻结数据库",
+            "copying": "正在复制数据库",
+            "verifying": "正在校验副本",
+            "committing": "正在完成迁移"
+        },
+        "error": {
+            "operationBusy": "另一个备份、恢复或数据迁移任务正在运行。",
+            "databaseUnavailable": "数据库当前无法迁移。",
+            "pendingRestore": "请先完成或取消待处理的配置恢复。",
+            "pendingLegacyMigration": "请先完成待处理的旧版数据迁移。",
+            "pendingMigration": "已有待完成的数据目录迁移，请重启 VRCX-0 完成。",
+            "cleanupConflict": "迁回该文件夹前，请先清理旧数据或选择保留且不再提醒。",
+            "copyFailed": "无法复制数据库，VRCX-0 仍在使用原目录。",
+            "commitFailed": "无法安装数据库副本，VRCX-0 仍在使用原目录。",
+            "pointerCommitFailed": "无法启用新数据目录。请重启 VRCX-0 以安全重试。",
+            "io": "无法读取或写入数据目录中的文件。"
+        },
+        "warning": {
+            "configCopyFailed": "部分应用设置未能复制，可能会恢复为默认值。",
+            "galleryCopyFailed": "部分相册索引或缩略图未能复制，将在需要时自动重建。",
+            "cacheCleanupFailed": "部分旧缓存文件未能删除。"
+        },
+        "result": {
+            "succeeded": "数据目录迁移完成",
+            "failed_title": "无法使用新的数据目录",
+            "database_open_failed": "VRCX-0 已继续使用原目录，你的数据未受影响。",
+            "interrupted_title": "数据目录迁移已中断",
+            "interrupted": "VRCX-0 已继续使用原目录，你可以稍后重试。"
+        },
+        "cleanup": {
+            "ready_title": "数据目录迁移完成",
+            "ready_description": "旧数据仍保留在 {path}。",
+            "action": "清理旧数据",
+            "action_with_size": "清理旧数据（{size}）",
+            "confirm_title": "永久删除旧的 VRCX-0 数据？",
+            "confirm_description": "将从 {path} 删除约 {size} 的已知 VRCX-0 文件，未知文件不会被改动。此操作无法撤销。",
+            "completed": "旧的 VRCX-0 数据已清理",
+            "freed": "已释放 {size}。",
+            "completed_with_skipped": "已释放 {size}，另有 {count} 项未能删除。",
+            "settings_title": "旧数据可以清理",
+            "settings_description": "旧的 VRCX-0 数据仍位于 {path}（{size} 字节）。",
+            "dismiss": "保留旧数据，不再提醒",
+            "dismissed": "已关闭清理提醒"
+        }
+    },
     "profile_backup": {
         "header": "备份与恢复",
         "tools_description": "备份 VRCX-0 数据，并在需要时从备份恢复。",

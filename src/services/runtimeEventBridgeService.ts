@@ -3,6 +3,7 @@ import { tauriClient } from '@/platform/tauri/client';
 import { createRequestError } from '@/repositories/vrchatRequest';
 import { normalizeVrchatEndpointKey } from '@/shared/vrchatEndpoint';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
+import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
@@ -19,6 +20,7 @@ import {
     isFriendProfileLoadTerminalStatus
 } from './friendProfileLoadService';
 import { getCurrentProfileBackupStatus } from './profileBackupService';
+import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
 import {
@@ -139,6 +141,11 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
+    if (event.name === 'dataDirMigration') {
+        useDataDirMigrationStore.getState().applyStatus(event.payload);
+        return;
+    }
+
     if (event.name === 'favoritesChanged') {
         runtimeStore.recordRuntimeEvent(event.name, event.payload);
         handleFavoritesChangedEvent(event.payload);
@@ -236,6 +243,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'printsAutoCleanup',
         'profileBackupStatus',
         'profileRestoreProgress',
+        'dataDirMigration',
         'favoritesChanged',
         'friendProfileLoadStatus',
         'gameClientEvent',
@@ -266,6 +274,13 @@ export async function bindRuntimeEvents(): Promise<() => void> {
                 .applyStatus(await getCurrentProfileBackupStatus());
         } catch (error) {
             console.warn('Failed to hydrate profile backup status:', error);
+        }
+        try {
+            useDataDirMigrationStore
+                .getState()
+                .applyStatus(await getCurrentDataDirMigrationStatus());
+        } catch (error) {
+            console.warn('Failed to hydrate data directory migration status:', error);
         }
         try {
             await handleAppUpdateStatusEvent(

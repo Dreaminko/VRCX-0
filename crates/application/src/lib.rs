@@ -144,8 +144,8 @@ pub use system::{
 };
 pub use system::{
     DataDirMigrationActionOutcome, DataDirMigrationError, DataDirMigrationErrorCode,
-    DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationRuntime, DataDirMigrationState,
-    DataDirMigrationStatus, DataDirPointerCommitter,
+    DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan, DataDirMigrationRuntime,
+    DataDirMigrationState, DataDirMigrationStatus, DataDirPointerCommitter,
 };
 pub use system::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,

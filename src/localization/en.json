@@ -69,6 +69,77 @@
         }
     },
     "language": "English (en)",
+    "data_dir_migration": {
+        "title": "Move VRCX-0 data",
+        "description": "Choose how VRCX-0 should use the selected folder.",
+        "completed_title": "Data move complete",
+        "completed_description": "Restart VRCX-0 to start using the new data folder.",
+        "error_short": "Data move failed",
+        "start": "Start",
+        "restart_now": "Restart now",
+        "restart_later": "Later",
+        "create_backup_first": "Create a backup first",
+        "space_summary": "Required: {required} · Available: {available}",
+        "insufficient_space": "There is not enough free space to move the data.",
+        "contents_notice": "The database, app settings, and gallery index and thumbnails will be copied. Image caches will be downloaded again. Your old data remains until you choose to clean it up.",
+        "unsupported_storage_warning": "Do not use a network drive, cloud-synced folder (such as OneDrive or iCloud), or removable drive. Databases in these locations may be damaged and are not supported.",
+        "mode": {
+            "migrate": "Move my current data (recommended)",
+            "adoptExisting": "Use the VRCX-0 profile already in this folder",
+            "freshStart": "Start with a new profile in this folder"
+        },
+        "target": {
+            "empty": "The selected folder is empty.",
+            "existingProfile": "The selected folder already contains a VRCX-0 profile. Moving will preserve it before replacement.",
+            "foreignContent": "The selected folder contains other files. VRCX-0 will only manage its own files."
+        },
+        "phase": {
+            "preparing": "Preparing data move",
+            "freezing": "Freezing the database",
+            "copying": "Copying the database",
+            "verifying": "Verifying the copy",
+            "committing": "Finishing the data move"
+        },
+        "error": {
+            "operationBusy": "Another backup, restore, or data move is already running.",
+            "databaseUnavailable": "The database is unavailable for moving right now.",
+            "pendingRestore": "Finish or cancel the pending profile restore first.",
+            "pendingLegacyMigration": "Finish the pending legacy migration first.",
+            "pendingMigration": "A data folder move is already pending. Restart VRCX-0 to finish it.",
+            "cleanupConflict": "Clean up or retain the old data before moving back to that folder.",
+            "copyFailed": "The database could not be copied. The original data is still in use.",
+            "commitFailed": "The copied database could not be installed. The original data is still in use.",
+            "pointerCommitFailed": "The new data folder could not be activated. Restart VRCX-0 to retry safely.",
+            "io": "A data folder file could not be read or written."
+        },
+        "warning": {
+            "configCopyFailed": "Some app settings could not be copied and may use defaults.",
+            "galleryCopyFailed": "Some gallery index or thumbnail data could not be copied and will rebuild as needed.",
+            "cacheCleanupFailed": "Some old cache files could not be removed."
+        },
+        "result": {
+            "succeeded": "Data folder move completed",
+            "failed_title": "The new data folder could not be used",
+            "database_open_failed": "VRCX-0 continued using the original folder. Your data was not affected.",
+            "interrupted_title": "Data folder move was interrupted",
+            "interrupted": "VRCX-0 continued using the original folder. You can try again."
+        },
+        "cleanup": {
+            "ready_title": "Data folder move complete",
+            "ready_description": "The old data is still stored at {path}.",
+            "action": "Clean up old data",
+            "action_with_size": "Clean up old data ({size})",
+            "confirm_title": "Permanently delete old VRCX-0 data?",
+            "confirm_description": "This deletes about {size} of known VRCX-0 files from {path}. Unknown files are left untouched. This cannot be undone.",
+            "completed": "Old VRCX-0 data cleaned up",
+            "freed": "Freed {size}.",
+            "completed_with_skipped": "Freed {size}; {count} items could not be removed.",
+            "settings_title": "Old data is ready to clean up",
+            "settings_description": "Old VRCX-0 data remains at {path} ({size} bytes).",
+            "dismiss": "Keep it and stop reminding me",
+            "dismissed": "Cleanup reminders disabled"
+        }
+    },
     "profile_backup": {
         "header": "Backup & restore",
         "tools_description": "Back up your VRCX-0 data and restore it when needed.",

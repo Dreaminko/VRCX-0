@@ -40,6 +40,7 @@ const mocks = vi.hoisted(() => ({
     runtimeGroupInstancesRefresh: vi.fn<() => Promise<null>>(),
     appCheckGameRunning: vi.fn<() => Promise<null>>(),
     profileBackupCurrentStatus: vi.fn(),
+    dataDirMigrationCurrentStatus: vi.fn(),
     runtimeAuthScopeGet: vi.fn(),
     bindDeepLinkEvents: vi.fn<() => Promise<() => void>>(),
     drainPendingDeepLinks: vi.fn<() => Promise<void>>(),
@@ -53,6 +54,8 @@ vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appCheckGameRunning: mocks.appCheckGameRunning,
         appProfileBackupCurrentStatus: mocks.profileBackupCurrentStatus,
+        appDataDirMigrationCurrentStatus:
+            mocks.dataDirMigrationCurrentStatus,
         appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
         appAuthenticatedRuntimePhaseSnapshotGet:
             mocks.getAuthenticatedRuntimePhaseSnapshot,
@@ -115,6 +118,7 @@ vi.mock('./authSessionRecoveryService', () => ({
 }));
 
 import { useFriendRosterStore } from '@/state/friendRosterStore';
+import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -278,6 +282,10 @@ describe('runtimeEventBridgeService', () => {
             error: null,
             lastOutcome: null
         });
+        mocks.dataDirMigrationCurrentStatus.mockResolvedValue({
+            revision: 0,
+            state: 'idle'
+        });
         mocks.runtimeAuthScopeGet.mockResolvedValue({
             currentUserId: 'usr_owner',
             endpoint: 'https://api.vrchat.cloud/api/1',
@@ -409,7 +417,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(29);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(30);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});
@@ -471,6 +479,34 @@ describe('runtimeEventBridgeService', () => {
             revision: 9,
             phase: 'extractDatabase',
             percent: 25
+        });
+    });
+
+    it('hydrates and applies data directory migration progress', async () => {
+        const handlers = new Map<string, (payload: unknown) => void>();
+        mocks.subscribe.mockImplementation(async (name, handler) => {
+            handlers.set(name, handler);
+            return () => {};
+        });
+        mocks.dataDirMigrationCurrentStatus.mockResolvedValueOnce({
+            revision: 2,
+            state: 'running',
+            phase: 'copying',
+            percent: 20
+        });
+
+        await bindRuntimeEvents();
+        handlers.get('dataDirMigration')?.({
+            revision: 3,
+            state: 'running',
+            phase: 'copying',
+            percent: 70
+        });
+
+        expect(useDataDirMigrationStore.getState().status).toMatchObject({
+            revision: 3,
+            phase: 'copying',
+            percent: 70
         });
     });
 

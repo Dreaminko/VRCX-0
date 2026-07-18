@@ -1157,6 +1157,38 @@ export const commands = {
     async appClearAppDataDir(): Promise<AppDataDirState> {
         return await TAURI_INVOKE('app__clear_app_data_dir');
     },
+    async appPlanDataDirMigration(path: string): Promise<DataDirMigrationPlan> {
+        return await TAURI_INVOKE('app__plan_data_dir_migration', { path });
+    },
+    async appRequestDataDirMigration(
+        path: string,
+        mode: DataDirMigrationMode
+    ): Promise<DataDirMigrationActionOutcome> {
+        return await TAURI_INVOKE('app__request_data_dir_migration', {
+            path,
+            mode
+        });
+    },
+    async appCancelDataDirMigration(): Promise<DataDirMigrationActionOutcome> {
+        return await TAURI_INVOKE('app__cancel_data_dir_migration');
+    },
+    async appDataDirMigrationCurrentStatus(): Promise<DataDirMigrationStatus> {
+        return await TAURI_INVOKE('app__data_dir_migration_current_status');
+    },
+    async appTakeDataDirMigrationResult(): Promise<DataDirMigrationResult | null> {
+        return await TAURI_INVOKE('app__take_data_dir_migration_result');
+    },
+    async appCleanupMigratedDataDir(): Promise<DataDirCleanupReport | null> {
+        return await TAURI_INVOKE('app__cleanup_migrated_data_dir');
+    },
+    async appDismissDataDirCleanup(): Promise<null> {
+        return await TAURI_INVOKE('app__dismiss_data_dir_cleanup');
+    },
+    async appMarkDataDirCleanupPrompted(promptedAt: string): Promise<null> {
+        return await TAURI_INVOKE('app__mark_data_dir_cleanup_prompted', {
+            promptedAt
+        });
+    },
     async appRuntimeFrontendScheduleJobDueClaim(
         input: RuntimeFrontendScheduleJobDueClaimInput
     ): Promise<boolean> {
@@ -2835,6 +2867,9 @@ export type AppDataDirState = {
     cliDir: string | null;
     source: AppDataDirSource;
     cliOverride: boolean;
+    pendingMigration: boolean;
+    cleanupPending: DataDirCleanupPending | null;
+    migrationStatus: DataDirMigrationStatus;
 };
 export type AppDataDirValidation = {
     path: string;
@@ -3105,6 +3140,7 @@ export type BackendRuntimeEventPayloadMap = {
     printsAutoCleanup: PrintAutoCleanupEvent;
     profileBackupStatus: ProfileBackupStatus;
     profileRestoreProgress: ProfileRestoreProgress;
+    dataDirMigration: DataDirMigrationStatus;
     favoritesChanged: FavoritesChangedPayload;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
@@ -3238,6 +3274,82 @@ export type ConfigWriteEntry = { key: string; value: string };
 export type CrashRelaunchDecisionPayload =
     | { handled: boolean; error: string }
     | { handled: boolean; location: string; delayMs: number | null };
+export type DataDirCleanupPending = {
+    oldDir: string;
+    bytes: number;
+    migratedAt: string;
+    lastPromptedAt?: string | null;
+    dismissed: boolean;
+    replacedDir?: string | null;
+};
+export type DataDirCleanupReport = { freedBytes: number; skipped: string[] };
+export type DataDirMigrationActionOutcome = {
+    accepted: boolean;
+    status: DataDirMigrationStatus;
+    error?: DataDirMigrationError | null;
+};
+export type DataDirMigrationError = {
+    code: DataDirMigrationErrorCode;
+    path?: string | null;
+};
+export type DataDirMigrationErrorCode =
+    | 'operationBusy'
+    | 'databaseUnavailable'
+    | 'pendingRestore'
+    | 'pendingLegacyMigration'
+    | 'pendingMigration'
+    | 'cleanupConflict'
+    | 'copyFailed'
+    | 'commitFailed'
+    | 'pointerCommitFailed'
+    | 'io';
+export type DataDirMigrationMode = 'migrate' | 'adoptExisting' | 'freshStart';
+export type DataDirMigrationPhase =
+    | 'preparing'
+    | 'freezing'
+    | 'copying'
+    | 'verifying'
+    | 'committing';
+export type DataDirMigrationPlan = {
+    targetPath: string;
+    requiredBytes: number;
+    availableBytes: number;
+    targetState: DataDirMigrationTargetState;
+};
+export type DataDirMigrationResult = {
+    status: DataDirMigrationResultStatus;
+    sourceDir: string;
+    targetDir: string;
+    warnings: DataDirMigrationWarning[];
+};
+export type DataDirMigrationResultStatus =
+    | 'succeeded'
+    | 'interrupted'
+    | 'databaseOpenFailed';
+export type DataDirMigrationState =
+    | 'idle'
+    | 'running'
+    | 'cancelling'
+    | 'completed'
+    | 'cancelled'
+    | 'error';
+export type DataDirMigrationStatus = {
+    revision: number;
+    state: DataDirMigrationState;
+    phase?: DataDirMigrationPhase | null;
+    percent?: number | null;
+    sourceDir?: string | null;
+    targetDir?: string | null;
+    error?: DataDirMigrationError | null;
+};
+export type DataDirMigrationTargetState =
+    | 'empty'
+    | 'existingProfile'
+    | 'foreignContent';
+export type DataDirMigrationWarning =
+    | 'configCopyFailed'
+    | 'galleryCopyFailed'
+    | 'cacheCleanupFailed';
 export type DatabaseUpgradePreflight = {
     status: DatabaseUpgradePreflightStatus;
     fromVersion: number;
@@ -4366,6 +4478,7 @@ export type ProfileBackupErrorCode =
     | 'operationBusy'
     | 'deliveryPending'
     | 'pendingRestore'
+    | 'pendingDataDirMigration'
     | 'directoryUnavailable'
     | 'permissionDenied'
     | 'localDiskFull'
@@ -4417,6 +4530,7 @@ export type ProfileRestoreFailure = {
 export type ProfileRestoreFailureCode =
     | 'operationBusy'
     | 'pendingRestore'
+    | 'pendingDataDirMigration'
     | 'invalidArchive'
     | 'invalidEntries'
     | 'unsupportedManifestVersion'

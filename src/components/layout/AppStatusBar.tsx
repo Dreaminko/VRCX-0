@@ -36,6 +36,7 @@ import {
     SECONDS_PER_MINUTE
 } from '@/shared/constants/time';
 import { usePreferencesStore } from '@/state/preferencesStore';
+import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
@@ -296,6 +297,9 @@ export function AppStatusBar() {
         (state) => state.total
     );
     const profileBackupStatus = useProfileBackupStore((state) => state.status);
+    const dataDirMigrationStatus = useDataDirMigrationStore(
+        (state) => state.status
+    );
     const setSystemHostOpen = useRuntimeStore(
         (state) => state.setSystemHostOpen
     );
@@ -398,6 +402,10 @@ export function AppStatusBar() {
             onOpenDetails: () => setSystemHostOpen('profileBackupOpen', true)
         }),
         [profileBackupStatus, setSystemHostOpen]
+    );
+    const dataDirMigration = useMemo(
+        () => ({ status: dataDirMigrationStatus }),
+        [dataDirMigrationStatus]
     );
     const vrcStatus = useMemo(
         () => ({
@@ -772,6 +780,7 @@ export function AppStatusBar() {
         clockPopoverOpen,
         currentLocationStartedTimestamp,
         currentWorld,
+        dataDirMigration,
         formatAppUptime,
         formatClock,
         formatDuration,

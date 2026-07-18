@@ -11,7 +11,9 @@ import {
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { ProfileRestoreResultHost } from './ProfileRestoreResultHost';
+import { DataDirCleanupHost } from './DataDirCleanupHost';
 import { ChangelogDialog } from './system-dialogs/ChangelogDialog';
+import { DataDirMigrationDialog } from './system-dialogs/DataDirMigrationDialog';
 import { DatabaseUpgradeDialog } from './system-dialogs/DatabaseUpgradeDialog';
 import { LaunchOptionsDialog } from './system-dialogs/LaunchOptionsDialog';
 import { ProfileBackupDialogs } from './system-dialogs/ProfileBackupDialogs';
@@ -93,6 +95,8 @@ export function SystemDialogsHost() {
     return (
         <>
             <ProfileRestoreResultHost />
+            <DataDirCleanupHost />
+            <DataDirMigrationDialog />
             <UpdateAvailableToastHost />
             <UpdaterDialog
                 open={Boolean(updaterOpen)}
