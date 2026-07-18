@@ -27,6 +27,7 @@ jobs:
             frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.frontend }}
             rust: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.rust }}
             rust_backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.rust_backend }}
+            tauri_build: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.tauri_build }}
             native_catalog: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.native_catalog }}
             tauri_bindings: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.tauri_bindings }}
         steps:
@@ -67,6 +68,21 @@ jobs:
                         - 'crates/**'
                         - 'package.json'
                         - 'package-lock.json'
+                        - 'src-tauri/**'
+                      tauri_build:
+                        - '.cargo/**'
+                        - '.github/actions/setup-linux-tauri/**'
+                        - '.github/actions/setup-rust/**'
+                        - '.github/workflows/ci.yml'
+                        - 'Cargo.lock'
+                        - 'Cargo.toml'
+                        - 'crates/**/Cargo.toml'
+                        - 'crates/**/build.rs'
+                        - 'crates/application-game/**'
+                        - 'crates/host-desktop/**'
+                        - 'crates/overlay-runtime/**'
+                        - 'crates/runtime-host-desktop/**'
+                        - 'crates/vr-overlay/**'
                         - 'src-tauri/**'
                       native_catalog:
                         - '.github/workflows/ci.yml'
@@ -151,7 +167,7 @@ jobs:
         name: Tauri Build (${{ matrix.label }})
         runs-on: ${{ matrix.os }}
         needs: changes
-        if: needs.changes.outputs.rust == 'true'
+        if: needs.changes.outputs.tauri_build == 'true'
         defaults:
             run:
                 shell: bash
