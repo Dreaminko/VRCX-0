@@ -209,9 +209,9 @@ pub fn commit_app_data_dir_pointer(default_dir: &Path, path: &Path) -> Result<()
 }
 
 pub fn clear_app_data_dir_pointer(default_dir: &Path) -> Result<(), Error> {
-    let pointer_path = app_data_dir_pointer_path(&default_dir);
+    let pointer_path = app_data_dir_pointer_path(default_dir);
     match std::fs::remove_file(&pointer_path) {
-        Ok(()) => sync_directory_after_pointer_update(&default_dir),
+        Ok(()) => sync_directory_after_pointer_update(default_dir),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(Error::Io(error)),
     }

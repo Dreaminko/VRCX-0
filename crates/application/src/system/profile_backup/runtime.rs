@@ -39,6 +39,17 @@ pub struct ProfileBackupRuntime {
     inner: Arc<ProfileBackupRuntimeInner>,
 }
 
+pub struct ProfileBackupRuntimeDeps {
+    pub app_data: PathBuf,
+    pub control_dir: PathBuf,
+    pub db: Arc<DatabaseService>,
+    pub storage: Arc<StorageService>,
+    pub event_bus: RuntimeEventBus,
+    pub tasks: TaskSupervisor,
+    pub background_jobs: RuntimeBackgroundJobs,
+    pub app_version: String,
+}
+
 struct ProfileBackupRuntimeInner {
     app_data: PathBuf,
     control_dir: PathBuf,
@@ -100,16 +111,17 @@ impl Drop for OperationGuard {
 }
 
 impl ProfileBackupRuntime {
-    pub fn new(
-        app_data: PathBuf,
-        control_dir: PathBuf,
-        db: Arc<DatabaseService>,
-        storage: Arc<StorageService>,
-        event_bus: RuntimeEventBus,
-        tasks: TaskSupervisor,
-        background_jobs: RuntimeBackgroundJobs,
-        app_version: String,
-    ) -> Self {
+    pub fn new(deps: ProfileBackupRuntimeDeps) -> Self {
+        let ProfileBackupRuntimeDeps {
+            app_data,
+            control_dir,
+            db,
+            storage,
+            event_bus,
+            tasks,
+            background_jobs,
+            app_version,
+        } = deps;
         Self {
             inner: Arc::new(ProfileBackupRuntimeInner {
                 app_data,

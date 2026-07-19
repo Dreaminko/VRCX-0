@@ -2,7 +2,7 @@ mod runtime;
 mod types;
 
 pub(crate) use runtime::OperationGuard;
-pub use runtime::{ProfileBackupRuntime, ProfileOperationGate};
+pub use runtime::{ProfileBackupRuntime, ProfileBackupRuntimeDeps, ProfileOperationGate};
 pub use types::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
     ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupSettings, ProfileBackupState,

@@ -44,10 +44,10 @@ pub use notification_actions::{
 pub use profile_backup::ProfileOperationGate;
 pub use profile_backup::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
-    ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,
-    ProfileBackupState, ProfileBackupStatus, ProfileRestoreDataDisposition, ProfileRestoreFailure,
-    ProfileRestoreFailureCode, ProfileRestoreProgress, ProfileRestoreProgressOperation,
-    ProfileRestoreProgressPhase, ProfileRestoreResult, ProfileRestoreResultStatus,
-    ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState, ProfileRestoreValidation,
-    ProfileRestoreValidationOutcome,
+    ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupRuntimeDeps,
+    ProfileBackupSettings, ProfileBackupState, ProfileBackupStatus, ProfileRestoreDataDisposition,
+    ProfileRestoreFailure, ProfileRestoreFailureCode, ProfileRestoreProgress,
+    ProfileRestoreProgressOperation, ProfileRestoreProgressPhase, ProfileRestoreResult,
+    ProfileRestoreResultStatus, ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState,
+    ProfileRestoreValidation, ProfileRestoreValidationOutcome,
 };

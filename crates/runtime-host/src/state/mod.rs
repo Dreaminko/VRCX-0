@@ -24,7 +24,7 @@ use vrcx_0_application::{
     AuthenticatedRuntimeSession, AuthenticatedSessionMaintenanceOutcome, CookieSessionProbe,
     DataDirMigrationRuntime, FavoriteImportRuntime, LoginApi, LoginSession, LoginSessionState,
     LoginSuccessRecordInput, LogoutRecordInput, NonInteractiveAuthError, PrintCleanupDeps,
-    PrintCleanupQueueSink, PrintCleanupTrigger, ProfileBackupRuntime,
+    PrintCleanupQueueSink, PrintCleanupTrigger, ProfileBackupRuntime, ProfileBackupRuntimeDeps,
     SavedCredentialLoginStartInput, WebClientLoginApi,
 };
 use vrcx_0_application_core::{

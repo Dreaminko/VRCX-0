@@ -331,16 +331,16 @@ impl RuntimeHostStateBuilder {
             Arc::clone(&web),
             Arc::clone(&image_cache),
         ));
-        let profile_backup = ProfileBackupRuntime::new(
-            paths.app_data.clone(),
-            app_data_dir.default_dir.clone(),
-            Arc::clone(&db),
-            Arc::clone(&storage),
-            runtime_context.event_bus.clone(),
-            runtime_context.tasks.clone(),
-            runtime_context.background_jobs.clone(),
-            app_version.clone(),
-        );
+        let profile_backup = ProfileBackupRuntime::new(ProfileBackupRuntimeDeps {
+            app_data: paths.app_data.clone(),
+            control_dir: app_data_dir.default_dir.clone(),
+            db: Arc::clone(&db),
+            storage: Arc::clone(&storage),
+            event_bus: runtime_context.event_bus.clone(),
+            tasks: runtime_context.tasks.clone(),
+            background_jobs: runtime_context.background_jobs.clone(),
+            app_version: app_version.clone(),
+        });
         let pointer_control_dir = app_data_dir.default_dir.clone();
         let data_dir_migration = DataDirMigrationRuntime::new(
             paths.app_data.clone(),

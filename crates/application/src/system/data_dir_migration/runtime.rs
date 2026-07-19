@@ -441,11 +441,11 @@ impl DataDirMigrationRuntime {
     }
 
     fn update_copy_progress(&self, processed: u64, total: u64, target_dir: &Path) {
-        let percent = if total == 0 {
-            100
-        } else {
-            ((processed.saturating_mul(100) / total).min(100)) as u8
-        };
+        let percent = processed
+            .saturating_mul(100)
+            .checked_div(total)
+            .unwrap_or(100)
+            .min(100) as u8;
         self.update_status(
             if self.inner.cancel_requested.load(Ordering::Acquire) {
                 DataDirMigrationState::Cancelling

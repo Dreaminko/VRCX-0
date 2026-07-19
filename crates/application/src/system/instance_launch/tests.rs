@@ -384,13 +384,13 @@ fn gate_batch_evaluates_basic_invite_permissions() {
         ],
     });
 
-    assert_eq!(output.targets[0].can_join, true);
-    assert_eq!(output.targets[0].can_open_in_game, true);
-    assert_eq!(output.targets[0].can_self_invite, true);
-    assert_eq!(output.targets[0].can_request_invite, true);
-    assert_eq!(output.targets[0].can_invite, true);
-    assert_eq!(output.targets[1].can_self_invite, false);
-    assert_eq!(output.targets[2].can_join, false);
+    assert!(output.targets[0].can_join);
+    assert!(output.targets[0].can_open_in_game);
+    assert!(output.targets[0].can_self_invite);
+    assert!(output.targets[0].can_request_invite);
+    assert!(output.targets[0].can_invite);
+    assert!(!output.targets[1].can_self_invite);
+    assert!(!output.targets[2].can_join);
 }
 
 #[test]
@@ -474,9 +474,9 @@ fn gate_batch_blocks_invite_when_game_is_not_running() {
         }],
     });
 
-    assert_eq!(output.targets[0].can_join, true);
-    assert_eq!(output.targets[0].can_open_in_game, false);
-    assert_eq!(output.targets[0].can_invite, false);
+    assert!(output.targets[0].can_join);
+    assert!(!output.targets[0].can_open_in_game);
+    assert!(!output.targets[0].can_invite);
 }
 
 #[test]
@@ -496,8 +496,8 @@ fn gate_batch_allows_join_for_non_online_presence_but_not_request_invite() {
         }],
     });
 
-    assert_eq!(output.targets[0].can_join, true);
-    assert_eq!(output.targets[0].can_self_invite, true);
-    assert_eq!(output.targets[0].can_open_in_game, true);
-    assert_eq!(output.targets[0].can_request_invite, false);
+    assert!(output.targets[0].can_join);
+    assert!(output.targets[0].can_self_invite);
+    assert!(output.targets[0].can_open_in_game);
+    assert!(!output.targets[0].can_request_invite);
 }

@@ -149,12 +149,12 @@ pub use system::{
 };
 pub use system::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,
-    ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupSettings,
-    ProfileBackupState, ProfileBackupStatus, ProfileRestoreDataDisposition, ProfileRestoreFailure,
-    ProfileRestoreFailureCode, ProfileRestoreProgress, ProfileRestoreProgressOperation,
-    ProfileRestoreProgressPhase, ProfileRestoreResult, ProfileRestoreResultStatus,
-    ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState, ProfileRestoreValidation,
-    ProfileRestoreValidationOutcome,
+    ProfileBackupOutcome, ProfileBackupPhase, ProfileBackupRuntime, ProfileBackupRuntimeDeps,
+    ProfileBackupSettings, ProfileBackupState, ProfileBackupStatus, ProfileRestoreDataDisposition,
+    ProfileRestoreFailure, ProfileRestoreFailureCode, ProfileRestoreProgress,
+    ProfileRestoreProgressOperation, ProfileRestoreProgressPhase, ProfileRestoreResult,
+    ProfileRestoreResultStatus, ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState,
+    ProfileRestoreValidation, ProfileRestoreValidationOutcome,
 };
 pub use vrcx_0_application_core::validate_config_writes;
 pub use vrcx_0_application_core::OverlayActivityInputSink;
