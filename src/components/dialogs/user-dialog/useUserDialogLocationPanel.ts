@@ -306,7 +306,14 @@ export function useUserDialogLocationPanel({
 
         mergeLocationUser(rowsById, profile);
         if (currentLocationMatches) {
-            mergeLocationUser(rowsById, currentUserSnapshot);
+            mergeLocationUser(
+                rowsById,
+                currentUserSnapshot,
+                {},
+                {
+                    incomingPresenceWins: gameState?.isGameRunning !== true
+                }
+            );
         }
 
         for (const friend of recordValues(friendsById)) {

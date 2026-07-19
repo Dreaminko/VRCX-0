@@ -253,6 +253,9 @@ export function UserDialogTabbedView({
     const currentUserSnapshot = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot
     );
+    const isGameRunning = useRuntimeStore(
+        (state) => state.gameState.isGameRunning === true
+    );
 
     useEffect(() => {
         const intervalId = window.setInterval(() => {
@@ -384,7 +387,7 @@ export function UserDialogTabbedView({
         profile,
         currentUserSnapshot,
         isCurrentUser,
-        { hideNonFriend: false }
+        { hideNonFriend: false, isGameRunning }
     );
     const currentAvatarDisplayName = String(
         profile.currentAvatarName || profile.avatarName || ''
