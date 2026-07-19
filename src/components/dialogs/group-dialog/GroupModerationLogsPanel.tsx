@@ -160,9 +160,9 @@ interface AuditLogDiffField {
 function isAuditLogDiffField(value: unknown): value is AuditLogDiffField {
     return Boolean(
         value &&
-            typeof value === 'object' &&
-            !Array.isArray(value) &&
-            ('old' in value || 'new' in value)
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        ('old' in value || 'new' in value)
     );
 }
 
@@ -431,9 +431,7 @@ export function GroupModerationLogsTable({
                                         row.targetId || ''
                                     ).trim();
                                     const diffLines =
-                                        describeGroupAuditLogDataDiff(
-                                            row.data
-                                        );
+                                        describeGroupAuditLogDataDiff(row.data);
                                     const data = formatLogData(row.data);
                                     return (
                                         <TableRow key={logRowKey(row, index)}>
@@ -489,7 +487,10 @@ export function GroupModerationLogsTable({
                                                 {diffLines ? (
                                                     <div className="space-y-0.5">
                                                         {diffLines.map(
-                                                            (line, lineIndex) => (
+                                                            (
+                                                                line,
+                                                                lineIndex
+                                                            ) => (
                                                                 <div
                                                                     key={`${lineIndex}:${line}`}
                                                                 >

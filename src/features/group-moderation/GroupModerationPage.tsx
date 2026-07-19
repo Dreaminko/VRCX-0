@@ -119,9 +119,7 @@ function GroupModerationRail({
                 <EmptyState
                     variant="panel"
                     className="flex-1"
-                    title={t(
-                        'host.tools_dialogs.group_moderation.empty_title'
-                    )}
+                    title={t('host.tools_dialogs.group_moderation.empty_title')}
                     description={t(
                         'host.tools_dialogs.group_moderation.empty_description'
                     )}
@@ -230,10 +228,7 @@ function GroupModerationMain({
                 </div>
             </PageHeader>
             <div className="min-h-0 flex-1 overflow-auto">
-                <GroupModerationWorkspace
-                    group={profile}
-                    endpoint={endpoint}
-                />
+                <GroupModerationWorkspace group={profile} endpoint={endpoint} />
             </div>
         </div>
     );
@@ -321,9 +316,7 @@ export function GroupModerationPage() {
                     profile={profile}
                     status={profileStatus}
                     error={profileError}
-                    onRetry={() =>
-                        setProfileReloadToken((value) => value + 1)
-                    }
+                    onRetry={() => setProfileReloadToken((value) => value + 1)}
                 />
             </PageBody>
         </PageScaffold>

@@ -115,8 +115,7 @@ export function GroupModerationWorkspace({
     const bulkSelectable = BULK_SELECTABLE_TABS.has(activeTab);
     const focusedUserId = focusedByTab[activeTab] || '';
     const focusedRow = focusedUserId
-        ? rows.find((row) => moderationRowUserId(row) === focusedUserId) ||
-          null
+        ? rows.find((row) => moderationRowUserId(row) === focusedUserId) || null
         : null;
 
     function focusRow(userId: string) {
@@ -136,16 +135,19 @@ export function GroupModerationWorkspace({
         ],
         [t]
     );
-    const memberRoleOptions: GroupModerationServerSelectOption[] = useMemo(() => {
-        const rolesById = getGroupRoleNameMap(group);
-        return [
-            { value: '', label: t('dialog.group.label.all_roles') },
-            ...Array.from(rolesById.entries()).map(([roleId, roleName]) => ({
-                value: roleId,
-                label: roleName
-            }))
-        ];
-    }, [group, t]);
+    const memberRoleOptions: GroupModerationServerSelectOption[] =
+        useMemo(() => {
+            const rolesById = getGroupRoleNameMap(group);
+            return [
+                { value: '', label: t('dialog.group.label.all_roles') },
+                ...Array.from(rolesById.entries()).map(
+                    ([roleId, roleName]) => ({
+                        value: roleId,
+                        label: roleName
+                    })
+                )
+            ];
+        }, [group, t]);
     const membersServerControl: GroupModerationServerControl = {
         query: memberSearchInput,
         onQueryChange: setMemberSearchInput,

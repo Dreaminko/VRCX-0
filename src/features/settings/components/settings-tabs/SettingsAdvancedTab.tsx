@@ -349,8 +349,10 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                                 {t(
                                     'data_dir_migration.cleanup.settings_description',
                                     {
-                                        path: appDataDirState.cleanupPending.oldDir,
-                                        size: appDataDirState.cleanupPending.bytes
+                                        path: appDataDirState.cleanupPending
+                                            .oldDir,
+                                        size: appDataDirState.cleanupPending
+                                            .bytes
                                     }
                                 )}
                             </p>

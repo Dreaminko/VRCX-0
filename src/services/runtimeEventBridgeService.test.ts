@@ -54,8 +54,7 @@ vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appCheckGameRunning: mocks.appCheckGameRunning,
         appProfileBackupCurrentStatus: mocks.profileBackupCurrentStatus,
-        appDataDirMigrationCurrentStatus:
-            mocks.dataDirMigrationCurrentStatus,
+        appDataDirMigrationCurrentStatus: mocks.dataDirMigrationCurrentStatus,
         appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
         appAuthenticatedRuntimePhaseSnapshotGet:
             mocks.getAuthenticatedRuntimePhaseSnapshot,
@@ -117,8 +116,8 @@ vi.mock('./authSessionRecoveryService', () => ({
     handleRuntimeAuthFailure: mocks.handleRuntimeAuthFailure
 }));
 
-import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
+import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';

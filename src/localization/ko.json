@@ -70,11 +70,75 @@
     },
     "language": "한국어 (ko)",
     "data_dir_migration": {
-        "title": "VRCX-0 데이터 이동", "description": "선택한 폴더를 사용하는 방법을 선택하세요.", "completed_title": "데이터 이동 완료", "completed_description": "VRCX-0을 다시 시작하면 새 데이터 폴더를 사용합니다.", "error_short": "데이터 이동 실패", "start": "이동 시작", "restart_now": "지금 다시 시작", "restart_later": "나중에", "create_backup_first": "먼저 백업 만들기", "space_summary": "필요: {required} · 사용 가능: {available}", "insufficient_space": "데이터를 이동할 여유 공간이 부족합니다.", "contents_notice": "데이터베이스, 앱 설정, 갤러리 색인과 썸네일을 복사합니다. 이미지 캐시는 새 위치에서 다시 다운로드됩니다. 이전 데이터는 정리할 때까지 보관됩니다.", "unsupported_storage_warning": "네트워크 드라이브, 클라우드 동기화 폴더(OneDrive, iCloud 등), 이동식 드라이브는 사용하지 마세요. 이러한 위치의 데이터베이스는 손상될 수 있으며 지원되지 않습니다.",
-        "mode": { "migrate": "현재 데이터 이동(권장)", "adoptExisting": "이 폴더의 기존 VRCX-0 프로필 사용", "freshStart": "이 폴더에서 새 프로필 시작" }, "target": { "empty": "선택한 폴더가 비어 있습니다.", "existingProfile": "VRCX-0 프로필이 이미 있습니다. 교체 전에 보관됩니다.", "foreignContent": "다른 파일이 있습니다. VRCX-0은 자체 파일만 관리합니다." }, "phase": { "preparing": "데이터 이동 준비 중", "freezing": "데이터베이스 중지 중", "copying": "데이터베이스 복사 중", "verifying": "복사본 확인 중", "committing": "데이터 이동 완료 중" },
-        "error": { "operationBusy": "다른 백업, 복원 또는 데이터 이동이 진행 중입니다.", "databaseUnavailable": "현재 데이터베이스를 이동할 수 없습니다.", "pendingRestore": "대기 중인 프로필 복원을 먼저 완료하거나 취소하세요.", "pendingLegacyMigration": "대기 중인 이전 데이터 이전을 먼저 완료하세요.", "pendingMigration": "데이터 폴더 이동이 대기 중입니다. VRCX-0을 다시 시작하세요.", "cleanupConflict": "이 폴더로 돌아가기 전에 이전 데이터를 처리하세요.", "copyFailed": "데이터베이스를 복사하지 못했습니다. 원래 데이터를 계속 사용합니다.", "commitFailed": "복사한 데이터베이스를 설치하지 못했습니다. 원래 데이터를 계속 사용합니다.", "pointerCommitFailed": "새 데이터 폴더를 활성화하지 못했습니다. 다시 시작하여 안전하게 재시도하세요.", "io": "데이터 폴더 파일을 읽거나 쓸 수 없습니다." },
-        "warning": { "configCopyFailed": "일부 앱 설정을 복사하지 못해 기본값이 사용될 수 있습니다.", "galleryCopyFailed": "일부 갤러리 색인 또는 썸네일을 복사하지 못했으며 필요할 때 다시 생성됩니다.", "cacheCleanupFailed": "일부 이전 캐시를 삭제하지 못했습니다." }, "result": { "succeeded": "데이터 폴더 이동 완료", "failed_title": "새 데이터 폴더를 사용할 수 없습니다", "database_open_failed": "원래 폴더를 계속 사용합니다. 데이터에는 영향이 없습니다.", "interrupted_title": "데이터 폴더 이동이 중단되었습니다", "interrupted": "원래 폴더를 계속 사용합니다. 다시 시도할 수 있습니다." },
-        "cleanup": { "ready_title": "데이터 폴더 이동 완료", "ready_description": "이전 데이터가 {path}에 남아 있습니다.", "action": "이전 데이터 정리", "action_with_size": "이전 데이터 정리({size})", "confirm_title": "이전 VRCX-0 데이터를 영구 삭제할까요?", "confirm_description": "{path}에서 알려진 VRCX-0 파일 약 {size}를 삭제합니다. 알 수 없는 파일은 유지됩니다. 취소할 수 없습니다.", "completed": "이전 VRCX-0 데이터를 정리했습니다", "freed": "{size}를 확보했습니다.", "completed_with_skipped": "{size}를 확보했지만 {count}개 항목을 삭제하지 못했습니다.", "settings_title": "이전 데이터를 정리할 수 있습니다", "settings_description": "이전 VRCX-0 데이터가 {path}에 남아 있습니다({size}바이트).", "dismiss": "보관하고 다시 알리지 않기", "dismissed": "정리 알림을 껐습니다" }
+        "title": "VRCX-0 데이터 이동",
+        "description": "선택한 폴더를 사용하는 방법을 선택하세요.",
+        "completed_title": "데이터 이동 완료",
+        "completed_description": "VRCX-0을 다시 시작하면 새 데이터 폴더를 사용합니다.",
+        "error_short": "데이터 이동 실패",
+        "start": "이동 시작",
+        "restart_now": "지금 다시 시작",
+        "restart_later": "나중에",
+        "create_backup_first": "먼저 백업 만들기",
+        "space_summary": "필요: {required} · 사용 가능: {available}",
+        "insufficient_space": "데이터를 이동할 여유 공간이 부족합니다.",
+        "contents_notice": "데이터베이스, 앱 설정, 갤러리 색인과 썸네일을 복사합니다. 이미지 캐시는 새 위치에서 다시 다운로드됩니다. 이전 데이터는 정리할 때까지 보관됩니다.",
+        "unsupported_storage_warning": "네트워크 드라이브, 클라우드 동기화 폴더(OneDrive, iCloud 등), 이동식 드라이브는 사용하지 마세요. 이러한 위치의 데이터베이스는 손상될 수 있으며 지원되지 않습니다.",
+        "mode": {
+            "migrate": "현재 데이터 이동(권장)",
+            "adoptExisting": "이 폴더의 기존 VRCX-0 프로필 사용",
+            "freshStart": "이 폴더에서 새 프로필 시작"
+        },
+        "target": {
+            "empty": "선택한 폴더가 비어 있습니다.",
+            "existingProfile": "VRCX-0 프로필이 이미 있습니다. 교체 전에 보관됩니다.",
+            "foreignContent": "다른 파일이 있습니다. VRCX-0은 자체 파일만 관리합니다."
+        },
+        "phase": {
+            "preparing": "데이터 이동 준비 중",
+            "freezing": "데이터베이스 중지 중",
+            "copying": "데이터베이스 복사 중",
+            "verifying": "복사본 확인 중",
+            "committing": "데이터 이동 완료 중"
+        },
+        "error": {
+            "operationBusy": "다른 백업, 복원 또는 데이터 이동이 진행 중입니다.",
+            "databaseUnavailable": "현재 데이터베이스를 이동할 수 없습니다.",
+            "pendingRestore": "대기 중인 프로필 복원을 먼저 완료하거나 취소하세요.",
+            "pendingLegacyMigration": "대기 중인 이전 데이터 이전을 먼저 완료하세요.",
+            "pendingMigration": "데이터 폴더 이동이 대기 중입니다. VRCX-0을 다시 시작하세요.",
+            "cleanupConflict": "이 폴더로 돌아가기 전에 이전 데이터를 처리하세요.",
+            "copyFailed": "데이터베이스를 복사하지 못했습니다. 원래 데이터를 계속 사용합니다.",
+            "commitFailed": "복사한 데이터베이스를 설치하지 못했습니다. 원래 데이터를 계속 사용합니다.",
+            "pointerCommitFailed": "새 데이터 폴더를 활성화하지 못했습니다. 다시 시작하여 안전하게 재시도하세요.",
+            "io": "데이터 폴더 파일을 읽거나 쓸 수 없습니다."
+        },
+        "warning": {
+            "configCopyFailed": "일부 앱 설정을 복사하지 못해 기본값이 사용될 수 있습니다.",
+            "galleryCopyFailed": "일부 갤러리 색인 또는 썸네일을 복사하지 못했으며 필요할 때 다시 생성됩니다.",
+            "cacheCleanupFailed": "일부 이전 캐시를 삭제하지 못했습니다."
+        },
+        "result": {
+            "succeeded": "데이터 폴더 이동 완료",
+            "failed_title": "새 데이터 폴더를 사용할 수 없습니다",
+            "database_open_failed": "원래 폴더를 계속 사용합니다. 데이터에는 영향이 없습니다.",
+            "interrupted_title": "데이터 폴더 이동이 중단되었습니다",
+            "interrupted": "원래 폴더를 계속 사용합니다. 다시 시도할 수 있습니다."
+        },
+        "cleanup": {
+            "ready_title": "데이터 폴더 이동 완료",
+            "ready_description": "이전 데이터가 {path}에 남아 있습니다.",
+            "action": "이전 데이터 정리",
+            "action_with_size": "이전 데이터 정리({size})",
+            "confirm_title": "이전 VRCX-0 데이터를 영구 삭제할까요?",
+            "confirm_description": "{path}에서 알려진 VRCX-0 파일 약 {size}를 삭제합니다. 알 수 없는 파일은 유지됩니다. 취소할 수 없습니다.",
+            "completed": "이전 VRCX-0 데이터를 정리했습니다",
+            "freed": "{size}를 확보했습니다.",
+            "completed_with_skipped": "{size}를 확보했지만 {count}개 항목을 삭제하지 못했습니다.",
+            "settings_title": "이전 데이터를 정리할 수 있습니다",
+            "settings_description": "이전 VRCX-0 데이터가 {path}에 남아 있습니다({size}바이트).",
+            "dismiss": "보관하고 다시 알리지 않기",
+            "dismissed": "정리 알림을 껐습니다"
+        }
     },
     "profile_backup": {
         "header": "백업 및 복원",

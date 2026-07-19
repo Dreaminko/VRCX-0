@@ -1,7 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
-import type { ProfileBackupStatus } from '@/services/profileBackupService';
 import type { DataDirMigrationStatus } from '@/services/dataDirMigrationService';
+import type { ProfileBackupStatus } from '@/services/profileBackupService';
 import type { VrcStatusState } from '@/state/runtimeStore';
 
 export type StatusBarVisibilityKey =

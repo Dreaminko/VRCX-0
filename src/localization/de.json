@@ -70,11 +70,75 @@
     },
     "language": "Deutsch (de)",
     "data_dir_migration": {
-        "title": "VRCX-0-Daten verschieben", "description": "Wähle, wie VRCX-0 den ausgewählten Ordner verwenden soll.", "completed_title": "Daten wurden verschoben", "completed_description": "Starte VRCX-0 neu, um den neuen Datenordner zu verwenden.", "error_short": "Verschieben fehlgeschlagen", "start": "Verschieben", "restart_now": "Jetzt neu starten", "restart_later": "Später", "create_backup_first": "Zuerst Sicherung erstellen", "space_summary": "Benötigt: {required} · Verfügbar: {available}", "insufficient_space": "Nicht genügend freier Speicherplatz.", "contents_notice": "Datenbank, App-Einstellungen sowie Galerieindex und Vorschaubilder werden kopiert. Bild-Caches werden neu geladen. Die alten Daten bleiben bis zur Bereinigung erhalten.", "unsupported_storage_warning": "Keine Netzlaufwerke, Cloud-Synchronisationsordner (z. B. OneDrive oder iCloud) oder Wechseldatenträger verwenden. Datenbanken können dort beschädigt werden; solche Konfigurationen werden nicht unterstützt.",
-        "mode": { "migrate": "Aktuelle Daten verschieben (empfohlen)", "adoptExisting": "Vorhandenes VRCX-0-Profil in diesem Ordner verwenden", "freshStart": "Neues Profil in diesem Ordner erstellen" }, "target": { "empty": "Der ausgewählte Ordner ist leer.", "existingProfile": "Der Ordner enthält bereits ein VRCX-0-Profil. Es wird vor dem Ersetzen gesichert.", "foreignContent": "Der Ordner enthält andere Dateien. VRCX-0 verwaltet nur eigene Dateien." }, "phase": { "preparing": "Verschieben wird vorbereitet", "freezing": "Datenbank wird angehalten", "copying": "Datenbank wird kopiert", "verifying": "Kopie wird geprüft", "committing": "Verschieben wird abgeschlossen" },
-        "error": { "operationBusy": "Eine andere Sicherung, Wiederherstellung oder Verschiebung läuft bereits.", "databaseUnavailable": "Die Datenbank kann derzeit nicht verschoben werden.", "pendingRestore": "Schließe zuerst die ausstehende Profilwiederherstellung ab oder brich sie ab.", "pendingLegacyMigration": "Schließe zuerst die ausstehende Altdatenmigration ab.", "pendingMigration": "Ein Datenordnerwechsel steht aus. Starte VRCX-0 neu.", "cleanupConflict": "Verarbeite zuerst die alten Daten, bevor du zu diesem Ordner zurückkehrst.", "copyFailed": "Die Datenbank konnte nicht kopiert werden. Die ursprünglichen Daten werden weiter verwendet.", "commitFailed": "Die Datenbankkopie konnte nicht installiert werden. Die ursprünglichen Daten werden weiter verwendet.", "pointerCommitFailed": "Der neue Datenordner konnte nicht aktiviert werden. Starte VRCX-0 neu, um sicher fortzufahren.", "io": "Eine Datei im Datenordner konnte nicht gelesen oder geschrieben werden." },
-        "warning": { "configCopyFailed": "Einige App-Einstellungen konnten nicht kopiert werden.", "galleryCopyFailed": "Einige Galeriedaten konnten nicht kopiert werden und werden bei Bedarf neu erstellt.", "cacheCleanupFailed": "Einige alte Cache-Dateien konnten nicht entfernt werden." }, "result": { "succeeded": "Datenordner wurde verschoben", "failed_title": "Der neue Datenordner konnte nicht verwendet werden", "database_open_failed": "VRCX-0 verwendet weiterhin den ursprünglichen Ordner. Deine Daten sind unverändert.", "interrupted_title": "Verschieben wurde unterbrochen", "interrupted": "VRCX-0 verwendet weiterhin den ursprünglichen Ordner. Du kannst es erneut versuchen." },
-        "cleanup": { "ready_title": "Datenordner wurde verschoben", "ready_description": "Die alten Daten liegen noch unter {path}.", "action": "Alte Daten bereinigen", "action_with_size": "Alte Daten bereinigen ({size})", "confirm_title": "Alte VRCX-0-Daten endgültig löschen?", "confirm_description": "Dadurch werden etwa {size} bekannte VRCX-0-Dateien aus {path} gelöscht. Unbekannte Dateien bleiben erhalten. Dies kann nicht rückgängig gemacht werden.", "completed": "Alte VRCX-0-Daten bereinigt", "freed": "{size} freigegeben.", "completed_with_skipped": "{size} freigegeben; {count} Elemente konnten nicht entfernt werden.", "settings_title": "Alte Daten können bereinigt werden", "settings_description": "Alte VRCX-0-Daten liegen noch unter {path} ({size} Byte).", "dismiss": "Behalten und nicht mehr erinnern", "dismissed": "Bereinigungserinnerungen deaktiviert" }
+        "title": "VRCX-0-Daten verschieben",
+        "description": "Wähle, wie VRCX-0 den ausgewählten Ordner verwenden soll.",
+        "completed_title": "Daten wurden verschoben",
+        "completed_description": "Starte VRCX-0 neu, um den neuen Datenordner zu verwenden.",
+        "error_short": "Verschieben fehlgeschlagen",
+        "start": "Verschieben",
+        "restart_now": "Jetzt neu starten",
+        "restart_later": "Später",
+        "create_backup_first": "Zuerst Sicherung erstellen",
+        "space_summary": "Benötigt: {required} · Verfügbar: {available}",
+        "insufficient_space": "Nicht genügend freier Speicherplatz.",
+        "contents_notice": "Datenbank, App-Einstellungen sowie Galerieindex und Vorschaubilder werden kopiert. Bild-Caches werden neu geladen. Die alten Daten bleiben bis zur Bereinigung erhalten.",
+        "unsupported_storage_warning": "Keine Netzlaufwerke, Cloud-Synchronisationsordner (z. B. OneDrive oder iCloud) oder Wechseldatenträger verwenden. Datenbanken können dort beschädigt werden; solche Konfigurationen werden nicht unterstützt.",
+        "mode": {
+            "migrate": "Aktuelle Daten verschieben (empfohlen)",
+            "adoptExisting": "Vorhandenes VRCX-0-Profil in diesem Ordner verwenden",
+            "freshStart": "Neues Profil in diesem Ordner erstellen"
+        },
+        "target": {
+            "empty": "Der ausgewählte Ordner ist leer.",
+            "existingProfile": "Der Ordner enthält bereits ein VRCX-0-Profil. Es wird vor dem Ersetzen gesichert.",
+            "foreignContent": "Der Ordner enthält andere Dateien. VRCX-0 verwaltet nur eigene Dateien."
+        },
+        "phase": {
+            "preparing": "Verschieben wird vorbereitet",
+            "freezing": "Datenbank wird angehalten",
+            "copying": "Datenbank wird kopiert",
+            "verifying": "Kopie wird geprüft",
+            "committing": "Verschieben wird abgeschlossen"
+        },
+        "error": {
+            "operationBusy": "Eine andere Sicherung, Wiederherstellung oder Verschiebung läuft bereits.",
+            "databaseUnavailable": "Die Datenbank kann derzeit nicht verschoben werden.",
+            "pendingRestore": "Schließe zuerst die ausstehende Profilwiederherstellung ab oder brich sie ab.",
+            "pendingLegacyMigration": "Schließe zuerst die ausstehende Altdatenmigration ab.",
+            "pendingMigration": "Ein Datenordnerwechsel steht aus. Starte VRCX-0 neu.",
+            "cleanupConflict": "Verarbeite zuerst die alten Daten, bevor du zu diesem Ordner zurückkehrst.",
+            "copyFailed": "Die Datenbank konnte nicht kopiert werden. Die ursprünglichen Daten werden weiter verwendet.",
+            "commitFailed": "Die Datenbankkopie konnte nicht installiert werden. Die ursprünglichen Daten werden weiter verwendet.",
+            "pointerCommitFailed": "Der neue Datenordner konnte nicht aktiviert werden. Starte VRCX-0 neu, um sicher fortzufahren.",
+            "io": "Eine Datei im Datenordner konnte nicht gelesen oder geschrieben werden."
+        },
+        "warning": {
+            "configCopyFailed": "Einige App-Einstellungen konnten nicht kopiert werden.",
+            "galleryCopyFailed": "Einige Galeriedaten konnten nicht kopiert werden und werden bei Bedarf neu erstellt.",
+            "cacheCleanupFailed": "Einige alte Cache-Dateien konnten nicht entfernt werden."
+        },
+        "result": {
+            "succeeded": "Datenordner wurde verschoben",
+            "failed_title": "Der neue Datenordner konnte nicht verwendet werden",
+            "database_open_failed": "VRCX-0 verwendet weiterhin den ursprünglichen Ordner. Deine Daten sind unverändert.",
+            "interrupted_title": "Verschieben wurde unterbrochen",
+            "interrupted": "VRCX-0 verwendet weiterhin den ursprünglichen Ordner. Du kannst es erneut versuchen."
+        },
+        "cleanup": {
+            "ready_title": "Datenordner wurde verschoben",
+            "ready_description": "Die alten Daten liegen noch unter {path}.",
+            "action": "Alte Daten bereinigen",
+            "action_with_size": "Alte Daten bereinigen ({size})",
+            "confirm_title": "Alte VRCX-0-Daten endgültig löschen?",
+            "confirm_description": "Dadurch werden etwa {size} bekannte VRCX-0-Dateien aus {path} gelöscht. Unbekannte Dateien bleiben erhalten. Dies kann nicht rückgängig gemacht werden.",
+            "completed": "Alte VRCX-0-Daten bereinigt",
+            "freed": "{size} freigegeben.",
+            "completed_with_skipped": "{size} freigegeben; {count} Elemente konnten nicht entfernt werden.",
+            "settings_title": "Alte Daten können bereinigt werden",
+            "settings_description": "Alte VRCX-0-Daten liegen noch unter {path} ({size} Byte).",
+            "dismiss": "Behalten und nicht mehr erinnern",
+            "dismissed": "Bereinigungserinnerungen deaktiviert"
+        }
     },
     "profile_backup": {
         "header": "Sichern & Wiederherstellen",

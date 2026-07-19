@@ -2,8 +2,8 @@ import { commands } from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
 import { createRequestError } from '@/repositories/vrchatRequest';
 import { normalizeVrchatEndpointKey } from '@/shared/vrchatEndpoint';
-import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
+import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
@@ -14,13 +14,13 @@ import {
 } from './authenticatedRuntimeService';
 import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
 import { handleAppUpdateStatusEvent } from './backgroundMaintenanceUpdateService';
+import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import {
     applyFriendProfileLoadStatusPayload,
     isFriendProfileLoadTerminalStatus
 } from './friendProfileLoadService';
 import { getCurrentProfileBackupStatus } from './profileBackupService';
-import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
 import {
@@ -280,7 +280,10 @@ export async function bindRuntimeEvents(): Promise<() => void> {
                 .getState()
                 .applyStatus(await getCurrentDataDirMigrationStatus());
         } catch (error) {
-            console.warn('Failed to hydrate data directory migration status:', error);
+            console.warn(
+                'Failed to hydrate data directory migration status:',
+                error
+            );
         }
         try {
             await handleAppUpdateStatusEvent(

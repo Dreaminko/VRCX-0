@@ -83,13 +83,62 @@
         "insufficient_space": "データを移動するための空き容量が不足しています。",
         "contents_notice": "データベース、アプリ設定、ギャラリーの索引とサムネイルをコピーします。画像キャッシュは新しい場所で再取得されます。古いデータは削除を選ぶまで保持されます。",
         "unsupported_storage_warning": "ネットワークドライブ、クラウド同期フォルダー（OneDrive、iCloud など）、リムーバブルドライブは選択しないでください。これらの場所にあるデータベースは破損する可能性があり、サポート対象外です。",
-        "mode": { "migrate": "現在のデータを移動（推奨）", "adoptExisting": "このフォルダーにある VRCX-0 プロファイルを使用", "freshStart": "このフォルダーで新しいプロファイルを作成" },
-        "target": { "empty": "選択したフォルダーは空です。", "existingProfile": "VRCX-0 プロファイルが既にあります。置き換える前に退避されます。", "foreignContent": "他のファイルがあります。VRCX-0 は自身のファイルだけを管理します。" },
-        "phase": { "preparing": "移動を準備中", "freezing": "データベースを停止中", "copying": "データベースをコピー中", "verifying": "コピーを検証中", "committing": "移動を完了中" },
-        "error": { "operationBusy": "別のバックアップ、復元、またはデータ移動が実行中です。", "databaseUnavailable": "現在データベースを移動できません。", "pendingRestore": "保留中のプロファイル復元を先に完了またはキャンセルしてください。", "pendingLegacyMigration": "保留中の旧データ移行を先に完了してください。", "pendingMigration": "データフォルダーの移動が保留中です。VRCX-0 を再起動してください。", "cleanupConflict": "このフォルダーへ戻す前に古いデータを処理してください。", "copyFailed": "データベースをコピーできませんでした。元のデータはそのまま使用されています。", "commitFailed": "コピーしたデータベースを配置できませんでした。元のデータはそのまま使用されています。", "pointerCommitFailed": "新しいデータフォルダーを有効にできませんでした。再起動して安全に再試行してください。", "io": "データフォルダーのファイルを読み書きできませんでした。" },
-        "warning": { "configCopyFailed": "一部のアプリ設定をコピーできず、既定値に戻る場合があります。", "galleryCopyFailed": "一部のギャラリー索引またはサムネイルをコピーできませんでした。必要に応じて再構築されます。", "cacheCleanupFailed": "一部の古いキャッシュを削除できませんでした。" },
-        "result": { "succeeded": "データフォルダーの移動が完了しました", "failed_title": "新しいデータフォルダーを使用できませんでした", "database_open_failed": "元のフォルダーを引き続き使用しています。データへの影響はありません。", "interrupted_title": "データフォルダーの移動が中断されました", "interrupted": "元のフォルダーを引き続き使用しています。もう一度試せます。" },
-        "cleanup": { "ready_title": "データフォルダーの移動が完了しました", "ready_description": "古いデータは {path} に残っています。", "action": "古いデータを削除", "action_with_size": "古いデータを削除（{size}）", "confirm_title": "古い VRCX-0 データを完全に削除しますか？", "confirm_description": "{path} から既知の VRCX-0 ファイル約 {size} を削除します。不明なファイルは残されます。この操作は取り消せません。", "completed": "古い VRCX-0 データを削除しました", "freed": "{size} を解放しました。", "completed_with_skipped": "{size} を解放しました。{count} 件は削除できませんでした。", "settings_title": "古いデータを削除できます", "settings_description": "古い VRCX-0 データが {path} に残っています（{size} バイト）。", "dismiss": "保持して今後通知しない", "dismissed": "削除の通知を無効にしました" }
+        "mode": {
+            "migrate": "現在のデータを移動（推奨）",
+            "adoptExisting": "このフォルダーにある VRCX-0 プロファイルを使用",
+            "freshStart": "このフォルダーで新しいプロファイルを作成"
+        },
+        "target": {
+            "empty": "選択したフォルダーは空です。",
+            "existingProfile": "VRCX-0 プロファイルが既にあります。置き換える前に退避されます。",
+            "foreignContent": "他のファイルがあります。VRCX-0 は自身のファイルだけを管理します。"
+        },
+        "phase": {
+            "preparing": "移動を準備中",
+            "freezing": "データベースを停止中",
+            "copying": "データベースをコピー中",
+            "verifying": "コピーを検証中",
+            "committing": "移動を完了中"
+        },
+        "error": {
+            "operationBusy": "別のバックアップ、復元、またはデータ移動が実行中です。",
+            "databaseUnavailable": "現在データベースを移動できません。",
+            "pendingRestore": "保留中のプロファイル復元を先に完了またはキャンセルしてください。",
+            "pendingLegacyMigration": "保留中の旧データ移行を先に完了してください。",
+            "pendingMigration": "データフォルダーの移動が保留中です。VRCX-0 を再起動してください。",
+            "cleanupConflict": "このフォルダーへ戻す前に古いデータを処理してください。",
+            "copyFailed": "データベースをコピーできませんでした。元のデータはそのまま使用されています。",
+            "commitFailed": "コピーしたデータベースを配置できませんでした。元のデータはそのまま使用されています。",
+            "pointerCommitFailed": "新しいデータフォルダーを有効にできませんでした。再起動して安全に再試行してください。",
+            "io": "データフォルダーのファイルを読み書きできませんでした。"
+        },
+        "warning": {
+            "configCopyFailed": "一部のアプリ設定をコピーできず、既定値に戻る場合があります。",
+            "galleryCopyFailed": "一部のギャラリー索引またはサムネイルをコピーできませんでした。必要に応じて再構築されます。",
+            "cacheCleanupFailed": "一部の古いキャッシュを削除できませんでした。"
+        },
+        "result": {
+            "succeeded": "データフォルダーの移動が完了しました",
+            "failed_title": "新しいデータフォルダーを使用できませんでした",
+            "database_open_failed": "元のフォルダーを引き続き使用しています。データへの影響はありません。",
+            "interrupted_title": "データフォルダーの移動が中断されました",
+            "interrupted": "元のフォルダーを引き続き使用しています。もう一度試せます。"
+        },
+        "cleanup": {
+            "ready_title": "データフォルダーの移動が完了しました",
+            "ready_description": "古いデータは {path} に残っています。",
+            "action": "古いデータを削除",
+            "action_with_size": "古いデータを削除（{size}）",
+            "confirm_title": "古い VRCX-0 データを完全に削除しますか？",
+            "confirm_description": "{path} から既知の VRCX-0 ファイル約 {size} を削除します。不明なファイルは残されます。この操作は取り消せません。",
+            "completed": "古い VRCX-0 データを削除しました",
+            "freed": "{size} を解放しました。",
+            "completed_with_skipped": "{size} を解放しました。{count} 件は削除できませんでした。",
+            "settings_title": "古いデータを削除できます",
+            "settings_description": "古い VRCX-0 データが {path} に残っています（{size} バイト）。",
+            "dismiss": "保持して今後通知しない",
+            "dismissed": "削除の通知を無効にしました"
+        }
     },
     "profile_backup": {
         "header": "バックアップと復元",

@@ -11,7 +11,7 @@ import {
     deleteAllScreenshotMetadata as deleteAllScreenshotMetadataFromShell,
     getAppDataDirState,
     openFolderSelectorDialog,
-    restartApplication,
+    restartApplication
 } from '@/services/shellIntegrationService';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { normalizeBackgroundModeDelayMinutes } from '@/state/preferencesStore';
@@ -237,16 +237,13 @@ export function useSettingsMaintenanceActions({
         }
         const result = await confirm({
             title: t('data_dir_migration.cleanup.confirm_title'),
-            description: t(
-                'data_dir_migration.cleanup.confirm_description',
-                {
-                    path: pending.oldDir,
-                    size: formatDataDirMigrationBytes(
-                        pending.bytes,
-                        language ?? 'en'
-                    )
-                }
-            ),
+            description: t('data_dir_migration.cleanup.confirm_description', {
+                path: pending.oldDir,
+                size: formatDataDirMigrationBytes(
+                    pending.bytes,
+                    language ?? 'en'
+                )
+            }),
             confirmText: t('data_dir_migration.cleanup.action'),
             cancelText: t('common.actions.cancel'),
             destructive: true

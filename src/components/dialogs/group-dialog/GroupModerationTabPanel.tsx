@@ -409,9 +409,7 @@ export function GroupModerationTabPanel({
                                                         variant="ghost"
                                                         className="hover:text-primary h-auto max-w-52 justify-start truncate p-0 text-left font-medium"
                                                         onClick={() =>
-                                                            onFocusRow?.(
-                                                                userId
-                                                            )
+                                                            onFocusRow?.(userId)
                                                         }
                                                     >
                                                         {label}

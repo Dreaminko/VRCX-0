@@ -14,6 +14,10 @@ import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 
 import {
+    getGroupRoleNameMap,
+    type GroupModerationTabValue
+} from './groupDialogUtils';
+import {
     getGroupModerationActions,
     moderationRowDate,
     moderationRowLabel,
@@ -23,10 +27,6 @@ import {
     moderationRowUserId,
     type GroupModerationAction
 } from './groupModerationRows';
-import {
-    getGroupRoleNameMap,
-    type GroupModerationTabValue
-} from './groupDialogUtils';
 import { ModerationStatusBadge } from './ModerationStatusBadge';
 
 function isRecord(value: unknown): value is EntityRecord {
@@ -173,9 +173,7 @@ export function GroupModerationInspector({
                                 type="button"
                                 size="sm"
                                 variant={
-                                    action.destructive
-                                        ? 'outline'
-                                        : 'secondary'
+                                    action.destructive ? 'outline' : 'secondary'
                                 }
                                 disabled={Boolean(actionKey)}
                                 onClick={() => onRunAction(action, row)}

@@ -35,8 +35,8 @@ import {
     SECONDS_PER_HOUR,
     SECONDS_PER_MINUTE
 } from '@/shared/constants/time';
-import { usePreferencesStore } from '@/state/preferencesStore';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';

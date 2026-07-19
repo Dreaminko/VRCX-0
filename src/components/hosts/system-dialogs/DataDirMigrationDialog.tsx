@@ -3,15 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
-    cancelDataDirMigration,
-    requestDataDirMigration
-} from '@/services/dataDirMigrationService';
-import {
     dataDirMigrationErrorKey,
     dataDirMigrationModes,
     dataDirMigrationPhaseKey,
     formatDataDirMigrationBytes
 } from '@/services/dataDirMigrationI18n';
+import {
+    cancelDataDirMigration,
+    requestDataDirMigration
+} from '@/services/dataDirMigrationService';
 import { restartApplication } from '@/services/shellIntegrationService';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -45,7 +45,9 @@ export function DataDirMigrationDialog() {
     }
 
     const running =
-        submitting || status.state === 'running' || status.state === 'cancelling';
+        submitting ||
+        status.state === 'running' ||
+        status.state === 'cancelling';
     const completed = status.state === 'completed';
     const insufficientSpace = plan.availableBytes < plan.requiredBytes;
     const canStart = mode !== 'migrate' || !insufficientSpace;
@@ -126,18 +128,18 @@ export function DataDirMigrationDialog() {
                             </span>
                         </div>
                         <Progress value={status.percent ?? 0} />
-                        <p className="text-muted-foreground break-all text-xs">
+                        <p className="text-muted-foreground text-xs break-all">
                             {plan.targetPath}
                         </p>
                     </div>
                 ) : completed ? (
-                    <p className="text-muted-foreground break-all text-sm">
+                    <p className="text-muted-foreground text-sm break-all">
                         {plan.targetPath}
                     </p>
                 ) : (
                     <div className="space-y-4 text-sm">
                         <div className="bg-muted/30 space-y-1 rounded-md border p-3">
-                            <p className="break-all font-medium">
+                            <p className="font-medium break-all">
                                 {plan.targetPath}
                             </p>
                             <p className="text-muted-foreground">
@@ -187,7 +189,9 @@ export function DataDirMigrationDialog() {
                             {t('data_dir_migration.contents_notice')}
                         </p>
                         <p className="text-destructive font-medium">
-                            {t('data_dir_migration.unsupported_storage_warning')}
+                            {t(
+                                'data_dir_migration.unsupported_storage_warning'
+                            )}
                         </p>
                     </div>
                 )}
@@ -211,7 +215,10 @@ export function DataDirMigrationDialog() {
                             >
                                 {t('data_dir_migration.restart_later')}
                             </Button>
-                            <Button type="button" onClick={() => void restart()}>
+                            <Button
+                                type="button"
+                                onClick={() => void restart()}
+                            >
                                 {t('data_dir_migration.restart_now')}
                             </Button>
                         </>

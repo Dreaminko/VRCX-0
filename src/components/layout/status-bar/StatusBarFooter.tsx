@@ -477,7 +477,8 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                         <StatusSegment
                             visible={
                                 dataDirMigration.status.state === 'running' ||
-                                dataDirMigration.status.state === 'cancelling' ||
+                                dataDirMigration.status.state ===
+                                    'cancelling' ||
                                 dataDirMigration.status.state === 'error'
                             }
                             active={dataDirMigration.status.state === 'running'}

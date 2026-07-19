@@ -3,15 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
+    dataDirMigrationWarningKey,
+    formatDataDirMigrationBytes
+} from '@/services/dataDirMigrationI18n';
+import {
     cleanupMigratedDataDir,
     markDataDirCleanupPrompted,
     takeDataDirMigrationResult,
     type DataDirCleanupPending
 } from '@/services/dataDirMigrationService';
-import {
-    dataDirMigrationWarningKey,
-    formatDataDirMigrationBytes
-} from '@/services/dataDirMigrationI18n';
 import { getAppDataDirState } from '@/services/shellIntegrationService';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -98,9 +98,12 @@ export function DataDirCleanupHost() {
                     )
                 });
             } else if (result?.status === 'interrupted') {
-                toast.warning(t('data_dir_migration.result.interrupted_title'), {
-                    description: t('data_dir_migration.result.interrupted')
-                });
+                toast.warning(
+                    t('data_dir_migration.result.interrupted_title'),
+                    {
+                        description: t('data_dir_migration.result.interrupted')
+                    }
+                );
             } else if (result?.status === 'succeeded') {
                 toast.success(t('data_dir_migration.result.succeeded'), {
                     description:
