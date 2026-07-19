@@ -195,7 +195,7 @@ export function useUserDialogProfileResource({
             .getUserProfile({
                 userId: normalizedUserId,
                 endpoint: currentEndpoint,
-                force: reloadToken > 0,
+                force: isTargetCurrentUser || reloadToken > 0,
                 dialog: true,
                 isFriend
             })
