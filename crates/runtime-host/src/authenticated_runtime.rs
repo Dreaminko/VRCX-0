@@ -36,6 +36,12 @@ enum RuntimeStep {
     Realtime,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RealtimeRunOutcome {
+    Done,
+    NeedsRebaseline,
+}
+
 #[derive(Clone)]
 pub struct AuthenticatedRuntimeOrchestrator {
     snapshot: Arc<Mutex<AuthenticatedRuntimePhaseSnapshot>>,
@@ -228,9 +234,41 @@ impl AuthenticatedRuntimeOrchestrator {
         let favorites =
             self.run_favorites_baseline(&session, &scope, run_id, &stop_token, &friends_by_id);
         let realtime_friends = friends_by_id.clone();
-        let realtime =
-            self.run_realtime_transport(&session, &scope, run_id, &stop_token, realtime_friends);
+        let realtime = self.run_realtime_with_rebaseline(
+            &session,
+            &scope,
+            run_id,
+            &stop_token,
+            realtime_friends,
+        );
         tokio::join!(favorites, realtime);
+    }
+
+    async fn run_realtime_with_rebaseline(
+        &self,
+        session: &AuthenticatedRuntimeSession,
+        scope: &RuntimeAuthScopeSnapshot,
+        run_id: u64,
+        stop_token: &TaskStopToken,
+        mut friends_by_id: HashMap<String, FriendRecord>,
+    ) {
+        loop {
+            let outcome = self
+                .run_realtime_transport(session, scope, run_id, stop_token, friends_by_id.clone())
+                .await;
+            match outcome {
+                RealtimeRunOutcome::Done => return,
+                RealtimeRunOutcome::NeedsRebaseline => {
+                    match self
+                        .run_friend_baseline(session, scope, run_id, stop_token)
+                        .await
+                    {
+                        Some(fresh) => friends_by_id = fresh,
+                        None => return,
+                    }
+                }
+            }
+        }
     }
 
     async fn run_friend_baseline(
@@ -375,11 +413,11 @@ impl AuthenticatedRuntimeOrchestrator {
         run_id: u64,
         stop_token: &TaskStopToken,
         friends_by_id: HashMap<String, FriendRecord>,
-    ) {
+    ) -> RealtimeRunOutcome {
         let mut attempt = 1;
         loop {
             if !self.is_active(run_id, scope, stop_token) {
-                return;
+                return RealtimeRunOutcome::Done;
             }
             self.set_step_running(run_id, RuntimeStep::Realtime, attempt);
             let mut lifecycle = self.realtime_runtime.subscribe_transport_lifecycle();
@@ -400,7 +438,7 @@ impl AuthenticatedRuntimeOrchestrator {
                             client_run_id: Some(run_id),
                             generation: Some(result.generation),
                         });
-                        return;
+                        return RealtimeRunOutcome::Done;
                     }
                     self.update_snapshot(run_id, |snapshot| {
                         snapshot.realtime = AuthenticatedRuntimeStepSnapshot {
@@ -411,7 +449,7 @@ impl AuthenticatedRuntimeOrchestrator {
                         };
                         snapshot.realtime_transport = Some(result.clone());
                     });
-                    let restart = self
+                    let outcome = self
                         .monitor_realtime_transport(
                             run_id,
                             scope,
@@ -421,8 +459,8 @@ impl AuthenticatedRuntimeOrchestrator {
                             &mut lifecycle,
                         )
                         .await;
-                    if !restart {
-                        return;
+                    if outcome == RealtimeRunOutcome::Done {
+                        return RealtimeRunOutcome::Done;
                     }
                     if !self
                         .wait_for_realtime_retry(
@@ -434,9 +472,9 @@ impl AuthenticatedRuntimeOrchestrator {
                         )
                         .await
                     {
-                        return;
+                        return RealtimeRunOutcome::Done;
                     }
-                    attempt = attempt.saturating_add(1);
+                    return RealtimeRunOutcome::NeedsRebaseline;
                 }
                 Err(error) => {
                     if !self
@@ -449,7 +487,7 @@ impl AuthenticatedRuntimeOrchestrator {
                         )
                         .await
                     {
-                        return;
+                        return RealtimeRunOutcome::Done;
                     }
                     attempt = attempt.saturating_add(1);
                 }
@@ -478,10 +516,11 @@ impl AuthenticatedRuntimeOrchestrator {
         attempt: u32,
         transport: RealtimeTransportStartResult,
         lifecycle: &mut tokio::sync::broadcast::Receiver<RealtimeTransportLifecycleEvent>,
-    ) -> bool {
+    ) -> RealtimeRunOutcome {
+        let mut connected_before = false;
         loop {
             if !self.is_active(run_id, scope, stop_token) {
-                return false;
+                return RealtimeRunOutcome::Done;
             }
             tokio::select! {
                 event = lifecycle.recv() => {
@@ -493,38 +532,39 @@ impl AuthenticatedRuntimeOrchestrator {
                                 apply_realtime_connected(snapshot, attempt, &transport);
                             });
                             self.mark_ready_if_complete(run_id);
+                            if connected_before {
+                                self.realtime_runtime.spawn_reconnect_reconcile(transport.clone());
+                            } else {
+                                connected_before = true;
+                            }
                         }
                         Ok(RealtimeTransportLifecycleEvent::Finished {
                             transport: finished,
                             termination,
                         }) if finished == transport => {
                             if !self.is_active(run_id, scope, stop_token) {
-                                return false;
+                                return RealtimeRunOutcome::Done;
                             }
-                            match termination {
-                                RealtimeTransportTermination::Stopped => {
-                                    return true;
-                                }
-                                RealtimeTransportTermination::AuthFailure {
-                                    reason,
-                                    status_code,
-                                } => {
-                                    self.update_snapshot(run_id, |snapshot| {
-                                        apply_realtime_auth_failure(
-                                            snapshot,
-                                            attempt,
-                                            &transport,
-                                            &reason,
-                                            status_code,
-                                        );
-                                    });
-                                    return false;
-                                }
+                            if let RealtimeTransportTermination::AuthFailure {
+                                reason,
+                                status_code,
+                            } = &termination
+                            {
+                                self.update_snapshot(run_id, |snapshot| {
+                                    apply_realtime_auth_failure(
+                                        snapshot,
+                                        attempt,
+                                        &transport,
+                                        reason,
+                                        *status_code,
+                                    );
+                                });
                             }
+                            return outcome_for_termination(&termination);
                         }
                         Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
                         Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                            return false;
+                            return RealtimeRunOutcome::Done;
                         }
                     }
                 }
@@ -745,6 +785,13 @@ fn apply_realtime_auth_failure(
     };
     snapshot.realtime_transport = None;
     snapshot.phase = AuthenticatedRuntimePhase::Error;
+}
+
+fn outcome_for_termination(termination: &RealtimeTransportTermination) -> RealtimeRunOutcome {
+    match termination {
+        RealtimeTransportTermination::Stopped => RealtimeRunOutcome::NeedsRebaseline,
+        RealtimeTransportTermination::AuthFailure { .. } => RealtimeRunOutcome::Done,
+    }
 }
 
 fn decode_friend_baseline(
@@ -984,6 +1031,26 @@ mod tests {
         assert_eq!(
             snapshot.realtime.status,
             AuthenticatedRuntimeStepStatus::Ready
+        );
+    }
+
+    #[test]
+    fn stopped_termination_requests_a_rebaseline_restart() {
+        assert_eq!(
+            outcome_for_termination(&RealtimeTransportTermination::Stopped),
+            RealtimeRunOutcome::NeedsRebaseline
+        );
+    }
+
+    #[test]
+    fn auth_failure_termination_ends_the_run() {
+        let termination = RealtimeTransportTermination::AuthFailure {
+            reason: "forbidden".into(),
+            status_code: Some(403),
+        };
+        assert_eq!(
+            outcome_for_termination(&termination),
+            RealtimeRunOutcome::Done
         );
     }
 

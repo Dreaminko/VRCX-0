@@ -79,6 +79,9 @@ mod game_process;
 mod message_dispatch;
 #[cfg(test)]
 mod notification_enrichment_tests;
+mod reconnect_reconcile;
+#[cfg(test)]
+mod reconnect_reconcile_tests;
 #[cfg(test)]
 mod session_reconnect_tests;
 mod state;

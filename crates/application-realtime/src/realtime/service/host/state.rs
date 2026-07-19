@@ -2,6 +2,7 @@ use super::*;
 use crate::realtime::invite_automation::runtime::InviteAutomationState;
 use crate::world_enrich::PendingEntryCorrection;
 use std::collections::HashSet;
+use std::sync::atomic::AtomicBool;
 use vrcx_0_application_core::WorldCache;
 
 pub(super) const MAX_QUEUED_FRIEND_MESSAGES: usize = 512;
@@ -58,12 +59,18 @@ pub(super) struct AutomationState {
 }
 
 #[derive(Default)]
+pub(super) struct ReconnectReconcileState {
+    pub(super) last_run: Option<(u64, chrono::DateTime<chrono::Utc>)>,
+}
+
+#[derive(Default)]
 pub(super) struct RealtimeHostRuntimeState {
     pub(super) connection: ConnectionState,
     pub(super) friend_baseline: FriendBaselineState,
     pub(super) friend_profile: FriendProfileState,
     pub(super) world_enrichment: WorldEnrichmentState,
     pub(super) automation: AutomationState,
+    pub(super) reconcile: ReconnectReconcileState,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -133,6 +140,7 @@ pub struct RealtimeHostRuntime {
     pub(super) user_query_cache: UserQueryCache,
     pub(super) world_cache: Arc<WorldCache>,
     pub(super) friend_owner_lock: Mutex<()>,
+    pub(super) reconcile_running: AtomicBool,
     pub(super) notification_apply_lock: Arc<tokio::sync::Mutex<()>>,
     pub(super) friend_profile_bulk_load:
         Mutex<super::friend_profile_bulk_load::FriendProfileBulkLoadState>,

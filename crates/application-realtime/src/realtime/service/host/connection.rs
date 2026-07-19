@@ -2,6 +2,7 @@ use super::state::{
     ActiveRealtimeContext, RealtimeHostRuntimeMessageSink, RealtimeHostRuntimeState,
 };
 use super::*;
+use std::sync::atomic::AtomicBool;
 
 impl RealtimeHostRuntime {
     pub fn new(deps: RealtimeHostRuntimeDeps) -> Self {
@@ -20,6 +21,7 @@ impl RealtimeHostRuntime {
             user_query_cache: UserQueryCache::new(),
             world_cache,
             friend_owner_lock: Mutex::new(()),
+            reconcile_running: AtomicBool::new(false),
             notification_apply_lock: Arc::new(tokio::sync::Mutex::new(())),
             friend_profile_bulk_load: Mutex::new(
                 super::friend_profile_bulk_load::FriendProfileBulkLoadState::default(),

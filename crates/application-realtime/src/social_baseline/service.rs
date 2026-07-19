@@ -162,4 +162,24 @@ pub use friends::{
 };
 use friends::{build_friend_state_map, build_snapshot_friend_ids};
 pub(crate) use friends::{reconcile_friend_roster_records, FriendRosterReconcileOutcome};
-use remote::{execute_vrchat_json_request, fetch_paged_array, refetch_users_concurrent};
+use remote::fetch_paged_array;
+pub(crate) use remote::{execute_vrchat_json_request, refetch_users_concurrent};
+
+pub(crate) struct FriendStateBuckets {
+    pub(crate) has_friend_list: bool,
+    pub(crate) state_by_id: HashMap<String, String>,
+    pub(crate) expected_ids: Vec<String>,
+}
+
+pub(crate) fn derive_friend_state_buckets(current_user_snapshot: &Value) -> FriendStateBuckets {
+    let view = CurrentUserSnapshotView::from_raw(current_user_snapshot);
+    let mut expected_ids = Vec::new();
+    let mut expected_seen = HashSet::new();
+    extend_unique(&mut expected_ids, &mut expected_seen, view.state_order_ids);
+    extend_unique(&mut expected_ids, &mut expected_seen, view.friend_ids);
+    FriendStateBuckets {
+        has_friend_list: view.has_friend_list,
+        state_by_id: view.state_by_id,
+        expected_ids,
+    }
+}
