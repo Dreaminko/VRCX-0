@@ -11,6 +11,7 @@ pub enum AuthenticatedRuntimePhase {
     Idle,
     Starting,
     Ready,
+    Error,
     Stopped,
 }
 
@@ -22,6 +23,7 @@ pub enum AuthenticatedRuntimeStepStatus {
     Running,
     RetryWaiting,
     Ready,
+    Failed,
 }
 
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]

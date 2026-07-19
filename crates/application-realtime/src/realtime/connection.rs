@@ -16,13 +16,18 @@ use vrcx_0_vrchat_client::realtime::{
 use vrcx_0_core::realtime::RealtimeMessageParser;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::realtime::{RealtimeSessionContext, RealtimeWsMessagePayload, RealtimeWsStatusPayload};
+use crate::realtime::{
+    RealtimeSessionContext, RealtimeTransportTermination, RealtimeWsMessagePayload,
+    RealtimeWsStatusPayload,
+};
 use vrcx_0_application_core::Error;
 use vrcx_0_application_core::RuntimeEventBus;
 use vrcx_0_application_core::{HostSessionRuntime, WebClient};
 
 const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+const AUTH_BOOTSTRAP_TIMEOUT: Duration = Duration::from_secs(30);
+const PROLONGED_OUTAGE_LOG_EVERY: usize = 60;
 
 #[derive(Clone)]
 pub struct RealtimeTransportDeps {
@@ -79,6 +84,7 @@ pub trait RealtimeMessageSink: Send + Sync {
         generation: u64,
         session_generation: u64,
         session: &RealtimeSessionContext,
+        termination: &RealtimeTransportTermination,
     );
 }
 
@@ -138,7 +144,7 @@ async fn fetch_auth_token(
 ) -> std::result::Result<String, RealtimeConnectionError> {
     let response = deps
         .web
-        .execute_api(
+        .execute_api_fresh(
             session_get_input(session.endpoint.clone()),
             ApiScope::Vrchat,
             &deps.db,
@@ -156,7 +162,7 @@ pub async fn run_realtime_transport(
     session: RealtimeSessionContext,
     mut cancel_rx: watch::Receiver<u64>,
 ) {
-    run_realtime_transport_inner(
+    let termination = run_realtime_transport_inner(
         deps.clone(),
         Arc::clone(&message_sink),
         client_run_id,
@@ -166,7 +172,12 @@ pub async fn run_realtime_transport(
         &mut cancel_rx,
     )
     .await;
-    message_sink.handle_realtime_transport_finished(generation, session_generation, &session);
+    message_sink.handle_realtime_transport_finished(
+        generation,
+        session_generation,
+        &session,
+        &termination,
+    );
     deps.session
         .clear_realtime_context_if_generation(session_generation);
 }
@@ -179,7 +190,7 @@ async fn run_realtime_transport_inner(
     session_generation: u64,
     session: RealtimeSessionContext,
     cancel_rx: &mut watch::Receiver<u64>,
-) {
+) -> RealtimeTransportTermination {
     let event_bus = deps.event_bus.clone();
     let websocket_domain = normalize_websocket_domain(&session.websocket);
     let mut reconnect_attempt = 0usize;
@@ -198,7 +209,7 @@ async fn run_realtime_transport_inner(
                     status_code: None,
                 },
             );
-            return;
+            return RealtimeTransportTermination::Stopped;
         }
 
         let status = reconnect_status_for_attempt(reconnect_attempt);
@@ -209,6 +220,14 @@ async fn run_realtime_transport_inner(
                 reconnect_attempt,
                 "[Realtime] websocket reconnect attempt starting"
             );
+            if reconnect_attempt % PROLONGED_OUTAGE_LOG_EVERY == 0 {
+                tracing::error!(
+                    generation,
+                    session_generation,
+                    reconnect_attempt,
+                    "[Realtime] websocket has been reconnecting without success"
+                );
+            }
         }
         message_sink.handle_realtime_transport_status(
             generation,
@@ -251,7 +270,7 @@ async fn run_realtime_transport_inner(
                         status_code: None,
                     },
                 );
-                return;
+                return RealtimeTransportTermination::Stopped;
             }
             Ok(ConnectionEnd::Closed) => {
                 reconnect_attempt = next_reconnect_attempt(reconnect_attempt);
@@ -297,12 +316,22 @@ async fn run_realtime_transport_inner(
                         session_generation,
                         status,
                         websocket_domain: &websocket_domain,
-                        reason: Some(message),
+                        reason: Some(message.clone()),
                         status_code,
                     },
                 );
                 if should_stop_after_connection_error(&error) {
-                    return;
+                    tracing::error!(
+                        generation,
+                        session_generation,
+                        status_code = ?status_code,
+                        message = %message,
+                        "[Realtime] websocket auth bootstrap failed; transport terminated"
+                    );
+                    return RealtimeTransportTermination::AuthFailure {
+                        reason: message,
+                        status_code,
+                    };
                 }
             }
         }
@@ -323,7 +352,7 @@ async fn run_realtime_transport_inner(
                             status_code: None,
                         },
                     );
-                    return;
+                    return RealtimeTransportTermination::Stopped;
                 }
             }
         }
@@ -359,7 +388,7 @@ async fn connect_once(
         fetch_auth_token(&deps, attempt.session),
         attempt.cancel_rx,
         attempt.generation,
-        CONNECT_TIMEOUT,
+        AUTH_BOOTSTRAP_TIMEOUT,
         |timeout| {
             RealtimeConnectionError::Other(timeout_error("auth transport bootstrap", timeout))
         },

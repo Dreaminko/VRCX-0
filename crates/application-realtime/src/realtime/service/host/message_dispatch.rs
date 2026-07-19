@@ -52,6 +52,15 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
                     session_generation,
                     session,
                 );
+                if let Some(transport) =
+                    self.runtime
+                        .current_transport(generation, session_generation, session)
+                {
+                    let _ = self
+                        .runtime
+                        .transport_lifecycle_tx
+                        .send(RealtimeTransportLifecycleEvent::Connected(transport));
+                }
             }
             _ => {}
         }
@@ -157,6 +166,7 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
         generation: u64,
         session_generation: u64,
         session: &RealtimeSessionContext,
+        termination: &RealtimeTransportTermination,
     ) {
         let friend_owner = self.runtime.lock_friend_owner();
         let (final_current_user_output, finished_active) = {
@@ -195,5 +205,16 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
         if let Some(output) = final_current_user_output {
             self.runtime.apply_current_user_output(output);
         }
+        let _ =
+            self.runtime
+                .transport_lifecycle_tx
+                .send(RealtimeTransportLifecycleEvent::Finished {
+                    transport: RealtimeTransportStartResult {
+                        generation: finished_active.generation,
+                        client_run_id: finished_active.client_run_id,
+                        session_generation: finished_active.session_generation,
+                    },
+                    termination: termination.clone(),
+                });
     }
 }

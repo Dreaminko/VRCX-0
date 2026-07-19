@@ -42,12 +42,30 @@ pub struct FriendBaselineSyncOutcome {
     pub friend_log_changed: bool,
 }
 
-#[derive(Clone, Debug, Serialize, specta::Type)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RealtimeTransportStartResult {
     pub generation: u64,
     pub client_run_id: u64,
     pub session_generation: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RealtimeTransportTermination {
+    Stopped,
+    AuthFailure {
+        reason: String,
+        status_code: Option<i32>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RealtimeTransportLifecycleEvent {
+    Connected(RealtimeTransportStartResult),
+    Finished {
+        transport: RealtimeTransportStartResult,
+        termination: RealtimeTransportTermination,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

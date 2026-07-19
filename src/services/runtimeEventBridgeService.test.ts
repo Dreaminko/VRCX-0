@@ -334,6 +334,29 @@ describe('runtimeEventBridgeService', () => {
         expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledTimes(1);
     });
 
+    it('routes backend realtime auth failure telemetry to auth recovery', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        const snapshot = setBackendRealtimeOwner();
+
+        handlers.get('backendRuntimeTelemetry')?.({
+            snapshot: {
+                ...snapshot,
+                wsStatus: 'authFailure'
+            }
+        });
+
+        await vi.waitFor(() => {
+            expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledTimes(1);
+        });
+        expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: 'Backend realtime auth failed.',
+                status: 401,
+                endpoint: 'auth'
+            })
+        );
+    });
+
     it('drains pending deep links after backend runtime snapshot hydration', async () => {
         const calls: string[] = [];
         mocks.bindDeepLinkEvents.mockImplementation(async () => {

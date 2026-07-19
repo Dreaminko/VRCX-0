@@ -208,6 +208,70 @@ pub struct WebClient {
     user_agent: String,
 }
 
+fn build_http_client(
+    jar: Arc<CookieJar>,
+    proxy_url: Option<&str>,
+    user_agent: &str,
+) -> Result<Client> {
+    let mut builder = Client::builder()
+        .cookie_provider(jar)
+        .user_agent(user_agent)
+        .gzip(true)
+        .brotli(true)
+        .deflate(true)
+        .pool_max_idle_per_host(10)
+        .pool_idle_timeout(std::time::Duration::from_secs(300))
+        .tcp_keepalive(std::time::Duration::from_secs(60))
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .read_timeout(std::time::Duration::from_secs(30));
+
+    if let Some(url) = proxy_url {
+        builder = builder
+            .no_proxy()
+            .proxy(Proxy::all(url).map_err(|e| Error::Custom(format!("bad proxy: {e}")))?);
+    }
+
+    builder
+        .build()
+        .map_err(|e| Error::Custom(format!("http client: {e}")))
+}
+
+fn normalize_execute_result(result: Result<(i32, String)>) -> Result<(i32, String)> {
+    match result {
+        Ok(pair) => Ok(pair),
+        Err(error) => Ok((-1, error.to_string())),
+    }
+}
+
+async fn execute_request(client: &Client, request: reqwest::Request) -> Result<(i32, String)> {
+    let response = client
+        .execute(request)
+        .await
+        .map_err(|e| Error::Custom(e.to_string()))?;
+    let status = response.status().as_u16() as i32;
+    let content_type = response
+        .headers()
+        .get(CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
+    if content_type.contains("image/") || content_type.contains("application/octet-stream") {
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| Error::Custom(e.to_string()))?;
+        let b64 = B64.encode(&bytes);
+        Ok((status, format!("data:image/png;base64,{b64}")))
+    } else {
+        let body = response
+            .text()
+            .await
+            .map_err(|e| Error::Custom(e.to_string()))?;
+        Ok((status, body))
+    }
+}
+
 impl WebClient {
     pub fn new(
         proxy_url: Option<String>,
@@ -217,33 +281,12 @@ impl WebClient {
         let cookie_store = CookieStore::default();
         let jar = Arc::new(CookieJar::new(cookie_store));
         let user_agent = build_vrcx_user_agent(app_version);
-
-        let mut builder = Client::builder()
-            .cookie_provider(jar.clone())
-            .user_agent(&user_agent)
-            .gzip(true)
-            .brotli(true)
-            .deflate(true)
-            .pool_max_idle_per_host(10)
-            .pool_idle_timeout(std::time::Duration::from_secs(300))
-            .tcp_keepalive(std::time::Duration::from_secs(60))
-            .connect_timeout(std::time::Duration::from_secs(10))
-            .read_timeout(std::time::Duration::from_secs(30));
-
-        if let Some(ref url) = proxy_url {
-            builder = builder
-                .no_proxy()
-                .proxy(Proxy::all(url).map_err(|e| Error::Custom(format!("bad proxy: {e}")))?);
-        }
-
-        let client = builder
-            .build()
-            .map_err(|e| Error::Custom(format!("http client: {e}")))?;
+        let client = build_http_client(jar.clone(), proxy_url.as_deref(), &user_agent)?;
 
         let wc = Self {
             client,
             jar,
-            proxy_url: proxy_url.clone(),
+            proxy_url,
             user_agent,
         };
 
@@ -332,10 +375,34 @@ impl WebClient {
     pub async fn execute(&self, request: WebExecuteRequest) -> Result<(i32, String)> {
         let result = self.do_execute(&request).await;
 
-        match result {
-            Ok(pair) => Ok(pair),
-            Err(e) => Ok((-1, e.to_string())),
+        normalize_execute_result(result)
+    }
+
+    pub async fn execute_fresh_standard(
+        &self,
+        request: WebExecuteRequest,
+    ) -> Result<(i32, String)> {
+        let result = self.do_execute_fresh_standard(&request).await;
+
+        normalize_execute_result(result)
+    }
+
+    async fn do_execute_fresh_standard(
+        &self,
+        request: &WebExecuteRequest,
+    ) -> Result<(i32, String)> {
+        if !matches!(&request.upload, WebUploadMode::None) {
+            return Err(Error::Custom(
+                "fresh HTTP client execution does not support uploads".into(),
+            ));
         }
+        let client = build_http_client(
+            Arc::clone(&self.jar),
+            self.proxy_url.as_deref(),
+            &self.user_agent,
+        )?;
+        let request = self.build_standard_request_with(&client, request)?;
+        execute_request(&client, request).await
     }
 
     async fn do_execute(&self, request: &WebExecuteRequest) -> Result<(i32, String)> {
@@ -364,41 +431,22 @@ impl WebClient {
             }
         };
 
-        let response = self
-            .client
-            .execute(request)
-            .await
-            .map_err(|e| Error::Custom(e.to_string()))?;
-
-        let status = response.status().as_u16() as i32;
-        let content_type = response
-            .headers()
-            .get(CONTENT_TYPE)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("")
-            .to_string();
-
-        if content_type.contains("image/") || content_type.contains("application/octet-stream") {
-            let bytes = response
-                .bytes()
-                .await
-                .map_err(|e| Error::Custom(e.to_string()))?;
-            let b64 = B64.encode(&bytes);
-            Ok((status, format!("data:image/png;base64,{b64}")))
-        } else {
-            let body = response
-                .text()
-                .await
-                .map_err(|e| Error::Custom(e.to_string()))?;
-            Ok((status, body))
-        }
+        execute_request(&self.client, request).await
     }
 
     fn build_standard_request(&self, request: &WebExecuteRequest) -> Result<reqwest::Request> {
+        self.build_standard_request_with(&self.client, request)
+    }
+
+    fn build_standard_request_with(
+        &self,
+        client: &Client,
+        request: &WebExecuteRequest,
+    ) -> Result<reqwest::Request> {
         let method = Method::from_bytes(request.method.as_bytes())
             .map_err(|e| Error::Custom(format!("bad method: {e}")))?;
 
-        let mut builder = self.client.request(method.clone(), &request.url);
+        let mut builder = client.request(method.clone(), &request.url);
         if let Some(user_agent) = request.user_agent.as_deref() {
             builder = builder.header(USER_AGENT, user_agent);
         }
@@ -671,6 +719,22 @@ mod tests {
     fn web_client_exposes_versioned_user_agent() -> Result<()> {
         let web = WebClient::new(None, None, "2.9.2")?;
         assert_eq!(web.user_agent(), "VRCX-0/2.9.2");
+        Ok(())
+    }
+
+    #[test]
+    fn fresh_http_client_reuses_runtime_cookie_jar() -> Result<()> {
+        let web = WebClient::new(None, None, "2.9.2")?;
+        let initial_references = Arc::strong_count(&web.jar);
+        let fresh = build_http_client(
+            Arc::clone(&web.jar),
+            web.proxy_url.as_deref(),
+            &web.user_agent,
+        )?;
+
+        assert!(Arc::strong_count(&web.jar) > initial_references);
+        drop(fresh);
+        assert_eq!(Arc::strong_count(&web.jar), initial_references);
         Ok(())
     }
 

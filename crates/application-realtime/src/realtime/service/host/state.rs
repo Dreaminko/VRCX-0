@@ -126,6 +126,7 @@ pub struct RealtimeHostRuntime {
     pub(super) deps: RealtimeHostRuntimeDeps,
     pub(super) state: Mutex<RealtimeHostRuntimeState>,
     pub(super) cancel_tx: watch::Sender<u64>,
+    pub(super) transport_lifecycle_tx: broadcast::Sender<RealtimeTransportLifecycleEvent>,
     pub(super) friends: RealtimeFriendsRuntime,
     pub(super) current_user: RealtimeCurrentUserRuntime,
     pub(super) user_cache: UserCacheRuntime,

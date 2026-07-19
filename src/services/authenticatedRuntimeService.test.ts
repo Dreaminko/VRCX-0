@@ -268,4 +268,39 @@ describe('authenticatedRuntimeService', () => {
             false
         );
     });
+
+    it('keeps a terminal realtime failure visible after the transport is cleared', () => {
+        applyAuthenticatedRuntimePhaseSnapshot(phaseSnapshot());
+        handleAuthenticatedRuntimeRealtimeStatus({
+            status: 'connected',
+            websocketDomain: 'wss://pipeline.example.test',
+            at: '2026-07-17T00:00:02.000Z',
+            clientRunId: 7,
+            generation: 11,
+            sessionGeneration: 4,
+            reason: null,
+            statusCode: null
+        });
+
+        applyAuthenticatedRuntimePhaseSnapshot(
+            phaseSnapshot({
+                phase: 'error',
+                realtime: {
+                    status: 'failed',
+                    attempt: 1,
+                    retryDelaySeconds: null,
+                    detail: 'Realtime transport terminated.',
+                    lastError: 'Forbidden (status 403)'
+                },
+                realtimeTransport: null
+            })
+        );
+
+        expect(useSessionStore.getState().transportStatus).toBe(
+            'pipeline-error'
+        );
+        expect(useRuntimeStore.getState().transport.websocketConnected).toBe(
+            false
+        );
+    });
 });

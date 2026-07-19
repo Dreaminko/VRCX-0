@@ -15,7 +15,8 @@ use vrcx_0_application_core::{
 };
 use vrcx_0_application_realtime::{
     build_favorites_baseline, build_friend_roster_baseline, RealtimeHostRuntime,
-    RealtimeStopRequest, SocialBaselineDeps, SocialFavoritesBaselineInput,
+    RealtimeStopRequest, RealtimeTransportLifecycleEvent, RealtimeTransportStartResult,
+    RealtimeTransportTermination, SocialBaselineDeps, SocialFavoritesBaselineInput,
     SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
     SocialFriendRosterBaselineOutput,
 };
@@ -142,11 +143,21 @@ impl AuthenticatedRuntimeOrchestrator {
 
         let scope = self.auth_scope.set(&session.user_id, &session.endpoint);
         let current = self.snapshot();
-        if matches!(
-            current.phase,
-            AuthenticatedRuntimePhase::Starting | AuthenticatedRuntimePhase::Ready
-        ) && snapshot_matches_session(&current, &session, scope.generation)
-        {
+        let same_session = snapshot_matches_session(&current, &session, scope.generation);
+        let already_active = match current.phase {
+            AuthenticatedRuntimePhase::Starting => same_session,
+            AuthenticatedRuntimePhase::Ready => {
+                same_session
+                    && current
+                        .realtime_transport
+                        .as_ref()
+                        .is_some_and(|transport| {
+                            self.realtime_runtime.transport_is_active(transport)
+                        })
+            }
+            _ => false,
+        };
+        if already_active {
             return Ok(current);
         }
 
@@ -219,12 +230,7 @@ impl AuthenticatedRuntimeOrchestrator {
         let realtime_friends = friends_by_id.clone();
         let realtime =
             self.run_realtime_transport(&session, &scope, run_id, &stop_token, realtime_friends);
-        let (favorites_ready, realtime_ready) = tokio::join!(favorites, realtime);
-        if favorites_ready && realtime_ready && self.is_active(run_id, &scope, &stop_token) {
-            self.update_snapshot(run_id, |snapshot| {
-                snapshot.phase = AuthenticatedRuntimePhase::Ready;
-            });
-        }
+        tokio::join!(favorites, realtime);
     }
 
     async fn run_friend_baseline(
@@ -300,13 +306,13 @@ impl AuthenticatedRuntimeOrchestrator {
         run_id: u64,
         stop_token: &TaskStopToken,
         friends_by_id: &HashMap<String, FriendRecord>,
-    ) -> bool {
+    ) {
         let friend_roster_by_id =
             RawJson::from(serde_json::to_value(friends_by_id).unwrap_or_default());
         let mut attempt = 1;
         loop {
             if !self.is_active(run_id, scope, stop_token) {
-                return false;
+                return;
             }
             self.set_step_running(run_id, RuntimeStep::Favorites, attempt);
             let result = build_favorites_baseline(
@@ -320,7 +326,7 @@ impl AuthenticatedRuntimeOrchestrator {
             )
             .await;
             if !self.is_active(run_id, scope, stop_token) {
-                return false;
+                return;
             }
 
             match result
@@ -336,7 +342,8 @@ impl AuthenticatedRuntimeOrchestrator {
                             ready_step(attempt, format!("{} favorites loaded.", output.count));
                         snapshot.favorites_baseline = Some(output);
                     });
-                    return true;
+                    self.mark_ready_if_complete(run_id);
+                    return;
                 }
                 Err(error) => {
                     self.emit_auth_failure_if_needed(
@@ -353,7 +360,7 @@ impl AuthenticatedRuntimeOrchestrator {
                         error.to_string(),
                     );
                     if !self.wait_for_retry(delay, run_id, scope, stop_token).await {
-                        return false;
+                        return;
                     }
                     attempt = attempt.saturating_add(1);
                 }
@@ -368,13 +375,14 @@ impl AuthenticatedRuntimeOrchestrator {
         run_id: u64,
         stop_token: &TaskStopToken,
         friends_by_id: HashMap<String, FriendRecord>,
-    ) -> bool {
+    ) {
         let mut attempt = 1;
         loop {
             if !self.is_active(run_id, scope, stop_token) {
-                return false;
+                return;
             }
             self.set_step_running(run_id, RuntimeStep::Realtime, attempt);
+            let mut lifecycle = self.realtime_runtime.subscribe_transport_lifecycle();
             match self.realtime_runtime.start(
                 session.user_id.clone(),
                 session.endpoint.clone(),
@@ -392,29 +400,135 @@ impl AuthenticatedRuntimeOrchestrator {
                             client_run_id: Some(run_id),
                             generation: Some(result.generation),
                         });
-                        return false;
+                        return;
                     }
                     self.update_snapshot(run_id, |snapshot| {
-                        snapshot.realtime =
-                            ready_step(attempt, "Realtime transport started.".into());
-                        snapshot.realtime_transport = Some(result);
+                        snapshot.realtime = AuthenticatedRuntimeStepSnapshot {
+                            status: AuthenticatedRuntimeStepStatus::Running,
+                            attempt,
+                            detail: "Realtime transport is waiting for a connection.".into(),
+                            ..Default::default()
+                        };
+                        snapshot.realtime_transport = Some(result.clone());
                     });
-                    return true;
-                }
-                Err(error) => {
-                    let delay = retry_delay_seconds(attempt);
-                    self.set_step_retry(
-                        run_id,
-                        RuntimeStep::Realtime,
-                        attempt,
-                        delay,
-                        error.to_string(),
-                    );
-                    if !self.wait_for_retry(delay, run_id, scope, stop_token).await {
-                        return false;
+                    let restart = self
+                        .monitor_realtime_transport(
+                            run_id,
+                            scope,
+                            stop_token,
+                            attempt,
+                            result,
+                            &mut lifecycle,
+                        )
+                        .await;
+                    if !restart {
+                        return;
+                    }
+                    if !self
+                        .wait_for_realtime_retry(
+                            run_id,
+                            scope,
+                            stop_token,
+                            attempt,
+                            "Realtime transport stopped unexpectedly.".into(),
+                        )
+                        .await
+                    {
+                        return;
                     }
                     attempt = attempt.saturating_add(1);
                 }
+                Err(error) => {
+                    if !self
+                        .wait_for_realtime_retry(
+                            run_id,
+                            scope,
+                            stop_token,
+                            attempt,
+                            error.to_string(),
+                        )
+                        .await
+                    {
+                        return;
+                    }
+                    attempt = attempt.saturating_add(1);
+                }
+            }
+        }
+    }
+
+    async fn wait_for_realtime_retry(
+        &self,
+        run_id: u64,
+        scope: &RuntimeAuthScopeSnapshot,
+        stop_token: &TaskStopToken,
+        attempt: u32,
+        error: String,
+    ) -> bool {
+        let delay = retry_delay_seconds(attempt);
+        self.set_step_retry(run_id, RuntimeStep::Realtime, attempt, delay, error);
+        self.wait_for_retry(delay, run_id, scope, stop_token).await
+    }
+
+    async fn monitor_realtime_transport(
+        &self,
+        run_id: u64,
+        scope: &RuntimeAuthScopeSnapshot,
+        stop_token: &TaskStopToken,
+        attempt: u32,
+        transport: RealtimeTransportStartResult,
+        lifecycle: &mut tokio::sync::broadcast::Receiver<RealtimeTransportLifecycleEvent>,
+    ) -> bool {
+        loop {
+            if !self.is_active(run_id, scope, stop_token) {
+                return false;
+            }
+            tokio::select! {
+                event = lifecycle.recv() => {
+                    match event {
+                        Ok(RealtimeTransportLifecycleEvent::Connected(connected))
+                            if connected == transport =>
+                        {
+                            self.update_snapshot(run_id, |snapshot| {
+                                apply_realtime_connected(snapshot, attempt, &transport);
+                            });
+                            self.mark_ready_if_complete(run_id);
+                        }
+                        Ok(RealtimeTransportLifecycleEvent::Finished {
+                            transport: finished,
+                            termination,
+                        }) if finished == transport => {
+                            if !self.is_active(run_id, scope, stop_token) {
+                                return false;
+                            }
+                            match termination {
+                                RealtimeTransportTermination::Stopped => {
+                                    return true;
+                                }
+                                RealtimeTransportTermination::AuthFailure {
+                                    reason,
+                                    status_code,
+                                } => {
+                                    self.update_snapshot(run_id, |snapshot| {
+                                        apply_realtime_auth_failure(
+                                            snapshot,
+                                            attempt,
+                                            &transport,
+                                            &reason,
+                                            status_code,
+                                        );
+                                    });
+                                    return false;
+                                }
+                            }
+                        }
+                        Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                            return false;
+                        }
+                    }
+                }
+                _ = tokio::time::sleep(RETRY_SLEEP_POLL_INTERVAL) => {}
             }
         }
     }
@@ -460,6 +574,10 @@ impl AuthenticatedRuntimeOrchestrator {
         !stop_token.is_stop_requested()
             && self.generation.load(Ordering::Acquire) == run_id
             && auth_scope_matches(&self.auth_scope.snapshot(), scope)
+            && matches!(
+                self.lock_snapshot().phase,
+                AuthenticatedRuntimePhase::Starting | AuthenticatedRuntimePhase::Ready
+            )
     }
 
     async fn wait_for_retry(
@@ -528,6 +646,22 @@ impl AuthenticatedRuntimeOrchestrator {
         self.emit(snapshot);
     }
 
+    fn mark_ready_if_complete(&self, run_id: u64) {
+        let snapshot = {
+            let mut snapshot = self.lock_snapshot();
+            if snapshot.run_id != run_id
+                || snapshot.phase != AuthenticatedRuntimePhase::Starting
+                || !all_steps_ready(&snapshot)
+            {
+                return;
+            }
+            snapshot.phase = AuthenticatedRuntimePhase::Ready;
+            snapshot.updated_at = now_iso();
+            snapshot.clone()
+        };
+        self.emit(snapshot);
+    }
+
     fn emit(&self, snapshot: AuthenticatedRuntimePhaseSnapshot) {
         self.event_bus.emit(snapshot);
     }
@@ -565,6 +699,52 @@ fn ready_step(attempt: u32, detail: String) -> AuthenticatedRuntimeStepSnapshot 
         detail,
         ..Default::default()
     }
+}
+
+fn all_steps_ready(snapshot: &AuthenticatedRuntimePhaseSnapshot) -> bool {
+    [
+        snapshot.friends.status,
+        snapshot.favorites.status,
+        snapshot.realtime.status,
+    ]
+    .into_iter()
+    .all(|status| status == AuthenticatedRuntimeStepStatus::Ready)
+}
+
+fn apply_realtime_connected(
+    snapshot: &mut AuthenticatedRuntimePhaseSnapshot,
+    attempt: u32,
+    transport: &RealtimeTransportStartResult,
+) {
+    if snapshot.realtime_transport.as_ref() != Some(transport) {
+        return;
+    }
+    snapshot.realtime = ready_step(attempt, "Realtime transport connected.".into());
+}
+
+fn apply_realtime_auth_failure(
+    snapshot: &mut AuthenticatedRuntimePhaseSnapshot,
+    attempt: u32,
+    transport: &RealtimeTransportStartResult,
+    reason: &str,
+    status_code: Option<i32>,
+) {
+    if snapshot.realtime_transport.as_ref() != Some(transport) {
+        return;
+    }
+    let error = match status_code {
+        Some(status_code) => format!("{reason} (status {status_code})"),
+        None => reason.to_string(),
+    };
+    snapshot.realtime = AuthenticatedRuntimeStepSnapshot {
+        status: AuthenticatedRuntimeStepStatus::Failed,
+        attempt,
+        detail: "Realtime transport terminated.".into(),
+        last_error: Some(error),
+        ..Default::default()
+    };
+    snapshot.realtime_transport = None;
+    snapshot.phase = AuthenticatedRuntimePhase::Error;
 }
 
 fn decode_friend_baseline(
@@ -776,6 +956,75 @@ mod tests {
         let mut other_transport = session.clone();
         other_transport.websocket = "wss://other.example.test".into();
         assert!(!snapshot_matches_session(&snapshot, &other_transport, 4));
+    }
+
+    #[test]
+    fn realtime_lifecycle_requires_matching_transport_identity() {
+        let transport = RealtimeTransportStartResult {
+            generation: 2,
+            client_run_id: 4,
+            session_generation: 6,
+        };
+        let mut snapshot = AuthenticatedRuntimePhaseSnapshot {
+            realtime_transport: Some(transport.clone()),
+            ..Default::default()
+        };
+        let stale = RealtimeTransportStartResult {
+            generation: 1,
+            ..transport.clone()
+        };
+
+        apply_realtime_connected(&mut snapshot, 1, &stale);
+        assert_eq!(
+            snapshot.realtime.status,
+            AuthenticatedRuntimeStepStatus::Pending
+        );
+
+        apply_realtime_connected(&mut snapshot, 1, &transport);
+        assert_eq!(
+            snapshot.realtime.status,
+            AuthenticatedRuntimeStepStatus::Ready
+        );
+    }
+
+    #[test]
+    fn terminal_auth_failure_invalidates_ready_runtime() {
+        let transport = RealtimeTransportStartResult {
+            generation: 2,
+            client_run_id: 4,
+            session_generation: 6,
+        };
+        let mut snapshot = AuthenticatedRuntimePhaseSnapshot {
+            phase: AuthenticatedRuntimePhase::Ready,
+            realtime: ready_step(1, "connected".into()),
+            realtime_transport: Some(transport.clone()),
+            ..Default::default()
+        };
+
+        apply_realtime_auth_failure(&mut snapshot, 1, &transport, "forbidden", Some(403));
+
+        assert_eq!(snapshot.phase, AuthenticatedRuntimePhase::Error);
+        assert_eq!(
+            snapshot.realtime.status,
+            AuthenticatedRuntimeStepStatus::Failed
+        );
+        assert_eq!(snapshot.realtime_transport, None);
+        assert!(snapshot
+            .realtime
+            .last_error
+            .as_deref()
+            .is_some_and(|error| error.contains("403")));
+    }
+
+    #[test]
+    fn runtime_is_ready_only_after_every_step_is_ready() {
+        let mut snapshot = AuthenticatedRuntimePhaseSnapshot::default();
+        snapshot.friends = ready_step(1, "friends".into());
+        snapshot.favorites = ready_step(1, "favorites".into());
+        assert!(!all_steps_ready(&snapshot));
+
+        snapshot.realtime = ready_step(1, "realtime".into());
+        assert!(all_steps_ready(&snapshot));
     }
 
     #[test]

@@ -265,6 +265,22 @@ describe('authExecutionService characterization', () => {
         });
     });
 
+    it('does not expose an authenticated frontend session when scope sync fails', async () => {
+        mocks.appRuntimeAuthScopeSet.mockRejectedValueOnce(
+            new Error('scope sync failed')
+        );
+
+        await expect(
+            executeManualLogin({
+                username: 'self@example.test',
+                password: 'secret'
+            })
+        ).rejects.toThrow('scope sync failed');
+
+        expect(useRuntimeStore.getState().auth.currentUserId).toBe(null);
+        expect(mocks.bootstrapAuthenticatedSession).not.toHaveBeenCalled();
+    });
+
     it('prefers email OTP and finishes login after the challenge resolves', async () => {
         mocks.startLoginSession.mockResolvedValueOnce(
             challengeState(['emailOtp'], 'emailOtp')
@@ -408,6 +424,29 @@ describe('authExecutionService characterization', () => {
         expect(mocks.toastSuccess).toHaveBeenCalledWith(
             'message.auth.logout_greeting:Self'
         );
+    });
+
+    it('does not report logout success when backend scope cleanup fails', async () => {
+        useRuntimeStore.getState().setAuthBootstrap({
+            currentUserId: 'usr_self',
+            currentUserDisplayName: 'Self'
+        });
+        useSessionStore.getState().setSessionState({
+            isLoggedIn: true,
+            sessionPhase: 'ready'
+        });
+        mocks.appRuntimeAuthScopeSet.mockRejectedValueOnce(
+            new Error('scope cleanup failed')
+        );
+
+        await expect(logoutFromReactShell()).rejects.toThrow(
+            'scope cleanup failed'
+        );
+
+        expect(mocks.recordLogout).not.toHaveBeenCalled();
+        expect(useRuntimeStore.getState().auth.currentUserId).toBe('usr_self');
+        expect(useSessionStore.getState().sessionPhase).toBe('ready');
+        expect(mocks.toastSuccess).not.toHaveBeenCalled();
     });
 
     describe('two-factor challenge golden contract', () => {

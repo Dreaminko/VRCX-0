@@ -3025,6 +3025,7 @@ export type AuthenticatedRuntimePhase =
     | 'idle'
     | 'starting'
     | 'ready'
+    | 'error'
     | 'stopped';
 export type AuthenticatedRuntimePhaseSnapshot = {
     runId: number;
@@ -3059,7 +3060,8 @@ export type AuthenticatedRuntimeStepStatus =
     | 'pending'
     | 'running'
     | 'retryWaiting'
-    | 'ready';
+    | 'ready'
+    | 'failed';
 export type AuthenticatedSessionMaintenanceOutcome = {
     userId: string;
     avatarCleanup: AvatarAutoCleanupOutcome;

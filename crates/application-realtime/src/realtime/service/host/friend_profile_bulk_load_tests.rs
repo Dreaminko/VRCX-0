@@ -316,6 +316,7 @@ fn transport_finished_cancels_active_bulk_load_and_rejects_stale_progress() -> R
         active.generation,
         active.session_generation,
         &active_session,
+        &RealtimeTransportTermination::Stopped,
     );
 
     let payload = runtime.friend_profile_bulk_load_status();

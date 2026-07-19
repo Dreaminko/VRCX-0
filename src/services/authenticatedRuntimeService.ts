@@ -134,6 +134,17 @@ function applyFavoritesStep(snapshot: AuthenticatedRuntimePhaseSnapshot): void {
 }
 
 function applyRealtimeStep(snapshot: AuthenticatedRuntimePhaseSnapshot): void {
+    if (snapshot.phase === 'error') {
+        pendingRealtimeStatus = null;
+        initializedTransportRunId = snapshot.runId;
+        useRuntimeStore.getState().setTransportState({
+            websocketConnected: false,
+            websocketDomain: snapshot.websocket,
+            lastDisconnectedAt: snapshot.updatedAt || new Date().toISOString()
+        });
+        useSessionStore.getState().setTransportStatus('pipeline-error');
+        return;
+    }
     if (snapshot.phase === 'stopped') {
         pendingRealtimeStatus = null;
         initializedTransportRunId = snapshot.runId;

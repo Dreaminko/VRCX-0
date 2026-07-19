@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
-use tokio::sync::watch;
+use tokio::sync::{broadcast, watch};
 
 use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
@@ -43,8 +43,8 @@ use crate::realtime::{
     RealtimeEntryCorrectionStream, RealtimeFriendApplyResult, RealtimeFriendOutput,
     RealtimeFriendSnapshot, RealtimeInstanceClosedOutput, RealtimeInstanceQueueProjection,
     RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeNotificationUpsert,
-    RealtimeProjectionSource, RealtimeSessionContext, RealtimeTransportStartResult,
-    RealtimeWsStatusPayload,
+    RealtimeProjectionSource, RealtimeSessionContext, RealtimeTransportLifecycleEvent,
+    RealtimeTransportStartResult, RealtimeTransportTermination, RealtimeWsStatusPayload,
 };
 use crate::social_baseline::service::{
     reconcile_friend_roster_records, FriendRosterReconcileOutcome,

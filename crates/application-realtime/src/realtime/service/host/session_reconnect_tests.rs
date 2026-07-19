@@ -24,6 +24,60 @@ impl RuntimeTaskHandle for FinishedTaskHandle {
 }
 
 #[test]
+fn realtime_lifecycle_reports_connected_and_terminal_auth_failure() -> Result<()> {
+    let (_dir, runtime, active_session) = runtime_with_active_session("transport-lifecycle")?;
+    let active = runtime
+        .state
+        .lock()
+        .unwrap()
+        .connection
+        .active_context
+        .clone()
+        .unwrap();
+    let expected = RealtimeTransportStartResult {
+        generation: active.generation,
+        client_run_id: active.client_run_id,
+        session_generation: active.session_generation,
+    };
+    let mut lifecycle = runtime.subscribe_transport_lifecycle();
+    let sink = RealtimeHostRuntimeMessageSink {
+        runtime: Arc::clone(&runtime),
+    };
+
+    assert!(runtime.transport_is_active(&expected));
+    sink.handle_realtime_transport_status(
+        active.generation,
+        active.session_generation,
+        &active_session,
+        "connected",
+    );
+    assert_eq!(
+        lifecycle.try_recv().unwrap(),
+        RealtimeTransportLifecycleEvent::Connected(expected.clone())
+    );
+
+    let termination = RealtimeTransportTermination::AuthFailure {
+        reason: "auth transport bootstrap failed (403)".into(),
+        status_code: Some(403),
+    };
+    sink.handle_realtime_transport_finished(
+        active.generation,
+        active.session_generation,
+        &active_session,
+        &termination,
+    );
+    assert_eq!(
+        lifecycle.try_recv().unwrap(),
+        RealtimeTransportLifecycleEvent::Finished {
+            transport: expected.clone(),
+            termination,
+        }
+    );
+    assert!(!runtime.transport_is_active(&expected));
+    Ok(())
+}
+
+#[test]
 fn friend_ws_dispatch_fans_out_one_canonical_output() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("friend-dispatch-fanout")?;
     let active = runtime

@@ -112,18 +112,20 @@ impl WebClient {
         scope: ApiScope,
         db: &DatabaseService,
     ) -> Result<HttpApiExecuteResponse> {
-        let save_cookies = http_api::scope_saves_cookies(scope);
-        let request = http_api::build_web_execute_request(input, scope)
-            .map_err(|error| crate::Error::Custom(error.to_string()))?;
-        let request = self.with_user_agent(request);
+        let request = self.build_api_request(input, scope)?;
         let (status, data) = self.execute(request).await?;
-        if save_cookies {
-            self.save_cookies(db);
-        }
-        if status == -1 {
-            return Err(crate::Error::Custom(data));
-        }
-        Ok(http_api::execute_response(status, data, scope))
+        self.finish_api_request(status, data, scope, db)
+    }
+
+    pub async fn execute_api_fresh(
+        &self,
+        input: HttpApiRequestInput,
+        scope: ApiScope,
+        db: &DatabaseService,
+    ) -> Result<HttpApiExecuteResponse> {
+        let request = self.build_api_request(input, scope)?;
+        let (status, data) = self.inner.execute_fresh_standard(request).await?;
+        self.finish_api_request(status, data, scope, db)
     }
 
     pub async fn execute_external_api(
@@ -138,6 +140,32 @@ impl WebClient {
             return Err(crate::Error::Custom(data));
         }
         Ok(external_api::execute_response(status, data, scope))
+    }
+
+    fn build_api_request(
+        &self,
+        input: HttpApiRequestInput,
+        scope: ApiScope,
+    ) -> Result<WebExecuteRequest> {
+        let request = http_api::build_web_execute_request(input, scope)
+            .map_err(|error| crate::Error::Custom(error.to_string()))?;
+        Ok(self.with_user_agent(request))
+    }
+
+    fn finish_api_request(
+        &self,
+        status: i32,
+        data: String,
+        scope: ApiScope,
+        db: &DatabaseService,
+    ) -> Result<HttpApiExecuteResponse> {
+        if http_api::scope_saves_cookies(scope) {
+            self.save_cookies(db);
+        }
+        if status == -1 {
+            return Err(crate::Error::Custom(data));
+        }
+        Ok(http_api::execute_response(status, data, scope))
     }
 }
 

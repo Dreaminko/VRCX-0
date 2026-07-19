@@ -134,16 +134,11 @@ function getCurrentUserDisplayName(user: AuthUserRecord | null) {
 }
 
 function setRuntimeAuthScope(userId: unknown = '', endpoint: unknown = '') {
-    return commands
-        .appRuntimeAuthScopeSet({
-            userId: typeof userId === 'string' ? userId : String(userId ?? ''),
-            endpoint:
-                typeof endpoint === 'string' ? endpoint : String(endpoint ?? '')
-        })
-        .catch((error: unknown): null => {
-            console.warn('Failed to sync runtime auth scope:', error);
-            return null;
-        });
+    return commands.appRuntimeAuthScopeSet({
+        userId: typeof userId === 'string' ? userId : String(userId ?? ''),
+        endpoint:
+            typeof endpoint === 'string' ? endpoint : String(endpoint ?? '')
+    });
 }
 
 export function setSignedOutSessionState() {
@@ -164,7 +159,7 @@ function setAuthenticatingSessionState() {
     });
 }
 
-export function resetCurrentUserRuntimeAuth() {
+function resetCurrentUserRuntimeCaches() {
     clearEntityQueryCache();
     avatarProfileRepository.clearAvatarNameCache();
     useFriendRosterStore.getState().resetRoster();
@@ -174,6 +169,10 @@ export function resetCurrentUserRuntimeAuth() {
     useRuntimeStore
         .getState()
         .setGroupInstancesState(createGroupInstancesState());
+}
+
+function clearCurrentUserRuntimeAuthState() {
+    resetCurrentUserRuntimeCaches();
     useRuntimeStore.getState().setAuthBootstrap({
         currentUserId: null,
         currentUserDisplayName: '',
@@ -181,21 +180,18 @@ export function resetCurrentUserRuntimeAuth() {
         currentUserWebsocket: '',
         currentUserSnapshot: null
     });
-    return setRuntimeAuthScope();
 }
 
-function setCurrentUserRuntimeAuth(
+export async function resetCurrentUserRuntimeAuth() {
+    await setRuntimeAuthScope();
+    clearCurrentUserRuntimeAuthState();
+}
+
+async function setCurrentUserRuntimeAuth(
     user: AuthUserRecord | null,
     { endpoint = '', websocket = '' }: Record<string, string> = {}
 ) {
-    clearEntityQueryCache();
-    avatarProfileRepository.clearAvatarNameCache();
-    useFriendRosterStore.getState().resetRoster();
-    useFavoriteStore.getState().resetFavorites();
-    useFeedLiveStore.getState().resetFeedLive();
-    resetDomainFacts();
     const runtimeStore = useRuntimeStore.getState();
-    runtimeStore.setGroupInstancesState(createGroupInstancesState());
     const { snapshot } = buildAvatarWearSnapshotUpdate({
         previousSnapshot: runtimeStore.auth.currentUserSnapshot,
         nextSnapshot: user,
@@ -206,6 +202,8 @@ function setCurrentUserRuntimeAuth(
         : null;
     const currentUserId = normalizeText(nextSnapshot?.id);
 
+    await setRuntimeAuthScope(currentUserId, endpoint);
+    resetCurrentUserRuntimeCaches();
     useRuntimeStore.getState().setAuthBootstrap({
         currentUserId: currentUserId || null,
         currentUserDisplayName: getCurrentUserDisplayName(nextSnapshot),
@@ -213,7 +211,6 @@ function setCurrentUserRuntimeAuth(
         currentUserWebsocket: websocket,
         currentUserSnapshot: nextSnapshot ?? null
     });
-    void setRuntimeAuthScope(currentUserId, endpoint);
     recordCurrentUserSnapshot(nextSnapshot ?? null, { endpoint });
 }
 
@@ -369,8 +366,8 @@ export async function finalizeSuccessfulLogin(
     user: AuthUserRecord,
     authContext: Record<string, string> = {}
 ) {
+    await setCurrentUserRuntimeAuth(user, authContext);
     applySavedAuthSnapshot(snapshot);
-    setCurrentUserRuntimeAuth(user, authContext);
     useSessionStore.getState().setSessionState({
         isLoggedIn: false,
         isFriendsLoaded: false,
@@ -483,13 +480,14 @@ export async function logoutFromReactShell() {
     }
 
     await runWithRuntimeAuthFailureRecoverySuppressed(async () => {
+        await setRuntimeAuthScope();
         const snapshot = await authRepository.recordLogout(currentUserId, {
             clearLastUserLoggedIn: true
         });
         await webRepository.clearCookies();
         await vrchatAuthRepository.resetAutoLoginThrottle();
 
-        await resetCurrentUserRuntimeAuth();
+        clearCurrentUserRuntimeAuthState();
 
         useSessionStore.getState().setSessionState({
             isLoggedIn: false,

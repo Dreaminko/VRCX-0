@@ -29,8 +29,9 @@ pub use projection::{
 pub use runtime_types::{
     FriendBaselineCausalWatermark, FriendBaselineResult, FriendBaselineSyncOutcome,
     PendingOfflineTimerAction, RealtimeCurrentUserAuthority, RealtimeFriendApplyResult,
-    RealtimeFriendSnapshot, RealtimeSessionContext, RealtimeTransportStartResult,
-    RealtimeWsMessagePayload, RealtimeWsStatusPayload,
+    RealtimeFriendSnapshot, RealtimeSessionContext, RealtimeTransportLifecycleEvent,
+    RealtimeTransportStartResult, RealtimeTransportTermination, RealtimeWsMessagePayload,
+    RealtimeWsStatusPayload,
 };
 pub use service::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, RealtimeHostRuntime,

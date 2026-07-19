@@ -6,12 +6,14 @@ use super::*;
 impl RealtimeHostRuntime {
     pub fn new(deps: RealtimeHostRuntimeDeps) -> Self {
         let (cancel_tx, _) = watch::channel(0);
+        let (transport_lifecycle_tx, _) = broadcast::channel(32);
         let (friend_profile_bulk_cancel_tx, _) = watch::channel(0);
         let world_cache = Arc::clone(&deps.world_cache);
         Self {
             deps,
             state: Mutex::new(RealtimeHostRuntimeState::default()),
             cancel_tx,
+            transport_lifecycle_tx,
             friends: RealtimeFriendsRuntime::new(),
             current_user: RealtimeCurrentUserRuntime::new(),
             user_cache: UserCacheRuntime::new(),
@@ -26,6 +28,49 @@ impl RealtimeHostRuntime {
             #[cfg(test)]
             friend_before_output_hook: Mutex::new(None),
         }
+    }
+
+    pub fn subscribe_transport_lifecycle(
+        &self,
+    ) -> broadcast::Receiver<RealtimeTransportLifecycleEvent> {
+        self.transport_lifecycle_tx.subscribe()
+    }
+
+    pub fn transport_is_active(&self, transport: &RealtimeTransportStartResult) -> bool {
+        self.state
+            .lock()
+            .map(|state| {
+                state
+                    .connection
+                    .active_context
+                    .as_ref()
+                    .is_some_and(|active| {
+                        active.client_run_id == transport.client_run_id
+                            && active.generation == transport.generation
+                            && active.session_generation == transport.session_generation
+                    })
+            })
+            .unwrap_or(false)
+    }
+
+    pub(super) fn current_transport(
+        &self,
+        generation: u64,
+        session_generation: u64,
+        session: &RealtimeSessionContext,
+    ) -> Option<RealtimeTransportStartResult> {
+        self.state.lock().ok().and_then(|state| {
+            state.connection.active_context.as_ref().and_then(|active| {
+                (active.generation == generation
+                    && active.session_generation == session_generation
+                    && active.session == *session)
+                    .then(|| RealtimeTransportStartResult {
+                        generation: active.generation,
+                        client_run_id: active.client_run_id,
+                        session_generation: active.session_generation,
+                    })
+            })
+        })
     }
 
     pub fn start(
