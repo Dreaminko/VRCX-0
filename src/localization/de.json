@@ -5553,6 +5553,14 @@
             "no_provider": "Kein Avatar-Suchanbieter konfiguriert"
         }
     },
+    "translation": {
+        "translate": "Übersetzen",
+        "show_original": "Original anzeigen",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "Übersetzung fehlgeschlagen",
+        "error_network": "Netzwerkfehler, bitte erneut versuchen",
+        "error_unsupported": "Übersetzung ist nicht konfiguriert"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {

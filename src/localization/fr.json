@@ -5553,6 +5553,14 @@
             "no_provider": "Aucun fournisseur de recherche d'avatars configuré"
         }
     },
+    "translation": {
+        "translate": "Traduire",
+        "show_original": "Afficher l'original",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "Échec de la traduction",
+        "error_network": "Erreur réseau, veuillez réessayer",
+        "error_unsupported": "La traduction n'est pas configurée"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {

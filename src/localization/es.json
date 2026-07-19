@@ -5553,6 +5553,14 @@
             "no_provider": "No hay ningún proveedor de búsqueda de avatares configurado"
         }
     },
+    "translation": {
+        "translate": "Traducir",
+        "show_original": "Mostrar original",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "La traducción falló",
+        "error_network": "Error de red, inténtalo de nuevo",
+        "error_unsupported": "La traducción no está configurada"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {

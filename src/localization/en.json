@@ -5557,6 +5557,14 @@
             "no_provider": "No avatar search provider configured"
         }
     },
+    "translation": {
+        "translate": "Translate",
+        "show_original": "Show Original",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "Translation failed",
+        "error_network": "Network error, please try again",
+        "error_unsupported": "Translation is not configured"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {

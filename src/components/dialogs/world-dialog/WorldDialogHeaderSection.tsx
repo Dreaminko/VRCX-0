@@ -10,7 +10,6 @@ import {
     HistoryIcon,
     HomeIcon,
     ImageIcon,
-    LanguagesIcon,
     LinkIcon,
     MessageSquareIcon,
     PencilIcon,
@@ -24,12 +23,12 @@ import { useTranslation } from 'react-i18next';
 import { FavoriteActionMenu } from '@/components/favorites/FavoriteActionMenu';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import type { WorldProfileRecord } from '@/domain/entities/profileEntities';
+import { TranslatableText } from '@/features/translation/components/TranslatableText';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Separator } from '@/ui/shadcn/separator';
-import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
@@ -39,7 +38,6 @@ import {
     EntityActionSub,
     EntityOverviewCard
 } from '../EntityDialogScaffold';
-import { useWorldDescriptionTranslation } from './useWorldDescriptionTranslation';
 import type {
     WorldDialogHeaderCommands,
     WorldDialogHeaderModel
@@ -477,19 +475,6 @@ export function WorldDialogOverviewSection({
         onOpenCache,
         onOpenWorldPage
     } = commands;
-    const {
-        descriptionTranslationLoading,
-        translatedDescriptionActive,
-        toggleDescriptionTranslation,
-        visibleDescription
-    } = useWorldDescriptionTranslation({ world });
-    const descriptionActionLabel = translatedDescriptionActive
-        ? t('dialog.world.info.show_original_description', {
-              defaultValue: 'Show Original'
-          })
-        : t('dialog.world.info.translate_description', {
-              defaultValue: 'Translate Description'
-          });
     const releaseLabel = world.isLabs
         ? t('dialog.world.tags.labs')
         : world.releaseStatus === 'public'
@@ -649,40 +634,30 @@ export function WorldDialogOverviewSection({
             </div>
 
             {world.description ? (
-                <>
-                    <Separator />
-                    <div className="relative min-w-0">
-                        <div className="text-muted-foreground max-h-28 overflow-auto pr-8 text-sm whitespace-pre-wrap">
-                            {visibleDescription}
-                        </div>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        className="absolute top-0 right-0"
-                                        disabled={descriptionTranslationLoading}
-                                        aria-label={descriptionActionLabel}
-                                        onClick={() => {
-                                            toggleDescriptionTranslation();
-                                        }}
-                                    >
-                                        {descriptionTranslationLoading ? (
-                                            <Spinner data-icon="inline-start" />
-                                        ) : (
-                                            <LanguagesIcon data-icon="inline-start" />
-                                        )}
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {descriptionActionLabel}
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
-                </>
+                <TranslatableText
+                    source={world.description}
+                    entityId={world.id || ''}
+                    density="icon"
+                >
+                    {({ action, meta, error, text }) => (
+                        <>
+                            <Separator />
+                            <div className="flex min-w-0 flex-col gap-1.5">
+                                <div className="flex min-w-0 items-center justify-between gap-2">
+                                    <span className="text-muted-foreground truncate text-xs font-medium">
+                                        {t('dialog.world.info.description')}
+                                    </span>
+                                    {action}
+                                </div>
+                                {meta}
+                                <div className="text-muted-foreground max-h-28 overflow-auto text-sm whitespace-pre-wrap">
+                                    {text}
+                                </div>
+                                {error}
+                            </div>
+                        </>
+                    )}
+                </TranslatableText>
             ) : null}
 
             <WorldOverviewFacts

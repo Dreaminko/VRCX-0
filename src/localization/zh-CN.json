@@ -5557,6 +5557,14 @@
             "no_provider": "没有配置模型搜索数据库"
         }
     },
+    "translation": {
+        "translate": "翻译",
+        "show_original": "显示原文",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "翻译失败",
+        "error_network": "网络错误,请重试",
+        "error_unsupported": "翻译功能未配置"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {

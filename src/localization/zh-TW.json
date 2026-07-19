@@ -5557,6 +5557,14 @@
             "no_provider": "沒有設定角色搜尋來源"
         }
     },
+    "translation": {
+        "translate": "翻譯",
+        "show_original": "顯示原文",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "翻譯失敗",
+        "error_network": "網路錯誤，請重試",
+        "error_unsupported": "尚未設定翻譯"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {

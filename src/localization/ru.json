@@ -5555,6 +5555,14 @@
             "no_provider": "Провайдер поиска аватаров не настроен"
         }
     },
+    "translation": {
+        "translate": "Перевести",
+        "show_original": "Показать оригинал",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "Не удалось перевести",
+        "error_network": "Ошибка сети, попробуйте ещё раз",
+        "error_unsupported": "Перевод не настроен"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {

@@ -5555,6 +5555,14 @@
             "no_provider": "Není nastaven žádný poskytovatel vyhledávání avatarů"
         }
     },
+    "translation": {
+        "translate": "Přeložit",
+        "show_original": "Zobrazit originál",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "Překlad se nezdařil",
+        "error_network": "Chyba sítě, zkuste to znovu",
+        "error_unsupported": "Překlad není nakonfigurován"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {

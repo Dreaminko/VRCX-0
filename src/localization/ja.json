@@ -5549,6 +5549,14 @@
             "no_provider": "アバター検索プロバイダーが設定されていません"
         }
     },
+    "translation": {
+        "translate": "翻訳",
+        "show_original": "原文を表示",
+        "source_to_target": "{source} → {target}",
+        "error_generic": "翻訳に失敗しました",
+        "error_network": "ネットワークエラーです。もう一度お試しください",
+        "error_unsupported": "翻訳が設定されていません"
+    },
     "app": {
         "title": "VRCX-0",
         "routes": {
