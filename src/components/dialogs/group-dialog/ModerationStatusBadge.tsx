@@ -9,20 +9,27 @@ const MODERATION_STATUS_TONE_CLASS_NAME: Record<string, string> = {
         'text-amber-600 dark:text-amber-400 border-transparent bg-amber-500/10'
 };
 
-export function ModerationStatusBadge({ status }: { status: string }) {
+export function ModerationStatusBadge({
+    status,
+    label
+}: {
+    status: string;
+    label?: string;
+}) {
     if (!status || status === '—') {
         return <span>—</span>;
     }
     const tone = moderationStatusTone(status);
+    const displayLabel = label ?? status;
     if (tone === 'danger') {
-        return <Badge variant="destructive">{status}</Badge>;
+        return <Badge variant="destructive">{displayLabel}</Badge>;
     }
     return (
         <Badge
             variant="outline"
             className={MODERATION_STATUS_TONE_CLASS_NAME[tone]}
         >
-            {status}
+            {displayLabel}
         </Badge>
     );
 }

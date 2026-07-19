@@ -1,7 +1,21 @@
+import type { ColumnDef } from '@tanstack/react-table';
 import { DownloadIcon, ListFilterIcon, RefreshCwIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
+import {
+    DataTableColumnDndProvider,
+    DataTableColumnSizeColGroup,
+    DataTableColumnSortableContext,
+    DataTableEmptyRow,
+    DataTableHeader,
+    DataTablePagination,
+    DataTableScrollArea,
+    DataTableSurface,
+    getDataTableSizingStyle
+} from '@/components/data-table/DataTableView';
+import { ResizableTableCell } from '@/components/data-table/ResizableTableParts';
 import { Location } from '@/components/Location';
 import { formatDateFilter } from '@/lib/dateTime';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
@@ -14,29 +28,15 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 import { Input } from '@/ui/shadcn/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from '@/ui/shadcn/table';
+import { Table, TableBody, TableRow } from '@/ui/shadcn/table';
 import { TabsContent } from '@/ui/shadcn/tabs';
 
 import { downloadJsonFile } from './groupDialogDownloads';
 import { GroupListState } from './GroupListState';
 import { GroupModerationLogsExportDialog } from './GroupModerationLogsExportDialog';
+import { useGroupModerationTable } from './useGroupModerationTable';
 
-const LOGS_PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const LOGS_COLUMN_IDS = ['created', 'type', 'actor', 'description', 'data'];
 
 export interface GroupAuditLogRow {
     actorDisplayName?: string;
@@ -68,14 +68,8 @@ interface GroupModerationLogsTableProps {
     loading: boolean;
     onEventTypesChange: (eventTypes: string[]) => void;
     onExport: () => void;
-    onPageIndexChange: (pageIndex: number) => void;
-    onPageSizeChange: (pageSize: number) => void;
     onReload: () => void;
-    onSearchChange: (search: string) => void;
-    pageIndex: number;
-    pageSize: number;
     rows: GroupAuditLogRow[];
-    search: string;
     selectedEventTypes: string[];
 }
 
@@ -216,16 +210,158 @@ export function describeGroupAuditLogDataDiff(data: unknown): string[] | null {
     );
 }
 
-function logRowKey(row: GroupAuditLogRow, index: number) {
-    return row.id || `${row.created_at || ''}:${row.eventType || ''}:${index}`;
-}
-
 export function openGroupAuditLogActor(row: GroupAuditLogRow) {
     const args = groupAuditLogActorDialogArgs(row);
     if (!args) {
         return;
     }
     openUserDialog(args);
+}
+
+function auditLogHeaderLabel(label: string) {
+    return (
+        <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            {label}
+        </span>
+    );
+}
+
+export function createGroupAuditLogColumns(
+    t: (key: string) => string
+): ColumnDef<GroupAuditLogRow>[] {
+    const createdLabel = t('dialog.group_member_moderation.created_at');
+    const typeLabel = t('dialog.group_member_moderation.type');
+    const actorLabel = t('dialog.group_member_moderation.display_name');
+    const descriptionLabel = t('dialog.group_member_moderation.description');
+    const dataLabel = t('dialog.group_member_moderation.data');
+
+    return [
+        {
+            id: 'created',
+            accessorFn: (row) => row.created_at || '',
+            size: 180,
+            minSize: 140,
+            meta: { label: createdLabel },
+            sortingFn: (rowA, rowB) => {
+                const leftTs = Date.parse(rowA.original.created_at || '');
+                const rightTs = Date.parse(rowB.original.created_at || '');
+                if (
+                    Number.isFinite(leftTs) &&
+                    Number.isFinite(rightTs) &&
+                    leftTs !== rightTs
+                ) {
+                    return leftTs - rightTs;
+                }
+                return 0;
+            },
+            header: ({ column }) => (
+                <DataTableSortButton column={column} label={createdLabel} />
+            ),
+            cell: ({ row }) => (
+                <span className="text-muted-foreground text-xs tabular-nums">
+                    {row.original.created_at
+                        ? formatDateFilter(row.original.created_at, 'long')
+                        : '—'}
+                </span>
+            )
+        },
+        {
+            id: 'type',
+            accessorFn: (row) => row.eventType || '',
+            size: 190,
+            minSize: 120,
+            meta: { label: typeLabel },
+            header: ({ column }) => (
+                <DataTableSortButton column={column} label={typeLabel} />
+            ),
+            cell: ({ row }) => (
+                <span className="text-xs whitespace-normal">
+                    {row.original.eventType
+                        ? formatGroupAuditLogTypeName(row.original.eventType) ||
+                          row.original.eventType
+                        : '—'}
+                </span>
+            )
+        },
+        {
+            id: 'actor',
+            accessorFn: (row) => row.actorDisplayName || row.actorId || '',
+            size: 180,
+            minSize: 120,
+            meta: { label: actorLabel },
+            header: ({ column }) => (
+                <DataTableSortButton column={column} label={actorLabel} />
+            ),
+            cell: ({ row }) => {
+                const actorArgs = groupAuditLogActorDialogArgs(row.original);
+                if (!actorArgs) {
+                    return <span className="font-medium">—</span>;
+                }
+                return (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="hover:text-primary h-auto w-full min-w-0 justify-start truncate p-0 text-left font-medium"
+                        onClick={() => openGroupAuditLogActor(row.original)}
+                    >
+                        {actorArgs.title}
+                    </Button>
+                );
+            }
+        },
+        {
+            id: 'description',
+            accessorFn: (row) => row.description || '',
+            size: 320,
+            minSize: 160,
+            enableSorting: false,
+            meta: { label: descriptionLabel },
+            header: () => auditLogHeaderLabel(descriptionLabel),
+            cell: ({ row }) => {
+                const targetId = String(row.original.targetId || '').trim();
+                return (
+                    <div className="text-muted-foreground text-xs whitespace-normal">
+                        {targetId.startsWith('wrld_') ? (
+                            <Location
+                                location={targetId}
+                                className="mb-1"
+                                worldNameClassName="text-xs"
+                            />
+                        ) : null}
+                        <div>{row.original.description || '—'}</div>
+                    </div>
+                );
+            }
+        },
+        {
+            id: 'data',
+            size: 320,
+            minSize: 160,
+            enableSorting: false,
+            meta: { label: dataLabel },
+            header: () => auditLogHeaderLabel(dataLabel),
+            cell: ({ row }) => {
+                const diffLines = describeGroupAuditLogDataDiff(
+                    row.original.data
+                );
+                if (diffLines) {
+                    return (
+                        <div className="text-muted-foreground space-y-0.5 font-mono text-xs break-words whitespace-normal">
+                            {diffLines.map((line, index) => (
+                                <div key={`${index}:${line}`}>{line}</div>
+                            ))}
+                        </div>
+                    );
+                }
+                const data = formatLogData(row.original.data);
+                return (
+                    <span className="text-muted-foreground font-mono text-xs break-words whitespace-normal">
+                        {data || '—'}
+                    </span>
+                );
+            }
+        }
+    ];
 }
 
 export function GroupModerationLogsTable({
@@ -235,36 +371,43 @@ export function GroupModerationLogsTable({
     loading,
     onEventTypesChange,
     onExport,
-    onPageIndexChange,
-    onPageSizeChange,
     onReload,
-    onSearchChange,
-    pageIndex,
-    pageSize,
     rows,
-    search,
     selectedEventTypes
 }: GroupModerationLogsTableProps) {
     const { t } = useTranslation();
+    const [search, setSearch] = useState('');
     const logsLabel = t('dialog.group_member_moderation.logs').toLowerCase();
-    const filteredRows = filterGroupAuditLogs(rows, search);
-    const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-    const currentPageIndex = Math.min(pageIndex, totalPages - 1);
-    const visibleRows = filteredRows.slice(
-        currentPageIndex * pageSize,
-        currentPageIndex * pageSize + pageSize
+
+    const filteredRows = useMemo(
+        () => filterGroupAuditLogs(rows, search),
+        [rows, search]
     );
-    const showTable = !loading && !error;
+    const columns = useMemo(() => createGroupAuditLogColumns(t), [t]);
+    const { pageSizes, pagination, setPagination, table } =
+        useGroupModerationTable<GroupAuditLogRow>({
+            columnIds: LOGS_COLUMN_IDS,
+            columns,
+            paged: true,
+            rows: filteredRows,
+            tableId: 'group-moderation:logs'
+        });
+
+    useEffect(() => {
+        setPagination((current) => ({ ...current, pageIndex: 0 }));
+    }, [search, setPagination]);
+
     const filterLabel = selectedEventTypes.length
         ? `${selectedEventTypes.length}/${auditLogTypes.length}`
         : t('dialog.group_member_moderation.filter_type');
+    const showTable = !loading && !error;
 
     return (
         <TabsContent
             value="logs"
-            className="m-0 max-h-[65vh] overflow-auto pt-4"
+            className="m-0 flex min-h-0 flex-1 flex-col gap-3 pt-4"
         >
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex shrink-0 items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <Button
                         type="button"
@@ -342,40 +485,19 @@ export function GroupModerationLogsTable({
                             </DropdownMenuContent>
                         </DropdownMenu>
                     ) : null}
-                    <span className="text-muted-foreground text-sm">
+                    <span className="text-muted-foreground text-sm tabular-nums">
                         {filteredRows.length}/{rows.length}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
                     <Input
                         value={search}
-                        onChange={(event) => onSearchChange(event.target.value)}
+                        onChange={(event) => setSearch(event.target.value)}
                         placeholder={t('dialog.group.dynamic.search_value', {
                             value: logsLabel
                         })}
                         className="h-8 w-64"
                     />
-                    <Select
-                        value={String(pageSize)}
-                        onValueChange={(value) =>
-                            onPageSizeChange(
-                                Number.parseInt(value ?? '', 10) || 25
-                            )
-                        }
-                    >
-                        <SelectTrigger size="sm" className="w-24">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {LOGS_PAGE_SIZE_OPTIONS.map((size) => (
-                                    <SelectItem key={size} value={String(size)}>
-                                        {size}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
                 </div>
             </div>
             {loading ? (
@@ -395,169 +517,63 @@ export function GroupModerationLogsTable({
                 />
             ) : null}
             {showTable ? (
-                <div className="overflow-auto rounded-md border">
-                    <Table>
-                        <TableHeader className="vrcx-0-table-header sticky top-0">
-                            <TableRow>
-                                <TableHead className="w-44">
-                                    {t(
-                                        'dialog.group_member_moderation.created_at'
+                <DataTableSurface>
+                    <DataTableScrollArea>
+                        <DataTableColumnDndProvider table={table}>
+                            <Table
+                                className="min-w-full table-fixed"
+                                style={getDataTableSizingStyle(table)}
+                            >
+                                <DataTableColumnSizeColGroup table={table} />
+                                <DataTableHeader table={table} />
+                                <TableBody>
+                                    {table.getRowModel().rows.length ? (
+                                        table.getRowModel().rows.map((row) => (
+                                            <TableRow key={row.id}>
+                                                <DataTableColumnSortableContext
+                                                    table={table}
+                                                >
+                                                    {row
+                                                        .getVisibleCells()
+                                                        .map((cell) => (
+                                                            <ResizableTableCell
+                                                                key={cell.id}
+                                                                cell={cell}
+                                                            />
+                                                        ))}
+                                                </DataTableColumnSortableContext>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <DataTableEmptyRow
+                                            colSpan={
+                                                table.getVisibleLeafColumns()
+                                                    .length || 1
+                                            }
+                                        >
+                                            {t('dialog.group.empty.no_rows')}
+                                        </DataTableEmptyRow>
                                     )}
-                                </TableHead>
-                                <TableHead className="w-56">
-                                    {t('dialog.group_member_moderation.type')}
-                                </TableHead>
-                                <TableHead className="w-56">
-                                    {t(
-                                        'dialog.group_member_moderation.display_name'
-                                    )}
-                                </TableHead>
-                                <TableHead>
-                                    {t(
-                                        'dialog.group_member_moderation.description'
-                                    )}
-                                </TableHead>
-                                <TableHead className="w-80">
-                                    {t('dialog.group_member_moderation.data')}
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {visibleRows.length ? (
-                                visibleRows.map((row, index) => {
-                                    const actorArgs =
-                                        groupAuditLogActorDialogArgs(row);
-                                    const targetId = String(
-                                        row.targetId || ''
-                                    ).trim();
-                                    const diffLines =
-                                        describeGroupAuditLogDataDiff(row.data);
-                                    const data = formatLogData(row.data);
-                                    return (
-                                        <TableRow key={logRowKey(row, index)}>
-                                            <TableCell className="text-muted-foreground align-top text-xs">
-                                                {row.created_at
-                                                    ? formatDateFilter(
-                                                          row.created_at,
-                                                          'long'
-                                                      )
-                                                    : '—'}
-                                            </TableCell>
-                                            <TableCell className="align-top text-xs whitespace-normal">
-                                                {row.eventType || '—'}
-                                            </TableCell>
-                                            <TableCell className="align-top">
-                                                {actorArgs ? (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        className="hover:text-primary h-auto max-w-52 justify-start truncate p-0 text-left font-medium"
-                                                        onClick={() =>
-                                                            openGroupAuditLogActor(
-                                                                row
-                                                            )
-                                                        }
-                                                    >
-                                                        {actorArgs.title}
-                                                    </Button>
-                                                ) : (
-                                                    <span className="font-medium">
-                                                        —
-                                                    </span>
-                                                )}
-                                                <div className="text-muted-foreground truncate font-mono text-xs">
-                                                    {row.actorId || '—'}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground align-top text-xs whitespace-normal">
-                                                {targetId.startsWith(
-                                                    'wrld_'
-                                                ) ? (
-                                                    <Location
-                                                        location={targetId}
-                                                        className="mb-1"
-                                                        worldNameClassName="text-xs"
-                                                    />
-                                                ) : null}
-                                                <div>
-                                                    {row.description || '—'}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground max-w-80 align-top font-mono text-xs break-words whitespace-normal">
-                                                {diffLines ? (
-                                                    <div className="space-y-0.5">
-                                                        {diffLines.map(
-                                                            (
-                                                                line,
-                                                                lineIndex
-                                                            ) => (
-                                                                <div
-                                                                    key={`${lineIndex}:${line}`}
-                                                                >
-                                                                    {line}
-                                                                </div>
-                                                            )
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    data || '—'
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                            ) : (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={5}
-                                        className="text-muted-foreground py-8 text-center text-sm"
-                                    >
-                                        {t('dialog.group.empty.no_rows')}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                                </TableBody>
+                            </Table>
+                        </DataTableColumnDndProvider>
+                    </DataTableScrollArea>
+                </DataTableSurface>
             ) : null}
             {showTable ? (
-                <div className="mt-3 flex items-center justify-between">
-                    <span className="text-muted-foreground text-sm">
-                        {t('dialog.group.label.page')} {currentPageIndex + 1} /{' '}
-                        {totalPages}
-                    </span>
-                    <div className="flex gap-2">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={currentPageIndex <= 0}
-                            onClick={() =>
-                                onPageIndexChange(
-                                    Math.max(0, currentPageIndex - 1)
-                                )
-                            }
-                        >
-                            {t('table.pagination.previous')}
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={currentPageIndex >= totalPages - 1}
-                            onClick={() =>
-                                onPageIndexChange(
-                                    Math.min(
-                                        totalPages - 1,
-                                        currentPageIndex + 1
-                                    )
-                                )
-                            }
-                        >
-                            {t('table.pagination.next')}
-                        </Button>
-                    </div>
-                </div>
+                <DataTablePagination
+                    className="shrink-0"
+                    table={table}
+                    pageIndex={pagination.pageIndex}
+                    pageSize={pagination.pageSize}
+                    pageSizes={pageSizes}
+                    onPageSizeChange={(value) =>
+                        setPagination({
+                            pageIndex: 0,
+                            pageSize: Number.parseInt(value, 10) || 25
+                        })
+                    }
+                />
             ) : null}
         </TabsContent>
     );
@@ -573,11 +589,8 @@ export function GroupModerationLogsPanel({
     const [auditLogTypes, setAuditLogTypes] = useState<string[]>([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [pageIndex, setPageIndex] = useState(0);
-    const [pageSize, setPageSize] = useState(25);
     const [reloadToken, setReloadToken] = useState(0);
     const [rows, setRows] = useState<GroupAuditLogRow[]>([]);
-    const [search, setSearch] = useState('');
     const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
     const [exportOpen, setExportOpen] = useState(false);
 
@@ -588,9 +601,7 @@ export function GroupModerationLogsPanel({
         setAuditLogTypes([]);
         setError('');
         setLoading(false);
-        setPageIndex(0);
         setRows([]);
-        setSearch('');
         setSelectedEventTypes([]);
         setExportOpen(false);
     }, [endpoint, group.id, open]);
@@ -645,7 +656,6 @@ export function GroupModerationLogsPanel({
                     return;
                 }
                 setRows(nextRows);
-                setPageIndex(0);
             })
             .catch((requestError) => {
                 if (!alive) {
@@ -680,20 +690,8 @@ export function GroupModerationLogsPanel({
                 loading={loading}
                 onEventTypesChange={setSelectedEventTypes}
                 onExport={() => setExportOpen(true)}
-                onPageIndexChange={setPageIndex}
-                onPageSizeChange={(nextPageSize) => {
-                    setPageSize(nextPageSize);
-                    setPageIndex(0);
-                }}
                 onReload={() => setReloadToken((value) => value + 1)}
-                onSearchChange={(nextSearch) => {
-                    setSearch(nextSearch);
-                    setPageIndex(0);
-                }}
-                pageIndex={pageIndex}
-                pageSize={pageSize}
                 rows={rows}
-                search={search}
                 selectedEventTypes={selectedEventTypes}
             />
             <GroupModerationLogsExportDialog

@@ -4609,12 +4609,23 @@
             "import_bans_no_ids_found": "找不到有效的使用者 ID(usr_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)。",
             "import_bans_done": "已完成,共封鎖 {success}/{total} 位使用者。",
             "import_bans_cancelled": "已取消,共封鎖 {success}/{total} 位使用者。",
-            "export_logs": "匯出記錄",
+            "export_logs": "匯出 CSV",
             "export_logs_copied": "稽核記錄 CSV 已複製到剪貼簿",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
             "loaded_count": "已載入 {count} 項",
-            "no_permission": "你沒有該群組的管理權限。"
+            "no_permission": "你沒有該群組的管理權限。",
+            "status": {
+                "member": "成員",
+                "invited": "已邀請",
+                "banned": "已封鎖",
+                "requested": "申請中",
+                "blocked": "已封鎖",
+                "userblocked": "已封鎖",
+                "joined": "已加入",
+                "active": "活躍",
+                "pending": "待處理"
+            }
         },
         "group_post_edit": {
             "title": "標題"
@@ -5474,10 +5485,11 @@
                 "empty_description": "你目前在任何群組中都沒有管理權限。",
                 "permissions_degraded": "部分群組權限無法驗證,以下清單可能不完整。",
                 "member_count": "{count} 位成員",
-                "rail_title": "Groups you moderate",
-                "select_a_group_title": "Select a group",
-                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
-                "moderator_hint": "You have moderation access in this group"
+                "rail_title": "你管理的群組",
+                "select_a_group_title": "選擇群組",
+                "select_a_group_description": "從列表中選擇一個群組,以管理成員、封鎖、邀請與加入請求。",
+                "moderator_hint": "You have moderation access in this group",
+                "member_online_count": "{members} 名成員 · 線上 {online}"
             }
         }
     },

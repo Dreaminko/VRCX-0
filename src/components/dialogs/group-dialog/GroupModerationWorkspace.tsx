@@ -1,5 +1,5 @@
 import { UploadIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -9,6 +9,7 @@ import type {
 } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
+import { openUserDialog } from '@/services/dialogService';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
@@ -25,7 +26,6 @@ import {
     GroupModerationBulkPanel,
     type GroupModerationBulkProgress
 } from './GroupModerationBulkPanel';
-import { GroupModerationInspector } from './GroupModerationInspector';
 import { GroupModerationLogsPanel } from './GroupModerationLogsPanel';
 import {
     getGroupModerationTabs,
@@ -68,9 +68,6 @@ export function GroupModerationWorkspace({
     );
     const [statusByTab, setStatusByTab] = useState<Record<string, string>>({});
     const [errorsByTab, setErrorsByTab] = useState<Record<string, string>>({});
-    const [search, setSearch] = useState('');
-    const [pageSize, setPageSize] = useState(25);
-    const [pageIndex, setPageIndex] = useState(0);
     const [reloadToken, setReloadToken] = useState(0);
     const [actionKey, setActionKey] = useState('');
     const [selectedByTab, setSelectedByTab] = useState<
@@ -80,9 +77,6 @@ export function GroupModerationWorkspace({
     const [bulkProgress, setBulkProgress] =
         useState<GroupModerationBulkProgress | null>(null);
     const [banImportOpen, setBanImportOpen] = useState(false);
-    const [focusedByTab, setFocusedByTab] = useState<Record<string, string>>(
-        {}
-    );
     const [memberSearchInput, setMemberSearchInput] = useState('');
     const [memberQuery, setMemberQuery] = useState('');
     const [memberSort, setMemberSort] = useState('joinedAt:desc');
@@ -113,14 +107,19 @@ export function GroupModerationWorkspace({
         ? rows.filter((row) => selectedIds.has(moderationRowUserId(row)))
         : [];
     const bulkSelectable = BULK_SELECTABLE_TABS.has(activeTab);
-    const focusedUserId = focusedByTab[activeTab] || '';
-    const focusedRow = focusedUserId
-        ? rows.find((row) => moderationRowUserId(row) === focusedUserId) || null
-        : null;
 
-    function focusRow(userId: string) {
-        setFocusedByTab((current) => ({ ...current, [activeTab]: userId }));
-    }
+    const openModerationUserDialog = useCallback((row: EntityRecord) => {
+        const userId = moderationRowUserId(row);
+        if (!userId) {
+            return;
+        }
+        const user = isEntityRecord(row.user) ? row.user : null;
+        openUserDialog({
+            userId,
+            title: moderationRowLabel(row),
+            seedData: user
+        });
+    }, []);
 
     const memberSortOptions: GroupModerationServerSelectOption[] = useMemo(
         () => [
@@ -172,14 +171,11 @@ export function GroupModerationWorkspace({
             setRowsByTab({});
             setStatusByTab({});
             setErrorsByTab({});
-            setSearch('');
-            setPageIndex(0);
             setActionKey('');
             setSelectedByTab({});
             setBulkBusy(false);
             setBulkProgress(null);
             setBanImportOpen(false);
-            setFocusedByTab({});
             setMemberSearchInput('');
             setMemberQuery('');
             setMemberSort('joinedAt:desc');
@@ -191,11 +187,6 @@ export function GroupModerationWorkspace({
             resolveGroupModerationActiveTab(current, moderationTabs)
         );
     }, [moderationTabs, resetKey]);
-
-    useEffect(() => {
-        setSearch('');
-        setPageIndex(0);
-    }, [activeTab]);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -586,8 +577,8 @@ export function GroupModerationWorkspace({
 
     if (!activeTab) {
         return (
-            <div className="min-h-0">
-                <Empty className="min-h-32 border">
+            <div className="flex min-h-0 flex-1 flex-col">
+                <Empty className="min-h-32 flex-1 border">
                     <EmptyHeader>
                         <EmptyTitle>
                             {t('dialog.group_member_moderation.no_permission')}
@@ -599,17 +590,17 @@ export function GroupModerationWorkspace({
     }
 
     return (
-        <div className="min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col">
             <Tabs
                 value={activeTab}
                 onValueChange={(value) =>
                     setActiveTab(value as GroupModerationTabValue)
                 }
-                className="min-h-0 gap-0"
+                className="min-h-0 flex-1 gap-0"
             >
                 <TabsList
                     variant="line"
-                    className="h-auto w-full justify-start overflow-x-auto rounded-none border-b px-0 pb-1"
+                    className="h-auto w-full shrink-0 justify-start overflow-x-auto rounded-none border-b px-0 pb-1"
                 >
                     {moderationTabs.map((tab) => (
                         <TabsTrigger
@@ -623,111 +614,80 @@ export function GroupModerationWorkspace({
                     ))}
                 </TabsList>
                 {bulkSelectable && selectedRows.length ? (
-                    <GroupModerationBulkPanel
-                        tabValue={activeTab as 'bans' | 'members'}
-                        group={group}
-                        selectedRows={selectedRows}
-                        busy={bulkBusy}
-                        progress={bulkProgress}
-                        onClear={clearSelection}
-                        onRemoveRow={(userId) =>
-                            toggleSelectedRow(userId, false)
-                        }
-                        onKick={runBulkKick}
-                        onBan={runBulkBan}
-                        onUnban={runBulkUnban}
-                        onSaveNote={runBulkSaveNote}
-                        onAddRoles={runBulkAddRoles}
-                        onRemoveRoles={runBulkRemoveRoles}
-                    />
-                ) : null}
-                <div className="flex min-h-0 gap-4">
-                    <div className="min-w-0 flex-1">
-                        {moderationTabs.map((tab) =>
-                            tab.value === 'logs' ? (
-                                <GroupModerationLogsPanel
-                                    key={tab.value}
-                                    active={activeTab === 'logs'}
-                                    endpoint={endpoint}
-                                    group={group}
-                                    open
-                                />
-                            ) : (
-                                <GroupModerationTabPanel
-                                    key={tab.value}
-                                    actionKey={actionKey}
-                                    activeTab={activeTab}
-                                    error={error}
-                                    focusedUserId={focusedUserId}
-                                    group={group}
-                                    loading={loading}
-                                    onFocusRow={focusRow}
-                                    onPageIndexChange={setPageIndex}
-                                    onPageSizeChange={(
-                                        nextPageSize: number
-                                    ) => {
-                                        setPageSize(nextPageSize);
-                                        setPageIndex(0);
-                                    }}
-                                    onReload={() =>
-                                        setReloadToken((value) => value + 1)
-                                    }
-                                    onRunAction={runModerationAction}
-                                    onSearchChange={(nextSearch: string) => {
-                                        setSearch(nextSearch);
-                                        setPageIndex(0);
-                                    }}
-                                    onToggleAllVisible={toggleSelectedVisible}
-                                    onToggleRow={toggleSelectedRow}
-                                    pageIndex={pageIndex}
-                                    pageSize={pageSize}
-                                    rows={rows}
-                                    search={search}
-                                    selectable={BULK_SELECTABLE_TABS.has(
-                                        tab.value
-                                    )}
-                                    selectedIds={selectedIds || undefined}
-                                    server={
-                                        tab.value === 'members'
-                                            ? membersServerControl
-                                            : undefined
-                                    }
-                                    tab={tab}
-                                    toolbarExtra={
-                                        tab.value === 'bans' &&
-                                        hasGroupPermission(
-                                            group,
-                                            'group-bans-manage'
-                                        ) ? (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setBanImportOpen(true)
-                                                }
-                                            >
-                                                <UploadIcon data-icon="inline-start" />
-                                                {t(
-                                                    'dialog.group_member_moderation.import_bans'
-                                                )}
-                                            </Button>
-                                        ) : null
-                                    }
-                                />
-                            )
-                        )}
-                    </div>
-                    {activeTab !== 'logs' ? (
-                        <GroupModerationInspector
-                            row={focusedRow}
+                    <div className="shrink-0">
+                        <GroupModerationBulkPanel
+                            tabValue={activeTab as 'bans' | 'members'}
                             group={group}
-                            tabValue={activeTab || 'members'}
-                            actionKey={actionKey}
-                            onRunAction={runModerationAction}
+                            selectedRows={selectedRows}
+                            busy={bulkBusy}
+                            progress={bulkProgress}
+                            onClear={clearSelection}
+                            onRemoveRow={(userId) =>
+                                toggleSelectedRow(userId, false)
+                            }
+                            onKick={runBulkKick}
+                            onBan={runBulkBan}
+                            onUnban={runBulkUnban}
+                            onSaveNote={runBulkSaveNote}
+                            onAddRoles={runBulkAddRoles}
+                            onRemoveRoles={runBulkRemoveRoles}
                         />
-                    ) : null}
-                </div>
+                    </div>
+                ) : null}
+                {moderationTabs.map((tab) =>
+                    tab.value === 'logs' ? (
+                        <GroupModerationLogsPanel
+                            key={tab.value}
+                            active={activeTab === 'logs'}
+                            endpoint={endpoint}
+                            group={group}
+                            open
+                        />
+                    ) : (
+                        <GroupModerationTabPanel
+                            key={tab.value}
+                            actionKey={actionKey}
+                            error={error}
+                            group={group}
+                            loading={loading}
+                            onOpenUser={openModerationUserDialog}
+                            onReload={() =>
+                                setReloadToken((value) => value + 1)
+                            }
+                            onRunAction={runModerationAction}
+                            onToggleAllVisible={toggleSelectedVisible}
+                            onToggleRow={toggleSelectedRow}
+                            rows={rows}
+                            selectable={BULK_SELECTABLE_TABS.has(tab.value)}
+                            selectedIds={selectedIds || undefined}
+                            server={
+                                tab.value === 'members'
+                                    ? membersServerControl
+                                    : undefined
+                            }
+                            tab={tab}
+                            toolbarExtra={
+                                tab.value === 'bans' &&
+                                hasGroupPermission(
+                                    group,
+                                    'group-bans-manage'
+                                ) ? (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setBanImportOpen(true)}
+                                    >
+                                        <UploadIcon data-icon="inline-start" />
+                                        {t(
+                                            'dialog.group_member_moderation.import_bans'
+                                        )}
+                                    </Button>
+                                ) : null
+                            }
+                        />
+                    )
+                )}
             </Tabs>
             <GroupModerationBanImportDialog
                 open={banImportOpen}

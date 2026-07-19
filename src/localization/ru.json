@@ -4616,7 +4616,18 @@
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
             "loaded_count": "Загружено: {count}",
-            "no_permission": "You don't have moderation permission for this group."
+            "no_permission": "You don't have moderation permission for this group.",
+            "status": {
+                "member": "Member",
+                "invited": "Invited",
+                "banned": "Banned",
+                "requested": "Requested",
+                "blocked": "Blocked",
+                "userblocked": "Blocked",
+                "joined": "Joined",
+                "active": "Active",
+                "pending": "Pending"
+            }
         },
         "group_post_edit": {
             "title": "Заголовок"
@@ -5475,7 +5486,8 @@
                 "rail_title": "Groups you moderate",
                 "select_a_group_title": "Select a group",
                 "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
-                "moderator_hint": "You have moderation access in this group"
+                "moderator_hint": "You have moderation access in this group",
+                "member_online_count": "{members} members · {online} online"
             }
         }
     },

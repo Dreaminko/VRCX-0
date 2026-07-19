@@ -219,15 +219,19 @@ function GroupModerationMain({
                         {profile.name || profile.id}
                     </PageTitle>
                     {canModerate ? (
-                        <p className="text-muted-foreground truncate text-xs">
+                        <p className="text-muted-foreground truncate text-xs tabular-nums">
                             {t(
-                                'host.tools_dialogs.group_moderation.moderator_hint'
+                                'host.tools_dialogs.group_moderation.member_online_count',
+                                {
+                                    members: profile.memberCount,
+                                    online: profile.onlineMemberCount
+                                }
                             )}
                         </p>
                     ) : null}
                 </div>
             </PageHeader>
-            <div className="min-h-0 flex-1 overflow-auto">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <GroupModerationWorkspace group={profile} endpoint={endpoint} />
             </div>
         </div>

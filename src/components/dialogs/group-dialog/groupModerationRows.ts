@@ -129,27 +129,6 @@ export function moderationRowLabel(row: unknown) {
     );
 }
 
-export function moderationRowSubtitle(row: unknown) {
-    const source = record(row);
-    const roleIds = Array.isArray(source.roleIds)
-        ? source.roleIds.filter(
-              (value): value is string => typeof value === 'string'
-          )
-        : [];
-    return [
-        roleIds.join(', '),
-        text(
-            source.action,
-            source.eventType,
-            source.type,
-            source.membershipStatus
-        ),
-        text(source.createdAt, source.updatedAt, source.joinedAt)
-    ]
-        .filter(Boolean)
-        .join(' | ');
-}
-
 export function moderationRowRoleIds(row: unknown): string[] {
     const source = record(row);
     const user = record(source.user);
@@ -234,9 +213,25 @@ export function moderationRowNote(row: unknown): string {
     return (
         text(source.description) ||
         text(source.note) ||
-        text(source.managerNotes) ||
-        moderationRowSubtitle(row)
+        text(source.managerNotes)
     );
+}
+
+const GROUP_MODERATION_STATUS_LABEL_KEYS: Record<string, string> = {
+    member: 'dialog.group_member_moderation.status.member',
+    invited: 'dialog.group_member_moderation.status.invited',
+    banned: 'dialog.group_member_moderation.status.banned',
+    requested: 'dialog.group_member_moderation.status.requested',
+    blocked: 'dialog.group_member_moderation.status.blocked',
+    userblocked: 'dialog.group_member_moderation.status.userblocked',
+    joined: 'dialog.group_member_moderation.status.joined',
+    active: 'dialog.group_member_moderation.status.active',
+    pending: 'dialog.group_member_moderation.status.pending'
+};
+
+export function moderationStatusLabel(status: string, t: TranslateFn): string {
+    const key = GROUP_MODERATION_STATUS_LABEL_KEYS[status.trim().toLowerCase()];
+    return key ? t(key) : status;
 }
 
 export function moderationRowSearchText(row: unknown, group: unknown) {

@@ -4609,12 +4609,23 @@
             "import_bans_no_ids_found": "No valid user IDs found (usr_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).",
             "import_bans_done": "Done. Banned {success}/{total} users.",
             "import_bans_cancelled": "Cancelled. Banned {success}/{total} users.",
-            "export_logs": "Export Logs",
+            "export_logs": "Export CSV",
             "export_logs_copied": "Audit log CSV copied to clipboard",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
             "loaded_count": "{count} loaded",
-            "no_permission": "You don't have moderation permission for this group."
+            "no_permission": "You don't have moderation permission for this group.",
+            "status": {
+                "member": "Member",
+                "invited": "Invited",
+                "banned": "Banned",
+                "requested": "Requested",
+                "blocked": "Blocked",
+                "userblocked": "Blocked",
+                "joined": "Joined",
+                "active": "Active",
+                "pending": "Pending"
+            }
         },
         "group_post_edit": {
             "title": "Title"
@@ -5477,7 +5488,8 @@
                 "rail_title": "Groups you moderate",
                 "select_a_group_title": "Select a group",
                 "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
-                "moderator_hint": "You have moderation access in this group"
+                "moderator_hint": "You have moderation access in this group",
+                "member_online_count": "{members} members · {online} online"
             }
         }
     },

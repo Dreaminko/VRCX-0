@@ -4601,12 +4601,23 @@
             "import_bans_no_ids_found": "有効なユーザーIDが見つかりませんでした(usr_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)。",
             "import_bans_done": "完了しました。{success}/{total} 人をBANしました。",
             "import_bans_cancelled": "キャンセルしました。{success}/{total} 人をBANしました。",
-            "export_logs": "ログをエクスポート",
+            "export_logs": "CSV をエクスポート",
             "export_logs_copied": "監査ログのCSVをクリップボードにコピーしました",
             "inspector_empty": "Select a row to view details",
             "view_full_profile": "View full profile",
             "loaded_count": "{count} 件読み込み済み",
-            "no_permission": "You don't have moderation permission for this group."
+            "no_permission": "You don't have moderation permission for this group.",
+            "status": {
+                "member": "メンバー",
+                "invited": "招待済み",
+                "banned": "BAN済み",
+                "requested": "リクエスト中",
+                "blocked": "ブロック済み",
+                "userblocked": "ブロック済み",
+                "joined": "参加済み",
+                "active": "アクティブ",
+                "pending": "保留中"
+            }
         },
         "group_post_edit": {
             "title": "タイトル"
@@ -5466,10 +5477,11 @@
                 "empty_description": "まだどのグループでも管理権限を持っていません。",
                 "permissions_degraded": "一部のグループの権限を確認できませんでした。以下のリストは不完全な場合があります。",
                 "member_count": "メンバー {count} 人",
-                "rail_title": "Groups you moderate",
-                "select_a_group_title": "Select a group",
-                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
-                "moderator_hint": "You have moderation access in this group"
+                "rail_title": "管理しているグループ",
+                "select_a_group_title": "グループを選択",
+                "select_a_group_description": "リストからグループを選択して、メンバー・BAN・招待・参加リクエストを管理します。",
+                "moderator_hint": "You have moderation access in this group",
+                "member_online_count": "メンバー{members}人・オンライン{online}人"
             }
         }
     },
