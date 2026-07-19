@@ -112,6 +112,78 @@ mod tests {
     }
 
     #[test]
+    fn placeholder_baseline_refresh_keeps_existing_trust() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "offline".into(),
+                        state_bucket: "offline".into(),
+                        extra: [
+                            ("$trustLevel".to_string(), json!("Trusted User")),
+                            ("tags".to_string(), json!(["system_trust_veteran"])),
+                        ]
+                        .into_iter()
+                        .collect(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "offline".into(),
+                        state_bucket: "offline".into(),
+                        extra: [
+                            ("$trustLevel".to_string(), json!("Visitor")),
+                            ("tags".to_string(), json!([])),
+                            ("$profileSource".to_string(), json!("placeholder")),
+                        ]
+                        .into_iter()
+                        .collect(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            1,
+        );
+
+        let snapshot = runtime.snapshot().expect("baseline present");
+        let friend = snapshot
+            .friends_by_id
+            .get("usr_friend")
+            .expect("friend present");
+        assert_eq!(
+            friend.extra.get("$trustLevel"),
+            Some(&json!("Trusted User"))
+        );
+        assert_eq!(
+            friend.extra.get("tags"),
+            Some(&json!(["system_trust_veteran"]))
+        );
+    }
+
+    #[test]
     fn placeholder_baseline_refresh_follows_official_list_state() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(

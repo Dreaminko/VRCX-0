@@ -145,10 +145,8 @@ impl RealtimeFriendsRuntime {
                 let Some(existing_record) = existing_record else {
                     continue;
                 };
-                let is_placeholder = record.extra.get("$profileSource").and_then(Value::as_str)
-                    == Some("placeholder");
-                if is_placeholder {
-                    preserve_newer_presence_fields(record, existing_record);
+                if record.is_placeholder() {
+                    preserve_fields_over_placeholder(record, existing_record);
                 }
                 if (record.display_name.is_empty() || record.display_name == record.id)
                     && !existing_record.display_name.is_empty()
@@ -577,7 +575,7 @@ fn record_output_friend_state_sequence(
     }
 }
 
-fn preserve_newer_presence_fields(incoming: &mut FriendRecord, existing: &FriendRecord) {
+fn preserve_fields_over_placeholder(incoming: &mut FriendRecord, existing: &FriendRecord) {
     incoming.location = existing.location.clone();
     incoming.traveling_to_location = existing.traveling_to_location.clone();
     incoming.world_id = existing.world_id.clone();
@@ -597,6 +595,15 @@ fn preserve_newer_presence_fields(incoming: &mut FriendRecord, existing: &Friend
         "$travelingToLocation",
         "$travelingToTime",
         "travelingToLocation",
+        "tags",
+        "developerType",
+        "trustLevel",
+        "$trustLevel",
+        "$trustClass",
+        "$trustSortNum",
+        "$isModerator",
+        "$isTroll",
+        "$isProbableTroll",
     ] {
         match existing.extra.get(key) {
             Some(value) => {

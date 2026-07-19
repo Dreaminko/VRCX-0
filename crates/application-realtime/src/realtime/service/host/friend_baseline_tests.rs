@@ -682,6 +682,117 @@ fn reconcile_records_and_projects_trust_only_change_once() -> Result<()> {
 }
 
 #[test]
+fn reconcile_skips_placeholder_records() -> Result<()> {
+    let dir = TestDir::new("reconcile-placeholder");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    config_store::set_bool(&db, "friendLogInit_usr_self", true)?;
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Friend".into(),
+                trust_level: "Trusted User".into(),
+                friend_number: 7,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    let friends_by_id = [(
+        "usr_friend".to_string(),
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "usr_friend".into(),
+            extra: [
+                ("$trustLevel".into(), json!("Visitor")),
+                ("$profileSource".into(), json!("placeholder")),
+            ]
+            .into_iter()
+            .collect(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect();
+
+    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
+
+    assert!(!outcome.changed);
+    assert!(outcome.feed_entries.is_empty());
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current[0].trust_level, "Trusted User");
+    let history = vrcx_0_persistence::friends::friend_log_history_query(
+        &db,
+        vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
+            user_id: "usr_self".into(),
+            target_user_id: "usr_friend".into(),
+            types: vec!["TrustLevel".into()],
+        },
+    )?;
+    assert!(history.is_empty());
+    Ok(())
+}
+
+#[test]
+fn init_seeds_placeholder_without_trust_and_reconcile_fills_it_silently() -> Result<()> {
+    let dir = TestDir::new("reconcile-placeholder-init");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let placeholder_roster: HashMap<String, FriendRecord> = [(
+        "usr_friend".to_string(),
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            extra: [
+                ("$trustLevel".into(), json!("Visitor")),
+                ("$profileSource".into(), json!("placeholder")),
+            ]
+            .into_iter()
+            .collect(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect();
+
+    assert!(reconcile_friend_roster_records(&db, "usr_self", &placeholder_roster, None).changed);
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current[0].trust_level, "");
+
+    let fetched_roster: HashMap<String, FriendRecord> = [(
+        "usr_friend".to_string(),
+        FriendRecord {
+            id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            extra: [("$trustLevel".into(), json!("Trusted User"))]
+                .into_iter()
+                .collect(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect();
+
+    let outcome = reconcile_friend_roster_records(&db, "usr_self", &fetched_roster, None);
+    assert!(outcome.changed);
+    assert!(outcome.feed_entries.is_empty());
+    let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
+    assert_eq!(current[0].trust_level, "Trusted User");
+    let history = vrcx_0_persistence::friends::friend_log_history_query(
+        &db,
+        vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
+            user_id: "usr_self".into(),
+            target_user_id: "usr_friend".into(),
+            types: vec![],
+        },
+    )?;
+    assert!(history.is_empty());
+    Ok(())
+}
+
+#[test]
 fn reconcile_updates_legacy_equivalent_trust_without_history_or_feed() -> Result<()> {
     let dir = TestDir::new("reconcile-equivalent-trust");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
