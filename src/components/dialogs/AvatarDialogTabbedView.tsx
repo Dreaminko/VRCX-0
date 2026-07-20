@@ -86,7 +86,7 @@ function AvatarOverviewFactRow({
     value,
     children
 }: {
-    label: string;
+    label: ReactNode;
     value?: string;
     children?: ReactNode;
 }) {
@@ -217,7 +217,25 @@ function AvatarOverviewReferences({
                 </AvatarOverviewFactRow>
             ) : null}
             {vrcxAvatarUrl ? (
-                <AvatarOverviewFactRow label={t('dialog.avatar.info.vrcx_url')}>
+                <AvatarOverviewFactRow
+                    label={
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <span
+                                        className="cursor-help underline decoration-dotted underline-offset-2"
+                                        tabIndex={0}
+                                    >
+                                        {t('dialog.avatar.info.vrcx_url')}
+                                    </span>
+                                }
+                            />
+                            <TooltipContent>
+                                {t('dialog.avatar.info.vrcx_url_description')}
+                            </TooltipContent>
+                        </Tooltip>
+                    }
+                >
                     <span className="flex min-w-0 items-center justify-end gap-1">
                         <span
                             className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"

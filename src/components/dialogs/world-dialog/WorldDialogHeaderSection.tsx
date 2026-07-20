@@ -226,7 +226,25 @@ function WorldOverviewFacts({
                 </WorldOverviewFactRow>
             ) : null}
             {vrcxWorldUrl ? (
-                <WorldOverviewFactRow label={t('dialog.world.info.vrcx_url')}>
+                <WorldOverviewFactRow
+                    label={
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <span
+                                        className="cursor-help underline decoration-dotted underline-offset-2"
+                                        tabIndex={0}
+                                    >
+                                        {t('dialog.world.info.vrcx_url')}
+                                    </span>
+                                }
+                            />
+                            <TooltipContent>
+                                {t('dialog.world.info.vrcx_url_description')}
+                            </TooltipContent>
+                        </Tooltip>
+                    }
+                >
                     <span className="flex min-w-0 items-center justify-end gap-1">
                         <span
                             className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"

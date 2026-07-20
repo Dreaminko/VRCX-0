@@ -3500,8 +3500,9 @@
                 "time_spent": "방문 시간",
                 "persistent_data": "영구 데이터",
                 "url": "VRChat 링크",
-                "vrcx_url": "VRCX-0 링크",
-                "copy_vrcx_url": "VRCX-0 링크 복사"
+                "vrcx_url": "공유 링크",
+                "vrcx_url_description": "이 링크를 열면 VRCX-0 앱이 바로 실행됩니다",
+                "copy_vrcx_url": "공유 링크 복사"
             },
             "json": {
                 "header": "JSON"
@@ -3694,8 +3695,9 @@
                 "listings": "목록",
                 "gallery": "갤러리",
                 "url": "VRChat 링크",
-                "vrcx_url": "VRCX-0 링크",
-                "copy_vrcx_url": "VRCX-0 링크 복사"
+                "vrcx_url": "공유 링크",
+                "vrcx_url_description": "이 링크를 열면 VRCX-0 앱이 바로 실행됩니다",
+                "copy_vrcx_url": "공유 링크 복사"
             },
             "json": {
                 "header": "JSON"
