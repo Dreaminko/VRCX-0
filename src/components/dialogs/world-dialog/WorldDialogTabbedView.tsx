@@ -19,6 +19,7 @@ import mediaRepository from '@/repositories/mediaRepository';
 import playerListPersistenceRepository from '@/repositories/playerListPersistenceRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import vrchatInstanceRepository from '@/repositories/vrchatInstanceRepository';
+import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { copyTextToClipboard } from '@/services/clipboardService';
 import { openUserDialog } from '@/services/dialogService';
 import {
@@ -925,7 +926,8 @@ export function WorldDialogTabbedView({
     ]);
 
     const worldUrl = world.id ? vrchatWorldUrl(world.id) : '';
-    const vrcxWorldUrl = vrcxWorldDeepLink(world.id);
+    const vrcxWorldUrl =
+        world.releaseStatus === 'public' ? vrcxWorldDeepLink(world.id) : '';
     const packageUrl = replaceVrcPackageUrl(
         firstText(world.unityPackageUrl, record(world.unityPackage).url)
     );
@@ -985,8 +987,10 @@ export function WorldDialogTabbedView({
         onCopyWorldId: () => copyWorldText(world.id, 'World ID'),
         onCopyWorldName: () => copyWorldText(world.name, 'World name'),
         onCopyWorldUrl: () => copyWorldText(worldUrl, 'World URL'),
-        onCopyVrcxWorldUrl: () =>
-            copyWorldText(vrcxWorldUrl, t('dialog.world.info.vrcx_url')),
+        onCopyVrcxWorldUrl: () => {
+            copyWorldText(vrcxWorldUrl, t('dialog.world.info.vrcx_url'));
+            worldProfileRepository.registerWorldOpenShare(world.id);
+        },
         onDelete,
         onDeleteCache,
         onDeletePersistentData,

@@ -1,19 +1,17 @@
 import { isAvatarId, isWorldId } from './vrchatIds';
 
-export const VRCX_DEEP_LINK_SCHEME = 'vrcx-0';
+export const VRCX_OPEN_RELAY_ORIGIN = 'https://open.vrcx-0.dev';
 
-function entityDeepLink(entity: 'avatar' | 'world', entityId: string): string {
-    const url = new URL(`${VRCX_DEEP_LINK_SCHEME}://${entity}/open`);
-    url.searchParams.set('id', entityId.trim());
-    return url.toString();
+function entityRelayLink(entity: 'avatar' | 'world', entityId: string): string {
+    return `${VRCX_OPEN_RELAY_ORIGIN}/${entity}/${entityId.trim()}`;
 }
 
 export function vrcxWorldDeepLink(worldId: unknown): string {
-    return isWorldId(worldId) ? entityDeepLink('world', String(worldId)) : '';
+    return isWorldId(worldId) ? entityRelayLink('world', String(worldId)) : '';
 }
 
 export function vrcxAvatarDeepLink(avatarId: unknown): string {
     return isAvatarId(avatarId)
-        ? entityDeepLink('avatar', String(avatarId))
+        ? entityRelayLink('avatar', String(avatarId))
         : '';
 }

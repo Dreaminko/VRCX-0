@@ -37,6 +37,7 @@ pub use background_capabilities::{
     refresh_background_current_user, refresh_background_group_instances,
     BackgroundCapabilitySession, BackgroundGroupInstancesRefresh,
 };
+pub use collections::register_world_open_share;
 pub use collections::{
     get_or_create_share_owner_token, is_valid_share_owner_token, prepare_share_collection_payload,
     share_collection_create, share_collection_owner_hint, PreparedShareCollection,

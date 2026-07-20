@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    VRCX_DEEP_LINK_SCHEME,
+    VRCX_OPEN_RELAY_ORIGIN,
     vrcxAvatarDeepLink,
     vrcxWorldDeepLink
 } from './vrcxDeepLinks';
@@ -9,18 +9,18 @@ import {
 const UUID = '12345678-1234-1234-1234-1234567890ab';
 
 describe('vrcxDeepLinks', () => {
-    it('builds canonical world and avatar detail links', () => {
+    it('builds canonical world and avatar relay links', () => {
         expect(vrcxWorldDeepLink(`wrld_${UUID}`)).toBe(
-            `${VRCX_DEEP_LINK_SCHEME}://world/open?id=wrld_${UUID}`
+            `${VRCX_OPEN_RELAY_ORIGIN}/world/wrld_${UUID}`
         );
         expect(vrcxAvatarDeepLink(`avtr_${UUID}`)).toBe(
-            `${VRCX_DEEP_LINK_SCHEME}://avatar/open?id=avtr_${UUID}`
+            `${VRCX_OPEN_RELAY_ORIGIN}/avatar/avtr_${UUID}`
         );
     });
 
     it('normalizes surrounding whitespace and rejects invalid ids', () => {
         expect(vrcxWorldDeepLink(` wrld_${UUID} `)).toBe(
-            `${VRCX_DEEP_LINK_SCHEME}://world/open?id=wrld_${UUID}`
+            `${VRCX_OPEN_RELAY_ORIGIN}/world/wrld_${UUID}`
         );
         expect(vrcxWorldDeepLink(`avtr_${UUID}`)).toBe('');
         expect(vrcxAvatarDeepLink('avtr_invalid')).toBe('');

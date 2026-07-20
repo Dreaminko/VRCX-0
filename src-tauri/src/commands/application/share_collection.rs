@@ -2,9 +2,10 @@
 
 use tauri::State;
 use vrcx_0_application::{
-    get_or_create_share_owner_token, preview_shared_collection, share_collection_create,
-    ImportPreview, ShareCollectionCreateInput, ShareCollectionCreateResult, ShareCollectionDeps,
-    SharedCollectionImportStartInput, SharedCollectionImportStatus,
+    get_or_create_share_owner_token, preview_shared_collection, register_world_open_share,
+    share_collection_create, ImportPreview, ShareCollectionCreateInput,
+    ShareCollectionCreateResult, ShareCollectionDeps, SharedCollectionImportStartInput,
+    SharedCollectionImportStatus,
 };
 use vrcx_0_host_desktop::shell_actions;
 
@@ -46,6 +47,21 @@ pub async fn app__share_collection_open_manage(state: State<'_, AppState>) -> Re
 #[specta::specta]
 pub async fn app__share_collection_preview(id: String) -> Result<ImportPreview, AppError> {
     Ok(preview_shared_collection(&id).await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__world_open_register(
+    state: State<'_, AppState>,
+    world_id: String,
+) -> Result<(), AppError> {
+    let auth_scope = state.runtime_context.auth_scope.snapshot();
+    if let Err(error) =
+        register_world_open_share(state.db.as_ref(), &auth_scope.current_user_id, &world_id).await
+    {
+        tracing::warn!(error = %error, "app__world_open_register: best-effort registration failed");
+    }
+    Ok(())
 }
 
 #[tauri::command]

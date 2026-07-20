@@ -1,6 +1,7 @@
 mod import_collection;
 mod share_collection;
 mod shared_collection_import;
+mod world_open_register;
 
 pub use import_collection::{preview_shared_collection, ImportPreview};
 pub use share_collection::{
@@ -15,3 +16,4 @@ pub use shared_collection_import::{
     SharedCollectionImportStartInput, SharedCollectionImportState, SharedCollectionImportStatus,
     VrchatSharedCollectionImportActions, SHARED_COLLECTION_IMPORT_MAX_WORLDS,
 };
+pub use world_open_register::register_world_open_share;

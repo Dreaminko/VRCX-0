@@ -208,6 +208,9 @@ export const commands = {
     async appShareCollectionPreview(id: string): Promise<ImportPreview> {
         return await TAURI_INVOKE('app__share_collection_preview', { id });
     },
+    async appWorldOpenRegister(worldId: string): Promise<null> {
+        return await TAURI_INVOKE('app__world_open_register', { worldId });
+    },
     async appSharedCollectionImportStart(
         input: SharedCollectionImportStartInput
     ): Promise<SharedCollectionImportStatus> {

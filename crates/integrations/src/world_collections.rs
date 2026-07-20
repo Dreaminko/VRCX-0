@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub const WORLD_COLLECTIONS_SITE_ORIGIN: &str = "https://worlds.vrcx-0.dev";
 pub const WORLD_COLLECTIONS_API_ENDPOINT: &str = "https://worlds.vrcx-0.dev/api/collections";
 pub const WORLD_COLLECTIONS_TOKEN_MINT_ENDPOINT: &str = "https://worlds.vrcx-0.dev/api/token/mint";
+pub const WORLD_OPEN_REGISTER_ENDPOINT: &str = "https://worlds.vrcx-0.dev/api/worlds";
 const WORLD_COLLECTIONS_UPLOAD_TIMEOUT: Duration = Duration::from_secs(60);
 const WORLD_COLLECTIONS_FETCH_TIMEOUT: Duration = Duration::from_secs(30);
 const COLLECTION_SHORTCODE_MIN_LEN: usize = 6;
@@ -56,6 +57,28 @@ pub struct WorldCollectionCreateResponse {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct WorldCollectionTokenMintRequest {
     pub owner_hint: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct WorldOpenRegisterPayload {
+    pub schema: i64,
+    pub owner_hint: String,
+    pub world: WorldOpenRegisterWorld,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct WorldOpenRegisterWorld {
+    pub world_id: String,
+    pub author_id: String,
+    pub name: String,
+    pub author_name: String,
+    pub created_at: String,
+    pub image_url: String,
+    pub thumbnail_image_url: String,
+    pub description: String,
+    pub release_status: String,
+    pub updated_at: String,
+    pub version: i64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
@@ -129,6 +152,39 @@ pub async fn create_world_collection(
     response.json().await.map_err(|error| {
         WorldCollectionShareError::Custom(format!("share collection response is invalid: {error}"))
     })
+}
+
+pub async fn register_world_revision(
+    token: &str,
+    payload: &WorldOpenRegisterPayload,
+) -> Result<(), WorldCollectionShareError> {
+    let client = reqwest::Client::builder()
+        .timeout(WORLD_COLLECTIONS_UPLOAD_TIMEOUT)
+        .build()
+        .map_err(|error| {
+            WorldCollectionShareError::Custom(format!("world open register client failed: {error}"))
+        })?;
+    let response = client
+        .post(WORLD_OPEN_REGISTER_ENDPOINT)
+        .bearer_auth(token)
+        .json(payload)
+        .send()
+        .await
+        .map_err(|error| {
+            WorldCollectionShareError::Custom(format!("world open register failed: {error}"))
+        })?;
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        let detail = redact_secret(body.trim(), token);
+        let message = if detail.is_empty() {
+            format!("world open register returned HTTP {status}")
+        } else {
+            format!("world open register returned HTTP {status}: {detail}")
+        };
+        return Err(WorldCollectionShareError::Custom(message));
+    }
+    Ok(())
 }
 
 fn redact_secret(value: &str, secret: &str) -> String {
@@ -231,7 +287,8 @@ pub async fn fetch_world_collection(
 mod tests {
     use super::{
         redact_secret, WorldCollectionCreatePayload, WorldCollectionCreateResponse,
-        WorldCollectionSnapshotResponse, WorldCollectionTokenMintRequest,
+        WorldCollectionSnapshotResponse, WorldCollectionTokenMintRequest, WorldOpenRegisterPayload,
+        WorldOpenRegisterWorld,
     };
 
     #[test]
@@ -258,6 +315,49 @@ mod tests {
         let value = serde_json::to_value(payload).unwrap();
         assert_eq!(value["owner_hint"], "b".repeat(64));
         assert!(value.get("owner_key").is_none());
+    }
+
+    #[test]
+    fn open_register_payload_matches_the_worlds_station_contract() {
+        let payload = WorldOpenRegisterPayload {
+            schema: 1,
+            owner_hint: "c".repeat(64),
+            world: WorldOpenRegisterWorld {
+                world_id: "wrld_1".into(),
+                author_id: "usr_1".into(),
+                name: "World".into(),
+                author_name: "Author".into(),
+                created_at: "2026-01-01T00:00:00.000Z".into(),
+                image_url: "https://api.vrchat.cloud/api/1/file/file_1/1/file".into(),
+                thumbnail_image_url: "https://api.vrchat.cloud/api/1/file/file_1/1/file".into(),
+                description: "A world".into(),
+                release_status: "public".into(),
+                updated_at: "2026-01-01T00:00:00.000Z".into(),
+                version: 1,
+            },
+        };
+        let value = serde_json::to_value(payload).unwrap();
+        assert_eq!(
+            value,
+            serde_json::json!({
+                "schema": 1,
+                "owner_hint": "c".repeat(64),
+                "world": {
+                    "world_id": "wrld_1",
+                    "author_id": "usr_1",
+                    "name": "World",
+                    "author_name": "Author",
+                    "created_at": "2026-01-01T00:00:00.000Z",
+                    "image_url": "https://api.vrchat.cloud/api/1/file/file_1/1/file",
+                    "thumbnail_image_url": "https://api.vrchat.cloud/api/1/file/file_1/1/file",
+                    "description": "A world",
+                    "release_status": "public",
+                    "updated_at": "2026-01-01T00:00:00.000Z",
+                    "version": 1
+                }
+            })
+        );
+        assert!(value["world"].get("comment").is_none());
     }
 
     #[test]

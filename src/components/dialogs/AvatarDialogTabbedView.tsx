@@ -427,7 +427,8 @@ export function AvatarDialogTabbedView({
     const openImagePreview = useAvatarDialogPreview();
     const avatarFallbackLabel = t('view.favorites.empty.avatar_fallback');
     const avatarUrl = avatar.id ? vrchatAvatarUrl(avatar.id) : '';
-    const vrcxAvatarUrl = vrcxAvatarDeepLink(avatar.id);
+    const vrcxAvatarUrl =
+        avatar.releaseStatus === 'public' ? vrcxAvatarDeepLink(avatar.id) : '';
     const packageUrl = replaceVrcPackageUrl(
         avatar.unityPackageUrl || avatar.unityPackage?.url || ''
     );

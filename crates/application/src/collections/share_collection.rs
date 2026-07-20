@@ -184,7 +184,7 @@ pub async fn share_collection_create(
     })
 }
 
-fn payload_world_from_row(
+pub(crate) fn payload_world_from_row(
     row: &WorldSummaryOutput,
     memos_by_id: &HashMap<String, String>,
 ) -> WorldCollectionPayloadWorld {

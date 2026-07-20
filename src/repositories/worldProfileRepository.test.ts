@@ -4,7 +4,8 @@ const tauriMock = vi.hoisted(() => ({
     commands: {
         appWorldCacheGet: vi.fn(),
         appVrchatWorldGet: vi.fn(),
-        appVrchatWorldPersistentDataExists: vi.fn()
+        appVrchatWorldPersistentDataExists: vi.fn(),
+        appWorldOpenRegister: vi.fn()
     }
 }));
 
@@ -29,6 +30,7 @@ describe('WorldProfileRepository', () => {
             });
         }
         tauriMock.commands.appWorldCacheGet.mockResolvedValue(null);
+        tauriMock.commands.appWorldOpenRegister.mockResolvedValue(null);
     });
 
     it('normalizes raw world API data into the shape dialogs and lists consume', () => {
@@ -345,5 +347,30 @@ describe('WorldProfileRepository', () => {
                 }
             }
         });
+    });
+
+    it('fires a best-effort open register call for a valid world id', () => {
+        worldProfileRepository.registerWorldOpenShare('wrld_open');
+
+        expect(tauriMock.commands.appWorldOpenRegister).toHaveBeenCalledWith(
+            'wrld_open'
+        );
+    });
+
+    it('skips the open register call for an empty world id', () => {
+        worldProfileRepository.registerWorldOpenShare('');
+
+        expect(tauriMock.commands.appWorldOpenRegister).not.toHaveBeenCalled();
+    });
+
+    it('swallows open register command failures', async () => {
+        tauriMock.commands.appWorldOpenRegister.mockRejectedValueOnce(
+            new Error('network down')
+        );
+
+        expect(() =>
+            worldProfileRepository.registerWorldOpenShare('wrld_open')
+        ).not.toThrow();
+        await Promise.resolve();
     });
 });
