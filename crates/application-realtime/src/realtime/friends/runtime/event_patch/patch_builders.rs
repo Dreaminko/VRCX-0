@@ -7,7 +7,6 @@ use super::super::utils::{first_owned, first_string, parse_location, string_fiel
 
 pub(super) fn resolve_state_bucket(
     content: &Value,
-    patch: &Value,
     previous: Option<&FriendRecord>,
     trust_event_user_state: bool,
     fallback: &str,
@@ -15,20 +14,11 @@ pub(super) fn resolve_state_bucket(
     let user_state = trust_event_user_state
         .then(|| content.get("user").and_then(|user| user.get("state")))
         .flatten();
-    for candidate in [
-        content.get("stateBucket"),
-        content.get("state"),
-        content.get("user").and_then(|user| user.get("stateBucket")),
-        user_state,
-        patch.get("stateBucket"),
-        patch.get("state"),
-    ] {
-        if let Some(normalized) = candidate
-            .and_then(Value::as_str)
-            .and_then(normalize_state_bucket)
-        {
-            return normalized;
-        }
+    if let Some(normalized) = user_state
+        .and_then(Value::as_str)
+        .and_then(normalize_state_bucket)
+    {
+        return normalized;
     }
     if let Some(previous) = previous {
         for candidate in [previous.state_bucket.as_str(), previous.state.as_str()] {
@@ -123,25 +113,6 @@ pub(super) fn has_embedded_location_user(content: &Value) -> bool {
         .unwrap_or(false)
 }
 
-pub(super) fn resolve_location_event_state_bucket(
-    content: &Value,
-    previous: Option<&FriendRecord>,
-    has_online_location: bool,
-) -> Option<String> {
-    if has_embedded_location_user(content) && has_online_location {
-        return Some("online".into());
-    }
-    for candidate in previous
-        .map(|previous| [previous.state_bucket.as_str(), previous.state.as_str()])
-        .unwrap_or_default()
-    {
-        if let Some(normalized) = normalize_state_bucket(candidate) {
-            return Some(normalized);
-        }
-    }
-    None
-}
-
 pub(super) fn state_bucket_changed(previous: &FriendRecord, next_state_bucket: &str) -> bool {
     [previous.state_bucket.as_str(), previous.state.as_str()]
         .into_iter()
@@ -150,72 +121,9 @@ pub(super) fn state_bucket_changed(previous: &FriendRecord, next_state_bucket: &
         .unwrap_or(false)
 }
 
-pub(super) fn location_event_has_online_proof(content: &Value, user_patch: &Value) -> bool {
-    let content_locations = [
-        content.get("location").and_then(Value::as_str),
-        content.get("travelingToLocation").and_then(Value::as_str),
-    ];
-    if content_locations
-        .iter()
-        .flatten()
-        .any(|value| !value.trim().is_empty())
-    {
-        return content_locations
-            .iter()
-            .flatten()
-            .any(|value| is_online_location_proof(value));
-    }
-
-    let user_locations = [
-        user_patch.get("location").and_then(Value::as_str),
-        user_patch
-            .get("travelingToLocation")
-            .and_then(Value::as_str),
-    ];
-    user_locations
-        .iter()
-        .flatten()
-        .any(|value| is_online_location_proof(value))
-}
-
-pub(super) fn location_event_has_offline_proof(content: &Value, user_patch: &Value) -> bool {
-    let content_locations = [
-        content.get("location").and_then(Value::as_str),
-        content.get("travelingToLocation").and_then(Value::as_str),
-    ];
-    if content_locations
-        .iter()
-        .flatten()
-        .any(|value| !value.trim().is_empty())
-    {
-        return content_locations
-            .iter()
-            .flatten()
-            .any(|value| is_offline_location_proof(value));
-    }
-
-    let user_locations = [
-        user_patch.get("location").and_then(Value::as_str),
-        user_patch
-            .get("travelingToLocation")
-            .and_then(Value::as_str),
-    ];
-    user_locations
-        .iter()
-        .flatten()
-        .any(|value| is_offline_location_proof(value))
-}
-
 pub(super) fn is_online_location_proof(value: &str) -> bool {
     let normalized = value.trim().to_ascii_lowercase();
     !normalized.is_empty() && normalized != "offline" && normalized != "offline:offline"
-}
-
-fn is_offline_location_proof(value: &str) -> bool {
-    matches!(
-        value.trim().to_ascii_lowercase().as_str(),
-        "offline" | "offline:offline"
-    )
 }
 
 pub(super) fn online_patch(

@@ -23,6 +23,8 @@ mod utils;
 #[cfg(test)]
 mod baseline_tests;
 #[cfg(test)]
+mod event_field_ownership_tests;
+#[cfg(test)]
 mod feed_tests;
 #[cfg(test)]
 mod location_embedded_user_tests;
@@ -36,6 +38,8 @@ mod location_state_tests;
 mod presence_tests;
 #[cfg(test)]
 mod profile_tests;
+#[cfg(test)]
+mod ws_trace_replay_test;
 
 pub use event_patch::is_friend_event_type;
 pub(crate) use persistence::{player_joining_feed_entry, trust_level_feed_entry};
