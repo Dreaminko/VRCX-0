@@ -36,7 +36,6 @@ export interface UseGroupMembersPaginationResult {
 
 function fetchMembersPage({
     groupId,
-    endpoint,
     query,
     sort,
     roleId,
@@ -44,7 +43,6 @@ function fetchMembersPage({
     force = false
 }: {
     groupId: string;
-    endpoint: string;
     query: string;
     sort: string;
     roleId: string;
@@ -55,7 +53,6 @@ function fetchMembersPage({
     if (trimmedQuery) {
         return groupProfileRepository.getGroupMembersSearch({
             groupId,
-            endpoint,
             query: trimmedQuery,
             n: PAGE_SIZE,
             offset
@@ -63,7 +60,6 @@ function fetchMembersPage({
     }
     return groupProfileRepository.getGroupMembers({
         groupId,
-        endpoint,
         n: PAGE_SIZE,
         offset,
         sort,
@@ -124,7 +120,6 @@ export function useGroupMembersPagination({
 
         fetchMembersPage({
             groupId,
-            endpoint,
             query,
             sort,
             roleId,
@@ -163,7 +158,6 @@ export function useGroupMembersPagination({
 
         fetchMembersPage({
             groupId,
-            endpoint,
             query,
             sort,
             roleId,

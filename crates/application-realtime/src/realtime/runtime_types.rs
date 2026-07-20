@@ -53,9 +53,12 @@ pub struct RealtimeTransportStartResult {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RealtimeTransportTermination {
     Stopped,
-    AuthFailure {
+    AuthExpired {
         reason: String,
         status_code: Option<i32>,
+    },
+    UnexpectedExit {
+        reason: String,
     },
 }
 

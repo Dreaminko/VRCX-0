@@ -19,18 +19,20 @@ use crate::{
 };
 use vrcx_0_application::{
     auth_response_error_message, current_user_from_cookie, parse_current_user_response,
-    probe_current_user_from_cookie, record_login_success, record_logout,
-    saved_credential_login_start, saved_credential_session_data, saved_snapshot,
-    AuthenticatedRuntimeSession, AuthenticatedSessionMaintenanceOutcome, CookieSessionProbe,
-    DataDirMigrationRuntime, FavoriteImportRuntime, LoginApi, LoginSession, LoginSessionState,
-    LoginSuccessRecordInput, LogoutRecordInput, NonInteractiveAuthError, PrintCleanupDeps,
-    PrintCleanupQueueSink, PrintCleanupTrigger, ProfileBackupRuntime, ProfileBackupRuntimeDeps,
-    SavedCredentialLoginStartInput, WebClientLoginApi,
+    probe_current_user_from_cookie, probe_saved_current_user_from_cookie, record_login_success,
+    record_logout, saved_credential_login_start, saved_credential_session_data, saved_snapshot,
+    AuthenticatedRuntimeSession, AuthenticatedSessionMaintenanceOutcome, AutoLoginOutcome,
+    AutoLoginStartInput, CookieSessionProbe, DataDirMigrationRuntime, FavoriteImportRuntime,
+    LoginRuntimeTransition, LoginSessionCancelInput, LoginSessionEnd, LoginSessionEndRequest,
+    LoginSessionRespondInput, LoginSessionStartInput, LoginSessionState, LoginSuccessRecordInput,
+    LogoutRecordInput, NonInteractiveAuthError, PrintCleanupDeps, PrintCleanupQueueSink,
+    PrintCleanupTrigger, ProfileBackupRuntime, ProfileBackupRuntimeDeps, SavedAuthAutoLoginStatus,
+    SavedAuthSnapshot, SavedCredentialLoginStartInput,
 };
 use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
     BackendRuntimeTelemetry, BackgroundCapabilitySession, ImageCache, RuntimeBackgroundJobs,
-    RuntimeEventSink, UnavailableLocalGameContextSource, WebClient,
+    RuntimeEventSink, RuntimeRealtimeTransportEpoch, UnavailableLocalGameContextSource, WebClient,
 };
 use vrcx_0_application_realtime::{RealtimeHostRuntime, RealtimeHostRuntimeDeps};
 use vrcx_0_host::app_paths::{
@@ -69,8 +71,8 @@ mod startup;
 use auth_session::string_field;
 pub use auth_session::{CliLoginPrompt, CliTwoFactorChoice};
 use background::{
-    background_capability_session, background_capability_session_matches, emit_background_error,
-    emit_background_info, emit_background_warning, gui_maintenance_runtime_mode,
+    background_capability_session, background_capability_session_matches, emit_background_info,
+    emit_background_warning, gui_maintenance_runtime_mode,
 };
 use background_ticks::{
     run_background_current_user_refresh, run_background_group_instance_refresh,

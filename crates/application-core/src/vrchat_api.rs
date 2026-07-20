@@ -1,4 +1,3 @@
-use serde_json::Value;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::diagnostics::RuntimeDiagnostics;
@@ -118,27 +117,24 @@ pub mod worlds {
     };
 }
 
-pub use vrcx_0_vrchat_client::http_api::{normalize_text, require_text};
+pub use vrcx_0_vrchat_client::http_api::{classify_api_response, normalize_text, require_text};
 
 pub async fn execute_api_command(
     web: &WebClient,
     db: &DatabaseService,
     diagnostics: &RuntimeDiagnostics,
     sync: &RuntimeSyncEngine,
-    command: &str,
+    command: (&str, impl Into<String>),
     input: VrchatApiRequest,
     scope: VrchatScope,
 ) -> Result<VrchatApiResponse> {
-    diagnostics.record_command(command, "running", "HTTP API request dispatched.");
+    let (command, detail) = command;
+    diagnostics.record_command(command, "running", detail);
     let result = web.execute_api(input, scope, db).await;
     match &result {
         Ok(response) => {
-            let policy_class = response
-                .raw
-                .get("policy")
-                .and_then(|policy| policy.get("class"))
-                .and_then(Value::as_str)
-                .unwrap_or("unknown");
+            let policy_class =
+                vrcx_0_vrchat_client::http_api::classify_api_response(response.status).class;
             diagnostics.record_command(
                 command,
                 "ok",

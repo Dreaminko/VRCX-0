@@ -125,48 +125,6 @@ mod tests {
     }
 
     #[test]
-    fn friend_add_generates_friend_feed_entry() {
-        let runtime = RealtimeFriendsRuntime::new();
-        runtime.set_baseline(
-            FriendRosterBaseline {
-                current_user_id: "usr_self".into(),
-                friends_by_id: Default::default(),
-                ..FriendRosterBaseline::default()
-            },
-            1,
-            0,
-        );
-
-        let RealtimeFriendApplyResult::Output(output) =
-            runtime.apply_ws_message(&RealtimeWsMessagePayload {
-                json: json!({
-                    "type": "friend-add",
-                    "content": {
-                        "userId": "usr_added",
-                        "user": {
-                            "id": "usr_added",
-                            "displayName": "Added Friend",
-                            "state": "online"
-                        }
-                    }
-                }),
-                raw: "{}".into(),
-                received_at: "2026-05-15T00:00:00Z".into(),
-            })
-        else {
-            panic!("friend-add should produce an output");
-        };
-
-        assert_eq!(output.persistence.feed_entries[0]["type"], "Friend");
-        assert_eq!(output.persistence.feed_entries[0]["userId"], "usr_added");
-        assert_eq!(
-            output.persistence.feed_entries[0]["displayName"],
-            "Added Friend"
-        );
-        assert_eq!(output.projection.patches[0].state_bucket, "offline");
-    }
-
-    #[test]
     fn friend_add_twice_logs_single_friend_entry() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
@@ -1079,12 +1037,11 @@ mod tests {
             "usr_friend"
         );
         assert_eq!(deleted.persistence.feed_entries[0]["type"], "Unfriend");
-        assert!(runtime
+        assert!(!runtime
             .snapshot()
             .expect("baseline snapshot")
             .friends_by_id
-            .get("usr_friend")
-            .is_none());
+            .contains_key("usr_friend"));
         assert!(runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .is_none());

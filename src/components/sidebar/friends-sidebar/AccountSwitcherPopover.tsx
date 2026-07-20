@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 import authRepository, {
-    type GenericRecord,
     type SavedAuthSnapshot,
-    type SavedCredentialRecord
+    type SavedCredentialRecord,
+    type SavedCredentialUser
 } from '@/repositories/authRepository';
 import {
     canQuickSwitchTo,
@@ -20,30 +20,18 @@ import { Button } from '@/ui/shadcn/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-function stringField(record: GenericRecord | null | undefined, key: string) {
-    const value = record?.[key];
-    return typeof value === 'string' ? value : '';
+function accountDisplayName(user: SavedCredentialUser) {
+    return user.displayName || user.username || user.id || 'account';
 }
 
-function accountDisplayName(user: GenericRecord | null | undefined) {
-    return (
-        stringField(user, 'displayName') ||
-        stringField(user, 'username') ||
-        stringField(user, 'id') ||
-        'account'
-    );
-}
-
-function accountFallback(user: GenericRecord | null | undefined) {
+function accountFallback(user: SavedCredentialUser) {
     return accountDisplayName(user).trim().slice(0, 2).toUpperCase() || '?';
 }
 
 function readSavedAccounts(
     snapshot: SavedAuthSnapshot
 ): SavedCredentialRecord[] {
-    return Array.isArray(snapshot.savedCredentialsList)
-        ? (snapshot.savedCredentialsList as SavedCredentialRecord[])
-        : [];
+    return snapshot.savedCredentialsList;
 }
 
 export function AccountSwitcherPopover() {
@@ -132,7 +120,7 @@ export function AccountSwitcherPopover() {
                     </div>
                 ) : (
                     accounts.map((entry, index) => {
-                        const userId = stringField(entry.user, 'id');
+                        const userId = entry.user.id;
                         const isCurrent = Boolean(
                             userId && userId === currentUserId
                         );
@@ -168,8 +156,7 @@ export function AccountSwitcherPopover() {
                                         {accountDisplayName(entry.user)}
                                     </div>
                                     <div className="text-muted-foreground truncate text-xs">
-                                        {stringField(entry.user, 'username') ||
-                                            userId}
+                                        {entry.user.username || userId}
                                     </div>
                                 </div>
                                 {isCurrent ? (

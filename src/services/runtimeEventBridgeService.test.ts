@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BackendRuntimeSnapshot } from '@/platform/tauri/bindings';
+import type {
+    AuthenticatedRuntimePhaseSnapshot,
+    BackendRuntimeSnapshot
+} from '@/platform/tauri/bindings';
 
 const mocks = vi.hoisted(() => ({
     subscribe:
@@ -39,9 +42,9 @@ const mocks = vi.hoisted(() => ({
         >(),
     runtimeGroupInstancesRefresh: vi.fn<() => Promise<null>>(),
     appCheckGameRunning: vi.fn<() => Promise<null>>(),
+    appGameClientDebugLoggingStatus: vi.fn<() => Promise<null>>(),
     profileBackupCurrentStatus: vi.fn(),
     dataDirMigrationCurrentStatus: vi.fn(),
-    runtimeAuthScopeGet: vi.fn(),
     bindDeepLinkEvents: vi.fn<() => Promise<() => void>>(),
     drainPendingDeepLinks: vi.fn<() => Promise<void>>(),
     deepLinkUnsubscribe: vi.fn(),
@@ -58,11 +61,11 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
         appAuthenticatedRuntimePhaseSnapshotGet:
             mocks.getAuthenticatedRuntimePhaseSnapshot,
-        appRuntimeAuthScopeGet: mocks.runtimeAuthScopeGet,
         appAppUpdateStatusGet: mocks.getAppUpdateStatus,
         appAppUpdateCheckRun: mocks.getAppUpdateStatus,
         appAppUpdateDownloadStatusGet: mocks.getAppUpdateDownloadStatus,
-        appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh
+        appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh,
+        appGameClientDebugLoggingStatus: mocks.appGameClientDebugLoggingStatus
     }
 }));
 
@@ -153,6 +156,50 @@ function createBackendRuntimeSnapshot(): BackendRuntimeSnapshot {
     };
 }
 
+function createAuthenticatedRuntimePhaseSnapshot(
+    patch: Partial<AuthenticatedRuntimePhaseSnapshot> = {}
+): AuthenticatedRuntimePhaseSnapshot {
+    return {
+        runId: 9,
+        authScopeGeneration: 7,
+        userId: 'usr_owner',
+        endpoint: 'https://api.vrchat.cloud/api/1',
+        websocket: 'wss://pipeline.vrchat.cloud',
+        phase: 'ready',
+        friends: {
+            status: 'ready',
+            attempt: 1,
+            retryDelaySeconds: null,
+            detail: 'Friends ready.',
+            lastError: null
+        },
+        favorites: {
+            status: 'ready',
+            attempt: 1,
+            retryDelaySeconds: null,
+            detail: 'Favorites ready.',
+            lastError: null
+        },
+        realtime: {
+            status: 'ready',
+            attempt: 1,
+            retryDelaySeconds: null,
+            detail: 'Realtime ready.',
+            lastError: null
+        },
+        friendBaselineRevision: 1,
+        friendBaseline: null,
+        favoritesBaseline: null,
+        realtimeTransport: {
+            clientRunId: 9,
+            generation: 12,
+            sessionGeneration: 14
+        },
+        updatedAt: '2026-07-20T00:00:00.000Z',
+        ...patch
+    };
+}
+
 async function bindCapturedRuntimeEvents(): Promise<{
     handlers: Map<string, (payload: unknown) => void>;
     cleanup: () => void;
@@ -191,7 +238,9 @@ function setBackendRealtimeOwner({
     useRuntimeStore.getState().setBackendRuntimeSnapshot(snapshot);
     if (authReady) {
         useRuntimeStore.getState().setAuthBootstrap({
-            currentUserId: userId
+            currentUserId: userId,
+            currentUserEndpoint: 'https://api.vrchat.cloud/api/1',
+            currentUserWebsocket: 'wss://pipeline.vrchat.cloud'
         });
     }
     if (friendProfileLoadStatus) {
@@ -201,7 +250,10 @@ function setBackendRealtimeOwner({
         });
     }
     if (sessionReady) {
-        useSessionStore.getState().setSessionPhase('ready');
+        useSessionStore.getState().setSessionState({
+            isLoggedIn: true,
+            sessionPhase: 'ready'
+        });
     }
     return snapshot;
 }
@@ -220,39 +272,40 @@ describe('runtimeEventBridgeService', () => {
         mocks.getBackendRuntimeSnapshot.mockResolvedValue(
             createBackendRuntimeSnapshot()
         );
-        mocks.getAuthenticatedRuntimePhaseSnapshot.mockResolvedValue({
-            runId: 0,
-            authScopeGeneration: 0,
-            userId: '',
-            endpoint: '',
-            websocket: '',
-            phase: 'idle',
-            friends: {
-                status: 'pending',
-                attempt: 0,
-                retryDelaySeconds: null,
-                detail: '',
-                lastError: null
-            },
-            favorites: {
-                status: 'pending',
-                attempt: 0,
-                retryDelaySeconds: null,
-                detail: '',
-                lastError: null
-            },
-            realtime: {
-                status: 'pending',
-                attempt: 0,
-                retryDelaySeconds: null,
-                detail: '',
-                lastError: null
-            },
-            friendBaseline: null,
-            favoritesBaseline: null,
-            realtimeTransport: null,
-            updatedAt: ''
-        });
+        mocks.getAuthenticatedRuntimePhaseSnapshot.mockResolvedValue(
+            createAuthenticatedRuntimePhaseSnapshot({
+                runId: 0,
+                authScopeGeneration: 0,
+                userId: '',
+                endpoint: '',
+                websocket: '',
+                phase: 'idle',
+                friends: {
+                    status: 'pending',
+                    attempt: 0,
+                    retryDelaySeconds: null,
+                    detail: '',
+                    lastError: null
+                },
+                favorites: {
+                    status: 'pending',
+                    attempt: 0,
+                    retryDelaySeconds: null,
+                    detail: '',
+                    lastError: null
+                },
+                realtime: {
+                    status: 'pending',
+                    attempt: 0,
+                    retryDelaySeconds: null,
+                    detail: '',
+                    lastError: null
+                },
+                friendBaselineRevision: 0,
+                realtimeTransport: null,
+                updatedAt: ''
+            })
+        );
         mocks.getAppUpdateStatus.mockResolvedValue({
             hasAvailableUpdate: false,
             checkedAt: '',
@@ -271,6 +324,7 @@ describe('runtimeEventBridgeService', () => {
         });
         mocks.runtimeGroupInstancesRefresh.mockResolvedValue(null);
         mocks.appCheckGameRunning.mockResolvedValue(null);
+        mocks.appGameClientDebugLoggingStatus.mockResolvedValue(null);
         mocks.profileBackupCurrentStatus.mockResolvedValue({
             revision: 0,
             state: 'idle',
@@ -284,12 +338,6 @@ describe('runtimeEventBridgeService', () => {
             revision: 0,
             state: 'idle'
         });
-        mocks.runtimeAuthScopeGet.mockResolvedValue({
-            currentUserId: 'usr_owner',
-            endpoint: 'https://api.vrchat.cloud/api/1',
-            generation: 7,
-            active: true
-        });
         mocks.bindDeepLinkEvents.mockResolvedValue(mocks.deepLinkUnsubscribe);
         mocks.drainPendingDeepLinks.mockResolvedValue(undefined);
         mocks.resumeFrontendSessionFromBackendRuntime.mockResolvedValue(false);
@@ -298,6 +346,9 @@ describe('runtimeEventBridgeService', () => {
     it('routes only current-scope structured VRChat 401 events to auth recovery', async () => {
         const { handlers } = await bindCapturedRuntimeEvents();
         setBackendRealtimeOwner();
+        handlers.get('authenticatedRuntimePhase')?.(
+            createAuthenticatedRuntimePhaseSnapshot()
+        );
         const handler = handlers.get('runtimeVrchatAuthFailure');
         expect(handler).toBeTypeOf('function');
 
@@ -315,9 +366,10 @@ describe('runtimeEventBridgeService', () => {
         });
         expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledWith(
             expect.objectContaining({
-                message: 'Missing Credentials (401)',
-                status: 401,
-                endpoint: 'user/usr_target/friendRequest'
+                reason: 'Missing Credentials (401)',
+                statusCode: 401,
+                path: 'user/usr_target/friendRequest',
+                authScopeGeneration: 7
             })
         );
 
@@ -333,7 +385,7 @@ describe('runtimeEventBridgeService', () => {
         expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledTimes(1);
     });
 
-    it('routes backend realtime auth failure telemetry to auth recovery', async () => {
+    it('ignores raw backend realtime auth failure telemetry', async () => {
         const { handlers } = await bindCapturedRuntimeEvents();
         const snapshot = setBackendRealtimeOwner();
 
@@ -344,16 +396,127 @@ describe('runtimeEventBridgeService', () => {
             }
         });
 
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(mocks.handleRuntimeAuthFailure).not.toHaveBeenCalled();
+    });
+
+    it('routes a current typed realtime auth failure without waiting for WS status', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        setBackendRealtimeOwner();
+        handlers.get('authenticatedRuntimePhase')?.(
+            createAuthenticatedRuntimePhaseSnapshot()
+        );
+
+        handlers.get('runtimeVrchatAuthFailure')?.({
+            ownerUserId: 'usr_owner',
+            endpoint: 'https://api.vrchat.cloud/api/1',
+            path: 'auth',
+            reason: 'Forbidden',
+            statusCode: 403,
+            authScopeGeneration: 7,
+            realtimeTransport: {
+                clientRunId: 9,
+                generation: 12,
+                sessionGeneration: 14
+            }
+        });
+
         await vi.waitFor(() => {
             expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledTimes(1);
         });
         expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledWith(
             expect.objectContaining({
-                message: 'Backend realtime auth failed.',
-                status: 401,
-                endpoint: 'auth'
+                reason: 'Forbidden',
+                statusCode: 403,
+                path: 'auth',
+                authScopeGeneration: 7
             })
         );
+
+        handlers.get('runtimeVrchatAuthFailure')?.({
+            ownerUserId: 'usr_owner',
+            endpoint: 'https://api.vrchat.cloud/api/1',
+            path: 'auth',
+            reason: 'stale',
+            statusCode: 401,
+            authScopeGeneration: 7,
+            realtimeTransport: {
+                clientRunId: 9,
+                generation: 11,
+                sessionGeneration: 14
+            }
+        });
+        await Promise.resolve();
+        expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores auth failures until their current runtime authority arrives', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        setBackendRealtimeOwner();
+        const failure = {
+            ownerUserId: 'usr_owner',
+            endpoint: 'https://api.vrchat.cloud/api/1',
+            path: 'auth',
+            reason: 'Forbidden',
+            statusCode: 403,
+            authScopeGeneration: 7,
+            realtimeTransport: {
+                clientRunId: 9,
+                generation: 12,
+                sessionGeneration: 14
+            }
+        } as const;
+
+        handlers.get('runtimeVrchatAuthFailure')?.(failure);
+        await Promise.resolve();
+        expect(mocks.handleRuntimeAuthFailure).not.toHaveBeenCalled();
+
+        handlers.get('authenticatedRuntimePhase')?.(
+            createAuthenticatedRuntimePhaseSnapshot()
+        );
+        handlers.get('runtimeVrchatAuthFailure')?.(failure);
+
+        await vi.waitFor(() => {
+            expect(mocks.handleRuntimeAuthFailure).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    it('does not let an out-of-order stale phase authorize an old auth failure', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        setBackendRealtimeOwner();
+        handlers.get('authenticatedRuntimePhase')?.(
+            createAuthenticatedRuntimePhaseSnapshot()
+        );
+        handlers.get('authenticatedRuntimePhase')?.(
+            createAuthenticatedRuntimePhaseSnapshot({
+                runId: 8,
+                authScopeGeneration: 6,
+                realtimeTransport: {
+                    clientRunId: 8,
+                    generation: 11,
+                    sessionGeneration: 13
+                },
+                updatedAt: '2026-07-19T23:59:59.000Z'
+            })
+        );
+
+        handlers.get('runtimeVrchatAuthFailure')?.({
+            ownerUserId: 'usr_owner',
+            endpoint: 'https://api.vrchat.cloud/api/1',
+            path: 'auth',
+            reason: 'stale',
+            statusCode: 403,
+            authScopeGeneration: 6,
+            realtimeTransport: {
+                clientRunId: 8,
+                generation: 11,
+                sessionGeneration: 13
+            }
+        });
+        await Promise.resolve();
+
+        expect(mocks.handleRuntimeAuthFailure).not.toHaveBeenCalled();
     });
 
     it('drains pending deep links after backend runtime snapshot hydration', async () => {

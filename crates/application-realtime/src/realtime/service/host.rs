@@ -18,7 +18,8 @@ use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
 use vrcx_0_vrchat_client::users as remote_users;
 
 use crate::realtime::connection::{
-    run_realtime_transport, RealtimeMessageSink, RealtimeTransportDeps,
+    run_realtime_transport, supervise_realtime_transport, RealtimeMessageSink,
+    RealtimeTransportDeps,
 };
 use crate::realtime::current_user::RealtimeCurrentUserRuntime;
 use crate::realtime::friends::{
@@ -79,14 +80,11 @@ mod game_process;
 mod message_dispatch;
 #[cfg(test)]
 mod notification_enrichment_tests;
-mod reconnect_reconcile;
-#[cfg(test)]
-mod reconnect_reconcile_tests;
-#[cfg(test)]
-mod session_reconnect_tests;
 mod state;
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_support;
+#[cfg(test)]
+mod transport_lifecycle_tests;
 mod world_cache;
 #[cfg(test)]
 mod world_cache_tests;

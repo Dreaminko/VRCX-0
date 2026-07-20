@@ -48,6 +48,7 @@ pub struct AuthenticatedRuntimePhaseSnapshot {
     pub friends: AuthenticatedRuntimeStepSnapshot,
     pub favorites: AuthenticatedRuntimeStepSnapshot,
     pub realtime: AuthenticatedRuntimeStepSnapshot,
+    pub friend_baseline_revision: u64,
     pub friend_baseline: Option<SocialFriendRosterBaselineOutput>,
     pub favorites_baseline: Option<SocialFavoritesBaselineOutput>,
     pub realtime_transport: Option<RealtimeTransportStartResult>,

@@ -1,37 +1,6 @@
+use super::friend_profile::FriendProfileRefreshExpectation;
 use super::test_support::*;
 use super::*;
-
-#[test]
-fn sync_friend_snapshot_updates_overlay_friend_scope() -> Result<()> {
-    let (_dir, runtime, active_session) = runtime_with_active_session("overlay-friend-scope")?;
-    let mut friends_by_id = HashMap::new();
-    friends_by_id.insert(
-        "usr_new".to_string(),
-        FriendRecord {
-            id: "usr_new".to_string(),
-            display_name: "New Friend".to_string(),
-            state: "online".to_string(),
-            state_bucket: "online".to_string(),
-            ..FriendRecord::default()
-        },
-    );
-
-    let result = runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        friends_by_id,
-    )?;
-
-    assert!(result.accepted);
-    assert!(runtime
-        .activity_sink_for_test()
-        .friend_user_ids()
-        .iter()
-        .any(|user_id| user_id == "usr_new"));
-    Ok(())
-}
 
 #[test]
 fn sync_friend_snapshot_debounces_online_to_offline() -> Result<()> {
@@ -149,7 +118,7 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         "usr_friend".to_string(),
         FriendRecord {
             id: "usr_friend".to_string(),
-            display_name: "Friend".to_string(),
+            display_name: "Friend Fresh Name".to_string(),
             state: "offline".to_string(),
             state_bucket: "offline".to_string(),
             location: "offline".to_string(),
@@ -171,6 +140,10 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         .expect("confirmed offline refresh should emit a friend projection");
     assert_eq!(projection.payload["patches"][0]["stateBucket"], "offline");
     assert_eq!(
+        projection.payload["patches"][0]["patch"]["displayName"],
+        "Friend Fresh Name"
+    );
+    assert_eq!(
         projection.payload["patches"][0]["patch"]["pendingOffline"],
         false
     );
@@ -179,6 +152,16 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         1
     );
     assert_eq!(projection.payload["feedEntries"][0]["type"], "Offline");
+    assert_eq!(
+        runtime
+            .friend_snapshot()
+            .unwrap()
+            .friends_by_id
+            .get("usr_friend")
+            .unwrap()
+            .display_name,
+        "Friend Fresh Name"
+    );
     assert!(events.iter().any(|event| {
         event.name == "backendRuntimeTelemetry" && event.payload["kind"] == "wsPersisted"
     }));
@@ -1044,130 +1027,6 @@ fn active_baseline_trust_change_fans_out_after_atomic_persistence() -> Result<()
 }
 
 #[test]
-fn friend_owner_preserves_baseline_then_ws_output_order() -> Result<()> {
-    let (_dir, runtime, active_session) = runtime_with_active_session("friend-owner-order")?;
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        [(
-            "usr_friend".to_string(),
-            FriendRecord {
-                id: "usr_friend".to_string(),
-                display_name: "Friend".to_string(),
-                state: "online".to_string(),
-                state_bucket: "online".to_string(),
-                location: "wrld_old:123".to_string(),
-                ..FriendRecord::default()
-            },
-        )]
-        .into_iter()
-        .collect(),
-    )?;
-    let RealtimeFriendApplyResult::Output(pending_output) =
-        runtime.friends.apply_ws_message(&RealtimeWsMessagePayload {
-            json: json!({
-                "type": "friend-offline",
-                "content": { "userId": "usr_friend" }
-            }),
-            raw: "{}".into(),
-            received_at: "2026-05-15T00:00:00Z".into(),
-        })
-    else {
-        panic!("friend-offline should produce an output");
-    };
-    let PendingOfflineTimerAction::Schedule { token, .. } = pending_output.timer_action else {
-        panic!("friend-offline should schedule a timer");
-    };
-    runtime.apply_friend_output(*pending_output);
-    runtime.deps.event_bus.take_events_for_test();
-    let watermark = runtime.capture_friend_baseline_watermark()?;
-    let active = runtime
-        .state
-        .lock()
-        .unwrap()
-        .connection
-        .active_context
-        .clone()
-        .unwrap();
-
-    *runtime.friend_before_output_hook.lock().unwrap() = Some(Box::new({
-        let runtime = Arc::downgrade(&runtime);
-        move || {
-            let runtime = runtime.upgrade().unwrap();
-            assert!(matches!(
-                runtime.friend_owner_lock.try_lock(),
-                Err(std::sync::TryLockError::WouldBlock)
-            ));
-        }
-    }));
-    runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        watermark,
-        [(
-            "usr_friend".to_string(),
-            FriendRecord {
-                id: "usr_friend".to_string(),
-                display_name: "Friend".to_string(),
-                state: "offline".to_string(),
-                state_bucket: "offline".to_string(),
-                location: "offline".to_string(),
-                ..FriendRecord::default()
-            },
-        )]
-        .into_iter()
-        .collect(),
-    )?;
-    runtime.handle_friend_ws_message(
-        active.generation,
-        active.session_generation,
-        &active.session,
-        &RealtimeWsMessagePayload {
-            json: json!({
-                "type": "friend-online",
-                "content": {
-                    "userId": "usr_friend",
-                    "location": "wrld_new:456",
-                    "user": {
-                        "id": "usr_friend",
-                        "displayName": "Friend",
-                        "location": "wrld_new:456"
-                    }
-                }
-            }),
-            raw: "{}".into(),
-            received_at: "2026-05-15T00:00:01Z".into(),
-        },
-    );
-
-    let events = runtime.deps.event_bus.take_events_for_test();
-    let feed_types = events
-        .iter()
-        .filter(|event| event.name == "realtimeFriendProjection")
-        .flat_map(|event| {
-            event.payload["feedEntries"]
-                .as_array()
-                .into_iter()
-                .flatten()
-        })
-        .filter_map(|entry| entry["type"].as_str().map(str::to_string))
-        .collect::<Vec<_>>();
-    assert_eq!(feed_types, vec!["Offline", "Online"]);
-    let snapshot = runtime.friend_snapshot().unwrap();
-    let friend = snapshot.friends_by_id.get("usr_friend").unwrap();
-    assert_eq!(friend.state_bucket, "online");
-    assert_eq!(friend.location, "wrld_new:456");
-    assert!(runtime
-        .friends
-        .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
-        .is_none());
-    Ok(())
-}
-
-#[test]
 fn causal_watermark_rejects_superseded_baseline() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("baseline-watermark")?;
     let friend = |display_name: &str| {
@@ -1310,6 +1169,10 @@ fn sync_friend_snapshot_emits_projection_for_active_removals() -> Result<()> {
         Some(7),
         initial_friends,
     )?;
+    assert_eq!(
+        runtime.activity_sink_for_test().friend_user_ids(),
+        vec!["usr_removed".to_string()]
+    );
     runtime.deps.event_bus.take_events_for_test();
 
     let result = runtime.sync_friend_snapshot(
@@ -1332,6 +1195,11 @@ fn sync_friend_snapshot_emits_projection_for_active_removals() -> Result<()> {
         projection.payload["removals"].as_array().unwrap(),
         &vec![json!("usr_removed")]
     );
+    assert!(runtime.friend_snapshot().unwrap().friends_by_id.is_empty());
+    assert!(runtime
+        .activity_sink_for_test()
+        .friend_user_ids()
+        .is_empty());
     Ok(())
 }
 
@@ -1360,7 +1228,8 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
 
     let friend_sequence = runtime
         .friends
-        .friend_state_sequence_for_user(7, "usr_friend");
+        .friend_state_sequence_for_user(7, "usr_friend")
+        .expect("friend should have a causal sequence");
     let updated = runtime.apply_friend_profile_refresh(
         active_session.endpoint.clone(),
         "usr_friend".into(),
@@ -1370,11 +1239,11 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
             "state": "online",
             "location": "wrld_fresh:456"
         }),
-        friend_sequence,
+        FriendProfileRefreshExpectation {
+            generation: 7,
+            sequence: friend_sequence,
+        },
     )?;
-    let stranger_sequence = runtime
-        .friends
-        .friend_state_sequence_for_user(7, "usr_stranger");
     let stranger_added = runtime.apply_friend_profile_refresh(
         active_session.endpoint.clone(),
         "usr_stranger".into(),
@@ -1383,7 +1252,10 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
             "displayName": "Stranger",
             "state": "online"
         }),
-        stranger_sequence,
+        FriendProfileRefreshExpectation {
+            generation: 7,
+            sequence: 0,
+        },
     )?;
 
     let snapshot = runtime.friend_snapshot().unwrap();

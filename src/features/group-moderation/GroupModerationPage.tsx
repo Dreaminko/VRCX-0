@@ -272,7 +272,7 @@ export function GroupModerationPage() {
         setProfileStatus('loading');
         setProfileError('');
         groupProfileRepository
-            .getGroupProfile({ groupId, endpoint })
+            .getGroupProfile({ groupId })
             .then((nextProfile) => {
                 if (!active) {
                     return;

@@ -13,7 +13,7 @@ const FRIEND_PROFILE_BULK_LOAD_REQUEST_INTERVAL_MS: u64 = 1_000;
 pub struct FriendProfileBulkLoadState {
     run_id: u64,
     status: FriendProfileBulkLoadStatus,
-    owner: Option<ActiveRealtimeContext>,
+    owner: Option<FriendProfileBulkLoadOwner>,
     total: u32,
     processed: u32,
     loaded: u32,
@@ -22,18 +22,43 @@ pub struct FriendProfileBulkLoadState {
     finished_at: Option<String>,
 }
 
-fn friend_profile_bulk_load_owner_matches(
-    owner: Option<&ActiveRealtimeContext>,
-    active: &ActiveRealtimeContext,
-) -> bool {
-    owner
-        .map(|owner| {
-            owner.generation == active.generation
-                && owner.client_run_id == active.client_run_id
-                && owner.session_generation == active.session_generation
-                && owner.session == active.session
-        })
-        .unwrap_or(false)
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct FriendProfileBulkLoadOwner {
+    user_id: String,
+    endpoint: String,
+    auth_scope_generation: u64,
+}
+
+impl FriendProfileBulkLoadOwner {
+    fn matches_auth_scope(
+        &self,
+        scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
+    ) -> bool {
+        scope.active
+            && scope.generation == self.auth_scope_generation
+            && scope.current_user_id == self.user_id
+            && scope.endpoint == self.endpoint
+    }
+
+    fn matches_session(&self, session: &RealtimeSessionContext) -> bool {
+        self.user_id == session.user_id.trim()
+            && self.endpoint == normalize_vrchat_api_endpoint(Some(&session.endpoint))
+    }
+
+    fn matches_stop_request(&self, request: &RealtimeStopRequest) -> bool {
+        request
+            .user_id
+            .as_ref()
+            .map(|user_id| self.user_id == user_id.trim())
+            .unwrap_or(true)
+            && request
+                .endpoint
+                .as_ref()
+                .map(|endpoint| {
+                    self.endpoint == normalize_vrchat_api_endpoint(Some(endpoint.as_str()))
+                })
+                .unwrap_or(true)
+    }
 }
 
 impl FriendProfileBulkLoadState {
@@ -109,13 +134,18 @@ impl RealtimeHostRuntime {
                 )
             })?
         };
+        let owner = self
+            .friend_profile_bulk_load_owner(&active)
+            .ok_or_else(|| {
+                Error::Custom(
+                    "Friend profile bulk load requires the active authenticated scope.".into(),
+                )
+            })?;
         let (targets, run_id, spawn_worker, stale_run_id) = {
             let mut bulk = self.friend_profile_bulk_load.lock().map_err(|error| {
                 Error::Custom(format!("friend profile bulk load lock: {error}"))
             })?;
-            if is_active_bulk_load_status(bulk.status)
-                && friend_profile_bulk_load_owner_matches(bulk.owner.as_ref(), &active)
-            {
+            if is_active_bulk_load_status(bulk.status) && bulk.owner.as_ref() == Some(&owner) {
                 return Ok(bulk.payload());
             }
             let snapshot = self.friends.snapshot().filter(|snapshot| {
@@ -136,7 +166,7 @@ impl RealtimeHostRuntime {
             let run_id = bulk.run_id.saturating_add(1);
             let now = chrono::Utc::now().to_rfc3339();
             bulk.run_id = run_id;
-            bulk.owner = Some(active.clone());
+            bulk.owner = Some(owner.clone());
             bulk.total = total;
             bulk.processed = processed;
             bulk.loaded = 0;
@@ -162,7 +192,7 @@ impl RealtimeHostRuntime {
             let runtime = Arc::clone(self);
             self.deps.tasks.spawn(async move {
                 runtime
-                    .run_friend_profile_bulk_load(run_id, active, targets)
+                    .run_friend_profile_bulk_load(run_id, owner, targets)
                     .await;
             });
         }
@@ -189,14 +219,38 @@ impl RealtimeHostRuntime {
 
     pub(super) fn cancel_friend_profile_bulk_load_for_session(
         &self,
-        active: &ActiveRealtimeContext,
+        session: &RealtimeSessionContext,
+    ) {
+        self.cancel_friend_profile_bulk_load_if(|owner| owner.matches_session(session));
+    }
+
+    pub(super) fn cancel_friend_profile_bulk_load_for_replacement(
+        &self,
+        session: &RealtimeSessionContext,
+    ) {
+        let scope = self.deps.auth_scope.snapshot();
+        self.cancel_friend_profile_bulk_load_if(|owner| {
+            !owner.matches_session(session) || !owner.matches_auth_scope(&scope)
+        });
+    }
+
+    pub(super) fn cancel_friend_profile_bulk_load_for_stop_request(
+        &self,
+        request: &RealtimeStopRequest,
+    ) {
+        self.cancel_friend_profile_bulk_load_if(|owner| owner.matches_stop_request(request));
+    }
+
+    fn cancel_friend_profile_bulk_load_if(
+        &self,
+        should_cancel: impl FnOnce(&FriendProfileBulkLoadOwner) -> bool,
     ) {
         let cancelled_run_id = {
             let Ok(mut bulk) = self.friend_profile_bulk_load.lock() else {
                 return;
             };
             if !is_active_bulk_load_status(bulk.status)
-                || !friend_profile_bulk_load_owner_matches(bulk.owner.as_ref(), active)
+                || !bulk.owner.as_ref().is_some_and(should_cancel)
             {
                 return;
             }
@@ -229,10 +283,33 @@ impl RealtimeHostRuntime {
         payload
     }
 
+    fn friend_profile_bulk_load_owner(
+        &self,
+        active: &ActiveRealtimeContext,
+    ) -> Option<FriendProfileBulkLoadOwner> {
+        let scope = self.deps.auth_scope.snapshot();
+        let endpoint = normalize_vrchat_api_endpoint(Some(&active.session.endpoint));
+        (scope.active
+            && scope.current_user_id == active.session.user_id
+            && scope.endpoint == endpoint)
+            .then_some(FriendProfileBulkLoadOwner {
+                user_id: scope.current_user_id,
+                endpoint: scope.endpoint,
+                auth_scope_generation: scope.generation,
+            })
+    }
+
+    fn friend_profile_bulk_load_owner_is_current(
+        &self,
+        owner: &FriendProfileBulkLoadOwner,
+    ) -> bool {
+        owner.matches_auth_scope(&self.deps.auth_scope.snapshot())
+    }
+
     fn friend_profile_bulk_load_is_current(
         &self,
         run_id: u64,
-        active: &ActiveRealtimeContext,
+        owner: &FriendProfileBulkLoadOwner,
     ) -> bool {
         if *self.friend_profile_bulk_cancel_tx.borrow() == run_id {
             return false;
@@ -243,12 +320,30 @@ impl RealtimeHostRuntime {
             .map(|bulk| {
                 bulk.run_id == run_id
                     && bulk.status == FriendProfileBulkLoadStatus::Running
-                    && friend_profile_bulk_load_owner_matches(bulk.owner.as_ref(), active)
+                    && bulk.owner.as_ref() == Some(owner)
             })
             .unwrap_or(false);
-        if !bulk_current {
-            return false;
-        }
+        bulk_current && self.friend_profile_bulk_load_owner_is_current(owner)
+    }
+
+    fn friend_profile_bulk_load_active_context(
+        &self,
+        owner: &FriendProfileBulkLoadOwner,
+    ) -> Option<ActiveRealtimeContext> {
+        self.state.lock().ok().and_then(|state| {
+            state
+                .connection
+                .active_context
+                .as_ref()
+                .filter(|active| owner.matches_session(&active.session))
+                .cloned()
+        })
+    }
+
+    fn friend_profile_bulk_load_transport_is_current(
+        &self,
+        active: &ActiveRealtimeContext,
+    ) -> bool {
         self.state
             .lock()
             .map(|state| {
@@ -262,29 +357,64 @@ impl RealtimeHostRuntime {
             .unwrap_or(false)
     }
 
+    async fn wait_for_friend_profile_bulk_load_transport(
+        &self,
+        run_id: u64,
+        owner: &FriendProfileBulkLoadOwner,
+        cancel_rx: &mut tokio::sync::watch::Receiver<u64>,
+        transport_rx: &mut tokio::sync::watch::Receiver<u64>,
+    ) -> Option<ActiveRealtimeContext> {
+        loop {
+            if !self.friend_profile_bulk_load_is_current(run_id, owner) {
+                return None;
+            }
+            if let Some(active) = self.friend_profile_bulk_load_active_context(owner) {
+                return Some(active);
+            }
+            tokio::select! {
+                biased;
+                _ = wait_for_friend_profile_bulk_load_cancel(run_id, cancel_rx) => return None,
+                changed = transport_rx.changed() => {
+                    if changed.is_err() {
+                        return None;
+                    }
+                }
+            }
+        }
+    }
+
     async fn load_friend_profile_bulk_item(
         self: &Arc<Self>,
         run_id: u64,
-        active: &ActiveRealtimeContext,
+        owner: &FriendProfileBulkLoadOwner,
         user_id: &str,
         cancel_rx: &mut tokio::sync::watch::Receiver<u64>,
+        transport_rx: &mut tokio::sync::watch::Receiver<u64>,
     ) -> Option<(bool, bool)> {
         let mut attempt = 0u32;
         loop {
-            if !self.friend_profile_bulk_load_is_current(run_id, active) {
-                return None;
-            }
+            let active = self
+                .wait_for_friend_profile_bulk_load_transport(run_id, owner, cancel_rx, transport_rx)
+                .await?;
             let response = tokio::select! {
                 biased;
                 _ = wait_for_friend_profile_bulk_load_cancel(run_id, cancel_rx) => return None,
                 response = self.get_user_via_cache(
-                    active.session.endpoint.clone(),
+                    owner.endpoint.clone(),
                     user_id.to_string(),
                     false,
                     false,
                     Some(true),
                 ) => response,
             };
+            if !self.friend_profile_bulk_load_is_current(run_id, owner) {
+                return None;
+            }
+            if !self.friend_profile_bulk_load_transport_is_current(&active) {
+                self.invalidate_user_query_cache(&owner.endpoint, user_id)
+                    .await;
+                continue;
+            }
             match response {
                 Ok(response) if (200..300).contains(&response.status) => {
                     return Some((true, false));
@@ -297,9 +427,10 @@ impl RealtimeHostRuntime {
                     tokio::select! {
                         biased;
                         _ = wait_for_friend_profile_bulk_load_cancel(run_id, cancel_rx) => return None,
+                        _ = transport_rx.changed() => continue,
                         _ = tokio::time::sleep(Duration::from_millis(delay_ms)) => {}
                     }
-                    if !self.friend_profile_bulk_load_is_current(run_id, active) {
+                    if !self.friend_profile_bulk_load_is_current(run_id, owner) {
                         return None;
                     }
                 }
@@ -311,11 +442,11 @@ impl RealtimeHostRuntime {
     fn friend_profile_bulk_load_record_progress(
         &self,
         run_id: u64,
-        active: &ActiveRealtimeContext,
+        owner: &FriendProfileBulkLoadOwner,
         loaded: bool,
         failed: bool,
     ) -> bool {
-        if !self.friend_profile_bulk_load_is_current(run_id, active) {
+        if !self.friend_profile_bulk_load_is_current(run_id, owner) {
             return false;
         }
         {
@@ -340,12 +471,13 @@ impl RealtimeHostRuntime {
     async fn run_friend_profile_bulk_load(
         self: Arc<Self>,
         run_id: u64,
-        active: ActiveRealtimeContext,
+        owner: FriendProfileBulkLoadOwner,
         targets: Vec<String>,
     ) {
         let mut cancel_rx = self.friend_profile_bulk_cancel_tx.subscribe();
+        let mut transport_rx = self.cancel_tx.subscribe();
         for (index, user_id) in targets.iter().enumerate() {
-            if !self.friend_profile_bulk_load_is_current(run_id, &active) {
+            if !self.friend_profile_bulk_load_is_current(run_id, &owner) {
                 break;
             }
             if index > 0 {
@@ -356,37 +488,32 @@ impl RealtimeHostRuntime {
                         FRIEND_PROFILE_BULK_LOAD_REQUEST_INTERVAL_MS,
                     )) => {}
                 }
-                if !self.friend_profile_bulk_load_is_current(run_id, &active) {
+                if !self.friend_profile_bulk_load_is_current(run_id, &owner) {
                     break;
                 }
             }
             let Some((loaded, failed)) = self
-                .load_friend_profile_bulk_item(run_id, &active, user_id, &mut cancel_rx)
+                .load_friend_profile_bulk_item(
+                    run_id,
+                    &owner,
+                    user_id,
+                    &mut cancel_rx,
+                    &mut transport_rx,
+                )
                 .await
             else {
                 break;
             };
-            if !self.friend_profile_bulk_load_record_progress(run_id, &active, loaded, failed) {
+            if !self.friend_profile_bulk_load_record_progress(run_id, &owner, loaded, failed) {
                 break;
             }
         }
 
-        self.finish_friend_profile_bulk_load(run_id, &active);
+        self.finish_friend_profile_bulk_load(run_id, &owner);
     }
 
-    fn finish_friend_profile_bulk_load(&self, run_id: u64, active: &ActiveRealtimeContext) {
-        let session_current = self
-            .state
-            .lock()
-            .map(|state| {
-                self.is_message_current_locked(
-                    &state,
-                    active.generation,
-                    active.session_generation,
-                    &active.session,
-                )
-            })
-            .unwrap_or(false);
+    fn finish_friend_profile_bulk_load(&self, run_id: u64, owner: &FriendProfileBulkLoadOwner) {
+        let owner_current = self.friend_profile_bulk_load_owner_is_current(owner);
         {
             let Ok(mut bulk) = self.friend_profile_bulk_load.lock() else {
                 return;
@@ -394,12 +521,15 @@ impl RealtimeHostRuntime {
             if bulk.run_id != run_id {
                 return;
             }
-            bulk.status =
-                if !session_current || bulk.status == FriendProfileBulkLoadStatus::Cancelling {
-                    FriendProfileBulkLoadStatus::Cancelled
-                } else {
+            bulk.status = match bulk.status {
+                FriendProfileBulkLoadStatus::Running if owner_current => {
                     FriendProfileBulkLoadStatus::Completed
-                };
+                }
+                FriendProfileBulkLoadStatus::Running | FriendProfileBulkLoadStatus::Cancelling => {
+                    FriendProfileBulkLoadStatus::Cancelled
+                }
+                _ => return,
+            };
             bulk.finished_at = Some(chrono::Utc::now().to_rfc3339());
         }
         self.emit_friend_profile_bulk_load_status();
@@ -409,21 +539,23 @@ impl RealtimeHostRuntime {
 #[cfg(test)]
 impl RealtimeHostRuntime {
     pub(super) fn test_force_friend_profile_bulk_load_running(&self, run_id: u64, total: u32) {
-        let owner = self.state.lock().unwrap().connection.active_context.clone();
+        let active = self
+            .state
+            .lock()
+            .unwrap()
+            .connection
+            .active_context
+            .clone()
+            .expect("test runtime should have an active realtime context");
+        let owner = self
+            .friend_profile_bulk_load_owner(&active)
+            .expect("test runtime should have an active auth scope");
         let mut bulk = self.friend_profile_bulk_load.lock().unwrap();
         bulk.run_id = run_id;
         bulk.status = FriendProfileBulkLoadStatus::Running;
-        bulk.owner = owner;
+        bulk.owner = Some(owner);
         bulk.total = total;
         bulk.started_at = chrono::Utc::now().to_rfc3339();
-    }
-
-    pub(super) fn test_friend_profile_bulk_load_is_current(
-        &self,
-        run_id: u64,
-        active: &ActiveRealtimeContext,
-    ) -> bool {
-        self.friend_profile_bulk_load_is_current(run_id, active)
     }
 
     pub(super) fn test_friend_profile_bulk_load_record_progress(
@@ -432,10 +564,10 @@ impl RealtimeHostRuntime {
         loaded: bool,
         failed: bool,
     ) -> bool {
-        let Some(active) = self.state.lock().unwrap().connection.active_context.clone() else {
+        let Some(owner) = self.friend_profile_bulk_load.lock().unwrap().owner.clone() else {
             return false;
         };
-        self.friend_profile_bulk_load_record_progress(run_id, &active, loaded, failed)
+        self.friend_profile_bulk_load_record_progress(run_id, &owner, loaded, failed)
     }
 }
 

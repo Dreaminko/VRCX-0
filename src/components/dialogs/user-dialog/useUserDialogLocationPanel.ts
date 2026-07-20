@@ -122,12 +122,10 @@ function mergeProfileIntoLocationUser(
 }
 
 async function enrichLocationUsersWithProfiles({
-    endpoint,
     knownUsersById,
     shouldContinue = () => true,
     users
 }: {
-    endpoint: string;
     knownUsersById: Map<string, unknown>;
     shouldContinue?: () => boolean;
     users: InstanceRosterRow[];
@@ -171,8 +169,7 @@ async function enrichLocationUsersWithProfiles({
                 }
                 try {
                     const profile = await userProfileRepository.getUserProfile({
-                        userId: target.userId,
-                        endpoint
+                        userId: target.userId
                     });
                     if (!shouldContinue()) {
                         return;
@@ -352,7 +349,6 @@ export function useUserDialogLocationPanel({
         const ownerPromise = loadLocationOwner({
             ownerId,
             ownerSeed,
-            endpoint: currentEndpoint,
             groupFallback: resolveGroupFallback(locationMetadata, ownerId)
         });
         const instancePromise = canFetchInstance
@@ -430,7 +426,6 @@ export function useUserDialogLocationPanel({
                                     instanceOwnerId,
                                     knownUsersById
                                 ),
-                                endpoint: currentEndpoint,
                                 groupFallback: fallback
                             });
 
@@ -554,7 +549,6 @@ export function useUserDialogLocationPanel({
                     });
 
                     enrichLocationUsersWithProfiles({
-                        endpoint: currentEndpoint,
                         knownUsersById,
                         shouldContinue: () => active,
                         users

@@ -212,23 +212,19 @@ export function GroupModerationWorkspace({
         const request =
             activeTab === 'bans'
                 ? groupProfileRepository.getAllGroupBans({
-                      groupId: group.id,
-                      endpoint
+                      groupId: group.id
                   })
                 : activeTab === 'invites'
                   ? groupProfileRepository.getAllGroupInvites({
-                        groupId: group.id,
-                        endpoint
+                        groupId: group.id
                     })
                   : activeTab === 'requests'
                     ? groupProfileRepository.getAllGroupJoinRequests({
                           groupId: group.id,
-                          endpoint,
                           blocked: false
                       })
                     : groupProfileRepository.getAllGroupJoinRequests({
                           groupId: group.id,
-                          endpoint,
                           blocked: true
                       });
 
@@ -369,8 +365,7 @@ export function GroupModerationWorkspace({
             action: async (row) => {
                 await groupProfileRepository.kickGroupMember({
                     groupId: group.id,
-                    userId: moderationRowUserId(row),
-                    endpoint
+                    userId: moderationRowUserId(row)
                 });
             }
         });
@@ -384,8 +379,7 @@ export function GroupModerationWorkspace({
             action: async (row) => {
                 await groupProfileRepository.banGroupMember({
                     groupId: group.id,
-                    userId: moderationRowUserId(row),
-                    endpoint
+                    userId: moderationRowUserId(row)
                 });
             }
         });
@@ -398,8 +392,7 @@ export function GroupModerationWorkspace({
             action: async (row) => {
                 await groupProfileRepository.unbanGroupMember({
                     groupId: group.id,
-                    userId: moderationRowUserId(row),
-                    endpoint
+                    userId: moderationRowUserId(row)
                 });
             }
         });
@@ -413,8 +406,7 @@ export function GroupModerationWorkspace({
                 await groupProfileRepository.setGroupMemberProps({
                     groupId: group.id,
                     userId: moderationRowUserId(row),
-                    params: { managerNotes: note },
-                    endpoint
+                    params: { managerNotes: note }
                 });
             }
         });
@@ -434,8 +426,7 @@ export function GroupModerationWorkspace({
                     await groupProfileRepository.addGroupMemberRole({
                         groupId: group.id,
                         userId,
-                        roleId,
-                        endpoint
+                        roleId
                     });
                 }
             }
@@ -456,8 +447,7 @@ export function GroupModerationWorkspace({
                     await groupProfileRepository.removeGroupMemberRole({
                         groupId: group.id,
                         userId,
-                        roleId,
-                        endpoint
+                        roleId
                     });
                 }
             }
@@ -492,54 +482,46 @@ export function GroupModerationWorkspace({
             if (action.key === 'kick') {
                 await groupProfileRepository.kickGroupMember({
                     groupId: group.id,
-                    userId,
-                    endpoint
+                    userId
                 });
             } else if (action.key === 'ban') {
                 await groupProfileRepository.banGroupMember({
                     groupId: group.id,
-                    userId,
-                    endpoint
+                    userId
                 });
             } else if (action.key === 'unban') {
                 await groupProfileRepository.unbanGroupMember({
                     groupId: group.id,
-                    userId,
-                    endpoint
+                    userId
                 });
             } else if (action.key === 'delete-invite') {
                 await groupProfileRepository.deleteSentGroupInvite({
                     groupId: group.id,
-                    userId,
-                    endpoint
+                    userId
                 });
             } else if (action.key === 'accept-request') {
                 await groupProfileRepository.respondGroupJoinRequest({
                     groupId: group.id,
                     userId,
-                    action: 'accept',
-                    endpoint
+                    action: 'accept'
                 });
             } else if (action.key === 'reject-request') {
                 await groupProfileRepository.respondGroupJoinRequest({
                     groupId: group.id,
                     userId,
-                    action: 'reject',
-                    endpoint
+                    action: 'reject'
                 });
             } else if (action.key === 'block-request') {
                 await groupProfileRepository.respondGroupJoinRequest({
                     groupId: group.id,
                     userId,
                     action: 'reject',
-                    block: true,
-                    endpoint
+                    block: true
                 });
             } else if (action.key === 'delete-blocked') {
                 await groupProfileRepository.deleteBlockedGroupRequest({
                     groupId: group.id,
-                    userId,
-                    endpoint
+                    userId
                 });
             }
             if (activeTab === 'members') {
@@ -693,7 +675,6 @@ export function GroupModerationWorkspace({
                 open={banImportOpen}
                 onOpenChange={setBanImportOpen}
                 groupId={group.id}
-                endpoint={endpoint}
                 onImported={() => setReloadToken((value) => value + 1)}
             />
         </div>

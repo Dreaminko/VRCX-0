@@ -278,8 +278,7 @@ export function GroupDialogTabbedView({
         try {
             if (tab === 'posts') {
                 const rows = await groupProfileRepository.getAllGroupPosts({
-                    groupId: group.id,
-                    endpoint: currentEndpoint
+                    groupId: group.id
                 });
                 if (!isCurrentLoadContext(loadContext)) {
                     return;
@@ -288,7 +287,6 @@ export function GroupDialogTabbedView({
             } else if (tab === 'members') {
                 const rows = await groupProfileRepository.getGroupMembers({
                     groupId: group.id,
-                    endpoint: currentEndpoint,
                     sort: memberSort,
                     roleId: memberRoleId,
                     force
@@ -310,7 +308,6 @@ export function GroupDialogTabbedView({
                             await groupProfileRepository.getAllGroupGallery({
                                 groupId: group.id,
                                 galleryId: gallery.id,
-                                endpoint: currentEndpoint,
                                 force
                             });
                         return entries.map((entry) => ({
@@ -359,12 +356,12 @@ export function GroupDialogTabbedView({
             const [response, followingResponse] = await Promise.all([
                 vrchatToolsRepository.getGroupCalendar(
                     { groupId: group.id },
-                    { endpoint: currentEndpoint, force }
+                    { force }
                 ),
                 vrchatToolsRepository
                     .getFollowingGroupCalendars(
                         { n: 100, offset: 0 },
-                        { endpoint: currentEndpoint, force }
+                        { force }
                     )
                     .catch((): never[] => [])
             ]);
@@ -400,14 +397,11 @@ export function GroupDialogTabbedView({
         }
         const nextFollowing = !event?.userInterest?.isFollowing;
         try {
-            const nextEvent = await vrchatToolsRepository.followGroupEvent(
-                {
-                    groupId: eventGroupId,
-                    eventId,
-                    isFollowing: nextFollowing
-                },
-                { endpoint: currentEndpoint }
-            );
+            const nextEvent = await vrchatToolsRepository.followGroupEvent({
+                groupId: eventGroupId,
+                eventId,
+                isFollowing: nextFollowing
+            });
             setGroupEvents((current) =>
                 current.map((row) =>
                     getEventId(row) === eventId
@@ -490,7 +484,6 @@ export function GroupDialogTabbedView({
         try {
             const rows = await groupProfileRepository.getAllGroupMembers({
                 groupId: group.id,
-                endpoint: currentEndpoint,
                 sort: memberSort,
                 roleId: memberRoleId,
                 force: true
@@ -578,8 +571,7 @@ export function GroupDialogTabbedView({
         try {
             await groupProfileRepository.sendGroupInvite({
                 groupId: group.id,
-                userId: result.value,
-                endpoint: currentEndpoint
+                userId: result.value
             });
             toast.success(t('dialog.group.success.group_invite_sent'));
         } catch (error) {
@@ -640,7 +632,6 @@ export function GroupDialogTabbedView({
         submitGroupPost
     } = useGroupDialogPosts({
         confirm,
-        currentEndpoint,
         group,
         loadTab,
         onPostsSaved: () => {
@@ -791,7 +782,6 @@ export function GroupDialogTabbedView({
                 form={postEditor}
                 onFormChange={setPostEditor}
                 group={group}
-                endpoint={currentEndpoint}
                 submitting={postEditorSubmitting}
                 onSubmit={(form: GroupPostForm) => {
                     submitGroupPost(form);

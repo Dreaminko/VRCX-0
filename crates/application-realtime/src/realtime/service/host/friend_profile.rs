@@ -10,21 +10,24 @@ use vrcx_0_core::user_facts::UserFactMergeOptions;
 
 const FRIEND_PROFILE_REFETCH_THROTTLE_MS: i64 = 10_000;
 
+#[derive(Clone, Copy)]
+pub(super) struct FriendProfileRefreshExpectation {
+    pub(super) generation: u64,
+    pub(super) sequence: u64,
+}
+
 impl RealtimeHostRuntime {
-    pub fn apply_friend_profile_refresh(
+    pub(super) fn apply_friend_profile_refresh(
         self: &Arc<Self>,
         endpoint: String,
         user_id: String,
         mut profile: serde_json::Value,
-        expected_friend_sequence: Option<u64>,
+        expectation: FriendProfileRefreshExpectation,
     ) -> Result<bool> {
         let normalized_user_id = user_id.trim().to_string();
         if normalized_user_id.is_empty() {
             return Ok(false);
         }
-        let Some(expected_friend_sequence) = expected_friend_sequence else {
-            return Ok(false);
-        };
         let profile_user_id = json_string_field(profile.get("id"));
         if profile_user_id != normalized_user_id {
             return Ok(false);
@@ -42,7 +45,8 @@ impl RealtimeHostRuntime {
             let Some(active) = state.connection.active_context.clone() else {
                 return Ok(false);
             };
-            if active.session.endpoint != requested_endpoint
+            if expectation.generation != active.generation
+                || active.session.endpoint != requested_endpoint
                 || !self.is_message_current_locked(
                     &state,
                     active.generation,
@@ -63,7 +67,7 @@ impl RealtimeHostRuntime {
         match self.friends.apply_refetched_user_profile_if_sequence(
             active.generation,
             &normalized_user_id,
-            expected_friend_sequence,
+            expectation.sequence,
             profile,
             &chrono::Utc::now().to_rfc3339(),
         ) {
@@ -224,7 +228,7 @@ impl RealtimeHostRuntime {
         is_friend: Option<bool>,
     ) -> Result<VrchatApiResponse> {
         let (user_id, request) = remote_users::user_get_input(endpoint.clone(), user_id_input)?;
-        let expected_friend_sequence = self.capture_friend_state_sequence(&user_id);
+        let refresh_expectation = self.capture_friend_state_sequence(&user_id);
         let kind = UserQueryKind::from_request(dialog, is_friend);
         if force {
             self.user_query_cache
@@ -256,7 +260,7 @@ impl RealtimeHostRuntime {
                 .await;
         }
         if fetched.load(Ordering::SeqCst) {
-            self.ingest_user_get_response(&endpoint, &user_id, &response, expected_friend_sequence);
+            self.ingest_user_get_response(&endpoint, &user_id, &response, refresh_expectation);
         }
         let mut value = (*response).clone();
         if (200..300).contains(&value.status) {
@@ -270,7 +274,10 @@ impl RealtimeHostRuntime {
         Ok(value)
     }
 
-    fn capture_friend_state_sequence(&self, user_id: &str) -> Option<u64> {
+    fn capture_friend_state_sequence(
+        &self,
+        user_id: &str,
+    ) -> Option<FriendProfileRefreshExpectation> {
         let generation = {
             let state = self.state.lock().ok()?;
             state
@@ -281,6 +288,10 @@ impl RealtimeHostRuntime {
         };
         self.friends
             .friend_state_sequence_for_user(generation, user_id)
+            .map(|sequence| FriendProfileRefreshExpectation {
+                generation,
+                sequence,
+            })
     }
 
     pub async fn invalidate_user_query_cache(&self, endpoint: &str, user_id: &str) {
@@ -297,7 +308,7 @@ impl RealtimeHostRuntime {
         endpoint: &str,
         requested_user_id: &str,
         response: &VrchatApiResponse,
-        expected_friend_sequence: Option<u64>,
+        expectation: Option<FriendProfileRefreshExpectation>,
     ) {
         if !(200..300).contains(&response.status) {
             return;
@@ -319,11 +330,14 @@ impl RealtimeHostRuntime {
             return;
         }
         self.record_user_profile(endpoint, &profile);
+        let Some(expectation) = expectation else {
+            return;
+        };
         if let Err(error) = self.apply_friend_profile_refresh(
             endpoint.to_string(),
             requested_user_id.to_string(),
             profile,
-            expected_friend_sequence,
+            expectation,
         ) {
             tracing::warn!(
                 user_id = %requested_user_id,

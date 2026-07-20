@@ -11,10 +11,11 @@ use vrcx_0_application::{
 };
 use vrcx_0_application_core::{
     HostSessionRuntime, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus,
-    RuntimeVrchatAuthFailurePayload, TaskStopToken, TaskSupervisor, WebClient,
+    RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload, TaskStopToken, TaskSupervisor,
+    WebClient,
 };
 use vrcx_0_application_realtime::{
-    build_favorites_baseline, build_friend_roster_baseline, RealtimeHostRuntime,
+    build_favorites_baseline, build_synced_friend_roster_baseline, RealtimeHostRuntime,
     RealtimeStopRequest, RealtimeTransportLifecycleEvent, RealtimeTransportStartResult,
     RealtimeTransportTermination, SocialBaselineDeps, SocialFavoritesBaselineInput,
     SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
@@ -34,12 +35,6 @@ enum RuntimeStep {
     Friends,
     Favorites,
     Realtime,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RealtimeRunOutcome {
-    Done,
-    NeedsRebaseline,
 }
 
 #[derive(Clone)]
@@ -252,21 +247,30 @@ impl AuthenticatedRuntimeOrchestrator {
         stop_token: &TaskStopToken,
         mut friends_by_id: HashMap<String, FriendRecord>,
     ) {
+        let mut attempt = 1;
         loop {
-            let outcome = self
-                .run_realtime_transport(session, scope, run_id, stop_token, friends_by_id.clone())
-                .await;
-            match outcome {
-                RealtimeRunOutcome::Done => return,
-                RealtimeRunOutcome::NeedsRebaseline => {
-                    match self
+            match self
+                .run_realtime_transport(session, scope, run_id, stop_token, attempt, friends_by_id)
+                .await
+            {
+                Some(RealtimeTransportTermination::UnexpectedExit { reason }) => {
+                    let delay = retry_delay_seconds(attempt);
+                    self.set_step_retry(run_id, RuntimeStep::Realtime, attempt, delay, reason);
+                    if !self.wait_for_retry(delay, run_id, scope, stop_token).await {
+                        return;
+                    }
+                    let Some(fresh) = self
                         .run_friend_baseline(session, scope, run_id, stop_token)
                         .await
-                    {
-                        Some(fresh) => friends_by_id = fresh,
-                        None => return,
-                    }
+                    else {
+                        return;
+                    };
+                    friends_by_id = fresh;
+                    attempt = attempt.saturating_add(1);
                 }
+                None
+                | Some(RealtimeTransportTermination::Stopped)
+                | Some(RealtimeTransportTermination::AuthExpired { .. }) => return,
             }
         }
     }
@@ -284,8 +288,9 @@ impl AuthenticatedRuntimeOrchestrator {
                 return None;
             }
             self.set_step_running(run_id, RuntimeStep::Friends, attempt);
-            let result = build_friend_roster_baseline(
+            let result = build_synced_friend_roster_baseline(
                 self.social_baseline_deps(),
+                &self.realtime_runtime,
                 SocialFriendRosterBaselineInput {
                     user_id: session.user_id.clone(),
                     endpoint: session.endpoint.clone(),
@@ -294,12 +299,24 @@ impl AuthenticatedRuntimeOrchestrator {
                     is_first_load: true,
                 },
             )
-            .await;
+            .await
+            .map_err(Error::from)
+            .and_then(|baseline| {
+                let output = baseline.output;
+                match baseline.friends_by_id {
+                    Some(friends_by_id) => Ok((output, friends_by_id)),
+                    None => Err(Error::Custom(if output.detail.trim().is_empty() {
+                        "Friend roster baseline was stale.".into()
+                    } else {
+                        output.detail
+                    })),
+                }
+            });
             if !self.is_active(run_id, scope, stop_token) {
                 return None;
             }
 
-            match result.map_err(Error::from).and_then(decode_friend_baseline) {
+            match result {
                 Ok((mut output, friends_by_id)) => {
                     if output.detail.trim().is_empty() {
                         output.detail = format!(
@@ -308,9 +325,7 @@ impl AuthenticatedRuntimeOrchestrator {
                         );
                     }
                     self.update_snapshot(run_id, |snapshot| {
-                        snapshot.friends =
-                            ready_step(attempt, format!("{} friends loaded.", output.count));
-                        snapshot.friend_baseline = Some(output.clone());
+                        commit_friend_baseline(snapshot, attempt, output.clone());
                     });
                     return Some(friends_by_id);
                 }
@@ -412,100 +427,50 @@ impl AuthenticatedRuntimeOrchestrator {
         scope: &RuntimeAuthScopeSnapshot,
         run_id: u64,
         stop_token: &TaskStopToken,
-        friends_by_id: HashMap<String, FriendRecord>,
-    ) -> RealtimeRunOutcome {
-        let mut attempt = 1;
-        loop {
-            if !self.is_active(run_id, scope, stop_token) {
-                return RealtimeRunOutcome::Done;
-            }
-            self.set_step_running(run_id, RuntimeStep::Realtime, attempt);
-            let mut lifecycle = self.realtime_runtime.subscribe_transport_lifecycle();
-            match self.realtime_runtime.start(
-                session.user_id.clone(),
-                session.endpoint.clone(),
-                session.websocket.clone(),
-                run_id,
-                session.current_user.clone(),
-                friends_by_id.clone(),
-            ) {
-                Ok(result) => {
-                    if !self.is_active(run_id, scope, stop_token) {
-                        self.realtime_runtime.stop(RealtimeStopRequest {
-                            user_id: Some(session.user_id.clone()),
-                            endpoint: Some(session.endpoint.clone()),
-                            websocket: Some(session.websocket.clone()),
-                            client_run_id: Some(run_id),
-                            generation: Some(result.generation),
-                        });
-                        return RealtimeRunOutcome::Done;
-                    }
-                    self.update_snapshot(run_id, |snapshot| {
-                        snapshot.realtime = AuthenticatedRuntimeStepSnapshot {
-                            status: AuthenticatedRuntimeStepStatus::Running,
-                            attempt,
-                            detail: "Realtime transport is waiting for a connection.".into(),
-                            ..Default::default()
-                        };
-                        snapshot.realtime_transport = Some(result.clone());
-                    });
-                    let outcome = self
-                        .monitor_realtime_transport(
-                            run_id,
-                            scope,
-                            stop_token,
-                            attempt,
-                            result,
-                            &mut lifecycle,
-                        )
-                        .await;
-                    if outcome == RealtimeRunOutcome::Done {
-                        return RealtimeRunOutcome::Done;
-                    }
-                    if !self
-                        .wait_for_realtime_retry(
-                            run_id,
-                            scope,
-                            stop_token,
-                            attempt,
-                            "Realtime transport stopped unexpectedly.".into(),
-                        )
-                        .await
-                    {
-                        return RealtimeRunOutcome::Done;
-                    }
-                    return RealtimeRunOutcome::NeedsRebaseline;
-                }
-                Err(error) => {
-                    if !self
-                        .wait_for_realtime_retry(
-                            run_id,
-                            scope,
-                            stop_token,
-                            attempt,
-                            error.to_string(),
-                        )
-                        .await
-                    {
-                        return RealtimeRunOutcome::Done;
-                    }
-                    attempt = attempt.saturating_add(1);
-                }
-            }
-        }
-    }
-
-    async fn wait_for_realtime_retry(
-        &self,
-        run_id: u64,
-        scope: &RuntimeAuthScopeSnapshot,
-        stop_token: &TaskStopToken,
         attempt: u32,
-        error: String,
-    ) -> bool {
-        let delay = retry_delay_seconds(attempt);
-        self.set_step_retry(run_id, RuntimeStep::Realtime, attempt, delay, error);
-        self.wait_for_retry(delay, run_id, scope, stop_token).await
+        friends_by_id: HashMap<String, FriendRecord>,
+    ) -> Option<RealtimeTransportTermination> {
+        if !self.is_active(run_id, scope, stop_token) {
+            return None;
+        }
+        self.set_step_running(run_id, RuntimeStep::Realtime, attempt);
+        let mut lifecycle = self.realtime_runtime.subscribe_transport_lifecycle();
+        let result = match self.realtime_runtime.start(
+            session.user_id.clone(),
+            session.endpoint.clone(),
+            session.websocket.clone(),
+            run_id,
+            session.current_user.clone(),
+            friends_by_id,
+        ) {
+            Ok(result) => result,
+            Err(error) => {
+                return Some(RealtimeTransportTermination::UnexpectedExit {
+                    reason: error.to_string(),
+                });
+            }
+        };
+        if !self.is_active(run_id, scope, stop_token) {
+            self.realtime_runtime.stop(RealtimeStopRequest {
+                user_id: Some(session.user_id.clone()),
+                endpoint: Some(session.endpoint.clone()),
+                websocket: Some(session.websocket.clone()),
+                client_run_id: Some(run_id),
+                generation: Some(result.generation),
+            });
+            return None;
+        }
+        self.update_snapshot(run_id, |snapshot| {
+            snapshot.realtime = AuthenticatedRuntimeStepSnapshot {
+                status: AuthenticatedRuntimeStepStatus::Running,
+                attempt,
+                detail: "Realtime transport is waiting for a connection.".into(),
+                ..Default::default()
+            };
+            snapshot.realtime_transport = Some(result.clone());
+        });
+        self.monitor_realtime_transport(run_id, scope, stop_token, attempt, result, &mut lifecycle)
+            .await
     }
 
     async fn monitor_realtime_transport(
@@ -516,11 +481,10 @@ impl AuthenticatedRuntimeOrchestrator {
         attempt: u32,
         transport: RealtimeTransportStartResult,
         lifecycle: &mut tokio::sync::broadcast::Receiver<RealtimeTransportLifecycleEvent>,
-    ) -> RealtimeRunOutcome {
-        let mut connected_before = false;
+    ) -> Option<RealtimeTransportTermination> {
         loop {
             if !self.is_active(run_id, scope, stop_token) {
-                return RealtimeRunOutcome::Done;
+                return None;
             }
             tokio::select! {
                 event = lifecycle.recv() => {
@@ -532,39 +496,40 @@ impl AuthenticatedRuntimeOrchestrator {
                                 apply_realtime_connected(snapshot, attempt, &transport);
                             });
                             self.mark_ready_if_complete(run_id);
-                            if connected_before {
-                                self.realtime_runtime.spawn_reconnect_reconcile(transport.clone());
-                            } else {
-                                connected_before = true;
-                            }
                         }
                         Ok(RealtimeTransportLifecycleEvent::Finished {
                             transport: finished,
                             termination,
-                        }) if finished == transport => {
-                            if !self.is_active(run_id, scope, stop_token) {
-                                return RealtimeRunOutcome::Done;
+                        }) => {
+                            if finished != transport {
+                                continue;
                             }
-                            if let RealtimeTransportTermination::AuthFailure {
-                                reason,
-                                status_code,
-                            } = &termination
-                            {
+                            if !self.is_active(run_id, scope, stop_token) {
+                                return None;
+                            }
+                            if let Some(payload) = realtime_auth_expired_payload(
+                                scope,
+                                &finished,
+                                &termination,
+                            ) {
+                                let reason = payload.reason.clone();
+                                let status_code = Some(payload.status_code);
+                                self.event_bus.emit_runtime_vrchat_auth_failure(payload);
                                 self.update_snapshot(run_id, |snapshot| {
-                                    apply_realtime_auth_failure(
+                                    apply_realtime_auth_expired(
                                         snapshot,
                                         attempt,
                                         &transport,
-                                        reason,
-                                        *status_code,
+                                        &reason,
+                                        status_code,
                                     );
                                 });
                             }
-                            return outcome_for_termination(&termination);
+                            return Some(termination);
                         }
                         Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
                         Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                            return RealtimeRunOutcome::Done;
+                            return None;
                         }
                     }
                 }
@@ -589,9 +554,10 @@ impl AuthenticatedRuntimeOrchestrator {
         error: &Error,
     ) {
         let reason = error.to_string();
-        if !is_missing_credentials_error(&reason)
-            || !auth_scope_matches(&self.auth_scope.snapshot(), scope)
-        {
+        let Some(status_code) = auth_failure_status(&reason) else {
+            return;
+        };
+        if !auth_scope_matches(&self.auth_scope.snapshot(), scope) {
             return;
         }
         self.event_bus
@@ -600,8 +566,9 @@ impl AuthenticatedRuntimeOrchestrator {
                 endpoint: scope.endpoint.clone(),
                 path: path.to_string(),
                 reason,
-                status_code: 401,
+                status_code,
                 auth_scope_generation: scope.generation,
+                realtime_transport: None,
             });
     }
 
@@ -627,20 +594,26 @@ impl AuthenticatedRuntimeOrchestrator {
         scope: &RuntimeAuthScopeSnapshot,
         stop_token: &TaskStopToken,
     ) -> bool {
-        let mut remaining = Duration::from_secs(delay_seconds);
-        while !remaining.is_zero() {
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(delay_seconds);
+        loop {
             if !self.is_active(run_id, scope, stop_token) {
                 return false;
             }
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
             let sleep_for = remaining.min(RETRY_SLEEP_POLL_INTERVAL);
             tokio::time::sleep(sleep_for).await;
-            remaining = remaining.saturating_sub(sleep_for);
         }
         self.is_active(run_id, scope, stop_token)
     }
 
     fn set_step_running(&self, run_id: u64, step: RuntimeStep, attempt: u32) {
         self.update_snapshot(run_id, |snapshot| {
+            if matches!(step, RuntimeStep::Realtime) {
+                snapshot.realtime_transport = None;
+            }
             *step_snapshot_mut(snapshot, step) = AuthenticatedRuntimeStepSnapshot {
                 status: AuthenticatedRuntimeStepStatus::Running,
                 attempt,
@@ -659,6 +632,9 @@ impl AuthenticatedRuntimeOrchestrator {
         error: String,
     ) {
         self.update_snapshot(run_id, |snapshot| {
+            if matches!(step, RuntimeStep::Realtime) {
+                snapshot.realtime_transport = None;
+            }
             *step_snapshot_mut(snapshot, step) = AuthenticatedRuntimeStepSnapshot {
                 status: AuthenticatedRuntimeStepStatus::RetryWaiting,
                 attempt,
@@ -741,6 +717,16 @@ fn ready_step(attempt: u32, detail: String) -> AuthenticatedRuntimeStepSnapshot 
     }
 }
 
+fn commit_friend_baseline(
+    snapshot: &mut AuthenticatedRuntimePhaseSnapshot,
+    attempt: u32,
+    output: SocialFriendRosterBaselineOutput,
+) {
+    snapshot.friends = ready_step(attempt, format!("{} friends loaded.", output.count));
+    snapshot.friend_baseline_revision = snapshot.friend_baseline_revision.saturating_add(1);
+    snapshot.friend_baseline = Some(output);
+}
+
 fn all_steps_ready(snapshot: &AuthenticatedRuntimePhaseSnapshot) -> bool {
     [
         snapshot.friends.status,
@@ -762,7 +748,7 @@ fn apply_realtime_connected(
     snapshot.realtime = ready_step(attempt, "Realtime transport connected.".into());
 }
 
-fn apply_realtime_auth_failure(
+fn apply_realtime_auth_expired(
     snapshot: &mut AuthenticatedRuntimePhaseSnapshot,
     attempt: u32,
     transport: &RealtimeTransportStartResult,
@@ -787,34 +773,31 @@ fn apply_realtime_auth_failure(
     snapshot.phase = AuthenticatedRuntimePhase::Error;
 }
 
-fn outcome_for_termination(termination: &RealtimeTransportTermination) -> RealtimeRunOutcome {
-    match termination {
-        RealtimeTransportTermination::Stopped => RealtimeRunOutcome::NeedsRebaseline,
-        RealtimeTransportTermination::AuthFailure { .. } => RealtimeRunOutcome::Done,
-    }
-}
-
-fn decode_friend_baseline(
-    output: SocialFriendRosterBaselineOutput,
-) -> Result<(
-    SocialFriendRosterBaselineOutput,
-    HashMap<String, FriendRecord>,
-)> {
-    if output.stale {
-        return Err(Error::Custom(if output.detail.trim().is_empty() {
-            "Friend roster baseline was stale.".into()
-        } else {
-            output.detail.clone()
-        }));
-    }
-    let friends = output
-        .snapshot
-        .as_ref()
-        .and_then(|snapshot| snapshot.as_value().get("friendsById"))
-        .cloned()
-        .ok_or_else(|| Error::Custom("Friend roster baseline has no snapshot.".into()))?;
-    let friends_by_id = serde_json::from_value(friends)?;
-    Ok((output, friends_by_id))
+fn realtime_auth_expired_payload(
+    scope: &RuntimeAuthScopeSnapshot,
+    transport: &RealtimeTransportStartResult,
+    termination: &RealtimeTransportTermination,
+) -> Option<RuntimeVrchatAuthFailurePayload> {
+    let RealtimeTransportTermination::AuthExpired {
+        reason,
+        status_code,
+    } = termination
+    else {
+        return None;
+    };
+    Some(RuntimeVrchatAuthFailurePayload {
+        owner_user_id: scope.current_user_id.clone(),
+        endpoint: scope.endpoint.clone(),
+        path: "auth".into(),
+        reason: reason.clone(),
+        status_code: status_code.unwrap_or(401),
+        auth_scope_generation: scope.generation,
+        realtime_transport: Some(RuntimeRealtimeTransportEpoch {
+            client_run_id: transport.client_run_id,
+            generation: transport.generation,
+            session_generation: transport.session_generation,
+        }),
+    })
 }
 
 fn require_favorites_baseline(
@@ -830,8 +813,15 @@ fn retry_delay_seconds(attempt: u32) -> u64 {
     RETRY_DELAYS_SECONDS[(attempt.saturating_sub(1) as usize).min(RETRY_DELAYS_SECONDS.len() - 1)]
 }
 
-fn is_missing_credentials_error(reason: &str) -> bool {
-    reason.to_ascii_lowercase().contains("missing credentials")
+fn auth_failure_status(reason: &str) -> Option<i32> {
+    let reason = reason.to_ascii_lowercase();
+    if reason.contains("missing credentials") || reason.contains("http 401") {
+        Some(401)
+    } else if reason.contains("http 403") {
+        Some(403)
+    } else {
+        None
+    }
 }
 
 fn snapshot_matches_session(
@@ -977,9 +967,11 @@ mod tests {
     }
 
     #[test]
-    fn recognizes_missing_credentials_auth_failures() {
-        assert!(is_missing_credentials_error("Missing Credentials (401)"));
-        assert!(!is_missing_credentials_error("request timed out"));
+    fn recognizes_baseline_auth_failures() {
+        assert_eq!(auth_failure_status("Missing Credentials (401)"), Some(401));
+        assert_eq!(auth_failure_status("Unauthorized (HTTP 401)"), Some(401));
+        assert_eq!(auth_failure_status("Forbidden (HTTP 403)"), Some(403));
+        assert_eq!(auth_failure_status("request timed out"), None);
     }
 
     #[test]
@@ -1035,27 +1027,7 @@ mod tests {
     }
 
     #[test]
-    fn stopped_termination_requests_a_rebaseline_restart() {
-        assert_eq!(
-            outcome_for_termination(&RealtimeTransportTermination::Stopped),
-            RealtimeRunOutcome::NeedsRebaseline
-        );
-    }
-
-    #[test]
-    fn auth_failure_termination_ends_the_run() {
-        let termination = RealtimeTransportTermination::AuthFailure {
-            reason: "forbidden".into(),
-            status_code: Some(403),
-        };
-        assert_eq!(
-            outcome_for_termination(&termination),
-            RealtimeRunOutcome::Done
-        );
-    }
-
-    #[test]
-    fn terminal_auth_failure_invalidates_ready_runtime() {
+    fn terminal_auth_expiry_invalidates_ready_runtime() {
         let transport = RealtimeTransportStartResult {
             generation: 2,
             client_run_id: 4,
@@ -1068,7 +1040,7 @@ mod tests {
             ..Default::default()
         };
 
-        apply_realtime_auth_failure(&mut snapshot, 1, &transport, "forbidden", Some(403));
+        apply_realtime_auth_expired(&mut snapshot, 1, &transport, "forbidden", Some(403));
 
         assert_eq!(snapshot.phase, AuthenticatedRuntimePhase::Error);
         assert_eq!(
@@ -1085,13 +1057,34 @@ mod tests {
 
     #[test]
     fn runtime_is_ready_only_after_every_step_is_ready() {
-        let mut snapshot = AuthenticatedRuntimePhaseSnapshot::default();
-        snapshot.friends = ready_step(1, "friends".into());
-        snapshot.favorites = ready_step(1, "favorites".into());
+        let mut snapshot = AuthenticatedRuntimePhaseSnapshot {
+            friends: ready_step(1, "friends".into()),
+            favorites: ready_step(1, "favorites".into()),
+            ..Default::default()
+        };
         assert!(!all_steps_ready(&snapshot));
 
         snapshot.realtime = ready_step(1, "realtime".into());
         assert!(all_steps_ready(&snapshot));
+    }
+
+    #[test]
+    fn each_successful_friend_rebaseline_advances_the_phase_revision() {
+        let mut snapshot = AuthenticatedRuntimePhaseSnapshot::default();
+        let output = SocialFriendRosterBaselineOutput {
+            user_id: "usr_self".into(),
+            stale: false,
+            count: 1,
+            detail: "Friends ready.".into(),
+            snapshot: Some(RawJson::from(json!({"friendsById": {}}))),
+            friend_log_changed: false,
+        };
+
+        commit_friend_baseline(&mut snapshot, 1, output.clone());
+        assert_eq!(snapshot.friend_baseline_revision, 1);
+
+        commit_friend_baseline(&mut snapshot, 1, output);
+        assert_eq!(snapshot.friend_baseline_revision, 2);
     }
 
     #[test]

@@ -17,7 +17,6 @@ type RuntimeEventState = {
 type TransportState = Record<string, unknown> & {
     websocketConnected: boolean;
     websocketDomain: string;
-    reconnectCount: number;
     lastConnectedAt: string | null;
     lastDisconnectedAt: string | null;
 };
@@ -239,7 +238,6 @@ type RuntimeStore = {
     setFriendProfileLoadState(patch: Partial<FriendProfileLoadState>): void;
     resetFriendProfileLoadState(): void;
     setTransportState(patch: Partial<TransportState>): void;
-    incrementTransportReconnect(): void;
     recordRuntimeEvent(name: string, payload: unknown): void;
     setBackendRuntimeSnapshot(snapshot: Record<string, unknown> | null): void;
     setShellState(patch: Record<string, unknown>): void;
@@ -280,7 +278,6 @@ function createTransportState(): TransportState {
     return {
         websocketConnected: false,
         websocketDomain: '',
-        reconnectCount: 0,
         lastConnectedAt: null,
         lastDisconnectedAt: null
     };
@@ -415,7 +412,6 @@ type RuntimeStoreState = Omit<
     | 'setFriendProfileLoadState'
     | 'resetFriendProfileLoadState'
     | 'setTransportState'
-    | 'incrementTransportReconnect'
     | 'recordRuntimeEvent'
     | 'setGameState'
     | 'setBackendRuntimeSnapshot'
@@ -640,14 +636,6 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
             transport: {
                 ...state.transport,
                 ...patch
-            }
-        }));
-    },
-    incrementTransportReconnect() {
-        set((state) => ({
-            transport: {
-                ...state.transport,
-                reconnectCount: state.transport.reconnectCount + 1
             }
         }));
     },

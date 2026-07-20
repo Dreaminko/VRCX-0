@@ -613,8 +613,7 @@ export function GroupModerationLogsPanel({
         let alive = true;
         groupProfileRepository
             .getGroupAuditLogTypes({
-                groupId: group.id,
-                endpoint
+                groupId: group.id
             })
             .then((types) => {
                 if (!alive) {
@@ -648,7 +647,6 @@ export function GroupModerationLogsPanel({
         groupProfileRepository
             .getAllGroupLogs({
                 groupId: group.id,
-                endpoint,
                 eventTypes: selectedEventTypes
             })
             .then((nextRows) => {

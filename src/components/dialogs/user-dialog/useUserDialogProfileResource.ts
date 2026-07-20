@@ -194,7 +194,6 @@ export function useUserDialogProfileResource({
         userProfileRepository
             .getUserProfile({
                 userId: normalizedUserId,
-                endpoint: currentEndpoint,
                 force: isTargetCurrentUser || reloadToken > 0,
                 dialog: true,
                 isFriend
@@ -293,7 +292,6 @@ export function useUserDialogProfileResource({
         let active = true;
         getCurrentAvatarDetails({
             avatarId: currentAvatar,
-            endpoint: currentEndpoint,
             currentUserId: normalizedUserId,
             profile
         })

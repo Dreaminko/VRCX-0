@@ -157,8 +157,7 @@ describe('PlayerListWorldHeader', () => {
         await waitFor(() => {
             expect(mocks.getInstance).toHaveBeenCalledWith({
                 worldId: 'wrld_test',
-                instanceId: '12345~group(grp_test)~groupAccessType(plus)',
-                endpoint: 'https://api.example.test/api/1'
+                instanceId: '12345~group(grp_test)~groupAccessType(plus)'
             });
         });
         expect(await screen.findByText('99/100')).toBeTruthy();

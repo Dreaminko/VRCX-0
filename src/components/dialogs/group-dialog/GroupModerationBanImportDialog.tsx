@@ -23,13 +23,11 @@ export function GroupModerationBanImportDialog({
     open,
     onOpenChange,
     groupId,
-    endpoint,
     onImported
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     groupId: string;
-    endpoint: string;
     onImported: () => void;
 }) {
     const { t } = useTranslation();
@@ -77,8 +75,7 @@ export function GroupModerationBanImportDialog({
             try {
                 await groupProfileRepository.banGroupMember({
                     groupId,
-                    userId,
-                    endpoint
+                    userId
                 });
                 successCount += 1;
             } catch (banError) {

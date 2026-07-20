@@ -2,9 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
 use serde_json::{json, Map, Value};
-use vrcx_0_core::friends::{normalize_state_bucket, FriendRecord, FriendRosterBaseline};
+use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use vrcx_0_core::trust::{trust_level_changed, trust_level_differs};
 use vrcx_0_persistence::realtime::{FriendLogDelete, FriendLogUpsert};
@@ -18,7 +17,6 @@ use super::super::{
 
 mod event_patch;
 mod persistence;
-mod projection;
 mod state;
 mod utils;
 

@@ -100,7 +100,6 @@ export function PlayerListWorldHeader({
         worldProfileRepository
             .getWorldProfile({
                 worldId,
-                endpoint: currentUserEndpoint,
                 full: true
             })
             .then((world) => {
@@ -108,7 +107,7 @@ export function PlayerListWorldHeader({
                     setCurrentWorldProfile(world);
                 }
                 return vrchatAuthRepository
-                    .getConfig({ endpoint: currentUserEndpoint })
+                    .getConfig()
                     .catch((): null => null)
                     .then((configResponse) => {
                         const sdkUnityVersion = String(
@@ -120,11 +119,7 @@ export function PlayerListWorldHeader({
                                 sdkUnityVersion,
                                 endpoint: currentUserEndpoint
                             }),
-                            readWorldCacheInfo(
-                                world,
-                                currentUserEndpoint,
-                                sdkUnityVersion
-                            )
+                            readWorldCacheInfo(world, sdkUnityVersion)
                         ]);
                     });
             })
@@ -169,8 +164,7 @@ export function PlayerListWorldHeader({
         vrchatInstanceRepository
             .getInstance({
                 worldId,
-                instanceId,
-                endpoint: currentUserEndpoint
+                instanceId
             })
             .then((response) => {
                 if (active && isInstanceProfile(response.json)) {

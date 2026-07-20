@@ -612,8 +612,7 @@ export function WorldDialogTabbedView({
                 vrchatInstanceRepository
                     .getInstance({
                         worldId: target.worldId,
-                        instanceId: target.instanceId,
-                        endpoint: currentEndpoint
+                        instanceId: target.instanceId
                     })
                     .then((response) => ({
                         location: target.location,
@@ -680,7 +679,6 @@ export function WorldDialogTabbedView({
                 groupProfileRepository
                     .getGroupProfile({
                         groupId,
-                        endpoint: currentEndpoint,
                         includeRoles: false
                     })
                     .then((groupProfile) => ({ groupId, groupProfile }))
@@ -745,8 +743,7 @@ export function WorldDialogTabbedView({
             vrchatInstanceRepository
                 .getInstance({
                     worldId: parsedLocation.worldId,
-                    instanceId: parsedLocation.instanceId,
-                    endpoint: currentEndpoint
+                    instanceId: parsedLocation.instanceId
                 })
                 .then((response) =>
                     isRecord(response.json) ? response.json : null
@@ -835,7 +832,6 @@ export function WorldDialogTabbedView({
                           ? await groupProfileRepository
                                 .getGroupProfile({
                                     groupId: ownerId,
-                                    endpoint: currentEndpoint,
                                     includeRoles: false
                                 })
                                 .catch(() => ({
@@ -850,8 +846,7 @@ export function WorldDialogTabbedView({
                         : ownerId
                           ? await userProfileRepository
                                 .getUserProfile({
-                                    userId: ownerId,
-                                    endpoint: currentEndpoint
+                                    userId: ownerId
                                 })
                                 .catch(() => ({
                                     id: ownerId,

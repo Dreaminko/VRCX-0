@@ -505,8 +505,7 @@ export function UserDialogTabbedView({
         ) : null;
 
     const showAvatarAuthor = useUserDialogAvatarAuthorAction({
-        currentAvatarTarget,
-        currentEndpoint
+        currentAvatarTarget
     });
 
     function openInstanceHistory() {
@@ -726,7 +725,6 @@ export function UserDialogTabbedView({
                 {selfPanel === 'profile-media' && isCurrentUser ? (
                     <UserDialogProfileMediaPanel
                         profile={profile}
-                        endpoint={currentEndpoint}
                         isVrcPlusSupporter={isLocalUserVrcPlusSupporter}
                         actionStatus={actionStatus}
                         onBack={() => setSelfPanel('')}
