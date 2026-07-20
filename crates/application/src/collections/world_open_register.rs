@@ -32,9 +32,6 @@ pub async fn register_world_open_share(
     let Some(row) = world_cache_get(db, world_id.to_string())? else {
         return Err(Error::Custom("World is not cached locally.".into()));
     };
-    if !row.release_status.eq_ignore_ascii_case("public") {
-        return Err(Error::Custom("World is not public.".into()));
-    }
     if row.id.trim().is_empty()
         || row.name.trim().is_empty()
         || row.author_id.trim().is_empty()

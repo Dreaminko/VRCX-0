@@ -331,7 +331,7 @@ mod tests {
                 image_url: "https://api.vrchat.cloud/api/1/file/file_1/1/file".into(),
                 thumbnail_image_url: "https://api.vrchat.cloud/api/1/file/file_1/1/file".into(),
                 description: "A world".into(),
-                release_status: "public".into(),
+                release_status: "private".into(),
                 updated_at: "2026-01-01T00:00:00.000Z".into(),
                 version: 1,
             },
@@ -351,7 +351,7 @@ mod tests {
                     "image_url": "https://api.vrchat.cloud/api/1/file/file_1/1/file",
                     "thumbnail_image_url": "https://api.vrchat.cloud/api/1/file/file_1/1/file",
                     "description": "A world",
-                    "release_status": "public",
+                    "release_status": "private",
                     "updated_at": "2026-01-01T00:00:00.000Z",
                     "version": 1
                 }

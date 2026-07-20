@@ -926,8 +926,7 @@ export function WorldDialogTabbedView({
     ]);
 
     const worldUrl = world.id ? vrchatWorldUrl(world.id) : '';
-    const vrcxWorldUrl =
-        world.releaseStatus === 'public' ? vrcxWorldDeepLink(world.id) : '';
+    const vrcxWorldUrl = vrcxWorldDeepLink(world.id);
     const packageUrl = replaceVrcPackageUrl(
         firstText(world.unityPackageUrl, record(world.unityPackage).url)
     );
