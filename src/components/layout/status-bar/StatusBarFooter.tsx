@@ -73,9 +73,6 @@ function formatFriendProfileLoadTooltip(
     t: ReturnType<typeof useTranslation>['t']
 ) {
     const status = String(friendProfileLoad.status || 'idle');
-    if (status === 'error') {
-        return t('view.friend_list.error.failed_to_load_friend_details');
-    }
     if (status === 'cancelled') {
         return t('view.friend_list.success.friend_detail_loading_cancelled');
     }

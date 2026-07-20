@@ -3658,8 +3658,7 @@ export type FriendProfileBulkLoadStatus =
     | 'running'
     | 'cancelling'
     | 'completed'
-    | 'cancelled'
-    | 'error';
+    | 'cancelled';
 export type FriendProfileLoadStatusPayload = {
     runId: number;
     status: FriendProfileBulkLoadStatus;
@@ -3669,12 +3668,10 @@ export type FriendProfileLoadStatusPayload = {
     failed: number;
     startedAt: string;
     finishedAt: string | null;
-    lastError: string | null;
 };
 export type FriendProjection = {
     generation: number;
     baselineRevision: number;
-    source?: RealtimeProjectionSource | null;
     patches?: FriendProjectionPatch[];
     removals?: string[];
     feedEntries?: JsonValue[];
@@ -4651,16 +4648,12 @@ export type RealtimeNotificationUpsert = {
     deliverRuntime: boolean;
     runAutomation: boolean;
 };
-export type RealtimeProjectionSource = 'friendProfileBulkLoad';
 export type RealtimeTransportStartResult = {
     generation: number;
     clientRunId: number;
     sessionGeneration: number;
 };
-export type RealtimeUserProjection = {
-    users: JsonValue[];
-    source?: RealtimeProjectionSource | null;
-};
+export type RealtimeUserProjection = { users: JsonValue[] };
 export type RealtimeWsStatusPayload = {
     status: string;
     websocketDomain: string;

@@ -1,18 +1,13 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
-use futures_util::stream::{self, StreamExt};
 pub use vrcx_0_application_core::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
 
 use super::state::ActiveRealtimeContext;
 use super::*;
 
-pub(super) const FRIEND_PROFILE_BULK_LOAD_CONCURRENCY: usize = 3;
 const FRIEND_PROFILE_BULK_LOAD_MAX_RETRIES: u32 = 4;
 const FRIEND_PROFILE_BULK_LOAD_BASE_DELAY_MS: u64 = 500;
-const PROGRESS_EMIT_MIN_INTERVAL_MS: i64 = 250;
-const PROGRESS_EMIT_MIN_PROCESSED_DELTA: u32 = 10;
-const FRIEND_PROFILE_BULK_LOAD_START_INTERVAL_MS: u64 = 1_000;
+const FRIEND_PROFILE_BULK_LOAD_REQUEST_INTERVAL_MS: u64 = 1_000;
 
 #[derive(Default)]
 pub struct FriendProfileBulkLoadState {
@@ -25,9 +20,6 @@ pub struct FriendProfileBulkLoadState {
     failed: u32,
     started_at: String,
     finished_at: Option<String>,
-    last_error: Option<String>,
-    last_emit_at_ms: i64,
-    last_emit_processed: u32,
 }
 
 fn friend_profile_bulk_load_owner_matches(
@@ -55,7 +47,6 @@ impl FriendProfileBulkLoadState {
             failed: self.failed,
             started_at: self.started_at.clone(),
             finished_at: self.finished_at.clone(),
-            last_error: self.last_error.clone(),
         }
     }
 }
@@ -64,15 +55,6 @@ fn is_active_bulk_load_status(status: FriendProfileBulkLoadStatus) -> bool {
     matches!(
         status,
         FriendProfileBulkLoadStatus::Running | FriendProfileBulkLoadStatus::Cancelling
-    )
-}
-
-fn is_terminal_bulk_load_status(status: FriendProfileBulkLoadStatus) -> bool {
-    matches!(
-        status,
-        FriendProfileBulkLoadStatus::Completed
-            | FriendProfileBulkLoadStatus::Cancelled
-            | FriendProfileBulkLoadStatus::Error
     )
 }
 
@@ -110,31 +92,6 @@ pub(super) fn friend_profile_bulk_load_initial_progress(
         .unwrap_or(u32::MAX)
         .min(total);
     (total, total.saturating_sub(pending))
-}
-
-pub(super) fn reserve_friend_profile_bulk_load_request_slot(
-    now: tokio::time::Instant,
-    next_request_at: &mut tokio::time::Instant,
-) -> tokio::time::Instant {
-    let scheduled_at = (*next_request_at).max(now);
-    *next_request_at =
-        scheduled_at + Duration::from_millis(FRIEND_PROFILE_BULK_LOAD_START_INTERVAL_MS);
-    scheduled_at
-}
-
-pub(super) fn should_emit_friend_profile_bulk_load_progress(
-    is_terminal: bool,
-    processed: u32,
-    last_emit_processed: u32,
-    now_ms: i64,
-    last_emit_at_ms: i64,
-) -> bool {
-    if is_terminal || last_emit_at_ms == 0 {
-        return true;
-    }
-    let elapsed = now_ms.saturating_sub(last_emit_at_ms);
-    elapsed >= PROGRESS_EMIT_MIN_INTERVAL_MS
-        || processed.saturating_sub(last_emit_processed) >= PROGRESS_EMIT_MIN_PROCESSED_DELTA
 }
 
 impl RealtimeHostRuntime {
@@ -186,9 +143,6 @@ impl RealtimeHostRuntime {
             bulk.failed = 0;
             bulk.started_at = now.clone();
             bulk.finished_at = None;
-            bulk.last_error = None;
-            bulk.last_emit_at_ms = 0;
-            bulk.last_emit_processed = 0;
             let spawn_worker = !targets.is_empty();
             bulk.status = if spawn_worker {
                 FriendProfileBulkLoadStatus::Running
@@ -203,7 +157,7 @@ impl RealtimeHostRuntime {
             self.friend_profile_bulk_cancel_tx
                 .send_replace(stale_run_id);
         }
-        let payload = self.emit_friend_profile_bulk_load_status(true);
+        let payload = self.emit_friend_profile_bulk_load_status();
         if spawn_worker {
             let runtime = Arc::clone(self);
             self.deps.tasks.spawn(async move {
@@ -230,7 +184,7 @@ impl RealtimeHostRuntime {
         if let Some(run_id) = cancelled_run_id {
             self.friend_profile_bulk_cancel_tx.send_replace(run_id);
         }
-        Ok(self.emit_friend_profile_bulk_load_status(true))
+        Ok(self.emit_friend_profile_bulk_load_status())
     }
 
     pub(super) fn cancel_friend_profile_bulk_load_for_session(
@@ -252,7 +206,7 @@ impl RealtimeHostRuntime {
         };
         self.friend_profile_bulk_cancel_tx
             .send_replace(cancelled_run_id);
-        self.emit_friend_profile_bulk_load_status(true);
+        self.emit_friend_profile_bulk_load_status();
     }
 
     pub fn friend_profile_bulk_load_status(&self) -> FriendProfileLoadStatusPayload {
@@ -262,31 +216,16 @@ impl RealtimeHostRuntime {
             .unwrap_or_default()
     }
 
-    fn emit_friend_profile_bulk_load_status(&self, force: bool) -> FriendProfileLoadStatusPayload {
-        let now_ms = chrono::Utc::now().timestamp_millis();
-        let (payload, should_emit) = {
-            let Ok(mut bulk) = self.friend_profile_bulk_load.lock() else {
+    fn emit_friend_profile_bulk_load_status(&self) -> FriendProfileLoadStatusPayload {
+        let payload = {
+            let Ok(bulk) = self.friend_profile_bulk_load.lock() else {
                 return FriendProfileBulkLoadState::default().payload();
             };
-            let should_emit = force
-                || should_emit_friend_profile_bulk_load_progress(
-                    is_terminal_bulk_load_status(bulk.status),
-                    bulk.processed,
-                    bulk.last_emit_processed,
-                    now_ms,
-                    bulk.last_emit_at_ms,
-                );
-            if should_emit {
-                bulk.last_emit_at_ms = now_ms;
-                bulk.last_emit_processed = bulk.processed;
-            }
-            (bulk.payload(), should_emit)
+            bulk.payload()
         };
-        if should_emit {
-            self.deps
-                .event_bus
-                .emit_friend_profile_load_status(payload.clone());
-        }
+        self.deps
+            .event_bus
+            .emit_friend_profile_load_status(payload.clone());
         payload
     }
 
@@ -338,13 +277,12 @@ impl RealtimeHostRuntime {
             let response = tokio::select! {
                 biased;
                 _ = wait_for_friend_profile_bulk_load_cancel(run_id, cancel_rx) => return None,
-                response = self.get_user_via_cache_with_source(
+                response = self.get_user_via_cache(
                     active.session.endpoint.clone(),
                     user_id.to_string(),
                     false,
                     false,
                     Some(true),
-                    Some(RealtimeProjectionSource::FriendProfileBulkLoad),
                 ) => response,
             };
             match response {
@@ -395,7 +333,7 @@ impl RealtimeHostRuntime {
                 bulk.failed = bulk.failed.saturating_add(1);
             }
         }
-        self.emit_friend_profile_bulk_load_status(false);
+        self.emit_friend_profile_bulk_load_status();
         true
     }
 
@@ -405,56 +343,33 @@ impl RealtimeHostRuntime {
         active: ActiveRealtimeContext,
         targets: Vec<String>,
     ) {
-        let index = Arc::new(AtomicUsize::new(0));
-        let targets = Arc::new(targets);
-        let next_request_at = Arc::new(tokio::sync::Mutex::new(tokio::time::Instant::now()));
-        let workers = FRIEND_PROFILE_BULK_LOAD_CONCURRENCY.min(targets.len().max(1));
-
-        stream::iter(0..workers)
-            .for_each_concurrent(workers, |_| {
-                let runtime = Arc::clone(&self);
-                let index = Arc::clone(&index);
-                let targets = Arc::clone(&targets);
-                let next_request_at = Arc::clone(&next_request_at);
-                let active = active.clone();
-                async move {
-                    let mut cancel_rx = runtime.friend_profile_bulk_cancel_tx.subscribe();
-                    loop {
-                        tokio::task::yield_now().await;
-                        let next = index.fetch_add(1, Ordering::SeqCst);
-                        let Some(user_id) = targets.get(next) else {
-                            return;
-                        };
-                        if !runtime.friend_profile_bulk_load_is_current(run_id, &active) {
-                            return;
-                        }
-                        if !wait_for_friend_profile_bulk_load_request_slot(
-                            run_id,
-                            &mut cancel_rx,
-                            &next_request_at,
-                        )
-                        .await
-                        {
-                            return;
-                        }
-                        if !runtime.friend_profile_bulk_load_is_current(run_id, &active) {
-                            return;
-                        }
-                        let Some((loaded, failed)) = runtime
-                            .load_friend_profile_bulk_item(run_id, &active, user_id, &mut cancel_rx)
-                            .await
-                        else {
-                            return;
-                        };
-                        if !runtime.friend_profile_bulk_load_record_progress(
-                            run_id, &active, loaded, failed,
-                        ) {
-                            return;
-                        }
-                    }
+        let mut cancel_rx = self.friend_profile_bulk_cancel_tx.subscribe();
+        for (index, user_id) in targets.iter().enumerate() {
+            if !self.friend_profile_bulk_load_is_current(run_id, &active) {
+                break;
+            }
+            if index > 0 {
+                tokio::select! {
+                    biased;
+                    _ = wait_for_friend_profile_bulk_load_cancel(run_id, &mut cancel_rx) => break,
+                    _ = tokio::time::sleep(Duration::from_millis(
+                        FRIEND_PROFILE_BULK_LOAD_REQUEST_INTERVAL_MS,
+                    )) => {}
                 }
-            })
-            .await;
+                if !self.friend_profile_bulk_load_is_current(run_id, &active) {
+                    break;
+                }
+            }
+            let Some((loaded, failed)) = self
+                .load_friend_profile_bulk_item(run_id, &active, user_id, &mut cancel_rx)
+                .await
+            else {
+                break;
+            };
+            if !self.friend_profile_bulk_load_record_progress(run_id, &active, loaded, failed) {
+                break;
+            }
+        }
 
         self.finish_friend_profile_bulk_load(run_id, &active);
     }
@@ -487,7 +402,7 @@ impl RealtimeHostRuntime {
                 };
             bulk.finished_at = Some(chrono::Utc::now().to_rfc3339());
         }
-        self.emit_friend_profile_bulk_load_status(true);
+        self.emit_friend_profile_bulk_load_status();
     }
 }
 
@@ -535,24 +450,5 @@ async fn wait_for_friend_profile_bulk_load_cancel(
         if cancel_rx.changed().await.is_err() {
             return;
         }
-    }
-}
-
-async fn wait_for_friend_profile_bulk_load_request_slot(
-    run_id: u64,
-    cancel_rx: &mut tokio::sync::watch::Receiver<u64>,
-    next_request_at: &tokio::sync::Mutex<tokio::time::Instant>,
-) -> bool {
-    let scheduled_at = tokio::select! {
-        biased;
-        _ = wait_for_friend_profile_bulk_load_cancel(run_id, cancel_rx) => return false,
-        mut next = next_request_at.lock() => {
-            reserve_friend_profile_bulk_load_request_slot(tokio::time::Instant::now(), &mut next)
-        }
-    };
-    tokio::select! {
-        biased;
-        _ = wait_for_friend_profile_bulk_load_cancel(run_id, cancel_rx) => false,
-        _ = tokio::time::sleep_until(scheduled_at) => true,
     }
 }

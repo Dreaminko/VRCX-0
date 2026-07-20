@@ -1,11 +1,12 @@
 use super::friend_profile_bulk_load::{
     friend_profile_bulk_load_backoff_delay_ms, friend_profile_bulk_load_initial_progress,
-    reserve_friend_profile_bulk_load_request_slot, select_friend_profile_bulk_load_targets,
-    should_emit_friend_profile_bulk_load_progress, FriendProfileBulkLoadStatus,
+    select_friend_profile_bulk_load_targets, FriendProfileBulkLoadStatus,
 };
 use super::state::ActiveRealtimeContext;
 use super::test_support::*;
 use super::*;
+use crate::realtime::user_query_cache::UserQueryKind;
+use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 use vrcx_0_application_core::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
 
 #[derive(Clone, Copy)]
@@ -79,50 +80,6 @@ fn initial_progress_counts_preloaded_friends_in_the_full_roster() {
         friend_profile_bulk_load_initial_progress(170, 118),
         (170, 52)
     );
-}
-
-#[test]
-fn request_slots_are_globally_spaced_across_workers() {
-    let start = tokio::time::Instant::now();
-    let mut next_request_at = start;
-    assert_eq!(
-        reserve_friend_profile_bulk_load_request_slot(start, &mut next_request_at),
-        start
-    );
-    assert_eq!(
-        reserve_friend_profile_bulk_load_request_slot(
-            start + Duration::from_millis(10),
-            &mut next_request_at,
-        ),
-        start + Duration::from_millis(1_000)
-    );
-    assert_eq!(next_request_at, start + Duration::from_millis(2_000));
-}
-
-#[test]
-fn progress_throttle_always_emits_terminal_and_first_events() {
-    assert!(should_emit_friend_profile_bulk_load_progress(
-        true, 1, 0, 1_000, 900
-    ));
-    assert!(should_emit_friend_profile_bulk_load_progress(
-        false, 1, 0, 1_000, 0
-    ));
-}
-
-#[test]
-fn progress_throttle_gates_on_interval_or_processed_delta() {
-    // Neither the 250ms interval nor the 10-item delta has elapsed: skip.
-    assert!(!should_emit_friend_profile_bulk_load_progress(
-        false, 5, 0, 1_100, 1_000
-    ));
-    // Interval elapsed: emit.
-    assert!(should_emit_friend_profile_bulk_load_progress(
-        false, 5, 0, 1_260, 1_000
-    ));
-    // Processed delta elapsed: emit.
-    assert!(should_emit_friend_profile_bulk_load_progress(
-        false, 10, 0, 1_100, 1_000
-    ));
 }
 
 #[test]
@@ -367,9 +324,120 @@ fn session_replacement_cancels_old_run_without_blocking_the_new_owner() -> Resul
 }
 
 #[test]
-fn bulk_profile_refresh_marks_only_its_own_projections() -> Result<()> {
+fn bulk_profile_refresh_applies_when_friend_sequence_matches() -> Result<()> {
     let (_dir, runtime, active_session) =
-        runtime_with_active_session("friend-profile-bulk-load-projection-source")?;
+        runtime_with_active_session("friend-profile-bulk-load-refresh")?;
+    runtime.friends.set_baseline(
+        vrcx_0_core::friends::FriendRosterBaseline {
+            current_user_id: active_session.user_id.clone(),
+            endpoint: active_session.endpoint.clone(),
+            websocket: active_session.websocket.clone(),
+            friends_by_id: {
+                let mut map = HashMap::new();
+                map.insert(
+                    "usr_friend".to_string(),
+                    friend_record(json!({"id": "usr_friend", "displayName": "Friend"})),
+                );
+                map
+            },
+        },
+        7,
+        1,
+    );
+    let expected_sequence = runtime
+        .friends
+        .friend_state_sequence_for_user(7, "usr_friend")
+        .expect("friend should have a causal sequence");
+
+    assert!(runtime.apply_friend_profile_refresh(
+        active_session.endpoint.clone(),
+        "usr_friend".to_string(),
+        json!({
+            "id": "usr_friend",
+            "displayName": "Friend",
+            "state": "offline",
+            "status": "active",
+            "date_joined": "2026-01-01"
+        }),
+        Some(expected_sequence),
+    )?);
+
+    let events = runtime.deps.event_bus.take_events_for_test();
+    for event_name in ["realtimeUserProjection", "realtimeFriendProjection"] {
+        assert!(events.iter().any(|event| event.name == event_name));
+    }
+    Ok(())
+}
+
+#[test]
+fn bulk_profile_refresh_is_discarded_when_friend_sequence_advanced() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("friend-profile-bulk-load-refresh-stale")?;
+    runtime.friends.set_baseline(
+        vrcx_0_core::friends::FriendRosterBaseline {
+            current_user_id: active_session.user_id.clone(),
+            endpoint: active_session.endpoint.clone(),
+            websocket: active_session.websocket.clone(),
+            friends_by_id: {
+                let mut map = HashMap::new();
+                map.insert(
+                    "usr_friend".to_string(),
+                    friend_record(json!({"id": "usr_friend", "displayName": "Friend"})),
+                );
+                map
+            },
+        },
+        7,
+        1,
+    );
+    let stale_sequence = runtime
+        .friends
+        .friend_state_sequence_for_user(7, "usr_friend")
+        .expect("friend should have a causal sequence");
+
+    // A websocket update advances the friend-state sequence past the captured one.
+    runtime.handle_active_friend_ws_message_for_test(&RealtimeWsMessagePayload {
+        json: json!({
+            "type": "friend-update",
+            "content": {
+                "userId": "usr_friend",
+                "user": {
+                    "id": "usr_friend",
+                    "displayName": "Friend",
+                    "state": "online",
+                    "status": "join me",
+                    "statusDescription": "live"
+                }
+            }
+        }),
+        raw: "{}".into(),
+        received_at: "2026-05-15T00:00:01Z".into(),
+    });
+
+    assert!(!runtime.apply_friend_profile_refresh(
+        active_session.endpoint.clone(),
+        "usr_friend".to_string(),
+        json!({
+            "id": "usr_friend",
+            "displayName": "Friend",
+            "state": "offline",
+            "status": "active",
+            "statusDescription": "stale"
+        }),
+        Some(stale_sequence),
+    )?);
+
+    let snapshot = runtime.friend_snapshot().unwrap();
+    let friend = &snapshot.friends_by_id["usr_friend"];
+    assert_eq!(friend.status, "join me");
+    assert_eq!(friend.status_description, "live");
+    Ok(())
+}
+
+#[tokio::test]
+async fn cached_user_response_is_not_replayed_into_friend_state() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("friend-profile-cached-response-no-replay")?;
     runtime.friends.set_baseline(
         vrcx_0_core::friends::FriendRosterBaseline {
             current_user_id: active_session.user_id.clone(),
@@ -388,27 +456,62 @@ fn bulk_profile_refresh_marks_only_its_own_projections() -> Result<()> {
         1,
     );
 
-    assert!(runtime.apply_friend_profile_refresh_with_source(
-        active_session.endpoint,
-        "usr_friend".to_string(),
-        json!({
-            "id": "usr_friend",
-            "displayName": "Friend",
-            "state": "offline",
-            "status": "active",
-            "date_joined": "2026-01-01"
+    runtime.handle_active_friend_ws_message_for_test(&RealtimeWsMessagePayload {
+        json: json!({
+            "type": "friend-update",
+            "content": {
+                "userId": "usr_friend",
+                "user": {
+                    "id": "usr_friend",
+                    "displayName": "Friend",
+                    "state": "online",
+                    "status": "join me",
+                    "statusDescription": "live"
+                }
+            }
         }),
-        Some(RealtimeProjectionSource::FriendProfileBulkLoad),
-    )?);
+        raw: "{}".into(),
+        received_at: "2026-05-15T00:00:01Z".into(),
+    });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
-    for event_name in ["realtimeUserProjection", "realtimeFriendProjection"] {
-        let event = events
-            .iter()
-            .find(|event| event.name == event_name)
-            .unwrap();
-        assert_eq!(event.payload["source"], "friendProfileBulkLoad");
-    }
+    let stale_profile = json!({
+        "id": "usr_friend",
+        "displayName": "Friend",
+        "state": "offline",
+        "status": "active",
+        "statusDescription": "stale"
+    });
+    let canned = std::sync::Arc::new(VrchatApiResponse {
+        status: 200,
+        data: stale_profile.to_string(),
+        raw: serde_json::Value::Null,
+    });
+    runtime
+        .user_query_cache
+        .get_or_fetch(
+            UserQueryKind::from_request(false, Some(true)),
+            &active_session.endpoint,
+            "usr_friend",
+            async move { Ok(canned) },
+        )
+        .await
+        .expect("priming the user query cache should succeed");
+
+    let response = runtime
+        .get_user_via_cache(
+            active_session.endpoint.clone(),
+            "usr_friend".to_string(),
+            false,
+            false,
+            Some(true),
+        )
+        .await?;
+    assert_eq!(response.status, 200);
+
+    let snapshot = runtime.friend_snapshot().unwrap();
+    let friend = &snapshot.friends_by_id["usr_friend"];
+    assert_eq!(friend.status, "join me");
+    assert_eq!(friend.status_description, "live");
     Ok(())
 }
 

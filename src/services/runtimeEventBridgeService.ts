@@ -16,10 +16,7 @@ import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
 import { handleAppUpdateStatusEvent } from './backgroundMaintenanceUpdateService';
 import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
-import {
-    applyFriendProfileLoadStatusPayload,
-    isFriendProfileLoadTerminalStatus
-} from './friendProfileLoadService';
+import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
 import { getCurrentProfileBackupStatus } from './profileBackupService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
@@ -30,7 +27,6 @@ import {
     requestGroupInstancesRefresh
 } from './runtime-event-bridge/auxiliaryEventHandlers';
 import {
-    flushFriendProfileProjectionBatch,
     flushPendingBackendRealtimeProjectionEvents,
     handleBackendRealtimeProjectionEvent,
     prunePendingBackendRealtimeProjectionEvents,
@@ -101,9 +97,6 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
     }
 
     if (event.name === 'friendProfileLoadStatus') {
-        if (isFriendProfileLoadTerminalStatus(event.payload.status)) {
-            flushFriendProfileProjectionBatch();
-        }
         runtimeStore.recordRuntimeEvent(event.name, event.payload);
         applyFriendProfileLoadStatusPayload(event.payload);
         return;

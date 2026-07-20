@@ -410,16 +410,6 @@ impl RealtimeFriendsRuntime {
         RealtimeFriendApplyResult::Output(Box::new(output))
     }
 
-    pub fn apply_refetched_user_profile(
-        &self,
-        generation: u64,
-        user_id: &str,
-        profile: serde_json::Value,
-        received_at: &str,
-    ) -> RealtimeFriendApplyResult {
-        self.apply_refetched_user_profile_inner(generation, user_id, None, profile, received_at)
-    }
-
     pub(crate) fn apply_refetched_user_profile_if_sequence(
         &self,
         generation: u64,

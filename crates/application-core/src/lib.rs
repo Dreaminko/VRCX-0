@@ -47,8 +47,7 @@ pub use events::{
     FriendProjectionPatch, PrintAutoCleanupEvent, RealtimeCurrentUserProjection,
     RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
     RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
-    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeProjectionSource,
-    RealtimeUserProjection,
+    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeUserProjection,
 };
 pub use image_cache::{save_ugc_image_to_file, ImageCache};
 pub use interruptible_sleep::sleep_interruptibly;

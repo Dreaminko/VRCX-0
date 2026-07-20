@@ -211,9 +211,9 @@ pub use vrcx_0_application_realtime::{
     RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
     RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
     RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
-    RealtimeNotificationUpsert, RealtimeProjectionSource, RealtimeSessionContext,
-    RealtimeStopRequest, RealtimeTransportStartResult, RealtimeWsMessagePayload,
-    RealtimeWsStatusPayload, SyntheticFriendEventOutcome,
+    RealtimeNotificationUpsert, RealtimeSessionContext, RealtimeStopRequest,
+    RealtimeTransportStartResult, RealtimeWsMessagePayload, RealtimeWsStatusPayload,
+    SyntheticFriendEventOutcome,
 };
 
 pub use vrcx_0_application_core::Result;

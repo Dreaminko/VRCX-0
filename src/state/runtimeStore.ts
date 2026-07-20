@@ -44,8 +44,7 @@ export type FriendProfileLoadStatus =
     | 'running'
     | 'cancelling'
     | 'completed'
-    | 'cancelled'
-    | 'error';
+    | 'cancelled';
 
 export type FriendProfileLoadState = Record<string, unknown> & {
     runId: number;
@@ -61,7 +60,6 @@ export type FriendProfileLoadState = Record<string, unknown> & {
     startedAt: string | null;
     updatedAt: string | null;
     finishedAt: string | null;
-    lastError: string | null;
 };
 
 type InstanceQueueState = Record<string, unknown> & {
@@ -321,8 +319,7 @@ function createFriendProfileLoadState(): FriendProfileLoadState {
         dialogOpen: false,
         startedAt: null,
         updatedAt: null,
-        finishedAt: null,
-        lastError: null
+        finishedAt: null
     };
 }
 

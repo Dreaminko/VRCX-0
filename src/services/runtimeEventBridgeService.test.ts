@@ -148,8 +148,7 @@ function createBackendRuntimeSnapshot(): BackendRuntimeSnapshot {
             loaded: 0,
             failed: 0,
             startedAt: '',
-            finishedAt: null,
-            lastError: null
+            finishedAt: null
         }
     };
 }
@@ -406,7 +405,7 @@ describe('runtimeEventBridgeService', () => {
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });
 
-    it('cleans subscriptions and pending batches when deep-link startup fails', async () => {
+    it('cleans subscriptions when deep-link startup fails', async () => {
         vi.useFakeTimers();
         const handlers = new Map<string, (payload: unknown) => void>();
         const runtimeUnsubscribe = vi.fn();
@@ -415,19 +414,7 @@ describe('runtimeEventBridgeService', () => {
             return Promise.resolve(runtimeUnsubscribe);
         });
         mocks.bindDeepLinkEvents.mockImplementation(async () => {
-            setBackendRealtimeOwner({
-                friendProfileLoadStatus: 'running'
-            });
-            handlers.get('realtimeUserProjection')?.({
-                source: 'friendProfileBulkLoad',
-                users: [
-                    {
-                        id: 'usr_pending',
-                        endpoint: 'api.vrchat.cloud',
-                        displayName: 'Pending Friend'
-                    }
-                ]
-            });
+            setBackendRealtimeOwner();
             return mocks.deepLinkUnsubscribe;
         });
         mocks.drainPendingDeepLinks.mockRejectedValue(
@@ -776,245 +763,55 @@ describe('runtimeEventBridgeService', () => {
         secondBinding.cleanup();
     });
 
-    it('batches friend profile projections into one store update', async () => {
-        vi.useFakeTimers();
-        const { handlers, cleanup } = await bindCapturedRuntimeEvents();
-        setBackendRealtimeOwner({
-            friendProfileLoadStatus: 'running'
-        });
-        let rosterUpdates = 0;
-        let userFactUpdates = 0;
-        const unsubscribeRoster = useFriendRosterStore.subscribe(() => {
-            rosterUpdates += 1;
-        });
-        const unsubscribeUserFacts = useUserFactsStore.subscribe(() => {
-            userFactUpdates += 1;
-        });
-
-        for (const userId of ['usr_a', 'usr_b']) {
-            handlers.get('realtimeUserProjection')?.({
-                source: 'friendProfileBulkLoad',
-                users: [
-                    {
-                        id: userId,
-                        endpoint: 'api.vrchat.cloud',
-                        displayName: userId
-                    }
-                ]
-            });
-            handlers.get('realtimeFriendProjection')?.({
-                generation: 1,
-                baselineRevision: 1,
-                source: 'friendProfileBulkLoad',
-                patches: [
-                    {
-                        userId,
-                        patch: {
-                            id: userId,
-                            displayName: userId,
-                            state: 'offline'
-                        },
-                        stateBucket: 'offline',
-                        stateBucketAuthority: 'preserve'
-                    }
-                ],
-                removals: [],
-                feedEntries: [],
-                friendLogChanged: false
-            });
-        }
-
-        expect(rosterUpdates).toBe(0);
-        expect(userFactUpdates).toBe(0);
-        await vi.advanceTimersByTimeAsync(9_999);
-        expect(rosterUpdates).toBe(0);
-        expect(userFactUpdates).toBe(0);
-        await vi.advanceTimersByTimeAsync(1);
-        expect(rosterUpdates).toBe(1);
-        expect(userFactUpdates).toBe(1);
-        expect(
-            Object.keys(useFriendRosterStore.getState().friendsById)
-        ).toEqual(['usr_a', 'usr_b']);
-
-        unsubscribeRoster();
-        unsubscribeUserFacts();
-        cleanup();
-    });
-
-    it('drops pending friend profile projections during unbind', async () => {
-        vi.useFakeTimers();
-        const { handlers, cleanup } = await bindCapturedRuntimeEvents();
-        setBackendRealtimeOwner({
-            friendProfileLoadStatus: 'running'
-        });
-
-        handlers.get('realtimeUserProjection')?.({
-            source: 'friendProfileBulkLoad',
-            users: [
-                {
-                    id: 'usr_pending',
-                    endpoint: 'api.vrchat.cloud',
-                    displayName: 'Pending Friend'
-                }
-            ]
-        });
-        cleanup();
-        await vi.advanceTimersByTimeAsync(10_000);
-
-        expect(useUserFactsStore.getState().usersByKey).toEqual({});
-    });
-
     it.each(['running', 'cancelling'] as const)(
-        'applies normal realtime projections immediately while profile loading is %s',
+        'delivers friend profile projections immediately while profile loading is %s',
         async (status) => {
-            vi.useFakeTimers();
             const { handlers, cleanup } = await bindCapturedRuntimeEvents();
             setBackendRealtimeOwner({
                 friendProfileLoadStatus: status
             });
 
-            handlers.get('realtimeUserProjection')?.({
-                source: 'friendProfileBulkLoad',
-                users: [
-                    {
-                        id: 'usr_bulk',
-                        endpoint: 'api.vrchat.cloud',
-                        displayName: 'Bulk Friend'
-                    }
-                ]
-            });
-            handlers.get('realtimeFriendProjection')?.({
-                generation: 1,
-                baselineRevision: 1,
-                source: 'friendProfileBulkLoad',
-                patches: [
-                    {
-                        userId: 'usr_bulk',
-                        patch: {
-                            id: 'usr_bulk',
-                            displayName: 'Bulk Friend'
-                        },
-                        stateBucket: 'offline',
-                        stateBucketAuthority: 'preserve'
-                    }
-                ],
-                removals: [],
-                feedEntries: [],
-                friendLogChanged: false
-            });
-            expect(useFriendRosterStore.getState().friendsById).toEqual({});
-            expect(useUserFactsStore.getState().usersByKey).toEqual({});
-
-            handlers.get('realtimeUserProjection')?.({
-                users: [
-                    {
-                        id: 'usr_live',
-                        endpoint: 'api.vrchat.cloud',
-                        displayName: 'Live Friend'
-                    }
-                ]
-            });
-            handlers.get('realtimeFriendProjection')?.({
-                generation: 1,
-                baselineRevision: 1,
-                patches: [
-                    {
-                        userId: 'usr_live',
-                        patch: {
-                            id: 'usr_live',
-                            displayName: 'Live Friend',
-                            status: 'offline'
-                        },
-                        stateBucket: 'online',
-                        stateBucketAuthority: 'preserve'
-                    }
-                ],
-                removals: [],
-                feedEntries: [],
-                friendLogChanged: false
-            });
+            for (const userId of ['usr_a', 'usr_b']) {
+                handlers.get('realtimeUserProjection')?.({
+                    users: [
+                        {
+                            id: userId,
+                            endpoint: 'api.vrchat.cloud',
+                            displayName: userId
+                        }
+                    ]
+                });
+                handlers.get('realtimeFriendProjection')?.({
+                    generation: 1,
+                    baselineRevision: 1,
+                    patches: [
+                        {
+                            userId,
+                            patch: {
+                                id: userId,
+                                displayName: userId,
+                                state: 'offline'
+                            },
+                            stateBucket: 'offline',
+                            stateBucketAuthority: 'preserve'
+                        }
+                    ],
+                    removals: [],
+                    feedEntries: [],
+                    friendLogChanged: false
+                });
+            }
 
             expect(
                 Object.keys(useFriendRosterStore.getState().friendsById)
-            ).toEqual(['usr_bulk', 'usr_live']);
+            ).toEqual(['usr_a', 'usr_b']);
             expect(
                 Object.values(useUserFactsStore.getState().usersByKey).map(
                     (user) => user.id
                 )
-            ).toEqual(['usr_bulk', 'usr_live']);
-            await vi.advanceTimersByTimeAsync(10_000);
-            expect(
-                Object.keys(useFriendRosterStore.getState().friendsById)
-            ).toEqual(['usr_bulk', 'usr_live']);
+            ).toEqual(['usr_a', 'usr_b']);
 
             cleanup();
         }
     );
-
-    it('flushes pending friend profile projections when the load becomes terminal', async () => {
-        vi.useFakeTimers();
-        const { handlers, cleanup } = await bindCapturedRuntimeEvents();
-        setBackendRealtimeOwner({
-            friendProfileLoadStatus: 'running',
-            friendProfileLoadRunId: 100
-        });
-
-        handlers.get('realtimeUserProjection')?.({
-            source: 'friendProfileBulkLoad',
-            users: [
-                {
-                    id: 'usr_terminal',
-                    endpoint: 'api.vrchat.cloud',
-                    displayName: 'Terminal Friend'
-                }
-            ]
-        });
-        handlers.get('realtimeFriendProjection')?.({
-            generation: 1,
-            baselineRevision: 1,
-            source: 'friendProfileBulkLoad',
-            patches: [
-                {
-                    userId: 'usr_terminal',
-                    patch: {
-                        id: 'usr_terminal',
-                        displayName: 'Terminal Friend'
-                    },
-                    stateBucket: 'offline',
-                    stateBucketAuthority: 'preserve'
-                }
-            ],
-            removals: [],
-            feedEntries: [],
-            friendLogChanged: false
-        });
-        expect(useFriendRosterStore.getState().friendsById).toEqual({});
-
-        handlers.get('friendProfileLoadStatus')?.({
-            runId: 100,
-            status: 'cancelled',
-            total: 1,
-            processed: 0,
-            loaded: 0,
-            failed: 0,
-            startedAt: '2026-07-11T00:00:00.000Z',
-            finishedAt: '2026-07-11T00:00:01.000Z',
-            lastError: null
-        });
-
-        expect(
-            Object.keys(useFriendRosterStore.getState().friendsById)
-        ).toEqual(['usr_terminal']);
-        expect(
-            Object.values(useUserFactsStore.getState().usersByKey).map(
-                (user) => user.id
-            )
-        ).toEqual(['usr_terminal']);
-        await vi.advanceTimersByTimeAsync(10_000);
-        expect(
-            Object.keys(useFriendRosterStore.getState().friendsById)
-        ).toEqual(['usr_terminal']);
-
-        cleanup();
-    });
 });

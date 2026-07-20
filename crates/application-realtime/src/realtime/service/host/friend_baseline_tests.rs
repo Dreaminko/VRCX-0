@@ -1358,6 +1358,9 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
         friends_by_id,
     )?;
 
+    let friend_sequence = runtime
+        .friends
+        .friend_state_sequence_for_user(7, "usr_friend");
     let updated = runtime.apply_friend_profile_refresh(
         active_session.endpoint.clone(),
         "usr_friend".into(),
@@ -1367,7 +1370,11 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
             "state": "online",
             "location": "wrld_fresh:456"
         }),
+        friend_sequence,
     )?;
+    let stranger_sequence = runtime
+        .friends
+        .friend_state_sequence_for_user(7, "usr_stranger");
     let stranger_added = runtime.apply_friend_profile_refresh(
         active_session.endpoint.clone(),
         "usr_stranger".into(),
@@ -1376,6 +1383,7 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
             "displayName": "Stranger",
             "state": "online"
         }),
+        stranger_sequence,
     )?;
 
     let snapshot = runtime.friend_snapshot().unwrap();

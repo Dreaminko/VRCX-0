@@ -43,8 +43,8 @@ use crate::realtime::{
     RealtimeEntryCorrectionStream, RealtimeFriendApplyResult, RealtimeFriendOutput,
     RealtimeFriendSnapshot, RealtimeInstanceClosedOutput, RealtimeInstanceQueueProjection,
     RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeNotificationUpsert,
-    RealtimeProjectionSource, RealtimeSessionContext, RealtimeTransportLifecycleEvent,
-    RealtimeTransportStartResult, RealtimeTransportTermination, RealtimeWsStatusPayload,
+    RealtimeSessionContext, RealtimeTransportLifecycleEvent, RealtimeTransportStartResult,
+    RealtimeTransportTermination, RealtimeWsStatusPayload,
 };
 use crate::social_baseline::service::{
     reconcile_friend_roster_records, FriendRosterReconcileOutcome,
