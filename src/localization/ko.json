@@ -3499,7 +3499,9 @@
                 "visit_count": "방문 횟수",
                 "time_spent": "방문 시간",
                 "persistent_data": "영구 데이터",
-                "url": "VRChat 링크"
+                "url": "VRChat 링크",
+                "vrcx_url": "VRCX-0 링크",
+                "copy_vrcx_url": "VRCX-0 링크 복사"
             },
             "json": {
                 "header": "JSON"
@@ -3691,7 +3693,9 @@
                 "memo_placeholder": "-",
                 "listings": "목록",
                 "gallery": "갤러리",
-                "url": "VRChat 링크"
+                "url": "VRChat 링크",
+                "vrcx_url": "VRCX-0 링크",
+                "copy_vrcx_url": "VRCX-0 링크 복사"
             },
             "json": {
                 "header": "JSON"
