@@ -456,6 +456,61 @@ mod tests {
     }
 
     #[test]
+    fn stale_refetched_profile_does_not_revert_display_name() {
+        let runtime = runtime_with_online_status("active");
+        let refetch_sequence = runtime
+            .friend_state_sequence_for_user(1, "usr_friend")
+            .expect("friend should have a causal sequence");
+
+        let RealtimeFriendApplyResult::Output(rename) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-update",
+                    "content": {
+                        "userId": "usr_friend",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "Fresh Name",
+                            "state": "offline",
+                            "status": "active"
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:01Z".into(),
+            })
+        else {
+            panic!("websocket rename should produce an output");
+        };
+        assert_eq!(rename.persistence.friend_log_upserts.len(), 1);
+        assert_eq!(
+            rename.persistence.friend_log_upserts[0].display_name,
+            "Fresh Name"
+        );
+        assert!(rename.projection.friend_log_changed);
+
+        let result = runtime.apply_refetched_user_profile_if_sequence(
+            1,
+            "usr_friend",
+            refetch_sequence,
+            json!({
+                "id": "usr_friend",
+                "displayName": "Friend",
+                "state": "online",
+                "status": "active"
+            }),
+            "2026-05-15T00:00:02Z",
+        );
+
+        assert!(matches!(result, RealtimeFriendApplyResult::Ignored));
+        let snapshot = runtime.snapshot().unwrap();
+        assert_eq!(
+            snapshot.friends_by_id["usr_friend"].display_name,
+            "Fresh Name"
+        );
+    }
+
+    #[test]
     fn stale_refetched_profile_does_not_overwrite_newer_websocket_location() {
         let runtime = runtime_with_online_status("active");
         let refetch_sequence = runtime

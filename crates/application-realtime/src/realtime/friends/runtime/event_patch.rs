@@ -303,7 +303,8 @@ fn apply_friend_event_with_source(
                 .friends_by_id
                 .get(&user_id)
                 .cloned();
-            let patch = offline_like_patch(content, &user_id, next_state);
+            let mut patch = offline_like_patch(content, &user_id, next_state);
+            normalize_patch_trust(&mut patch, previous_record.as_ref());
             if let Some(previous) = previous_record
                 .as_ref()
                 .filter(|previous| is_online_state(previous))
@@ -311,6 +312,14 @@ fn apply_friend_event_with_source(
                 if state.pending_offline.contains_key(&user_id) {
                     return None;
                 }
+                record_profile_identity_change(
+                    &mut output,
+                    &user_id,
+                    &patch,
+                    previous_record.as_ref(),
+                    "online",
+                    now,
+                );
                 state.timer_token = state.timer_token.saturating_add(1);
                 let token = state.timer_token;
                 state.pending_offline.insert(
@@ -341,6 +350,14 @@ fn apply_friend_event_with_source(
                 };
             } else {
                 state.recent_gps.remove(&user_id);
+                record_profile_identity_change(
+                    &mut output,
+                    &user_id,
+                    &patch,
+                    previous_record.as_ref(),
+                    next_state,
+                    now,
+                );
                 apply_patch_to_state(state, &mut output, &user_id, patch, next_state, &now.iso);
             }
         }

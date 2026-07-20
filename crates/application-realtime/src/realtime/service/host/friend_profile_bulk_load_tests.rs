@@ -684,3 +684,84 @@ async fn cached_user_response_is_not_replayed_into_friend_state() -> Result<()> 
     assert_eq!(friend.status_description, "live");
     Ok(())
 }
+
+#[tokio::test]
+async fn cached_user_response_does_not_revert_display_name() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("friend-profile-cached-response-no-rename-flap")?;
+    runtime.friends.set_baseline(
+        vrcx_0_core::friends::FriendRosterBaseline {
+            current_user_id: active_session.user_id.clone(),
+            endpoint: active_session.endpoint.clone(),
+            websocket: active_session.websocket.clone(),
+            friends_by_id: {
+                let mut map = HashMap::new();
+                map.insert(
+                    "usr_friend".to_string(),
+                    friend_record(json!({"id": "usr_friend", "displayName": "Friend"})),
+                );
+                map
+            },
+        },
+        7,
+        1,
+    );
+
+    let rename_sequence = runtime
+        .friends
+        .friend_state_sequence_for_user(7, "usr_friend")
+        .expect("friend should have a causal sequence");
+    assert!(runtime.apply_friend_profile_refresh(
+        active_session.endpoint.clone(),
+        "usr_friend".to_string(),
+        json!({
+            "id": "usr_friend",
+            "displayName": "Fresh Name",
+            "state": "online",
+            "status": "active"
+        }),
+        FriendProfileRefreshExpectation {
+            generation: 7,
+            sequence: rename_sequence,
+        },
+    )?);
+
+    let stale_profile = json!({
+        "id": "usr_friend",
+        "displayName": "Friend",
+        "state": "online",
+        "status": "active"
+    });
+    let canned = std::sync::Arc::new(VrchatApiResponse {
+        status: 200,
+        data: stale_profile.to_string(),
+    });
+    runtime
+        .user_query_cache
+        .get_or_fetch(
+            UserQueryKind::from_request(false, Some(true)),
+            &active_session.endpoint,
+            "usr_friend",
+            async move { Ok(canned) },
+        )
+        .await
+        .expect("priming the user query cache should succeed");
+
+    let response = runtime
+        .get_user_via_cache(
+            active_session.endpoint.clone(),
+            "usr_friend".to_string(),
+            false,
+            false,
+            Some(true),
+        )
+        .await?;
+    assert_eq!(response.status, 200);
+
+    let snapshot = runtime.friend_snapshot().unwrap();
+    assert_eq!(
+        snapshot.friends_by_id["usr_friend"].display_name,
+        "Fresh Name"
+    );
+    Ok(())
+}
