@@ -12,7 +12,7 @@ import {
     ZoomOut
 } from 'lucide-react';
 import {
-    Fragment,
+    type PointerEvent as ReactPointerEvent,
     type ReactNode,
     useCallback,
     useEffect,
@@ -20,7 +20,12 @@ import {
     useRef,
     useState
 } from 'react';
-import Cropper, { type Area } from 'react-easy-crop';
+import Cropper, {
+    type Area,
+    type MediaSize,
+    type Point,
+    type Size
+} from 'react-easy-crop';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -47,15 +52,30 @@ import {
     TooltipTrigger
 } from '@/ui/shadcn/tooltip';
 
-import { buildMediaTransform, cropImage, prepareImage } from './imageCropUtils';
+import {
+    buildMediaTransform,
+    constrainCropToImage,
+    cropImage,
+    getRotationCoverZoom,
+    prepareImage
+} from './imageCropUtils';
 
 const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 5;
 const ZOOM_DEFAULT = 1;
 const ZOOM_FACTOR = 1.2;
-const LOG_ZOOM_MAX = Math.log(ZOOM_MAX);
+const ROTATION_DEGREES_PER_PIXEL = 0.35;
+const TRACKPAD_PAN_END_MS = 160;
+const TRACKPAD_PAN_THRESHOLD = 50;
 const TRANSFORM_TRANSITION_MS = 180;
 const TRANSFORM_TRANSITION = `transform 150ms cubic-bezier(0.23, 1, 0.32, 1)`;
+
+const ROTATION_HANDLES = [
+    ['top-0 left-0 rounded-tl-sm border-t-2 border-l-2', -1],
+    ['top-0 right-0 rounded-tr-sm border-t-2 border-r-2', 1],
+    ['bottom-0 left-0 rounded-bl-sm border-b-2 border-l-2', -1],
+    ['right-0 bottom-0 rounded-br-sm border-r-2 border-b-2', 1]
+] as const;
 
 const ASPECT_PRESETS: ReadonlyArray<readonly [number, number]> = [
     [1, 1],
@@ -76,6 +96,11 @@ function formatAspect(aspect: number): string {
 
 function normalizeRotation(rotation: number): number {
     return ((rotation % 360) + 360) % 360;
+}
+
+function normalizeSignedRotation(rotation: number): number {
+    const normalized = normalizeRotation(rotation);
+    return normalized > 180 ? normalized - 360 : normalized;
 }
 
 function prefersReducedMotion(): boolean {
@@ -135,6 +160,7 @@ export function ImageCropDialog({
     const originalImgRef = useRef<HTMLImageElement | null>(null);
     const previewScaleRef = useRef<number>(1);
     const cropWrapperRef = useRef<HTMLDivElement | null>(null);
+    const rotationInputRef = useRef<HTMLInputElement | null>(null);
 
     const [previewSrc, setPreviewSrc] = useState<string>('');
     const [previewPending, setPreviewPending] = useState(false);
@@ -142,6 +168,10 @@ export function ImageCropDialog({
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(ZOOM_DEFAULT);
     const [rotation, setRotation] = useState(0);
+    const [rotationEditing, setRotationEditing] = useState(false);
+    const [rotationInput, setRotationInput] = useState('');
+    const [mediaSize, setMediaSize] = useState<MediaSize | null>(null);
+    const [cropSize, setCropSize] = useState<Size | null>(null);
     const [flipH, setFlipH] = useState(false);
     const [flipV, setFlipV] = useState(false);
     const [fitWhole, setFitWhole] = useState(false);
@@ -156,6 +186,16 @@ export function ImageCropDialog({
     const transformAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
         null
     );
+    const rotationDragRef = useRef<{
+        pointerId: number;
+        startY: number;
+        startRotation: number;
+        direction: number;
+    } | null>(null);
+    const trackpadPanningRef = useRef(false);
+    const trackpadPanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+        null
+    );
 
     const resolvedTitle = title || t('message.image.label.crop_image');
     const resolvedDescription =
@@ -167,11 +207,23 @@ export function ImageCropDialog({
         cropWhiteBorderField?.defaultChecked !== false;
     const aspect = Number(aspectRatio) || 1;
 
-    // Fixed mode keeps the image covering the crop frame (min zoom == fill); only
-    // free mode lets it shrink below the frame, mirroring the original's
-    // image-restriction stencil/none split.
-    const minZoom = fitWhole ? ZOOM_MIN : ZOOM_DEFAULT;
+    // Keep the crop frame inside the image. Fit mode may show padding at exact
+    // quarter turns, while free rotation still needs the image to cover it.
+    const coverZoom =
+        mediaSize && cropSize
+            ? getRotationCoverZoom(mediaSize, cropSize, rotation)
+            : ZOOM_DEFAULT;
+    const hasFreeRotation =
+        Math.abs(rotation - Math.round(rotation / 90) * 90) > 0.01;
+    const constrainToImage = !fitWhole || hasFreeRotation;
+    const baseMinZoom = fitWhole ? ZOOM_MIN : ZOOM_DEFAULT;
+    const minZoom = constrainToImage
+        ? Math.max(baseMinZoom, coverZoom)
+        : baseMinZoom;
+    const maxZoom = Math.max(ZOOM_MAX, minZoom * ZOOM_FACTOR);
+    const effectiveZoom = Math.max(zoom, minZoom);
     const logZoomMin = Math.log(minZoom);
+    const logZoomMax = Math.log(maxZoom);
 
     const resetTransforms = useCallback(() => {
         setCrop({ x: 0, y: 0 });
@@ -180,11 +232,14 @@ export function ImageCropDialog({
         setFlipH(false);
         setFlipV(false);
         setFitWhole(false);
+        setRotationEditing(false);
     }, []);
 
     useEffect(() => {
         resetTransforms();
         setCroppedAreaPixels(null);
+        setMediaSize(null);
+        setCropSize(null);
         if (!open || !file || !validateImageUploadFile(file).ok) {
             setPreviewSrc('');
             setPreviewPending(false);
@@ -263,6 +318,9 @@ export function ImageCropDialog({
             if (transformAnimTimerRef.current) {
                 clearTimeout(transformAnimTimerRef.current);
             }
+            if (trackpadPanTimerRef.current) {
+                clearTimeout(trackpadPanTimerRef.current);
+            }
         };
     }, []);
 
@@ -277,6 +335,113 @@ export function ImageCropDialog({
             transformAnimTimerRef.current = null;
         }, TRANSFORM_TRANSITION_MS);
     }, []);
+
+    const startCornerRotation = useCallback(
+        (direction: number, event: ReactPointerEvent<HTMLSpanElement>) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (transformAnimTimerRef.current) {
+                clearTimeout(transformAnimTimerRef.current);
+                transformAnimTimerRef.current = null;
+            }
+            setTransformAnimating(false);
+            event.currentTarget.setPointerCapture(event.pointerId);
+            rotationDragRef.current = {
+                pointerId: event.pointerId,
+                startY: event.clientY,
+                startRotation: rotation,
+                direction
+            };
+        },
+        [rotation]
+    );
+
+    const moveCornerRotation = useCallback(
+        (event: ReactPointerEvent<HTMLSpanElement>) => {
+            const drag = rotationDragRef.current;
+            if (!drag || drag.pointerId !== event.pointerId) return;
+            event.preventDefault();
+            event.stopPropagation();
+            setRotation(
+                drag.startRotation +
+                    (event.clientY - drag.startY) *
+                        ROTATION_DEGREES_PER_PIXEL *
+                        drag.direction
+            );
+        },
+        []
+    );
+
+    const stopCornerRotation = useCallback(
+        (event: ReactPointerEvent<HTMLSpanElement>) => {
+            const drag = rotationDragRef.current;
+            if (!drag || drag.pointerId !== event.pointerId) return;
+            event.preventDefault();
+            event.stopPropagation();
+            rotationDragRef.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+            setRotation((value) => normalizeSignedRotation(value));
+        },
+        []
+    );
+
+    const limitCropPosition = useCallback(
+        (position: Point) =>
+            constrainToImage && mediaSize && cropSize
+                ? constrainCropToImage(
+                      position,
+                      mediaSize,
+                      cropSize,
+                      effectiveZoom,
+                      rotation
+                  )
+                : position,
+        [constrainToImage, cropSize, effectiveZoom, mediaSize, rotation]
+    );
+
+    const onCropChange = useCallback(
+        (position: Point) => setCrop(limitCropPosition(position)),
+        [limitCropPosition]
+    );
+
+    const onWheelRequest = useCallback(
+        (event: WheelEvent) => {
+            if (event.ctrlKey) {
+                trackpadPanningRef.current = false;
+                if (trackpadPanTimerRef.current) {
+                    clearTimeout(trackpadPanTimerRef.current);
+                    trackpadPanTimerRef.current = null;
+                }
+                return true;
+            }
+
+            const startsTrackpadPan =
+                event.deltaMode === 0 &&
+                (event.deltaX !== 0 ||
+                    Math.abs(event.deltaY) < TRACKPAD_PAN_THRESHOLD);
+            if (!trackpadPanningRef.current && !startsTrackpadPan) return true;
+
+            event.preventDefault();
+            trackpadPanningRef.current = true;
+            if (trackpadPanTimerRef.current) {
+                clearTimeout(trackpadPanTimerRef.current);
+            }
+            trackpadPanTimerRef.current = setTimeout(() => {
+                trackpadPanningRef.current = false;
+                trackpadPanTimerRef.current = null;
+            }, TRACKPAD_PAN_END_MS);
+            setCrop((current) =>
+                limitCropPosition({
+                    x: current.x - event.deltaX,
+                    y: current.y - event.deltaY
+                })
+            );
+            return false;
+        },
+        [limitCropPosition]
+    );
 
     const rotateBy = useCallback(
         (delta: number) => setRotation((r) => r + delta),
@@ -298,22 +463,21 @@ export function ImageCropDialog({
         triggerTransformAnim();
         setFlipV((v) => !v);
     }, [triggerTransformAnim]);
-    const zoomIn = useCallback(
-        () => setZoom((z) => Math.min(ZOOM_MAX, z * ZOOM_FACTOR)),
-        []
-    );
+    const zoomIn = useCallback(() => {
+        setZoom(Math.min(maxZoom, effectiveZoom * ZOOM_FACTOR));
+    }, [effectiveZoom, maxZoom]);
     const zoomOut = useCallback(
-        () => setZoom((z) => Math.max(minZoom, z / ZOOM_FACTOR)),
-        [minZoom]
+        () => setZoom(Math.max(minZoom, effectiveZoom / ZOOM_FACTOR)),
+        [effectiveZoom, minZoom]
     );
     const onZoomSlider = useCallback(
         (value: number | readonly number[]) => {
             const pct = (Array.isArray(value) ? value[0] : value) ?? 0;
             setZoom(
-                Math.exp(logZoomMin + (pct / 100) * (LOG_ZOOM_MAX - logZoomMin))
+                Math.exp(logZoomMin + (pct / 100) * (logZoomMax - logZoomMin))
             );
         },
-        [logZoomMin]
+        [logZoomMax, logZoomMin]
     );
     const toggleFit = useCallback(
         () =>
@@ -363,8 +527,16 @@ export function ImageCropDialog({
     }
 
     const mediaTransform = useMemo(
-        () => buildMediaTransform(crop.x, crop.y, rotation, flipH, flipV, zoom),
-        [crop.x, crop.y, rotation, flipH, flipV, zoom]
+        () =>
+            buildMediaTransform(
+                crop.x,
+                crop.y,
+                rotation,
+                flipH,
+                flipV,
+                effectiveZoom
+            ),
+        [crop.x, crop.y, rotation, flipH, flipV, effectiveZoom]
     );
 
     const cropperStyle = useMemo(
@@ -382,14 +554,31 @@ export function ImageCropDialog({
     );
     const toolsDisabled = !previewSrc || isConfirming;
     const zoomSliderValue =
-        ((Math.log(zoom) - logZoomMin) / (LOG_ZOOM_MAX - logZoomMin)) * 100;
-    const zoomPercent = Math.round(zoom * 100);
+        ((Math.log(effectiveZoom) - logZoomMin) / (logZoomMax - logZoomMin)) *
+        100;
+    const zoomPercent = Math.round(effectiveZoom * 100);
     const aspectLabel = formatAspect(aspect);
-    const rotationDisplay = normalizeRotation(rotation);
-    const hudExtras = [
-        rotationDisplay !== 0 ? `${rotationDisplay}°` : null,
-        flipH || flipV ? `${flipH ? 'H' : ''}${flipV ? 'V' : ''}` : null
-    ].filter(Boolean);
+    const rotationDisplay =
+        Math.round(normalizeSignedRotation(rotation) * 10) / 10;
+    const flipDisplay =
+        flipH || flipV ? `${flipH ? 'H' : ''}${flipV ? 'V' : ''}` : '';
+    const rotationLabel = t('dialog.image_crop.rotation_angle', {
+        defaultValue: 'Rotation angle'
+    });
+
+    function startRotationInput() {
+        setRotationInput(String(rotationDisplay));
+        setRotationEditing(true);
+    }
+
+    function commitRotationInput() {
+        const value = Number(rotationInput.trim());
+        if (rotationInput.trim() && Number.isFinite(value)) {
+            triggerTransformAnim();
+            setRotation(normalizeSignedRotation(value));
+        }
+        setRotationEditing(false);
+    }
 
     const tool = (
         onClick: () => void,
@@ -423,7 +612,17 @@ export function ImageCropDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-3xl">
+            <DialogContent
+                className="sm:max-w-3xl"
+                onPointerDownCapture={(event) => {
+                    if (
+                        rotationEditing &&
+                        event.target !== rotationInputRef.current
+                    ) {
+                        rotationInputRef.current?.blur();
+                    }
+                }}
+            >
                 <DialogHeader>
                     <DialogTitle>{resolvedTitle}</DialogTitle>
                     <DialogDescription>{resolvedDescription}</DialogDescription>
@@ -433,55 +632,144 @@ export function ImageCropDialog({
                     <div className="flex flex-col gap-4">
                         <div
                             ref={cropWrapperRef}
-                            className="bg-muted/40 ring-border/60 relative flex items-center justify-center overflow-hidden rounded-xl border shadow-inner ring-1 ring-inset"
-                            style={{ minHeight: '30vh' }}
+                            className="bg-muted/60 ring-border/60 relative flex items-center justify-center overflow-hidden rounded-xl border p-2 shadow-inner ring-1 ring-inset"
                         >
                             {previewSrc && cropperReady ? (
                                 <div
-                                    className="bg-background/60 animate-in fade-in-0 zoom-in-[0.98] relative overflow-hidden rounded-lg duration-200 ease-out motion-reduce:animate-none"
+                                    className="animate-in fade-in-0 zoom-in-[0.98] relative w-full overflow-hidden rounded-lg bg-neutral-950 duration-200 ease-out motion-reduce:animate-none"
                                     style={{
-                                        aspectRatio: String(aspect),
-                                        width: `min(100%, calc(50vh * ${aspect}))`
+                                        height: 'clamp(18rem, 50vh, 34rem)'
                                     }}
                                 >
                                     <Cropper
                                         image={previewSrc}
                                         crop={crop}
-                                        zoom={zoom}
+                                        zoom={effectiveZoom}
                                         rotation={rotation}
                                         aspect={aspect}
                                         minZoom={minZoom}
-                                        maxZoom={ZOOM_MAX}
-                                        objectFit={
-                                            fitWhole ? 'contain' : 'cover'
-                                        }
-                                        restrictPosition={!fitWhole}
+                                        maxZoom={maxZoom}
+                                        objectFit="contain"
+                                        restrictPosition={constrainToImage}
                                         showGrid
                                         zoomWithScroll
-                                        onCropChange={setCrop}
+                                        onWheelRequest={onWheelRequest}
+                                        onCropChange={onCropChange}
                                         onZoomChange={setZoom}
+                                        onRotationChange={setRotation}
+                                        setMediaSize={setMediaSize}
+                                        setCropSize={setCropSize}
                                         onCropComplete={onCropComplete}
+                                        onCropAreaChange={onCropComplete}
                                         transform={mediaTransform}
                                         style={cropperStyle}
+                                        cropperProps={{
+                                            'aria-label': t(
+                                                'dialog.image_crop.crop_area',
+                                                {
+                                                    defaultValue:
+                                                        'Image crop area. Drag a corner up or down to rotate.'
+                                                }
+                                            ),
+                                            children: ROTATION_HANDLES.map(
+                                                ([className, direction]) => (
+                                                    <span
+                                                        key={className}
+                                                        className={cn(
+                                                            'border-primary absolute z-10 size-5 cursor-ns-resize touch-none',
+                                                            className
+                                                        )}
+                                                        onPointerDown={(
+                                                            event
+                                                        ) =>
+                                                            startCornerRotation(
+                                                                direction,
+                                                                event
+                                                            )
+                                                        }
+                                                        onPointerMove={
+                                                            moveCornerRotation
+                                                        }
+                                                        onPointerUp={
+                                                            stopCornerRotation
+                                                        }
+                                                        onPointerCancel={
+                                                            stopCornerRotation
+                                                        }
+                                                    />
+                                                )
+                                            )
+                                        }}
                                     />
 
                                     <span className="bg-background/70 text-muted-foreground ring-border pointer-events-none absolute top-2 left-2 z-10 rounded-md px-2 py-0.5 font-mono text-[11px] leading-none ring-1 backdrop-blur-sm">
                                         {aspectLabel}
                                     </span>
-                                    {hudExtras.length > 0 ? (
-                                        <div className="bg-background/70 text-muted-foreground ring-border pointer-events-none absolute top-2 right-2 z-10 flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[11px] leading-none tabular-nums ring-1 backdrop-blur-sm">
-                                            {hudExtras.map((seg, index) => (
-                                                <Fragment key={seg}>
-                                                    {index > 0 ? (
-                                                        <span className="opacity-30">
-                                                            ·
-                                                        </span>
-                                                    ) : null}
-                                                    <span>{seg}</span>
-                                                </Fragment>
-                                            ))}
-                                        </div>
-                                    ) : null}
+                                    <div className="bg-background/70 text-muted-foreground ring-border absolute top-2 right-2 z-10 flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[11px] leading-none tabular-nums ring-1 backdrop-blur-sm">
+                                        {rotationEditing ? (
+                                            <span className="flex items-center">
+                                                <Input
+                                                    ref={rotationInputRef}
+                                                    autoFocus
+                                                    inputMode="decimal"
+                                                    value={rotationInput}
+                                                    onChange={(event) =>
+                                                        setRotationInput(
+                                                            event.target.value
+                                                        )
+                                                    }
+                                                    onFocus={(event) =>
+                                                        event.currentTarget.select()
+                                                    }
+                                                    onBlur={commitRotationInput}
+                                                    onKeyDown={(event) => {
+                                                        if (
+                                                            event.key ===
+                                                            'Enter'
+                                                        ) {
+                                                            event.preventDefault();
+                                                            event.stopPropagation();
+                                                            event.currentTarget.blur();
+                                                        } else if (
+                                                            event.key ===
+                                                            'Escape'
+                                                        ) {
+                                                            event.preventDefault();
+                                                            event.stopPropagation();
+                                                            setRotationEditing(
+                                                                false
+                                                            );
+                                                        }
+                                                    }}
+                                                    aria-label={rotationLabel}
+                                                    className="h-4 w-12 rounded-sm border-0 px-0.5 py-0 text-right font-mono text-[11px] shadow-none focus-visible:ring-1"
+                                                />
+                                                <span aria-hidden="true">
+                                                    °
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={startRotationInput}
+                                                aria-label={`${rotationLabel}: ${rotationDisplay}°`}
+                                                title={rotationLabel}
+                                                className="hover:text-foreground cursor-text rounded-sm outline-none focus-visible:ring-1"
+                                            >
+                                                {rotationDisplay}°
+                                            </button>
+                                        )}
+                                        {flipDisplay ? (
+                                            <>
+                                                <span className="pointer-events-none opacity-30">
+                                                    ·
+                                                </span>
+                                                <span className="pointer-events-none">
+                                                    {flipDisplay}
+                                                </span>
+                                            </>
+                                        ) : null}
+                                    </div>
                                 </div>
                             ) : previewPending || previewSrc ? (
                                 <div className="flex items-center justify-center">
