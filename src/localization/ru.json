@@ -2829,6 +2829,7 @@
             },
             "error": {
                 "world_details_unavailable": "Сведения о мире недоступны.",
+                "world_deleted": "This world has been deleted.",
                 "avatar_details_unavailable": "Сведения об аватаре недоступны."
             },
             "loading": {

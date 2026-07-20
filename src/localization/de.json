@@ -2827,6 +2827,7 @@
             },
             "error": {
                 "world_details_unavailable": "Welt-Details sind nicht verfügbar.",
+                "world_deleted": "This world has been deleted.",
                 "avatar_details_unavailable": "Avatar-Details sind nicht verfügbar."
             },
             "loading": {

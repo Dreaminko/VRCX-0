@@ -2772,6 +2772,7 @@
             },
             "error": {
                 "world_details_unavailable": "세계 세부 정보를 사용할 수 없습니다.",
+                "world_deleted": "This world has been deleted.",
                 "avatar_details_unavailable": "아바타 세부정보를 확인할 수 없습니다."
             },
             "loading": {

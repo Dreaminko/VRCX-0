@@ -10,12 +10,14 @@ function buildWorldItems({
     cachedWorldDetail,
     remoteWorldCacheFallbackDetail,
     remoteWorldDetail,
-    worldFactDetail
+    worldFactDetail,
+    worldAvailabilityById
 }: {
     cachedWorldDetail?: Record<string, unknown>;
     remoteWorldCacheFallbackDetail?: Record<string, unknown>;
     remoteWorldDetail?: Record<string, unknown>;
     worldFactDetail?: Record<string, unknown>;
+    worldAvailabilityById?: Record<string, string | undefined>;
 }) {
     return buildFavoriteRemoteItemsByGroup({
         kind: 'world',
@@ -73,6 +75,7 @@ function buildWorldItems({
         remoteGroupLabelByKey: {
             'world:group_0': 'Worlds'
         },
+        worldAvailabilityById: worldAvailabilityById || {},
         t: (key: string) => key
     })['world:group_0'];
 }
@@ -161,7 +164,7 @@ describe('favorites page data helpers', () => {
         ]);
     });
 
-    it('locks remote-missing worlds shown from the public DB fallback', () => {
+    it('keeps a conservative lock on remote-missing worlds from the public DB fallback until availability is known', () => {
         const items = buildWorldItems({
             remoteWorldCacheFallbackDetail: {
                 name: 'DB Public World',
@@ -175,6 +178,28 @@ describe('favorites page data helpers', () => {
                 id: 'wrld_favorite',
                 title: 'DB Public World',
                 isPrivate: true,
+                isDeleted: false,
+                isUnavailable: false
+            })
+        ]);
+    });
+
+    it('unlocks remote-missing worlds from the DB fallback once the probe confirms they are public', () => {
+        const items = buildWorldItems({
+            remoteWorldCacheFallbackDetail: {
+                name: 'DB Public World',
+                authorName: 'Birch',
+                releaseStatus: 'public'
+            },
+            worldAvailabilityById: { wrld_favorite: 'public' }
+        });
+
+        expect(items).toEqual([
+            expect.objectContaining({
+                id: 'wrld_favorite',
+                title: 'DB Public World',
+                isPrivate: false,
+                isDeleted: false,
                 isUnavailable: false
             })
         ]);
@@ -237,7 +262,7 @@ describe('favorites page data helpers', () => {
         ]);
     });
 
-    it('locks remote-missing worlds shown from the public cache', () => {
+    it('keeps a conservative lock on remote-missing worlds from the public cache until availability is known', () => {
         const items = buildWorldItems({
             cachedWorldDetail: {
                 name: 'Cached Public World',
@@ -251,6 +276,28 @@ describe('favorites page data helpers', () => {
                 id: 'wrld_favorite',
                 title: 'Cached Public World',
                 isPrivate: true,
+                isDeleted: false,
+                isUnavailable: false
+            })
+        ]);
+    });
+
+    it('unlocks remote-missing worlds from the cache once the probe confirms they are public', () => {
+        const items = buildWorldItems({
+            cachedWorldDetail: {
+                name: 'Cached Public World',
+                authorName: 'Cedar',
+                releaseStatus: 'public'
+            },
+            worldAvailabilityById: { wrld_favorite: 'public' }
+        });
+
+        expect(items).toEqual([
+            expect.objectContaining({
+                id: 'wrld_favorite',
+                title: 'Cached Public World',
+                isPrivate: false,
+                isDeleted: false,
                 isUnavailable: false
             })
         ]);
@@ -488,6 +535,69 @@ describe('favorites page data helpers', () => {
                 }),
                 isPrivate: false,
                 isUnavailable: false
+            })
+        ]);
+    });
+
+    it('marks a probed private world as private without treating it as a fallback lock', () => {
+        const items = buildWorldItems({
+            remoteWorldCacheFallbackDetail: {
+                name: 'Probed Private World',
+                authorName: 'Aspen'
+            },
+            worldAvailabilityById: {
+                wrld_favorite: 'private'
+            }
+        });
+
+        expect(items).toEqual([
+            expect.objectContaining({
+                id: 'wrld_favorite',
+                title: 'Probed Private World',
+                isPrivate: true,
+                isDeleted: false,
+                isUnavailable: false
+            })
+        ]);
+    });
+
+    it('shows a deleted world with its cached details and no lock icon', () => {
+        const items = buildWorldItems({
+            remoteWorldCacheFallbackDetail: {
+                name: 'Deleted World',
+                authorName: 'Birch',
+                releaseStatus: 'public'
+            },
+            worldAvailabilityById: {
+                wrld_favorite: 'deleted'
+            }
+        });
+
+        expect(items).toEqual([
+            expect.objectContaining({
+                id: 'wrld_favorite',
+                title: 'Deleted World',
+                isPrivate: false,
+                isDeleted: true,
+                isUnavailable: false
+            })
+        ]);
+    });
+
+    it('keeps a deleted world with no cache source in the unavailable state with deleted copy', () => {
+        const items = buildWorldItems({
+            worldAvailabilityById: {
+                wrld_favorite: 'deleted'
+            }
+        });
+
+        expect(items).toEqual([
+            expect.objectContaining({
+                id: 'wrld_favorite',
+                subtitle: 'view.favorites.error.world_deleted',
+                isPrivate: false,
+                isDeleted: true,
+                isUnavailable: true
             })
         ]);
     });

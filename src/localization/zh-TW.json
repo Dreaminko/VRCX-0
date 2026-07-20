@@ -2827,6 +2827,7 @@
             },
             "error": {
                 "world_details_unavailable": "世界詳細資訊無法使用。",
+                "world_deleted": "此世界已被刪除。",
                 "avatar_details_unavailable": "角色詳細資訊無法使用。"
             },
             "loading": {

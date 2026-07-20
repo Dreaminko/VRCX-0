@@ -43,6 +43,7 @@ export function useFavoritesViewData({
     selectedGroupKey,
     selectedSource,
     sortValue,
+    worldAvailabilityById,
     worldFactsById
 }: any) {
     const { t } = useTranslation();
@@ -120,6 +121,7 @@ export function useFavoritesViewData({
             localWorldDetailsById,
             localAvatarDetailsById,
             remoteGroupLabelByKey,
+            worldAvailabilityById,
             t
         });
     }, [
@@ -139,6 +141,7 @@ export function useFavoritesViewData({
         remoteGroups,
         sortValue,
         t,
+        worldAvailabilityById,
         worldFactsById
     ]);
 

@@ -2827,6 +2827,7 @@
             },
             "error": {
                 "world_details_unavailable": "Os detalhes do mundo estão indisponíveis.",
+                "world_deleted": "This world has been deleted.",
                 "avatar_details_unavailable": "Os detalhes do avatar estão indisponíveis."
             },
             "loading": {

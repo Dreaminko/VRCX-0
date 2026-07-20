@@ -30,6 +30,7 @@ export type FavoriteItem = {
     seedData?: unknown;
     isUnavailable?: boolean;
     isPrivate?: boolean;
+    isDeleted?: boolean;
     location?: string;
     orderIndex?: number;
     playerCount?: number;

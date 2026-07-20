@@ -2827,6 +2827,7 @@
             },
             "error": {
                 "world_details_unavailable": "世界详情不可用。",
+                "world_deleted": "该世界已被删除。",
                 "avatar_details_unavailable": "模型详情不可用。"
             },
             "loading": {

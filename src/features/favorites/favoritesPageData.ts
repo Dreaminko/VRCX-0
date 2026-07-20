@@ -140,13 +140,17 @@ function defaultFavoriteEntityTitle(kind: FavoriteKind, t: unknown) {
 function defaultFavoriteDetailSubtitle(
     kind: FavoriteKind,
     isUnavailable: boolean,
-    t: unknown
+    t: unknown,
+    isDeleted = false
 ) {
     const translate = resolveTranslator(t);
     if (kind === 'world') {
-        return isUnavailable
-            ? translate('view.favorites.error.world_details_unavailable')
-            : translate('view.favorites.loading.loading_world_details');
+        if (isUnavailable) {
+            return isDeleted
+                ? translate('view.favorites.error.world_deleted')
+                : translate('view.favorites.error.world_details_unavailable');
+        }
+        return translate('view.favorites.loading.loading_world_details');
     }
 
     return isUnavailable
@@ -374,6 +378,7 @@ export function buildFavoriteRemoteItemsByGroup({
     localWorldDetailsById = {},
     localAvatarDetailsById = {},
     remoteGroupLabelByKey,
+    worldAvailabilityById = {},
     t
 }: {
     kind: FavoriteKind;
@@ -392,6 +397,7 @@ export function buildFavoriteRemoteItemsByGroup({
     localWorldDetailsById?: FavoriteDetailMap;
     localAvatarDetailsById?: FavoriteDetailMap;
     remoteGroupLabelByKey?: Record<string, string | undefined>;
+    worldAvailabilityById?: Record<string, string | undefined>;
     t: unknown;
 }): FavoriteItemsByGroup {
     const translate = resolveTranslator(t);
@@ -468,16 +474,30 @@ export function buildFavoriteRemoteItemsByGroup({
 
         const displayDetail = liveDetail || fallbackDetail || null;
         const usedFallback = !liveDetail && Boolean(displayDetail);
+        const availabilityStatus =
+            kind === 'world' ? worldAvailabilityById[favoriteId] : undefined;
+        const isDeleted = availabilityStatus === 'deleted';
         const isUnavailable =
             remoteEntityDetailsStatus === 'ready' && !displayDetail;
+        const releaseStatusPrivate =
+            textValue(displayDetail?.releaseStatus) === 'private';
         const isPrivate =
-            textValue(displayDetail?.releaseStatus) === 'private' ||
-            usedFallback;
+            kind === 'world'
+                ? !isDeleted &&
+                  (releaseStatusPrivate ||
+                      availabilityStatus === 'private' ||
+                      (usedFallback && !availabilityStatus))
+                : releaseStatusPrivate || usedFallback;
         const playerCount = Number(displayDetail?.occupants) || 0;
         const authorName = textValue(displayDetail?.authorName);
         const subtitle =
             authorName ||
-            defaultFavoriteDetailSubtitle(kind, isUnavailable, translate);
+            defaultFavoriteDetailSubtitle(
+                kind,
+                isUnavailable,
+                translate,
+                isDeleted
+            );
 
         const imagePair = favoriteImagePair(displayDetail);
 
@@ -499,6 +519,7 @@ export function buildFavoriteRemoteItemsByGroup({
             seedData: displayDetail || null,
             ...imagePair,
             isPrivate,
+            isDeleted,
             isUnavailable,
             tags: stringArray(displayDetail?.tags),
             playerCount,

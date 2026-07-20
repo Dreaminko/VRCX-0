@@ -3,6 +3,7 @@ import {
     LockIcon,
     MoreHorizontalIcon,
     PersonStandingIcon,
+    Trash2Icon,
     TriangleAlertIcon,
     UserIcon
 } from 'lucide-react';
@@ -64,6 +65,7 @@ type FavoriteCardItem = {
     seedData?: FavoriteCardSeedData | null;
     groupLabel?: string;
     isPrivate?: boolean;
+    isDeleted?: boolean;
     isUnavailable?: boolean;
     titleColor?: string;
     travelingToLocation?: unknown;
@@ -181,13 +183,15 @@ const FavoriteCard = memo(function FavoriteCard({
         onAvatarSelect
     );
     const canUseWorldActions = Boolean(
-        item.kind === 'world' && !item.isUnavailable
+        item.kind === 'world' && !item.isUnavailable && !item.isDeleted
     );
     const worldFollowUpActionLabelKey = isGameRunning
         ? 'dialog.world.actions.new_instance_and_open_ingame'
         : 'dialog.world.actions.new_instance_and_self_invite';
-    const canCopyUnavailableWorldId = Boolean(
-        item.kind === 'world' && item.isUnavailable && item.id
+    const canCopyWorldId = Boolean(
+        item.kind === 'world' &&
+        (item.isUnavailable || item.isDeleted) &&
+        item.id
     );
     const hasCardActions = Boolean(
         canRemoveLocal ||
@@ -195,7 +199,7 @@ const FavoriteCard = memo(function FavoriteCard({
         canSelectAvatar ||
         item.kind === 'friend' ||
         canUseWorldActions ||
-        canCopyUnavailableWorldId
+        canCopyWorldId
     );
     const friendLocation = isFriendCard
         ? resolvePresenceLocation(item.seedData || item)
@@ -418,7 +422,7 @@ const FavoriteCard = memo(function FavoriteCard({
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                     ) : null}
-                    {canCopyUnavailableWorldId ? (
+                    {canCopyWorldId ? (
                         <DropdownMenuGroup>
                             <DropdownMenuItem
                                 onClick={() => {
@@ -467,8 +471,7 @@ const FavoriteCard = memo(function FavoriteCard({
         ) : null;
 
     if (isCoverTier) {
-        const showUnavailableCopyId =
-            item.isUnavailable && canCopyUnavailableWorldId;
+        const showUnavailableCopyId = item.isUnavailable && canCopyWorldId;
 
         return (
             <div
@@ -535,9 +538,13 @@ const FavoriteCard = memo(function FavoriteCard({
                             {t('dialog.avatar.actions.current_avatar')}
                         </span>
                     ) : null}
-                    {item.isPrivate ? (
+                    {item.isDeleted || item.isPrivate ? (
                         <span className="bg-background/80 absolute right-1.5 bottom-1.5 z-10 flex size-5 items-center justify-center rounded-full">
-                            <LockIcon className="text-muted-foreground size-3.5" />
+                            {item.isDeleted ? (
+                                <Trash2Icon className="text-muted-foreground size-3.5" />
+                            ) : (
+                                <LockIcon className="text-muted-foreground size-3.5" />
+                            )}
                         </span>
                     ) : null}
                 </div>
@@ -557,6 +564,8 @@ const FavoriteCard = memo(function FavoriteCard({
                         </UserHoverCard>
                         {item.isUnavailable ? (
                             <TriangleAlertIcon className="text-destructive size-4 shrink-0" />
+                        ) : item.isDeleted ? (
+                            <Trash2Icon className="text-muted-foreground size-4 shrink-0" />
                         ) : null}
                     </div>
                     {showUnavailableCopyId ? (
@@ -651,6 +660,8 @@ const FavoriteCard = memo(function FavoriteCard({
                     </UserHoverCard>
                     {item.isUnavailable ? (
                         <TriangleAlertIcon className="text-destructive size-4 shrink-0" />
+                    ) : item.isDeleted ? (
+                        <Trash2Icon className="text-muted-foreground size-4 shrink-0" />
                     ) : null}
                     {item.isPrivate ? (
                         <LockIcon className="text-muted-foreground size-4 shrink-0" />
