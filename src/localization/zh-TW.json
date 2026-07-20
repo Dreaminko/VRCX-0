@@ -4278,7 +4278,7 @@
             "empty_description": "重新整理此分類以載入可用物品。"
         },
         "image_crop": {
-            "crop_area": "裁剪區域。拖曳邊緣或角點可調整大小；拖曳角點稍外側可旋轉。",
+            "crop_area": "裁剪區域。拖曳邊緣或角點可調整大小；拖曳裁剪框上方的控制點可旋轉。",
             "rotate_left": "向左旋轉",
             "rotate_right": "向右旋轉",
             "rotation_angle": "旋轉角度",

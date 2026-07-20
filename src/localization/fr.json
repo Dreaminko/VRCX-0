@@ -4278,7 +4278,7 @@
             "empty_description": "Actualisez cette section pour charger les objets disponibles."
         },
         "image_crop": {
-            "crop_area": "Zone de recadrage. Faites glisser un bord ou un coin pour la redimensionner. Faites glisser juste à l’extérieur d’un coin pour faire pivoter l’image.",
+            "crop_area": "Zone de recadrage. Faites glisser un bord ou un coin pour la redimensionner. Faites glisser la poignée au-dessus du cadre pour faire pivoter l’image.",
             "rotate_left": "Pivoter à gauche",
             "rotate_right": "Pivoter à droite",
             "rotation_angle": "Angle de rotation",

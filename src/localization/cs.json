@@ -4280,7 +4280,7 @@
             "empty_description": "Obnovte tuto sekci pro načtení dostupných předmětů."
         },
         "image_crop": {
-            "crop_area": "Oblast ořezu. Přetažením okraje nebo rohu změníte její velikost. Přetažením těsně vně rohu obrázek otočíte.",
+            "crop_area": "Oblast ořezu. Přetažením okraje nebo rohu změníte její velikost. Obrázek otočíte přetažením úchytu nad rámečkem.",
             "rotate_left": "Otočit doleva",
             "rotate_right": "Otočit doprava",
             "rotation_angle": "Úhel otočení",

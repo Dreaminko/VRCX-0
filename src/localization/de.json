@@ -4278,7 +4278,7 @@
             "empty_description": "Aktualisiere diesen Bereich, um verfügbare Items zu laden."
         },
         "image_crop": {
-            "crop_area": "Zuschneidebereich. An einer Kante oder Ecke ziehen, um die Größe zu ändern. Knapp außerhalb einer Ecke ziehen, um das Bild zu drehen.",
+            "crop_area": "Zuschneidebereich. An einer Kante oder Ecke ziehen, um die Größe zu ändern. Zum Drehen den Griff oberhalb des Rahmens ziehen.",
             "rotate_left": "Nach links drehen",
             "rotate_right": "Nach rechts drehen",
             "rotation_angle": "Drehwinkel",
