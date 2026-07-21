@@ -94,6 +94,37 @@ fn snapshot_merges_block_and_mute_and_ignores_invalid_rows() -> Result<(), Error
 }
 
 #[test]
+fn snapshot_metadata_uses_latest_valid_created_row_regardless_of_input_order() -> Result<(), Error>
+{
+    let test_db = test_db("metadata-order")?;
+    let newer = remote_entry("block", "usr_target", "New Name", "2026-07-02T00:00:00Z");
+    let older = remote_entry("mute", "usr_target", "Old Name", "2026-07-01T00:00:00Z");
+
+    let first =
+        local_moderation_sync_snapshot(&test_db.db, "usr_owner_a".into(), vec![newer, older])?
+            .pop()
+            .expect("merged moderation");
+    let second = local_moderation_sync_snapshot(
+        &test_db.db,
+        "usr_owner_b".into(),
+        vec![
+            remote_entry("mute", "usr_target", "Old Name", "2026-07-01T00:00:00Z"),
+            remote_entry("block", "usr_target", "New Name", "2026-07-02T00:00:00Z"),
+        ],
+    )?
+    .pop()
+    .expect("merged moderation");
+
+    for row in [&first, &second] {
+        assert_eq!(row.updated_at, "2026-07-02T00:00:00Z");
+        assert_eq!(row.display_name, "New Name");
+        assert!(row.block);
+        assert!(row.mute);
+    }
+    Ok(())
+}
+
+#[test]
 fn snapshot_deletes_stale_rows_and_empty_snapshot_clears_owner() -> Result<(), Error> {
     let test_db = test_db("replacement")?;
     local_moderation_set(

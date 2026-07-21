@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -45,6 +46,14 @@ pub struct LocalModerationOutput {
     pub display_name: String,
     pub block: bool,
     pub mute: bool,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct ModerationMetadataCandidate {
+    created_at: DateTime<FixedOffset>,
+    created: String,
+    display_name: String,
+    kind: String,
 }
 
 pub fn local_moderation_list(
@@ -133,6 +142,7 @@ pub fn local_moderation_sync_snapshot(
     ensure_moderation_table(db, &user_prefix)?;
 
     let mut moderation_by_user_id: HashMap<String, LocalModerationOutput> = HashMap::new();
+    let mut metadata_by_user_id: HashMap<String, ModerationMetadataCandidate> = HashMap::new();
     for row in rows {
         if row.r#type != "block" && row.r#type != "mute" {
             continue;
@@ -145,19 +155,30 @@ pub fn local_moderation_sync_snapshot(
             .entry(target_user_id.clone())
             .or_insert_with(|| LocalModerationOutput {
                 user_id: target_user_id.clone(),
-                updated_at: if row.created.trim().is_empty() {
-                    now_iso()
-                } else {
-                    row.created.clone()
-                },
-                display_name: row.target_display_name.clone(),
+                updated_at: String::new(),
+                display_name: String::new(),
                 block: false,
                 mute: false,
             });
-        if !row.created.trim().is_empty() {
-            entry.updated_at = row.created.clone();
-        }
-        if !row.target_display_name.trim().is_empty() {
+        if let Ok(created_at) = DateTime::parse_from_rfc3339(row.created.trim()) {
+            let candidate = ModerationMetadataCandidate {
+                created_at,
+                created: row.created.clone(),
+                display_name: row.target_display_name.clone(),
+                kind: row.r#type.clone(),
+            };
+            if metadata_by_user_id
+                .get(&target_user_id)
+                .is_none_or(|current| candidate > *current)
+            {
+                entry.updated_at = candidate.created.clone();
+                entry.display_name = candidate.display_name.clone();
+                metadata_by_user_id.insert(target_user_id.clone(), candidate);
+            }
+        } else if !metadata_by_user_id.contains_key(&target_user_id)
+            && !row.target_display_name.trim().is_empty()
+            && row.target_display_name > entry.display_name
+        {
             entry.display_name = row.target_display_name.clone();
         }
         if row.r#type == "block" {
@@ -165,6 +186,11 @@ pub fn local_moderation_sync_snapshot(
         }
         if row.r#type == "mute" {
             entry.mute = true;
+        }
+    }
+    for entry in moderation_by_user_id.values_mut() {
+        if entry.updated_at.is_empty() {
+            entry.updated_at = now_iso();
         }
     }
 
