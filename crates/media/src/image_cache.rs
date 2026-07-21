@@ -47,6 +47,7 @@ impl ImageCache {
         std::fs::create_dir_all(&dir)?;
 
         let bytes = fetch_image().await?;
+        validate_image_bytes(&bytes)?;
         std::fs::write(&file_path, &bytes)?;
 
         self.clean_cache_if_needed();
@@ -95,6 +96,13 @@ impl ImageCache {
         for (path, _) in dirs.iter().skip(1000) {
             let _ = std::fs::remove_dir_all(path);
         }
+    }
+}
+
+fn validate_image_bytes(bytes: &[u8]) -> Result<(), Error> {
+    match vrcx_0_core::image_sniff::sniff_image_mime(bytes) {
+        Some(_) => Ok(()),
+        None => Err(Error::Custom("invalid image data".into())),
     }
 }
 
@@ -222,6 +230,30 @@ mod tests {
             }))?;
         assert_eq!(second, first);
         assert_eq!(std::fs::read(&second)?, SMALL_PNG);
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_fetch_is_not_persisted_as_an_image() -> Result<(), Error> {
+        let dir = TestDir::new("image-cache-invalid-fetch");
+        let cache_root = dir.path.join("ImageCache");
+        let cache = ImageCache::new(cache_root.clone())?;
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+
+        let result = runtime.block_on(cache.get_image_with_fetch("avatar-file", "1", || async {
+            Ok(b"<html>upstream error</html>".to_vec())
+        }));
+
+        assert!(result.is_err());
+        assert!(!cache_root.join("avatar-file").join("1.png").exists());
+
+        let recovered =
+            runtime.block_on(
+                cache.get_image_with_fetch("avatar-file", "1", || async { Ok(SMALL_PNG.to_vec()) }),
+            )?;
+        assert_eq!(std::fs::read(recovered)?, SMALL_PNG);
         Ok(())
     }
 }

@@ -202,7 +202,8 @@ impl PngFile {
         let file_len = self.file.seek(SeekFrom::End(0)).unwrap_or(0) as usize;
 
         for _ in 0..MAX_CHUNKS_TO_READ {
-            if pos >= file_len {
+            let remaining = file_len.saturating_sub(pos);
+            if remaining < CHUNK_NONDATA_SIZE {
                 break;
             }
             self.file.seek(SeekFrom::Start(pos as u64)).ok();
@@ -210,7 +211,7 @@ impl PngFile {
                 break;
             }
             let chunk_len = u32::from_be_bytes(buf4) as usize;
-            if chunk_len > file_len - pos - CHUNK_NONDATA_SIZE {
+            if chunk_len > remaining - CHUNK_NONDATA_SIZE {
                 break;
             }
             if self.file.read_exact(&mut buf4).is_err() {
@@ -405,6 +406,31 @@ pub fn delete_text_chunk(keyword: &str, png: &mut PngFile) -> bool {
 mod tests {
     use super::*;
 
+    struct TestFile {
+        path: std::path::PathBuf,
+    }
+
+    impl TestFile {
+        fn write(name: &str, bytes: &[u8]) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx-0-png-{name}-{}-{nonce}.png",
+                std::process::id()
+            ));
+            std::fs::write(&path, bytes).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestFile {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+
     #[test]
     fn crc32_matches_standard_vector_and_chained_png_chunk_crc() {
         assert_eq!(crc32(b"123456789", 0), 0xCBF4_3926);
@@ -457,5 +483,29 @@ mod tests {
             data: oversized_keyword,
         };
         assert_eq!(oversized.read_itxt(), None);
+    }
+
+    #[test]
+    fn truncated_chunk_tail_does_not_underflow_or_panic() {
+        let chunk = PngChunk {
+            index: 0,
+            chunk_type: ChunkType::Unknown,
+            chunk_type_str: "tEXt".into(),
+            data: vec![0; 8],
+        };
+        let mut bytes = PNG_SIGNATURE.to_vec();
+        bytes.extend_from_slice(&chunk.to_bytes());
+        bytes.extend_from_slice(&chunk.to_bytes());
+        bytes.extend_from_slice(&[0; 9]);
+        assert_eq!(bytes.len(), 57);
+        let file = TestFile::write("truncated-tail", &bytes);
+        let mut png = PngFile::open_read(file.path.to_str().unwrap()).unwrap();
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            png.get_chunks_of_type(&ChunkType::ITXT)
+        }));
+
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
     }
 }
