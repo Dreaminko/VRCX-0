@@ -43,6 +43,17 @@ Beyond that:
 - **MCP server** — expose your local VRCX-0 social data to MCP-compatible AI
   clients (Claude and others) through a localhost, token-protected server, so you
   can work with it from the tools you already use
+- **Per-account local history** — game logs and other account-specific history
+  are stored separately for each account, so new activity no longer gets mixed
+  into a single timeline when you use multiple accounts. Existing history
+  remains available after upgrading
+- **Backup & restore** — create a single compressed backup file with one click,
+  schedule automatic backups, and keep multiple previous versions. Restore from
+  any backup whenever you need to
+- **Shareable world collections** — turn your favorite worlds into a collection
+  page you can share. Recipients can browse it in their browser, open individual
+  worlds on the VRChat website, or import the collection into VRCX-0. You can
+  also generate VRCX-0 share links for individual worlds and avatars
 - **Social Automation** — auto-switch your status and bio based on time of day,
   instance type, or who you're with; auto-accept invite requests; restores your
   previous state when rules expire
@@ -60,6 +71,8 @@ Beyond that:
 ## Data Migration
 
 On first launch, VRCX-0 can automatically import your existing VRCX database and settings. Your original data is never modified — existing users can pick up right where they left off without any manual setup.
+
+Need to move your data later? Choose a new location and VRCX-0 will migrate it for you.
 
 ## License
 
