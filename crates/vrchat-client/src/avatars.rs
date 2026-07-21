@@ -117,7 +117,7 @@ pub fn avatar_select_input(
             endpoint,
             "PUT",
             format!("avatars/{}/select", encode_path_segment(&avatar_id)),
-            None,
+            Some(json!({ "avatarId": avatar_id })),
         ),
     ))
 }
@@ -133,7 +133,7 @@ pub fn avatar_select_fallback_input(
             endpoint,
             "PUT",
             format!("avatars/{}/selectfallback", encode_path_segment(&avatar_id)),
-            None,
+            Some(json!({ "avatarId": avatar_id })),
         ),
     ))
 }
@@ -257,5 +257,46 @@ fn moderation_type(type_name: String) -> String {
         "block".to_string()
     } else {
         type_name
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::http_api::{build_web_execute_request, ApiScope};
+
+    const ENDPOINT: &str = "https://api.vrchat.cloud/api/1";
+
+    #[test]
+    fn avatar_selection_sends_avatar_id_as_json() {
+        let cases = [
+            (
+                "select",
+                avatar_select_input(ENDPOINT.into(), " avtr_test ".into())
+                    .unwrap()
+                    .1,
+            ),
+            (
+                "selectfallback",
+                avatar_select_fallback_input(ENDPOINT.into(), " avtr_test ".into())
+                    .unwrap()
+                    .1,
+            ),
+        ];
+
+        for (path, input) in cases {
+            let request = build_web_execute_request(input, ApiScope::Vrchat).unwrap();
+
+            assert_eq!(request.method, "PUT");
+            assert_eq!(
+                request.url,
+                format!("{ENDPOINT}/avatars/avtr%5Ftest/{path}")
+            );
+            assert_eq!(request.body.as_deref(), Some(r#"{"avatarId":"avtr_test"}"#));
+            assert!(request.headers.contains(&(
+                "Content-Type".into(),
+                "application/json;charset=utf-8".into()
+            )));
+        }
     }
 }

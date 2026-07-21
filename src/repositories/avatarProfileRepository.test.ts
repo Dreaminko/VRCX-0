@@ -1,14 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    appVrchatAvatarFileGet: vi.fn()
+    appVrchatAvatarFileGet: vi.fn(),
+    appVrchatAvatarSelect: vi.fn(),
+    appVrchatAvatarSelectFallback: vi.fn()
 }));
 
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
-        appVrchatAvatarFileGet: mocks.appVrchatAvatarFileGet
+        appVrchatAvatarFileGet: mocks.appVrchatAvatarFileGet,
+        appVrchatAvatarSelect: mocks.appVrchatAvatarSelect,
+        appVrchatAvatarSelectFallback: mocks.appVrchatAvatarSelectFallback
     }
 }));
+
+import { queryKeys } from '@/lib/entityQueryCache';
+import { queryClient } from '@/lib/queryClient';
+import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
 import avatarProfileRepository, {
     clearAvatarNameCache,
@@ -18,7 +26,8 @@ import avatarProfileRepository, {
 import * as avatarProfileExports from './avatarProfileRepository';
 
 beforeEach(() => {
-    mocks.appVrchatAvatarFileGet.mockReset();
+    vi.resetAllMocks();
+    queryClient.clear();
     clearAvatarNameCache();
 });
 
@@ -122,6 +131,49 @@ describe('AvatarProfileRepository', () => {
                 avatarProfileExports[name]
             );
         }
+    });
+
+    it('returns current-user selection responses without replacing avatar cache entries', async () => {
+        const cachedAvatar = {
+            id: 'avtr_selected',
+            name: 'Selected Avatar'
+        };
+        const currentUser = {
+            id: 'usr_self',
+            currentAvatar: 'avtr_selected'
+        };
+        const avatarQueryKey = queryKeys.avatar(
+            cachedAvatar.id,
+            DEFAULT_VRCHAT_API_ENDPOINT
+        );
+        queryClient.setQueryData(avatarQueryKey, cachedAvatar);
+        mocks.appVrchatAvatarSelect.mockResolvedValue({
+            status: 200,
+            data: JSON.stringify(currentUser)
+        });
+        mocks.appVrchatAvatarSelectFallback.mockResolvedValue({
+            status: 200,
+            data: JSON.stringify(currentUser)
+        });
+
+        await expect(
+            avatarProfileRepository.selectAvatar({
+                avatarId: ` ${cachedAvatar.id} `
+            })
+        ).resolves.toMatchObject({ json: currentUser });
+        await expect(
+            avatarProfileRepository.selectFallbackAvatar({
+                avatarId: ` ${cachedAvatar.id} `
+            })
+        ).resolves.toMatchObject({ json: currentUser });
+
+        expect(mocks.appVrchatAvatarSelect).toHaveBeenCalledWith({
+            avatarId: cachedAvatar.id
+        });
+        expect(mocks.appVrchatAvatarSelectFallback).toHaveBeenCalledWith({
+            avatarId: cachedAvatar.id
+        });
+        expect(queryClient.getQueryData(avatarQueryKey)).toEqual(cachedAvatar);
     });
 
     it('shares one avatar name cache across facade and named exports', async () => {

@@ -1,5 +1,6 @@
 import { commands } from '@/platform/tauri/bindings';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
+import { mergeCurrentUserResponseSnapshot } from '@/shared/utils/currentUserSnapshot';
 import { normalizeVrchatEndpointKey } from '@/shared/vrchatEndpoint';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -66,31 +67,6 @@ function getRuntimeAuthTargetKey(target: RuntimeAuthTarget) {
 }
 
 const currentUserRefreshes = new Map<string, CurrentUserRefreshRecord>();
-const CURRENT_USER_LOCAL_AUTHORITY_FIELDS = [
-    'friends',
-    'onlineFriends',
-    'activeFriends',
-    'offlineFriends',
-    'status',
-    'statusDescription',
-    'state',
-    'stateBucket',
-    'pendingOffline',
-    'location',
-    '$location',
-    '$location_at',
-    'locationUpdatedAt',
-    'worldId',
-    'instanceId',
-    'travelingToLocation',
-    'travelingToWorld',
-    'travelingToInstance',
-    '$travelingToLocation',
-    '$travelingToTime',
-    'travelingToTime',
-    '$previousLocation',
-    '$previousLocation_at'
-];
 
 async function syncRuntimeCurrentUserSnapshot(
     snapshot: Record<string, unknown>,
@@ -119,13 +95,6 @@ async function syncRuntimeCurrentUserSnapshot(
         overlayPatch
     );
 }
-const CURRENT_USER_FRIEND_ARRAY_FIELDS = new Set([
-    'friends',
-    'onlineFriends',
-    'activeFriends',
-    'offlineFriends'
-]);
-
 function mergeCurrentUserRefreshOverlayPatch(
     record: CurrentUserRefreshRecord,
     patch: unknown
@@ -138,96 +107,6 @@ function mergeCurrentUserRefreshOverlayPatch(
         ...(record.overlayPatch || {}),
         ...patch
     };
-}
-
-function areCurrentUserSnapshotValuesEqual(left: unknown, right: unknown) {
-    if (Object.is(left, right)) {
-        return true;
-    }
-
-    if (
-        (left && typeof left === 'object') ||
-        (right && typeof right === 'object')
-    ) {
-        try {
-            return JSON.stringify(left) === JSON.stringify(right);
-        } catch {
-            return false;
-        }
-    }
-
-    return false;
-}
-
-function hasCurrentUserSnapshotField(source: unknown, field: string) {
-    return (
-        isRecord(source) && Object.prototype.hasOwnProperty.call(source, field)
-    );
-}
-
-function mergeCurrentUserRefreshSnapshot({
-    responseUser,
-    baseSnapshot,
-    currentSnapshot,
-    overlayPatch
-}: {
-    responseUser: Record<string, unknown>;
-    baseSnapshot: Record<string, unknown> | null;
-    currentSnapshot: unknown;
-    overlayPatch: Record<string, unknown> | null;
-}): Record<string, unknown> {
-    const currentSnapshotRecord = isRecord(currentSnapshot)
-        ? currentSnapshot
-        : null;
-    let user: Record<string, unknown> = currentSnapshotRecord
-        ? { ...currentSnapshotRecord, ...responseUser }
-        : { ...responseUser };
-
-    for (const field of CURRENT_USER_LOCAL_AUTHORITY_FIELDS) {
-        if (
-            CURRENT_USER_FRIEND_ARRAY_FIELDS.has(field) &&
-            hasCurrentUserSnapshotField(responseUser, field)
-        ) {
-            continue;
-        }
-        if (hasCurrentUserSnapshotField(currentSnapshot, field)) {
-            user[field] = currentSnapshotRecord?.[field];
-        }
-    }
-
-    if (
-        baseSnapshot &&
-        normalizeRuntimeAuthValue(baseSnapshot.id) ===
-            normalizeRuntimeAuthValue(currentSnapshotRecord?.id)
-    ) {
-        const keys = new Set([
-            ...Object.keys(baseSnapshot),
-            ...Object.keys(currentSnapshotRecord || {})
-        ]);
-        keys.delete('id');
-        for (const key of keys) {
-            if (
-                CURRENT_USER_FRIEND_ARRAY_FIELDS.has(key) &&
-                hasCurrentUserSnapshotField(responseUser, key)
-            ) {
-                continue;
-            }
-            if (
-                !areCurrentUserSnapshotValuesEqual(
-                    baseSnapshot[key],
-                    currentSnapshotRecord?.[key]
-                )
-            ) {
-                user[key] = currentSnapshotRecord?.[key];
-            }
-        }
-    }
-
-    if (overlayPatch) {
-        user = { ...user, ...overlayPatch };
-    }
-
-    return user;
 }
 
 export async function refreshCurrentUser({
@@ -323,7 +202,7 @@ async function refreshCurrentUserForTarget({
     ) {
         return null;
     }
-    const user = mergeCurrentUserRefreshSnapshot({
+    const user = mergeCurrentUserResponseSnapshot({
         responseUser,
         baseSnapshot,
         currentSnapshot: runtimeStore.auth.currentUserSnapshot,

@@ -25,17 +25,10 @@ export async function selectAvatar({ avatarId }: AvatarIdInput) {
         );
     }
 
-    const response = unwrapVrchatAvatarResponse<AvatarRecord>(
+    return unwrapVrchatAvatarResponse<Record<string, unknown>>(
         await commands.appVrchatAvatarSelect(avatarIdInput(normalizedAvatarId)),
         `avatars/${encodeURIComponent(normalizedAvatarId)}/select`
     );
-    if (response.json && typeof response.json === 'object') {
-        setCachedQueryData(
-            queryKeys.avatar(normalizedAvatarId, DEFAULT_VRCHAT_API_ENDPOINT),
-            response.json
-        );
-    }
-    return response;
 }
 
 export async function selectFallbackAvatar({ avatarId }: AvatarIdInput) {
@@ -46,19 +39,12 @@ export async function selectFallbackAvatar({ avatarId }: AvatarIdInput) {
         );
     }
 
-    const response = unwrapVrchatAvatarResponse<AvatarRecord>(
+    return unwrapVrchatAvatarResponse<Record<string, unknown>>(
         await commands.appVrchatAvatarSelectFallback(
             avatarIdInput(normalizedAvatarId)
         ),
         `avatars/${encodeURIComponent(normalizedAvatarId)}/selectfallback`
     );
-    if (response.json && typeof response.json === 'object') {
-        setCachedQueryData(
-            queryKeys.avatar(normalizedAvatarId, DEFAULT_VRCHAT_API_ENDPOINT),
-            response.json
-        );
-    }
-    return response;
 }
 
 export async function saveAvatar({ avatarId, params = {} }: SaveAvatarInput) {

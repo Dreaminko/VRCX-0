@@ -2,8 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import avatarCacheRepository from '@/repositories/avatarCacheRepository';
-import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
+import { selectAvatar as selectCurrentAvatar } from '@/services/avatarSelectionService';
 import { copyTextToClipboard } from '@/services/clipboardService';
 import { openWorldDialog } from '@/services/dialogService';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
@@ -371,9 +371,10 @@ export function useFavoritesItemActions({
             return;
         }
         try {
-            await avatarProfileRepository.selectAvatar({
-                avatarId: item.id
-            });
+            const result = await selectCurrentAvatar(item.id);
+            if (!result.applied) {
+                return;
+            }
             toast.success(t('view.favorite.success.avatar_selected'));
         } catch (error) {
             toast.error(

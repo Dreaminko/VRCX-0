@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import mediaRepository from '@/repositories/mediaRepository';
 import myAvatarRepository from '@/repositories/myAvatarRepository';
+import { selectAvatar as selectCurrentAvatar } from '@/services/avatarSelectionService';
 import {
     readFileAsBase64,
     validateImageUploadFile,
@@ -52,56 +52,6 @@ function isRuntimeAuthTarget(authTarget: MyAvatarsAuthTarget) {
         runtimeAuth.currentUserId === authTarget.currentUserId &&
         runtimeAuth.currentUserEndpoint === authTarget.currentEndpoint
     );
-}
-
-function applyOptimisticCurrentAvatar(avatar: MyAvatarRow, avatarId: string) {
-    const runtimeStore = useRuntimeStore.getState();
-    const previousSnapshot = runtimeStore.auth.currentUserSnapshot;
-    if (!previousSnapshot || typeof previousSnapshot !== 'object') {
-        return null;
-    }
-
-    const nextSnapshot = {
-        ...previousSnapshot,
-        currentAvatar: avatarId,
-        currentAvatarName:
-            typeof avatar.name === 'string' ? avatar.name.trim() : '',
-        currentAvatarImageUrl:
-            avatar.imageUrl ||
-            avatar.thumbnailImageUrl ||
-            previousSnapshot.currentAvatarImageUrl,
-        currentAvatarThumbnailImageUrl:
-            avatar.thumbnailImageUrl ||
-            avatar.imageUrl ||
-            previousSnapshot.currentAvatarThumbnailImageUrl,
-        $previousAvatarSwapTime: Date.now()
-    };
-
-    runtimeStore.setAuthBootstrap({
-        currentUserSnapshot: nextSnapshot
-    });
-
-    return previousSnapshot;
-}
-
-function rollbackOptimisticCurrentAvatar(
-    previousSnapshot: Record<string, unknown> | null,
-    optimisticAvatarId: string
-) {
-    if (!previousSnapshot) {
-        return;
-    }
-    const runtimeStore = useRuntimeStore.getState();
-    const currentSnapshot = runtimeStore.auth.currentUserSnapshot;
-    if (
-        currentSnapshot &&
-        typeof currentSnapshot === 'object' &&
-        currentSnapshot.currentAvatar === optimisticAvatarId
-    ) {
-        runtimeStore.setAuthBootstrap({
-            currentUserSnapshot: previousSnapshot
-        });
-    }
 }
 
 export function useMyAvatarsActions({
@@ -269,20 +219,16 @@ export function useMyAvatarsActions({
         if (!isRuntimeAuthTarget(authTarget)) {
             return;
         }
-        const previousSnapshot = applyOptimisticCurrentAvatar(avatar, avatarId);
         setUpdatingAvatarId(avatarId);
         try {
-            await avatarProfileRepository.selectAvatar({
-                avatarId
-            });
-            if (!isRuntimeAuthTarget(authTarget)) {
+            const result = await selectCurrentAvatar(avatarId);
+            if (!result.applied || !isRuntimeAuthTarget(authTarget)) {
                 return;
             }
             setDetail('');
             toast.success(t('view.my_avatars.success.avatar_selected'));
         } catch (error) {
             if (isRuntimeAuthTarget(authTarget)) {
-                rollbackOptimisticCurrentAvatar(previousSnapshot, avatarId);
                 const message =
                     error instanceof Error
                         ? error.message

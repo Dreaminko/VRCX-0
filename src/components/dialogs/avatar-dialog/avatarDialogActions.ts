@@ -4,6 +4,10 @@ import type { EntityRecord } from '@/domain/entities/profileEntities';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
+import {
+    selectAvatar as selectCurrentAvatar,
+    selectFallbackAvatar as selectCurrentFallbackAvatar
+} from '@/services/avatarSelectionService';
 import { useDialogStore } from '@/state/dialogStore';
 
 import type {
@@ -98,25 +102,9 @@ export function createAvatarDialogActions({
         setActionStatus('selecting');
 
         try {
-            await avatarProfileRepository.selectAvatar({
-                avatarId: avatar.id
-            });
-            const currentUserResponse =
-                await vrchatAuthRepository.getCurrentUser();
-            const nextUser =
-                currentUserResponse.json &&
-                typeof currentUserResponse.json === 'object'
-                    ? (currentUserResponse.json as CurrentUserRecord)
-                    : null;
-            if (nextUser?.id) {
-                setAuthBootstrap({
-                    currentUserId: nextUser.id,
-                    currentUserDisplayName:
-                        nextUser.displayName ||
-                        nextUser.username ||
-                        nextUser.id,
-                    currentUserSnapshot: nextUser
-                });
+            const result = await selectCurrentAvatar(avatar.id);
+            if (!result.applied) {
+                return;
             }
             toast.success(t('dialog.avatar.success.avatar_selected'));
         } catch (error) {
@@ -172,10 +160,10 @@ export function createAvatarDialogActions({
         }
 
         try {
-            await avatarProfileRepository.selectFallbackAvatar({
-                avatarId: avatar.id
-            });
-            await refreshCurrentUserSnapshot();
+            const selection = await selectCurrentFallbackAvatar(avatar.id);
+            if (!selection.applied) {
+                return;
+            }
             toast.success(t('dialog.avatar.empty.fallback_avatar_updated'));
         } catch (error) {
             toast.error(
