@@ -2,13 +2,21 @@ import { replaceBioSymbols } from '@/shared/utils/string';
 
 export const SEARCH_PAGE_SIZE = 10;
 
+type WorldSearchCategory = {
+    index?: unknown;
+    sortHeading?: string;
+    sortOrder?: string;
+    sortOwnership?: string;
+    tag?: string;
+};
+
 export function buildWorldSearchRequest(
-    searchText: any,
-    category: any,
-    includeCommunityLabs: any,
-    offset: any = 0
+    searchText: unknown,
+    category: WorldSearchCategory | null | undefined,
+    includeCommunityLabs: boolean,
+    offset = 0
 ) {
-    const params: any = {
+    const params: Record<string, string | number> = {
         n: SEARCH_PAGE_SIZE,
         offset: Math.max(0, offset)
     };
@@ -81,7 +89,7 @@ export function buildWorldSearchRequest(
     };
 }
 
-export function buildGroupSearchRequest(searchText: any, offset: any = 0) {
+export function buildGroupSearchRequest(searchText: unknown, offset = 0) {
     return {
         params: {
             n: SEARCH_PAGE_SIZE,
@@ -92,28 +100,28 @@ export function buildGroupSearchRequest(searchText: any, offset: any = 0) {
 }
 
 export function buildAvatarSearchRequest(
-    searchText: any,
-    provider: any,
-    offset: any = 0
+    searchText: unknown,
+    provider: unknown,
+    offset = 0
 ) {
     return {
         provider,
-        query: replaceBioSymbols(searchText),
+        query: typeof searchText === 'string' ? searchText : '',
         offset: Math.max(0, offset)
     };
 }
 
 export function buildUserSearchRequest(
-    searchText: any,
-    searchByBio: any = false,
-    sortByLastLoggedIn: any = false,
-    offset: any = 0
+    searchText: unknown,
+    searchByBio = false,
+    sortByLastLoggedIn = false,
+    offset = 0
 ) {
     return {
         params: {
             n: SEARCH_PAGE_SIZE,
             offset: Math.max(0, offset),
-            search: replaceBioSymbols(searchText),
+            search: typeof searchText === 'string' ? searchText : '',
             customFields: searchByBio ? 'bio' : 'displayName',
             sort: sortByLastLoggedIn ? 'last_login' : 'relevance'
         }

@@ -33,6 +33,22 @@ describe('search request helpers', () => {
         });
     });
 
+    it('preserves user and avatar query text exactly', () => {
+        const query = '＠Artist  ＃1';
+
+        expect(buildUserSearchRequest(query).params.search).toBe(query);
+        expect(buildAvatarSearchRequest(query, 'provider-a').query).toBe(query);
+    });
+
+    it('keeps legacy symbol normalization for world and group queries', () => {
+        const query = '＠Hangout  ＃1';
+
+        expect(buildWorldSearchRequest(query, null, true).params.search).toBe(
+            '@Hangout #1'
+        );
+        expect(buildGroupSearchRequest(query).params.query).toBe('@Hangout #1');
+    });
+
     it('keeps community labs out of normal world search results', () => {
         expect(buildWorldSearchRequest('hangout', null, false)).toEqual({
             categoryIndex: null,
