@@ -21,7 +21,7 @@ pub fn notification_add_v1(
     let user_prefix = normalize_user_table_prefix(&user_id)?;
     ensure_realtime_tables(db, &user_prefix)?;
 
-    let id = object_field_string(&notification, &["id"]);
+    let id = normalize_text(object_field_string(&notification, &["id"]));
     let created_at = object_field_string(&notification, &["created_at", "createdAt"]);
     let notification_type = object_field_string(&notification, &["type"]);
     if id.is_empty() || created_at.is_empty() || notification_type.is_empty() {
@@ -96,7 +96,7 @@ pub fn notification_add_v2(
 ) -> Result<(), Error> {
     let user_prefix = normalize_user_table_prefix(&user_id)?;
     ensure_realtime_tables(db, &user_prefix)?;
-    let id = object_field_string(&notification, &["id"]);
+    let id = normalize_text(object_field_string(&notification, &["id"]));
     if id.is_empty() {
         return Ok(());
     }
@@ -327,3 +327,6 @@ pub fn notification_mark_seen_local_bulk(
     })?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

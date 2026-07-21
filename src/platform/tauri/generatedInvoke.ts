@@ -1,4 +1,5 @@
 import { recordErrorLog } from '../../services/errorLogService';
+import { notifySQLiteError } from '../../shared/sqliteErrorEvents';
 import { normalizePlatformError } from './errors';
 import { invokeTauri } from './invoke';
 
@@ -20,6 +21,7 @@ export async function invoke<TReturn = unknown>(
                 normalizedError
             ]);
         }
+        notifySQLiteError(normalizedError);
 
         throw normalizedError;
     }

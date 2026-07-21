@@ -185,3 +185,180 @@ pub fn favorite_group_clear_input(
         ),
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::http_api::HttpApiRequestBody;
+
+    fn json_body(request: &HttpApiRequestInput) -> &Value {
+        request.body.as_json().expect("expected JSON request body")
+    }
+
+    #[test]
+    fn favorite_reads_keep_paging_and_only_non_empty_filters() {
+        let limits = favorite_limits_get_input("endpoint".into());
+        assert_eq!(limits.path.as_deref(), Some("auth/user/favoritelimits"));
+        assert_eq!(limits.method.as_deref(), Some("GET"));
+
+        let favorites = favorites_get_input("endpoint".into(), 50, 100);
+        assert_eq!(favorites.path.as_deref(), Some("favorites"));
+        assert_eq!(
+            favorites.query_params,
+            Some(HashMap::from([
+                ("n".into(), json!(50)),
+                ("offset".into(), json!(100)),
+            ]))
+        );
+
+        let worlds = favorite_worlds_get_input(
+            "endpoint".into(),
+            25,
+            75,
+            " usr_owner ".into(),
+            "   ".into(),
+            " tag/name ".into(),
+        );
+        assert_eq!(worlds.path.as_deref(), Some("worlds/favorites"));
+        assert_eq!(
+            worlds.query_params,
+            Some(HashMap::from([
+                ("n".into(), json!(25)),
+                ("offset".into(), json!(75)),
+                ("ownerId".into(), json!("usr_owner")),
+                ("tag".into(), json!("tag/name")),
+            ]))
+        );
+
+        let avatars = favorite_avatars_get_input("endpoint".into(), 10, 20, "  avatar1  ".into());
+        assert_eq!(avatars.path.as_deref(), Some("avatars/favorites"));
+        assert_eq!(
+            avatars.query_params,
+            Some(HashMap::from([
+                ("n".into(), json!(10)),
+                ("offset".into(), json!(20)),
+                ("tag".into(), json!("avatar1")),
+            ]))
+        );
+
+        let groups = favorite_groups_get_input("endpoint".into(), 40, 80, "   ".into());
+        assert_eq!(groups.path.as_deref(), Some("favorite/groups"));
+        assert_eq!(
+            groups.query_params,
+            Some(HashMap::from([
+                ("n".into(), json!(40)),
+                ("offset".into(), json!(80)),
+            ]))
+        );
+    }
+
+    #[test]
+    fn favorite_mutations_trim_required_values_and_build_legacy_contracts() {
+        let (type_name, favorite_id, add) = favorite_add_input(
+            "endpoint".into(),
+            " world ".into(),
+            " wrld_1 ".into(),
+            " worlds1 ".into(),
+        )
+        .unwrap();
+        assert_eq!(
+            (type_name.as_str(), favorite_id.as_str()),
+            ("world", "wrld_1")
+        );
+        assert_eq!(add.method.as_deref(), Some("POST"));
+        assert_eq!(add.path.as_deref(), Some("favorites"));
+        assert_eq!(
+            json_body(&add),
+            &json!({ "type": "world", "favoriteId": "wrld_1", "tags": "worlds1" })
+        );
+
+        let (object_id, delete) =
+            favorite_delete_input("endpoint".into(), " fav/id 雪 ".into()).unwrap();
+        assert_eq!(object_id, "fav/id 雪");
+        assert_eq!(delete.method.as_deref(), Some("DELETE"));
+        assert_eq!(
+            delete.path.as_deref(),
+            Some("favorites/fav%2Fid%20%E9%9B%AA")
+        );
+        assert_eq!(delete.body, HttpApiRequestBody::Empty);
+
+        let (group, save) = favorite_group_save_input(
+            "endpoint".into(),
+            " usr/owner ".into(),
+            " world ".into(),
+            " group 雪 ".into(),
+            Some("Display name".into()),
+            Some("friends".into()),
+        )
+        .unwrap();
+        assert_eq!(group, "group 雪");
+        assert_eq!(save.method.as_deref(), Some("PUT"));
+        assert_eq!(
+            save.path.as_deref(),
+            Some("favorite/group/world/group%20%E9%9B%AA/usr%2Fowner")
+        );
+        assert_eq!(
+            json_body(&save),
+            &json!({
+                "type": "world",
+                "group": "group 雪",
+                "displayName": "Display name",
+                "visibility": "friends",
+            })
+        );
+
+        let (group, clear) = favorite_group_clear_input(
+            "endpoint".into(),
+            " usr/owner ".into(),
+            " world ".into(),
+            " group 雪 ".into(),
+        )
+        .unwrap();
+        assert_eq!(group, "group 雪");
+        assert_eq!(clear.method.as_deref(), Some("DELETE"));
+        assert_eq!(
+            clear.path.as_deref(),
+            Some("favorite/group/world/group%20%E9%9B%AA/usr%2Fowner")
+        );
+        assert_eq!(clear.body, HttpApiRequestBody::Empty);
+    }
+
+    #[test]
+    fn favorite_mutations_reject_blank_required_values() {
+        assert!(favorite_add_input("".into(), " ".into(), "id".into(), "tag".into()).is_err());
+        assert!(favorite_add_input("".into(), "world".into(), " ".into(), "tag".into()).is_err());
+        assert!(favorite_add_input("".into(), "world".into(), "id".into(), " ".into()).is_err());
+        assert!(favorite_delete_input("".into(), " ".into()).is_err());
+        assert!(favorite_group_save_input(
+            "".into(),
+            " ".into(),
+            "world".into(),
+            "group".into(),
+            None,
+            None,
+        )
+        .is_err());
+        assert!(favorite_group_save_input(
+            "".into(),
+            "owner".into(),
+            " ".into(),
+            "group".into(),
+            None,
+            None,
+        )
+        .is_err());
+        assert!(favorite_group_save_input(
+            "".into(),
+            "owner".into(),
+            "world".into(),
+            " ".into(),
+            None,
+            None,
+        )
+        .is_err());
+        assert!(
+            favorite_group_clear_input("".into(), "owner".into(), "world".into(), " ".into(),)
+                .is_err()
+        );
+    }
+}

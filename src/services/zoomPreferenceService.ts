@@ -29,9 +29,13 @@ async function flushPendingZoom(): Promise<void> {
             pendingZoom = null;
             try {
                 await setZoomLevelPreference(nextZoom);
-                targetZoom = getCurrentZoomLevel();
+                if (targetZoom === nextZoom) {
+                    targetZoom = getCurrentZoomLevel();
+                }
             } catch (error) {
-                targetZoom = getCurrentZoomLevel();
+                if (targetZoom === nextZoom) {
+                    targetZoom = getCurrentZoomLevel();
+                }
                 latestErrorHandler?.(error);
             }
         }

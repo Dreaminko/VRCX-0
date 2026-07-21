@@ -8,9 +8,19 @@ type SQLiteDialogDefinition = {
     descriptionKey: string;
     titleKey: string;
 };
-type SQLiteErrorWithCategory = Error & {
-    sqliteCategory?: unknown;
-};
+
+const SQLITE_ERROR_PATTERNS = [
+    {
+        category: 'malformed',
+        matches: ['database disk image is malformed']
+    },
+    { category: 'disk_full', matches: ['database or disk is full'] },
+    {
+        category: 'locked',
+        matches: ['database is locked', 'attempt to write a readonly database']
+    },
+    { category: 'io_error', matches: ['disk i/o error'] }
+] satisfies Array<{ category: SQLiteErrorCategory; matches: string[] }>;
 
 const SQLITE_ERROR_DIALOGS = {
     malformed: {
@@ -40,8 +50,31 @@ const SQLITE_ERROR_DIALOGS = {
     }
 } satisfies Record<SQLiteErrorCategory, SQLiteDialogDefinition>;
 
-let unsubscribeSQLiteErrorListener: (() => void) | null = null;
-const shownSQLiteErrors = new WeakSet<Error>();
+const SQLITE_DIALOG_COOLDOWN_MS = 60_000;
+
+let cleanupSQLiteErrorListener: (() => void) | null = null;
+const lastShownAtByCategory = new Map<SQLiteErrorCategory, number>();
+
+function isSQLiteErrorCategory(
+    category: unknown
+): category is SQLiteErrorCategory {
+    return SQLITE_ERROR_PATTERNS.some((entry) => entry.category === category);
+}
+
+function getSQLiteErrorCategory(error: Error): SQLiteErrorCategory | null {
+    const category =
+        'sqliteCategory' in error ? error.sqliteCategory : undefined;
+    if (isSQLiteErrorCategory(category)) {
+        return category;
+    }
+
+    const message = error.message.toLowerCase();
+    return (
+        SQLITE_ERROR_PATTERNS.find(({ matches }) =>
+            matches.some((pattern) => message.includes(pattern))
+        )?.category ?? null
+    );
+}
 
 function getSQLiteDialogDefinition(
     error: unknown
@@ -49,10 +82,8 @@ function getSQLiteDialogDefinition(
     if (!(error instanceof Error)) {
         return null;
     }
-    const category = (error as SQLiteErrorWithCategory).sqliteCategory;
-    return typeof category === 'string'
-        ? (SQLITE_ERROR_DIALOGS[category as SQLiteErrorCategory] ?? null)
-        : null;
+    const category = getSQLiteErrorCategory(error);
+    return category ? SQLITE_ERROR_DIALOGS[category] : null;
 }
 
 export function isKnownSQLiteError(error: unknown): boolean {
@@ -64,42 +95,51 @@ export async function showSQLiteErrorDialog(error: unknown): Promise<boolean> {
         return false;
     }
 
-    const dialog = getSQLiteDialogDefinition(error);
-    if (!dialog) {
+    const category = getSQLiteErrorCategory(error);
+    if (!category) {
         return false;
     }
 
-    if (shownSQLiteErrors.has(error)) {
+    const lastShownAt = lastShownAtByCategory.get(category);
+    if (
+        lastShownAt !== undefined &&
+        Date.now() - lastShownAt < SQLITE_DIALOG_COOLDOWN_MS
+    ) {
         return false;
     }
-    shownSQLiteErrors.add(error);
+    lastShownAtByCategory.set(category, Date.now());
 
+    const dialog = SQLITE_ERROR_DIALOGS[category];
     const modalStore = useModalStore.getState();
     try {
         await modalStore[dialog.method]({
             description: i18n.t(dialog.descriptionKey),
             title: i18n.t(dialog.titleKey)
         });
+        return true;
     } catch (dialogError) {
         console.warn('Failed to show SQLite error dialog:', dialogError);
         return false;
+    } finally {
+        lastShownAtByCategory.set(category, Date.now());
     }
-    return true;
 }
 
 export function bindSQLiteErrorDialogService(): () => void {
-    if (unsubscribeSQLiteErrorListener) {
-        return unsubscribeSQLiteErrorListener;
+    if (cleanupSQLiteErrorListener) {
+        return cleanupSQLiteErrorListener;
     }
 
-    unsubscribeSQLiteErrorListener = subscribeSQLiteError((error: any) => {
-        showSQLiteErrorDialog(error);
+    const unsubscribe = subscribeSQLiteError((error: unknown) => {
+        void showSQLiteErrorDialog(error);
     });
 
-    return () => {
-        if (unsubscribeSQLiteErrorListener) {
-            unsubscribeSQLiteErrorListener();
-            unsubscribeSQLiteErrorListener = null;
+    const cleanup = () => {
+        if (cleanupSQLiteErrorListener === cleanup) {
+            unsubscribe();
+            cleanupSQLiteErrorListener = null;
         }
     };
+    cleanupSQLiteErrorListener = cleanup;
+    return cleanup;
 }
