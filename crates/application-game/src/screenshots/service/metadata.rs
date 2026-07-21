@@ -106,32 +106,6 @@ pub(super) fn is_screenshot_content_asset_path(path: &Path) -> bool {
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::is_screenshot_content_asset_path;
-
-    #[test]
-    fn detects_screenshot_content_asset_folders_by_path_component() {
-        assert!(is_screenshot_content_asset_path(Path::new(
-            "Pictures/VRChat/Prints/VRChat_2026.png"
-        )));
-        assert!(is_screenshot_content_asset_path(Path::new(
-            "/home/about/Pictures/VRChat/stickers/asset.png"
-        )));
-        assert!(is_screenshot_content_asset_path(Path::new(
-            "/home/about/Pictures/VRChat/Emoji/asset.png"
-        )));
-        assert!(!is_screenshot_content_asset_path(Path::new(
-            "/home/about/Pictures/VRChat/Printscreens/VRChat_2026.png"
-        )));
-        assert!(!is_screenshot_content_asset_path(Path::new(
-            "/home/about/Pictures/VRChat/VRChat_2026.png"
-        )));
-    }
-}
-
 fn screenshot_file_time(path: &Path) -> Option<std::time::SystemTime> {
     let meta = std::fs::metadata(path).ok()?;
     meta.created().or_else(|_| meta.modified()).ok()
@@ -240,4 +214,30 @@ pub fn add_screenshot_metadata(
     }
 
     String::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::is_screenshot_content_asset_path;
+
+    #[test]
+    fn detects_screenshot_content_asset_folders_by_path_component() {
+        assert!(is_screenshot_content_asset_path(Path::new(
+            "Pictures/VRChat/Prints/VRChat_2026.png"
+        )));
+        assert!(is_screenshot_content_asset_path(Path::new(
+            "/home/about/Pictures/VRChat/stickers/asset.png"
+        )));
+        assert!(is_screenshot_content_asset_path(Path::new(
+            "/home/about/Pictures/VRChat/Emoji/asset.png"
+        )));
+        assert!(!is_screenshot_content_asset_path(Path::new(
+            "/home/about/Pictures/VRChat/Printscreens/VRChat_2026.png"
+        )));
+        assert!(!is_screenshot_content_asset_path(Path::new(
+            "/home/about/Pictures/VRChat/VRChat_2026.png"
+        )));
+    }
 }

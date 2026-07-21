@@ -1508,7 +1508,7 @@ mod tests {
 
     #[test]
     fn friends_panel_input_path_is_disabled_by_default() {
-        assert!(!FRIENDS_PANEL_INPUT_ENABLED);
+        const { assert!(!FRIENDS_PANEL_INPUT_ENABLED) };
     }
 
     #[test]
