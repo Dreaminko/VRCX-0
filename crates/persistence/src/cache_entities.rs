@@ -38,12 +38,19 @@ pub(crate) fn upsert_cache_entity(
     table_name: &str,
     entry: CacheEntityInput,
 ) -> Result<i64, Error> {
+    let id = entry
+        .id
+        .as_str()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| Error::InvalidData("Cache entity id must be a non-empty string.".into()))?
+        .to_owned();
     ensure_global_store_tables(db)?;
     let now = now_iso();
     db.execute_non_query(
         &format!("INSERT OR REPLACE INTO {table_name} (id, added_at, author_id, author_name, created_at, description, image_url, name, release_status, thumbnail_image_url, updated_at, version) VALUES (@id, @added_at, @author_id, @author_name, @created_at, @description, @image_url, @name, @release_status, @thumbnail_image_url, @updated_at, @version)"),
         &ParamsBuilder::new()
-            .set("id", entry.id)
+            .set("id", id)
             .set("added_at", now)
             .set("author_id", entry.author_id)
             .set("author_name", entry.author_name)

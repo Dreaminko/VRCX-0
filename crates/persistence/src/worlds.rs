@@ -226,4 +226,37 @@ mod tests {
 
         assert_eq!(rows, vec!["wrld_a".to_string(), "wrld_b".to_string()]);
     }
+
+    #[test]
+    fn cache_upsert_normalizes_world_id_for_get_and_remove() {
+        let (_dir, db) = test_db("normalized-cache-id");
+
+        world_cache_upsert(db.as_ref(), world_entry("  wrld_spaced  ", "Spaced World")).unwrap();
+
+        let cached = world_cache_get(db.as_ref(), "wrld_spaced".into())
+            .unwrap()
+            .expect("normalized cache id should be readable");
+        assert_eq!(cached.id, "wrld_spaced");
+
+        world_cache_remove(db.as_ref(), "  wrld_spaced  ".into()).unwrap();
+        assert!(world_cache_get(db.as_ref(), "wrld_spaced".into())
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn cache_upsert_rejects_invalid_entity_ids_without_writing_rows() {
+        let (_dir, db) = test_db("invalid-cache-id");
+
+        for invalid_id in [json!(null), json!(""), json!("   "), json!(42)] {
+            let mut entry = world_entry("wrld_placeholder", "Invalid World");
+            entry.id = invalid_id;
+            assert!(matches!(
+                world_cache_upsert(db.as_ref(), entry),
+                Err(Error::InvalidData(_))
+            ));
+        }
+
+        assert!(world_cache_list(db.as_ref()).unwrap().is_empty());
+    }
 }
