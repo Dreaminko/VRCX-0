@@ -16,8 +16,9 @@ import {
 import { PreviousInstancesListTable } from './previous-instances-table/PreviousInstancesListTable';
 import {
     formatPreviousInstanceCount,
+    type PreviousInstanceRow,
     rowLocation,
-    rowSearchText,
+    rowMatchesSearch,
     sortPreviousInstanceRows
 } from './previous-instances-table/previousInstancesRows';
 import { PreviousInstanceDetailsPanel } from './previous-instances-table/PreviousInstancesViewParts';
@@ -49,7 +50,7 @@ function PreviousInstancesPanel({
         (state) => state.auth.currentUserEndpoint
     );
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const [rows, setRows] = useState<any[]>([]);
+    const [rows, setRows] = useState<PreviousInstanceRow[]>([]);
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('date');
     const [sortDesc, setSortDesc] = useState(true);
@@ -65,9 +66,9 @@ function PreviousInstancesPanel({
     }, [initialDetailRow, instances]);
 
     const filteredRows = useMemo(() => {
-        const query = search.trim().toLowerCase();
+        const query = search.trim();
         const nextRows = query
-            ? rows.filter((row: any) => rowSearchText(row).includes(query))
+            ? rows.filter((row) => rowMatchesSearch(row, query))
             : rows;
         return sortPreviousInstanceRows(nextRows, sortKey, sortDesc);
     }, [rows, search, sortDesc, sortKey]);

@@ -29,8 +29,27 @@ function result(
 }
 
 describe('quick search result model', () => {
-    it('normalizes queries without changing internal spacing', () => {
-        expect(normalizeSearchQuery('  Alpha  BETA ')).toBe('alpha  beta');
+    it('normalizes whitespace and confusable characters in queries', () => {
+        expect(normalizeSearchQuery('  ⓐlpha  BETA ')).toBe('alphabeta');
+    });
+
+    it('matches names without whitespace and across confusable variants', () => {
+        const rows = [
+            result('world_1', 'Alpha World'),
+            result('world_2', 'ⓐlpha Station')
+        ];
+
+        expect(
+            filterQuickSearchResults(
+                rows,
+                normalizeSearchQuery('alphaworld')
+            ).map((row) => row.id)
+        ).toEqual(['world_1']);
+        expect(
+            filterQuickSearchResults(rows, normalizeSearchQuery('alpha')).map(
+                (row) => row.id
+            )
+        ).toEqual(['world_2', 'world_1']);
     });
 
     it('matches friend details only after the detail threshold', () => {

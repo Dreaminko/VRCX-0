@@ -1,8 +1,10 @@
+import removeConfusables from '@/services/confusables';
 import {
     convertFileUrlToImageUrl,
     userImage
 } from '@/services/entityMediaService';
 import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
+import { localeIncludes } from '@/shared/utils/string';
 
 import {
     buildUserTextMap,
@@ -15,6 +17,10 @@ import { entityTypeLabel } from '../QuickSearchResults';
 const RESULT_LIMIT = 8;
 export const USER_QUERY_MIN_LENGTH = 1;
 const DETAIL_QUERY_MIN_LENGTH = 2;
+const searchCollator = new Intl.Collator(undefined, {
+    usage: 'search',
+    sensitivity: 'base'
+});
 
 export type QuickSearchResults = {
     friends: QuickSearchResult[];
@@ -86,11 +92,15 @@ export function normalizeSearchValue(value: unknown) {
 }
 
 export function normalizeSearchQuery(value: unknown) {
-    return normalizeSearchValue(value).toLowerCase();
+    return removeConfusables(normalizeSearchValue(value)).toLocaleLowerCase();
 }
 
 export function matchesEntityName(row: QuickSearchResult, query: string) {
-    return normalizeSearchQuery(row.name).includes(query);
+    return localeIncludes(
+        normalizeSearchQuery(row.name),
+        query,
+        searchCollator
+    );
 }
 
 export function matchesFriend(row: QuickSearchResult, query: string) {
@@ -101,8 +111,8 @@ export function matchesFriend(row: QuickSearchResult, query: string) {
         return false;
     }
     return (
-        normalizeSearchQuery(row.memo).includes(query) ||
-        normalizeSearchQuery(row.note).includes(query)
+        localeIncludes(normalizeSearchQuery(row.memo), query, searchCollator) ||
+        localeIncludes(normalizeSearchQuery(row.note), query, searchCollator)
     );
 }
 
@@ -113,16 +123,16 @@ export function matchedField(
     if (!query) {
         return 'name';
     }
-    if (normalizeSearchQuery(row.name).includes(query)) {
+    if (localeIncludes(normalizeSearchQuery(row.name), query, searchCollator)) {
         return 'name';
     }
     if (query.length < DETAIL_QUERY_MIN_LENGTH) {
         return 'name';
     }
-    if (normalizeSearchQuery(row.memo).includes(query)) {
+    if (localeIncludes(normalizeSearchQuery(row.memo), query, searchCollator)) {
         return 'memo';
     }
-    if (normalizeSearchQuery(row.note).includes(query)) {
+    if (localeIncludes(normalizeSearchQuery(row.note), query, searchCollator)) {
         return 'note';
     }
     return 'name';

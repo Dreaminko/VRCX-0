@@ -8,6 +8,7 @@ import {
     playerDisplayName,
     playerUserId,
     rowLocationObject,
+    rowMatchesSearch,
     rowSearchText
 } from './previousInstancesRows';
 
@@ -198,5 +199,11 @@ describe('previousInstancesRows', () => {
                 groupName: 'Raid Group'
             })
         ).toBe('wrld_base:1 test world raid group');
+    });
+
+    it('matches instance search text with locale-aware accent folding', () => {
+        expect(rowMatchesSearch({ worldName: 'Café Noir' }, 'cafe')).toBe(true);
+        expect(rowMatchesSearch({ worldName: 'Cafe Noir' }, 'CAFÉ')).toBe(true);
+        expect(rowMatchesSearch({ worldName: 'Café Noir' }, 'tea')).toBe(false);
     });
 });

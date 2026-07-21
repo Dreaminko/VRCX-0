@@ -1,7 +1,12 @@
 import { timeToText } from '@/lib/dateTime';
 import { parseLocation } from '@/shared/utils/location';
+import { localeIncludes } from '@/shared/utils/string';
 
 const PREVIOUS_INSTANCE_COUNT_CAP = 10000;
+const previousInstanceSearchCollator = new Intl.Collator(undefined, {
+    usage: 'search',
+    sensitivity: 'base'
+});
 
 type PreviousInstanceLocation = Record<string, unknown> & {
     groupName?: unknown;
@@ -15,7 +20,7 @@ type PreviousInstanceLocation = Record<string, unknown> & {
     worldName?: unknown;
 };
 
-type PreviousInstanceRow = Record<string, unknown> & {
+export type PreviousInstanceRow = Record<string, unknown> & {
     $location?: PreviousInstanceLocation | null;
     count?: unknown;
     created_at?: unknown;
@@ -236,6 +241,17 @@ export function rowSearchText(row: PreviousInstanceRow | null | undefined) {
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
+}
+
+export function rowMatchesSearch(
+    row: PreviousInstanceRow | null | undefined,
+    query: string
+) {
+    return localeIncludes(
+        rowSearchText(row),
+        query.trim(),
+        previousInstanceSearchCollator
+    );
 }
 
 export function sortPreviousInstanceRows(
