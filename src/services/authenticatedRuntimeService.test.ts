@@ -109,14 +109,17 @@ describe('authenticatedRuntimeService', () => {
         });
     });
 
-    it('hydrates friend, favorite, and transport mirrors from a ready phase', () => {
+    it('hydrates friend, favorite, and connected transport mirrors from a ready phase', () => {
         applyAuthenticatedRuntimePhaseSnapshot(phaseSnapshot());
 
         expect(useSessionStore.getState()).toMatchObject({
             isFriendsLoaded: true,
             isFavoritesLoaded: true,
-            transportStatus: 'pipeline-connecting'
+            transportStatus: 'pipeline-connected'
         });
+        expect(useRuntimeStore.getState().transport.websocketConnected).toBe(
+            true
+        );
         expect(
             useFriendRosterStore.getState().friendsById.usr_friend?.displayName
         ).toBe('Friend');
@@ -247,7 +250,7 @@ describe('authenticatedRuntimeService', () => {
             statusCode: null
         });
         expect(useSessionStore.getState().transportStatus).toBe(
-            'pipeline-connecting'
+            'pipeline-connected'
         );
 
         handleAuthenticatedRuntimeRealtimeStatus({
@@ -261,7 +264,7 @@ describe('authenticatedRuntimeService', () => {
             statusCode: null
         });
         expect(useSessionStore.getState().transportStatus).toBe(
-            'pipeline-connecting'
+            'pipeline-connected'
         );
 
         handleAuthenticatedRuntimeRealtimeStatus({
@@ -275,7 +278,7 @@ describe('authenticatedRuntimeService', () => {
             statusCode: null
         });
         expect(useSessionStore.getState().transportStatus).toBe(
-            'pipeline-connecting'
+            'pipeline-connected'
         );
 
         handleAuthenticatedRuntimeRealtimeStatus({

@@ -188,13 +188,22 @@ function applyRealtimeStep(snapshot: AuthenticatedRuntimePhaseSnapshot): void {
     if (!transport && snapshot.realtime.status !== 'running') {
         return;
     }
+    const connected = Boolean(
+        transport && snapshot.realtime.status === 'ready'
+    );
     useRuntimeStore.getState().setTransportState({
-        websocketConnected: false,
+        websocketConnected: connected,
         websocketDomain: snapshot.websocket,
-        lastConnectedAt: null,
+        lastConnectedAt: connected
+            ? snapshot.updatedAt || new Date().toISOString()
+            : null,
         lastDisconnectedAt: null
     });
-    useSessionStore.getState().setTransportStatus('pipeline-connecting');
+    useSessionStore
+        .getState()
+        .setTransportStatus(
+            connected ? 'pipeline-connected' : 'pipeline-connecting'
+        );
 }
 
 function positiveNumber(value: unknown): number | null {
