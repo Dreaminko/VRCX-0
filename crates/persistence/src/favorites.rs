@@ -634,6 +634,34 @@ mod tests {
     }
 
     #[test]
+    fn favorite_list_upgrades_legacy_friend_table_before_owner_scoped_read() {
+        let (_dir, db) = test_db("favorite-legacy-owner-upgrade");
+        db.execute_non_query(
+            "CREATE TABLE favorite_friend (id INTEGER PRIMARY KEY, created_at TEXT, user_id TEXT, group_name TEXT)",
+            &Default::default(),
+        )
+        .unwrap();
+        db.execute_non_query(
+            "CREATE UNIQUE INDEX favorite_friend_user_id_group_idx ON favorite_friend (user_id, group_name)",
+            &Default::default(),
+        )
+        .unwrap();
+        db.execute_non_query(
+            "INSERT INTO favorite_friend (created_at, user_id, group_name) VALUES ('2026-07-01T00:00:00.000Z', 'usr_legacy', 'legacy')",
+            &Default::default(),
+        )
+        .unwrap();
+
+        let rows = favorite_list(&db, Some("usr_owner"), "friend".into()).unwrap();
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["userId"], "usr_legacy");
+        assert_eq!(rows[0]["groupName"], "legacy");
+        let columns = crate::database::schema::table_column_names(&db, "favorite_friend").unwrap();
+        assert!(columns.contains("owner_id"));
+    }
+
+    #[test]
     fn ensure_global_store_tables_dedupes_duplicate_favorite_rows_before_indexing() {
         let (_dir, db) = test_db("favorite-unique-index-dedupe");
         db.execute_non_query(

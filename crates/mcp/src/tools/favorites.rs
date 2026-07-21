@@ -56,7 +56,7 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L1·query] List VRCX-0 local favorites for worlds, friends, or avatars. Use before a favorite write to check duplicates."
+        description = "[L1·query] List VRCX-0 local favorites. Omit kind or use all to list worlds, friends, and avatars; otherwise filter by world, friend, or avatar. Use before a favorite write to check duplicates."
     )]
     async fn get_favorites(
         &self,
@@ -68,19 +68,26 @@ impl VrcxMcpServer {
 
 impl VrcxMcpServer {
     fn get_favorites_output(&self, input: GetFavoritesParams) -> Result<FavoritesOutput, String> {
-        let kind = normalize_favorite_kind(&input.kind)?;
+        let requested_kind = parse_favorite_list_kind(input.kind.as_deref())?;
         let owner_user_id = require_current_user_id(&self.runtime)?;
-        let rows = persistence_favorites::favorite_list(
-            self.runtime.db.as_ref(),
-            Some(&owner_user_id),
-            kind.clone(),
-        )
-        .map_err(map_persistence_error)?
-        .into_iter()
-        .filter_map(|row| favorite_row_from_value(&kind, &row))
-        .collect();
+        let mut rows = Vec::new();
+        for kind in requested_kind.canonical_kinds() {
+            let values = persistence_favorites::favorite_list(
+                self.runtime.db.as_ref(),
+                Some(&owner_user_id),
+                (*kind).into(),
+            )
+            .map_err(map_persistence_error)?;
+            rows.extend(
+                values
+                    .iter()
+                    .filter_map(|row| favorite_row_from_value(kind, row)),
+            );
+        }
+        let summary = favorites_summary(requested_kind, rows.len());
         Ok(FavoritesOutput {
             rows,
+            summary,
             caveats: vec![
                 "Favorites are VRCX-0 local favorite rows and may differ from remote VRChat favorites until synced."
                     .into(),
@@ -205,12 +212,46 @@ struct FavoriteVrchatParams {
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct GetFavoritesParams {
-    kind: String,
+    /// Filter by one favorite kind. Omit or use `all` to return every kind.
+    #[serde(default)]
+    #[schemars(with = "Option<FavoriteListKind>")]
+    kind: Option<String>,
 }
+
+#[derive(Clone, Copy, Debug, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+enum FavoriteListKind {
+    All,
+    World,
+    Friend,
+    Avatar,
+}
+
+impl FavoriteListKind {
+    fn canonical_kinds(self) -> &'static [&'static str] {
+        match self {
+            Self::All => &["world", "friend", "avatar"],
+            Self::World => &["world"],
+            Self::Friend => &["friend"],
+            Self::Avatar => &["avatar"],
+        }
+    }
+
+    fn summary_scope(self) -> &'static str {
+        match self {
+            Self::All => " across worlds, friends, and avatars",
+            Self::World => " for worlds",
+            Self::Friend => " for friends",
+            Self::Avatar => " for avatars",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct FavoritesOutput {
     rows: Vec<FavoriteRow>,
+    summary: String,
     caveats: Vec<String>,
 }
 
@@ -248,6 +289,25 @@ fn normalize_favorite_kind(kind: &str) -> Result<String, String> {
     Ok(canonical.to_string())
 }
 
+fn parse_favorite_list_kind(kind: Option<&str>) -> Result<FavoriteListKind, String> {
+    let Some(kind) = kind else {
+        return Ok(FavoriteListKind::All);
+    };
+    let lowered = kind.trim().to_ascii_lowercase();
+    if matches!(lowered.as_str(), "all" | "favorite" | "favorites") {
+        return Ok(FavoriteListKind::All);
+    }
+    let canonical = normalize_favorite_kind(&lowered).map_err(|_| {
+        "invalid argument `kind`: expected all, world, friend, or avatar".to_string()
+    })?;
+    Ok(match canonical.as_str() {
+        "world" => FavoriteListKind::World,
+        "friend" => FavoriteListKind::Friend,
+        "avatar" => FavoriteListKind::Avatar,
+        _ => unreachable!("normalize_favorite_kind returns a canonical favorite kind"),
+    })
+}
+
 fn validate_favorite_entity_id(kind: &str, entity_id: &str) -> Result<(), String> {
     let metadata =
         favorite_kind_metadata(kind).ok_or("favorite kind must be world, friend, or avatar")?;
@@ -281,6 +341,11 @@ fn favorite_row_from_value(kind: &str, row: &Value) -> Option<FavoriteRow> {
             .unwrap_or_default()
             .to_string(),
     })
+}
+
+fn favorites_summary(kind: FavoriteListKind, count: usize) -> String {
+    let noun = if count == 1 { "favorite" } else { "favorites" };
+    format!("Found {count} VRCX-0 local {noun}{}.", kind.summary_scope())
 }
 
 struct FavoriteKindMetadata {
@@ -339,6 +404,49 @@ mod favorite_kind_tests {
     fn rejects_unknown_kind() {
         assert!(normalize_favorite_kind("group").is_err());
         assert!(normalize_favorite_kind("").is_err());
+    }
+
+    #[test]
+    fn favorite_list_kind_defaults_to_all_and_accepts_plural_aliases() {
+        let missing: GetFavoritesParams = serde_json::from_str("{}").unwrap();
+        let missing_kind = parse_favorite_list_kind(missing.kind.as_deref()).unwrap();
+        assert!(matches!(missing_kind, FavoriteListKind::All));
+        assert_eq!(
+            missing_kind.canonical_kinds(),
+            &["world", "friend", "avatar"]
+        );
+
+        for (input, expected) in [
+            (r#"{"kind":"worlds"}"#, FavoriteListKind::World),
+            (r#"{"kind":"users"}"#, FavoriteListKind::Friend),
+            (r#"{"kind":"avatars"}"#, FavoriteListKind::Avatar),
+            (r#"{"kind":"ALL"}"#, FavoriteListKind::All),
+        ] {
+            let parsed: GetFavoritesParams = serde_json::from_str(input).unwrap();
+            let parsed_kind = parse_favorite_list_kind(parsed.kind.as_deref()).unwrap();
+            assert_eq!(parsed_kind.canonical_kinds(), expected.canonical_kinds());
+        }
+    }
+
+    #[test]
+    fn favorite_list_kind_rejects_unknown_values_as_invalid_arguments() {
+        let parsed: GetFavoritesParams = serde_json::from_str(r#"{"kind":"group"}"#).unwrap();
+        let error = parse_favorite_list_kind(parsed.kind.as_deref())
+            .expect_err("unknown favorite kinds must not be accepted");
+
+        assert!(error.contains("invalid argument"));
+    }
+
+    #[test]
+    fn favorites_summary_echoes_the_requested_scope() {
+        assert_eq!(
+            favorites_summary(FavoriteListKind::All, 3),
+            "Found 3 VRCX-0 local favorites across worlds, friends, and avatars."
+        );
+        assert_eq!(
+            favorites_summary(FavoriteListKind::Friend, 1),
+            "Found 1 VRCX-0 local favorite for friends."
+        );
     }
 
     #[test]

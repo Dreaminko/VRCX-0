@@ -65,4 +65,24 @@ mod router_tests {
             ]
         );
     }
+
+    #[test]
+    fn get_favorites_exposes_an_optional_kind_enum() {
+        let router = VrcxMcpServer::tool_router();
+        let tool = router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name.as_ref() == "get_favorites")
+            .expect("get_favorites should be registered");
+        let schema = &tool.input_schema;
+
+        assert!(!schema
+            .get("required")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|required| required.iter().any(|field| field == "kind")));
+        assert_eq!(
+            schema["$defs"]["FavoriteListKind"]["enum"],
+            serde_json::json!(["all", "world", "friend", "avatar"])
+        );
+    }
 }
