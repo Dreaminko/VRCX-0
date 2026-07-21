@@ -313,7 +313,9 @@ export function createAvatarDialogActions({
 
     async function saveMemo(nextValue: string) {
         const targetAvatarId = normalizeEntityId(avatar.id);
-        memoRevisionRef.current += 1;
+        const targetEndpoint = currentEndpoint;
+        const revision = memoRevisionRef.current + 1;
+        memoRevisionRef.current = revision;
         try {
             const nextEntry = await memoPersistenceRepository.saveAvatarMemo({
                 avatarId: targetAvatarId,
@@ -321,7 +323,8 @@ export function createAvatarDialogActions({
             });
             if (
                 activeAvatarTargetRef.current.avatarId !== targetAvatarId ||
-                activeAvatarTargetRef.current.endpoint !== currentEndpoint
+                activeAvatarTargetRef.current.endpoint !== targetEndpoint ||
+                memoRevisionRef.current !== revision
             ) {
                 return;
             }
@@ -342,6 +345,13 @@ export function createAvatarDialogActions({
                     : t('dialog.avatar.toast.memo_cleared')
             );
         } catch (error) {
+            if (
+                activeAvatarTargetRef.current.avatarId !== targetAvatarId ||
+                activeAvatarTargetRef.current.endpoint !== targetEndpoint ||
+                memoRevisionRef.current !== revision
+            ) {
+                return;
+            }
             toast.error(
                 error instanceof Error
                     ? error.message

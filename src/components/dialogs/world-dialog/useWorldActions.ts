@@ -223,13 +223,19 @@ export function useWorldActions({
             return;
         }
         const targetWorldId = normalizeEntityId(world.id);
-        memoRevisionRef.current += 1;
+        const targetEndpoint = currentEndpoint;
+        const revision = memoRevisionRef.current + 1;
+        memoRevisionRef.current = revision;
         try {
             const nextEntry = await memoPersistenceRepository.saveWorldMemo({
                 worldId: targetWorldId,
                 memo: nextValue
             });
-            if (activeWorldTargetRef.current.worldId !== targetWorldId) {
+            if (
+                activeWorldTargetRef.current.worldId !== targetWorldId ||
+                activeWorldTargetRef.current.endpoint !== targetEndpoint ||
+                memoRevisionRef.current !== revision
+            ) {
                 return;
             }
             const nextMemo = String(nextEntry.memo || '');
@@ -240,6 +246,13 @@ export function useWorldActions({
                     : t('dialog.world.toast.memo_cleared')
             );
         } catch (error) {
+            if (
+                activeWorldTargetRef.current.worldId !== targetWorldId ||
+                activeWorldTargetRef.current.endpoint !== targetEndpoint ||
+                memoRevisionRef.current !== revision
+            ) {
+                return;
+            }
             toast.error(
                 error instanceof Error
                     ? error.message
