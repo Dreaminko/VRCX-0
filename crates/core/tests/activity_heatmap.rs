@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use vrcx_0_core::activity_heatmap::{
-    activity_normalize_config, compute_activity_view, compute_overlap_view,
-    overlap_normalize_config, ExcludeHours, OverlapViewOptions,
+    activity_normalize_config, compute_activity_view, compute_overlap_view, normalize_buckets,
+    overlap_normalize_config, ExcludeHours, NormalizeConfig, OverlapViewOptions,
 };
 use vrcx_0_core::activity_sessions::ActivitySession;
 
@@ -111,6 +111,63 @@ fn activity_heatmap_overlap_excludes_cross_midnight_hours_before_percent() {
     assert_eq!(view.best_day_index, 0);
     assert_eq!(view.best_hour_start, 2);
     assert_eq!(view.best_hour_end, 4);
+}
+
+#[test]
+fn activity_normalize_config_extends_to_long_ranges() {
+    let cfg_180 = activity_normalize_config(false, 180);
+    assert_eq!(cfg_180.target_coverage, 0.3);
+    assert_eq!(cfg_180.target_volume, 45.0);
+    assert_eq!(cfg_180.range_days, 180.0);
+
+    let cfg_365 = activity_normalize_config(false, 365);
+    assert_eq!(cfg_365.target_coverage, 0.35);
+    assert_eq!(cfg_365.target_volume, 40.0);
+    assert_eq!(cfg_365.range_days, 365.0);
+}
+
+#[test]
+fn overlap_normalize_config_extends_to_long_ranges() {
+    let cfg_180 = overlap_normalize_config(180);
+    assert_eq!(cfg_180.target_coverage, 0.2);
+    assert_eq!(cfg_180.target_volume, 18.0);
+    assert_eq!(cfg_180.range_days, 180.0);
+
+    let cfg_365 = overlap_normalize_config(365);
+    assert_eq!(cfg_365.target_coverage, 0.22);
+    assert_eq!(cfg_365.target_volume, 16.0);
+    assert_eq!(cfg_365.range_days, 365.0);
+}
+
+#[test]
+fn normalize_buckets_confidence_uses_effective_range_days() {
+    let mut buckets = vec![0.0; 168];
+    for slot in buckets.iter_mut().take(40) {
+        *slot = 120.0;
+    }
+    let base = NormalizeConfig {
+        floor_percentile: 15.0,
+        cap_percentile: 85.0,
+        rank_weight: 0.2,
+        target_coverage: 0.3,
+        target_volume: 40.0,
+        range_days: 3.0,
+    };
+
+    let effective = normalize_buckets(&buckets, base);
+    let nominal = normalize_buckets(
+        &buckets,
+        NormalizeConfig {
+            range_days: 3650.0,
+            ..base
+        },
+    );
+
+    let effective_sum: f64 = effective.iter().sum();
+    let nominal_sum: f64 = nominal.iter().sum();
+    assert!(effective_sum > 0.0);
+    assert!(effective_sum > nominal_sum);
+    assert!(nominal_sum < effective_sum * 0.5);
 }
 
 #[test]

@@ -60,6 +60,8 @@ pub fn activity_normalize_config(is_self: bool, range_days: i64) -> NormalizeCon
         7 => config(10.0, 80.0, 0.15, 0.12, 40.0, range_days),
         30 => config(15.0, 85.0, 0.2, 0.25, 60.0, range_days),
         90 => config(15.0, 85.0, 0.2, 0.3, 50.0, range_days),
+        180 => config(15.0, 85.0, 0.2, 0.3, 45.0, range_days),
+        365 => config(15.0, 85.0, 0.2, 0.35, 40.0, range_days),
         _ if is_self => config(15.0, 85.0, 0.2, 0.25, 60.0, range_days),
         _ => config(15.0, 85.0, 0.2, 0.2, 35.0, range_days),
     }
@@ -69,6 +71,8 @@ pub fn overlap_normalize_config(range_days: i64) -> NormalizeConfig {
     match range_days {
         7 => config(10.0, 80.0, 0.15, 0.08, 15.0, range_days),
         90 => config(15.0, 85.0, 0.2, 0.18, 20.0, range_days),
+        180 => config(15.0, 85.0, 0.2, 0.2, 18.0, range_days),
+        365 => config(15.0, 85.0, 0.2, 0.22, 16.0, range_days),
         _ => config(15.0, 85.0, 0.2, 0.15, 25.0, range_days),
     }
 }

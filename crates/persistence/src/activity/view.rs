@@ -11,8 +11,10 @@ use crate::database::DatabaseService;
 use crate::Error;
 
 use super::repository::{
-    activity_bucket_cache_get, activity_bucket_cache_upsert, activity_friend_presence_slice,
-    activity_iso_from_ms, activity_self_sessions_refresh_auto, parse_activity_time_ms,
+    activity_bucket_cache_get, activity_bucket_cache_upsert,
+    activity_friend_presence_first_created_at, activity_friend_presence_last_created_at,
+    activity_friend_presence_slice, activity_iso_from_ms, activity_self_sessions_refresh_auto,
+    activity_self_source_first_created_at, parse_activity_time_ms,
 };
 use super::types::{
     ActivityBucketCacheInput, ActivityBucketCacheOutput, ActivityBucketCacheQueryInput,
@@ -26,6 +28,7 @@ const BUCKET_COUNT: usize = 168;
 const DEFAULT_MAX_SESSION_MS: i64 = 8 * 60 * 60 * 1000;
 const DAY_MS: i64 = 86_400_000;
 const ACTIVITY_MAX_RANGE_DAYS: i64 = 3650;
+const ACTIVITY_ALL_FALLBACK_RANGE_DAYS: i64 = 30;
 
 pub fn activity_view_build(
     db: &DatabaseService,
@@ -36,18 +39,39 @@ pub fn activity_view_build(
     if owner_user_id.is_empty() || target_user_id.is_empty() {
         return Ok(empty_activity_output(String::new(), input.now_ms));
     }
-    let range_days = clamp_range_days(input.range_days);
+    let cache_range_days = cache_range_days(input.range_days);
+    let effective_range_days = resolve_activity_effective_days(
+        db,
+        &owner_user_id,
+        &target_user_id,
+        input.is_self,
+        input.range_days,
+        input.now_ms,
+    )?;
     let target_cache_id = if input.is_self {
         String::new()
     } else {
         target_user_id.clone()
     };
 
+    if !input.force_refresh && !input.is_self {
+        let cursor = activity_friend_presence_last_created_at(db, &owner_user_id, &target_user_id)?;
+        if let Some(cached) = cached_activity_output(
+            db,
+            &owner_user_id,
+            &target_cache_id,
+            cache_range_days,
+            &cursor,
+        )? {
+            return Ok(cached);
+        }
+    }
+
     let source = if input.is_self {
         self_activity_source(
             db,
             &owner_user_id,
-            range_days,
+            effective_range_days,
             input.now_ms,
             input.force_refresh,
         )?
@@ -56,19 +80,18 @@ pub fn activity_view_build(
             db,
             &owner_user_id,
             &target_user_id,
-            range_days,
+            effective_range_days,
             input.now_ms,
         )?
     };
 
-    if !input.force_refresh {
+    if !input.force_refresh && input.is_self {
         if let Some(cached) = cached_activity_output(
             db,
             &owner_user_id,
             &target_cache_id,
-            range_days,
+            cache_range_days,
             &source.cursor,
-            source.has_any_data,
         )? {
             return Ok(cached);
         }
@@ -76,10 +99,10 @@ pub fn activity_view_build(
 
     let view = compute_activity_view(
         &source.sessions,
-        range_days,
+        effective_range_days,
         input.now_ms,
         input.utc_offset_minutes,
-        &activity_normalize_config(input.is_self, range_days),
+        &activity_normalize_config(input.is_self, effective_range_days),
         DEFAULT_MAX_SESSION_MS,
     );
     let built_at = activity_iso_from_ms(input.now_ms);
@@ -94,7 +117,13 @@ pub fn activity_view_build(
         built_from_cursor: source.cursor,
         built_at,
     };
-    upsert_activity_output_cache(db, &owner_user_id, &target_cache_id, range_days, &output)?;
+    upsert_activity_output_cache(
+        db,
+        &owner_user_id,
+        &target_cache_id,
+        cache_range_days,
+        &output,
+    )?;
     Ok(output)
 }
 
@@ -108,31 +137,34 @@ pub fn activity_overlap_view_build(
     if owner_user_id.is_empty() || current_user_id.is_empty() || target_user_id.is_empty() {
         return Ok(empty_overlap_output(String::new(), input.now_ms));
     }
-    let range_days = clamp_range_days(input.range_days);
+    let cache_range_days = cache_range_days(input.range_days);
+    let effective_range_days = resolve_overlap_effective_days(
+        db,
+        &owner_user_id,
+        &current_user_id,
+        &target_user_id,
+        input.range_days,
+        input.now_ms,
+    )?;
     let self_source = self_activity_source(
         db,
         &current_user_id,
-        range_days,
+        effective_range_days,
         input.now_ms,
         input.force_refresh,
     )?;
-    let target_source = friend_activity_source(
-        db,
-        &owner_user_id,
-        &target_user_id,
-        range_days,
-        input.now_ms,
-    )?;
-    let cursor = format!("{}|{}", self_source.cursor, target_source.cursor);
     let exclude_hours = exclude_hours_from_input(input.exclude_start_hour, input.exclude_end_hour);
     let exclude_key = exclude_key(exclude_hours);
 
     if !input.force_refresh {
+        let target_cursor =
+            activity_friend_presence_last_created_at(db, &owner_user_id, &target_user_id)?;
+        let cursor = format!("{}|{}", self_source.cursor, target_cursor);
         if let Some(cached) = cached_overlap_output(
             db,
             &owner_user_id,
             &target_user_id,
-            range_days,
+            cache_range_days,
             &exclude_key,
             &cursor,
         )? {
@@ -140,15 +172,24 @@ pub fn activity_overlap_view_build(
         }
     }
 
+    let target_source = friend_activity_source(
+        db,
+        &owner_user_id,
+        &target_user_id,
+        effective_range_days,
+        input.now_ms,
+    )?;
+    let cursor = format!("{}|{}", self_source.cursor, target_source.cursor);
+
     let view = compute_overlap_view(
         &self_source.sessions,
         &target_source.sessions,
         OverlapViewOptions {
-            range_days,
+            range_days: effective_range_days,
             now_ms: input.now_ms,
             offset_minutes: input.utc_offset_minutes,
             exclude_hours,
-            config: overlap_normalize_config(range_days),
+            config: overlap_normalize_config(effective_range_days),
             max_session_ms: DEFAULT_MAX_SESSION_MS,
         },
     );
@@ -169,7 +210,7 @@ pub fn activity_overlap_view_build(
         db,
         &owner_user_id,
         &target_user_id,
-        range_days,
+        cache_range_days,
         &exclude_key,
         &output,
     )?;
@@ -275,7 +316,6 @@ fn cached_activity_output(
     target_user_id: &str,
     range_days: i64,
     cursor: &str,
-    has_any_data: bool,
 ) -> Result<Option<ActivityViewOutput>, Error> {
     let Some(cached) = matching_cached_bucket(
         db,
@@ -287,6 +327,9 @@ fn cached_activity_output(
         cursor,
     )?
     else {
+        return Ok(None);
+    };
+    let Some(has_any_data) = summary_bool(&cached.summary, "hasAnyData") else {
         return Ok(None);
     };
     let Some((raw_buckets, normalized_buckets)) = cached_bucket_values(&cached) else {
@@ -373,7 +416,8 @@ fn upsert_activity_output_cache(
                 "filteredEventCount": output.filtered_event_count,
                 "peakDayIndex": output.peak_day_index,
                 "peakHourStart": output.peak_hour_start,
-                "peakHourEnd": output.peak_hour_end
+                "peakHourEnd": output.peak_hour_end,
+                "hasAnyData": output.has_any_data
             }),
             built_at: output.built_at.clone(),
         },
@@ -481,12 +525,59 @@ fn normalize_owner_user_id(owner_user_id: &str, fallback_user_id: &str) -> Strin
     }
 }
 
-fn clamp_range_days(range_days: i64) -> i64 {
+fn cache_range_days(range_days: i64) -> i64 {
     if range_days > 0 {
         range_days.clamp(1, ACTIVITY_MAX_RANGE_DAYS)
     } else {
-        30
+        0
     }
+}
+
+fn resolve_activity_effective_days(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    target_user_id: &str,
+    is_self: bool,
+    range_days: i64,
+    now_ms: i64,
+) -> Result<i64, Error> {
+    if range_days > 0 {
+        return Ok(range_days.clamp(1, ACTIVITY_MAX_RANGE_DAYS));
+    }
+    let first_created_at = if is_self {
+        activity_self_source_first_created_at(db, owner_user_id)?
+    } else {
+        activity_friend_presence_first_created_at(db, owner_user_id, target_user_id)?
+    };
+    Ok(effective_days_from_first(&first_created_at, now_ms))
+}
+
+fn resolve_overlap_effective_days(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    current_user_id: &str,
+    target_user_id: &str,
+    range_days: i64,
+    now_ms: i64,
+) -> Result<i64, Error> {
+    if range_days > 0 {
+        return Ok(range_days.clamp(1, ACTIVITY_MAX_RANGE_DAYS));
+    }
+    let self_first = activity_self_source_first_created_at(db, current_user_id)?;
+    let target_first =
+        activity_friend_presence_first_created_at(db, owner_user_id, target_user_id)?;
+    let self_days = effective_days_from_first(&self_first, now_ms);
+    let target_days = effective_days_from_first(&target_first, now_ms);
+    Ok(self_days.max(target_days))
+}
+
+fn effective_days_from_first(first_created_at: &str, now_ms: i64) -> i64 {
+    let Some(first_ms) = parse_activity_time_ms(first_created_at) else {
+        return ACTIVITY_ALL_FALLBACK_RANGE_DAYS;
+    };
+    let span_ms = (now_ms - first_ms).max(0);
+    let days = span_ms / DAY_MS + i64::from(span_ms % DAY_MS != 0);
+    days.clamp(1, ACTIVITY_MAX_RANGE_DAYS)
 }
 
 fn exclude_hours_from_input(
@@ -526,4 +617,8 @@ fn summary_i32(summary: &Value, key: &str) -> Option<i32> {
 
 fn summary_i64(summary: &Value, key: &str) -> Option<i64> {
     summary.get(key).map(value_as_i64)
+}
+
+fn summary_bool(summary: &Value, key: &str) -> Option<bool> {
+    summary.get(key).and_then(Value::as_bool)
 }

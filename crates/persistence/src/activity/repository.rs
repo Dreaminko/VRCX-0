@@ -483,6 +483,62 @@ pub fn activity_friend_presence_slice(
     Ok(rows)
 }
 
+fn activity_friend_presence_bound(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    user_id: &str,
+    aggregate: &str,
+) -> Result<String, Error> {
+    let owner_user_id = normalize_text(owner_user_id);
+    let user_id = normalize_text(user_id);
+    if owner_user_id.is_empty() || user_id.is_empty() {
+        return Ok(String::new());
+    }
+    let user_prefix = normalize_user_table_prefix(&owner_user_id)?;
+    ensure_user_store_tables(db, &user_prefix)?;
+    let table_name = format!("{user_prefix}_feed_online_offline");
+    Ok(db
+        .execute(
+            &format!("SELECT {aggregate}(created_at) FROM {table_name} WHERE user_id = @user_id AND (type = 'Online' OR type = 'Offline')"),
+            &ParamsBuilder::new().set("user_id", user_id).build(),
+        )?
+        .first()
+        .map(|row| row_string(row, 0))
+        .unwrap_or_default())
+}
+
+pub fn activity_friend_presence_first_created_at(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    user_id: &str,
+) -> Result<String, Error> {
+    activity_friend_presence_bound(db, owner_user_id, user_id, "MIN")
+}
+
+pub fn activity_friend_presence_last_created_at(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    user_id: &str,
+) -> Result<String, Error> {
+    activity_friend_presence_bound(db, owner_user_id, user_id, "MAX")
+}
+
+pub(super) fn activity_self_source_first_created_at(
+    db: &DatabaseService,
+    owner_user_id: &str,
+) -> Result<String, Error> {
+    ensure_game_log_tables(db)?;
+    let owner_id = owner_id_for_filter(db, owner_user_id)?;
+    Ok(db
+        .execute(
+            "SELECT created_at FROM gamelog_location WHERE owner_id IN (0, @owner_id) ORDER BY created_at LIMIT 1",
+            &ParamsBuilder::new().set("owner_id", owner_id).build(),
+        )?
+        .first()
+        .map(|row| row_string(row, 0))
+        .unwrap_or_default())
+}
+
 pub fn activity_self_source_bounds(
     db: &DatabaseService,
     owner_user_id: &str,

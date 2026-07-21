@@ -31,7 +31,14 @@ export type UserActivityTopWorld = Record<string, unknown> & {
     totalTime?: number;
 };
 
-export const VALID_ACTIVITY_PERIODS = new Set(['7', '30', '90']);
+export const VALID_ACTIVITY_PERIODS = new Set([
+    '7',
+    '30',
+    '90',
+    '180',
+    '365',
+    'all'
+]);
 export const USER_ACTIVITY_HOUR_LABELS = Array.from(
     { length: 24 },
     (_, index) => `${String(index).padStart(2, '0')}:00`
@@ -41,7 +48,11 @@ export const OVERLAP_LOADING_DELAY_MS = 120;
 export const OVERLAP_RENDER_DELAY_MS = 80;
 
 export function getRangeDays(period: unknown) {
-    return Number.parseInt(String(period), 10) || 30;
+    if (period === 'all') {
+        return 0;
+    }
+    const parsed = Number.parseInt(String(period), 10);
+    return Number.isNaN(parsed) ? 30 : parsed;
 }
 
 export function getDisplayDayLabels(

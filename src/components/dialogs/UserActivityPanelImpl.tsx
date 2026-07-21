@@ -235,51 +235,70 @@ export function UserActivityPanel({
                         </span>
                     ) : null}
                 </div>
-                {hasAnyData ? (
-                    <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-sm">
-                            {t('dialog.user.activity.period')}
-                        </span>
-                        <Select
-                            value={selectedPeriod}
-                            items={[
-                                {
-                                    value: '90',
-                                    label: t('dialog.user.activity.period_90')
-                                },
-                                {
-                                    value: '30',
-                                    label: t('dialog.user.activity.period_30')
-                                },
-                                {
-                                    value: '7',
-                                    label: t('dialog.user.activity.period_7')
-                                }
-                            ]}
-                            onValueChange={(value) => {
-                                changePeriod(value ?? '');
-                            }}
-                            disabled={loading}
-                        >
-                            <SelectTrigger size="sm" className="w-40">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem value="90">
-                                        {t('dialog.user.activity.period_90')}
-                                    </SelectItem>
-                                    <SelectItem value="30">
-                                        {t('dialog.user.activity.period_30')}
-                                    </SelectItem>
-                                    <SelectItem value="7">
-                                        {t('dialog.user.activity.period_7')}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                ) : null}
+                <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground text-sm">
+                        {t('dialog.user.activity.period')}
+                    </span>
+                    <Select
+                        value={selectedPeriod}
+                        items={[
+                            {
+                                value: 'all',
+                                label: t('dialog.user.activity.period_all')
+                            },
+                            {
+                                value: '365',
+                                label: t('dialog.user.activity.period_365')
+                            },
+                            {
+                                value: '180',
+                                label: t('dialog.user.activity.period_180')
+                            },
+                            {
+                                value: '90',
+                                label: t('dialog.user.activity.period_90')
+                            },
+                            {
+                                value: '30',
+                                label: t('dialog.user.activity.period_30')
+                            },
+                            {
+                                value: '7',
+                                label: t('dialog.user.activity.period_7')
+                            }
+                        ]}
+                        onValueChange={(value) => {
+                            changePeriod(value ?? '');
+                        }}
+                        disabled={loading}
+                    >
+                        <SelectTrigger size="sm" className="w-40">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem value="all">
+                                    {t('dialog.user.activity.period_all')}
+                                </SelectItem>
+                                <SelectItem value="365">
+                                    {t('dialog.user.activity.period_365')}
+                                </SelectItem>
+                                <SelectItem value="180">
+                                    {t('dialog.user.activity.period_180')}
+                                </SelectItem>
+                                <SelectItem value="90">
+                                    {t('dialog.user.activity.period_90')}
+                                </SelectItem>
+                                <SelectItem value="30">
+                                    {t('dialog.user.activity.period_30')}
+                                </SelectItem>
+                                <SelectItem value="7">
+                                    {t('dialog.user.activity.period_7')}
+                                </SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             {peakDayText || peakTimeText ? (

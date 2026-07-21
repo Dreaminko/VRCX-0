@@ -5,11 +5,12 @@ use chrono::DateTime;
 use serde_json::json;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::activity::{
-    activity_bucket_cache_get, activity_bucket_cache_upsert, activity_overlap_view_build,
+    activity_bucket_cache_get, activity_bucket_cache_upsert,
+    activity_friend_presence_last_created_at, activity_overlap_view_build,
     activity_self_sessions_warmup, activity_sessions_replace, activity_sync_state_get,
     activity_sync_state_upsert, activity_view_build, ActivityBucketCacheInput,
     ActivityBucketCacheQueryInput, ActivityOverlapViewBuildInput, ActivitySessionInput,
-    ActivitySyncStateInput, ActivityViewBuildInput,
+    ActivitySyncStateInput, ActivityViewBuildInput, ActivityViewOutput,
 };
 use vrcx_0_persistence::feed::feed_add_entry;
 use vrcx_0_persistence::game_log::{write_batch, GameLogLocationEntry, GameLogWriteBatch};
@@ -240,7 +241,8 @@ fn activity_view_build_returns_matching_cached_self_view() {
                 "filteredEventCount": 1,
                 "peakDayIndex": 0,
                 "peakHourStart": 5,
-                "peakHourEnd": 6
+                "peakHourEnd": 6,
+                "hasAnyData": true
             }),
             built_at: "2025-01-06T00:00:00Z".to_string(),
         },
@@ -265,6 +267,160 @@ fn activity_view_build_returns_matching_cached_self_view() {
     assert_eq!(view.raw_buckets[5], 42.0);
     assert_eq!(view.peak_hour_start, 5);
     assert!(view.has_any_data);
+}
+
+fn build_friend_view(
+    db: &DatabaseService,
+    owner: &str,
+    friend: &str,
+    range_days: i64,
+    now: &str,
+) -> ActivityViewOutput {
+    activity_view_build(
+        db,
+        ActivityViewBuildInput {
+            owner_user_id: owner.to_string(),
+            target_user_id: friend.to_string(),
+            is_self: false,
+            range_days,
+            utc_offset_minutes: 0,
+            now_ms: ms(now),
+            force_refresh: false,
+        },
+    )
+    .unwrap()
+}
+
+fn assert_activity_output_eq(left: &ActivityViewOutput, right: &ActivityViewOutput) {
+    assert_eq!(left.raw_buckets, right.raw_buckets);
+    assert_eq!(left.normalized_buckets, right.normalized_buckets);
+    assert_eq!(left.peak_day_index, right.peak_day_index);
+    assert_eq!(left.peak_hour_start, right.peak_hour_start);
+    assert_eq!(left.peak_hour_end, right.peak_hour_end);
+    assert_eq!(left.filtered_event_count, right.filtered_event_count);
+    assert_eq!(left.has_any_data, right.has_any_data);
+    assert_eq!(left.built_from_cursor, right.built_from_cursor);
+    assert_eq!(left.built_at, right.built_at);
+}
+
+#[test]
+fn activity_friend_presence_last_created_at_returns_global_max() {
+    let (_dir, db) = test_db("activity-friend-last-created");
+    let owner = "usr_owner";
+    let friend = "usr_friend";
+    add_presence(&db, owner, friend, "2025-01-05T01:00:00Z", "Online");
+    add_presence(&db, owner, friend, "2025-01-05T02:00:00Z", "Offline");
+    add_presence(&db, owner, friend, "2025-01-04T23:00:00Z", "Online");
+
+    let last = activity_friend_presence_last_created_at(&db, owner, friend).unwrap();
+    assert_eq!(last, "2025-01-05T02:00:00Z");
+
+    let missing = activity_friend_presence_last_created_at(&db, owner, "usr_nobody").unwrap();
+    assert_eq!(missing, "");
+}
+
+#[test]
+fn activity_view_build_friend_probe_hit_is_stable() {
+    let (_dir, db) = test_db("activity-view-friend-probe-hit");
+    let owner = "usr_owner";
+    let friend = "usr_friend";
+    add_presence(&db, owner, friend, "2025-01-05T01:00:00Z", "Online");
+    add_presence(&db, owner, friend, "2025-01-05T02:00:00Z", "Offline");
+
+    let first = build_friend_view(&db, owner, friend, 7, "2025-01-06T00:00:00Z");
+    let second = build_friend_view(&db, owner, friend, 7, "2025-01-06T00:00:00Z");
+
+    assert!(first.has_any_data);
+    assert!(second.has_any_data);
+    assert_activity_output_eq(&first, &second);
+}
+
+#[test]
+fn activity_view_build_friend_without_data_is_stable() {
+    let (_dir, db) = test_db("activity-view-friend-no-data");
+    let owner = "usr_owner";
+    let friend = "usr_friend";
+
+    let first = build_friend_view(&db, owner, friend, 7, "2025-01-06T00:00:00Z");
+    let second = build_friend_view(&db, owner, friend, 7, "2025-01-06T00:00:00Z");
+
+    assert!(!first.has_any_data);
+    assert!(!second.has_any_data);
+    assert_eq!(first.built_from_cursor, "");
+    assert_activity_output_eq(&first, &second);
+}
+
+#[test]
+fn activity_view_build_friend_rebuilds_legacy_cache_without_has_any_data() {
+    let (_dir, db) = test_db("activity-view-friend-legacy-cache");
+    let owner = "usr_owner";
+    let friend = "usr_friend";
+    add_presence(&db, owner, friend, "2025-01-05T01:00:00Z", "Online");
+    add_presence(&db, owner, friend, "2025-01-05T02:00:00Z", "Offline");
+
+    activity_bucket_cache_upsert(
+        &db,
+        ActivityBucketCacheInput {
+            owner_user_id: owner.to_string(),
+            target_user_id: friend.to_string(),
+            range_days: json!(7),
+            view_kind: "activity".to_string(),
+            exclude_key: String::new(),
+            bucket_version: json!(1),
+            built_from_cursor: "2025-01-05T02:00:00Z".to_string(),
+            raw_buckets: json!(buckets_with(5, 999.0)),
+            normalized_buckets: json!(buckets_with(5, 1.0)),
+            summary: json!({
+                "filteredEventCount": 7,
+                "peakDayIndex": 0,
+                "peakHourStart": 5,
+                "peakHourEnd": 6
+            }),
+            built_at: "2025-01-06T00:00:00Z".to_string(),
+        },
+    )
+    .unwrap();
+
+    let view = build_friend_view(&db, owner, friend, 7, "2025-01-06T00:00:00Z");
+
+    assert!(view.has_any_data);
+    assert_eq!(view.raw_buckets[1], 60.0);
+    assert_eq!(view.raw_buckets[5], 0.0);
+    assert_eq!(view.built_from_cursor, "2025-01-05T02:00:00Z");
+
+    let cached = activity_bucket_cache_get(
+        &db,
+        ActivityBucketCacheQueryInput {
+            owner_user_id: owner.to_string(),
+            target_user_id: friend.to_string(),
+            range_days: json!(7),
+            view_kind: "activity".to_string(),
+            exclude_key: String::new(),
+        },
+    )
+    .unwrap()
+    .unwrap();
+    assert_eq!(cached.summary["hasAnyData"], json!(true));
+}
+
+#[test]
+fn activity_view_build_friend_new_event_changes_cursor_and_rebuilds() {
+    let (_dir, db) = test_db("activity-view-friend-new-event");
+    let owner = "usr_owner";
+    let friend = "usr_friend";
+    add_presence(&db, owner, friend, "2025-01-05T01:00:00Z", "Online");
+    add_presence(&db, owner, friend, "2025-01-05T02:00:00Z", "Offline");
+
+    let first = build_friend_view(&db, owner, friend, 7, "2025-01-06T00:00:00Z");
+    assert_eq!(first.built_from_cursor, "2025-01-05T02:00:00Z");
+
+    add_presence(&db, owner, friend, "2025-01-05T03:00:00Z", "Online");
+    add_presence(&db, owner, friend, "2025-01-05T04:00:00Z", "Offline");
+
+    let second = build_friend_view(&db, owner, friend, 7, "2025-01-06T00:00:00Z");
+    assert_eq!(second.built_from_cursor, "2025-01-05T04:00:00Z");
+    assert!(second.has_any_data);
+    assert_ne!(first.raw_buckets, second.raw_buckets);
 }
 
 #[test]
@@ -360,4 +516,95 @@ fn activity_overlap_view_build_uses_pair_cursor_and_exclude_key() {
     .unwrap();
     assert_eq!(cached.built_from_cursor, "self-cursor|2025-01-05T04:00:00Z");
     assert_eq!(cached.summary["overlapPercent"], json!(100));
+}
+
+#[test]
+fn activity_view_build_all_range_resolves_friend_span_and_uses_sentinel_cache() {
+    let (_dir, db) = test_db("activity-view-all-friend");
+    let owner = "usr_owner";
+    let friend = "usr_friend";
+    add_presence(&db, owner, friend, "2024-06-01T01:00:00Z", "Online");
+    add_presence(&db, owner, friend, "2024-06-01T02:00:00Z", "Offline");
+
+    let view = activity_view_build(
+        &db,
+        ActivityViewBuildInput {
+            owner_user_id: owner.to_string(),
+            target_user_id: friend.to_string(),
+            is_self: false,
+            range_days: 0,
+            utc_offset_minutes: 0,
+            now_ms: ms("2025-01-06T00:00:00Z"),
+            force_refresh: false,
+        },
+    )
+    .unwrap();
+
+    assert!(view.has_any_data);
+    assert_eq!(view.filtered_event_count, 1);
+
+    assert!(activity_bucket_cache_get(
+        &db,
+        ActivityBucketCacheQueryInput {
+            owner_user_id: owner.to_string(),
+            target_user_id: friend.to_string(),
+            range_days: json!(0),
+            view_kind: "activity".to_string(),
+            exclude_key: String::new(),
+        },
+    )
+    .unwrap()
+    .is_some());
+}
+
+#[test]
+fn activity_view_build_all_range_backfills_old_self_gamelog() {
+    let (_dir, db) = test_db("activity-view-all-self");
+    let owner = "usr_self";
+    write_batch(
+        &db,
+        owner,
+        &GameLogWriteBatch {
+            locations: vec![GameLogLocationEntry {
+                created_at: "2024-06-01T01:00:00Z".to_string(),
+                location: "wrld_1:1".to_string(),
+                world_id: "wrld_1".to_string(),
+                world_name: "World".to_string(),
+                time: 3_600_000,
+                group_name: String::new(),
+            }],
+            ..Default::default()
+        },
+    )
+    .unwrap();
+
+    let view = activity_view_build(
+        &db,
+        ActivityViewBuildInput {
+            owner_user_id: owner.to_string(),
+            target_user_id: owner.to_string(),
+            is_self: true,
+            range_days: 0,
+            utc_offset_minutes: 0,
+            now_ms: ms("2025-01-06T00:00:00Z"),
+            force_refresh: false,
+        },
+    )
+    .unwrap();
+
+    assert!(view.has_any_data);
+    assert_eq!(view.raw_buckets.iter().sum::<f64>(), 60.0);
+
+    assert!(activity_bucket_cache_get(
+        &db,
+        ActivityBucketCacheQueryInput {
+            owner_user_id: owner.to_string(),
+            target_user_id: String::new(),
+            range_days: json!(0),
+            view_kind: "activity".to_string(),
+            exclude_key: String::new(),
+        },
+    )
+    .unwrap()
+    .is_some());
 }
