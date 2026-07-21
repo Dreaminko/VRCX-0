@@ -533,7 +533,7 @@ pub fn unblock_input(
         group_message: "VrchatGroupUnblock requires groupId.",
         user_message: "VrchatGroupUnblock requires userId.",
         method: "DELETE",
-        suffix: format!("bans/{}", encode_path_segment(&suffix_user_id)),
+        suffix: format!("members/{}", encode_path_segment(&suffix_user_id)),
         body: None,
     })
 }
@@ -716,6 +716,17 @@ mod tests {
         let (_, _, request) = member_unban_input("grp 1".into(), "usr 1".into()).unwrap();
 
         assert_eq!(request.path.as_deref(), Some("groups/grp%201/bans/usr%201"));
+        assert_eq!(request.method.as_deref(), Some("DELETE"));
+    }
+
+    #[test]
+    fn unblock_group_deletes_current_users_member_row_not_a_ban_row() {
+        let (_, _, request) = unblock_input("grp 1".into(), "usr 1".into()).unwrap();
+
+        assert_eq!(
+            request.path.as_deref(),
+            Some("groups/grp%201/members/usr%201")
+        );
         assert_eq!(request.method.as_deref(), Some("DELETE"));
     }
 

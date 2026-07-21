@@ -294,6 +294,6 @@ export async function unblockGroup({ groupId, userId }: GroupUserInput) {
             groupId: normalizedGroupId,
             userId: normalizedUserId
         }),
-        `groups/${encodeURIComponent(normalizedGroupId)}/bans/${encodeURIComponent(normalizedUserId)}`
+        `groups/${encodeURIComponent(normalizedGroupId)}/members/${encodeURIComponent(normalizedUserId)}`
     );
 }
