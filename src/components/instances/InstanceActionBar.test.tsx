@@ -217,6 +217,38 @@ describe('InstanceActionBar', () => {
         expect(html).not.toContain('aria-label="Refresh instance info"');
     });
 
+    it('does not display a negative instance player-count sentinel', () => {
+        const apiFallbackHtml = renderActionBar({
+            location: 'wrld_test:12345',
+            instance: {
+                userCount: -1,
+                n_users: 4,
+                capacity: 32
+            }
+        });
+        const fallbackHtml = renderActionBar({
+            location: 'wrld_test:12345',
+            instance: {
+                userCount: -1,
+                capacity: 32
+            },
+            playerCount: 3
+        });
+        const unknownHtml = renderActionBar({
+            location: 'wrld_test:12345',
+            instance: {
+                userCount: -1,
+                capacity: 32
+            }
+        });
+
+        expect(apiFallbackHtml).toContain('4/32');
+        expect(fallbackHtml).toContain('3/32');
+        expect(fallbackHtml).not.toContain('-1/32');
+        expect(unknownHtml).toContain('—/32');
+        expect(unknownHtml).not.toContain('-1/32');
+    });
+
     it('falls back to users length and world capacity from instance details', () => {
         const html = renderActionBar({
             location: 'wrld_test:12345',

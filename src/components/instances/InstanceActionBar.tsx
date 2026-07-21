@@ -15,6 +15,7 @@ import {
     buildInstanceActionTarget,
     finiteLocationNumber,
     firstFiniteLocationNumber,
+    firstNonNegativeLocationNumber,
     normalizeLocationText
 } from '@/components/location/locationModel';
 import { formatDateFilter } from '@/lib/dateTime';
@@ -73,7 +74,7 @@ function instanceUserCount(instance: any) {
     if (!instance) {
         return null;
     }
-    return firstFiniteLocationNumber(
+    return firstNonNegativeLocationNumber(
         instance.userCount,
         instance.occupants,
         instance.n_users,
@@ -279,7 +280,7 @@ export function InstanceActionBar({
         ]
     );
     const userCount = instanceUserCount(instanceInfo);
-    const providedPlayerCount = finiteLocationNumber(playerCount);
+    const providedPlayerCount = firstNonNegativeLocationNumber(playerCount);
     const resolvedUserCount = userCount ?? providedPlayerCount;
     const capacity =
         instanceCapacity(instanceInfo) ??

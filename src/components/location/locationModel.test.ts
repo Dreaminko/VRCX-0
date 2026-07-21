@@ -2,11 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import {
     buildInstanceActionTarget,
+    firstNonNegativeLocationNumber,
     normalizeLocationObject,
     resolveLocationTarget
 } from './locationModel';
 
 describe('locationModel', () => {
+    it('skips negative player-count sentinels', () => {
+        expect(firstNonNegativeLocationNumber(-1, '4', 5)).toBe(4);
+        expect(firstNonNegativeLocationNumber(-1, undefined)).toBeNull();
+    });
+
     it('uses the traveling destination as the display target', () => {
         expect(
             resolveLocationTarget('traveling', 'wrld_test:12345~region(jp)')

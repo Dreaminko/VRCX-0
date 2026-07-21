@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { firstNonNegativeLocationNumber } from '@/components/location/locationModel';
 import {
     createInstanceUserRow as createLocationUserRow,
     isSameInstanceLocation as isSameLocationTag,
@@ -540,11 +541,11 @@ export function useUserDialogLocationPanel({
                         users,
                         friendCount: instanceFriendCount,
                         playerCount:
-                            Number(
-                                instance?.userCount ||
-                                    instance?.occupants ||
-                                    playerSnapshot?.context?.playerCount ||
-                                    users.length
+                            firstNonNegativeLocationNumber(
+                                instance?.userCount,
+                                instance?.occupants,
+                                instance?.n_users,
+                                playerSnapshot?.context?.playerCount
                             ) || users.length
                     });
 

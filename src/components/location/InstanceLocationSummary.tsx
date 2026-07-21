@@ -9,6 +9,7 @@ import {
     normalizeLocationObject,
     normalizeLocationText,
     firstFiniteLocationNumber,
+    firstNonNegativeLocationNumber,
     worldDialogTarget
 } from '@/components/location/locationModel';
 import { RegionCodeBadge } from '@/components/location/RegionCodeBadge';
@@ -76,7 +77,7 @@ export function InstanceLocationSummary({
     const ownerLabel =
         normalizeLocationText(instanceOwnerName) ||
         normalizeLocationText(instanceOwner);
-    const resolvedPlayerCount = firstFiniteLocationNumber(
+    const resolvedPlayerCount = firstNonNegativeLocationNumber(
         playerCount,
         locObj.playerCount,
         locObj.userCount,
