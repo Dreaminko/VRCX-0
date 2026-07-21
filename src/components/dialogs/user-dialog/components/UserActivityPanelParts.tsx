@@ -286,7 +286,7 @@ export function HeatmapChart({
     return (
         <div
             ref={setChartElement}
-            className="min-w-0 overflow-hidden"
+            className="min-w-0 shrink-0 overflow-hidden"
             style={{ width: '100%', height: 240 }}
             onContextMenu={(event) => {
                 event.preventDefault();
