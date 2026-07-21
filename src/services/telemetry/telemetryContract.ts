@@ -19,7 +19,6 @@ export const TELEMETRY_ROUTE_KEYS = [
     'inventory',
     'screenshot_metadata',
     'vrchat_log',
-    'themes',
     'settings'
 ] as const;
 

@@ -24,7 +24,6 @@ const EXACT_ROUTES: Record<string, TelemetryPageRouteKey> = {
     '/tools/inventory': 'inventory',
     '/tools/screenshot-metadata': 'screenshot_metadata',
     '/tools/vrchat-log': 'vrchat_log',
-    '/themes': 'themes',
     '/settings': 'settings'
 };
 
