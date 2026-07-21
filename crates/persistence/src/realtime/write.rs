@@ -490,7 +490,7 @@ fn upsert_notification_v2(
         ));
     }
     tx.execute_non_query(
-        &format!("INSERT OR REPLACE INTO {user_prefix}_notifications_v2 (id, created_at, updated_at, expires_at, type, link, link_text, message, title, image_url, seen, sender_user_id, sender_username, data, responses, details) VALUES (@id, @created_at, @updated_at, @expires_at, @type, @link, @link_text, @message, @title, @image_url, @seen, @sender_user_id, @sender_username, @data, @responses, @details)"),
+        &format!("INSERT INTO {user_prefix}_notifications_v2 (id, created_at, updated_at, expires_at, type, link, link_text, message, title, image_url, seen, sender_user_id, sender_username, data, responses, details) VALUES (@id, @created_at, @updated_at, @expires_at, @type, @link, @link_text, @message, @title, @image_url, @seen, @sender_user_id, @sender_username, @data, @responses, @details) ON CONFLICT(id) DO UPDATE SET created_at = excluded.created_at, updated_at = excluded.updated_at, expires_at = excluded.expires_at, type = excluded.type, link = excluded.link, link_text = excluded.link_text, message = excluded.message, title = excluded.title, image_url = excluded.image_url, seen = MAX({user_prefix}_notifications_v2.seen, excluded.seen), sender_user_id = excluded.sender_user_id, sender_username = excluded.sender_username, data = excluded.data, responses = excluded.responses, details = excluded.details"),
         &ParamsBuilder::new()
             .set("id", id)
             .set("created_at", created_at)

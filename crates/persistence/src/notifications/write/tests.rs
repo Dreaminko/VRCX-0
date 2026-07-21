@@ -235,7 +235,7 @@ fn notification_add_v2_accepts_aliases_defaults_json_and_replaces_existing_rows(
     assert_eq!(rows[0][6], json!("Replacement"));
     assert_eq!(rows[0][7], Value::Null);
     assert_eq!(rows[0][8], json!("https://images.example/replacement.png"));
-    assert_eq!(rows[0][9], json!(0));
+    assert_eq!(rows[0][9], json!(1));
     assert_eq!(rows[0][10], json!("usr_replacement"));
     assert_eq!(rows[0][11], json!("Replacement Sender"));
     assert_eq!(
@@ -413,5 +413,29 @@ fn combined_expire_rolls_back_both_versions_when_the_second_write_fails() -> Res
     )?;
     assert_eq!(v1[0][0], json!(0));
     assert_eq!(v2[0], vec![Value::Null, json!(0)]);
+    Ok(())
+}
+
+#[test]
+fn notification_v2_upsert_does_not_make_seen_rows_unseen() -> Result<(), Error> {
+    let (_dir, db) = test_db("notification-v2-seen-monotonic")?;
+    let notification = |seen| {
+        json!({
+            "id": "notif_seen",
+            "createdAt": "2026-07-22T00:00:00Z",
+            "type": "inviteResponse",
+            "seen": seen
+        })
+    };
+
+    notification_add_v2(&db, "usr_self".into(), notification(true))?;
+    notification_add_v2(&db, "usr_self".into(), notification(false))?;
+
+    let rows = rows_by_id(
+        &db,
+        "SELECT seen FROM usrself_notifications_v2 WHERE id = @id",
+        "notif_seen",
+    )?;
+    assert_eq!(rows[0][0], json!(1));
     Ok(())
 }

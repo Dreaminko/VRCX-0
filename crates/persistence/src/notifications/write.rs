@@ -102,7 +102,21 @@ pub fn notification_add_v2(
     }
 
     let table = format!("{user_prefix}_notifications_v2");
-    let sql = insert_or_replace_sql(&table, NOTIFICATION_V2_COLUMNS);
+    let insert = insert_or_replace_sql(&table, NOTIFICATION_V2_COLUMNS).replacen(
+        "INSERT OR REPLACE",
+        "INSERT",
+        1,
+    );
+    let updates = NOTIFICATION_V2_COLUMNS
+        .iter()
+        .filter(|column| **column != "id" && **column != "seen")
+        .map(|column| format!("{column} = excluded.{column}"))
+        .chain(std::iter::once(format!(
+            "seen = MAX({table}.seen, excluded.seen)"
+        )))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let sql = format!("{insert} ON CONFLICT(id) DO UPDATE SET {updates}");
     db.execute_non_query(
         &sql,
         &ParamsBuilder::new()

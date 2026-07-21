@@ -789,6 +789,38 @@ fn notification_v2_update_falls_back_to_upsert_with_received_timestamp() -> Resu
 }
 
 #[test]
+fn notification_v2_realtime_upsert_does_not_make_seen_rows_unseen() -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-notification-seen-monotonic");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let notification = |seen| {
+        json!({
+            "id": "notif_seen",
+            "createdAt": "2026-07-22T00:00:00Z",
+            "type": "inviteResponse",
+            "seen": seen
+        })
+    };
+
+    for seen in [true, false] {
+        write_realtime_batch(
+            &db,
+            "usr_self",
+            &RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification(seen)],
+                ..RealtimePersistenceBatch::default()
+            },
+        )?;
+    }
+
+    let rows = db.execute(
+        "SELECT seen FROM usrself_notifications_v2 WHERE id = @id",
+        &ParamsBuilder::new().set("id", "notif_seen").build(),
+    )?;
+    assert_eq!(rows[0][0], json!(1));
+    Ok(())
+}
+
+#[test]
 fn rejects_notifications_missing_required_fields() {
     let dir = TestDir::new("realtime-invalid-notification");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap();
