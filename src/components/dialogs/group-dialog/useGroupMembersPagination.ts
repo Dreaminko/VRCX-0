@@ -105,22 +105,33 @@ export function useGroupMembersPagination({
     const [loadingMore, setLoadingMore] = useState(false);
     const offsetRef = useRef(0);
     const requestIdRef = useRef(0);
+    const loadingMoreRef = useRef(false);
 
     useEffect(() => {
-        if (!enabled || !groupId) {
-            return;
-        }
-
         const requestId = requestIdRef.current + 1;
         requestIdRef.current = requestId;
         offsetRef.current = 0;
-        setStatus('loading');
+        loadingMoreRef.current = false;
+        setRows([]);
         setError('');
+        setHasMore(false);
         setLoadingMore(false);
 
+        if (!enabled || !groupId) {
+            setStatus('idle');
+            return;
+        }
+
+        const trimmedQuery = query.trim();
+        if (trimmedQuery && trimmedQuery.length < 3) {
+            setStatus('ready');
+            return;
+        }
+
+        setStatus('loading');
         fetchMembersPage({
             groupId,
-            query,
+            query: trimmedQuery,
             sort,
             roleId,
             offset: 0,
@@ -146,14 +157,17 @@ export function useGroupMembersPagination({
                         : 'Failed to load group members.'
                 );
                 setRows([]);
+                setHasMore(false);
             });
     }, [groupId, endpoint, enabled, query, sort, roleId, reloadToken]);
 
     function loadMore() {
-        if (loadingMore || !hasMore || status !== 'ready') {
+        if (loadingMoreRef.current || !hasMore || status !== 'ready') {
             return;
         }
         const requestId = requestIdRef.current;
+        const offset = offsetRef.current;
+        loadingMoreRef.current = true;
         setLoadingMore(true);
 
         fetchMembersPage({
@@ -161,21 +175,23 @@ export function useGroupMembersPagination({
             query,
             sort,
             roleId,
-            offset: offsetRef.current
+            offset
         })
             .then((page) => {
                 if (requestIdRef.current !== requestId) {
                     return;
                 }
                 setRows((current) => dedupeAppend(current, page));
-                offsetRef.current += page.length;
+                offsetRef.current = offset + page.length;
                 setHasMore(page.length === PAGE_SIZE);
+                loadingMoreRef.current = false;
                 setLoadingMore(false);
             })
             .catch(() => {
                 if (requestIdRef.current !== requestId) {
                     return;
                 }
+                loadingMoreRef.current = false;
                 setLoadingMore(false);
                 setHasMore(false);
             });
