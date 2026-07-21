@@ -3164,6 +3164,14 @@
                 "unfriend": "Unfriend",
                 "edit_note_memo": "Edit Note and Local Note"
             },
+            "group_invite": {
+                "description": "Choose a group to invite {value} to.",
+                "select_group": "Select a group...",
+                "loading": "Loading groups you can send invites for...",
+                "no_groups": "You don't have any groups you can send invites for",
+                "load_failed": "Failed to load groups",
+                "permissions_degraded": "Some group permissions couldn't be verified. This list may include groups you can't send invites for."
+            },
             "group_moderation": {
                 "title": "Manage in your groups",
                 "target": "Target user",
@@ -3449,6 +3457,7 @@
                 "translation_failed": "Translation failed",
                 "failed_to_load_avatar_author": "Failed to load avatar author",
                 "failed_to_send_group_invite": "Failed to send group invite",
+                "user_already_group_member": "This user is already a member of the group",
                 "failed_to_update_group_visibility": "Failed to update group visibility",
                 "failed_to_leave_group": "Failed to leave group",
                 "failed_to_update_group_order": "Failed to update group order"

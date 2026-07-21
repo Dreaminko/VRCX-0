@@ -3164,6 +3164,14 @@
                 "unfriend": "解除好友",
                 "edit_note_memo": "編輯備註與本機備註"
             },
+            "group_invite": {
+                "description": "選擇要邀請 {value} 加入的群組。",
+                "select_group": "選擇群組...",
+                "loading": "正在載入可傳送邀請的群組...",
+                "no_groups": "你沒有可傳送邀請的群組",
+                "load_failed": "無法載入群組",
+                "permissions_degraded": "部分群組權限無法確認，清單中可能包含你無法傳送邀請的群組。"
+            },
             "group_moderation": {
                 "title": "在你的群組中進行管理",
                 "target": "目標用戶",
@@ -3449,6 +3457,7 @@
                 "translation_failed": "翻譯失敗",
                 "failed_to_load_avatar_author": "載入角色作者失敗",
                 "failed_to_send_group_invite": "傳送群組邀請失敗",
+                "user_already_group_member": "該使用者已經是群組成員",
                 "failed_to_update_group_visibility": "更新群組可見性失敗",
                 "failed_to_leave_group": "退出群組失敗",
                 "failed_to_update_group_order": "更新群組排序失敗"

@@ -3164,6 +3164,14 @@
                 "unfriend": "删除好友",
                 "edit_note_memo": "编辑在线备注与本地备注"
             },
+            "group_invite": {
+                "description": "选择要邀请 {value} 加入的群组。",
+                "select_group": "选择群组...",
+                "loading": "正在读取可发送邀请的群组...",
+                "no_groups": "没有你可以管理邀请的群组",
+                "load_failed": "无法加载群组",
+                "permissions_degraded": "部分群组权限无法确认，列表中可能包含你无法发送邀请的群组。"
+            },
             "group_moderation": {
                 "title": "管理你拥有权限的群组",
                 "target": "目标用户",
@@ -3449,6 +3457,7 @@
                 "translation_failed": "翻译失败",
                 "failed_to_load_avatar_author": "加载模型作者失败",
                 "failed_to_send_group_invite": "无法发送群组邀请",
+                "user_already_group_member": "该用户已经是群组成员",
                 "failed_to_update_group_visibility": "更新群组可见性失败",
                 "failed_to_leave_group": "退出群组失败",
                 "failed_to_update_group_order": "更新群组排序失败"
