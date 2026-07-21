@@ -6,18 +6,20 @@ import {
 } from '@/platform/tauri/bindings';
 import notificationPersistenceRepository from '@/repositories/notificationPersistenceRepository';
 import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
-import { DAY_MS } from '@/shared/constants/time';
 import {
     getNotificationCategory,
     getNotificationTs
 } from '@/shared/utils/notificationCategory';
-import { getNotificationLifecycleBucket } from '@/shared/utils/notificationLifecycle';
+import {
+    isNotificationExpired,
+    isUnseenNotification,
+    RECENT_WINDOW_MS,
+    shouldBulkMarkSeen,
+    shouldMarkSeenRemotely
+} from '@/shared/utils/notificationSeen';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
 
-const RECENT_WINDOW_MS = DAY_MS;
-const TRANSIENT_V1_UNSEEN_TYPES = new Set(['friendRequest']);
-const ACTION_REQUIRED_V1_TYPES = new Set(['friendRequest']);
 const pendingSeenIds = new Set<string>();
 
 export type LoadStatus = 'idle' | 'running' | 'ready' | 'error';
@@ -118,52 +120,6 @@ type VrcNotificationStore = {
     markAllSeen(): Promise<void>;
     resetVrcNotificationState(): void;
 };
-
-function isNotificationExpired(notification?: NotificationRow | null): boolean {
-    if (notification?.$isExpired !== undefined) {
-        return Boolean(notification.$isExpired);
-    }
-    if (notification?.expired !== undefined) {
-        return Boolean(notification.expired);
-    }
-    if (!notification?.expiresAt) {
-        return false;
-    }
-    const expiresAt = Date.parse(notification.expiresAt);
-    return Number.isFinite(expiresAt) && expiresAt <= Date.now();
-}
-
-function isUnseenNotification(notification?: NotificationRow | null): boolean {
-    if (!notification) {
-        return false;
-    }
-    const version = Number(notification?.version ?? 1);
-    const type = String(notification?.type || '');
-    const isTransientV1Unseen =
-        version !== 2 &&
-        TRANSIENT_V1_UNSEEN_TYPES.has(type) &&
-        getNotificationTs(notification) > Date.now() - RECENT_WINDOW_MS;
-    return (
-        (version === 2 || isTransientV1Unseen) &&
-        notification.seen === false &&
-        !isNotificationExpired(notification)
-    );
-}
-
-function shouldBulkMarkSeen(notification?: NotificationRow | null): boolean {
-    const version = Number(notification?.version ?? 1);
-    const type = String(notification?.type || '');
-    return !(version !== 2 && ACTION_REQUIRED_V1_TYPES.has(type));
-}
-
-function shouldMarkSeenRemotely(
-    notification?: NotificationRow | null
-): boolean {
-    return (
-        shouldBulkMarkSeen(notification) &&
-        getNotificationLifecycleBucket(notification?.type) !== 'system'
-    );
-}
 
 function createEmptyCategories(): NotificationCategories {
     return {

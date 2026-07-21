@@ -1431,7 +1431,22 @@
                 "loading_emojis": "Carregando emojis"
             },
             "label": {
-                "notifications_in_view": "notificações na visualização"
+                "notifications_in_view": "{total} notificações na visualização"
+            },
+            "feed": {
+                "today": "Hoje",
+                "yesterday": "Ontem",
+                "unread": "Não lida",
+                "expired": "Expirada",
+                "unknown": "Notificação desconhecida",
+                "unknown_sender": "Remetente desconhecido",
+                "all": "Todos",
+                "section": {
+                    "social": "Social",
+                    "group": "Grupos",
+                    "moderation": "Moderação",
+                    "other": "Outros"
+                }
             }
         },
         "friend_list": {

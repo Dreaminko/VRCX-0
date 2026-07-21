@@ -10,8 +10,12 @@ import {
 
 const NOTIFICATION_TABLE_FILTERS_CONFIG_KEY = 'VRCX_notificationTableFilters';
 
+export type NotificationQuickFilter = 'all' | 'action' | 'unread';
+
 export function useNotificationFilters() {
     const [activeTypes, setActiveTypes] = useState<string[]>([]);
+    const [quickFilter, setQuickFilter] =
+        useState<NotificationQuickFilter>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [filtersReady, setFiltersReady] = useState(false);
     const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -55,6 +59,7 @@ export function useNotificationFilters() {
 
     function clearFilters() {
         setActiveTypes([]);
+        setQuickFilter('all');
     }
 
     return {
@@ -62,8 +67,10 @@ export function useNotificationFilters() {
         clearFilters,
         deferredSearchQuery,
         filtersReady,
+        quickFilter,
         searchQuery,
         setActiveTypes,
+        setQuickFilter,
         setSearchQuery
     };
 }

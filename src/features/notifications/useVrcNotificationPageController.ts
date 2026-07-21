@@ -1,34 +1,37 @@
 import {
     getCoreRowModel,
     getPaginationRowModel,
-    getSortedRowModel,
     useReactTable
 } from '@tanstack/react-table';
+import { useMemo } from 'react';
 
-import { useNotificationColumns } from './components/NotificationPageColumns';
+import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
+
+import type { NotificationFeedHandlers } from './components/NotificationRow';
 import { useNotificationActions } from './useNotificationActions';
 import { useNotificationDialogs } from './useNotificationDialogs';
 import { useNotificationFilters } from './useNotificationFilters';
 import { useNotificationRows } from './useNotificationRows';
 import { useNotificationRuntime } from './useNotificationRuntime';
-import { useNotificationShiftKey } from './useNotificationShiftKey';
 import { useNotificationTableState } from './useNotificationTableState';
 import { useNotificationTypeLabel } from './useNotificationTypeLabel';
 
 export function useVrcNotificationPageController() {
+    const unseenCount = useVrcNotificationStore((state) => state.unseenCount);
     const filters = useNotificationFilters();
     const runtime = useNotificationRuntime();
     const dialogs = useNotificationDialogs();
-    const shiftHeld = useNotificationShiftKey();
     const tableState = useNotificationTableState({
         activeTypes: filters.activeTypes,
-        deferredSearchQuery: filters.deferredSearchQuery
+        deferredSearchQuery: filters.deferredSearchQuery,
+        quickFilter: filters.quickFilter
     });
     const rowsState = useNotificationRows({
         activeTypes: filters.activeTypes,
         currentUserId: runtime.currentUserId ?? undefined,
         deferredSearchQuery: filters.deferredSearchQuery,
-        filtersReady: filters.filtersReady
+        filtersReady: filters.filtersReady,
+        quickFilter: filters.quickFilter
     });
     const notificationTypeLabel = useNotificationTypeLabel();
     const actions = useNotificationActions({
@@ -41,66 +44,47 @@ export function useVrcNotificationPageController() {
         setBoopReplyRequest: dialogs.setBoopReplyRequest,
         setInviteResponseRequest: dialogs.setInviteResponseRequest
     });
-    const columns = useNotificationColumns({
-        canInviteFromCurrentLocation: runtime.canInviteFromCurrentLocation,
-        currentUserId: runtime.currentUserId,
-        isTypeClickable: actions.notificationTypeIsClickable,
-        notificationTypeLabel,
-        onAcceptFriendRequest: actions.acceptFriendRequest,
-        onAcceptRequestInvite: actions.acceptRequestInvite,
-        onDeleteNotification: actions.deleteNotification,
-        onHideNotification: actions.hideNotification,
-        onMarkSeen: actions.markSeen,
-        onOpenGroup: actions.openGroup,
-        onOpenNotificationImagePreview: actions.openNotificationImagePreview,
-        onOpenNotificationLink: actions.openNotificationLink,
-        onOpenTypeTarget: actions.openNotificationTypeTarget,
-        onOpenUser: actions.openUser,
-        onSendInviteResponseWithMessage: actions.sendInviteResponseWithMessage,
-        onSendNotificationResponse: actions.sendNotificationResponse,
-        shiftHeld
-    });
 
     const table = useReactTable({
-        columns,
+        columns: [],
         data: rowsState.rows,
-        enableColumnResizing: true,
-        columnResizeMode: 'onChange',
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        meta: {
-            columnOrderLocked: tableState.columnOrderLocked,
-            setColumnOrderLocked: tableState.setColumnOrderLocked
-        },
-        onColumnOrderChange: tableState.setColumnOrder,
-        onColumnSizingChange: tableState.setColumnSizing,
-        onColumnVisibilityChange: tableState.setColumnVisibility,
         onPaginationChange: tableState.setPagination,
-        onSortingChange: tableState.setSorting,
         state: {
-            columnOrder: tableState.columnOrder,
-            columnSizing: tableState.columnSizing,
-            columnVisibility: tableState.columnVisibility,
-            pagination: tableState.pagination,
-            sorting: tableState.sorting
+            pagination: tableState.pagination
         }
     });
+
+    const pageRows = table.getRowModel().rows.map((row) => row.original);
+
+    const handlers = useMemo<NotificationFeedHandlers>(
+        () => ({
+            onAcceptFriendRequest: actions.acceptFriendRequest,
+            onAcceptRequestInvite: actions.acceptRequestInvite,
+            onDeleteNotification: actions.deleteNotification,
+            onHideNotification: actions.hideNotification,
+            onMarkSeen: actions.markSeen,
+            onOpenImagePreview: actions.openNotificationImagePreview,
+            onOpenLink: actions.openNotificationLink,
+            onSendInviteResponseWithMessage:
+                actions.sendInviteResponseWithMessage,
+            onSendNotificationResponse: actions.sendNotificationResponse
+        }),
+        [actions]
+    );
 
     return {
         actions,
         dialogs,
-        filters: {
-            activeTypes: filters.activeTypes,
-            clearFilters: filters.clearFilters,
-            searchQuery: filters.searchQuery,
-            setActiveTypes: filters.setActiveTypes,
-            setSearchQuery: filters.setSearchQuery
-        },
+        filters,
+        handlers,
         notificationTypeLabel,
+        pageRows,
         rowsState,
         runtime,
         table,
-        tableState
+        tableState,
+        unseenCount
     };
 }

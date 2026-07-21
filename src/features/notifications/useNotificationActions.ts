@@ -27,6 +27,7 @@ import {
 import { withUploadTimeout } from '@/shared/utils/imageUpload';
 import { parseLocation } from '@/shared/utils/location';
 import { useModalStore } from '@/state/modalStore';
+import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
 import type {
     NotificationDialogRequest,
@@ -64,6 +65,9 @@ export function useNotificationActions({
     setInviteResponseRequest: (request: NotificationDialogRequest) => void;
 }) {
     const { t } = useTranslation();
+    const markAllNotificationsSeen = useVrcNotificationStore(
+        (state) => state.markAllSeen
+    );
     const confirm = useModalStore((state) => state.confirm);
     const openImagePreview = useModalStore((state) => state.openImagePreview);
     const openUser = useCallback((params: DialogParams) => {
@@ -180,6 +184,21 @@ export function useNotificationActions({
         },
         [currentUserId, endpoint, reload, t]
     );
+
+    const markAllSeen = useCallback(async () => {
+        try {
+            await markAllNotificationsSeen();
+            reload();
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t(
+                          'host.vrc_notification_center.toast.failed_to_mark_notifications_as_seen'
+                      )
+            );
+        }
+    }, [markAllNotificationsSeen, reload, t]);
 
     const deleteNotification = useCallback(
         async (
@@ -500,6 +519,7 @@ export function useNotificationActions({
         acceptRequestInvite,
         deleteNotification,
         hideNotification,
+        markAllSeen,
         markSeen,
         notificationTypeIsClickable,
         openGroup,

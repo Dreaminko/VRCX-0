@@ -25,24 +25,28 @@ import {
 import { HoverCard, HoverCardTrigger } from '@/ui/shadcn/hover-card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import { getNotificationLifecycleBucket } from './notificationDrawerBuckets';
-import type { NotificationDrawerHandlers } from './NotificationDrawerList';
 import {
     NotificationActionButton,
-    NotificationHoverContent,
     NotificationIconDisc,
-    NotificationLocationLine,
     NotificationPersonAvatar
-} from './NotificationDrawerRowParts';
+} from '../components/NotificationRowParts';
 import {
     buildOrderedActions,
     canMarkNotificationSeen,
+    usesAvatar
+} from '../notificationRowActions';
+import { getNotificationLifecycleBucket } from './notificationDrawerBuckets';
+import type { NotificationDrawerHandlers } from './NotificationDrawerList';
+import {
+    NotificationHoverContent,
+    NotificationLocationLine
+} from './NotificationDrawerRowParts';
+import {
     computeRemaining,
     formatCountdown,
     getNotificationAbsoluteTime,
     getNotificationRelativeTime,
-    getNotificationTypeLabel,
-    usesAvatar
+    getNotificationTypeLabel
 } from './notificationDrawerRowUtils';
 
 const STATUS_JOINME_TINT =

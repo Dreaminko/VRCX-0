@@ -6,11 +6,7 @@ import {
     NOTIFICATION_TABLE_DEFAULT_PAGE_SIZES as DEFAULT_PAGE_SIZES,
     readPersistedNotificationTableState as readPersistedState,
     resolveNotificationPageSize as resolvePageSize,
-    sanitizeNotificationColumnOrder as sanitizeColumnOrder,
-    sanitizeNotificationColumnSizing as sanitizeColumnSizing,
-    sanitizeNotificationColumnVisibility as sanitizeColumnVisibility,
     sanitizeNotificationPageSizes as sanitizePageSizes,
-    sanitizeNotificationSorting as sanitizeSorting,
     writePersistedNotificationTableState as writePersistedState
 } from './notificationTableState';
 
@@ -21,10 +17,12 @@ type NotificationPagination = {
 
 export function useNotificationTableState({
     activeTypes,
-    deferredSearchQuery
+    deferredSearchQuery,
+    quickFilter
 }: {
     activeTypes: string[];
     deferredSearchQuery: string;
+    quickFilter: string;
 }) {
     const preferencesHydrated = usePreferencesStore(
         (state) => state.preferencesHydrated
@@ -47,40 +45,12 @@ export function useNotificationTableState({
     const storedPageSizeRef = useRef(
         hasPersistedPageSize ? persistedPageSize : null
     );
-    const hasWrittenSortingRef = useRef(false);
     const hasWrittenPageSizeRef = useRef(false);
-    const hasWrittenColumnVisibilityRef = useRef(false);
-    const hasWrittenTableLayoutRef = useRef(false);
     const [pageSizes, setPageSizes] = useState(DEFAULT_PAGE_SIZES);
-    const [sorting, setSorting] = useState(() =>
-        sanitizeSorting(persistedState.sorting)
-    );
-    const [columnVisibility, setColumnVisibility] = useState(() =>
-        sanitizeColumnVisibility(persistedState.columnVisibility)
-    );
-    const [columnOrder, setColumnOrder] = useState(() =>
-        sanitizeColumnOrder(persistedState.columnOrder)
-    );
-    const [columnSizing, setColumnSizing] = useState(() =>
-        sanitizeColumnSizing(persistedState.columnSizing)
-    );
-    const [columnOrderLocked, setColumnOrderLocked] = useState(
-        () => persistedState.columnOrderLocked === true
-    );
     const [pagination, setPagination] = useState<NotificationPagination>({
         pageIndex: 0,
         pageSize: resolvePageSize(persistedPageSize)
     });
-
-    useEffect(() => {
-        if (!hasWrittenSortingRef.current) {
-            hasWrittenSortingRef.current = true;
-            return;
-        }
-        writePersistedState({
-            sorting: sanitizeSorting(sorting)
-        });
-    }, [sorting]);
 
     useEffect(() => {
         if (!hasWrittenPageSizeRef.current) {
@@ -93,28 +63,6 @@ export function useNotificationTableState({
             pageSize: pagination.pageSize
         });
     }, [pagination.pageSize]);
-
-    useEffect(() => {
-        if (!hasWrittenColumnVisibilityRef.current) {
-            hasWrittenColumnVisibilityRef.current = true;
-            return;
-        }
-        writePersistedState({
-            columnVisibility: sanitizeColumnVisibility(columnVisibility)
-        });
-    }, [columnVisibility]);
-
-    useEffect(() => {
-        if (!hasWrittenTableLayoutRef.current) {
-            hasWrittenTableLayoutRef.current = true;
-            return;
-        }
-        writePersistedState({
-            columnOrder: sanitizeColumnOrder(columnOrder),
-            columnOrderLocked,
-            columnSizing: sanitizeColumnSizing(columnSizing)
-        });
-    }, [columnOrder, columnOrderLocked, columnSizing]);
 
     useEffect(() => {
         if (!preferencesHydrated) {
@@ -156,7 +104,7 @@ export function useNotificationTableState({
             ...current,
             pageIndex: 0
         }));
-    }, [activeTypes, deferredSearchQuery]);
+    }, [activeTypes, deferredSearchQuery, quickFilter]);
 
     function handlePageSizeChange(value: unknown) {
         setPagination({
@@ -166,19 +114,9 @@ export function useNotificationTableState({
     }
 
     return {
-        columnOrder,
-        columnOrderLocked,
-        columnSizing,
-        columnVisibility,
         handlePageSizeChange,
         pageSizes,
         pagination,
-        setColumnOrder,
-        setColumnOrderLocked,
-        setColumnSizing,
-        setColumnVisibility,
-        setPagination,
-        setSorting,
-        sorting
+        setPagination
     };
 }

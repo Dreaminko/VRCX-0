@@ -1,16 +1,14 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type {
-    NotificationResponse,
-    NotificationRow
-} from '@/repositories/notificationPersistenceRepository';
+import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
 import type {
     NotificationBucket,
     NotificationCategories
 } from '@/state/vrcNotificationStore';
 import { Button } from '@/ui/shadcn/button';
 
+import type { NotificationRowActionHandlers } from '../notificationRowActions';
 import {
     groupDrawerEntries,
     NOTIFICATION_LIFECYCLE_ORDER,
@@ -19,21 +17,10 @@ import {
 } from './notificationDrawerBuckets';
 import { NotificationDrawerRow } from './NotificationDrawerRow';
 
-export type NotificationDrawerHandlers = {
-    onAcceptFriendRequest(notification: NotificationRow): void | Promise<void>;
-    onAcceptRequestInvite(notification: NotificationRow): void | Promise<void>;
+export type NotificationDrawerHandlers = NotificationRowActionHandlers & {
     onDeleteNotification(notification: NotificationRow): void | Promise<void>;
-    onHideNotification(notification: NotificationRow): void | Promise<void>;
     onJoinQueueReady(notification: NotificationRow): void | Promise<void>;
     onMarkSeen(notification: NotificationRow): void | Promise<void>;
-    onSendInviteResponseWithMessage(
-        notification: NotificationRow,
-        messageType: string
-    ): void;
-    onSendNotificationResponse(
-        notification: NotificationRow,
-        response: NotificationResponse
-    ): void | Promise<void>;
 };
 
 type NotificationDrawerListProps = {

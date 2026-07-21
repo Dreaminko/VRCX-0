@@ -1427,7 +1427,22 @@
                 "loading_emojis": "Emojiを読み込み中"
             },
             "label": {
-                "notifications_in_view": "表示中の通知"
+                "notifications_in_view": "表示中の通知 {total} 件"
+            },
+            "feed": {
+                "today": "今日",
+                "yesterday": "昨日",
+                "unread": "未読",
+                "expired": "期限切れ",
+                "unknown": "不明な通知",
+                "unknown_sender": "不明な送信者",
+                "all": "すべて",
+                "section": {
+                    "social": "ソーシャル",
+                    "group": "グループ",
+                    "moderation": "モデレーション",
+                    "other": "その他"
+                }
             }
         },
         "friend_list": {

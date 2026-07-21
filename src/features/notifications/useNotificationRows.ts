@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { getNotificationLifecycleBucket } from '@/shared/utils/notificationLifecycle';
+import {
+    isNotificationExpired,
+    isUnseenNotification
+} from '@/shared/utils/notificationSeen';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
 import type {
@@ -9,17 +14,36 @@ import type {
     NotificationRow
 } from './notificationPageTypes';
 import { filterNotificationRows } from './notificationRows';
+import type { NotificationQuickFilter } from './useNotificationFilters';
+
+function matchesQuickFilter(
+    notification: NotificationRow,
+    quickFilter: NotificationQuickFilter
+): boolean {
+    if (quickFilter === 'unread') {
+        return isUnseenNotification(notification);
+    }
+    if (quickFilter === 'action') {
+        return (
+            getNotificationLifecycleBucket(notification.type) === 'action' &&
+            !isNotificationExpired(notification)
+        );
+    }
+    return true;
+}
 
 export function useNotificationRows({
     activeTypes,
     currentUserId,
     deferredSearchQuery,
-    filtersReady
+    filtersReady,
+    quickFilter
 }: {
     activeTypes: string[];
     currentUserId?: string;
     deferredSearchQuery: string;
     filtersReady: boolean;
+    quickFilter: NotificationQuickFilter;
 }) {
     const { t } = useTranslation();
     const notificationRows = useVrcNotificationStore((state) => state.rows);
@@ -84,6 +108,8 @@ export function useNotificationRows({
             notificationRows,
             activeTypes,
             deferredSearchQuery
+        ).filter((notification) =>
+            matchesQuickFilter(notification, quickFilter)
         );
         setRows(nextRows);
         setLoadStatus(notificationLoadStatus);
@@ -95,7 +121,8 @@ export function useNotificationRows({
         filtersReady,
         notificationDetail,
         notificationLoadStatus,
-        notificationRows
+        notificationRows,
+        quickFilter
     ]);
 
     return {

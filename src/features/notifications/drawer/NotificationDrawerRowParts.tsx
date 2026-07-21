@@ -1,66 +1,23 @@
-import { CalendarDaysIcon, LinkIcon, UserIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { CalendarDaysIcon, LinkIcon } from 'lucide-react';
 
-import {
-    getNotificationImageUrl,
-    openNotificationLink
-} from '@/components/hosts/vrc-notification-center/notificationCenterUtils';
+import { openNotificationLink } from '@/components/hosts/vrc-notification-center/notificationCenterUtils';
 import { Location } from '@/components/Location';
 import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
-import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Button } from '@/ui/shadcn/button';
 import { HoverCardContent } from '@/ui/shadcn/hover-card';
 import { Separator } from '@/ui/shadcn/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
-    getDiscIcon,
+    NotificationIconDisc,
+    NotificationPersonAvatar
+} from '../components/NotificationRowParts';
+import {
     getFriendMessage,
     getGroupDisplayName,
     getHoverTitle,
     isFriendNotification,
     isGroupNotification
 } from './notificationDrawerRowUtils';
-
-export function NotificationPersonAvatar({
-    notification
-}: {
-    notification: NotificationRow;
-}) {
-    const imageUrl = getNotificationImageUrl(notification);
-    return (
-        <Avatar className="size-9 shrink-0">
-            {imageUrl ? <AvatarImage src={imageUrl} alt="" /> : null}
-            <AvatarFallback>
-                <UserIcon className="size-4" />
-            </AvatarFallback>
-        </Avatar>
-    );
-}
-
-export function NotificationIconDisc({
-    notification
-}: {
-    notification: NotificationRow;
-}) {
-    const Icon = getDiscIcon(notification);
-    const imageUrl = getNotificationImageUrl(notification);
-    if (imageUrl) {
-        return (
-            <Avatar className="size-9 shrink-0 rounded-md">
-                <AvatarImage src={imageUrl} alt="" className="rounded-md" />
-                <AvatarFallback className="rounded-md">
-                    <Icon className="size-4" />
-                </AvatarFallback>
-            </Avatar>
-        );
-    }
-    return (
-        <div className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
-            <Icon className="size-4" />
-        </div>
-    );
-}
 
 export function NotificationLocationLine({
     notification
@@ -220,34 +177,5 @@ export function NotificationHoverContent({
                 </>
             ) : null}
         </HoverCardContent>
-    );
-}
-
-export function NotificationActionButton({
-    label,
-    onClick,
-    children
-}: {
-    children: ReactNode;
-    label: string;
-    onClick: () => void;
-}) {
-    return (
-        <Tooltip>
-            <TooltipTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        aria-label={label}
-                        onClick={onClick}
-                    >
-                        {children}
-                    </Button>
-                }
-            />
-            <TooltipContent>{label}</TooltipContent>
-        </Tooltip>
     );
 }

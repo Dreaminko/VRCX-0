@@ -2,46 +2,14 @@ import {
     getDataTableStorageKey,
     readPersistedTableState,
     safeJsonParse,
-    sanitizeTableColumnSizing,
     writePersistedTableState
 } from '@/components/data-table/dataTablePersistence';
 
 export { safeJsonParse };
 
 export const NOTIFICATION_TABLE_DEFAULT_PAGE_SIZES = [10, 15, 20, 25, 50, 100];
-export const NOTIFICATION_TABLE_DEFAULT_SORTING = [
-    { id: 'created_at', desc: true }
-];
-export const NOTIFICATION_TABLE_COLUMN_IDS = [
-    'created_at',
-    'type',
-    'senderUsername',
-    'groupName',
-    'photo',
-    'message',
-    'action',
-    'trailing'
-];
 
 const STORAGE_KEY = getDataTableStorageKey('notifications');
-const LEGACY_COLUMN_ID_MAP: Record<string, string> = {
-    createdAt: 'created_at',
-    sender: 'senderUsername',
-    group: 'groupName',
-    actions: 'action'
-};
-const NOTIFICATION_TABLE_COLUMN_ID_SET = new Set<string>(
-    NOTIFICATION_TABLE_COLUMN_IDS
-);
-
-type NotificationSortingEntry = {
-    desc: boolean;
-    id: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
 
 export function readPersistedNotificationTableState() {
     return readPersistedTableState(STORAGE_KEY);
@@ -51,40 +19,6 @@ export function writePersistedNotificationTableState(
     patch: Record<string, unknown>
 ) {
     writePersistedTableState(STORAGE_KEY, patch);
-}
-
-export function normalizeNotificationColumnId(columnId: unknown): string {
-    const normalizedColumnId = String(columnId || '').trim();
-    return LEGACY_COLUMN_ID_MAP[normalizedColumnId] || normalizedColumnId;
-}
-
-export function sanitizeNotificationSorting(
-    value: unknown
-): NotificationSortingEntry[] {
-    if (!Array.isArray(value)) {
-        return NOTIFICATION_TABLE_DEFAULT_SORTING;
-    }
-
-    const allowedIds = new Set([
-        'created_at',
-        'type',
-        'senderUsername',
-        'groupName'
-    ]);
-    const filtered = value
-        .map((entry) => {
-            if (!isRecord(entry)) {
-                return null;
-            }
-            return {
-                desc: entry.desc === true,
-                id: normalizeNotificationColumnId(entry.id)
-            };
-        })
-        .filter((entry): entry is NotificationSortingEntry =>
-            Boolean(entry && allowedIds.has(entry.id))
-        );
-    return filtered.length ? filtered : NOTIFICATION_TABLE_DEFAULT_SORTING;
 }
 
 export function sanitizeNotificationFilters(
@@ -123,61 +57,6 @@ export function sanitizeNotificationPageSizes(value: unknown): number[] {
     return normalized.length
         ? normalized
         : NOTIFICATION_TABLE_DEFAULT_PAGE_SIZES;
-}
-
-export function sanitizeNotificationColumnVisibility(value: unknown) {
-    const visibility: Record<string, boolean> = {};
-    if (!isRecord(value)) {
-        return visibility;
-    }
-
-    for (const [columnId, visible] of Object.entries(value)) {
-        const normalizedColumnId = normalizeNotificationColumnId(columnId);
-        if (
-            NOTIFICATION_TABLE_COLUMN_ID_SET.has(normalizedColumnId) &&
-            typeof visible === 'boolean'
-        ) {
-            visibility[normalizedColumnId] = visible;
-        }
-    }
-    return visibility;
-}
-
-export function sanitizeNotificationColumnOrder(value: unknown): string[] {
-    if (!Array.isArray(value)) {
-        return [];
-    }
-
-    const order: string[] = [];
-    for (const columnId of value) {
-        const normalizedColumnId = normalizeNotificationColumnId(columnId);
-        if (
-            NOTIFICATION_TABLE_COLUMN_ID_SET.has(normalizedColumnId) &&
-            !order.includes(normalizedColumnId)
-        ) {
-            order.push(normalizedColumnId);
-        }
-    }
-    return order;
-}
-
-export function sanitizeNotificationColumnSizing(value: unknown) {
-    if (!isRecord(value)) {
-        return {};
-    }
-
-    const normalizedSizing: Record<string, unknown> = {};
-    for (const [columnId, rawSize] of Object.entries(value)) {
-        const normalizedColumnId = normalizeNotificationColumnId(columnId);
-        if (NOTIFICATION_TABLE_COLUMN_ID_SET.has(normalizedColumnId)) {
-            normalizedSizing[normalizedColumnId] = rawSize;
-        }
-    }
-
-    return sanitizeTableColumnSizing(
-        normalizedSizing,
-        NOTIFICATION_TABLE_COLUMN_IDS
-    );
 }
 
 export function resolveNotificationPageSize(

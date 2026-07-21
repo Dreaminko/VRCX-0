@@ -1433,7 +1433,22 @@
                 "loading_emojis": "Načítání emoji"
             },
             "label": {
-                "notifications_in_view": "oznámení v zobrazení"
+                "notifications_in_view": "{total} oznámení v zobrazení"
+            },
+            "feed": {
+                "today": "Dnes",
+                "yesterday": "Včera",
+                "unread": "Nepřečtené",
+                "expired": "Vypršelo",
+                "unknown": "Neznámé oznámení",
+                "unknown_sender": "Neznámý odesílatel",
+                "all": "Vše",
+                "section": {
+                    "social": "Sociální",
+                    "group": "Skupiny",
+                    "moderation": "Moderace",
+                    "other": "Ostatní"
+                }
             }
         },
         "friend_list": {

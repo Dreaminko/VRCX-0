@@ -101,6 +101,7 @@ export const NOTIFICATION_TYPES = Object.freeze([
     'event.announcement',
     'groupChange',
     'group.announcement',
+    'group.event.created',
     'group.informative',
     'group.invite',
     'group.joinRequest',
@@ -110,7 +111,10 @@ export const NOTIFICATION_TYPES = Object.freeze([
     'moderation.report.closed',
     'moderation.contentrestriction',
     'instance.closed',
-    'economy.alert'
+    'economy.alert',
+    'economy.received.gift',
+    'badge.earned',
+    'vrcplus.gift'
 ]);
 
 function normalizeUserId(value: unknown): string {

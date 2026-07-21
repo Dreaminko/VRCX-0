@@ -1433,7 +1433,22 @@
                 "loading_emojis": "Загрузка смайликов"
             },
             "label": {
-                "notifications_in_view": "на предмет направления уведомлений"
+                "notifications_in_view": "{total} уведомлений в списке"
+            },
+            "feed": {
+                "today": "Сегодня",
+                "yesterday": "Вчера",
+                "unread": "Непрочитанные",
+                "expired": "Истекло",
+                "unknown": "Неизвестное уведомление",
+                "unknown_sender": "Неизвестный отправитель",
+                "all": "Все",
+                "section": {
+                    "social": "Социальные",
+                    "group": "Группы",
+                    "moderation": "Модерация",
+                    "other": "Прочее"
+                }
             }
         },
         "friend_list": {

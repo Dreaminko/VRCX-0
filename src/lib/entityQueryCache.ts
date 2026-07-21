@@ -158,6 +158,12 @@ export const entityQueryPolicies = Object.freeze({
         gcTime: 120 * MINUTE_MS,
         retry: 1,
         refetchOnWindowFocus: false
+    }),
+    userAvatarLookup: Object.freeze({
+        staleTime: 30 * MINUTE_MS,
+        gcTime: 120 * MINUTE_MS,
+        retry: 0,
+        refetchOnWindowFocus: false
     })
 });
 

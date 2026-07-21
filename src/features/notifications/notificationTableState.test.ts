@@ -1,16 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-    NOTIFICATION_TABLE_DEFAULT_SORTING,
-    normalizeNotificationColumnId,
     readPersistedNotificationTableState,
     resolveNotificationPageSize,
     safeJsonParse,
-    sanitizeNotificationColumnOrder,
-    sanitizeNotificationColumnSizing,
-    sanitizeNotificationColumnVisibility,
     sanitizeNotificationFilters,
-    sanitizeNotificationSorting,
     writePersistedNotificationTableState
 } from './notificationTableState';
 
@@ -54,9 +48,7 @@ describe('notification table state helpers', () => {
         });
 
         expect(readPersistedNotificationTableState()).toEqual({ pageSize: 25 });
-        writePersistedNotificationTableState({
-            sorting: [{ id: 'type', desc: false }]
-        });
+        writePersistedNotificationTableState({ pageSize: 50 });
 
         expect(localStorage.setItem).toHaveBeenCalledWith(
             'vrcx-0:table:notifications',
@@ -65,8 +57,7 @@ describe('notification table state helpers', () => {
         expect(
             JSON.parse(values.get('vrcx-0:table:notifications') ?? '')
         ).toEqual({
-            pageSize: 25,
-            sorting: [{ id: 'type', desc: false }],
+            pageSize: 50,
             updatedAt: new Date('2026-01-02T03:04:05Z').getTime()
         });
     });
@@ -92,25 +83,7 @@ describe('notification table state helpers', () => {
         ).not.toThrow();
     });
 
-    it('normalizes legacy column ids and keeps only sortable notification columns', () => {
-        expect(normalizeNotificationColumnId('createdAt')).toBe('created_at');
-        expect(normalizeNotificationColumnId('sender')).toBe('senderUsername');
-        expect(
-            sanitizeNotificationSorting([
-                { id: 'createdAt', desc: true },
-                { id: 'sender', desc: false },
-                { id: 'message', desc: true }
-            ])
-        ).toEqual([
-            { id: 'created_at', desc: true },
-            { id: 'senderUsername', desc: false }
-        ]);
-        expect(
-            sanitizeNotificationSorting([{ id: 'message', desc: true }])
-        ).toBe(NOTIFICATION_TABLE_DEFAULT_SORTING);
-    });
-
-    it('sanitizes filters, column visibility, order, sizing, and page size', () => {
+    it('sanitizes filters and page size', () => {
         const allowedTypes = ['invite', 'message'];
 
         expect(
@@ -119,36 +92,6 @@ describe('notification table state helpers', () => {
                 allowedTypes
             )
         ).toEqual(['invite', 'message']);
-        expect(
-            sanitizeNotificationColumnVisibility({
-                createdAt: false,
-                sender: true,
-                missing: false,
-                message: 'yes'
-            })
-        ).toEqual({
-            created_at: false,
-            senderUsername: true
-        });
-        expect(
-            sanitizeNotificationColumnOrder([
-                'sender',
-                'senderUsername',
-                'message',
-                'missing'
-            ])
-        ).toEqual(['senderUsername', 'message']);
-        expect(
-            sanitizeNotificationColumnSizing({
-                createdAt: 120,
-                message: '240',
-                missing: 50,
-                type: -1
-            })
-        ).toEqual({
-            created_at: 120,
-            message: 240
-        });
         expect(resolveNotificationPageSize(50)).toBe(50);
         expect(resolveNotificationPageSize('bad')).toBe(20);
     });

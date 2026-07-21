@@ -1431,7 +1431,22 @@
                 "loading_emojis": "正在載入Emoji"
             },
             "label": {
-                "notifications_in_view": "檢視中的通知"
+                "notifications_in_view": "檢視內 {total} 條通知"
+            },
+            "feed": {
+                "today": "今天",
+                "yesterday": "昨天",
+                "unread": "未讀",
+                "expired": "已過期",
+                "unknown": "未知通知",
+                "unknown_sender": "未知寄件者",
+                "all": "全部",
+                "section": {
+                    "social": "社交",
+                    "group": "群組",
+                    "moderation": "管理",
+                    "other": "其他"
+                }
             }
         },
         "friend_list": {

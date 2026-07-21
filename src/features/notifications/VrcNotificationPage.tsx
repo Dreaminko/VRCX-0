@@ -1,7 +1,7 @@
 import { InviteMessageDialog } from '@/components/dialogs/InviteMessageDialog';
 import { PageScaffold } from '@/components/layout/PageScaffold';
 
-import { NotificationPageTable } from './components/NotificationPageTable';
+import { NotificationFeed } from './components/NotificationFeed';
 import { NotificationPageToolbar } from './components/NotificationPageToolbar';
 import { BoopReplyDialog } from './components/NotificationViewParts';
 import { useVrcNotificationPageController } from './useVrcNotificationPageController';
@@ -17,11 +17,14 @@ export function VrcNotificationPage({
         actions,
         dialogs,
         filters,
+        handlers,
         notificationTypeLabel,
+        pageRows,
         rowsState,
         runtime,
         table,
-        tableState
+        tableState,
+        unseenCount
     } = useVrcNotificationPageController();
 
     return (
@@ -34,15 +37,19 @@ export function VrcNotificationPage({
                 <NotificationPageToolbar
                     activeTypes={filters.activeTypes}
                     searchQuery={filters.searchQuery}
+                    quickFilter={filters.quickFilter}
                     notificationTypeLabel={notificationTypeLabel}
                     loadStatus={rowsState.loadStatus}
-                    table={table}
+                    unseenCount={unseenCount}
                     onActiveTypesChange={filters.setActiveTypes}
                     onSearchQueryChange={filters.setSearchQuery}
+                    onQuickFilterChange={filters.setQuickFilter}
+                    onMarkAllSeen={actions.markAllSeen}
                     onRefresh={rowsState.reload}
                     onClearFilters={filters.clearFilters}
                 />
-                <NotificationPageTable
+                <NotificationFeed
+                    rows={pageRows}
                     table={table}
                     detail={rowsState.detail}
                     loadStatus={rowsState.loadStatus}
@@ -50,6 +57,11 @@ export function VrcNotificationPage({
                     pagination={tableState.pagination}
                     pageSizes={tableState.pageSizes}
                     onPageSizeChange={tableState.handlePageSizeChange}
+                    currentUserId={runtime.currentUserId ?? undefined}
+                    canInviteFromCurrentLocation={
+                        runtime.canInviteFromCurrentLocation
+                    }
+                    handlers={handlers}
                 />
             </PageScaffold>
             <InviteMessageDialog

@@ -1,121 +1,96 @@
-import {
-    BanIcon,
-    BellOffIcon,
-    CalendarIcon,
-    CheckIcon,
-    ExternalLinkIcon,
-    GlobeIcon,
-    MessageCircleIcon,
-    PersonStandingIcon,
-    ReplyIcon,
-    TagIcon,
-    UserIcon,
-    UsersIcon,
-    XIcon,
-    type LucideIcon
-} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import { BoopEmojiDialog } from '@/components/dialogs/BoopEmojiDialog';
-import { Location } from '@/components/Location';
-import {
-    NOTIFICATION_TYPES,
-    type NotificationResponse
-} from '@/repositories/notificationPersistenceRepository';
+import { NOTIFICATION_TYPES } from '@/repositories/notificationPersistenceRepository';
 import { Button } from '@/ui/shadcn/button';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuGroup,
+    DropdownMenuLabel,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 
 import type { NotificationRow } from '../notificationPageTypes';
 import { sanitizeNotificationFilters } from '../notificationTableState';
 
-export function getResponseIcon(
-    response: NotificationResponse | null | undefined,
-    notificationType: unknown
-): LucideIcon {
-    if (response?.type === 'link') {
-        return ExternalLinkIcon;
+const NOTIFICATION_TYPE_SECTIONS: {
+    key: string;
+    labelKey: string;
+    types: string[];
+}[] = [
+    {
+        key: 'social',
+        labelKey: 'view.notification.feed.section.social',
+        types: [
+            'friendRequest',
+            'ignoredFriendRequest',
+            'invite',
+            'requestInvite',
+            'inviteResponse',
+            'requestInviteResponse',
+            'message',
+            'boop'
+        ]
+    },
+    {
+        key: 'group',
+        labelKey: 'view.notification.feed.section.group',
+        types: [
+            'groupChange',
+            'group.announcement',
+            'group.event.created',
+            'group.informative',
+            'group.invite',
+            'group.joinRequest',
+            'group.transfer',
+            'group.queueReady',
+            'event.announcement'
+        ]
+    },
+    {
+        key: 'moderation',
+        labelKey: 'view.notification.feed.section.moderation',
+        types: [
+            'moderation.warning.group',
+            'moderation.report.closed',
+            'moderation.contentrestriction'
+        ]
+    },
+    {
+        key: 'other',
+        labelKey: 'view.notification.feed.section.other',
+        types: [
+            'instance.closed',
+            'economy.alert',
+            'economy.received.gift',
+            'badge.earned',
+            'vrcplus.gift'
+        ]
     }
-    switch (response?.icon) {
-        case 'check':
-            return CheckIcon;
-        case 'cancel':
-            return XIcon;
-        case 'ban':
-            return BanIcon;
-        case 'bell-slash':
-            return BellOffIcon;
-        case 'reply':
-            return notificationType === 'boop' ? MessageCircleIcon : ReplyIcon;
-        default:
-            return TagIcon;
-    }
-}
+];
 
-function getNotificationLinkScheme(link: unknown) {
-    const value = String(link || '').trim();
-    const separatorIndex = value.indexOf(':');
-    if (separatorIndex <= 0) {
-        return '';
-    }
-    return value.slice(0, separatorIndex).toLowerCase();
-}
-
-export function getNotificationLinkIcon(link: unknown): LucideIcon {
-    switch (getNotificationLinkScheme(link)) {
-        case 'user':
-            return UserIcon;
-        case 'group':
-            return UsersIcon;
-        case 'event':
-            return CalendarIcon;
-        case 'world':
-            return GlobeIcon;
-        case 'avatar':
-            return PersonStandingIcon;
-        default:
-            return ExternalLinkIcon;
-    }
-}
-
-export function notificationLinkIsInternal(link: unknown) {
-    return ['user', 'group', 'event', 'world', 'avatar'].includes(
-        getNotificationLinkScheme(link)
+function sectionedNotificationTypes() {
+    const assigned = new Set(
+        NOTIFICATION_TYPE_SECTIONS.flatMap((section) => section.types)
     );
-}
-
-export { DataTableSortButton as SortButton };
-
-export function NotificationLocationLink({
-    location,
-    worldName = '',
-    groupName = ''
-}: {
-    groupName?: string;
-    location: unknown;
-    worldName?: string;
-}) {
-    const value = String(location || '').trim();
-    if (!value) {
-        return null;
-    }
-
-    return (
-        <div className="text-muted-foreground max-w-xl text-xs">
-            <Location
-                location={value}
-                hint={worldName}
-                grouphint={groupName}
-                asButton={false}
-            />
-        </div>
-    );
+    return NOTIFICATION_TYPE_SECTIONS.map((section) => ({
+        ...section,
+        types:
+            section.key === 'other'
+                ? [
+                      ...section.types.filter((type) =>
+                          NOTIFICATION_TYPES.includes(type)
+                      ),
+                      ...NOTIFICATION_TYPES.filter(
+                          (type) => !assigned.has(type)
+                      )
+                  ]
+                : section.types.filter((type) =>
+                      NOTIFICATION_TYPES.includes(type)
+                  )
+    })).filter((section) => section.types.length > 0);
 }
 
 export function NotificationTypeFilterDropdown({
@@ -134,6 +109,14 @@ export function NotificationTypeFilterDropdown({
     const label = activeTypes.length
         ? `${filterLabel} (${activeTypes.length})`
         : filterLabel;
+    const sections = sectionedNotificationTypes();
+
+    function toggleType(type: string, checked: boolean) {
+        const nextTypes = checked
+            ? [...activeTypes, type]
+            : activeTypes.filter((entry) => entry !== type);
+        onChange(sanitizeNotificationFilters(nextTypes, NOTIFICATION_TYPES));
+    }
 
     return (
         <DropdownMenu>
@@ -152,30 +135,25 @@ export function NotificationTypeFilterDropdown({
                 align="start"
                 className="max-h-96 w-80 overflow-y-auto"
             >
-                <DropdownMenuGroup>
-                    {NOTIFICATION_TYPES.map((type) => (
-                        <DropdownMenuCheckboxItem
-                            key={type}
-                            checked={activeTypes.includes(type)}
-                            onCheckedChange={(checked) => {
-                                const nextTypes = checked
-                                    ? [...activeTypes, type]
-                                    : activeTypes.filter(
-                                          (entry) => entry !== type
-                                      );
-                                onChange(
-                                    sanitizeNotificationFilters(
-                                        nextTypes,
-                                        NOTIFICATION_TYPES
-                                    )
-                                );
-                            }}
-                            onClick={(event) => event.preventDefault()}
-                        >
-                            {getTypeLabel(type)}
-                        </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuGroup>
+                {sections.map((section) => (
+                    <DropdownMenuGroup key={section.key}>
+                        <DropdownMenuLabel>
+                            {t(section.labelKey)}
+                        </DropdownMenuLabel>
+                        {section.types.map((type) => (
+                            <DropdownMenuCheckboxItem
+                                key={type}
+                                checked={activeTypes.includes(type)}
+                                onCheckedChange={(checked) =>
+                                    toggleType(type, checked)
+                                }
+                                onClick={(event) => event.preventDefault()}
+                            >
+                                {getTypeLabel(type)}
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuGroup>
+                ))}
             </DropdownMenuContent>
         </DropdownMenu>
     );
