@@ -107,11 +107,35 @@ fn copy_replace(from: PathBuf, to: PathBuf) -> Result<(), Error> {
         return Ok(());
     }
 
-    if to.exists() {
-        std::fs::remove_file(&to)?;
+    let file_name = to.file_name().ok_or_else(|| {
+        Error::InvalidData(format!(
+            "Legacy migration destination has no file name: {}",
+            to.display()
+        ))
+    })?;
+    let temporary = to.with_file_name(format!(
+        "{}.legacy-migration.tmp",
+        file_name.to_string_lossy()
+    ));
+    if temporary.exists() {
+        std::fs::remove_file(&temporary)?;
     }
-    std::fs::copy(&from, &to)?;
-    Ok(())
+    let result = (|| {
+        std::fs::copy(&from, &temporary)?;
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&temporary)?
+            .sync_all()?;
+        crate::profile_backup::replace_file_atomically(&temporary, &to)?;
+        if let Some(parent) = to.parent() {
+            crate::profile_backup::sync_directory_durable(parent)?;
+        }
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    result
 }
 
 fn sidecar_path(db_path: &Path, suffix: &str) -> PathBuf {

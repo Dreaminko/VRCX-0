@@ -207,6 +207,7 @@ fn pending_legacy_migration_survives_partial_failure_and_can_retry() -> Result<(
     });
     assert!(failed.is_err());
     assert!(migration_flag.exists());
+    assert_eq!(std::fs::read(&paths.config_file)?, b"precreated-config");
 
     std::fs::remove_dir_all(&bad_config_source)?;
     write_file(&legacy_config, br#"{"VRCX_CloseToTray":"true"}"#)?;
@@ -228,6 +229,21 @@ fn pending_legacy_migration_survives_partial_failure_and_can_retry() -> Result<(
         r#"{"VRCX_CloseToTray":"true"}"#
     );
     assert!(!migration_flag.exists());
+    Ok(())
+}
+
+#[test]
+fn copy_replace_failure_preserves_existing_destination() -> Result<(), Error> {
+    let dir = TestDir::new("legacy-copy-preserves-destination");
+    let source = dir.path.join("source-directory");
+    let destination = dir.path.join("destination.json");
+    std::fs::create_dir_all(&source)?;
+    write_file(&destination, b"existing-destination")?;
+
+    let result = copy_replace(source, destination.clone());
+
+    assert!(result.is_err());
+    assert_eq!(std::fs::read(destination)?, b"existing-destination");
     Ok(())
 }
 
