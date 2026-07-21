@@ -128,6 +128,7 @@ impl ApiJsonResponse {
     pub fn error_message(&self) -> Option<String> {
         let object = self.json.as_object();
         api_message_text(Some(&self.json))
+            .or_else(|| api_message_text(object.and_then(|record| record.get("error"))))
             .or_else(|| {
                 api_message_text(
                     object
@@ -584,6 +585,16 @@ mod tests {
         let nested = ApiJsonResponse::parse(500, r#"{"error":{"message":"Application error."}}"#);
         assert!(nested.is_failure());
         assert_eq!(nested.error_message(), Some("Application error.".into()));
+
+        let string_error = ApiJsonResponse::parse(
+            400,
+            r#"{"error":"You cannot moderate this user","status_code":400}"#,
+        );
+        assert!(string_error.is_failure());
+        assert_eq!(
+            string_error.error_message(),
+            Some("You cannot moderate this user".into())
+        );
 
         let flat = ApiJsonResponse::parse(400, r#"{"message":"\"Bad request\""}"#);
         assert!(flat.is_failure());
