@@ -32,7 +32,7 @@ use super::{
 };
 
 const WRIST_VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_secs(2);
-const MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_millis(33);
+const MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_millis(16);
 const INTERACTIVE_VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_millis(16);
 const SURFACE_FADE_DURATION: Duration = Duration::from_millis(240);
 const DEFAULT_PANEL_RECENTER_DISTANCE_METERS: f32 = 1.0;
