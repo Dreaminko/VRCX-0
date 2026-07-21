@@ -83,6 +83,7 @@ struct FriendsPanelQueuedInput {
 const WRIST_DEVICE_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WRIST_FRAME_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 const FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL: Duration = Duration::from_millis(100);
+const HMD_TOAST_ANIMATION_REFRESH_INTERVAL: Duration = Duration::from_millis(33);
 const MAX_FRIENDS_PANEL_INPUT_EVENTS: usize = 512;
 const FRIENDS_PANEL_AVATAR_FETCH_BATCH: usize = 8;
 const FRIENDS_PANEL_SCROLL_ROW_PIXELS: f32 = 106.0;
@@ -1111,13 +1112,16 @@ impl VrOverlayRuntime {
     }
 
     fn refresh_interval(&self) -> Duration {
-        if !self.current_runtime_config().panel_enabled {
-            return WRIST_FRAME_REFRESH_INTERVAL;
-        }
-        if self.friends_panel_animation_refresh_active() {
+        let base = if self.current_runtime_config().panel_enabled
+            && self.friends_panel_animation_refresh_active()
+        {
             FRIENDS_PANEL_ANIMATION_REFRESH_INTERVAL
         } else {
             WRIST_FRAME_REFRESH_INTERVAL
+        };
+        match self.hmd_toast_refresh_hint(Instant::now()) {
+            Some(hint) => base.min(hint.max(HMD_TOAST_ANIMATION_REFRESH_INTERVAL)),
+            None => base,
         }
     }
 

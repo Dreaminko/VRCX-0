@@ -192,6 +192,8 @@ fn card(
         severity,
         avatar: Some(avatar(avatar_seed)),
         show_avatar: true,
+        opacity: 1.0,
+        slide_offset: 0.0,
     }
 }
 
@@ -208,5 +210,7 @@ fn card_placeholder(
         severity,
         avatar: None,
         show_avatar: true,
+        opacity: 1.0,
+        slide_offset: 0.0,
     }
 }

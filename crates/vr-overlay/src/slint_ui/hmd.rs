@@ -105,6 +105,8 @@ fn hmd_toast_item(
         is_favorite: toast.relation == FeedRelation::Favorite,
         relation_color: hmd_relation_color(toast.relation),
         severity_color: hmd_severity_color(toast.severity, accent),
+        card_opacity: toast.opacity.clamp(0.0, 1.0),
+        slide_offset: toast.slide_offset,
     }
 }
 

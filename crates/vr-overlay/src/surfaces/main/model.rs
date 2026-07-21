@@ -17,6 +17,8 @@ pub struct ToastCard {
     pub severity: FeedSeverity,
     pub avatar: Option<AvatarBitmap>,
     pub show_avatar: bool,
+    pub opacity: f32,
+    pub slide_offset: f32,
 }
 
 #[derive(Clone, Debug, PartialEq)]

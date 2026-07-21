@@ -9,6 +9,8 @@ export struct HmdToastItem {
     is-favorite: bool,
     relation-color: color,
     severity-color: color,
+    card-opacity: float,
+    slide-offset: float,
 }
 
 export component HmdToastPanel inherits Window {
@@ -26,10 +28,11 @@ export component HmdToastPanel inherits Window {
 
     for toast[index] in root.toasts : Rectangle {
         x: (root.width - 860px) / 2;
-        y: root.height - 20px - 112px - index * 124px;
+        y: root.height - 20px - 112px - (index + toast.slide-offset) * 124px;
         width: 860px;
         height: 112px;
-        visible: self.y >= 0px;
+        opacity: toast.card-opacity;
+        visible: self.y >= 0px && toast.card-opacity > 0.001;
         background: root.card-color;
         border-color: root.card-border-color;
         border-width: 1px;
