@@ -231,6 +231,66 @@ async fn self_invite_only_skips_launch_pipe() {
 }
 
 #[tokio::test]
+async fn self_invite_prefers_explicit_short_name_over_location_token() {
+    let api = MockApi::default();
+    let launch_pipe = MockLaunchPipe::with_results(vec![]);
+    let outcome = join_instance_launch(
+        &InstanceLaunchDeps {
+            api: &api,
+            launch_pipe: &launch_pipe,
+        },
+        InstanceLaunchInput {
+            location: "wrld_test:12345~hidden(usr_owner)&shortName=staleLocationToken".to_string(),
+            short_name: "freshExplicitToken".to_string(),
+            mode: InstanceLaunchMode::SelfInviteOnly,
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(outcome, InstanceLaunchOutcome::SelfInvited);
+    assert_eq!(
+        api.self_invite_calls.lock().unwrap().as_slice(),
+        [(
+            VRCHAT_API_DEFAULT_ENDPOINT.to_string(),
+            "wrld_test".to_string(),
+            "12345~hidden(usr_owner)".to_string(),
+            "freshExplicitToken".to_string()
+        )]
+    );
+}
+
+#[tokio::test]
+async fn self_invite_uses_location_token_when_explicit_short_name_is_empty() {
+    let api = MockApi::default();
+    let launch_pipe = MockLaunchPipe::with_results(vec![]);
+    let outcome = join_instance_launch(
+        &InstanceLaunchDeps {
+            api: &api,
+            launch_pipe: &launch_pipe,
+        },
+        InstanceLaunchInput {
+            location: "wrld_test:12345~hidden(usr_owner)&shortName=locationToken".to_string(),
+            short_name: String::new(),
+            mode: InstanceLaunchMode::SelfInviteOnly,
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(outcome, InstanceLaunchOutcome::SelfInvited);
+    assert_eq!(
+        api.self_invite_calls.lock().unwrap().as_slice(),
+        [(
+            VRCHAT_API_DEFAULT_ENDPOINT.to_string(),
+            "wrld_test".to_string(),
+            "12345~hidden(usr_owner)".to_string(),
+            "locationToken".to_string()
+        )]
+    );
+}
+
+#[tokio::test]
 async fn invalid_join_location_returns_failed_outcome() {
     let api = MockApi::default();
     let launch_pipe = MockLaunchPipe::with_results(vec![]);

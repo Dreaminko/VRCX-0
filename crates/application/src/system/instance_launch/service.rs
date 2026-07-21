@@ -165,13 +165,12 @@ async fn self_invite_join_target(
     target: &JoinTarget,
     launch_token: &str,
 ) -> Result<InstanceLaunchOutcome> {
-    let short_name = first_non_empty_owned([target.parsed.short_name.as_str(), launch_token]);
     match api
         .self_invite(
             &target.endpoint,
             &target.world_id,
             &target.instance_id,
-            &short_name,
+            launch_token,
         )
         .await
     {
