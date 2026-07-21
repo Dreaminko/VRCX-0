@@ -10,6 +10,9 @@ use crate::database::{
 use crate::realtime::normalize_user_table_prefix;
 use crate::Error;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct MutualGraphSnapshotEntryInput {
@@ -245,6 +248,10 @@ pub fn mutual_graph_snapshot_commit(
     let user_prefix = normalize_user_table_prefix(&user_id)?;
     ensure_user_store_tables(db, &user_prefix)?;
     db.write_transaction(|tx| {
+        tx.execute_non_query(
+            &format!("DELETE FROM {user_prefix}_mutual_graph_meta"),
+            &Default::default(),
+        )?;
         upsert_mutual_graph_meta_entries(tx, &user_prefix, &meta_entries)?;
         replace_mutual_graph_snapshot_entries(tx, &user_prefix, &entries)?;
         Ok(())
