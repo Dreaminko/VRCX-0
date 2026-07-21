@@ -23,6 +23,7 @@ pub trait GameProcessMonitorActions: Send + 'static {
 
 pub struct ProcessMonitor {
     game_running: Arc<AtomicBool>,
+    observed_game_running: Arc<AtomicBool>,
     steamvr_running: Arc<AtomicBool>,
     started: Arc<AtomicBool>,
     stop_requested: Arc<AtomicBool>,
@@ -34,6 +35,7 @@ impl ProcessMonitor {
     pub fn new() -> Self {
         Self {
             game_running: Arc::new(AtomicBool::new(false)),
+            observed_game_running: Arc::new(AtomicBool::new(false)),
             steamvr_running: Arc::new(AtomicBool::new(false)),
             started: Arc::new(AtomicBool::new(false)),
             stop_requested: Arc::new(AtomicBool::new(false)),
@@ -61,6 +63,7 @@ impl ProcessMonitor {
         self.stop_requested.store(false, Ordering::Release);
 
         let game = Arc::clone(&self.game_running);
+        let observed_game = Arc::clone(&self.observed_game_running);
         let steamvr = Arc::clone(&self.steamvr_running);
         let started = Arc::clone(&self.started);
         let stop_requested = Arc::clone(&self.stop_requested);
@@ -75,7 +78,7 @@ impl ProcessMonitor {
                 && current_generation.load(Ordering::Acquire) == generation
             {
                 let status = actions.detect();
-                let prev_game = game.load(Ordering::Relaxed);
+                let prev_game = observed_game.load(Ordering::Relaxed);
                 let game_found = resolve_debounced_game_running(
                     status.is_game_running,
                     prev_game,
@@ -83,6 +86,7 @@ impl ProcessMonitor {
                 );
                 let steamvr_found = status.is_steamvr_running;
 
+                observed_game.store(game_found, Ordering::Relaxed);
                 game.store(game_found, Ordering::Relaxed);
                 let prev_steamvr = steamvr.swap(steamvr_found, Ordering::Relaxed);
                 let game_changed = prev_game != game_found;
@@ -145,6 +149,8 @@ impl ProcessMonitor {
                 let _ = handle.join();
             }
         }
+        self.game_running.store(false, Ordering::Release);
+        self.steamvr_running.store(false, Ordering::Release);
     }
 
     pub fn is_game_running(&self) -> bool {
@@ -318,5 +324,93 @@ mod tests {
             false,
             &mut consecutive_misses
         ));
+    }
+
+    struct ScriptedDetectActions {
+        game_running: Arc<AtomicBool>,
+    }
+
+    impl GameProcessMonitorActions for ScriptedDetectActions {
+        fn detect(&mut self) -> GameProcessStatus {
+            GameProcessStatus {
+                is_game_running: self.game_running.load(Ordering::Relaxed),
+                is_steamvr_running: false,
+            }
+        }
+
+        fn on_game_started(&mut self, _steamvr_running: bool) {}
+
+        fn on_game_stopped(&mut self) {}
+    }
+
+    struct RecordingSink {
+        events: Mutex<Vec<GameProcessEvent>>,
+    }
+
+    impl GameProcessEventSink for RecordingSink {
+        fn on_game_process_event(
+            &self,
+            event: GameProcessEvent,
+        ) -> vrcx_0_application_core::Result<()> {
+            self.events.lock().unwrap().push(event);
+            Ok(())
+        }
+    }
+
+    fn wait_for_event(sink: &RecordingSink, predicate: impl Fn(&GameProcessEvent) -> bool) -> bool {
+        let deadline = std::time::Instant::now() + Duration::from_secs(15);
+        while std::time::Instant::now() < deadline {
+            if sink.events.lock().unwrap().iter().any(&predicate) {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        false
+    }
+
+    #[test]
+    fn game_exit_during_stop_window_emits_stopped_transition_after_restart() {
+        let monitor = ProcessMonitor::new();
+        let detected = Arc::new(AtomicBool::new(true));
+        let sink = Arc::new(RecordingSink {
+            events: Mutex::new(Vec::new()),
+        });
+
+        monitor.start(
+            ScriptedDetectActions {
+                game_running: Arc::clone(&detected),
+            },
+            LogWatcher::new(None),
+            vec![Arc::clone(&sink) as Arc<dyn GameProcessEventSink>],
+        );
+        assert!(wait_for_event(&sink, |event| event.is_game_running));
+
+        monitor.stop();
+        assert!(!monitor.is_game_running());
+
+        detected.store(false, Ordering::Relaxed);
+        sink.events.lock().unwrap().clear();
+        monitor.start(
+            ScriptedDetectActions {
+                game_running: Arc::clone(&detected),
+            },
+            LogWatcher::new(None),
+            vec![Arc::clone(&sink) as Arc<dyn GameProcessEventSink>],
+        );
+
+        assert!(wait_for_event(&sink, |event| event.game_changed && !event.is_game_running));
+        monitor.stop();
+    }
+
+    #[test]
+    fn stop_clears_process_state_before_a_later_restart() {
+        let monitor = ProcessMonitor::new();
+        monitor.game_running.store(true, Ordering::Relaxed);
+        monitor.steamvr_running.store(true, Ordering::Relaxed);
+
+        monitor.stop();
+
+        assert!(!monitor.is_game_running());
+        assert!(!monitor.is_steamvr_running());
     }
 }
