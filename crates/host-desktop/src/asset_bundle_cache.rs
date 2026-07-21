@@ -170,6 +170,10 @@ fn delete_all_cache_in(cache_path: &Path) {
 
 pub fn sweep_cache() -> Vec<String> {
     let cache_path = PathBuf::from(vrchat_paths::vrchat_cache_location());
+    sweep_cache_in(&cache_path)
+}
+
+fn sweep_cache_in(cache_path: &Path) -> Vec<String> {
     let mut output = Vec::new();
 
     if !cache_path.exists() {
@@ -196,6 +200,17 @@ pub fn sweep_cache() -> Vec<String> {
             .filter(|p| p.is_dir())
             .collect();
 
+        version_dirs.retain(|version_dir| {
+            let Ok(mut children) = fs::read_dir(version_dir) else {
+                return true;
+            };
+            if children.next().is_some() {
+                return true;
+            }
+            let _ = fs::remove_dir(version_dir);
+            false
+        });
+
         version_dirs.sort_by_key(|p| {
             fs::metadata(p)
                 .and_then(|m| m.modified())
@@ -204,14 +219,6 @@ pub fn sweep_cache() -> Vec<String> {
 
         for index in 0..version_dirs.len() {
             let version_dir = &version_dirs[index];
-            let Ok(mut children) = fs::read_dir(version_dir) else {
-                continue;
-            };
-            if children.next().is_none() {
-                let _ = fs::remove_dir(version_dir);
-                continue;
-            }
-
             if index == version_dirs.len() - 1 {
                 continue;
             }
@@ -425,5 +432,24 @@ mod tests {
         assert!(dir.path.is_dir());
         assert_eq!(std::fs::read_dir(&dir.path).unwrap().count(), 0);
         assert_eq!(cache_size_in(&dir.path), 0);
+    }
+
+    #[test]
+    fn sweep_keeps_latest_non_empty_cache_when_newer_directory_is_empty() {
+        let dir = TestDir::new("asset-cache-sweep-empty-latest");
+        let cache_dir = dir.path.join(asset_id("file_world", ""));
+        let valid_path = cache_dir.join(asset_version(1, 0));
+        std::fs::create_dir_all(&valid_path).unwrap();
+        std::fs::write(valid_path.join("__data"), b"cached-world").unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let empty_path = cache_dir.join(asset_version(2, 0));
+        std::fs::create_dir_all(&empty_path).unwrap();
+
+        let removed = sweep_cache_in(&dir.path);
+
+        assert!(valid_path.exists());
+        assert!(!empty_path.exists());
+        assert!(removed.is_empty());
     }
 }
