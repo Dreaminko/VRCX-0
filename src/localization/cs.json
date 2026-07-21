@@ -2829,7 +2829,7 @@
                 "send": "Odeslat",
                 "delete_value_favorites": "Odstranit {value} oblíbených položek?",
                 "this_action_cannot_be_undone": "Tuto akci nelze vrátit zpět",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "Vymazat lokální historii avatarů a uložená metadata avatarů?"
+                "clear_local_avatar_history": "Vymazat lokální historii avatarů?"
             },
             "empty": {
                 "favorite_fallback": "oblíbená položka",

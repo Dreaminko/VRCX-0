@@ -1,0 +1,86 @@
+use std::path::PathBuf;
+
+use serde_json::json;
+
+use super::*;
+
+struct TestDir {
+    path: PathBuf,
+}
+
+impl TestDir {
+    fn new(name: &str) -> Self {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "vrcx-0-avatars-{name}-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&path).unwrap();
+        Self { path }
+    }
+}
+
+impl Drop for TestDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
+fn avatar_entry(id: &str) -> CacheEntityInput {
+    CacheEntityInput {
+        id: json!(id),
+        author_id: json!("usr_author"),
+        author_name: json!("Author"),
+        created_at: json!("2026-01-01T00:00:00Z"),
+        description: json!("Description"),
+        image_url: json!("https://example.com/avatar.png"),
+        name: json!("Shared Avatar"),
+        release_status: json!("public"),
+        thumbnail_image_url: json!("https://example.com/avatar-thumb.png"),
+        updated_at: json!("2026-01-02T00:00:00Z"),
+        version: json!(1),
+    }
+}
+
+#[test]
+fn clearing_one_accounts_history_preserves_other_accounts_history_and_global_cache(
+) -> Result<(), Error> {
+    let dir = TestDir::new("history-owner-isolation");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let avatar_id = "avtr_shared";
+
+    avatar_cache_upsert(&db, avatar_entry(avatar_id))?;
+    avatar_history_add(&db, "usr_a".into(), avatar_id.into())?;
+    avatar_history_add(&db, "usr_b".into(), avatar_id.into())?;
+    avatar_time_spent_add(&db, "usr_b".into(), avatar_id.into(), 42)?;
+
+    assert_eq!(avatar_history_list(&db, "usr_a".into(), 100)?.len(), 1);
+    assert_eq!(avatar_history_list(&db, "usr_b".into(), 100)?.len(), 1);
+
+    avatar_history_clear(&db, "usr_a".into())?;
+
+    assert!(avatar_history_list(&db, "usr_a".into(), 100)?.is_empty());
+    assert_eq!(avatar_history_list(&db, "usr_b".into(), 100)?.len(), 1);
+    assert_eq!(
+        avatar_time_spent_get(&db, "usr_b".into(), avatar_id.into())?.time_spent,
+        42
+    );
+    assert!(avatar_cache_get(&db, avatar_id.into())?.is_some());
+    Ok(())
+}
+
+#[test]
+fn cache_upsert_applies_the_shared_entity_id_invariant_to_avatars() -> Result<(), Error> {
+    let dir = TestDir::new("normalized-cache-id");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+
+    avatar_cache_upsert(&db, avatar_entry("  avtr_spaced  "))?;
+
+    let cached = avatar_cache_get(&db, "avtr_spaced".into())?
+        .expect("normalized avatar cache id should be readable");
+    assert_eq!(cached.id, "avtr_spaced");
+    Ok(())
+}

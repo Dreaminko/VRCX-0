@@ -117,9 +117,7 @@ export function useFavoritesItemActions({
     async function handleAvatarHistoryClear() {
         const result = await confirm({
             title: t('view.favorites.modal.clear_avatar_history'),
-            description: t(
-                'view.favorites.modal.clear_local_avatar_history_and_cached_avatar_metadata'
-            ),
+            description: t('view.favorites.modal.clear_local_avatar_history'),
             destructive: true,
             confirmText: t('common.actions.clear'),
             cancelText: t('common.actions.cancel')

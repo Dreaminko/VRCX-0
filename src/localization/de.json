@@ -2827,7 +2827,7 @@
                 "send": "Senden",
                 "delete_value_favorites": "{value} Favoriten löschen?",
                 "this_action_cannot_be_undone": "Diese Aktion kann nicht rückgängig gemacht werden",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "Lokalen Avatar-Verlauf und zwischengespeicherte Avatar-Metadaten leeren?"
+                "clear_local_avatar_history": "Lokalen Avatar-Verlauf leeren?"
             },
             "empty": {
                 "favorite_fallback": "Favorit",

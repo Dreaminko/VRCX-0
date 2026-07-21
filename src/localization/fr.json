@@ -2827,7 +2827,7 @@
                 "send": "Envoyer",
                 "delete_value_favorites": "Supprimer {value} favoris ?",
                 "this_action_cannot_be_undone": "Cette action est irréversible",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "Effacer l'historique local des avatars et les métadonnées d'avatars en cache ?"
+                "clear_local_avatar_history": "Effacer l'historique local des avatars ?"
             },
             "empty": {
                 "favorite_fallback": "favori",

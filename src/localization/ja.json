@@ -2823,7 +2823,7 @@
                 "send": "送信",
                 "delete_value_favorites": "{value} 件のお気に入りを削除しますか？",
                 "this_action_cannot_be_undone": "この操作は元に戻せません",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "ローカルのアバター履歴とキャッシュ済みアバターメタデータをクリアしますか？"
+                "clear_local_avatar_history": "ローカルのアバター履歴をクリアしますか？"
             },
             "empty": {
                 "favorite_fallback": "お気に入り",

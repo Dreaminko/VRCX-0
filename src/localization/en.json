@@ -2827,7 +2827,7 @@
                 "send": "Send",
                 "delete_value_favorites": "Delete {value} favorites?",
                 "this_action_cannot_be_undone": "This action cannot be undone",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "Clear local avatar history and cached avatar metadata?"
+                "clear_local_avatar_history": "Clear local avatar history?"
             },
             "empty": {
                 "favorite_fallback": "favorite",

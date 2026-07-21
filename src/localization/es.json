@@ -2827,7 +2827,7 @@
                 "send": "Enviar",
                 "delete_value_favorites": "¿Eliminar {value} favoritos?",
                 "this_action_cannot_be_undone": "Esta acción no se puede deshacer",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "¿Borrar el historial de avatares local y los metadatos de avatar en caché?"
+                "clear_local_avatar_history": "¿Borrar el historial local de avatares?"
             },
             "empty": {
                 "favorite_fallback": "favorito",

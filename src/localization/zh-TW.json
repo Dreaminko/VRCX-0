@@ -2827,7 +2827,7 @@
                 "send": "傳送",
                 "delete_value_favorites": "刪除 {value} 個收藏？",
                 "this_action_cannot_be_undone": "此操作無法撤銷",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "清空本機角色歷史和快取的角色後設資料？"
+                "clear_local_avatar_history": "清空本機角色歷史？"
             },
             "empty": {
                 "favorite_fallback": "收藏項",

@@ -2769,7 +2769,7 @@
                 "request_invite_2": "초대 요청",
                 "send": "보내기",
                 "this_action_cannot_be_undone": "이 작업은 취소할 수 없습니다.",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "로컬 아바타 기록과 캐시된 아바타 메타데이터를 삭제하시겠습니까?",
+                "clear_local_avatar_history": "로컬 아바타 기록을 삭제하시겠습니까?",
                 "remove_vrchat_favorite": "VRChat 즐겨찾기를 삭제하시겠습니까?",
                 "delete_value": "{value}을(를) 삭제하시겠습니까?",
                 "delete_value_favorites": "{value} 즐겨찾기를 삭제하시겠습니까?"

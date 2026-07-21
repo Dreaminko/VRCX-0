@@ -10,6 +10,9 @@ use crate::database::DatabaseService;
 use crate::realtime::normalize_user_table_prefix;
 use crate::Error;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AvatarTagInput {
@@ -230,12 +233,10 @@ pub fn avatar_time_spent_list(
 pub fn avatar_history_clear(db: &DatabaseService, user_id: String) -> Result<(), Error> {
     let user_prefix = normalize_user_table_prefix(&user_id)?;
     ensure_user_store_tables(db, &user_prefix)?;
-    ensure_global_store_tables(db)?;
     db.execute_non_query(
         &format!("DELETE FROM {user_prefix}_avatar_history"),
         &Default::default(),
     )?;
-    db.execute_non_query("DELETE FROM cache_avatar", &Default::default())?;
     Ok(())
 }
 

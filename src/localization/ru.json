@@ -2829,7 +2829,7 @@
                 "send": "Отправить",
                 "delete_value_favorites": "Удалить {value} избранных?",
                 "this_action_cannot_be_undone": "Это действие не может быть отменено",
-                "clear_local_avatar_history_and_cached_avatar_metadata": "Очистить локальную историю аватара и удалить кешированные метаданные аватара?"
+                "clear_local_avatar_history": "Очистить локальную историю аватаров?"
             },
             "empty": {
                 "favorite_fallback": "избранный",
