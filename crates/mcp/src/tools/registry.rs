@@ -67,6 +67,30 @@ mod router_tests {
     }
 
     #[test]
+    fn hour_bucketing_tools_expose_top_level_utc_offset_minutes() {
+        let router = VrcxMcpServer::tool_router();
+        let tools = router.list_all();
+        for name in [
+            "get_friend_activity_pattern",
+            "get_best_time_to_play",
+            "get_activity_timeline",
+            "get_activity_streaks",
+        ] {
+            let tool = tools
+                .iter()
+                .find(|tool| tool.name.as_ref() == name)
+                .expect("tool should be registered");
+            assert!(
+                tool.input_schema
+                    .get("properties")
+                    .and_then(|properties| properties.get("utcOffsetMinutes"))
+                    .is_some(),
+                "{name} should expose top-level properties.utcOffsetMinutes"
+            );
+        }
+    }
+
+    #[test]
     fn get_favorites_exposes_an_optional_kind_enum() {
         let router = VrcxMcpServer::tool_router();
         let tool = router

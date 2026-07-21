@@ -98,8 +98,34 @@ pub(crate) fn normalize_llm_base_url(raw: &str) -> String {
 }
 
 pub(crate) fn is_local_llm_endpoint(base_url: &str) -> bool {
-    let lowered = base_url.to_ascii_lowercase();
-    lowered.contains("localhost") || lowered.contains("127.0.0.1") || lowered.contains("[::1]")
+    matches!(
+        endpoint_host(base_url).as_deref(),
+        Some("localhost" | "127.0.0.1" | "::1")
+    )
+}
+
+fn endpoint_host(base_url: &str) -> Option<String> {
+    let trimmed = base_url.trim();
+    let rest = match trimmed.split_once("://") {
+        Some((scheme, rest)) if is_url_scheme(scheme) => rest,
+        _ => trimmed,
+    };
+    let authority = rest.split(['/', '\\', '?', '#']).next().unwrap_or_default();
+    let host_port = authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host_port)| host_port);
+    let host = match host_port.strip_prefix('[') {
+        Some(bracketed) => bracketed.split(']').next().unwrap_or_default(),
+        None => host_port.split(':').next().unwrap_or_default(),
+    };
+    (!host.is_empty()).then(|| host.to_ascii_lowercase())
+}
+
+fn is_url_scheme(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
 }
 
 pub(crate) fn should_apply_playbook(playbook_mode: PlaybookMode, base_url: &str) -> bool {
@@ -190,6 +216,28 @@ mod tests {
             PlaybookMode::Open,
             "http://localhost:1234/v1"
         ));
+    }
+
+    #[test]
+    fn local_endpoint_detection_matches_exact_hosts_only() {
+        assert!(is_local_llm_endpoint("http://localhost:1234/v1"));
+        assert!(is_local_llm_endpoint("http://127.0.0.1:1234/v1"));
+        assert!(is_local_llm_endpoint("http://[::1]:1234/v1"));
+        assert!(is_local_llm_endpoint("HTTP://LOCALHOST/v1"));
+        assert!(is_local_llm_endpoint("http://user:pass@localhost:1234/v1"));
+        assert!(is_local_llm_endpoint("localhost:1234/v1"));
+        assert!(is_local_llm_endpoint("localhost:1234/v1?next=https://x"));
+
+        assert!(!is_local_llm_endpoint("http://127.0.0.1.evil.com/v1"));
+        assert!(!is_local_llm_endpoint(
+            "http://evil.com\\@localhost:1234/v1"
+        ));
+        assert!(!is_local_llm_endpoint("http://localhost.evil.com/v1"));
+        assert!(!is_local_llm_endpoint(
+            "https://api.openai.com/v1?x=localhost"
+        ));
+        assert!(!is_local_llm_endpoint("https://evil.com/localhost/v1"));
+        assert!(!is_local_llm_endpoint(""));
     }
 
     #[test]

@@ -21,10 +21,12 @@ pub(super) fn normalize_tool_arguments(
     tool_name: &str,
     arguments: Option<Map<String, Value>>,
     user_text: &str,
+    ensure_utc_offset: Option<i64>,
 ) -> Option<Map<String, Value>> {
     let mut arguments = arguments.unwrap_or_default();
-    for key in ["limit", "utcOffsetMinutes", "utc_offset_minutes"] {
-        normalize_integer_string(&mut arguments, key);
+    normalize_integer_string(&mut arguments, "limit");
+    if let Some(offset_minutes) = ensure_utc_offset {
+        ensure_utc_offset_argument(&mut arguments, offset_minutes);
     }
     match tool_name {
         "get_copresence_summary" => {
@@ -39,6 +41,28 @@ pub(super) fn normalize_tool_arguments(
         _ => {}
     }
     (!arguments.is_empty()).then_some(arguments)
+}
+
+fn ensure_utc_offset_argument(arguments: &mut Map<String, Value>, offset_minutes: i64) {
+    let snake = arguments.remove("utc_offset_minutes");
+    let value = arguments
+        .get("utcOffsetMinutes")
+        .and_then(offset_value)
+        .or_else(|| snake.as_ref().and_then(offset_value))
+        .unwrap_or(offset_minutes);
+    arguments.insert("utcOffsetMinutes".into(), Value::from(value));
+}
+
+fn offset_value(value: &Value) -> Option<i64> {
+    value
+        .as_i64()
+        .or_else(|| {
+            value
+                .as_f64()
+                .filter(|float| float.fract() == 0.0)
+                .map(|float| float as i64)
+        })
+        .or_else(|| value.as_str()?.trim().parse().ok())
 }
 
 fn normalize_integer_string(arguments: &mut Map<String, Value>, key: &str) {
@@ -327,20 +351,91 @@ mod tests {
             "get_copresence_summary",
             Some(serde_json::Map::new()),
             "今までで一番あっている人は誰かな",
+            None,
         )
         .unwrap();
 
         assert_eq!(arguments.get("limit").and_then(Value::as_i64), Some(3));
+        assert!(!arguments.contains_key("utcOffsetMinutes"));
+    }
+
+    #[test]
+    fn utc_offset_is_injected_when_the_tool_accepts_it_and_the_model_omits_it() {
+        let arguments =
+            normalize_tool_arguments("get_best_time_to_play", None, "best time", Some(540))
+                .unwrap();
+
+        assert_eq!(
+            arguments.get("utcOffsetMinutes").and_then(Value::as_i64),
+            Some(540)
+        );
+    }
+
+    #[test]
+    fn utc_offset_injection_keeps_an_explicit_model_value() {
+        for explicit in [serde_json::json!(0), serde_json::json!(600.0)] {
+            let arguments = normalize_tool_arguments(
+                "get_best_time_to_play",
+                Some(
+                    serde_json::from_value(serde_json::json!({ "utcOffsetMinutes": explicit }))
+                        .unwrap(),
+                ),
+                "best time",
+                Some(540),
+            )
+            .unwrap();
+
+            assert_eq!(
+                arguments.get("utcOffsetMinutes").and_then(Value::as_i64),
+                Some(explicit.as_f64().unwrap() as i64)
+            );
+        }
+    }
+
+    #[test]
+    fn utc_offset_injection_migrates_snake_case_and_replaces_garbage() {
+        let arguments = normalize_tool_arguments(
+            "get_activity_timeline",
+            Some(
+                serde_json::from_value(serde_json::json!({ "utc_offset_minutes": "600" })).unwrap(),
+            ),
+            "timeline",
+            Some(540),
+        )
+        .unwrap();
+
+        assert_eq!(
+            arguments.get("utcOffsetMinutes").and_then(Value::as_i64),
+            Some(600)
+        );
+        assert!(!arguments.contains_key("utc_offset_minutes"));
+
+        let arguments = normalize_tool_arguments(
+            "get_activity_timeline",
+            Some(
+                serde_json::from_value(serde_json::json!({ "utcOffsetMinutes": "later" })).unwrap(),
+            ),
+            "timeline",
+            Some(540),
+        )
+        .unwrap();
+
+        assert_eq!(
+            arguments.get("utcOffsetMinutes").and_then(Value::as_i64),
+            Some(540)
+        );
     }
 
     #[test]
     fn tool_call_signature_includes_normalized_arguments() {
-        let first = normalize_tool_arguments("get_copresence_summary", None, "who have I met most")
-            .unwrap();
+        let first =
+            normalize_tool_arguments("get_copresence_summary", None, "who have I met most", None)
+                .unwrap();
         let second = normalize_tool_arguments(
             "get_copresence_summary",
             Some(serde_json::Map::new()),
             "who have I met most",
+            None,
         )
         .unwrap();
 
@@ -362,6 +457,7 @@ mod tests {
                 .unwrap(),
             ),
             "activity",
+            Some(540),
         )
         .unwrap();
 
@@ -378,6 +474,7 @@ mod tests {
             "recall_encounter",
             Some(serde_json::from_value(serde_json::json!({ "limit": "many" })).unwrap()),
             "encounters",
+            None,
         )
         .unwrap();
 

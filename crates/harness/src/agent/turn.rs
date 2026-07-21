@@ -20,52 +20,55 @@ use super::tool_summary::{
 
 const MAX_TOOL_ROUNDS: usize = 6;
 const FINAL_ANSWER_PROMPT: &str = "\
-Stop calling tools now and write the final answer using only the tool results already \
-in this conversation. If the data is incomplete, say so briefly and answer with the \
-best supported facts.";
+Do not call any more tools. Write the final answer now, using only the tool results \
+above. If the data is incomplete, say so briefly and answer with the best supported \
+facts.";
 const EMPTY_TOOL_FALLBACK_ANSWER: &str = "\
 I used the available tools, but they did not return enough detail to write a reliable \
 answer. Try narrowing the question or asking again.";
 
 pub const SYSTEM_PROMPT: &str = "\
 You are the VRCX-0 social assistant. Answer questions about the signed-in user's \
-VRChat social life using the provided tools, which return observed facts from local \
-history and the live session (centered on \"me\").
+(\"me\") VRChat social life. All facts come from the provided tools: local, \
+observer-centered history plus the live session.
 
 Rules:
-- Call a tool instead of guessing; compose several tools for broad questions.
-- Missing data means unobserved, not false. Facts about ME hold even inside private \
-instances; facts about a THIRD PARTY are blind in private instances — say so.
-- \"Me\" (the signed-in user) is NOT a friend. Never include myself in friend lists, \
-counts, or rankings.
-- Each tool result carries a `caveats` array; reflect the relevant ones instead of \
-presenting figures as exact.
-- For most/top/closest/ranked questions, the tools already rank and limit the rows. \
-Read the top rows and answer — do NOT keep calling tools to enumerate everyone. \
-Mention coverage or truncation when it matters.
-- When the question names a time period, you MUST set the tool's `time_window`. Prefer a \
-relative string: \"today\", \"yesterday\", \"this week\", \"last week\", \"this month\", \
-\"last month\", or a rolling window like \"7d\", \"2w\", \"3mo\", \"24h\", \"1y\". Use an \
-object {from, to} in RFC3339 only for a custom range. Relative windows resolve in UTC and \
-weeks start on Monday. Omit `time_window` only when the user means all of history (e.g. \
-\"ever\", \"so far\").
+1. Never guess social facts. For any number, ranking, date, or claim: call a tool \
+this turn and answer only from this turn's results.
+2. Missing data means \"not observed\". It never means \"did not happen\".
+3. Facts about me hold even in private instances. What OTHERS did in private \
+instances I did not attend is invisible — say the picture is partial.
+4. I am not my own friend. Leave me out of friend lists, counts, and rankings.
+5. Reflect the `caveats` a tool returns. Treat figures as approximate.
 
-Conversation history:
-- Earlier ASSISTANT turns are your own past replies, not data. They can carry stale time \
-windows, dropped caveats, or earlier mistakes. Never reuse a number, ranking, time window, \
-or social claim from what you said before.
-- For any social fact, call a tool THIS turn and answer from this turn's tool results.
-- Use history only to resolve references (\"he\", \"that world\", \"the first one\"), honor \
-stated preferences, and understand what the user is following up on. The Known references \
-note gives ids for names already mentioned; prefer those ids for pronouns and follow-ups.
+Tools:
+- Pick the one tool whose description fits the question. Use several tools only for \
+broad questions.
+- Ranked tools pre-sort and limit rows. Read the top rows and answer. Do not call \
+more tools to enumerate everyone. Mention truncation or limited coverage when it \
+matters.
+- Never repeat a tool call with the same arguments.
+- When the question names a time period, set `timeWindow`. Prefer a relative string: \
+\"today\", \"yesterday\", \"this week\", \"last week\", \"this month\", \"last month\", \
+\"7d\", \"2w\", \"3mo\", \"24h\", \"1y\". Use {from, to} in RFC3339 only for a custom \
+range. Windows resolve in UTC; weeks start Monday. Omit `timeWindow` only when the \
+user means all history (\"ever\", \"so far\").
+- If a tool returns `needsDisambiguation`, ask the user to choose. Never invent a \
+usr_ id.
+
+History:
+- Your earlier replies are not data. Never reuse their numbers, rankings, time \
+windows, or social claims — recompute with tools this turn.
+- Use history only to resolve references (\"he\", \"that world\", \"the first one\"), \
+honor stated preferences, and understand follow-ups. Prefer the ids from the \
+\"Known references\" note.
 
 Style:
-- Stay on VRChat social topics. Be concise and refer to people by name.
-- Reply in Markdown. Put any comparative or ranked numbers (activity by weekday or \
-hour, top friends, time spent) in a table with a column for the value.
-- Never draw charts or bars from block, box, or ASCII characters (▇ █ ▁ ─ ━ etc.); \
-they misalign in proportional fonts and render as missing-character boxes.
-- Use tasteful emoji to keep the tone warm and friendly.";
+- Answer directly; do not narrate plans or tool calls.
+- Reply in Markdown. Stay on VRChat social topics. Refer to people by name. Be \
+concise; use tasteful emoji to keep the tone warm.
+- Put comparative or ranked numbers in a Markdown table with a value column.
+- Never draw charts from text characters (▇ █ ▁ ─ etc.); use a table instead.";
 
 pub(crate) struct TurnContext {
     pub tools: Arc<InProcessMcpTools>,
@@ -102,11 +105,13 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
     // than the whole surface. Open mode keeps everything.
     let fallback_tools = (ctx.apply_playbook && playbook_tools.is_none())
         .then(|| playbook::weak_fallback_tools(ctx.tool_defs.as_slice()));
-    let mut working = build_context(&ctx, route);
+    let now_local = chrono::Local::now().fixed_offset();
+    let mut working = build_context(&ctx, route, now_local);
     let tool_defs = playbook_tools
         .as_deref()
         .or(fallback_tools.as_deref())
         .unwrap_or(ctx.tool_defs.as_slice());
+    let utc_offset_minutes = i64::from(now_local.offset().local_minus_utc()) / 60;
     let mut collected: Vec<Entity> = Vec::new();
     let mut final_answer = String::new();
     let mut used_tools = false;
@@ -150,6 +155,8 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
                 &call.function.name,
                 parse_arguments(&call.function.arguments),
                 &user_text,
+                tool_accepts_utc_offset(ctx.tool_defs.as_slice(), &call.function.name)
+                    .then_some(utc_offset_minutes),
             );
             let signature = tool_call_signature(&call.function.name, arguments.as_ref());
             let resolved = if dispatched_tools.insert(signature) {
@@ -246,6 +253,15 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
         }),
     );
     ctx.emitter.done();
+}
+
+fn tool_accepts_utc_offset(tool_defs: &[ToolDefinition], tool_name: &str) -> bool {
+    tool_defs
+        .iter()
+        .find(|tool| tool.name == tool_name)
+        .and_then(|tool| tool.parameters.get("properties"))
+        .and_then(|properties| properties.get("utcOffsetMinutes"))
+        .is_some()
 }
 
 fn finish_cancelled(ctx: &TurnContext) {
@@ -408,6 +424,48 @@ fn dedup_entities(entities: Vec<Entity>) -> Vec<Entity> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn system_prompt_keeps_core_boundaries_and_schema_field_names() {
+        for phrase in [
+            "not observed",
+            "private instances",
+            "not my own friend",
+            "caveats",
+            "needsDisambiguation",
+            "`timeWindow`",
+        ] {
+            assert!(SYSTEM_PROMPT.contains(phrase), "missing phrase: {phrase}");
+        }
+        assert!(!SYSTEM_PROMPT.contains("time_window"));
+    }
+
+    #[test]
+    fn utc_offset_acceptance_is_read_from_the_tool_schema() {
+        let tool_defs = vec![
+            crate::test_support::tool_def(
+                "get_best_time_to_play",
+                serde_json::json!({
+                    "type": "object",
+                    "properties": { "utcOffsetMinutes": { "type": "integer" } }
+                }),
+            ),
+            crate::test_support::tool_def(
+                "get_copresence_summary",
+                serde_json::json!({
+                    "type": "object",
+                    "properties": { "limit": { "type": "integer" } }
+                }),
+            ),
+        ];
+
+        assert!(tool_accepts_utc_offset(&tool_defs, "get_best_time_to_play"));
+        assert!(!tool_accepts_utc_offset(
+            &tool_defs,
+            "get_copresence_summary"
+        ));
+        assert!(!tool_accepts_utc_offset(&tool_defs, "unknown_tool"));
+    }
+
     #[test]
     fn empty_final_answer_falls_back_to_last_tool_summary() {
         let resolved = resolve_tool_outcome(Ok(ToolCallOutcome {

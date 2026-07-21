@@ -208,17 +208,7 @@ impl AssistantController {
         let client = self
             .endpoints
             .llm_client(&endpoint.base_url, &endpoint.api_key, model)?;
-        let tool_defs = if session.allow_writes {
-            Arc::clone(&self.tool_defs)
-        } else {
-            Arc::new(
-                self.tool_defs
-                    .iter()
-                    .filter(|tool| !WRITE_TOOLS.contains(&tool.name.as_str()))
-                    .cloned()
-                    .collect(),
-            )
-        };
+        let tool_defs = visible_tool_defs(&self.tool_defs, session.allow_writes);
 
         let session_id = session.id.clone();
         let turn_id = format!("turn_{}", random_hex());
@@ -282,6 +272,22 @@ impl AssistantController {
     }
 }
 
+fn visible_tool_defs(
+    tool_defs: &Arc<Vec<ToolDefinition>>,
+    allow_writes: bool,
+) -> Arc<Vec<ToolDefinition>> {
+    if allow_writes {
+        return Arc::clone(tool_defs);
+    }
+    Arc::new(
+        tool_defs
+            .iter()
+            .filter(|tool| !WRITE_TOOLS.contains(&tool.name.as_str()))
+            .cloned()
+            .collect(),
+    )
+}
+
 async fn load_tool_defs(tools: &InProcessMcpTools) -> Result<Vec<ToolDefinition>, HarnessError> {
     Ok(tools
         .list_tools()
@@ -320,6 +326,27 @@ impl Drop for CancelCleanup {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn write_tools_stay_hidden_unless_writes_are_armed() {
+        let tool_defs = Arc::new(
+            [
+                "get_copresence_summary",
+                "favorite_local",
+                "favorite_vrchat",
+                "set_friend_note",
+            ]
+            .map(|name| crate::test_support::tool_def(name, serde_json::Value::Null))
+            .to_vec(),
+        );
+
+        let hidden = visible_tool_defs(&tool_defs, false);
+        let names: Vec<&str> = hidden.iter().map(|tool| tool.name.as_str()).collect();
+        assert_eq!(names, vec!["get_copresence_summary"]);
+
+        let armed = visible_tool_defs(&tool_defs, true);
+        assert_eq!(armed.len(), tool_defs.len());
+    }
 
     #[test]
     fn superseded_turn_cleanup_keeps_newer_cancel_token() {

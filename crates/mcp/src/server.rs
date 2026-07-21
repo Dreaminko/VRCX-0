@@ -14,18 +14,18 @@ use crate::runtime::McpRuntime;
 const DATA_CAVEATS_URI: &str = "vrcx://data-caveats";
 
 const SERVER_INSTRUCTIONS: &str = "\
-VRCX-0 exposes observer-centered VRChat social facts from the signed-in user's local history and live session. \
+VRCX-0 (the Tauri/React rewrite — always say \"VRCX-0\", never \"VRCX\", in user-facing replies) exposes the signed-in user's VRChat social facts from local, observer-centered history and the live session. \
 Tools return aggregated facts centered on the signed-in user (\"me\"); you interpret them.
 
-This app is VRCX-0 (the Tauri/React rewrite), NOT the original VRCX. Always refer to it as VRCX-0 in any user-facing reply.
-
-Read before answering:
-- Many user-targeting tools accept either a usr_ id or display name; when they resolve a name, read `resolvedUser` and make sure it is the intended person. If a tool returns `needsDisambiguation`, ask the user to choose instead of guessing.
-- Tool outputs with a `summary` field are ready-to-read fact bundles; use that summary as the narration seed, then add only the caveats and details needed for the user's question.
-- Missing data means unobserved, not false.
-- Facts about ME are reliable even inside private instances; facts about a THIRD PARTY (who someone else is with) are blind in private instances. Say so.
-- Each result carries a `caveats` array; reflect the relevant ones instead of presenting figures as exact.
-- For top/most/ranked asks, the tools already rank and limit the rows; read the top rows and answer from the aggregate instead of looping to enumerate everyone. Pass a small `limit` only to widen or narrow the ranking.
+Ground rules:
+- Missing data means \"not observed\". It never means \"did not happen\".
+- Facts about me hold even in private instances. What OTHERS did in private instances the user did not attend is invisible — say the picture is partial.
+- Reflect each result's `caveats`; treat figures as approximate.
+- Ranked tools pre-sort and limit rows: read the top rows; do not loop to enumerate everyone. Pass a small `limit` only to widen or narrow the ranking.
+- User-targeting tools accept a usr_ id or a display name. Check `resolvedUser` is the intended person; on `needsDisambiguation`, ask the user instead of guessing.
+- Results with a `summary` field are ready-to-read fact bundles; narrate from the summary, then add only the caveats and details the question needs.
+- `timeWindow` accepts {from, to} RFC3339 or a relative string (\"this week\", \"7d\"); omit it to search all history.
+- Writes (favorite_local, favorite_vrchat, set_friend_note) default to dry_run=true and never message other users; confirm before a real write.
 
 Tool tiers — pick the right altitude:
 - [L1·query/resolve] leaf lookups: one source, a list of rows. Building blocks.
@@ -49,8 +49,7 @@ Map fuzzy requests to tools, then read each tool's own description for details (
 - Which of my friends know each other / friend groups -> get_friend_circles
 - History, mutuals, invites, status changes -> get_friend_log, get_social_graph (refresh_mutual_graph if stale), get_invite_history, get_friend_changes
 
-For vague asks, start with summarize_social_period or get_online_friends, then drill in and cross-reference. Time windows are RFC3339; omit to search all history. \
-Writes (favorite_local, favorite_vrchat, set_friend_note) default to dry_run=true and never message other users; confirm before a real write.";
+For vague asks, start with summarize_social_period or get_online_friends, then drill in and cross-reference.";
 
 pub(crate) struct VrcxMcpServer {
     pub(crate) runtime: McpRuntime,
@@ -98,5 +97,31 @@ impl ServerHandler for VrcxMcpServer {
             DATA_CAVEATS_URI,
         )
         .with_mime_type("text/plain")])))
+    }
+}
+
+#[cfg(test)]
+mod instructions_tests {
+    use super::SERVER_INSTRUCTIONS;
+
+    #[test]
+    fn server_instructions_keep_core_boundaries_and_relative_time_windows() {
+        for phrase in [
+            "VRCX-0",
+            "not observed",
+            "private instances",
+            "caveats",
+            "needsDisambiguation",
+            "resolvedUser",
+            "dry_run",
+            "relative string",
+            "`timeWindow`",
+        ] {
+            assert!(
+                SERVER_INSTRUCTIONS.contains(phrase),
+                "missing phrase: {phrase}"
+            );
+        }
+        assert!(!SERVER_INSTRUCTIONS.contains("Time windows are RFC3339"));
     }
 }

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, FixedOffset, Local, Utc};
+use chrono::{DateTime, Datelike, FixedOffset, Utc};
 use vrcx_0_integrations::llm::ChatMessage;
 
 use crate::entities::Entity;
@@ -16,38 +16,28 @@ with tools this turn]";
 
 fn current_time_directive(now_local: DateTime<FixedOffset>) -> String {
     let now_utc = now_local.with_timezone(&Utc);
-    let offset_minutes = now_local.offset().local_minus_utc() / 60;
     format!(
-        "The current date is {date} ({weekday}), UTC — resolve relative time windows \
-(\"today\", \"this week\", \"7d\", etc.) against this UTC date. The user's local timezone \
-is UTC{offset}; when you show or describe timestamps to the user, convert the UTC times \
-returned by tools into this local timezone. For any tool that accepts a utcOffsetMinutes \
-parameter (activity timelines, streaks, or hour/weekday buckets), pass \
-utcOffsetMinutes={offset_minutes} so buckets and day boundaries come back already in the \
-user's local time.",
+        "Current UTC date: {date} ({weekday}). Resolve relative time periods \
+(\"today\", \"this week\", \"7d\") against this UTC date.\n\
+The user's local timezone is UTC{offset}. Convert the UTC timestamps returned by \
+tools into this timezone when presenting them.",
         date = now_utc.format("%Y-%m-%d"),
         weekday = now_utc.weekday(),
         offset = now_local.format("%:z"),
-        offset_minutes = offset_minutes,
     )
 }
 
 pub(super) fn build_context(
     ctx: &TurnContext,
     route: Option<playbook::Playbook>,
+    now_local: DateTime<FixedOffset>,
 ) -> Vec<ChatMessage> {
     let (history, surfaced) = ctx
         .sessions
         .get_unscoped(&ctx.session_id)
         .map(|session| (session.messages, session.surfaced_entities))
         .unwrap_or_default();
-    build_context_messages(
-        ctx.locale.as_deref(),
-        &history,
-        &surfaced,
-        route,
-        Local::now().fixed_offset(),
-    )
+    build_context_messages(ctx.locale.as_deref(), &history, &surfaced, route, now_local)
 }
 
 fn build_context_messages(
@@ -63,8 +53,8 @@ fn build_context_messages(
     }
     if let Some(locale) = locale.map(str::trim).filter(|l| !l.is_empty()) {
         system_sections.push(format!(
-            "Write your reply in the language that matches this interface locale code: \
-{locale}. Keep proper nouns (names, world titles) as-is."
+            "Write the reply in the language of interface locale \"{locale}\". Keep \
+proper nouns (names, world titles) as-is."
         ));
     }
     if let Some(note) = known_references_note(surfaced) {

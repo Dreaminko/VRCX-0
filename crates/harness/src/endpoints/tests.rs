@@ -34,6 +34,26 @@ fn test_configs_initialize_in_parallel_without_sharing_a_database() {
 }
 
 #[test]
+fn translation_prompt_substitutes_target_lang_in_default_and_custom_prompts() {
+    assert_eq!(
+        translation_system_prompt(None, "Japanese"),
+        "You are a translation assistant. Translate the user message into Japanese. Only return the translated text."
+    );
+    assert_eq!(
+        translation_system_prompt(
+            Some("  Translate into {targetLang}, casual tone.  "),
+            "French"
+        ),
+        "Translate into French, casual tone."
+    );
+    assert_eq!(
+        translation_system_prompt(Some("Keep it literal."), "French"),
+        "Keep it literal."
+    );
+    assert!(translation_system_prompt(Some("   "), "German").contains("into German."));
+}
+
+#[test]
 fn custom_proxy_following_defaults_on_and_persists_globally() {
     let config = test_config();
     let proxy_url = "http://127.0.0.1:7890";

@@ -1,7 +1,17 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use vrcx_0_integrations::llm::ToolDefinition;
+
 static TEST_DATABASE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+pub(crate) fn tool_def(name: &str, parameters: serde_json::Value) -> ToolDefinition {
+    ToolDefinition {
+        name: name.into(),
+        description: String::new(),
+        parameters,
+    }
+}
 
 pub(crate) fn unique_test_database_path(prefix: &str) -> PathBuf {
     let sequence = TEST_DATABASE_SEQUENCE.fetch_add(1, Ordering::Relaxed);

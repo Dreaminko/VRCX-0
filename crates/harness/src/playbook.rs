@@ -74,18 +74,18 @@ const BEST_TIME: Playbook = Playbook {
     tool_whitelist: &["get_best_time_to_play"],
     constraint_prompt: "The user wants the best time to log on to find the most friends online. \
 Call get_best_time_to_play once; it returns hour-of-day or weekday buckets ranked by how many \
-distinct friends come online. Pass utcOffsetMinutes (e.g. 540 for UTC+9) so buckets are in the \
-user's local time. Narrate the peak buckets from the summary; do NOT tally the raw log \
-yourself. This is about the whole friend list, not one named person.",
+distinct friends come online, already in the user's local time. Narrate the peak buckets from \
+the summary; do NOT tally the raw log yourself. This is about the whole friend list, not one \
+named person.",
 };
 
 const ACTIVITY_PATTERN: Playbook = Playbook {
     tool_whitelist: &["get_friend_activity_pattern"],
     constraint_prompt: "The user wants to know when a specific friend is usually online. Call \
 get_friend_activity_pattern once with that friend (a display name is accepted directly). It \
-buckets their online/offline log by hour-of-day or weekday. Pass utcOffsetMinutes for \
-local-time buckets. Narrate the busiest buckets from the summary. This describes one person's \
-pattern, not the best time to catch the most people.",
+buckets their online/offline log by hour-of-day or weekday, already in the user's local time. \
+Narrate the busiest buckets from the summary. This describes one person's pattern, not the \
+best time to catch the most people.",
 };
 
 const ONLINE_FRIENDS: Playbook = Playbook {
@@ -102,8 +102,8 @@ const ACTIVITY_TIMELINE: Playbook = Playbook {
     constraint_prompt: "The user wants to know how their own playtime is distributed over time \
 (which months, weeks, or days they played most, or their trend). Call get_activity_timeline \
 once; it buckets the user's own play history by year/month/week/day-of-week/hour-of-day with a \
-ready summary. Pass utcOffsetMinutes for local buckets; OMIT timeWindow for all history. \
-Narrate the peak buckets from the summary; do NOT add up sessions yourself.",
+ready summary, already in the user's local time. OMIT timeWindow for all history. Narrate the \
+peak buckets from the summary; do NOT add up sessions yourself.",
 };
 
 const SOCIAL_RECAP: Playbook = Playbook {
@@ -226,9 +226,9 @@ pub(crate) async fn classify_llm(client: &LlmClient, user_text: &str) -> Option<
 
 fn classify_prompt() -> String {
     let mut prompt = String::from(
-        "Classify a VRChat social assistant user's question into one intent. The question may \
-be in any language. Reply with EXACTLY ONE label from the list below, or `none` if none fit. \
-Output only the label.\n\nIntents:\n",
+        "Classify a VRChat social assistant user's question into one intent. The question \
+may be in any language. Reply with exactly one label from the list below, or `none` if \
+none fit. Output only the label, nothing else.\n\nIntents:\n",
     );
     for intent in INTENTS {
         prompt.push_str("- ");
@@ -266,11 +266,7 @@ mod tests {
     use super::*;
 
     fn tool(name: &str) -> ToolDefinition {
-        ToolDefinition {
-            name: name.to_string(),
-            description: String::new(),
-            parameters: serde_json::Value::Null,
-        }
+        crate::test_support::tool_def(name, serde_json::Value::Null)
     }
 
     #[test]

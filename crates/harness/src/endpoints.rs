@@ -25,6 +25,14 @@ const TRANSLATION_API_MODEL_CONFIG_KEY: &str = "translationAPIModel";
 const DEFAULT_TRANSLATION_SYSTEM_PROMPT: &str =
     "You are a translation assistant. Translate the user message into {targetLang}. Only return the translated text.";
 
+pub(crate) fn translation_system_prompt(custom: Option<&str>, target_lang: &str) -> String {
+    custom
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(DEFAULT_TRANSLATION_SYSTEM_PROMPT)
+        .replace("{targetLang}", target_lang)
+}
+
 type LegacyAssistantSeed = (String, Option<String>, bool, PlaybookMode);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -306,15 +314,7 @@ impl EndpointStore {
         if model.is_empty() {
             return Err(HarnessError::NotConfigured);
         }
-        let prompt = input
-            .prompt
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_string)
-            .unwrap_or_else(|| {
-                DEFAULT_TRANSLATION_SYSTEM_PROMPT.replace("{targetLang}", &input.target_lang)
-            });
+        let prompt = translation_system_prompt(input.prompt.as_deref(), &input.target_lang);
         let client = self.llm_client(&endpoint.base_url, &endpoint.api_key, model)?;
         Ok(client
             .complete_chat(&[ChatMessage::system(prompt), ChatMessage::user(input.text)])
