@@ -6,7 +6,7 @@ use super::persistence::{is_online_state, offline_feed_entry};
 use super::utils::EventTime;
 use super::*;
 
-pub(super) const PENDING_OFFLINE_DELAY_MS: u64 = 170_000;
+pub(super) use crate::realtime::runtime_types::PENDING_OFFLINE_DELAY_MS;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct RecentGps {

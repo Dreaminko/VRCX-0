@@ -8,6 +8,8 @@ pub use vrcx_0_core::realtime::{
 
 use super::output::RealtimeFriendOutput;
 
+pub(crate) const PENDING_OFFLINE_DELAY_MS: u64 = 170_000;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealtimeFriendSnapshot {
     pub current_user_id: String,

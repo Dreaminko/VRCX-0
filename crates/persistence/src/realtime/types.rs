@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::game_log::GameLogLocationEntry;
+use crate::game_log::{GameLogLocationEntry, GameLogLocationTimeUpdate};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -47,6 +47,8 @@ pub struct RealtimePersistenceBatch {
     pub avatar_time_spent_upserts: Vec<AvatarTimeSpentUpsert>,
     #[serde(default)]
     pub game_log_locations: Vec<GameLogLocationEntry>,
+    #[serde(default)]
+    pub game_log_location_time_updates: Vec<GameLogLocationTimeUpdate>,
 }
 
 impl RealtimePersistenceBatch {
@@ -62,6 +64,7 @@ impl RealtimePersistenceBatch {
             && self.avatar_history_upserts.is_empty()
             && self.avatar_time_spent_upserts.is_empty()
             && self.game_log_locations.is_empty()
+            && self.game_log_location_time_updates.is_empty()
     }
 }
 

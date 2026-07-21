@@ -130,7 +130,6 @@ impl RealtimeHostRuntime {
             state.world_enrichment.pending_corrections.clear();
             state.automation.invite.clear_all();
             self.friends.clear();
-            self.current_user.clear();
             let friend_user_ids = friends_by_id.keys().cloned().collect::<Vec<_>>();
             self.friends.set_baseline(
                 FriendRosterBaseline {
@@ -250,8 +249,11 @@ impl RealtimeHostRuntime {
                     })
                     .cloned();
                 active.map(|active| {
-                    let final_current_user_output =
-                        self.current_user_game_running_output(active.generation, false);
+                    let final_current_user_output = if preserve_snapshot {
+                        self.current_user_transport_interruption_output(active.generation)
+                    } else {
+                        self.current_user_transport_finalization_output(active.generation)
+                    };
                     state.connection.active_context = None;
                     state.friend_profile.refetches.clear();
                     if !preserve_snapshot {
@@ -420,7 +422,7 @@ impl RealtimeHostRuntime {
 
                     let websocket_domain = normalize_websocket_domain(&active.session.websocket);
                     let final_current_user_output =
-                        self.current_user_game_running_output(active.generation, false);
+                        self.current_user_transport_finalization_output(active.generation);
                     state.connection.generation = state.connection.generation.saturating_add(1);
                     state.connection.active_context = None;
                     state.friend_baseline.pending = None;

@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use crate::common::ParamsBuilder;
 use crate::database::{DatabaseService, DatabaseWriteTransaction};
-use crate::game_log::{ensure_game_log_tables, GameLogLocationEntry};
+use crate::game_log::{ensure_game_log_tables, GameLogLocationEntry, GameLogLocationTimeUpdate};
 use crate::ownership::owner_id_get_or_insert;
 use crate::Error;
 use vrcx_0_core::trust::trust_level_changed;
@@ -47,13 +47,15 @@ pub fn write_realtime_batch(
     validate_friend_log_backed_feed_entries(batch)?;
     let user_prefix = normalize_user_table_prefix(&owner_user_id)?;
     ensure_realtime_tables(db, &user_prefix)?;
-    if !batch.game_log_locations.is_empty() {
+    let has_game_log_writes =
+        !batch.game_log_locations.is_empty() || !batch.game_log_location_time_updates.is_empty();
+    if has_game_log_writes {
         ensure_game_log_tables(db)?;
     }
-    let owner_id = if batch.game_log_locations.is_empty() {
-        0
-    } else {
+    let owner_id = if has_game_log_writes {
         owner_id_get_or_insert(db, &owner_user_id)?
+    } else {
+        0
     };
     db.write_transaction(|tx| {
         let mut counts = RealtimeWriteCounts::default();
@@ -94,7 +96,10 @@ pub fn write_realtime_batch(
             counts.add_realtime_rows(upsert_avatar_time_spent(tx, &user_prefix, entry)?);
         }
         for entry in &batch.game_log_locations {
-            counts.add_game_log_rows(insert_game_log_location_if_changed(tx, owner_id, entry)?);
+            counts.add_game_log_rows(insert_game_log_location(tx, owner_id, entry)?);
+        }
+        for update in &batch.game_log_location_time_updates {
+            counts.add_game_log_rows(update_game_log_location_time(tx, owner_id, update)?);
         }
         Ok(counts)
     })
@@ -665,24 +670,12 @@ fn upsert_avatar_time_spent(
     .map(affected_count)
 }
 
-fn insert_game_log_location_if_changed(
+fn insert_game_log_location(
     tx: &mut DatabaseWriteTransaction<'_>,
     owner_id: i64,
     entry: &GameLogLocationEntry,
 ) -> Result<u64, Error> {
     if entry.location.trim().is_empty() {
-        return Ok(0);
-    }
-    let rows = tx.execute(
-        "SELECT location FROM gamelog_location WHERE owner_id IN (0, @owner_id) ORDER BY created_at DESC, id DESC LIMIT 1",
-        &ParamsBuilder::new().set("owner_id", owner_id).build(),
-    )?;
-    let latest = rows
-        .first()
-        .and_then(|row| row.first())
-        .and_then(Value::as_str)
-        .unwrap_or("");
-    if latest == entry.location {
         return Ok(0);
     }
     tx.execute_non_query(
@@ -694,6 +687,25 @@ fn insert_game_log_location_if_changed(
             .set("world_name", entry.world_name.clone())
             .set("time", entry.time)
             .set("group_name", entry.group_name.clone())
+            .set("owner_id", owner_id)
+            .build(),
+    )
+    .map(affected_count)
+}
+
+fn update_game_log_location_time(
+    tx: &mut DatabaseWriteTransaction<'_>,
+    owner_id: i64,
+    update: &GameLogLocationTimeUpdate,
+) -> Result<u64, Error> {
+    if update.created_at.trim().is_empty() || update.time < 0 {
+        return Ok(0);
+    }
+    tx.execute_non_query(
+        "UPDATE gamelog_location SET time = @time WHERE created_at = @created_at AND owner_id IN (0, @owner_id)",
+        &ParamsBuilder::new()
+            .set("created_at", update.created_at.clone())
+            .set("time", update.time)
             .set("owner_id", owner_id)
             .build(),
     )

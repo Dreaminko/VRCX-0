@@ -66,7 +66,7 @@ pub struct GameLogExternalEntry {
     pub location: String,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, specta::Type)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 pub struct GameLogLocationTimeUpdate {
     pub created_at: String,
     pub time: i64,

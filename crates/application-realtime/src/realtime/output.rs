@@ -28,6 +28,7 @@ pub struct RealtimeCurrentUserOutput {
     pub owner_user_id: String,
     pub projection: RealtimeCurrentUserProjection,
     pub persistence: RealtimePersistenceBatch,
+    pub timer_action: PendingOfflineTimerAction,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

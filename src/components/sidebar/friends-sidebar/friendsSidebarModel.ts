@@ -248,21 +248,13 @@ export function normalizeStateBucket(value: unknown) {
 export function resolveCurrentUserStateBucket(
     currentUser: SidebarFriendRecord | null | undefined
 ) {
-    const explicitState =
-        normalizeStateBucket(currentUser?.stateBucket) ||
-        normalizeStateBucket(currentUser?.state);
-    if (explicitState) {
-        return explicitState;
+    const location = normalizeLocationStatus(
+        currentUser?.location || locationProjection(currentUser?.$location)?.tag
+    );
+    if (location && location !== 'offline') {
+        return 'online';
     }
-    if (
-        normalizeLocationStatus(
-            currentUser?.location ||
-                locationProjection(currentUser?.$location)?.tag
-        ) === 'offline'
-    ) {
-        return 'offline';
-    }
-    return 'online';
+    return 'active';
 }
 
 function activeStatusDotClassName(status: unknown) {
@@ -341,12 +333,29 @@ export function resolveSidebarStatusDotClassName(
     );
 
     if (isCurrentUser || userId === currentUser?.id) {
+        const currentSource = readFriendStatusSource(currentUser) || source;
+        const currentStatus = normalizeLocationStatus(
+            currentSource?.status || status
+        );
+        const currentLocation = normalizeLocationStatus(
+            currentSource?.location ||
+                locationProjection(currentSource?.$location)?.tag ||
+                source?.location ||
+                locationProjection(source?.$location)?.tag
+        );
         if (isGameRunning === true) {
             return (
-                legacyStatusDotClassName(status) || 'bg-[var(--status-online)]'
+                legacyStatusDotClassName(currentStatus) ||
+                'bg-[var(--status-online)]'
             );
         }
-        return activeStatusDotClassName(status);
+        if (currentLocation && currentLocation !== 'offline') {
+            return (
+                legacyStatusDotClassName(currentStatus) ||
+                'bg-[var(--status-online)]'
+            );
+        }
+        return activeStatusDotClassName(currentStatus);
     }
 
     if (source?.pendingOffline) {

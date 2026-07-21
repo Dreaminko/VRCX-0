@@ -4,7 +4,7 @@ use serde_json::json;
 
 use crate::common::ParamsBuilder;
 use crate::database::DatabaseService;
-use crate::game_log::GameLogLocationEntry;
+use crate::game_log::{GameLogLocationEntry, GameLogLocationTimeUpdate};
 
 use super::{
     normalize_user_table_prefix, write_realtime_batch, FriendLogDelete, FriendLogUpsert,
@@ -122,6 +122,67 @@ fn writes_friend_log_and_feed_rows() -> Result<(), crate::Error> {
     )?;
     assert_eq!(location_counts.affected_count, 1);
     assert_eq!(location_counts.game_log_affected_count, 1);
+    Ok(())
+}
+
+#[test]
+fn writes_remote_location_intervals_and_allows_same_location_after_closed_interval(
+) -> Result<(), crate::Error> {
+    let dir = TestDir::new("realtime-remote-location-interval");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let first_location = GameLogLocationEntry {
+        created_at: "2026-05-15T00:00:00Z".into(),
+        location: "wrld_remote:456".into(),
+        world_id: "wrld_remote".into(),
+        world_name: "Remote World".into(),
+        time: 0,
+        group_name: "".into(),
+    };
+
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            game_log_locations: vec![first_location.clone()],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    let close_counts = write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            game_log_location_time_updates: vec![GameLogLocationTimeUpdate {
+                created_at: first_location.created_at,
+                time: 180_000,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    let restart_counts = write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            game_log_locations: vec![GameLogLocationEntry {
+                created_at: "2026-05-15T00:03:20Z".into(),
+                ..first_location
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+
+    assert_eq!(close_counts.game_log_affected_count, 1);
+    assert_eq!(restart_counts.game_log_affected_count, 1);
+    let rows = db.execute(
+        "SELECT created_at, location, time FROM gamelog_location ORDER BY created_at ASC",
+        &Default::default(),
+    )?;
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0][0], json!("2026-05-15T00:00:00Z"));
+    assert_eq!(rows[0][1], json!("wrld_remote:456"));
+    assert_eq!(rows[0][2], json!(180_000));
+    assert_eq!(rows[1][0], json!("2026-05-15T00:03:20Z"));
+    assert_eq!(rows[1][1], json!("wrld_remote:456"));
+    assert_eq!(rows[1][2], json!(0));
     Ok(())
 }
 

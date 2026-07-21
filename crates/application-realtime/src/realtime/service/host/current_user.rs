@@ -1,6 +1,33 @@
 use super::*;
 
 impl RealtimeHostRuntime {
+    pub(super) fn schedule_current_user_pending_offline(
+        self: &Arc<Self>,
+        generation: u64,
+        timer_action: PendingOfflineTimerAction,
+    ) {
+        let PendingOfflineTimerAction::Schedule {
+            token, delay_ms, ..
+        } = timer_action
+        else {
+            return;
+        };
+        let runtime = Arc::clone(self);
+        self.deps.tasks.spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+            let now = chrono::Utc::now().to_rfc3339();
+            let Some(output) = runtime.current_user.fire_pending_offline(
+                generation,
+                token,
+                now,
+                runtime.current_user_authority(),
+            ) else {
+                return;
+            };
+            runtime.apply_current_user_output(output);
+        });
+    }
+
     pub fn sync_current_user_snapshot(
         &self,
         user_id: String,
@@ -142,5 +169,21 @@ impl RealtimeHostRuntime {
         authority.is_game_running = is_game_running;
         self.current_user
             .apply_game_running_state(generation, authority)
+    }
+
+    pub(super) fn current_user_transport_finalization_output(
+        &self,
+        generation: u64,
+    ) -> Option<RealtimeCurrentUserOutput> {
+        self.current_user
+            .finalize_transport(generation, self.current_user_authority())
+    }
+
+    pub(super) fn current_user_transport_interruption_output(
+        &self,
+        generation: u64,
+    ) -> Option<RealtimeCurrentUserOutput> {
+        self.current_user
+            .interrupt_transport(generation, self.current_user_authority())
     }
 }

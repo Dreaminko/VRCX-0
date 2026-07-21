@@ -112,7 +112,10 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             self.runtime.current_user_authority(),
         ) {
             let overlay_patch = output.projection.patch.clone();
+            let timer_action = output.timer_action.clone();
             self.runtime.apply_current_user_output(output);
+            self.runtime
+                .schedule_current_user_pending_offline(generation, timer_action);
             if is_user_update {
                 self.runtime.refresh_current_user_snapshot_after_update(
                     generation,

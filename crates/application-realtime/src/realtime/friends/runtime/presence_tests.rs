@@ -867,9 +867,22 @@ mod tests {
         else {
             panic!("friend-offline should produce an output");
         };
-        let PendingOfflineTimerAction::Schedule { token, .. } = output.timer_action else {
+        let PendingOfflineTimerAction::Schedule {
+            token, delay_ms, ..
+        } = output.timer_action
+        else {
             panic!("offline should schedule pending timer");
         };
+        assert_eq!(delay_ms, 170_000);
+        assert_eq!(output.projection.patches[0].state_bucket, "online");
+        assert_eq!(
+            output.projection.patches[0].patch["location"],
+            json!("wrld_1:123")
+        );
+        assert_eq!(
+            output.projection.patches[0].patch["pendingOffline"],
+            json!(true)
+        );
 
         let fired = runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())

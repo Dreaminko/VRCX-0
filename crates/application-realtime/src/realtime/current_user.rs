@@ -4,13 +4,15 @@ use chrono::{DateTime, Utc};
 use serde_json::{json, Map, Value};
 use vrcx_0_core::location::parse_location;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
-use vrcx_0_persistence::game_log::GameLogLocationEntry;
+use vrcx_0_persistence::game_log::{GameLogLocationEntry, GameLogLocationTimeUpdate};
 use vrcx_0_persistence::realtime::{
     AvatarHistoryUpsert, AvatarTimeSpentUpsert, RealtimePersistenceBatch,
 };
 
+use super::runtime_types::PENDING_OFFLINE_DELAY_MS;
 use super::{
-    RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeCurrentUserProjection,
+    PendingOfflineTimerAction, RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput,
+    RealtimeCurrentUserProjection,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -18,6 +20,31 @@ struct RealtimeCurrentUserState {
     generation: u64,
     current_user_id: String,
     snapshot: RealtimeCurrentUserStateSnapshot,
+    remote_snapshot: RealtimeCurrentUserStateSnapshot,
+    pending_offline: Option<PendingCurrentUserOffline>,
+    next_pending_token: u64,
+    remote_game_log_interval: Option<RemoteGameLogInterval>,
+}
+
+#[derive(Clone, Debug)]
+struct PendingCurrentUserOffline {
+    token: u64,
+    patch: Map<String, Value>,
+}
+
+#[derive(Clone, Debug)]
+struct RemoteGameLogInterval {
+    created_at: String,
+    started_at_ms: i64,
+    location: String,
+}
+
+#[derive(Default)]
+struct CurrentUserPatchOptions {
+    applies_local_game_authority: bool,
+    reconciles_remote_location: bool,
+    records_current_avatar_history: bool,
+    timer_action: PendingOfflineTimerAction,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -120,6 +147,23 @@ const CURRENT_USER_REFRESH_LOCAL_AUTHORITY_FIELDS: &[&str] = &[
     "$previousLocation_at",
 ];
 
+const CURRENT_USER_REMOTE_PRESENCE_FIELDS: &[&str] = &[
+    "location",
+    "$location",
+    "$location_at",
+    "locationUpdatedAt",
+    "worldId",
+    "instanceId",
+    "travelingToLocation",
+    "travelingToWorld",
+    "travelingToInstance",
+    "$travelingToLocation",
+    "$travelingToTime",
+    "worldName",
+    "state",
+    "stateBucket",
+];
+
 #[derive(Clone, Debug, Default)]
 pub struct RealtimeCurrentUserRuntime {
     state: Arc<Mutex<RealtimeCurrentUserState>>,
@@ -137,10 +181,25 @@ impl RealtimeCurrentUserRuntime {
         snapshot: serde_json::Value,
     ) {
         let mut state = self.lock_state();
-        state.current_user_id = normalize_id(&current_user_id);
+        let current_user_id = normalize_id(&current_user_id);
+        let preserves_remote_interval = state.current_user_id == current_user_id;
+        state.current_user_id = current_user_id;
         state.generation = generation;
-        state.snapshot =
+        let mut snapshot =
             RealtimeCurrentUserStateSnapshot::from_value(snapshot, &state.current_user_id);
+        if preserves_remote_interval
+            && state.remote_game_log_interval.is_some()
+            && !has_remote_current_user_presence(&snapshot)
+        {
+            snapshot = merge_preserved_remote_presence(snapshot, &state.remote_snapshot);
+        }
+        state.snapshot = snapshot.clone();
+        state.remote_snapshot = snapshot;
+        state.pending_offline = None;
+        if !preserves_remote_interval {
+            state.next_pending_token = 0;
+            state.remote_game_log_interval = None;
+        }
     }
 
     pub fn clear(&self) {
@@ -148,6 +207,9 @@ impl RealtimeCurrentUserRuntime {
         state.generation = state.generation.saturating_add(1);
         state.current_user_id.clear();
         state.snapshot = RealtimeCurrentUserStateSnapshot::default();
+        state.remote_snapshot = RealtimeCurrentUserStateSnapshot::default();
+        state.pending_offline = None;
+        state.remote_game_log_interval = None;
     }
 
     pub fn snapshot_value(&self) -> Option<serde_json::Value> {
@@ -212,9 +274,10 @@ impl RealtimeCurrentUserRuntime {
             patch,
             &EventTime::now(),
             &authority,
-            true,
-            false,
-            false,
+            CurrentUserPatchOptions {
+                applies_local_game_authority: true,
+                ..CurrentUserPatchOptions::default()
+            },
         )
     }
 
@@ -230,15 +293,109 @@ impl RealtimeCurrentUserRuntime {
         if state.generation != generation || state.current_user_id.is_empty() {
             return None;
         }
+        if authority.is_game_running {
+            state.pending_offline = None;
+        }
         apply_current_user_patch(
             &mut state,
             Map::new(),
             &EventTime::now(),
             &authority,
-            false,
-            false,
-            authority.is_game_running,
+            CurrentUserPatchOptions {
+                applies_local_game_authority: true,
+                reconciles_remote_location: !authority.is_game_running,
+                records_current_avatar_history: authority.is_game_running,
+                ..CurrentUserPatchOptions::default()
+            },
         )
+    }
+
+    pub fn fire_pending_offline(
+        &self,
+        generation: u64,
+        token: u64,
+        now: String,
+        authority: RealtimeCurrentUserAuthority,
+    ) -> Option<RealtimeCurrentUserOutput> {
+        let mut state = self.lock_state();
+        if state.generation != generation
+            || state.current_user_id.is_empty()
+            || authority.is_game_running
+            || state.pending_offline.as_ref().map(|pending| pending.token) != Some(token)
+        {
+            return None;
+        }
+        let pending = state.pending_offline.take()?;
+        apply_current_user_patch(
+            &mut state,
+            pending.patch,
+            &EventTime::from_received_at(&now),
+            &authority,
+            CurrentUserPatchOptions {
+                reconciles_remote_location: true,
+                ..CurrentUserPatchOptions::default()
+            },
+        )
+    }
+
+    pub fn interrupt_transport(
+        &self,
+        generation: u64,
+        authority: RealtimeCurrentUserAuthority,
+    ) -> Option<RealtimeCurrentUserOutput> {
+        self.transport_end_output(generation, authority, false)
+    }
+
+    pub fn finalize_transport(
+        &self,
+        generation: u64,
+        authority: RealtimeCurrentUserAuthority,
+    ) -> Option<RealtimeCurrentUserOutput> {
+        self.transport_end_output(generation, authority, true)
+    }
+
+    fn transport_end_output(
+        &self,
+        generation: u64,
+        authority: RealtimeCurrentUserAuthority,
+        ends_remote_interval: bool,
+    ) -> Option<RealtimeCurrentUserOutput> {
+        if !authority.local_game_context_available {
+            return None;
+        }
+        let mut state = self.lock_state();
+        if state.generation != generation || state.current_user_id.is_empty() {
+            return None;
+        }
+        let previous = state.snapshot.clone();
+        let now = EventTime::now();
+        let (snapshot, mut persistence) = apply_avatar_wear_transition(
+            previous.clone(),
+            &previous,
+            authority.local_game_context_available,
+            false,
+            &now,
+            false,
+        );
+        if ends_remote_interval {
+            close_remote_game_log_interval(&mut state, &now, &mut persistence);
+        }
+        let previous_avatar_swap_time = snapshot.previous_avatar_swap_time;
+        state.snapshot = snapshot.clone();
+        state.remote_snapshot.set_previous_avatar_swap_time(
+            (previous_avatar_swap_time > 0).then_some(previous_avatar_swap_time),
+        );
+        Some(RealtimeCurrentUserOutput {
+            owner_user_id: state.current_user_id.clone(),
+            projection: RealtimeCurrentUserProjection {
+                generation: state.generation,
+                patch: map_from_json(json!({ "id": state.current_user_id.clone() })),
+                snapshot: snapshot.to_map(),
+                game_state_patch: None,
+            },
+            persistence,
+            timer_action: PendingOfflineTimerAction::None,
+        })
     }
 
     fn lock_state(&self) -> std::sync::MutexGuard<'_, RealtimeCurrentUserState> {
@@ -278,7 +435,16 @@ fn apply_user_update(
     if patch.is_empty() {
         return None;
     }
-    apply_current_user_patch(state, patch, now, authority, true, false, false)
+    apply_current_user_patch(
+        state,
+        patch,
+        now,
+        authority,
+        CurrentUserPatchOptions {
+            applies_local_game_authority: true,
+            ..CurrentUserPatchOptions::default()
+        },
+    )
 }
 
 fn apply_user_location(
@@ -296,7 +462,55 @@ fn apply_user_location(
         content.get("travelingToLocation"),
         content.get("worldId"),
     );
-    apply_current_user_patch(state, patch, now, authority, true, true, false)
+    if authority.is_game_running {
+        state.pending_offline = None;
+        return apply_current_user_patch(
+            state,
+            patch,
+            now,
+            authority,
+            CurrentUserPatchOptions {
+                applies_local_game_authority: true,
+                ..CurrentUserPatchOptions::default()
+            },
+        );
+    }
+    if is_offline_location(&string_field(patch.get("location")))
+        && has_remote_current_user_presence(&state.remote_snapshot)
+    {
+        if state.pending_offline.is_some() {
+            return None;
+        }
+        state.next_pending_token = state.next_pending_token.saturating_add(1);
+        let token = state.next_pending_token;
+        state.pending_offline = Some(PendingCurrentUserOffline { token, patch });
+        return apply_current_user_patch(
+            state,
+            Map::new(),
+            now,
+            authority,
+            CurrentUserPatchOptions {
+                timer_action: PendingOfflineTimerAction::Schedule {
+                    user_id: state.current_user_id.clone(),
+                    token,
+                    delay_ms: PENDING_OFFLINE_DELAY_MS,
+                },
+                ..CurrentUserPatchOptions::default()
+            },
+        );
+    }
+    state.pending_offline = None;
+    apply_current_user_patch(
+        state,
+        patch,
+        now,
+        authority,
+        CurrentUserPatchOptions {
+            applies_local_game_authority: true,
+            reconciles_remote_location: true,
+            ..CurrentUserPatchOptions::default()
+        },
+    )
 }
 
 fn apply_current_user_patch(
@@ -304,17 +518,28 @@ fn apply_current_user_patch(
     patch: Map<String, Value>,
     now: &EventTime,
     authority: &RealtimeCurrentUserAuthority,
-    applies_game_log_authority: bool,
-    writes_location_fallback: bool,
-    records_current_avatar_history: bool,
+    options: CurrentUserPatchOptions,
 ) -> Option<RealtimeCurrentUserOutput> {
     let previous = state.snapshot.clone();
     let mut projection_patch = patch.clone();
-    let mut merged = previous.to_map();
+    let mut remote_merged = state.remote_snapshot.to_map();
     for (key, value) in &patch {
-        merged.insert(key.clone(), value.clone());
+        remote_merged.insert(key.clone(), value.clone());
     }
-    if applies_game_log_authority {
+    remote_merged.insert("id".into(), Value::String(state.current_user_id.clone()));
+    state.remote_snapshot =
+        RealtimeCurrentUserStateSnapshot::from_map(remote_merged, &state.current_user_id);
+
+    let mut merged = if authority.is_game_running {
+        let mut local_merged = previous.to_map();
+        for (key, value) in &patch {
+            local_merged.insert(key.clone(), value.clone());
+        }
+        local_merged
+    } else {
+        state.remote_snapshot.to_map()
+    };
+    if options.applies_local_game_authority && authority.is_game_running {
         if let Some(authority_patch) = game_log_authority_patch(authority) {
             for (key, value) in &authority_patch {
                 merged.insert(key.clone(), value.clone());
@@ -323,6 +548,12 @@ fn apply_current_user_patch(
         }
     }
     merged.insert("id".into(), Value::String(state.current_user_id.clone()));
+    normalize_current_user_presence(
+        &mut merged,
+        authority.is_game_running
+            || state.pending_offline.is_some()
+            || has_remote_current_user_presence(&state.remote_snapshot),
+    );
     projection_patch.insert("id".into(), Value::String(state.current_user_id.clone()));
     let (snapshot, mut persistence) = apply_avatar_wear_transition(
         RealtimeCurrentUserStateSnapshot::from_map(merged, &state.current_user_id),
@@ -330,16 +561,32 @@ fn apply_current_user_patch(
         authority.local_game_context_available,
         authority.is_game_running,
         now,
-        records_current_avatar_history,
+        options.records_current_avatar_history,
     );
-    let writes_location_game_state = authority.local_game_context_available
-        && writes_location_fallback
-        && !authority.is_game_running;
-    if writes_location_game_state {
-        if let Some(location_entry) = location_game_log_entry(&snapshot, now) {
-            persistence.game_log_locations.push(location_entry);
-        }
+    projection_patch.insert("state".into(), Value::String(snapshot.state_bucket.clone()));
+    projection_patch.insert(
+        "stateBucket".into(),
+        Value::String(snapshot.state_bucket.clone()),
+    );
+    if !authority.is_game_running && options.reconciles_remote_location {
+        copy_current_user_presence_patch(&snapshot, &mut projection_patch);
     }
+
+    if authority.is_game_running {
+        close_remote_game_log_interval(state, now, &mut persistence);
+    } else if options.reconciles_remote_location {
+        reconcile_remote_game_log_interval(
+            state,
+            &snapshot,
+            now,
+            authority.game_log_enabled,
+            &mut persistence,
+        );
+    }
+
+    let writes_location_game_state = authority.local_game_context_available
+        && options.reconciles_remote_location
+        && !authority.is_game_running;
     let game_state_patch = if writes_location_game_state {
         Some(location_game_state_patch(&snapshot, now))
     } else {
@@ -357,7 +604,92 @@ fn apply_current_user_patch(
             game_state_patch,
         },
         persistence,
+        timer_action: options.timer_action,
     })
+}
+
+fn normalize_current_user_presence(merged: &mut Map<String, Value>, is_online: bool) {
+    let state_bucket = if is_online { "online" } else { "active" };
+    merged.insert("state".into(), Value::String(state_bucket.into()));
+    merged.insert("stateBucket".into(), Value::String(state_bucket.into()));
+    merged.remove("pendingOffline");
+}
+
+fn copy_current_user_presence_patch(
+    snapshot: &RealtimeCurrentUserStateSnapshot,
+    projection_patch: &mut Map<String, Value>,
+) {
+    let snapshot = snapshot.to_map();
+    for field in CURRENT_USER_REMOTE_PRESENCE_FIELDS {
+        if let Some(value) = snapshot.get(*field) {
+            projection_patch.insert((*field).into(), value.clone());
+        } else {
+            projection_patch.remove(*field);
+        }
+    }
+    projection_patch.remove("pendingOffline");
+}
+
+fn merge_preserved_remote_presence(
+    snapshot: RealtimeCurrentUserStateSnapshot,
+    previous: &RealtimeCurrentUserStateSnapshot,
+) -> RealtimeCurrentUserStateSnapshot {
+    let current_user_id = snapshot.user_id.clone();
+    let mut merged = snapshot.to_map();
+    let previous = previous.to_map();
+    for field in CURRENT_USER_REMOTE_PRESENCE_FIELDS {
+        if let Some(value) = previous.get(*field) {
+            merged.insert((*field).into(), value.clone());
+        }
+    }
+    RealtimeCurrentUserStateSnapshot::from_map(merged, &current_user_id)
+}
+
+fn reconcile_remote_game_log_interval(
+    state: &mut RealtimeCurrentUserState,
+    snapshot: &RealtimeCurrentUserStateSnapshot,
+    now: &EventTime,
+    game_log_enabled: bool,
+    persistence: &mut RealtimePersistenceBatch,
+) {
+    let location = snapshot.location.trim();
+    if !game_log_enabled || !is_real_instance(location) {
+        close_remote_game_log_interval(state, now, persistence);
+        return;
+    }
+    if state
+        .remote_game_log_interval
+        .as_ref()
+        .is_some_and(|interval| interval.location == location)
+    {
+        return;
+    }
+    close_remote_game_log_interval(state, now, persistence);
+    let Some(entry) = location_game_log_entry(snapshot, now) else {
+        return;
+    };
+    state.remote_game_log_interval = Some(RemoteGameLogInterval {
+        created_at: entry.created_at.clone(),
+        started_at_ms: now.timestamp_ms,
+        location: entry.location.clone(),
+    });
+    persistence.game_log_locations.push(entry);
+}
+
+fn close_remote_game_log_interval(
+    state: &mut RealtimeCurrentUserState,
+    now: &EventTime,
+    persistence: &mut RealtimePersistenceBatch,
+) {
+    let Some(interval) = state.remote_game_log_interval.take() else {
+        return;
+    };
+    persistence
+        .game_log_location_time_updates
+        .push(GameLogLocationTimeUpdate {
+            created_at: interval.created_at,
+            time: now.timestamp_ms.saturating_sub(interval.started_at_ms),
+        });
 }
 
 fn game_log_authority_patch(
@@ -691,6 +1023,20 @@ fn is_real_instance(location: &str) -> bool {
     )
 }
 
+fn is_offline_location(location: &str) -> bool {
+    matches!(
+        location.trim().to_ascii_lowercase().as_str(),
+        "offline" | "offline:offline"
+    )
+}
+
+fn has_remote_current_user_presence(snapshot: &RealtimeCurrentUserStateSnapshot) -> bool {
+    let location = snapshot.location.trim().to_ascii_lowercase();
+    !location.is_empty()
+        && !location.starts_with("local")
+        && !matches!(location.as_str(), ":" | "offline" | "offline:offline")
+}
+
 struct EventTime {
     iso: String,
     timestamp_ms: i64,
@@ -719,6 +1065,34 @@ impl EventTime {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn remote_authority(game_log_enabled: bool) -> RealtimeCurrentUserAuthority {
+        RealtimeCurrentUserAuthority {
+            local_game_context_available: true,
+            is_game_running: false,
+            game_log_enabled,
+            ..RealtimeCurrentUserAuthority::default()
+        }
+    }
+
+    fn current_user_location_message(
+        location: &str,
+        traveling_to_location: &str,
+        received_at: &str,
+    ) -> RealtimeWsMessagePayload {
+        RealtimeWsMessagePayload {
+            json: json!({
+                "type": "user-location",
+                "content": {
+                    "userId": "usr_self",
+                    "location": location,
+                    "travelingToLocation": traveling_to_location
+                }
+            }),
+            raw: String::new(),
+            received_at: received_at.into(),
+        }
+    }
 
     #[test]
     fn current_user_projection_serializes_object_shape() {
@@ -900,5 +1274,420 @@ mod tests {
         assert!(output.projection.game_state_patch.is_none());
         assert!(output.persistence.is_empty());
         assert!(runtime.apply_game_running_state(7, authority).is_none());
+    }
+
+    #[test]
+    fn running_local_game_keeps_authoritative_location_above_remote_ws_location() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot(
+            "usr_self".into(),
+            7,
+            json!({
+                "id": "usr_self",
+                "location": "wrld_local:123",
+                "worldId": "wrld_local",
+                "instanceId": "123",
+                "state": "online",
+                "stateBucket": "online"
+            }),
+        );
+
+        let output = runtime
+            .apply_ws_message(
+                7,
+                &RealtimeWsMessagePayload {
+                    json: json!({
+                        "type": "user-location",
+                        "content": {
+                            "userId": "usr_self",
+                            "location": "wrld_remote:456",
+                            "travelingToLocation": "",
+                            "worldId": "wrld_remote"
+                        }
+                    }),
+                    raw: String::new(),
+                    received_at: "2026-05-15T00:00:00Z".into(),
+                },
+                RealtimeCurrentUserAuthority {
+                    is_game_running: true,
+                    game_log_enabled: true,
+                    game_log_location: "wrld_local:123".into(),
+                    game_log_world_name: "Local World".into(),
+                    ..RealtimeCurrentUserAuthority::default()
+                },
+            )
+            .expect("current user location output");
+
+        assert_eq!(
+            output.projection.snapshot["location"],
+            json!("wrld_local:123")
+        );
+        assert_eq!(output.projection.snapshot["worldId"], json!("wrld_local"));
+        assert!(output.projection.game_state_patch.is_none());
+        assert!(output.persistence.game_log_locations.is_empty());
+    }
+
+    #[test]
+    fn stopped_local_game_projects_remote_location_as_online_and_starts_gamelog_interval() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot(
+            "usr_self".into(),
+            7,
+            json!({
+                "id": "usr_self",
+                "status": "busy",
+                "location": "offline",
+                "state": "offline",
+                "stateBucket": "offline"
+            }),
+        );
+
+        let output = runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message(
+                    "wrld_remote:456~group(grp_remote)",
+                    "",
+                    "2026-05-15T00:00:00Z",
+                ),
+                remote_authority(true),
+            )
+            .expect("remote location output");
+
+        assert_eq!(output.projection.snapshot["state"], json!("online"));
+        assert_eq!(output.projection.snapshot["stateBucket"], json!("online"));
+        assert_eq!(
+            output.projection.snapshot["location"],
+            json!("wrld_remote:456~group(grp_remote)")
+        );
+        assert!(output.projection.snapshot.get("pendingOffline").is_none());
+        assert_eq!(output.persistence.game_log_locations.len(), 1);
+        assert_eq!(
+            output.persistence.game_log_locations[0],
+            GameLogLocationEntry {
+                created_at: "2026-05-15T00:00:00Z".into(),
+                location: "wrld_remote:456~group(grp_remote)".into(),
+                world_id: "wrld_remote".into(),
+                world_name: "".into(),
+                time: 0,
+                group_name: "grp_remote".into(),
+            }
+        );
+        assert_eq!(output.timer_action, PendingOfflineTimerAction::None);
+    }
+
+    #[test]
+    fn false_remote_offline_keeps_location_until_same_location_cancels_pending() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot("usr_self".into(), 7, json!({ "id": "usr_self" }));
+        runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:00Z"),
+                remote_authority(true),
+            )
+            .expect("remote interval start");
+
+        let pending = runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("offline:offline", "", "2026-05-15T00:00:10Z"),
+                remote_authority(true),
+            )
+            .expect("remote offline pending output");
+        let PendingOfflineTimerAction::Schedule {
+            user_id,
+            token,
+            delay_ms,
+        } = pending.timer_action
+        else {
+            panic!("remote offline should schedule pending timer");
+        };
+
+        assert_eq!(user_id, "usr_self");
+        assert_eq!(delay_ms, 170_000);
+        assert_eq!(
+            pending.projection.snapshot["location"],
+            json!("wrld_remote:456")
+        );
+        assert_eq!(pending.projection.snapshot["stateBucket"], json!("online"));
+        assert!(pending.persistence.is_empty());
+
+        let resumed = runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:10.004Z"),
+                remote_authority(true),
+            )
+            .expect("same remote location should cancel pending");
+
+        assert_eq!(resumed.timer_action, PendingOfflineTimerAction::None);
+        assert!(resumed.persistence.is_empty());
+        assert!(runtime
+            .fire_pending_offline(
+                7,
+                token,
+                "2026-05-15T00:03:00Z".into(),
+                remote_authority(true),
+            )
+            .is_none());
+    }
+
+    #[test]
+    fn confirmed_remote_offline_ends_interval_and_same_location_can_start_again() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot("usr_self".into(), 7, json!({ "id": "usr_self" }));
+        runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:00Z"),
+                remote_authority(true),
+            )
+            .expect("remote interval start");
+        let pending = runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("offline", "", "2026-05-15T00:00:10Z"),
+                remote_authority(true),
+            )
+            .expect("remote offline pending output");
+        let PendingOfflineTimerAction::Schedule { token, .. } = pending.timer_action else {
+            panic!("remote offline should schedule pending timer");
+        };
+
+        let confirmed = runtime
+            .fire_pending_offline(
+                7,
+                token,
+                "2026-05-15T00:03:00Z".into(),
+                remote_authority(true),
+            )
+            .expect("pending remote offline should fire");
+
+        assert_eq!(confirmed.projection.snapshot["state"], json!("active"));
+        assert_eq!(
+            confirmed.projection.snapshot["stateBucket"],
+            json!("active")
+        );
+        assert_eq!(confirmed.projection.snapshot["location"], json!("offline"));
+        assert_eq!(
+            confirmed.persistence.game_log_location_time_updates,
+            vec![GameLogLocationTimeUpdate {
+                created_at: "2026-05-15T00:00:00Z".into(),
+                time: 180_000,
+            }]
+        );
+
+        let restarted = runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:03:20Z"),
+                remote_authority(true),
+            )
+            .expect("same location after confirmed offline starts a new interval");
+        assert_eq!(restarted.persistence.game_log_locations.len(), 1);
+        assert_eq!(
+            restarted.persistence.game_log_locations[0].created_at,
+            "2026-05-15T00:03:20Z"
+        );
+    }
+
+    #[test]
+    fn remote_presence_remains_visible_when_gamelog_is_disabled_without_writes() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot("usr_self".into(), 7, json!({ "id": "usr_self" }));
+
+        let output = runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:00Z"),
+                remote_authority(false),
+            )
+            .expect("remote presence output");
+
+        assert_eq!(output.projection.snapshot["stateBucket"], json!("online"));
+        assert!(output.persistence.is_empty());
+    }
+
+    #[test]
+    fn local_game_start_invalidates_remote_offline_timer_and_keeps_local_authority() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot("usr_self".into(), 7, json!({ "id": "usr_self" }));
+        runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:00Z"),
+                remote_authority(true),
+            )
+            .expect("remote interval start");
+        let pending = runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("offline", "", "2026-05-15T00:00:10Z"),
+                remote_authority(true),
+            )
+            .expect("remote offline pending output");
+        let PendingOfflineTimerAction::Schedule { token, .. } = pending.timer_action else {
+            panic!("remote offline should schedule pending timer");
+        };
+        let local_authority = RealtimeCurrentUserAuthority {
+            local_game_context_available: true,
+            is_game_running: true,
+            game_log_enabled: true,
+            game_log_location: "wrld_local:123".into(),
+            game_log_world_name: "Local World".into(),
+            ..RealtimeCurrentUserAuthority::default()
+        };
+
+        let local = runtime
+            .apply_game_running_state(7, local_authority.clone())
+            .expect("local game state output");
+
+        assert_eq!(
+            local.projection.snapshot["location"],
+            json!("wrld_local:123")
+        );
+        assert_eq!(local.projection.snapshot["stateBucket"], json!("online"));
+        assert!(runtime
+            .fire_pending_offline(7, token, "2026-05-15T00:03:00Z".into(), local_authority,)
+            .is_none());
+    }
+
+    #[test]
+    fn reconnect_preserves_remote_interval_and_invalidates_old_pending_timer() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot("usr_self".into(), 7, json!({ "id": "usr_self" }));
+        runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:00Z"),
+                remote_authority(true),
+            )
+            .expect("remote interval start");
+        let pending = runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("offline", "", "2026-05-15T00:00:10Z"),
+                remote_authority(true),
+            )
+            .expect("remote offline pending output");
+        let PendingOfflineTimerAction::Schedule {
+            token: old_token, ..
+        } = pending.timer_action
+        else {
+            panic!("remote offline should schedule pending timer");
+        };
+
+        runtime.set_snapshot(
+            "usr_self".into(),
+            8,
+            json!({
+                "id": "usr_self",
+                "location": "wrld_remote:456",
+                "state": "online",
+                "stateBucket": "online"
+            }),
+        );
+
+        assert!(runtime
+            .fire_pending_offline(
+                7,
+                old_token,
+                "2026-05-15T00:03:00Z".into(),
+                remote_authority(true),
+            )
+            .is_none());
+        let duplicate = runtime
+            .apply_ws_message(
+                8,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:20Z"),
+                remote_authority(true),
+            )
+            .expect("reconnected remote location output");
+        assert!(duplicate.persistence.game_log_locations.is_empty());
+
+        let pending = runtime
+            .apply_ws_message(
+                8,
+                &current_user_location_message("offline", "", "2026-05-15T00:00:30Z"),
+                remote_authority(true),
+            )
+            .expect("remote offline after reconnect");
+        let PendingOfflineTimerAction::Schedule { token, .. } = pending.timer_action else {
+            panic!("remote offline should schedule pending timer");
+        };
+        let confirmed = runtime
+            .fire_pending_offline(
+                8,
+                token,
+                "2026-05-15T00:03:20Z".into(),
+                remote_authority(true),
+            )
+            .expect("remote offline should close original interval");
+
+        assert_eq!(
+            confirmed.persistence.game_log_location_time_updates,
+            vec![GameLogLocationTimeUpdate {
+                created_at: "2026-05-15T00:00:00Z".into(),
+                time: 200_000,
+            }]
+        );
+    }
+
+    #[test]
+    fn transport_interruption_does_not_end_remote_interval_or_change_presence() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot("usr_self".into(), 7, json!({ "id": "usr_self" }));
+        runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:00Z"),
+                remote_authority(true),
+            )
+            .expect("remote interval start");
+
+        let finalized = runtime
+            .interrupt_transport(7, remote_authority(true))
+            .expect("transport finalization output");
+
+        assert_eq!(
+            finalized.projection.snapshot["location"],
+            json!("wrld_remote:456")
+        );
+        assert_eq!(
+            finalized.projection.snapshot["stateBucket"],
+            json!("online")
+        );
+        assert!(finalized
+            .persistence
+            .game_log_location_time_updates
+            .is_empty());
+    }
+
+    #[test]
+    fn explicit_transport_finalization_ends_remote_interval() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot("usr_self".into(), 7, json!({ "id": "usr_self" }));
+        runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:00Z"),
+                remote_authority(true),
+            )
+            .expect("remote interval start");
+
+        let finalized = runtime
+            .finalize_transport(7, remote_authority(true))
+            .expect("explicit transport finalization output");
+
+        assert_eq!(
+            finalized.persistence.game_log_location_time_updates.len(),
+            1
+        );
+        assert_eq!(
+            finalized.persistence.game_log_location_time_updates[0].created_at,
+            "2026-05-15T00:00:00Z"
+        );
+        assert!(finalized.persistence.game_log_location_time_updates[0].time > 0);
     }
 }
