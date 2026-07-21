@@ -10,7 +10,7 @@ use vrcx_0_persistence::worlds::{
     world_cache_get_many, world_cache_list_recent, world_cache_upsert, WorldSummaryOutput,
 };
 use vrcx_0_persistence::DatabaseService;
-use vrcx_0_vrchat_client::http_api::ApiScope;
+use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
 use vrcx_0_vrchat_client::worlds::world_get_input;
 
 use crate::web_client::WebClient;
@@ -24,12 +24,18 @@ pub struct WorldCache {
     working: Cache<String, Arc<CachedWorld>>,
     working_init_limit: usize,
     db: Arc<DatabaseService>,
-    inflight: Mutex<HashMap<String, Weak<tokio::sync::Mutex<()>>>>,
-    failures: Mutex<HashMap<String, Instant>>,
+    inflight: Mutex<HashMap<WorldResolveKey, Weak<tokio::sync::Mutex<()>>>>,
+    failures: Mutex<HashMap<WorldResolveKey, Instant>>,
 }
 
 struct CachedWorld {
     name: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct WorldResolveKey {
+    endpoint: String,
+    world_id: String,
 }
 
 impl WorldCache {
@@ -200,13 +206,13 @@ impl WorldCache {
                 id: Value::String(world_id.clone()),
                 author_id: value_or_null(world_value, "authorId"),
                 author_name: value_or_null(world_value, "authorName"),
-                created_at: value_or_null(world_value, "createdAt"),
+                created_at: value_or_null_with_fallback(world_value, "created_at", "createdAt"),
                 description: value_or_null(world_value, "description"),
                 image_url: value_or_null(world_value, "imageUrl"),
                 name: Value::String(name.clone()),
                 release_status: value_or_null(world_value, "releaseStatus"),
                 thumbnail_image_url: value_or_null(world_value, "thumbnailImageUrl"),
-                updated_at: value_or_null(world_value, "updatedAt"),
+                updated_at: value_or_null_with_fallback(world_value, "updated_at", "updatedAt"),
                 version: value_or_null(world_value, "version"),
             };
             if let Err(error) = world_cache_upsert(self.db.as_ref(), entry) {
@@ -233,24 +239,28 @@ impl WorldCache {
         if endpoint.is_empty() {
             return None;
         }
-        if self.recently_failed(&world_id) {
+        let key = resolve_key(endpoint, &world_id);
+        if self.recently_failed(&key) {
             return None;
         }
-        let inflight = self.inflight_lock(&world_id);
+        let inflight = self.inflight_lock(&key);
         let _guard = inflight.lock().await;
         if let Some(name) = self.get_name(&world_id) {
             return Some(name);
         }
-        if self.recently_failed(&world_id) {
+        if self.recently_failed(&key) {
             return None;
         }
-        match self.fetch_world_name(web, endpoint, &world_id).await {
+        match self
+            .fetch_world_name(web, &key.endpoint, &key.world_id)
+            .await
+        {
             Some(name) => {
-                self.clear_failure(&world_id);
+                self.clear_failure(&key);
                 Some(name)
             }
             None => {
-                self.record_failure(&world_id);
+                self.record_failure(&key);
                 None
             }
         }
@@ -277,41 +287,41 @@ impl WorldCache {
         self.hydrate_from_payload(&world)
     }
 
-    fn recently_failed(&self, world_id: &str) -> bool {
+    fn recently_failed(&self, key: &WorldResolveKey) -> bool {
         self.failures
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .get(world_id)
+            .get(key)
             .is_some_and(|at| at.elapsed() < Duration::from_millis(WORLD_RESOLVE_FAILURE_TTL_MS))
     }
 
-    fn record_failure(&self, world_id: &str) {
+    fn record_failure(&self, key: &WorldResolveKey) {
         let mut map = self
             .failures
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         map.retain(|_, at| at.elapsed() < Duration::from_millis(WORLD_RESOLVE_FAILURE_TTL_MS));
-        map.insert(world_id.to_string(), Instant::now());
+        map.insert(key.clone(), Instant::now());
     }
 
-    fn clear_failure(&self, world_id: &str) {
+    fn clear_failure(&self, key: &WorldResolveKey) {
         self.failures
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .remove(world_id);
+            .remove(key);
     }
 
-    fn inflight_lock(&self, world_id: &str) -> Arc<tokio::sync::Mutex<()>> {
+    fn inflight_lock(&self, key: &WorldResolveKey) -> Arc<tokio::sync::Mutex<()>> {
         let mut map = self
             .inflight
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(existing) = map.get(world_id).and_then(Weak::upgrade) {
+        if let Some(existing) = map.get(key).and_then(Weak::upgrade) {
             return existing;
         }
         map.retain(|_, weak| weak.strong_count() > 0);
         let lock = Arc::new(tokio::sync::Mutex::new(()));
-        map.insert(world_id.to_string(), Arc::downgrade(&lock));
+        map.insert(key.clone(), Arc::downgrade(&lock));
         lock
     }
 
@@ -398,6 +408,21 @@ fn world_name(value: &Value) -> Option<String> {
 
 fn value_or_null(value: &Value, key: &str) -> Value {
     value.get(key).cloned().unwrap_or(Value::Null)
+}
+
+fn value_or_null_with_fallback(value: &Value, key: &str, fallback: &str) -> Value {
+    value
+        .get(key)
+        .or_else(|| value.get(fallback))
+        .cloned()
+        .unwrap_or(Value::Null)
+}
+
+fn resolve_key(endpoint: &str, world_id: &str) -> WorldResolveKey {
+    WorldResolveKey {
+        endpoint: normalize_vrchat_api_endpoint(Some(endpoint)),
+        world_id: world_id.to_string(),
+    }
 }
 
 fn is_persistable_world(value: &Value, name: &str) -> bool {
@@ -514,6 +539,48 @@ mod tests {
         assert_eq!(row.name, "Heavy World");
         assert_eq!(row.description, "Summary detail");
         assert_eq!(row.version, 7);
+    }
+
+    #[test]
+    fn hydrate_from_vrchat_payload_preserves_snake_case_timestamps() {
+        let (_dir, db) = test_db("hydrate-vrchat-timestamps");
+        let cache = WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60));
+
+        cache.hydrate_from_payload(&json!({
+            "id": "wrld_timestamps",
+            "name": "Timestamped World",
+            "created_at": "2026-01-01T00:00:00.000Z",
+            "updated_at": "2026-01-02T00:00:00.000Z",
+            "releaseStatus": "public",
+            "imageUrl": "image.png"
+        }));
+
+        let row = world_cache_get(db.as_ref(), "wrld_timestamps".into())
+            .unwrap()
+            .unwrap();
+        assert_eq!(row.created_at, "2026-01-01T00:00:00.000Z");
+        assert_eq!(row.updated_at, "2026-01-02T00:00:00.000Z");
+    }
+
+    #[test]
+    fn resolve_guards_are_scoped_by_normalized_endpoint() {
+        let (_dir, db) = test_db("endpoint-scoped-guards");
+        let cache = WorldCache::new(db, 8, Duration::from_secs(60));
+        let world_id = "wrld_shared";
+
+        let first = resolve_key(" https://one.example/api/1/ ", world_id);
+        let same = resolve_key("https://one.example/api/1", world_id);
+        let other = resolve_key("https://two.example/api/1", world_id);
+
+        cache.record_failure(&first);
+        assert!(cache.recently_failed(&same));
+        assert!(!cache.recently_failed(&other));
+
+        let first_lock = cache.inflight_lock(&first);
+        let same_lock = cache.inflight_lock(&same);
+        let other_lock = cache.inflight_lock(&other);
+        assert!(Arc::ptr_eq(&first_lock, &same_lock));
+        assert!(!Arc::ptr_eq(&first_lock, &other_lock));
     }
 
     #[test]
