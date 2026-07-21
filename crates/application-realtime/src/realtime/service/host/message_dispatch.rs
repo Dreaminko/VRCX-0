@@ -1,19 +1,7 @@
 use super::state::RealtimeHostRuntimeMessageSink;
 use super::*;
 
-pub(super) fn json_string_field(value: Option<&Value>) -> String {
-    value
-        .and_then(Value::as_str)
-        .map(ToString::to_string)
-        .unwrap_or_else(|| {
-            value
-                .filter(|value| !value.is_null())
-                .map(ToString::to_string)
-                .unwrap_or_default()
-        })
-        .trim()
-        .to_string()
-}
+pub(super) use vrcx_0_core::json::trimmed_text_of as json_string_field;
 
 impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
     fn handle_realtime_transport_status(

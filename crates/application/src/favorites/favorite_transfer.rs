@@ -14,6 +14,7 @@ use vrcx_0_application_core::vrchat_api::{execute_api_command, normalize_text, V
 use vrcx_0_application_core::RuntimeDiagnostics;
 use vrcx_0_application_core::RuntimeSyncEngine;
 use vrcx_0_application_core::WebClient;
+use vrcx_0_vrchat_client::http_api::parse_api_json;
 
 const FAVORITE_RECOVERED_GROUP: &str = "Recovered";
 const FAVORITE_TRANSFER_PAGE_SIZE: i64 = 300;
@@ -643,7 +644,7 @@ async fn add_remote_favorite_with_group(
     )
     .await?;
     ensure_vrchat_response_ok(response.status, &response.data, "add remote favorite")?;
-    Ok(RawJson::from(parse_response_json(&response.data)))
+    Ok(RawJson::from(parse_api_json(&response.data)))
 }
 
 fn add_local_favorite(
@@ -759,7 +760,7 @@ async fn fetch_online_favorite_index(
         )
         .await?;
         ensure_vrchat_response_ok(response.status, &response.data, "list online favorites")?;
-        let page = parse_response_json(&response.data);
+        let page = parse_api_json(&response.data);
         let rows = page.as_array().cloned().unwrap_or_default();
         let page_len = rows.len();
 
@@ -815,7 +816,7 @@ async fn fetch_favorite_group_capacity(
     )
     .await?;
     ensure_vrchat_response_ok(response.status, &response.data, "get favorite limits")?;
-    let limits = parse_response_json(&response.data);
+    let limits = parse_api_json(&response.data);
     Ok(limits
         .get("maxFavoritesPerGroup")
         .and_then(|value| value.get(favorite_type))
@@ -989,7 +990,7 @@ fn ensure_vrchat_response_ok(status: i32, data: &str, action: &str) -> Result<()
         return Ok(());
     }
 
-    let parsed = parse_response_json(data);
+    let parsed = parse_api_json(data);
     let message = parsed
         .get("error")
         .and_then(Value::as_object)
@@ -999,10 +1000,6 @@ fn ensure_vrchat_response_ok(status: i32, data: &str, action: &str) -> Result<()
         .map(str::to_string)
         .unwrap_or_else(|| format!("VRChat favorite transfer failed during {action}."));
     Err(Error::Custom(message))
-}
-
-fn parse_response_json(data: &str) -> Value {
-    serde_json::from_str(data).unwrap_or_else(|_| Value::String(data.to_string()))
 }
 
 fn cache_world_snapshot_if_safe(

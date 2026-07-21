@@ -1,5 +1,5 @@
-use chrono::{SecondsFormat, Utc};
 use serde_json::{json, Value};
+use vrcx_0_core::time::now_iso;
 
 use vrcx_0_persistence::friends::{
     friend_log_delete_current_array, friend_log_history_add, friend_log_upsert_current,
@@ -10,7 +10,7 @@ use vrcx_0_vrchat_client::friends::{
     friend_delete_input, friend_request_cancel_input, friend_request_send_input,
 };
 use vrcx_0_vrchat_client::http_api::{
-    normalize_vrchat_api_endpoint, ApiScope, HttpApiRequestInput,
+    normalize_vrchat_api_endpoint, ApiJsonResponse, ApiScope, HttpApiRequestInput,
 };
 use vrcx_0_vrchat_client::notifications::notification_accept_friend_request_input;
 
@@ -338,9 +338,9 @@ async fn resolve_target_profile(
         return placeholder();
     };
     if !(200..300).contains(&response.status) {
-        let json = parse_response_json(&response.data);
         let message = error_message_with_status_suffix(
-            unwrap_error_message(&json, response.status),
+            ApiJsonResponse::from(&response)
+                .error_message_or("VRChat social mutation request failed"),
             response.status,
         );
         emit_current_scope_auth_failure(
@@ -401,37 +401,6 @@ fn normalize_endpoint(value: &str) -> String {
     normalize_vrchat_api_endpoint(Some(value))
 }
 
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
-}
-
-fn value_message(value: Option<&Value>) -> Option<String> {
-    value
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|message| !message.is_empty())
-        .map(|message| message.trim_matches('"').to_string())
-}
-
-fn unwrap_error_message(json: &Value, status: i32) -> String {
-    if let Some(message) = value_message(Some(json)) {
-        return message;
-    }
-    let object = json.as_object();
-    if let Some(message) = value_message(
-        object
-            .and_then(|record| record.get("error"))
-            .and_then(Value::as_object)
-            .and_then(|error| error.get("message")),
-    ) {
-        return message;
-    }
-    if let Some(message) = value_message(object.and_then(|record| record.get("message"))) {
-        return message;
-    }
-    format!("VRChat social mutation request failed ({status})")
-}
-
 fn error_message_with_status_suffix(message: String, status: i32) -> String {
     if status < 400 {
         return message;
@@ -442,15 +411,6 @@ fn error_message_with_status_suffix(message: String, status: i32) -> String {
     } else {
         format!("{message} {suffix}")
     }
-}
-
-fn response_has_error(json: &Value) -> bool {
-    json.as_object()
-        .is_some_and(|object| object.contains_key("error"))
-}
-
-fn parse_response_json(data: &str) -> Value {
-    serde_json::from_str(data).unwrap_or_else(|_| Value::String(data.to_string()))
 }
 
 async fn execute_vrchat_json_request(
@@ -469,14 +429,14 @@ async fn execute_vrchat_json_request(
         .web
         .execute_api(request, ApiScope::Vrchat, deps.db)
         .await?;
-    let json = parse_response_json(&response.data);
-    if response.status >= 400 || response_has_error(&json) {
-        let message = unwrap_error_message(&json, response.status);
+    let response = ApiJsonResponse::from(&response);
+    if response.is_failure() {
+        let message = response.error_message_or("VRChat social mutation request failed");
         let message = error_message_with_status_suffix(message, response.status);
         emit_current_scope_auth_failure(deps, auth_scope, &path, &message, response.status);
         return Err(Error::Custom(message));
     }
-    Ok(json)
+    Ok(response.json)
 }
 
 fn emit_current_scope_auth_failure(

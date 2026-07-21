@@ -181,13 +181,13 @@ pub fn print_list_items_from_json(value: &Value) -> Vec<PrintListItem> {
     array
         .iter()
         .filter_map(|entry| {
-            let id = text_field(entry, "id");
+            let id = trimmed_text_field(entry, "id");
             if id.is_empty() {
                 return None;
             }
-            let mut created_at = text_field(entry, "createdAt");
+            let mut created_at = trimmed_text_field(entry, "createdAt");
             if created_at.is_empty() {
-                created_at = text_field(entry, "timestamp");
+                created_at = trimmed_text_field(entry, "timestamp");
             }
             Some(PrintListItem { id, created_at })
         })
@@ -314,7 +314,7 @@ fn cleanup_warning_event_kind(kind: &CleanupWarningKind) -> &'static str {
     }
 }
 
-fn text_field(value: &Value, key: &str) -> String {
+fn trimmed_text_field(value: &Value, key: &str) -> String {
     value
         .get(key)
         .and_then(Value::as_str)

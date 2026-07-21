@@ -295,8 +295,11 @@ fn write_friend_request_history_records_friend_request_type() {
 
 #[test]
 fn error_message_with_status_suffix_appends_status_for_error_message_payload() {
-    let json = json!({ "error": { "message": "The specified friend request was not found." } });
-    let message = unwrap_error_message(&json, 404);
+    let message = ApiJsonResponse::parse(
+        404,
+        r#"{"error":{"message":"The specified friend request was not found."}}"#,
+    )
+    .error_message_or("VRChat social mutation request failed");
 
     let message = error_message_with_status_suffix(message, 404);
 
@@ -305,8 +308,8 @@ fn error_message_with_status_suffix_appends_status_for_error_message_payload() {
 
 #[test]
 fn error_message_with_status_suffix_does_not_double_append_fallback_message() {
-    let json = json!({});
-    let message = unwrap_error_message(&json, 404);
+    let message =
+        ApiJsonResponse::parse(404, "{}").error_message_or("VRChat social mutation request failed");
 
     let message = error_message_with_status_suffix(message, 404);
 

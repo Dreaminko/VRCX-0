@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use crate::text::first_non_empty;
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FriendRecord {
@@ -146,14 +148,6 @@ pub fn meaningful_display_name(
         }
     }
     None
-}
-
-pub fn first_non_empty<'a>(values: impl IntoIterator<Item = &'a str>) -> &'a str {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
-        .unwrap_or("")
-        .trim()
 }
 
 #[cfg(test)]

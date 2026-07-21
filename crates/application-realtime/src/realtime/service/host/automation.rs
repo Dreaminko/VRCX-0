@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use serde_json::{json, Value};
+use vrcx_0_core::json::trimmed_text_of as string_field;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_vrchat_client::notifications::{invite_send_input, notification_hide_remote_input};
 
@@ -467,21 +468,6 @@ fn string_array(value: Option<&Value>) -> Vec<String> {
                 .collect()
         })
         .unwrap_or_default()
-}
-
-fn string_field(value: Option<&Value>) -> String {
-    value
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .map(str::to_string)
-        .unwrap_or_else(|| {
-            value
-                .filter(|value| !value.is_null())
-                .map(ToString::to_string)
-                .unwrap_or_default()
-                .trim()
-                .to_string()
-        })
 }
 
 fn int_field(value: Option<&Value>) -> Option<i64> {

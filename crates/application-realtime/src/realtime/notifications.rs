@@ -1,6 +1,8 @@
 use serde_json::{json, Map, Value};
-use vrcx_0_core::friends::first_non_empty;
+use vrcx_0_core::json::{text_of, JsonExt};
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
+use vrcx_0_core::text::first_non_empty;
+use vrcx_0_core::text::first_owned;
 use vrcx_0_persistence::realtime::{NotificationExpiration, NotificationV2Update};
 
 use super::{
@@ -61,7 +63,7 @@ pub fn apply_notification_ws_message(
             });
         }
         "notification-v2-update" => {
-            let id = string_field(content.get("id"));
+            let id = content.text_field("id");
             if id.is_empty() {
                 return Some(output);
             }
@@ -71,7 +73,7 @@ pub fn apply_notification_ws_message(
                 .persistence
                 .notification_v2_updates
                 .push(NotificationV2Update {
-                    id: string_field(notification.get("id")),
+                    id: notification.text_field("id"),
                     updates: notification.clone(),
                     received_at: now.clone(),
                 });
@@ -79,7 +81,7 @@ pub fn apply_notification_ws_message(
                 output
                     .projection
                     .seen_ids
-                    .push(string_field(notification.get("id")));
+                    .push(notification.text_field("id"));
                 output.projection.clear_menu_if_no_unseen = true;
             }
             output.projection.upserts.push(RealtimeNotificationUpsert {
@@ -101,7 +103,7 @@ pub fn apply_notification_ws_message(
                 .cloned()
                 .unwrap_or_default()
                 .into_iter()
-                .map(|value| string_field(Some(&value)))
+                .map(|value| text_of(Some(&value)))
                 .filter(|value| !value.is_empty())
                 .collect::<Vec<_>>();
             for id in &ids {
@@ -127,7 +129,7 @@ pub fn apply_notification_ws_message(
         }
         "hide-notification" | "response-notification" => {
             let direct_id = content_id(content);
-            let notification_id = string_field(content.get("notificationId"));
+            let notification_id = content.text_field("notificationId");
             let id = first_non_empty([direct_id.as_str(), notification_id.as_str()]).to_string();
             if !id.is_empty() {
                 output
@@ -178,8 +180,8 @@ pub fn apply_instance_closed_ws_message(
     }
     let content = payload.json.get("content").unwrap_or(&Value::Null);
     let location = first_owned([
-        string_field(content.get("instanceLocation")),
-        string_field(content.get("location")),
+        content.text_field("instanceLocation"),
+        content.text_field("location"),
     ]);
     let created_at = payload.received_at.clone();
     let notification = json!({
@@ -220,8 +222,8 @@ fn normalize_v1_notification(content: &Value, now: &str) -> Value {
     object.entry("seen").or_insert(Value::Bool(false));
     object.entry("$isExpired").or_insert(Value::Bool(false));
     let created_at = first_owned([
-        string_field(object.get("createdAt")),
-        string_field(object.get("created_at")),
+        object.text_field("createdAt"),
+        object.text_field("created_at"),
         now.to_string(),
     ]);
     object.insert("createdAt".into(), Value::String(created_at.clone()));
@@ -254,8 +256,8 @@ fn normalize_v2_notification(content: &Value, endpoint: &str, now: &str) -> Valu
     object.entry("seen").or_insert(Value::Bool(false));
     object.insert("version".into(), Value::from(2));
     let created_at = first_owned([
-        string_field(object.get("createdAt")),
-        string_field(object.get("created_at")),
+        object.text_field("createdAt"),
+        object.text_field("created_at"),
         now.to_string(),
     ]);
     object.insert("createdAt".into(), Value::String(created_at.clone()));
@@ -303,19 +305,19 @@ fn normalize_v2_update_notification(id: &str, updates: &Value, endpoint: &str) -
 }
 
 fn apply_boop_legacy_handling(object: &mut Map<String, Value>, endpoint: &str) {
-    if string_field(object.get("type")) != "boop" || string_field(object.get("title")).is_empty() {
+    if object.text_field("type") != "boop" || object.text_field("title").is_empty() {
         return;
     }
-    let title = string_field(object.get("title"));
+    let title = object.text_field("title");
     object.insert("message".into(), Value::String(title));
     object.insert("title".into(), Value::String(String::new()));
     let details = object.get("details").cloned().unwrap_or_else(|| json!({}));
-    let emoji_id = string_field(details.get("emojiId"));
+    let emoji_id = details.text_field("emojiId");
     if emoji_id.starts_with("default_") {
         object.insert("imageUrl".into(), Value::String(emoji_id.clone()));
         let message = format!(
             "{} {}",
-            string_field(object.get("message")),
+            object.text_field("message"),
             emoji_id.replacen("default_", "", 1)
         );
         object.insert("message".into(), Value::String(message));
@@ -326,7 +328,7 @@ fn apply_boop_legacy_handling(object: &mut Map<String, Value>, endpoint: &str) {
             Value::String(format!(
                 "{domain}/file/{}/{}",
                 emoji_id,
-                string_field(details.get("emojiVersion"))
+                details.text_field("emojiVersion")
             )),
         );
     }
@@ -343,23 +345,22 @@ fn sanitize_object(content: &Value) -> Map<String, Value> {
 }
 
 fn should_persist_v1(notification: &Value, current_user_id: &str) -> bool {
-    let sender = string_field(notification.get("senderUserId"));
-    let notification_type = string_field(notification.get("type"));
+    let sender = notification.text_field("senderUserId");
+    let notification_type = notification.text_field("type");
     sender != current_user_id
         && notification_type != "ignoredFriendRequest"
         && !notification_type.contains('.')
 }
 
 fn should_notify_menu(notification: &Value) -> bool {
-    !(int_field(notification.get("version")).unwrap_or(0) == 2
-        && bool_field(notification.get("seen")))
+    !(notification.i64_field("version").unwrap_or(0) == 2 && bool_field(notification.get("seen")))
 }
 
 fn content_id(content: &Value) -> String {
     if let Some(id) = content.as_str() {
         return id.trim().to_string();
     }
-    string_field(content.get("id"))
+    content.text_field("id")
 }
 
 fn normalize_endpoint_domain(endpoint: &str) -> String {
@@ -391,44 +392,8 @@ fn parse_array_value(value: Option<Value>) -> Option<Value> {
     }
 }
 
-fn string_field(value: Option<&Value>) -> String {
-    value
-        .and_then(Value::as_str)
-        .map(ToString::to_string)
-        .unwrap_or_else(|| {
-            value
-                .filter(|value| !value.is_null())
-                .map(ToString::to_string)
-                .unwrap_or_default()
-        })
-}
-
-fn int_field(value: Option<&Value>) -> Option<i64> {
-    value
-        .and_then(Value::as_i64)
-        .or_else(|| {
-            value
-                .and_then(Value::as_u64)
-                .and_then(|value| i64::try_from(value).ok())
-        })
-        .or_else(|| {
-            value
-                .and_then(Value::as_str)
-                .and_then(|value| value.parse().ok())
-        })
-}
-
 fn bool_field(value: Option<&Value>) -> bool {
     value.and_then(Value::as_bool).unwrap_or(false)
-}
-
-fn first_owned(values: impl IntoIterator<Item = String>) -> String {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
-        .unwrap_or_default()
-        .trim()
-        .to_string()
 }
 
 #[cfg(test)]

@@ -1,10 +1,9 @@
-use chrono::{SecondsFormat, Utc};
-
 use crate::notification::{
     auth_webhook_should_recover, send_auth_webhook, AuthWebhookEvent, AuthWebhookEventKind,
 };
 
 use super::*;
+use vrcx_0_core::time::now_iso;
 
 #[derive(Clone, Debug)]
 struct BackgroundAuthRecoveryContext {
@@ -187,10 +186,6 @@ fn backend_mode_label(mode: BackendRuntimeMode) -> &'static str {
         BackendRuntimeMode::Background => "background",
         BackendRuntimeMode::Headless => "headless",
     }
-}
-
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 #[cfg(test)]

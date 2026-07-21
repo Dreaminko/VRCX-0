@@ -1,5 +1,7 @@
 use serde_json::Value;
+use vrcx_0_core::json::JsonExt;
 use vrcx_0_core::location::{format_display_location, parse_location};
+use vrcx_0_core::text::first_owned;
 use vrcx_0_i18n::OverlayMessage;
 
 use super::types::{
@@ -13,31 +15,31 @@ pub(super) fn build_activity_content(
     actor_display_name: &str,
 ) -> OverlayActivityContent {
     let payload = &candidate.payload;
-    let title_name = first_non_empty([
+    let title_name = first_owned([
         actor_display_name.to_string(),
-        string_field(payload, "displayName"),
-        string_field(payload, "senderUsername"),
-        string_field(payload, "senderDisplayName"),
-        string_field(payload, "userId"),
-        string_field(payload, "senderUserId"),
+        payload.trimmed_text("displayName"),
+        payload.trimmed_text("senderUsername"),
+        payload.trimmed_text("senderDisplayName"),
+        payload.trimmed_text("userId"),
+        payload.trimmed_text("senderUserId"),
     ]);
-    let location = first_non_empty([
-        string_field(payload, "location"),
+    let location = first_owned([
+        payload.trimmed_text("location"),
         nested_string(payload, &["details", "location"]),
         nested_string(payload, &["details", "worldId"]),
         nested_string(payload, &["instanceLocation"]),
     ]);
-    let world_name = first_non_empty([
-        string_field(payload, "worldName"),
+    let world_name = first_owned([
+        payload.trimmed_text("worldName"),
         nested_string(payload, &["details", "worldName"]),
     ]);
-    let group_name = first_non_empty([
-        string_field(payload, "groupName"),
+    let group_name = first_owned([
+        payload.trimmed_text("groupName"),
         nested_string(payload, &["details", "groupName"]),
     ]);
     let parsed_location = parse_location(&location);
-    let display_location = first_non_empty([
-        string_field(payload, "displayLocation"),
+    let display_location = first_owned([
+        payload.trimmed_text("displayLocation"),
         nested_string(payload, &["details", "displayLocation"]),
         format_display_location(&parsed_location, &world_name, &group_name),
     ]);
@@ -79,8 +81,8 @@ pub(super) fn build_activity_content(
             OverlayActivityText::message(OverlayMessage::notifications_offline()),
         ),
         "Status" => {
-            let status = string_field(payload, "status");
-            let description = string_field(payload, "statusDescription");
+            let status = payload.trimmed_text("status");
+            let description = payload.trimmed_text("statusDescription");
             titled_body(
                 status_icon(&status),
                 &title_name,
@@ -91,9 +93,9 @@ pub(super) fn build_activity_content(
             )
         }
         "AvatarChange" => {
-            let avatar = first_non_empty([
-                string_field(payload, "avatarName"),
-                string_field(payload, "name"),
+            let avatar = first_owned([
+                payload.trimmed_text("avatarName"),
+                payload.trimmed_text("name"),
             ]);
             titled_body(
                 "avatar",
@@ -117,8 +119,8 @@ pub(super) fn build_activity_content(
             OverlayActivityText::message(OverlayMessage::notifications_unfriend()),
         ),
         "DisplayName" => {
-            let display_name = string_field(payload, "displayName");
-            let title = first_non_empty([string_field(payload, "previousDisplayName"), title_name]);
+            let display_name = payload.trimmed_text("displayName");
+            let title = first_owned([payload.trimmed_text("previousDisplayName"), title_name]);
             titled_body(
                 "profile",
                 &title,
@@ -128,7 +130,7 @@ pub(super) fn build_activity_content(
             )
         }
         "TrustLevel" => {
-            let trust_level = string_field(payload, "trustLevel");
+            let trust_level = payload.trimmed_text("trustLevel");
             titled_body(
                 "profile",
                 &title_name,
@@ -186,7 +188,7 @@ pub(super) fn build_activity_content(
         "boop" | "groupChange" => titled_body(
             group_or_direct_icon(activity_type),
             &title_name,
-            literal_body(string_field(payload, "message")),
+            literal_body(payload.trimmed_text("message")),
         ),
         "group.announcement" => group_message(
             OverlayMessage::notifications_group_announcement_title(),
@@ -210,25 +212,25 @@ pub(super) fn build_activity_content(
         "group.queueReady" => activity_content(
             "group",
             OverlayActivityText::message(OverlayMessage::notifications_group_queue_ready_title()),
-            literal_body(string_field(payload, "message")),
+            literal_body(payload.trimmed_text("message")),
         ),
         "instance.closed" => activity_content(
             "instance",
             OverlayActivityText::message(OverlayMessage::notifications_instance_closed_title()),
-            literal_body(string_field(payload, "message")),
+            literal_body(payload.trimmed_text("message")),
         ),
         "Event" => keyed_title_body(
             "system",
             OverlayMessage::notifications_event_title(),
-            literal_body(first_non_empty([
-                string_field(payload, "data"),
-                string_field(payload, "message"),
+            literal_body(first_owned([
+                payload.trimmed_text("data"),
+                payload.trimmed_text("message"),
             ])),
         ),
         "External" => keyed_title_body(
             "system",
             OverlayMessage::notifications_external_title(),
-            literal_body(string_field(payload, "message")),
+            literal_body(payload.trimmed_text("message")),
         ),
         "Blocked" => titled_body(
             "shield",
@@ -273,37 +275,36 @@ pub(super) fn build_activity_content(
         "VideoPlay" => keyed_title_body(
             "media",
             OverlayMessage::notifications_video_play_title(),
-            literal_body(first_non_empty([
-                string_field(payload, "videoName"),
-                string_field(payload, "notyName"),
-                string_field(payload, "message"),
-                string_field(payload, "videoUrl"),
+            literal_body(first_owned([
+                payload.trimmed_text("videoName"),
+                payload.trimmed_text("notyName"),
+                payload.trimmed_text("message"),
+                payload.trimmed_text("videoUrl"),
             ])),
         ),
         _ => category_content(category, &title_name, activity_type, payload),
     };
 
     content.location = location;
-    content.world_id =
-        first_non_empty([string_field(payload, "worldId"), parsed_location.world_id]);
+    content.world_id = first_owned([payload.trimmed_text("worldId"), parsed_location.world_id]);
     content.display_location = display_location.clone();
     content.world_name = world_name;
     content.group_name = group_name;
-    content.status = string_field(payload, "status");
-    content.status_description = string_field(payload, "statusDescription");
-    content.avatar_name = first_non_empty([
-        string_field(payload, "avatarName"),
-        string_field(payload, "name"),
+    content.status = payload.trimmed_text("status");
+    content.status_description = payload.trimmed_text("statusDescription");
+    content.avatar_name = first_owned([
+        payload.trimmed_text("avatarName"),
+        payload.trimmed_text("name"),
     ]);
-    content.image_url = first_non_empty([
-        string_field(payload, "thumbnailImageUrl"),
+    content.image_url = first_owned([
+        payload.trimmed_text("thumbnailImageUrl"),
         nested_string(payload, &["details", "imageUrl"]),
-        string_field(payload, "imageUrl"),
-        string_field(payload, "currentAvatarThumbnailImageUrl"),
-        string_field(payload, "currentAvatarImageUrl"),
-        string_field(payload, "thumbnailUrl"),
+        payload.trimmed_text("imageUrl"),
+        payload.trimmed_text("currentAvatarThumbnailImageUrl"),
+        payload.trimmed_text("currentAvatarImageUrl"),
+        payload.trimmed_text("thumbnailUrl"),
     ]);
-    content.detail = first_non_empty([
+    content.detail = first_owned([
         detail_message(payload),
         content.status_description.clone(),
         content.avatar_name.clone(),
@@ -331,8 +332,8 @@ fn category_content(
     titled_body(
         icon,
         title,
-        literal_body(first_non_empty([
-            string_field(payload, "message"),
+        literal_body(first_owned([
+            payload.trimmed_text("message"),
             activity_type.to_string(),
         ])),
     )
@@ -342,7 +343,7 @@ fn group_message(message: OverlayMessage, payload: &Value) -> OverlayActivityCon
     activity_content(
         "group",
         OverlayActivityText::message(message),
-        literal_body(string_field(payload, "message")),
+        literal_body(payload.trimmed_text("message")),
     )
 }
 
@@ -407,11 +408,11 @@ fn group_or_direct_icon(activity_type: &str) -> &'static str {
 }
 
 fn detail_message(payload: &Value) -> String {
-    first_non_empty([
+    first_owned([
         nested_string(payload, &["details", "inviteMessage"]),
         nested_string(payload, &["details", "requestMessage"]),
         nested_string(payload, &["details", "responseMessage"]),
-        string_field(payload, "message"),
+        payload.trimmed_text("message"),
     ])
 }
 
@@ -432,16 +433,7 @@ fn is_location_id_like(value: &str) -> bool {
         || trimmed.starts_with("grp_")
 }
 
-fn string_field(value: &Value, key: &str) -> String {
-    value
-        .get(key)
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .map(ToString::to_string)
-        .unwrap_or_default()
-}
-
-fn nested_string(value: &Value, path: &[&str]) -> String {
+pub(super) fn nested_string(value: &Value, path: &[&str]) -> String {
     let mut current = value;
     for key in path {
         let Some(next) = current.get(key) else {
@@ -453,12 +445,5 @@ fn nested_string(value: &Value, path: &[&str]) -> String {
         .as_str()
         .map(str::trim)
         .map(ToString::to_string)
-        .unwrap_or_default()
-}
-
-fn first_non_empty<const N: usize>(values: [String; N]) -> String {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
         .unwrap_or_default()
 }

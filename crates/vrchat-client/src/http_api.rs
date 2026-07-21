@@ -101,6 +101,73 @@ pub struct HttpApiExecuteResponse {
     pub data: String,
 }
 
+#[derive(Clone, Debug)]
+pub struct ApiJsonResponse {
+    pub status: i32,
+    pub json: Value,
+}
+
+impl ApiJsonResponse {
+    pub fn parse(status: i32, data: &str) -> Self {
+        Self {
+            status,
+            json: parse_api_json(data),
+        }
+    }
+
+    pub fn has_error_field(&self) -> bool {
+        self.json
+            .as_object()
+            .is_some_and(|object| object.contains_key("error"))
+    }
+
+    pub fn is_failure(&self) -> bool {
+        self.status >= 400 || self.has_error_field()
+    }
+
+    pub fn error_message(&self) -> Option<String> {
+        let object = self.json.as_object();
+        api_message_text(Some(&self.json))
+            .or_else(|| {
+                api_message_text(
+                    object
+                        .and_then(|record| record.get("error"))
+                        .and_then(Value::as_object)
+                        .and_then(|error| error.get("message")),
+                )
+            })
+            .or_else(|| api_message_text(object.and_then(|record| record.get("message"))))
+    }
+
+    pub fn error_message_or(&self, fallback: &str) -> String {
+        self.error_message()
+            .unwrap_or_else(|| format!("{fallback} ({})", self.status))
+    }
+
+    pub fn error_message_with_http_status(&self, fallback: &str) -> String {
+        let message = self.error_message().unwrap_or_else(|| fallback.to_string());
+        format!("{message} (HTTP {})", self.status)
+    }
+}
+
+impl From<&HttpApiExecuteResponse> for ApiJsonResponse {
+    fn from(response: &HttpApiExecuteResponse) -> Self {
+        Self::parse(response.status, &response.data)
+    }
+}
+
+pub fn parse_api_json(data: &str) -> Value {
+    serde_json::from_str(data).unwrap_or_else(|_| Value::String(data.to_string()))
+}
+
+fn api_message_text(value: Option<&Value>) -> Option<String> {
+    value
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|message| !message.is_empty())
+        .map(|message| message.trim_matches('"').to_string())
+}
+
 pub fn classify_api_response(status: i32) -> ApiResponsePolicy {
     let class = match status {
         200..=299 => "ok",
@@ -501,6 +568,38 @@ mod tests {
             path: Some(path.to_string()),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn api_json_response_keeps_unparsable_bodies_as_text() {
+        let response = ApiJsonResponse::parse(200, "not json");
+
+        assert_eq!(response.json, Value::String("not json".into()));
+        assert!(!response.is_failure());
+        assert_eq!(response.error_message(), Some("not json".to_string()));
+    }
+
+    #[test]
+    fn api_json_response_detects_error_envelopes() {
+        let nested = ApiJsonResponse::parse(500, r#"{"error":{"message":"Application error."}}"#);
+        assert!(nested.is_failure());
+        assert_eq!(nested.error_message(), Some("Application error.".into()));
+
+        let flat = ApiJsonResponse::parse(400, r#"{"message":"\"Bad request\""}"#);
+        assert!(flat.is_failure());
+        assert_eq!(flat.error_message(), Some("Bad request".into()));
+
+        let ok = ApiJsonResponse::parse(200, r#"{"id":"usr_1"}"#);
+        assert!(!ok.is_failure());
+        assert_eq!(ok.error_message(), None);
+    }
+
+    #[test]
+    fn api_json_response_flags_error_field_even_on_success_status() {
+        let response = ApiJsonResponse::parse(200, r#"{"error":{"message":"nope"}}"#);
+
+        assert!(response.has_error_field());
+        assert!(response.is_failure());
     }
 
     #[test]

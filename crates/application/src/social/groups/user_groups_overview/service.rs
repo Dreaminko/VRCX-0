@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde_json::Value;
-use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
+use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiJsonResponse};
 
 use crate::{Error, Result};
 use vrcx_0_application_core::vrchat_api::groups::{
@@ -9,6 +9,7 @@ use vrcx_0_application_core::vrchat_api::groups::{
 };
 use vrcx_0_application_core::vrchat_api::VrchatApiRequest;
 use vrcx_0_application_core::{HostSessionRuntime, RuntimeAuthScope};
+use vrcx_0_core::json::scalar_text as value_as_string;
 
 use super::super::permissions::{parse_permission_map, permissions_for_group};
 use super::super::service::{execute_group_api_raw, GroupApiDeps};
@@ -19,11 +20,6 @@ pub struct UserGroupsOverviewDeps {
     pub groups: GroupApiDeps,
     pub auth_scope: RuntimeAuthScope,
     pub session: HostSessionRuntime,
-}
-
-struct ApiJsonResponse {
-    status: i32,
-    json: Value,
 }
 
 pub async fn get_user_groups_overview(
@@ -165,12 +161,8 @@ async fn execute_vrchat_json_request(
     fallback: &str,
 ) -> Result<Value> {
     let response = execute_vrchat_api(deps, request).await?;
-    if response.status >= 400 || response_has_error(&response.json) {
-        return Err(Error::Custom(unwrap_error_message(
-            &response.json,
-            response.status,
-            fallback,
-        )));
+    if response.is_failure() {
+        return Err(Error::Custom(response.error_message_or(fallback)));
     }
     Ok(response.json)
 }
@@ -180,57 +172,7 @@ async fn execute_vrchat_api(
     request: VrchatApiRequest,
 ) -> Result<ApiJsonResponse> {
     let response = execute_group_api_raw(&deps.groups, request).await?;
-    Ok(ApiJsonResponse {
-        status: response.status,
-        json: parse_response_json(&response.data),
-    })
-}
-
-fn parse_response_json(data: &str) -> Value {
-    serde_json::from_str(data).unwrap_or_else(|_| Value::String(data.to_string()))
-}
-
-fn response_has_error(json: &Value) -> bool {
-    json.as_object()
-        .is_some_and(|object| object.contains_key("error"))
-}
-
-fn value_message(value: Option<&Value>) -> Option<String> {
-    value
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|message| !message.is_empty())
-        .map(|message| message.trim_matches('"').to_string())
-}
-
-fn unwrap_error_message(json: &Value, status: i32, fallback: &str) -> String {
-    if let Some(message) = value_message(Some(json)) {
-        return message;
-    }
-
-    let object = json.as_object();
-    if let Some(message) = value_message(
-        object
-            .and_then(|record| record.get("error"))
-            .and_then(Value::as_object)
-            .and_then(|error| error.get("message")),
-    ) {
-        return message;
-    }
-    if let Some(message) = value_message(object.and_then(|record| record.get("message"))) {
-        return message;
-    }
-
-    format!("{fallback} ({status})")
-}
-
-fn value_as_string(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(value)) => normalize_text(value),
-        Some(Value::Number(value)) => value.to_string(),
-        Some(Value::Bool(value)) => value.to_string(),
-        _ => String::new(),
-    }
+    Ok(ApiJsonResponse::from(&response))
 }
 
 fn object_string(value: &Value, keys: &[&str]) -> String {
@@ -255,16 +197,7 @@ fn normalize_endpoint(value: &str) -> String {
 }
 
 fn auth_scope_matches(deps: &UserGroupsOverviewDeps, user_id: &str, endpoint: &str) -> bool {
-    let auth_scope = deps.auth_scope.snapshot();
-    if auth_scope.active {
-        return deps.auth_scope.matches(user_id, endpoint);
-    }
-
-    let snapshot = deps.session.snapshot();
-    let Some(context) = snapshot.realtime_context else {
-        return true;
-    };
-    context.current_user_id == user_id && normalize_endpoint(&context.endpoint) == endpoint
+    vrcx_0_application_core::auth_scope_matches(&deps.auth_scope, &deps.session, user_id, endpoint)
 }
 
 fn array_rows(value: &Value) -> Vec<Value> {

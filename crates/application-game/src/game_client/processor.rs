@@ -16,6 +16,7 @@ use crate::{
 };
 use crate::{Error, Result};
 use crate::{HostSessionRuntime, RuntimeAuthScope, TaskSupervisor};
+use vrcx_0_core::time::now_iso;
 
 const CRASH_RELAUNCH_MESSAGE: &str = "VRChat crashed, attempting to rejoin last instance.";
 
@@ -417,10 +418,6 @@ fn remember_error(first_error: &mut Option<Error>, error: Error) {
     } else {
         tracing::warn!("GameClient worker job failed: {error}");
     }
-}
-
-fn now_iso() -> String {
-    Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string()
 }
 
 #[cfg(test)]

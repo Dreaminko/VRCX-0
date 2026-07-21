@@ -11,7 +11,8 @@ use vrcx_0_vrchat_client::worlds::world_get_input;
 use crate::{Result, WebClient};
 
 use super::presence_facts::BackgroundPresenceFacts;
-use super::shared::{int_field, parse_response_json, string_field};
+use super::shared::{parse_response_json, string_field};
+use vrcx_0_core::json::JsonExt;
 
 mod activity_builders;
 #[cfg(test)]
@@ -289,7 +290,7 @@ async fn load_discord_location_details(
                     details.thumbnail_image_url = string_field(&world, "thumbnailImageUrl")
                         .or_else(|| string_field(&world, "imageUrl"))
                         .unwrap_or_default();
-                    details.world_capacity = int_field(&world, "capacity").unwrap_or(0);
+                    details.world_capacity = world.i64_field("capacity").unwrap_or(0);
                     if string_field(&world, "releaseStatus").as_deref() == Some("public") {
                         details.world_link =
                             format!("{VRCHAT_SITE_ORIGIN}/home/world/{}", parsed.world_id);

@@ -11,7 +11,8 @@ use vrcx_0_vrchat_client::users::current_user_update_input;
 use crate::{Result, WebClient};
 
 use super::presence_facts::BackgroundPresenceFacts;
-use super::shared::{int_field, non_empty, parse_response_json, string_field};
+use super::shared::{non_empty, parse_response_json, string_field};
+use vrcx_0_core::json::JsonExt;
 
 const DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS: i64 = 60_000;
 const DEFAULT_MIN_DESCRIPTION_WRITE_INTERVAL_MS: i64 = 60_000;
@@ -707,7 +708,7 @@ fn rule_enabled(rule: &Value) -> bool {
 }
 
 fn rule_priority(rule: &Value) -> i64 {
-    int_field(rule, "priority").unwrap_or(0)
+    rule.i64_field("priority").unwrap_or(0)
 }
 
 fn rule_id(rule: &Value) -> String {

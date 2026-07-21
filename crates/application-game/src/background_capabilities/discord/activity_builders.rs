@@ -2,10 +2,11 @@ use serde_json::{json, Map, Value};
 use vrcx_0_core::location::{launch_url, ParsedLocation};
 
 use super::super::presence_facts::BackgroundPresenceFacts;
-use super::super::shared::{int_field, non_empty, string_field};
+use super::super::shared::{non_empty, string_field};
 use super::{
     BackgroundDiscordActivityPayload, DiscordConfig, DiscordLocationDetails, DiscordPresenceLabels,
 };
+use vrcx_0_core::json::JsonExt;
 
 pub(super) const DEFAULT_APP_ID: &str = "1510639562177642557";
 
@@ -450,7 +451,7 @@ fn now_playing_activity_times(now_playing: &Value) -> (String, String) {
     let Some(start_seconds) = timestamp_seconds(&start_time).filter(|value| *value > 0) else {
         return (start_time, String::new());
     };
-    let length = int_field(now_playing, "length").unwrap_or(0);
+    let length = now_playing.i64_field("length").unwrap_or(0);
     let end_time = if length > 0 {
         (start_seconds + length).to_string()
     } else {

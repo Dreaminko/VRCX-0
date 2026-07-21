@@ -3,6 +3,7 @@ use std::sync::Arc;
 use serde::Serialize;
 use serde_json::Value;
 use vrcx_0_application_core::WebClient;
+use vrcx_0_core::json::JsonExt;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, HttpApiExecuteResponse};
 use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
@@ -22,9 +23,10 @@ pub struct AuthenticatedRuntimeSession {
 
 impl AuthenticatedRuntimeSession {
     pub fn from_user(user: Value, endpoint: String, websocket: String) -> Self {
-        let user_id = string_field(&user, "id").unwrap_or_default();
-        let display_name = string_field(&user, "displayName")
-            .or_else(|| string_field(&user, "username"))
+        let user_id = user.scalar_field("id").unwrap_or_default();
+        let display_name = user
+            .scalar_field("displayName")
+            .or_else(|| user.scalar_field("username"))
             .unwrap_or_else(|| user_id.clone());
         Self {
             user_id,
@@ -204,10 +206,10 @@ pub fn auth_response_error_message(response: &HttpApiExecuteResponse, fallback: 
     };
     json.as_str()
         .map(ToOwned::to_owned)
-        .or_else(|| string_field(&json, "message"))
+        .or_else(|| json.scalar_field("message"))
         .or_else(|| {
             json.get("error").and_then(|error| {
-                if let Some(message) = string_field(error, "message") {
+                if let Some(message) = error.scalar_field("message") {
                     Some(message)
                 } else {
                     error.as_str().map(ToOwned::to_owned)
@@ -240,25 +242,12 @@ pub fn parse_current_user_response(
                 .into(),
         ));
     }
-    if string_field(&json, "id").unwrap_or_default().is_empty() {
+    if json.scalar_field("id").unwrap_or_default().is_empty() {
         return Err(NonInteractiveAuthError::Failed(
             "The auth request did not return a current user payload.".into(),
         ));
     }
     Ok(json)
-}
-
-fn string_field(value: &Value, key: &str) -> Option<String> {
-    value
-        .as_object()
-        .and_then(|object| object.get(key))
-        .and_then(|value| match value {
-            Value::String(value) => Some(value.trim().to_string()),
-            Value::Number(value) => Some(value.to_string()),
-            Value::Bool(value) => Some(value.to_string()),
-            _ => None,
-        })
-        .filter(|value| !value.is_empty())
 }
 
 #[cfg(test)]
@@ -280,7 +269,7 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(string_field(&json, "id").as_deref(), Some("usr_123"));
+        assert_eq!(json.scalar_field("id").as_deref(), Some("usr_123"));
     }
 
     #[test]

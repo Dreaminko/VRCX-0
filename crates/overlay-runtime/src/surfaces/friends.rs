@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+pub(crate) use vrcx_0_core::text::first_non_empty;
 
 use vrcx_0_application::{
     evaluate_instance_action_gates, InstanceActionGateTarget, InstanceActionGates,
@@ -961,14 +962,6 @@ fn friend_number(record: &FriendRecord) -> Option<i64> {
         }
     }
     None
-}
-
-pub(crate) fn first_non_empty<'a>(values: impl IntoIterator<Item = &'a str>) -> &'a str {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
-        .unwrap_or("")
-        .trim()
 }
 
 #[cfg(test)]

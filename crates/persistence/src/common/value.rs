@@ -1,22 +1,16 @@
-use chrono::{SecondsFormat, Utc};
 use serde_json::Value;
+use vrcx_0_core::json::text_of;
 
 use super::DbParams;
 
-pub(crate) fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
-}
+pub(crate) use vrcx_0_core::time::now_iso;
 
 pub(crate) fn normalize_text(value: impl AsRef<str>) -> String {
     value.as_ref().trim().to_string()
 }
 
 pub(crate) fn value_as_string(value: &Value) -> String {
-    match value {
-        Value::Null => String::new(),
-        Value::String(value) => value.clone(),
-        other => other.to_string(),
-    }
+    text_of(Some(value))
 }
 
 pub(crate) fn value_as_i64(value: &Value) -> i64 {

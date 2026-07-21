@@ -3,7 +3,8 @@ use vrcx_0_core::friends::{normalize_state_bucket, FriendRecord};
 use vrcx_0_core::trust::compute_trust_level;
 
 use super::super::persistence::add_location_metadata;
-use super::super::utils::{first_owned, first_string, parse_location, string_field, EventTime};
+use super::super::utils::{first_owned, first_string, parse_location, EventTime};
+use vrcx_0_core::json::{text_of, JsonExt};
 
 pub(super) fn resolve_state_bucket(
     content: &Value,
@@ -35,8 +36,8 @@ pub(super) fn normalize_patch_trust(patch: &mut Value, previous: Option<&FriendR
         return;
     };
     let explicit_trust_level = first_owned([
-        string_field(object.get("$trustLevel")),
-        string_field(object.get("trustLevel")),
+        object.text_field("$trustLevel"),
+        object.text_field("trustLevel"),
     ]);
     let has_trust_metadata = object.contains_key("tags") || object.contains_key("developerType");
     if explicit_trust_level.is_empty() && !has_trust_metadata {
@@ -50,7 +51,7 @@ pub(super) fn normalize_patch_trust(patch: &mut Value, previous: Option<&FriendR
         .map(|values| {
             values
                 .iter()
-                .map(|value| string_field(Some(value)))
+                .map(|value| text_of(Some(value)))
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();

@@ -1,14 +1,11 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-use chrono::{SecondsFormat, Utc};
 use serde::Serialize;
 
 const MAX_COMMAND_OBSERVATIONS: usize = 100;
 
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
-}
+use vrcx_0_core::time::now_iso;
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]

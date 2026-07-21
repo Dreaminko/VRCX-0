@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use serde_json::Value;
+use vrcx_0_core::text::first_non_empty_owned;
 use vrcx_0_core::{
     location::{parse_location, ParsedLocation},
     vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT,
@@ -112,7 +113,8 @@ fn normalize_join_target(input: InstanceLaunchInput) -> Option<JoinTarget> {
     if !parsed.is_real_instance || parsed.world_id.is_empty() || parsed.instance_id.is_empty() {
         return None;
     }
-    let provided_token = first_non_empty([input.short_name.as_str(), parsed.short_name.as_str()]);
+    let provided_token =
+        first_non_empty_owned([input.short_name.as_str(), parsed.short_name.as_str()]);
     Some(JoinTarget {
         endpoint: VRCHAT_API_DEFAULT_ENDPOINT.to_string(),
         location: format!("{}:{}", parsed.world_id, parsed.instance_id),
@@ -134,7 +136,7 @@ async fn resolve_launch_token(api: &dyn InstanceLaunchHttpClient, target: &JoinT
         .await
     {
         Ok(response) => match require_api_success(response, "VRChat instance request failed") {
-            Ok(json) => first_non_empty([
+            Ok(json) => first_non_empty_owned([
                 json.get("shortName").and_then(Value::as_str).unwrap_or(""),
                 json.get("secureName").and_then(Value::as_str).unwrap_or(""),
                 target.provided_token.as_str(),
@@ -163,7 +165,7 @@ async fn self_invite_join_target(
     target: &JoinTarget,
     launch_token: &str,
 ) -> Result<InstanceLaunchOutcome> {
-    let short_name = first_non_empty([target.parsed.short_name.as_str(), launch_token]);
+    let short_name = first_non_empty_owned([target.parsed.short_name.as_str(), launch_token]);
     match api
         .self_invite(
             &target.endpoint,
@@ -197,7 +199,7 @@ fn should_use_provided_launch_token(parsed: &ParsedLocation, short_name: &str) -
 }
 
 fn require_api_success(response: VrchatApiResponse, fallback_message: &str) -> Result<Value> {
-    let json = parse_api_json(&response.data);
+    let json = parse_launch_api_json(&response.data);
     if response.status >= 400 || json.get("error").is_some() {
         return Err(Error::Custom(unwrap_api_error_message(
             &json,
@@ -208,7 +210,7 @@ fn require_api_success(response: VrchatApiResponse, fallback_message: &str) -> R
     Ok(json)
 }
 
-fn parse_api_json(data: &str) -> Value {
+fn parse_launch_api_json(data: &str) -> Value {
     if data.is_empty() {
         return Value::Null;
     }
@@ -319,14 +321,6 @@ fn location_cache_key(parsed: &ParsedLocation) -> String {
     } else {
         format!("{}:{}", parsed.world_id, parsed.instance_id)
     }
-}
-
-fn first_non_empty(values: impl IntoIterator<Item = impl AsRef<str>>) -> String {
-    values
-        .into_iter()
-        .map(|value| value.as_ref().trim().to_string())
-        .find(|value| !value.is_empty())
-        .unwrap_or_default()
 }
 
 fn same_non_empty(left: &str, right: &str) -> bool {

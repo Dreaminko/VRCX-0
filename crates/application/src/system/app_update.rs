@@ -3,7 +3,6 @@ use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use chrono::{SecondsFormat, Utc};
 use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::Notify;
@@ -20,6 +19,7 @@ use vrcx_0_application_core::{
     UpdaterCheckRequest, UpdaterDownloadProgress, UpdaterMetadata, UpdaterPort,
     UpdaterProgressCallback,
 };
+use vrcx_0_core::time::now_iso;
 
 mod release;
 #[cfg(test)]
@@ -116,10 +116,6 @@ fn update_available_outcome(
         detail: detail.into(),
         release: Some(release),
     }
-}
-
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 async fn fetch_releases(web: &WebClient) -> Result<Vec<GitHubRelease>> {

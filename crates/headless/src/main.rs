@@ -17,6 +17,7 @@ use vrcx_0_application_core::{
     recommended_tokio_worker_threads, BackendRuntimeMode, RuntimeEventSink, RuntimeOutputLevel,
     RuntimeOutputLine, RuntimeOutputMode, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle,
 };
+use vrcx_0_core::json::JsonExt;
 use vrcx_0_host::app_paths::resolve_app_data_dir;
 use vrcx_0_host::error_log::{
     append_headless_error_log, default_app_data_dir, ErrorLogWriter, HEADLESS_ERROR_LOG_FILE,
@@ -370,15 +371,6 @@ where
     }
 }
 
-fn string_field(value: &Value, key: &str) -> String {
-    value
-        .get(key)
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .trim()
-        .to_string()
-}
-
 fn is_runtime_stopped_event(event: &str, payload: &Value) -> bool {
-    event == "backendRuntimeTelemetry" && string_field(payload, "kind") == "runtimeStopped"
+    event == "backendRuntimeTelemetry" && payload.trimmed_text("kind") == "runtimeStopped"
 }

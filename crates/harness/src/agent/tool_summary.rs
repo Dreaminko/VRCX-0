@@ -1,4 +1,5 @@
 use serde_json::{Map, Value};
+use vrcx_0_core::json::JsonExt;
 use vrcx_0_mcp::ToolCallOutcome;
 
 const ROW_DETAIL_COUNT_FIELDS: &[(&str, &str, &str)] = &[
@@ -171,13 +172,13 @@ fn disambiguation_summary(value: &Value) -> Option<String> {
     {
         return None;
     }
-    let query = string_field(value, "query");
+    let query = value.trimmed_string("query");
     let names = value
         .get("candidates")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter_map(|candidate| string_field(candidate, "displayName"))
+        .filter_map(|candidate| candidate.trimmed_string("displayName"))
         .take(5)
         .collect::<Vec<_>>();
     let query_text = query
@@ -204,7 +205,7 @@ fn not_found_summary(value: &Value) -> Option<String> {
     {
         return None;
     }
-    let query = string_field(value, "query");
+    let query = value.trimmed_string("query");
     Some(match query {
         Some(query) => format!("No local-history user matched \"{query}\"."),
         None => "No local-history user matched the query.".into(),
@@ -249,12 +250,12 @@ fn row_label(row: &Value) -> Option<String> {
         "bucket",
     ]
     .iter()
-    .find_map(|key| string_field(row, key))
+    .find_map(|key| row.trimmed_string(key))
 }
 
 fn row_detail_fragments(row: &Value) -> Vec<String> {
     let mut details = Vec::new();
-    if let Some(value) = string_field(row, "typicalOnlineWindow") {
+    if let Some(value) = row.trimmed_string("typicalOnlineWindow") {
         details.push(format!("usually online around {value}"));
     }
     for (key, singular, plural) in ROW_DETAIL_COUNT_FIELDS {
@@ -275,15 +276,6 @@ fn push_count_detail(
         let noun = if value == 1 { singular } else { plural };
         details.push(format!("{value} {noun}"));
     }
-}
-
-fn string_field(value: &Value, key: &str) -> Option<String> {
-    value
-        .get(key)
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToOwned::to_owned)
 }
 
 fn number_field(value: &Value, key: &str) -> Option<i64> {

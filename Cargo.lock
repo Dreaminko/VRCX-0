@@ -8856,6 +8856,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "vrcx-0-application-core",
+ "vrcx-0-core",
  "vrcx-0-integrations",
  "vrcx-0-mcp",
  "vrcx-0-persistence",
@@ -8872,6 +8873,7 @@ dependencies = [
  "tokio",
  "tracing-subscriber",
  "vrcx-0-application-core",
+ "vrcx-0-core",
  "vrcx-0-host",
  "vrcx-0-runtime-host",
 ]

@@ -2,6 +2,7 @@ use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityEntry,
     OverlayActivityText,
 };
+use vrcx_0_core::text::first_non_empty_owned;
 use vrcx_0_i18n::OverlayMessage;
 use vrcx_0_vr_overlay::{
     AvatarBitmap, Color, FeedRelation, FeedSeverity, MainSurfaceModel, OverlaySize, ToastCard,
@@ -58,7 +59,7 @@ fn toast_card_from_activity(toast: HmdToastView, localizer: &OverlayLocalizer) -
 fn actor_text(entry: &OverlayActivityEntry, localizer: &OverlayLocalizer) -> String {
     let localized_title = localized_entry_text(entry, localizer, &entry.content.title);
     let source_title = entry.content.title.source_text();
-    first_non_empty([
+    first_non_empty_owned([
         localized_title.as_str(),
         source_title.as_str(),
         entry.actor_display_name.as_str(),
@@ -80,7 +81,7 @@ fn action_text(
     }
     let localized_body = localized_entry_text(entry, localizer, &entry.content.body);
     let source_body = entry.content.body.source_text();
-    first_non_empty([
+    first_non_empty_owned([
         localized_body.as_str(),
         source_body.as_str(),
         entry.content.summary.as_str(),
@@ -116,13 +117,4 @@ fn feed_severity(entry: &OverlayActivityEntry) -> FeedSeverity {
         OverlayActivityCategory::SystemSafety => FeedSeverity::Warning,
         _ => FeedSeverity::Normal,
     }
-}
-
-fn first_non_empty<'a>(values: impl IntoIterator<Item = &'a str>) -> String {
-    values
-        .into_iter()
-        .map(str::trim)
-        .find(|value| !value.is_empty())
-        .unwrap_or_default()
-        .to_string()
 }

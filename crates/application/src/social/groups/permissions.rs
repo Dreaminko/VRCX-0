@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde_json::Value;
+use vrcx_0_core::json::scalar_text as value_as_string;
 
 pub(super) fn parse_permission_map(value: &Value) -> HashMap<String, Vec<String>> {
     value
@@ -54,15 +55,6 @@ fn string_array(value: Option<&Value>) -> Vec<String> {
             }
         }
         None => Vec::new(),
-    }
-}
-
-fn value_as_string(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(value)) => value.trim().to_string(),
-        Some(Value::Number(value)) => value.to_string(),
-        Some(Value::Bool(value)) => value.to_string(),
-        _ => String::new(),
     }
 }
 

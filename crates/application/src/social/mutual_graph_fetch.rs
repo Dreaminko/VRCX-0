@@ -4,8 +4,8 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::time::Duration;
+use vrcx_0_core::time::now_iso;
 
-use chrono::{SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::time::{sleep, Instant};
@@ -569,8 +569,4 @@ fn idle_status() -> MutualGraphFetchStatus {
         finished_at: None,
         last_error: None,
     }
-}
-
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }

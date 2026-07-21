@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-use chrono::{SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use vrcx_0_core::json::JsonExt;
 
 use crate::events::FriendProfileLoadStatusPayload;
+use vrcx_0_core::time::now_iso;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -234,7 +235,9 @@ impl BackendRuntime {
     ) -> Option<BackendRuntimeTelemetry> {
         match event {
             "realtimeWsStatus" => {
-                let status = string_field(payload, "status").unwrap_or_else(|| "unknown".into());
+                let status = payload
+                    .trimmed_string("status")
+                    .unwrap_or_else(|| "unknown".into());
                 let snapshot = self.set_ws_status(status.clone());
                 Some(BackendRuntimeTelemetry {
                     kind: "wsStatus".into(),
@@ -269,10 +272,11 @@ impl BackendRuntime {
                 })
             }
             "backendRuntimeTelemetry" => {
-                let kind = string_field(payload, "kind").unwrap_or_default();
+                let kind = payload.trimmed_string("kind").unwrap_or_default();
                 match kind.as_str() {
                     "wsMessage" => {
-                        let message_type = string_field(payload, "messageType")
+                        let message_type = payload
+                            .trimmed_string("messageType")
                             .unwrap_or_else(|| "unknown".into());
                         let snapshot = self.record_ws_message(message_type.clone());
                         Some(BackendRuntimeTelemetry {
@@ -282,8 +286,9 @@ impl BackendRuntime {
                         })
                     }
                     "gameLogWatcher" => {
-                        let status =
-                            string_field(payload, "status").unwrap_or_else(|| "unknown".into());
+                        let status = payload
+                            .trimmed_string("status")
+                            .unwrap_or_else(|| "unknown".into());
                         let snapshot = self.set_game_log_status(status.clone());
                         Some(BackendRuntimeTelemetry {
                             kind,
@@ -294,7 +299,8 @@ impl BackendRuntime {
                     "gameLogPersisted" => {
                         let count = u64_field(payload, "count")
                             .or_else(|| {
-                                string_field(payload, "detail")
+                                payload
+                                    .trimmed_string("detail")
                                     .and_then(|value| value.parse::<u64>().ok())
                             })
                             .unwrap_or(0);
@@ -308,7 +314,8 @@ impl BackendRuntime {
                     "wsPersisted" => {
                         let count = u64_field(payload, "count")
                             .or_else(|| {
-                                string_field(payload, "detail")
+                                payload
+                                    .trimmed_string("detail")
                                     .and_then(|value| value.parse::<u64>().ok())
                             })
                             .unwrap_or(0);
@@ -361,19 +368,6 @@ impl BackendRuntime {
     }
 }
 
-fn string_field(payload: &Value, key: &str) -> Option<String> {
-    payload
-        .get(key)
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToOwned::to_owned)
-}
-
 fn u64_field(payload: &Value, key: &str) -> Option<u64> {
     payload.get(key).and_then(Value::as_u64)
-}
-
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }

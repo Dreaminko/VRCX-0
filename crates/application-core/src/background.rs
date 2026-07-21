@@ -4,8 +4,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use crate::task_supervisor::{TaskStopToken, TaskSupervisor};
-use chrono::{Duration as ChronoDuration, SecondsFormat, Utc};
+use chrono::{Duration as ChronoDuration, Utc};
 use serde::Serialize;
+use vrcx_0_core::time::{iso_millis, now_iso};
 use vrcx_0_persistence::DatabaseService;
 
 const DATABASE_OPTIMIZE_JOB: &str = "databaseOptimize";
@@ -26,13 +27,8 @@ pub async fn sleep_until_due_or_stopped(total: Duration, stop_token: &TaskStopTo
     !stop_token.is_stop_requested()
 }
 
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
-}
-
 fn future_iso(seconds: u64) -> String {
-    (Utc::now() + ChronoDuration::seconds(seconds as i64))
-        .to_rfc3339_opts(SecondsFormat::Millis, true)
+    iso_millis(Utc::now() + ChronoDuration::seconds(seconds as i64))
 }
 
 #[derive(Clone, Debug, Serialize, specta::Type)]

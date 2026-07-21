@@ -273,7 +273,7 @@ fn apply_friend_event_with_source(
                         &user_id,
                         &patch,
                         previous_record.as_ref(),
-                        &string_field(patch.get("location")),
+                        &patch.text_field("location"),
                         0,
                         &now.iso,
                     ));
@@ -541,7 +541,7 @@ fn patch_has_online_location(patch: &Value) -> bool {
 }
 
 fn is_real_instance_patch(patch: &Value) -> bool {
-    let location = string_field(patch.get("location"));
+    let location = patch.text_field("location");
     let parsed = parse_location(&location);
     parsed.world_id.starts_with("wrld_") && !parsed.instance_id.is_empty()
 }
@@ -597,8 +597,8 @@ fn record_profile_identity_change(
         record_string(previous, "trustLevel"),
     ]);
     let trust_level = first_owned([
-        string_field(patch.get("$trustLevel")),
-        string_field(patch.get("trustLevel")),
+        patch.text_field("$trustLevel"),
+        patch.text_field("trustLevel"),
         previous_trust_level.clone(),
     ]);
     let trust_differs = trust_level_differs(&previous_trust_level, &trust_level);
@@ -646,8 +646,8 @@ fn add_gps_feed_entry_if_not_repeated(
     let Some(entry) = gps_feed_entry(user_id, patch, previous, &now.iso) else {
         return;
     };
-    let location = string_field(entry.get("location"));
-    let previous_location = string_field(entry.get("previousLocation"));
+    let location = entry.text_field("location");
+    let previous_location = entry.text_field("previousLocation");
     let crosses_private_boundary =
         is_private_location(&location) || is_private_location(&previous_location);
     if !crosses_private_boundary

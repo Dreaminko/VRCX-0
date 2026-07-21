@@ -3,7 +3,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
-use chrono::{SecondsFormat, Utc};
 use serde_json::{json, Value};
 use vrcx_0_application::{
     AuthenticatedRuntimePhase, AuthenticatedRuntimePhaseSnapshot, AuthenticatedRuntimeSession,
@@ -23,6 +22,7 @@ use vrcx_0_application_realtime::{
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::json::RawJson;
+use vrcx_0_core::time::now_iso;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::{Error, Result, RuntimeHostSnapshotCallback};
@@ -557,7 +557,7 @@ impl AuthenticatedRuntimeOrchestrator {
         let Some(status_code) = auth_failure_status(&reason) else {
             return;
         };
-        if !auth_scope_matches(&self.auth_scope.snapshot(), scope) {
+        if !self.auth_scope.snapshot().generation_matches(scope) {
             return;
         }
         self.event_bus
@@ -580,7 +580,7 @@ impl AuthenticatedRuntimeOrchestrator {
     ) -> bool {
         !stop_token.is_stop_requested()
             && self.generation.load(Ordering::Acquire) == run_id
-            && auth_scope_matches(&self.auth_scope.snapshot(), scope)
+            && self.auth_scope.snapshot().generation_matches(scope)
             && matches!(
                 self.lock_snapshot().phase,
                 AuthenticatedRuntimePhase::Starting | AuthenticatedRuntimePhase::Ready
@@ -835,16 +835,6 @@ fn snapshot_matches_session(
         && snapshot.websocket == session.websocket
 }
 
-fn auth_scope_matches(
-    current: &RuntimeAuthScopeSnapshot,
-    expected: &RuntimeAuthScopeSnapshot,
-) -> bool {
-    current.active
-        && current.generation == expected.generation
-        && current.current_user_id == expected.current_user_id
-        && current.endpoint == expected.endpoint
-}
-
 fn current_friend_baseline_snapshot(
     user_id: &str,
     friends_by_id: &HashMap<String, FriendRecord>,
@@ -946,10 +936,6 @@ fn append_favorite_group_membership(
             groups.insert(format!("{key_prefix}{group_key}"), user_ids);
         }
     }
-}
-
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 #[cfg(test)]

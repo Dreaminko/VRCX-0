@@ -158,7 +158,7 @@ fn emit_note_export_auth_failure(
         return;
     }
     let scope = auth_scope.snapshot();
-    if !note_export_scope_matches(&scope, expected_scope) {
+    if !scope.generation_matches(expected_scope) {
         return;
     }
     event_bus.emit_runtime_vrchat_auth_failure(RuntimeVrchatAuthFailurePayload {
@@ -170,16 +170,6 @@ fn emit_note_export_auth_failure(
         auth_scope_generation: scope.generation,
         realtime_transport: None,
     });
-}
-
-fn note_export_scope_matches(
-    current: &RuntimeAuthScopeSnapshot,
-    expected: &RuntimeAuthScopeSnapshot,
-) -> bool {
-    current.active
-        && current.generation == expected.generation
-        && current.current_user_id == expected.current_user_id
-        && current.endpoint == expected.endpoint
 }
 
 fn note_save_response_error(status: i32, data: &str) -> Option<String> {

@@ -81,8 +81,8 @@ pub(super) fn friend_log_upsert(
         target_user_id: user_id.to_string(),
         display_name: display_name(user_id, patch, previous),
         trust_level: first_owned([
-            string_field(patch.get("$trustLevel")),
-            string_field(patch.get("trustLevel")),
+            patch.text_field("$trustLevel"),
+            patch.text_field("trustLevel"),
             previous
                 .map(|previous| record_string(previous, "$trustLevel"))
                 .unwrap_or_default(),
@@ -90,12 +90,11 @@ pub(super) fn friend_log_upsert(
                 .map(|previous| record_string(previous, "trustLevel"))
                 .unwrap_or_default(),
         ]),
-        friend_number: int_field(patch.get("$friendNumber"))
-            .or_else(|| int_field(patch.get("friendNumber")))
-            .or_else(|| {
-                previous.and_then(|previous| int_field(previous.extra.get("$friendNumber")))
-            })
-            .or_else(|| previous.and_then(|previous| int_field(previous.extra.get("friendNumber"))))
+        friend_number: patch
+            .i64_field("$friendNumber")
+            .or_else(|| patch.i64_field("friendNumber"))
+            .or_else(|| previous.and_then(|previous| previous.extra.i64_field("$friendNumber")))
+            .or_else(|| previous.and_then(|previous| previous.extra.i64_field("friendNumber")))
             .unwrap_or(0),
         created_at: created_at.to_string(),
         force_history: false,
@@ -151,14 +150,13 @@ pub(super) fn add_profile_diff_feed_entries(
             "previousStatusDescription": previous.status_description,
         }));
     }
-    if changes.has("bio") && !string_field(patch.get("bio")).is_empty() && !previous.bio.is_empty()
-    {
+    if changes.has("bio") && !patch.text_field("bio").is_empty() && !previous.bio.is_empty() {
         output.persistence.feed_entries.push(json!({
             "created_at": created_at,
             "type": "Bio",
             "userId": user_id,
             "displayName": display_name(user_id, patch, Some(previous)),
-            "bio": string_field(patch.get("bio")),
+            "bio": patch.text_field("bio"),
             "previousBio": previous.bio,
         }));
     }
@@ -193,8 +191,8 @@ pub(super) fn add_profile_diff_feed_entries(
             "userId": user_id,
             "displayName": display_name(user_id, patch, Some(previous)),
             "ownerId": first_owned([
-                string_field(patch.get("currentAvatarAuthorId")),
-                string_field(patch.get("authorId")),
+                patch.text_field("currentAvatarAuthorId"),
+                patch.text_field("authorId"),
                 previous.current_avatar_author_id.clone(),
                 record_string(previous, "authorId"),
             ]),
@@ -203,8 +201,8 @@ pub(super) fn add_profile_diff_feed_entries(
                 record_string(previous, "authorId"),
             ]),
             "avatarName": first_owned([
-                string_field(patch.get("currentAvatarName")),
-                string_field(patch.get("avatarName")),
+                patch.text_field("currentAvatarName"),
+                patch.text_field("avatarName"),
                 previous.current_avatar_name.clone(),
                 record_string(previous, "avatarName"),
             ]),
@@ -244,7 +242,7 @@ pub(super) fn gps_feed_entry(
     created_at: &str,
 ) -> Option<Value> {
     let previous_location = resolve_gps_previous_location(previous);
-    let location = string_field(patch.get("location"));
+    let location = patch.text_field("location");
     if !is_gps_feed_location(&previous_location)
         || !is_gps_feed_location(&location)
         || previous_location == location
@@ -352,7 +350,7 @@ pub(super) fn add_location_metadata(
     previous: Option<&FriendRecord>,
     timestamp_ms: i64,
 ) {
-    let location = string_field(patch.get("location"));
+    let location = patch.text_field("location");
     if location.eq_ignore_ascii_case("traveling") {
         if previous
             .map(|previous| previous.location.eq_ignore_ascii_case("traveling"))
@@ -363,8 +361,10 @@ pub(super) fn add_location_metadata(
         let previous_location = previous.map(resolve_previous_location).unwrap_or_default();
         let previous_timestamp = previous
             .and_then(|previous| {
-                int_field(previous.extra.get("locationUpdatedAt"))
-                    .or_else(|| int_field(previous.extra.get("$location_at")))
+                previous
+                    .extra
+                    .i64_field("locationUpdatedAt")
+                    .or_else(|| previous.extra.i64_field("$location_at"))
             })
             .unwrap_or(0);
         patch.insert("locationUpdatedAt".into(), Value::from(timestamp_ms));
@@ -385,7 +385,7 @@ pub(super) fn add_location_metadata(
         .map(|previous| record_string(previous, "$previousLocation"))
         .unwrap_or_default();
     let previous_location_timestamp = previous
-        .and_then(|previous| int_field(previous.extra.get("$previousLocation_at")))
+        .and_then(|previous| previous.extra.i64_field("$previousLocation_at"))
         .unwrap_or(0);
     let returned_to_previous_location =
         !previous_travel_location.is_empty() && previous_travel_location == location;
@@ -423,8 +423,8 @@ pub(super) fn meaningful_record_name(record: &FriendRecord, user_id: &str) -> St
 
 pub(super) fn meaningful_name(value: &Value, user_id: &str) -> String {
     vrcx_0_core::friends::meaningful_display_name(
-        &string_field(value.get("displayName")),
-        &string_field(value.get("username")),
+        &value.text_field("displayName"),
+        &value.text_field("username"),
         user_id,
     )
     .unwrap_or_default()
@@ -438,7 +438,7 @@ pub(super) fn resolve_location_name(
     let parsed = parse_location(location);
     (
         first_owned([
-            string_field(patch.get("worldName")),
+            patch.text_field("worldName"),
             patch
                 .get("world")
                 .and_then(|world| world.get("name"))
@@ -452,7 +452,7 @@ pub(super) fn resolve_location_name(
             location.to_string(),
         ]),
         first_owned([
-            string_field(patch.get("groupName")),
+            patch.text_field("groupName"),
             previous
                 .map(|previous| record_string(previous, "groupName"))
                 .unwrap_or_default(),
@@ -516,7 +516,10 @@ pub(super) fn resolve_gps_previous_location(previous: &FriendRecord) -> String {
 
 pub(super) fn resolve_gps_duration(previous: &FriendRecord) -> i64 {
     if previous.location.eq_ignore_ascii_case("traveling") {
-        let previous_timestamp = int_field(previous.extra.get("$previousLocation_at")).unwrap_or(0);
+        let previous_timestamp = previous
+            .extra
+            .i64_field("$previousLocation_at")
+            .unwrap_or(0);
         return if previous_timestamp > 0 {
             Utc::now().timestamp_millis() - previous_timestamp
         } else {
@@ -527,8 +530,10 @@ pub(super) fn resolve_gps_duration(previous: &FriendRecord) -> i64 {
 }
 
 pub(super) fn duration_ms(previous: &FriendRecord, now_ms: i64) -> i64 {
-    let timestamp = int_field(previous.extra.get("locationUpdatedAt"))
-        .or_else(|| int_field(previous.extra.get("$location_at")))
+    let timestamp = previous
+        .extra
+        .i64_field("locationUpdatedAt")
+        .or_else(|| previous.extra.i64_field("$location_at"))
         .unwrap_or(0);
     if timestamp > 0 {
         now_ms.saturating_sub(timestamp)

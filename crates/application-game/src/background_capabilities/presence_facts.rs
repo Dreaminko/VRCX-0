@@ -8,7 +8,8 @@ use vrcx_0_persistence::DatabaseService;
 
 use crate::{PlayerState, Result, RuntimeSnapshot};
 
-use super::shared::{first_non_empty, non_empty, string_field, BackgroundCapabilitySession};
+use super::shared::{non_empty, string_field, BackgroundCapabilitySession};
+use vrcx_0_core::text::first_non_empty;
 
 #[derive(Clone, Debug)]
 pub struct BackgroundPresenceFactsInput {

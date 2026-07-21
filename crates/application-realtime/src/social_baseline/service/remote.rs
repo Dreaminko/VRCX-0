@@ -27,47 +27,14 @@ pub(crate) async fn execute_vrchat_json_request(
         .execute_api(request, ApiScope::Vrchat, deps.db.as_ref())
         .await?;
 
-    let json = parse_response_json(&response.data);
-    if response.status >= 400 || response_has_error(&json) {
-        return Err(Error::Custom(unwrap_error_message(
-            &json,
-            response.status,
+    let response = ApiJsonResponse::from(&response);
+    if response.is_failure() {
+        return Err(Error::Custom(response.error_message_with_http_status(
             "VRChat social baseline request failed",
         )));
     }
 
-    Ok(json)
-}
-
-fn parse_response_json(data: &str) -> Value {
-    serde_json::from_str(data).unwrap_or_else(|_| Value::String(data.to_string()))
-}
-
-fn response_has_error(json: &Value) -> bool {
-    json.as_object()
-        .is_some_and(|object| object.contains_key("error"))
-}
-
-fn value_message(value: Option<&Value>) -> Option<String> {
-    value
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|message| !message.is_empty())
-        .map(|message| message.trim_matches('"').to_string())
-}
-
-fn unwrap_error_message(json: &Value, status: i32, fallback: &str) -> String {
-    let object = json.as_object();
-    let nested_message = object
-        .and_then(|record| record.get("error"))
-        .and_then(Value::as_object)
-        .and_then(|error| error.get("message"));
-    let message = value_message(Some(json))
-        .or_else(|| value_message(nested_message))
-        .or_else(|| value_message(object.and_then(|record| record.get("message"))))
-        .unwrap_or_else(|| fallback.to_string());
-
-    format!("{message} (HTTP {status})")
+    Ok(response.json)
 }
 
 pub(super) async fn fetch_paged_array<F>(
@@ -98,20 +65,17 @@ async fn execute_vrchat_json_page_request(
         .execute_api(request, ApiScope::Vrchat, deps.db.as_ref())
         .await?;
 
-    let json = parse_response_json(&response.data);
-    if response.status >= 400 || response_has_error(&json) {
-        let mut message = unwrap_error_message(
-            &json,
-            response.status,
-            "VRChat social baseline request failed",
-        );
+    let response = ApiJsonResponse::from(&response);
+    if response.is_failure() {
+        let mut message =
+            response.error_message_with_http_status("VRChat social baseline request failed");
         if response.status == 429 && !message.contains("429") {
             message = format!("429: {message}");
         }
         return Err(Error::Custom(message));
     }
 
-    Ok(json)
+    Ok(response.json)
 }
 
 async fn fetch_paged_array_with_page_fetcher<F, Fut>(
@@ -258,11 +222,8 @@ mod tests {
 
     #[test]
     fn social_error_message_keeps_http_status() {
-        let message = unwrap_error_message(
-            &json!({ "error": { "message": "Application error." } }),
-            500,
-            "VRChat social baseline request failed",
-        );
+        let message = ApiJsonResponse::parse(500, r#"{"error":{"message":"Application error."}}"#)
+            .error_message_with_http_status("VRChat social baseline request failed");
 
         assert_eq!(message, "Application error. (HTTP 500)");
     }

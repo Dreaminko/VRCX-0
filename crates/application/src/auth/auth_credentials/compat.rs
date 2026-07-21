@@ -2,14 +2,7 @@ use serde_json::Value;
 
 use super::types::{SavedCredentialUser, SavedLoginParams};
 
-pub(super) fn value_as_string(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(value)) => value.trim().to_string(),
-        Some(Value::Number(value)) => value.to_string(),
-        Some(Value::Bool(value)) => value.to_string(),
-        _ => String::new(),
-    }
-}
+pub(super) use vrcx_0_core::json::scalar_text as value_as_string;
 
 fn value_as_raw_string(value: Option<&Value>) -> String {
     match value {

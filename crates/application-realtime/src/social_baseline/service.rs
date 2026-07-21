@@ -4,10 +4,10 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::{json, Map, Number, Value};
 use std::sync::Arc;
 use vrcx_0_core::friends::FriendRecord;
-use vrcx_0_core::json::RawJson;
+use vrcx_0_core::json::{text_of, RawJson};
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::http_api::{
-    normalize_vrchat_api_endpoint, ApiScope, HttpApiRequestInput,
+    normalize_vrchat_api_endpoint, ApiJsonResponse, ApiScope, HttpApiRequestInput,
 };
 use vrcx_0_vrchat_client::{favorites as remote_favorites, friends as remote_friends};
 
@@ -42,11 +42,7 @@ fn normalize_endpoint(endpoint: &str) -> String {
 }
 
 fn value_as_string(value: &Value) -> String {
-    match value {
-        Value::Null => String::new(),
-        Value::String(value) => value.to_string(),
-        other => other.to_string(),
-    }
+    text_of(Some(value))
 }
 
 fn value_as_i64(value: Option<&Value>) -> i64 {
@@ -117,17 +113,7 @@ fn get_config_array(deps: &SocialBaselineDeps, key: &str) -> Result<Vec<String>>
 }
 
 fn auth_scope_matches(deps: &SocialBaselineDeps, user_id: &str, endpoint: &str) -> bool {
-    let auth_scope = deps.auth_scope.snapshot();
-    if auth_scope.active {
-        return deps.auth_scope.matches(user_id, endpoint);
-    }
-
-    let snapshot = deps.session.snapshot();
-    let Some(context) = snapshot.realtime_context else {
-        return true;
-    };
-    context.current_user_id == user_id
-        && context.endpoint.trim().trim_end_matches('/') == endpoint.trim().trim_end_matches('/')
+    vrcx_0_application_core::auth_scope_matches(&deps.auth_scope, &deps.session, user_id, endpoint)
 }
 
 fn stale_favorites_output(user_id: String) -> SocialFavoritesBaselineOutput {

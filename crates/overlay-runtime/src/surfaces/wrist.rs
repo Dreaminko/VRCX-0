@@ -4,6 +4,7 @@ use vrcx_0_application_activity::{
     OverlayActivitySnapshot, OverlayActivityText,
 };
 use vrcx_0_core::location::world_id_from_location;
+use vrcx_0_core::text::first_non_empty_owned;
 use vrcx_0_host_desktop::vr_overlay::{VrDeviceSnapshot, VrDeviceStatus};
 use vrcx_0_i18n::OverlayMessage;
 use vrcx_0_vr_overlay::{
@@ -214,7 +215,7 @@ fn feed_line_from_activity(entry: &OverlayActivityEntry, localizer: &OverlayLoca
 fn feed_actor(entry: &OverlayActivityEntry, localizer: &OverlayLocalizer) -> String {
     let localized_title = localized_entry_text(entry, localizer, &entry.content.title);
     let source_title = entry.content.title.source_text();
-    first_non_empty([
+    first_non_empty_owned([
         localized_title.as_str(),
         source_title.as_str(),
         entry.actor_display_name.as_str(),
@@ -257,7 +258,7 @@ fn feed_detail(entry: &OverlayActivityEntry, localizer: &OverlayLocalizer) -> St
         }
     }
 
-    let candidate = first_non_empty([
+    let candidate = first_non_empty_owned([
         localized_summary.as_str(),
         detail,
         localized_body.as_str(),
@@ -333,7 +334,7 @@ fn location_id_free_detail(
     actor: &str,
     localizer: &OverlayLocalizer,
 ) -> String {
-    let subject = first_non_empty([localized_title, fallback_title, actor]);
+    let subject = first_non_empty_owned([localized_title, fallback_title, actor]);
     match entry.activity_type.as_str() {
         "GPS" if !subject.is_empty() => {
             let action = localizer.text(&OverlayActivityText::message(
@@ -442,18 +443,6 @@ fn raw_time_text(value: &str) -> String {
     };
     value
         .get(time_start..time_start + 5)
-        .unwrap_or_default()
-        .to_string()
-}
-
-fn first_non_empty<'a, I>(values: I) -> String
-where
-    I: IntoIterator<Item = &'a str>,
-{
-    values
-        .into_iter()
-        .map(str::trim)
-        .find(|value| !value.is_empty())
         .unwrap_or_default()
         .to_string()
 }

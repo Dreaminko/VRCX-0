@@ -2,8 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
 use serde_json::{json, Map, Value};
+use vrcx_0_core::json::{text_of, JsonExt};
 use vrcx_0_core::location::parse_location;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
+use vrcx_0_core::text::first_owned;
 use vrcx_0_persistence::game_log::{GameLogLocationEntry, GameLogLocationTimeUpdate};
 use vrcx_0_persistence::realtime::{
     AvatarHistoryUpsert, AvatarTimeSpentUpsert, RealtimePersistenceBatch,
@@ -103,21 +105,23 @@ impl RealtimeCurrentUserStateSnapshot {
     }
 
     fn refresh_typed_fields(&mut self) {
-        self.user_id = normalize_id(&string_field(self.raw.get("id")));
-        self.display_name = string_field(self.raw.get("displayName"));
-        self.location = string_field(self.raw.get("location"));
-        self.traveling_to_location = string_field(self.raw.get("travelingToLocation"));
-        self.world_id = string_field(self.raw.get("worldId"));
-        self.instance_id = string_field(self.raw.get("instanceId"));
-        self.status = string_field(self.raw.get("status"));
-        self.status_description = string_field(self.raw.get("statusDescription"));
-        self.bio = string_field(self.raw.get("bio"));
-        self.current_avatar = normalize_id(&string_field(self.raw.get("currentAvatar")));
-        self.current_avatar_image_url = string_field(self.raw.get("currentAvatarImageUrl"));
-        self.state_bucket = string_field(self.raw.get("stateBucket"));
-        self.world_name = string_field(self.raw.get("worldName"));
-        self.previous_avatar_swap_time =
-            int_field(self.raw.get("$previousAvatarSwapTime")).unwrap_or_default();
+        self.user_id = normalize_id(&self.raw.text_field("id"));
+        self.display_name = self.raw.text_field("displayName");
+        self.location = self.raw.text_field("location");
+        self.traveling_to_location = self.raw.text_field("travelingToLocation");
+        self.world_id = self.raw.text_field("worldId");
+        self.instance_id = self.raw.text_field("instanceId");
+        self.status = self.raw.text_field("status");
+        self.status_description = self.raw.text_field("statusDescription");
+        self.bio = self.raw.text_field("bio");
+        self.current_avatar = normalize_id(&self.raw.text_field("currentAvatar"));
+        self.current_avatar_image_url = self.raw.text_field("currentAvatarImageUrl");
+        self.state_bucket = self.raw.text_field("stateBucket");
+        self.world_name = self.raw.text_field("worldName");
+        self.previous_avatar_swap_time = self
+            .raw
+            .i64_field("$previousAvatarSwapTime")
+            .unwrap_or_default();
     }
 }
 
@@ -257,7 +261,7 @@ impl RealtimeCurrentUserRuntime {
         }
         let event_user_id = snapshot
             .get("id")
-            .map(|value| normalize_id(&string_field(Some(value))))
+            .map(|value| normalize_id(&text_of(Some(value))))
             .unwrap_or_default();
         if event_user_id != state.current_user_id {
             return None;
@@ -421,10 +425,7 @@ fn apply_user_update(
         .cloned()
         .unwrap_or_default();
     patch.remove("state");
-    let event_user_id = first_owned([
-        string_field(patch.get("id")),
-        string_field(content.get("userId")),
-    ]);
+    let event_user_id = first_owned([patch.text_field("id"), content.text_field("userId")]);
     if event_user_id != state.current_user_id {
         return None;
     }
@@ -453,7 +454,7 @@ fn apply_user_location(
     now: &EventTime,
     authority: &RealtimeCurrentUserAuthority,
 ) -> Option<RealtimeCurrentUserOutput> {
-    let event_user_id = normalize_id(&string_field(content.get("userId")));
+    let event_user_id = normalize_id(&content.text_field("userId"));
     if event_user_id != state.current_user_id {
         return None;
     }
@@ -475,7 +476,7 @@ fn apply_user_location(
             },
         );
     }
-    if is_offline_location(&string_field(patch.get("location")))
+    if is_offline_location(&patch.text_field("location"))
         && has_remote_current_user_presence(&state.remote_snapshot)
     {
         if state.pending_offline.is_some() {
@@ -841,8 +842,8 @@ fn build_location_patch(
     traveling_to_location: Option<&Value>,
     world_id: Option<&Value>,
 ) -> Map<String, Value> {
-    let location = string_field(location);
-    let traveling = string_field(traveling_to_location);
+    let location = text_of(location);
+    let traveling = text_of(traveling_to_location);
     let parsed_location = parse_location(&location);
     let parsed_traveling = parse_location(&traveling);
     let mut patch = Map::new();
@@ -850,7 +851,7 @@ fn build_location_patch(
     patch.insert(
         "worldId".into(),
         Value::String(first_owned([
-            string_field(world_id),
+            text_of(world_id),
             parsed_location.world_id.clone(),
         ])),
     );
@@ -938,15 +939,15 @@ fn resolve_state_bucket(
     previous: Option<&Map<String, Value>>,
 ) -> Option<String> {
     for value in [
-        string_field(content.get("state")),
-        string_field(content.get("stateBucket")),
-        string_field(patch.get("state")),
-        string_field(patch.get("stateBucket")),
+        content.text_field("state"),
+        content.text_field("stateBucket"),
+        patch.text_field("state"),
+        patch.text_field("stateBucket"),
         previous
-            .map(|previous| string_field(previous.get("stateBucket")))
+            .map(|previous| previous.text_field("stateBucket"))
             .unwrap_or_default(),
         previous
-            .map(|previous| string_field(previous.get("state")))
+            .map(|previous| previous.text_field("state"))
             .unwrap_or_default(),
     ] {
         match value.trim().to_ascii_lowercase().as_str() {
@@ -965,42 +966,6 @@ fn map_from_json(value: Value) -> Map<String, Value> {
 
 fn normalize_id(value: &str) -> String {
     value.trim().to_string()
-}
-
-fn string_field(value: Option<&Value>) -> String {
-    value
-        .and_then(Value::as_str)
-        .map(ToString::to_string)
-        .unwrap_or_else(|| {
-            value
-                .filter(|value| !value.is_null())
-                .map(ToString::to_string)
-                .unwrap_or_default()
-        })
-}
-
-fn int_field(value: Option<&Value>) -> Option<i64> {
-    value
-        .and_then(Value::as_i64)
-        .or_else(|| {
-            value
-                .and_then(Value::as_u64)
-                .and_then(|value| i64::try_from(value).ok())
-        })
-        .or_else(|| {
-            value
-                .and_then(Value::as_str)
-                .and_then(|value| value.parse().ok())
-        })
-}
-
-fn first_owned(values: impl IntoIterator<Item = String>) -> String {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
-        .unwrap_or_default()
-        .trim()
-        .to_string()
 }
 
 fn first_positive(values: impl IntoIterator<Item = i64>) -> i64 {

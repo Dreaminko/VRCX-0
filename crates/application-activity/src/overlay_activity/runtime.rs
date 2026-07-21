@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Utc};
-use serde_json::Value;
+use vrcx_0_core::json::JsonExt;
 
 use super::content::build_activity_content;
 use super::definitions::{default_rule, known_definition_for_type, normalize_id};
@@ -462,7 +462,7 @@ fn suppresses_current_instance_gps(
     {
         return false;
     }
-    let location = string_field(&candidate.payload, "location");
+    let location = candidate.payload.trimmed_text("location");
     let Some(key) = current_instance_friend_key(state, &candidate.actor_user_id, &location) else {
         return false;
     };
@@ -484,7 +484,7 @@ fn clear_joined_delivery_coverage_for_departing_gps(
         return;
     }
     let user_id = normalize_id(&candidate.actor_user_id);
-    let location = string_field(&candidate.payload, "location");
+    let location = candidate.payload.trimmed_text("location");
     if user_id.is_empty() || location.is_empty() || location == state.current_instance_location {
         return;
     }
@@ -639,20 +639,4 @@ fn normalize_source_id(candidate: &OverlayActivityCandidate) -> String {
     } else {
         source_id.to_string()
     }
-}
-
-pub(super) fn string_field(value: &Value, key: &str) -> String {
-    value
-        .get(key)
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .map(ToString::to_string)
-        .unwrap_or_default()
-}
-
-pub(super) fn first_non_empty<const N: usize>(values: [String; N]) -> String {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
-        .unwrap_or_default()
 }

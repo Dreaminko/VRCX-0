@@ -11,6 +11,8 @@ pub mod log_watcher;
 pub mod realtime;
 pub mod screenshots;
 pub mod social_circles;
+pub mod text;
+pub mod time;
 pub mod trust;
 pub mod user_facts;
 pub mod vrchat_endpoints;

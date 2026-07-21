@@ -1,10 +1,10 @@
-use chrono::{SecondsFormat, Utc};
 use serde_json::Value;
+use vrcx_0_core::time::now_iso;
 use vrcx_0_persistence::local_moderation::{
     self, LocalModerationInput, LocalModerationOutput, RemoteModerationInput,
 };
 use vrcx_0_vrchat_client::http_api::{
-    normalize_vrchat_api_endpoint, ApiScope, HttpApiRequestInput,
+    normalize_vrchat_api_endpoint, ApiJsonResponse, ApiScope, HttpApiRequestInput,
 };
 use vrcx_0_vrchat_client::moderation::{
     player_moderation_update_input, player_moderations_get_input,
@@ -141,10 +141,6 @@ fn normalize_scope_endpoint(value: &str) -> String {
     normalize_endpoint(value)
 }
 
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
-}
-
 fn value_as_normalized_text(value: Option<&Value>) -> String {
     match value {
         Some(Value::String(value)) => normalize_text(value),
@@ -173,43 +169,14 @@ async fn execute_vrchat_json_request(
         .execute_api(request, ApiScope::Vrchat, deps.db)
         .await?;
 
-    let json = parse_response_json(&response.data);
-    if response.status >= 400 || response_has_error(&json) {
-        return Err(Error::Custom(unwrap_error_message(&json, response.status)));
+    let response = ApiJsonResponse::from(&response);
+    if response.is_failure() {
+        return Err(Error::Custom(response.error_message_with_http_status(
+            "VRChat moderation request failed",
+        )));
     }
 
-    Ok(json)
-}
-
-fn parse_response_json(data: &str) -> Value {
-    serde_json::from_str(data).unwrap_or_else(|_| Value::String(data.to_string()))
-}
-
-fn response_has_error(json: &Value) -> bool {
-    json.as_object()
-        .is_some_and(|object| object.contains_key("error"))
-}
-
-fn value_message(value: Option<&Value>) -> Option<String> {
-    value
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|message| !message.is_empty())
-        .map(|message| message.trim_matches('"').to_string())
-}
-
-fn unwrap_error_message(json: &Value, status: i32) -> String {
-    let object = json.as_object();
-    let nested_message = object
-        .and_then(|record| record.get("error"))
-        .and_then(Value::as_object)
-        .and_then(|error| error.get("message"));
-    let message = value_message(Some(json))
-        .or_else(|| value_message(nested_message))
-        .or_else(|| value_message(object.and_then(|record| record.get("message"))))
-        .unwrap_or_else(|| "VRChat moderation request failed".into());
-
-    format!("{message} (HTTP {status})")
+    Ok(response.json)
 }
 
 fn normalize_remote_moderation_row(row: &Value) -> Option<RemoteModerationRow> {
@@ -337,10 +304,8 @@ mod tests {
 
     #[test]
     fn moderation_error_message_keeps_http_status() {
-        let message = unwrap_error_message(
-            &json!({ "error": { "message": "Application error." } }),
-            500,
-        );
+        let message = ApiJsonResponse::parse(500, r#"{"error":{"message":"Application error."}}"#)
+            .error_message_with_http_status("VRChat moderation request failed");
 
         assert_eq!(message, "Application error. (HTTP 500)");
     }

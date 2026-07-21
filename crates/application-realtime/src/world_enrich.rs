@@ -3,6 +3,7 @@ pub(crate) use vrcx_0_core::location::is_meaningful_world_name;
 use vrcx_0_core::location::{format_display_location, parse_location, world_id_from_location};
 
 use vrcx_0_application_core::{RealtimeEntryCorrectionStream, WorldCache};
+use vrcx_0_core::text::first_owned;
 
 #[derive(Clone, Debug)]
 pub(crate) struct PendingWorldNameResolution {
@@ -225,11 +226,4 @@ fn first_world_id<const N: usize>(values: [String; N]) -> String {
 
 pub fn world_id_from_location_or_id(value: &str) -> String {
     world_id_from_location(value)
-}
-
-fn first_owned<const N: usize>(values: [String; N]) -> String {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
-        .unwrap_or_default()
 }

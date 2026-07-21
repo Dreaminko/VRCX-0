@@ -2,7 +2,8 @@ use serde_json::{Map, Value};
 use vrcx_0_application_core::FriendProjectionPatch;
 use vrcx_0_core::friends::FriendRecord;
 
-use super::super::utils::{parse_location, string_field};
+use super::super::utils::parse_location;
+use vrcx_0_core::json::JsonExt;
 
 #[derive(Clone, Debug)]
 pub(in crate::realtime::friends::runtime) enum FriendRecordPatch {
@@ -182,7 +183,7 @@ pub(in crate::realtime::friends::runtime) fn record_string(
         "currentAvatarThumbnailImageUrl" => record.current_avatar_thumbnail_image_url.clone(),
         "currentAvatarAuthorId" => record.current_avatar_author_id.clone(),
         "currentAvatarName" => record.current_avatar_name.clone(),
-        _ => string_field(record.extra.get(key)),
+        _ => record.extra.text_field(key),
     }
 }
 

@@ -268,7 +268,7 @@ fn resolve_field(raw: &str) -> Option<&'static str> {
     }
 }
 
-pub fn normalize_text(value: &Value) -> String {
+pub fn normalize_fact_text(value: &Value) -> String {
     match value {
         Value::String(text) => text.trim().to_string(),
         Value::Null => String::new(),
@@ -277,11 +277,11 @@ pub fn normalize_text(value: &Value) -> String {
 }
 
 pub fn normalize_user_id(value: &Value) -> String {
-    normalize_text(value)
+    normalize_fact_text(value)
 }
 
 pub fn normalize_endpoint(value: &Value) -> String {
-    let text = normalize_text(value);
+    let text = normalize_fact_text(value);
     if text.is_empty() {
         "default".to_string()
     } else {
@@ -299,7 +299,7 @@ pub fn user_fact_key(endpoint: &Value, user_id: &Value) -> String {
 }
 
 pub fn normalize_state_bucket(value: &Value) -> String {
-    match normalize_text(value).to_ascii_lowercase().as_str() {
+    match normalize_fact_text(value).to_ascii_lowercase().as_str() {
         "online" => "online".to_string(),
         "active" => "active".to_string(),
         "offline" => "offline".to_string(),
@@ -366,10 +366,6 @@ fn normalize_fact_patch(input: &Value) -> Map<String, Value> {
     patch
 }
 
-fn now_iso() -> String {
-    chrono::Utc::now().to_rfc3339()
-}
-
 pub fn merge_user_fact(
     existing: Option<&UserFact>,
     input: &Value,
@@ -409,9 +405,9 @@ pub fn merge_user_fact(
         }
     };
     let updated_at = {
-        let received = normalize_text(&Value::String(options.received_at.clone()));
+        let received = normalize_fact_text(&Value::String(options.received_at.clone()));
         if received.is_empty() {
-            now_iso()
+            chrono::Utc::now().to_rfc3339()
         } else {
             received
         }

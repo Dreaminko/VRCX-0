@@ -1,12 +1,9 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-use chrono::{SecondsFormat, Utc};
 use serde::Serialize;
 
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
-}
+use vrcx_0_core::time::now_iso;
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]

@@ -4,6 +4,8 @@ use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use crate::world_enrich::world_id_from_location_or_id;
 
 use super::RealtimeInstanceQueueProjection;
+use vrcx_0_core::json::trimmed_text_of as string_field;
+use vrcx_0_core::text::first_owned;
 
 pub fn apply_instance_queue_ws_message(
     generation: u64,
@@ -37,20 +39,6 @@ pub fn apply_instance_queue_ws_message(
     })
 }
 
-fn string_field(value: Option<&Value>) -> String {
-    value
-        .and_then(Value::as_str)
-        .map(ToString::to_string)
-        .unwrap_or_else(|| {
-            value
-                .filter(|value| !value.is_null())
-                .map(ToString::to_string)
-                .unwrap_or_default()
-        })
-        .trim()
-        .to_string()
-}
-
 fn number_field(value: Option<&Value>) -> i64 {
     let Some(value) = value else {
         return 0;
@@ -69,12 +57,5 @@ fn number_field(value: Option<&Value>) -> i64 {
     string_field(Some(value))
         .parse::<i64>()
         .map(|number| number.max(0))
-        .unwrap_or_default()
-}
-
-fn first_owned<const N: usize>(values: [String; N]) -> String {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
         .unwrap_or_default()
 }

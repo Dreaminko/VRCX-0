@@ -1,4 +1,5 @@
 use serde_json::Value;
+use vrcx_0_core::json::JsonExt;
 use vrcx_0_vrchat_client::auth::{config_get_input, current_user_get_input};
 use vrcx_0_vrchat_client::http_api::{ApiScope, HttpApiExecuteResponse};
 
@@ -69,7 +70,7 @@ pub(super) async fn probe_cookie_session(
         return Ok(CookieProbeResult::RequiresTwoFactor(response));
     }
 
-    let actual_user_id = string_field(&user, "id").unwrap_or_default();
+    let actual_user_id = user.scalar_field("id").unwrap_or_default();
     if actual_user_id.is_empty() {
         return Err(Error::Custom(
             "The auth request did not return a current user payload.".into(),
@@ -86,17 +87,4 @@ pub(super) async fn probe_cookie_session(
 fn response_is_missing_credentials(response: &HttpApiExecuteResponse) -> bool {
     response.status == 401
         && auth_response_error_message(response, String::new()).contains("Missing Credentials")
-}
-
-fn string_field(value: &Value, key: &str) -> Option<String> {
-    value
-        .as_object()
-        .and_then(|object| object.get(key))
-        .and_then(|value| match value {
-            Value::String(value) => Some(value.trim().to_string()),
-            Value::Number(value) => Some(value.to_string()),
-            Value::Bool(value) => Some(value.to_string()),
-            _ => None,
-        })
-        .filter(|value| !value.is_empty())
 }

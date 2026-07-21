@@ -1,4 +1,5 @@
 use serde_json::Value;
+use vrcx_0_core::json::JsonExt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeOutputMode {
@@ -36,12 +37,12 @@ fn format_realtime_ws_status(
     mode: RuntimeOutputMode,
     payload: &Value,
 ) -> Option<RuntimeOutputLine> {
-    let status = string_field(payload, "status");
+    let status = payload.trimmed_text("status");
     if status.is_empty() {
         return None;
     }
 
-    let reason = string_field(payload, "reason");
+    let reason = payload.trimmed_text("reason");
     let detail = if reason.is_empty() {
         format!("ws status: {status}")
     } else {
@@ -69,13 +70,13 @@ fn format_backend_runtime_telemetry(
     mode: RuntimeOutputMode,
     payload: &Value,
 ) -> Option<RuntimeOutputLine> {
-    let kind = string_field(payload, "kind");
-    let detail = string_field(payload, "detail");
+    let kind = payload.trimmed_text("kind");
+    let detail = payload.trimmed_text("detail");
     let snapshot = payload.get("snapshot").unwrap_or(&Value::Null);
     match kind.as_str() {
         "authSuccess" => {
-            let name = string_field(snapshot, "authDisplayName");
-            let user_id = string_field(snapshot, "authUserId");
+            let name = snapshot.trimmed_text("authDisplayName");
+            let user_id = snapshot.trimmed_text("authUserId");
             info(
                 mode,
                 format!(
@@ -157,15 +158,6 @@ fn with_mode_prefix(mode: RuntimeOutputMode, message: impl Into<String>) -> Stri
         RuntimeOutputMode::Background => format!("background mode {message}"),
         RuntimeOutputMode::Headless => message,
     }
-}
-
-fn string_field(value: &Value, key: &str) -> String {
-    value
-        .get(key)
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .trim()
-        .to_string()
 }
 
 fn empty_fallback<'a>(value: &'a str, fallback: &'a str) -> &'a str {

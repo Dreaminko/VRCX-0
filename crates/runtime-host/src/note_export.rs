@@ -118,7 +118,9 @@ impl NoteExportRuntime {
                 move || {
                     cancel_for_check.load(Ordering::Acquire)
                         || stop_token.is_stop_requested()
-                        || !auth_scope_matches(&auth_scope_for_check.snapshot(), &scope_for_check)
+                        || !auth_scope_for_check
+                            .snapshot()
+                            .generation_matches(&scope_for_check)
                 },
                 move |progress| {
                     runtime_for_progress.apply_progress(&run_id_for_progress, progress);
@@ -217,16 +219,6 @@ fn is_active_status(status: NoteExportState) -> bool {
         status,
         NoteExportState::Running | NoteExportState::Cancelling
     )
-}
-
-fn auth_scope_matches(
-    current: &RuntimeAuthScopeSnapshot,
-    expected: &RuntimeAuthScopeSnapshot,
-) -> bool {
-    current.active
-        && current.generation == expected.generation
-        && current.current_user_id == expected.current_user_id
-        && current.endpoint == expected.endpoint
 }
 
 fn mark_cancelling_if_scope_mismatch(

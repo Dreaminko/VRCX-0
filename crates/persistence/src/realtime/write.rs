@@ -9,6 +9,7 @@ use vrcx_0_core::trust::trust_level_changed;
 
 use super::schema::{ensure_realtime_tables, normalize_user_table_prefix};
 use super::types::*;
+use vrcx_0_core::text::first_non_empty;
 
 #[derive(Clone, Debug, Default)]
 struct ExistingFriendLogRow {
@@ -800,14 +801,6 @@ fn json_string(value: Option<&Value>, default: &str) -> String {
         .filter(|value| !value.is_null())
         .map(ToString::to_string)
         .unwrap_or_else(|| default.to_string())
-}
-
-fn first_non_empty<'a>(values: impl IntoIterator<Item = &'a str>) -> &'a str {
-    values
-        .into_iter()
-        .find(|value| !value.trim().is_empty())
-        .unwrap_or("")
-        .trim()
 }
 
 #[cfg(test)]

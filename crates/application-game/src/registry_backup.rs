@@ -1,10 +1,11 @@
-use chrono::{Duration, SecondsFormat, Utc};
+use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use vrcx_0_persistence::config;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::{Error, Result};
+use vrcx_0_core::time::{iso_millis, now_iso};
 
 const CONFIG_AUTO_BACKUP: &str = "vrcRegistryAutoBackup";
 const CONFIG_ASK_RESTORE: &str = "vrcRegistryAskRestore";
@@ -181,7 +182,7 @@ pub fn registry_backup_maintenance_run(
 
     match create_backup(db, host, AUTO_BACKUP_NAME.into(), now) {
         Ok(()) => {
-            config::set_string(db, CONFIG_LAST_BACKUP_DATE, &now_iso_from(now))?;
+            config::set_string(db, CONFIG_LAST_BACKUP_DATE, &iso_millis(now))?;
             let detail = format!("Registry auto backup created ({reason}).");
             maintenance_result(db, true, false, None, detail)
         }
@@ -236,7 +237,7 @@ fn create_backup(
     let mut backups = read_backups(db)?;
     backups.push(StoredRegistryBackup {
         name,
-        date: now_iso_from(now),
+        date: iso_millis(now),
         data,
     });
     write_backups(db, &backups)?;
@@ -379,14 +380,6 @@ fn non_empty_or_now(value: &str) -> String {
     } else {
         value.to_string()
     }
-}
-
-fn now_iso() -> String {
-    now_iso_from(Utc::now())
-}
-
-fn now_iso_from(now: chrono::DateTime<Utc>) -> String {
-    now.to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 fn parse_backup_date(value: &str) -> Option<chrono::DateTime<Utc>> {

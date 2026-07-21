@@ -4,10 +4,12 @@ use vrcx_0_application_core::{
     RealtimeNotificationProjection,
 };
 
+use super::content::nested_string;
 use super::definitions::known_definition_for_type;
-use super::runtime::{first_non_empty, string_field};
 use super::types::{OverlayActivityCandidate, OverlayActivityEntry};
 use super::OverlayActivityRuntime;
+use vrcx_0_core::json::JsonExt;
+use vrcx_0_core::text::first_owned;
 
 impl OverlayActivityRuntime {
     pub fn ingest_friend_projection(
@@ -69,10 +71,10 @@ impl OverlayActivityRuntime {
         projection: &RealtimeInstanceClosedProjection,
     ) -> Vec<OverlayActivityEntry> {
         let notification = &projection.notification;
-        let location = string_field(notification, "location");
-        let created_at = first_non_empty([
-            string_field(notification, "createdAt"),
-            string_field(notification, "created_at"),
+        let location = notification.trimmed_text("location");
+        let created_at = first_owned([
+            notification.trimmed_text("createdAt"),
+            notification.trimmed_text("created_at"),
         ]);
         let candidate = OverlayActivityCandidate {
             source_id: format!("instance-closed:{location}:{created_at}"),
@@ -97,37 +99,37 @@ impl OverlayActivityRuntime {
 }
 
 fn friend_feed_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
-    let activity_type = string_field(value, "type");
+    let activity_type = value.trimmed_text("type");
     known_definition_for_type(&activity_type)?;
-    let created_at = first_non_empty([
-        string_field(value, "created_at"),
-        string_field(value, "createdAt"),
+    let created_at = first_owned([
+        value.trimmed_text("created_at"),
+        value.trimmed_text("createdAt"),
     ]);
-    let user_id = string_field(value, "userId");
+    let user_id = value.trimmed_text("userId");
     let current_instance = activity_type == "OnPlayerJoining";
     Some(OverlayActivityCandidate {
         source_id: format!("friend-feed:{activity_type}:{user_id}:{created_at}"),
         activity_type,
         created_at,
         actor_user_id: user_id,
-        actor_display_name: string_field(value, "displayName"),
+        actor_display_name: value.trimmed_text("displayName"),
         current_instance,
         payload: value.clone(),
     })
 }
 
 fn notification_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
-    let activity_type = string_field(value, "type");
+    let activity_type = value.trimmed_text("type");
     known_definition_for_type(&activity_type)?;
-    let id = first_non_empty([
-        string_field(value, "id"),
-        string_field(value, "notificationId"),
+    let id = first_owned([
+        value.trimmed_text("id"),
+        value.trimmed_text("notificationId"),
     ]);
-    let created_at = first_non_empty([
-        string_field(value, "createdAt"),
-        string_field(value, "created_at"),
+    let created_at = first_owned([
+        value.trimmed_text("createdAt"),
+        value.trimmed_text("created_at"),
     ]);
-    let actor_user_id = string_field(value, "senderUserId");
+    let actor_user_id = value.trimmed_text("senderUserId");
     let actor_user_id = if actor_user_id.starts_with("usr_") {
         actor_user_id
     } else {
@@ -154,30 +156,15 @@ fn notification_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
 }
 
 fn notification_actor_display_name(value: &Value) -> String {
-    first_non_empty([
-        string_field(value, "senderDisplayName"),
-        string_field(value, "displayName"),
-        string_field(value, "senderUsername"),
+    first_owned([
+        value.trimmed_text("senderDisplayName"),
+        value.trimmed_text("displayName"),
+        value.trimmed_text("senderUsername"),
         nested_string(value, &["details", "senderDisplayName"]),
         nested_string(value, &["details", "displayName"]),
         nested_string(value, &["data", "senderDisplayName"]),
         nested_string(value, &["data", "displayName"]),
     ])
-}
-
-fn nested_string(value: &Value, path: &[&str]) -> String {
-    let mut current = value;
-    for key in path {
-        let Some(next) = current.get(key) else {
-            return String::new();
-        };
-        current = next;
-    }
-    current
-        .as_str()
-        .map(str::trim)
-        .map(ToString::to_string)
-        .unwrap_or_default()
 }
 
 fn stable_json_hash(value: &Value) -> String {

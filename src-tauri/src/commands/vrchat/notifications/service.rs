@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 
-use serde_json::Value;
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::notifications::{
     boop_send_input, invite_photo_input, invite_response_photo_input, invite_response_send_input,
@@ -14,6 +13,7 @@ use crate::error::AppError;
 use crate::state::AppState;
 use vrcx_0_application as media_upload;
 use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
+use vrcx_0_vrchat_client::http_api::ApiJsonResponse;
 
 use super::types::{
     VrchatBoopInput, VrchatInviteResponseInput, VrchatInviteResponsePhotoInput,
@@ -23,10 +23,7 @@ use super::types::{
 
 fn response_has_error(response: &VrchatApiResponse) -> bool {
     response.status >= 400
-        || serde_json::from_str::<Value>(&response.data)
-            .ok()
-            .and_then(|value| value.as_object().map(|object| object.contains_key("error")))
-            .unwrap_or(false)
+        || ApiJsonResponse::parse(response.status, &response.data).has_error_field()
 }
 
 async fn execute_notification_api(
