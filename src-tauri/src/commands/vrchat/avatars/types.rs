@@ -44,15 +44,6 @@ pub struct VrchatAvatarSaveInput {
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct VrchatAvatarImpostorCreateInput {
-    #[serde(default)]
-    pub(crate) avatar_id: String,
-    #[serde(default)]
-    pub(crate) empty_body: bool,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
 pub struct VrchatAvatarModerationInput {
     #[serde(default)]
     pub(crate) avatar_id: String,

@@ -1328,7 +1328,7 @@ export const commands = {
         return await TAURI_INVOKE('app__vrchat_avatar_get', { input });
     },
     async appVrchatAvatarImpostorCreate(
-        input: VrchatAvatarImpostorCreateInput
+        input: VrchatAvatarIdInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_avatar_impostor_create', {
             input
@@ -4972,10 +4972,6 @@ export type VrchatAuthFileAnalysisInput = {
 export type VrchatAuthSavedCredentialDeleteInput = { userId?: string };
 export type VrchatAvatarFileInput = { fileId?: string };
 export type VrchatAvatarIdInput = { avatarId?: string };
-export type VrchatAvatarImpostorCreateInput = {
-    avatarId?: string;
-    emptyBody?: boolean;
-};
 export type VrchatAvatarListByUserInput = {
     userId?: string;
     user?: string;

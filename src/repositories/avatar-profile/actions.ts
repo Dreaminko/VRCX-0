@@ -5,7 +5,6 @@ import {
 } from '@/lib/entityQueryCache';
 import {
     commands,
-    type VrchatAvatarImpostorCreateInput,
     type VrchatAvatarSaveInput
 } from '@/platform/tauri/bindings';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
@@ -106,12 +105,10 @@ export async function createImposter({ avatarId }: AvatarIdInput) {
         );
     }
 
-    const input = {
-        avatarId: normalizedAvatarId,
-        emptyBody: true
-    } satisfies VrchatAvatarImpostorCreateInput;
     return unwrapVrchatAvatarResponse<AvatarRecord>(
-        await commands.appVrchatAvatarImpostorCreate(input),
+        await commands.appVrchatAvatarImpostorCreate(
+            avatarIdInput(normalizedAvatarId)
+        ),
         `avatars/${encodeURIComponent(normalizedAvatarId)}/impostor/enqueue`
     );
 }

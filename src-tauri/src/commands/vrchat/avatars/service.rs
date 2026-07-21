@@ -15,8 +15,8 @@ use crate::state::AppState;
 use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
 
 use super::types::{
-    VrchatAvatarFileInput, VrchatAvatarIdInput, VrchatAvatarImpostorCreateInput,
-    VrchatAvatarListByUserInput, VrchatAvatarModerationInput, VrchatAvatarSaveInput,
+    VrchatAvatarFileInput, VrchatAvatarIdInput, VrchatAvatarListByUserInput,
+    VrchatAvatarModerationInput, VrchatAvatarSaveInput,
 };
 
 async fn execute_avatar_api(
@@ -208,13 +208,10 @@ pub async fn app__vrchat_avatar_delete(
 #[specta::specta]
 pub async fn app__vrchat_avatar_impostor_create(
     state: State<'_, AppState>,
-    input: VrchatAvatarImpostorCreateInput,
+    input: VrchatAvatarIdInput,
 ) -> Result<VrchatApiResponse, AppError> {
-    let (avatar_id, request) = avatar_impostor_create_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.avatar_id,
-        input.empty_body,
-    )?;
+    let (avatar_id, request) =
+        avatar_impostor_create_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
     execute_avatar_api(
         state,
         "app__vrchat_avatar_impostor_create",

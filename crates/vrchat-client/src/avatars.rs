@@ -174,7 +174,6 @@ pub fn avatar_delete_input(
 pub fn avatar_impostor_create_input(
     endpoint: String,
     avatar_id: String,
-    empty_body: bool,
 ) -> Result<(String, HttpApiRequestInput), HttpApiError> {
     let avatar_id = require_text(avatar_id, "VrchatAvatarImpostorCreate requires avatarId.")?;
     Ok((
@@ -186,7 +185,7 @@ pub fn avatar_impostor_create_input(
                 "avatars/{}/impostor/enqueue",
                 encode_path_segment(&avatar_id)
             ),
-            empty_body.then(|| json!({})),
+            Some(json!({})),
         ),
     ))
 }
@@ -298,5 +297,25 @@ mod tests {
                 "application/json;charset=utf-8".into()
             )));
         }
+    }
+
+    #[test]
+    fn avatar_impostor_enqueue_sends_the_legacy_empty_json_body() {
+        let input = avatar_impostor_create_input(ENDPOINT.into(), " avtr_test ".into())
+            .unwrap()
+            .1;
+
+        let request = build_web_execute_request(input, ApiScope::Vrchat).unwrap();
+
+        assert_eq!(request.method, "POST");
+        assert_eq!(
+            request.url,
+            format!("{ENDPOINT}/avatars/avtr%5Ftest/impostor/enqueue")
+        );
+        assert_eq!(request.body.as_deref(), Some("{}"));
+        assert!(request.headers.contains(&(
+            "Content-Type".into(),
+            "application/json;charset=utf-8".into()
+        )));
     }
 }

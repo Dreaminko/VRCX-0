@@ -281,8 +281,7 @@ async function createImpostor({ avatarId }: AvatarIdInput = {}) {
 
     const response = unwrapVrchatAvatarResponse(
         await commands.appVrchatAvatarImpostorCreate({
-            avatarId: normalizedAvatarId,
-            emptyBody: false
+            avatarId: normalizedAvatarId
         }),
         `avatars/${encodeURIComponent(normalizedAvatarId)}/impostor/enqueue`
     );
