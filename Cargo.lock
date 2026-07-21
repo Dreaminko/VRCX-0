@@ -9086,8 +9086,6 @@ dependencies = [
 name = "vrcx-0-runtime-host-desktop"
 version = "0.1.0"
 dependencies = [
- "chrono",
- "image",
  "serde",
  "serde_json",
  "specta",

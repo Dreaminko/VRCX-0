@@ -706,6 +706,7 @@ async fn cached_user_response_does_not_revert_display_name() -> Result<()> {
         7,
         1,
     );
+    runtime.deps.tasks.set_executor(DiscardTaskExecutor);
 
     let rename_sequence = runtime
         .friends
