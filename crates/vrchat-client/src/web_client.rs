@@ -7,6 +7,7 @@ use cookie_store::{CookieStore, RawCookie};
 use reqwest::header::{HeaderName, HeaderValue, CONTENT_TYPE, REFERER};
 use reqwest::multipart::{Form, Part};
 use reqwest::{Client, Method, Proxy};
+use vrcx_0_core::image_sniff::sniff_image_mime;
 use vrcx_0_core::vrchat_endpoints::{VRCHAT_CLOUD_ROOT_HOST, VRCHAT_SITE_HOST};
 
 pub type Result<T> = std::result::Result<T, WebClientError>;
@@ -252,15 +253,30 @@ async fn execute_request(client: &Client, request: reqwest::Request) -> Result<(
         .get(CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("")
-        .to_string();
+        .split(';')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
 
-    if content_type.contains("image/") || content_type.contains("application/octet-stream") {
+    if content_type.starts_with("image/") {
         let bytes = response
             .bytes()
             .await
             .map_err(|e| Error::Custom(e.to_string()))?;
         let b64 = B64.encode(&bytes);
-        Ok((status, format!("data:image/png;base64,{b64}")))
+        Ok((status, format!("data:{content_type};base64,{b64}")))
+    } else if content_type == "application/octet-stream" {
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| Error::Custom(e.to_string()))?;
+        if let Some(image_mime) = sniff_image_mime(&bytes) {
+            let b64 = B64.encode(&bytes);
+            Ok((status, format!("data:{image_mime};base64,{b64}")))
+        } else {
+            Ok((status, String::from_utf8_lossy(&bytes).into_owned()))
+        }
     } else {
         let body = response
             .text()
@@ -625,6 +641,41 @@ impl WebClient {
 mod tests {
     use super::*;
 
+    async fn serve_response(
+        content_type: &str,
+        body: &[u8],
+    ) -> (String, tokio::task::JoinHandle<()>) {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+        use tokio::net::TcpListener;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let content_type = content_type.to_string();
+        let body = body.to_vec();
+        let server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut stream = BufReader::new(stream);
+            loop {
+                let mut line = String::new();
+                stream.read_line(&mut line).await.unwrap();
+                if line == "\r\n" {
+                    break;
+                }
+            }
+            let headers = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            stream
+                .get_mut()
+                .write_all(headers.as_bytes())
+                .await
+                .unwrap();
+            stream.get_mut().write_all(&body).await.unwrap();
+        });
+        (format!("http://{address}/image"), server)
+    }
+
     fn legacy_cookie_payload(value: serde_json::Value) -> String {
         B64.encode(serde_json::to_vec(&value).unwrap())
     }
@@ -736,6 +787,50 @@ mod tests {
             .lines()
             .any(|line| line.eq_ignore_ascii_case("user-agent: VRCX-0/2.9.2")));
         assert!(!captured.contains("caller-override"));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn transport_preserves_declared_image_mime() -> Result<()> {
+        let bytes = [0xFF, 0xD8, 0xFF, 0xD9];
+        let (url, server) = serve_response("image/jpeg", &bytes).await;
+        let web = WebClient::new(None, None, env!("CARGO_PKG_VERSION"))?;
+
+        let response = web
+            .execute(WebExecuteRequest::new(url, "GET".into()))
+            .await?;
+        server.await.unwrap();
+
+        assert_eq!(response.0, 200);
+        assert_eq!(
+            response.1,
+            format!("data:image/jpeg;base64,{}", B64.encode(bytes))
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn octet_stream_only_becomes_image_data_url_when_magic_matches() -> Result<()> {
+        let png = [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
+        let (image_url, image_server) = serve_response("application/octet-stream", &png).await;
+        let web = WebClient::new(None, None, env!("CARGO_PKG_VERSION"))?;
+
+        let image_response = web
+            .execute(WebExecuteRequest::new(image_url, "GET".into()))
+            .await?;
+        image_server.await.unwrap();
+        assert_eq!(
+            image_response.1,
+            format!("data:image/png;base64,{}", B64.encode(png))
+        );
+
+        let (text_url, text_server) =
+            serve_response("application/octet-stream", b"not an image").await;
+        let text_response = web
+            .execute(WebExecuteRequest::new(text_url, "GET".into()))
+            .await?;
+        text_server.await.unwrap();
+        assert_eq!(text_response, (200, "not an image".into()));
         Ok(())
     }
 
