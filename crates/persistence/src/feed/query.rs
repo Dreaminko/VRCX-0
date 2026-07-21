@@ -67,11 +67,7 @@ fn query_feed_rows(
     let search = normalize_text(&query.search);
     let instance_mode = mode == "instance"
         || (mode == "search" && (search.starts_with("wrld_") || search.starts_with("grp_")));
-    let recent_order_sql = if mode == "lookup" {
-        "id DESC"
-    } else {
-        "created_at DESC, id DESC"
-    };
+    let recent_order_sql = "created_at DESC, id DESC";
     let flags = feed_filter_flags(&query.filters, !instance_mode);
     let mut selects = Vec::new();
 
@@ -758,7 +754,7 @@ mod tests {
     use crate::database::DatabaseService;
 
     use super::super::write::feed_add_entry;
-    use super::{feed_rows_query, FeedRowsQueryInput};
+    use super::{feed_rows_query, FeedCursorInput, FeedRowsQueryInput};
 
     struct TestDir {
         path: PathBuf,
@@ -784,8 +780,7 @@ mod tests {
     }
 
     #[test]
-    fn lookup_feed_limits_each_table_by_recent_row_id_before_final_date_sort(
-    ) -> Result<(), crate::Error> {
+    fn lookup_feed_pagination_uses_the_same_date_order_as_its_cursor() -> Result<(), crate::Error> {
         let dir = TestDir::new("feed-lookup-rowid");
         let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
 
@@ -820,7 +815,7 @@ mod tests {
             })),
         )?;
 
-        let rows = feed_rows_query(
+        let first_page = feed_rows_query(
             &db,
             FeedRowsQueryInput {
                 user_id: "usr_self".into(),
@@ -836,8 +831,31 @@ mod tests {
             },
         )?;
 
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].display_name.as_value(), "later-inserted");
+        assert_eq!(first_page.len(), 1);
+        assert_eq!(first_page[0].display_name.as_value(), "newer-created");
+
+        let second_page = feed_rows_query(
+            &db,
+            FeedRowsQueryInput {
+                user_id: "usr_self".into(),
+                mode: "lookup".into(),
+                search: String::new(),
+                filters: vec!["GPS".into()],
+                vip_list: Vec::new(),
+                excluded_user_ids: Vec::new(),
+                max_entries: 1,
+                date_from: String::new(),
+                date_to: String::new(),
+                cursor: Some(FeedCursorInput {
+                    created_at: first_page[0].created_at.as_value().as_str().unwrap().into(),
+                    source_rank: first_page[0].source_rank.as_value().as_i64().unwrap(),
+                    row_id: first_page[0].row_id.as_value().as_i64().unwrap(),
+                }),
+            },
+        )?;
+
+        assert_eq!(second_page.len(), 1);
+        assert_eq!(second_page[0].display_name.as_value(), "later-inserted");
         Ok(())
     }
 }
