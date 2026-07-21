@@ -125,12 +125,16 @@ export async function tryOpenLaunchLocation(
     location: unknown,
     shortName: unknown = ''
 ) {
-    const normalizedLocation = normalizeString(location);
+    const { location: normalizedLocation, parsed } =
+        normalizeLaunchLocation(location);
     if (!normalizedLocation || !normalizedLocation.includes(':')) {
         return false;
     }
 
-    return openInstanceInGame(normalizedLocation, shortName);
+    return openInstanceInGame(
+        normalizedLocation,
+        normalizeString(shortName || parsed.shortName)
+    );
 }
 
 async function verifyShortName(location: unknown, shortName: string) {
@@ -185,6 +189,19 @@ async function directAccessWorld(rawInput: unknown) {
 
     if (input.startsWith('/home/')) {
         input = `${VRCHAT_WEB_BASE}${input}`;
+    }
+
+    if (input.startsWith('vrchat://launch')) {
+        const parsed = parseLocation(input);
+        if (!parsed.worldId || !parsed.instanceId) {
+            return false;
+        }
+        const location = `${parsed.worldId}:${parsed.instanceId}`;
+        if (await tryOpenLaunchLocation(location, parsed.shortName)) {
+            return true;
+        }
+        openWorldLocation(location);
+        return true;
     }
 
     if (/^[A-Za-z0-9]{8}$/.test(input)) {

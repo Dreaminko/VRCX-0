@@ -213,7 +213,7 @@ export function LaunchDialogHost() {
             launchDialog.shortName,
             launchDialog.launchToken
         )
-            .then((nextDetails: any) => {
+            .then((nextDetails) => {
                 if (active) {
                     setDetails(nextDetails);
                 }
@@ -303,7 +303,9 @@ export function LaunchDialogHost() {
     }
 
     const actionTag =
-        details.tag || normalizeInstanceLocation(launchDialog.createdInstance);
+        details.location ||
+        details.tag ||
+        normalizeInstanceLocation(launchDialog.createdInstance);
     const actionLaunchToken =
         details.launchToken ||
         details.shortName ||

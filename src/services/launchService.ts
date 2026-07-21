@@ -75,13 +75,21 @@ export async function resolveLaunchDialogDetails(
     let secureOrShortName = normalizeString(launchToken) || nextShortName;
     let worldName = '';
     if (!secureOrShortName) {
-        const response = (await vrchatInstanceRepository.getInstanceShortName({
-            worldId: parsed.worldId,
-            instanceId: parsed.instanceId
-        })) as InstanceShortNameResponse;
-        nextShortName = normalizeString(response.json?.shortName);
-        secureOrShortName =
-            nextShortName || normalizeString(response.json?.secureName);
+        try {
+            const response =
+                (await vrchatInstanceRepository.getInstanceShortName({
+                    worldId: parsed.worldId,
+                    instanceId: parsed.instanceId
+                })) as InstanceShortNameResponse;
+            nextShortName = normalizeString(response.json?.shortName);
+            secureOrShortName =
+                nextShortName || normalizeString(response.json?.secureName);
+        } catch (error) {
+            console.warn(
+                'Failed to resolve launch dialog shortName, continuing with the instance location:',
+                error
+            );
+        }
     }
 
     const launchParsed = {
@@ -107,8 +115,9 @@ export async function attachRunningVrchat(
     location: unknown,
     shortName: unknown = ''
 ): Promise<void> {
-    const launchLocation = normalizeString(location);
-    const launchShortName = normalizeString(shortName);
+    const parsed = parseLocation(location);
+    const launchLocation = resolveLaunchLocation(location);
+    const launchShortName = normalizeString(shortName || parsed.shortName);
     const outcome = await joinInstanceWithFallback(
         launchLocation,
         launchShortName
@@ -132,14 +141,14 @@ export async function selfInviteToInstance(
     location: unknown,
     shortName: unknown = ''
 ): Promise<void> {
-    const launchLocation = normalizeString(location);
-    const launchShortName = normalizeString(shortName);
     const parsed = parseLocation(location);
     if (!parsed.worldId || !parsed.instanceId) {
         throw new Error(
             'Cannot self invite: location is not a concrete instance.'
         );
     }
+    const launchLocation = resolveLaunchLocation(location);
+    const launchShortName = normalizeString(shortName || parsed.shortName);
     await sendSelfInviteToInstance(launchLocation, launchShortName);
 }
 
