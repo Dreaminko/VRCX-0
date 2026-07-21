@@ -1,8 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { entityQueryPolicies, queryKeys } from '@/lib/entityQueryCache';
+import groupProfileRepository from '@/repositories/groupProfileRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
-import { userImage } from '@/services/entityMediaService';
+import {
+    convertFileUrlToImageUrl,
+    userImage
+} from '@/services/entityMediaService';
 import { normalizeString as normalizeId } from '@/shared/utils/string';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -17,6 +21,8 @@ export function useNotificationActorImage(actor: NotificationActor): string {
         userId ? (state.friendsById[userId] ?? null) : null
     );
     const rosterImage = rosterFriend ? userImage(rosterFriend, true, 64) : '';
+    const groupId =
+        actor.kind === 'group' && !actor.imageUrl ? normalizeId(actor.id) : '';
 
     const profileQuery = useQuery({
         queryKey: queryKeys.user(userId, endpoint),
@@ -29,8 +35,28 @@ export function useNotificationActorImage(actor: NotificationActor): string {
             entityQueryPolicies.userAvatarLookup.refetchOnWindowFocus
     });
 
+    const groupQuery = useQuery({
+        queryKey: queryKeys.group(groupId, false, endpoint),
+        queryFn: () =>
+            groupProfileRepository.fetchGroupProfile({
+                groupId,
+                includeRoles: false
+            }),
+        enabled: Boolean(groupId),
+        staleTime: entityQueryPolicies.group.staleTime,
+        gcTime: entityQueryPolicies.group.gcTime,
+        retry: entityQueryPolicies.group.retry,
+        refetchOnWindowFocus: entityQueryPolicies.group.refetchOnWindowFocus
+    });
+
+    if (actor.kind === 'group') {
+        return (
+            actor.imageUrl ||
+            convertFileUrlToImageUrl(groupQuery.data?.iconUrl, 64)
+        );
+    }
     if (actor.kind !== 'user') {
-        return actor.kind === 'group' ? actor.imageUrl : '';
+        return '';
     }
     if (actor.imageUrl) {
         return actor.imageUrl;

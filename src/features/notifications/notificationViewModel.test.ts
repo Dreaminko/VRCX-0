@@ -87,6 +87,19 @@ describe('notification view model', () => {
         expect(view.actor).toMatchObject({ imageUrl: '' });
     });
 
+    it('never falls back to the sender user icon for group notifications', () => {
+        const view = toNotificationViewModel(
+            row({
+                type: 'group.event.created',
+                senderUserId: 'usr_me',
+                senderUserIcon: 'file_my_avatar',
+                data: { ownerId: 'grp_2', ownerName: 'Oak Club' }
+            })
+        );
+
+        expect(view.media).toBe('');
+    });
+
     it('maps invites to the compact template with world context', () => {
         const view = toNotificationViewModel(
             row({

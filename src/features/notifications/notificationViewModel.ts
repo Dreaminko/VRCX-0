@@ -125,7 +125,7 @@ function rawImageUrl(notification: NotificationRow): string {
     const imageUrl = firstText(
         notification.details?.imageUrl,
         notification.imageUrl,
-        notification.senderUserIcon
+        isGroupSender(notification) ? '' : notification.senderUserIcon
     );
     return imageUrl.startsWith('default_') ? '' : imageUrl;
 }
