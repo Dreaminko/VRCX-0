@@ -94,6 +94,30 @@ fn parse_lfs_picture_reads_screenshot_manager_format() {
 }
 
 #[test]
+fn parse_lfs_picture_preserves_commas_in_names() {
+    let screenshot_manager = parse_lfs_picture(
+        "screenshotmanager|1|author:usr_author,Alice, Jr.|wrld_example,12345,Example, World",
+    );
+
+    assert_eq!(
+        screenshot_manager.author.display_name.as_deref(),
+        Some("Alice, Jr.")
+    );
+    assert_eq!(
+        screenshot_manager.world.name.as_deref(),
+        Some("Example, World")
+    );
+
+    let lfs = parse_lfs_picture(
+        "lfs|2|author:usr_author,Alice, Jr.|world:wrld_example,12345,Example, World|players:usr_friend,1,2,3,Bob, Sr.",
+    );
+
+    assert_eq!(lfs.author.display_name.as_deref(), Some("Alice, Jr."));
+    assert_eq!(lfs.world.name.as_deref(), Some("Example, World"));
+    assert_eq!(lfs.players[0].display_name, "Bob, Sr.");
+}
+
+#[test]
 fn parse_lfs_picture_v1_world_keeps_only_name() {
     let metadata = parse_lfs_picture("lfs|1|world:Example World");
 

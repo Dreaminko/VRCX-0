@@ -243,20 +243,21 @@ pub fn parse_lfs_picture(metadata_string: &str) -> ScreenshotMetadata {
 
     if application == "screenshotmanager" {
         if parts.len() >= 4 {
-            let author_parts: Vec<&str> = parts[2]
+            let mut author_parts = parts[2]
                 .strip_prefix("author:")
                 .unwrap_or(parts[2])
-                .split(',')
-                .collect();
-            if author_parts.len() >= 2 {
-                metadata.author.id = author_parts[0].into();
-                metadata.author.display_name = Some(author_parts[1].into());
+                .splitn(2, ',');
+            if let (Some(id), Some(display_name)) = (author_parts.next(), author_parts.next()) {
+                metadata.author.id = id.into();
+                metadata.author.display_name = Some(display_name.into());
             }
-            let world_parts: Vec<&str> = parts[3].split(',').collect();
-            if world_parts.len() >= 3 {
-                metadata.world.id = world_parts[0].into();
-                metadata.world.name = Some(world_parts[2].into());
-                metadata.world.instance_id = format!("{}:{}", world_parts[0], world_parts[1]);
+            let mut world_parts = parts[3].splitn(3, ',');
+            if let (Some(id), Some(instance_id), Some(name)) =
+                (world_parts.next(), world_parts.next(), world_parts.next())
+            {
+                metadata.world.id = id.into();
+                metadata.world.name = Some(name.into());
+                metadata.world.instance_id = format!("{id}:{instance_id}");
             }
         }
         return metadata;
@@ -269,46 +270,56 @@ pub fn parse_lfs_picture(metadata_string: &str) -> ScreenshotMetadata {
         }
         let key = split[0];
         let value = split[1];
-        let sub_parts: Vec<&str> = value.split(',').collect();
 
         match key {
-            "author" if sub_parts.len() >= 2 => {
-                metadata.author.id = if is_cvr {
-                    String::new()
-                } else {
-                    sub_parts[0].into()
+            "author" => {
+                let Some((id, display_name)) = value.split_once(',') else {
+                    continue;
                 };
+                metadata.author.id = if is_cvr { String::new() } else { id.into() };
                 metadata.author.display_name = Some(if is_cvr {
-                    format!("{} ({})", sub_parts[1], sub_parts[0])
+                    format!("{display_name} ({id})")
                 } else {
-                    sub_parts[1].into()
+                    display_name.into()
                 });
             }
             "world" => {
                 if is_cvr || version == 1 {
                     metadata.world.id = String::new();
                     metadata.world.instance_id = String::new();
-                    metadata.world.name = Some(if is_cvr && sub_parts.len() >= 3 {
-                        format!("{} ({})", sub_parts[2], sub_parts[0])
+                    metadata.world.name = Some(if is_cvr {
+                        let mut world_parts = value.splitn(3, ',');
+                        match (world_parts.next(), world_parts.next(), world_parts.next()) {
+                            (Some(id), Some(_), Some(name)) => format!("{name} ({id})"),
+                            _ => value.into(),
+                        }
                     } else {
                         value.into()
                     });
-                } else if sub_parts.len() >= 3 {
-                    metadata.world.id = sub_parts[0].into();
-                    metadata.world.instance_id = format!("{}:{}", sub_parts[0], sub_parts[1]);
-                    metadata.world.name = Some(sub_parts[2].into());
+                } else {
+                    let mut world_parts = value.splitn(3, ',');
+                    if let (Some(id), Some(instance_id), Some(name)) =
+                        (world_parts.next(), world_parts.next(), world_parts.next())
+                    {
+                        metadata.world.id = id.into();
+                        metadata.world.instance_id = format!("{id}:{instance_id}");
+                        metadata.world.name = Some(name.into());
+                    }
                 }
             }
-            "pos" if sub_parts.len() >= 3 => {
-                let x: f32 = sub_parts[0].parse().unwrap_or(0.0);
-                let y: f32 = sub_parts[1].parse().unwrap_or(0.0);
-                let z: f32 = sub_parts[2].parse().unwrap_or(0.0);
-                metadata.pos = Some([x, y, z]);
+            "pos" => {
+                let coordinates = value.splitn(3, ',').collect::<Vec<_>>();
+                if coordinates.len() >= 3 {
+                    let x: f32 = coordinates[0].parse().unwrap_or(0.0);
+                    let y: f32 = coordinates[1].parse().unwrap_or(0.0);
+                    let z: f32 = coordinates[2].parse().unwrap_or(0.0);
+                    metadata.pos = Some([x, y, z]);
+                }
             }
             "players" => {
                 let players_str = value.split(';');
                 for player in players_str {
-                    let pp: Vec<&str> = player.split(',').collect();
+                    let pp: Vec<&str> = player.splitn(5, ',').collect();
                     if pp.len() >= 5 {
                         let x: f32 = pp[1].parse().unwrap_or(0.0);
                         let y: f32 = pp[2].parse().unwrap_or(0.0);
