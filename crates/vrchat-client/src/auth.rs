@@ -80,10 +80,17 @@ pub fn totp_verify_input(endpoint: String, code: String) -> HttpApiRequestInput 
 
 pub fn otp_verify_input(endpoint: String, code: String) -> HttpApiRequestInput {
     let normalized_code = normalize_text(code).replace(char::is_whitespace, "");
-    let formatted_code = if normalized_code.len() > 4 && !normalized_code.contains('-') {
-        format!("{}-{}", &normalized_code[..4], &normalized_code[4..])
-    } else {
+    let formatted_code = if normalized_code.contains('-') {
         normalized_code
+    } else {
+        let mut chars = normalized_code.chars();
+        let prefix = chars.by_ref().take(4).collect::<String>();
+        let suffix = chars.collect::<String>();
+        if suffix.is_empty() {
+            prefix
+        } else {
+            format!("{prefix}-{suffix}")
+        }
     };
     api_input(
         endpoint,
@@ -230,6 +237,14 @@ mod tests {
             format!("{ENDPOINT}/auth/twofactorauth/emailotp/verify")
         );
         assert_eq!(email.body.as_deref(), Some(r#"{"code":"abc123"}"#));
+    }
+
+    #[test]
+    fn otp_recovery_code_formatting_is_safe_for_unicode_input() {
+        let otp = request(otp_verify_input(ENDPOINT.into(), "１２３４５６".into()));
+
+        assert_eq!(otp.url, format!("{ENDPOINT}/auth/twofactorauth/otp/verify"));
+        assert_eq!(otp.body.as_deref(), Some(r#"{"code":"１２３４-５６"}"#));
     }
 
     #[test]
