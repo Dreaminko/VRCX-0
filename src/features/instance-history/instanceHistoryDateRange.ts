@@ -57,7 +57,17 @@ export function buildLocalDayInstanceHistoryDateRange(
 
     return {
         from,
-        to: new Date(from.getTime() + DAY_MS - 1)
+        to: new Date(
+            new Date(
+                yearValue,
+                monthValue - 1,
+                dayValue + 1,
+                0,
+                0,
+                0,
+                0
+            ).getTime() - 1
+        )
     };
 }
 

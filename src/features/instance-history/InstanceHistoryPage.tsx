@@ -17,7 +17,7 @@ import {
 import {
     createdTime,
     rowLocation,
-    rowSearchText,
+    rowMatchesSearch,
     sortPreviousInstanceRows
 } from '@/components/dialogs/previous-instances-table/previousInstancesRows';
 import { PreviousInstanceDetailsPanel } from '@/components/dialogs/previous-instances-table/PreviousInstancesViewParts';
@@ -514,12 +514,12 @@ export function InstanceHistoryPage({
     ]);
 
     const filteredRows = useMemo(() => {
-        const query = search.trim().toLowerCase();
+        const query = search.trim();
         const dateRows = rows.filter((row) =>
             dateRangeContains(row, dateRange.from, dateRange.to)
         );
         const nextRows = query
-            ? dateRows.filter((row) => rowSearchText(row).includes(query))
+            ? dateRows.filter((row) => rowMatchesSearch(row, query))
             : dateRows;
         return sortPreviousInstanceRows(nextRows, sortKey, sortDesc);
     }, [dateRange.from, dateRange.to, rows, search, sortDesc, sortKey]);

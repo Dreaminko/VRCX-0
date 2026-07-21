@@ -81,12 +81,26 @@ function normalizeDateBoundary(value: unknown, boundary: 'start' | 'end') {
         return '';
     }
 
-    const date = new Date(normalized);
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+    const date = dateOnlyMatch
+        ? new Date(
+              Number(dateOnlyMatch[1]),
+              Number(dateOnlyMatch[2]) - 1,
+              Number(dateOnlyMatch[3])
+          )
+        : new Date(normalized);
     if (Number.isNaN(date.getTime())) {
         return '';
     }
 
-    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    if (dateOnlyMatch) {
+        if (
+            date.getFullYear() !== Number(dateOnlyMatch[1]) ||
+            date.getMonth() !== Number(dateOnlyMatch[2]) - 1 ||
+            date.getDate() !== Number(dateOnlyMatch[3])
+        ) {
+            return '';
+        }
         if (boundary === 'end') {
             date.setHours(23, 59, 59, 999);
         } else {

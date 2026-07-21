@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
     buildDefaultSelfInstanceHistoryDateRange,
@@ -7,6 +7,14 @@ import {
     resolveClearedInstanceHistoryDateRange,
     resolveScopedInstanceHistoryDateRange
 } from './instanceHistoryDateRange';
+
+beforeAll(() => {
+    vi.stubEnv('TZ', 'America/New_York');
+});
+
+afterAll(() => {
+    vi.unstubAllEnvs();
+});
 
 describe('instanceHistoryDateRange', () => {
     it('builds the self default window from the current system time', () => {
@@ -23,6 +31,21 @@ describe('instanceHistoryDateRange', () => {
 
         expect(range.from).toEqual(new Date(2026, 6, 3, 0, 0, 0, 0));
         expect(range.to).toEqual(new Date(2026, 6, 3, 23, 59, 59, 999));
+    });
+
+    it('uses local calendar boundaries across daylight-saving transitions', () => {
+        const springForward =
+            buildLocalDayInstanceHistoryDateRange('2026-03-08');
+        const fallBack = buildLocalDayInstanceHistoryDateRange('2026-11-01');
+
+        expect(springForward.to).toEqual(new Date(2026, 2, 8, 23, 59, 59, 999));
+        expect(
+            springForward.to!.getTime() - springForward.from!.getTime()
+        ).toBe(23 * 60 * 60 * 1000 - 1);
+        expect(fallBack.to).toEqual(new Date(2026, 10, 1, 23, 59, 59, 999));
+        expect(fallBack.to!.getTime() - fallBack.from!.getTime()).toBe(
+            25 * 60 * 60 * 1000 - 1
+        );
     });
 
     it('resets cleared self search dates to the 30 day default', () => {
