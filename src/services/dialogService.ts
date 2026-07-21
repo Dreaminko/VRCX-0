@@ -259,9 +259,19 @@ function openEntityDialog({
     const activeDialogIsEntity = Boolean(
         store.activeDialog?.kind && store.activeDialog?.entityId
     );
-    const breadcrumbs = activeDialogIsEntity
-        ? [...store.breadcrumbs, crumb]
-        : [crumb];
+    const existingIndex = activeDialogIsEntity
+        ? store.breadcrumbs.findIndex(
+              (entry) =>
+                  entry.kind === kind &&
+                  normalizeEntityId(entry.entityId) === normalizedEntityId
+          )
+        : -1;
+    const breadcrumbs =
+        existingIndex >= 0
+            ? [...store.breadcrumbs.slice(0, existingIndex), crumb]
+            : activeDialogIsEntity
+              ? [...store.breadcrumbs, crumb]
+              : [crumb];
 
     store.setDialogTrail(dialog, breadcrumbs);
 }
