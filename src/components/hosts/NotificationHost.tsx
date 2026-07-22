@@ -1,12 +1,14 @@
 import { BellIcon, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { preserveAppTitleBarOnOpenChange } from '@/lib/overlayTitlebar';
 import { useNotificationStore } from '@/state/notificationStore';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Separator } from '@/ui/shadcn/separator';
 import {
     Sheet,
+    SheetClose,
     SheetContent,
     SheetDescription,
     SheetHeader,
@@ -26,8 +28,20 @@ export function NotificationHost() {
     const unreadCount = items.filter((item: any) => !item.read).length;
 
     return (
-        <Sheet open={isPanelOpen} onOpenChange={setPanelOpen}>
-            <SheetContent className="w-full sm:max-w-lg">
+        <Sheet
+            open={isPanelOpen}
+            modal="trap-focus"
+            onOpenChange={(open, eventDetails) => {
+                if (preserveAppTitleBarOnOpenChange(open, eventDetails)) {
+                    return;
+                }
+                setPanelOpen(open);
+            }}
+        >
+            <SheetContent
+                showCloseButton={false}
+                className="top-8! bottom-0! h-[calc(100vh-2rem)]! w-full sm:max-w-lg"
+            >
                 <SheetHeader className="flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3">
                         <SheetTitle className="flex items-center gap-2">
@@ -93,6 +107,18 @@ export function NotificationHost() {
                         </div>
                     )}
                 </div>
+                <SheetClose
+                    render={
+                        <Button
+                            variant="ghost"
+                            className="absolute top-3 right-3"
+                            size="icon-sm"
+                        />
+                    }
+                >
+                    <XIcon />
+                    <span className="sr-only">{t('common.actions.close')}</span>
+                </SheetClose>
             </SheetContent>
         </Sheet>
     );

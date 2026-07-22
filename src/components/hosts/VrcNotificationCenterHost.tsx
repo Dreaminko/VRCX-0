@@ -1,4 +1,4 @@
-import { BellIcon, CheckCheckIcon, RefreshCcwIcon } from 'lucide-react';
+import { BellIcon, CheckCheckIcon, RefreshCcwIcon, XIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { NotificationDrawerList } from '@/features/notifications/drawer/Notifica
 import { shouldOpenBoopReplyDialog } from '@/features/notifications/notificationResponseModel';
 import { useNotificationTypeLabel } from '@/features/notifications/useNotificationTypeLabel';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
+import { preserveAppTitleBarOnOpenChange } from '@/lib/overlayTitlebar';
 import notificationPersistenceRepository, {
     type NotificationResponse,
     type NotificationRow
@@ -31,6 +32,7 @@ import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {
     Sheet,
+    SheetClose,
     SheetContent,
     SheetHeader,
     SheetTitle
@@ -436,10 +438,20 @@ export function VrcNotificationCenterHost() {
 
     return (
         <>
-            <Sheet open={isCenterOpen} onOpenChange={handleOpenChange}>
+            <Sheet
+                open={isCenterOpen}
+                modal="trap-focus"
+                onOpenChange={(open, eventDetails) => {
+                    if (preserveAppTitleBarOnOpenChange(open, eventDetails)) {
+                        return;
+                    }
+                    handleOpenChange(open);
+                }}
+            >
                 <SheetContent
                     side="right"
-                    className="flex w-[min(100vw,40rem)]! flex-col gap-0 p-0 sm:max-w-none!"
+                    showCloseButton={false}
+                    className="top-8! bottom-0! flex h-[calc(100vh-2rem)]! w-[min(100vw,40rem)]! flex-col gap-0 p-0 sm:max-w-none!"
                 >
                     <SheetHeader className="border-b px-4 pt-4 pb-3">
                         <div className="flex items-center justify-between gap-3 pr-8">
@@ -549,6 +561,20 @@ export function VrcNotificationCenterHost() {
                         }}
                         onNavigateToTable={navigateToTable}
                     />
+                    <SheetClose
+                        render={
+                            <Button
+                                variant="ghost"
+                                className="absolute top-3 right-3"
+                                size="icon-sm"
+                            />
+                        }
+                    >
+                        <XIcon />
+                        <span className="sr-only">
+                            {t('common.actions.close')}
+                        </span>
+                    </SheetClose>
                 </SheetContent>
             </Sheet>
             <InviteMessageDialog

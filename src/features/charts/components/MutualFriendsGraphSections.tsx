@@ -1,7 +1,8 @@
-import { CheckIcon, RefreshCcwIcon, Settings2Icon } from 'lucide-react';
+import { CheckIcon, RefreshCcwIcon, Settings2Icon, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { UserPickerRow } from '@/components/search/UserPickerRow';
+import { preserveAppTitleBarOnOpenChange } from '@/lib/overlayTitlebar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
@@ -11,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import {
     Sheet,
+    SheetClose,
     SheetContent,
     SheetHeader,
     SheetTitle,
@@ -176,7 +178,12 @@ function MutualFriendsSettingsSheet({
     const { t } = useTranslation();
 
     return (
-        <Sheet>
+        <Sheet
+            modal="trap-focus"
+            onOpenChange={(open, eventDetails) => {
+                preserveAppTitleBarOnOpenChange(open, eventDetails);
+            }}
+        >
             <SheetTrigger
                 render={
                     <Button
@@ -189,7 +196,11 @@ function MutualFriendsSettingsSheet({
                     </Button>
                 }
             />
-            <SheetContent side="right" className="w-90 overflow-y-auto">
+            <SheetContent
+                side="right"
+                showCloseButton={false}
+                className="top-8! bottom-0! h-[calc(100vh-2rem)]! w-90 overflow-y-auto"
+            >
                 <SheetHeader>
                     <SheetTitle>
                         {t('view.charts.mutual_friend.settings.title')}
@@ -310,6 +321,18 @@ function MutualFriendsSettingsSheet({
                         {t('view.charts.mutual_friend.settings.reset_defaults')}
                     </Button>
                 </div>
+                <SheetClose
+                    render={
+                        <Button
+                            variant="ghost"
+                            className="absolute top-3 right-3"
+                            size="icon-sm"
+                        />
+                    }
+                >
+                    <XIcon />
+                    <span className="sr-only">{t('common.actions.close')}</span>
+                </SheetClose>
             </SheetContent>
         </Sheet>
     );
