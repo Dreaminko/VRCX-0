@@ -175,7 +175,9 @@ export const useAssistantChatStore = create<AssistantChatState>((set) => ({
         set((state) =>
             updateMessages(state, event.sessionId, (messages) =>
                 withAssistantMessage(messages, event.turnId, (message) => {
-                    message.text += event.text;
+                    message.text = event.replace
+                        ? event.text
+                        : message.text + event.text;
                     message.streaming = true;
                     return message;
                 })

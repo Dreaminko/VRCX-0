@@ -28,6 +28,54 @@ facts.";
 const EMPTY_TOOL_FALLBACK_ANSWER: &str = "\
 I used the available tools, but they did not return enough detail to write a reliable \
 answer. Try narrowing the question or asking again.";
+const UNFINISHED_ANSWER_MESSAGE: &str = "\
+The model returned an unfinished response without supported tool facts. Try again or \
+rephrase the question.";
+
+const PLACEHOLDER_MARKERS: &[&str] = &[
+    "[friend name",
+    "[user name",
+    "[username",
+    "[display name",
+    "[world name",
+    "[time minutes",
+    "[placeholder",
+    "<friend name",
+    "<user name",
+    "<display name",
+    "<time minutes",
+    "{{friend",
+    "{{user",
+    "{{display",
+    "{{time",
+    "[好友名称",
+    "[好友名",
+    "[用户名",
+    "[時間（分）",
+    "[フレンド名",
+    "[친구 이름",
+    "[시간(분)",
+];
+
+const DEFERRED_ANSWER_MARKERS: &[&str] = &[
+    "请稍等",
+    "請稍等",
+    "正在为您查询",
+    "正在為您查詢",
+    "正在查询",
+    "正在查詢",
+    "please wait",
+    "let me check",
+    "i am checking",
+    "i'm checking",
+    "working on it",
+    "しばらくお待ち",
+    "調べています",
+    "確認しています",
+    "잠시만 기다",
+    "조회 중",
+    "확인하고 있습니다",
+];
 
 pub const SYSTEM_PROMPT: &str = "\
 You are the VRCX-0 social assistant. Answer questions about the signed-in user's \
@@ -120,6 +168,7 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
     let mut used_tools = false;
     let mut last_success_tool_summary: Option<String> = None;
     let mut last_error_tool_summary: Option<String> = None;
+    let mut last_supported_tool_summary: Option<String> = None;
     let mut dispatched_tools = HashSet::new();
 
     for _round in 0..MAX_TOOL_ROUNDS {
@@ -191,6 +240,11 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
                 &mut last_success_tool_summary,
                 &mut last_error_tool_summary,
             );
+            if resolved.ok {
+                if let Some(summary) = resolved.supported_summary.as_deref() {
+                    last_supported_tool_summary = Some(summary.to_string());
+                }
+            }
             collected.extend(resolved.entities.iter().cloned());
             ctx.emitter
                 .tool_result(&call.id, resolved.ok, &resolved.summary, &resolved.entities);
@@ -225,13 +279,28 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
         return;
     }
 
+    match guard_final_answer(&mut final_answer, last_supported_tool_summary.as_deref()) {
+        FinalAnswerGuard::Valid => {}
+        FinalAnswerGuard::Corrected(kind) => {
+            tracing::warn!(
+                kind,
+                "assistant: replaced unfinished answer with tool summary"
+            );
+        }
+        FinalAnswerGuard::Rejected(kind) => {
+            tracing::warn!(
+                kind,
+                "assistant: rejected unfinished answer without tool summary"
+            );
+            ctx.emitter.answer("");
+            return finish_error(&ctx, "unfinished_answer", UNFINISHED_ANSWER_MESSAGE);
+        }
+    }
+
     if final_answer.trim().is_empty() {
         let fallback_summary = last_success_tool_summary.or(last_error_tool_summary);
-        if apply_tool_summary_fallback(&mut final_answer, fallback_summary)
-            || apply_empty_tool_answer_fallback(&mut final_answer, used_tools)
-        {
-            ctx.emitter.delta(&final_answer);
-        }
+        apply_tool_summary_fallback(&mut final_answer, fallback_summary);
+        apply_empty_tool_answer_fallback(&mut final_answer, used_tools);
     }
 
     if final_answer.trim().is_empty() {
@@ -241,6 +310,8 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
             "Stopped after using tools without composing a reply. Try rephrasing or narrowing your question.",
         );
     }
+
+    ctx.emitter.answer(&final_answer);
 
     ctx.sessions
         .push_message(&ctx.session_id, Role::Assistant, final_answer.clone());
@@ -324,6 +395,7 @@ struct ResolvedTool {
     content: String,
     summary: String,
     fallback_summary: Option<String>,
+    supported_summary: Option<String>,
     entities: Vec<Entity>,
 }
 
@@ -357,11 +429,13 @@ fn resolve_tool_outcome(outcome: Result<ToolCallOutcome, vrcx_0_mcp::McpError>) 
                     }),
             );
             let fallback_summary = (!summary.trim().is_empty()).then(|| summary.clone());
+            let supported_summary = brief_summary.map(|summary| truncate(&summary));
             ResolvedTool {
                 ok: !result.is_error,
                 content,
                 summary,
                 fallback_summary,
+                supported_summary,
                 entities,
             }
         }
@@ -373,6 +447,7 @@ fn resolve_tool_outcome(outcome: Result<ToolCallOutcome, vrcx_0_mcp::McpError>) 
                 content: message.clone(),
                 summary: summary.clone(),
                 fallback_summary: Some(summary),
+                supported_summary: None,
                 entities: Vec::new(),
             }
         }
@@ -416,8 +491,48 @@ fn duplicate_tool_call_result(tool_name: &str) -> ResolvedTool {
         ),
         summary: "Skipped duplicate tool call; use the previous result.".into(),
         fallback_summary: None,
+        supported_summary: None,
         entities: Vec::new(),
     }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum FinalAnswerGuard {
+    Valid,
+    Corrected(&'static str),
+    Rejected(&'static str),
+}
+
+fn guard_final_answer(
+    final_answer: &mut String,
+    supported_tool_summary: Option<&str>,
+) -> FinalAnswerGuard {
+    let Some(kind) = unfinished_answer_kind(final_answer) else {
+        return FinalAnswerGuard::Valid;
+    };
+    let Some(summary) = supported_tool_summary
+        .map(str::trim)
+        .filter(|summary| !summary.is_empty())
+    else {
+        final_answer.clear();
+        return FinalAnswerGuard::Rejected(kind);
+    };
+    *final_answer = summary.to_string();
+    FinalAnswerGuard::Corrected(kind)
+}
+
+fn unfinished_answer_kind(answer: &str) -> Option<&'static str> {
+    let normalized = answer.to_lowercase();
+    if PLACEHOLDER_MARKERS
+        .iter()
+        .any(|marker| normalized.contains(marker))
+    {
+        return Some("placeholder");
+    }
+    DEFERRED_ANSWER_MARKERS
+        .iter()
+        .any(|marker| normalized.contains(marker))
+        .then_some("deferred")
 }
 
 fn dedup_entities(entities: Vec<Entity>) -> Vec<Entity> {
@@ -553,6 +668,21 @@ mod tests {
     }
 
     #[test]
+    fn raw_tool_fallback_is_not_accepted_as_supported_facts() {
+        let resolved = resolve_tool_outcome(Ok(ToolCallOutcome {
+            is_error: false,
+            text: String::new(),
+            structured: Some(serde_json::json!({
+                "nodes": [{ "displayName": "Alice", "connectionDegree": 37 }],
+                "edges": []
+            })),
+        }));
+
+        assert!(resolved.fallback_summary.is_some());
+        assert!(resolved.supported_summary.is_none());
+    }
+
+    #[test]
     fn empty_final_answer_can_fall_back_to_tool_error_summary() {
         let resolved =
             resolve_tool_outcome(Err(vrcx_0_mcp::McpError::Custom("db unavailable".into())));
@@ -590,5 +720,41 @@ mod tests {
 
         assert!(!apply_empty_tool_answer_fallback(&mut final_answer, false));
         assert!(final_answer.is_empty());
+    }
+
+    #[test]
+    fn unfinished_placeholders_are_rejected_without_supported_tool_facts() {
+        let mut answer = "| 1 | [Friend Name 1] | [Time Minutes] |".to_string();
+
+        assert_eq!(
+            guard_final_answer(&mut answer, None),
+            FinalAnswerGuard::Rejected("placeholder")
+        );
+        assert!(answer.is_empty());
+    }
+
+    #[test]
+    fn unfinished_answer_is_replaced_by_supported_tool_summary() {
+        let mut answer = "请稍等，我正在为您查询。".to_string();
+
+        assert_eq!(
+            guard_final_answer(&mut answer, Some("Alice has the most mutual connections.")),
+            FinalAnswerGuard::Corrected("deferred")
+        );
+        assert_eq!(answer, "Alice has the most mutual connections.");
+    }
+
+    #[test]
+    fn completed_ranked_answer_passes_the_guard() {
+        let mut answer = "| Rank | Friend | Connections |\n| 1 | Alice | 37 |".to_string();
+
+        assert_eq!(
+            guard_final_answer(&mut answer, None),
+            FinalAnswerGuard::Valid
+        );
+        assert_eq!(
+            answer,
+            "| Rank | Friend | Connections |\n| 1 | Alice | 37 |"
+        );
     }
 }

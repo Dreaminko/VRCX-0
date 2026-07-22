@@ -57,6 +57,11 @@ export function useAssistantEvents(): void {
         const handlers: Record<string, (payload: unknown) => void> = {
             assistantDelta: (payload) => {
                 const event = payload as AssistantDeltaEvent;
+                if (event.replace) {
+                    flushNow();
+                    store.applyDelta(event);
+                    return;
+                }
                 const buffered = pendingDeltas.get(event.turnId);
                 if (buffered) {
                     buffered.text += event.text;

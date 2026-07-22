@@ -2965,6 +2965,7 @@ export type AssistantDeltaEvent = {
     sessionId: string;
     turnId: string;
     text: string;
+    replace: boolean;
 };
 export type AssistantDoneEvent = { sessionId: string; turnId: string };
 export type AssistantErrorEvent = {

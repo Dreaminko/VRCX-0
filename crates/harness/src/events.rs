@@ -10,6 +10,7 @@ pub struct AssistantDeltaEvent {
     pub session_id: String,
     pub turn_id: String,
     pub text: String,
+    pub replace: bool,
 }
 
 #[derive(Serialize, Type)]
@@ -102,6 +103,16 @@ impl AssistantEmitter {
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
             text: text.to_string(),
+            replace: false,
+        });
+    }
+
+    pub fn answer(&self, text: &str) {
+        self.bus.emit(AssistantDeltaEvent {
+            session_id: self.session_id.clone(),
+            turn_id: self.turn_id.clone(),
+            text: text.to_string(),
+            replace: true,
         });
     }
 
@@ -148,5 +159,42 @@ impl AssistantEmitter {
             code: code.to_string(),
             message: message.to_string(),
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use serde_json::Value;
+    use vrcx_0_application_core::{RuntimeEventBus, RuntimeEventSink};
+
+    use super::AssistantEmitter;
+
+    #[derive(Clone, Default)]
+    struct CapturingSink(Arc<Mutex<Vec<(String, Value)>>>);
+
+    impl RuntimeEventSink for CapturingSink {
+        fn emit(&self, event: &str, payload: Value) {
+            self.0.lock().unwrap().push((event.to_string(), payload));
+        }
+    }
+
+    #[test]
+    fn final_answer_event_replaces_streamed_draft() {
+        let bus = RuntimeEventBus::new();
+        let sink = CapturingSink::default();
+        bus.set_sink(sink.clone());
+        let emitter = AssistantEmitter::new(bus.clone(), "session-1".into(), "turn-1".into());
+
+        emitter.delta("draft");
+        emitter.answer("final");
+
+        let events = sink.0.lock().unwrap();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].1["replace"], false);
+        assert_eq!(events[0].1["text"], "draft");
+        assert_eq!(events[1].1["replace"], true);
+        assert_eq!(events[1].1["text"], "final");
     }
 }
