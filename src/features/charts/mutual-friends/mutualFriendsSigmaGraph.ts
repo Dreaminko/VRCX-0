@@ -9,7 +9,7 @@ import mutualGraphPersistenceRepository from '@/repositories/mutualGraphPersiste
 import { openUserDialog } from '@/services/dialogService';
 import { executeWithBackoff } from '@/shared/utils/retry';
 
-import GraphLayoutWorker from '../graphLayoutWorker.js?worker&inline';
+import { runGraphLayoutWorker } from './graphLayoutWorkerClient';
 import { truncateMutualFriendLabel } from './mutualFriendsPicker';
 import {
     clampMutualGraphNumber,
@@ -123,29 +123,11 @@ function serializeGraph(graph: any) {
 
 function runLayoutWorker(graph: any, settings: any) {
     const { nodes, edges } = serializeGraph(graph);
-    return new Promise((resolve: any, reject: any) => {
-        const requestId = `${Date.now()}:${Math.random()}`;
-        const worker = new GraphLayoutWorker();
-        worker.addEventListener('message', (event: any) => {
-            if (event.data?.requestId !== requestId) {
-                return;
-            }
-            worker.terminate();
-            if (event.data.error) {
-                reject(new Error(event.data.error));
-                return;
-            }
-            resolve(event.data.positions || {});
-        });
-        worker.addEventListener('error', (event: any) => {
-            worker.terminate();
-            reject(
-                event instanceof ErrorEvent
-                    ? event.error || new Error(event.message)
-                    : new Error('Graph layout worker failed.')
-            );
-        });
-        worker.postMessage({ requestId, nodes, edges, settings });
+    return runGraphLayoutWorker({
+        requestId: `${Date.now()}:${Math.random()}`,
+        nodes,
+        edges,
+        settings
     });
 }
 

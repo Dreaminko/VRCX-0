@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
     Arc, Mutex,
@@ -9,10 +9,12 @@ use vrcx_0_core::time::now_iso;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::time::{sleep, Instant};
-use vrcx_0_persistence::mutual_graph::{MutualGraphMetaInput, MutualGraphSnapshotEntryInput};
+use vrcx_0_persistence::mutual_graph::{
+    MutualGraphMetaInput, MutualGraphSnapshotEntryInput, MutualGraphSnapshotOutput,
+};
 use vrcx_0_persistence::DatabaseService;
 
-use crate::{Error, Result, TaskSupervisor, WebClient};
+use crate::{Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, TaskSupervisor, WebClient};
 use vrcx_0_application_core::vrchat_api::users::user_mutual_friends_get_input;
 use vrcx_0_application_core::vrchat_api::VrchatScope;
 
@@ -75,6 +77,8 @@ struct MutualGraphFetchJob {
     friend_ids: Vec<String>,
     db: Arc<DatabaseService>,
     web: Arc<WebClient>,
+    auth_scope: RuntimeAuthScope,
+    expected_scope: RuntimeAuthScopeSnapshot,
     cancel_flag: Arc<AtomicBool>,
 }
 
@@ -107,14 +111,10 @@ impl MutualGraphFetchRuntime {
         input: MutualGraphFetchStartInput,
         db: Arc<DatabaseService>,
         web: Arc<WebClient>,
+        auth_scope: RuntimeAuthScope,
         tasks: TaskSupervisor,
     ) -> Result<MutualGraphFetchStatus> {
-        let owner_user_id = normalize_id(&input.owner_user_id);
-        if owner_user_id.is_empty() {
-            return Err(Error::Custom(
-                "MutualGraphFetchStart requires ownerUserId.".into(),
-            ));
-        }
+        let (owner_user_id, endpoint, expected_scope) = resolve_fetch_scope(&input, &auth_scope)?;
 
         let friend_ids = normalize_friend_ids(input.friend_ids);
         if friend_ids.is_empty() {
@@ -123,7 +123,6 @@ impl MutualGraphFetchRuntime {
             ));
         }
 
-        let endpoint = input.endpoint.trim().to_string();
         let cancel_flag = Arc::new(AtomicBool::new(false));
         let run_id = self.next_run_id.fetch_add(1, Ordering::AcqRel);
         let now = now_iso();
@@ -170,6 +169,8 @@ impl MutualGraphFetchRuntime {
                     friend_ids,
                     db,
                     web,
+                    auth_scope,
+                    expected_scope,
                     cancel_flag,
                 })
                 .await;
@@ -199,6 +200,12 @@ impl MutualGraphFetchRuntime {
         Ok(inner.status.clone())
     }
 
+    pub fn cancel_active(&self) -> Result<MutualGraphFetchStatus> {
+        self.cancel(MutualGraphFetchCancelInput {
+            owner_user_id: String::new(),
+        })
+    }
+
     async fn run_fetch_job(&self, job: MutualGraphFetchJob) {
         let MutualGraphFetchJob {
             run_id,
@@ -207,6 +214,8 @@ impl MutualGraphFetchRuntime {
             friend_ids,
             db,
             web,
+            auth_scope,
+            expected_scope,
             cancel_flag,
         } = job;
         let mut entries = Vec::new();
@@ -215,11 +224,12 @@ impl MutualGraphFetchRuntime {
         let mut fetched_friends = 0usize;
         let mut opted_out_friends = 0usize;
         let mut failed_friends = 0usize;
+        let mut failed_friend_ids = HashSet::new();
         let mut last_error = None;
         let mut last_request_at = None;
 
         for friend_id in friend_ids {
-            if cancel_flag.load(Ordering::Acquire) {
+            if fetch_should_cancel(&cancel_flag, &auth_scope, &expected_scope) {
                 self.finish_run(run_id, "cancelled", None);
                 return;
             }
@@ -231,6 +241,8 @@ impl MutualGraphFetchRuntime {
                 &endpoint,
                 &friend_id,
                 &cancel_flag,
+                &auth_scope,
+                &expected_scope,
                 &mut last_request_at,
             )
             .await
@@ -261,6 +273,7 @@ impl MutualGraphFetchRuntime {
                 }
                 FriendFetchResult::Failed(error) => {
                     failed_friends += 1;
+                    failed_friend_ids.insert(friend_id.clone());
                     last_error = Some(error);
                 }
             }
@@ -276,12 +289,12 @@ impl MutualGraphFetchRuntime {
             );
         }
 
-        if cancel_flag.load(Ordering::Acquire) {
+        if fetch_should_cancel(&cancel_flag, &auth_scope, &expected_scope) {
             self.finish_run(run_id, "cancelled", None);
             return;
         }
 
-        if failed_friends > 0 {
+        if failed_friends > 0 && fetched_friends + opted_out_friends == 0 {
             self.finish_run(
                 run_id,
                 "error",
@@ -292,6 +305,29 @@ impl MutualGraphFetchRuntime {
             return;
         }
 
+        if !failed_friend_ids.is_empty() {
+            match vrcx_0_persistence::mutual_graph::mutual_graph_snapshot_get(
+                db.as_ref(),
+                owner_user_id.clone(),
+            ) {
+                Ok(cached) => preserve_failed_friend_cache(
+                    &mut entries,
+                    &mut meta_entries,
+                    &failed_friend_ids,
+                    cached,
+                ),
+                Err(error) => {
+                    self.finish_run(run_id, "error", Some(error.to_string()));
+                    return;
+                }
+            }
+        }
+
+        if fetch_should_cancel(&cancel_flag, &auth_scope, &expected_scope) {
+            self.finish_run(run_id, "cancelled", None);
+            return;
+        }
+
         match vrcx_0_persistence::mutual_graph::mutual_graph_snapshot_commit(
             db.as_ref(),
             owner_user_id,
@@ -299,7 +335,7 @@ impl MutualGraphFetchRuntime {
             meta_entries,
         ) {
             Ok(()) => {
-                self.finish_run(run_id, "completed", None);
+                self.finish_run(run_id, "completed", last_error);
             }
             Err(error) => {
                 self.finish_run(run_id, "error", Some(error.to_string()));
@@ -381,6 +417,8 @@ async fn fetch_friend_mutuals(
     endpoint: &str,
     friend_id: &str,
     cancel_flag: &AtomicBool,
+    auth_scope: &RuntimeAuthScope,
+    expected_scope: &RuntimeAuthScopeSnapshot,
     last_request_at: &mut Option<Instant>,
 ) -> FriendFetchResult {
     let mut collected = Vec::new();
@@ -388,7 +426,7 @@ async fn fetch_friend_mutuals(
     let mut offset = 0;
 
     loop {
-        if cancel_flag.load(Ordering::Acquire) {
+        if fetch_should_cancel(cancel_flag, auth_scope, expected_scope) {
             return FriendFetchResult::Cancelled;
         }
 
@@ -399,6 +437,8 @@ async fn fetch_friend_mutuals(
             friend_id,
             offset,
             cancel_flag,
+            auth_scope,
+            expected_scope,
             last_request_at,
         )
         .await
@@ -438,16 +478,18 @@ async fn fetch_mutual_page(
     friend_id: &str,
     offset: i64,
     cancel_flag: &AtomicBool,
+    auth_scope: &RuntimeAuthScope,
+    expected_scope: &RuntimeAuthScopeSnapshot,
     last_request_at: &mut Option<Instant>,
 ) -> PageFetchResult {
     let mut attempt = 0usize;
     loop {
-        if cancel_flag.load(Ordering::Acquire) {
+        if fetch_should_cancel(cancel_flag, auth_scope, expected_scope) {
             return PageFetchResult::Cancelled;
         }
 
         wait_for_rate_limit(last_request_at).await;
-        if cancel_flag.load(Ordering::Acquire) {
+        if fetch_should_cancel(cancel_flag, auth_scope, expected_scope) {
             return PageFetchResult::Cancelled;
         }
 
@@ -552,6 +594,71 @@ fn is_active_status(status: &str) -> bool {
     matches!(status, "running" | "cancelling")
 }
 
+fn resolve_fetch_scope(
+    input: &MutualGraphFetchStartInput,
+    auth_scope: &RuntimeAuthScope,
+) -> Result<(String, String, RuntimeAuthScopeSnapshot)> {
+    let owner_user_id = normalize_id(&input.owner_user_id);
+    if owner_user_id.is_empty() {
+        return Err(Error::Custom(
+            "MutualGraphFetchStart requires ownerUserId.".into(),
+        ));
+    }
+    let expected_scope = auth_scope.snapshot();
+    if !expected_scope.active || expected_scope.current_user_id != owner_user_id {
+        return Err(Error::Custom(
+            "Mutual graph fetch requires the active authenticated user.".into(),
+        ));
+    }
+    Ok((
+        expected_scope.current_user_id.clone(),
+        expected_scope.endpoint.clone(),
+        expected_scope,
+    ))
+}
+
+fn fetch_should_cancel(
+    cancel_flag: &AtomicBool,
+    auth_scope: &RuntimeAuthScope,
+    expected_scope: &RuntimeAuthScopeSnapshot,
+) -> bool {
+    cancel_flag.load(Ordering::Acquire) || !auth_scope.snapshot().generation_matches(expected_scope)
+}
+
+fn preserve_failed_friend_cache(
+    entries: &mut Vec<MutualGraphSnapshotEntryInput>,
+    meta_entries: &mut Vec<MutualGraphMetaInput>,
+    failed_friend_ids: &HashSet<String>,
+    cached: MutualGraphSnapshotOutput,
+) {
+    let mut mutual_ids_by_friend: HashMap<String, Vec<String>> = HashMap::new();
+    for link in cached.links {
+        if failed_friend_ids.contains(&link.friend_id) {
+            mutual_ids_by_friend
+                .entry(link.friend_id)
+                .or_default()
+                .push(link.mutual_id);
+        }
+    }
+    for friend_id in cached.friend_ids {
+        if failed_friend_ids.contains(&friend_id) {
+            entries.push(MutualGraphSnapshotEntryInput {
+                mutual_ids: mutual_ids_by_friend.remove(&friend_id).unwrap_or_default(),
+                friend_id,
+            });
+        }
+    }
+    for meta in cached.meta {
+        if failed_friend_ids.contains(&meta.friend_id) {
+            meta_entries.push(MutualGraphMetaInput {
+                friend_id: meta.friend_id,
+                last_fetched_at: meta.last_fetched_at,
+                opted_out: meta.opted_out,
+            });
+        }
+    }
+}
+
 fn idle_status() -> MutualGraphFetchStatus {
     MutualGraphFetchStatus {
         run_id: 0,
@@ -568,5 +675,133 @@ fn idle_status() -> MutualGraphFetchStatus {
         updated_at: String::new(),
         finished_at: None,
         last_error: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vrcx_0_persistence::mutual_graph::{MutualGraphLinkOutput, MutualGraphMetaOutput};
+
+    #[test]
+    fn auth_scope_change_cancels_the_fetch_guard() {
+        let auth_scope = RuntimeAuthScope::new();
+        let expected_scope = auth_scope.set("usr_owner", "");
+        let cancel_flag = AtomicBool::new(false);
+
+        assert!(!fetch_should_cancel(
+            &cancel_flag,
+            &auth_scope,
+            &expected_scope
+        ));
+
+        auth_scope.set("usr_other", "");
+
+        assert!(fetch_should_cancel(
+            &cancel_flag,
+            &auth_scope,
+            &expected_scope
+        ));
+    }
+
+    #[test]
+    fn fetch_scope_uses_the_authenticated_owner_and_endpoint() {
+        let auth_scope = RuntimeAuthScope::new();
+        let expected = auth_scope.set("usr_owner", "https://api.example.test/api/1");
+        let input = MutualGraphFetchStartInput {
+            owner_user_id: "usr_owner".into(),
+            endpoint: "https://stale.example.test/api/1".into(),
+            friend_ids: vec!["usr_friend".into()],
+        };
+
+        let (owner_user_id, endpoint, scope) = resolve_fetch_scope(&input, &auth_scope).unwrap();
+
+        assert_eq!(owner_user_id, expected.current_user_id);
+        assert_eq!(endpoint, expected.endpoint);
+        assert_eq!(scope.generation, expected.generation);
+    }
+
+    #[test]
+    fn fetch_scope_rejects_a_different_owner() {
+        let auth_scope = RuntimeAuthScope::new();
+        auth_scope.set("usr_owner", "");
+        let input = MutualGraphFetchStartInput {
+            owner_user_id: "usr_other".into(),
+            endpoint: String::new(),
+            friend_ids: vec!["usr_friend".into()],
+        };
+
+        assert!(resolve_fetch_scope(&input, &auth_scope).is_err());
+    }
+
+    #[test]
+    fn cancel_active_marks_the_running_fetch_as_cancelling() {
+        let runtime = MutualGraphFetchRuntime::new();
+        let cancel_flag = Arc::new(AtomicBool::new(false));
+        {
+            let mut inner = runtime.inner.lock().unwrap();
+            inner.status = MutualGraphFetchStatus {
+                run_id: 7,
+                status: "running".into(),
+                owner_user_id: "usr_owner".into(),
+                total_friends: 2,
+                ..idle_status()
+            };
+            inner.cancel_flag = Some(Arc::clone(&cancel_flag));
+        }
+
+        let status = runtime.cancel_active().unwrap();
+
+        assert_eq!(status.status, "cancelling");
+        assert!(status.cancel_requested);
+        assert!(cancel_flag.load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn failed_friends_keep_their_cached_snapshot_entries() {
+        let mut entries = vec![MutualGraphSnapshotEntryInput {
+            friend_id: "usr_ok".into(),
+            mutual_ids: vec!["usr_mutual_new".into()],
+        }];
+        let mut meta_entries = vec![MutualGraphMetaInput {
+            friend_id: "usr_ok".into(),
+            last_fetched_at: "new".into(),
+            opted_out: false,
+        }];
+        let failed_friend_ids = HashSet::from(["usr_failed".to_string()]);
+        let cached = MutualGraphSnapshotOutput {
+            friend_ids: vec!["usr_failed".into(), "usr_removed".into()],
+            links: vec![
+                MutualGraphLinkOutput {
+                    friend_id: "usr_failed".into(),
+                    mutual_id: "usr_mutual_old".into(),
+                },
+                MutualGraphLinkOutput {
+                    friend_id: "usr_removed".into(),
+                    mutual_id: "usr_removed_mutual".into(),
+                },
+            ],
+            meta: vec![
+                MutualGraphMetaOutput {
+                    friend_id: "usr_failed".into(),
+                    last_fetched_at: "old".into(),
+                    opted_out: false,
+                },
+                MutualGraphMetaOutput {
+                    friend_id: "usr_removed".into(),
+                    last_fetched_at: "removed".into(),
+                    opted_out: false,
+                },
+            ],
+        };
+
+        preserve_failed_friend_cache(&mut entries, &mut meta_entries, &failed_friend_ids, cached);
+
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[1].friend_id, "usr_failed");
+        assert_eq!(entries[1].mutual_ids, vec!["usr_mutual_old"]);
+        assert_eq!(meta_entries.len(), 2);
+        assert_eq!(meta_entries[1].friend_id, "usr_failed");
+        assert_eq!(meta_entries[1].last_fetched_at, "old");
     }
 }

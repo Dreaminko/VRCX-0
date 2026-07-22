@@ -73,6 +73,7 @@ impl RuntimeHostState {
         self.favorite_import.cancel();
         self.shared_collection_import.cancel();
         self.note_export.cancel();
+        let _ = self.runtime_context.mutual_graph_fetch.cancel_active();
         self.clear_backend_frontend_session();
         let snapshot = self.backend_runtime.clear_authentication();
         self.emit_backend_runtime_telemetry_snapshot("authCleared", reason, snapshot.clone());

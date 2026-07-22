@@ -123,6 +123,7 @@ pub fn app__mutual_graph_fetch_start(
             input,
             state.db.clone(),
             state.web.clone(),
+            state.runtime_context.auth_scope.clone(),
             state.runtime_context.tasks.clone(),
         )
         .map_err(AppError::from)

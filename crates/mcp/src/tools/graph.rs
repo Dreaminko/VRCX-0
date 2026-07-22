@@ -186,6 +186,7 @@ impl VrcxMcpServer {
                 },
                 self.runtime.db.clone(),
                 self.runtime.web.clone(),
+                self.runtime.auth_scope.clone(),
                 self.runtime.tasks.clone(),
             )
             .map_err(|error| error.to_string())?;
