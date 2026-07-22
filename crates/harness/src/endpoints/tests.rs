@@ -78,6 +78,190 @@ fn custom_proxy_following_without_active_proxy_uses_system_behavior() {
 }
 
 #[test]
+fn reasoning_preferences_round_trip_without_changing_api_values() {
+    let store = EndpointStore::new(test_config(), None);
+
+    assert_eq!(
+        store.set_assistant_reasoning_effort(" xhigh ").unwrap(),
+        " xhigh "
+    );
+    assert_eq!(store.assistant_reasoning_effort().unwrap(), " xhigh ");
+    assert_eq!(
+        store.set_assistant_reasoning_effort("NONE").unwrap(),
+        "NONE"
+    );
+    assert_eq!(store.assistant_reasoning_effort().unwrap(), "NONE");
+}
+
+#[test]
+fn reasoning_resolvers_require_openrouter_exact_model_and_effort_matches() {
+    let reasoning = vec![LlmModelReasoning {
+        model_id: "model-a".into(),
+        supported_efforts: vec![" high ".into(), "none".into(), "off".into()],
+        mandatory: true,
+    }];
+
+    assert_eq!(
+        resolve_translation_reasoning_effort(
+            "https://openrouter.ai/api/v1",
+            &reasoning,
+            "model-a",
+            Some(" high "),
+        ),
+        Some(" high ".into())
+    );
+    assert_eq!(
+        resolve_assistant_reasoning_effort(
+            "https://openrouter.ai/api/v1",
+            &reasoning,
+            "model-a",
+            "off",
+        ),
+        Some("off".into())
+    );
+    assert_eq!(
+        resolve_assistant_reasoning_effort(
+            "https://openrouter.ai/api/v1",
+            &reasoning,
+            "model-a",
+            "none",
+        ),
+        None
+    );
+    assert_eq!(
+        resolve_assistant_reasoning_effort(
+            "https://openrouter.ai/api/v1",
+            &reasoning,
+            "model-a",
+            "high",
+        ),
+        None
+    );
+    assert_eq!(
+        resolve_assistant_reasoning_effort(
+            "https://api.openai.com/v1",
+            &reasoning,
+            "model-a",
+            " high ",
+        ),
+        None
+    );
+}
+
+#[test]
+fn endpoint_json_without_model_reasoning_remains_compatible() {
+    let config = test_config();
+    config
+        .set_json(
+            LLM_ENDPOINTS_CONFIG_KEY,
+            &serde_json::json!([{
+                "id": "ep_old",
+                "name": "Old endpoint",
+                "baseUrl": "https://example.com/v1",
+                "apiKey": "",
+                "models": ["model-a"],
+                "lastDetectedAt": null
+            }]),
+        )
+        .unwrap();
+
+    let endpoints = EndpointStore::new(config, None).list().unwrap();
+
+    assert_eq!(endpoints.len(), 1);
+    assert!(endpoints[0].model_reasoning.is_empty());
+}
+
+#[test]
+fn endpoint_upsert_retains_only_current_models_and_clears_reasoning_on_url_change() {
+    let config = test_config();
+    config
+        .set_json(
+            LLM_ENDPOINTS_CONFIG_KEY,
+            &serde_json::json!([{
+                "id": "ep_openrouter",
+                "name": "OpenRouter",
+                "baseUrl": "https://openrouter.ai/api/v1",
+                "apiKey": "",
+                "models": ["model-a", "model-b"],
+                "modelReasoning": [
+                    {
+                        "modelId": "model-a",
+                        "supportedEfforts": ["low"],
+                        "mandatory": false
+                    },
+                    {
+                        "modelId": "model-b",
+                        "supportedEfforts": ["high"],
+                        "mandatory": false
+                    }
+                ],
+                "lastDetectedAt": null
+            }]),
+        )
+        .unwrap();
+    let store = EndpointStore::new(config, None);
+
+    let filtered = store
+        .upsert(LlmEndpointUpsertInput {
+            id: Some("ep_openrouter".into()),
+            name: "OpenRouter".into(),
+            base_url: "https://openrouter.ai/api/v1".into(),
+            api_key: None,
+            models: vec!["model-b".into()],
+            model_reasoning: None,
+        })
+        .unwrap();
+    assert_eq!(filtered.model_reasoning.len(), 1);
+    assert_eq!(filtered.model_reasoning[0].model_id, "model-b");
+
+    let changed = store
+        .upsert(LlmEndpointUpsertInput {
+            id: Some("ep_openrouter".into()),
+            name: "Custom".into(),
+            base_url: "https://example.com/v1".into(),
+            api_key: None,
+            models: vec!["model-b".into()],
+            model_reasoning: None,
+        })
+        .unwrap();
+    assert!(changed.model_reasoning.is_empty());
+}
+
+#[test]
+fn endpoint_upsert_persists_provided_reasoning_for_new_endpoints() {
+    let store = EndpointStore::new(test_config(), None);
+
+    let saved = store
+        .upsert(LlmEndpointUpsertInput {
+            id: None,
+            name: "OpenRouter".into(),
+            base_url: "https://openrouter.ai/api/v1".into(),
+            api_key: None,
+            models: vec!["model-a".into(), "model-b".into()],
+            model_reasoning: Some(vec![
+                LlmModelReasoning {
+                    model_id: "model-a".into(),
+                    supported_efforts: vec!["high".into()],
+                    mandatory: false,
+                },
+                LlmModelReasoning {
+                    model_id: "removed-model".into(),
+                    supported_efforts: vec!["low".into()],
+                    mandatory: false,
+                },
+            ]),
+        })
+        .unwrap();
+
+    assert_eq!(saved.model_reasoning.len(), 1);
+    assert_eq!(saved.model_reasoning[0].model_id, "model-a");
+
+    let reloaded = store.list().unwrap();
+    assert_eq!(reloaded[0].model_reasoning.len(), 1);
+    assert_eq!(reloaded[0].model_reasoning[0].model_id, "model-a");
+}
+
+#[test]
 fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
     let store = EndpointStore::new(test_config(), None);
     let saved = store
@@ -87,6 +271,7 @@ fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
             base_url: "https://api.openai.com/v1/chat/completions".into(),
             api_key: Some("sk-old".into()),
             models: vec!["gpt-4o-mini".into()],
+            model_reasoning: None,
         })
         .unwrap();
     assert!(saved.has_key);
@@ -99,6 +284,7 @@ fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
             base_url: "https://api.openai.com/v1".into(),
             api_key: None,
             models: vec!["gpt-4o-mini".into()],
+            model_reasoning: None,
         })
         .unwrap();
     assert!(preserved.has_key);
@@ -110,6 +296,7 @@ fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
             base_url: "https://example.com/v1".into(),
             api_key: None,
             models: vec!["model".into()],
+            model_reasoning: None,
         })
         .unwrap();
     assert!(!dropped.has_key);
@@ -121,6 +308,7 @@ fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
             base_url: "https://example.com/v1".into(),
             api_key: Some(String::new()),
             models: vec!["model".into()],
+            model_reasoning: None,
         })
         .unwrap();
     assert!(!cleared.has_key);
@@ -204,6 +392,7 @@ fn delete_clears_last_selection_and_falls_back_translation_endpoint() {
             base_url: "https://first.example/v1".into(),
             api_key: Some("sk-first".into()),
             models: vec!["first-model".into()],
+            model_reasoning: None,
         })
         .unwrap();
     let second = store
@@ -213,6 +402,7 @@ fn delete_clears_last_selection_and_falls_back_translation_endpoint() {
             base_url: "https://second.example/v1".into(),
             api_key: Some("sk-second".into()),
             models: vec!["second-model".into()],
+            model_reasoning: None,
         })
         .unwrap();
 

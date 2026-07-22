@@ -66,7 +66,8 @@ function draftFromEndpoint(endpoint: LlmEndpointDto): EndpointDraft {
         baseUrl: endpoint.baseUrl,
         apiKey: '',
         clearKey: false,
-        modelsText: endpoint.models.join('\n')
+        modelsText: endpoint.models.join('\n'),
+        detectedModelReasoning: null
     };
 }
 
@@ -196,7 +197,8 @@ export function LlmEndpointsDialog({
                 name: draft.name.trim(),
                 baseUrl,
                 apiKey: endpointApiKeyInput(draft),
-                models: mergeManualModels([], draft.modelsText)
+                models: mergeManualModels([], draft.modelsText),
+                modelReasoning: draft.detectedModelReasoning
             });
             toast.success(t('view.tools.llm_endpoints.saved'));
             setView('list');
@@ -212,7 +214,7 @@ export function LlmEndpointsDialog({
     async function detectForDraft() {
         try {
             const useSavedEndpoint = shouldUseSavedLlmEndpointForDetect(draft);
-            const models = await detectModels({
+            const result = await detectModels({
                 id: useSavedEndpoint ? draft.id : null,
                 baseUrl: useSavedEndpoint ? null : draft.baseUrl.trim() || null,
                 apiKey: useSavedEndpoint ? null : draft.apiKey.trim() || null,
@@ -220,14 +222,16 @@ export function LlmEndpointsDialog({
             });
             setDraft((current) => ({
                 ...current,
-                modelsText: mergeManualModels(models, current.modelsText).join(
-                    '\n'
-                )
+                modelsText: mergeManualModels(
+                    result.models,
+                    current.modelsText
+                ).join('\n'),
+                detectedModelReasoning: result.modelReasoning
             }));
             toast.success(
-                models.length
+                result.models.length
                     ? t('view.tools.llm_endpoints.models_detected', {
-                          count: models.length
+                          count: result.models.length
                       })
                     : t('view.tools.llm_endpoints.no_models_detected')
             );
@@ -554,7 +558,8 @@ export function LlmEndpointsDialog({
                                         providerId: findLlmEndpointProviderId(
                                             event.target.value,
                                             current.name
-                                        )
+                                        ),
+                                        detectedModelReasoning: null
                                     }))
                                 }
                             />

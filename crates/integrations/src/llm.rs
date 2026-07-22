@@ -4,6 +4,7 @@ use futures_util::StreamExt;
 use reqwest::{Client, Proxy};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use specta::Type;
 
 #[derive(Debug, thiserror::Error)]
 pub enum LlmError {
@@ -13,6 +14,34 @@ pub enum LlmError {
     Api { status: u16, message: String },
     #[error("LLM not configured")]
     NotConfigured,
+}
+
+const OPENROUTER_CANONICAL_BASE_URL: &str = "https://openrouter.ai/api/v1";
+const OPENROUTER_REASONING_EFFORTS: &[&str] =
+    &["max", "xhigh", "high", "medium", "low", "minimal", "none"];
+
+pub fn is_openrouter_base_url(base_url: &str) -> bool {
+    normalize_base_url(base_url) == OPENROUTER_CANONICAL_BASE_URL
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmModelReasoning {
+    pub model_id: String,
+    pub supported_efforts: Vec<String>,
+    pub mandatory: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmEndpointDetectModelsResult {
+    pub models: Vec<String>,
+    pub model_reasoning: Vec<LlmModelReasoning>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct LlmRequestOptions {
+    pub reasoning_effort: Option<String>,
 }
 
 #[derive(Clone)]
@@ -44,6 +73,8 @@ pub struct ChatMessage {
     pub content: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tool_calls: Vec<ToolCall>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub reasoning_details: Vec<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
 }
@@ -66,6 +97,7 @@ impl ChatMessage {
             role: "tool".into(),
             content: Some(content.into()),
             tool_calls: Vec::new(),
+            reasoning_details: Vec::new(),
             tool_call_id: Some(tool_call_id.into()),
         }
     }
@@ -75,6 +107,7 @@ impl ChatMessage {
             role: role.into(),
             content: Some(content.into()),
             tool_calls: Vec::new(),
+            reasoning_details: Vec::new(),
             tool_call_id: None,
         }
     }
@@ -91,6 +124,7 @@ pub struct ToolDefinition {
 pub struct AssistantTurn {
     pub content: String,
     pub tool_calls: Vec<ToolCall>,
+    pub reasoning_details: Vec<Value>,
 }
 
 impl AssistantTurn {
@@ -99,6 +133,7 @@ impl AssistantTurn {
             role: "assistant".into(),
             content: (!self.content.is_empty()).then_some(self.content),
             tool_calls: self.tool_calls,
+            reasoning_details: self.reasoning_details,
             tool_call_id: None,
         }
     }
@@ -119,12 +154,19 @@ struct RequestTool<'a> {
 }
 
 #[derive(Serialize)]
+struct ReasoningRequest {
+    effort: String,
+}
+
+#[derive(Serialize)]
 struct ChatRequestBody<'a> {
     model: &'a str,
     messages: &'a [ChatMessage],
     #[serde(skip_serializing_if = "Vec::is_empty")]
     tools: Vec<RequestTool<'a>>,
     stream: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reasoning: Option<ReasoningRequest>,
 }
 
 #[derive(Deserialize)]
@@ -163,6 +205,8 @@ struct ChunkDelta {
     content: Option<String>,
     #[serde(default)]
     tool_calls: Option<Vec<ChunkToolCall>>,
+    #[serde(default)]
+    reasoning_details: Option<Vec<Value>>,
 }
 
 #[derive(Deserialize)]
@@ -199,6 +243,8 @@ struct ModelsResponse {
 struct ModelEntry {
     #[serde(default)]
     id: Option<String>,
+    #[serde(default)]
+    reasoning: Option<Value>,
 }
 
 impl LlmClient {
@@ -213,16 +259,17 @@ impl LlmClient {
             builder = builder.proxy(Proxy::all(proxy_url)?);
         }
         let http = builder.build()?;
+        let base_url = base_url.into();
         Ok(Self {
             http,
-            base_url: normalize_base_url(base_url.into()),
+            base_url: normalize_base_url(&base_url),
             api_key: api_key.into(),
             model: model.into(),
         })
     }
 
-    /// List the model ids the configured endpoint advertises (`GET /models`).
-    pub async fn list_models(&self) -> Result<Vec<String>, LlmError> {
+    /// List the models the configured endpoint advertises (`GET /models`).
+    pub async fn list_models(&self) -> Result<LlmEndpointDetectModelsResult, LlmError> {
         let url = format!("{}/models", self.base_url);
         let response = self.authorized(self.http.get(&url)).send().await?;
         let status = response.status();
@@ -235,20 +282,10 @@ impl LlmClient {
             });
         }
         let body = response.text().await?;
-        let payload: ModelsResponse = serde_json::from_str(&body).map_err(|error| {
+        parse_models_response(&body, status.as_u16()).map_err(|error| {
             tracing::warn!(url = %url, error = %error, body = %body, "assistant: model list parse failed");
-            LlmError::Api {
-                status: status.as_u16(),
-                message: format!("unexpected /models response: {error}"),
-            }
-        })?;
-        let mut models: Vec<String> = payload
-            .data
-            .into_iter()
-            .filter_map(|model| model.id)
-            .collect();
-        models.sort();
-        Ok(models)
+            error
+        })
     }
 
     /// Apply bearer auth only when a key is configured; local endpoints
@@ -262,12 +299,17 @@ impl LlmClient {
     }
 
     /// Request one non-streaming chat completion.
-    pub async fn complete_chat(&self, messages: &[ChatMessage]) -> Result<String, LlmError> {
+    pub async fn complete_chat(
+        &self,
+        messages: &[ChatMessage],
+        options: &LlmRequestOptions,
+    ) -> Result<String, LlmError> {
         let body = ChatRequestBody {
             model: &self.model,
             messages,
             tools: Vec::new(),
             stream: false,
+            reasoning: reasoning_request(options),
         };
 
         let response = self
@@ -296,6 +338,7 @@ impl LlmClient {
         &self,
         messages: &[ChatMessage],
         tools: &[ToolDefinition],
+        options: &LlmRequestOptions,
         mut on_text: F,
     ) -> Result<AssistantTurn, LlmError>
     where
@@ -317,6 +360,7 @@ impl LlmClient {
             messages,
             tools: request_tools,
             stream: true,
+            reasoning: reasoning_request(options),
         };
 
         let response = self
@@ -338,15 +382,28 @@ impl LlmClient {
         let mut buffer: Vec<u8> = Vec::new();
         let mut content = String::new();
         let mut tool_acc: Vec<ToolCallAcc> = Vec::new();
+        let mut reasoning_details = Vec::new();
 
         while let Some(chunk) = stream.next().await {
             buffer.extend_from_slice(&chunk?);
             for line in drain_complete_lines(&mut buffer) {
-                apply_chat_stream_line(&line, &mut on_text, &mut content, &mut tool_acc);
+                apply_chat_stream_line(
+                    &line,
+                    &mut on_text,
+                    &mut content,
+                    &mut tool_acc,
+                    &mut reasoning_details,
+                );
             }
         }
         if let Some(line) = take_remaining_line(&mut buffer) {
-            apply_chat_stream_line(&line, &mut on_text, &mut content, &mut tool_acc);
+            apply_chat_stream_line(
+                &line,
+                &mut on_text,
+                &mut content,
+                &mut tool_acc,
+                &mut reasoning_details,
+            );
         }
 
         let tool_names = tools
@@ -381,8 +438,68 @@ impl LlmClient {
         Ok(AssistantTurn {
             content,
             tool_calls,
+            reasoning_details,
         })
     }
+}
+
+fn parse_models_response(
+    body: &str,
+    status: u16,
+) -> Result<LlmEndpointDetectModelsResult, LlmError> {
+    let payload: ModelsResponse = serde_json::from_str(body).map_err(|error| LlmError::Api {
+        status,
+        message: format!("unexpected /models response: {error}"),
+    })?;
+    let mut models = Vec::new();
+    let mut model_reasoning = Vec::new();
+    for entry in payload.data {
+        let Some(id) = entry.id else {
+            continue;
+        };
+        models.push(id.clone());
+        let Some(reasoning) = entry.reasoning.as_ref().and_then(Value::as_object) else {
+            continue;
+        };
+        let supported_efforts = match reasoning.get("supported_efforts") {
+            Some(Value::Array(efforts)) => efforts
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect::<Vec<_>>(),
+            Some(Value::Null) => OPENROUTER_REASONING_EFFORTS
+                .iter()
+                .map(|effort| (*effort).to_string())
+                .collect(),
+            _ => continue,
+        };
+        if supported_efforts.is_empty() {
+            continue;
+        }
+        model_reasoning.push(LlmModelReasoning {
+            model_id: id,
+            supported_efforts,
+            mandatory: reasoning
+                .get("mandatory")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+        });
+    }
+    models.sort();
+    Ok(LlmEndpointDetectModelsResult {
+        models,
+        model_reasoning,
+    })
+}
+
+fn reasoning_request(options: &LlmRequestOptions) -> Option<ReasoningRequest> {
+    options
+        .reasoning_effort
+        .as_ref()
+        .filter(|value| !value.is_empty())
+        .map(|effort| ReasoningRequest {
+            effort: effort.clone(),
+        })
 }
 
 fn apply_chat_stream_line<F>(
@@ -390,6 +507,7 @@ fn apply_chat_stream_line<F>(
     on_text: &mut F,
     content: &mut String,
     tool_acc: &mut Vec<ToolCallAcc>,
+    reasoning_details: &mut Vec<Value>,
 ) where
     F: FnMut(&str),
 {
@@ -409,6 +527,9 @@ fn apply_chat_stream_line<F>(
                 on_text(&text);
                 content.push_str(&text);
             }
+        }
+        if let Some(details) = choice.delta.reasoning_details {
+            reasoning_details.extend(details);
         }
         if let Some(calls) = choice.delta.tool_calls {
             for call in calls {
@@ -485,7 +606,7 @@ fn is_json_object(value: &str) -> bool {
     matches!(serde_json::from_str::<Value>(value), Ok(Value::Object(_)))
 }
 
-fn normalize_base_url(raw: String) -> String {
+fn normalize_base_url(raw: &str) -> String {
     raw.trim().trim_end_matches('/').to_string()
 }
 
@@ -577,9 +698,314 @@ mod tests {
         let proxy_url = format!("http://{proxy_address}");
         let client = LlmClient::new("http://127.0.0.1:9/v1", "", "", Some(&proxy_url)).unwrap();
 
-        assert_eq!(client.list_models().await.unwrap(), vec!["proxy-model"]);
+        let result = client.list_models().await.unwrap();
+        assert_eq!(result.models, vec!["proxy-model"]);
+        assert!(result.model_reasoning.is_empty());
         let request = proxy_task.await.unwrap();
         assert!(request.starts_with("GET http://127.0.0.1:9/v1/models HTTP/1.1\r\n"));
+    }
+
+    #[test]
+    fn is_openrouter_base_url_matches_canonical_url_only() {
+        assert!(is_openrouter_base_url("https://openrouter.ai/api/v1"));
+        assert!(is_openrouter_base_url("https://openrouter.ai/api/v1/"));
+        assert!(is_openrouter_base_url(" https://openrouter.ai/api/v1 "));
+        assert!(!is_openrouter_base_url("https://openrouter.ai/api/v2"));
+        assert!(!is_openrouter_base_url("https://api.openai.com/v1"));
+        assert!(!is_openrouter_base_url(
+            "https://openrouter-proxy.example/v1"
+        ));
+        assert!(!is_openrouter_base_url(""));
+    }
+
+    #[test]
+    fn list_models_parses_supported_efforts_preserving_order_and_unknown_values() {
+        let body = r#"{
+            "data": [
+                {
+                    "id": "openai/gpt-4o",
+                    "reasoning": {
+                        "supported_efforts": ["xhigh", "high", "medium"],
+                        "mandatory": false
+                    }
+                },
+                {
+                    "id": "anthropic/claude",
+                    "reasoning": {
+                        "supported_efforts": ["low", "none"]
+                    }
+                },
+                {
+                    "id": "no-reasoning-model"
+                },
+                {
+                    "id": "empty-efforts-model",
+                    "reasoning": {
+                        "supported_efforts": []
+                    }
+                },
+                {
+                    "id": "mandatory-model",
+                    "reasoning": {
+                        "supported_efforts": ["high"],
+                        "mandatory": true
+                    }
+                }
+            ]
+        }"#;
+        let result = parse_models_response(body, 200).unwrap();
+        assert_eq!(
+            result.models,
+            vec![
+                "anthropic/claude",
+                "empty-efforts-model",
+                "mandatory-model",
+                "no-reasoning-model",
+                "openai/gpt-4o"
+            ]
+        );
+        assert_eq!(result.model_reasoning.len(), 3);
+        assert_eq!(
+            result.model_reasoning[0],
+            LlmModelReasoning {
+                model_id: "openai/gpt-4o".into(),
+                supported_efforts: vec!["xhigh".into(), "high".into(), "medium".into()],
+                mandatory: false,
+            }
+        );
+        assert_eq!(
+            result.model_reasoning[1],
+            LlmModelReasoning {
+                model_id: "anthropic/claude".into(),
+                supported_efforts: vec!["low".into(), "none".into()],
+                mandatory: false,
+            }
+        );
+        assert_eq!(
+            result.model_reasoning[2],
+            LlmModelReasoning {
+                model_id: "mandatory-model".into(),
+                supported_efforts: vec!["high".into()],
+                mandatory: true,
+            }
+        );
+    }
+
+    #[test]
+    fn list_models_expands_null_supported_efforts_but_not_an_omitted_field() {
+        let body = r#"{
+            "data": [
+                {
+                    "id": "unrestricted-model",
+                    "reasoning": {
+                        "supported_efforts": null,
+                        "mandatory": true
+                    }
+                },
+                {
+                    "id": "no-effort-selector",
+                    "reasoning": {
+                        "mandatory": false,
+                        "default_enabled": true
+                    }
+                }
+            ]
+        }"#;
+
+        let result = parse_models_response(body, 200).unwrap();
+
+        assert_eq!(
+            result.models,
+            vec!["no-effort-selector", "unrestricted-model"]
+        );
+        assert_eq!(
+            result.model_reasoning,
+            vec![LlmModelReasoning {
+                model_id: "unrestricted-model".into(),
+                supported_efforts: OPENROUTER_REASONING_EFFORTS
+                    .iter()
+                    .map(|effort| (*effort).to_string())
+                    .collect(),
+                mandatory: true,
+            }]
+        );
+    }
+
+    #[test]
+    fn list_models_ignores_malformed_reasoning_metadata_per_model() {
+        let body = r#"{
+            "data": [
+                {"id": "wrong-object", "reasoning": "unsupported"},
+                {
+                    "id": "wrong-efforts",
+                    "reasoning": {"supported_efforts": "high", "mandatory": true}
+                },
+                {
+                    "id": "mixed-efforts",
+                    "reasoning": {
+                        "supported_efforts": ["minimal", 42, null, "xhigh"],
+                        "mandatory": "yes"
+                    }
+                }
+            ]
+        }"#;
+
+        let result = parse_models_response(body, 200).unwrap();
+
+        assert_eq!(
+            result.models,
+            vec!["mixed-efforts", "wrong-efforts", "wrong-object"]
+        );
+        assert_eq!(
+            result.model_reasoning,
+            vec![LlmModelReasoning {
+                model_id: "mixed-efforts".into(),
+                supported_efforts: vec!["minimal".into(), "xhigh".into()],
+                mandatory: false,
+            }]
+        );
+    }
+
+    #[test]
+    fn chat_request_body_omits_reasoning_when_effort_is_none() {
+        let messages: Vec<ChatMessage> = vec![ChatMessage::user("hi")];
+        let body = ChatRequestBody {
+            model: "m",
+            messages: &messages,
+            tools: Vec::new(),
+            stream: false,
+            reasoning: None,
+        };
+        let json = serde_json::to_string(&body).unwrap();
+        assert!(!json.contains("reasoning"));
+    }
+
+    #[test]
+    fn chat_request_body_includes_reasoning_effort_verbatim() {
+        let messages: Vec<ChatMessage> = vec![ChatMessage::user("hi")];
+        let body = ChatRequestBody {
+            model: "m",
+            messages: &messages,
+            tools: Vec::new(),
+            stream: false,
+            reasoning: Some(ReasoningRequest {
+                effort: "medium".into(),
+            }),
+        };
+        let json = serde_json::to_string(&body).unwrap();
+        assert!(json.contains(r#""reasoning":{"effort":"medium"}"#));
+    }
+
+    #[test]
+    fn chat_request_body_omits_reasoning_when_effort_is_empty() {
+        let messages: Vec<ChatMessage> = vec![ChatMessage::user("hi")];
+        let options = LlmRequestOptions {
+            reasoning_effort: Some(String::new()),
+        };
+        let body = ChatRequestBody {
+            model: "m",
+            messages: &messages,
+            tools: Vec::new(),
+            stream: false,
+            reasoning: reasoning_request(&options),
+        };
+        let json = serde_json::to_string(&body).unwrap();
+        assert!(!json.contains("reasoning"));
+    }
+
+    #[test]
+    fn streaming_chat_request_body_includes_reasoning_effort_verbatim() {
+        let messages = vec![ChatMessage::user("hi")];
+        let options = LlmRequestOptions {
+            reasoning_effort: Some("xhigh".into()),
+        };
+        let body = ChatRequestBody {
+            model: "m",
+            messages: &messages,
+            tools: Vec::new(),
+            stream: true,
+            reasoning: reasoning_request(&options),
+        };
+
+        let json = serde_json::to_value(body).unwrap();
+        assert_eq!(json["stream"], true);
+        assert_eq!(json["reasoning"]["effort"], "xhigh");
+    }
+
+    #[test]
+    fn streaming_reasoning_details_are_accumulated_in_response_order() {
+        let mut content = String::new();
+        let mut tool_acc = Vec::new();
+        let mut reasoning_details = Vec::new();
+        let mut on_text = |_: &str| {};
+
+        apply_chat_stream_line(
+            r#"data: {"choices":[{"delta":{"reasoning_details":[{"type":"reasoning.summary","summary":"Checking context","id":"summary-1","format":"anthropic-claude-v1","index":0}]}}]}"#,
+            &mut on_text,
+            &mut content,
+            &mut tool_acc,
+            &mut reasoning_details,
+        );
+        apply_chat_stream_line(
+            r#"data: {"choices":[{"delta":{"reasoning_details":[{"type":"reasoning.encrypted","data":"opaque-data","id":"encrypted-1","format":"anthropic-claude-v1","index":1}]}}]}"#,
+            &mut on_text,
+            &mut content,
+            &mut tool_acc,
+            &mut reasoning_details,
+        );
+
+        assert_eq!(
+            reasoning_details,
+            vec![
+                serde_json::json!({
+                    "type": "reasoning.summary",
+                    "summary": "Checking context",
+                    "id": "summary-1",
+                    "format": "anthropic-claude-v1",
+                    "index": 0
+                }),
+                serde_json::json!({
+                    "type": "reasoning.encrypted",
+                    "data": "opaque-data",
+                    "id": "encrypted-1",
+                    "format": "anthropic-claude-v1",
+                    "index": 1
+                }),
+            ]
+        );
+    }
+
+    #[test]
+    fn assistant_tool_call_message_resends_reasoning_details_unchanged() {
+        let reasoning_details = vec![serde_json::json!({
+            "type": "reasoning.text",
+            "text": "Need current social data",
+            "signature": "signed-value",
+            "id": "reasoning-1",
+            "format": "anthropic-claude-v1",
+            "index": 0
+        })];
+        let message = AssistantTurn {
+            content: String::new(),
+            tool_calls: vec![ToolCall {
+                id: "call-1".into(),
+                kind: "function".into(),
+                function: FunctionCall {
+                    name: "get_summary".into(),
+                    arguments: "{}".into(),
+                },
+            }],
+            reasoning_details: reasoning_details.clone(),
+        }
+        .into_message();
+
+        let json = serde_json::to_value(message).unwrap();
+        assert_eq!(json["reasoning_details"], Value::Array(reasoning_details));
+        assert_eq!(json["tool_calls"][0]["id"], "call-1");
+        assert!(serde_json::to_value(ChatMessage::user("hi"))
+            .unwrap()
+            .get("reasoning_details")
+            .is_none());
     }
 
     #[test]

@@ -398,11 +398,19 @@ export const commands = {
     },
     async appLlmEndpointDetectModels(
         input: LlmEndpointDetectModelsInput
-    ): Promise<string[]> {
+    ): Promise<LlmEndpointDetectModelsResult> {
         return await TAURI_INVOKE('app__llm_endpoint_detect_models', { input });
     },
     async appLlmTranslate(input: LlmTranslateInput): Promise<string> {
         return await TAURI_INVOKE('app__llm_translate', { input });
+    },
+    async appAssistantReasoningEffort(): Promise<string> {
+        return await TAURI_INVOKE('app__assistant_reasoning_effort');
+    },
+    async appAssistantSetReasoningEffort(effort: string): Promise<string> {
+        return await TAURI_INVOKE('app__assistant_set_reasoning_effort', {
+            effort
+        });
     },
     async appOverlayActivityDefinitionsGet(): Promise<
         OverlayActivityTypeDefinition[]
@@ -3883,12 +3891,17 @@ export type LlmEndpointDetectModelsInput = {
     apiKey: string | null;
     persist: boolean | null;
 };
+export type LlmEndpointDetectModelsResult = {
+    models: string[];
+    modelReasoning: LlmModelReasoning[];
+};
 export type LlmEndpointDto = {
     id: string;
     name: string;
     baseUrl: string;
     hasKey: boolean;
     models: string[];
+    modelReasoning: LlmModelReasoning[];
     lastDetectedAt: string | null;
 };
 export type LlmEndpointUpsertInput = {
@@ -3897,6 +3910,12 @@ export type LlmEndpointUpsertInput = {
     baseUrl: string;
     apiKey: string | null;
     models: string[];
+    modelReasoning: LlmModelReasoning[] | null;
+};
+export type LlmModelReasoning = {
+    modelId: string;
+    supportedEfforts: string[];
+    mandatory: boolean;
 };
 export type LlmTranslateInput = {
     endpointId: string;
@@ -3904,6 +3923,7 @@ export type LlmTranslateInput = {
     text: string;
     targetLang: string;
     prompt: string | null;
+    reasoningEffort: string | null;
 };
 export type LocalFavoriteGroupInput = { kind?: string; groupName?: string };
 export type LocalFavoriteGroupRenameInput = {
