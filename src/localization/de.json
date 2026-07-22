@@ -15,6 +15,8 @@
         "entities_empty": "Personen und Welten, die in Antworten erwähnt werden, erscheinen hier.",
         "untitled": "Neue Unterhaltung",
         "close": "Schließen",
+        "thinking": "Antwort wird generiert…",
+        "scroll_to_latest": "Zum Ende scrollen",
         "connection": {
             "checking": "Verbindung wird geprüft…",
             "ok": "Verbunden",

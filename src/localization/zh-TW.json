@@ -15,6 +15,8 @@
         "entities_empty": "答案中提及的人物與世界會顯示在此處。",
         "untitled": "新對話",
         "close": "關閉",
+        "thinking": "正在產生回覆…",
+        "scroll_to_latest": "捲動到底部",
         "connection": {
             "checking": "檢查連線…",
             "ok": "已連線",

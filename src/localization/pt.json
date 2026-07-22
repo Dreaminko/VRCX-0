@@ -15,6 +15,8 @@
         "entities_empty": "Pessoas e mundos mencionados nas respostas aparecem aqui.",
         "untitled": "Nova conversa",
         "close": "Fechar",
+        "thinking": "Gerando resposta…",
+        "scroll_to_latest": "Rolar até o fim",
         "connection": {
             "checking": "Verificando conexão…",
             "ok": "Conectado",

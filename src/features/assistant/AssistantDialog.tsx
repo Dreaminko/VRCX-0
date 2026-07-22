@@ -1,5 +1,5 @@
 import { PanelRightIcon, Settings2Icon, XIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -29,6 +29,12 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
+import {
+    Empty,
+    EmptyContent,
+    EmptyHeader,
+    EmptyTitle
+} from '@/ui/shadcn/empty';
 import { Label } from '@/ui/shadcn/label';
 import {
     Popover,
@@ -42,7 +48,6 @@ import {
     ResizablePanel,
     ResizablePanelGroup
 } from '@/ui/shadcn/resizable';
-import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import {
     Select,
     SelectContent,
@@ -60,9 +65,9 @@ import {
     sendMessage,
     setEntityPanelOpen
 } from './assistantActions';
+import { AssistantTranscript } from './components/AssistantTranscript';
 import { Composer } from './components/Composer';
 import { EntityPanel } from './components/EntityPanel';
-import { MessageBubble } from './components/MessageBubble';
 import { SessionSidebar } from './components/SessionSidebar';
 import { useAssistantEvents } from './useAssistantEvents';
 import type { AssistantHealth } from './useAssistantHealth';
@@ -174,7 +179,6 @@ export function AssistantDialog() {
         hasRuntime ? runtimeSelection.endpointId : null
     );
 
-    const bottomRef = useRef<HTMLDivElement | null>(null);
     useEffect(() => {
         if (open) {
             refreshSessions();
@@ -209,10 +213,6 @@ export function AssistantDialog() {
             active = false;
         };
     }, [activeSessionId, open]);
-
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ block: 'end' });
-    }, [messages]);
 
     async function updateRuntimeSelection(
         patch: Partial<AssistantRuntimeSelection>
@@ -671,45 +671,40 @@ export function AssistantDialog() {
                         minSize="30%"
                     >
                         <div className="flex h-full min-w-0 flex-col">
-                            <ScrollArea className="min-h-0 flex-1">
-                                <div className="flex flex-col gap-4 p-4">
-                                    {(!messages || messages.length === 0) && (
-                                        <div className="flex flex-col items-center gap-3 py-12 text-center">
-                                            <p className="text-sm font-medium">
+                            <AssistantTranscript
+                                sessionId={activeSessionId}
+                                messages={messages}
+                                thinkingLabel={t('assistant.thinking')}
+                                scrollToLatestLabel={t(
+                                    'assistant.scroll_to_latest'
+                                )}
+                                emptyState={
+                                    <Empty className="py-12">
+                                        <EmptyHeader>
+                                            <EmptyTitle>
                                                 {t('assistant.empty_title')}
-                                            </p>
-                                            <div className="flex flex-col gap-1.5">
-                                                {examplePrompts.map(
-                                                    (prompt) => (
-                                                        <button
-                                                            key={prompt}
-                                                            type="button"
-                                                            disabled={
-                                                                notConfigured
-                                                            }
-                                                            onClick={() =>
-                                                                sendMessage(
-                                                                    prompt
-                                                                )
-                                                            }
-                                                            className="border-border/50 text-muted-foreground hover:bg-card/60 hover:text-foreground rounded-full border px-3 py-1 text-xs disabled:opacity-50"
-                                                        >
-                                                            {prompt}
-                                                        </button>
-                                                    )
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {messages?.map((message) => (
-                                        <MessageBubble
-                                            key={message.id}
-                                            message={message}
-                                        />
-                                    ))}
-                                    <div ref={bottomRef} />
-                                </div>
-                            </ScrollArea>
+                                            </EmptyTitle>
+                                        </EmptyHeader>
+                                        <EmptyContent>
+                                            {examplePrompts.map((prompt) => (
+                                                <Button
+                                                    key={prompt}
+                                                    type="button"
+                                                    size="xs"
+                                                    variant="outline"
+                                                    disabled={notConfigured}
+                                                    onClick={() =>
+                                                        sendMessage(prompt)
+                                                    }
+                                                    className="h-auto max-w-full whitespace-normal"
+                                                >
+                                                    {prompt}
+                                                </Button>
+                                            ))}
+                                        </EmptyContent>
+                                    </Empty>
+                                }
+                            />
 
                             {notConfigured && (
                                 <div className="text-muted-foreground px-3 pt-2 text-center text-xs">
