@@ -1,24 +1,39 @@
+import type {
+    FriendRecord,
+    FriendRosterById
+} from '@/domain/friends/friendRosterTypes';
+
 import {
     isValidMutualFriendId,
     normalizeMutualFriendId
 } from './mutualFriendsSettings';
+import type {
+    MutualFriendGraph,
+    MutualFriendLink,
+    MutualFriendMeta,
+    MutualFriendNode,
+    MutualFriendSnapshot
+} from './mutualFriendsTypes';
+
+export function mutualFriendUsername(friend: FriendRecord | null | undefined) {
+    return typeof friend?.username === 'string' ? friend.username : '';
+}
 
 export function buildMutualFriendsBaseGraph(
-    snapshot: any,
-    meta: any,
-    friendsById: any,
-    excludedFriendIds: any[] = []
-) {
-    const nodeMap = new Map();
-    const edgeMap = new Map();
+    snapshot: MutualFriendSnapshot | null | undefined,
+    meta: MutualFriendMeta | null | undefined,
+    friendsById: FriendRosterById | null | undefined,
+    excludedFriendIds: readonly string[] = []
+): MutualFriendGraph {
+    const nodeMap = new Map<string, MutualFriendNode>();
+    const edgeMap = new Map<string, MutualFriendLink>();
     const metaMap = meta instanceof Map ? meta : new Map();
-    const friends =
-        friendsById && typeof friendsById === 'object' ? friendsById : {};
+    const friends = friendsById ?? {};
     const excluded = new Set(
-        (excludedFriendIds || []).map(normalizeMutualFriendId).filter(Boolean)
+        excludedFriendIds.map(normalizeMutualFriendId).filter(Boolean)
     );
 
-    function ensureNode(id: any) {
+    function ensureNode(id: string): MutualFriendNode | null {
         const normalizedId = normalizeMutualFriendId(id);
         if (
             !isValidMutualFriendId(normalizedId) ||
@@ -26,25 +41,28 @@ export function buildMutualFriendsBaseGraph(
         ) {
             return null;
         }
-        if (!nodeMap.has(normalizedId)) {
-            const friend = friends[normalizedId];
-            const metadata = metaMap.get(normalizedId) || {
-                lastFetchedAt: null,
-                optedOut: false
-            };
-            nodeMap.set(normalizedId, {
-                id: normalizedId,
-                label: friend?.displayName || friend?.username || normalizedId,
-                lastFetchedAt: metadata.lastFetchedAt || null,
-                optedOut: Boolean(metadata.optedOut),
-                degree: 0
-            });
+        const existing = nodeMap.get(normalizedId);
+        if (existing) {
+            return existing;
         }
-        return nodeMap.get(normalizedId);
+        const friend = friends[normalizedId];
+        const metadata = metaMap.get(normalizedId);
+        const node: MutualFriendNode = {
+            id: normalizedId,
+            label:
+                friend?.displayName ||
+                mutualFriendUsername(friend) ||
+                normalizedId,
+            lastFetchedAt: metadata?.lastFetchedAt ?? null,
+            optedOut: Boolean(metadata?.optedOut),
+            degree: 0
+        };
+        nodeMap.set(normalizedId, node);
+        return node;
     }
 
     if (snapshot instanceof Map) {
-        snapshot.forEach((mutualIds: any, friendId: any) => {
+        snapshot.forEach((mutualIds, friendId) => {
             const source = ensureNode(friendId);
             if (!source) {
                 return;
@@ -65,51 +83,18 @@ export function buildMutualFriendsBaseGraph(
     for (const edge of edgeMap.values()) {
         const source = nodeMap.get(edge.source);
         const target = nodeMap.get(edge.target);
-        if (source) source.degree += 1;
-        if (target) target.degree += 1;
-    }
-
-    return {
-        nodes: Array.from(nodeMap.values()).sort(
-            (left: any, right: any) => right.degree - left.degree
-        ),
-        links: Array.from(edgeMap.values())
-    };
-}
-
-export function filterMutualFriendsGraph(baseGraph: any, searchQuery: any) {
-    const query = String(searchQuery || '')
-        .trim()
-        .toLowerCase();
-    if (!query) {
-        return baseGraph;
-    }
-
-    const matchedIds = new Set(
-        baseGraph.nodes
-            .filter(
-                (node: any) =>
-                    node.label.toLowerCase().includes(query) ||
-                    node.id.toLowerCase().includes(query)
-            )
-            .map((node: any) => node.id)
-    );
-    if (!matchedIds.size) {
-        return { nodes: [], links: [] };
-    }
-
-    const includedIds = new Set(matchedIds);
-    const links = [];
-    for (const link of baseGraph.links) {
-        if (matchedIds.has(link.source) || matchedIds.has(link.target)) {
-            includedIds.add(link.source);
-            includedIds.add(link.target);
-            links.push(link);
+        if (source) {
+            source.degree += 1;
+        }
+        if (target) {
+            target.degree += 1;
         }
     }
 
     return {
-        nodes: baseGraph.nodes.filter((node: any) => includedIds.has(node.id)),
-        links
+        nodes: Array.from(nodeMap.values()).sort(
+            (left, right) => right.degree - left.degree
+        ),
+        links: Array.from(edgeMap.values())
     };
 }

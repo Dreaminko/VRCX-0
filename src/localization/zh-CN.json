@@ -1540,13 +1540,17 @@
                     "stop": "停止",
                     "stop_fetching": "停止拉取",
                     "go_to_friend": "选择好友",
-                    "cancelling": "正在取消操作..."
+                    "cancelling": "正在取消操作...",
+                    "find_friend": "查找好友",
+                    "open_profile": "查看资料",
+                    "hide_from_graph": "从关系图中隐藏",
+                    "clear_filters": "清除筛选"
                 },
                 "prompt": {
                     "message": "已在后台启动拉取工作，完成进度将显示在状态栏"
                 },
                 "settings": {
-                    "title": "关系图布局设置",
+                    "title": "关系图设置",
                     "layout_iterations": "位置迭代次数",
                     "layout_iterations_help": "好友节点的位置的计算时间。数值越高，节点的位置越稳定和有序。",
                     "layout_spacing": "节点间距",
@@ -1558,10 +1562,29 @@
                     "reset_defaults": "重置为默认值",
                     "exclude_friends": "排除好友",
                     "exclude_friends_placeholder": "选择好友",
-                    "exclude_friends_help": "选中的好友将从关系图中隐藏。"
+                    "exclude_friends_help": "选中的好友将从关系图中隐藏。",
+                    "layout_section": "布局",
+                    "stat_nodes": "节点",
+                    "stat_links": "连接",
+                    "stat_hidden": "已隐藏"
                 },
                 "context_menu": {
                     "last_fetched": "最后获取时间"
+                },
+                "label": {
+                    "never_fetched": "尚未拉取",
+                    "mutuals_unavailable": "无法获取共同好友"
+                },
+                "progress": {
+                    "fetching": "正在拉取共同好友",
+                    "laying_out": "正在计算布局"
+                },
+                "legend": {
+                    "circles": "圈子",
+                    "more_circles": "另有 {count} 个圈子",
+                    "size_means_degree": "点越大，共同好友越多",
+                    "min_degree": "最少连接数",
+                    "isolated_nodes": "{count} 人没有任何连接"
                 }
             },
             "loading": {
@@ -1579,13 +1602,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "房间活动加载失败",
-                "mutual_graph_failed_to_load": "共同好友图谱加载失败"
+                "mutual_graph_failed_to_load": "共同好友图谱加载失败",
+                "mutual_graph_cache_unreadable": "无法读取本地的共同好友缓存。"
             },
             "label": {
                 "connections": "连接",
-                "hidden_nodes": "被隐藏节点：",
-                "visible_nodes": "可见节点：",
-                "visible_links": "可见连接：",
                 "try_a_broader_search_term_or_clear_the_node_filter": "尝试更宽泛的搜索词或清除节点筛选",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "共同好友图谱获取已取消，缓存图谱未被替换"
             },
@@ -1605,7 +1626,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "已刷新 {value} 的共同好友",
-                "value_has_opted_out_of_shared_connections": "{value} 已关闭共同关系功能"
+                "could_not_load_mutuals_for_value": "无法获取 {value} 的共同好友"
             }
         },
         "tools": {
@@ -5234,7 +5255,7 @@
             "dateJoined": "账号创建时间",
             "unfriend": "删除好友",
             "mutualFriends": "共同好友",
-            "mutualOptedOut": "这个玩家已关闭共同好友功能，正在显示缓存数据。"
+            "mutualOptedOut": "无法获取该用户的共同好友，显示的是缓存数据。"
         },
         "profile": {
             "invite_messages": {

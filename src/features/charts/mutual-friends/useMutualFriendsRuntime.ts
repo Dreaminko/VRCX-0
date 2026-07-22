@@ -16,8 +16,8 @@ export function useMutualFriendsRuntime() {
     const resolvedTheme = getResolvedThemeMode(shellThemeMode);
 
     return {
-        currentUserId,
-        currentUserEndpoint,
+        currentUserId: currentUserId ?? '',
+        currentUserEndpoint: currentUserEndpoint ?? '',
         friendsById,
         orderedFriendIds,
         resolvedTheme

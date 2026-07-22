@@ -1,33 +1,102 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type Graph from 'graphology';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { buildMutualFriendsGraphTheme } from './mutualFriendsPalette';
 import {
+    applyMutualFriendsCommunitySeparation,
+    applyMutualFriendsEdgeCurvature,
+    applyMutualFriendsGraphTheme,
     buildSigmaGraph,
     destroySigmaInstance,
-    renderSigmaGraph
+    renderSigmaGraph,
+    type SigmaGraphController,
+    type SigmaInstance
 } from './mutualFriendsSigmaGraph';
+import type {
+    MutualFriendGraph,
+    MutualFriendsLayoutSettings
+} from './mutualFriendsTypes';
+
+interface SigmaLifecycleOptions {
+    graph: MutualFriendGraph;
+    layoutSettings: MutualFriendsLayoutSettings;
+    communityIndexById: Map<string, number>;
+    resolvedTheme: string;
+    selectedNodeId: string;
+    selectedNodeIdRef: { current: string };
+    onSelectNode: (nodeId: string) => void;
+    onOpenNode: (nodeId: string) => void;
+}
 
 export function useMutualFriendsSigmaLifecycle({
-    filteredGraph,
+    graph,
     layoutSettings,
+    communityIndexById,
     resolvedTheme,
     selectedNodeId,
     selectedNodeIdRef,
-    setSelectedNodeId
-}: any) {
+    onSelectNode,
+    onOpenNode
+}: SigmaLifecycleOptions) {
     const { t } = useTranslation();
-    const chartElementRef = useRef<any>(null);
-    const chartInstanceRef = useRef<any>(null);
-    const resizeObserverRef = useRef<any>(null);
+    const containerRef = useRef<HTMLElement | null>(null);
+    const instanceRef = useRef<SigmaInstance | null>(null);
+    const controllerRef = useRef<SigmaGraphController | null>(null);
+    const graphologyRef = useRef<Graph | null>(null);
+    const resizeObserverRef = useRef<ResizeObserver | null>(null);
     const pendingRenderFrameRef = useRef(0);
+    const selectNodeRef = useRef(onSelectNode);
+    const openNodeRef = useRef(onOpenNode);
     const [renderRetryToken, setRenderRetryToken] = useState(0);
+    const [isLayoutRunning, setIsLayoutRunning] = useState(false);
 
-    const setGraphElementRef = useCallback((node: any) => {
-        if (chartElementRef.current && chartElementRef.current !== node) {
-            destroySigmaInstance(chartInstanceRef, resizeObserverRef);
-        }
-        chartElementRef.current = node;
+    selectNodeRef.current = onSelectNode;
+    openNodeRef.current = onOpenNode;
+
+    const isDarkMode = resolvedTheme === 'dark';
+    const theme = useMemo(
+        () => buildMutualFriendsGraphTheme(isDarkMode, containerRef.current),
+        [isDarkMode]
+    );
+    const themeRef = useRef(theme);
+    themeRef.current = theme;
+    const hoverCardStringsRef = useRef({
+        connections: '',
+        lastFetched: '',
+        unavailable: ''
+    });
+    hoverCardStringsRef.current = {
+        connections: t('view.charts.label.connections'),
+        lastFetched: t('view.charts.mutual_friend.context_menu.last_fetched'),
+        unavailable: t('view.charts.mutual_friend.label.mutuals_unavailable')
+    };
+
+    const {
+        layoutIterations,
+        layoutSpacing,
+        edgeCurvature,
+        communitySeparation
+    } = layoutSettings;
+    const layoutSettingsRef = useRef(layoutSettings);
+    layoutSettingsRef.current = layoutSettings;
+
+    const teardownGraph = useCallback(() => {
+        controllerRef.current?.dispose();
+        destroySigmaInstance(instanceRef, resizeObserverRef);
+        controllerRef.current = null;
+        graphologyRef.current = null;
     }, []);
+
+    const setGraphElementRef = useCallback(
+        (node: HTMLElement | null) => {
+            if (containerRef.current && containerRef.current !== node) {
+                teardownGraph();
+            }
+            containerRef.current = node;
+        },
+        [teardownGraph]
+    );
 
     useEffect(() => {
         return () => {
@@ -35,69 +104,68 @@ export function useMutualFriendsSigmaLifecycle({
                 cancelAnimationFrame(pendingRenderFrameRef.current);
                 pendingRenderFrameRef.current = 0;
             }
-            destroySigmaInstance(chartInstanceRef, resizeObserverRef);
+            teardownGraph();
         };
+    }, [teardownGraph]);
+
+    const retryAfterFrame = useCallback(() => {
+        if (pendingRenderFrameRef.current) {
+            return;
+        }
+        pendingRenderFrameRef.current = requestAnimationFrame(() => {
+            pendingRenderFrameRef.current = 0;
+            setRenderRetryToken((current) => current + 1);
+        });
     }, []);
 
     useEffect(() => {
-        if (!filteredGraph.nodes.length) {
-            destroySigmaInstance(chartInstanceRef, resizeObserverRef);
+        if (!graph.nodes.length) {
+            teardownGraph();
             return undefined;
         }
 
-        const container = chartElementRef.current;
+        const container = containerRef.current;
         if (!container) {
             return undefined;
         }
-
-        const { width, height } = container.getBoundingClientRect();
-        if (!width || !height) {
-            if (!pendingRenderFrameRef.current) {
-                pendingRenderFrameRef.current = requestAnimationFrame(() => {
-                    pendingRenderFrameRef.current = 0;
-                    setRenderRetryToken((current: any) => current + 1);
-                });
-            }
+        if (!container.clientWidth || !container.clientHeight) {
+            retryAfterFrame();
             return undefined;
         }
 
         let active = true;
-        const isDarkMode = resolvedTheme === 'dark';
+        setIsLayoutRunning(true);
         buildSigmaGraph({
-            nodes: filteredGraph.nodes,
-            links: filteredGraph.links,
-            layoutSettings,
-            selectedNodeId: selectedNodeIdRef.current
+            graph,
+            layoutSettings: {
+                ...layoutSettingsRef.current,
+                layoutIterations,
+                layoutSpacing
+            },
+            communityIndexById,
+            theme: themeRef.current
         })
-            .then((graph: any) => {
-                if (!active || chartElementRef.current !== container) {
+            .then((builtGraph) => {
+                if (!active || containerRef.current !== container) {
+                    return;
+                }
+                if (!container.clientWidth || !container.clientHeight) {
+                    retryAfterFrame();
                     return;
                 }
 
-                const nextRect = container.getBoundingClientRect();
-                if (!nextRect.width || !nextRect.height) {
-                    if (!pendingRenderFrameRef.current) {
-                        pendingRenderFrameRef.current = requestAnimationFrame(
-                            () => {
-                                pendingRenderFrameRef.current = 0;
-                                setRenderRetryToken(
-                                    (current: any) => current + 1
-                                );
-                            }
-                        );
-                    }
-                    return;
-                }
-
-                renderSigmaGraph({
-                    graph,
+                graphologyRef.current = builtGraph;
+                controllerRef.current?.dispose();
+                controllerRef.current = renderSigmaGraph({
+                    graph: builtGraph,
                     container,
-                    instanceRef: chartInstanceRef,
+                    instanceRef,
                     resizeObserverRef,
-                    isDarkMode,
+                    themeRef,
                     selectedNodeIdRef,
-                    onSelectNode: setSelectedNodeId,
-                    t
+                    onSelectNode: (nodeId) => selectNodeRef.current(nodeId),
+                    onOpenNode: (nodeId) => openNodeRef.current(nodeId),
+                    hoverCardStringsRef
                 });
             })
             .catch((error: unknown) => {
@@ -107,45 +175,45 @@ export function useMutualFriendsSigmaLifecycle({
                         error
                     );
                 }
+            })
+            .finally(() => {
+                if (active) {
+                    setIsLayoutRunning(false);
+                }
             });
 
         return () => {
             active = false;
         };
     }, [
-        filteredGraph.links,
-        filteredGraph.nodes,
-        layoutSettings,
+        graph,
+        communityIndexById,
+        layoutIterations,
+        layoutSpacing,
         renderRetryToken,
-        resolvedTheme,
-        setSelectedNodeId,
-        t
+        retryAfterFrame,
+        selectedNodeIdRef,
+        teardownGraph
     ]);
 
     useEffect(() => {
-        selectedNodeIdRef.current = selectedNodeId;
-        chartInstanceRef.current?.refresh?.();
-    }, [selectedNodeId]);
-
-    function focusNode(nodeId: any) {
-        const sigma = chartInstanceRef.current;
-        sigma?.refresh?.();
-        if (!nodeId || !sigma?.getNodeDisplayData?.(nodeId)) {
+        const builtGraph = graphologyRef.current;
+        if (!builtGraph) {
             return;
         }
-        const displayData = sigma.getNodeDisplayData(nodeId);
-        sigma.getCamera?.()?.animate?.(
-            {
-                x: displayData.x,
-                y: displayData.y,
-                ratio: 0.15
-            },
-            { duration: 300 }
-        );
-    }
+        const settings = { ...layoutSettingsRef.current };
+        applyMutualFriendsCommunitySeparation(builtGraph, settings);
+        applyMutualFriendsEdgeCurvature(builtGraph, settings);
+        applyMutualFriendsGraphTheme(builtGraph, theme);
+        controllerRef.current?.applyTheme();
+    }, [communitySeparation, edgeCurvature, theme]);
+
+    useEffect(() => {
+        controllerRef.current?.applySelection(selectedNodeId);
+    }, [selectedNodeId]);
 
     return {
-        focusNode,
+        isLayoutRunning,
         setGraphElementRef
     };
 }

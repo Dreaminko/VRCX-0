@@ -82,6 +82,16 @@ struct MutualGraphFetchJob {
     cancel_flag: Arc<AtomicBool>,
 }
 
+struct MutualGraphFetchContext<'a> {
+    web: &'a WebClient,
+    db: &'a DatabaseService,
+    endpoint: &'a str,
+    cancel_flag: &'a AtomicBool,
+    auth_scope: &'a RuntimeAuthScope,
+    expected_scope: &'a RuntimeAuthScopeSnapshot,
+    last_request_at: Option<Instant>,
+}
+
 impl Default for MutualGraphFetchRuntime {
     fn default() -> Self {
         Self::new()
@@ -226,7 +236,15 @@ impl MutualGraphFetchRuntime {
         let mut failed_friends = 0usize;
         let mut failed_friend_ids = HashSet::new();
         let mut last_error = None;
-        let mut last_request_at = None;
+        let mut fetch_context = MutualGraphFetchContext {
+            web: web.as_ref(),
+            db: db.as_ref(),
+            endpoint: &endpoint,
+            cancel_flag: &cancel_flag,
+            auth_scope: &auth_scope,
+            expected_scope: &expected_scope,
+            last_request_at: None,
+        };
 
         for friend_id in friend_ids {
             if fetch_should_cancel(&cancel_flag, &auth_scope, &expected_scope) {
@@ -235,18 +253,7 @@ impl MutualGraphFetchRuntime {
             }
 
             self.update_current_friend(run_id, &friend_id);
-            match fetch_friend_mutuals(
-                web.as_ref(),
-                db.as_ref(),
-                &endpoint,
-                &friend_id,
-                &cancel_flag,
-                &auth_scope,
-                &expected_scope,
-                &mut last_request_at,
-            )
-            .await
-            {
+            match fetch_friend_mutuals(&mut fetch_context, &friend_id).await {
                 FriendFetchResult::MutualIds(mutual_ids) => {
                     entries.push(MutualGraphSnapshotEntryInput {
                         friend_id: friend_id.clone(),
@@ -412,37 +419,23 @@ enum FriendFetchResult {
 }
 
 async fn fetch_friend_mutuals(
-    web: &WebClient,
-    db: &DatabaseService,
-    endpoint: &str,
+    context: &mut MutualGraphFetchContext<'_>,
     friend_id: &str,
-    cancel_flag: &AtomicBool,
-    auth_scope: &RuntimeAuthScope,
-    expected_scope: &RuntimeAuthScopeSnapshot,
-    last_request_at: &mut Option<Instant>,
 ) -> FriendFetchResult {
     let mut collected = Vec::new();
     let mut seen = HashSet::new();
     let mut offset = 0;
 
     loop {
-        if fetch_should_cancel(cancel_flag, auth_scope, expected_scope) {
+        if fetch_should_cancel(
+            context.cancel_flag,
+            context.auth_scope,
+            context.expected_scope,
+        ) {
             return FriendFetchResult::Cancelled;
         }
 
-        match fetch_mutual_page(
-            web,
-            db,
-            endpoint,
-            friend_id,
-            offset,
-            cancel_flag,
-            auth_scope,
-            expected_scope,
-            last_request_at,
-        )
-        .await
-        {
+        match fetch_mutual_page(context, friend_id, offset).await {
             PageFetchResult::Rows(rows) => {
                 let page_len = rows.len();
                 for row in rows {
@@ -472,29 +465,31 @@ enum PageFetchResult {
 }
 
 async fn fetch_mutual_page(
-    web: &WebClient,
-    db: &DatabaseService,
-    endpoint: &str,
+    context: &mut MutualGraphFetchContext<'_>,
     friend_id: &str,
     offset: i64,
-    cancel_flag: &AtomicBool,
-    auth_scope: &RuntimeAuthScope,
-    expected_scope: &RuntimeAuthScopeSnapshot,
-    last_request_at: &mut Option<Instant>,
 ) -> PageFetchResult {
     let mut attempt = 0usize;
     loop {
-        if fetch_should_cancel(cancel_flag, auth_scope, expected_scope) {
+        if fetch_should_cancel(
+            context.cancel_flag,
+            context.auth_scope,
+            context.expected_scope,
+        ) {
             return PageFetchResult::Cancelled;
         }
 
-        wait_for_rate_limit(last_request_at).await;
-        if fetch_should_cancel(cancel_flag, auth_scope, expected_scope) {
+        wait_for_rate_limit(&mut context.last_request_at).await;
+        if fetch_should_cancel(
+            context.cancel_flag,
+            context.auth_scope,
+            context.expected_scope,
+        ) {
             return PageFetchResult::Cancelled;
         }
 
         let request = match user_mutual_friends_get_input(
-            endpoint.to_string(),
+            context.endpoint.to_string(),
             friend_id.to_string(),
             MUTUAL_GRAPH_PAGE_SIZE,
             offset,
@@ -503,7 +498,11 @@ async fn fetch_mutual_page(
             Ok((_, request)) => request,
             Err(error) => return PageFetchResult::Failed(error.to_string()),
         };
-        let response = match web.execute_api(request, VrchatScope::Vrchat, db).await {
+        let response = match context
+            .web
+            .execute_api(request, VrchatScope::Vrchat, context.db)
+            .await
+        {
             Ok(response) => response,
             Err(error) => {
                 if attempt < MUTUAL_GRAPH_MAX_RETRIES {

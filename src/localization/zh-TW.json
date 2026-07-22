@@ -1540,13 +1540,17 @@
                     "stop": "停止",
                     "stop_fetching": "停止取得",
                     "go_to_friend": "選擇好友",
-                    "cancelling": "正在取消..."
+                    "cancelling": "正在取消...",
+                    "find_friend": "尋找好友",
+                    "open_profile": "檢視個人資料",
+                    "hide_from_graph": "從關係圖中隱藏",
+                    "clear_filters": "清除篩選"
                 },
                 "prompt": {
                     "message": "已在背景開始取得，進度會顯示在狀態列。"
                 },
                 "settings": {
-                    "title": "圖形佈局設定",
+                    "title": "關係圖設定",
                     "layout_iterations": "佈局迭代次數",
                     "layout_iterations_help": "佈局運算執行的時間長度。數值越高，結果會越穩定且更有條理",
                     "layout_spacing": "佈局間距",
@@ -1558,10 +1562,29 @@
                     "reset_defaults": "重設為預設值",
                     "exclude_friends": "排除好友",
                     "exclude_friends_placeholder": "選擇要排除的好友",
-                    "exclude_friends_help": "被選擇的好友將不會顯示在圖形中。"
+                    "exclude_friends_help": "被選擇的好友將不會顯示在圖形中。",
+                    "layout_section": "佈局",
+                    "stat_nodes": "節點",
+                    "stat_links": "連線",
+                    "stat_hidden": "已隱藏"
                 },
                 "context_menu": {
                     "last_fetched": "上次取得"
+                },
+                "label": {
+                    "never_fetched": "尚未取得",
+                    "mutuals_unavailable": "無法取得共同好友"
+                },
+                "progress": {
+                    "fetching": "正在取得共同好友",
+                    "laying_out": "正在計算佈局"
+                },
+                "legend": {
+                    "circles": "社群",
+                    "more_circles": "另有 {count} 個圈子",
+                    "size_means_degree": "點越大，共同好友越多",
+                    "min_degree": "最少連線數",
+                    "isolated_nodes": "{count} 人沒有任何連線"
                 }
             },
             "loading": {
@@ -1579,13 +1602,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "房間活動載入失敗",
-                "mutual_graph_failed_to_load": "共同好友關係圖譜載入失敗"
+                "mutual_graph_failed_to_load": "共同好友關係圖譜載入失敗",
+                "mutual_graph_cache_unreadable": "無法讀取本機的共同好友快取。"
             },
             "label": {
                 "connections": "連線",
-                "hidden_nodes": "隱藏節點：",
-                "visible_nodes": "顯示節點：",
-                "visible_links": "顯示連線：",
                 "try_a_broader_search_term_or_clear_the_node_filter": "嘗試更寬泛的搜尋詞或清除節點篩選",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "共同好友關係圖取得已取消，快取中的關係圖未被取代"
             },
@@ -1605,7 +1626,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "已重新整理 {value} 的共同好友",
-                "value_has_opted_out_of_shared_connections": "{value} 已關閉共享連線"
+                "could_not_load_mutuals_for_value": "無法取得 {value} 的共同好友"
             }
         },
         "tools": {
@@ -5234,7 +5255,7 @@
             "dateJoined": "加入時間",
             "unfriend": "解除好友",
             "mutualFriends": "共同好友",
-            "mutualOptedOut": "此用戶已停用共同好友分享，目前顯示快取資料。"
+            "mutualOptedOut": "無法取得該使用者的共同好友，顯示的是快取資料。"
         },
         "profile": {
             "invite_messages": {

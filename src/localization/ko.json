@@ -1504,20 +1504,24 @@
                 }
             },
             "mutual_friend": {
-                "tab_label": "상호 친구 그래프",
+                "tab_label": "공통 친구 그래프",
                 "actions": {
                     "start_fetch": "가져오기 시작",
                     "fetch_again": "다시 가져오기",
                     "stop": "중지",
                     "stop_fetching": "가져오기 중지",
                     "go_to_friend": "친구에게로 이동",
-                    "cancelling": "취소 중..."
+                    "cancelling": "취소 중...",
+                    "find_friend": "친구 찾기",
+                    "open_profile": "프로필 열기",
+                    "hide_from_graph": "그래프에서 숨기기",
+                    "clear_filters": "필터 초기화"
                 },
                 "prompt": {
                     "message": "백그라운드에서 가져오기가 시작되었습니다. 상태 표시줄에 진행 상황이 표시됩니다."
                 },
                 "settings": {
-                    "title": "그래프 레이아웃 설정",
+                    "title": "그래프 설정",
                     "layout_iterations": "레이아웃 반복",
                     "layout_iterations_help": "레이아웃이 실행되는 시간입니다. 높을수록 더 안정적이고 체계적이라는 의미입니다.",
                     "layout_spacing": "레이아웃 간격",
@@ -1529,10 +1533,29 @@
                     "reset_defaults": "기본값으로 재설정",
                     "exclude_friends": "친구 제외",
                     "exclude_friends_placeholder": "제외할 친구 선택",
-                    "exclude_friends_help": "선택한 친구는 그래프에서 숨겨집니다."
+                    "exclude_friends_help": "선택한 친구는 그래프에서 숨겨집니다.",
+                    "layout_section": "레이아웃",
+                    "stat_nodes": "노드",
+                    "stat_links": "연결",
+                    "stat_hidden": "숨김"
                 },
                 "context_menu": {
                     "last_fetched": "마지막으로 가져온"
+                },
+                "label": {
+                    "never_fetched": "아직 불러오지 않음",
+                    "mutuals_unavailable": "공통 친구를 가져올 수 없음"
+                },
+                "progress": {
+                    "fetching": "공통 친구 불러오는 중",
+                    "laying_out": "레이아웃 계산 중"
+                },
+                "legend": {
+                    "circles": "커뮤니티",
+                    "more_circles": "외 {count}개",
+                    "size_means_degree": "점이 클수록 공통 친구가 많음",
+                    "min_degree": "최소 연결 수",
+                    "isolated_nodes": "연결이 없는 {count}명"
                 }
             },
             "loading": {
@@ -1550,13 +1573,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "인스턴스 활동을 로드하지 못했습니다.",
-                "mutual_graph_failed_to_load": "상호 그래프를 로드하지 못했습니다."
+                "mutual_graph_failed_to_load": "상호 그래프를 로드하지 못했습니다.",
+                "mutual_graph_cache_unreadable": "로컬 공통 친구 캐시를 읽을 수 없습니다."
             },
             "label": {
                 "connections": "연결",
-                "hidden_nodes": "숨겨진 노드:",
-                "visible_nodes": "표시된 노드:",
-                "visible_links": "표시된 링크:",
                 "try_a_broader_search_term_or_clear_the_node_filter": "더 폭넓은 검색어를 사용해 보거나 노드 필터를 삭제하세요.",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "상호 그래프 가져오기가 취소되었습니다. 캐시된 그래프가 대체되지 않았습니다."
             },
@@ -1576,7 +1597,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "{value}에 대한 상호 새로워짐",
-                "value_has_opted_out_of_shared_connections": "{value}님이 공유 연결을 선택 해제했습니다."
+                "could_not_load_mutuals_for_value": "{value}의 공통 친구를 가져오지 못했습니다"
             }
         },
         "tools": {
@@ -5158,7 +5179,7 @@
             "dateJoined": "계정 생성일",
             "unfriend": "친구 끊기",
             "mutualFriends": "상호 친구",
-            "mutualOptedOut": "이 사용자는 상호 친구 공유를 비활성화했습니다. 캐시된 데이터를 표시 중입니다."
+            "mutualOptedOut": "이 사용자의 공통 친구를 가져오지 못했습니다. 캐시된 데이터를 표시합니다."
         },
         "profile": {
             "invite_messages": {

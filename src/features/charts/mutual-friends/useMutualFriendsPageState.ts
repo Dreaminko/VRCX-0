@@ -1,17 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import mutualGraphPersistenceRepository from '@/repositories/mutualGraphPersistenceRepository';
+import { openUserDialog } from '@/services/dialogService';
 import { useModalStore } from '@/state/modalStore';
 
+import { assignMutualFriendCommunities } from './mutualFriendsCommunities';
+import { fetchMutualFriendIds } from './mutualFriendsFetchApi';
 import {
-    buildMutualFriendsBaseGraph,
-    filterMutualFriendsGraph
-} from './mutualFriendsGraphData';
+    applyMutualFriendsViewFilters,
+    countIsolatedMutualFriendNodes
+} from './mutualFriendsFilters';
+import { buildMutualFriendsBaseGraph } from './mutualFriendsGraphData';
+import { mutualFriendsCommunityPalette } from './mutualFriendsPalette';
 import {
     buildMutualFriendExcludePickerOptions,
-    buildMutualFriendNodePickerOptions,
     filterMutualFriendPickerOptions
 } from './mutualFriendsPicker';
 import {
@@ -20,12 +24,12 @@ import {
     readExcludedMutualFriendIds,
     writeExcludedMutualFriendIds
 } from './mutualFriendsSettings';
-import { fetchMutualFriendIds } from './mutualFriendsSigmaGraph';
 import { useMutualFriendsGraphFetch } from './useMutualFriendsGraphFetch';
 import { useMutualFriendsLayoutSettings } from './useMutualFriendsLayoutSettings';
 import { useMutualFriendsRuntime } from './useMutualFriendsRuntime';
 import { useMutualFriendsSigmaLifecycle } from './useMutualFriendsSigmaLifecycle';
 import { useMutualFriendsSnapshot } from './useMutualFriendsSnapshot';
+import { useMutualFriendsViewFilters } from './useMutualFriendsViewFilters';
 
 export function useMutualFriendsPageState() {
     const { t } = useTranslation();
@@ -38,8 +42,6 @@ export function useMutualFriendsPageState() {
         resolvedTheme
     } = useMutualFriendsRuntime();
     const currentUserIdRef = useRef(currentUserId);
-    const [nodePickerOpen, setNodePickerOpen] = useState(false);
-    const [nodeSearchQuery, setNodeSearchQuery] = useState('');
     const [excludeSearchQuery, setExcludeSearchQuery] = useState('');
     const [selectedNodeId, setSelectedNodeId] = useState('');
     const selectedNodeIdRef = useRef('');
@@ -50,6 +52,13 @@ export function useMutualFriendsPageState() {
     const [reloadToken, setReloadToken] = useState(0);
     const { layoutSettings, resetLayoutSettings, setLayoutSetting } =
         useMutualFriendsLayoutSettings();
+    const {
+        filters,
+        setSearchQuery,
+        setMinDegree,
+        toggleFocusedCommunity,
+        clearFilters
+    } = useMutualFriendsViewFilters();
 
     useEffect(() => {
         currentUserIdRef.current = currentUserId;
@@ -81,14 +90,24 @@ export function useMutualFriendsPageState() {
         ]
     );
 
-    const filteredGraph = useMemo(
-        () => filterMutualFriendsGraph(baseGraph, ''),
-        [baseGraph]
+    const communityPalette = useMemo(
+        () => mutualFriendsCommunityPalette(resolvedTheme === 'dark'),
+        [resolvedTheme]
     );
 
-    const nodeOptions = useMemo(
-        () => buildMutualFriendNodePickerOptions(baseGraph.nodes, friendsById),
-        [baseGraph.nodes, friendsById]
+    const { communityIndexById, communities } = useMemo(
+        () => assignMutualFriendCommunities(baseGraph, communityPalette),
+        [baseGraph, communityPalette]
+    );
+
+    const filteredGraph = useMemo(
+        () =>
+            applyMutualFriendsViewFilters(
+                baseGraph,
+                filters,
+                communityIndexById
+            ),
+        [baseGraph, communityIndexById, filters]
     );
 
     const excludePickerOptions = useMemo(
@@ -99,11 +118,6 @@ export function useMutualFriendsPageState() {
                 currentUserId
             ),
         [currentUserId, friendsById, snapshot.snapshotData.snapshot]
-    );
-
-    const filteredNodeOptions = useMemo(
-        () => filterMutualFriendPickerOptions(nodeOptions, nodeSearchQuery),
-        [nodeOptions, nodeSearchQuery]
     );
 
     const excludedFriendIdSet = useMemo(
@@ -124,72 +138,68 @@ export function useMutualFriendsPageState() {
 
     const selectedNode = useMemo(
         () =>
-            baseGraph.nodes.find((node: any) => node.id === selectedNodeId) ||
-            null,
+            baseGraph.nodes.find((node) => node.id === selectedNodeId) ?? null,
         [baseGraph.nodes, selectedNodeId]
     );
 
     useEffect(() => {
-        if (!filteredGraph.nodes.length) {
-            selectedNodeIdRef.current = '';
-            setSelectedNodeId('');
-            return;
-        }
-
         if (
+            !selectedNodeIdRef.current ||
             filteredGraph.nodes.some(
-                (node: any) => node.id === selectedNodeIdRef.current
+                (node) => node.id === selectedNodeIdRef.current
             )
         ) {
             return;
         }
-
-        const nextSelectedNodeId = filteredGraph.nodes[0].id;
-        selectedNodeIdRef.current = nextSelectedNodeId;
-        setSelectedNodeId(nextSelectedNodeId);
+        selectedNodeIdRef.current = '';
+        setSelectedNodeId('');
     }, [filteredGraph.nodes]);
 
+    const openNode = useCallback(
+        (nodeId: string) => {
+            const node = baseGraph.nodes.find((item) => item.id === nodeId);
+            openUserDialog({ userId: nodeId, title: node?.label });
+        },
+        [baseGraph.nodes]
+    );
+
+    const handleSelectNode = useCallback((nodeId: string) => {
+        const nextValue = normalizeMutualFriendId(nodeId);
+        selectedNodeIdRef.current = nextValue;
+        setSelectedNodeId(nextValue);
+    }, []);
+
     const sigma = useMutualFriendsSigmaLifecycle({
-        filteredGraph,
+        graph: filteredGraph,
         layoutSettings,
+        communityIndexById,
         resolvedTheme,
         selectedNodeId,
         selectedNodeIdRef,
-        setSelectedNodeId
+        onSelectNode: handleSelectNode,
+        onOpenNode: openNode
     });
 
     const { fetchProgress, handleCancelFetch, handleFetchGraph } =
         useMutualFriendsGraphFetch({
             currentUserId,
             currentUserEndpoint,
-            currentUserIdRef,
             friendsById,
             orderedFriendIds,
             reloadSnapshot: snapshot.reloadSnapshot,
-            setDetail: snapshot.setDetail,
-            setStatus: snapshot.setStatus
+            setDetail: snapshot.setDetail
         });
 
-    function selectNode(friendId: any) {
-        const nextValue = normalizeMutualFriendId(friendId);
-        selectedNodeIdRef.current = nextValue;
-        setSelectedNodeId(nextValue);
-        sigma.focusNode(nextValue);
-    }
-
-    function toggleExcludedFriendId(friendId: any) {
+    function toggleExcludedFriendId(friendId: string) {
         const normalizedId = normalizeMutualFriendId(friendId);
         if (!normalizedId) {
             return;
         }
-        setExcludedFriendIds((current: any) => {
+        setExcludedFriendIds((current) => {
             const normalizedCurrent = normalizeExcludedMutualFriendIds(current);
-            if (normalizedCurrent.includes(normalizedId)) {
-                return normalizedCurrent.filter(
-                    (id: any) => id !== normalizedId
-                );
-            }
-            return [...normalizedCurrent, normalizedId];
+            return normalizedCurrent.includes(normalizedId)
+                ? normalizedCurrent.filter((id) => id !== normalizedId)
+                : [...normalizedCurrent, normalizedId];
         });
     }
 
@@ -199,8 +209,7 @@ export function useMutualFriendsPageState() {
         }
         const ownerUserId = currentUserId;
 
-        const isFriend = Boolean(friendsById[selectedNode.id]);
-        if (!isFriend) {
+        if (!friendsById[selectedNode.id]) {
             const result = await confirm({
                 title: t('view.charts.modal.refresh_non_friend_mutuals'),
                 description: t(
@@ -228,14 +237,9 @@ export function useMutualFriendsPageState() {
             await mutualGraphPersistenceRepository.upsertMeta(
                 ownerUserId,
                 selectedNode.id,
-                {
-                    optedOut: false
-                }
+                { optedOut: false }
             );
-            await snapshot.reloadSnapshot(
-                `Refreshed mutuals for ${selectedNode.label}.`,
-                ownerUserId
-            );
+            await snapshot.reloadSnapshot('', ownerUserId);
             toast.success(
                 t('view.charts.dynamic.refreshed_mutuals_for_value', {
                     value: selectedNode.label
@@ -250,19 +254,13 @@ export function useMutualFriendsPageState() {
                 await mutualGraphPersistenceRepository.upsertMeta(
                     ownerUserId,
                     selectedNode.id,
-                    {
-                        optedOut: true
-                    }
+                    { optedOut: true }
                 );
-                await snapshot.reloadSnapshot(
-                    `${selectedNode.label} has opted out of shared connections.`,
-                    ownerUserId
-                );
+                await snapshot.reloadSnapshot('', ownerUserId);
                 toast.warning(
-                    t(
-                        'view.charts.dynamic.value_has_opted_out_of_shared_connections',
-                        { value: selectedNode.label }
-                    )
+                    t('view.charts.dynamic.could_not_load_mutuals_for_value', {
+                        value: selectedNode.label
+                    })
                 );
                 return;
             }
@@ -280,17 +278,23 @@ export function useMutualFriendsPageState() {
     function handleResetLayoutAndHidden() {
         resetLayoutSettings();
         setExcludedFriendIds([]);
+        clearFilters();
     }
 
     return {
         actions: {
             cancelFetch: handleCancelFetch,
+            clearFilters,
             fetchGraph: handleFetchGraph,
-            refreshPage: () => setReloadToken((value: any) => value + 1),
+            openNode,
+            refreshPage: () => setReloadToken((value) => value + 1),
             refreshSelectedNode: handleRefreshSelectedNode,
             resetLayoutAndHidden: handleResetLayoutAndHidden,
-            selectNode,
-            toggleExcludedFriendId
+            clearSelection: () => handleSelectNode(''),
+            setMinDegree,
+            setSearchQuery,
+            toggleExcludedFriendId,
+            toggleFocusedCommunity
         },
         exclusions: {
             excludeSearchQuery,
@@ -303,12 +307,15 @@ export function useMutualFriendsPageState() {
             fetchProgress
         },
         graph: {
-            baseGraph,
+            baseNodeCount: baseGraph.nodes.length,
+            communities,
+            communityIndexById,
             currentUserId,
             detail: snapshot.detail,
             edgeCount: filteredGraph.links.length,
-            filteredGraph,
             friendCount: orderedFriendIds.length,
+            isolatedCount: countIsolatedMutualFriendNodes(baseGraph),
+            isLayoutRunning: sigma.isLayoutRunning,
             nodeCount: filteredGraph.nodes.length,
             setGraphElementRef: sigma.setGraphElementRef,
             status: snapshot.status
@@ -317,15 +324,18 @@ export function useMutualFriendsPageState() {
             layoutSettings,
             setLayoutSetting
         },
-        picker: {
-            filteredNodeOptions,
-            nodePickerOpen,
-            nodeRefreshId,
-            nodeSearchQuery,
-            selectedNode,
-            selectedNodeId,
-            setNodePickerOpen,
-            setNodeSearchQuery
+        selection: {
+            communityIndex: selectedNode
+                ? (communityIndexById.get(selectedNode.id) ?? null)
+                : null,
+            isRefreshing: Boolean(
+                selectedNode && nodeRefreshId === selectedNode.id
+            ),
+            node: selectedNode,
+            user: selectedNode ? (friendsById[selectedNode.id] ?? null) : null
+        },
+        view: {
+            filters
         }
     };
 }

@@ -1,115 +1,117 @@
 import EdgeCurveProgram from '@sigma/edge-curve';
 import { createNodeBorderProgram } from '@sigma/node-border';
 import Graph from 'graphology';
-import louvain from 'graphology-communities-louvain';
 import Sigma from 'sigma';
 
-import { formatDateFilter } from '@/lib/dateTime';
-import mutualGraphPersistenceRepository from '@/repositories/mutualGraphPersistenceRepository';
-import { openUserDialog } from '@/services/dialogService';
-import { executeWithBackoff } from '@/shared/utils/retry';
-
 import { runGraphLayoutWorker } from './graphLayoutWorkerClient';
+import {
+    communityColor,
+    type MutualFriendsGraphTheme
+} from './mutualFriendsPalette';
 import { truncateMutualFriendLabel } from './mutualFriendsPicker';
 import {
     clampMutualGraphNumber,
-    isValidMutualFriendId,
     MUTUAL_GRAPH_LAYOUT_DEFAULTS,
     MUTUAL_GRAPH_LAYOUT_LIMITS
 } from './mutualFriendsSettings';
+import { mixGraphColors } from './mutualFriendsSigmaColors';
+import {
+    drawMutualFriendHoverCard,
+    type HoverCardStrings
+} from './mutualFriendsSigmaHoverCard';
+import type {
+    MutualFriendGraph,
+    MutualFriendsLayoutSettings
+} from './mutualFriendsTypes';
 
-const COLORS_PALETTE = [
-    '#5470c6',
-    '#91cc75',
-    '#fac858',
-    '#ee6666',
-    '#73c0de',
-    '#3ba272',
-    '#fc8452',
-    '#9a60b4',
-    '#ea7ccc'
-];
 const NODE_LABEL_THRESHOLD = 10;
+const LABEL_DENSITY = 0.7;
+const LABEL_GRID_CELL_SIZE = 140;
+const SELECTED_SIZE_SCALE = 1.35;
+const HOVER_SIZE_SCALE = 1.55;
+const NODE_DIM_STRENGTH = 0.9;
+const EDGE_DIM_STRENGTH = 0.85;
+const HOVER_ENTER_DURATION = 140;
+const HOVER_LEAVE_DURATION = 110;
+const SELECTION_DURATION = 180;
+
+const {
+    edgeCurvature: EDGE_CURVATURE_LIMITS,
+    communitySeparation: COMMUNITY_SEPARATION_LIMITS
+} = MUTUAL_GRAPH_LAYOUT_LIMITS;
+
 const NodeBorderProgram = createNodeBorderProgram({
     borders: [
         { size: { value: 0.1 }, color: { value: '#f2f2f2' } },
         { size: { fill: true }, color: { attribute: 'color' } }
     ]
 });
-const {
-    edgeCurvature: EDGE_CURVATURE_LIMITS,
-    communitySeparation: COMMUNITY_SEPARATION_LIMITS
-} = MUTUAL_GRAPH_LAYOUT_LIMITS;
 
-export async function fetchMutualFriendIds(
-    friendId: any,
-    { rateLimiter = null, isCancelled = () => false }: any = {}
-) {
-    const collected = [];
-    let offset = 0;
+let layoutRequestSequence = 0;
 
-    while (true) {
-        if (isCancelled()) {
-            break;
-        }
-        if (rateLimiter) {
-            await rateLimiter.wait();
-        }
-        if (isCancelled()) {
-            break;
-        }
-
-        const response = await executeWithBackoff(
-            () => {
-                if (isCancelled()) {
-                    throw new Error('cancelled');
-                }
-                return mutualGraphPersistenceRepository.getMutualFriends({
-                    friendId,
-                    offset,
-                    n: 100
-                });
-            },
-            {
-                maxRetries: 4,
-                baseDelay: 500,
-                shouldRetry: (error: any) =>
-                    error?.status === 429 ||
-                    String(error?.message || '').includes('429')
-            }
-        ).catch((error: unknown): null => {
-            const message = error instanceof Error ? error.message : '';
-            if (message === 'cancelled') {
-                return null;
-            }
-            throw error;
-        });
-
-        if (!response || isCancelled()) {
-            break;
-        }
-
-        const page = Array.isArray(response.json) ? response.json : [];
-        collected.push(
-            ...page.map((entry: any) => entry?.id).filter(isValidMutualFriendId)
-        );
-
-        if (page.length < 100) {
-            break;
-        }
-        offset += page.length;
-    }
-
-    return collected;
+function easeOut(progress: number) {
+    return 1 - Math.pow(1 - progress, 3);
 }
 
-function serializeGraph(graph: any) {
+export type SigmaInstance = Sigma;
+
+interface GraphTransition {
+    value: number;
+    frame: number;
+}
+
+function createTransition(): GraphTransition {
+    return { value: 0, frame: 0 };
+}
+
+function cancelTransition(transition: GraphTransition) {
+    if (transition.frame) {
+        cancelAnimationFrame(transition.frame);
+        transition.frame = 0;
+    }
+}
+
+function runTransition(
+    transition: GraphTransition,
+    target: number,
+    duration: number,
+    onFrame: () => void
+) {
+    cancelTransition(transition);
+
+    const from = transition.value;
+    const distance = target - from;
+    if (!distance || duration <= 0) {
+        transition.value = target;
+        onFrame();
+        return;
+    }
+
+    const start = performance.now();
+    const step = () => {
+        const elapsed = performance.now() - start;
+        const progress = Math.min(1, elapsed / duration);
+        transition.value = from + distance * easeOut(progress);
+        onFrame();
+        transition.frame = progress < 1 ? requestAnimationFrame(step) : 0;
+    };
+    transition.frame = requestAnimationFrame(step);
+}
+
+function prefersReducedMotion() {
+    return (
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+    );
+}
+
+function serializeGraph(graph: Graph) {
     return {
-        nodes: graph.nodes().map((id: any) => ({
+        nodes: graph.nodes().map((id) => ({
             id,
             attributes: graph.getNodeAttributes(id)
         })),
-        edges: graph.edges().map((key: any) => {
+        edges: graph.edges().map((key) => {
             const [source, target] = graph.extremities(key);
             return {
                 key,
@@ -121,25 +123,37 @@ function serializeGraph(graph: any) {
     };
 }
 
-function runLayoutWorker(graph: any, settings: any) {
-    const { nodes, edges } = serializeGraph(graph);
-    return runGraphLayoutWorker({
-        requestId: `${Date.now()}:${Math.random()}`,
-        nodes,
-        edges,
-        settings
-    });
-}
-
-function applyLayoutPositions(graph: any, positions: any) {
+function applyLayoutPositions(
+    graph: Graph,
+    positions: Record<string, { x: number; y: number }>
+) {
     for (const [node, position] of Object.entries(positions || {})) {
         if (graph.hasNode(node)) {
-            graph.mergeNodeAttributes(node, position);
+            graph.mergeNodeAttributes(node, {
+                x: position.x,
+                y: position.y,
+                baseX: position.x,
+                baseY: position.y
+            });
         }
     }
 }
 
-function applyEdgeCurvature(graph: any, layoutSettings: any) {
+function buildFallbackLayout(graph: Graph) {
+    const nodes = graph.nodes();
+    const radius = Math.max(50, Math.sqrt(nodes.length || 1) * 30);
+    nodes.forEach((node, index) => {
+        const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        graph.mergeNodeAttributes(node, { x, y, baseX: x, baseY: y });
+    });
+}
+
+export function applyMutualFriendsEdgeCurvature(
+    graph: Graph,
+    layoutSettings: MutualFriendsLayoutSettings
+) {
     const curvature = clampMutualGraphNumber(
         layoutSettings.edgeCurvature,
         EDGE_CURVATURE_LIMITS.min,
@@ -147,50 +161,56 @@ function applyEdgeCurvature(graph: any, layoutSettings: any) {
         MUTUAL_GRAPH_LAYOUT_DEFAULTS.edgeCurvature
     );
     const type = curvature > 0 ? 'curve' : 'line';
-    graph.forEachEdge((edge: any) => {
+    graph.forEachEdge((edge) => {
         graph.mergeEdgeAttributes(edge, { curvature, type });
     });
 }
 
-function assignCommunitiesAndColors(graph: any) {
-    const communities = louvain(graph);
-    const ids = Array.from(new Set(Object.values(communities))).sort(
-        (left: any, right: any) => String(left).localeCompare(String(right))
-    );
-    const idToIndex = new Map(ids.map((id: any, index: any) => [id, index]));
-
-    graph.forEachNode((node: any) => {
-        const communityId = communities[node];
-        const colorIndex = idToIndex.get(communityId) ?? 0;
-        graph.mergeNodeAttributes(node, {
-            community: communityId,
-            color: COLORS_PALETTE[colorIndex % COLORS_PALETTE.length]
-        });
-    });
-}
-
-function applyCommunitySeparation(graph: any, layoutSettings: any) {
+export function applyMutualFriendsCommunitySeparation(
+    graph: Graph,
+    layoutSettings: MutualFriendsLayoutSettings
+) {
     const separation = clampMutualGraphNumber(
         layoutSettings.communitySeparation,
         COMMUNITY_SEPARATION_LIMITS.min,
         COMMUNITY_SEPARATION_LIMITS.max,
         MUTUAL_GRAPH_LAYOUT_DEFAULTS.communitySeparation
     );
+
     if (separation <= 0) {
+        graph.forEachNode((node, attributes) => {
+            graph.mergeNodeAttributes(node, {
+                x: attributes.baseX ?? attributes.x,
+                y: attributes.baseY ?? attributes.y
+            });
+        });
         return;
     }
 
-    const communities = new Map();
-    graph.forEachNode((node: any, attrs: any) => {
-        if (typeof attrs.community === 'undefined') {
+    const communities = new Map<
+        number,
+        {
+            nodes: { node: string; x: number; y: number }[];
+            cx: number;
+            cy: number;
+        }
+    >();
+    graph.forEachNode((node, attributes) => {
+        const community = attributes.community as number | undefined;
+        if (typeof community !== 'number') {
             return;
         }
-        if (!communities.has(attrs.community)) {
-            communities.set(attrs.community, { nodes: [], cx: 0, cy: 0 });
-        }
-        communities
-            .get(attrs.community)
-            .nodes.push({ node, x: attrs.x, y: attrs.y });
+        const bucket = communities.get(community) ?? {
+            nodes: [],
+            cx: 0,
+            cy: 0
+        };
+        bucket.nodes.push({
+            node,
+            x: attributes.baseX ?? attributes.x ?? 0,
+            y: attributes.baseY ?? attributes.y ?? 0
+        });
+        communities.set(community, bucket);
     });
 
     let total = 0;
@@ -198,8 +218,8 @@ function applyCommunitySeparation(graph: any, layoutSettings: any) {
     let globalY = 0;
     for (const community of communities.values()) {
         for (const item of community.nodes) {
-            community.cx += item.x || 0;
-            community.cy += item.y || 0;
+            community.cx += item.x;
+            community.cy += item.y;
         }
         community.cx /= Math.max(community.nodes.length, 1);
         community.cy /= Math.max(community.nodes.length, 1);
@@ -218,294 +238,83 @@ function applyCommunitySeparation(graph: any, layoutSettings: any) {
         const pushY = (dy / distance) * separation * 80;
         for (const item of community.nodes) {
             graph.mergeNodeAttributes(item.node, {
-                x: (item.x || 0) + pushX,
-                y: (item.y || 0) + pushY
+                x: item.x + pushX,
+                y: item.y + pushY
             });
         }
     }
 }
 
-function buildFallbackLayout(graph: any) {
-    const nodes = graph.nodes();
-    const radius = Math.max(50, Math.sqrt(nodes.length || 1) * 30);
-    nodes.forEach((node: any, index: any) => {
-        const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
+export function applyMutualFriendsGraphTheme(
+    graph: Graph,
+    theme: MutualFriendsGraphTheme
+) {
+    graph.forEachNode((node, attributes) => {
+        const community = (attributes.community as number | undefined) ?? 0;
         graph.mergeNodeAttributes(node, {
-            x: Math.cos(angle) * radius,
-            y: Math.sin(angle) * radius
+            baseColor: communityColor(theme.communityPalette, community)
         });
     });
-}
-
-export function destroySigmaInstance(instanceRef: any, resizeObserverRef: any) {
-    resizeObserverRef.current?.disconnect();
-    instanceRef.current?.kill?.();
-    resizeObserverRef.current = null;
-    instanceRef.current = null;
-}
-
-function drawSigmaNodeHover(ctx: any, data: any, settings: any, t: any) {
-    const label = data.fullLabel || data.label;
-    if (!label) {
-        return;
-    }
-
-    const fontSize = settings.labelSize ?? 12;
-    const font = settings.labelFont ?? 'sans-serif';
-    const smallFontSize = Math.max(9, fontSize - 2);
-    const subLine = data.lastFetchedAt
-        ? `${t('view.charts.mutual_friend.context_menu.last_fetched')}: ${formatDateFilter(data.lastFetchedAt, 'long')}`
-        : '';
-    const paddingX = 6;
-    const paddingY = 4;
-
-    ctx.font = `${fontSize}px ${font}`;
-    ctx.textBaseline = 'middle';
-    const labelWidth = ctx.measureText(label).width;
-    ctx.font = `${smallFontSize}px ${font}`;
-    const subWidth = subLine ? ctx.measureText(subLine).width : 0;
-    ctx.font = `${fontSize}px ${font}`;
-
-    const width = Math.max(labelWidth, subWidth) + paddingX * 2;
-    const lineHeight = fontSize + paddingY;
-    const height = lineHeight * (subLine ? 2 : 1) + paddingY;
-    const x = data.x + data.size - 5;
-    const y = data.y - height / 2;
-
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-    ctx.shadowBlur = 6;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-    ctx.fillRect(x, y, width, height);
-
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
-    ctx.fillStyle = '#111827';
-    ctx.font = `${fontSize}px ${font}`;
-    ctx.fillText(label, x + paddingX, y + paddingY + fontSize / 2);
-
-    if (subLine) {
-        ctx.fillStyle = data.optedOut ? '#dc2626' : '#6b7280';
-        ctx.font = `${smallFontSize}px ${font}`;
-        ctx.fillText(
-            subLine,
-            x + paddingX,
-            y + paddingY + lineHeight + smallFontSize / 2
-        );
-    }
-}
-
-export function renderSigmaGraph({
-    graph,
-    container,
-    instanceRef,
-    resizeObserverRef,
-    isDarkMode,
-    selectedNodeIdRef,
-    onSelectNode,
-    t
-}: any) {
-    const labelColor = isDarkMode ? '#e2e8f0' : '#111827';
-    const edgeBase = isDarkMode ? '#334155' : '#94a3b8';
-    const edgeActive = isDarkMode ? '#bac1c9' : '#0f172a';
-    let sigma = instanceRef.current;
-    let cameraState = null;
-
-    if (sigma) {
-        cameraState = sigma.getCamera?.()?.getState?.() || null;
-        sigma.setGraph(graph);
-        sigma.setSetting('labelRenderedSizeThreshold', NODE_LABEL_THRESHOLD);
-        sigma.setSetting('labelColor', { color: labelColor });
-        sigma.setSetting('defaultEdgeColor', edgeBase);
-        sigma.setSetting('zIndex', true);
-    } else {
-        sigma = new Sigma(graph, container, {
-            allowInvalidContainer: true,
-            renderLabels: true,
-            labelRenderedSizeThreshold: NODE_LABEL_THRESHOLD,
-            labelColor: { color: labelColor },
-            defaultEdgeColor: edgeBase,
-            zIndex: true,
-            defaultNodeType: 'border',
-            nodeProgramClasses: { border: NodeBorderProgram },
-            edgeProgramClasses: { curve: EdgeCurveProgram },
-            defaultDrawNodeHover: (ctx: any, data: any, settings: any) =>
-                drawSigmaNodeHover(ctx, data, settings, t)
-        });
-        instanceRef.current = sigma;
-        resizeObserverRef.current?.disconnect();
-        resizeObserverRef.current = new ResizeObserver(() => {
-            sigma.resize();
-            sigma.refresh();
-        });
-        resizeObserverRef.current.observe(container);
-    }
-
-    if (cameraState) {
-        sigma.getCamera?.()?.setState?.(cameraState);
-    }
-
-    let hovered: string | null = null;
-    let neighbors = new Set();
-    const rebuildNeighbors = (node: any) => {
-        neighbors =
-            node && graph.hasNode(node)
-                ? new Set(graph.neighbors(node))
-                : new Set();
-    };
-
-    sigma.setSetting('nodeReducer', (node: any, data: any) => {
-        const result: any = { ...data };
-        const isSelected = node === selectedNodeIdRef.current;
-
-        if (data.optedOut) {
-            result.borderColor = '#9ca3af';
-        }
-
-        if (!hovered) {
-            result.color = data.optedOut ? '#d1d5db' : data.color;
-            result.zIndex = isSelected ? 3 : 1;
-            if (isSelected) {
-                result.size = (data.size || 4) * 1.35;
-                result.label = `${data.label} (${data.degree ?? graph.degree(node) ?? 0})`;
-            }
-            return result;
-        }
-
-        const isHover = node === hovered;
-        const isNeighbor = neighbors.has(node);
-
-        if (isHover) {
-            result.color = '#facc15';
-            result.size = (data.size || 4) * 1.6;
-            result.label = `${data.label} (${neighbors.size})`;
-            result.labelColor = '#111827';
-            result.zIndex = 4;
-            return result;
-        }
-
-        if (isNeighbor || isSelected) {
-            result.color = data.color;
-            result.size = (data.size || 4) * (isSelected ? 1.35 : 1.2);
-            result.label = data.label;
-            result.labelColor = '#111827';
-            result.zIndex = isSelected ? 3 : 2;
-            return result;
-        }
-
-        result.color = isDarkMode
-            ? 'rgba(148,163,184,0.04)'
-            : 'rgba(100,116,139,0.06)';
-        result.size = 0.7;
-        result.label = '';
-        result.zIndex = 0;
-        return result;
-    });
-
-    sigma.setSetting('edgeReducer', (edge: any, data: any) => {
-        const result: any = { ...data };
-        if (!hovered) {
-            result.hidden = false;
-            result.color = edgeBase;
-            result.size = data.size || 1;
-            return result;
-        }
-
-        const [source, target] = graph.extremities(edge);
-        if (source === hovered || target === hovered) {
-            result.hidden = false;
-            result.color = edgeActive;
-            result.size = data.size || 1;
-            return result;
-        }
-
-        result.hidden = true;
-        return result;
-    });
-
-    sigma.removeAllListeners?.();
-    sigma.on('enterNode', ({ node }: any) => {
-        hovered = node;
-        rebuildNeighbors(node);
-        sigma.setSetting('labelRenderedSizeThreshold', 0);
-        sigma.refresh();
-    });
-    sigma.on('leaveNode', () => {
-        hovered = null;
-        rebuildNeighbors(null);
-        sigma.setSetting('labelRenderedSizeThreshold', NODE_LABEL_THRESHOLD);
-        sigma.refresh();
-    });
-    sigma.on('clickNode', ({ node }: any) => {
-        if (!node) {
-            return;
-        }
-        selectedNodeIdRef.current = node;
-        onSelectNode(node);
-        openUserDialog({
-            userId: node,
-            title:
-                graph.getNodeAttribute(node, 'fullLabel') ||
-                graph.getNodeAttribute(node, 'label') ||
-                undefined
-        });
-        sigma.refresh();
-    });
-    sigma.refresh();
 }
 
 export async function buildSigmaGraph({
-    nodes,
-    links,
+    graph: sourceGraph,
     layoutSettings,
-    selectedNodeId
-}: any) {
+    communityIndexById,
+    theme
+}: {
+    graph: MutualFriendGraph;
+    layoutSettings: MutualFriendsLayoutSettings;
+    communityIndexById: Map<string, number>;
+    theme: MutualFriendsGraphTheme;
+}) {
     const graph = new Graph({
         type: 'undirected',
         multi: false,
         allowSelfLoops: false
     });
-    const maxDegree = nodes.reduce(
-        (max: any, node: any) => Math.max(max, Number(node.degree) || 0),
+    const maxDegree = sourceGraph.nodes.reduce(
+        (max, node) => Math.max(max, node.degree),
         0
     );
 
-    for (const node of nodes) {
-        const degree = Number(node.degree) || 0;
-        const isSelected = node.id === selectedNodeId;
+    for (const node of sourceGraph.nodes) {
+        const baseSize = 4 + (maxDegree ? (node.degree / maxDegree) * 18 : 0);
         graph.addNode(node.id, {
             label: truncateMutualFriendLabel(node.label, 20),
             fullLabel: node.label,
-            size:
-                (4 + (maxDegree ? (degree / maxDegree) * 18 : 0)) *
-                (isSelected ? 1.35 : 1),
-            degree,
-            optedOut: Boolean(node.optedOut),
-            lastFetchedAt: node.lastFetchedAt || null,
+            size: baseSize,
+            baseSize,
+            degree: node.degree,
+            optedOut: node.optedOut,
+            lastFetchedAt: node.lastFetchedAt,
+            community: communityIndexById.get(node.id) ?? 0,
             type: 'border',
-            zIndex: isSelected ? 3 : 1,
-            color: node.optedOut ? '#d1d5db' : COLORS_PALETTE[0]
+            zIndex: 1
         });
     }
 
-    for (const link of links) {
+    for (const link of sourceGraph.links) {
         if (!graph.hasNode(link.source) || !graph.hasNode(link.target)) {
             continue;
         }
         const key = [link.source, link.target].sort().join('__');
         if (!graph.hasEdge(key)) {
-            graph.addEdgeWithKey(key, link.source, link.target, { size: 0.75 });
+            graph.addEdgeWithKey(key, link.source, link.target, { size: 0.5 });
         }
     }
 
     if (graph.order > 1) {
         try {
-            const positions = await runLayoutWorker(graph, {
-                layoutIterations: layoutSettings.layoutIterations,
-                layoutSpacing: layoutSettings.layoutSpacing,
-                deltaSpacing: 0,
-                reinitialize: true
+            const positions = await runGraphLayoutWorker({
+                requestId: `mutual-graph-layout-${(layoutRequestSequence += 1)}`,
+                ...serializeGraph(graph),
+                settings: {
+                    layoutIterations: layoutSettings.layoutIterations,
+                    layoutSpacing: layoutSettings.layoutSpacing,
+                    deltaSpacing: 0,
+                    reinitialize: true
+                }
             });
             applyLayoutPositions(graph, positions);
         } catch (error) {
@@ -515,12 +324,231 @@ export async function buildSigmaGraph({
             );
             buildFallbackLayout(graph);
         }
-        assignCommunitiesAndColors(graph);
-        applyCommunitySeparation(graph, layoutSettings);
-        applyEdgeCurvature(graph, layoutSettings);
     } else {
         buildFallbackLayout(graph);
     }
 
+    applyMutualFriendsGraphTheme(graph, theme);
+    applyMutualFriendsCommunitySeparation(graph, layoutSettings);
+    applyMutualFriendsEdgeCurvature(graph, layoutSettings);
+
     return graph;
 }
+
+export function destroySigmaInstance(
+    instanceRef: { current: SigmaInstance | null },
+    resizeObserverRef: { current: ResizeObserver | null }
+) {
+    resizeObserverRef.current?.disconnect();
+    instanceRef.current?.kill();
+    resizeObserverRef.current = null;
+    instanceRef.current = null;
+}
+
+export function renderSigmaGraph({
+    graph,
+    container,
+    instanceRef,
+    resizeObserverRef,
+    themeRef,
+    selectedNodeIdRef,
+    onSelectNode,
+    onOpenNode,
+    hoverCardStringsRef
+}: {
+    graph: Graph;
+    container: HTMLElement;
+    instanceRef: { current: SigmaInstance | null };
+    resizeObserverRef: { current: ResizeObserver | null };
+    themeRef: { current: MutualFriendsGraphTheme };
+    selectedNodeIdRef: { current: string };
+    onSelectNode: (nodeId: string) => void;
+    onOpenNode: (nodeId: string) => void;
+    hoverCardStringsRef: { current: HoverCardStrings };
+}) {
+    let sigma = instanceRef.current;
+
+    if (sigma) {
+        sigma.setGraph(graph);
+        sigma.getCamera().setState({ x: 0.5, y: 0.5, ratio: 1, angle: 0 });
+    } else {
+        sigma = new Sigma(graph, container, {
+            allowInvalidContainer: true,
+            renderLabels: true,
+            labelRenderedSizeThreshold: NODE_LABEL_THRESHOLD,
+            labelDensity: LABEL_DENSITY,
+            labelGridCellSize: LABEL_GRID_CELL_SIZE,
+            zIndex: true,
+            defaultNodeType: 'border',
+            nodeProgramClasses: { border: NodeBorderProgram },
+            edgeProgramClasses: { curve: EdgeCurveProgram }
+        });
+        instanceRef.current = sigma;
+        resizeObserverRef.current?.disconnect();
+        resizeObserverRef.current = new ResizeObserver(() => {
+            sigma?.resize();
+            sigma?.refresh();
+        });
+        resizeObserverRef.current.observe(container);
+    }
+
+    const renderer = sigma;
+    const reducedMotion = prefersReducedMotion();
+    const hoverTransition = createTransition();
+    const selectionTransition = createTransition();
+    let hovered: string | null = null;
+    let neighbors = new Set<string>();
+
+    const repaint = () => renderer.refresh({ skipIndexation: true });
+
+    const applyTheme = () => {
+        renderer.setSetting('labelColor', {
+            color: themeRef.current.labelColor
+        });
+        renderer.setSetting('defaultEdgeColor', themeRef.current.edgeColor);
+        repaint();
+    };
+
+    renderer.setSetting('labelRenderedSizeThreshold', NODE_LABEL_THRESHOLD);
+    renderer.setSetting('defaultDrawNodeHover', (ctx, data, settings) =>
+        drawMutualFriendHoverCard(
+            ctx as CanvasRenderingContext2D,
+            data as never,
+            settings,
+            themeRef.current,
+            hoverCardStringsRef.current
+        )
+    );
+
+    renderer.setSetting('nodeReducer', (node, data) => {
+        const baseColor = String(data.baseColor ?? data.color);
+        const baseSize = Number(data.baseSize ?? data.size ?? 4);
+        const theme = themeRef.current;
+        const isSelected = node === selectedNodeIdRef.current;
+        const selection = isSelected ? selectionTransition.value : 0;
+        const dim = hoverTransition.value;
+        const isHovered = node === hovered;
+        const isNeighbor = neighbors.has(node);
+        const stayLit = isHovered || isNeighbor || isSelected;
+
+        const result: Record<string, unknown> = { ...data };
+        result.size = baseSize * (1 + (SELECTED_SIZE_SCALE - 1) * selection);
+
+        if (isHovered) {
+            result.color = baseColor;
+            result.size = baseSize * (1 + (HOVER_SIZE_SCALE - 1) * dim);
+            result.forceLabel = true;
+            result.zIndex = 4;
+            return result;
+        }
+
+        if (stayLit) {
+            result.color = baseColor;
+            result.forceLabel = isSelected || (isNeighbor && dim > 0.5);
+            result.zIndex = isSelected ? 3 : 2;
+            return result;
+        }
+
+        result.color = mixGraphColors(
+            baseColor,
+            theme.backgroundColor,
+            dim * NODE_DIM_STRENGTH
+        );
+        result.zIndex = 1;
+        if (dim > 0.5) {
+            result.label = '';
+        }
+        return result;
+    });
+
+    renderer.setSetting('edgeReducer', (edge, data) => {
+        const result: Record<string, unknown> = { ...data };
+        const theme = themeRef.current;
+        const dim = hoverTransition.value;
+        if (!dim) {
+            result.color = theme.edgeColor;
+            return result;
+        }
+
+        const [source, target] = graph.extremities(edge);
+        const isIncident = source === hovered || target === hovered;
+        result.color = isIncident
+            ? mixGraphColors(theme.edgeColor, theme.edgeActiveColor, dim)
+            : mixGraphColors(
+                  theme.edgeColor,
+                  theme.backgroundColor,
+                  dim * EDGE_DIM_STRENGTH
+              );
+        result.zIndex = isIncident ? 1 : 0;
+        return result;
+    });
+
+    renderer.removeAllListeners();
+    renderer.on('enterNode', ({ node }) => {
+        hovered = node;
+        neighbors = graph.hasNode(node)
+            ? new Set(graph.neighbors(node))
+            : new Set();
+        runTransition(
+            hoverTransition,
+            1,
+            reducedMotion ? 0 : HOVER_ENTER_DURATION,
+            repaint
+        );
+    });
+    renderer.on('leaveNode', () => {
+        runTransition(
+            hoverTransition,
+            0,
+            reducedMotion ? 0 : HOVER_LEAVE_DURATION,
+            () => {
+                if (!hoverTransition.value) {
+                    hovered = null;
+                    neighbors = new Set();
+                }
+                repaint();
+            }
+        );
+    });
+    renderer.on('clickNode', ({ node }) => {
+        if (node) {
+            onSelectNode(node);
+        }
+    });
+    renderer.on('doubleClickNode', (event) => {
+        event.preventSigmaDefault();
+        if (event.node) {
+            onOpenNode(event.node);
+        }
+    });
+
+    let appliedSelection = selectedNodeIdRef.current;
+    selectionTransition.value = appliedSelection ? 1 : 0;
+    applyTheme();
+    renderer.refresh();
+
+    return {
+        applySelection(nodeId: string) {
+            if (appliedSelection === nodeId) {
+                repaint();
+                return;
+            }
+            appliedSelection = nodeId;
+            selectedNodeIdRef.current = nodeId;
+            selectionTransition.value = 0;
+            runTransition(
+                selectionTransition,
+                nodeId ? 1 : 0,
+                reducedMotion ? 0 : SELECTION_DURATION,
+                repaint
+            );
+        },
+        applyTheme,
+        dispose() {
+            cancelTransition(hoverTransition);
+            cancelTransition(selectionTransition);
+        }
+    };
+}
+
+export type SigmaGraphController = ReturnType<typeof renderSigmaGraph>;

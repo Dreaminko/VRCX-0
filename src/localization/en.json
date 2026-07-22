@@ -1540,13 +1540,17 @@
                     "stop": "Stop",
                     "stop_fetching": "Stop fetching",
                     "go_to_friend": "Go to friend",
-                    "cancelling": "Cancelling..."
+                    "cancelling": "Cancelling...",
+                    "find_friend": "Find a friend",
+                    "open_profile": "Open profile",
+                    "hide_from_graph": "Hide from graph",
+                    "clear_filters": "Clear filters"
                 },
                 "prompt": {
                     "message": "Fetching has started in the background. Progress is shown in the status bar."
                 },
                 "settings": {
-                    "title": "Graph Layout Settings",
+                    "title": "Graph settings",
                     "layout_iterations": "Layout iterations",
                     "layout_iterations_help": "How long the layout runs. Higher means more stable and organized.",
                     "layout_spacing": "Layout spacing",
@@ -1558,10 +1562,29 @@
                     "reset_defaults": "Reset to defaults",
                     "exclude_friends": "Exclude friends",
                     "exclude_friends_placeholder": "Select friends to exclude",
-                    "exclude_friends_help": "Selected friends will be hidden from the graph."
+                    "exclude_friends_help": "Selected friends will be hidden from the graph.",
+                    "layout_section": "Layout",
+                    "stat_nodes": "Nodes",
+                    "stat_links": "Links",
+                    "stat_hidden": "Hidden"
                 },
                 "context_menu": {
                     "last_fetched": "Last fetched"
+                },
+                "label": {
+                    "never_fetched": "Not fetched yet",
+                    "mutuals_unavailable": "Mutual friends unavailable"
+                },
+                "progress": {
+                    "fetching": "Fetching mutual friends",
+                    "laying_out": "Laying out the graph"
+                },
+                "legend": {
+                    "circles": "Communities",
+                    "more_circles": "+{count} more",
+                    "size_means_degree": "Bigger dot = more mutual friends",
+                    "min_degree": "Min. connections",
+                    "isolated_nodes": "{count} with no connections"
                 }
             },
             "loading": {
@@ -1579,13 +1602,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "Instance activity failed to load",
-                "mutual_graph_failed_to_load": "Mutual graph failed to load"
+                "mutual_graph_failed_to_load": "Mutual graph failed to load",
+                "mutual_graph_cache_unreadable": "Could not read the local mutual-friends cache."
             },
             "label": {
                 "connections": "connections",
-                "hidden_nodes": "Hidden nodes:",
-                "visible_nodes": "Visible nodes:",
-                "visible_links": "Visible links:",
                 "try_a_broader_search_term_or_clear_the_node_filter": "Try a broader search term or clear the node filter",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "Mutual graph fetch cancelled. The cached graph was not replaced"
             },
@@ -1605,7 +1626,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "Refreshed mutuals for {value}",
-                "value_has_opted_out_of_shared_connections": "{value} has opted out of shared connections"
+                "could_not_load_mutuals_for_value": "Could not load mutual friends for {value}"
             }
         },
         "tools": {
@@ -5234,7 +5255,7 @@
             "dateJoined": "Date Joined",
             "unfriend": "Unfriend",
             "mutualFriends": "Mutual Friends",
-            "mutualOptedOut": "This user has disabled mutual friends sharing. Showing cached data."
+            "mutualOptedOut": "Could not load this user's mutual friends. Showing cached data."
         },
         "profile": {
             "invite_messages": {

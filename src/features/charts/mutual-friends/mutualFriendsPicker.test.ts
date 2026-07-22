@@ -1,64 +1,70 @@
 import { describe, expect, it } from 'vitest';
 
+import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
+
 import {
     buildMutualFriendExcludePickerOptions,
-    buildMutualFriendNodePickerOptions,
     buildMutualFriendPickerOption,
     filterMutualFriendPickerOptions,
     mutualFriendPickerOptionMatches,
     truncateMutualFriendLabel
 } from './mutualFriendsPicker';
 import { MUTUAL_GRAPH_EMPTY_USER_ID } from './mutualFriendsSettings';
+import type { MutualFriendPickerOption } from './mutualFriendsTypes';
+
+function friend(patch: Partial<FriendRecord> = {}): FriendRecord {
+    return {
+        id: 'usr_1',
+        displayName: 'Friend',
+        tags: [],
+        state: 'offline',
+        stateBucket: 'offline',
+        $trustLevel: 'Visitor',
+        $friendNumber: 0,
+        $trustClass: 'x-tag-untrusted',
+        $trustSortNum: 0,
+        $isModerator: false,
+        $isTroll: false,
+        $isProbableTroll: false,
+        $platform: '',
+        ...patch
+    };
+}
+
+function option(value: string, label: string): MutualFriendPickerOption {
+    return {
+        value,
+        label,
+        displayLabel: label,
+        search: `${label} ${value}`,
+        user: null
+    };
+}
 
 describe('mutualFriendsPicker', () => {
-    it('builds graph node picker options from roster names and visible connection counts', () => {
-        const options = buildMutualFriendNodePickerOptions(
-            [
-                { id: 'usr_b', label: 'Cached B', degree: 1 },
-                { id: 'usr_a', label: 'Cached A', degree: 3 }
-            ],
-            {
-                usr_a: {
-                    id: 'usr_a',
-                    displayName: 'Ava',
-                    username: 'ava_user'
-                },
-                usr_b: { id: 'usr_b', username: 'ben_user' }
-            }
-        );
-
-        expect(options.map((option) => option?.displayLabel)).toEqual([
-            'Ava (3)',
-            'ben_user (1)'
-        ]);
-        expect(options[0]).toMatchObject({
-            value: 'usr_a',
-            label: 'Ava',
-            degree: 3
-        });
-    });
-
     it('searches picker options by the text users can see or identify', () => {
-        const option = buildMutualFriendPickerOption(
+        const built = buildMutualFriendPickerOption(
             ' usr_ava ',
             {
-                usr_ava: {
+                usr_ava: friend({
                     id: 'usr_ava',
                     displayName: 'Ava Star',
                     username: 'ava_user'
-                }
+                })
             },
             '',
             5
         );
 
-        expect(mutualFriendPickerOptionMatches(option, 'ava usr_ava')).toBe(
+        expect(mutualFriendPickerOptionMatches(built, 'ava usr_ava')).toBe(
             true
         );
-        expect(mutualFriendPickerOptionMatches(option, 'missing')).toBe(false);
+        expect(mutualFriendPickerOptionMatches(built, 'missing')).toBe(false);
         expect(
             filterMutualFriendPickerOptions(
-                [option, { label: 'Ben', value: 'usr_ben' }],
+                [built, option('usr_ben', 'Ben')].filter(
+                    (item): item is MutualFriendPickerOption => Boolean(item)
+                ),
                 'usr',
                 1
             )
@@ -68,19 +74,16 @@ describe('mutualFriendsPicker', () => {
     it('keeps selected exclude-picker options at the top before limiting results', () => {
         const options = filterMutualFriendPickerOptions(
             [
-                { label: 'Ava', value: 'usr_a' },
-                { label: 'Ben', value: 'usr_b' },
-                { label: 'Cyd', value: 'usr_c' }
+                option('usr_a', 'Ava'),
+                option('usr_b', 'Ben'),
+                option('usr_c', 'Cyd')
             ],
             '',
             2,
             new Set(['usr_c'])
         );
 
-        expect(options.map((option) => option.value)).toEqual([
-            'usr_c',
-            'usr_a'
-        ]);
+        expect(options.map((item) => item.value)).toEqual(['usr_c', 'usr_a']);
     });
 
     it('builds hidden-friend picker choices from all cached graph ids without duplicates or self', () => {
@@ -90,23 +93,20 @@ describe('mutualFriendsPicker', () => {
                 ['usr_a', ['usr_self', 'usr_b', MUTUAL_GRAPH_EMPTY_USER_ID]]
             ]),
             {
-                usr_a: { id: 'usr_a', displayName: 'Ava' },
-                usr_b: { id: 'usr_b', displayName: 'Ben' }
+                usr_a: friend({ id: 'usr_a', displayName: 'Ava' }),
+                usr_b: friend({ id: 'usr_b', displayName: 'Ben' })
             },
             'usr_self'
         );
 
-        expect(options.map((option) => option.value)).toEqual([
-            'usr_a',
-            'usr_b'
-        ]);
-        expect(options.map((option) => option.label)).toEqual(['Ava', 'Ben']);
+        expect(options.map((item) => item.value)).toEqual(['usr_a', 'usr_b']);
+        expect(options.map((item) => item.label)).toEqual(['Ava', 'Ben']);
     });
 
     it('keeps long graph labels compact for node rendering', () => {
         expect(truncateMutualFriendLabel('Short name', 20)).toBe('Short name');
         expect(truncateMutualFriendLabel('Very long display name', 10)).toBe(
-            'Very long\u2026'
+            'Very long…'
         );
     });
 });

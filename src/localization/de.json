@@ -1540,13 +1540,17 @@
                     "stop": "Stopp",
                     "stop_fetching": "Abruf stoppen",
                     "go_to_friend": "Zum Freund springen",
-                    "cancelling": "Wird abgebrochen..."
+                    "cancelling": "Wird abgebrochen...",
+                    "find_friend": "Freund suchen",
+                    "open_profile": "Profil öffnen",
+                    "hide_from_graph": "Aus Graph ausblenden",
+                    "clear_filters": "Filter zurücksetzen"
                 },
                 "prompt": {
                     "message": "Der Abruf wurde im Hintergrund gestartet. Der Fortschritt wird in der Statusleiste angezeigt."
                 },
                 "settings": {
-                    "title": "Graph-Layout-Einstellungen",
+                    "title": "Graph-Einstellungen",
                     "layout_iterations": "Layout-Durchläufe",
                     "layout_iterations_help": "Wie lange das Layout läuft. Höher bedeutet stabiler und geordneter.",
                     "layout_spacing": "Layout-Abstand",
@@ -1558,10 +1562,29 @@
                     "reset_defaults": "Auf Standard zurücksetzen",
                     "exclude_friends": "Freunde ausschließen",
                     "exclude_friends_placeholder": "Freunde zum Ausschließen auswählen",
-                    "exclude_friends_help": "Ausgewählte Freunde werden im Graph ausgeblendet."
+                    "exclude_friends_help": "Ausgewählte Freunde werden im Graph ausgeblendet.",
+                    "layout_section": "Layout",
+                    "stat_nodes": "Knoten",
+                    "stat_links": "Verbindungen",
+                    "stat_hidden": "Verborgen"
                 },
                 "context_menu": {
                     "last_fetched": "Zuletzt abgerufen"
+                },
+                "label": {
+                    "never_fetched": "Noch nicht abgerufen",
+                    "mutuals_unavailable": "Gemeinsame Freunde nicht abrufbar"
+                },
+                "progress": {
+                    "fetching": "Gemeinsame Freunde werden abgerufen",
+                    "laying_out": "Layout wird berechnet"
+                },
+                "legend": {
+                    "circles": "Communitys",
+                    "more_circles": "+{count} weitere",
+                    "size_means_degree": "Größerer Punkt = mehr gemeinsame Freunde",
+                    "min_degree": "Min. Verbindungen",
+                    "isolated_nodes": "{count} ohne Verbindungen"
                 }
             },
             "loading": {
@@ -1579,13 +1602,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "Instanzaktivität konnte nicht geladen werden",
-                "mutual_graph_failed_to_load": "Gemeinsame-Freunde-Graph konnte nicht geladen werden"
+                "mutual_graph_failed_to_load": "Gemeinsame-Freunde-Graph konnte nicht geladen werden",
+                "mutual_graph_cache_unreadable": "Der lokale Cache gemeinsamer Freunde konnte nicht gelesen werden."
             },
             "label": {
                 "connections": "Verbindungen",
-                "hidden_nodes": "Versteckte Knoten:",
-                "visible_nodes": "Sichtbare Knoten:",
-                "visible_links": "Sichtbare Verbindungen:",
                 "try_a_broader_search_term_or_clear_the_node_filter": "Versuche einen allgemeineren Suchbegriff oder setze den Knotenfilter zurück",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "Abruf des Gemeinsame-Freunde-Graphs abgebrochen. Der zwischengespeicherte Graph wurde nicht ersetzt"
             },
@@ -1605,7 +1626,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "Gemeinsame Freunde für {value} aktualisiert",
-                "value_has_opted_out_of_shared_connections": "{value} hat gemeinsame Verbindungen deaktiviert"
+                "could_not_load_mutuals_for_value": "Gemeinsame Freunde von {value} konnten nicht geladen werden"
             }
         },
         "tools": {
@@ -5230,7 +5251,7 @@
             "dateJoined": "Beigetreten am",
             "unfriend": "Entfreunden",
             "mutualFriends": "Gemeinsame Freunde",
-            "mutualOptedOut": "Dieser Nutzer hat das Teilen gemeinsamer Freunde deaktiviert. Zwischengespeicherte Daten werden angezeigt."
+            "mutualOptedOut": "Die gemeinsamen Freunde dieses Nutzers konnten nicht geladen werden. Es werden zwischengespeicherte Daten angezeigt."
         },
         "profile": {
             "invite_messages": {

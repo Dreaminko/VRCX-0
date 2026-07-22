@@ -1535,35 +1535,58 @@
                 }
             },
             "mutual_friend": {
-                "tab_label": "Граф общего друга",
+                "tab_label": "Граф общих друзей",
                 "actions": {
-                    "start_fetch": "Запуск",
-                    "fetch_again": "Загрузить еще раз",
+                    "start_fetch": "Начать загрузку",
+                    "fetch_again": "Загрузить заново",
                     "stop": "Остановить",
-                    "stop_fetching": "Хватит доставать.",
+                    "stop_fetching": "Остановить загрузку",
                     "go_to_friend": "Перейти к другу",
-                    "cancelling": "Отмена..."
+                    "cancelling": "Отмена...",
+                    "find_friend": "Найти друга",
+                    "open_profile": "Открыть профиль",
+                    "hide_from_graph": "Скрыть с графа",
+                    "clear_filters": "Сбросить фильтры"
                 },
                 "prompt": {
-                    "message": "Прогресс показан в баре статуса."
+                    "message": "Загрузка запущена в фоне. Прогресс отображается в строке состояния."
                 },
                 "settings": {
-                    "title": "Параметры графиков",
-                    "layout_iterations": "Формуляры итерации",
-                    "layout_iterations_help": "Как долго продлится планировка, а значит, более стабильная и организованная.",
-                    "layout_spacing": "Расстояние между проекциями",
-                    "layout_spacing_help": "То, как растянут график, значит, не так многолюдно.",
-                    "edge_curvature": "Кривизна ребер",
-                    "edge_curvature_help": "Чем выше значение, тем плавнее линии на плотных участках.",
+                    "title": "Настройки графа",
+                    "layout_iterations": "Итерации компоновки",
+                    "layout_iterations_help": "Сколько времени работает расчёт компоновки. Чем больше, тем стабильнее и упорядоченнее расположение узлов.",
+                    "layout_spacing": "Расстояние между узлами",
+                    "layout_spacing_help": "Насколько разрежён граф. Чем больше, тем свободнее расположены узлы.",
+                    "edge_curvature": "Кривизна связей",
+                    "edge_curvature_help": "Насколько изогнуты линии. Чем больше, тем плавнее линии на плотных участках.",
                     "community_separation": "Разделение сообществ",
-                    "community_separation_help": "Как далеко расходятся различные сообщества.",
-                    "reset_defaults": "Перезагрузить в по умолчанию",
-                    "exclude_friends": "Исключая друзей",
-                    "exclude_friends_placeholder": "Выбрать друзей, чтобы исключить",
-                    "exclude_friends_help": "Избранные друзья будут спрятаны на графике."
+                    "community_separation_help": "Насколько далеко разносятся разные сообщества. Чем больше, тем отчётливее кластеры.",
+                    "reset_defaults": "Сбросить настройки",
+                    "exclude_friends": "Исключить друзей",
+                    "exclude_friends_placeholder": "Выберите друзей для исключения",
+                    "exclude_friends_help": "Выбранные друзья будут скрыты на графе.",
+                    "layout_section": "Компоновка",
+                    "stat_nodes": "Узлы",
+                    "stat_links": "Связи",
+                    "stat_hidden": "Скрыто"
                 },
                 "context_menu": {
-                    "last_fetched": "Последняя полученная"
+                    "last_fetched": "Последняя загрузка"
+                },
+                "label": {
+                    "never_fetched": "Ещё не загружено",
+                    "mutuals_unavailable": "Общие друзья недоступны"
+                },
+                "progress": {
+                    "fetching": "Загрузка общих друзей",
+                    "laying_out": "Расчёт расположения"
+                },
+                "legend": {
+                    "circles": "Сообщества",
+                    "more_circles": "ещё {count}",
+                    "size_means_degree": "Больше точка — больше общих друзей",
+                    "min_degree": "Мин. связей",
+                    "isolated_nodes": "{count} без связей"
                 }
             },
             "loading": {
@@ -1581,15 +1604,13 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "Не удалось загрузить активность инстанса",
-                "mutual_graph_failed_to_load": "Взаимный график не загрузился"
+                "mutual_graph_failed_to_load": "Взаимный график не загрузился",
+                "mutual_graph_cache_unreadable": "Не удалось прочитать локальный кэш общих друзей."
             },
             "label": {
-                "connections": "подсоединения",
-                "hidden_nodes": "Скрытые узлы:",
-                "visible_nodes": "Видимые узлы:",
-                "visible_links": "Видимые ссылки:",
-                "try_a_broader_search_term_or_clear_the_node_filter": "Попробуйте более широкий термин поиска или очистить фильтр узла",
-                "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "Взаимный график не был заменен."
+                "connections": "связей",
+                "try_a_broader_search_term_or_clear_the_node_filter": "Попробуйте более общий запрос или очистите фильтры",
+                "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "Загрузка графа отменена. Кэшированный граф не изменён."
             },
             "success": {
                 "mutual_friends_graph_refreshed": "Граф общих друзей обновлен"
@@ -1607,7 +1628,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "Обновлённые взаимные связи для {value}",
-                "value_has_opted_out_of_shared_connections": "{value} выбрав из общих связей"
+                "could_not_load_mutuals_for_value": "Не удалось загрузить общих друзей {value}"
             }
         },
         "tools": {
@@ -5232,7 +5253,7 @@
             "dateJoined": "Дата регистрации",
             "unfriend": "Удалить из друзей",
             "mutualFriends": "Взаимные друзья",
-            "mutualOptedOut": "Этот пользователь отключил показ общих друзей. Отображаются кэшированные данные."
+            "mutualOptedOut": "Не удалось загрузить общих друзей этого пользователя. Показаны данные из кэша."
         },
         "profile": {
             "invite_messages": {

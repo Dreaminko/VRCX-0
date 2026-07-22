@@ -1,11 +1,19 @@
-export const MUTUAL_GRAPH_LAYOUT_LIMITS: any = {
+import type {
+    MutualFriendsLayoutSettingKey,
+    MutualFriendsLayoutSettings
+} from './mutualFriendsTypes';
+
+export const MUTUAL_GRAPH_LAYOUT_LIMITS: Record<
+    MutualFriendsLayoutSettingKey,
+    { min: number; max: number }
+> = {
     layoutIterations: { min: 300, max: 1500 },
     layoutSpacing: { min: 8, max: 240 },
     edgeCurvature: { min: 0, max: 0.2 },
     communitySeparation: { min: 0, max: 3 }
 };
 
-export const MUTUAL_GRAPH_LAYOUT_DEFAULTS: any = {
+export const MUTUAL_GRAPH_LAYOUT_DEFAULTS: MutualFriendsLayoutSettings = {
     layoutIterations: 800,
     layoutSpacing: 60,
     edgeCurvature: 0.1,
@@ -19,10 +27,10 @@ export const MUTUAL_GRAPH_EXCLUDED_FRIENDS_KEY =
     'VRCX_MutualGraphExcludedFriends';
 
 export function clampMutualGraphNumber(
-    value: any,
-    min: any,
-    max: any,
-    fallback: any
+    value: unknown,
+    min: number,
+    max: number,
+    fallback: number
 ) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
@@ -31,18 +39,18 @@ export function clampMutualGraphNumber(
     return Math.min(max, Math.max(min, parsed));
 }
 
-export function normalizeMutualFriendId(value: any) {
+export function normalizeMutualFriendId(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-export function isValidMutualFriendId(value: any) {
+export function isValidMutualFriendId(value: unknown) {
     const identifier = normalizeMutualFriendId(value);
     return Boolean(identifier && identifier !== MUTUAL_GRAPH_EMPTY_USER_ID);
 }
 
-export function normalizeExcludedMutualFriendIds(value: any) {
+export function normalizeExcludedMutualFriendIds(value: unknown): string[] {
     return Array.isArray(value)
         ? value.map(normalizeMutualFriendId).filter(isValidMutualFriendId)
         : [];
@@ -51,14 +59,14 @@ export function normalizeExcludedMutualFriendIds(value: any) {
 export function readExcludedMutualFriendIds() {
     try {
         const value = localStorage.getItem(MUTUAL_GRAPH_EXCLUDED_FRIENDS_KEY);
-        const parsed = value ? JSON.parse(value) : [];
+        const parsed: unknown = value ? JSON.parse(value) : [];
         return normalizeExcludedMutualFriendIds(parsed);
     } catch {
         return [];
     }
 }
 
-export function writeExcludedMutualFriendIds(value: any) {
+export function writeExcludedMutualFriendIds(value: unknown) {
     try {
         localStorage.setItem(
             MUTUAL_GRAPH_EXCLUDED_FRIENDS_KEY,

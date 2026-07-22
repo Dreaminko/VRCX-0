@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
 import {
     cancelMutualGraphFetch,
     refreshMutualGraphFetchStatus,
@@ -10,6 +11,17 @@ import {
 } from '@/services/mutualGraphFetchService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+import type { MutualFriendsFetchProgress } from './mutualFriendsTypes';
+
+interface GraphFetchOptions {
+    currentUserId: string;
+    currentUserEndpoint?: string;
+    friendsById: FriendRosterById;
+    orderedFriendIds: string[];
+    reloadSnapshot: (detail: string, ownerUserId: string) => Promise<void>;
+    setDetail: (detail: string) => void;
+}
+
 export function useMutualFriendsGraphFetch({
     currentUserId,
     currentUserEndpoint = '',
@@ -17,7 +29,7 @@ export function useMutualFriendsGraphFetch({
     orderedFriendIds,
     reloadSnapshot,
     setDetail
-}: any) {
+}: GraphFetchOptions) {
     const { t } = useTranslation();
     const lastHandledRunRef = useRef(0);
     const statusRunId = useRuntimeStore((state) => state.mutualGraph.runId);
@@ -45,7 +57,7 @@ export function useMutualFriendsGraphFetch({
     const isFetching =
         isCurrentUserFetch &&
         (statusName === 'running' || statusName === 'cancelling');
-    const fetchProgress = useMemo(
+    const fetchProgress = useMemo<MutualFriendsFetchProgress>(
         () => ({
             isFetching,
             processedFriends: isCurrentUserFetch ? processedFriends : 0,
@@ -61,6 +73,7 @@ export function useMutualFriendsGraphFetch({
             totalFriends
         ]
     );
+
     useEffect(() => {
         if (
             !isCurrentUserFetch ||
@@ -72,10 +85,7 @@ export function useMutualFriendsGraphFetch({
 
         if (statusName === 'completed') {
             lastHandledRunRef.current = statusRunId;
-            reloadSnapshot(
-                'Fetched and cached the mutual-friends graph.',
-                statusOwnerUserId
-            ).catch((error: unknown) => {
+            reloadSnapshot('', statusOwnerUserId).catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -94,7 +104,10 @@ export function useMutualFriendsGraphFetch({
 
         if (statusName === 'error') {
             lastHandledRunRef.current = statusRunId;
-            setDetail(lastError || 'Failed to fetch mutual-friends graph.');
+            setDetail(
+                lastError ||
+                    t('view.charts.toast.failed_to_fetch_mutual_friends_graph')
+            );
         }
     }, [
         isCurrentUserFetch,
@@ -113,10 +126,10 @@ export function useMutualFriendsGraphFetch({
         }
         const ownerUserId = currentUserId;
 
-        const friendSnapshot = orderedFriendIds
-            .map((friendId: any) => friendsById[friendId])
-            .filter((friend: any) => friend?.id);
-        if (!friendSnapshot.length) {
+        const friendIds = orderedFriendIds
+            .map((friendId) => friendsById[friendId]?.id)
+            .filter((friendId): friendId is string => Boolean(friendId));
+        if (!friendIds.length) {
             toast.info(
                 t(
                     'view.charts.empty.no_friends_are_available_for_mutual_graph_fetching'
@@ -125,29 +138,25 @@ export function useMutualFriendsGraphFetch({
             return;
         }
 
-        setDetail('Fetching mutual friends from VRChat.');
+        setDetail('');
 
         try {
             await startMutualGraphFetch({
                 ownerUserId,
                 endpoint: currentUserEndpoint,
-                friendIds: friendSnapshot.map((friend: any) => friend.id)
+                friendIds
             });
             startMutualGraphFetchStatusPolling();
             toast.info(t('view.charts.mutual_friend.prompt.message'));
         } catch (error) {
-            setDetail(
-                error instanceof Error
-                    ? error.message
-                    : 'Failed to fetch mutual-friends graph.'
-            );
-            toast.error(
+            const message =
                 error instanceof Error
                     ? error.message
                     : t(
                           'view.charts.toast.failed_to_fetch_mutual_friends_graph'
-                      )
-            );
+                      );
+            setDetail(message);
+            toast.error(message);
         }
     }
 

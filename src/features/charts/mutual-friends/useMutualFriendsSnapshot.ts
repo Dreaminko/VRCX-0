@@ -2,16 +2,24 @@ import { useEffect, useState } from 'react';
 
 import mutualGraphPersistenceRepository from '@/repositories/mutualGraphPersistenceRepository';
 
+import type { MutualFriendsSnapshotStatus } from './mutualFriendsTypes';
+
 type MutualFriendsSnapshotData = Awaited<
     ReturnType<typeof mutualGraphPersistenceRepository.getSnapshot>
 >;
+
+interface SnapshotOptions {
+    currentUserId: string;
+    currentUserIdRef: { current: string };
+    reloadToken: number;
+}
 
 export function useMutualFriendsSnapshot({
     currentUserId,
     currentUserIdRef,
     reloadToken
-}: any) {
-    const [status, setStatus] = useState('idle');
+}: SnapshotOptions) {
+    const [status, setStatus] = useState<MutualFriendsSnapshotStatus>('idle');
     const [detail, setDetail] = useState('');
     const [snapshotData, setSnapshotData] = useState<MutualFriendsSnapshotData>(
         {
@@ -36,16 +44,14 @@ export function useMutualFriendsSnapshot({
 
         mutualGraphPersistenceRepository
             .getSnapshot(currentUserId)
-            .then((result: any) => {
+            .then((result) => {
                 if (!active) {
                     return;
                 }
 
                 setSnapshotData(result);
                 setStatus('ready');
-                setDetail(
-                    'Reading the cached mutual-friends graph from the local database.'
-                );
+                setDetail('');
             })
             .catch((error: unknown) => {
                 if (!active) {
@@ -54,11 +60,7 @@ export function useMutualFriendsSnapshot({
 
                 setStatus('error');
                 setSnapshotData({ snapshot: new Map(), meta: new Map() });
-                setDetail(
-                    error instanceof Error
-                        ? error.message
-                        : 'Failed to load the mutual-friends graph cache.'
-                );
+                setDetail(error instanceof Error ? error.message : '');
             });
 
         return () => {
@@ -67,8 +69,8 @@ export function useMutualFriendsSnapshot({
     }, [currentUserId, reloadToken]);
 
     async function reloadSnapshot(
-        nextDetail: any,
-        expectedUserId: any = currentUserId
+        nextDetail: string,
+        expectedUserId: string = currentUserId
     ) {
         if (!expectedUserId || currentUserIdRef.current !== expectedUserId) {
             return;
@@ -85,18 +87,11 @@ export function useMutualFriendsSnapshot({
             }
             setSnapshotData(result);
             setStatus('ready');
-            setDetail(
-                nextDetail ||
-                    'Reading the cached mutual-friends graph from the local database.'
-            );
+            setDetail(nextDetail);
         } catch (error) {
             setSnapshotData({ snapshot: new Map(), meta: new Map() });
             setStatus('error');
-            setDetail(
-                error instanceof Error
-                    ? error.message
-                    : 'Failed to load the mutual-friends graph cache.'
-            );
+            setDetail(error instanceof Error ? error.message : '');
         }
     }
 
@@ -104,7 +99,6 @@ export function useMutualFriendsSnapshot({
         detail,
         reloadSnapshot,
         setDetail,
-        setStatus,
         snapshotData,
         status
     };

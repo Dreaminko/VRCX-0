@@ -1542,13 +1542,17 @@
                     "stop": "Zastavit",
                     "stop_fetching": "Zastavit načítání",
                     "go_to_friend": "Přejít na přítele",
-                    "cancelling": "Ruší se..."
+                    "cancelling": "Ruší se...",
+                    "find_friend": "Najít přítele",
+                    "open_profile": "Otevřít profil",
+                    "hide_from_graph": "Skrýt z grafu",
+                    "clear_filters": "Zrušit filtry"
                 },
                 "prompt": {
                     "message": "Načítání bylo zahájeno na pozadí. Průběh se zobrazuje ve stavovém řádku."
                 },
                 "settings": {
-                    "title": "Nastavení rozvržení grafu",
+                    "title": "Nastavení grafu",
                     "layout_iterations": "Iterace rozvržení",
                     "layout_iterations_help": "Jak dlouho rozvržení běží. Vyšší hodnota znamená stabilnější a přehlednější uspořádání.",
                     "layout_spacing": "Rozestup rozvržení",
@@ -1560,10 +1564,29 @@
                     "reset_defaults": "Obnovit výchozí hodnoty",
                     "exclude_friends": "Vyloučit přátele",
                     "exclude_friends_placeholder": "Vyberte přátele k vyloučení",
-                    "exclude_friends_help": "Vybraní přátelé budou v grafu skryti."
+                    "exclude_friends_help": "Vybraní přátelé budou v grafu skryti.",
+                    "layout_section": "Rozvržení",
+                    "stat_nodes": "Uzly",
+                    "stat_links": "Spojení",
+                    "stat_hidden": "Skryté"
                 },
                 "context_menu": {
                     "last_fetched": "Naposledy načteno"
+                },
+                "label": {
+                    "never_fetched": "Zatím nenačteno",
+                    "mutuals_unavailable": "Společní přátelé nedostupní"
+                },
+                "progress": {
+                    "fetching": "Načítání společných přátel",
+                    "laying_out": "Výpočet rozvržení"
+                },
+                "legend": {
+                    "circles": "Komunity",
+                    "more_circles": "+{count} dalších",
+                    "size_means_degree": "Větší bod = více společných přátel",
+                    "min_degree": "Min. spojení",
+                    "isolated_nodes": "{count} bez spojení"
                 }
             },
             "loading": {
@@ -1581,13 +1604,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "Nepodařilo se načíst aktivitu instance",
-                "mutual_graph_failed_to_load": "Nepodařilo se načíst graf společných přátel"
+                "mutual_graph_failed_to_load": "Nepodařilo se načíst graf společných přátel",
+                "mutual_graph_cache_unreadable": "Nepodařilo se načíst místní mezipaměť společných přátel."
             },
             "label": {
                 "connections": "spojení",
-                "hidden_nodes": "Skryté uzly:",
-                "visible_nodes": "Viditelné uzly:",
-                "visible_links": "Viditelné spoje:",
                 "try_a_broader_search_term_or_clear_the_node_filter": "Zkuste širší hledaný výraz nebo vymažte filtr uzlů",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "Načítání grafu společných přátel bylo zrušeno. Uložený graf nebyl nahrazen"
             },
@@ -1607,7 +1628,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "Společní přátelé pro {value} byli obnoveni",
-                "value_has_opted_out_of_shared_connections": "{value} se odhlásil ze sdílení spojení"
+                "could_not_load_mutuals_for_value": "Nepodařilo se načíst společné přátele uživatele {value}"
             }
         },
         "tools": {
@@ -5232,7 +5253,7 @@
             "dateJoined": "Datum přidání",
             "unfriend": "Odebrat z přátel",
             "mutualFriends": "Společní přátelé",
-            "mutualOptedOut": "Tento uživatel vypnul sdílení společných přátel. Zobrazují se data z mezipaměti."
+            "mutualOptedOut": "Nepodařilo se načíst společné přátele tohoto uživatele. Zobrazují se data z mezipaměti."
         },
         "profile": {
             "invite_messages": {

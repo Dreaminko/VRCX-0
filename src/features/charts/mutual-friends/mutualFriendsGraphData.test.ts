@@ -1,10 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-    buildMutualFriendsBaseGraph,
-    filterMutualFriendsGraph
-} from './mutualFriendsGraphData';
+import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
+
+import { buildMutualFriendsBaseGraph } from './mutualFriendsGraphData';
 import { MUTUAL_GRAPH_EMPTY_USER_ID } from './mutualFriendsSettings';
+
+function friend(patch: Partial<FriendRecord> = {}): FriendRecord {
+    return {
+        id: 'usr_1',
+        displayName: 'Friend',
+        tags: [],
+        state: 'offline',
+        stateBucket: 'offline',
+        $trustLevel: 'Visitor',
+        $friendNumber: 0,
+        $trustClass: 'x-tag-untrusted',
+        $trustSortNum: 0,
+        $isModerator: false,
+        $isTroll: false,
+        $isProbableTroll: false,
+        $platform: '',
+        ...patch
+    };
+}
 
 describe('mutualFriendsGraphData', () => {
     it('turns a cached mutual-friends snapshot into unique graph nodes and edges', () => {
@@ -27,9 +45,13 @@ describe('mutualFriendsGraphData', () => {
                 ]
             ]),
             {
-                usr_a: { id: 'usr_a', displayName: 'Ava' },
-                usr_b: { id: 'usr_b', username: 'ben_user' },
-                usr_c: { id: 'usr_c', displayName: 'Cora' }
+                usr_a: friend({ id: 'usr_a', displayName: 'Ava' }),
+                usr_b: friend({
+                    id: 'usr_b',
+                    displayName: '',
+                    username: 'ben_user'
+                }),
+                usr_c: friend({ id: 'usr_c', displayName: 'Cora' })
             }
         );
 
@@ -81,34 +103,5 @@ describe('mutualFriendsGraphData', () => {
             ['usr_b', 'usr_b', 1]
         ]);
         expect(graph.links).toEqual([{ source: 'usr_a', target: 'usr_b' }]);
-    });
-
-    it('keeps direct neighbors visible when searching for a person in the graph', () => {
-        const graph: {
-            nodes: Array<{ id: string; label: string }>;
-            links: Array<{ source: string; target: string }>;
-        } = {
-            nodes: [
-                { id: 'usr_a', label: 'Ava' },
-                { id: 'usr_b', label: 'Ben' },
-                { id: 'usr_c', label: 'Cora' }
-            ],
-            links: [
-                { source: 'usr_a', target: 'usr_b' },
-                { source: 'usr_b', target: 'usr_c' }
-            ]
-        };
-
-        const filtered = filterMutualFriendsGraph(graph, 'ava');
-
-        expect(filtered.nodes.map((node: { id: string }) => node.id)).toEqual([
-            'usr_a',
-            'usr_b'
-        ]);
-        expect(filtered.links).toEqual([{ source: 'usr_a', target: 'usr_b' }]);
-        expect(filterMutualFriendsGraph(graph, 'missing')).toEqual({
-            nodes: [],
-            links: []
-        });
     });
 });

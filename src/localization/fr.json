@@ -1540,13 +1540,17 @@
                     "stop": "Arrêter",
                     "stop_fetching": "Arrêter la récupération",
                     "go_to_friend": "Aller à l'ami",
-                    "cancelling": "Annulation..."
+                    "cancelling": "Annulation...",
+                    "find_friend": "Rechercher un ami",
+                    "open_profile": "Ouvrir le profil",
+                    "hide_from_graph": "Masquer du graphe",
+                    "clear_filters": "Effacer les filtres"
                 },
                 "prompt": {
                     "message": "La récupération a démarré en arrière-plan. La progression s'affiche dans la barre d'état."
                 },
                 "settings": {
-                    "title": "Paramètres de disposition du graphe",
+                    "title": "Paramètres du graphe",
                     "layout_iterations": "Itérations de disposition",
                     "layout_iterations_help": "Durée d'exécution de la disposition. Plus la valeur est élevée, plus le résultat est stable et organisé.",
                     "layout_spacing": "Espacement de la disposition",
@@ -1558,10 +1562,29 @@
                     "reset_defaults": "Réinitialiser les valeurs par défaut",
                     "exclude_friends": "Exclure des amis",
                     "exclude_friends_placeholder": "Sélectionner les amis à exclure",
-                    "exclude_friends_help": "Les amis sélectionnés seront masqués du graphe."
+                    "exclude_friends_help": "Les amis sélectionnés seront masqués du graphe.",
+                    "layout_section": "Disposition",
+                    "stat_nodes": "Nœuds",
+                    "stat_links": "Liens",
+                    "stat_hidden": "Masqués"
                 },
                 "context_menu": {
                     "last_fetched": "Dernière récupération"
+                },
+                "label": {
+                    "never_fetched": "Pas encore récupéré",
+                    "mutuals_unavailable": "Amis communs indisponibles"
+                },
+                "progress": {
+                    "fetching": "Récupération des amis communs",
+                    "laying_out": "Calcul de la disposition"
+                },
+                "legend": {
+                    "circles": "Communautés",
+                    "more_circles": "+{count} autres",
+                    "size_means_degree": "Point plus grand = plus d'amis communs",
+                    "min_degree": "Connexions min.",
+                    "isolated_nodes": "{count} sans connexion"
                 }
             },
             "loading": {
@@ -1579,13 +1602,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "Échec du chargement de l'activité de l'instance",
-                "mutual_graph_failed_to_load": "Échec du chargement du graphe d'amis communs"
+                "mutual_graph_failed_to_load": "Échec du chargement du graphe d'amis communs",
+                "mutual_graph_cache_unreadable": "Impossible de lire le cache local des amis communs."
             },
             "label": {
                 "connections": "connexions",
-                "hidden_nodes": "Nœuds masqués :",
-                "visible_nodes": "Nœuds visibles :",
-                "visible_links": "Liens visibles :",
                 "try_a_broader_search_term_or_clear_the_node_filter": "Essayez un terme de recherche plus large ou effacez le filtre de nœuds",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "Récupération du graphe d'amis communs annulée. Le graphe en cache n'a pas été remplacé"
             },
@@ -1605,7 +1626,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "Amis communs de {value} actualisés",
-                "value_has_opted_out_of_shared_connections": "{value} a désactivé le partage des connexions"
+                "could_not_load_mutuals_for_value": "Impossible de charger les amis communs de {value}"
             }
         },
         "tools": {
@@ -5230,7 +5251,7 @@
             "dateJoined": "Date d'inscription",
             "unfriend": "Supprimer",
             "mutualFriends": "Amis en commun",
-            "mutualOptedOut": "Cet utilisateur a désactivé le partage des amis en commun. Affichage des données en cache."
+            "mutualOptedOut": "Impossible de charger les amis communs de cet utilisateur. Données en cache affichées."
         },
         "profile": {
             "invite_messages": {

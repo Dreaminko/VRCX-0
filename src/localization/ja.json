@@ -1536,13 +1536,17 @@
                     "stop": "停止",
                     "stop_fetching": "取得を停止",
                     "go_to_friend": "フレンドを選択",
-                    "cancelling": "キャンセル中..."
+                    "cancelling": "キャンセル中...",
+                    "find_friend": "フレンドを検索",
+                    "open_profile": "プロフィールを開く",
+                    "hide_from_graph": "グラフから非表示",
+                    "clear_filters": "フィルターを解除"
                 },
                 "prompt": {
                     "message": "バックグラウンドで取得を開始しました。進捗はステータスバーに表示されます。"
                 },
                 "settings": {
-                    "title": "グラフレイアウト設定",
+                    "title": "グラフ設定",
                     "layout_iterations": "レイアウトの反復回数",
                     "layout_iterations_help": "レイアウトの実行時間。値が大きいほど配置が安定します。",
                     "layout_spacing": "レイアウトの間隔",
@@ -1554,10 +1558,29 @@
                     "reset_defaults": "デフォルトにリセット",
                     "exclude_friends": "フレンドを除外",
                     "exclude_friends_placeholder": "除外するフレンドを選択",
-                    "exclude_friends_help": "選択したフレンドはグラフから非表示になります。"
+                    "exclude_friends_help": "選択したフレンドはグラフから非表示になります。",
+                    "layout_section": "レイアウト",
+                    "stat_nodes": "ノード",
+                    "stat_links": "つながり",
+                    "stat_hidden": "非表示"
                 },
                 "context_menu": {
                     "last_fetched": "最終取得"
+                },
+                "label": {
+                    "never_fetched": "未取得",
+                    "mutuals_unavailable": "共通のフレンドを取得できません"
+                },
+                "progress": {
+                    "fetching": "共通のフレンドを取得中",
+                    "laying_out": "レイアウトを計算中"
+                },
+                "legend": {
+                    "circles": "コミュニティ",
+                    "more_circles": "ほか {count} 件",
+                    "size_means_degree": "円が大きいほど共通のフレンドが多い",
+                    "min_degree": "つながり数の下限",
+                    "isolated_nodes": "つながりのない {count} 人"
                 }
             },
             "loading": {
@@ -1575,13 +1598,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "インスタンス活動の読み込みに失敗しました",
-                "mutual_graph_failed_to_load": "共通フレンドグラフの読み込みに失敗しました"
+                "mutual_graph_failed_to_load": "共通フレンドグラフの読み込みに失敗しました",
+                "mutual_graph_cache_unreadable": "ローカルの共通フレンドキャッシュを読み込めませんでした。"
             },
             "label": {
                 "connections": "つながり",
-                "hidden_nodes": "非表示ノード:",
-                "visible_nodes": "表示ノード:",
-                "visible_links": "表示リンク:",
                 "try_a_broader_search_term_or_clear_the_node_filter": "より広い検索語句を試すか、ノードフィルターをクリアしてください",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "共通フレンドグラフの取得をキャンセルしました。キャッシュ済みグラフは置き換えられていません"
             },
@@ -1601,7 +1622,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "{value} の共通フレンドを更新しました",
-                "value_has_opted_out_of_shared_connections": "{value} は共有つながりをオプトアウトしています"
+                "could_not_load_mutuals_for_value": "{value} の共通のフレンドを取得できませんでした"
             }
         },
         "tools": {
@@ -5226,7 +5247,7 @@
             "dateJoined": "参加日時",
             "unfriend": "フレンド解除",
             "mutualFriends": "共通のフレンド",
-            "mutualOptedOut": "このユーザーは共通のフレンドの共有を無効にしています。キャッシュされたデータを表示します。"
+            "mutualOptedOut": "このユーザーの共通のフレンドを取得できませんでした。キャッシュを表示しています。"
         },
         "profile": {
             "invite_messages": {

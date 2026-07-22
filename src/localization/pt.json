@@ -1540,13 +1540,17 @@
                     "stop": "Parar",
                     "stop_fetching": "Parar busca",
                     "go_to_friend": "Ir para o amigo",
-                    "cancelling": "Cancelando..."
+                    "cancelling": "Cancelando...",
+                    "find_friend": "Procurar amigo",
+                    "open_profile": "Abrir perfil",
+                    "hide_from_graph": "Ocultar do gráfico",
+                    "clear_filters": "Limpar filtros"
                 },
                 "prompt": {
                     "message": "Nenhum dado de amigos mútuos em cache foi encontrado. Iniciar busca agora? Isso pode demorar um pouco, iremos notificá-lo quando terminar"
                 },
                 "settings": {
-                    "title": "Configurações de Layout do Grafo",
+                    "title": "Configurações do grafo",
                     "layout_iterations": "Iterações de layout",
                     "layout_iterations_help": "Por quanto tempo o layout é executado. Mais alto significa mais estável e organizado.",
                     "layout_spacing": "Espaçamento do layout",
@@ -1558,10 +1562,29 @@
                     "reset_defaults": "Redefinir padrões",
                     "exclude_friends": "Excluir amigos",
                     "exclude_friends_placeholder": "Selecionar amigos para excluir",
-                    "exclude_friends_help": "Amigos selecionados serão ocultados do grafo."
+                    "exclude_friends_help": "Amigos selecionados serão ocultados do grafo.",
+                    "layout_section": "Layout",
+                    "stat_nodes": "Nós",
+                    "stat_links": "Ligações",
+                    "stat_hidden": "Ocultos"
                 },
                 "context_menu": {
                     "last_fetched": "Última atualização"
+                },
+                "label": {
+                    "never_fetched": "Ainda não obtido",
+                    "mutuals_unavailable": "Amigos em comum indisponíveis"
+                },
+                "progress": {
+                    "fetching": "Obtendo amigos em comum",
+                    "laying_out": "Calculando o layout"
+                },
+                "legend": {
+                    "circles": "Comunidades",
+                    "more_circles": "+{count} mais",
+                    "size_means_degree": "Ponto maior = mais amigos em comum",
+                    "min_degree": "Conexões mín.",
+                    "isolated_nodes": "{count} sem conexões"
                 }
             },
             "loading": {
@@ -1579,13 +1602,11 @@
             },
             "error": {
                 "instance_activity_failed_to_load": "Falha ao carregar a atividade da instância",
-                "mutual_graph_failed_to_load": "Falha ao carregar o grafo de amigos em comum"
+                "mutual_graph_failed_to_load": "Falha ao carregar o grafo de amigos em comum",
+                "mutual_graph_cache_unreadable": "Não foi possível ler o cache local de amigos em comum."
             },
             "label": {
                 "connections": "conexões",
-                "hidden_nodes": "Nós ocultos:",
-                "visible_nodes": "Nós visíveis:",
-                "visible_links": "Conexões visíveis:",
                 "try_a_broader_search_term_or_clear_the_node_filter": "Tente um termo de busca mais amplo ou limpe o filtro de nós",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "Busca do grafo de amigos em comum cancelada. O grafo em cache não foi substituído"
             },
@@ -1605,7 +1626,7 @@
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "Amigos em comum de {value} atualizados",
-                "value_has_opted_out_of_shared_connections": "{value} optou por não compartilhar conexões"
+                "could_not_load_mutuals_for_value": "Não foi possível carregar os amigos em comum de {value}"
             }
         },
         "tools": {
@@ -5230,7 +5251,7 @@
             "dateJoined": "Data de Entrada",
             "unfriend": "Desfazer Amizade",
             "mutualFriends": "Amigos Mútuos",
-            "mutualOptedOut": "Este usuário desativou o compartilhamento de amigos em comum. Exibindo dados em cache."
+            "mutualOptedOut": "Não foi possível carregar os amigos em comum deste usuário. Exibindo dados em cache."
         },
         "profile": {
             "invite_messages": {
