@@ -38,7 +38,7 @@
             "allow_writes": "Permitir acciones de escritura",
             "manage_endpoints": "Gestionar endpoints LLM",
             "reasoning_effort": "Esfuerzo de razonamiento",
-            "reasoning_effort_provider_default": "Predeterminado"
+            "reasoning_effort_provider_default": "Predeterminado del proveedor"
         }
     },
     "user_hover_card": {
@@ -4440,7 +4440,7 @@
                 "connection_description": "Usado por la traducción compatible con OpenAI.",
                 "connection_placeholder": "Selecciona un endpoint",
                 "reasoning_effort": "Esfuerzo de razonamiento",
-                "reasoning_effort_provider_default": "Predeterminado"
+                "reasoning_effort_provider_default": "Predeterminado del proveedor"
             },
             "deepl": {
                 "api_key": "Clave de API de DeepL"

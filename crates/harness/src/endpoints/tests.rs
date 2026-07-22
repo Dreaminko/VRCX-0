@@ -102,25 +102,20 @@ fn reasoning_resolvers_require_openrouter_exact_model_and_effort_matches() {
     }];
 
     assert_eq!(
-        resolve_translation_reasoning_effort(
+        resolve_reasoning_effort(
             "https://openrouter.ai/api/v1",
             &reasoning,
             "model-a",
-            Some(" high "),
+            " high ",
         ),
         Some(" high ".into())
     );
     assert_eq!(
-        resolve_assistant_reasoning_effort(
-            "https://openrouter.ai/api/v1",
-            &reasoning,
-            "model-a",
-            "off",
-        ),
+        resolve_reasoning_effort("https://openrouter.ai/api/v1", &reasoning, "model-a", "off",),
         Some("off".into())
     );
     assert_eq!(
-        resolve_assistant_reasoning_effort(
+        resolve_reasoning_effort(
             "https://openrouter.ai/api/v1",
             &reasoning,
             "model-a",
@@ -129,7 +124,7 @@ fn reasoning_resolvers_require_openrouter_exact_model_and_effort_matches() {
         None
     );
     assert_eq!(
-        resolve_assistant_reasoning_effort(
+        resolve_reasoning_effort(
             "https://openrouter.ai/api/v1",
             &reasoning,
             "model-a",
@@ -138,12 +133,7 @@ fn reasoning_resolvers_require_openrouter_exact_model_and_effort_matches() {
         None
     );
     assert_eq!(
-        resolve_assistant_reasoning_effort(
-            "https://api.openai.com/v1",
-            &reasoning,
-            "model-a",
-            " high ",
-        ),
+        resolve_reasoning_effort("https://api.openai.com/v1", &reasoning, "model-a", " high ",),
         None
     );
 }

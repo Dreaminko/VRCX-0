@@ -38,7 +38,7 @@
             "allow_writes": "允許寫入操作",
             "manage_endpoints": "管理 LLM 端點",
             "reasoning_effort": "推理強度",
-            "reasoning_effort_provider_default": "預設"
+            "reasoning_effort_provider_default": "服務商預設"
         }
     },
     "user_hover_card": {
@@ -4440,7 +4440,7 @@
                 "connection_description": "用於與 OpenAI 相容的翻譯功能。",
                 "connection_placeholder": "選擇一個端點",
                 "reasoning_effort": "推理強度",
-                "reasoning_effort_provider_default": "預設"
+                "reasoning_effort_provider_default": "服務商預設"
             },
             "deepl": {
                 "api_key": "DeepL API 金鑰"

@@ -38,7 +38,7 @@
             "allow_writes": "Schreibaktionen erlauben",
             "manage_endpoints": "LLM-Endpunkte verwalten",
             "reasoning_effort": "Reasoning-Aufwand",
-            "reasoning_effort_provider_default": "Standard"
+            "reasoning_effort_provider_default": "Standard des Anbieters"
         }
     },
     "user_hover_card": {
@@ -4440,7 +4440,7 @@
                 "connection_description": "Wird für OpenAI-kompatible Übersetzung verwendet.",
                 "connection_placeholder": "Endpoint auswählen",
                 "reasoning_effort": "Reasoning-Aufwand",
-                "reasoning_effort_provider_default": "Standard"
+                "reasoning_effort_provider_default": "Standard des Anbieters"
             },
             "deepl": {
                 "api_key": "DeepL API-Schlüssel"

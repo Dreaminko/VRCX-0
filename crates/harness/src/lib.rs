@@ -15,9 +15,8 @@ pub use config::{
     ASSISTANT_MODEL_CONFIG_KEY,
 };
 pub use endpoints::{
-    resolve_assistant_reasoning_effort, AssistantRuntimeSelection, AssistantRuntimeStatus,
-    EndpointStore, LlmEndpointDetectModelsInput, LlmEndpointDto, LlmEndpointUpsertInput,
-    LlmTranslateInput,
+    resolve_reasoning_effort, AssistantRuntimeSelection, AssistantRuntimeStatus, EndpointStore,
+    LlmEndpointDetectModelsInput, LlmEndpointDto, LlmEndpointUpsertInput, LlmTranslateInput,
 };
 pub use entities::Entity;
 pub use error::HarnessError;

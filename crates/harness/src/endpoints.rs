@@ -259,7 +259,7 @@ impl EndpointStore {
         let client = self.llm_client(&resolved.base_url, &resolved.api_key, "")?;
         let result = client.list_models().await?;
         let models = normalize_models(result.models);
-        let model_reasoning = normalize_model_reasoning(result.model_reasoning, &models);
+        let model_reasoning = retain_reasoning_for_models(result.model_reasoning, &models);
 
         if input.persist.unwrap_or(true) {
             if let Some(id) = input
@@ -345,11 +345,11 @@ impl EndpointStore {
         let prompt = translation_system_prompt(input.prompt.as_deref(), &input.target_lang);
         let client = self.llm_client(&endpoint.base_url, &endpoint.api_key, model)?;
         let options = LlmRequestOptions {
-            reasoning_effort: resolve_translation_reasoning_effort(
+            reasoning_effort: resolve_reasoning_effort(
                 &endpoint.base_url,
                 &endpoint.model_reasoning,
                 model,
-                input.reasoning_effort.as_deref(),
+                input.reasoning_effort.as_deref().unwrap_or(""),
             ),
         };
         Ok(client
@@ -556,52 +556,20 @@ fn retain_reasoning_for_models(
         .collect()
 }
 
-fn normalize_model_reasoning(
-    reasoning: Vec<LlmModelReasoning>,
-    models: &[String],
-) -> Vec<LlmModelReasoning> {
-    retain_reasoning_for_models(reasoning, models)
-}
-
-fn resolve_translation_reasoning_effort(
-    base_url: &str,
-    model_reasoning: &[LlmModelReasoning],
-    model: &str,
-    stored_effort: Option<&str>,
-) -> Option<String> {
-    if !is_openrouter_base_url(base_url) {
-        return None;
-    }
-    let reasoning = model_reasoning.iter().find(|r| r.model_id == model)?;
-    let stored = stored_effort.filter(|value| !value.is_empty())?;
-    let valid = valid_reasoning_efforts(reasoning);
-    if valid.iter().any(|effort| *effort == stored) {
-        Some(stored.to_string())
-    } else {
-        None
-    }
-}
-
-pub fn resolve_assistant_reasoning_effort(
+pub fn resolve_reasoning_effort(
     base_url: &str,
     model_reasoning: &[LlmModelReasoning],
     model: &str,
     stored_effort: &str,
 ) -> Option<String> {
-    if !is_openrouter_base_url(base_url) {
+    if !is_openrouter_base_url(base_url) || stored_effort.is_empty() {
         return None;
     }
     let reasoning = model_reasoning.iter().find(|r| r.model_id == model)?;
-    let stored = stored_effort;
-    if stored.is_empty() {
-        return None;
-    }
-    let valid = valid_reasoning_efforts(reasoning);
-    if valid.iter().any(|effort| effort == stored) {
-        Some(stored.to_string())
-    } else {
-        None
-    }
+    valid_reasoning_efforts(reasoning)
+        .iter()
+        .any(|effort| effort == stored_effort)
+        .then(|| stored_effort.to_string())
 }
 
 fn valid_reasoning_efforts(reasoning: &LlmModelReasoning) -> Vec<String> {

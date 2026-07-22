@@ -37,8 +37,8 @@
             "playbook_mode": "Režim analýzy",
             "allow_writes": "Povolit zápisové akce",
             "manage_endpoints": "Spravovat LLM endpointy",
-            "reasoning_effort": "Úsilí při uvažování",
-            "reasoning_effort_provider_default": "Výchozí"
+            "reasoning_effort": "Úroveň uvažování",
+            "reasoning_effort_provider_default": "Výchozí nastavení poskytovatele"
         }
     },
     "user_hover_card": {
@@ -4441,8 +4441,8 @@
                 "connection": "LLM endpoint",
                 "connection_description": "Používá se překladem kompatibilním s OpenAI.",
                 "connection_placeholder": "Vyberte endpoint",
-                "reasoning_effort": "Úsilí při uvažování",
-                "reasoning_effort_provider_default": "Výchozí"
+                "reasoning_effort": "Úroveň uvažování",
+                "reasoning_effort_provider_default": "Výchozí nastavení poskytovatele"
             },
             "deepl": {
                 "api_key": "API klíč DeepL"

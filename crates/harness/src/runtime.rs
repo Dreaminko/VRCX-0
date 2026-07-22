@@ -12,9 +12,8 @@ use vrcx_0_runtime_host::RuntimeHostState;
 use crate::agent::{run_turn, TurnContext};
 use crate::config::{should_apply_playbook, PlaybookMode};
 use crate::endpoints::{
-    resolve_assistant_reasoning_effort, AssistantRuntimeSelection, AssistantRuntimeStatus,
-    EndpointStore, LlmEndpointDetectModelsInput, LlmEndpointDto, LlmEndpointUpsertInput,
-    LlmTranslateInput,
+    resolve_reasoning_effort, AssistantRuntimeSelection, AssistantRuntimeStatus, EndpointStore,
+    LlmEndpointDetectModelsInput, LlmEndpointDto, LlmEndpointUpsertInput, LlmTranslateInput,
 };
 
 /// Tools that mutate state (local DB or the VRChat account). They are hidden
@@ -223,7 +222,7 @@ impl AssistantController {
             .assistant_reasoning_effort()
             .unwrap_or_default();
         let options = LlmRequestOptions {
-            reasoning_effort: resolve_assistant_reasoning_effort(
+            reasoning_effort: resolve_reasoning_effort(
                 &endpoint.base_url,
                 &endpoint.model_reasoning,
                 model,

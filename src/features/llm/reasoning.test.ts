@@ -44,10 +44,17 @@ describe('isOpenRouterBaseUrl', () => {
         expect(isOpenRouterBaseUrl(' https://openrouter.ai/api/v1 ')).toBe(
             true
         );
+        expect(isOpenRouterBaseUrl('https://openrouter.ai/api/v1//')).toBe(
+            true
+        );
+        expect(isOpenRouterBaseUrl(' https://openrouter.ai/api/v1/ ')).toBe(
+            true
+        );
     });
 
     it('rejects non-canonical URLs', () => {
         expect(isOpenRouterBaseUrl('https://openrouter.ai/api/v2')).toBe(false);
+        expect(isOpenRouterBaseUrl('HTTPS://OPENROUTER.AI/API/V1')).toBe(false);
         expect(isOpenRouterBaseUrl('https://api.openai.com/v1')).toBe(false);
         expect(isOpenRouterBaseUrl('https://openrouter-proxy.example/v1')).toBe(
             false

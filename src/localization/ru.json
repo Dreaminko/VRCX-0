@@ -38,7 +38,7 @@
             "allow_writes": "Разрешить действия записи",
             "manage_endpoints": "Управление LLM-эндпоинтами",
             "reasoning_effort": "Уровень рассуждений",
-            "reasoning_effort_provider_default": "По умолчанию"
+            "reasoning_effort_provider_default": "По умолчанию провайдера"
         }
     },
     "user_hover_card": {
@@ -4442,7 +4442,7 @@
                 "connection_description": "Используется OpenAI-совместимым переводом.",
                 "connection_placeholder": "Выберите эндпоинт",
                 "reasoning_effort": "Уровень рассуждений",
-                "reasoning_effort_provider_default": "По умолчанию"
+                "reasoning_effort_provider_default": "По умолчанию провайдера"
             },
             "deepl": {
                 "api_key": "DeepL API ключ"

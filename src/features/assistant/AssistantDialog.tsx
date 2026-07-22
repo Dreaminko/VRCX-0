@@ -270,11 +270,12 @@ export function AssistantDialog() {
     }
 
     async function updateReasoningEffort(effort: string) {
-        const next = effort;
-        setAssistantReasoningEffort(next);
+        const previous = assistantReasoningEffort;
+        setAssistantReasoningEffort(effort);
         try {
-            await commands.appAssistantSetReasoningEffort(next);
+            await commands.appAssistantSetReasoningEffort(effort);
         } catch (error) {
+            setAssistantReasoningEffort(previous);
             toast.error(errorMessage(error));
         }
     }

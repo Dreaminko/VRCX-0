@@ -37,8 +37,8 @@
             "playbook_mode": "分析モード",
             "allow_writes": "書き込み操作を許可",
             "manage_endpoints": "LLM エンドポイントを管理",
-            "reasoning_effort": "推論の強度",
-            "reasoning_effort_provider_default": "デフォルト"
+            "reasoning_effort": "推論の深さ",
+            "reasoning_effort_provider_default": "プロバイダーのデフォルト"
         }
     },
     "user_hover_card": {
@@ -4434,8 +4434,8 @@
                 "connection": "LLM エンドポイント",
                 "connection_description": "OpenAI 互換翻訳で使用します。",
                 "connection_placeholder": "エンドポイントを選択",
-                "reasoning_effort": "推論の強度",
-                "reasoning_effort_provider_default": "デフォルト"
+                "reasoning_effort": "推論の深さ",
+                "reasoning_effort_provider_default": "プロバイダーのデフォルト"
             },
             "deepl": {
                 "api_key": "DeepL API キー"

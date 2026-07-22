@@ -38,7 +38,7 @@
             "allow_writes": "允许写入操作",
             "manage_endpoints": "管理 LLM 端点",
             "reasoning_effort": "推理强度",
-            "reasoning_effort_provider_default": "默认"
+            "reasoning_effort_provider_default": "服务商默认"
         }
     },
     "user_hover_card": {
@@ -4440,7 +4440,7 @@
                 "connection_description": "供 OpenAI 兼容翻译使用。",
                 "connection_placeholder": "选择一个端点",
                 "reasoning_effort": "推理强度",
-                "reasoning_effort_provider_default": "默认"
+                "reasoning_effort_provider_default": "服务商默认"
             },
             "deepl": {
                 "api_key": "DeepL API 密钥"
