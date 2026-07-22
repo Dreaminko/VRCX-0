@@ -1,5 +1,6 @@
 import { ArrowLeftIcon } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
@@ -165,11 +166,12 @@ export function EmptyState({
     descriptionClassName?: string;
     children?: ReactNode;
 }) {
+    const { t } = useTranslation();
     const safeDescription =
         typeof description === 'string'
             ? userFacingErrorMessage(
                   description,
-                  'The requested data could not be loaded.'
+                  t('common.error.failed_to_load_data')
               )
             : description;
     const hasHeaderContent = Boolean(Icon || title || safeDescription);

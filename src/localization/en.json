@@ -315,6 +315,8 @@
             "retry": "Retry"
         },
         "error": {
+            "action_failed": "Couldn't complete that action",
+            "failed_to_load_data": "Couldn't load the data",
             "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Failed to open instance in VRChat, falling back to self invite",
             "failed_to_save_memo": "Failed to save local note"
         },

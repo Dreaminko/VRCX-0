@@ -536,7 +536,9 @@ export function VrcNotificationCenterHost() {
                             <div className="text-muted-foreground text-xs">
                                 {userFacingErrorMessage(
                                     detail,
-                                    'Failed to load notifications.'
+                                    t(
+                                        'view.notifications.toast.failed_to_load_notifications'
+                                    )
                                 )}
                             </div>
                         ) : null}

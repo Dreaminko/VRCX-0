@@ -315,6 +315,8 @@
             "retry": "再試行"
         },
         "error": {
+            "action_failed": "操作を完了できませんでした",
+            "failed_to_load_data": "データを読み込めませんでした",
             "failed_open_instance_in_vrchat_falling_back_to_self_invite": "VRChat でインスタンスを開けなかったため、自分への招待に切り替えます",
             "failed_to_save_memo": "ローカルノートの保存に失敗しました"
         },
@@ -2891,7 +2893,7 @@
         },
         "notifications": {
             "toast": {
-                "failed_to_load_notifications": "通知の読み込みに失敗しました",
+                "failed_to_load_notifications": "通知を読み込めませんでした",
                 "failed_to_mark_notification_as_seen": "通知の既読化に失敗しました",
                 "failed_to_delete_notification": "通知の削除に失敗しました",
                 "failed_to_accept_friend_request": "フレンド申請の承認に失敗しました",

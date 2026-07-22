@@ -315,6 +315,8 @@
             "retry": "재시도"
         },
         "error": {
+            "action_failed": "작업을 완료하지 못했습니다",
+            "failed_to_load_data": "데이터를 불러오지 못했습니다",
             "failed_open_instance_in_vrchat_falling_back_to_self_invite": "VRChat에서 인스턴스 열기에 실패했습니다. 자체 초대로 돌아갑니다.",
             "failed_to_save_memo": "로컬 메모를 저장하지 못했습니다."
         },
@@ -2840,7 +2842,7 @@
         },
         "notifications": {
             "toast": {
-                "failed_to_load_notifications": "알림을 로드하지 못했습니다.",
+                "failed_to_load_notifications": "알림을 불러오지 못했습니다",
                 "failed_to_mark_notification_as_seen": "알림을 읽음으로 표시하지 못했습니다.",
                 "failed_to_delete_notification": "알림을 삭제하지 못했습니다.",
                 "failed_to_accept_friend_request": "친구 요청을 수락하지 못했습니다.",

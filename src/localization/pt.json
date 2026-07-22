@@ -315,6 +315,8 @@
             "retry": "Tentar novamente"
         },
         "error": {
+            "action_failed": "Não foi possível concluir esta ação",
+            "failed_to_load_data": "Não foi possível carregar os dados",
             "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Falha ao abrir a instância no VRChat, recorrendo ao convite para si mesmo",
             "failed_to_save_memo": "Falha ao salvar a nota local"
         },
@@ -2895,7 +2897,7 @@
         },
         "notifications": {
             "toast": {
-                "failed_to_load_notifications": "Falha ao carregar as notificações",
+                "failed_to_load_notifications": "Não foi possível carregar as notificações",
                 "failed_to_mark_notification_as_seen": "Falha ao marcar a notificação como vista",
                 "failed_to_delete_notification": "Falha ao excluir a notificação",
                 "failed_to_accept_friend_request": "Falha ao aceitar a solicitação de amizade",

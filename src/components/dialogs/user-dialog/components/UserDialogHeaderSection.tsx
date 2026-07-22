@@ -718,7 +718,7 @@ export function UserDialogHeaderSection({
                         ? detail
                         : userFacingErrorMessage(
                               detail,
-                              'The requested data could not be loaded.'
+                              t('common.error.failed_to_load_data')
                           )}
                 </div>
             ) : null}

@@ -315,6 +315,8 @@
             "retry": "Réessayer"
         },
         "error": {
+            "action_failed": "Impossible d’effectuer cette action",
+            "failed_to_load_data": "Impossible de charger les données",
             "failed_open_instance_in_vrchat_falling_back_to_self_invite": "Impossible d'ouvrir l'instance dans VRChat, basculement vers une auto-invitation",
             "failed_to_save_memo": "Échec de l'enregistrement de la note locale"
         },
@@ -2895,7 +2897,7 @@
         },
         "notifications": {
             "toast": {
-                "failed_to_load_notifications": "Échec du chargement des notifications",
+                "failed_to_load_notifications": "Impossible de charger les notifications",
                 "failed_to_mark_notification_as_seen": "Échec du marquage de la notification comme lue",
                 "failed_to_delete_notification": "Échec de la suppression de la notification",
                 "failed_to_accept_friend_request": "Échec de l'acceptation de la demande d'ami",

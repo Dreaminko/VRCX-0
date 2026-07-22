@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
+import i18n from '@/services/i18nService';
 import { links } from '@/shared/constants/link';
 import { useShellStore } from '@/state/shellStore';
 import { Toaster } from '@/ui/shadcn/sonner';
@@ -74,7 +75,10 @@ function patchSonnerErrorToast() {
         toast.error = (message: any, options: any) => {
             const nextMessage =
                 typeof message === 'string' || message instanceof Error
-                    ? userFacingErrorMessage(message, 'Action failed.')
+                    ? userFacingErrorMessage(
+                          message,
+                          i18n.t('common.error.action_failed')
+                      )
                     : message;
             return originalErrorToast(
                 nextMessage,

@@ -177,6 +177,8 @@ function EntityDialogHeader({
     detail?: ReactNode;
     actions?: ReactNode;
 }) {
+    const { t } = useTranslation();
+
     return (
         <div className="flex shrink-0 flex-col gap-4 md:flex-row md:items-start">
             <Button
@@ -275,7 +277,7 @@ function EntityDialogHeader({
                                     ? detail
                                     : userFacingErrorMessage(
                                           detail,
-                                          'The requested data could not be loaded.'
+                                          t('common.error.failed_to_load_data')
                                       )}
                             </div>
                         ) : null}
