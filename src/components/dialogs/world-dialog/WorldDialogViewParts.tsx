@@ -7,10 +7,7 @@ import type {
     WorldProfileRecord
 } from '@/domain/entities/profileEntities';
 import type { InstanceRosterRow } from '@/domain/instances/instanceRoster';
-import {
-    parseLocation,
-    resolveFriendPresenceLocation
-} from '@/shared/utils/location';
+import { parseLocation } from '@/shared/utils/location';
 import { Badge } from '@/ui/shadcn/badge';
 import {
     Empty,
@@ -436,12 +433,5 @@ export function sameLocationTag(left: unknown, right: unknown) {
         leftParsed.instanceId &&
         rightParsed.instanceId &&
         leftParsed.instanceId === rightParsed.instanceId
-    );
-}
-
-export function friendIsInInstance(friend: unknown, location: unknown) {
-    return sameLocationTag(
-        resolveFriendPresenceLocation(friend, { requireInstance: true }),
-        location
     );
 }

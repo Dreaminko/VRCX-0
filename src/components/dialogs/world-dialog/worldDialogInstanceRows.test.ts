@@ -3,6 +3,56 @@ import { describe, expect, it } from 'vitest';
 import { buildWorldDialogDisplayInstanceRows } from './worldDialogInstanceRows';
 
 describe('worldDialogInstanceRows', () => {
+    it('adds a friend instance that is absent from the searched world profile', () => {
+        const result = buildWorldDialogDisplayInstanceRows({
+            creatorGroupsById: {},
+            currentInstanceDetails: {},
+            friendsById: {
+                usr_friend: {
+                    id: 'usr_friend',
+                    displayName: 'Friend',
+                    location:
+                        'wrld_test:friends-room~friends(usr_owner)~region(jp)'
+                },
+                usr_roommate: {
+                    id: 'usr_roommate',
+                    displayName: 'Roommate',
+                    location:
+                        'wrld_test:friends-room~friends(usr_owner)~region(jp)'
+                },
+                usr_other_world: {
+                    id: 'usr_other_world',
+                    displayName: 'Elsewhere',
+                    location: 'wrld_other:friends-room~friends(usr_owner)'
+                }
+            },
+            instanceRows: [
+                {
+                    id: 'public',
+                    location: 'wrld_test:public',
+                    occupants: 1,
+                    users: []
+                }
+            ],
+            isInstanceLocation: false,
+            normalizedWorldId: 'wrld_test',
+            world: {
+                id: 'wrld_test',
+                capacity: 40
+            }
+        });
+
+        expect(result.displayInstanceRows).toHaveLength(2);
+        expect(result.displayInstanceRows[1]).toMatchObject({
+            id: 'friends-room~friends(usr_owner)~region(jp)',
+            location: 'wrld_test:friends-room~friends(usr_owner)~region(jp)',
+            creatorUserId: 'usr_owner'
+        });
+        expect(
+            result.displayInstanceRows[1].users.map((user) => user.id)
+        ).toEqual(['usr_friend', 'usr_roommate']);
+    });
+
     it('injects live current instance details and merges friends in the same instance', () => {
         const result = buildWorldDialogDisplayInstanceRows({
             creatorGroupsById: {

@@ -1,9 +1,11 @@
 import type { EntityRecord } from '@/domain/entities/profileEntities';
-import { parseLocation } from '@/shared/utils/location';
+import {
+    parseLocation,
+    resolveFriendPresenceLocation
+} from '@/shared/utils/location';
 
 import {
     firstText,
-    friendIsInInstance,
     groupSeed,
     isGroupId,
     mergeInstanceUsers,
@@ -242,9 +244,43 @@ export function buildWorldDialogDisplayInstanceRows({
                   )
                 : [currentInstanceRow, ...normalizedInstanceRows]
             : normalizedInstanceRows;
+    const friendLocations = Object.values(friendsById || {}).map((friend) => ({
+        friend,
+        location: resolveFriendPresenceLocation(friend, {
+            requireInstance: true
+        })
+    }));
+    const candidateInstanceRows = [...baseDisplayInstanceRows];
+    for (const { location } of friendLocations) {
+        const parsedLocation = parseLocation(location);
+        if (
+            !parsedLocation.instanceId ||
+            parsedLocation.worldId !== world.id ||
+            candidateInstanceRows.some((instance) =>
+                sameInstanceLocation(world, instance, location)
+            )
+        ) {
+            continue;
+        }
+        const creatorGroupId = firstText(parsedLocation.groupId);
+        const creatorUserId = creatorGroupId
+            ? ''
+            : firstText(parsedLocation.userId);
+        candidateInstanceRows.push({
+            id: parsedLocation.instanceId,
+            location: firstText(parsedLocation.tag, location),
+            users: [],
+            creatorUserId,
+            creatorUser: null,
+            creatorGroupId,
+            creatorGroup: creatorGroupId
+                ? normalizeInstanceGroup(creatorGroupId)
+                : null
+        });
+    }
     const creatorGroupKey = Array.from(
         new Set(
-            baseDisplayInstanceRows
+            candidateInstanceRows
                 .map((instance) =>
                     firstText(
                         instance.creatorGroupId,
@@ -258,13 +294,14 @@ export function buildWorldDialogDisplayInstanceRows({
     )
         .sort()
         .join('|');
-    const friendRows = Object.values(friendsById || {});
-    const displayInstanceRows = baseDisplayInstanceRows.map((instance) => {
+    const displayInstanceRows = candidateInstanceRows.map((instance) => {
         const location = resolveLaunchLocation(world, instance);
         const friendsInInstance = location
-            ? friendRows.filter((friend) =>
-                  friendIsInInstance(friend, location)
-              )
+            ? friendLocations
+                  .filter(({ location: friendLocation }) =>
+                      sameLocationTag(friendLocation, location)
+                  )
+                  .map(({ friend }) => friend)
             : [];
         const creatorGroupId = firstText(
             instance.creatorGroupId,
