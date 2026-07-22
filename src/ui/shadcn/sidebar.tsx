@@ -93,8 +93,8 @@ function SidebarProvider({
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
         return isMobile
-            ? setOpenMobile((open: any) => !open)
-            : setOpen((open: any) => !open);
+            ? setOpenMobile((open) => !open)
+            : setOpen((open) => !open);
     }, [isMobile, setOpen, setOpenMobile]);
 
     // Adds a keyboard shortcut to toggle the sidebar.
@@ -542,7 +542,7 @@ const sidebarMenuButtonVariants = cva(
                 default:
                     'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                 outline:
-                    'bg-background hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]'
+                    'bg-background hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shadow-[0_0_0_1px_var(--sidebar-border)] hover:shadow-[0_0_0_1px_var(--sidebar-accent)]'
             },
             size: {
                 default: 'h-8 text-sm',
