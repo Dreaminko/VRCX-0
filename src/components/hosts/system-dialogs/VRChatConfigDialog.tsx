@@ -17,15 +17,19 @@ import {
     openExternalLink,
     openFolderSelectorDialog,
     readVrchatConfigFileSafe,
-    writeVrchatConfigFile
+    vrchatCacheLocationWouldChange,
+    writeVrchatConfigFile,
+    writeVrchatConfigFileWithCacheCleanup
 } from '@/services/shellIntegrationService';
 import { links } from '@/shared/constants/link';
 import {
     VRChatCameraResolutions,
     VRChatScreenshotResolutions,
+    VRCHAT_MIN_CACHE_SIZE_GB,
     type VRChatResolution
 } from '@/shared/constants/settings';
 import { useModalStore } from '@/state/modalStore';
+import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Card,
@@ -147,11 +151,15 @@ function ResolutionSelect({
 export function VRChatConfigDialog({ open, onOpenChange }: any) {
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
+    const isGameRunning = useRuntimeStore((state) =>
+        Boolean(state.gameState.isGameRunning)
+    );
     const loadRequestRef = useRef(0);
     const [config, setConfig] = useState<Record<string, any>>({
         picture_output_split_by_date: true
     });
     const [cacheSize, setCacheSize] = useState('');
+    const [cacheSizeBytes, setCacheSizeBytes] = useState(0);
     const [loading, setLoading] = useState(false);
 
     const configFields = useMemo(
@@ -159,7 +167,7 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
             [
                 'cache_size',
                 t('dialog.config_json.max_cache_size'),
-                '30',
+                String(VRCHAT_MIN_CACHE_SIZE_GB),
                 'number'
             ],
             [
@@ -208,6 +216,7 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                 ...parsed
             });
             const cacheBytes = Number(nextCacheSize) || 0;
+            setCacheSizeBytes(cacheBytes);
             setCacheSize(
                 cacheBytes > 0
                     ? `${(cacheBytes / 1024 / 1024 / 1024).toFixed(2)} GB`
@@ -258,9 +267,25 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
     }
 
     async function handleSweepCache() {
+        const configuredCacheSize = Number.parseInt(
+            String(config.cache_size ?? ''),
+            10
+        );
+        const maxSizeGb = Math.max(
+            Number.isFinite(configuredCacheSize)
+                ? configuredCacheSize
+                : VRCHAT_MIN_CACHE_SIZE_GB,
+            VRCHAT_MIN_CACHE_SIZE_GB
+        );
+        const maxSizeBytes = maxSizeGb * 1024 ** 3;
+        if (cacheSizeBytes > maxSizeBytes && isGameRunning) {
+            toast.error(t('dialog.config_json.close_vrchat_before_cleanup'));
+            return;
+        }
         setLoading(true);
         try {
-            const removed = await assetBundleRepository.sweepCache();
+            const removed =
+                await assetBundleRepository.sweepCache(maxSizeBytes);
             toast.success(
                 Array.isArray(removed)
                     ? t(
@@ -313,13 +338,57 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
     async function handleSave() {
         setLoading(true);
         try {
-            const json = JSON.stringify(
-                normalizeVrchatConfigForSave(config),
-                null,
-                '\t'
-            );
-            await writeVrchatConfigFile(json);
+            const normalizedConfig = normalizeVrchatConfigForSave(config);
+            const json = JSON.stringify(normalizedConfig, null, '\t');
+            const cacheDirectoryChanged =
+                await vrchatCacheLocationWouldChange(json);
+            let cleanOldCache = false;
+
+            if (cacheDirectoryChanged && cacheSizeBytes > 0) {
+                const result = await confirm({
+                    title: t('dialog.config_json.cache_location_changed'),
+                    description: t(
+                        'dialog.config_json.old_cache_cleanup_description',
+                        { size: cacheSize }
+                    ),
+                    confirmText: t('dialog.config_json.clean_old_cache'),
+                    alternativeText: t('dialog.config_json.keep_old_cache'),
+                    cancelText: t('dialog.config_json.cancel'),
+                    dismissible: false,
+                    destructive: true
+                });
+                if (!result.ok) {
+                    return;
+                }
+                if (result.reason === 'ok') {
+                    if (isGameRunning) {
+                        toast.error(
+                            t('dialog.config_json.close_vrchat_before_cleanup')
+                        );
+                        return;
+                    }
+                    cleanOldCache = true;
+                }
+            }
+
+            let cleanupError: string | null = null;
+            if (cleanOldCache) {
+                cleanupError =
+                    await writeVrchatConfigFileWithCacheCleanup(json);
+            } else {
+                await writeVrchatConfigFile(json);
+            }
             toast.success(t('dialog.system.success.saved_vrchat_config'));
+            if (cleanupError) {
+                toast.error(
+                    userFacingErrorMessage(
+                        cleanupError,
+                        t(
+                            'host.system_dialogs.toast.failed_to_delete_asset_cache'
+                        )
+                    )
+                );
+            }
             onOpenChange(false);
         } catch (error) {
             toast.error(

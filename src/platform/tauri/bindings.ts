@@ -79,6 +79,11 @@ export const commands = {
     async assetBundleSweepCache(): Promise<string[]> {
         return await TAURI_INVOKE('asset_bundle__sweep_cache');
     },
+    async assetBundleSweepCacheToSize(maxSizeBytes: number): Promise<string[]> {
+        return await TAURI_INVOKE('asset_bundle__sweep_cache_to_size', {
+            maxSizeBytes
+        });
+    },
     async assetBundleGetCacheSize(): Promise<number> {
         return await TAURI_INVOKE('asset_bundle__get_cache_size');
     },
@@ -2209,8 +2214,20 @@ export const commands = {
     async appReadConfigFileSafe(): Promise<string> {
         return await TAURI_INVOKE('app__read_config_file_safe');
     },
+    async appVrchatCacheLocationWouldChange(json: string): Promise<boolean> {
+        return await TAURI_INVOKE('app__vrchat_cache_location_would_change', {
+            json
+        });
+    },
     async appWriteConfigFile(json: string): Promise<null> {
         return await TAURI_INVOKE('app__write_config_file', { json });
+    },
+    async appWriteConfigFileWithCacheCleanup(
+        json: string
+    ): Promise<VrchatConfigWriteResult> {
+        return await TAURI_INVOKE('app__write_config_file_with_cache_cleanup', {
+            json
+        });
     },
     async appGetVrchatAppDataLocation(): Promise<string> {
         return await TAURI_INVOKE('app__get_vrchat_app_data_location');
@@ -4987,6 +5004,7 @@ export type VrchatAvatarSaveInput = {
     params: JsonValue | null;
 };
 export type VrchatBoopInput = { userId?: string; emojiId?: string };
+export type VrchatConfigWriteResult = { oldCacheCleanupError: string | null };
 export type VrchatCurrentUserBadgeInput = {
     userId?: string;
     badgeId?: string;
