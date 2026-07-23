@@ -19,12 +19,16 @@ import {
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
 import { UserStatusDot } from '@/components/UserStatusDot';
 import { cn } from '@/lib/utils';
+import { registerWorldOpenShare } from '@/repositories/worldProfileRepository';
 import { copyTextToClipboard } from '@/services/clipboardService';
 import {
     openAvatarDialog,
     openUserDialog,
     openWorldDialog
 } from '@/services/dialogService';
+import { openExternalLink } from '@/services/entityMediaService';
+import { vrchatWorldUrl } from '@/shared/constants/vrchatWebUrls';
+import { vrcxWorldDeepLink } from '@/shared/constants/vrcxDeepLinks';
 import type { LocalInstanceActionGates } from '@/shared/utils/invite';
 import { resolveFriendPresenceLocation } from '@/shared/utils/location';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -193,6 +197,9 @@ const FavoriteCard = memo(function FavoriteCard({
         (item.isUnavailable || item.isDeleted) &&
         item.id
     );
+    const worldId = item.kind === 'world' ? item.id : '';
+    const vrchatWorldPageUrl = worldId ? vrchatWorldUrl(worldId) : '';
+    const vrcxWorldShareUrl = vrcxWorldDeepLink(worldId);
     const hasCardActions = Boolean(
         canRemoveLocal ||
         canRemoveRemote ||
@@ -237,6 +244,17 @@ const FavoriteCard = memo(function FavoriteCard({
         await copyTextToClipboard(item.id, {
             successMessage: t('message.world.id_copied')
         });
+    };
+    const copyVrcxWorldShareLink = () => {
+        if (!vrcxWorldShareUrl) {
+            return;
+        }
+        void copyTextToClipboard(vrcxWorldShareUrl, {
+            successMessage: t('dialog.world.dynamic.value_copied', {
+                value: t('dialog.world.info.vrcx_url')
+            })
+        });
+        registerWorldOpenShare(worldId);
     };
     const activateCard = (shift: boolean) => {
         if (isSelectionActive) {
@@ -348,6 +366,24 @@ const FavoriteCard = memo(function FavoriteCard({
                             {t('common.actions.view_details')}
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
+                    {item.kind === 'world' ? (
+                        <DropdownMenuGroup>
+                            <DropdownMenuItem
+                                disabled={!vrchatWorldPageUrl}
+                                onClick={() => {
+                                    void openExternalLink(vrchatWorldPageUrl);
+                                }}
+                            >
+                                {t('dialog.world.info.url')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                disabled={!vrcxWorldShareUrl}
+                                onClick={copyVrcxWorldShareLink}
+                            >
+                                {t('dialog.world.info.copy_vrcx_url')}
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                    ) : null}
                     {item.kind === 'friend' ? (
                         <>
                             <DropdownMenuGroup>
