@@ -15,6 +15,7 @@ import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 import { SidebarMenuAction } from '@/ui/shadcn/sidebar';
@@ -65,9 +66,9 @@ function DashboardEntryAction({
         <DropdownMenu>
             <DropdownMenuTrigger render={trigger} />
             <DropdownMenuContent side="right" align="start" className="w-48">
-                <DropdownMenuGroup>
-                    {isDashboard ? (
-                        <>
+                {isDashboard ? (
+                    <>
+                        <DropdownMenuGroup>
                             <DropdownMenuItem
                                 onClick={() => {
                                     onEditDashboard(entry);
@@ -76,6 +77,9 @@ function DashboardEntryAction({
                                 <PencilIcon />
                                 {t('nav_menu.edit_dashboard')}
                             </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
                             <DropdownMenuItem
                                 variant="destructive"
                                 onClick={() => {
@@ -85,9 +89,11 @@ function DashboardEntryAction({
                                 <Trash2Icon />
                                 {t('nav_menu.delete_dashboard')}
                             </DropdownMenuItem>
-                        </>
-                    ) : null}
-                    {isTool ? (
+                        </DropdownMenuGroup>
+                    </>
+                ) : null}
+                {isTool ? (
+                    <DropdownMenuGroup>
                         <DropdownMenuItem
                             variant="destructive"
                             onClick={() => {
@@ -97,8 +103,8 @@ function DashboardEntryAction({
                             <Trash2Icon />
                             {t('nav_menu.custom_nav.unpin_from_nav')}
                         </DropdownMenuItem>
-                    ) : null}
-                </DropdownMenuGroup>
+                    </DropdownMenuGroup>
+                ) : null}
             </DropdownMenuContent>
         </DropdownMenu>
     );
@@ -148,23 +154,28 @@ function NavItemContextMenu({
                     </ContextMenuGroup>
                 ) : null}
                 {isDashboard ? (
-                    <ContextMenuGroup>
-                        <ContextMenuItem
-                            onClick={() => {
-                                onEditDashboard(entry);
-                            }}
-                        >
-                            {t('nav_menu.edit_dashboard')}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                            variant="destructive"
-                            onClick={() => {
-                                onDeleteDashboard(entry);
-                            }}
-                        >
-                            {t('nav_menu.delete_dashboard')}
-                        </ContextMenuItem>
-                    </ContextMenuGroup>
+                    <>
+                        <ContextMenuGroup>
+                            <ContextMenuItem
+                                onClick={() => {
+                                    onEditDashboard(entry);
+                                }}
+                            >
+                                {t('nav_menu.edit_dashboard')}
+                            </ContextMenuItem>
+                        </ContextMenuGroup>
+                        <ContextMenuSeparator />
+                        <ContextMenuGroup>
+                            <ContextMenuItem
+                                variant="destructive"
+                                onClick={() => {
+                                    onDeleteDashboard(entry);
+                                }}
+                            >
+                                {t('nav_menu.delete_dashboard')}
+                            </ContextMenuItem>
+                        </ContextMenuGroup>
+                    </>
                 ) : null}
                 {isDashboard ? <ContextMenuSeparator /> : null}
                 {isTool ? (

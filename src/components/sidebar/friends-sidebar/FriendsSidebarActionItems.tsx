@@ -95,6 +95,9 @@ export function CurrentUserActionItems({
                         {t(option.labelKey)}
                     </CheckboxItem>
                 ))}
+            </Group>
+            <Separator />
+            <Group>
                 <MenuItem
                     onClick={() => {
                         onEditStatusDescription?.();
@@ -104,12 +107,9 @@ export function CurrentUserActionItems({
                         'view.settings.general.automation.change_status_description'
                     )}
                 </MenuItem>
-            </Group>
-            {Array.isArray(friend?.statusHistory) &&
-            friend.statusHistory.length ? (
-                <>
-                    <Separator />
-                    <Group>
+                {Array.isArray(friend?.statusHistory) &&
+                friend.statusHistory.length ? (
+                    <>
                         <CheckboxItem
                             checked={!friend?.statusDescription}
                             onClick={() => {
@@ -133,9 +133,9 @@ export function CurrentUserActionItems({
                                     </span>
                                 </CheckboxItem>
                             ))}
-                    </Group>
-                </>
-            ) : null}
+                    </>
+                ) : null}
+            </Group>
             {statusPresets.length ? (
                 <>
                     <Separator />

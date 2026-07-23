@@ -323,29 +323,40 @@ function FeedUserLink({
                     </ContextMenuItem>
                 </ContextMenuGroup>
                 <ContextMenuSeparator />
+                {!isCurrentUser ? (
+                    <>
+                        <ContextMenuGroup>
+                            <ContextMenuItem
+                                disabled={!userId}
+                                onClick={() => {
+                                    if (!userId) {
+                                        return;
+                                    }
+                                    if (isHiddenFromFeed) {
+                                        void actions.removeFeedHiddenUser(
+                                            userId
+                                        );
+                                        return;
+                                    }
+                                    void actions.addFeedHiddenUser(userId);
+                                }}
+                            >
+                                {isHiddenFromFeed ? (
+                                    <EyeIcon />
+                                ) : (
+                                    <EyeOffIcon />
+                                )}
+                                {t(
+                                    isHiddenFromFeed
+                                        ? 'view.feed.context.unhide_user'
+                                        : 'view.feed.context.hide_user'
+                                )}
+                            </ContextMenuItem>
+                        </ContextMenuGroup>
+                        <ContextMenuSeparator />
+                    </>
+                ) : null}
                 <ContextMenuGroup>
-                    {!isCurrentUser ? (
-                        <ContextMenuItem
-                            disabled={!userId}
-                            onClick={() => {
-                                if (!userId) {
-                                    return;
-                                }
-                                if (isHiddenFromFeed) {
-                                    void actions.removeFeedHiddenUser(userId);
-                                    return;
-                                }
-                                void actions.addFeedHiddenUser(userId);
-                            }}
-                        >
-                            {isHiddenFromFeed ? <EyeIcon /> : <EyeOffIcon />}
-                            {t(
-                                isHiddenFromFeed
-                                    ? 'view.feed.context.unhide_user'
-                                    : 'view.feed.context.hide_user'
-                            )}
-                        </ContextMenuItem>
-                    ) : null}
                     <ContextMenuItem
                         disabled={!displayName}
                         onClick={() => {
