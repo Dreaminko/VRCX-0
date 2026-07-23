@@ -650,6 +650,11 @@
         "active": "АКТИВНЫЙ",
         "offline": "ОФЛАЙН",
         "pending_offline": "Ожидание отключения",
+        "status_menu": {
+            "clear_description": "Очистить описание состояния",
+            "recently_used": "Недавние",
+            "presets": "Пресеты"
+        },
         "settings": {
             "display": "Показать",
             "sort": "Сортировка",

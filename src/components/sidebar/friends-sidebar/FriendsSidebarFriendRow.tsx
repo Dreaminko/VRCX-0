@@ -13,6 +13,9 @@ import {
     ContextMenuGroup,
     ContextMenuItem,
     ContextMenuSeparator,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
 
@@ -239,6 +242,9 @@ export function FriendRow({
                         CheckboxItem={ContextMenuCheckboxItem}
                         Group={ContextMenuGroup}
                         Separator={ContextMenuSeparator}
+                        Sub={ContextMenuSub}
+                        SubTrigger={ContextMenuSubTrigger}
+                        SubContent={ContextMenuSubContent}
                         statusPresets={statusPresets}
                     />
                 ) : (

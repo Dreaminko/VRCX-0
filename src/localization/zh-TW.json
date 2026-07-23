@@ -650,6 +650,11 @@
         "active": "活躍",
         "offline": "離線",
         "pending_offline": "可能離線",
+        "status_menu": {
+            "clear_description": "清除狀態描述",
+            "recently_used": "最近使用",
+            "presets": "預設"
+        },
         "settings": {
             "display": "顯示",
             "sort": "排序",

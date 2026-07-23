@@ -1,4 +1,10 @@
-import { ClockIcon } from 'lucide-react';
+import {
+    BookmarkIcon,
+    ClockIcon,
+    EraserIcon,
+    HistoryIcon,
+    SquarePenIcon
+} from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -30,6 +36,10 @@ type ContextMenuContainerComponent = ComponentType<{
     children?: ReactNode;
 }>;
 
+type ContextMenuSubTriggerComponent = ComponentType<{
+    children?: ReactNode;
+}>;
+
 type ContextMenuSeparatorComponent = ComponentType;
 
 function statusPresetLabel(
@@ -54,6 +64,9 @@ export function CurrentUserActionItems({
     CheckboxItem,
     Group,
     Separator,
+    Sub,
+    SubTrigger,
+    SubContent,
     statusPresets = []
 }: {
     friend: SidebarFriendRecord & { statusHistory?: unknown };
@@ -66,9 +79,15 @@ export function CurrentUserActionItems({
     CheckboxItem: ContextMenuItemComponent;
     Group: ContextMenuContainerComponent;
     Separator: ContextMenuSeparatorComponent;
+    Sub: ContextMenuContainerComponent;
+    SubTrigger: ContextMenuSubTriggerComponent;
+    SubContent: ContextMenuContainerComponent;
     statusPresets?: StatusPreset[];
 }) {
     const { t } = useTranslation();
+    const statusHistory = Array.isArray(friend?.statusHistory)
+        ? friend.statusHistory.slice(0, 10)
+        : [];
 
     return (
         <>
@@ -85,7 +104,7 @@ export function CurrentUserActionItems({
                             onChangeStatus?.(option.value);
                         }}
                     >
-                        <span
+                        <i
                             aria-hidden="true"
                             className={userStatusIndicatorClassName(
                                 option.value,
@@ -103,24 +122,29 @@ export function CurrentUserActionItems({
                         onEditStatusDescription?.();
                     }}
                 >
+                    <SquarePenIcon className="mr-2 opacity-70" />
                     {t(
                         'view.settings.general.automation.change_status_description'
                     )}
                 </MenuItem>
-                {Array.isArray(friend?.statusHistory) &&
-                friend.statusHistory.length ? (
-                    <>
-                        <CheckboxItem
-                            checked={!friend?.statusDescription}
-                            onClick={() => {
-                                onSetStatusDescription?.('');
-                            }}
-                        >
-                            {t('dialog.gallery_select.none')}
-                        </CheckboxItem>
-                        {friend.statusHistory
-                            .slice(0, 10)
-                            .map((item, index) => (
+                {friend?.statusDescription ? (
+                    <MenuItem
+                        onClick={() => {
+                            onSetStatusDescription?.('');
+                        }}
+                    >
+                        <EraserIcon className="mr-2 opacity-70" />
+                        {t('side_panel.status_menu.clear_description')}
+                    </MenuItem>
+                ) : null}
+                {statusHistory.length ? (
+                    <Sub>
+                        <SubTrigger>
+                            <HistoryIcon className="mr-2 opacity-70" />
+                            {t('side_panel.status_menu.recently_used')}
+                        </SubTrigger>
+                        <SubContent>
+                            {statusHistory.map((item, index) => (
                                 <CheckboxItem
                                     key={`${item}:${index}`}
                                     checked={friend?.statusDescription === item}
@@ -128,33 +152,44 @@ export function CurrentUserActionItems({
                                         onSetStatusDescription?.(String(item));
                                     }}
                                 >
-                                    <span className="max-w-44 truncate">
+                                    <span className="max-w-52 truncate">
                                         {String(item)}
                                     </span>
                                 </CheckboxItem>
                             ))}
-                    </>
+                        </SubContent>
+                    </Sub>
+                ) : null}
+                {statusPresets.length ? (
+                    <Sub>
+                        <SubTrigger>
+                            <BookmarkIcon className="mr-2 opacity-70" />
+                            {t('side_panel.status_menu.presets')}
+                        </SubTrigger>
+                        <SubContent>
+                            {statusPresets.map((preset, index) => (
+                                <MenuItem
+                                    key={`${preset?.status || 'status'}:${preset?.statusDescription || ''}:${index}`}
+                                    onClick={() => {
+                                        onApplyStatusPreset?.(preset);
+                                    }}
+                                >
+                                    <i
+                                        aria-hidden="true"
+                                        className={userStatusIndicatorClassName(
+                                            String(preset?.status || 'active'),
+                                            { className: 'mr-2' }
+                                        )}
+                                    />
+                                    <span className="max-w-52 truncate">
+                                        {statusPresetLabel(preset, t)}
+                                    </span>
+                                </MenuItem>
+                            ))}
+                        </SubContent>
+                    </Sub>
                 ) : null}
             </Group>
-            {statusPresets.length ? (
-                <>
-                    <Separator />
-                    <Group>
-                        {statusPresets.map((preset, index) => (
-                            <MenuItem
-                                key={`${preset?.status || 'status'}:${preset?.statusDescription || ''}:${index}`}
-                                onClick={() => {
-                                    onApplyStatusPreset?.(preset);
-                                }}
-                            >
-                                <span className="max-w-44 truncate">
-                                    {statusPresetLabel(preset, t)}
-                                </span>
-                            </MenuItem>
-                        ))}
-                    </Group>
-                </>
-            ) : null}
         </>
     );
 }

@@ -650,6 +650,11 @@
         "active": "AKTIVNÍ",
         "offline": "OFFLINE",
         "pending_offline": "Pending Offline",
+        "status_menu": {
+            "clear_description": "Vymazat popis statusu",
+            "recently_used": "Naposledy použité",
+            "presets": "Předvolby"
+        },
         "settings": {
             "display": "Zobrazení",
             "sort": "Řazení",

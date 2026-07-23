@@ -650,6 +650,11 @@
         "active": "ACTIVO",
         "offline": "DESCONECTADO",
         "pending_offline": "Posiblemente desconectado",
+        "status_menu": {
+            "clear_description": "Borrar descripción del estado",
+            "recently_used": "Usados recientemente",
+            "presets": "Preajustes"
+        },
         "settings": {
             "display": "Visualización",
             "sort": "Ordenar",

@@ -650,6 +650,11 @@
         "active": "ACTIVE",
         "offline": "OFFLINE",
         "pending_offline": "Possibly Offline",
+        "status_menu": {
+            "clear_description": "Clear Status Description",
+            "recently_used": "Recently Used",
+            "presets": "Presets"
+        },
         "settings": {
             "display": "Display",
             "sort": "Sort",

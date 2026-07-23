@@ -650,6 +650,11 @@
         "active": "活跃中（仅登录网页端）",
         "offline": "离线",
         "pending_offline": "可能离线",
+        "status_menu": {
+            "clear_description": "清除状态描述",
+            "recently_used": "最近使用",
+            "presets": "预设"
+        },
         "settings": {
             "display": "显示",
             "sort": "排序",

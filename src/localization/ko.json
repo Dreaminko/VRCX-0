@@ -648,6 +648,11 @@
         "active": "활성",
         "offline": "오프라인",
         "pending_offline": "오프라인 대기",
+        "status_menu": {
+            "clear_description": "상태 설명 지우기",
+            "recently_used": "최근 사용",
+            "presets": "프리셋"
+        },
         "settings": {
             "display": "디스플레이",
             "sort": "정렬",

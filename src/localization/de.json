@@ -650,6 +650,11 @@
         "active": "AKTIV",
         "offline": "OFFLINE",
         "pending_offline": "Möglicherweise offline",
+        "status_menu": {
+            "clear_description": "Statusbeschreibung löschen",
+            "recently_used": "Zuletzt verwendet",
+            "presets": "Voreinstellungen"
+        },
         "settings": {
             "display": "Anzeige",
             "sort": "Sortieren",

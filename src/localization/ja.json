@@ -650,6 +650,11 @@
         "active": "アクティブ",
         "offline": "オフライン",
         "pending_offline": "オフライン (保留)",
+        "status_menu": {
+            "clear_description": "ステータス説明をクリア",
+            "recently_used": "最近使った項目",
+            "presets": "プリセット"
+        },
         "settings": {
             "display": "表示",
             "sort": "ソート",
