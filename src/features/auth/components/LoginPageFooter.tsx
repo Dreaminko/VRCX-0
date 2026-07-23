@@ -14,7 +14,7 @@ export function LoginPageFooter({ onOpenGithub, onOpenDiscord }: any) {
                     className="text-muted-foreground/75 h-auto p-0 text-[0.7rem]"
                     onClick={onOpenGithub}
                 >
-                    {t('view.login.footer.github')}
+                    GitHub
                 </Button>
             </div>
             <span aria-hidden="true">|</span>
@@ -25,7 +25,7 @@ export function LoginPageFooter({ onOpenGithub, onOpenDiscord }: any) {
                     className="text-muted-foreground/75 h-auto p-0 text-[0.7rem]"
                     onClick={onOpenDiscord}
                 >
-                    {t('view.login.footer.discord')}
+                    Discord
                 </Button>
             </div>
         </div>
