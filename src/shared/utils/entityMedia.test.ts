@@ -33,10 +33,12 @@ describe('entityMedia', () => {
         expect(getNameColour('', false)).toBe('#b300a1');
     });
 
-    it('prefers user icon and avatar image sources according to display flags', () => {
+    it('displays profile icons for non-VRC+ users when enabled', () => {
         expect(
             userImage(
                 {
+                    $isVRCPlus: false,
+                    tags: [],
                     userIcon:
                         'https://api.vrchat.cloud/api/1/file/file_1234abcd-0000-1111-2222-abcdefabcdef/2/file',
                     profilePicOverrideThumbnail:

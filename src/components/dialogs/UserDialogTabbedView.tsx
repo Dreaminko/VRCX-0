@@ -700,7 +700,6 @@ export function UserDialogTabbedView({
                 {selfPanel === 'profile-media' && isCurrentUser ? (
                     <UserDialogProfileMediaPanel
                         profile={profile}
-                        isVrcPlusSupporter={isLocalUserVrcPlusSupporter}
                         actionStatus={actionStatus}
                         onBack={() => setSelfPanel('')}
                         onSetProfileMediaField={onSetSelfProfileMediaField}

@@ -35,7 +35,6 @@ export function GalleryTabsSection({ galleryCommands, galleryModel }: any) {
                 loadingByTab,
                 uploadingTab,
                 mutatingKey,
-                isVrcPlusSupporter,
                 currentUserId,
                 profilePicOverride,
                 userIcon,

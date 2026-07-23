@@ -35,7 +35,6 @@ export function GalleryFileCard({
     profilePicOverride,
     userIcon,
     mutatingKey,
-    isVrcPlusSupporter,
     currentUserId,
     onPreview,
     onSetProfileField,
@@ -94,7 +93,7 @@ export function GalleryFileCard({
                           ? t('dialog.gallery_icons.use_profile_icon')
                           : t('dialog.gallery_icons.use_banner'),
                   icon: CheckIcon,
-                  disabled: !isVrcPlusSupporter || isMutating || !currentUserId,
+                  disabled: isMutating || !currentUserId,
                   onClick: () => onSetProfileField(profileField, file.id)
               }
             : null;

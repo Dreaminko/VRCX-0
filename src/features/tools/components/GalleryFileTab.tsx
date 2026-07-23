@@ -15,7 +15,6 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
         loadingByTab,
         uploadingTab,
         mutatingKey,
-        isVrcPlusSupporter,
         currentUserId,
         profilePicOverride,
         userIcon,
@@ -62,9 +61,7 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={
-                                    !isVrcPlusSupporter || Boolean(uploadingTab)
-                                }
+                                disabled={Boolean(uploadingTab)}
                                 onClick={() => onBeginUpload(tab)}
                             >
                                 <UploadIcon data-icon="inline-start" />
@@ -75,7 +72,6 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
                                     variant="outline"
                                     size="sm"
                                     disabled={
-                                        !isVrcPlusSupporter ||
                                         !profilePicOverride ||
                                         Boolean(mutatingKey)
                                     }
@@ -94,11 +90,7 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    disabled={
-                                        !isVrcPlusSupporter ||
-                                        !userIcon ||
-                                        Boolean(mutatingKey)
-                                    }
+                                    disabled={!userIcon || Boolean(mutatingKey)}
                                     onClick={() =>
                                         onClearProfileField('userIcon', '')
                                     }
@@ -150,7 +142,6 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
                                     profilePicOverride={profilePicOverride}
                                     userIcon={userIcon}
                                     mutatingKey={mutatingKey}
-                                    isVrcPlusSupporter={isVrcPlusSupporter}
                                     currentUserId={currentUserId}
                                     densityConfig={gridDensityConfig}
                                     onPreview={onPreview}

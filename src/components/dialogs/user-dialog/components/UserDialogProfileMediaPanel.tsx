@@ -155,7 +155,6 @@ function ProfileMediaSection({
     files,
     loading,
     profile,
-    isVrcPlusSupporter,
     busy,
     mutatingKey,
     onUse,
@@ -165,7 +164,6 @@ function ProfileMediaSection({
     files: MediaFile[];
     loading: boolean;
     profile: UserDialogProfileRecord;
-    isVrcPlusSupporter: boolean;
     busy: boolean;
     mutatingKey: string;
     onUse: (fieldName: ProfileMediaFieldName, fileId: string) => void;
@@ -189,7 +187,7 @@ function ProfileMediaSection({
                     variant="outline"
                     size="sm"
                     className="shrink-0 self-start"
-                    disabled={!isVrcPlusSupporter || !currentValue || busy}
+                    disabled={!currentValue || busy}
                     onClick={() => onClear(section.fieldName)}
                 >
                     <XIcon data-icon="inline-start" />
@@ -206,11 +204,7 @@ function ProfileMediaSection({
                             file={file}
                             section={section}
                             currentFileId={currentFileId}
-                            disabled={
-                                !isVrcPlusSupporter ||
-                                busy ||
-                                Boolean(mutatingKey)
-                            }
+                            disabled={busy || Boolean(mutatingKey)}
                             mutatingKey={mutatingKey}
                             onUse={onUse}
                         />
@@ -232,13 +226,11 @@ function ProfileMediaSection({
 
 export function UserDialogProfileMediaPanel({
     profile,
-    isVrcPlusSupporter,
     actionStatus,
     onBack,
     onSetProfileMediaField
 }: {
     profile: UserDialogProfileRecord;
-    isVrcPlusSupporter: boolean;
     actionStatus: string;
     onBack: () => void;
     onSetProfileMediaField: (
@@ -347,7 +339,6 @@ export function UserDialogProfileMediaPanel({
                             files={filesBySection[section.assetKey] || []}
                             loading={loadingBySection[section.assetKey]}
                             profile={profile}
-                            isVrcPlusSupporter={isVrcPlusSupporter}
                             busy={busy}
                             mutatingKey={mutatingKey}
                             onUse={(fieldName, fileId) => {

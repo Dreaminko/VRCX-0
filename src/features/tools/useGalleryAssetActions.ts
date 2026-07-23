@@ -172,7 +172,7 @@ export function useGalleryAssetActions({
         ]);
     }
     function beginUpload(tab: any) {
-        if (!isVrcPlusSupporter) {
+        if (tab !== 'gallery' && tab !== 'icons' && !isVrcPlusSupporter) {
             toast.error(t('message.vrcplus.required'));
             return;
         }
@@ -240,14 +240,14 @@ export function useGalleryAssetActions({
         if (!file) {
             return;
         }
-        if (!isVrcPlusSupporter) {
+        const tab = uploadTargetRef.current || activeTab;
+        if (tab !== 'gallery' && tab !== 'icons' && !isVrcPlusSupporter) {
             toast.error(t('message.vrcplus.required'));
             return;
         }
         if (!validateImageFile(file, t)) {
             return;
         }
-        const tab = uploadTargetRef.current || activeTab;
         const authTarget = uploadAuthTargetRef.current || getAuthTarget();
         if (!isRuntimeAuthTarget(authTarget)) {
             return;
@@ -289,6 +289,10 @@ export function useGalleryAssetActions({
             return;
         }
         const { tab, settings, authTarget } = request;
+        if (tab !== 'gallery' && tab !== 'icons' && !isVrcPlusSupporter) {
+            toast.error(t('message.vrcplus.required'));
+            return;
+        }
         setUploadingTab(tab);
         try {
             const base64Body = await readFileAsBase64(blob);

@@ -545,16 +545,6 @@ export function useUserDialogSelfActions({
         if (!isCurrentUser || actionStatusRef.current !== 'idle' || !profile) {
             return;
         }
-        const isVrcPlusSupporter = Boolean(
-            currentUserSnapshot?.$isVRCPlus ||
-            (Array.isArray(currentUserSnapshot?.tags) &&
-                currentUserSnapshot.tags.includes('system_supporter')) ||
-            globalThis.$debug?.debugVrcPlus
-        );
-        if (!isVrcPlusSupporter) {
-            toast.error(t('message.vrcplus.required'));
-            return;
-        }
         const normalizedFileId =
             typeof fileId === 'string'
                 ? fileId.trim()

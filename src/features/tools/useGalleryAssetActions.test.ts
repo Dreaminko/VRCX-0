@@ -4,6 +4,15 @@ import { useGalleryAssetActions } from './useGalleryAssetActions';
 
 function createActions(overrides: Record<string, unknown> = {}) {
     const uploadAssetImage = vi.fn().mockResolvedValue({ json: null });
+    const uploadInputRef = {
+        current: {
+            click: vi.fn()
+        }
+    };
+    const toast = {
+        error: vi.fn(),
+        success: vi.fn()
+    };
     const actions = useGalleryAssetActions({
         FILE_TABS: {},
         UPLOAD_ASPECT_RATIOS: {},
@@ -43,16 +52,11 @@ function createActions(overrides: Record<string, unknown> = {}) {
         setMutatingKey: vi.fn(),
         setUploadingTab: vi.fn(),
         t: (key: string) => key,
-        toast: {
-            error: vi.fn(),
-            success: vi.fn()
-        },
+        toast,
         uploadAuthTargetRef: {
             current: null
         },
-        uploadInputRef: {
-            current: null
-        },
+        uploadInputRef,
         uploadTargetRef: {
             current: null
         },
@@ -63,7 +67,9 @@ function createActions(overrides: Record<string, unknown> = {}) {
 
     return {
         actions,
-        uploadAssetImage
+        toast,
+        uploadAssetImage,
+        uploadInputRef
     };
 }
 
@@ -86,4 +92,32 @@ describe('useGalleryAssetActions', () => {
             }
         });
     });
+
+    it('allows profile media uploads without VRC+', () => {
+        const { actions, toast, uploadInputRef } = createActions({
+            isVrcPlusSupporter: false
+        });
+
+        actions.beginUpload('gallery');
+        actions.beginUpload('icons');
+
+        expect(uploadInputRef.current.click).toHaveBeenCalledTimes(2);
+        expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it.each(['prints', 'emojis', 'stickers'])(
+        'keeps %s uploads restricted to VRC+ users',
+        (tab) => {
+            const { actions, toast, uploadInputRef } = createActions({
+                isVrcPlusSupporter: false
+            });
+
+            actions.beginUpload(tab);
+
+            expect(uploadInputRef.current.click).not.toHaveBeenCalled();
+            expect(toast.error).toHaveBeenCalledWith(
+                'message.vrcplus.required'
+            );
+        }
+    );
 });

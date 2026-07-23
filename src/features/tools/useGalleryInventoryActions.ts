@@ -24,7 +24,6 @@ export function useGalleryInventoryActions({
     currentUserSnapshot,
     getAuthTarget,
     isRuntimeAuthTarget,
-    isVrcPlusSupporter,
     mediaRepository,
     prompt,
     refreshInventory,
@@ -101,10 +100,6 @@ export function useGalleryInventoryActions({
         }
     }
     async function setProfileField(fieldName: any, fileId: any) {
-        if (!isVrcPlusSupporter) {
-            toast.error(t('message.vrcplus.required'));
-            return;
-        }
         if (!currentUserId) {
             toast.error(t('view.tools.empty.no_current_user_is_available'));
             return;
