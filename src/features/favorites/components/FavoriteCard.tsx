@@ -342,7 +342,6 @@ const FavoriteCard = memo(function FavoriteCard({
                             type="button"
                             size="icon-sm"
                             variant="ghost"
-                            className="rounded-full"
                             aria-label={t('common.actions.configure')}
                             disabled={removing}
                             onClick={stopCardInteraction}
@@ -365,27 +364,47 @@ const FavoriteCard = memo(function FavoriteCard({
                         <DropdownMenuItem onClick={() => openHandler?.()}>
                             {t('common.actions.view_details')}
                         </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    {item.kind === 'world' ? (
-                        <DropdownMenuGroup>
+                        {item.kind === 'world' ? (
+                            <>
+                                <DropdownMenuItem
+                                    disabled={!vrchatWorldPageUrl}
+                                    onClick={() => {
+                                        void openExternalLink(
+                                            vrchatWorldPageUrl
+                                        );
+                                    }}
+                                >
+                                    {t('dialog.world.info.url')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    disabled={!vrcxWorldShareUrl}
+                                    onClick={copyVrcxWorldShareLink}
+                                >
+                                    {t('dialog.world.info.copy_vrcx_url')}
+                                </DropdownMenuItem>
+                            </>
+                        ) : null}
+                        {canCopyWorldId ? (
                             <DropdownMenuItem
-                                disabled={!vrchatWorldPageUrl}
                                 onClick={() => {
-                                    void openExternalLink(vrchatWorldPageUrl);
+                                    copyWorldId();
                                 }}
                             >
-                                {t('dialog.world.info.url')}
+                                {t('dialog.world.info.copy_id')}
                             </DropdownMenuItem>
+                        ) : null}
+                        {item.kind === 'avatar' ? (
                             <DropdownMenuItem
-                                disabled={!vrcxWorldShareUrl}
-                                onClick={copyVrcxWorldShareLink}
+                                disabled={!canSelectAvatar}
+                                onClick={() => onAvatarSelect?.(item)}
                             >
-                                {t('dialog.world.info.copy_vrcx_url')}
+                                {t('dialog.avatar.actions.select')}
                             </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                    ) : null}
+                        ) : null}
+                    </DropdownMenuGroup>
                     {item.kind === 'friend' ? (
                         <>
+                            <DropdownMenuSeparator />
                             <DropdownMenuGroup>
                                 <DropdownMenuItem
                                     disabled={
@@ -443,41 +462,23 @@ const FavoriteCard = memo(function FavoriteCard({
                         </>
                     ) : null}
                     {canUseWorldActions ? (
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem
-                                disabled={!onWorldNewInstance}
-                                onClick={() => onWorldNewInstance?.(item)}
-                            >
-                                {t('dialog.world.actions.new_instance')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                disabled={!onWorldSelfInvite}
-                                onClick={() => onWorldSelfInvite?.(item)}
-                            >
-                                {t(worldFollowUpActionLabelKey)}
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                    ) : null}
-                    {canCopyWorldId ? (
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem
-                                onClick={() => {
-                                    copyWorldId();
-                                }}
-                            >
-                                {t('dialog.world.info.copy_id')}
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                    ) : null}
-                    {item.kind === 'avatar' ? (
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem
-                                disabled={!canSelectAvatar}
-                                onClick={() => onAvatarSelect?.(item)}
-                            >
-                                {t('dialog.avatar.actions.select')}
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem
+                                    disabled={!onWorldNewInstance}
+                                    onClick={() => onWorldNewInstance?.(item)}
+                                >
+                                    {t('dialog.world.actions.new_instance')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    disabled={!onWorldSelfInvite}
+                                    onClick={() => onWorldSelfInvite?.(item)}
+                                >
+                                    {t(worldFollowUpActionLabelKey)}
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        </>
                     ) : null}
                     {canRemoveLocal || canRemoveRemote ? (
                         <>

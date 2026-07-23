@@ -588,3 +588,17 @@
     transform: scale(1.45);
     stroke-width: 0.1rem;
 }
+
+@layer utilities {
+    :is(
+            [data-slot='dropdown-menu-content'],
+            [data-slot='dropdown-menu-sub-content'],
+            [data-slot='context-menu-content'],
+            [data-slot='context-menu-sub-content'],
+            [data-slot='menubar-content'],
+            [data-slot='menubar-sub-content']
+        )
+        :is([data-variant='destructive'], [data-variant='destructive'] svg) {
+        color: var(--destructive) !important;
+    }
+}

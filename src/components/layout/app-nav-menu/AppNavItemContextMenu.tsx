@@ -1,4 +1,9 @@
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from 'lucide-react';
+import {
+    MoreHorizontalIcon,
+    PencilIcon,
+    PinOffIcon,
+    Trash2Icon
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
@@ -95,12 +100,11 @@ function DashboardEntryAction({
                 {isTool ? (
                     <DropdownMenuGroup>
                         <DropdownMenuItem
-                            variant="destructive"
                             onClick={() => {
                                 onUnpinTool(entry);
                             }}
                         >
-                            <Trash2Icon />
+                            <PinOffIcon />
                             {t('nav_menu.custom_nav.unpin_from_nav')}
                         </DropdownMenuItem>
                     </DropdownMenuGroup>

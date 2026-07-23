@@ -1,4 +1,9 @@
-import { ChevronRightIcon, PencilIcon, Trash2Icon } from 'lucide-react';
+import {
+    ChevronRightIcon,
+    PencilIcon,
+    PinOffIcon,
+    Trash2Icon
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
@@ -109,12 +114,11 @@ function CollapsedFolderDropdownEntry({
                 {isTool ? (
                     <DropdownMenuGroup>
                         <DropdownMenuItem
-                            variant="destructive"
                             onClick={() => {
                                 onUnpinTool(entry);
                             }}
                         >
-                            <Trash2Icon />
+                            <PinOffIcon />
                             {t('nav_menu.custom_nav.unpin_from_nav')}
                         </DropdownMenuItem>
                     </DropdownMenuGroup>

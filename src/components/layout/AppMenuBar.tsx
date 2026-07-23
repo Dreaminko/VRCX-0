@@ -302,7 +302,6 @@ export function AppMenuBar({
                                 {t('app_menu.logout')}
                             </MenuItem>
                             <MenuItem
-                                variant="destructive"
                                 onClick={() => {
                                     exitApplication();
                                 }}
