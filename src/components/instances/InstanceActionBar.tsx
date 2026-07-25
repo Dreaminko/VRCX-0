@@ -18,13 +18,15 @@ import {
     firstNonNegativeLocationNumber,
     normalizeLocationText
 } from '@/components/location/locationModel';
-import { formatDateFilter } from '@/lib/dateTime';
+import { instanceLocationKey } from '@/domain/presence/instancePresence';
+import { formatDateFilter, timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import vrchatInstanceRepository from '@/repositories/vrchatInstanceRepository';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
 import { recordLocationHintsFromInstances } from '@/services/domainIngestionService';
 import { selfInviteToInstance } from '@/services/launchService';
 import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
+import { useInstanceJoinHistoryStore } from '@/state/instanceJoinHistoryStore';
 import { useLaunchStore } from '@/state/launchStore';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -92,6 +94,17 @@ function instanceCapacity(instance: any) {
     );
 }
 
+function resolveInstanceSource(instance: any) {
+    if (!instance || typeof instance !== 'object') {
+        return instance;
+    }
+    const ref = instance.ref;
+    if (!ref || typeof ref !== 'object') {
+        return instance;
+    }
+    return { ...ref, ...instance };
+}
+
 function platformCount(instance: any, platform: any) {
     return Number(instance?.platforms?.[platform] ?? 0);
 }
@@ -139,11 +152,24 @@ function canCloseInstance(instance: any, currentUserId: any) {
     );
 }
 
+function InstanceOpenDuration({ joinedAtMs }: { joinedAtMs: number }) {
+    const { t } = useTranslation();
+
+    return (
+        <div>
+            {t('dialog.instance.label.open_for_at_least', {
+                duration: timeToText(Date.now() - joinedAtMs)
+            })}
+        </div>
+    );
+}
+
 function InstanceInfoTooltip({
     instance,
     canClose,
     closeDisabled,
     disableTooltip = false,
+    joinedAtMs = 0,
     onClose,
     children
 }: any) {
@@ -182,6 +208,9 @@ function InstanceInfoTooltip({
                         >
                             {t('dialog.instance.action.close_instance')}
                         </Button>
+                    ) : null}
+                    {joinedAtMs ? (
+                        <InstanceOpenDuration joinedAtMs={joinedAtMs} />
                     ) : null}
                     <div>
                         <span className="text-platform-pc">PC: </span>
@@ -257,7 +286,9 @@ export function InstanceActionBar({
     const confirm = useModalStore((state) => state.confirm);
     const showLaunchDialog = useLaunchStore((state) => state.showLaunchDialog);
     const [busy, setBusy] = useState('');
-    const [instanceInfo, setInstanceInfo] = useState(instance);
+    const [instanceInfo, setInstanceInfo] = useState(() =>
+        resolveInstanceSource(instance)
+    );
     const actionTarget = useMemo(
         () =>
             buildInstanceActionTarget({
@@ -279,6 +310,14 @@ export function InstanceActionBar({
             worldName
         ]
     );
+    const joinHistoryKey = useMemo(
+        () => instanceLocationKey(actionTarget.instanceLocation),
+        [actionTarget.instanceLocation]
+    );
+    const joinedAtMs = useInstanceJoinHistoryStore(
+        (state) =>
+            (joinHistoryKey ? state.joinedAtByLocation[joinHistoryKey] : 0) || 0
+    );
     const userCount = instanceUserCount(instanceInfo);
     const providedPlayerCount = firstNonNegativeLocationNumber(playerCount);
     const resolvedUserCount = userCount ?? providedPlayerCount;
@@ -296,7 +335,7 @@ export function InstanceActionBar({
         location: actionTarget.instanceLocation
     });
     const hasInstanceSummary = Boolean(
-        instanceInfo || hasUserCount || capacity || friendCount
+        instanceInfo || hasUserCount || capacity || friendCount || joinedAtMs
     );
     const queueSize = Number(instanceInfo?.queueSize) || 0;
     const hasAgeGate = Boolean(
@@ -311,7 +350,7 @@ export function InstanceActionBar({
             endpoint,
             location: actionTarget.instanceLocation
         };
-        setInstanceInfo(instance);
+        setInstanceInfo(resolveInstanceSource(instance));
     }, [endpoint, instance, actionTarget.instanceLocation]);
 
     function launchInstance() {
@@ -547,6 +586,7 @@ export function InstanceActionBar({
                 canClose={canCloseCurrentInstance}
                 closeDisabled={Boolean(busy)}
                 disableTooltip={disableTooltip}
+                joinedAtMs={joinedAtMs}
                 onClose={() => {
                     closeInstance();
                 }}

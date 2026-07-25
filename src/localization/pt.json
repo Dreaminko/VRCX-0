@@ -3553,6 +3553,8 @@
                 "future_proofing": "Preparado para o Futuro",
                 "labs": "Labs",
                 "cache": "Cache",
+                "restrictions_count_one": "{count} restrição",
+                "restrictions_count_other": "{count} restrições",
                 "content_horror": "Terror",
                 "content_gore": "Gore",
                 "content_violence": "Violência",
@@ -3617,11 +3619,14 @@
                 "publication_date": "Data de Publicação",
                 "labs_publication_date": "Data de Publicação nos Labs",
                 "version": "Versão",
+                "release_status": "Estado de Publicação",
                 "platform": "Plataforma",
+                "restrictions": "Restrições",
                 "last_visited": "Última Visita",
                 "visit_count": "Contagem de Visitas",
                 "time_spent": "Tempo Gasto",
-                "persistent_data": "Dados Persistentes"
+                "persistent_data": "Dados Persistentes",
+                "cache_size": "Tamanho do Cache"
             },
             "json": {
                 "header": "JSON"
@@ -4854,6 +4859,7 @@
         "instance": {
             "label": {
                 "closed_at": "Fechado em:",
+                "open_for_at_least": "Aberta há pelo menos {duration}",
                 "android": "Android:",
                 "ios": "iOS:",
                 "game_version": "Versão do jogo",

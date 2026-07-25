@@ -3555,6 +3555,10 @@
                 "future_proofing": "Budoucí kompatibilita",
                 "labs": "Labs",
                 "cache": "Mezipaměť",
+                "restrictions_count_one": "{count} omezení",
+                "restrictions_count_few": "{count} omezení",
+                "restrictions_count_many": "{count} omezení",
+                "restrictions_count_other": "{count} omezení",
                 "content_horror": "Horor",
                 "content_gore": "Krvavé násilí",
                 "content_violence": "Násilí",
@@ -3619,11 +3623,14 @@
                 "publication_date": "Datum publikace",
                 "labs_publication_date": "Datum publikace v Labs",
                 "version": "Verze",
+                "release_status": "Stav zveřejnění",
                 "platform": "Platforma",
+                "restrictions": "Omezení",
                 "last_visited": "Naposledy navštíveno",
                 "visit_count": "Počet návštěv",
                 "time_spent": "Strávený čas",
-                "persistent_data": "Trvalá data"
+                "persistent_data": "Trvalá data",
+                "cache_size": "Velikost mezipaměti"
             },
             "json": {
                 "header": "JSON"
@@ -4856,6 +4863,7 @@
         "instance": {
             "label": {
                 "closed_at": "Uzavřeno:",
+                "open_for_at_least": "Otevřeno alespoň {duration}",
                 "android": "Android:",
                 "ios": "iOS:",
                 "game_version": "Verze hry",

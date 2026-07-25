@@ -224,6 +224,7 @@ async fn unexpected_exit_and_same_account_replacement_keep_bulk_worker_active() 
         },
         RealtimeTransportTermination::UnexpectedExit {
             reason: "passive disconnect".into(),
+            connected_secs: None,
         },
     );
     assert_eq!(
@@ -428,6 +429,7 @@ fn explicit_stop_during_passive_reconnect_cancels_bulk_load() -> Result<()> {
         },
         RealtimeTransportTermination::UnexpectedExit {
             reason: "passive disconnect".into(),
+            connected_secs: None,
         },
     );
 

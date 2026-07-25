@@ -3553,6 +3553,8 @@
                 "future_proofing": "未来兼容",
                 "labs": "社区实验室",
                 "cache": "缓存",
+                "restrictions_count_one": "{count} 项功能限制",
+                "restrictions_count_other": "{count} 项功能限制",
                 "content_horror": "恐怖",
                 "content_gore": "血腥",
                 "content_violence": "暴力",
@@ -3617,11 +3619,14 @@
                 "publication_date": "正式公开于",
                 "labs_publication_date": "进入实验室的日期",
                 "version": "版本",
+                "release_status": "发布状态",
                 "platform": "支持的平台",
+                "restrictions": "功能限制",
                 "last_visited": "最后游玩时间",
                 "visit_count": "游玩次数",
                 "time_spent": "总停留时长",
-                "persistent_data": "持久化数据"
+                "persistent_data": "持久化数据",
+                "cache_size": "缓存大小"
             },
             "json": {
                 "header": "原始 JSON 信息"
@@ -4854,6 +4859,7 @@
         "instance": {
             "label": {
                 "closed_at": "关闭于：",
+                "open_for_at_least": "已开启至少 {duration}",
                 "android": "Android：",
                 "ios": "iOS：",
                 "game_version": "游戏版本",

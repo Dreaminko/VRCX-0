@@ -61,6 +61,7 @@ pub enum RealtimeTransportTermination {
     },
     UnexpectedExit {
         reason: String,
+        connected_secs: Option<u64>,
     },
 }
 

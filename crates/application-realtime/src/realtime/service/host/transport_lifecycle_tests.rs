@@ -196,6 +196,7 @@ fn unexpected_exit_keeps_old_roster_until_pending_baseline_replacement_starts() 
         old_transport.clone(),
         RealtimeTransportTermination::UnexpectedExit {
             reason: "websocket stream ended".into(),
+            connected_secs: None,
         },
     );
 

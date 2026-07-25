@@ -24,7 +24,7 @@ use vrcx_0_application_core::Error;
 use vrcx_0_application_core::RuntimeEventBus;
 use vrcx_0_application_core::WebClient;
 
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 const AUTH_BOOTSTRAP_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Clone)]
@@ -36,7 +36,7 @@ pub struct RealtimeTransportDeps {
 
 enum ConnectionEnd {
     Stopped,
-    UnexpectedExit(String),
+    UnexpectedExit { reason: String, connected_secs: u64 },
 }
 
 struct ConnectionAttempt<'a> {
@@ -145,6 +145,7 @@ where
         Ok(termination) => termination,
         Err(payload) => RealtimeTransportTermination::UnexpectedExit {
             reason: panic_reason(payload),
+            connected_secs: None,
         },
     }
 }
@@ -211,19 +212,42 @@ async fn run_realtime_transport_inner(
             session_generation,
             &websocket_domain,
         ),
-        Ok(ConnectionEnd::UnexpectedExit(reason)) => {
-            RealtimeTransportTermination::UnexpectedExit { reason }
+        Ok(ConnectionEnd::UnexpectedExit {
+            reason,
+            connected_secs,
+        }) => {
+            tracing::warn!(
+                generation,
+                connected_secs,
+                reason,
+                "[Realtime] websocket disconnected"
+            );
+            RealtimeTransportTermination::UnexpectedExit {
+                reason,
+                connected_secs: Some(connected_secs),
+            }
         }
         Err(RealtimeConnectionError::AuthFailure {
             reason,
             status_code,
-        }) => RealtimeTransportTermination::AuthExpired {
-            reason,
-            status_code,
-        },
+        }) => {
+            tracing::warn!(
+                generation,
+                status_code,
+                reason,
+                "[Realtime] websocket connect rejected by auth"
+            );
+            RealtimeTransportTermination::AuthExpired {
+                reason,
+                status_code,
+            }
+        }
         Err(RealtimeConnectionError::Other(error)) => {
+            let reason = error.to_string();
+            tracing::warn!(generation, reason, "[Realtime] websocket connect failed");
             RealtimeTransportTermination::UnexpectedExit {
-                reason: error.to_string(),
+                reason,
+                connected_secs: None,
             }
         }
     }
@@ -310,6 +334,7 @@ async fn connect_once(
     );
 
     let mut parser = RealtimeMessageParser::default();
+    let connected_at = tokio::time::Instant::now();
     let ws_event_log_path = crate::realtime::ws_event_log::resolve_path(deps.db.db_path());
     if let Some(path) = &ws_event_log_path {
         crate::realtime::ws_event_log::append_connect_marker(
@@ -319,7 +344,7 @@ async fn connect_once(
             attempt.session_generation,
         );
     }
-    loop {
+    let reason = loop {
         tokio::select! {
             changed = attempt.cancel_rx.changed() => {
                 if changed.is_err() || is_cancelled(attempt.cancel_rx, attempt.generation) {
@@ -328,17 +353,12 @@ async fn connect_once(
             }
             frame = stream.next() => {
                 let Some(frame) = frame else {
-                    tracing::warn!(
-                        generation = attempt.generation,
-                        "[Realtime] websocket stream ended"
-                    );
-                    return Ok(ConnectionEnd::UnexpectedExit("websocket stream ended".into()));
+                    break "websocket stream ended".to_string();
                 };
-                let frame = frame.map_err(|error| {
-                    RealtimeConnectionError::Other(Error::Custom(format!(
-                        "websocket read: {error}"
-                    )))
-                })?;
+                let frame = match frame {
+                    Ok(frame) => frame,
+                    Err(error) => break format!("websocket read: {error}"),
+                };
                 match classify_websocket_frame(frame) {
                     RealtimeFrame::Text(text) => {
                         let received_at = chrono::Utc::now().to_rfc3339();
@@ -363,21 +383,17 @@ async fn connect_once(
                             );
                         }
                     }
-                    RealtimeFrame::Close(close) => {
-                        tracing::warn!(
-                            generation = attempt.generation,
-                            close = %close,
-                            "[Realtime] websocket close frame"
-                        );
-                        return Ok(ConnectionEnd::UnexpectedExit(format!(
-                            "websocket closed: {close}"
-                        )));
-                    }
+                    RealtimeFrame::Close(close) => break format!("websocket closed: {close}"),
                     RealtimeFrame::Other => {}
                 }
             }
         }
-    }
+    };
+
+    Ok(ConnectionEnd::UnexpectedExit {
+        reason,
+        connected_secs: connected_at.elapsed().as_secs(),
+    })
 }
 
 async fn wait_for_result_or_cancel<F, T, E, M>(
@@ -482,6 +498,7 @@ mod tests {
             termination,
             RealtimeTransportTermination::UnexpectedExit {
                 reason: "injected realtime transport panic".into(),
+                connected_secs: None,
             }
         );
     }

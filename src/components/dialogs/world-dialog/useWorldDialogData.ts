@@ -2,6 +2,11 @@ import { useEffect, useState, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { EntityRecord } from '@/domain/entities/profileEntities';
+import {
+    entityQueryPolicies,
+    fetchCachedData,
+    queryKeys
+} from '@/lib/entityQueryCache';
 import { getFileAnalysisForUnityPackages } from '@/lib/fileAnalysis';
 import { readWorldCacheInfo } from '@/lib/worldAssetBundle';
 import gameLogRepository from '@/repositories/gameLogRepository';
@@ -127,8 +132,13 @@ export function useWorldDialogData({
 
         const targetWorldId = world.id;
         const targetEndpoint = currentEndpoint;
-        vrchatAuthRepository
-            .getConfig()
+        fetchCachedData<
+            Awaited<ReturnType<typeof vrchatAuthRepository.getConfig>>
+        >({
+            queryKey: queryKeys.apiConfig(targetEndpoint),
+            policy: entityQueryPolicies.apiConfig,
+            queryFn: () => vrchatAuthRepository.getConfig()
+        })
             .catch((): null => null)
             .then((configResponse) =>
                 Promise.allSettled([

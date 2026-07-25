@@ -89,14 +89,23 @@ const visibleWorldFeatureTags: Array<
 
 export function visibleWorldTags(world: WorldProfileRecord, t: TFunction) {
     const tags = world.tags;
-    const entries: Array<{ key: string; label: string }> = [];
-    const seen = new Set<string>();
-    const pushTag = (key: string, label: string) => {
-        if (!key || seen.has(key)) {
+    const warnings: Array<{ key: string; label: string }> = [];
+    const restrictions: Array<{ key: string; label: string }> = [];
+    const seenWarnings = new Set<string>();
+    const seenRestrictions = new Set<string>();
+    const pushWarning = (key: string, label: string) => {
+        if (!key || seenWarnings.has(key)) {
             return;
         }
-        seen.add(key);
-        entries.push({ key, label: label || key });
+        seenWarnings.add(key);
+        warnings.push({ key, label: label || key });
+    };
+    const pushRestriction = (key: string, label: string) => {
+        if (!key || seenRestrictions.has(key)) {
+            return;
+        }
+        seenRestrictions.add(key);
+        restrictions.push({ key, label: label || key });
     };
 
     for (const [tag, localeKey, fallbackLabel] of visibleWorldFeatureTags) {
@@ -104,23 +113,29 @@ export function visibleWorldTags(world: WorldProfileRecord, t: TFunction) {
             continue;
         }
         const localized = t(localeKey);
-        pushTag(tag, localized === localeKey ? fallbackLabel : localized);
+        pushRestriction(
+            tag,
+            localized === localeKey ? fallbackLabel : localized
+        );
     }
 
     if (tags.includes('debug_allowed')) {
-        pushTag('debug_allowed', 'Debug allowed');
+        pushRestriction('debug_allowed', 'Debug allowed');
     }
     const unityPackage = isRecord(world.unityPackage)
         ? world.unityPackage
         : null;
     if (world.unityPackageUrl || unityPackage?.url) {
-        pushTag('future_proofing', t('dialog.world.tags.future_proofing'));
+        pushRestriction(
+            'future_proofing',
+            t('dialog.world.tags.future_proofing')
+        );
     }
     for (const tag of tags) {
         if (String(tag).startsWith('content_')) {
             const localeKey = `dialog.world.tags.${tag}`;
             const localized = t(localeKey);
-            pushTag(
+            pushWarning(
                 tag,
                 localized === localeKey
                     ? String(tag).replace(/^content_/, '')
@@ -129,5 +144,5 @@ export function visibleWorldTags(world: WorldProfileRecord, t: TFunction) {
         }
     }
 
-    return entries;
+    return { warnings, restrictions };
 }

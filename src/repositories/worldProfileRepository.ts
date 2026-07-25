@@ -169,7 +169,12 @@ function resolveWorldPlatforms(world: unknown) {
         }
     }
 
-    return Array.from(names);
+    const platformOrder = ['PC', 'Quest', 'iOS'];
+    const orderedNames = Array.from(names);
+    return [
+        ...platformOrder.filter((name) => names.has(name)),
+        ...orderedNames.filter((name) => !platformOrder.includes(name))
+    ];
 }
 
 function normalizeWorldProfile(world: unknown): WorldProfileRecord {

@@ -9130,7 +9130,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "socket2",
  "specta",
  "thiserror 2.0.19",
  "tokio",

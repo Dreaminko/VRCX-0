@@ -11,6 +11,7 @@ import {
     HomeIcon,
     ImageIcon,
     LinkIcon,
+    LockIcon,
     MessageSquareIcon,
     PencilIcon,
     RefreshCwIcon,
@@ -42,7 +43,10 @@ import type {
     WorldDialogHeaderCommands,
     WorldDialogHeaderModel
 } from './WorldDialogTabbedView';
-import { PlatformBadge } from './WorldDialogViewParts';
+import {
+    fileAnalysisSizeForPlatform,
+    platformDisplayName
+} from './WorldDialogViewParts';
 
 function overviewValue(value: unknown) {
     return value || value === 0 ? String(value) : '—';
@@ -54,10 +58,12 @@ function scoreValue(value: unknown) {
 }
 
 function WorldOverviewMetric({
+    full = false,
     label,
     value
 }: {
-    label: ReactNode;
+    full?: boolean;
+    label?: ReactNode;
     value: unknown;
 }) {
     const displayValue = overviewValue(value);
@@ -66,9 +72,16 @@ function WorldOverviewMetric({
     }
 
     return (
-        <div className="flex min-w-0 items-baseline gap-1">
-            <span className="text-muted-foreground truncate">{label}</span>
-            <span className="text-foreground truncate font-medium tabular-nums">
+        <div
+            className={cn(
+                'flex min-w-0 items-baseline gap-1',
+                full && 'col-span-2'
+            )}
+        >
+            {label ? (
+                <span className="text-muted-foreground truncate">{label}</span>
+            ) : null}
+            <span className="text-foreground min-w-0 truncate font-medium tabular-nums">
                 {displayValue}
             </span>
         </div>
@@ -453,6 +466,13 @@ function WorldOverviewActions({
                                     <EntityActionItem
                                         icon={FolderOpenIcon}
                                         onClick={onOpenCache}
+                                        shortcut={
+                                            world.$cacheSize ? (
+                                                <span className="text-muted-foreground text-xs tabular-nums">
+                                                    {world.$cacheSize}
+                                                </span>
+                                            ) : null
+                                        }
                                     >
                                         {t('dialog.world.actions.open_cache')}
                                     </EntityActionItem>
@@ -512,7 +532,6 @@ export function WorldDialogOverviewSection({
     const {
         detail,
         favoriteRate,
-        hasPersistData,
         imageUrl,
         isHomeWorld,
         platformRows,
@@ -522,22 +541,17 @@ export function WorldDialogOverviewSection({
         worldUrl
     } = model;
     const {
+        onChangeTab,
         onCopyVrcxWorldUrl,
         onCopyWorldId,
         onCopyWorldName,
         onCopyWorldUrl,
         onOpenAuthor,
         onOpenImage,
-        onOpenCache,
         onOpenWorldPage
     } = commands;
-    const releaseLabel = world.isLabs
-        ? t('dialog.world.tags.labs')
-        : world.releaseStatus === 'public'
-          ? t('dialog.world.tags.public')
-          : world.releaseStatus === 'private'
-            ? t('dialog.world.tags.private')
-            : world.releaseStatus || 'Unknown';
+    const { restrictions, warnings } = visibleTags;
+    const isPrivateWorld = !world.isLabs && world.releaseStatus === 'private';
     const favoritesText = world.favorites
         ? `${world.favorites}${favoriteRate ? ` (${favoriteRate}%)` : ''}`
         : '';
@@ -545,6 +559,16 @@ export function WorldDialogOverviewSection({
         world.recommendedCapacity && world.capacity
             ? `${world.recommendedCapacity}/${world.capacity}`
             : world.recommendedCapacity || world.capacity || '';
+    const platformText = platformRows
+        .map((platform) => {
+            const size = fileAnalysisSizeForPlatform(
+                world.fileAnalysis,
+                platform
+            );
+            const name = platformDisplayName(platform);
+            return size ? `${name} ${size}` : name;
+        })
+        .join(' · ');
 
     return (
         <EntityOverviewCard
@@ -579,6 +603,27 @@ export function WorldDialogOverviewSection({
                 <div className="flex min-w-0 items-start gap-2 overflow-hidden">
                     {isHomeWorld ? (
                         <HomeIcon className="mt-0.5 size-5 shrink-0" />
+                    ) : null}
+                    {isPrivateWorld ? (
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <span
+                                        className="mt-0.5 shrink-0 cursor-help"
+                                        role="img"
+                                        tabIndex={0}
+                                        aria-label={t(
+                                            'dialog.world.tags.private'
+                                        )}
+                                    >
+                                        <LockIcon className="size-5" />
+                                    </span>
+                                }
+                            />
+                            <TooltipContent>
+                                {t('dialog.world.tags.private')}
+                            </TooltipContent>
+                        </Tooltip>
                     ) : null}
                     <Tooltip>
                         <TooltipTrigger
@@ -621,46 +666,39 @@ export function WorldDialogOverviewSection({
                 actionCommands={commands}
             />
 
-            <div className="flex flex-wrap gap-1.5">
-                <Badge
-                    variant={
-                        world.releaseStatus === 'public' ? 'default' : 'outline'
-                    }
-                    className="max-w-full"
-                >
-                    <span className="truncate">{releaseLabel}</span>
-                </Badge>
-                {world.$isCached ? (
-                    <Button
-                        type="button"
-                        size="xs"
-                        variant="outline"
-                        className="rounded-full"
-                        onClick={onOpenCache}
-                    >
-                        {world.$cacheSize
-                            ? `${world.$cacheSize} ${t('dialog.world.tags.cache')}`
-                            : t('dialog.world.tags.cache')}
-                    </Button>
-                ) : null}
-                {hasPersistData ? (
-                    <Badge variant="outline">
-                        {t('dialog.world.info.persistent_data')}
-                    </Badge>
-                ) : null}
-                {platformRows.map((platform) => (
-                    <PlatformBadge key={platform} name={platform} />
-                ))}
-                {visibleTags.map((tag) => (
-                    <Badge
-                        key={tag.key}
-                        variant="outline"
-                        className="max-w-full"
-                    >
-                        <span className="truncate">{tag.label}</span>
-                    </Badge>
-                ))}
-            </div>
+            {world.isLabs || warnings.length || restrictions.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                    {world.isLabs ? (
+                        <Badge variant="outline" className="max-w-full">
+                            <span className="truncate">
+                                {t('dialog.world.tags.labs')}
+                            </span>
+                        </Badge>
+                    ) : null}
+                    {warnings.map((tag) => (
+                        <Badge
+                            key={tag.key}
+                            variant="outline"
+                            className="max-w-full"
+                        >
+                            <span className="truncate">{tag.label}</span>
+                        </Badge>
+                    ))}
+                    {restrictions.length ? (
+                        <Button
+                            type="button"
+                            size="xs"
+                            variant="outline"
+                            className="rounded-full"
+                            onClick={() => onChangeTab('info')}
+                        >
+                            {t('dialog.world.tags.restrictions_count', {
+                                count: restrictions.length
+                            })}
+                        </Button>
+                    ) : null}
+                </div>
+            ) : null}
 
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                 <WorldOverviewMetric
@@ -687,6 +725,9 @@ export function WorldDialogOverviewSection({
                     label={t('dialog.world.info.popularity')}
                     value={scoreValue(world.popularity)}
                 />
+                {platformRows.length ? (
+                    <WorldOverviewMetric full value={platformText} />
+                ) : null}
             </div>
 
             {world.description ? (

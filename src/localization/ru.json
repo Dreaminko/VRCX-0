@@ -3555,6 +3555,10 @@
                 "future_proofing": "Перспективные решения",
                 "labs": "Лаборатории",
                 "cache": "Кэш",
+                "restrictions_count_one": "{count} ограничение",
+                "restrictions_count_few": "{count} ограничения",
+                "restrictions_count_many": "{count} ограничений",
+                "restrictions_count_other": "{count} ограничения",
                 "content_horror": "Ужасы",
                 "content_gore": "Жестокость",
                 "content_violence": "Насилие",
@@ -3619,11 +3623,14 @@
                 "publication_date": "Дата публикации",
                 "labs_publication_date": "Дата публикации в Labs",
                 "version": "Версия",
+                "release_status": "Статус публикации",
                 "platform": "Платформа",
+                "restrictions": "Ограничения",
                 "last_visited": "Последний визит",
                 "visit_count": "Количество посещений",
                 "time_spent": "Проведенное время",
-                "persistent_data": "Стойкие данные"
+                "persistent_data": "Стойкие данные",
+                "cache_size": "Размер кэша"
             },
             "json": {
                 "header": "JSON"
@@ -4856,6 +4863,7 @@
         "instance": {
             "label": {
                 "closed_at": "Закрыто в:",
+                "open_for_at_least": "Работает не менее {duration}",
                 "android": "Андроид:",
                 "ios": "iOS:",
                 "game_version": "Версия игры",

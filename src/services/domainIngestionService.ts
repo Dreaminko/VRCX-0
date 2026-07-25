@@ -4,6 +4,7 @@ import type {
 } from '@/domain/users/userFacts';
 import { ingestUserFactEntries } from '@/services/userFactAccessService';
 import { parseLocation } from '@/shared/utils/location';
+import { useInstanceJoinHistoryStore } from '@/state/instanceJoinHistoryStore';
 import { useInstancePresenceStore } from '@/state/instancePresenceStore';
 import { useLocationHintStore } from '@/state/locationHintStore';
 import { useUserFactsStore } from '@/state/userFactsStore';
@@ -294,6 +295,7 @@ function recordLocationHintsFromInstances({
 function resetDomainFacts() {
     useUserFactsStore.getState().resetUserFacts();
     useInstancePresenceStore.getState().resetInstancePresence();
+    useInstanceJoinHistoryStore.getState().resetInstanceJoinHistory();
     useLocationHintStore.getState().resetLocationHints();
 }
 

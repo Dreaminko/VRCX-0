@@ -1,5 +1,6 @@
 import { buildCurrentUserGameStatePresencePatch } from '@/shared/utils/currentUserPresence';
 import { normalizeString } from '@/shared/utils/string';
+import { useInstanceJoinHistoryStore } from '@/state/instanceJoinHistoryStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { recordGameRuntimePresence } from './domainIngestionService';
@@ -88,6 +89,12 @@ export function applyRuntimeGameLogProjection(payload: unknown) {
 
     if (currentLocation || currentDestination) {
         patchCurrentUserLocationFromGameState(runtimeStore, gameStatePatch);
+    }
+
+    if (currentLocationStartedAt) {
+        useInstanceJoinHistoryStore
+            .getState()
+            .recordInstanceJoin(currentLocation, currentLocationStartedAt);
     }
 
     const domainRuntime = useRuntimeStore.getState();

@@ -3,7 +3,6 @@ use std::time::Duration;
 use hyper_util::client::legacy::connect::proxy::{SocksV5, Tunnel};
 use hyper_util::client::legacy::connect::HttpConnector;
 use serde_json::Value;
-use socket2::{SockRef, TcpKeepalive};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
@@ -20,6 +19,7 @@ const VRCHAT_WEBSOCKET_HOST: &str = "pipeline.vrchat.cloud";
 const BROWSER_WEBSOCKET_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0";
 const TCP_KEEPALIVE_IDLE: Duration = Duration::from_secs(30);
 const TCP_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(10);
+const TCP_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub type RealtimeWebSocketStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -179,32 +179,32 @@ pub async fn connect_websocket(
     let request = build_browser_websocket_request(url, &options.origin)?;
     let websocket_url = parse_url(url, "websocket URL")?;
     let (target_host, target_port) = websocket_target(&websocket_url)?;
-    let Some(proxy_url) = options.proxy_url.as_deref() else {
-        let stream = TcpStream::connect((target_host.as_str(), target_port))
-            .await
-            .map_err(|error| Error::Other(format!("websocket tcp connect: {error}")))?;
-        apply_tcp_keepalive(&stream);
-        return client_async_tls(request, stream)
-            .await
-            .map(|(stream, _)| stream)
-            .map_err(|error| websocket_connect_error("websocket connect", error));
-    };
-
-    let proxy_url = parse_url(proxy_url, "proxy URL")?;
-    let stream = match proxy_url.scheme() {
-        "http" => connect_http_proxy(&proxy_url, &target_host, target_port).await?,
-        "socks5" => connect_socks5_proxy(&proxy_url, &target_host, target_port).await?,
-        scheme => {
-            return Err(Error::Other(format!(
-                "Unsupported realtime proxy scheme: {scheme}"
-            )));
-        }
-    };
+    let stream =
+        resolve_tcp_stream(&target_host, target_port, options.proxy_url.as_deref()).await?;
 
     client_async_tls(request, stream)
         .await
         .map(|(stream, _)| stream)
-        .map_err(|error| websocket_connect_error("websocket proxy connect", error))
+        .map_err(|error| websocket_connect_error("websocket connect", error))
+}
+
+async fn resolve_tcp_stream(
+    target_host: &str,
+    target_port: u16,
+    proxy_url: Option<&str>,
+) -> Result<TcpStream, Error> {
+    let Some(proxy_url) = proxy_url else {
+        return connect_direct_tcp(target_host, target_port).await;
+    };
+
+    let proxy_url = parse_url(proxy_url, "proxy URL")?;
+    match proxy_url.scheme() {
+        "http" => connect_http_proxy(&proxy_url, target_host, target_port).await,
+        "socks5" => connect_socks5_proxy(&proxy_url, target_host, target_port).await,
+        scheme => Err(Error::Other(format!(
+            "Unsupported realtime proxy scheme: {scheme}"
+        ))),
+    }
 }
 
 fn websocket_connect_error(context: &str, error: TungsteniteError) -> Error {
@@ -268,23 +268,24 @@ fn proxy_connector_uri(proxy_url: &Url) -> Result<Uri, Error> {
     endpoint_uri("http", host, port, "proxy URL")
 }
 
-fn apply_tcp_keepalive(stream: &TcpStream) {
-    let keepalive = TcpKeepalive::new()
-        .with_time(TCP_KEEPALIVE_IDLE)
-        .with_interval(TCP_KEEPALIVE_INTERVAL);
-    if let Err(error) = SockRef::from(stream).set_tcp_keepalive(&keepalive) {
-        tracing::warn!(
-            error = %error,
-            "[Realtime] failed to enable tcp keepalive on websocket socket"
-        );
-    }
-}
-
-fn proxy_tcp_connector() -> HttpConnector {
+fn tcp_connector() -> HttpConnector {
     let mut connector = HttpConnector::new();
     connector.set_keepalive(Some(TCP_KEEPALIVE_IDLE));
     connector.set_keepalive_interval(Some(TCP_KEEPALIVE_INTERVAL));
+    connector.set_connect_timeout(Some(TCP_CONNECT_TIMEOUT));
     connector
+}
+
+async fn connect_direct_tcp(target_host: &str, target_port: u16) -> Result<TcpStream, Error> {
+    let target = endpoint_uri("https", target_host, target_port, "websocket target")?;
+    let mut connector = tcp_connector();
+    connector.enforce_http(false);
+    let stream = connector
+        .call(target)
+        .await
+        .map_err(|error| Error::Other(format!("websocket tcp connect: {error}")))?
+        .into_inner();
+    Ok(stream)
 }
 
 async fn connect_http_proxy(
@@ -294,7 +295,7 @@ async fn connect_http_proxy(
 ) -> Result<TcpStream, Error> {
     let proxy = proxy_connector_uri(proxy_url)?;
     let target = endpoint_uri("https", target_host, target_port, "websocket proxy target")?;
-    let stream = Tunnel::new(proxy, proxy_tcp_connector())
+    let stream = Tunnel::new(proxy, tcp_connector())
         .call(target)
         .await
         .map_err(|error| Error::Other(format!("http proxy CONNECT: {error}")))?
@@ -323,7 +324,7 @@ async fn connect_socks5_proxy(
 ) -> Result<TcpStream, Error> {
     let proxy = proxy_connector_uri(proxy_url)?;
     let target = endpoint_uri("https", target_host, target_port, "websocket proxy target")?;
-    let stream = SocksV5::new(proxy, proxy_tcp_connector())
+    let stream = SocksV5::new(proxy, tcp_connector())
         .local_dns(false)
         .call(target)
         .await
@@ -336,8 +337,9 @@ async fn connect_socks5_proxy(
 mod tests {
     use super::{
         auth_token_from_response, build_auth_url, build_browser_websocket_request,
-        build_transport_url, connect_http_proxy, connect_socks5_proxy, encode_uri_component,
-        extract_auth_token, normalize_websocket_domain, websocket_connect_error, Error,
+        build_transport_url, connect_direct_tcp, connect_http_proxy, connect_socks5_proxy,
+        encode_uri_component, extract_auth_token, normalize_websocket_domain,
+        websocket_connect_error, Error,
     };
     use std::time::Duration;
     use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
@@ -476,6 +478,20 @@ mod tests {
             }
             other => panic!("expected auth failure, got {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn direct_connector_accepts_https_target() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let accept = tokio::spawn(async move { listener.accept().await.unwrap() });
+
+        let stream = connect_direct_tcp(&address.ip().to_string(), address.port())
+            .await
+            .unwrap();
+
+        assert_eq!(stream.peer_addr().unwrap(), address);
+        accept.await.unwrap();
     }
 
     #[tokio::test]

@@ -282,7 +282,7 @@ impl RealtimeHostRuntime {
                     reason,
                     status_code,
                 } => Some(("authFailure", reason.clone(), *status_code)),
-                RealtimeTransportTermination::UnexpectedExit { reason } => {
+                RealtimeTransportTermination::UnexpectedExit { reason, .. } => {
                     Some(("error", reason.clone(), None))
                 }
                 RealtimeTransportTermination::Stopped => None,

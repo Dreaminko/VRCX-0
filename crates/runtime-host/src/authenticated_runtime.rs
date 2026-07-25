@@ -253,7 +253,13 @@ impl AuthenticatedRuntimeOrchestrator {
                 .run_realtime_transport(session, scope, run_id, stop_token, attempt, friends_by_id)
                 .await
             {
-                Some(RealtimeTransportTermination::UnexpectedExit { reason }) => {
+                Some(RealtimeTransportTermination::UnexpectedExit {
+                    reason,
+                    connected_secs,
+                }) => {
+                    if connected_secs.is_some() {
+                        attempt = 1;
+                    }
                     let delay = retry_delay_seconds(attempt);
                     self.set_step_retry(run_id, RuntimeStep::Realtime, attempt, delay, reason);
                     if !self.wait_for_retry(delay, run_id, scope, stop_token).await {
@@ -447,6 +453,7 @@ impl AuthenticatedRuntimeOrchestrator {
             Err(error) => {
                 return Some(RealtimeTransportTermination::UnexpectedExit {
                     reason: error.to_string(),
+                    connected_secs: None,
                 });
             }
         };

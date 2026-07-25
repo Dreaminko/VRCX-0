@@ -1,4 +1,6 @@
 import { commands } from '@/platform/tauri/bindings';
+import gameLogPersistenceRepository from '@/repositories/gameLogPersistenceRepository';
+import { useInstanceJoinHistoryStore } from '@/state/instanceJoinHistoryStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
@@ -46,6 +48,19 @@ async function refreshGroupInstances(): Promise<void> {
     }
 }
 
+async function loadInstanceJoinHistory(userId: string): Promise<void> {
+    try {
+        const history =
+            await gameLogPersistenceRepository.getInstanceJoinHistory(userId);
+        useInstanceJoinHistoryStore.getState().setInstanceJoinHistory(history);
+    } catch (error) {
+        console.warn(
+            'Instance join history is unavailable during session bootstrap:',
+            error
+        );
+    }
+}
+
 export async function bootstrapAuthenticatedSession(
     user: AuthenticatedUser | null | undefined,
     attempt: AuthAttempt
@@ -84,6 +99,8 @@ export async function bootstrapAuthenticatedSession(
         sessionPhase: 'ready'
     });
     await refreshGroupInstances();
+    ensureCurrentAuthAttempt(attempt);
+    await loadInstanceJoinHistory(userId);
     ensureCurrentAuthAttempt(attempt);
     if (gameStateRestored) {
         await requestGameRunningStateRefresh();

@@ -36,6 +36,7 @@ import type {
 import {
     InstanceUserTiles,
     WorldInstancesEmptyState,
+    platformDisplayName,
     resolveLaunchLocation
 } from './WorldDialogViewParts';
 
@@ -175,6 +176,7 @@ export function WorldDialogTabPanels({
         memo,
         previousInstances,
         previewUrl,
+        restrictions,
         screenshots,
         screenshotsError,
         screenshotsRefreshDisabled,
@@ -192,6 +194,13 @@ export function WorldDialogTabPanels({
         onRefreshScreenshots,
         onSaveMemo
     } = commands;
+    const releaseStatusLabel = world.isLabs
+        ? t('dialog.world.tags.labs')
+        : world.releaseStatus === 'public'
+          ? t('dialog.world.tags.public')
+          : world.releaseStatus === 'private'
+            ? t('dialog.world.tags.private')
+            : '—';
     return (
         <EntityDialogTabs
             value={activeTab}
@@ -520,11 +529,21 @@ export function WorldDialogTabPanels({
                         value={hasPersistData ? '✓' : '—'}
                     />
                     <EntityInfoBlock
+                        label={t('dialog.world.info.cache_size')}
+                        value={world.$isCached ? world.$cacheSize || '—' : '—'}
+                    />
+                    <EntityInfoBlock
+                        label={t('dialog.world.info.release_status')}
+                        value={releaseStatusLabel}
+                    />
+                    <EntityInfoBlock
                         label={t('dialog.world.info.platform')}
                         full
                     >
                         <span className="block text-xs whitespace-normal">
-                            {world.platforms?.join(', ') || '—'}
+                            {world.platforms
+                                ?.map(platformDisplayName)
+                                .join(', ') || '—'}
                         </span>
                     </EntityInfoBlock>
                     {Array.isArray(world.urlList) && world.urlList.length ? (
@@ -552,6 +571,20 @@ export function WorldDialogTabPanels({
                                 {authorTags.map((tag) => (
                                     <Badge key={tag} variant="outline">
                                         {tag}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </EntityInfoBlock>
+                    ) : null}
+                    {restrictions.length ? (
+                        <EntityInfoBlock
+                            label={t('dialog.world.info.restrictions')}
+                            full
+                        >
+                            <div className="flex flex-wrap gap-1.5">
+                                {restrictions.map((tag) => (
+                                    <Badge key={tag.key} variant="outline">
+                                        {tag.label}
                                     </Badge>
                                 ))}
                             </div>

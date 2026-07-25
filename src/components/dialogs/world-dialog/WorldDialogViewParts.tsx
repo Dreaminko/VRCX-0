@@ -1,4 +1,3 @@
-import { MonitorIcon, RectangleGogglesIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type {
@@ -8,7 +7,6 @@ import type {
 } from '@/domain/entities/profileEntities';
 import type { InstanceRosterRow } from '@/domain/instances/instanceRoster';
 import { parseLocation } from '@/shared/utils/location';
-import { Badge } from '@/ui/shadcn/badge';
 import {
     Empty,
     EmptyDescription,
@@ -61,31 +59,6 @@ function record(value: unknown): EntityRecord {
     return isRecord(value) ? value : {};
 }
 
-export function PlatformBadge({
-    name,
-    fileSize = ''
-}: {
-    name: string;
-    fileSize?: string;
-}) {
-    const normalized = String(name || '').toLowerCase();
-    const Icon =
-        normalized === 'pc'
-            ? MonitorIcon
-            : normalized === 'quest'
-              ? RectangleGogglesIcon
-              : null;
-    return (
-        <Badge variant="outline">
-            {Icon ? <Icon data-icon="inline-start" /> : null}
-            {name}
-            {fileSize ? (
-                <span className="ml-1 border-l pl-1">{fileSize}</span>
-            ) : null}
-        </Badge>
-    );
-}
-
 export function WorldInstancesEmptyState() {
     const { t } = useTranslation();
 
@@ -103,6 +76,10 @@ export function WorldInstancesEmptyState() {
             </EmptyHeader>
         </Empty>
     );
+}
+
+export function platformDisplayName(platform: string) {
+    return platform === 'Quest' ? 'Android' : platform;
 }
 
 export function fileAnalysisSizeForPlatform(

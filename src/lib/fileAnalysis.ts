@@ -102,13 +102,17 @@ export async function getFileAnalysisForUnityPackages({
 }: FileAnalysisOptions = {}) {
     const result: PlatformFileAnalysis = {};
     const packages = Array.isArray(unityPackages) ? unityPackages : [];
+    const requests = new Map<
+        string,
+        { fileId: string; variant: string; version: number }
+    >();
 
     for (const unityPackage of packages) {
         if (!isAnalyzablePackage(unityPackage, sdkUnityVersion)) {
             continue;
         }
         const platform = normalizePlatform(unityPackage.platform);
-        if (!platform || result[platform]) {
+        if (!platform || requests.has(platform)) {
             continue;
         }
         const assetUrl = unityPackage.assetUrl || '';
@@ -121,28 +125,37 @@ export async function getFileAnalysisForUnityPackages({
         if (!fileId || !Number.isFinite(version)) {
             continue;
         }
-        try {
-            const response = await fetchCachedData<RepositoryResponse>({
-                queryKey: queryKeys.fileAnalysis(
-                    { fileId, version, variant },
-                    endpoint
-                ),
-                policy: entityQueryPolicies.fileAnalysis,
-                queryFn: () =>
-                    vrchatAuthRepository.getFileAnalysis({
-                        fileId,
-                        version,
-                        variant
-                    })
-            });
-            const analysis = formatFileAnalysis(response.json);
-            if (analysis?.success) {
-                result[platform] = analysis;
-            }
-        } catch {
-            // no-op
-        }
+        requests.set(platform, { fileId, variant, version });
     }
+
+    await Promise.all(
+        Array.from(
+            requests,
+            async ([platform, { fileId, variant, version }]) => {
+                try {
+                    const response = await fetchCachedData<RepositoryResponse>({
+                        queryKey: queryKeys.fileAnalysis(
+                            { fileId, version, variant },
+                            endpoint
+                        ),
+                        policy: entityQueryPolicies.fileAnalysis,
+                        queryFn: () =>
+                            vrchatAuthRepository.getFileAnalysis({
+                                fileId,
+                                version,
+                                variant
+                            })
+                    });
+                    const analysis = formatFileAnalysis(response.json);
+                    if (analysis?.success) {
+                        result[platform] = analysis;
+                    }
+                } catch {
+                    // no-op
+                }
+            }
+        )
+    );
 
     return result;
 }
