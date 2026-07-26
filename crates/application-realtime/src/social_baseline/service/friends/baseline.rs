@@ -1,5 +1,70 @@
 use super::*;
 
+#[derive(Clone, Debug, Default)]
+pub struct FriendStatusVerdicts(HashMap<String, bool>);
+
+impl FriendStatusVerdicts {
+    fn confirms_friend(&self, user_id: &str) -> bool {
+        self.0.get(user_id) == Some(&true)
+    }
+
+    fn confirms_unfriend(&self, user_id: &str) -> bool {
+        self.0.get(user_id) == Some(&false)
+    }
+}
+
+impl From<HashMap<String, bool>> for FriendStatusVerdicts {
+    fn from(verdicts: HashMap<String, bool>) -> Self {
+        Self(verdicts)
+    }
+}
+
+pub(crate) async fn verify_friend_log_relationship_changes(
+    deps: &SocialBaselineDeps,
+    endpoint: &str,
+    user_id: &str,
+    friends_by_id: &HashMap<String, FriendRecord>,
+) -> FriendStatusVerdicts {
+    let candidates = friend_log_relationship_candidates(deps.db.as_ref(), user_id, friends_by_id);
+    if candidates.is_empty() {
+        return FriendStatusVerdicts::default();
+    }
+    fetch_friend_statuses_concurrent(deps, endpoint, candidates)
+        .await
+        .into()
+}
+
+pub(crate) fn friend_log_relationship_candidates(
+    db: &DatabaseService,
+    user_id: &str,
+    friends_by_id: &HashMap<String, FriendRecord>,
+) -> Vec<String> {
+    if !config_get_bool(db, &format!("friendLogInit_{user_id}"), false).unwrap_or(false) {
+        return Vec::new();
+    }
+    let existing = match friend_log_current_list(db, user_id.to_string()) {
+        Ok(rows) => rows,
+        Err(error) => {
+            tracing::warn!("friend-log relationship candidate read failed: {error}");
+            return Vec::new();
+        }
+    };
+    let existing_ids: HashSet<&str> = existing.iter().map(|row| row.user_id.as_str()).collect();
+    let additions = friends_by_id
+        .iter()
+        .filter(|(friend_id, entry)| {
+            friend_id.as_str() != user_id
+                && !entry.is_placeholder()
+                && !existing_ids.contains(friend_id.as_str())
+        })
+        .map(|(friend_id, _)| friend_id.clone());
+    let removals = existing
+        .iter()
+        .filter(|row| row.user_id != user_id && !friends_by_id.contains_key(&row.user_id))
+        .map(|row| row.user_id.clone());
+    additions.chain(removals).collect()
+}
+
 pub(super) fn collect_suspicious_friend_ids(
     expected_ids: &[String],
     state_by_id: &HashMap<String, String>,
@@ -165,13 +230,15 @@ async fn build_friend_roster_baseline_inner(
     };
     if reconcile_friend_log {
         output.friend_log_changed =
-            reconcile_friend_roster_baseline(&deps, &output, Some(&expected_ids));
+            reconcile_friend_roster_baseline(&deps, &input.endpoint, &output, Some(&expected_ids))
+                .await;
     }
     Ok(output)
 }
 
-fn reconcile_friend_roster_baseline(
+async fn reconcile_friend_roster_baseline(
     deps: &SocialBaselineDeps,
+    endpoint: &str,
     output: &SocialFriendRosterBaselineOutput,
     roster_order: Option<&[String]>,
 ) -> bool {
@@ -189,11 +256,15 @@ fn reconcile_friend_roster_baseline(
         tracing::warn!("Friend roster baseline friendsById decode failed during reconciliation");
         return false;
     };
+    let verdicts =
+        verify_friend_log_relationship_changes(deps, endpoint, &output.user_id, &friends_by_id)
+            .await;
     reconcile_friend_roster_records(
         deps.db.as_ref(),
         &output.user_id,
         &friends_by_id,
         roster_order,
+        &verdicts,
     )
     .changed
 }
@@ -314,6 +385,7 @@ pub(crate) fn reconcile_friend_roster_records(
     user_id: &str,
     friends_by_id: &HashMap<String, FriendRecord>,
     roster_order: Option<&[String]>,
+    verdicts: &FriendStatusVerdicts,
 ) -> FriendRosterReconcileOutcome {
     let initialized =
         config_get_bool(db, &format!("friendLogInit_{user_id}"), false).unwrap_or(false);
@@ -352,6 +424,9 @@ pub(crate) fn reconcile_friend_roster_records(
             .map(value_as_string)
             .unwrap_or_default();
         let existing_row = existing_by_id.get(friend_id.as_str()).copied();
+        if existing_row.is_none() && !verdicts.confirms_friend(friend_id) {
+            continue;
+        }
         let next_name = entry.display_name.trim();
         let meaningful_name = !next_name.is_empty() && next_name != "Unknown";
         let name_changed =
@@ -395,7 +470,10 @@ pub(crate) fn reconcile_friend_roster_records(
     }
 
     for row in &existing {
-        if row.user_id == user_id || expected_set.contains(row.user_id.as_str()) {
+        if row.user_id == user_id
+            || expected_set.contains(row.user_id.as_str())
+            || !verdicts.confirms_unfriend(&row.user_id)
+        {
             continue;
         }
         batch.friend_log_deletes.push(FriendLogDelete {

@@ -47,8 +47,10 @@ use crate::realtime::{
     RealtimeSessionContext, RealtimeTransportLifecycleEvent, RealtimeTransportStartResult,
     RealtimeTransportTermination, RealtimeWsStatusPayload,
 };
+#[cfg(test)]
+use crate::social_baseline::service::friend_log_relationship_candidates;
 use crate::social_baseline::service::{
-    reconcile_friend_roster_records, FriendRosterReconcileOutcome,
+    reconcile_friend_roster_records, FriendRosterReconcileOutcome, FriendStatusVerdicts,
 };
 use crate::world_enrich::is_meaningful_world_name;
 use vrcx_0_application_core::HostSessionRuntime;

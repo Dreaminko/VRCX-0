@@ -142,14 +142,19 @@ mod remote;
 
 pub use favorites::build_favorites_baseline;
 use favorites::CurrentUserSnapshotView;
+#[cfg(test)]
+pub(crate) use friends::friend_log_relationship_candidates;
 pub use friends::{
     apply_friend_roster_baseline_sync_outcome, build_friend_roster_baseline,
-    build_friend_roster_baseline_deferred,
+    build_friend_roster_baseline_deferred, FriendStatusVerdicts,
 };
 use friends::{build_friend_state_map, build_snapshot_friend_ids};
-pub(crate) use friends::{reconcile_friend_roster_records, FriendRosterReconcileOutcome};
-use remote::fetch_paged_array;
+pub(crate) use friends::{
+    reconcile_friend_roster_records, verify_friend_log_relationship_changes,
+    FriendRosterReconcileOutcome,
+};
 pub(crate) use remote::{execute_vrchat_json_request, refetch_users_concurrent};
+use remote::{fetch_friend_statuses_concurrent, fetch_paged_array};
 
 pub struct SyncedFriendRosterBaseline {
     pub output: SocialFriendRosterBaselineOutput,
@@ -164,7 +169,7 @@ pub async fn build_synced_friend_roster_baseline(
     let endpoint = input.endpoint.clone();
     let websocket = input.websocket.clone();
     let watermark = runtime.capture_friend_baseline_watermark()?;
-    let mut output = build_friend_roster_baseline_deferred(deps, input).await?;
+    let mut output = build_friend_roster_baseline_deferred(deps.clone(), input).await?;
     if output.stale {
         return Ok(SyncedFriendRosterBaseline {
             output,
@@ -178,7 +183,10 @@ pub async fn build_synced_friend_roster_baseline(
         .and_then(|snapshot| snapshot.as_value().get("friendsById"))
         .cloned()
         .ok_or_else(|| Error::Custom("Friend roster baseline has no friendsById map.".into()))?;
-    let friends_by_id = serde_json::from_value(friends_value)?;
+    let friends_by_id: HashMap<String, FriendRecord> = serde_json::from_value(friends_value)?;
+    let verdicts =
+        verify_friend_log_relationship_changes(&deps, &endpoint, &output.user_id, &friends_by_id)
+            .await;
 
     let outcome = runtime.sync_friend_snapshot_with_watermark(
         output.user_id.clone(),
@@ -186,6 +194,7 @@ pub async fn build_synced_friend_roster_baseline(
         websocket,
         watermark,
         friends_by_id,
+        verdicts,
     )?;
     let canonical_friends = outcome
         .snapshot

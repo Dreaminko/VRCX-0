@@ -131,6 +131,7 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         active_session.websocket.clone(),
         watermark,
         refreshed_friends.clone(),
+        FriendStatusVerdicts::default(),
     )?;
 
     let events = runtime.deps.event_bus.take_events_for_test();
@@ -173,6 +174,7 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         active_session.websocket.clone(),
         repeated_watermark,
         refreshed_friends,
+        FriendStatusVerdicts::default(),
     )?;
     let repeated_events = runtime.deps.event_bus.take_events_for_test();
     assert!(repeated_events.iter().all(|event| {
@@ -265,6 +267,7 @@ fn host_watermark_preserves_pending_created_after_capture() -> Result<()> {
             )]
             .into_iter()
             .collect(),
+            FriendStatusVerdicts::default(),
         )?;
 
         let snapshot = runtime.friend_snapshot().unwrap();
@@ -375,6 +378,7 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
         )]
         .into_iter()
         .collect(),
+        FriendStatusVerdicts::default(),
     )?;
 
     let snapshot = outcome.snapshot.expect("canonical friend snapshot");
@@ -465,6 +469,7 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
         [("usr_friend".to_string(), stale_friend)]
             .into_iter()
             .collect(),
+        FriendStatusVerdicts::default(),
     )?;
 
     assert!(outcome.result.accepted);
@@ -538,6 +543,7 @@ fn causal_watermark_rejects_baseline_after_local_friend_log_mutation() -> Result
         active_session.websocket,
         stale_watermark,
         [("usr_friend".to_string(), friend)].into_iter().collect(),
+        FriendStatusVerdicts::default(),
     )?;
 
     assert!(!outcome.result.accepted);
@@ -547,6 +553,181 @@ fn causal_watermark_rejects_baseline_after_local_friend_log_mutation() -> Result
         active_session.user_id,
     )?
     .is_empty());
+    Ok(())
+}
+
+fn no_verdicts() -> FriendStatusVerdicts {
+    FriendStatusVerdicts::default()
+}
+
+fn verdict(user_id: &str, is_friend: bool) -> FriendStatusVerdicts {
+    HashMap::from([(user_id.to_string(), is_friend)]).into()
+}
+
+fn seeded_friend_log(dir: &TestDir, target_user_id: &str) -> Result<DatabaseService> {
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    config_store::set_bool(&db, "friendLogInit_usr_self", true)?;
+    write_realtime_batch(
+        &db,
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
+                target_user_id: target_user_id.into(),
+                display_name: "Friend".into(),
+                trust_level: "Known".into(),
+                friend_number: 1,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    Ok(db)
+}
+
+fn friend_log_history_count(
+    db: &DatabaseService,
+    target_user_id: &str,
+    entry_type: &str,
+) -> Result<usize> {
+    Ok(vrcx_0_persistence::friends::friend_log_history_query(
+        db,
+        vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
+            user_id: "usr_self".into(),
+            target_user_id: target_user_id.into(),
+            types: vec![entry_type.into()],
+        },
+    )?
+    .len())
+}
+
+fn roster(user_id: &str) -> HashMap<String, FriendRecord> {
+    [(
+        user_id.to_string(),
+        FriendRecord {
+            id: user_id.into(),
+            display_name: "Friend".into(),
+            extra: [("$trustLevel".into(), json!("Known"))]
+                .into_iter()
+                .collect(),
+            ..FriendRecord::default()
+        },
+    )]
+    .into_iter()
+    .collect()
+}
+
+#[test]
+fn relationship_candidates_cover_both_diff_directions_after_init() -> Result<()> {
+    let dir = TestDir::new("relationship-candidates");
+    let db = seeded_friend_log(&dir, "usr_dropped")?;
+    let mut friends_by_id = roster("usr_new");
+    friends_by_id.extend(roster("usr_self"));
+    friends_by_id.insert(
+        "usr_placeholder".to_string(),
+        FriendRecord {
+            id: "usr_placeholder".into(),
+            extra: [("$profileSource".into(), json!("placeholder"))]
+                .into_iter()
+                .collect(),
+            ..FriendRecord::default()
+        },
+    );
+
+    let mut candidates = friend_log_relationship_candidates(&db, "usr_self", &friends_by_id);
+    candidates.sort();
+
+    assert_eq!(candidates, vec!["usr_dropped", "usr_new"]);
+    Ok(())
+}
+
+#[test]
+fn relationship_candidates_stay_empty_before_friend_log_init() -> Result<()> {
+    let dir = TestDir::new("relationship-candidates-uninitialized");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+
+    assert!(friend_log_relationship_candidates(&db, "usr_self", &roster("usr_new")).is_empty());
+    Ok(())
+}
+
+#[test]
+fn reconcile_keeps_roster_dropout_until_friend_status_confirms_it() -> Result<()> {
+    let dir = TestDir::new("reconcile-unconfirmed-removal");
+    let db = seeded_friend_log(&dir, "usr_friend")?;
+
+    let outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &HashMap::new(), None, &no_verdicts());
+
+    assert!(!outcome.changed);
+    assert_eq!(
+        vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?.len(),
+        1
+    );
+    assert_eq!(friend_log_history_count(&db, "usr_friend", "Unfriend")?, 0);
+    Ok(())
+}
+
+#[test]
+fn reconcile_removes_roster_dropout_confirmed_as_unfriended() -> Result<()> {
+    let dir = TestDir::new("reconcile-confirmed-removal");
+    let db = seeded_friend_log(&dir, "usr_friend")?;
+
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &HashMap::new(),
+        None,
+        &verdict("usr_friend", false),
+    );
+
+    assert!(outcome.changed);
+    assert!(
+        vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?.is_empty()
+    );
+    assert_eq!(friend_log_history_count(&db, "usr_friend", "Unfriend")?, 1);
+    Ok(())
+}
+
+#[test]
+fn reconcile_holds_back_roster_arrival_until_friend_status_confirms_it() -> Result<()> {
+    let dir = TestDir::new("reconcile-unconfirmed-addition");
+    let db = seeded_friend_log(&dir, "usr_friend")?;
+    let mut friends_by_id = roster("usr_friend");
+    friends_by_id.extend(roster("usr_new"));
+
+    let outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
+
+    assert!(!outcome.changed);
+    assert_eq!(
+        vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?.len(),
+        1
+    );
+    assert_eq!(friend_log_history_count(&db, "usr_new", "Friend")?, 0);
+    Ok(())
+}
+
+#[test]
+fn reconcile_adds_roster_arrival_confirmed_as_friend() -> Result<()> {
+    let dir = TestDir::new("reconcile-confirmed-addition");
+    let db = seeded_friend_log(&dir, "usr_friend")?;
+    let mut friends_by_id = roster("usr_friend");
+    friends_by_id.extend(roster("usr_new"));
+
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id,
+        None,
+        &verdict("usr_new", true),
+    );
+
+    assert!(outcome.changed);
+    assert_eq!(
+        vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?.len(),
+        2
+    );
+    assert_eq!(friend_log_history_count(&db, "usr_new", "Friend")?, 1);
     Ok(())
 }
 
@@ -582,8 +763,14 @@ fn reconcile_records_display_name_change_for_existing_friend() -> Result<()> {
     .into_iter()
     .collect();
 
-    assert!(reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None).changed);
-    assert!(!reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None).changed);
+    assert!(
+        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts())
+            .changed
+    );
+    assert!(
+        !reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts())
+            .changed
+    );
 
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
     assert_eq!(current.len(), 1);
@@ -639,14 +826,18 @@ fn reconcile_records_and_projects_trust_only_change_once() -> Result<()> {
     .into_iter()
     .collect();
 
-    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
+    let outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
     assert!(outcome.changed);
     assert_eq!(outcome.feed_entries.len(), 1);
     assert_eq!(outcome.feed_entries[0]["type"], "TrustLevel");
     assert_eq!(outcome.feed_entries[0]["trustLevel"], "Trusted User");
     assert_eq!(outcome.feed_entries[0]["previousTrustLevel"], "Known User");
     assert_eq!(outcome.feed_entries[0]["friendNumber"], 7);
-    assert!(!reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None).changed);
+    assert!(
+        !reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts())
+            .changed
+    );
 
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
     assert_eq!(current[0].trust_level, "Trusted User");
@@ -701,7 +892,8 @@ fn reconcile_skips_placeholder_records() -> Result<()> {
     .into_iter()
     .collect();
 
-    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
+    let outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
 
     assert!(!outcome.changed);
     assert!(outcome.feed_entries.is_empty());
@@ -740,7 +932,10 @@ fn init_seeds_placeholder_without_trust_and_reconcile_fills_it_silently() -> Res
     .into_iter()
     .collect();
 
-    assert!(reconcile_friend_roster_records(&db, "usr_self", &placeholder_roster, None).changed);
+    assert!(
+        reconcile_friend_roster_records(&db, "usr_self", &placeholder_roster, None, &no_verdicts())
+            .changed
+    );
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
     assert_eq!(current[0].trust_level, "");
 
@@ -758,7 +953,8 @@ fn init_seeds_placeholder_without_trust_and_reconcile_fills_it_silently() -> Res
     .into_iter()
     .collect();
 
-    let outcome = reconcile_friend_roster_records(&db, "usr_self", &fetched_roster, None);
+    let outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &fetched_roster, None, &no_verdicts());
     assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
@@ -809,7 +1005,8 @@ fn reconcile_updates_legacy_equivalent_trust_without_history_or_feed() -> Result
     .into_iter()
     .collect();
 
-    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
+    let outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
 
     assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
@@ -862,8 +1059,13 @@ fn first_time_baseline_init_fills_current_roster_without_history_or_feed() -> Re
     )?);
 
     let roster_order = ["usr_b_friend".to_string(), "usr_a_friend".to_string()];
-    let outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, Some(&roster_order));
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id,
+        Some(&roster_order),
+        &no_verdicts(),
+    );
 
     assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
@@ -907,7 +1109,8 @@ fn first_time_baseline_init_failure_leaves_flag_unset_for_retry() -> Result<()> 
     .into_iter()
     .collect();
 
-    let failed_outcome = reconcile_friend_roster_records(&db, "usr!self", &friends_by_id, None);
+    let failed_outcome =
+        reconcile_friend_roster_records(&db, "usr!self", &friends_by_id, None, &no_verdicts());
     assert!(!failed_outcome.changed);
     assert!(!config_store::get_bool(
         &db,
@@ -915,7 +1118,8 @@ fn first_time_baseline_init_failure_leaves_flag_unset_for_retry() -> Result<()> 
         false
     )?);
 
-    let retried_outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
+    let retried_outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
     assert!(retried_outcome.changed);
     assert!(config_store::get_bool(
         &db,
@@ -952,7 +1156,8 @@ fn first_time_init_treats_friend_accepted_during_init_window_as_preexisting() ->
     .into_iter()
     .collect();
 
-    let outcome = reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None);
+    let outcome =
+        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
 
     assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
@@ -1005,6 +1210,7 @@ fn active_baseline_trust_change_fans_out_after_atomic_persistence() -> Result<()
         active_session.websocket,
         watermark,
         [("usr_friend".to_string(), friend)].into_iter().collect(),
+        FriendStatusVerdicts::default(),
     )?;
 
     assert!(outcome.friend_log_changed);
@@ -1066,6 +1272,7 @@ fn causal_watermark_rejects_superseded_baseline() -> Result<()> {
         active_session.websocket,
         stale_watermark,
         friend("Stale"),
+        FriendStatusVerdicts::default(),
     )?;
 
     assert!(!result.result.accepted);
@@ -1105,6 +1312,7 @@ fn causal_baseline_from_stopped_generation_is_not_cached() -> Result<()> {
         active_session.websocket,
         watermark,
         HashMap::new(),
+        FriendStatusVerdicts::default(),
     )?;
 
     assert!(!result.result.accepted);

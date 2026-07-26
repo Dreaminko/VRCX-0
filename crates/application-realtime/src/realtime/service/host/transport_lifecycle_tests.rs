@@ -227,6 +227,7 @@ fn unexpected_exit_keeps_old_roster_until_pending_baseline_replacement_starts() 
         active_session.websocket.clone(),
         watermark,
         fresh_friends,
+        FriendStatusVerdicts::default(),
     )?;
     assert!(outcome.result.accepted);
     assert_eq!(
@@ -487,6 +488,7 @@ fn pending_baseline_trust_feed_projects_once_after_start_without_rewriting() -> 
         active_session.websocket.clone(),
         watermark,
         [("usr_friend".to_string(), friend)].into_iter().collect(),
+        FriendStatusVerdicts::default(),
     )?;
     assert!(outcome.friend_log_changed);
     assert!(runtime

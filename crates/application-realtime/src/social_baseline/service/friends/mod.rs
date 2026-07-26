@@ -31,12 +31,19 @@ use profile::{
     RemoteFriendProfile,
 };
 
+use super::fetch_friend_statuses_concurrent;
+
 #[cfg(test)]
 use baseline::collect_suspicious_friend_ids;
 
+#[cfg(test)]
+pub(crate) use baseline::friend_log_relationship_candidates;
 pub use baseline::{
     apply_friend_roster_baseline_sync_outcome, build_friend_roster_baseline,
-    build_friend_roster_baseline_deferred,
+    build_friend_roster_baseline_deferred, FriendStatusVerdicts,
 };
-pub(crate) use baseline::{reconcile_friend_roster_records, FriendRosterReconcileOutcome};
+pub(crate) use baseline::{
+    reconcile_friend_roster_records, verify_friend_log_relationship_changes,
+    FriendRosterReconcileOutcome,
+};
 pub(super) use state_map::{build_friend_state_map, build_snapshot_friend_ids};

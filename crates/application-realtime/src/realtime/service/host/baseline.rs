@@ -59,7 +59,7 @@ impl RealtimeHostRuntime {
                 generation,
                 None,
                 friends_by_id,
-                false,
+                None,
             )?
             .result)
     }
@@ -71,13 +71,14 @@ impl RealtimeHostRuntime {
         websocket: String,
         watermark: FriendBaselineCausalWatermark,
         friends_by_id: HashMap<String, FriendRecord>,
+        verdicts: FriendStatusVerdicts,
     ) -> Result<FriendBaselineSyncOutcome> {
         self.sync_friend_snapshot_inner(
             RealtimeSessionContext::new(user_id, endpoint, websocket),
             watermark.generation,
             Some(watermark),
             friends_by_id,
-            true,
+            Some(verdicts),
         )
     }
 
@@ -87,7 +88,7 @@ impl RealtimeHostRuntime {
         generation: Option<u64>,
         causal_watermark: Option<FriendBaselineCausalWatermark>,
         friends_by_id: HashMap<String, FriendRecord>,
-        reconcile_friend_log: bool,
+        friend_log_verdicts: Option<FriendStatusVerdicts>,
     ) -> Result<FriendBaselineSyncOutcome> {
         let owner = self.lock_friend_owner();
         let friend_count = friends_by_id.len();
@@ -165,7 +166,7 @@ impl RealtimeHostRuntime {
                 self.set_activity_friend_user_ids(
                     pending_snapshot.friends_by_id.keys().cloned().collect(),
                 );
-                let reconcile_outcome = if reconcile_friend_log {
+                let reconcile_outcome = if let Some(verdicts) = friend_log_verdicts.as_ref() {
                     let roster_order =
                         roster_order_from_friend_records(&pending_snapshot.friends_by_id);
                     reconcile_friend_roster_records(
@@ -173,6 +174,7 @@ impl RealtimeHostRuntime {
                         &pending_snapshot.current_user_id,
                         &pending_snapshot.friends_by_id,
                         roster_order.as_deref(),
+                        verdicts,
                     )
                 } else {
                     FriendRosterReconcileOutcome::default()
@@ -304,7 +306,7 @@ impl RealtimeHostRuntime {
         if let Some(snapshot) = canonical_snapshot.as_ref() {
             self.set_activity_friend_user_ids(snapshot.friends_by_id.keys().cloned().collect());
         }
-        let reconcile_outcome = if reconcile_friend_log {
+        let reconcile_outcome = if let Some(verdicts) = friend_log_verdicts.as_ref() {
             canonical_snapshot
                 .as_ref()
                 .map(|snapshot| {
@@ -314,6 +316,7 @@ impl RealtimeHostRuntime {
                         &snapshot.current_user_id,
                         &snapshot.friends_by_id,
                         roster_order.as_deref(),
+                        verdicts,
                     )
                 })
                 .unwrap_or_default()
