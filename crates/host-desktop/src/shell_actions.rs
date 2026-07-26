@@ -20,8 +20,16 @@ pub fn open_link(url: &str) -> Result<(), Error> {
 }
 
 pub fn open_discord_profile(discord_id: &str) -> Result<(), Error> {
-    let url = format!("discord://-/users/{discord_id}");
+    let url = discord_profile_url(discord_id)?;
     open::that(&url).map_err(|e| Error::Custom(format!("open discord: {e}")))
+}
+
+fn discord_profile_url(discord_id: &str) -> Result<String, Error> {
+    let discord_id = discord_id.trim();
+    if discord_id.is_empty() || !discord_id.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(Error::Custom("Invalid Discord user ID".into()));
+    }
+    Ok(format!("https://discord.com/users/{discord_id}"))
 }
 
 pub fn file_base64(path: &str) -> Result<String, Error> {
@@ -247,8 +255,25 @@ fn open_folder_and_select_item_linux(path: &Path, is_folder: bool) -> Result<(),
 
 #[cfg(test)]
 mod tests {
-    use super::{cache_paths_equal, cache_paths_overlap, normalize_config_file_json};
+    use super::{
+        cache_paths_equal, cache_paths_overlap, discord_profile_url, normalize_config_file_json,
+    };
     use std::path::Path;
+
+    #[test]
+    fn builds_discord_profile_web_url() {
+        assert_eq!(
+            discord_profile_url(" 123456789012345678 ").unwrap(),
+            "https://discord.com/users/123456789012345678"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_discord_profile_ids() {
+        for discord_id in ["", "discord-user", "123/../../channels"] {
+            assert!(discord_profile_url(discord_id).is_err());
+        }
+    }
 
     #[test]
     fn normalizes_object_vrchat_config_json() {
