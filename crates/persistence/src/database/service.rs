@@ -424,13 +424,26 @@ fn configure_read_connection(conn: &Connection) -> Result<(), Error> {
     Ok(())
 }
 
-fn checkpoint(conn: &Connection) -> Result<(), Error> {
-    let busy = conn
-        .query_row("PRAGMA wal_checkpoint(TRUNCATE);", [], |row| {
-            row.get::<_, i64>(0)
+struct WalCheckpointStatus {
+    busy: i64,
+    log_frames: i64,
+    checkpointed_frames: i64,
+}
+
+fn checkpoint_status(conn: &Connection) -> Result<WalCheckpointStatus, Error> {
+    conn.query_row("PRAGMA wal_checkpoint(TRUNCATE);", [], |row| {
+        Ok(WalCheckpointStatus {
+            busy: row.get(0)?,
+            log_frames: row.get(1)?,
+            checkpointed_frames: row.get(2)?,
         })
-        .map_err(|e| Error::Database(e.to_string()))?;
-    if busy != 0 {
+    })
+    .map_err(|e| Error::Database(e.to_string()))
+}
+
+fn checkpoint(conn: &Connection) -> Result<(), Error> {
+    let status = checkpoint_status(conn)?;
+    if status.busy != 0 {
         return Err(Error::Database("WAL checkpoint remained busy.".into()));
     }
     Ok(())

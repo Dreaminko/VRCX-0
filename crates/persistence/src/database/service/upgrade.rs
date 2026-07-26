@@ -10,8 +10,9 @@ use crate::database::sidecar::remove_sidecars;
 use crate::Error;
 
 use super::{
-    checkpoint, ensure_upgrade_version_written, open_configured_connection, open_main_database,
-    DatabaseMode, DatabaseService, DatabaseUpgradeStatus, MainDatabase, UpgradeSession,
+    checkpoint, checkpoint_status, ensure_upgrade_version_written, open_configured_connection,
+    open_main_database, DatabaseMode, DatabaseService, DatabaseUpgradeStatus, MainDatabase,
+    UpgradeSession,
 };
 
 impl DatabaseService {
@@ -40,7 +41,14 @@ impl DatabaseService {
                 .writer
                 .lock()
                 .map_err(|e| Error::Database(e.to_string()))?;
-            checkpoint(&writer)?;
+            let status = checkpoint_status(&writer)?;
+            if status.busy != 0 {
+                tracing::warn!(
+                    log_frames = status.log_frames,
+                    checkpointed_frames = status.checkpointed_frames,
+                    "Source database WAL checkpoint remained busy; continuing with SQLite online backup"
+                );
+            }
         }
 
         if let Some(status) = self.get_failed_upgrade()? {

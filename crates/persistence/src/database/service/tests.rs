@@ -222,6 +222,64 @@ fn data_dir_migration_freeze_rejects_upgrade_without_changing_mode() -> Result<(
 }
 
 #[test]
+fn upgrade_backup_continues_when_source_checkpoint_is_busy() -> Result<(), Error> {
+    let dir = TestDir::new("database-upgrade-busy-source-checkpoint");
+    let db_path = dir.path.join("VRCX-0.sqlite3");
+    let db = DatabaseService::new(&db_path)?;
+    let empty = HashMap::new();
+    db.execute_non_query("CREATE TABLE migration_items (value TEXT NOT NULL)", &empty)?;
+    db.execute_non_query(
+        "INSERT INTO migration_items (value) VALUES ('before-reader')",
+        &empty,
+    )?;
+
+    {
+        let inner = db
+            .inner
+            .read()
+            .map_err(|error| Error::Database(error.to_string()))?;
+        let DatabaseMode::Main(main) = &*inner else {
+            unreachable!();
+        };
+        main.writer
+            .lock()
+            .map_err(|error| Error::Database(error.to_string()))?
+            .busy_timeout(std::time::Duration::from_millis(10))
+            .map_err(|error| Error::Database(error.to_string()))?;
+    }
+
+    let mut reader =
+        Connection::open(&db_path).map_err(|error| Error::Database(error.to_string()))?;
+    let reader_tx = reader
+        .transaction()
+        .map_err(|error| Error::Database(error.to_string()))?;
+    let _: i64 = reader_tx
+        .query_row("SELECT COUNT(*) FROM migration_items", [], |row| row.get(0))
+        .map_err(|error| Error::Database(error.to_string()))?;
+    db.execute_non_query(
+        "INSERT INTO migration_items (value) VALUES ('after-reader')",
+        &empty,
+    )?;
+
+    db.begin_upgrade(16, 18)?;
+
+    assert_eq!(
+        db.execute("SELECT value FROM migration_items ORDER BY rowid", &empty)?,
+        vec![
+            vec![serde_json::json!("before-reader")],
+            vec![serde_json::json!("after-reader")],
+        ]
+    );
+
+    reader_tx
+        .rollback()
+        .map_err(|error| Error::Database(error.to_string()))?;
+    drop(reader);
+    db.fail_upgrade("test complete".into())?;
+    Ok(())
+}
+
+#[test]
 fn failed_upgraded_database_reopen_restores_original_and_preserves_work_copy() -> Result<(), Error>
 {
     let dir = TestDir::new("database-upgrade-reopen-rollback");
