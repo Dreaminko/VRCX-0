@@ -64,7 +64,7 @@ impl RuntimeHostState {
 fn claim_activity_warmup_generation(scheduled: &AtomicU64, auth_generation: u64) -> bool {
     auth_generation > 0
         && scheduled
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |current| {
                 (current < auth_generation).then_some(auth_generation)
             })
             .is_ok()
