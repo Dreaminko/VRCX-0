@@ -77,9 +77,11 @@ export function NotificationHoverContent({
     senderName,
     typeLabel,
     message,
-    absoluteTime
+    absoluteTime,
+    actorImageUrl
 }: {
     absoluteTime: string;
+    actorImageUrl: string;
     message: string;
     notification: NotificationRow;
     senderName: string;
@@ -123,7 +125,10 @@ export function NotificationHoverContent({
             ) : friendNotification ? (
                 <>
                     <div className="mb-2 flex items-center gap-2">
-                        <NotificationPersonAvatar notification={notification} />
+                        <NotificationPersonAvatar
+                            notification={notification}
+                            imageUrl={actorImageUrl}
+                        />
                         <div className="min-w-0">
                             <p className="truncate text-sm font-medium">
                                 {senderName}

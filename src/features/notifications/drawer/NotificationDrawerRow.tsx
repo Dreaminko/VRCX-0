@@ -1,5 +1,5 @@
 import { CheckIcon, MoreHorizontalIcon, Trash2Icon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -35,6 +35,11 @@ import {
     canMarkNotificationSeen,
     usesAvatar
 } from '../notificationRowActions';
+import {
+    type NotificationActor,
+    toNotificationViewModel
+} from '../notificationViewModel';
+import { useNotificationActorImage } from '../useNotificationActorImage';
 import { getNotificationLifecycleBucket } from './notificationDrawerBuckets';
 import type { NotificationDrawerHandlers } from './NotificationDrawerList';
 import {
@@ -103,6 +108,14 @@ export function NotificationDrawerRow({
         getNotificationLifecycleBucket(notification?.type) === 'action';
     const isQueueReady = notification?.type === 'group.queueReady';
     const showAvatar = usesAvatar(notification);
+    const actor = useMemo<NotificationActor>(
+        () =>
+            showAvatar
+                ? toNotificationViewModel(notification).actor
+                : { kind: 'system', name: '' },
+        [notification, showAvatar]
+    );
+    const actorImageUrl = useNotificationActorImage(actor);
 
     const orderedActions = buildOrderedActions({
         notification,
@@ -148,6 +161,7 @@ export function NotificationDrawerRow({
                             {showAvatar ? (
                                 <NotificationPersonAvatar
                                     notification={notification}
+                                    imageUrl={actorImageUrl}
                                 />
                             ) : (
                                 <NotificationIconDisc
@@ -328,6 +342,7 @@ export function NotificationDrawerRow({
                 typeLabel={typeLabel}
                 message={message}
                 absoluteTime={absoluteTime}
+                actorImageUrl={actorImageUrl}
             />
         </HoverCard>
     );
