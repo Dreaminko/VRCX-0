@@ -23,6 +23,7 @@ import {
 
 export type NotificationDetails = Record<string, unknown> & {
     displayLocation?: string;
+    emojiId?: unknown;
     groupId?: string;
     groupName?: string;
     imageUrl?: string;

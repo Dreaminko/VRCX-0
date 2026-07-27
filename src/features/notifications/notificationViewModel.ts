@@ -1,5 +1,9 @@
 import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
+import {
+    defaultEmojiName,
+    defaultEmojiPreviewUrl
+} from '@/shared/constants/vrchatDefaultEmojis';
 import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
 import {
     isNotificationExpired,
@@ -25,6 +29,13 @@ export type NotificationViewModelLink = {
     internal: boolean;
 };
 
+export type NotificationViewModelEmoji = {
+    id: string;
+    imageUrl: string;
+    kind: 'custom' | 'default';
+    name: string;
+};
+
 export type NotificationViewModel = {
     id: string;
     template: 'compact' | 'broadcast' | 'fallback';
@@ -34,6 +45,7 @@ export type NotificationViewModel = {
     headline: string;
     body: string;
     context: NotificationViewModelContext | null;
+    emoji: NotificationViewModelEmoji | null;
     media: string;
     link: NotificationViewModelLink | null;
     unseen: boolean;
@@ -130,8 +142,7 @@ function rawImageUrl(notification: NotificationRow): string {
     return imageUrl.startsWith('default_') ? '' : imageUrl;
 }
 
-function thumbnailUrl(notification: NotificationRow): string {
-    const imageUrl = rawImageUrl(notification);
+function thumbnailUrl(imageUrl: string): string {
     return imageUrl ? convertFileUrlToImageUrl(imageUrl, 64) : '';
 }
 
@@ -164,11 +175,14 @@ function groupActor(
             notification.groupName,
             notification.senderUsername
         ),
-        imageUrl: thumbnailUrl(notification)
+        imageUrl: thumbnailUrl(rawImageUrl(notification))
     };
 }
 
-function userActor(notification: NotificationRow): NotificationActor {
+function userActor(
+    notification: NotificationRow,
+    includeNotificationImage = true
+): NotificationActor {
     return {
         kind: 'user',
         id: text(notification.senderUserId),
@@ -179,8 +193,59 @@ function userActor(notification: NotificationRow): NotificationActor {
             notification.senderUsername,
             notification.senderUserId
         ),
-        imageUrl: thumbnailUrl(notification)
+        imageUrl: thumbnailUrl(
+            includeNotificationImage
+                ? rawImageUrl(notification)
+                : text(notification.senderUserIcon)
+        )
     };
+}
+
+function boopEmoji(
+    notification: NotificationRow
+): NotificationViewModelEmoji | null {
+    const rawImage = firstText(
+        notification.details?.imageUrl,
+        notification.imageUrl
+    );
+    const id = firstText(
+        notification.details?.emojiId,
+        rawImage.startsWith('default_') ? rawImage : ''
+    );
+    if (!id) {
+        return null;
+    }
+    if (id.startsWith('default_')) {
+        return {
+            id,
+            imageUrl: defaultEmojiPreviewUrl(id),
+            kind: 'default',
+            name: defaultEmojiName(id)
+        };
+    }
+    if (!rawImage) {
+        return null;
+    }
+    return {
+        id,
+        imageUrl: thumbnailUrl(rawImage),
+        kind: 'custom',
+        name: id
+    };
+}
+
+function boopBody(
+    notification: NotificationRow,
+    emoji: NotificationViewModelEmoji | null
+): string {
+    const body = text(notification.message);
+    if (emoji?.kind !== 'default') {
+        return body;
+    }
+    const legacySuffix = ` ${emoji.id.replace(/^default_/, '')}`;
+    return body.endsWith(legacySuffix)
+        ? body.slice(0, -legacySuffix.length).trimEnd()
+        : body;
 }
 
 function buildLink(
@@ -267,6 +332,7 @@ export function toNotificationViewModel(
             headline: '',
             body: firstText(notification.message, notification.title),
             context: null,
+            emoji: null,
             media: '',
             link: buildLink(notification, actor)
         };
@@ -285,6 +351,7 @@ export function toNotificationViewModel(
             ),
             body: text(notification.message),
             context: null,
+            emoji: null,
             media: hasBanner ? rawImageUrl(notification) : '',
             link: null
         };
@@ -299,20 +366,26 @@ export function toNotificationViewModel(
             headline: '',
             body: inviteBody(notification),
             context: buildContext(notification, false),
+            emoji: null,
             media: '',
             link: buildLink(notification, actor)
         };
     }
 
     if (PERSON_TYPES.has(type)) {
-        const actor = userActor(notification);
+        const actor = userActor(notification, type !== 'boop');
+        const emoji = type === 'boop' ? boopEmoji(notification) : null;
         return {
             ...base,
             template: 'compact',
             actor,
             headline: '',
-            body: text(notification.message),
+            body:
+                type === 'boop'
+                    ? boopBody(notification, emoji)
+                    : text(notification.message),
             context: buildContext(notification, true),
+            emoji,
             media: '',
             link: buildLink(notification, actor)
         };
@@ -330,6 +403,7 @@ export function toNotificationViewModel(
         headline: '',
         body: text(notification.message),
         context: buildContext(notification, true),
+        emoji: null,
         media: '',
         link: buildLink(notification, actor)
     };

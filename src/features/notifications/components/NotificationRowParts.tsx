@@ -1,7 +1,8 @@
-import { UserIcon } from 'lucide-react';
+import { SmileIcon, UserIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { getNotificationImageUrl } from '@/components/hosts/vrc-notification-center/notificationCenterUtils';
+import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';
 import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
@@ -9,6 +10,52 @@ import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { getDiscIcon } from '../notificationRowActions';
+import type { NotificationViewModelEmoji } from '../notificationViewModel';
+
+export function NotificationEmojiPreview({
+    emoji,
+    className = 'size-10',
+    onClick
+}: {
+    className?: string;
+    emoji: NotificationViewModelEmoji;
+    onClick?: () => void;
+}) {
+    const fallback = (
+        <span
+            className={cn(
+                'bg-muted text-muted-foreground flex shrink-0 items-center justify-center rounded-md',
+                className
+            )}
+            title={emoji.name}
+        >
+            <SmileIcon className="size-4" />
+        </span>
+    );
+    const preview = emoji.imageUrl ? (
+        <FadeInImage
+            src={emoji.imageUrl}
+            alt={emoji.name}
+            className={cn('shrink-0 rounded-md object-contain', className)}
+            fallback={fallback}
+        />
+    ) : (
+        fallback
+    );
+    if (!onClick) {
+        return preview;
+    }
+    return (
+        <button
+            type="button"
+            className="shrink-0 transition-transform ease-out active:scale-[0.97] motion-safe:duration-150"
+            aria-label={emoji.name}
+            onClick={onClick}
+        >
+            {preview}
+        </button>
+    );
+}
 
 export function NotificationPersonAvatar({
     notification,

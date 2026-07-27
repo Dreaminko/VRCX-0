@@ -173,19 +173,52 @@ describe('notification view model', () => {
         });
     });
 
-    it('maps boops and messages to a user actor carrying the message body', () => {
+    it('keeps the boop actor avatar separate from the default emoji preview', () => {
         const view = toNotificationViewModel(
             row({
                 type: 'boop',
                 senderUserId: 'usr_3',
                 senderUsername: 'Pine',
-                message: 'Boop!'
+                senderUserIcon: 'file_avatar',
+                message: 'Boop! in_love',
+                imageUrl: 'default_in_love',
+                details: { emojiId: 'default_in_love' }
             })
         );
 
         expect(view.template).toBe('compact');
-        expect(view.actor).toMatchObject({ kind: 'user', name: 'Pine' });
+        expect(view.actor).toMatchObject({
+            kind: 'user',
+            name: 'Pine',
+            imageUrl: expect.stringContaining('file_avatar')
+        });
         expect(view.body).toBe('Boop!');
+        expect(view.emoji).toEqual({
+            id: 'default_in_love',
+            imageUrl: 'https://wiki-files.vrchat.com/Inlove.webp',
+            kind: 'default',
+            name: 'In Love'
+        });
+    });
+
+    it('maps custom boop files to media without using them as the actor avatar', () => {
+        const view = toNotificationViewModel(
+            row({
+                type: 'boop',
+                senderUserId: 'usr_3',
+                senderUsername: 'Pine',
+                message: 'Boop!',
+                imageUrl: 'https://api.vrchat.cloud/api/1/file/emoji/1',
+                details: { emojiId: 'file_emoji' }
+            })
+        );
+
+        expect(view.actor).toMatchObject({ kind: 'user', imageUrl: '' });
+        expect(view.emoji).toMatchObject({
+            id: 'file_emoji',
+            imageUrl: expect.stringContaining('/file/emoji/1'),
+            kind: 'custom'
+        });
     });
 
     it('falls back to a system actor for empty or unknown types', () => {

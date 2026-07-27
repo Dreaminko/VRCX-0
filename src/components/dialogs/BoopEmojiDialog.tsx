@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import mediaRepository from '@/repositories/mediaRepository';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
-import { photonEmojiId, photonEmojis } from '@/shared/constants/photonEmojis';
+import { vrchatDefaultEmojis } from '@/shared/constants/vrchatDefaultEmojis';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -26,16 +26,6 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 import { Spinner } from '@/ui/shadcn/spinner';
-
-type PhotonEmojiRow = {
-    id: string;
-    name: string;
-};
-
-const photonEmojiRows: PhotonEmojiRow[] = photonEmojis.map((name) => ({
-    id: photonEmojiId(name),
-    name
-}));
 
 const noDefaultEmojiValue = '__none__';
 
@@ -115,7 +105,7 @@ export function BoopEmojiDialog({
 
     const selectedDefaultEmojiId = useMemo(
         () =>
-            photonEmojiRows.some((row) => row.id === emojiId)
+            vrchatDefaultEmojis.some((row) => row.id === emojiId)
                 ? emojiId
                 : undefined,
         [emojiId]
@@ -185,7 +175,7 @@ export function BoopEmojiDialog({
                                             'view.notification.action.clear_selection'
                                         )
                                     },
-                                    ...photonEmojiRows.map((row) => ({
+                                    ...vrchatDefaultEmojis.map((row) => ({
                                         value: row.id,
                                         label: row.name
                                     }))
@@ -215,7 +205,7 @@ export function BoopEmojiDialog({
                                                 'view.notification.action.clear_selection'
                                             )}
                                         </SelectItem>
-                                        {photonEmojiRows.map((row) => (
+                                        {vrchatDefaultEmojis.map((row) => (
                                             <SelectItem
                                                 key={row.id}
                                                 value={row.id}

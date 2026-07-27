@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     NotificationActionButton,
+    NotificationEmojiPreview,
     NotificationIconDisc,
     NotificationPersonAvatar
 } from '../components/NotificationRowParts';
@@ -93,7 +94,7 @@ export function NotificationDrawerRow({
     notification: NotificationRow;
 }) {
     const { t } = useTranslation();
-    const message = String(getNotificationMessage(notification) || '');
+    const rawMessage = String(getNotificationMessage(notification) || '');
     const senderName =
         String(getSenderName(notification) || '') ||
         notification?.type ||
@@ -108,13 +109,14 @@ export function NotificationDrawerRow({
         getNotificationLifecycleBucket(notification?.type) === 'action';
     const isQueueReady = notification?.type === 'group.queueReady';
     const showAvatar = usesAvatar(notification);
-    const actor = useMemo<NotificationActor>(
-        () =>
-            showAvatar
-                ? toNotificationViewModel(notification).actor
-                : { kind: 'system', name: '' },
-        [notification, showAvatar]
+    const view = useMemo(
+        () => toNotificationViewModel(notification),
+        [notification]
     );
+    const message = notification.type === 'boop' ? view.body : rawMessage;
+    const actor: NotificationActor = showAvatar
+        ? view.actor
+        : { kind: 'system', name: '' };
     const actorImageUrl = useNotificationActorImage(actor);
 
     const orderedActions = buildOrderedActions({
@@ -193,10 +195,20 @@ export function NotificationDrawerRow({
                                     </Tooltip>
                                 ) : null}
                             </div>
-                            {message ? (
-                                <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs break-words">
-                                    {message}
-                                </p>
+                            {message || view.emoji ? (
+                                <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                                    {message ? (
+                                        <p className="text-muted-foreground line-clamp-2 min-w-0 text-xs break-words">
+                                            {message}
+                                        </p>
+                                    ) : null}
+                                    {view.emoji ? (
+                                        <NotificationEmojiPreview
+                                            emoji={view.emoji}
+                                            className="size-7"
+                                        />
+                                    ) : null}
+                                </div>
                             ) : null}
                             <div className="mt-1.5 flex items-center gap-2">
                                 <Badge

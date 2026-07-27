@@ -37,6 +37,7 @@ import {
 import { useNotificationActorImage } from '../useNotificationActorImage';
 import {
     NotificationActionButton,
+    NotificationEmojiPreview,
     NotificationIconDisc,
     NotificationPersonAvatar
 } from './NotificationRowParts';
@@ -173,17 +174,35 @@ export function NotificationRow({
                         {view.headline}
                     </p>
                 ) : null}
-                {view.body ? (
-                    <p
-                        className={cn(
-                            'line-clamp-2 text-sm leading-snug break-words',
-                            hasHeadline
-                                ? 'text-muted-foreground'
-                                : 'text-foreground/85'
-                        )}
-                    >
-                        {view.body}
-                    </p>
+                {view.body || view.emoji ? (
+                    <div className="flex min-w-0 items-center gap-2">
+                        {view.body ? (
+                            <p
+                                className={cn(
+                                    'line-clamp-2 min-w-0 text-sm leading-snug break-words',
+                                    hasHeadline
+                                        ? 'text-muted-foreground'
+                                        : 'text-foreground/85'
+                                )}
+                            >
+                                {view.body}
+                            </p>
+                        ) : null}
+                        {view.emoji ? (
+                            <NotificationEmojiPreview
+                                emoji={view.emoji}
+                                className="size-7"
+                                onClick={
+                                    view.emoji.kind === 'custom'
+                                        ? () =>
+                                              handlers.onOpenImagePreview(
+                                                  notification
+                                              )
+                                        : undefined
+                                }
+                            />
+                        ) : null}
+                    </div>
                 ) : null}
                 {locationLine || linkButton ? (
                     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
