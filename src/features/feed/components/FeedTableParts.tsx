@@ -363,7 +363,7 @@ function FeedUserLink({
                             copyFeedText(
                                 displayName,
                                 t('view.feed.dynamic.value_copied', {
-                                    value: 'Display name'
+                                    value: t('dialog.user.info.display_name')
                                 })
                             );
                         }}

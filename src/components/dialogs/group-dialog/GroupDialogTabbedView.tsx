@@ -672,9 +672,11 @@ export function GroupDialogTabbedView({
     const headerCommands = {
         onBlockToggle: () => onBlock(!isBlocked),
         onCancelRequest,
-        onCopyGroupId: () => copyGroupText(group.id, 'Group ID'),
-        onCopyGroupName: () => copyGroupText(group.name, 'Group name'),
-        onCopyGroupUrl: () => copyGroupText(groupUrl, 'Group URL'),
+        onCopyGroupId: () => copyGroupText(group.id, t('dialog.group.info.id')),
+        onCopyGroupName: () =>
+            copyGroupText(group.name, t('dialog.group.info.name')),
+        onCopyGroupUrl: () =>
+            copyGroupText(groupUrl, t('dialog.group.info.url')),
         onCreateGroupPost: createGroupPost,
         onJoin,
         onLeave,
@@ -723,7 +725,8 @@ export function GroupDialogTabbedView({
     };
     const tabCommands: GroupDialogTabCommands = {
         onChangeTab: changeTab,
-        onCopyGroupUrl: () => copyGroupText(groupUrl, 'Group URL'),
+        onCopyGroupUrl: () =>
+            copyGroupText(groupUrl, t('dialog.group.info.url')),
         onDeletePost: (post) => {
             deleteGroupPost(post);
         },

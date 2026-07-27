@@ -984,9 +984,11 @@ export function WorldDialogTabbedView({
         onChangeImage,
         onChangeTags,
         onChangeTab: changeTab,
-        onCopyWorldId: () => copyWorldText(world.id, 'World ID'),
-        onCopyWorldName: () => copyWorldText(world.name, 'World name'),
-        onCopyWorldUrl: () => copyWorldText(worldUrl, 'World URL'),
+        onCopyWorldId: () => copyWorldText(world.id, t('dialog.world.info.id')),
+        onCopyWorldName: () =>
+            copyWorldText(world.name, t('dialog.world.info.name')),
+        onCopyWorldUrl: () =>
+            copyWorldText(worldUrl, t('dialog.world.info.url')),
         onCopyVrcxWorldUrl: () => {
             copyWorldText(vrcxWorldUrl, t('dialog.world.info.vrcx_url'));
             worldProfileRepository.registerWorldOpenShare(world.id);

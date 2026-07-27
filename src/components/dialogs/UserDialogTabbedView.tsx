@@ -522,10 +522,10 @@ export function UserDialogTabbedView({
         onAvatarOverride,
         onBoop,
         onCopyUserId: () => {
-            copyUserText(normalizedText(profile.id), 'User ID');
+            copyUserText(normalizedText(profile.id), t('dialog.user.info.id'));
         },
         onCopyUserUrl: () => {
-            copyUserText(userUrl, 'User URL');
+            copyUserText(userUrl, t('dialog.user.info.url'));
         },
         onEditMemo,
         onEditSelfProfileDetails,
@@ -563,7 +563,7 @@ export function UserDialogTabbedView({
         onShowInstanceHistory: openInstanceHistory,
         onSubtitleClick: username
             ? () => {
-                  copyUserText(username, 'Username');
+                  copyUserText(username, t('dialog.user.info.username'));
               }
             : undefined,
         onTitleClick:
@@ -573,7 +573,7 @@ export function UserDialogTabbedView({
                           normalizedText(
                               profile.displayName || profile.username
                           ),
-                          'Display name'
+                          t('dialog.user.info.display_name')
                       );
                   }
                 : undefined,

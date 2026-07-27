@@ -250,7 +250,7 @@ export function LaunchDialogHost() {
         launchDialog.tag
     ]);
 
-    async function copyField(value: any, label: any) {
+    async function copyField(value: string, label: string) {
         if (!value) {
             return;
         }
@@ -361,19 +361,25 @@ export function LaunchDialogHost() {
                         )}
                     >
                         <LaunchField
-                            label="URL"
+                            label={t('dialog.new_instance.url')}
                             value={details.url}
                             onCopy={() => {
-                                copyField(details.url, 'Launch URL');
+                                copyField(
+                                    details.url,
+                                    t('dialog.new_instance.url')
+                                );
                             }}
                         />
                         {details.shortUrl ? (
                             <LaunchField
                                 label={t('dialog.launch.short_url')}
                                 value={details.shortUrl}
-                                notice="Only available when VRChat returned a short name for this instance."
+                                notice={t('dialog.launch.short_url_notice')}
                                 onCopy={() => {
-                                    copyField(details.shortUrl, 'Short URL');
+                                    copyField(
+                                        details.shortUrl,
+                                        t('dialog.launch.short_url')
+                                    );
                                 }}
                             />
                         ) : null}
@@ -381,7 +387,10 @@ export function LaunchDialogHost() {
                             label={t('dialog.launch.location')}
                             value={details.location}
                             onCopy={() => {
-                                copyField(details.location, 'Location');
+                                copyField(
+                                    details.location,
+                                    t('dialog.launch.location')
+                                );
                             }}
                         />
                     </div>
