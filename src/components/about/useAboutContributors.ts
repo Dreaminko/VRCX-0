@@ -15,7 +15,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isBotContributor(entry: Record<string, unknown>): boolean {
-    return entry.type === 'Bot' || String(entry.login || '').endsWith('[bot]');
+    return (
+        entry.type === 'Bot' ||
+        entry.login === 'fossabot' ||
+        String(entry.login || '').endsWith('[bot]')
+    );
 }
 
 export function parseContributors(data: string): AboutContributor[] {
