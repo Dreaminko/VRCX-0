@@ -6,12 +6,14 @@ const notificationRepositoryMock = vi.hoisted(() => ({
 }));
 
 const commandMocks = vi.hoisted(() => ({
-    markSeenBatch: vi.fn()
+    markSeenBatch: vi.fn(),
+    sync: vi.fn()
 }));
 
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
-        appNotificationMarkSeenBatch: commandMocks.markSeenBatch
+        appNotificationMarkSeenBatch: commandMocks.markSeenBatch,
+        appNotificationSync: commandMocks.sync
     }
 }));
 
@@ -32,6 +34,7 @@ describe('vrcNotificationStore', () => {
         notificationRepositoryMock.queryNotifications.mockReset();
         notificationRepositoryMock.markSeen.mockReset();
         commandMocks.markSeenBatch.mockReset();
+        commandMocks.sync.mockReset();
         notificationRepositoryMock.markSeen.mockResolvedValue(undefined);
         commandMocks.markSeenBatch.mockImplementation(
             async ({ items }: { items: Array<{ id: string }> }) => ({
@@ -47,6 +50,12 @@ describe('vrcNotificationStore', () => {
                 lastError: null
             })
         );
+        commandMocks.sync.mockResolvedValue({
+            v1Count: 0,
+            v2Count: 0,
+            hiddenFriendRequestCount: 0,
+            truncated: false
+        });
         useRuntimeStore.getState().resetRuntimeState();
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserId: 'usr_me',
@@ -55,13 +64,13 @@ describe('vrcNotificationStore', () => {
         useVrcNotificationStore.getState().resetVrcNotificationState();
     });
 
-    it('keeps incoming v1 friend requests action-required after mark-all-seen', async () => {
+    it('keeps old v1 friend requests action-required after mark-all-seen', async () => {
         const friendRequest = {
             id: 'notif_friend_request',
             type: 'friendRequest',
             version: 1,
             seen: false,
-            created_at: new Date().toISOString()
+            created_at: '2020-01-01T00:00:00.000Z'
         };
 
         useVrcNotificationStore.getState().upsertNotification(friendRequest);
@@ -75,6 +84,72 @@ describe('vrcNotificationStore', () => {
         });
         expect(useShellStore.getState().vrcUnseenNotificationCount).toBe(1);
         expect(commandMocks.markSeenBatch).not.toHaveBeenCalled();
+    });
+
+    it('excludes expired friend requests from the notification center', () => {
+        useVrcNotificationStore.getState().upsertNotification({
+            id: 'notif_expired_friend_request',
+            type: 'friendRequest',
+            version: 1,
+            seen: false,
+            expired: true,
+            created_at: '2020-01-01T00:00:00.000Z'
+        });
+
+        const state = useVrcNotificationStore.getState();
+        expect(state.unseenCount).toBe(0);
+        expect(state.categories.friend).toEqual({
+            unseen: [],
+            recent: []
+        });
+    });
+
+    it('syncs remote notifications before loading persisted rows', async () => {
+        notificationRepositoryMock.queryNotifications.mockResolvedValue([
+            {
+                id: 'notif_offline',
+                type: 'invite',
+                version: 1,
+                seen: false,
+                created_at: new Date().toISOString()
+            }
+        ]);
+
+        await useVrcNotificationStore.getState().refreshForCurrentUser();
+
+        expect(commandMocks.sync).toHaveBeenCalledTimes(1);
+        expect(commandMocks.sync.mock.invocationCallOrder[0]).toBeLessThan(
+            notificationRepositoryMock.queryNotifications.mock
+                .invocationCallOrder[0]
+        );
+        expect(useVrcNotificationStore.getState().rows[0]?.id).toBe(
+            'notif_offline'
+        );
+    });
+
+    it('keeps local rows available when remote sync fails', async () => {
+        commandMocks.sync.mockRejectedValue(new Error('Network unavailable'));
+        notificationRepositoryMock.queryNotifications.mockResolvedValue([
+            {
+                id: 'notif_local',
+                type: 'invite',
+                version: 1,
+                seen: false,
+                created_at: new Date().toISOString()
+            }
+        ]);
+
+        await expect(
+            useVrcNotificationStore.getState().refreshForCurrentUser()
+        ).rejects.toThrow('Network unavailable');
+
+        expect(useVrcNotificationStore.getState().rows[0]?.id).toBe(
+            'notif_local'
+        );
+        expect(useVrcNotificationStore.getState()).toMatchObject({
+            loadStatus: 'error',
+            detail: 'Network unavailable'
+        });
     });
 
     it('marks system v2 notifications read after mark-all-seen', async () => {

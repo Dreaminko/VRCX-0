@@ -205,7 +205,7 @@ pub fn apply_instance_closed_ws_message(
     })
 }
 
-fn normalize_v1_notification(content: &Value, now: &str) -> Value {
+pub fn normalize_v1_notification(content: &Value, now: &str) -> Value {
     let mut object = sanitize_object(content);
     object.entry("id").or_insert(Value::String(String::new()));
     object
@@ -235,7 +235,7 @@ fn normalize_v1_notification(content: &Value, now: &str) -> Value {
     Value::Object(object)
 }
 
-fn normalize_v2_notification(content: &Value, endpoint: &str, now: &str) -> Value {
+pub fn normalize_v2_notification(content: &Value, endpoint: &str, now: &str) -> Value {
     let mut object = sanitize_object(content);
     for key in [
         "id",

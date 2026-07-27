@@ -169,7 +169,7 @@ function useAppNavNotifications({
         (state) => state.markAllSeen
     );
     const loadVrcNotifications = useVrcNotificationStore(
-        (state) => state.loadForCurrentUser
+        (state) => state.refreshForCurrentUser
     );
     const notifiedKeys = new Set(notifiedMenus);
     if (vrcUnseenNotificationCount > 0) {

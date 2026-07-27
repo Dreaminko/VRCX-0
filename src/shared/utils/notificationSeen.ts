@@ -1,10 +1,8 @@
 import { DAY_MS } from '@/shared/constants/time';
 
-import { getNotificationTs } from './notificationCategory';
 import { getNotificationLifecycleBucket } from './notificationLifecycle';
 
 export const RECENT_WINDOW_MS = DAY_MS;
-export const TRANSIENT_V1_UNSEEN_TYPES = new Set<string>(['friendRequest']);
 export const ACTION_REQUIRED_V1_TYPES = new Set<string>(['friendRequest']);
 
 export type NotificationSeenLike = {
@@ -42,12 +40,10 @@ export function isUnseenNotification(
     }
     const version = Number(notification.version ?? 1);
     const type = String(notification.type || '');
-    const isTransientV1Unseen =
-        version !== 2 &&
-        TRANSIENT_V1_UNSEEN_TYPES.has(type) &&
-        getNotificationTs(notification) > Date.now() - RECENT_WINDOW_MS;
+    const isActionRequiredV1 =
+        version !== 2 && ACTION_REQUIRED_V1_TYPES.has(type);
     return (
-        (version === 2 || isTransientV1Unseen) &&
+        (version === 2 || isActionRequiredV1) &&
         notification.seen === false &&
         !isNotificationExpired(notification)
     );

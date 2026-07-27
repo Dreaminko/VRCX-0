@@ -3,10 +3,11 @@
 use tauri::State;
 use vrcx_0_application::{
     mark_notifications_seen_batch, run_avatar_content_tags_batch, run_group_leave_batch,
-    run_group_visibility_batch, AvatarContentTagsBatchInput, BatchMutationResult,
-    FavoriteImportStartInput, FavoriteImportStatus, GroupLeaveBatchInput,
+    run_group_visibility_batch, sync_notifications, AvatarContentTagsBatchInput,
+    BatchMutationResult, FavoriteImportStartInput, FavoriteImportStatus, GroupLeaveBatchInput,
     GroupVisibilityBatchInput, NotificationMarkSeenBatchInput, NotificationMarkSeenBatchResult,
-    VrchatBatchMutationActions, VrchatNotificationMarkSeenActions,
+    NotificationSyncDeps, NotificationSyncOutcome, VrchatBatchMutationActions,
+    VrchatNotificationMarkSeenActions,
 };
 use vrcx_0_application_core::RuntimeAuthScopeSnapshot;
 
@@ -95,6 +96,21 @@ pub async fn app__notification_mark_seen_batch(
         expected_scope,
     };
     Ok(mark_notifications_seen_batch(&actions, input).await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__notification_sync(
+    state: State<'_, AppState>,
+) -> Result<NotificationSyncOutcome, AppError> {
+    let expected_scope = active_scope(&state)?;
+    let deps = NotificationSyncDeps {
+        db: state.db.as_ref(),
+        web: state.web.as_ref(),
+        auth_scope: &state.runtime_context.auth_scope,
+        expected_scope,
+    };
+    Ok(sync_notifications(&deps).await?)
 }
 
 fn active_scope(state: &AppState) -> Result<RuntimeAuthScopeSnapshot, AppError> {

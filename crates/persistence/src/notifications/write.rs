@@ -5,7 +5,7 @@ use serde_json::Value;
 use crate::common::{
     delete_by_key_sql, insert_or_ignore_sql, insert_or_replace_sql, normalize_text, now_iso,
     object_field, object_field_bool, object_field_json, object_field_optional_string,
-    object_field_string, update_by_key_sql, ParamsBuilder,
+    object_field_string, update_by_key_sql, DbParams, DbWriteTarget, ParamsBuilder,
 };
 use crate::database::DatabaseService;
 use crate::realtime::{ensure_realtime_tables, normalize_user_table_prefix};
@@ -20,73 +20,144 @@ pub fn notification_add_v1(
 ) -> Result<(), Error> {
     let user_prefix = normalize_user_table_prefix(&user_id)?;
     ensure_realtime_tables(db, &user_prefix)?;
+    write_notification_v1(
+        db,
+        &user_prefix,
+        notification_v1_params(&notification, false)?,
+        false,
+    )
+}
 
-    let id = normalize_text(object_field_string(&notification, &["id"]));
-    let created_at = object_field_string(&notification, &["created_at", "createdAt"]);
-    let notification_type = object_field_string(&notification, &["type"]);
+fn notification_v1_params(notification: &Value, force_active: bool) -> Result<DbParams, Error> {
+    let id = normalize_text(object_field_string(notification, &["id"]));
+    let created_at = object_field_string(notification, &["created_at", "createdAt"]);
+    let notification_type = object_field_string(notification, &["type"]);
     if id.is_empty() || created_at.is_empty() || notification_type.is_empty() {
         return Err(Error::Custom(
             "Notification is missing required field".into(),
         ));
     }
 
-    let details = object_field(&notification, "details").unwrap_or(&Value::Null);
-    let image_url = object_field_string(&notification, &["imageUrl"]);
+    let details = object_field(notification, "details").unwrap_or(&Value::Null);
+    let image_url = object_field_string(notification, &["imageUrl"]);
     let detail_image_url = object_field_string(details, &["imageUrl"]);
+    Ok(ParamsBuilder::new()
+        .set("id", id)
+        .set("created_at", created_at)
+        .set("type", notification_type)
+        .set(
+            "sender_user_id",
+            object_field_string(notification, &["senderUserId"]),
+        )
+        .set(
+            "sender_username",
+            object_field_string(notification, &["senderUsername"]),
+        )
+        .set(
+            "receiver_user_id",
+            object_field_string(notification, &["receiverUserId"]),
+        )
+        .set("message", object_field_string(notification, &["message"]))
+        .set("world_id", object_field_string(details, &["worldId"]))
+        .set("world_name", object_field_string(details, &["worldName"]))
+        .set(
+            "image_url",
+            if detail_image_url.is_empty() {
+                image_url
+            } else {
+                detail_image_url
+            },
+        )
+        .set(
+            "invite_message",
+            object_field_string(details, &["inviteMessage"]),
+        )
+        .set(
+            "request_message",
+            object_field_string(details, &["requestMessage"]),
+        )
+        .set(
+            "response_message",
+            object_field_string(details, &["responseMessage"]),
+        )
+        .set(
+            "expired",
+            if !force_active && object_field_bool(notification, "$isExpired") {
+                1
+            } else {
+                0
+            },
+        )
+        .build())
+}
+
+fn write_notification_v1(
+    target: &impl DbWriteTarget,
+    user_prefix: &str,
+    params: DbParams,
+    replace: bool,
+) -> Result<(), Error> {
     let table = format!("{user_prefix}_notifications");
-    let sql = insert_or_ignore_sql(&table, NOTIFICATION_V1_COLUMNS);
-    db.execute_non_query(
-        &sql,
-        &ParamsBuilder::new()
-            .set("id", id)
-            .set("created_at", created_at)
-            .set("type", notification_type)
-            .set(
-                "sender_user_id",
-                object_field_string(&notification, &["senderUserId"]),
-            )
-            .set(
-                "sender_username",
-                object_field_string(&notification, &["senderUsername"]),
-            )
-            .set(
-                "receiver_user_id",
-                object_field_string(&notification, &["receiverUserId"]),
-            )
-            .set("message", object_field_string(&notification, &["message"]))
-            .set("world_id", object_field_string(details, &["worldId"]))
-            .set("world_name", object_field_string(details, &["worldName"]))
-            .set(
-                "image_url",
-                if detail_image_url.is_empty() {
-                    image_url
-                } else {
-                    detail_image_url
-                },
-            )
-            .set(
-                "invite_message",
-                object_field_string(details, &["inviteMessage"]),
-            )
-            .set(
-                "request_message",
-                object_field_string(details, &["requestMessage"]),
-            )
-            .set(
-                "response_message",
-                object_field_string(details, &["responseMessage"]),
-            )
-            .set(
-                "expired",
-                if object_field_bool(&notification, "$isExpired") {
-                    1
-                } else {
-                    0
-                },
-            )
-            .build(),
-    )?;
+    let sql = if replace {
+        let insert = insert_or_replace_sql(&table, NOTIFICATION_V1_COLUMNS).replacen(
+            "INSERT OR REPLACE",
+            "INSERT",
+            1,
+        );
+        let updates = NOTIFICATION_V1_COLUMNS
+            .iter()
+            .filter(|column| **column != "id")
+            .map(|column| format!("{column} = excluded.{column}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("{insert} ON CONFLICT(id) DO UPDATE SET {updates}")
+    } else {
+        insert_or_ignore_sql(&table, NOTIFICATION_V1_COLUMNS)
+    };
+    target.execute_non_query(&sql, &params)?;
     Ok(())
+}
+
+pub fn notification_friend_requests_sync(
+    db: &DatabaseService,
+    user_id: String,
+    visible: Vec<Value>,
+    visible_complete: bool,
+    hidden: Vec<Value>,
+    hidden_complete: bool,
+) -> Result<(), Error> {
+    let user_prefix = normalize_user_table_prefix(&user_id)?;
+    ensure_realtime_tables(db, &user_prefix)?;
+    let visible = visible
+        .iter()
+        .map(|notification| notification_v1_params(notification, true))
+        .collect::<Result<Vec<_>, _>>()?;
+    let hidden = hidden
+        .iter()
+        .map(|notification| notification_v1_params(notification, true))
+        .collect::<Result<Vec<_>, _>>()?;
+    let table = format!("{user_prefix}_notifications");
+
+    db.write_transaction(|tx| {
+        if visible_complete {
+            tx.execute_non_query(
+                &format!("UPDATE {table} SET expired = 1 WHERE type = @type"),
+                &ParamsBuilder::new().set("type", "friendRequest").build(),
+            )?;
+        }
+        if hidden_complete {
+            tx.execute_non_query(
+                &format!("UPDATE {table} SET expired = 1 WHERE type = @type"),
+                &ParamsBuilder::new()
+                    .set("type", "ignoredFriendRequest")
+                    .build(),
+            )?;
+        }
+        for params in visible.into_iter().chain(hidden) {
+            write_notification_v1(tx, &user_prefix, params, true)?;
+        }
+        Ok(())
+    })
 }
 
 pub fn notification_add_v2(

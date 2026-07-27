@@ -1,9 +1,50 @@
+use std::collections::HashMap;
+
 use serde_json::{json, Value};
 
 use crate::http_api::{
-    api_input, encode_path_segment, normalize_text, require_text, HttpApiError, HttpApiRequestBody,
-    HttpApiRequestInput, HttpApiUpload,
+    api_input, encode_path_segment, get_input, normalize_text, require_text, HttpApiError,
+    HttpApiRequestBody, HttpApiRequestInput, HttpApiUpload,
 };
+
+pub fn notifications_v1_get_input(endpoint: String, n: i64, offset: i64) -> HttpApiRequestInput {
+    get_input(
+        endpoint,
+        "auth/user/notifications",
+        HashMap::from([
+            ("n".to_string(), json!(n)),
+            ("offset".to_string(), json!(offset)),
+        ]),
+    )
+}
+
+pub fn notifications_v2_get_input(endpoint: String, n: i64, offset: i64) -> HttpApiRequestInput {
+    get_input(
+        endpoint,
+        "notifications",
+        HashMap::from([
+            ("n".to_string(), json!(n)),
+            ("offset".to_string(), json!(offset)),
+        ]),
+    )
+}
+
+pub fn hidden_friend_requests_get_input(
+    endpoint: String,
+    n: i64,
+    offset: i64,
+) -> HttpApiRequestInput {
+    get_input(
+        endpoint,
+        "auth/user/notifications",
+        HashMap::from([
+            ("type".to_string(), json!("friendRequest")),
+            ("hidden".to_string(), json!(true)),
+            ("n".to_string(), json!(n)),
+            ("offset".to_string(), json!(offset)),
+        ]),
+    )
+}
 
 pub fn notification_mark_seen_input(
     endpoint: String,

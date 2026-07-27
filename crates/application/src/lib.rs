@@ -139,6 +139,7 @@ pub use system::{
     BatchMutationItemState, BatchMutationResult, GroupLeaveBatchInput, GroupVisibility,
     GroupVisibilityBatchInput, VrchatBatchMutationActions, BATCH_MUTATION_MAX_ITEMS,
 };
+pub use system::{sync_notifications, NotificationSyncDeps, NotificationSyncOutcome};
 pub use system::{
     AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
     AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,

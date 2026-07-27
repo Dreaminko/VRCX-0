@@ -5,6 +5,7 @@ mod database_upgrade;
 mod database_upgrade_runtime;
 mod instance_launch;
 mod notification_actions;
+mod notification_sync;
 mod profile_backup;
 
 pub use app_update::{
@@ -41,6 +42,7 @@ pub use notification_actions::{
     NotificationMarkSeenItemState, NotificationMarkSeenLocation, VrchatNotificationMarkSeenActions,
     NOTIFICATION_MARK_SEEN_MAX_ITEMS,
 };
+pub use notification_sync::{sync_notifications, NotificationSyncDeps, NotificationSyncOutcome};
 pub use profile_backup::ProfileOperationGate;
 pub use profile_backup::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,

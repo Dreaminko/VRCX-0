@@ -24,6 +24,7 @@ pub use realtime::{
     RealtimeUserProjection, RealtimeWsMessagePayload, RealtimeWsStatusPayload,
     SyntheticFriendEventOutcome,
 };
+pub use realtime::{normalize_v1_notification, normalize_v2_notification};
 pub use social_baseline::{
     apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
     build_friend_roster_baseline, build_friend_roster_baseline_deferred,

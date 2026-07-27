@@ -173,6 +173,117 @@ fn notification_add_v1_maps_legacy_fields_and_preserves_the_first_insert() -> Re
 }
 
 #[test]
+fn friend_request_sync_reconciles_complete_remote_lists_and_revives_current_rows(
+) -> Result<(), Error> {
+    let (_dir, db) = test_db("friend-request-sync")?;
+    for (id, type_name) in [
+        ("stale-visible", "friendRequest"),
+        ("current-visible", "friendRequest"),
+        ("stale-hidden", "ignoredFriendRequest"),
+    ] {
+        notification_add_v1(
+            &db,
+            "usr_self".into(),
+            json!({
+                "id": id,
+                "createdAt": "2026-05-15T00:00:00Z",
+                "type": type_name,
+                "message": "stale",
+                "$isExpired": true
+            }),
+        )?;
+    }
+
+    notification_friend_requests_sync(
+        &db,
+        "usr_self".into(),
+        vec![json!({
+            "id": "current-visible",
+            "createdAt": "2026-05-16T00:00:00Z",
+            "type": "friendRequest",
+            "message": "current"
+        })],
+        true,
+        vec![json!({
+            "id": "current-hidden",
+            "createdAt": "2026-05-17T00:00:00Z",
+            "type": "ignoredFriendRequest",
+            "message": "hidden"
+        })],
+        true,
+    )?;
+
+    let rows = db.execute(
+        concat!(
+            "SELECT id, type, message, expired FROM usrself_notifications ",
+            "WHERE type IN ('friendRequest', 'ignoredFriendRequest') ORDER BY id"
+        ),
+        &Default::default(),
+    )?;
+    assert_eq!(
+        rows,
+        vec![
+            vec![
+                json!("current-hidden"),
+                json!("ignoredFriendRequest"),
+                json!("hidden"),
+                json!(0)
+            ],
+            vec![
+                json!("current-visible"),
+                json!("friendRequest"),
+                json!("current"),
+                json!(0)
+            ],
+            vec![
+                json!("stale-hidden"),
+                json!("ignoredFriendRequest"),
+                json!("stale"),
+                json!(1)
+            ],
+            vec![
+                json!("stale-visible"),
+                json!("friendRequest"),
+                json!("stale"),
+                json!(1)
+            ],
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn friend_request_sync_keeps_missing_rows_when_remote_pages_are_truncated() -> Result<(), Error> {
+    let (_dir, db) = test_db("friend-request-sync-truncated")?;
+    notification_add_v1(
+        &db,
+        "usr_self".into(),
+        json!({
+            "id": "possibly-unfetched",
+            "createdAt": "2026-05-15T00:00:00Z",
+            "type": "friendRequest"
+        }),
+    )?;
+
+    notification_friend_requests_sync(
+        &db,
+        "usr_self".into(),
+        Vec::new(),
+        false,
+        Vec::new(),
+        false,
+    )?;
+
+    let rows = rows_by_id(
+        &db,
+        "SELECT expired FROM usrself_notifications WHERE id = @id",
+        "possibly-unfetched",
+    )?;
+    assert_eq!(rows[0][0], json!(0));
+    Ok(())
+}
+
+#[test]
 fn notification_add_v2_accepts_aliases_defaults_json_and_replaces_existing_rows(
 ) -> Result<(), Error> {
     let (_dir, db) = test_db("v2-replace")?;

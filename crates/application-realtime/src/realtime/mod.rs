@@ -14,6 +14,7 @@ pub(crate) mod user_query_cache;
 mod ws_event_log;
 
 pub use friends::{is_friend_event_type, RealtimeFriendsRuntime};
+pub use notifications::{normalize_v1_notification, normalize_v2_notification};
 pub use output::{
     RealtimeCurrentUserOutput, RealtimeFriendOutput, RealtimeInstanceClosedOutput,
     RealtimeNotificationOutput,

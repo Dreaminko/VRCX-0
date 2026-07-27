@@ -110,6 +110,7 @@ type VrcNotificationStore = {
     loadStatus: LoadStatus;
     detail: string;
     loadForCurrentUser(): Promise<NotificationRow[]>;
+    refreshForCurrentUser(): Promise<NotificationRow[]>;
     setCenterOpen(isCenterOpen: unknown): void;
     openCenter(): void;
     upsertNotification(notification: NotificationRow): void;
@@ -263,12 +264,39 @@ export const useVrcNotificationStore = create<VrcNotificationStore>(
                 throw error;
             }
         },
+        async refreshForCurrentUser() {
+            const auth = getCurrentAuth();
+            if (!auth.currentUserId) {
+                return get().loadForCurrentUser();
+            }
+            set({ loadStatus: 'running', detail: '' });
+            let syncFailed = false;
+            let syncError: unknown;
+            try {
+                await commands.appNotificationSync();
+            } catch (error) {
+                syncFailed = true;
+                syncError = error;
+            }
+            const rows = await get().loadForCurrentUser();
+            if (syncFailed) {
+                set({
+                    loadStatus: 'error',
+                    detail:
+                        syncError instanceof Error
+                            ? syncError.message
+                            : 'Failed to refresh VRChat notifications.'
+                });
+                throw syncError;
+            }
+            return rows;
+        },
         setCenterOpen(isCenterOpen: unknown) {
             const nextOpen = Boolean(isCenterOpen);
             set({ isCenterOpen: nextOpen });
             if (nextOpen) {
                 get()
-                    .loadForCurrentUser()
+                    .refreshForCurrentUser()
                     .catch(() => {});
             }
         },

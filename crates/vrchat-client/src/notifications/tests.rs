@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde_json::{json, Value};
 
 use super::*;
@@ -9,6 +11,41 @@ fn post_data(request: &HttpApiRequestInput) -> Value {
         panic!("expected legacy image upload");
     };
     serde_json::from_str(post_data.as_deref().unwrap()).unwrap()
+}
+
+#[test]
+fn notification_list_requests_keep_version_and_hidden_filters_separate() {
+    let v1 = notifications_v1_get_input(ENDPOINT.into(), 100, 200);
+    assert_eq!(v1.path.as_deref(), Some("auth/user/notifications"));
+    assert_eq!(
+        v1.query_params,
+        Some(HashMap::from([
+            ("n".to_string(), json!(100)),
+            ("offset".to_string(), json!(200)),
+        ]))
+    );
+
+    let v2 = notifications_v2_get_input(ENDPOINT.into(), 100, 300);
+    assert_eq!(v2.path.as_deref(), Some("notifications"));
+    assert_eq!(
+        v2.query_params,
+        Some(HashMap::from([
+            ("n".to_string(), json!(100)),
+            ("offset".to_string(), json!(300)),
+        ]))
+    );
+
+    let hidden = hidden_friend_requests_get_input(ENDPOINT.into(), 100, 400);
+    assert_eq!(hidden.path.as_deref(), Some("auth/user/notifications"));
+    assert_eq!(
+        hidden.query_params,
+        Some(HashMap::from([
+            ("type".to_string(), json!("friendRequest")),
+            ("hidden".to_string(), json!(true)),
+            ("n".to_string(), json!(100)),
+            ("offset".to_string(), json!(400)),
+        ]))
+    );
 }
 
 #[test]

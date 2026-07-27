@@ -101,8 +101,8 @@ export function VrcNotificationCenterHost() {
     const setCenterOpen = useVrcNotificationStore(
         (state) => state.setCenterOpen
     );
-    const loadForCurrentUser = useVrcNotificationStore(
-        (state) => state.loadForCurrentUser
+    const refreshForCurrentUser = useVrcNotificationStore(
+        (state) => state.refreshForCurrentUser
     );
     const markNotificationSeen = useVrcNotificationStore(
         (state) => state.markNotificationSeen
@@ -192,7 +192,7 @@ export function VrcNotificationCenterHost() {
     }
 
     async function refreshCenter() {
-        await loadForCurrentUser();
+        await refreshForCurrentUser();
     }
 
     async function acceptFriendRequest(notification: NotificationRow) {
@@ -504,7 +504,7 @@ export function VrcNotificationCenterHost() {
                                                     loadStatus === 'running'
                                                 }
                                                 onClick={() => {
-                                                    loadForCurrentUser().catch(
+                                                    refreshForCurrentUser().catch(
                                                         (error: unknown) => {
                                                             toast.error(
                                                                 userFacingErrorMessage(

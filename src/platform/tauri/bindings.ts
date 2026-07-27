@@ -262,6 +262,9 @@ export const commands = {
             input
         });
     },
+    async appNotificationSync(): Promise<NotificationSyncOutcome> {
+        return await TAURI_INVOKE('app__notification_sync');
+    },
     async appNoteExportStart(
         input: NoteExportStartInput
     ): Promise<NoteExportStatus> {
@@ -4203,6 +4206,12 @@ export type NotificationRowsQueryInput = {
     filters?: string[];
     perTableLimit: number;
     includeUnseen?: boolean;
+};
+export type NotificationSyncOutcome = {
+    v1Count: number;
+    v2Count: number;
+    hiddenFriendRequestCount: number;
+    truncated: boolean;
 };
 export type NotificationV1RowOutput = {
     id: string;
