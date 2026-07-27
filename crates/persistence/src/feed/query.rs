@@ -597,6 +597,14 @@ fn feed_live_entry_matches(
         return false;
     }
 
+    let entry_type = feed_entry_string(row, &["type"]);
+    if !matches!(
+        entry_type.as_str(),
+        "GPS" | "Online" | "Offline" | "Status" | "Avatar" | "Bio"
+    ) {
+        return false;
+    }
+
     let owner_user_id = feed_entry_string(row, &["ownerUserId", "owner_user_id"]);
     if !owner_user_id.is_empty() && owner_user_id != context.current_user_id {
         return false;
@@ -608,7 +616,7 @@ fn feed_live_entry_matches(
         .map(normalize_text)
         .filter(|value| !value.is_empty())
         .collect::<HashSet<_>>();
-    if !active_filters.is_empty() && !active_filters.contains(&feed_entry_string(row, &["type"])) {
+    if !active_filters.is_empty() && !active_filters.contains(&entry_type) {
         return false;
     }
 
@@ -754,7 +762,10 @@ mod tests {
     use crate::database::DatabaseService;
 
     use super::super::write::feed_add_entry;
-    use super::{feed_rows_query, FeedCursorInput, FeedRowsQueryInput};
+    use super::{
+        feed_live_rows_merge, feed_rows_query, FeedCursorInput, FeedLiveEntryInput,
+        FeedLiveRowsMergeInput, FeedRowsQueryInput,
+    };
 
     struct TestDir {
         path: PathBuf,
@@ -777,6 +788,48 @@ mod tests {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.path);
         }
+    }
+
+    #[test]
+    fn live_feed_ignores_friend_relationship_events_without_active_filters() {
+        let output = feed_live_rows_merge(FeedLiveRowsMergeInput {
+            rows: Vec::new(),
+            current_user_id: "usr_self".into(),
+            filters: Vec::new(),
+            search: String::new(),
+            date_from: String::new(),
+            date_to: String::new(),
+            favorites_only: false,
+            favorite_user_ids: Vec::new(),
+            excluded_user_ids: Vec::new(),
+            live_entries: vec![
+                FeedLiveEntryInput {
+                    sequence: 1,
+                    entry: RawJson::from(json!({
+                        "type": "Friend",
+                        "userId": "usr_friend",
+                        "displayName": "Friend",
+                        "created_at": "2026-05-15T00:00:00Z",
+                    })),
+                },
+                FeedLiveEntryInput {
+                    sequence: 2,
+                    entry: RawJson::from(json!({
+                        "type": "GPS",
+                        "userId": "usr_friend",
+                        "displayName": "Friend",
+                        "location": "wrld_1:instance",
+                        "created_at": "2026-05-15T00:00:01Z",
+                    })),
+                },
+            ],
+            min_live_sequence: 0,
+            max_rows: 10,
+        });
+
+        assert_eq!(output.max_sequence, 2);
+        assert_eq!(output.rows.len(), 1);
+        assert_eq!(output.rows[0].as_value()["type"], "GPS");
     }
 
     #[test]
