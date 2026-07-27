@@ -1,9 +1,10 @@
-import { RefreshCcwIcon, SendIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { CheckIcon, ImageIcon, RefreshCcwIcon, SendIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
+import { cn } from '@/lib/utils';
 import mediaRepository from '@/repositories/mediaRepository';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { vrchatDefaultEmojis } from '@/shared/constants/vrchatDefaultEmojis';
@@ -16,24 +17,128 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
-import { Input } from '@/ui/shadcn/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 import { Spinner } from '@/ui/shadcn/spinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
-const noDefaultEmojiValue = '__none__';
+type EmojiSource = 'default' | 'custom';
 
-function getFileImageUrl(file: any) {
-    const versions = Array.isArray(file?.versions) ? file.versions : [];
+type CustomEmoji = {
+    id: string;
+    imageUrl: string;
+};
+
+type BoopEmojiDialogProps = {
+    open: boolean;
+    isLocalUserVrcPlusSupporter?: boolean;
+    targetLabel?: string;
+    sendDisabled?: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSend: (emojiId: string) => void | Promise<void>;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+}
+
+function getString(record: Record<string, unknown>, key: string): string {
+    const value = record[key];
+    return typeof value === 'string' ? value : '';
+}
+
+function getFileImageUrl(file: Record<string, unknown>): string {
+    const versions = Array.isArray(file.versions) ? file.versions : [];
     const version = versions.at(-1);
-    const url = version?.file?.url || file?.url || file?.imageUrl || '';
+    const versionFile =
+        isRecord(version) && isRecord(version.file) ? version.file : {};
+    const url =
+        getString(versionFile, 'url') ||
+        getString(file, 'url') ||
+        getString(file, 'imageUrl');
     return url ? convertFileUrlToImageUrl(url, 128) : '';
+}
+
+function normalizeCustomEmoji(
+    file: Record<string, unknown>
+): CustomEmoji | null {
+    const id = getString(file, 'id');
+    const imageUrl = getFileImageUrl(file);
+    if (!id || !imageUrl) {
+        return null;
+    }
+    return {
+        id,
+        imageUrl
+    };
+}
+
+function EmojiChoice({
+    imageUrl,
+    label,
+    imageOnly = false,
+    selected,
+    disabled,
+    onClick
+}: {
+    imageUrl: string;
+    label: string;
+    imageOnly?: boolean;
+    selected: boolean;
+    disabled: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            aria-label={label}
+            aria-pressed={selected}
+            disabled={disabled}
+            className={cn(
+                'focus-visible:border-ring focus-visible:ring-ring/50 relative flex min-w-0 flex-col items-center gap-2 rounded-xl border bg-clip-padding p-2.5 text-center outline-none select-none focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50',
+                'transition-transform duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none',
+                imageOnly && 'aspect-square justify-center p-3',
+                selected
+                    ? 'border-primary bg-primary/10 ring-primary/20 ring-2'
+                    : 'border-border bg-card/40 hover:bg-muted/60'
+            )}
+            onClick={onClick}
+        >
+            {selected ? (
+                <span className="bg-primary text-primary-foreground absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full shadow-sm">
+                    <CheckIcon className="size-3.5" aria-hidden="true" />
+                </span>
+            ) : null}
+            <span
+                className={cn(
+                    'flex items-center justify-center',
+                    imageOnly ? 'size-full' : 'size-16'
+                )}
+            >
+                <FadeInImage
+                    src={imageUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className={cn(
+                        'object-contain',
+                        imageOnly
+                            ? 'max-h-full max-w-full'
+                            : 'max-h-16 max-w-16'
+                    )}
+                    fallback={
+                        <ImageIcon
+                            className="text-muted-foreground size-8"
+                            aria-hidden="true"
+                        />
+                    }
+                />
+            </span>
+            {imageOnly ? null : (
+                <span className="w-full truncate text-xs font-medium">
+                    {label}
+                </span>
+            )}
+        </button>
+    );
 }
 
 export function BoopEmojiDialog({
@@ -43,12 +148,12 @@ export function BoopEmojiDialog({
     sendDisabled = false,
     onOpenChange,
     onSend
-}: any) {
+}: BoopEmojiDialogProps) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [emojiId, setEmojiId] = useState('');
-    const [emojiSearch, setEmojiSearch] = useState('');
-    const [emojiRows, setEmojiRows] = useState<Record<string, unknown>[]>([]);
+    const [emojiSource, setEmojiSource] = useState<EmojiSource>('default');
+    const [emojiRows, setEmojiRows] = useState<CustomEmoji[]>([]);
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState('');
@@ -70,7 +175,16 @@ export function BoopEmojiDialog({
             if (requestIdRef.current !== requestId) {
                 return;
             }
-            setEmojiRows(Array.isArray(json) ? [...json].reverse() : []);
+            setEmojiRows(
+                Array.isArray(json)
+                    ? [...json]
+                          .reverse()
+                          .map(normalizeCustomEmoji)
+                          .filter(
+                              (emoji): emoji is CustomEmoji => emoji !== null
+                          )
+                    : []
+            );
         } catch (nextError) {
             if (requestIdRef.current !== requestId) {
                 return;
@@ -91,11 +205,12 @@ export function BoopEmojiDialog({
     useEffect(() => {
         if (open) {
             setEmojiId('');
+            setEmojiSource('default');
             loadEmojiRows();
         } else {
             requestIdRef.current += 1;
             setEmojiId('');
-            setEmojiSearch('');
+            setEmojiSource('default');
             setEmojiRows([]);
             setLoading(false);
             setSending(false);
@@ -103,26 +218,11 @@ export function BoopEmojiDialog({
         }
     }, [isLocalUserVrcPlusSupporter, open]);
 
-    const selectedDefaultEmojiId = useMemo(
-        () =>
-            vrchatDefaultEmojis.some((row) => row.id === emojiId)
-                ? emojiId
-                : undefined,
-        [emojiId]
-    );
-    const filteredEmojiRows = useMemo(() => {
-        const query = emojiSearch.trim().toLowerCase();
-        if (!query) {
-            return emojiRows;
-        }
-        return emojiRows.filter((emoji: any) =>
-            [emoji?.name, emoji?.id].some((value: any) =>
-                String(value || '')
-                    .toLowerCase()
-                    .includes(query)
-            )
-        );
-    }, [emojiRows, emojiSearch]);
+    const selectedEmojiName =
+        vrchatDefaultEmojis.find((emoji) => emoji.id === emojiId)?.name ??
+        (emojiRows.some((emoji) => emoji.id === emojiId)
+            ? t('dialog.inventory.custom')
+            : '');
 
     async function handleSend() {
         if (sendDisabled || sending) {
@@ -131,8 +231,8 @@ export function BoopEmojiDialog({
         setSending(true);
         setError('');
         try {
-            await onSend?.(emojiId);
-            onOpenChange?.(false);
+            await onSend(emojiId);
+            onOpenChange(false);
         } catch (nextError) {
             setError(
                 nextError instanceof Error
@@ -145,7 +245,7 @@ export function BoopEmojiDialog({
     }
 
     return (
-        <Dialog open={Boolean(open)} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[min(92vw,46rem)]">
                 <DialogHeader>
                     <DialogTitle>{t('dialog.boop_dialog.header')}</DialogTitle>
@@ -154,106 +254,105 @@ export function BoopEmojiDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex min-h-0 flex-col gap-3">
-                    {!emojiId ? (
-                        <div className="text-muted-foreground rounded-md border p-3 text-sm">
-                            {t(
-                                'view.notification.empty.no_custom_emoji_selected_the_default_boop_will_be_sent'
-                            )}
-                        </div>
-                    ) : null}
-                    <div className="flex flex-col gap-2">
-                        <div className="text-muted-foreground text-xs font-medium">
-                            {t('dialog.boop_dialog.default_emojis')}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Select
-                                value={selectedDefaultEmojiId}
-                                items={[
-                                    {
-                                        value: noDefaultEmojiValue,
-                                        label: t(
-                                            'view.notification.action.clear_selection'
-                                        )
-                                    },
-                                    ...vrchatDefaultEmojis.map((row) => ({
-                                        value: row.id,
-                                        label: row.name
-                                    }))
-                                ]}
-                                onValueChange={(value) => {
-                                    setEmojiId(
-                                        value === noDefaultEmojiValue
-                                            ? ''
-                                            : (value ?? '')
-                                    );
-                                }}
+                    <Tabs
+                        value={emojiSource}
+                        className="min-h-0 gap-3"
+                        onValueChange={(value) => {
+                            if (value === 'default' || value === 'custom') {
+                                setEmojiSource(value);
+                            }
+                        }}
+                    >
+                        <div className="flex min-h-8 items-center justify-between gap-3">
+                            <TabsList
+                                variant="line"
+                                className="relative h-8 justify-start p-0"
                             >
-                                <SelectTrigger
-                                    className="w-full min-w-56 flex-1"
-                                    disabled={sending}
+                                <TabsTrigger
+                                    value="default"
+                                    className="min-w-28 flex-none px-3"
                                 >
-                                    <SelectValue
-                                        placeholder={t(
-                                            'dialog.boop_dialog.select_default_emoji'
-                                        )}
-                                    />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectItem value={noDefaultEmojiValue}>
-                                            {t(
-                                                'view.notification.action.clear_selection'
-                                            )}
-                                        </SelectItem>
-                                        {vrchatDefaultEmojis.map((row) => (
-                                            <SelectItem
-                                                key={row.id}
-                                                value={row.id}
+                                    {t('dialog.boop_dialog.default_emojis')}
+                                </TabsTrigger>
+                                {isLocalUserVrcPlusSupporter ? (
+                                    <TabsTrigger
+                                        value="custom"
+                                        className="min-w-28 flex-none px-3"
+                                    >
+                                        {t('dialog.inventory.custom')}
+                                    </TabsTrigger>
+                                ) : null}
+                            </TabsList>
+                            {emojiId || emojiSource === 'custom' ? (
+                                <div className="flex min-w-0 items-center gap-1">
+                                    {emojiId ? (
+                                        <>
+                                            <span
+                                                className="text-muted-foreground max-w-36 truncate text-xs"
+                                                title={selectedEmojiName}
                                             >
-                                                {row.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={sending || !selectedDefaultEmojiId}
-                                onClick={() => setEmojiId('')}
-                            >
-                                {t('view.notification.action.clear_selection')}
-                            </Button>
+                                                {selectedEmojiName}
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                disabled={sending}
+                                                onClick={() => setEmojiId('')}
+                                            >
+                                                {t(
+                                                    'view.notification.action.clear_selection'
+                                                )}
+                                            </Button>
+                                        </>
+                                    ) : null}
+                                    {emojiSource === 'custom' ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon-sm"
+                                            aria-label={t(
+                                                'common.actions.refresh'
+                                            )}
+                                            title={t('common.actions.refresh')}
+                                            disabled={loading || sending}
+                                            onClick={loadEmojiRows}
+                                        >
+                                            <RefreshCcwIcon />
+                                        </Button>
+                                    ) : null}
+                                </div>
+                            ) : null}
                         </div>
-                    </div>
-                    {isLocalUserVrcPlusSupporter ? (
-                        <div className="flex min-h-0 flex-col gap-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Input
-                                    value={emojiSearch}
-                                    placeholder={t(
-                                        'view.notification.action.search_emoji'
-                                    )}
-                                    disabled={sending}
-                                    className="h-9 min-w-48 flex-1"
-                                    onChange={(event) =>
-                                        setEmojiSearch(event.target.value)
-                                    }
-                                />
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={sending || !emojiId}
-                                    onClick={() => setEmojiId('')}
-                                >
-                                    {t(
-                                        'view.notification.action.clear_selection'
-                                    )}
-                                </Button>
+                        <TabsContent
+                            value="default"
+                            className="bg-muted/20 max-h-[48vh] min-h-0 overflow-y-auto rounded-xl border p-2"
+                        >
+                            <div className="grid grid-cols-[repeat(auto-fill,minmax(92px,1fr))] gap-2">
+                                {vrchatDefaultEmojis.map((emoji) => {
+                                    const selected = emojiId === emoji.id;
+                                    return (
+                                        <EmojiChoice
+                                            key={emoji.id}
+                                            imageUrl={emoji.previewUrl}
+                                            label={emoji.name}
+                                            selected={selected}
+                                            disabled={sending}
+                                            onClick={() =>
+                                                setEmojiId(
+                                                    selected ? '' : emoji.id
+                                                )
+                                            }
+                                        />
+                                    );
+                                })}
                             </div>
-                            <div className="max-h-[42vh] min-h-0 overflow-y-auto rounded-md border p-2">
+                        </TabsContent>
+                        {isLocalUserVrcPlusSupporter ? (
+                            <TabsContent
+                                value="custom"
+                                className="bg-muted/20 max-h-[48vh] min-h-0 overflow-y-auto rounded-xl border p-2"
+                            >
                                 {loading ? (
                                     <div className="text-muted-foreground flex h-28 items-center justify-center gap-2 text-sm">
                                         <Spinner className="size-4" />
@@ -261,27 +360,20 @@ export function BoopEmojiDialog({
                                             'view.notification.loading.loading_emojis'
                                         )}
                                     </div>
-                                ) : filteredEmojiRows.length ? (
-                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2">
-                                        {filteredEmojiRows.map((emoji: any) => {
-                                            const imageUrl =
-                                                getFileImageUrl(emoji);
-                                            if (!imageUrl || !emoji?.id) {
-                                                return null;
-                                            }
+                                ) : emojiRows.length ? (
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2">
+                                        {emojiRows.map((emoji) => {
                                             const selected =
                                                 emojiId === emoji.id;
                                             return (
-                                                <Button
+                                                <EmojiChoice
                                                     key={emoji.id}
-                                                    type="button"
-                                                    variant={
-                                                        selected
-                                                            ? 'secondary'
-                                                            : 'outline'
-                                                    }
-                                                    className="h-auto w-full flex-col p-2"
-                                                    aria-pressed={selected}
+                                                    imageUrl={emoji.imageUrl}
+                                                    label={t(
+                                                        'dialog.gallery_icons.emoji'
+                                                    )}
+                                                    imageOnly
+                                                    selected={selected}
                                                     disabled={sending}
                                                     onClick={() =>
                                                         setEmojiId(
@@ -290,28 +382,24 @@ export function BoopEmojiDialog({
                                                                 : emoji.id
                                                         )
                                                     }
-                                                >
-                                                    <FadeInImage
-                                                        src={imageUrl}
-                                                        alt={
-                                                            emoji.name ||
-                                                            emoji.id
-                                                        }
-                                                        className="mx-auto size-20 object-contain"
-                                                    />
-                                                </Button>
+                                                />
                                             );
                                         })}
                                     </div>
                                 ) : (
                                     <div className="text-muted-foreground flex h-28 items-center justify-center text-sm">
-                                        {emojiRows.length
-                                            ? 'No custom emojis match the search.'
-                                            : 'No custom emojis.'}
+                                        {t('common.search_no_results')}
                                     </div>
                                 )}
-                            </div>
-                        </div>
+                            </TabsContent>
+                        ) : null}
+                    </Tabs>
+                    {!emojiId ? (
+                        <p className="text-muted-foreground text-xs">
+                            {t(
+                                'view.notification.empty.no_custom_emoji_selected_the_default_boop_will_be_sent'
+                            )}
+                        </p>
                     ) : null}
                     {error ? (
                         <div className="text-destructive text-sm">{error}</div>
@@ -323,39 +411,24 @@ export function BoopEmojiDialog({
                         variant="outline"
                         disabled={sending}
                         onClick={() => {
-                            onOpenChange?.(false);
+                            onOpenChange(false);
                             navigate('/tools/inventory');
                         }}
                     >
                         {t('dialog.boop_dialog.emoji_manager')}
                     </Button>
-                    {isLocalUserVrcPlusSupporter ? (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={loading || sending}
-                            onClick={() => {
-                                loadEmojiRows();
-                            }}
-                        >
-                            <RefreshCcwIcon data-icon="inline-start" />
-                            {t('common.actions.refresh')}
-                        </Button>
-                    ) : null}
                     <Button
                         type="button"
                         variant="secondary"
                         disabled={sending}
-                        onClick={() => onOpenChange?.(false)}
+                        onClick={() => onOpenChange(false)}
                     >
                         {t('common.actions.cancel')}
                     </Button>
                     <Button
                         type="button"
                         disabled={sending || sendDisabled}
-                        onClick={() => {
-                            handleSend();
-                        }}
+                        onClick={handleSend}
                     >
                         {sending ? (
                             <Spinner data-icon="inline-start" />
