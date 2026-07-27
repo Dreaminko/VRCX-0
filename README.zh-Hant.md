@@ -11,6 +11,7 @@
 [![Downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/downloads.json&style=flat)](https://github.com/Map1en/VRCX-0/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat)](LICENSE)
 [![Discord](https://img.shields.io/discord/1494343220467994644?logo=discord&logoColor=white&label=discord&style=flat)](https://discord.gg/fehKP3SVPN)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0?ref=badge_shield)
 
 ### 更快、更輕的 VRCX。
 
@@ -55,6 +56,8 @@ VRCX-0 是 VRCX 的完全重寫版本，由 VRCX 前任維護者之一開發，�
 本儲存庫的初始提交對應分叉時的上游 VRCX 快照，依 MIT License 發布。
 
 fork 後新增、修改、重寫及新建的所有程式碼，均依 GNU General Public License v3.0（GPLv3）發布。
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0?ref=badge_large)
 
 ## 開發
 
