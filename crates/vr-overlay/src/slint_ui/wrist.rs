@@ -23,6 +23,7 @@ pub(super) const WRIST_MUTED_TEXT: Color = Color::rgba(168, 168, 168, 255);
 const WRIST_LOW: Color = Color::rgba(245, 158, 11, 255);
 const WRIST_CRITICAL: Color = Color::rgba(239, 68, 68, 255);
 const WRIST_NORMAL: Color = Color::rgba(34, 197, 94, 255);
+const WRIST_CHARGING: Color = Color::rgba(56, 189, 248, 255);
 const WRIST_WARNING: Color = Color::rgba(251, 191, 36, 255);
 
 pub struct SlintWristHost {
@@ -121,7 +122,13 @@ impl WristDeviceToken {
         if self.aggregate_count.is_some() || !show_percent {
             return None;
         }
-        self.battery_percent.map(|percent| format!("{percent}%"))
+        self.battery_percent.map(|percent| {
+            if self.status == DeviceStatus::Charging {
+                format!("{percent}% ⚡")
+            } else {
+                format!("{percent}%")
+            }
+        })
     }
 }
 
@@ -261,7 +268,8 @@ fn is_abnormal_device_status(status: DeviceStatus) -> bool {
 
 fn wrist_status_color(status: DeviceStatus) -> Color {
     match status {
-        DeviceStatus::Normal | DeviceStatus::Charging => WRIST_NORMAL,
+        DeviceStatus::Normal => WRIST_NORMAL,
+        DeviceStatus::Charging => WRIST_CHARGING,
         DeviceStatus::LowBattery => WRIST_LOW,
         DeviceStatus::CriticalBattery | DeviceStatus::Disconnected => WRIST_CRITICAL,
         DeviceStatus::TrackingWarning => WRIST_WARNING,

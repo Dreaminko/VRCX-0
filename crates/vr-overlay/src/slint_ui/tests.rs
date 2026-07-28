@@ -208,6 +208,21 @@ fn wrist_device_without_a_battery_reading_does_not_draw_a_full_battery() {
 }
 
 #[test]
+fn wrist_charging_device_shows_a_charging_marker() {
+    let devices = [device(
+        "HMD",
+        DeviceRole::Hmd,
+        DeviceStatus::Charging,
+        Some(82),
+        20,
+    )];
+    let tokens = wrist_device_tokens(&devices, 512.0);
+    let item = wrist_device_item(&tokens[0], true);
+
+    assert_eq!(item.percent.as_str(), "82% ⚡");
+}
+
+#[test]
 fn wrist_feed_item_preserves_actor_detail_and_muted_media_detail() {
     let favorite = FeedLine {
         time_text: "16:31".to_string(),

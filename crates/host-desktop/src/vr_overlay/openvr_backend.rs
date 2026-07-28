@@ -5,7 +5,8 @@ use openvr::{
     overlay::OverlayHandle,
     property::{
         ControllerRoleHint_Int32, DeviceBatteryPercentage_Float, DeviceIsCharging_Bool,
-        ModelNumber_String, SerialNumber_String, TrackingSystemName_String,
+        DeviceProvidesBatteryStatus_Bool, ModelNumber_String, SerialNumber_String,
+        TrackingSystemName_String,
     },
     system::event::Event,
     tracked_device_index, ApplicationType, Context, ControllerState, Overlay, System,
@@ -49,7 +50,7 @@ pub struct OpenVrOverlayBackend {
     input_events: OverlayInputEventSink,
     panel_summon_state: PanelSummonGestureState,
     controller_states: HashMap<OverlayHand, ControllerInputState>,
-    battery_readings: HashMap<String, BatteryReadingState>,
+    hmd_battery_readings: HashMap<String, BatteryReadingState>,
     grab_state: Option<GrabState>,
     #[cfg(windows)]
     gpu: Option<GpuPresenter>,
@@ -165,7 +166,7 @@ impl OpenVrOverlayBackend {
             input_events: OverlayInputEventSink::default(),
             panel_summon_state: PanelSummonGestureState::default(),
             controller_states: HashMap::new(),
-            battery_readings: HashMap::new(),
+            hmd_battery_readings: HashMap::new(),
             grab_state: None,
             #[cfg(windows)]
             gpu: None,
@@ -366,7 +367,10 @@ impl OverlayBackend for OpenVrOverlayBackend {
             .system
             .as_ref()
             .ok_or_else(|| "OpenVR system interface is not started".to_string())?;
-        Ok(snapshot_openvr_devices(system, &mut self.battery_readings))
+        Ok(snapshot_openvr_devices(
+            system,
+            &mut self.hmd_battery_readings,
+        ))
     }
 
     fn tick(&mut self) -> TickOutcome {
@@ -445,7 +449,7 @@ impl OpenVrOverlayBackend {
             self.gpu_retry_after_present_failure = true;
         }
         self.surfaces.clear();
-        self.battery_readings.clear();
+        self.hmd_battery_readings.clear();
         self.overlay = None;
         self.system = None;
         self.context = None;
@@ -1433,11 +1437,11 @@ fn grip_pressed(
 
 fn snapshot_openvr_devices(
     system: &openvr::System,
-    battery_readings: &mut HashMap<String, BatteryReadingState>,
+    hmd_battery_readings: &mut HashMap<String, BatteryReadingState>,
 ) -> Vec<VrDeviceSnapshot> {
     let poses = system.device_to_absolute_tracking_pose(TrackingUniverseOrigin::Standing, 0.0);
     let mut rows = Vec::new();
-    let mut current_battery_devices = HashSet::new();
+    let mut current_hmd_battery_devices = HashSet::new();
     let mut tracker_index = 0usize;
 
     for index in 0..MAX_TRACKED_DEVICE_COUNT {
@@ -1466,16 +1470,28 @@ fn snapshot_openvr_devices(
             }
             _ => short_device_label(model.as_deref(), serial.as_deref(), "VR"),
         };
-        let battery_key = serial
-            .as_ref()
-            .map(|serial| format!("serial:{serial}"))
-            .unwrap_or_else(|| format!("device:{}:{label}", device.0));
-        current_battery_devices.insert(battery_key.clone());
-        let battery_percent = battery_readings
-            .entry(battery_key)
-            .or_default()
-            .update(battery_percent(system, device));
-        let charging = bool_property(system, device, DeviceIsCharging_Bool).unwrap_or(false);
+        let battery_properties_available = reads_battery_properties(
+            class,
+            bool_property(system, device, DeviceProvidesBatteryStatus_Bool),
+        );
+        let observed_battery_percent = battery_properties_available
+            .then(|| battery_percent(system, device))
+            .flatten();
+        let battery_percent = if matches!(class, TrackedDeviceClass::HMD) {
+            let battery_key = serial
+                .as_ref()
+                .map(|serial| format!("serial:{serial}"))
+                .unwrap_or_else(|| format!("device:{}:{label}", device.0));
+            current_hmd_battery_devices.insert(battery_key.clone());
+            hmd_battery_readings
+                .entry(battery_key)
+                .or_default()
+                .update(observed_battery_percent)
+        } else {
+            observed_battery_percent
+        };
+        let charging = battery_properties_available
+            && bool_property(system, device, DeviceIsCharging_Bool).unwrap_or(false);
         let pose_valid = poses
             .get(index)
             .is_some_and(|pose| pose.device_is_connected() && pose.pose_is_valid());
@@ -1491,7 +1507,7 @@ fn snapshot_openvr_devices(
         });
     }
 
-    battery_readings.retain(|key, _| current_battery_devices.contains(key));
+    hmd_battery_readings.retain(|key, _| current_hmd_battery_devices.contains(key));
     rows.sort_by_key(|row| row.sort_key);
     rows.into_iter().map(|row| row.snapshot).collect()
 }
@@ -1529,6 +1545,13 @@ fn battery_percent(system: &openvr::System, device: TrackedDeviceIndex) -> Optio
         .map(|value| (value.clamp(0.0, 1.0) * 100.0).round() as u8)
 }
 
+fn reads_battery_properties(
+    class: TrackedDeviceClass,
+    provides_battery_status: Option<bool>,
+) -> bool {
+    matches!(class, TrackedDeviceClass::HMD) || provides_battery_status == Some(true)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1564,6 +1587,23 @@ mod tests {
         assert_eq!(reading.update(None), None);
         assert_eq!(reading.update(Some(0)), Some(0));
         assert_eq!(reading.update(None), None);
+    }
+
+    #[test]
+    fn battery_properties_follow_driver_support_except_for_hmds() {
+        assert!(reads_battery_properties(TrackedDeviceClass::HMD, None));
+        assert!(reads_battery_properties(
+            TrackedDeviceClass::Controller,
+            Some(true)
+        ));
+        assert!(!reads_battery_properties(
+            TrackedDeviceClass::Controller,
+            Some(false)
+        ));
+        assert!(!reads_battery_properties(
+            TrackedDeviceClass::GenericTracker,
+            None
+        ));
     }
 
     #[test]
