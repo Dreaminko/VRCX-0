@@ -1794,6 +1794,13 @@ export const commands = {
             input
         });
     },
+    async appVrchatMediaInventoryTemplateGet(
+        input: VrchatMediaInventoryTemplateInput
+    ): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE('app__vrchat_media_inventory_template_get', {
+            input
+        });
+    },
     async appVrchatMediaPrintDelete(
         input: VrchatMediaPrintIdInput
     ): Promise<HttpApiExecuteResponse> {
@@ -2150,6 +2157,11 @@ export const commands = {
         return await TAURI_INVOKE('app__vrchat_user_mutual_friends_get', {
             input
         });
+    },
+    async appVrchatUserProfileGet(
+        input: VrchatUserProfileInput
+    ): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE('app__vrchat_user_profile_get', { input });
     },
     async appVrchatUserRepresentedGroupGet(
         input: VrchatUserInput
@@ -5273,6 +5285,9 @@ export type VrchatMediaInventoryItemInput = {
     inventoryId?: string;
     params?: Partial<{ [key in string]: JsonValue }>;
 };
+export type VrchatMediaInventoryTemplateInput = {
+    inventoryTemplateId?: string;
+};
 export type VrchatMediaLegacyImageUploadInput = {
     entityId?: string;
     imageUrl?: string;
@@ -5377,6 +5392,7 @@ export type VrchatUserMutualFriendsInput = {
     offset?: number;
     includeUserIdParam?: boolean;
 };
+export type VrchatUserProfileInput = { userId?: string; asSelf?: boolean };
 export type VrchatWorldIdInput = { worldId?: string };
 export type VrchatWorldListByUserInput = {
     userId?: string;

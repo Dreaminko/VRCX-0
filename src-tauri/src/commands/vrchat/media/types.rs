@@ -103,6 +103,13 @@ pub struct VrchatMediaInventoryItemInput {
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct VrchatMediaInventoryTemplateInput {
+    #[serde(default)]
+    pub(crate) inventory_template_id: String,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct VrchatMediaRewardRedeemInput {
     #[serde(default)]
     pub(crate) code: String,

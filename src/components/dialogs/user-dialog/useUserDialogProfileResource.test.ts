@@ -4,6 +4,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+    getUserAppearanceProfile: vi.fn(),
     getUserProfile: vi.fn()
 }));
 
@@ -16,6 +17,7 @@ vi.mock('@/repositories/userProfileRepository', async (importOriginal) => {
         ...actual,
         default: {
             ...actual.default,
+            getUserAppearanceProfile: mocks.getUserAppearanceProfile,
             getUserProfile: mocks.getUserProfile
         }
     };
@@ -30,6 +32,10 @@ import {
 
 describe('useUserDialogProfileResource', () => {
     beforeEach(() => {
+        mocks.getUserAppearanceProfile.mockReset();
+        mocks.getUserAppearanceProfile.mockResolvedValue({
+            id: 'usr_target'
+        });
         mocks.getUserProfile.mockReset();
         mocks.getUserProfile.mockResolvedValue({
             id: 'usr_target',
@@ -56,6 +62,10 @@ describe('useUserDialogProfileResource', () => {
         );
 
         await waitFor(() => {
+            expect(mocks.getUserAppearanceProfile).toHaveBeenCalledWith({
+                userId: 'usr_target',
+                asSelf: true
+            });
             expect(mocks.getUserProfile).toHaveBeenCalledWith(
                 expect.objectContaining({
                     userId: 'usr_target',
@@ -81,6 +91,10 @@ describe('useUserDialogProfileResource', () => {
         );
 
         await waitFor(() => {
+            expect(mocks.getUserAppearanceProfile).toHaveBeenCalledWith({
+                userId: 'usr_target',
+                asSelf: false
+            });
             expect(mocks.getUserProfile).toHaveBeenCalledWith(
                 expect.objectContaining({
                     userId: 'usr_target',
@@ -88,6 +102,96 @@ describe('useUserDialogProfileResource', () => {
                     dialog: true
                 })
             );
+        });
+    });
+
+    it('merges appearance fields without overwriting ordinary user state', async () => {
+        mocks.getUserProfile.mockResolvedValue({
+            id: 'usr_target',
+            displayName: 'Ordinary user',
+            status: 'active',
+            location: 'wrld_live:instance',
+            iconFrame: 'invt_old'
+        });
+        mocks.getUserAppearanceProfile.mockResolvedValue({
+            id: 'usr_target',
+            displayName: 'Profile endpoint name',
+            status: 'offline',
+            location: 'offline',
+            iconFrame: '',
+            profileEffect: 'invt_profile'
+        });
+
+        const { result } = renderHook(() =>
+            useUserDialogProfileResource({
+                currentEndpoint: 'https://api.vrchat.cloud/api/1',
+                isTargetCurrentUser: false,
+                localSnapshot: {
+                    id: 'usr_target',
+                    displayName: 'Target'
+                },
+                normalizedUserId: 'usr_target',
+                updateEntityDialogMetadata: vi.fn()
+            })
+        );
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+            expect(result.current.profile).toEqual(
+                expect.objectContaining({
+                    displayName: 'Ordinary user',
+                    status: 'active',
+                    location: 'wrld_live:instance',
+                    iconFrame: '',
+                    profileEffect: 'invt_profile'
+                })
+            );
+        });
+    });
+
+    it('keeps the ordinary user ready when the appearance request fails', async () => {
+        mocks.getUserAppearanceProfile.mockRejectedValue(
+            new Error('appearance unavailable')
+        );
+
+        const { result } = renderHook(() =>
+            useUserDialogProfileResource({
+                currentEndpoint: 'https://api.vrchat.cloud/api/1',
+                isTargetCurrentUser: false,
+                localSnapshot: {
+                    id: 'usr_target',
+                    displayName: 'Target'
+                },
+                normalizedUserId: 'usr_target',
+                updateEntityDialogMetadata: vi.fn()
+            })
+        );
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+            expect(result.current.profile?.displayName).toBe('Target');
+        });
+    });
+
+    it('does not block the ordinary user while appearance is still loading', async () => {
+        mocks.getUserAppearanceProfile.mockReturnValue(new Promise(() => {}));
+
+        const { result } = renderHook(() =>
+            useUserDialogProfileResource({
+                currentEndpoint: 'https://api.vrchat.cloud/api/1',
+                isTargetCurrentUser: false,
+                localSnapshot: {
+                    id: 'usr_target',
+                    displayName: 'Target'
+                },
+                normalizedUserId: 'usr_target',
+                updateEntityDialogMetadata: vi.fn()
+            })
+        );
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+            expect(result.current.profile?.displayName).toBe('Target');
         });
     });
 });

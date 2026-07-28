@@ -16,6 +16,15 @@ pub struct VrchatUserInput {
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct VrchatUserProfileInput {
+    #[serde(default)]
+    pub(crate) user_id: String,
+    #[serde(default)]
+    pub(crate) as_self: bool,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct VrchatUserMutualFriendsInput {
     #[serde(default)]
     pub(crate) user_id: String,

@@ -69,8 +69,8 @@ pub mod media {
         file_delete_input, file_put_input, file_upload_finish_input, file_upload_stage_path,
         file_upload_start_input, file_version_create_input, files_get_input, image_upload_input,
         inventory_bundle_consume_input, inventory_item_update_input, inventory_items_get_input,
-        print_delete_input, print_get_input, print_upload_input, prints_get_input,
-        reward_redeem_input, sticker_upload_input, tagged_image_upload_input,
+        inventory_template_get_input, print_delete_input, print_get_input, print_upload_input,
+        prints_get_input, reward_redeem_input, sticker_upload_input, tagged_image_upload_input,
         user_inventory_item_get_input, world_image_set_input,
     };
 }
@@ -103,8 +103,8 @@ pub mod tools {
 pub mod users {
     pub use vrcx_0_vrchat_client::users::{
         current_user_badge_update_input, current_user_tags_add_input,
-        current_user_tags_remove_input, current_user_update_input, user_groups_get_input,
-        user_mutual_counts_get_input, user_mutual_friends_get_input,
+        current_user_tags_remove_input, current_user_update_input, profile_get_input,
+        user_groups_get_input, user_mutual_counts_get_input, user_mutual_friends_get_input,
         user_represented_group_get_input,
     };
 }

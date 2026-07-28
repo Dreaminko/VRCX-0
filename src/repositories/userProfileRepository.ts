@@ -1,4 +1,7 @@
-import type { UserProfileRecord } from '@/domain/entities/profileEntities';
+import type {
+    UserProfileEntity,
+    UserProfileRecord
+} from '@/domain/entities/profileEntities';
 import {
     entityQueryPolicies,
     fetchCachedData,
@@ -86,6 +89,10 @@ interface UserProfileInput extends UserEndpointInput {
     force?: boolean;
     dialog?: boolean;
     isFriend?: boolean | null;
+}
+
+interface UserAppearanceProfileInput extends UserEndpointInput {
+    asSelf?: boolean;
 }
 
 interface UserGroupsInput extends UserEndpointInput {
@@ -268,6 +275,31 @@ async function getUserProfile({
         `users/${encodeURIComponent(normalizedUserId)}`
     ).json;
     return normalize(json);
+}
+
+async function getUserAppearanceProfile({
+    userId,
+    asSelf = false
+}: UserAppearanceProfileInput) {
+    const normalizedUserId =
+        typeof userId === 'string'
+            ? userId.trim()
+            : String(userId ?? '').trim();
+    if (!normalizedUserId) {
+        throw new Error(
+            'UserProfileRepository.getUserAppearanceProfile requires a user id.'
+        );
+    }
+
+    const response = await commands.appVrchatUserProfileGet({
+        userId: normalizedUserId,
+        asSelf: asSelf === true
+    });
+    const json = unwrapVrchatUserResponse<UserProfileEntity>(
+        response,
+        `profile/${encodeURIComponent(normalizedUserId)}`
+    ).json;
+    return isRecord(json) ? json : {};
 }
 
 async function getMutualCounts({ userId }: UserEndpointInput) {
@@ -531,6 +563,7 @@ async function removeCurrentUserTags({
 const userProfileRepository = Object.freeze({
     normalize,
     getUserProfile,
+    getUserAppearanceProfile,
     getUserGroups,
     getRepresentedGroup,
     getMutualCounts,
@@ -545,6 +578,7 @@ const userProfileRepository = Object.freeze({
 export {
     normalize,
     getUserProfile,
+    getUserAppearanceProfile,
     getUserGroups,
     getRepresentedGroup,
     getMutualCounts,

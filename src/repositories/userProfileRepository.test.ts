@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 const tauriMock = vi.hoisted(() => ({
     commands: {
+        appVrchatUserProfileGet: vi.fn(),
         appVrchatUserMutualFriendsGet: vi.fn()
     }
 }));
@@ -12,6 +13,7 @@ import userProfileRepository from './userProfileRepository';
 
 describe('UserProfileRepository', () => {
     beforeEach(() => {
+        vi.mocked(tauriMock.commands.appVrchatUserProfileGet).mockReset();
         vi.mocked(tauriMock.commands.appVrchatUserMutualFriendsGet).mockReset();
     });
 
@@ -139,6 +141,69 @@ describe('UserProfileRepository', () => {
             nameplateEffect: '',
             profileEffect: ''
         });
+    });
+
+    it('reads public and self appearance profiles without normalizing their partial payloads', async () => {
+        const publicProfile = {
+            id: 'usr_target',
+            backgroundType: 'default',
+            iconFrame: '',
+            profileEffect: 'invt_profile'
+        };
+        const selfProfile = {
+            id: 'usr_target',
+            backgroundGradientBottom: '',
+            bannerColor: '2cc968',
+            nameplateEffect: ''
+        };
+        vi.mocked(tauriMock.commands.appVrchatUserProfileGet)
+            .mockResolvedValueOnce({
+                status: 200,
+                data: publicProfile
+            })
+            .mockResolvedValueOnce({
+                status: 200,
+                data: selfProfile
+            });
+
+        await expect(
+            userProfileRepository.getUserAppearanceProfile({
+                userId: ' usr_target '
+            })
+        ).resolves.toBe(publicProfile);
+        await expect(
+            userProfileRepository.getUserAppearanceProfile({
+                userId: 'usr_target',
+                asSelf: true
+            })
+        ).resolves.toBe(selfProfile);
+
+        expect(
+            tauriMock.commands.appVrchatUserProfileGet
+        ).toHaveBeenNthCalledWith(1, {
+            userId: 'usr_target',
+            asSelf: false
+        });
+        expect(
+            tauriMock.commands.appVrchatUserProfileGet
+        ).toHaveBeenNthCalledWith(2, {
+            userId: 'usr_target',
+            asSelf: true
+        });
+        expect(publicProfile).toHaveProperty('iconFrame', '');
+        expect(selfProfile).toHaveProperty('nameplateEffect', '');
+        expect(publicProfile).not.toHaveProperty('$trustLevel');
+    });
+
+    it('rejects appearance profile reads without a user id', async () => {
+        await expect(
+            userProfileRepository.getUserAppearanceProfile({ userId: ' ' })
+        ).rejects.toThrow(
+            'UserProfileRepository.getUserAppearanceProfile requires a user id.'
+        );
+        expect(
+            tauriMock.commands.appVrchatUserProfileGet
+        ).not.toHaveBeenCalled();
     });
 
     it('strips the default robot avatar image so it resolves as unknown, not "Robot"', () => {

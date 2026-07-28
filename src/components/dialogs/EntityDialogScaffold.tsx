@@ -114,15 +114,18 @@ function EntityOverviewCard({
     children,
     className,
     headerClassName,
-    contentClassName
+    contentClassName,
+    style
 }: ClassNameAndChildren & {
     media?: ReactNode;
     headerClassName?: string;
     contentClassName?: string;
+    style?: CSSProperties;
 }) {
     return (
         <Card
             size="sm"
+            style={style}
             className={cn(
                 'min-w-0 overflow-visible border shadow-none ring-0',
                 className

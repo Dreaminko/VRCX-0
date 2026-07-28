@@ -140,6 +140,18 @@ fn asset_upload_rejects_unknown_kind() {
 }
 
 #[test]
+fn inventory_template_get_trims_and_encodes_the_template_id() {
+    let request = inventory_template_get_input(ENDPOINT.into(), " invt_1/雪 ".into()).unwrap();
+
+    assert_eq!(request.method.as_deref(), Some("GET"));
+    assert_eq!(
+        request.path.as_deref(),
+        Some("inventory/template/invt%5F1%2F%E9%9B%AA")
+    );
+    assert_eq!(request.query_params, Some(HashMap::new()));
+}
+
+#[test]
 fn file_upload_stage_accepts_only_file_and_signature_with_encoded_id() {
     assert_eq!(
         file_upload_stage_path(" file_1/unsafe ".into(), 4, " file ".into()).unwrap(),
@@ -203,6 +215,7 @@ fn media_id_requests_reject_empty_text() {
     assert!(user_inventory_item_get_input(ENDPOINT.into(), " ".into(), "inv_1".into(),).is_err());
     assert!(user_inventory_item_get_input(ENDPOINT.into(), "usr_1".into(), " ".into(),).is_err());
     assert!(inventory_item_update_input(ENDPOINT.into(), " ".into(), HashMap::new()).is_err());
+    assert!(inventory_template_get_input(ENDPOINT.into(), " ".into()).is_err());
     assert!(inventory_bundle_consume_input(ENDPOINT.into(), " ".into()).is_err());
     assert!(file_version_create_input(
         ENDPOINT.into(),

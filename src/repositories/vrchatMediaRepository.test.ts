@@ -4,6 +4,7 @@ const commandMocks = vi.hoisted(() => ({
     appVrchatMediaFilesGet: vi.fn(),
     appVrchatMediaFileDelete: vi.fn(),
     appVrchatMediaInventoryItemsGet: vi.fn(),
+    appVrchatMediaInventoryTemplateGet: vi.fn(),
     appVrchatMediaPrintUpload: vi.fn(),
     appVrchatMediaUserInventoryItemGet: vi.fn(),
     appVrchatPrintsFavoriteSet: vi.fn(),
@@ -138,6 +139,46 @@ describe('vrchatMediaRepository', () => {
         ).toHaveBeenCalledWith({
             userId: 'usr_1',
             inventoryId: 'inv_1'
+        });
+    });
+
+    it('loads inventory templates by template id through the shared cache', async () => {
+        commandMocks.appVrchatMediaInventoryTemplateGet.mockResolvedValueOnce(
+            success({
+                id: 'invt_frame',
+                metadata: {
+                    assets: [
+                        {
+                            type: 'mainAnimation',
+                            url: 'https://example.test/frame.webp'
+                        }
+                    ]
+                }
+            })
+        );
+
+        await expect(
+            vrchatMediaRepository.getInventoryTemplate(' invt_frame ')
+        ).resolves.toMatchObject({
+            json: {
+                id: 'invt_frame'
+            }
+        });
+
+        expect(cacheMocks.fetchCachedData).toHaveBeenCalledWith(
+            expect.objectContaining({
+                queryKey: [
+                    'inventory',
+                    'template',
+                    'invt_frame',
+                    { endpoint: 'https://api.vrchat.cloud/api/1' }
+                ]
+            })
+        );
+        expect(
+            commandMocks.appVrchatMediaInventoryTemplateGet
+        ).toHaveBeenCalledWith({
+            inventoryTemplateId: 'invt_frame'
         });
     });
 

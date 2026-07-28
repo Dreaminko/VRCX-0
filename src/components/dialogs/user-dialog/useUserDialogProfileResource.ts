@@ -15,6 +15,7 @@ import {
     normalizedAvatarName,
     shouldHydrateCurrentAvatar
 } from './userDialogCurrentAvatar';
+import { mergeUserDialogProfileAppearance } from './userDialogProfileAppearance';
 import {
     mergeActivityTimestampsIntoProfile,
     mergeLocalSnapshotIntoProfile,
@@ -191,6 +192,13 @@ export function useUserDialogProfileResource({
         setLoadStatus('running');
         setDetail('');
 
+        const appearanceProfileRequest = userProfileRepository
+            .getUserAppearanceProfile({
+                userId: normalizedUserId,
+                asSelf: isTargetCurrentUser
+            })
+            .catch(() => null);
+
         userProfileRepository
             .getUserProfile({
                 userId: normalizedUserId,
@@ -235,6 +243,30 @@ export function useUserDialogProfileResource({
                     )
                 );
                 setLoadStatus('ready');
+
+                appearanceProfileRequest.then((appearanceProfile) => {
+                    if (!active || !appearanceProfile) {
+                        return;
+                    }
+                    setBaseProfile((currentProfile) => {
+                        const targetProfile = previousTargetProfile(
+                            currentProfile,
+                            normalizedUserId
+                        );
+                        if (!targetProfile) {
+                            return currentProfile;
+                        }
+                        return preserveProfileIdentity(
+                            currentProfile,
+                            mergeUserDialogProfileAppearance(
+                                targetProfile,
+                                appearanceProfile,
+                                normalizedUserId
+                            ),
+                            normalizedUserId
+                        );
+                    });
+                });
             })
             .catch((error: unknown) => {
                 if (!active) {

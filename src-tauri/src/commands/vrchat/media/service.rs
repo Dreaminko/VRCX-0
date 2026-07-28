@@ -6,9 +6,9 @@ use vrcx_0_application_core::vrchat_api::media::{
     file_delete_input, file_put_input, file_upload_finish_input, file_upload_stage_path,
     file_upload_start_input, file_version_create_input, files_get_input,
     inventory_bundle_consume_input, inventory_item_update_input, inventory_items_get_input,
-    print_delete_input, print_get_input, print_upload_input, prints_get_input, reward_redeem_input,
-    sticker_upload_input, tagged_image_upload_input, user_inventory_item_get_input,
-    world_image_set_input,
+    inventory_template_get_input, print_delete_input, print_get_input, print_upload_input,
+    prints_get_input, reward_redeem_input, sticker_upload_input, tagged_image_upload_input,
+    user_inventory_item_get_input, world_image_set_input,
 };
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
@@ -24,10 +24,10 @@ use super::types::{
     VrchatMediaAssetUploadInput, VrchatMediaAvatarGalleryImageUploadInput,
     VrchatMediaEntityImageInput, VrchatMediaFileIdInput, VrchatMediaFilePutInput,
     VrchatMediaFileUploadStageInput, VrchatMediaFileVersionCreateInput,
-    VrchatMediaImageUploadInput, VrchatMediaInventoryItemInput, VrchatMediaLegacyImageUploadInput,
-    VrchatMediaParamsInput, VrchatMediaPrintIdInput, VrchatMediaPrintUploadInput,
-    VrchatMediaPrintsInput, VrchatMediaRewardRedeemInput, VrchatMediaUserInventoryItemInput,
-    VrchatPrintFavoriteSetInput,
+    VrchatMediaImageUploadInput, VrchatMediaInventoryItemInput, VrchatMediaInventoryTemplateInput,
+    VrchatMediaLegacyImageUploadInput, VrchatMediaParamsInput, VrchatMediaPrintIdInput,
+    VrchatMediaPrintUploadInput, VrchatMediaPrintsInput, VrchatMediaRewardRedeemInput,
+    VrchatMediaUserInventoryItemInput, VrchatPrintFavoriteSetInput,
 };
 
 async fn execute_media_api(
@@ -341,6 +341,25 @@ pub async fn app__vrchat_media_inventory_items_get(
         "app__vrchat_media_inventory_items_get",
         "Getting inventory items.",
         inventory_items_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.params),
+    )
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__vrchat_media_inventory_template_get(
+    state: State<'_, AppState>,
+    input: VrchatMediaInventoryTemplateInput,
+) -> Result<VrchatApiResponse, AppError> {
+    let inventory_template_id = input.inventory_template_id.clone();
+    execute_media_api(
+        state,
+        "app__vrchat_media_inventory_template_get",
+        format!("Getting inventory template {inventory_template_id}."),
+        inventory_template_get_input(
+            VRCHAT_API_DEFAULT_ENDPOINT.into(),
+            input.inventory_template_id,
+        )?,
     )
     .await
 }

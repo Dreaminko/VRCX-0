@@ -26,6 +26,7 @@ import type {
     resolvePlatformMeta
 } from './user-dialog/userDialogContentHelpers';
 import { buildUserDialogLocationUsers } from './user-dialog/userDialogLocationUsers';
+import { resolveUserDialogBanner } from './user-dialog/userDialogProfileAppearance';
 import {
     isOfflineLikeValue,
     normalizedText
@@ -39,6 +40,7 @@ import type {
     ExtendedModerationState,
     ModerationState
 } from './user-dialog/useUserDialogModerationState';
+import { useUserDialogProfileAppearance } from './user-dialog/useUserDialogProfileAppearance';
 import type { UserDialogProfileRecord } from './user-dialog/useUserDialogProfileResource';
 import { useUserDialogTabbedRuntimeState } from './user-dialog/useUserDialogRuntimeState';
 import type { useUserDialogSelfActions } from './user-dialog/useUserDialogSelfActions';
@@ -170,6 +172,7 @@ export function UserDialogTabbedView({
         reloadToken = 0,
         initialAction = ''
     } = resource;
+    const profileAppearance = useUserDialogProfileAppearance({ profile });
     const {
         moderationState,
         extendedModerationState = { interactOff: false, muteChat: false },
@@ -482,6 +485,14 @@ export function UserDialogTabbedView({
     const showAvatarAuthor = useUserDialogAvatarAuthorAction({
         currentAvatarTarget
     });
+    const banner = resolveUserDialogBanner(profile);
+    const bannerUrl = convertFileUrlToImageUrl(banner.url, 1024);
+    const profileIconUrl = convertFileUrlToImageUrl(
+        normalizedText(profile.iconUrl) ||
+            normalizedText(profile.userIcon) ||
+            imageUrl,
+        512
+    );
 
     function openInstanceHistory() {
         changeTab('instance-history', { allowHidden: true });
@@ -498,7 +509,7 @@ export function UserDialogTabbedView({
         fallbackAvatarTarget,
         friendNumber,
         friendRequestState,
-        imageUrl,
+        imageUrl: bannerUrl,
         isCurrentUser,
         isFriend,
         loadStatus,
@@ -508,6 +519,8 @@ export function UserDialogTabbedView({
         previousDisplayNames,
         previousInstances,
         profile,
+        profileAppearance,
+        profileIconUrl,
         profileLanguages,
         profileTitle,
         pronounsText,
@@ -536,7 +549,7 @@ export function UserDialogTabbedView({
         onGroupModeration,
         onImageClick: () =>
             openImagePreview({
-                url: imageUrl,
+                url: bannerUrl,
                 title: profileTitle
             }),
         onInvite,
@@ -550,10 +563,7 @@ export function UserDialogTabbedView({
         onOpenImagePreview: openImagePreview,
         onOpenUserIcon: () =>
             openImagePreview({
-                url: convertFileUrlToImageUrl(
-                    normalizedText(profile.userIcon),
-                    512
-                ),
+                url: profileIconUrl,
                 title: profileTitle
             }),
         onOpenUserUrl: () => openExternalLink(userUrl),

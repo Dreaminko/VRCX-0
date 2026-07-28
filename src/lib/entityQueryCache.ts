@@ -117,6 +117,12 @@ export const entityQueryPolicies = Object.freeze({
         retry: 1,
         refetchOnWindowFocus: false
     }),
+    inventoryTemplate: Object.freeze({
+        staleTime: 60 * MINUTE_MS,
+        gcTime: 240 * MINUTE_MS,
+        retry: 1,
+        refetchOnWindowFocus: false
+    }),
     fileAnalysis: Object.freeze({
         staleTime: 60 * MINUTE_MS,
         gcTime: 240 * MINUTE_MS,
@@ -261,6 +267,8 @@ export const queryKeys = Object.freeze({
         }: { inventoryId?: unknown; userId?: unknown } = {},
         endpoint: unknown = ''
     ) => withEndpoint(['inventory', 'item', userId, inventoryId], endpoint),
+    inventoryTemplate: (inventoryTemplateId: unknown, endpoint: unknown = '') =>
+        withEndpoint(['inventory', 'template', inventoryTemplateId], endpoint),
     fileAnalysis: (
         {
             fileId = '',

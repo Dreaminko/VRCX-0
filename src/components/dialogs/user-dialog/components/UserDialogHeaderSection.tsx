@@ -7,7 +7,12 @@ import {
     PencilIcon,
     UsersIcon
 } from 'lucide-react';
-import { isValidElement, type ComponentType, type ReactNode } from 'react';
+import {
+    isValidElement,
+    type ComponentType,
+    type CSSProperties,
+    type ReactNode
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
@@ -27,6 +32,10 @@ import type {
     resolveFriendRequestState,
     resolvePlatformMeta
 } from '../userDialogContentHelpers';
+import {
+    normalizeProfileAppearanceColor,
+    type UserDialogProfileAppearance
+} from '../userDialogProfileAppearance';
 import {
     formatStatsDuration,
     normalizePreviousDisplayNames
@@ -52,6 +61,20 @@ import {
     UserDialogHeaderBadges,
     UserDialogHeaderMediaBadges
 } from './UserDialogHeaderBadges';
+import { UserDialogProfileDecorationImage } from './UserDialogProfileDecorationImage';
+
+function linearGradientStyle(
+    angle: number,
+    start: string,
+    end: string
+): CSSProperties | undefined {
+    if (!start || !end) {
+        return undefined;
+    }
+    return {
+        backgroundImage: `linear-gradient(${angle}deg, ${start}, ${end})`
+    };
+}
 
 export interface UserHeaderModel {
     actionStatus: string;
@@ -75,6 +98,8 @@ export interface UserHeaderModel {
     previousDisplayNames: ReturnType<typeof normalizePreviousDisplayNames>;
     previousInstances: unknown[];
     profile: UserDialogProfileRecord;
+    profileAppearance: UserDialogProfileAppearance;
+    profileIconUrl: string;
     profileLanguages: { key: string; value: string }[];
     profileTitle: string;
     pronounsText?: string;
@@ -369,6 +394,8 @@ export function UserDialogHeaderSection({
         previousDisplayNames,
         previousInstances = [],
         profile,
+        profileAppearance,
+        profileIconUrl,
         profileLanguages,
         profileTitle,
         pronounsText,
@@ -471,18 +498,62 @@ export function UserDialogHeaderSection({
         onToggleSelfDiscordConnections,
         onToggleSelfSharedConnections
     };
-    const userIconUrl = profile.userIcon
-        ? userImage(profile, true, '256', true)
-        : '';
+    const userIconUrl = profileIconUrl || userImage(profile, true, '256', true);
     const hasTitleMeta = Boolean(profileLanguages?.length);
     const estimatedOnlineForText = estimatedOnlineDurationMs
         ? formatStatsDuration(estimatedOnlineDurationMs)
         : '';
     const hasProfileBadges = hasRenderableUserProfileBadges(profile);
     const isOwner = profile.id === OWNER_USER_ID;
+    const bannerColor = normalizeProfileAppearanceColor(profile.bannerColor);
+    const backgroundGradientTop = normalizeProfileAppearanceColor(
+        profile.backgroundGradientTop
+    );
+    const backgroundGradientBottom = normalizeProfileAppearanceColor(
+        profile.backgroundGradientBottom
+    );
+    const profileBackgroundStyle =
+        profile.backgroundType === 'gradient'
+            ? linearGradientStyle(
+                  180,
+                  backgroundGradientTop,
+                  backgroundGradientBottom
+              )
+            : undefined;
+    const nameplateGradientStart = normalizeProfileAppearanceColor(
+        profileAppearance.nameplateEffect?.metadata?.gradientStart
+    );
+    const nameplateGradientEnd = normalizeProfileAppearanceColor(
+        profileAppearance.nameplateEffect?.metadata?.gradientEnd
+    );
+    const nameplateStyle = linearGradientStyle(
+        90,
+        nameplateGradientStart,
+        nameplateGradientEnd
+    );
+    const bannerFallback = bannerColor ? (
+        <span aria-hidden className="size-full" />
+    ) : (
+        <UsersIcon className="text-muted-foreground size-8" />
+    );
+    const bannerContent = imageUrl ? (
+        <FadeInImage
+            src={imageUrl}
+            alt={profile.displayName || profile.id || 'User'}
+            className="size-full object-cover"
+            fallback={bannerFallback}
+        />
+    ) : (
+        bannerFallback
+    );
 
     return (
         <EntityOverviewCard
+            style={profileBackgroundStyle}
+            className={cn(
+                'relative isolate overflow-hidden',
+                profileBackgroundStyle && 'bg-transparent'
+            )}
             media={
                 <div className="relative">
                     <Button
@@ -490,25 +561,17 @@ export function UserDialogHeaderSection({
                         variant="ghost"
                         disabled={!imageUrl || !onImageClick}
                         onClick={onImageClick}
+                        style={
+                            bannerColor
+                                ? { backgroundColor: bannerColor }
+                                : undefined
+                        }
                         className={cn(
-                            'bg-muted aspect-[4/3] h-auto w-full overflow-hidden rounded-lg border p-0 disabled:pointer-events-none',
+                            'bg-muted aspect-[17/6] h-auto w-full overflow-hidden rounded-lg border p-0 disabled:pointer-events-none disabled:opacity-100',
                             imageUrl ? 'cursor-pointer' : 'cursor-default'
                         )}
                     >
-                        {imageUrl ? (
-                            <FadeInImage
-                                src={imageUrl}
-                                alt={
-                                    profile.displayName || profile.id || 'User'
-                                }
-                                className="size-full object-cover"
-                                fallback={
-                                    <UsersIcon className="text-muted-foreground size-8" />
-                                }
-                            />
-                        ) : (
-                            <UsersIcon className="text-muted-foreground size-8" />
-                        )}
+                        {bannerContent}
                     </Button>
                     {userIconUrl ? (
                         <Button
@@ -516,7 +579,7 @@ export function UserDialogHeaderSection({
                             variant="ghost"
                             aria-label={t('dialog.user.action.open_user_icon')}
                             title={t('dialog.user.action.open_user_icon')}
-                            className="bg-background/90 absolute right-3 bottom-3 size-16 overflow-hidden rounded-full border-2 border-white p-0 shadow-md"
+                            className="bg-background/90 absolute right-3 bottom-3 z-30 size-16 overflow-hidden rounded-full border-2 border-white p-0 shadow-md"
                             onClick={onOpenUserIcon}
                         >
                             <FadeInImage
@@ -524,83 +587,103 @@ export function UserDialogHeaderSection({
                                 alt=""
                                 className="size-full object-cover"
                             />
+                            <UserDialogProfileDecorationImage
+                                item={profileAppearance.iconFrame}
+                                className="absolute inset-0 z-10"
+                                imageClassName="object-contain"
+                            />
                         </Button>
                     ) : null}
                 </div>
             }
         >
+            <UserDialogProfileDecorationImage
+                item={profileAppearance.profileEffect}
+                className="absolute inset-x-0 top-0 z-20 aspect-[4/5] overflow-hidden rounded-t-lg"
+                imageClassName="object-cover"
+            />
             <div className="flex min-w-0 items-start gap-2">
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <CardTitle className="flex min-w-0 flex-wrap items-center gap-1.5 text-lg leading-tight">
-                        <UserStatusDot
-                            aria-label={statusStateText || undefined}
-                            role={statusStateText ? 'img' : undefined}
-                            title={statusStateText || undefined}
-                            statusDotClassName={statusDotClassName}
-                            className="inline-block size-2.5 shrink-0 align-middle"
-                            variant="inline"
+                    <div
+                        style={nameplateStyle}
+                        className="relative isolate min-h-8 min-w-0 overflow-hidden rounded-md"
+                    >
+                        <UserDialogProfileDecorationImage
+                            item={profileAppearance.nameplateEffect}
+                            className="absolute inset-0 z-0"
+                            imageClassName="object-cover"
                         />
-                        {onTitleClick ? (
-                            <Tooltip>
-                                <TooltipTrigger
-                                    render={
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
-                                            onClick={onTitleClick}
-                                        >
-                                            {profileTitle}
-                                        </Button>
-                                    }
-                                />
-                                <TooltipContent>
-                                    {t('common.actions.copy')}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : (
-                            <span className="min-w-0 break-words">
-                                {profileTitle}
-                            </span>
-                        )}
-                        {isOwner ? (
-                            <Tooltip>
-                                <TooltipTrigger
-                                    render={
-                                        <span
-                                            className="owner-badge"
-                                            role="img"
-                                            aria-label={t(
-                                                'dialog.user.badges.developer',
-                                                {
-                                                    defaultValue:
-                                                        'VRCX-0 Developer'
-                                                }
-                                            )}
-                                        >
-                                            <GemIcon aria-hidden="true" />
-                                        </span>
-                                    }
-                                />
-                                <TooltipContent>
-                                    {t('dialog.user.badges.developer', {
-                                        defaultValue: 'VRCX-0 Developer'
-                                    })}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : null}
-                        {pronounsText ? (
-                            <span
-                                className="text-muted-foreground shrink-0 font-mono text-xs font-normal"
-                                title={t('dialog.user.pronouns')}
-                            >
-                                {pronounsText}
-                            </span>
-                        ) : null}
-                        <PreviousDisplayNamesBadge
-                            names={previousDisplayNames}
-                        />
-                    </CardTitle>
+                        <CardTitle className="relative z-10 flex min-h-8 min-w-0 flex-wrap items-center gap-1.5 px-1 text-lg leading-tight">
+                            <UserStatusDot
+                                aria-label={statusStateText || undefined}
+                                role={statusStateText ? 'img' : undefined}
+                                title={statusStateText || undefined}
+                                statusDotClassName={statusDotClassName}
+                                className="inline-block size-2.5 shrink-0 align-middle"
+                                variant="inline"
+                            />
+                            {onTitleClick ? (
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
+                                                onClick={onTitleClick}
+                                            >
+                                                {profileTitle}
+                                            </Button>
+                                        }
+                                    />
+                                    <TooltipContent>
+                                        {t('common.actions.copy')}
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                <span className="min-w-0 break-words">
+                                    {profileTitle}
+                                </span>
+                            )}
+                            {isOwner ? (
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <span
+                                                className="owner-badge"
+                                                role="img"
+                                                aria-label={t(
+                                                    'dialog.user.badges.developer',
+                                                    {
+                                                        defaultValue:
+                                                            'VRCX-0 Developer'
+                                                    }
+                                                )}
+                                            >
+                                                <GemIcon aria-hidden="true" />
+                                            </span>
+                                        }
+                                    />
+                                    <TooltipContent>
+                                        {t('dialog.user.badges.developer', {
+                                            defaultValue: 'VRCX-0 Developer'
+                                        })}
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : null}
+                            {pronounsText ? (
+                                <span
+                                    className="text-muted-foreground shrink-0 font-mono text-xs font-normal"
+                                    title={t('dialog.user.pronouns')}
+                                >
+                                    {pronounsText}
+                                </span>
+                            ) : null}
+                            <PreviousDisplayNamesBadge
+                                names={previousDisplayNames}
+                            />
+                        </CardTitle>
+                    </div>
                     {userSubtitle ? (
                         onSubtitleClick ? (
                             <Button

@@ -489,6 +489,40 @@ async function getInventoryItems(
     );
 }
 
+async function getInventoryTemplate(
+    inventoryTemplateId: unknown
+): Promise<VrchatRequestResponse<InventoryItemRecord>> {
+    const normalizedInventoryTemplateId =
+        typeof inventoryTemplateId === 'string'
+            ? inventoryTemplateId.trim()
+            : String(inventoryTemplateId ?? '').trim();
+    if (!normalizedInventoryTemplateId) {
+        throw new Error(
+            'MediaRepository.getInventoryTemplate requires an inventory template id.'
+        );
+    }
+
+    return fetchCachedData({
+        queryKey: queryKeys.inventoryTemplate(
+            normalizedInventoryTemplateId,
+            DEFAULT_VRCHAT_API_ENDPOINT
+        ),
+        policy: entityQueryPolicies.inventoryTemplate,
+        queryFn: () =>
+            executeMediaCommand<InventoryItemRecord>(
+                () =>
+                    commands.appVrchatMediaInventoryTemplateGet({
+                        inventoryTemplateId: normalizedInventoryTemplateId
+                    }),
+                {
+                    extra: {
+                        inventoryTemplateId: normalizedInventoryTemplateId
+                    }
+                }
+            )
+    });
+}
+
 async function getUserInventoryItem(
     { inventoryId, userId }: { inventoryId?: unknown; userId?: unknown } = {},
     options: MediaApiOptions = {}
@@ -694,6 +728,7 @@ const vrchatMediaRepository = Object.freeze({
     getPrintFavorites,
     setPrintFavorite,
     getInventoryItems,
+    getInventoryTemplate,
     getUserInventoryItem,
     updateInventoryItem,
     consumeInventoryBundle,
@@ -719,6 +754,7 @@ export {
     getPrintFavorites,
     setPrintFavorite,
     getInventoryItems,
+    getInventoryTemplate,
     getUserInventoryItem,
     updateInventoryItem,
     consumeInventoryBundle,

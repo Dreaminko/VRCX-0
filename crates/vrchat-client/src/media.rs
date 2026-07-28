@@ -206,6 +206,24 @@ pub fn inventory_items_get_input(
     get_input(endpoint, "inventory", params)
 }
 
+pub fn inventory_template_get_input(
+    endpoint: String,
+    inventory_template_id: String,
+) -> Result<HttpApiRequestInput, HttpApiError> {
+    let inventory_template_id = require_text(
+        inventory_template_id,
+        "VrchatMediaInventoryTemplateGet requires inventoryTemplateId.",
+    )?;
+    Ok(get_input(
+        endpoint,
+        format!(
+            "inventory/template/{}",
+            encode_path_segment(&inventory_template_id)
+        ),
+        HashMap::new(),
+    ))
+}
+
 pub fn inventory_item_update_input(
     endpoint: String,
     inventory_id: String,

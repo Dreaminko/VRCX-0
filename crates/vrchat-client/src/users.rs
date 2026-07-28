@@ -22,6 +22,27 @@ pub fn user_get_input(
     ))
 }
 
+pub fn profile_get_input(
+    endpoint: String,
+    user_id: String,
+    as_self: bool,
+) -> Result<(String, HttpApiRequestInput), HttpApiError> {
+    let user_id = require_text(user_id, "VrchatProfileGet requires userId.")?;
+    let params = if as_self {
+        HashMap::from([("asSelf".to_string(), json!(true))])
+    } else {
+        HashMap::new()
+    };
+    Ok((
+        user_id.clone(),
+        get_input(
+            endpoint,
+            format!("profile/{}", encode_path_segment(&user_id)),
+            params,
+        ),
+    ))
+}
+
 pub fn user_mutual_counts_get_input(
     endpoint: String,
     user_id: String,
@@ -222,6 +243,32 @@ mod tests {
     }
 
     #[test]
+    fn profile_reads_encode_ids_and_only_add_the_self_query_when_requested() {
+        let (public_user_id, public_profile) =
+            profile_get_input("endpoint".into(), " usr/雪 ".into(), false).unwrap();
+        assert_eq!(public_user_id, "usr/雪");
+        assert_eq!(public_profile.method.as_deref(), Some("GET"));
+        assert_eq!(
+            public_profile.path.as_deref(),
+            Some("profile/usr%2F%E9%9B%AA")
+        );
+        assert_eq!(public_profile.query_params, Some(HashMap::new()));
+
+        let (self_user_id, self_profile) =
+            profile_get_input("endpoint".into(), " usr/雪 ".into(), true).unwrap();
+        assert_eq!(self_user_id, "usr/雪");
+        assert_eq!(self_profile.method.as_deref(), Some("GET"));
+        assert_eq!(
+            self_profile.path.as_deref(),
+            Some("profile/usr%2F%E9%9B%AA")
+        );
+        assert_eq!(
+            self_profile.query_params,
+            Some(HashMap::from([("asSelf".to_string(), json!(true))]))
+        );
+    }
+
+    #[test]
     fn mutual_friends_controls_the_legacy_user_id_query_parameter() {
         for (include_user_id_param, expected_user_id) in [
             (false, None),
@@ -329,6 +376,7 @@ mod tests {
     #[test]
     fn user_requests_reject_blank_required_ids() {
         assert!(user_get_input("".into(), " ".into()).is_err());
+        assert!(profile_get_input("".into(), " ".into(), false).is_err());
         assert!(user_mutual_counts_get_input("".into(), " ".into()).is_err());
         assert!(user_groups_get_input("".into(), " ".into()).is_err());
         assert!(user_represented_group_get_input("".into(), " ".into()).is_err());
