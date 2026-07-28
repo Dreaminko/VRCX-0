@@ -4,8 +4,7 @@ import {
     CopyIcon,
     ExternalLinkIcon,
     GemIcon,
-    PencilIcon,
-    UsersIcon
+    PencilIcon
 } from 'lucide-react';
 import {
     isValidElement,
@@ -15,7 +14,6 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { FadeInImage } from '@/components/media/FadeInImage';
 import { UserStatusDot } from '@/components/UserStatusDot';
 import type { UserBadgeRecord } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
@@ -61,6 +59,7 @@ import {
     UserDialogHeaderBadges,
     UserDialogHeaderMediaBadges
 } from './UserDialogHeaderBadges';
+import { UserDialogHeaderMedia } from './UserDialogHeaderMedia';
 import { UserDialogProfileDecorationImage } from './UserDialogProfileDecorationImage';
 
 function linearGradientStyle(
@@ -531,22 +530,6 @@ export function UserDialogHeaderSection({
         nameplateGradientStart,
         nameplateGradientEnd
     );
-    const bannerFallback = bannerColor ? (
-        <span aria-hidden className="size-full" />
-    ) : (
-        <UsersIcon className="text-muted-foreground size-8" />
-    );
-    const bannerContent = imageUrl ? (
-        <FadeInImage
-            src={imageUrl}
-            alt={profile.displayName || profile.id || 'User'}
-            className="size-full object-cover"
-            fallback={bannerFallback}
-        />
-    ) : (
-        bannerFallback
-    );
-
     return (
         <EntityOverviewCard
             style={profileBackgroundStyle}
@@ -555,46 +538,16 @@ export function UserDialogHeaderSection({
                 profileBackgroundStyle && 'bg-transparent'
             )}
             media={
-                <div className="relative">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        disabled={!imageUrl || !onImageClick}
-                        onClick={onImageClick}
-                        style={
-                            bannerColor
-                                ? { backgroundColor: bannerColor }
-                                : undefined
-                        }
-                        className={cn(
-                            'bg-muted aspect-[17/6] h-auto w-full overflow-hidden rounded-lg border p-0 disabled:pointer-events-none disabled:opacity-100',
-                            imageUrl ? 'cursor-pointer' : 'cursor-default'
-                        )}
-                    >
-                        {bannerContent}
-                    </Button>
-                    {userIconUrl ? (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            aria-label={t('dialog.user.action.open_user_icon')}
-                            title={t('dialog.user.action.open_user_icon')}
-                            className="bg-background/90 absolute right-3 bottom-3 z-30 size-16 overflow-hidden rounded-full border-2 border-white p-0 shadow-md"
-                            onClick={onOpenUserIcon}
-                        >
-                            <FadeInImage
-                                src={userIconUrl}
-                                alt=""
-                                className="size-full object-cover"
-                            />
-                            <UserDialogProfileDecorationImage
-                                item={profileAppearance.iconFrame}
-                                className="absolute inset-0 z-10"
-                                imageClassName="object-contain"
-                            />
-                        </Button>
-                    ) : null}
-                </div>
+                <UserDialogHeaderMedia
+                    bannerAlt={profile.displayName || profile.id || 'User'}
+                    bannerColor={bannerColor}
+                    bannerUrl={imageUrl}
+                    iconFrame={profileAppearance.iconFrame}
+                    onBannerClick={onImageClick}
+                    onOpenUserIcon={onOpenUserIcon}
+                    userIconLabel={t('dialog.user.action.open_user_icon')}
+                    userIconUrl={userIconUrl}
+                />
             }
         >
             <UserDialogProfileDecorationImage
