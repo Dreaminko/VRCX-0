@@ -1,4 +1,6 @@
+import { ArrowLeftIcon } from 'lucide-react';
 import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { AvatarDialogContent } from '@/components/dialogs/AvatarDialogContent';
 import { GroupDialogContent } from '@/components/dialogs/GroupDialogContent';
@@ -15,6 +17,7 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator
 } from '@/ui/shadcn/breadcrumb';
+import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
     DialogContent,
@@ -24,11 +27,13 @@ import {
 } from '@/ui/shadcn/dialog';
 
 export function DialogHost() {
+    const { t } = useTranslation();
     const activeDialog = useDialogStore((state) => state.activeDialog);
     const breadcrumbs = useDialogStore((state) => state.breadcrumbs);
     const closeDialog = useDialogStore((state) => state.closeDialog);
     const popToBreadcrumb = useDialogStore((state) => state.popToBreadcrumb);
 
+    const currentBreadcrumbIndex = breadcrumbs.length - 1;
     const dialogKind = activeDialog?.kind || '';
     const dialogPayload = activeDialog?.payload || null;
     const isUserDialog = dialogKind === 'user';
@@ -82,40 +87,53 @@ export function DialogHost() {
                         {activeDialog?.description ?? defaultDescription}
                     </DialogDescription>
                 </DialogHeader>
-                {breadcrumbs.length > 1 ? (
-                    <Breadcrumb>
-                        <BreadcrumbList>
-                            {breadcrumbs.map((crumb: any, index: any) => (
-                                <Fragment
-                                    key={`${crumb.key ?? crumb.label}-${index}`}
-                                >
-                                    <BreadcrumbItem>
-                                        {index < breadcrumbs.length - 1 ? (
-                                            <BreadcrumbLink
-                                                className="cursor-pointer"
-                                                onClick={() =>
-                                                    popToBreadcrumb(index)
-                                                }
-                                            >
-                                                {crumb.label ??
-                                                    crumb.title ??
-                                                    `Step ${index + 1}`}
-                                            </BreadcrumbLink>
-                                        ) : (
-                                            <BreadcrumbPage>
-                                                {crumb.label ??
-                                                    crumb.title ??
-                                                    `Step ${index + 1}`}
-                                            </BreadcrumbPage>
-                                        )}
-                                    </BreadcrumbItem>
-                                    {index < breadcrumbs.length - 1 ? (
-                                        <BreadcrumbSeparator />
-                                    ) : null}
-                                </Fragment>
-                            ))}
-                        </BreadcrumbList>
-                    </Breadcrumb>
+                {currentBreadcrumbIndex > 0 ? (
+                    <div className="flex min-w-0 items-center gap-1.5">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('common.actions.back')}
+                            onClick={() =>
+                                popToBreadcrumb(currentBreadcrumbIndex - 1)
+                            }
+                        >
+                            <ArrowLeftIcon data-icon="inline-start" />
+                        </Button>
+                        <Breadcrumb className="min-w-0">
+                            <BreadcrumbList>
+                                {breadcrumbs.map((crumb, index) => (
+                                    <Fragment
+                                        key={`${crumb.key ?? crumb.label}-${index}`}
+                                    >
+                                        <BreadcrumbItem>
+                                            {index < currentBreadcrumbIndex ? (
+                                                <BreadcrumbLink
+                                                    className="cursor-pointer"
+                                                    onClick={() =>
+                                                        popToBreadcrumb(index)
+                                                    }
+                                                >
+                                                    {crumb.label ??
+                                                        crumb.title ??
+                                                        `Step ${index + 1}`}
+                                                </BreadcrumbLink>
+                                            ) : (
+                                                <BreadcrumbPage>
+                                                    {crumb.label ??
+                                                        crumb.title ??
+                                                        `Step ${index + 1}`}
+                                                </BreadcrumbPage>
+                                            )}
+                                        </BreadcrumbItem>
+                                        {index < currentBreadcrumbIndex ? (
+                                            <BreadcrumbSeparator />
+                                        ) : null}
+                                    </Fragment>
+                                ))}
+                            </BreadcrumbList>
+                        </Breadcrumb>
+                    </div>
                 ) : null}
                 {isUserDialog ? (
                     <UserDialogContent
