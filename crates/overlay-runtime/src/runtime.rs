@@ -1125,6 +1125,11 @@ impl VrOverlayRuntime {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn refresh_wake_sequence(&self) -> u64 {
+        self.refresh_wake.sequence()
+    }
+
     fn input_drain_interval(&self) -> Duration {
         if !self.current_runtime_config().panel_enabled {
             return WRIST_FRAME_REFRESH_INTERVAL;

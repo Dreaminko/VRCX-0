@@ -377,7 +377,12 @@ impl VrOverlayRuntime {
                 true
             }
         };
-        if updated {
+        // Active animation already redraws every 16 ms; only wake a static queue.
+        if updated
+            && self
+                .hmd_toast_refresh_hint(Instant::now())
+                .is_some_and(|hint| !hint.is_zero())
+        {
             self.reconcile_current();
         }
     }

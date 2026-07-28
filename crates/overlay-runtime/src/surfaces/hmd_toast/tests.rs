@@ -189,6 +189,42 @@ fn hmd_avatar_cache_hit_requires_friend_snapshot() {
 }
 
 #[test]
+fn hmd_avatar_update_wakes_static_rendering_only() {
+    let (_dir, _db, services) = test_services("hmd-avatar-static-render-wake");
+    let runtime = hmd_enabled_runtime_with_services(services);
+    let now = Instant::now();
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "static-avatar",
+            "Status",
+            OverlayActivityActorRelation::Friend,
+            "wrld_home:123",
+        ),
+        now - HMD_TOAST_FADE_IN,
+        Duration::from_secs(5),
+    );
+
+    let before_static_update = runtime.refresh_wake_sequence();
+    runtime.update_hmd_avatar("static-avatar", test_avatar_bitmap());
+    assert!(runtime.refresh_wake_sequence() > before_static_update);
+
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "animating-avatar",
+            "Status",
+            OverlayActivityActorRelation::Friend,
+            "wrld_home:123",
+        ),
+        Instant::now(),
+        Duration::from_secs(5),
+    );
+
+    let before_animating_update = runtime.refresh_wake_sequence();
+    runtime.update_hmd_avatar("animating-avatar", test_avatar_bitmap_with_red(128));
+    assert_eq!(runtime.refresh_wake_sequence(), before_animating_update);
+}
+
+#[test]
 fn hmd_snapshot_gap_does_not_drop_loaded_toast_avatar() {
     let (_dir, _db, services) = test_services("hmd-avatar-snapshot-gap");
     let runtime = hmd_enabled_runtime_with_services(services);
