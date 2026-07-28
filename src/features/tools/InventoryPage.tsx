@@ -1,5 +1,6 @@
 import {
     ArchiveIcon,
+    CheckIcon,
     GiftIcon,
     ImageIcon,
     PackageIcon,
@@ -8,7 +9,8 @@ import {
     SlidersHorizontalIcon,
     SettingsIcon,
     Trash2Icon,
-    UploadIcon
+    UploadIcon,
+    XIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -64,6 +66,7 @@ import {
     resolveInventoryName,
     resolveInventoryType,
     resolveProfileDecorationPreviewUrl,
+    resolveProfileDecorationMutation,
     resolveProfileDecorationTypeLabelKey,
     scopeKey
 } from './inventoryHelpers';
@@ -207,12 +210,15 @@ function InventoryFileCard({
     );
 }
 
-function InventoryItemCard({
+export function InventoryItemCard({
     item,
+    currentUserId,
     mutatingKey,
+    profileDecorationMutationPending,
     onPreview,
     onArchive,
-    onConsumeBundle
+    onConsumeBundle,
+    onSetProfileDecorationEquipped
 }: any) {
     const { t } = useTranslation();
     const imageUrl = resolveInventoryImageUrl(item);
@@ -222,6 +228,10 @@ function InventoryItemCard({
     const archived = isArchivedInventoryItem(item);
     const profileDecorationTypeLabelKey =
         resolveProfileDecorationTypeLabelKey(itemType);
+    const profileDecorationMutation = resolveProfileDecorationMutation(
+        item,
+        currentUserId
+    );
     const previewUrl = profileDecorationTypeLabelKey
         ? resolveProfileDecorationPreviewUrl(item)
         : imageUrl;
@@ -230,6 +240,28 @@ function InventoryItemCard({
         item.created_at || item.createdAt
             ? formatDateFilter(item.created_at || item.createdAt, 'long')
             : '';
+    const isUnequip = profileDecorationMutation?.action === 'unequip';
+    const profileDecorationAction = profileDecorationMutation
+        ? {
+              label: t(
+                  isUnequip
+                      ? 'dialog.inventory.unequip'
+                      : 'dialog.inventory.equip'
+              ),
+              icon: isUnequip ? XIcon : CheckIcon,
+              disabled: isMutating || profileDecorationMutationPending,
+              onClick: () => onSetProfileDecorationEquipped(item)
+          }
+        : null;
+    const primaryAction =
+        itemType === 'bundle'
+            ? {
+                  label: t('dialog.gallery_icons.consume_bundle'),
+                  icon: GiftIcon,
+                  disabled: isMutating,
+                  onClick: () => onConsumeBundle(item.id)
+              }
+            : profileDecorationAction;
 
     return (
         <InventoryItemTile
@@ -264,16 +296,7 @@ function InventoryItemCard({
                     title: name || item.id
                 })
             }
-            primaryAction={
-                itemType === 'bundle'
-                    ? {
-                          label: t('dialog.gallery_icons.consume_bundle'),
-                          icon: GiftIcon,
-                          disabled: isMutating,
-                          onClick: () => onConsumeBundle(item.id)
-                      }
-                    : null
-            }
+            primaryAction={primaryAction}
             menuLabel={t('aria.more')}
             menuActions={[
                 {
@@ -296,11 +319,14 @@ function InventoryRows({
     source,
     loading,
     densityConfig,
+    currentUserId,
     mutatingKey,
+    profileDecorationMutationPending,
     onPreview,
     onDeleteFile,
     onArchive,
-    onConsumeBundle
+    onConsumeBundle,
+    onSetProfileDecorationEquipped
 }: any) {
     const { t } = useTranslation();
 
@@ -335,10 +361,17 @@ function InventoryRows({
                     <InventoryItemCard
                         key={row.id}
                         item={row}
+                        currentUserId={currentUserId}
                         mutatingKey={mutatingKey}
+                        profileDecorationMutationPending={
+                            profileDecorationMutationPending
+                        }
                         onPreview={onPreview}
                         onArchive={onArchive}
                         onConsumeBundle={onConsumeBundle}
+                        onSetProfileDecorationEquipped={
+                            onSetProfileDecorationEquipped
+                        }
                     />
                 )
             )}
@@ -615,7 +648,13 @@ export function InventoryPage() {
                                             densityConfig={
                                                 inventory.gridDensityConfig
                                             }
+                                            currentUserId={
+                                                inventory.currentUserId
+                                            }
                                             mutatingKey={inventory.mutatingKey}
+                                            profileDecorationMutationPending={
+                                                inventory.profileDecorationMutationPending
+                                            }
                                             onPreview={
                                                 inventory.openImagePreview
                                             }
@@ -640,6 +679,9 @@ export function InventoryPage() {
                                                     inventoryId
                                                 );
                                             }}
+                                            onSetProfileDecorationEquipped={
+                                                inventory.setProfileDecorationEquipped
+                                            }
                                         />
                                     </div>
                                 </div>

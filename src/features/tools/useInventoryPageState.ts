@@ -3,11 +3,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import mediaRepository from '@/repositories/mediaRepository';
+import mediaRepository, {
+    type InventoryItemRecord
+} from '@/repositories/mediaRepository';
 import {
     VRCHAT_API_DEFAULT_PAGE_SIZE,
     VRCHAT_INVENTORY_MAX_PAGES
 } from '@/repositories/paginationConstants';
+import { refreshCurrentUser } from '@/services/backgroundMaintenanceSessionService';
 import {
     IMAGE_UPLOAD_ACCEPT,
     readFileAsBase64,
@@ -18,9 +21,11 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 
 import {
     CATEGORY_DEFINITIONS,
+    INITIAL_INVENTORY_SUB_TABS,
     getInventoryGridDensityConfig,
     parseEmojiUploadSettings,
     readGridDensityPreference,
+    resolveProfileDecorationMutation,
     sanitizeInventoryGridDensity,
     scopeKey,
     validateImageFile,
@@ -32,11 +37,15 @@ export { IMAGE_UPLOAD_ACCEPT };
 type InventoryAuthTarget = {
     endpoint: string;
     userId: string;
+    websocket: string;
 };
 
 type InventoryRow = Record<string, unknown> & {
     id?: unknown;
 };
+
+const EMPTY_ROWS_BY_SCOPE: Record<string, InventoryRow[]> = Object.freeze({});
+const EMPTY_LOADING_BY_SCOPE: Record<string, boolean> = Object.freeze({});
 
 type InventoryUploadSettings = {
     animationStyle: string;
@@ -54,6 +63,12 @@ type InventoryCropRequest = {
     target: string | null;
 };
 
+function inventoryAuthTargetKey(authTarget: InventoryAuthTarget) {
+    return [authTarget.endpoint, authTarget.userId, authTarget.websocket].join(
+        '\u0000'
+    );
+}
+
 export function useInventoryPageState() {
     const { t } = useTranslation();
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -61,6 +76,9 @@ export function useInventoryPageState() {
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const currentEndpoint = useRuntimeStore(
         (state) => state.auth.currentUserEndpoint
+    );
+    const currentUserWebsocket = useRuntimeStore(
+        (state) => state.auth.currentUserWebsocket
     );
     const currentUserSnapshot = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot
@@ -70,10 +88,7 @@ export function useInventoryPageState() {
     const openImagePreview = useModalStore((state) => state.openImagePreview);
     const [activeCategory, setActiveCategory] = useState('emojis');
     const [activeSubTabs, setActiveSubTabs] = useState<Record<string, string>>({
-        emojis: 'custom',
-        stickers: 'custom',
-        items: 'all',
-        cosmetics: 'drones'
+        ...INITIAL_INVENTORY_SUB_TABS
     });
     const [rowsByScope, setRowsByScope] = useState<
         Record<string, InventoryRow[]>
@@ -81,7 +96,19 @@ export function useInventoryPageState() {
     const [loadingByScope, setLoadingByScope] = useState<
         Record<string, boolean>
     >({});
+    const currentAuthTargetKey = inventoryAuthTargetKey({
+        userId: currentUserId || '',
+        endpoint: currentEndpoint || '',
+        websocket: currentUserWebsocket || ''
+    });
+    const [scopeStateAuthTargetKey, setScopeStateAuthTargetKey] =
+        useState(currentAuthTargetKey);
     const [mutatingKey, setMutatingKey] = useState('');
+    const profileDecorationMutationPendingRef = useRef(false);
+    const [
+        profileDecorationMutationPending,
+        setProfileDecorationMutationPending
+    ] = useState(false);
     const [uploadingTarget, setUploadingTarget] = useState('');
     const [cropRequest, setCropRequest] = useState<InventoryCropRequest | null>(
         null
@@ -106,9 +133,11 @@ export function useInventoryPageState() {
     const activeScopeKey = scopeKey(activeCategory, activeSubTab);
 
     function getAuthTarget() {
+        const auth = useRuntimeStore.getState().auth;
         return {
-            userId: currentUserId || '',
-            endpoint: currentEndpoint || ''
+            userId: auth.currentUserId || '',
+            endpoint: auth.currentUserEndpoint || '',
+            websocket: auth.currentUserWebsocket || ''
         };
     }
 
@@ -116,7 +145,8 @@ export function useInventoryPageState() {
         const currentAuth = getAuthTarget();
         return (
             currentAuth.userId === authTarget.userId &&
-            currentAuth.endpoint === authTarget.endpoint
+            currentAuth.endpoint === authTarget.endpoint &&
+            currentAuth.websocket === authTarget.websocket
         );
     }
 
@@ -226,13 +256,25 @@ export function useInventoryPageState() {
     }
 
     useEffect(() => {
-        if (!currentUserId) {
-            setRowsByScope({});
-            setLoadingByScope({});
-            return;
+        setScopeStateAuthTargetKey(currentAuthTargetKey);
+        setRowsByScope({});
+        setLoadingByScope({});
+        setMutatingKey('');
+        profileDecorationMutationPendingRef.current = false;
+        setProfileDecorationMutationPending(false);
+    }, [currentAuthTargetKey]);
+
+    useEffect(() => {
+        if (currentUserId) {
+            refreshScope(activeCategory, activeSubTab);
         }
-        refreshScope(activeCategory, activeSubTab);
-    }, [currentEndpoint, currentUserId, activeCategory, activeSubTab]);
+    }, [
+        currentEndpoint,
+        currentUserId,
+        currentUserWebsocket,
+        activeCategory,
+        activeSubTab
+    ]);
 
     function beginUpload(target: any) {
         if (!isVrcPlusSupporter) {
@@ -497,6 +539,83 @@ export function useInventoryPageState() {
         }
     }
 
+    async function setProfileDecorationEquipped(item: InventoryItemRecord) {
+        const authTarget = getAuthTarget();
+        if (inventoryAuthTargetKey(authTarget) !== currentAuthTargetKey) {
+            return;
+        }
+        const mutation = resolveProfileDecorationMutation(
+            item,
+            authTarget.userId
+        );
+        if (!mutation) {
+            return;
+        }
+        if (profileDecorationMutationPendingRef.current) {
+            return;
+        }
+
+        profileDecorationMutationPendingRef.current = true;
+        setProfileDecorationMutationPending(true);
+        const mutationKey = `inventory:${mutation.inventoryId}`;
+        const isUnequip = mutation.action === 'unequip';
+        setMutatingKey(mutationKey);
+        try {
+            try {
+                if (isUnequip) {
+                    await mediaRepository.unequipProfileDecoration({
+                        expectedUserId: authTarget.userId,
+                        equipSlot: mutation.equipSlot
+                    });
+                } else {
+                    await mediaRepository.equipProfileDecoration({
+                        expectedUserId: authTarget.userId,
+                        inventoryId: mutation.inventoryId,
+                        equipSlot: mutation.equipSlot
+                    });
+                }
+            } catch (error) {
+                if (isCurrentAuthTarget(authTarget)) {
+                    toast.error(
+                        error instanceof Error
+                            ? error.message
+                            : t(
+                                  'dialog.inventory.failed_to_update_profile_decoration'
+                              )
+                    );
+                }
+                return;
+            }
+            if (!isCurrentAuthTarget(authTarget)) {
+                return;
+            }
+
+            toast.success(
+                t(
+                    isUnequip
+                        ? 'dialog.inventory.unequipped_success'
+                        : 'dialog.inventory.equipped_success'
+                )
+            );
+            await Promise.allSettled([
+                refreshScope('cosmetics', 'profile-decorations'),
+                refreshCurrentUser({
+                    expectedUserId: authTarget.userId,
+                    expectedEndpoint: authTarget.endpoint,
+                    expectedWebsocket: authTarget.websocket
+                })
+            ]);
+        } finally {
+            if (isCurrentAuthTarget(authTarget)) {
+                profileDecorationMutationPendingRef.current = false;
+                setProfileDecorationMutationPending(false);
+                setMutatingKey((current) =>
+                    current === mutationKey ? '' : current
+                );
+            }
+        }
+    }
+
     async function redeemReward() {
         const authTarget = getAuthTarget();
         const result = await prompt({
@@ -548,6 +667,7 @@ export function useInventoryPageState() {
         closeCropRequest,
         confirmCroppedUpload,
         consumeInventoryBundle,
+        currentUserId,
         cropRequest,
         deleteFileAsset,
         emojiAnimFps,
@@ -560,10 +680,17 @@ export function useInventoryPageState() {
         isVrcPlusSupporter,
         mutatingKey,
         openImagePreview,
+        profileDecorationMutationPending,
         redeemReward,
         refreshScope,
-        rowsByScope,
-        loadingByScope,
+        rowsByScope:
+            scopeStateAuthTargetKey === currentAuthTargetKey
+                ? rowsByScope
+                : EMPTY_ROWS_BY_SCOPE,
+        loadingByScope:
+            scopeStateAuthTargetKey === currentAuthTargetKey
+                ? loadingByScope
+                : EMPTY_LOADING_BY_SCOPE,
         setActiveCategory,
         setActiveSubTabs,
         setEmojiAnimFps,
@@ -571,6 +698,7 @@ export function useInventoryPageState() {
         setEmojiAnimLoopPingPong,
         setEmojiAnimType,
         setEmojiAnimationStyle,
+        setProfileDecorationEquipped,
         uploadInputRef,
         uploadingTarget,
         uploadSelectedFile

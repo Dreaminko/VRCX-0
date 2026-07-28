@@ -5,6 +5,8 @@ const commandMocks = vi.hoisted(() => ({
     appVrchatMediaFileDelete: vi.fn(),
     appVrchatMediaInventoryItemsGet: vi.fn(),
     appVrchatMediaInventoryTemplateGet: vi.fn(),
+    appVrchatMediaProfileDecorationEquip: vi.fn(),
+    appVrchatMediaProfileDecorationUnequip: vi.fn(),
     appVrchatMediaPrintUpload: vi.fn(),
     appVrchatMediaUserInventoryItemGet: vi.fn(),
     appVrchatPrintsFavoriteSet: vi.fn(),
@@ -247,6 +249,68 @@ describe('vrchatMediaRepository', () => {
             };
             templateId?: string;
         }>();
+    });
+
+    it('equips an owned profile decoration with the authenticated user target', async () => {
+        await vrchatMediaRepository.equipProfileDecoration({
+            expectedUserId: ' usr_self ',
+            inventoryId: ' inv_frame ',
+            equipSlot: ' iconFrame '
+        });
+
+        expect(
+            commandMocks.appVrchatMediaProfileDecorationEquip
+        ).toHaveBeenCalledWith({
+            expectedUserId: 'usr_self',
+            inventoryId: 'inv_frame',
+            equipSlot: 'iconFrame'
+        });
+    });
+
+    it('unequips a profile decoration by slot, not inventory id', async () => {
+        commandMocks.appVrchatMediaProfileDecorationUnequip.mockResolvedValueOnce(
+            {
+                status: 200,
+                data: JSON.stringify('OK')
+            }
+        );
+
+        await expect(
+            vrchatMediaRepository.unequipProfileDecoration({
+                expectedUserId: ' usr_self ',
+                equipSlot: 'profileEffect'
+            })
+        ).resolves.toMatchObject({ json: 'OK' });
+
+        expect(
+            commandMocks.appVrchatMediaProfileDecorationUnequip
+        ).toHaveBeenCalledWith({
+            expectedUserId: 'usr_self',
+            equipSlot: 'profileEffect'
+        });
+    });
+
+    it('rejects invalid profile decoration mutation input before invoking commands', async () => {
+        await expect(
+            vrchatMediaRepository.equipProfileDecoration({
+                expectedUserId: '',
+                inventoryId: 'inv_frame',
+                equipSlot: 'iconFrame'
+            })
+        ).rejects.toThrow('requires a user id');
+        await expect(
+            vrchatMediaRepository.unequipProfileDecoration({
+                expectedUserId: 'usr_self',
+                equipSlot: 'invalid'
+            })
+        ).rejects.toThrow('requires a profile decoration slot');
+
+        expect(
+            commandMocks.appVrchatMediaProfileDecorationEquip
+        ).not.toHaveBeenCalled();
+        expect(
+            commandMocks.appVrchatMediaProfileDecorationUnequip
+        ).not.toHaveBeenCalled();
     });
 
     it('treats only literal true as a print favorite write', async () => {

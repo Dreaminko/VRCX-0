@@ -152,6 +152,37 @@ fn inventory_template_get_trims_and_encodes_the_template_id() {
 }
 
 #[test]
+fn inventory_item_equip_uses_owned_item_path_and_only_the_slot_body() {
+    let request =
+        inventory_item_equip_input(ENDPOINT.into(), " inv_1/雪 ".into(), " iconFrame ".into())
+            .unwrap();
+
+    assert_eq!(request.method.as_deref(), Some("PUT"));
+    assert_eq!(
+        request.path.as_deref(),
+        Some("inventory/inv%5F1%2F%E9%9B%AA/equip")
+    );
+    assert_eq!(
+        request.body.as_json(),
+        Some(&json!({ "equipSlot": "iconFrame" }))
+    );
+}
+
+#[test]
+fn inventory_slot_unequip_uses_the_encoded_slot_path_without_a_body() {
+    let request =
+        inventory_slot_unequip_input(ENDPOINT.into(), " profileEffect/雪 ".into()).unwrap();
+
+    assert_eq!(request.method.as_deref(), Some("DELETE"));
+    assert_eq!(
+        request.path.as_deref(),
+        Some("inventory/profileEffect%2F%E9%9B%AA/equip")
+    );
+    assert_eq!(request.body, HttpApiRequestBody::Empty);
+    assert_eq!(request.headers, None);
+}
+
+#[test]
 fn file_upload_stage_accepts_only_file_and_signature_with_encoded_id() {
     assert_eq!(
         file_upload_stage_path(" file_1/unsafe ".into(), 4, " file ".into()).unwrap(),
@@ -216,6 +247,9 @@ fn media_id_requests_reject_empty_text() {
     assert!(user_inventory_item_get_input(ENDPOINT.into(), "usr_1".into(), " ".into(),).is_err());
     assert!(inventory_item_update_input(ENDPOINT.into(), " ".into(), HashMap::new()).is_err());
     assert!(inventory_template_get_input(ENDPOINT.into(), " ".into()).is_err());
+    assert!(inventory_item_equip_input(ENDPOINT.into(), " ".into(), "iconFrame".into()).is_err());
+    assert!(inventory_item_equip_input(ENDPOINT.into(), "inv_1".into(), " ".into()).is_err());
+    assert!(inventory_slot_unequip_input(ENDPOINT.into(), " ".into()).is_err());
     assert!(inventory_bundle_consume_input(ENDPOINT.into(), " ".into()).is_err());
     assert!(file_version_create_input(
         ENDPOINT.into(),

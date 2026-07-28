@@ -68,9 +68,10 @@ pub mod media {
         asset_upload_input, avatar_gallery_image_upload_input, avatar_image_set_input,
         file_delete_input, file_put_input, file_upload_finish_input, file_upload_stage_path,
         file_upload_start_input, file_version_create_input, files_get_input, image_upload_input,
-        inventory_bundle_consume_input, inventory_item_update_input, inventory_items_get_input,
-        inventory_template_get_input, print_delete_input, print_get_input, print_upload_input,
-        prints_get_input, reward_redeem_input, sticker_upload_input, tagged_image_upload_input,
+        inventory_bundle_consume_input, inventory_item_equip_input, inventory_item_update_input,
+        inventory_items_get_input, inventory_slot_unequip_input, inventory_template_get_input,
+        print_delete_input, print_get_input, print_upload_input, prints_get_input,
+        reward_redeem_input, sticker_upload_input, tagged_image_upload_input,
         user_inventory_item_get_input, world_image_set_input,
     };
 }

@@ -1801,6 +1801,22 @@ export const commands = {
             input
         });
     },
+    async appVrchatMediaProfileDecorationEquip(
+        input: VrchatMediaProfileDecorationEquipInput
+    ): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE(
+            'app__vrchat_media_profile_decoration_equip',
+            { input }
+        );
+    },
+    async appVrchatMediaProfileDecorationUnequip(
+        input: VrchatMediaProfileDecorationUnequipInput
+    ): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE(
+            'app__vrchat_media_profile_decoration_unequip',
+            { input }
+        );
+    },
     async appVrchatMediaPrintDelete(
         input: VrchatMediaPrintIdInput
     ): Promise<HttpApiExecuteResponse> {
@@ -5304,6 +5320,15 @@ export type VrchatMediaPrintUploadInput = {
     params?: Partial<{ [key in string]: JsonValue }>;
 };
 export type VrchatMediaPrintsInput = { userId?: string; n?: number };
+export type VrchatMediaProfileDecorationEquipInput = {
+    expectedUserId?: string;
+    inventoryId?: string;
+    equipSlot?: string;
+};
+export type VrchatMediaProfileDecorationUnequipInput = {
+    expectedUserId?: string;
+    equipSlot?: string;
+};
 export type VrchatMediaRewardRedeemInput = { code?: string };
 export type VrchatMediaUserInventoryItemInput = {
     userId?: string;

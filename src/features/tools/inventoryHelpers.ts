@@ -17,6 +17,12 @@ export { MAX_IMAGE_UPLOAD_BYTES };
 export const INVENTORY_GRID_DENSITY_STORAGE_KEY = 'VRCX_InventoryGridDensity';
 
 export const CATEGORY_ORDER = ['emojis', 'stickers', 'items', 'cosmetics'];
+export const INITIAL_INVENTORY_SUB_TABS = Object.freeze({
+    emojis: 'custom',
+    stickers: 'custom',
+    items: 'all',
+    cosmetics: 'profile-decorations'
+});
 
 const PROFILE_DECORATION_ITEM_TYPES = [
     'iconFrame',
@@ -25,6 +31,11 @@ const PROFILE_DECORATION_ITEM_TYPES = [
 ] as const;
 const PROFILE_DECORATION_TYPES_PARAM = PROFILE_DECORATION_ITEM_TYPES.join(',');
 type ProfileDecorationItemType = (typeof PROFILE_DECORATION_ITEM_TYPES)[number];
+export type ProfileDecorationMutation = {
+    action: 'equip' | 'unequip';
+    equipSlot: ProfileDecorationItemType;
+    inventoryId: string;
+};
 
 const PROFILE_DECORATION_TYPE_LABEL_KEYS: Record<
     ProfileDecorationItemType,
@@ -309,6 +320,33 @@ export function isEquippedProfileDecoration(
         isProfileDecorationItemType(item.itemType) &&
         item.equipSlot === item.itemType
     );
+}
+
+export function resolveProfileDecorationMutation(
+    item: InventoryItemRecord,
+    currentUserId: unknown
+): ProfileDecorationMutation | null {
+    const inventoryId = item.id?.trim() ?? '';
+    const normalizedCurrentUserId =
+        typeof currentUserId === 'string' ? currentUserId.trim() : '';
+    const holderId = item.holderId?.trim() ?? '';
+    if (
+        !inventoryId.startsWith('inv_') ||
+        !normalizedCurrentUserId ||
+        !isProfileDecorationItemType(item.itemType) ||
+        !item.equipSlots?.includes(item.itemType) ||
+        !item.flags?.includes('equippable') ||
+        isArchivedInventoryItem(item) ||
+        (holderId && holderId !== normalizedCurrentUserId)
+    ) {
+        return null;
+    }
+
+    return {
+        action: item.equipSlot === item.itemType ? 'unequip' : 'equip',
+        equipSlot: item.itemType,
+        inventoryId
+    };
 }
 
 export function resolveProfileDecorationPreviewUrl(

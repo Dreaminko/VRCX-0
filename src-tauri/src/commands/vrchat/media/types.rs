@@ -110,6 +110,26 @@ pub struct VrchatMediaInventoryTemplateInput {
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct VrchatMediaProfileDecorationEquipInput {
+    #[serde(default)]
+    pub(crate) expected_user_id: String,
+    #[serde(default)]
+    pub(crate) inventory_id: String,
+    #[serde(default)]
+    pub(crate) equip_slot: String,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct VrchatMediaProfileDecorationUnequipInput {
+    #[serde(default)]
+    pub(crate) expected_user_id: String,
+    #[serde(default)]
+    pub(crate) equip_slot: String,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct VrchatMediaRewardRedeemInput {
     #[serde(default)]
     pub(crate) code: String,

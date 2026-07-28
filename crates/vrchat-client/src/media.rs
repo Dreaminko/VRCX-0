@@ -224,6 +224,43 @@ pub fn inventory_template_get_input(
     ))
 }
 
+pub fn inventory_item_equip_input(
+    endpoint: String,
+    inventory_id: String,
+    equip_slot: String,
+) -> Result<HttpApiRequestInput, HttpApiError> {
+    let inventory_id = require_text(
+        inventory_id,
+        "VrchatMediaProfileDecorationEquip requires inventoryId.",
+    )?;
+    let equip_slot = require_text(
+        equip_slot,
+        "VrchatMediaProfileDecorationEquip requires equipSlot.",
+    )?;
+    Ok(api_input(
+        endpoint,
+        "PUT",
+        format!("inventory/{}/equip", encode_path_segment(&inventory_id)),
+        Some(serde_json::json!({ "equipSlot": equip_slot })),
+    ))
+}
+
+pub fn inventory_slot_unequip_input(
+    endpoint: String,
+    equip_slot: String,
+) -> Result<HttpApiRequestInput, HttpApiError> {
+    let equip_slot = require_text(
+        equip_slot,
+        "VrchatMediaProfileDecorationUnequip requires equipSlot.",
+    )?;
+    Ok(api_input(
+        endpoint,
+        "DELETE",
+        format!("inventory/{}/equip", encode_path_segment(&equip_slot)),
+        None,
+    ))
+}
+
 pub fn inventory_item_update_input(
     endpoint: String,
     inventory_id: String,

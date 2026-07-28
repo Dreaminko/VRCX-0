@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
     CATEGORY_DEFINITIONS,
+    INITIAL_INVENTORY_SUB_TABS,
     MAX_IMAGE_UPLOAD_BYTES,
     getLatestFileUrl,
     getUsefulDisplayName,
     isEquippedProfileDecoration,
     parseEmojiUploadSettings,
+    resolveProfileDecorationMutation,
     resolveProfileDecorationPreviewUrl,
     resolveProfileDecorationTypeLabelKey,
     resolveInventoryDescription,
@@ -174,6 +176,70 @@ describe('inventory helpers', () => {
         expect(archived.params.types).toBe(
             'droneskin,portalskin,warpeffect,iconFrame,profileEffect,nameplateEffect'
         );
+    });
+
+    it('opens cosmetics on profile decorations instead of drones', () => {
+        expect(INITIAL_INVENTORY_SUB_TABS.cosmetics).toBe(
+            'profile-decorations'
+        );
+    });
+
+    it('resolves equip and unequip from the owned active slot', () => {
+        const item = {
+            id: 'inv_frame',
+            holderId: 'usr_self',
+            itemType: 'iconFrame',
+            equipSlot: '',
+            equipSlots: ['iconFrame'],
+            flags: ['equippable']
+        };
+
+        expect(resolveProfileDecorationMutation(item, 'usr_self')).toEqual({
+            action: 'equip',
+            equipSlot: 'iconFrame',
+            inventoryId: 'inv_frame'
+        });
+        expect(
+            resolveProfileDecorationMutation(
+                {
+                    ...item,
+                    equipSlot: 'iconFrame',
+                    last_equipped: {
+                        iconFrame: '2026-07-26T15:12:39.373Z'
+                    }
+                },
+                'usr_self'
+            )
+        ).toEqual({
+            action: 'unequip',
+            equipSlot: 'iconFrame',
+            inventoryId: 'inv_frame'
+        });
+    });
+
+    it('rejects decorations that are not safe to mutate', () => {
+        const validItem = {
+            id: 'inv_frame',
+            holderId: 'usr_self',
+            itemType: 'iconFrame',
+            equipSlot: '',
+            equipSlots: ['iconFrame'],
+            flags: ['equippable']
+        };
+
+        for (const item of [
+            { ...validItem, id: 'invt_frame' },
+            { ...validItem, holderId: 'usr_other' },
+            { ...validItem, itemType: 'droneskin' },
+            { ...validItem, equipSlots: [] },
+            { ...validItem, flags: [] },
+            { ...validItem, isArchived: true }
+        ]) {
+            expect(
+                resolveProfileDecorationMutation(item, 'usr_self')
+            ).toBeNull();
+        }
+        expect(resolveProfileDecorationMutation(validItem, '')).toBeNull();
     });
 
     it('uses the active equipment slot instead of equipment history', () => {

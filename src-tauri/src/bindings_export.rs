@@ -428,6 +428,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::vrchat::media::service::app__vrchat_media_inventory_item_update,
             commands::vrchat::media::service::app__vrchat_media_inventory_items_get,
             commands::vrchat::media::service::app__vrchat_media_inventory_template_get,
+            commands::vrchat::media::service::app__vrchat_media_profile_decoration_equip,
+            commands::vrchat::media::service::app__vrchat_media_profile_decoration_unequip,
             commands::vrchat::media::service::app__vrchat_media_print_delete,
             commands::vrchat::media::service::app__vrchat_media_print_get,
             commands::vrchat::media::service::app__vrchat_media_print_upload,

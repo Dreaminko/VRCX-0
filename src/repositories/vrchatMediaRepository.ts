@@ -5,6 +5,7 @@ import {
 } from '@/lib/entityQueryCache';
 import { commands } from '@/platform/tauri/bindings';
 import type { PrintFavoriteState } from '@/platform/tauri/bindings';
+import { normalizeString } from '@/shared/utils/string';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
 import { normalizePlatformError } from '../platform/tauri/errors';
@@ -112,6 +113,26 @@ export type InventoryItemRecord = MediaApiRecord & {
 export type InventoryItemsResponse = {
     data: InventoryItemRecord[];
     totalCount: number;
+};
+
+const PROFILE_DECORATION_EQUIP_SLOTS = [
+    'iconFrame',
+    'profileEffect',
+    'nameplateEffect'
+] as const;
+
+type ProfileDecorationEquipSlot =
+    (typeof PROFILE_DECORATION_EQUIP_SLOTS)[number];
+
+type ProfileDecorationEquipInput = {
+    expectedUserId: unknown;
+    inventoryId: unknown;
+    equipSlot: unknown;
+};
+
+type ProfileDecorationUnequipInput = {
+    expectedUserId: unknown;
+    equipSlot: unknown;
 };
 
 interface MediaApiOptions {
@@ -523,6 +544,88 @@ async function getInventoryTemplate(
     });
 }
 
+function normalizeProfileDecorationEquipSlot(
+    value: unknown
+): ProfileDecorationEquipSlot | null {
+    const normalizedValue = normalizeString(value);
+    return (
+        PROFILE_DECORATION_EQUIP_SLOTS.find(
+            (slot) => slot === normalizedValue
+        ) ?? null
+    );
+}
+
+async function equipProfileDecoration({
+    expectedUserId,
+    inventoryId,
+    equipSlot
+}: ProfileDecorationEquipInput) {
+    const normalizedExpectedUserId = normalizeString(expectedUserId);
+    const normalizedInventoryId = normalizeString(inventoryId);
+    const normalizedEquipSlot = normalizeProfileDecorationEquipSlot(equipSlot);
+    if (!normalizedExpectedUserId) {
+        throw new Error(
+            'MediaRepository.equipProfileDecoration requires a user id.'
+        );
+    }
+    if (!normalizedInventoryId) {
+        throw new Error(
+            'MediaRepository.equipProfileDecoration requires an inventory id.'
+        );
+    }
+    if (!normalizedEquipSlot) {
+        throw new Error(
+            'MediaRepository.equipProfileDecoration requires a profile decoration slot.'
+        );
+    }
+
+    return executeMediaCommand(
+        () =>
+            commands.appVrchatMediaProfileDecorationEquip({
+                expectedUserId: normalizedExpectedUserId,
+                inventoryId: normalizedInventoryId,
+                equipSlot: normalizedEquipSlot
+            }),
+        {
+            extra: {
+                inventoryId: normalizedInventoryId,
+                equipSlot: normalizedEquipSlot
+            }
+        }
+    );
+}
+
+async function unequipProfileDecoration({
+    expectedUserId,
+    equipSlot
+}: ProfileDecorationUnequipInput) {
+    const normalizedExpectedUserId = normalizeString(expectedUserId);
+    const normalizedEquipSlot = normalizeProfileDecorationEquipSlot(equipSlot);
+    if (!normalizedExpectedUserId) {
+        throw new Error(
+            'MediaRepository.unequipProfileDecoration requires a user id.'
+        );
+    }
+    if (!normalizedEquipSlot) {
+        throw new Error(
+            'MediaRepository.unequipProfileDecoration requires a profile decoration slot.'
+        );
+    }
+
+    return executeMediaCommand<string>(
+        () =>
+            commands.appVrchatMediaProfileDecorationUnequip({
+                expectedUserId: normalizedExpectedUserId,
+                equipSlot: normalizedEquipSlot
+            }),
+        {
+            extra: {
+                equipSlot: normalizedEquipSlot
+            }
+        }
+    );
+}
+
 async function getUserInventoryItem(
     { inventoryId, userId }: { inventoryId?: unknown; userId?: unknown } = {},
     options: MediaApiOptions = {}
@@ -729,6 +832,8 @@ const vrchatMediaRepository = Object.freeze({
     setPrintFavorite,
     getInventoryItems,
     getInventoryTemplate,
+    equipProfileDecoration,
+    unequipProfileDecoration,
     getUserInventoryItem,
     updateInventoryItem,
     consumeInventoryBundle,
@@ -755,6 +860,8 @@ export {
     setPrintFavorite,
     getInventoryItems,
     getInventoryTemplate,
+    equipProfileDecoration,
+    unequipProfileDecoration,
     getUserInventoryItem,
     updateInventoryItem,
     consumeInventoryBundle,

@@ -5,10 +5,11 @@ use vrcx_0_application_core::vrchat_api::media::{
     asset_upload_input, avatar_gallery_image_upload_input, avatar_image_set_input,
     file_delete_input, file_put_input, file_upload_finish_input, file_upload_stage_path,
     file_upload_start_input, file_version_create_input, files_get_input,
-    inventory_bundle_consume_input, inventory_item_update_input, inventory_items_get_input,
-    inventory_template_get_input, print_delete_input, print_get_input, print_upload_input,
-    prints_get_input, reward_redeem_input, sticker_upload_input, tagged_image_upload_input,
-    user_inventory_item_get_input, world_image_set_input,
+    inventory_bundle_consume_input, inventory_item_equip_input, inventory_item_update_input,
+    inventory_items_get_input, inventory_slot_unequip_input, inventory_template_get_input,
+    print_delete_input, print_get_input, print_upload_input, prints_get_input, reward_redeem_input,
+    sticker_upload_input, tagged_image_upload_input, user_inventory_item_get_input,
+    world_image_set_input,
 };
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
@@ -18,7 +19,10 @@ use vrcx_0_application::{
     self as media_upload, LegacyEntityImageKind, LegacyEntityImageUploadInput,
     LegacyMediaUploadDeps, PrintFavoriteState,
 };
-use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
+use vrcx_0_application_core::{
+    vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope},
+    RuntimeAuthScope,
+};
 
 use super::types::{
     VrchatMediaAssetUploadInput, VrchatMediaAvatarGalleryImageUploadInput,
@@ -26,9 +30,32 @@ use super::types::{
     VrchatMediaFileUploadStageInput, VrchatMediaFileVersionCreateInput,
     VrchatMediaImageUploadInput, VrchatMediaInventoryItemInput, VrchatMediaInventoryTemplateInput,
     VrchatMediaLegacyImageUploadInput, VrchatMediaParamsInput, VrchatMediaPrintIdInput,
-    VrchatMediaPrintUploadInput, VrchatMediaPrintsInput, VrchatMediaRewardRedeemInput,
+    VrchatMediaPrintUploadInput, VrchatMediaPrintsInput, VrchatMediaProfileDecorationEquipInput,
+    VrchatMediaProfileDecorationUnequipInput, VrchatMediaRewardRedeemInput,
     VrchatMediaUserInventoryItemInput, VrchatPrintFavoriteSetInput,
 };
+
+fn require_profile_decoration_slot(equip_slot: String) -> Result<String, AppError> {
+    let equip_slot = equip_slot.trim();
+    match equip_slot {
+        "iconFrame" | "profileEffect" | "nameplateEffect" => Ok(equip_slot.to_string()),
+        _ => Err(AppError::Custom(
+            "Unsupported profile decoration equip slot.".into(),
+        )),
+    }
+}
+
+fn require_profile_decoration_auth_scope(
+    auth_scope: &RuntimeAuthScope,
+    expected_user_id: &str,
+) -> Result<(), AppError> {
+    if auth_scope.matches(expected_user_id, VRCHAT_API_DEFAULT_ENDPOINT) {
+        return Ok(());
+    }
+    Err(AppError::Custom(
+        "Inventory mutation is stale for the current auth scope.".into(),
+    ))
+}
 
 async fn execute_media_api(
     state: State<'_, AppState>,
@@ -366,6 +393,54 @@ pub async fn app__vrchat_media_inventory_template_get(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn app__vrchat_media_profile_decoration_equip(
+    state: State<'_, AppState>,
+    input: VrchatMediaProfileDecorationEquipInput,
+) -> Result<VrchatApiResponse, AppError> {
+    let equip_slot = require_profile_decoration_slot(input.equip_slot)?;
+    let inventory_id = input.inventory_id.clone();
+    let request = inventory_item_equip_input(
+        VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        input.inventory_id,
+        equip_slot,
+    )?;
+    require_profile_decoration_auth_scope(
+        &state.runtime_context.auth_scope,
+        &input.expected_user_id,
+    )?;
+    execute_media_api(
+        state,
+        "app__vrchat_media_profile_decoration_equip",
+        format!("Equipping profile decoration {inventory_id}."),
+        request,
+    )
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__vrchat_media_profile_decoration_unequip(
+    state: State<'_, AppState>,
+    input: VrchatMediaProfileDecorationUnequipInput,
+) -> Result<VrchatApiResponse, AppError> {
+    let equip_slot = require_profile_decoration_slot(input.equip_slot)?;
+    let request =
+        inventory_slot_unequip_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), equip_slot.clone())?;
+    require_profile_decoration_auth_scope(
+        &state.runtime_context.auth_scope,
+        &input.expected_user_id,
+    )?;
+    execute_media_api(
+        state,
+        "app__vrchat_media_profile_decoration_unequip",
+        format!("Unequipping profile decoration slot {equip_slot}."),
+        request,
+    )
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn app__vrchat_media_user_inventory_item_get(
     state: State<'_, AppState>,
     input: VrchatMediaUserInventoryItemInput,
@@ -573,4 +648,29 @@ pub async fn app__vrchat_media_world_image_set(
         )?,
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use vrcx_0_application_core::RuntimeAuthScope;
+
+    use super::{require_profile_decoration_auth_scope, require_profile_decoration_slot};
+
+    #[test]
+    fn profile_decoration_mutation_accepts_only_current_user_and_supported_slots() {
+        let auth_scope = RuntimeAuthScope::new();
+        auth_scope.set("usr_current", "");
+
+        assert!(require_profile_decoration_auth_scope(&auth_scope, "usr_current").is_ok());
+        assert!(require_profile_decoration_auth_scope(&auth_scope, "usr_stale").is_err());
+
+        for slot in ["iconFrame", "profileEffect", "nameplateEffect"] {
+            assert_eq!(
+                require_profile_decoration_slot(format!(" {slot} ")).unwrap(),
+                slot
+            );
+        }
+        assert!(require_profile_decoration_slot("drone".into()).is_err());
+        assert!(require_profile_decoration_slot(" ".into()).is_err());
+    }
 }
