@@ -439,8 +439,6 @@ impl TelemetryRuntime {
         TelemetryConfigSnapshot {
             background_mode_enabled: self.config_bool("backgroundModeEnabled", false),
             wrist_overlay_enabled: self.config_bool("wristOverlayEnabled", false),
-            xs_notifications: self.config_bool("xsNotifications", false),
-            ovrt_hud_notifications: self.config_bool("ovrtHudNotifications", false),
             ovrt_wrist_notifications: self.config_bool("ovrtWristNotifications", false),
             hmd_notifications_enabled: self.config_bool("hmdNotificationsEnabled", false),
             discord_active: self.config_bool("discordActive", false),

@@ -16,8 +16,6 @@ fn config_snapshot_matches_worker_contract_fields() {
     let snapshot = TelemetryConfigSnapshot {
         background_mode_enabled: true,
         wrist_overlay_enabled: false,
-        xs_notifications: true,
-        ovrt_hud_notifications: true,
         ovrt_wrist_notifications: false,
         hmd_notifications_enabled: true,
         discord_active: false,
@@ -43,12 +41,10 @@ fn config_snapshot_matches_worker_contract_fields() {
         "backgroundModeEnabled",
         "discordActive",
         "hmdNotificationsEnabled",
-        "ovrtHudNotifications",
         "ovrtWristNotifications",
         "themeMode",
         "webhookEnabled",
         "wristOverlayEnabled",
-        "xsNotifications",
     ];
     let mut sorted = keys.clone();
     sorted.sort_unstable();

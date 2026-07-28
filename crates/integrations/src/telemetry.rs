@@ -123,8 +123,6 @@ pub struct TelemetryContext {
 pub struct TelemetryConfigSnapshot {
     pub background_mode_enabled: bool,
     pub wrist_overlay_enabled: bool,
-    pub xs_notifications: bool,
-    pub ovrt_hud_notifications: bool,
     pub ovrt_wrist_notifications: bool,
     pub hmd_notifications_enabled: bool,
     pub discord_active: bool,
