@@ -69,7 +69,23 @@ type InventoryAttribute = MediaApiRecord & {
     validator?: MediaApiRecord;
 };
 
-type InventoryItemRecord = MediaApiRecord & {
+export type InventoryAsset = MediaApiRecord & {
+    fileId?: string;
+    frameCount?: number;
+    framesPerSecond?: number;
+    loopCount?: number;
+    totalDurationMs?: number;
+    type?: string;
+    url?: string;
+};
+
+export type InventoryItemMetadata = MediaApiRecord & {
+    assets?: InventoryAsset[];
+    gradientEnd?: string;
+    gradientStart?: string;
+};
+
+export type InventoryItemRecord = MediaApiRecord & {
     acquisition?: string;
     attribution?: InventoryAttribution | null;
     collections?: unknown[];
@@ -87,12 +103,13 @@ type InventoryItemRecord = MediaApiRecord & {
     isSeen?: boolean;
     itemType?: string;
     itemTypeLabel?: string;
-    last_equipped?: string | null;
-    metadata?: MediaApiRecord;
+    last_equipped?: Record<string, string> | null;
+    metadata?: InventoryItemMetadata;
     name?: string;
+    templateId?: string;
 };
 
-type InventoryItemsResponse = {
+export type InventoryItemsResponse = {
     data: InventoryItemRecord[];
     totalCount: number;
 };

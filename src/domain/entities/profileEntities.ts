@@ -68,7 +68,14 @@ export type UserProfileEntity = EntityRecord & {
     accountDeletionLog?: string | null;
     appleDetails?: EntityRecord;
     appleId?: string;
+    backgroundGradientBottom?: string;
+    backgroundGradientTop?: string;
+    backgroundTemplateId?: string;
+    backgroundTextureId?: string;
+    backgroundType?: string;
     badges?: UserBadgeRecord[];
+    bannerColor?: string;
+    bannerCustomUrl?: string;
     bannerType?: string;
     bannerUrl?: string;
     bio?: string;
@@ -100,8 +107,11 @@ export type UserProfileEntity = EntityRecord & {
     hasLoggedInFromClient?: boolean;
     hasPendingEmail?: boolean;
     hasSharedConnectionsOptOut?: boolean;
+    hasVrcPlus?: boolean;
     hideContentFilterSettings?: boolean;
     homeLocation?: string;
+    iconFrame?: string;
+    iconType?: string;
     iconUrl?: string;
     imageUrl?: string;
     instanceId?: string;
@@ -115,6 +125,7 @@ export type UserProfileEntity = EntityRecord & {
     last_mobile?: EntityTimestamp;
     last_platform?: string;
     location?: string;
+    nameplateEffect?: string;
     note?: string;
     obfuscatedEmail?: string;
     obfuscatedPendingEmail?: string;
@@ -125,6 +136,7 @@ export type UserProfileEntity = EntityRecord & {
     platform_history?: UserPlatformHistoryRecord[];
     profilePicOverride?: string;
     profilePicOverrideThumbnail?: string;
+    profileEffect?: string;
     pronouns?: string;
     pronounsHistory?: string[];
     queuedInstance?: string | null;
@@ -141,6 +153,8 @@ export type UserProfileEntity = EntityRecord & {
     travelingToInstance?: string;
     travelingToLocation?: string;
     travelingToWorld?: string;
+    themeId?: string;
+    themes?: unknown[];
     trustLevel?: string;
     temporaryExpiryDate?: string | null;
     twoFactorAuthEnabled?: boolean;

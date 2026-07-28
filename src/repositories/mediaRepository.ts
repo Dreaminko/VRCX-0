@@ -49,6 +49,13 @@ import vrchatMediaRepository, {
     uploadWorldImageLegacy
 } from './vrchatMediaRepository';
 
+export type {
+    InventoryAsset,
+    InventoryItemMetadata,
+    InventoryItemRecord,
+    InventoryItemsResponse
+} from './vrchatMediaRepository';
+
 type MediaRepository = typeof vrchatMediaRepository &
     typeof mediaFileRepository;
 

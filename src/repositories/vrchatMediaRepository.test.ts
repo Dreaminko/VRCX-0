@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 const commandMocks = vi.hoisted(() => ({
     appVrchatMediaFilesGet: vi.fn(),
     appVrchatMediaFileDelete: vi.fn(),
+    appVrchatMediaInventoryItemsGet: vi.fn(),
     appVrchatMediaPrintUpload: vi.fn(),
     appVrchatMediaUserInventoryItemGet: vi.fn(),
     appVrchatPrintsFavoriteSet: vi.fn(),
@@ -138,6 +139,73 @@ describe('vrchatMediaRepository', () => {
             userId: 'usr_1',
             inventoryId: 'inv_1'
         });
+    });
+
+    it('preserves typed profile decoration inventory fields', async () => {
+        commandMocks.appVrchatMediaInventoryItemsGet.mockResolvedValueOnce(
+            success({
+                data: [
+                    {
+                        id: 'inv_frame',
+                        itemType: 'iconFrame',
+                        equipSlot: '',
+                        equipSlots: ['iconFrame'],
+                        templateId: 'invt_frame',
+                        last_equipped: {
+                            iconFrame: '2026-07-26T15:12:39.373Z'
+                        },
+                        metadata: {
+                            gradientEnd: '241254',
+                            gradientStart: '120e1b',
+                            assets: [
+                                {
+                                    type: 'mainAnimation',
+                                    url: 'https://example.test/frame.webp',
+                                    frameCount: 71,
+                                    framesPerSecond: 24.01,
+                                    loopCount: 0,
+                                    totalDurationMs: 2957
+                                },
+                                {
+                                    type: 'base',
+                                    url: 'https://example.test/frame.png',
+                                    fileId: 'file_frame'
+                                }
+                            ]
+                        }
+                    }
+                ],
+                totalCount: 1
+            })
+        );
+
+        const { json } = await vrchatMediaRepository.getInventoryItems();
+        const item = json.data[0];
+
+        expect(item).toMatchObject({
+            equipSlot: '',
+            templateId: 'invt_frame',
+            last_equipped: {
+                iconFrame: '2026-07-26T15:12:39.373Z'
+            }
+        });
+        expectTypeOf(item).toMatchTypeOf<{
+            last_equipped?: Record<string, string> | null;
+            metadata?: {
+                assets?: Array<{
+                    fileId?: string;
+                    frameCount?: number;
+                    framesPerSecond?: number;
+                    loopCount?: number;
+                    totalDurationMs?: number;
+                    type?: string;
+                    url?: string;
+                }>;
+                gradientEnd?: string;
+                gradientStart?: string;
+            };
+            templateId?: string;
+        }>();
     });
 
     it('treats only literal true as a print favorite write', async () => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 const tauriMock = vi.hoisted(() => ({
     commands: {
@@ -81,6 +81,63 @@ describe('UserProfileRepository', () => {
             platform_history: [{ platform: 'standalonewindows' }],
             $travelingToLocation: { worldId: 'wrld_redacted' },
             $trustLevel: 'User'
+        });
+    });
+
+    it('preserves typed profile appearance fields from current profile responses', () => {
+        const profile = userProfileRepository.normalize({
+            id: 'usr_redacted',
+            backgroundGradientBottom: '',
+            backgroundGradientTop: '',
+            backgroundTemplateId: '',
+            backgroundTextureId: '',
+            backgroundType: 'default',
+            bannerColor: '2cc968',
+            bannerCustomUrl: 'https://example.test/banner.png',
+            hasVrcPlus: true,
+            iconFrame: 'invt_frame',
+            iconType: '',
+            nameplateEffect: 'invt_nameplate',
+            profileEffect: 'invt_profile',
+            themeId: 'default',
+            themes: []
+        });
+
+        expect(profile).toMatchObject({
+            backgroundType: 'default',
+            bannerColor: '2cc968',
+            iconFrame: 'invt_frame',
+            nameplateEffect: 'invt_nameplate',
+            profileEffect: 'invt_profile',
+            themeId: 'default'
+        });
+        expectTypeOf(profile).toMatchTypeOf<{
+            backgroundGradientBottom?: string;
+            backgroundGradientTop?: string;
+            backgroundTemplateId?: string;
+            backgroundTextureId?: string;
+            backgroundType?: string;
+            bannerColor?: string;
+            bannerCustomUrl?: string;
+            hasVrcPlus?: boolean;
+            iconFrame?: string;
+            iconType?: string;
+            nameplateEffect?: string;
+            profileEffect?: string;
+            themeId?: string;
+            themes?: unknown[];
+        }>();
+
+        expect(
+            userProfileRepository.normalize({
+                iconFrame: '',
+                nameplateEffect: '',
+                profileEffect: ''
+            })
+        ).toMatchObject({
+            iconFrame: '',
+            nameplateEffect: '',
+            profileEffect: ''
         });
     });
 
