@@ -83,8 +83,8 @@ impl VrOverlayRuntime {
         if !self.enqueue_hmd_toast(entry.clone(), Instant::now(), timeout) {
             return;
         }
-        self.spawn_avatar_fetch(&entry);
         self.reconcile_current();
+        self.spawn_avatar_fetch(&entry);
     }
 
     fn enqueue_hmd_toast(
@@ -377,7 +377,6 @@ impl VrOverlayRuntime {
                 true
             }
         };
-        // Active animation already redraws every 16 ms; only wake a static queue.
         if updated
             && self
                 .hmd_toast_refresh_hint(Instant::now())
