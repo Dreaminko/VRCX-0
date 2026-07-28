@@ -145,6 +145,11 @@ export function canMarkNotificationSeen(
 
 export const PRIMARY_ACTION_KEYS = new Set<string>(['accept', 'invite']);
 
+const MANUAL_BOOP_REPLY_RESPONSE = {
+    icon: 'reply',
+    type: 'reply'
+} satisfies NotificationResponse;
+
 export function buildOrderedActions({
     notification,
     currentUserId,
@@ -158,13 +163,16 @@ export function buildOrderedActions({
     notification: NotificationRow;
     t: TFunction;
 }): NotificationRowAction[] {
-    const remoteActionsVisible =
-        notification?.senderUserId !== currentUserId &&
-        !isNotificationExpired(notification);
-    if (!remoteActionsVisible) {
+    const type = notification?.type;
+    const isRemoteSender = notification?.senderUserId !== currentUserId;
+    const canReplyToBoop =
+        isRemoteSender && type === 'boop' && Boolean(notification.senderUserId);
+    if (
+        !isRemoteSender ||
+        (isNotificationExpired(notification) && !canReplyToBoop)
+    ) {
         return [];
     }
-    const type = notification?.type;
     const responses = Array.isArray(notification?.responses)
         ? notification.responses
         : [];
@@ -206,6 +214,18 @@ export function buildOrderedActions({
                 handlers.onSendInviteResponseWithMessage(
                     notification,
                     'requestResponse'
+                )
+        });
+    }
+    if (canReplyToBoop) {
+        actions.push({
+            key: 'reply-boop',
+            label: t('view.notification.action.send_boop'),
+            Icon: getResponseIcon(MANUAL_BOOP_REPLY_RESPONSE, type),
+            onClick: () =>
+                handlers.onSendNotificationResponse(
+                    notification,
+                    MANUAL_BOOP_REPLY_RESPONSE
                 )
         });
     }

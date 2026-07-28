@@ -33,6 +33,7 @@ import type {
     NotificationDialogRequest,
     NotificationRow
 } from './notificationPageTypes';
+import { shouldOpenBoopReplyDialog } from './notificationResponseModel';
 import { normalizeWorldTarget } from './notificationRows';
 
 type DialogParams = Record<string, unknown>;
@@ -470,17 +471,11 @@ export function useNotificationActions({
             response: NotificationResponse
         ) => {
             try {
-                const responseType = String(response?.type || '').toLowerCase();
                 if (response?.type === 'link') {
                     openNotificationLink(response.data);
                     return;
                 }
-                if (
-                    notification.type === 'boop' &&
-                    (responseType === 'reply' ||
-                        responseType === 'boop' ||
-                        response?.icon === 'reply')
-                ) {
+                if (shouldOpenBoopReplyDialog(notification, response)) {
                     setBoopReplyRequest(notification);
                     return;
                 }
