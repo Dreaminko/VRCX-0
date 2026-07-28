@@ -159,6 +159,22 @@ fn start_is_idempotent_while_a_run_is_active() -> Result<()> {
     Ok(())
 }
 
+async fn wait_for_bulk_load_processed(runtime: &Arc<RealtimeHostRuntime>, processed: u32) {
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while runtime.friend_profile_bulk_load_status().processed < processed
+        && std::time::Instant::now() < deadline
+    {
+        tokio::task::yield_now().await;
+    }
+}
+
+async fn park_bulk_worker_on_the_transport_gate() {
+    tokio::time::sleep(Duration::from_millis(
+        super::friend_profile_bulk_load::FRIEND_PROFILE_BULK_LOAD_REQUEST_INTERVAL_MS + 500,
+    ))
+    .await;
+}
+
 #[tokio::test]
 async fn unexpected_exit_and_same_account_replacement_keep_bulk_worker_active() -> Result<()> {
     let (_dir, runtime, active_session) =
@@ -199,12 +215,7 @@ async fn unexpected_exit_and_same_account_replacement_keep_bulk_worker_active() 
         .expect("first bulk response should be cached");
     let started = runtime.start_friend_profile_bulk_load()?;
     assert_eq!(started.status, FriendProfileBulkLoadStatus::Running);
-    for _ in 0..100 {
-        if runtime.friend_profile_bulk_load_status().processed == 1 {
-            break;
-        }
-        tokio::time::sleep(Duration::from_millis(10)).await;
-    }
+    wait_for_bulk_load_processed(&runtime, 1).await;
     assert_eq!(runtime.friend_profile_bulk_load_status().processed, 1);
 
     let active = runtime
@@ -231,6 +242,7 @@ async fn unexpected_exit_and_same_account_replacement_keep_bulk_worker_active() 
         runtime.friend_profile_bulk_load_status().status,
         FriendProfileBulkLoadStatus::Running
     );
+    park_bulk_worker_on_the_transport_gate().await;
 
     runtime.deps.tasks.set_executor(DiscardTaskExecutor);
     runtime.start(
@@ -241,6 +253,10 @@ async fn unexpected_exit_and_same_account_replacement_keep_bulk_worker_active() 
         json!({"id": "usr_self"}),
         friends_by_id,
     )?;
+    let payload = runtime.friend_profile_bulk_load_status();
+    assert_eq!(payload.run_id, started.run_id);
+    assert_eq!(payload.status, FriendProfileBulkLoadStatus::Running);
+
     let second_response = Arc::new(VrchatApiResponse {
         status: 200,
         data: json!({"id": "usr_b", "displayName": "B", "date_joined": "2026-01-01"}).to_string(),
@@ -256,9 +272,6 @@ async fn unexpected_exit_and_same_account_replacement_keep_bulk_worker_active() 
         .await
         .expect("second bulk response should be cached");
 
-    let payload = runtime.friend_profile_bulk_load_status();
-    assert_eq!(payload.run_id, started.run_id);
-    assert_eq!(payload.status, FriendProfileBulkLoadStatus::Running);
     for _ in 0..200 {
         if runtime.friend_profile_bulk_load_status().status
             == FriendProfileBulkLoadStatus::Completed

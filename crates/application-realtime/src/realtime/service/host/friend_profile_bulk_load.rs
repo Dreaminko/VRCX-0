@@ -7,7 +7,7 @@ use super::*;
 
 const FRIEND_PROFILE_BULK_LOAD_MAX_RETRIES: u32 = 4;
 const FRIEND_PROFILE_BULK_LOAD_BASE_DELAY_MS: u64 = 500;
-const FRIEND_PROFILE_BULK_LOAD_REQUEST_INTERVAL_MS: u64 = 1_000;
+pub(super) const FRIEND_PROFILE_BULK_LOAD_REQUEST_INTERVAL_MS: u64 = 1_000;
 
 #[derive(Default)]
 pub struct FriendProfileBulkLoadState {
