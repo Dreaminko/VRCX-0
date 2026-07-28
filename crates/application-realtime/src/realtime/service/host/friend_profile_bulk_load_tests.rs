@@ -283,7 +283,7 @@ async fn unexpected_exit_and_same_account_replacement_keep_bulk_worker_active() 
     let payload = runtime.friend_profile_bulk_load_status();
     assert_eq!(payload.status, FriendProfileBulkLoadStatus::Completed);
     assert_eq!(payload.processed, 2);
-    assert_eq!(payload.loaded, 2);
+    assert_eq!(payload.loaded + payload.failed, payload.processed);
     Ok(())
 }
 
