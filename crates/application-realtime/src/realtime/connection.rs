@@ -26,6 +26,8 @@ use vrcx_0_application_core::WebClient;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 const AUTH_BOOTSTRAP_TIMEOUT: Duration = Duration::from_secs(30);
+const SILENCE_TRAIL_INTERVAL: Duration = Duration::from_secs(30);
+const ALIVE_TRAIL_INTERVAL: Duration = Duration::from_secs(300);
 
 #[derive(Clone)]
 pub struct RealtimeTransportDeps {
@@ -36,7 +38,11 @@ pub struct RealtimeTransportDeps {
 
 enum ConnectionEnd {
     Stopped,
-    UnexpectedExit { reason: String, connected_secs: u64 },
+    UnexpectedExit {
+        reason: String,
+        connected_secs: u64,
+        silent_secs: u64,
+    },
 }
 
 struct ConnectionAttempt<'a> {
@@ -204,6 +210,19 @@ async fn run_realtime_transport_inner(
         cancel_rx,
         event_bus: &event_bus,
     };
+    let trail_db_path = deps.db.db_path().to_path_buf();
+    let diagnostics_web = Arc::clone(&deps.web);
+    let cookie_diagnostics = diagnostics_web.cookie_diagnostics();
+    trail(
+        &trail_db_path,
+        "connecting",
+        serde_json::json!({
+            "generation": generation,
+            "sessionGeneration": session_generation,
+            "clientRunId": client_run_id,
+            "websocketDomain": websocket_domain,
+        }),
+    );
     match connect_once(deps, message_sink, attempt).await {
         Ok(ConnectionEnd::Stopped) => stopped_transport(
             &event_bus,
@@ -215,12 +234,24 @@ async fn run_realtime_transport_inner(
         Ok(ConnectionEnd::UnexpectedExit {
             reason,
             connected_secs,
+            silent_secs,
         }) => {
             tracing::warn!(
                 generation,
                 connected_secs,
+                silent_secs,
                 reason,
                 "[Realtime] websocket disconnected"
+            );
+            trail(
+                &trail_db_path,
+                "disconnected",
+                serde_json::json!({
+                    "generation": generation,
+                    "connectedSecs": connected_secs,
+                    "silentSecs": silent_secs,
+                    "reason": reason,
+                }),
             );
             RealtimeTransportTermination::UnexpectedExit {
                 reason,
@@ -237,6 +268,17 @@ async fn run_realtime_transport_inner(
                 reason,
                 "[Realtime] websocket connect rejected by auth"
             );
+            trail(
+                &trail_db_path,
+                "authRejected",
+                serde_json::json!({
+                    "generation": generation,
+                    "authCode": status_code,
+                    "reason": reason,
+                    "cookiesBefore": cookie_diagnostics,
+                    "cookiesAfter": diagnostics_web.cookie_diagnostics(),
+                }),
+            );
             RealtimeTransportTermination::AuthExpired {
                 reason,
                 status_code,
@@ -245,6 +287,14 @@ async fn run_realtime_transport_inner(
         Err(RealtimeConnectionError::Other(error)) => {
             let reason = error.to_string();
             tracing::warn!(generation, reason, "[Realtime] websocket connect failed");
+            trail(
+                &trail_db_path,
+                "connectFailed",
+                serde_json::json!({
+                    "generation": generation,
+                    "reason": reason,
+                }),
+            );
             RealtimeTransportTermination::UnexpectedExit {
                 reason,
                 connected_secs: None,
@@ -278,6 +328,8 @@ async fn connect_once(
     message_sink: Arc<dyn RealtimeMessageSink>,
     attempt: ConnectionAttempt<'_>,
 ) -> std::result::Result<ConnectionEnd, RealtimeConnectionError> {
+    let trail_db_path = deps.db.db_path().to_path_buf();
+    let auth_started_at = tokio::time::Instant::now();
     let Some(token) = wait_for_result_or_cancel(
         fetch_auth_token(&deps, attempt.session),
         attempt.cancel_rx,
@@ -295,9 +347,19 @@ async fn connect_once(
         return Ok(ConnectionEnd::Stopped);
     }
 
+    trail(
+        &trail_db_path,
+        "authTokenReady",
+        serde_json::json!({
+            "generation": attempt.generation,
+            "elapsedMs": auth_started_at.elapsed().as_millis() as u64,
+        }),
+    );
+
     let url = build_transport_url(&attempt.session.websocket, &token)
         .map_err(RealtimeConnectionError::from)?;
     let websocket_domain = normalize_websocket_domain(&attempt.session.websocket);
+    let handshake_started_at = tokio::time::Instant::now();
     let Some(mut stream) = wait_for_result_or_cancel(
         async {
             connect_websocket(&url, &deps.web.realtime_connection_options())
@@ -335,6 +397,18 @@ async fn connect_once(
 
     let mut parser = RealtimeMessageParser::default();
     let connected_at = tokio::time::Instant::now();
+    let mut last_inbound_at = connected_at;
+    let mut last_alive_trail_at = connected_at;
+    let mut messages_received: u64 = 0;
+    trail(
+        &trail_db_path,
+        "connected",
+        serde_json::json!({
+            "generation": attempt.generation,
+            "handshakeMs": handshake_started_at.elapsed().as_millis() as u64,
+            "websocketDomain": websocket_domain,
+        }),
+    );
     let ws_event_log_path = crate::realtime::ws_event_log::resolve_path(deps.db.db_path());
     if let Some(path) = &ws_event_log_path {
         crate::realtime::ws_event_log::append_connect_marker(
@@ -351,7 +425,20 @@ async fn connect_once(
                     return Ok(ConnectionEnd::Stopped);
                 }
             }
-            frame = stream.next() => {
+            frame = tokio::time::timeout(SILENCE_TRAIL_INTERVAL, stream.next()) => {
+                let Ok(frame) = frame else {
+                    trail(
+                        &trail_db_path,
+                        "silent",
+                        serde_json::json!({
+                            "generation": attempt.generation,
+                            "connectedSecs": connected_at.elapsed().as_secs(),
+                            "silentSecs": last_inbound_at.elapsed().as_secs(),
+                            "messages": messages_received,
+                        }),
+                    );
+                    continue;
+                };
                 let Some(frame) = frame else {
                     break "websocket stream ended".to_string();
                 };
@@ -359,6 +446,20 @@ async fn connect_once(
                     Ok(frame) => frame,
                     Err(error) => break format!("websocket read: {error}"),
                 };
+                last_inbound_at = tokio::time::Instant::now();
+                messages_received = messages_received.saturating_add(1);
+                if last_alive_trail_at.elapsed() >= ALIVE_TRAIL_INTERVAL {
+                    last_alive_trail_at = last_inbound_at;
+                    trail(
+                        &trail_db_path,
+                        "alive",
+                        serde_json::json!({
+                            "generation": attempt.generation,
+                            "connectedSecs": connected_at.elapsed().as_secs(),
+                            "messages": messages_received,
+                        }),
+                    );
+                }
                 match classify_websocket_frame(frame) {
                     RealtimeFrame::Text(text) => {
                         let received_at = chrono::Utc::now().to_rfc3339();
@@ -393,7 +494,12 @@ async fn connect_once(
     Ok(ConnectionEnd::UnexpectedExit {
         reason,
         connected_secs: connected_at.elapsed().as_secs(),
+        silent_secs: last_inbound_at.elapsed().as_secs(),
     })
+}
+
+fn trail(db_path: &std::path::Path, kind: &str, fields: Value) {
+    crate::realtime::lifecycle_log::record(db_path, kind, fields);
 }
 
 async fn wait_for_result_or_cancel<F, T, E, M>(

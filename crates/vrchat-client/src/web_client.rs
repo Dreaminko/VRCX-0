@@ -366,6 +366,18 @@ impl WebClient {
         });
     }
 
+    pub fn auth_cookie_summary(&self) -> (usize, Vec<(String, bool)>) {
+        self.jar.read_with(|store| {
+            let total = store.iter_any().count();
+            let auth = store
+                .iter_any()
+                .filter(|cookie| cookie.name() == "auth")
+                .map(|cookie| (String::from(&cookie.domain), cookie.is_expired()))
+                .collect();
+            (total, auth)
+        })
+    }
+
     pub fn get_cookies(&self) -> String {
         self.cookies_snapshot_b64().unwrap_or_default()
     }

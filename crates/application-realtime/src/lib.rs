@@ -1,5 +1,7 @@
 mod realtime;
 mod social_baseline;
+
+pub use realtime::lifecycle_log as realtime_lifecycle_log;
 mod world_enrich;
 
 #[cfg(any(test, feature = "test-utils"))]
