@@ -24,7 +24,7 @@ struct ProfileBinding {
     path: &'static str,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum BindingAction {
     Grip,
     Menu,
@@ -40,6 +40,15 @@ const fn binding(action: BindingAction, path: &'static str) -> ProfileBinding {
     ProfileBinding { action, path }
 }
 
+const TOUCH_BINDINGS: &[ProfileBinding] = &[
+    binding(BindingAction::Grip, "/user/hand/left/input/x/click"),
+    binding(BindingAction::Grip, "/user/hand/right/input/a/click"),
+    binding(BindingAction::Menu, "/user/hand/left/input/y/click"),
+    binding(BindingAction::Menu, "/user/hand/right/input/b/click"),
+    binding(BindingAction::Pose, "/user/hand/left/input/grip/pose"),
+    binding(BindingAction::Pose, "/user/hand/right/input/grip/pose"),
+];
+
 const INTERACTION_PROFILES: &[InteractionProfile] = &[
     InteractionProfile {
         path: "/interaction_profiles/khr/simple_controller",
@@ -54,23 +63,17 @@ const INTERACTION_PROFILES: &[InteractionProfile] = &[
     },
     InteractionProfile {
         path: "/interaction_profiles/oculus/touch_controller",
-        bindings: &[
-            binding(BindingAction::Grip, "/user/hand/left/input/squeeze/value"),
-            binding(BindingAction::Grip, "/user/hand/right/input/squeeze/value"),
-            binding(BindingAction::Grip, "/user/hand/left/input/x/click"),
-            binding(BindingAction::Grip, "/user/hand/right/input/a/click"),
-            binding(BindingAction::Menu, "/user/hand/left/input/menu/click"),
-            binding(BindingAction::Pose, "/user/hand/left/input/grip/pose"),
-            binding(BindingAction::Pose, "/user/hand/right/input/grip/pose"),
-        ],
+        bindings: TOUCH_BINDINGS,
+    },
+    InteractionProfile {
+        path: "/interaction_profiles/meta/touch_controller_plus",
+        bindings: TOUCH_BINDINGS,
     },
     InteractionProfile {
         path: "/interaction_profiles/valve/index_controller",
         bindings: &[
             binding(BindingAction::Grip, "/user/hand/left/input/squeeze/value"),
             binding(BindingAction::Grip, "/user/hand/right/input/squeeze/value"),
-            binding(BindingAction::Grip, "/user/hand/left/input/a/click"),
-            binding(BindingAction::Grip, "/user/hand/right/input/a/click"),
             binding(BindingAction::Menu, "/user/hand/left/input/b/click"),
             binding(BindingAction::Menu, "/user/hand/right/input/b/click"),
             binding(BindingAction::Pose, "/user/hand/left/input/grip/pose"),
@@ -231,5 +234,56 @@ fn suggest_bindings(
                 "skipping unsupported OpenXR interaction profile"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn touch_profiles_and_index_activation_bindings_match_legacy_controls() {
+        for profile_path in [
+            "/interaction_profiles/oculus/touch_controller",
+            "/interaction_profiles/meta/touch_controller_plus",
+        ] {
+            assert_binding_paths(
+                profile_path,
+                BindingAction::Grip,
+                &[
+                    "/user/hand/left/input/x/click",
+                    "/user/hand/right/input/a/click",
+                ],
+            );
+            assert_binding_paths(
+                profile_path,
+                BindingAction::Menu,
+                &[
+                    "/user/hand/left/input/y/click",
+                    "/user/hand/right/input/b/click",
+                ],
+            );
+        }
+        assert_binding_paths(
+            "/interaction_profiles/valve/index_controller",
+            BindingAction::Grip,
+            &[
+                "/user/hand/left/input/squeeze/value",
+                "/user/hand/right/input/squeeze/value",
+            ],
+        );
+    }
+
+    fn assert_binding_paths(profile_path: &str, action: BindingAction, expected: &[&str]) {
+        let actual = INTERACTION_PROFILES
+            .iter()
+            .find(|profile| profile.path == profile_path)
+            .expect("interaction profile")
+            .bindings
+            .iter()
+            .filter(|binding| binding.action == action)
+            .map(|binding| binding.path)
+            .collect::<Vec<_>>();
+        assert_eq!(actual, expected);
     }
 }

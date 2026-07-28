@@ -98,7 +98,7 @@ impl WristDeviceToken {
             battery_percent: device.battery_percent,
             aggregate_count: None,
             abnormal: is_abnormal_device_status(device.status),
-            draw_battery: true,
+            draw_battery: device.battery_percent.is_some(),
         }
     }
 
@@ -201,7 +201,7 @@ fn push_wrist_role_token(
     }
 }
 
-fn wrist_device_item(token: &WristDeviceToken, show_percent: bool) -> WristDeviceItem {
+pub(super) fn wrist_device_item(token: &WristDeviceToken, show_percent: bool) -> WristDeviceItem {
     let percent = token.percent_text(show_percent).unwrap_or_default();
     let label_color = if token.aggregate_count.is_some() && token.abnormal {
         wrist_status_color(token.status)
@@ -219,7 +219,7 @@ fn wrist_device_item(token: &WristDeviceToken, show_percent: bool) -> WristDevic
         label_color: to_slint_color(label_color),
         percent_color: to_slint_color(percent_color),
         battery_color: to_slint_color(wrist_status_color(token.status)),
-        battery_fill: battery_fill_ratio(token.status, token.battery_percent),
+        battery_fill: battery_fill_ratio(token.battery_percent),
         show_percent: !percent.is_empty(),
         show_battery: token.draw_battery,
     }
@@ -243,17 +243,10 @@ fn tracker_index(label: &str) -> u32 {
         .unwrap_or(u32::MAX)
 }
 
-fn battery_fill_ratio(status: DeviceStatus, battery_percent: Option<u8>) -> f32 {
-    if let Some(percent) = battery_percent {
-        return (percent as f32 / 100.0).clamp(0.0, 1.0);
-    }
-    match status {
-        DeviceStatus::Normal | DeviceStatus::Charging => 1.0,
-        DeviceStatus::LowBattery => 0.3,
-        DeviceStatus::CriticalBattery => 0.15,
-        DeviceStatus::TrackingWarning => 0.5,
-        DeviceStatus::Disconnected => 0.0,
-    }
+fn battery_fill_ratio(battery_percent: Option<u8>) -> f32 {
+    battery_percent
+        .map(|percent| (percent as f32 / 100.0).clamp(0.0, 1.0))
+        .unwrap_or(0.0)
 }
 
 fn is_abnormal_device_status(status: DeviceStatus) -> bool {

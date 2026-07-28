@@ -121,6 +121,7 @@ impl SessionContext {
         let mut extensions = xr::ExtensionSet::default();
         extensions.extx_overlay = true;
         extensions.khr_vulkan_enable2 = true;
+        extensions.meta_touch_controller_plus = available.meta_touch_controller_plus;
         let instance = entry
             .create_instance(
                 &xr::ApplicationInfo {

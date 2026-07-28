@@ -1,7 +1,7 @@
 use super::*;
 use super::{
     platform::{ensure_platform, to_slint_color},
-    wrist::{wrist_device_tokens, wrist_feed_item, WRIST_MUTED_TEXT},
+    wrist::{wrist_device_item, wrist_device_tokens, wrist_feed_item, WRIST_MUTED_TEXT},
 };
 use crate::{
     AvatarBitmap, DeviceChip, DeviceRole, DeviceStatus, FavoriteFriendsPanelModel, FeedKind,
@@ -171,6 +171,23 @@ fn wrist_device_tokens_prioritize_abnormal_trackers_and_filter_normal_other_devi
         .collect::<Vec<_>>();
 
     assert_eq!(labels, ["HMD", "L", "R", "T2", "T1", "+1", "T×1", "Dongle"]);
+}
+
+#[test]
+fn wrist_device_without_a_battery_reading_does_not_draw_a_full_battery() {
+    let devices = [device(
+        "L",
+        DeviceRole::LeftController,
+        DeviceStatus::Normal,
+        None,
+        10,
+    )];
+    let tokens = wrist_device_tokens(&devices, 512.0);
+    let item = wrist_device_item(&tokens[0], true);
+
+    assert!(!item.show_battery);
+    assert!(!item.show_percent);
+    assert_eq!(item.battery_fill, 0.0);
 }
 
 #[test]
