@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+    CATEGORY_DEFINITIONS,
     MAX_IMAGE_UPLOAD_BYTES,
     getLatestFileUrl,
     getUsefulDisplayName,
+    isEquippedProfileDecoration,
     parseEmojiUploadSettings,
+    resolveProfileDecorationPreviewUrl,
+    resolveProfileDecorationTypeLabelKey,
     resolveInventoryDescription,
     resolveInventoryImageUrl,
     resolveInventoryName,
@@ -147,5 +151,125 @@ describe('inventory helpers', () => {
                 name: 'Readable Name'
             })
         ).toBe('Readable Name');
+    });
+
+    it('defines a profile decorations inventory scope and archives the same item types', () => {
+        const profileDecorations = CATEGORY_DEFINITIONS.cosmetics.tabs.find(
+            (tab: { key: string }) => tab.key === 'profile-decorations'
+        );
+        const archived = CATEGORY_DEFINITIONS.cosmetics.tabs.find(
+            (tab: { key: string }) => tab.key === 'archived'
+        );
+
+        expect(profileDecorations).toEqual({
+            key: 'profile-decorations',
+            labelKey: 'dialog.inventory.profile_decorations',
+            source: 'inventory',
+            params: {
+                types: 'iconFrame,profileEffect,nameplateEffect',
+                notFlags: 'ugc',
+                archived: false
+            }
+        });
+        expect(archived.params.types).toBe(
+            'droneskin,portalskin,warpeffect,iconFrame,profileEffect,nameplateEffect'
+        );
+    });
+
+    it('uses the active equipment slot instead of equipment history', () => {
+        expect(
+            isEquippedProfileDecoration({
+                id: 'inv_history',
+                itemType: 'iconFrame',
+                equipSlot: '',
+                last_equipped: {
+                    iconFrame: '2026-07-26T15:12:39.373Z'
+                }
+            })
+        ).toBe(false);
+        expect(
+            isEquippedProfileDecoration({
+                id: 'inv_equipped',
+                itemType: 'profileEffect',
+                equipSlot: 'profileEffect'
+            })
+        ).toBe(true);
+        expect(
+            isEquippedProfileDecoration({
+                id: 'inv_other_slot',
+                itemType: 'nameplateEffect',
+                equipSlot: 'profileEffect'
+            })
+        ).toBe(false);
+    });
+
+    it('resolves profile decoration previews from animation assets before fallbacks', () => {
+        const item = {
+            id: 'inv_effect',
+            imageUrl: 'https://example.test/thumbnail.png',
+            metadata: {
+                assets: [
+                    {
+                        type: 'base',
+                        url: 'https://example.test/base.png'
+                    },
+                    {
+                        type: 'introAnimation',
+                        url: 'https://example.test/intro.webp'
+                    },
+                    {
+                        type: 'mainAnimation',
+                        url: 'https://example.test/main.webp'
+                    }
+                ]
+            }
+        };
+
+        expect(resolveProfileDecorationPreviewUrl(item)).toBe(
+            'https://example.test/main.webp'
+        );
+        expect(
+            resolveProfileDecorationPreviewUrl({
+                ...item,
+                metadata: {
+                    assets: item.metadata.assets.filter(
+                        (asset) => asset.type !== 'mainAnimation'
+                    )
+                }
+            })
+        ).toBe('https://example.test/intro.webp');
+        expect(
+            resolveProfileDecorationPreviewUrl({
+                ...item,
+                metadata: {
+                    assets: item.metadata.assets.filter(
+                        (asset) => asset.type === 'base'
+                    )
+                }
+            })
+        ).toBe('https://example.test/base.png');
+        expect(
+            resolveProfileDecorationPreviewUrl({
+                id: 'inv_fallback',
+                imageUrl: 'https://example.test/thumbnail.png',
+                metadata: { assets: [{ type: 'mainAnimation', url: '' }] }
+            })
+        ).toBe('https://example.test/thumbnail.png');
+        expect(
+            resolveProfileDecorationPreviewUrl({ id: 'inv_without_media' })
+        ).toBe('');
+    });
+
+    it('maps profile decoration item types to localized labels', () => {
+        expect(resolveProfileDecorationTypeLabelKey('iconFrame')).toBe(
+            'dialog.inventory.icon_frame'
+        );
+        expect(resolveProfileDecorationTypeLabelKey('profileEffect')).toBe(
+            'dialog.inventory.profile_effect'
+        );
+        expect(resolveProfileDecorationTypeLabelKey('nameplateEffect')).toBe(
+            'dialog.inventory.nameplate_effect'
+        );
+        expect(resolveProfileDecorationTypeLabelKey('portalskin')).toBeNull();
     });
 });

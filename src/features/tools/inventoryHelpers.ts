@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 
+import type { InventoryItemRecord } from '@/repositories/mediaRepository';
 import { emojiAnimationStyleList } from '@/shared/constants/emoji';
 import {
     MAX_IMAGE_UPLOAD_BYTES,
@@ -16,6 +17,38 @@ export { MAX_IMAGE_UPLOAD_BYTES };
 export const INVENTORY_GRID_DENSITY_STORAGE_KEY = 'VRCX_InventoryGridDensity';
 
 export const CATEGORY_ORDER = ['emojis', 'stickers', 'items', 'cosmetics'];
+
+const PROFILE_DECORATION_ITEM_TYPES = [
+    'iconFrame',
+    'profileEffect',
+    'nameplateEffect'
+] as const;
+const PROFILE_DECORATION_TYPES_PARAM = PROFILE_DECORATION_ITEM_TYPES.join(',');
+type ProfileDecorationItemType = (typeof PROFILE_DECORATION_ITEM_TYPES)[number];
+
+const PROFILE_DECORATION_TYPE_LABEL_KEYS: Record<
+    ProfileDecorationItemType,
+    string
+> = {
+    iconFrame: 'dialog.inventory.icon_frame',
+    profileEffect: 'dialog.inventory.profile_effect',
+    nameplateEffect: 'dialog.inventory.nameplate_effect'
+};
+
+const PROFILE_DECORATION_PREVIEW_ASSET_TYPES = [
+    'mainAnimation',
+    'introAnimation',
+    'base'
+] as const;
+
+function isProfileDecorationItemType(
+    value: unknown
+): value is ProfileDecorationItemType {
+    return (
+        typeof value === 'string' &&
+        PROFILE_DECORATION_ITEM_TYPES.some((itemType) => itemType === value)
+    );
+}
 
 export const CATEGORY_DEFINITIONS: any = {
     emojis: {
@@ -108,6 +141,16 @@ export const CATEGORY_DEFINITIONS: any = {
         labelKey: 'dialog.inventory.cosmetics',
         tabs: [
             {
+                key: 'profile-decorations',
+                labelKey: 'dialog.inventory.profile_decorations',
+                source: 'inventory',
+                params: {
+                    types: PROFILE_DECORATION_TYPES_PARAM,
+                    notFlags: 'ugc',
+                    archived: false
+                }
+            },
+            {
                 key: 'drones',
                 labelKey: 'dialog.inventory.drones',
                 source: 'inventory',
@@ -147,7 +190,7 @@ export const CATEGORY_DEFINITIONS: any = {
                 labelKey: 'dialog.inventory.archived',
                 source: 'inventory',
                 params: {
-                    types: 'droneskin,portalskin,warpeffect',
+                    types: `droneskin,portalskin,warpeffect,${PROFILE_DECORATION_TYPES_PARAM}`,
                     archived: true
                 }
             }
@@ -248,6 +291,45 @@ export function resolveInventoryDescription(item: any) {
 
 export function resolveInventoryType(item: any) {
     return item?.itemType || item?.type || item?.item?.type || '';
+}
+
+export function resolveProfileDecorationTypeLabelKey(
+    itemType: unknown
+): string | null {
+    if (!isProfileDecorationItemType(itemType)) {
+        return null;
+    }
+    return PROFILE_DECORATION_TYPE_LABEL_KEYS[itemType];
+}
+
+export function isEquippedProfileDecoration(
+    item: InventoryItemRecord
+): boolean {
+    return (
+        isProfileDecorationItemType(item.itemType) &&
+        item.equipSlot === item.itemType
+    );
+}
+
+export function resolveProfileDecorationPreviewUrl(
+    item: InventoryItemRecord
+): string {
+    const assets = Array.isArray(item.metadata?.assets)
+        ? item.metadata.assets
+        : [];
+    for (const assetType of PROFILE_DECORATION_PREVIEW_ASSET_TYPES) {
+        const asset = assets.find(
+            (candidate) =>
+                candidate.type === assetType &&
+                typeof candidate.url === 'string' &&
+                candidate.url.trim()
+        );
+        const url = typeof asset?.url === 'string' ? asset.url.trim() : '';
+        if (url) {
+            return url;
+        }
+    }
+    return resolveInventoryImageUrl(item);
 }
 
 export function isArchivedInventoryItem(item: any) {

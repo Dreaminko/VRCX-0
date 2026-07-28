@@ -9,6 +9,8 @@ export function InventoryItemTile({
     badges,
     imageUrl,
     alt,
+    isCurrent,
+    currentLabel,
     onPreview,
     primaryAction,
     menuActions,
@@ -37,6 +39,8 @@ export function InventoryItemTile({
             badges={badges}
             imageUrl={imageUrl}
             alt={alt}
+            isCurrent={isCurrent}
+            currentLabel={currentLabel}
             imageFit="contain"
             placeholderIcon={PackageIcon}
             onPreview={onPreview}

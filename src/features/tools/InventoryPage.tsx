@@ -58,10 +58,13 @@ import {
     getLatestFileUrl,
     getUsefulDisplayName,
     isArchivedInventoryItem,
+    isEquippedProfileDecoration,
     resolveInventoryDescription,
     resolveInventoryImageUrl,
     resolveInventoryName,
     resolveInventoryType,
+    resolveProfileDecorationPreviewUrl,
+    resolveProfileDecorationTypeLabelKey,
     scopeKey
 } from './inventoryHelpers';
 import {
@@ -217,6 +220,11 @@ function InventoryItemCard({
     const description = resolveInventoryDescription(item);
     const itemType = resolveInventoryType(item);
     const archived = isArchivedInventoryItem(item);
+    const profileDecorationTypeLabelKey =
+        resolveProfileDecorationTypeLabelKey(itemType);
+    const previewUrl = profileDecorationTypeLabelKey
+        ? resolveProfileDecorationPreviewUrl(item)
+        : imageUrl;
     const isMutating = mutatingKey === `inventory:${item.id}`;
     const timestamp =
         item.created_at || item.createdAt
@@ -229,7 +237,14 @@ function InventoryItemCard({
             description={description}
             timestamp={timestamp}
             badges={[
-                itemType ? { key: 'type', label: itemType } : null,
+                itemType
+                    ? {
+                          key: 'type',
+                          label: profileDecorationTypeLabelKey
+                              ? t(profileDecorationTypeLabelKey)
+                              : itemType
+                      }
+                    : null,
                 archived
                     ? {
                           key: 'archived',
@@ -240,10 +255,12 @@ function InventoryItemCard({
             ].filter(Boolean)}
             imageUrl={imageUrl}
             alt={name || item.id}
+            isCurrent={isEquippedProfileDecoration(item)}
+            currentLabel={t('dialog.inventory.equipped')}
             onPreview={() =>
                 onPreview({
                     id: item.id,
-                    url: imageUrl,
+                    url: previewUrl,
                     title: name || item.id
                 })
             }
