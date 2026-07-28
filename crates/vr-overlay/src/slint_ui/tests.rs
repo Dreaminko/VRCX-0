@@ -7,7 +7,7 @@ use crate::{
     AvatarBitmap, DeviceChip, DeviceRole, DeviceStatus, FavoriteFriendsPanelModel, FeedKind,
     FeedLine, FeedRelation, FeedSeverity, FriendPanelCategory, FriendPanelRow,
     FriendPanelRowActions, FriendPanelRowPrimaryAction, FriendPanelStatusTone, MainSurfaceModel,
-    OverlayFooter, ToastCard, WristSurfaceModel,
+    OverlayFooter, RgbaFrame, ToastCard, WristSurfaceModel,
 };
 use std::{sync::Arc, thread};
 
@@ -107,6 +107,23 @@ fn slint_hmd_renderer_hides_avatar_placeholder_when_avatar_slot_is_disabled() {
 
     assert_ne!(with_placeholder, without_slot);
     assert_eq!(renderer.render_count(), 2);
+}
+
+#[test]
+fn slint_hmd_card_alpha_tracks_toast_opacity_from_an_opaque_baseline() {
+    let mut renderer = SlintHmdRenderer::new();
+    let mut model = sample_main_model();
+    let pixel_alpha = |frame: &RgbaFrame| {
+        let index = ((440 * frame.size.width + 800) * 4 + 3) as usize;
+        frame.data[index]
+    };
+
+    let opaque = renderer.render(&model).unwrap();
+    assert_eq!(pixel_alpha(&opaque), 255);
+
+    model.toasts[0].opacity = 0.5;
+    let fading = renderer.render(&model).unwrap();
+    assert!((126..=129).contains(&pixel_alpha(&fading)));
 }
 
 #[test]

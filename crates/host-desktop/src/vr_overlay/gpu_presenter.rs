@@ -13,6 +13,8 @@ use windows::Win32::Graphics::Direct3D11::{
 };
 use windows::Win32::Graphics::Dxgi::Common::{DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SAMPLE_DESC};
 
+use super::openvr_helpers::load_overlay_fn_table;
+
 pub struct GpuPresenter {
     device: ID3D11Device,
     context: ID3D11DeviceContext,
@@ -228,27 +230,6 @@ fn set_overlay_texture(
     } else {
         Err(format!("set overlay texture failed: {error}"))
     }
-}
-
-fn load_overlay_fn_table() -> Result<&'static openvr_sys::VR_IVROverlay_FnTable, String> {
-    let mut magic = Vec::from(b"FnTable:".as_slice());
-    magic.extend(openvr_sys::IVROverlay_Version);
-    let mut error = openvr_sys::EVRInitError_VRInitError_None;
-    let table = unsafe {
-        openvr_sys::VR_GetGenericInterface(magic.as_ptr().cast(), &mut error)
-            as *const openvr_sys::VR_IVROverlay_FnTable
-    };
-    if error != openvr_sys::EVRInitError_VRInitError_None {
-        return Err(format!("OpenVR overlay fn table unavailable: {error:?}"));
-    }
-    if table.is_null() {
-        return Err("OpenVR overlay fn table pointer is null".to_string());
-    }
-    let table = unsafe { &*table };
-    if table.SetOverlayTexture.is_none() {
-        return Err("OpenVR overlay fn table has no SetOverlayTexture".to_string());
-    }
-    Ok(table)
 }
 
 #[cfg(test)]

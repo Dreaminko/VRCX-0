@@ -3,8 +3,8 @@ use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
 
 use openvr::{
-    button_id, pose::Matrix3x4, ControllerState, TrackedControllerRole, TrackedDeviceClass,
-    TrackedDeviceIndex,
+    button_id, overlay::OverlayHandle, pose::Matrix3x4, ControllerState, TrackedControllerRole,
+    TrackedDeviceClass, TrackedDeviceIndex,
 };
 use vrcx_0_vr_overlay::{
     ray_quad_intersection, OverlayQuadSize, OverlaySurfaceId, OverlayTransform, Ray3, RgbaFrame,
@@ -28,6 +28,38 @@ pub(super) const POINTER_LASER_START_OFFSET_METERS: f32 = 0.08;
 pub(super) const POINTER_LASER_MISS_LENGTH_METERS: f32 = 0.35;
 pub(super) const POINTER_LASER_MIN_LENGTH_METERS: f32 = 0.12;
 pub(super) const POINTER_LASER_MAX_LENGTH_METERS: f32 = 2.0;
+
+pub(super) fn load_overlay_fn_table() -> Result<&'static openvr_sys::VR_IVROverlay_FnTable, String>
+{
+    let mut magic = Vec::from(b"FnTable:".as_slice());
+    magic.extend(openvr_sys::IVROverlay_Version);
+    let mut error = openvr_sys::EVRInitError_VRInitError_None;
+    let table = unsafe {
+        openvr_sys::VR_GetGenericInterface(magic.as_ptr().cast(), &mut error)
+            as *const openvr_sys::VR_IVROverlay_FnTable
+    };
+    if error != openvr_sys::EVRInitError_VRInitError_None {
+        return Err(format!("OpenVR overlay fn table unavailable: {error:?}"));
+    }
+    if table.is_null() {
+        return Err("OpenVR overlay fn table pointer is null".to_string());
+    }
+    Ok(unsafe { &*table })
+}
+
+pub(super) fn set_overlay_premultiplied_alpha(handle: OverlayHandle) -> Result<(), String> {
+    let set_flag = load_overlay_fn_table()?
+        .SetOverlayFlag
+        .ok_or_else(|| "OpenVR SetOverlayFlag is unavailable".to_string())?;
+    let error = unsafe { set_flag(handle.0, openvr_sys::VROverlayFlags_IsPremultiplied, true) };
+    if error == openvr_sys::EVROverlayError_VROverlayError_None {
+        Ok(())
+    } else {
+        Err(format!(
+            "set premultiplied alpha overlay flag failed: {error}"
+        ))
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct FrameFingerprint {

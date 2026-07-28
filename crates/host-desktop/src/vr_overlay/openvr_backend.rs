@@ -231,6 +231,7 @@ impl OverlayBackend for OpenVrOverlayBackend {
                 &format!("VRCX {} Overlay\0", config.surface_id.as_str()),
             )
             .map_err(|error| format!("create overlay failed: {error:?}"))?;
+        set_overlay_premultiplied_alpha(handle)?;
         self.surfaces.insert(
             surface_id,
             OpenVrSurface {
