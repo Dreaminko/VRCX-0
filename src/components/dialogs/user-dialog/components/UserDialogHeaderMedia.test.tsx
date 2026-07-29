@@ -58,7 +58,7 @@ describe('UserDialogHeaderMedia', () => {
         });
         const iconAnchor = iconButton.parentElement;
         const frame = [...container.querySelectorAll('span')].find((element) =>
-            element.classList.contains('-inset-2')
+            element.classList.contains('-inset-3')
         );
 
         expect(iconAnchor?.classList.contains('size-16')).toBe(true);
@@ -67,14 +67,14 @@ describe('UserDialogHeaderMedia', () => {
         expect(iconButton.classList.contains('border-0')).toBe(true);
         expect(iconButton.classList.contains('border-2')).toBe(false);
         expect(iconButton.classList.contains('border-white')).toBe(false);
-        expect(iconAnchor?.classList.contains('right-3')).toBe(true);
+        expect(iconAnchor?.classList.contains('left-3')).toBe(true);
         expect(iconAnchor?.classList.contains('bottom-3')).toBe(true);
         expect(frame).toBeDefined();
         expect(frame?.classList.contains('absolute')).toBe(true);
         expect(iconButton.contains(frame ?? null)).toBe(false);
     });
 
-    it('keeps the original avatar position when no frame is equipped', () => {
+    it('keeps the avatar white border when no frame is equipped', () => {
         const { container } = renderMedia();
 
         const iconButton = within(container).getByRole('button', {
@@ -82,13 +82,13 @@ describe('UserDialogHeaderMedia', () => {
         });
         const iconAnchor = iconButton.parentElement;
 
-        expect(iconAnchor?.classList.contains('right-3')).toBe(true);
+        expect(iconAnchor?.classList.contains('left-3')).toBe(true);
         expect(iconAnchor?.classList.contains('bottom-3')).toBe(true);
         expect(iconButton.classList.contains('border-2')).toBe(true);
         expect(iconButton.classList.contains('border-white')).toBe(true);
         expect(
             [...container.querySelectorAll('span')].some((element) =>
-                element.classList.contains('-inset-2')
+                element.classList.contains('-inset-3')
             )
         ).toBe(false);
     });

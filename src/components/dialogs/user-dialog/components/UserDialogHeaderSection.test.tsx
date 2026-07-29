@@ -100,6 +100,7 @@ function createHeaderCommands(): UserHeaderCommands {
         onEditMemo: noop,
         onEditSelfProfileDetails: noop,
         onEditSelfProfileMedia: noop,
+        onEditSelfProfileDecorations: noop,
         onEditSelfStatus: noop,
         onExtendedModeration: noop,
         onFriendRequest: noop,

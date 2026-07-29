@@ -18,6 +18,7 @@ import {
     RotateCcwIcon,
     SettingsIcon,
     ShieldIcon,
+    SparklesIcon,
     UserIcon,
     UserCheckIcon,
     UserPlusIcon,
@@ -70,6 +71,7 @@ type UserActionMenuCommands = Pick<
     | 'onEditSelfStatus'
     | 'onEditSelfProfileDetails'
     | 'onEditSelfProfileMedia'
+    | 'onEditSelfProfileDecorations'
     | 'onFriendRequest'
     | 'onInvite'
     | 'onInviteMessage'
@@ -119,6 +121,7 @@ export function UserDialogHeaderActions({
         onEditSelfStatus,
         onEditSelfProfileDetails,
         onEditSelfProfileMedia,
+        onEditSelfProfileDecorations,
         onFriendRequest,
         onInvite,
         onInviteMessage,
@@ -216,6 +219,13 @@ export function UserDialogHeaderActions({
                             onClick={onEditSelfProfileMedia}
                         >
                             {t('dialog.user.actions.edit_profile_media')}
+                        </EntityActionItem>
+                        <EntityActionItem
+                            icon={SparklesIcon}
+                            disabled={actionsDisabled}
+                            onClick={onEditSelfProfileDecorations}
+                        >
+                            {t('dialog.inventory.profile_decorations')}
                         </EntityActionItem>
                     </>
                 ) : null}

@@ -66,7 +66,7 @@ export function UserDialogHeaderMedia({
                 )}
             </Button>
             {userIconUrl ? (
-                <div className="absolute right-3 bottom-3 z-30 size-16">
+                <div className="absolute bottom-3 left-3 z-30 size-16">
                     <Button
                         type="button"
                         variant="ghost"
@@ -87,7 +87,7 @@ export function UserDialogHeaderMedia({
                     {hasIconFrame ? (
                         <UserDialogProfileDecorationImage
                             item={iconFrame}
-                            className="absolute -inset-2 z-10"
+                            className="absolute -inset-3 z-10"
                             imageClassName="object-contain"
                         />
                     ) : null}

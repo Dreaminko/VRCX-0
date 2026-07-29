@@ -20,6 +20,7 @@ import {
     EntityDialogTwoColumnLayout
 } from './EntityDialogScaffold';
 import { UserDialogHeaderSection } from './user-dialog/components/UserDialogHeaderSection';
+import { UserDialogProfileDecorationsPanel } from './user-dialog/components/UserDialogProfileDecorationsPanel';
 import { UserDialogProfileMediaPanel } from './user-dialog/components/UserDialogProfileMediaPanel';
 import { UserDialogTabsSection } from './user-dialog/components/UserDialogTabsSection';
 import type {
@@ -137,6 +138,9 @@ function record(value: unknown): Record<string, unknown> {
         : {};
 }
 
+const SELF_PANELS = ['profile-media', 'profile-decorations'] as const;
+type SelfPanel = '' | (typeof SELF_PANELS)[number];
+
 const VRC_PLUS_SUMMARY_SNAPSHOT = Object.freeze({ $isVRCPlus: true });
 
 function finiteTabCount(value: unknown) {
@@ -253,7 +257,7 @@ export function UserDialogTabbedView({
         openImagePreview,
         previousAvatarSwapTime
     } = useUserDialogTabbedRuntimeState();
-    const [selfPanel, setSelfPanel] = useState('');
+    const [selfPanel, setSelfPanel] = useState<SelfPanel>('');
     const { copyUserText, openDiscordProfile } =
         useUserDialogClipboardActions();
     const currentUserSnapshot = useRuntimeStore(
@@ -287,8 +291,11 @@ export function UserDialogTabbedView({
     });
 
     useEffect(() => {
-        if (initialAction === 'profile-media' && isCurrentUser) {
-            setSelfPanel('profile-media');
+        if (
+            isCurrentUser &&
+            (SELF_PANELS as readonly string[]).includes(initialAction)
+        ) {
+            setSelfPanel(initialAction as SelfPanel);
         }
     }, [initialAction, isCurrentUser]);
 
@@ -550,6 +557,7 @@ export function UserDialogTabbedView({
         onEditMemo,
         onEditSelfProfileDetails,
         onEditSelfProfileMedia: () => setSelfPanel('profile-media'),
+        onEditSelfProfileDecorations: () => setSelfPanel('profile-decorations'),
         onEditSelfStatus,
         onExtendedModeration,
         onFriendRequest,
@@ -704,6 +712,8 @@ export function UserDialogTabbedView({
         setSearch
     };
 
+    const activeSelfPanel: SelfPanel = isCurrentUser ? selfPanel : '';
+
     return (
         <EntityDialogScaffold className="gap-3">
             <EntityDialogTwoColumnLayout
@@ -714,12 +724,16 @@ export function UserDialogTabbedView({
                     />
                 }
             >
-                {selfPanel === 'profile-media' && isCurrentUser ? (
+                {activeSelfPanel === 'profile-media' ? (
                     <UserDialogProfileMediaPanel
                         profile={profile}
                         actionStatus={actionStatus}
                         onBack={() => setSelfPanel('')}
                         onSetProfileMediaField={onSetSelfProfileMediaField}
+                    />
+                ) : activeSelfPanel === 'profile-decorations' ? (
+                    <UserDialogProfileDecorationsPanel
+                        onBack={() => setSelfPanel('')}
                     />
                 ) : (
                     <UserDialogTabsSection

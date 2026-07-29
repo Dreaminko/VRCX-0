@@ -118,6 +118,7 @@ export interface UserHeaderCommands {
     onEditMemo: () => void;
     onEditSelfProfileDetails: () => void;
     onEditSelfProfileMedia: () => void;
+    onEditSelfProfileDecorations: () => void;
     onEditSelfStatus: () => void;
     onExtendedModeration: (
         type: ExtendedModerationType,
@@ -413,6 +414,7 @@ export function UserDialogHeaderSection({
         onEditMemo,
         onEditSelfProfileDetails,
         onEditSelfProfileMedia,
+        onEditSelfProfileDecorations,
         onEditSelfStatus,
         onExtendedModeration,
         onFriendRequest,
@@ -466,6 +468,7 @@ export function UserDialogHeaderSection({
         onEditMemo,
         onEditSelfProfileDetails,
         onEditSelfProfileMedia,
+        onEditSelfProfileDecorations,
         onEditSelfStatus,
         onExtendedModeration,
         onFriendRequest,
