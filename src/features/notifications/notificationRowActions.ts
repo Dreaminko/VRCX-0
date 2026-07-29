@@ -143,7 +143,11 @@ export function canMarkNotificationSeen(
     );
 }
 
-export const PRIMARY_ACTION_KEYS = new Set<string>(['accept', 'invite']);
+export const PRIMARY_ACTION_KEYS = new Set<string>([
+    'accept',
+    'invite',
+    'reply-boop'
+]);
 
 const MANUAL_BOOP_REPLY_RESPONSE = {
     icon: 'reply',
