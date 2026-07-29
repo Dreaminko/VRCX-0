@@ -66,12 +66,7 @@ export function UserDialogHeaderMedia({
                 )}
             </Button>
             {userIconUrl ? (
-                <div
-                    className={cn(
-                        'absolute z-30 size-16',
-                        hasIconFrame ? 'right-4 bottom-4' : 'right-3 bottom-3'
-                    )}
-                >
+                <div className="absolute right-3 bottom-3 z-30 size-16">
                     <Button
                         type="button"
                         variant="ghost"

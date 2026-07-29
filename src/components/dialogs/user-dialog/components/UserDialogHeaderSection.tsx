@@ -32,6 +32,7 @@ import type {
 } from '../userDialogContentHelpers';
 import {
     normalizeProfileAppearanceColor,
+    resolveProfileDecorationAssetUrls,
     type UserDialogProfileAppearance
 } from '../userDialogProfileAppearance';
 import {
@@ -530,6 +531,14 @@ export function UserDialogHeaderSection({
         nameplateGradientStart,
         nameplateGradientEnd
     );
+    const nameplateAssets = resolveProfileDecorationAssetUrls(
+        profileAppearance.nameplateEffect
+    );
+    const hasNameplateAppearance = Boolean(
+        nameplateStyle ||
+        nameplateAssets.animatedUrl ||
+        nameplateAssets.staticUrl
+    );
     return (
         <EntityOverviewCard
             style={profileBackgroundStyle}
@@ -559,14 +568,19 @@ export function UserDialogHeaderSection({
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     <div
                         style={nameplateStyle}
-                        className="relative isolate min-h-8 min-w-0 overflow-hidden rounded-md"
+                        className="relative isolate min-h-9 min-w-0 overflow-hidden rounded-md"
                     >
                         <UserDialogProfileDecorationImage
                             item={profileAppearance.nameplateEffect}
                             className="absolute inset-0 z-0"
                             imageClassName="object-cover"
                         />
-                        <CardTitle className="relative z-10 flex min-h-8 min-w-0 flex-wrap items-center gap-1.5 px-1 text-lg leading-tight">
+                        <CardTitle
+                            className={cn(
+                                'relative z-10 flex min-h-9 min-w-0 flex-wrap items-center gap-1.5 px-1 text-lg leading-tight',
+                                hasNameplateAppearance && 'text-white'
+                            )}
+                        >
                             <UserStatusDot
                                 aria-label={statusStateText || undefined}
                                 role={statusStateText ? 'img' : undefined}

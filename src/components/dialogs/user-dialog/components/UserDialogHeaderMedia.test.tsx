@@ -67,8 +67,8 @@ describe('UserDialogHeaderMedia', () => {
         expect(iconButton.classList.contains('border-0')).toBe(true);
         expect(iconButton.classList.contains('border-2')).toBe(false);
         expect(iconButton.classList.contains('border-white')).toBe(false);
-        expect(iconAnchor?.classList.contains('right-4')).toBe(true);
-        expect(iconAnchor?.classList.contains('bottom-4')).toBe(true);
+        expect(iconAnchor?.classList.contains('right-3')).toBe(true);
+        expect(iconAnchor?.classList.contains('bottom-3')).toBe(true);
         expect(frame).toBeDefined();
         expect(frame?.classList.contains('absolute')).toBe(true);
         expect(iconButton.contains(frame ?? null)).toBe(false);
