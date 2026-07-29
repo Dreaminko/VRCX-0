@@ -4277,7 +4277,9 @@
             "progress": "进度：",
             "clear_errors": "清除错误信息",
             "failed_to_update_local_note": "更新本地备注失败。",
-            "no_local_note_differences": "未发现本地备注差异。"
+            "no_local_note_differences": "未发现本地备注差异。",
+            "current_note": "当前 VRChat 备注",
+            "include": "取消跳过"
         },
         "gallery_icons": {
             "header": "相册",

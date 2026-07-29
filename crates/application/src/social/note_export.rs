@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub const NOTE_EXPORT_MAX_ITEMS: usize = 1_000;
-const NOTE_EXPORT_INTERVAL: Duration = Duration::from_secs(5);
+const NOTE_EXPORT_INTERVAL: Duration = Duration::from_secs(2);
 const NOTE_EXPORT_CANCEL_POLL: Duration = Duration::from_millis(50);
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, specta::Type)]

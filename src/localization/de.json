@@ -4277,7 +4277,9 @@
             "progress": "Fortschritt:",
             "clear_errors": "Fehler löschen",
             "failed_to_update_local_note": "Lokale Notiz konnte nicht aktualisiert werden.",
-            "no_local_note_differences": "Keine Unterschiede bei lokalen Notizen gefunden."
+            "no_local_note_differences": "Keine Unterschiede bei lokalen Notizen gefunden.",
+            "current_note": "Aktuell auf VRChat",
+            "include": "Einbeziehen"
         },
         "gallery_icons": {
             "header": "Galerie",

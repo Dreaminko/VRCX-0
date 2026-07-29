@@ -4277,7 +4277,9 @@
             "progress": "Progresso:",
             "clear_errors": "Limpar Erros",
             "failed_to_update_local_note": "Falha ao atualizar a nota local.",
-            "no_local_note_differences": "Nenhuma diferença encontrada nas notas locais."
+            "no_local_note_differences": "Nenhuma diferença encontrada nas notas locais.",
+            "current_note": "Atualmente no VRChat",
+            "include": "Incluir"
         },
         "gallery_icons": {
             "header": "Gerenciar Fotos, Ícones, Emojis e Adesivos",

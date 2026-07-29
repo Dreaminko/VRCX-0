@@ -4281,7 +4281,9 @@
             "progress": "Průběh:",
             "clear_errors": "Vymazat chyby",
             "failed_to_update_local_note": "Nepodařilo se aktualizovat lokální poznámku.",
-            "no_local_note_differences": "Nebyly nalezeny žádné rozdíly v lokálních poznámkách."
+            "no_local_note_differences": "Nebyly nalezeny žádné rozdíly v lokálních poznámkách.",
+            "current_note": "Aktuálně na VRChat",
+            "include": "Zahrnout"
         },
         "gallery_icons": {
             "header": "Manage Photos, Icons, Emojis and Stickers",

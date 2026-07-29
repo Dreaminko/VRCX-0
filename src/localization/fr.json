@@ -4277,7 +4277,9 @@
             "progress": "Progression :",
             "clear_errors": "Vider les erreurs",
             "failed_to_update_local_note": "Échec de la mise à jour de la note locale.",
-            "no_local_note_differences": "Aucune différence trouvée dans les notes locales."
+            "no_local_note_differences": "Aucune différence trouvée dans les notes locales.",
+            "current_note": "Actuellement sur VRChat",
+            "include": "Inclure"
         },
         "gallery_icons": {
             "header": "Galerie et icônes",

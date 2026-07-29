@@ -4272,7 +4272,9 @@
             "progress": "進捗:",
             "clear_errors": "エラーを消去",
             "failed_to_update_local_note": "ローカルノートの更新に失敗しました。",
-            "no_local_note_differences": "ローカルノートの差分はありません。"
+            "no_local_note_differences": "ローカルノートの差分はありません。",
+            "current_note": "現在の VRChat メモ",
+            "include": "スキップを解除"
         },
         "gallery_icons": {
             "header": "ギャラリーとインベントリ",

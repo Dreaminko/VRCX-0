@@ -4218,7 +4218,9 @@
             "progress": "진행:",
             "clear_errors": "오류 초기화",
             "failed_to_update_local_note": "로컬 메모를 업데이트하지 못했습니다.",
-            "no_local_note_differences": "로컬 메모 차이가 발견되지 않았습니다."
+            "no_local_note_differences": "로컬 메모 차이가 발견되지 않았습니다.",
+            "current_note": "현재 VRChat 메모",
+            "include": "건너뛰기 취소"
         },
         "gallery_icons": {
             "header": "갤러리/아이콘/이모지 관리",

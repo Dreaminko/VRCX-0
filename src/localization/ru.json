@@ -4281,7 +4281,9 @@
             "progress": "Прогресс:",
             "clear_errors": "Очистить ошибки",
             "failed_to_update_local_note": "Не удалось обновить локальную заметку.",
-            "no_local_note_differences": "Отличий от локальных заметок не обнаружено."
+            "no_local_note_differences": "Отличий от локальных заметок не обнаружено.",
+            "current_note": "Сейчас в VRChat",
+            "include": "Включить"
         },
         "gallery_icons": {
             "header": "Галерея",

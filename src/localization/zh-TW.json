@@ -4277,7 +4277,9 @@
             "progress": "進度：",
             "clear_errors": "清除錯誤",
             "failed_to_update_local_note": "更新本機備註失敗。",
-            "no_local_note_differences": "未發現本機備註差異。"
+            "no_local_note_differences": "未發現本機備註差異。",
+            "current_note": "目前 VRChat 備註",
+            "include": "取消略過"
         },
         "gallery_icons": {
             "header": "管理照片、圖示、表情符號與貼圖",
