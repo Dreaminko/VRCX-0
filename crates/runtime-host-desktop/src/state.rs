@@ -1,5 +1,4 @@
 use std::ops::Deref;
-#[cfg(target_os = "windows")]
 use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
