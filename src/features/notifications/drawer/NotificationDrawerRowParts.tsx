@@ -103,7 +103,10 @@ export function NotificationHoverContent({
             {groupNotification ? (
                 <>
                     <div className="mb-2 flex items-center gap-2">
-                        <NotificationIconDisc notification={notification} />
+                        <NotificationIconDisc
+                            notification={notification}
+                            imageUrl={actorImageUrl}
+                        />
                         <div className="min-w-0">
                             <p className="truncate text-sm font-medium">
                                 {groupDisplayName || fallbackTitle}

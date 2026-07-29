@@ -114,9 +114,10 @@ export function NotificationDrawerRow({
         [notification]
     );
     const message = notification.type === 'boop' ? view.body : rawMessage;
-    const actor: NotificationActor = showAvatar
-        ? view.actor
-        : { kind: 'system', name: '' };
+    const actor: NotificationActor =
+        showAvatar || view.actor.kind === 'group'
+            ? view.actor
+            : { kind: 'system', name: '' };
     const actorImageUrl = useNotificationActorImage(actor);
 
     const orderedActions = buildOrderedActions({
@@ -168,6 +169,7 @@ export function NotificationDrawerRow({
                             ) : (
                                 <NotificationIconDisc
                                     notification={notification}
+                                    imageUrl={actorImageUrl}
                                 />
                             )}
                         </button>

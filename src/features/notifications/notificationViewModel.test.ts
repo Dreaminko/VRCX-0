@@ -74,6 +74,28 @@ describe('notification view model', () => {
         expect(view.headline).toBe('Movie night');
     });
 
+    it('resolves the group actor from an event response link', () => {
+        const view = toNotificationViewModel(
+            row({
+                type: 'event.announcement',
+                senderUserId: 'usr_system',
+                senderUsername: 'System',
+                responses: [
+                    {
+                        type: 'link',
+                        text: 'View event',
+                        data: 'event:grp_3,event_4'
+                    }
+                ]
+            })
+        );
+
+        expect(view.actor).toMatchObject({
+            kind: 'group',
+            id: 'grp_3'
+        });
+    });
+
     it('treats default_ images as missing media', () => {
         const view = toNotificationViewModel(
             row({

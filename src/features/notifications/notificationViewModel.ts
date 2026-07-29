@@ -146,10 +146,31 @@ function thumbnailUrl(imageUrl: string): string {
     return imageUrl ? convertFileUrlToImageUrl(imageUrl, 64) : '';
 }
 
+function eventResponseGroupId(notification: NotificationRow): string {
+    const responses = Array.isArray(notification.responses)
+        ? notification.responses
+        : [];
+    for (const response of responses) {
+        if (response.type !== 'link') {
+            continue;
+        }
+        const link = text(response.data);
+        if (!link.startsWith('event:')) {
+            continue;
+        }
+        const groupId = link.slice('event:'.length).split(',', 1)[0]?.trim();
+        if (hasGroupIdPrefix(groupId)) {
+            return groupId;
+        }
+    }
+    return '';
+}
+
 function isGroupSender(notification: NotificationRow): boolean {
     const type = text(notification.type);
     return (
         hasGroupIdPrefix(text(notification.senderUserId)) ||
+        type === 'event.announcement' ||
         type === 'groupChange' ||
         type.startsWith('group.') ||
         type.startsWith('moderation.')
@@ -166,6 +187,7 @@ function groupActor(
             notification.data?.groupId,
             notification.data?.ownerId,
             notification.details?.groupId,
+            eventResponseGroupId(notification),
             hasGroupIdPrefix(senderUserId) ? senderUserId : ''
         ),
         name: firstText(
