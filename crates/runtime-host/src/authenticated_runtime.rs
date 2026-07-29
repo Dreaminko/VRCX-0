@@ -332,6 +332,11 @@ impl AuthenticatedRuntimeOrchestrator {
                             "authAttempt": counters.auth_attempt,
                         }),
                     );
+                    tracing::error!(
+                        run_id,
+                        auth_attempts = counters.auth_attempt,
+                        "[Realtime] websocket gave up after repeated auth rejections and will stay offline until sign-in is repeated"
+                    );
                     return;
                 }
             };

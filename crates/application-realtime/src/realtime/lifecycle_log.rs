@@ -15,8 +15,8 @@ static ANNOUNCED: OnceLock<()> = OnceLock::new();
 fn enabled() -> bool {
     *ENABLED.get_or_init(|| {
         std::env::var(LIFECYCLE_LOG_ENV)
-            .map(|value| value.trim() != "0")
-            .unwrap_or(true)
+            .map(|value| matches!(value.trim(), "1" | "true"))
+            .unwrap_or(false)
     })
 }
 
