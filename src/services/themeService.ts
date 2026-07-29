@@ -18,6 +18,13 @@ type AppFontPreferenceInput = {
 };
 
 const VALID_THEME_MODES = new Set<ThemeMode>(['light', 'dark', 'system']);
+const NATIVE_THEME_VALUES: Readonly<Record<ThemeMode, number>> = Object.freeze({
+    system: -1,
+    light: 0,
+    dark: 1
+});
+let nativeThemeSyncQueue: Promise<void> = Promise.resolve();
+let themeApplySequence = 0;
 const VALID_THEME_COLORS = new Set<string>(Object.keys(THEME_COLOR_CONFIG));
 export const DEFAULT_ZOOM_LEVEL = 100;
 export const MIN_ZOOM_LEVEL = 30;
@@ -490,16 +497,28 @@ export function applyAppFontPreferences({
     };
 }
 
-export async function syncNativeTheme(themeMode: unknown): Promise<void> {
-    const resolvedTheme = getResolvedThemeMode(themeMode);
-    const nativeTheme = resolvedTheme === 'dark' ? 1 : 0;
+export function syncNativeTheme(themeMode: unknown): Promise<void> {
+    const normalized = resolveEffectiveThemeMode(themeMode);
+    const sync = nativeThemeSyncQueue.then(async () => {
+        await commands.appChangeTheme(NATIVE_THEME_VALUES[normalized]);
+    });
 
-    await commands.appChangeTheme(nativeTheme);
+    nativeThemeSyncQueue = sync.catch(() => undefined);
+    return sync;
 }
 
 export async function applyThemeMode(themeMode: unknown): Promise<void> {
+    const sequence = ++themeApplySequence;
     const normalized = resolveThemeMode(themeMode);
     const effectiveThemeMode = resolveEffectiveThemeMode(normalized);
+
+    if (effectiveThemeMode === 'system') {
+        await syncNativeTheme(effectiveThemeMode);
+        if (sequence !== themeApplySequence) {
+            return;
+        }
+    }
+
     const resolvedTheme = getResolvedThemeMode(effectiveThemeMode);
     const shouldUseDarkClass = resolvedTheme === 'dark';
 
@@ -507,7 +526,9 @@ export async function applyThemeMode(themeMode: unknown): Promise<void> {
     document.documentElement.setAttribute('data-theme', resolvedTheme);
 
     useShellStore.getState().setThemeMode(effectiveThemeMode);
-    await syncNativeTheme(effectiveThemeMode);
+    if (effectiveThemeMode !== 'system') {
+        await syncNativeTheme(effectiveThemeMode);
+    }
 }
 
 export async function setCommunityThemeAppearanceControl(
