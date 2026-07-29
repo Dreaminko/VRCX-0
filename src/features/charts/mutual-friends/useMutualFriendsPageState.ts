@@ -34,13 +34,8 @@ import { useMutualFriendsViewFilters } from './useMutualFriendsViewFilters';
 export function useMutualFriendsPageState() {
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
-    const {
-        currentUserId,
-        currentUserEndpoint,
-        friendsById,
-        orderedFriendIds,
-        resolvedTheme
-    } = useMutualFriendsRuntime();
+    const { currentUserId, friendsById, orderedFriendIds, resolvedTheme } =
+        useMutualFriendsRuntime();
     const currentUserIdRef = useRef(currentUserId);
     const [excludeSearchQuery, setExcludeSearchQuery] = useState('');
     const [selectedNodeId, setSelectedNodeId] = useState('');
@@ -183,9 +178,6 @@ export function useMutualFriendsPageState() {
     const { fetchProgress, handleCancelFetch, handleFetchGraph } =
         useMutualFriendsGraphFetch({
             currentUserId,
-            currentUserEndpoint,
-            friendsById,
-            orderedFriendIds,
             reloadSnapshot: snapshot.reloadSnapshot,
             setDetail: snapshot.setDetail
         });
