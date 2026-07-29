@@ -50,7 +50,7 @@ describe('UserDialogHeaderMedia', () => {
         ).toBe(true);
     });
 
-    it('centers an expanded frame outside the clipped avatar button', () => {
+    it('uses a compact frame without the avatar white border', () => {
         const { container } = renderMedia(iconFrame);
 
         const iconButton = within(container).getByRole('button', {
@@ -58,12 +58,15 @@ describe('UserDialogHeaderMedia', () => {
         });
         const iconAnchor = iconButton.parentElement;
         const frame = [...container.querySelectorAll('span')].find((element) =>
-            element.classList.contains('-inset-4')
+            element.classList.contains('-inset-2')
         );
 
         expect(iconAnchor?.classList.contains('size-16')).toBe(true);
         expect(iconButton.classList.contains('size-full')).toBe(true);
         expect(iconButton.classList.contains('overflow-hidden')).toBe(true);
+        expect(iconButton.classList.contains('border-0')).toBe(true);
+        expect(iconButton.classList.contains('border-2')).toBe(false);
+        expect(iconButton.classList.contains('border-white')).toBe(false);
         expect(iconAnchor?.classList.contains('right-4')).toBe(true);
         expect(iconAnchor?.classList.contains('bottom-4')).toBe(true);
         expect(frame).toBeDefined();
@@ -81,9 +84,11 @@ describe('UserDialogHeaderMedia', () => {
 
         expect(iconAnchor?.classList.contains('right-3')).toBe(true);
         expect(iconAnchor?.classList.contains('bottom-3')).toBe(true);
+        expect(iconButton.classList.contains('border-2')).toBe(true);
+        expect(iconButton.classList.contains('border-white')).toBe(true);
         expect(
             [...container.querySelectorAll('span')].some((element) =>
-                element.classList.contains('-inset-4')
+                element.classList.contains('-inset-2')
             )
         ).toBe(false);
     });

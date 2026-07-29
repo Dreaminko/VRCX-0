@@ -77,7 +77,10 @@ export function UserDialogHeaderMedia({
                         variant="ghost"
                         aria-label={userIconLabel}
                         title={userIconLabel}
-                        className="bg-background/90 relative z-0 size-full overflow-hidden rounded-full border-2 border-white p-0 shadow-md"
+                        className={cn(
+                            'bg-background/90 relative z-0 size-full overflow-hidden rounded-full p-0 shadow-md',
+                            hasIconFrame ? 'border-0' : 'border-2 border-white'
+                        )}
                         onClick={onOpenUserIcon}
                     >
                         <FadeInImage
@@ -89,7 +92,7 @@ export function UserDialogHeaderMedia({
                     {hasIconFrame ? (
                         <UserDialogProfileDecorationImage
                             item={iconFrame}
-                            className="absolute -inset-4 z-10"
+                            className="absolute -inset-2 z-10"
                             imageClassName="object-contain"
                         />
                     ) : null}
