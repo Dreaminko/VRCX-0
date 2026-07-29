@@ -231,6 +231,7 @@ impl RealtimeHostRuntime {
         let preserve_snapshot = matches!(
             &termination,
             RealtimeTransportTermination::UnexpectedExit { .. }
+                | RealtimeTransportTermination::AuthExpired { .. }
         );
         self.deps
             .session
@@ -281,7 +282,7 @@ impl RealtimeHostRuntime {
                 RealtimeTransportTermination::AuthExpired {
                     reason,
                     status_code,
-                } => Some(("authFailure", reason.clone(), *status_code)),
+                } => Some(("error", reason.clone(), *status_code)),
                 RealtimeTransportTermination::UnexpectedExit { reason, .. } => {
                     Some(("error", reason.clone(), None))
                 }

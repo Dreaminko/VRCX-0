@@ -116,6 +116,9 @@ async fn fetch_auth_token(
     session: &RealtimeSessionContext,
     trail_db_path: &std::path::Path,
 ) -> std::result::Result<String, RealtimeConnectionError> {
+    if let Some(token) = deps.web.auth_cookie_value() {
+        return Ok(token);
+    }
     let fetch = deps
         .web
         .fetch_realtime_auth_token(&session.endpoint, deps.db.as_ref())

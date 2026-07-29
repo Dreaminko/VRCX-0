@@ -493,9 +493,6 @@ mod tests {
         assert!(!should_skip_error_log(
             "[Realtime] websocket auth rejected while the session was still usable generation=4 code=401"
         ));
-        assert!(!should_skip_error_log(
-            "[Realtime] websocket gave up after repeated auth rejections and will stay offline until sign-in is repeated run_id=1 auth_attempts=3"
-        ));
     }
 
     #[test]

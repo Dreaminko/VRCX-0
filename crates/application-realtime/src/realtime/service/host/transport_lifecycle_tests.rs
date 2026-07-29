@@ -67,7 +67,7 @@ fn seed_online_friend(
 }
 
 #[test]
-fn realtime_lifecycle_reports_connected_and_terminal_auth_expiry() -> Result<()> {
+fn auth_expiry_keeps_snapshots_for_the_reconnect_attempt() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("transport-lifecycle")?;
     let expected = active_transport(&runtime);
     seed_online_friend(&runtime, &active_session, expected.generation)?;
@@ -106,8 +106,8 @@ fn realtime_lifecycle_reports_connected_and_terminal_auth_expiry() -> Result<()>
         }
     );
     assert!(!runtime.transport_is_active(&expected));
-    assert!(runtime.friend_snapshot().is_none());
-    assert!(runtime.current_user_snapshot().is_none());
+    assert!(runtime.friend_snapshot().is_some());
+    assert!(runtime.current_user_snapshot().is_some());
     Ok(())
 }
 

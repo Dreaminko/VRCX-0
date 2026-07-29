@@ -97,6 +97,10 @@ impl WebClient {
         })
     }
 
+    pub fn auth_cookie_value(&self) -> Option<String> {
+        self.inner.auth_cookie_value()
+    }
+
     pub fn get_cookies(&self) -> String {
         self.inner.get_cookies()
     }

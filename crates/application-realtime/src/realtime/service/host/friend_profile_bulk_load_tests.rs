@@ -380,7 +380,7 @@ async fn explicit_stop_keeps_a_real_worker_cancelled_after_it_exits() -> Result<
 }
 
 #[test]
-fn auth_expired_cancels_active_bulk_load_and_rejects_stale_progress() -> Result<()> {
+fn auth_expired_keeps_bulk_load_active_for_the_reconnect() -> Result<()> {
     let (_dir, runtime, _active_session) =
         runtime_with_active_session("friend-profile-bulk-load-auth-expired")?;
     runtime.test_force_friend_profile_bulk_load_running(12, 4);
@@ -399,16 +399,15 @@ fn auth_expired_cancels_active_bulk_load_and_rejects_stale_progress() -> Result<
             session_generation: active.session_generation,
         },
         RealtimeTransportTermination::AuthExpired {
-            reason: "session expired".into(),
+            reason: "auth transport bootstrap failed (401)".into(),
             status_code: Some(401),
         },
     );
 
     let payload = runtime.friend_profile_bulk_load_status();
     assert_eq!(payload.run_id, 12);
-    assert_eq!(payload.status, FriendProfileBulkLoadStatus::Cancelled);
-    assert_eq!(payload.processed, 0);
-    assert!(payload.finished_at.is_some());
+    assert_eq!(payload.status, FriendProfileBulkLoadStatus::Running);
+    assert!(payload.finished_at.is_none());
     assert!(runtime
         .state
         .lock()
@@ -416,8 +415,6 @@ fn auth_expired_cancels_active_bulk_load_and_rejects_stale_progress() -> Result<
         .connection
         .active_context
         .is_none());
-    assert!(!runtime.test_friend_profile_bulk_load_record_progress(12, true, false));
-    assert_eq!(runtime.friend_profile_bulk_load_status().processed, 0);
     Ok(())
 }
 

@@ -378,6 +378,16 @@ impl WebClient {
         })
     }
 
+    pub fn auth_cookie_value(&self) -> Option<String> {
+        self.jar.read_with(|store| {
+            store
+                .iter_any()
+                .filter(|cookie| cookie.name() == "auth" && !cookie.is_expired())
+                .map(|cookie| cookie.value().to_string())
+                .next()
+        })
+    }
+
     pub fn get_cookies(&self) -> String {
         self.cookies_snapshot_b64().unwrap_or_default()
     }

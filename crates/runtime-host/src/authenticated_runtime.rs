@@ -10,8 +10,7 @@ use vrcx_0_application::{
 };
 use vrcx_0_application_core::{
     HostSessionRuntime, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus,
-    RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload, TaskStopToken, TaskSupervisor,
-    WebClient,
+    RuntimeVrchatAuthFailurePayload, TaskStopToken, TaskSupervisor, WebClient,
 };
 use vrcx_0_application_realtime::{
     build_favorites_baseline, build_synced_friend_roster_baseline, RealtimeHostRuntime,
@@ -24,37 +23,13 @@ use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_core::time::now_iso;
 use vrcx_0_persistence::DatabaseService;
+use vrcx_0_vrchat_client::auth::current_user_get_input;
+use vrcx_0_vrchat_client::http_api::ApiScope;
 
 use crate::{Error, Result, RuntimeHostSnapshotCallback};
 
 const RETRY_DELAYS_SECONDS: [u64; 4] = [5, 15, 30, 60];
 const RETRY_SLEEP_POLL_INTERVAL: Duration = Duration::from_millis(250);
-const MAX_AUTH_ATTEMPTS: u32 = 3;
-
-#[derive(Clone, Copy)]
-struct RealtimeAttemptCounters {
-    attempt: u32,
-    auth_attempt: u32,
-}
-
-impl Default for RealtimeAttemptCounters {
-    fn default() -> Self {
-        Self {
-            attempt: 1,
-            auth_attempt: 0,
-        }
-    }
-}
-
-impl RealtimeAttemptCounters {
-    fn auth_budget_exhausted(&self) -> bool {
-        self.auth_attempt >= MAX_AUTH_ATTEMPTS
-    }
-
-    fn is_auth_retry(&self) -> bool {
-        self.auth_attempt > 0
-    }
-}
 
 #[derive(Clone, Copy)]
 enum RuntimeStep {
@@ -273,7 +248,8 @@ impl AuthenticatedRuntimeOrchestrator {
         stop_token: &TaskStopToken,
         mut friends_by_id: HashMap<String, FriendRecord>,
     ) {
-        let mut counters = RealtimeAttemptCounters::default();
+        let mut attempt: u32 = 1;
+        let mut roster_stale = false;
         loop {
             let termination = self
                 .run_realtime_transport(
@@ -281,44 +257,44 @@ impl AuthenticatedRuntimeOrchestrator {
                     scope,
                     run_id,
                     stop_token,
-                    counters,
+                    attempt,
                     friends_by_id.clone(),
                 )
                 .await;
-            let reason = match termination {
+            let (reason, probe_auth) = match termination {
                 Some(RealtimeTransportTermination::UnexpectedExit {
                     reason,
                     connected_secs,
                 }) => {
                     if connected_secs.is_some() {
-                        counters = RealtimeAttemptCounters::default();
+                        attempt = 1;
+                        roster_stale = true;
                     }
                     self.trail(
                         "retryScheduled",
                         json!({
                             "runId": run_id,
-                            "attempt": counters.attempt,
+                            "attempt": attempt,
                             "connectedSecs": connected_secs,
                             "reason": reason,
                         }),
                     );
-                    reason
+                    (reason, false)
                 }
                 Some(RealtimeTransportTermination::AuthExpired {
                     reason,
                     status_code,
-                }) if counters.auth_attempt < MAX_AUTH_ATTEMPTS => {
-                    counters.auth_attempt = counters.auth_attempt.saturating_add(1);
+                }) => {
                     self.trail(
-                        "authRetryScheduled",
+                        "retryScheduled",
                         json!({
                             "runId": run_id,
-                            "authAttempt": counters.auth_attempt,
+                            "attempt": attempt,
                             "authCode": status_code,
                             "reason": reason,
                         }),
                     );
-                    reason
+                    (reason, true)
                 }
                 None => {
                     self.trail(
@@ -334,32 +310,10 @@ impl AuthenticatedRuntimeOrchestrator {
                     );
                     return;
                 }
-                Some(RealtimeTransportTermination::AuthExpired { .. }) => {
-                    self.trail(
-                        "supervisionEnded",
-                        json!({
-                            "runId": run_id,
-                            "stage": "authExpired",
-                            "authAttempt": counters.auth_attempt,
-                        }),
-                    );
-                    tracing::error!(
-                        run_id,
-                        auth_attempts = counters.auth_attempt,
-                        "[Realtime] websocket gave up after repeated auth rejections and will stay offline until sign-in is repeated"
-                    );
-                    return;
-                }
             };
 
-            let delay = retry_delay_seconds(counters.attempt);
-            self.set_step_retry(
-                run_id,
-                RuntimeStep::Realtime,
-                counters.attempt,
-                delay,
-                reason,
-            );
+            let delay = retry_delay_seconds(attempt);
+            self.set_step_retry(run_id, RuntimeStep::Realtime, attempt, delay, reason);
             if !self.wait_for_retry(delay, run_id, scope, stop_token).await {
                 self.trail(
                     "supervisionEnded",
@@ -367,9 +321,13 @@ impl AuthenticatedRuntimeOrchestrator {
                 );
                 return;
             }
-            if !counters.is_auth_retry() {
+            if probe_auth {
+                self.probe_auth_session(session, scope, run_id, attempt)
+                    .await;
+            }
+            if roster_stale {
                 match self
-                    .try_friend_baseline(session, scope, run_id, stop_token, counters.attempt)
+                    .try_friend_baseline(session, scope, run_id, stop_token, attempt)
                     .await
                 {
                     Ok(Some(fresh)) => {
@@ -377,11 +335,12 @@ impl AuthenticatedRuntimeOrchestrator {
                             "rebaselined",
                             json!({
                                 "runId": run_id,
-                                "attempt": counters.attempt,
+                                "attempt": attempt,
                                 "friends": fresh.len(),
                             }),
                         );
                         friends_by_id = fresh;
+                        roster_stale = false;
                     }
                     Ok(None) => {
                         self.trail(
@@ -394,13 +353,13 @@ impl AuthenticatedRuntimeOrchestrator {
                         "rebaselineSkipped",
                         json!({
                             "runId": run_id,
-                            "attempt": counters.attempt,
+                            "attempt": attempt,
                             "reason": error.to_string(),
                         }),
                     ),
                 }
             }
-            counters.attempt = counters.attempt.saturating_add(1);
+            attempt = attempt.saturating_add(1);
         }
     }
 
@@ -572,10 +531,9 @@ impl AuthenticatedRuntimeOrchestrator {
         scope: &RuntimeAuthScopeSnapshot,
         run_id: u64,
         stop_token: &TaskStopToken,
-        counters: RealtimeAttemptCounters,
+        attempt: u32,
         friends_by_id: HashMap<String, FriendRecord>,
     ) -> Option<RealtimeTransportTermination> {
-        let attempt = counters.attempt;
         if !self.is_active(run_id, scope, stop_token) {
             return None;
         }
@@ -616,7 +574,7 @@ impl AuthenticatedRuntimeOrchestrator {
             };
             snapshot.realtime_transport = Some(result.clone());
         });
-        self.monitor_realtime_transport(run_id, scope, stop_token, counters, result, &mut lifecycle)
+        self.monitor_realtime_transport(run_id, scope, stop_token, attempt, result, &mut lifecycle)
             .await
     }
 
@@ -625,11 +583,10 @@ impl AuthenticatedRuntimeOrchestrator {
         run_id: u64,
         scope: &RuntimeAuthScopeSnapshot,
         stop_token: &TaskStopToken,
-        counters: RealtimeAttemptCounters,
+        attempt: u32,
         transport: RealtimeTransportStartResult,
         lifecycle: &mut tokio::sync::broadcast::Receiver<RealtimeTransportLifecycleEvent>,
     ) -> Option<RealtimeTransportTermination> {
-        let attempt = counters.attempt;
         loop {
             if !self.is_active(run_id, scope, stop_token) {
                 return None;
@@ -655,28 +612,6 @@ impl AuthenticatedRuntimeOrchestrator {
                             if !self.is_active(run_id, scope, stop_token) {
                                 return None;
                             }
-                            if let Some(payload) = counters
-                                .auth_budget_exhausted()
-                                .then(|| realtime_auth_expired_payload(
-                                    scope,
-                                    &finished,
-                                    &termination,
-                                ))
-                                .flatten()
-                            {
-                                let reason = payload.reason.clone();
-                                let status_code = Some(payload.status_code);
-                                self.event_bus.emit_runtime_vrchat_auth_failure(payload);
-                                self.update_snapshot(run_id, |snapshot| {
-                                    apply_realtime_auth_expired(
-                                        snapshot,
-                                        attempt,
-                                        &transport,
-                                        &reason,
-                                        status_code,
-                                    );
-                                });
-                            }
                             return Some(termination);
                         }
                         Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
@@ -687,6 +622,53 @@ impl AuthenticatedRuntimeOrchestrator {
                 }
                 _ = tokio::time::sleep(RETRY_SLEEP_POLL_INTERVAL) => {}
             }
+        }
+    }
+
+    async fn probe_auth_session(
+        &self,
+        session: &AuthenticatedRuntimeSession,
+        scope: &RuntimeAuthScopeSnapshot,
+        run_id: u64,
+        attempt: u32,
+    ) {
+        let result = self
+            .web
+            .execute_api(
+                current_user_get_input(session.endpoint.clone()),
+                ApiScope::Vrchat,
+                self.db.as_ref(),
+            )
+            .await;
+        match result {
+            Ok(response) => {
+                self.trail(
+                    "authProbe",
+                    json!({
+                        "runId": run_id,
+                        "attempt": attempt,
+                        "probeStatus": response.status,
+                    }),
+                );
+                if matches!(response.status, 401 | 403) {
+                    self.emit_auth_failure_if_needed(
+                        scope,
+                        "runtime/realtime-auth-probe",
+                        &Error::Custom(format!(
+                            "Realtime auth probe was rejected (HTTP {}).",
+                            response.status
+                        )),
+                    );
+                }
+            }
+            Err(error) => self.trail(
+                "authProbe",
+                json!({
+                    "runId": run_id,
+                    "attempt": attempt,
+                    "reason": error.to_string(),
+                }),
+            ),
         }
     }
 
@@ -908,58 +890,6 @@ fn apply_realtime_connected(
     snapshot.realtime = ready_step(attempt, "Realtime transport connected.".into());
 }
 
-fn apply_realtime_auth_expired(
-    snapshot: &mut AuthenticatedRuntimePhaseSnapshot,
-    attempt: u32,
-    transport: &RealtimeTransportStartResult,
-    reason: &str,
-    status_code: Option<i32>,
-) {
-    if snapshot.realtime_transport.as_ref() != Some(transport) {
-        return;
-    }
-    let error = match status_code {
-        Some(status_code) => format!("{reason} (status {status_code})"),
-        None => reason.to_string(),
-    };
-    snapshot.realtime = AuthenticatedRuntimeStepSnapshot {
-        status: AuthenticatedRuntimeStepStatus::Failed,
-        attempt,
-        detail: "Realtime transport terminated.".into(),
-        last_error: Some(error),
-        ..Default::default()
-    };
-    snapshot.realtime_transport = None;
-    snapshot.phase = AuthenticatedRuntimePhase::Error;
-}
-
-fn realtime_auth_expired_payload(
-    scope: &RuntimeAuthScopeSnapshot,
-    transport: &RealtimeTransportStartResult,
-    termination: &RealtimeTransportTermination,
-) -> Option<RuntimeVrchatAuthFailurePayload> {
-    let RealtimeTransportTermination::AuthExpired {
-        reason,
-        status_code,
-    } = termination
-    else {
-        return None;
-    };
-    Some(RuntimeVrchatAuthFailurePayload {
-        owner_user_id: scope.current_user_id.clone(),
-        endpoint: scope.endpoint.clone(),
-        path: "auth".into(),
-        reason: reason.clone(),
-        status_code: status_code.unwrap_or(401),
-        auth_scope_generation: scope.generation,
-        realtime_transport: Some(RuntimeRealtimeTransportEpoch {
-            client_run_id: transport.client_run_id,
-            generation: transport.generation,
-            session_generation: transport.session_generation,
-        }),
-    })
-}
-
 fn require_favorites_baseline(
     output: SocialFavoritesBaselineOutput,
 ) -> Result<SocialFavoritesBaselineOutput> {
@@ -1126,19 +1056,6 @@ mod tests {
     }
 
     #[test]
-    fn auth_failures_are_retried_before_the_session_is_declared_expired() {
-        let mut counters = RealtimeAttemptCounters::default();
-        assert!(!counters.auth_budget_exhausted());
-
-        for _ in 0..MAX_AUTH_ATTEMPTS {
-            assert!(!counters.auth_budget_exhausted());
-            counters.auth_attempt = counters.auth_attempt.saturating_add(1);
-        }
-
-        assert!(counters.auth_budget_exhausted());
-    }
-
-    #[test]
     fn recognizes_baseline_auth_failures() {
         assert_eq!(auth_failure_status("Missing Credentials (401)"), Some(401));
         assert_eq!(auth_failure_status("Unauthorized (HTTP 401)"), Some(401));
@@ -1196,35 +1113,6 @@ mod tests {
             snapshot.realtime.status,
             AuthenticatedRuntimeStepStatus::Ready
         );
-    }
-
-    #[test]
-    fn terminal_auth_expiry_invalidates_ready_runtime() {
-        let transport = RealtimeTransportStartResult {
-            generation: 2,
-            client_run_id: 4,
-            session_generation: 6,
-        };
-        let mut snapshot = AuthenticatedRuntimePhaseSnapshot {
-            phase: AuthenticatedRuntimePhase::Ready,
-            realtime: ready_step(1, "connected".into()),
-            realtime_transport: Some(transport.clone()),
-            ..Default::default()
-        };
-
-        apply_realtime_auth_expired(&mut snapshot, 1, &transport, "forbidden", Some(403));
-
-        assert_eq!(snapshot.phase, AuthenticatedRuntimePhase::Error);
-        assert_eq!(
-            snapshot.realtime.status,
-            AuthenticatedRuntimeStepStatus::Failed
-        );
-        assert_eq!(snapshot.realtime_transport, None);
-        assert!(snapshot
-            .realtime
-            .last_error
-            .as_deref()
-            .is_some_and(|error| error.contains("403")));
     }
 
     #[test]
