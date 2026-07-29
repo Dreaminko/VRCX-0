@@ -443,7 +443,9 @@ impl TelemetryRuntime {
             hmd_notifications_enabled: self.config_bool("hmdNotificationsEnabled", false),
             discord_active: self.config_bool("discordActive", false),
             webhook_enabled: self.config_bool("webhookEnabled", false),
-            auto_state_change_enabled: self.config_bool("autoStateChangeEnabled", false),
+            auto_state_change_enabled: has_enabled_rules(
+                &self.config_string("presenceAutomationContextRules", "[]"),
+            ),
             auto_accept_invite_requests: normalize_enum_value(
                 &self.config_string("autoAcceptInviteRequests", "Off"),
             ),
@@ -627,6 +629,18 @@ fn attempt_due(last_attempt: Option<Instant>, now: Instant) -> bool {
 
 fn local_weekday_number(weekday: chrono::Weekday) -> u32 {
     weekday.num_days_from_sunday()
+}
+
+fn has_enabled_rules(raw_rules: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(raw_rules)
+        .ok()
+        .as_ref()
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|rules| {
+            rules
+                .iter()
+                .any(|rule| rule.get("enabled").and_then(serde_json::Value::as_bool) != Some(false))
+        })
 }
 
 fn normalize_enum_value(value: &str) -> String {

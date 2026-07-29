@@ -11,7 +11,7 @@ use vrcx_0_vrchat_client::users::current_user_update_input;
 use crate::{Result, WebClient};
 
 use super::presence_facts::BackgroundPresenceFacts;
-use super::shared::{non_empty, parse_response_json, string_field};
+use super::shared::{parse_response_json, string_field};
 use vrcx_0_core::json::JsonExt;
 
 const DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS: i64 = 60_000;
@@ -208,11 +208,9 @@ fn load_presence_automation_config(config: &ConfigRepository) -> Result<Presence
         .into_iter()
         .map(force_game_running_condition)
         .collect();
-    let legacy_rules = load_legacy_presence_rules(config)?;
     let mut rules = Vec::new();
     rules.extend(time_rules);
     rules.extend(context_rules);
-    rules.extend(legacy_rules);
     rules.retain(|rule| rule_enabled(rule) && has_presence_action(rule));
 
     Ok(PresenceAutomationConfig {
@@ -236,91 +234,6 @@ fn load_presence_automation_config(config: &ConfigRepository) -> Result<Presence
             )?,
         },
     })
-}
-
-fn load_legacy_presence_rules(config: &ConfigRepository) -> Result<Vec<Value>> {
-    if !config.get_bool("autoStateChangeEnabled", false)? {
-        return Ok(Vec::new());
-    }
-    let no_friends = config.get_bool("autoStateChangeNoFriends", false)?;
-    let selected_groups = safe_string_array(&config.get_string("autoStateChangeGroups", "[]")?);
-    let selected_instance_types =
-        safe_string_array(&config.get_string("autoStateChangeInstanceTypes", "[]")?);
-    let alone_status = non_empty(
-        &config.get_string("autoStateChangeAloneStatus", "join me")?,
-        "join me",
-    );
-    let company_status = non_empty(
-        &config.get_string("autoStateChangeCompanyStatus", "busy")?,
-        "busy",
-    );
-    let alone_desc_enabled = config.get_bool("autoStateChangeAloneDescEnabled", false)?;
-    let alone_desc = config.get_string("autoStateChangeAloneDesc", "")?;
-    let company_desc_enabled = config.get_bool("autoStateChangeCompanyDescEnabled", false)?;
-    let company_desc = config.get_string("autoStateChangeCompanyDesc", "")?;
-
-    let mut instance_conditions = Vec::new();
-    if !selected_instance_types.is_empty() {
-        instance_conditions.push(json!({
-            "type": "instanceTypeIn",
-            "values": selected_instance_types,
-        }));
-    }
-    let company_conditions = if !no_friends {
-        vec![json!({ "type": "withCompany" })]
-    } else if !selected_groups.is_empty() {
-        vec![json!({
-            "type": "hasFriendInGroups",
-            "values": selected_groups,
-        })]
-    } else {
-        vec![json!({ "type": "hasAnyFriend" })]
-    };
-
-    let mut company_actions = Map::new();
-    company_actions.insert("status".into(), Value::String(company_status));
-    if company_desc_enabled {
-        company_actions.insert("statusDescription".into(), Value::String(company_desc));
-    }
-    let mut alone_actions = Map::new();
-    alone_actions.insert("status".into(), Value::String(alone_status));
-    if alone_desc_enabled {
-        alone_actions.insert("statusDescription".into(), Value::String(alone_desc));
-    }
-
-    let mut company_rule_conditions = vec![json!({ "type": "isGameRunning" })];
-    company_rule_conditions.extend(instance_conditions.clone());
-    company_rule_conditions.extend(company_conditions);
-    let mut alone_rule_conditions = vec![
-        json!({ "type": "isGameRunning" }),
-        json!({ "type": "playerFactsKnown" }),
-    ];
-    alone_rule_conditions.extend(instance_conditions);
-
-    Ok(vec![
-        json!({
-            "id": "legacy-company",
-            "label": "Legacy company rule",
-            "enabled": true,
-            "generated": true,
-            "domain": "context",
-            "priority": 200,
-            "conditions": company_rule_conditions,
-            "actions": company_actions,
-            "stopProcessing": true,
-        }),
-        json!({
-            "id": "legacy-alone",
-            "label": "Legacy alone rule",
-            "enabled": true,
-            "generated": true,
-            "domain": "context",
-            "priority": 100,
-            "conditions": alone_rule_conditions,
-            "actions": alone_actions,
-            "stopProcessing": true,
-        }),
-    ])
 }
 
 fn evaluate_presence_rules(
@@ -805,14 +718,6 @@ fn safe_value_array(value: &str) -> Vec<Value> {
         .ok()
         .and_then(|value| value.as_array().cloned())
         .unwrap_or_default()
-}
-
-fn safe_string_array(value: &str) -> Vec<String> {
-    safe_value_array(value)
-        .into_iter()
-        .filter_map(|value| value.as_str().map(str::trim).map(str::to_string))
-        .filter(|value| !value.is_empty())
-        .collect()
 }
 
 fn array_field<'a>(value: &'a Value, key: &str) -> Vec<&'a Value> {

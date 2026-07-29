@@ -19,11 +19,7 @@ import {
     normalizeAutoAcceptValue,
     parseJsonArray
 } from '../toolsDialogUtils';
-import {
-    ContextRulesTab,
-    type ContextRulesTabValues,
-    type PresenceAutomationConfigValueType
-} from './ContextRulesTab';
+import { ContextRulesTab } from './ContextRulesTab';
 import { InviteRulesTab, type InviteRulesTabValues } from './InviteRulesTab';
 import {
     createGroupOptions,
@@ -33,19 +29,6 @@ import {
     type TimeAutomationRule
 } from './presenceAutomationDialogUtils';
 import { TimeRulesTab } from './TimeRulesTab';
-
-const DEFAULT_CONTEXT_VALUES: ContextRulesTabValues = {
-    autoStateChangeEnabled: false,
-    autoStateChangeNoFriends: false,
-    autoStateChangeGroups: [],
-    autoStateChangeInstanceTypes: [],
-    autoStateChangeAloneStatus: 'join me',
-    autoStateChangeCompanyStatus: 'busy',
-    autoStateChangeAloneDescEnabled: false,
-    autoStateChangeAloneDesc: '',
-    autoStateChangeCompanyDescEnabled: false,
-    autoStateChangeCompanyDesc: ''
-};
 
 const DEFAULT_INVITE_VALUES: InviteRulesTabValues = {
     autoAcceptInviteRequests: 'Off',
@@ -220,9 +203,6 @@ export function PresenceRoomRulesDialog({
     const { t } = useTranslation();
     const writeQueuesRef = useRef(new Map());
     const { groupOptions, instanceOptions } = usePresenceOptions();
-    const [values, setValues] = useState<ContextRulesTabValues>(
-        DEFAULT_CONTEXT_VALUES
-    );
     const [contextRules, setContextRules] = useState<ContextAutomationRule[]>(
         []
     );
@@ -235,42 +215,14 @@ export function PresenceRoomRulesDialog({
 
         let active = true;
         setLoading(true);
-        Promise.all([
-            configRepository.getBool('autoStateChangeEnabled', false),
-            configRepository.getBool('autoStateChangeNoFriends', false),
-            configRepository.getString('autoStateChangeGroups', '[]'),
-            configRepository.getString('autoStateChangeInstanceTypes', '[]'),
-            configRepository.getString('autoStateChangeAloneStatus', 'join me'),
-            configRepository.getString('autoStateChangeCompanyStatus', 'busy'),
-            configRepository.getBool('autoStateChangeAloneDescEnabled', false),
-            configRepository.getString('autoStateChangeAloneDesc', ''),
-            configRepository.getBool(
-                'autoStateChangeCompanyDescEnabled',
-                false
-            ),
-            configRepository.getString('autoStateChangeCompanyDesc', ''),
-            configRepository.getString('presenceAutomationContextRules', '[]')
-        ])
+        configRepository
+            .getString('presenceAutomationContextRules', '[]')
             .then((result) => {
                 if (!active) {
                     return;
                 }
-                setValues({
-                    autoStateChangeEnabled: Boolean(result[0]),
-                    autoStateChangeNoFriends: Boolean(result[1]),
-                    autoStateChangeGroups: parseJsonArray(result[2]),
-                    autoStateChangeInstanceTypes: parseJsonArray(result[3]),
-                    autoStateChangeAloneStatus:
-                        String(result[4] || '') || 'join me',
-                    autoStateChangeCompanyStatus:
-                        String(result[5] || '') || 'busy',
-                    autoStateChangeAloneDescEnabled: Boolean(result[6]),
-                    autoStateChangeAloneDesc: String(result[7] || ''),
-                    autoStateChangeCompanyDescEnabled: Boolean(result[8]),
-                    autoStateChangeCompanyDesc: String(result[9] || '')
-                });
                 setContextRules(
-                    parseJsonArray(result[10]).map(normalizeContextRule)
+                    parseJsonArray(result).map(normalizeContextRule)
                 );
             })
             .catch((error: unknown) =>
@@ -291,32 +243,6 @@ export function PresenceRoomRulesDialog({
             active = false;
         };
     }, [open]);
-
-    async function saveValue(
-        key: keyof ContextRulesTabValues,
-        value: unknown,
-        type: PresenceAutomationConfigValueType = 'string'
-    ) {
-        setValues(
-            (current) =>
-                ({
-                    ...current,
-                    [key]: value
-                }) as ContextRulesTabValues
-        );
-        await enqueueConfigWrite(
-            writeQueuesRef,
-            key,
-            () => saveConfigValue(key, value, type),
-            (error) =>
-                toast.error(
-                    userFacingErrorMessage(
-                        error,
-                        t(`${I18N_ROOT}.failed_to_save_room_settings`)
-                    )
-                )
-        );
-    }
 
     async function saveContextRules(nextRules: ContextAutomationRule[]) {
         const normalizedRules = nextRules.map(normalizeContextRule);
@@ -353,12 +279,10 @@ export function PresenceRoomRulesDialog({
                 <ScrollArea className="min-h-0 flex-1">
                     <div className="px-4 pb-4">
                         <ContextRulesTab
-                            values={values}
                             loading={loading}
                             groupOptions={groupOptions}
                             instanceOptions={instanceOptions}
                             contextRules={contextRules}
-                            onSaveValue={saveValue}
                             onRulesChange={(nextRules) => {
                                 saveContextRules(nextRules);
                             }}
@@ -426,7 +350,7 @@ export function PresenceInviteRequestsDialog({
     async function saveValue(
         key: keyof InviteRulesTabValues,
         value: unknown,
-        type: PresenceAutomationConfigValueType = 'string'
+        type: ConfigValueType = 'string'
     ) {
         setValues(
             (current) =>

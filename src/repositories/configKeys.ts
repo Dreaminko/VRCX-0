@@ -191,16 +191,6 @@ export const ConfigKeys = defineConfigKeys({
 
     // ── Settings - VR Background ─────────────────────
     // ── Auto State Change ────────────────────────────
-    autoStateChangeEnabled: { type: 'bool', default: false },
-    autoStateChangeAloneStatus: { type: 'string', default: 'join me' },
-    autoStateChangeCompanyStatus: { type: 'string', default: 'busy' },
-    autoStateChangeInstanceTypes: { type: 'string', default: '[]' },
-    autoStateChangeAloneDescEnabled: { type: 'bool', default: false },
-    autoStateChangeAloneDesc: { type: 'string', default: '' },
-    autoStateChangeCompanyDescEnabled: { type: 'bool', default: false },
-    autoStateChangeCompanyDesc: { type: 'string', default: '' },
-    autoStateChangeNoFriends: { type: 'bool', default: false },
-    autoStateChangeGroups: { type: 'string', default: '[]' },
     autoAcceptInviteRequests: { type: 'string', default: 'Off' },
     autoAcceptInviteGroups: { type: 'string', default: '[]' },
     presenceAutomationTimeRules: { type: 'string', default: '[]' },
