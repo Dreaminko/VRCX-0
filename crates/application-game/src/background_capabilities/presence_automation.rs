@@ -348,6 +348,19 @@ fn condition_matches(condition: &Value, facts: &BackgroundPresenceFacts) -> bool
                             .any(|present| present == user_id)
                     })
         }
+        Some("worldInFavoriteGroups") => {
+            let group_keys = string_array_field(condition, "values");
+            if group_keys.is_empty() {
+                !facts.current_world_favorite_group_keys.is_empty()
+            } else {
+                group_keys.iter().any(|group| {
+                    facts
+                        .current_world_favorite_group_keys
+                        .iter()
+                        .any(|present| present == group)
+                })
+            }
+        }
         Some("isAlone") => facts.player_facts_known && facts.player_count == 0,
         Some("withCompany") => facts.player_facts_known && facts.player_count > 0,
         Some("isTraveling") => {
@@ -795,5 +808,25 @@ mod tests {
             result.patch.get("status"),
             Some(&Value::String("busy".into()))
         );
+    }
+
+    #[test]
+    fn world_in_favorite_groups_matches_selected_or_any_group() {
+        let facts = BackgroundPresenceFacts {
+            current_world_favorite_group_keys: vec!["world:worlds1".into()],
+            ..Default::default()
+        };
+
+        let any_group = json!({ "type": "worldInFavoriteGroups", "values": [] });
+        let selected = json!({ "type": "worldInFavoriteGroups", "values": ["world:worlds1"] });
+        let other = json!({ "type": "worldInFavoriteGroups", "values": ["local:Favorites"] });
+
+        assert!(condition_matches(&any_group, &facts));
+        assert!(condition_matches(&selected, &facts));
+        assert!(!condition_matches(&other, &facts));
+        assert!(!condition_matches(
+            &any_group,
+            &BackgroundPresenceFacts::default()
+        ));
     }
 }

@@ -85,6 +85,7 @@ pub(in crate::state) async fn run_background_discord_tick(
             now_playing: context.desktop_services.now_playing(),
             friends_by_id,
             favorite_friend_groups_by_key: favorite_friend_groups_by_key.clone(),
+            favorite_world_groups_by_key: HashMap::new(),
         },
     ) {
         Ok(facts) => facts,

@@ -36,6 +36,7 @@ struct RemoteFavoriteSnapshot {
     favorite_world_ids: Vec<String>,
     favorite_avatar_ids: Vec<String>,
     grouped_favorite_friend_ids_by_group_key: BTreeMap<String, Vec<String>>,
+    grouped_favorite_world_ids_by_group_key: BTreeMap<String, Vec<String>>,
 }
 
 fn create_default_favorite_group_ref(source: &Value) -> Value {
@@ -357,6 +358,7 @@ fn build_remote_favorite_snapshot(
     let mut favorite_world_ids = Vec::new();
     let mut favorite_avatar_ids = Vec::new();
     let mut grouped_friend_ids: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut grouped_world_ids: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
     for json in remote_favorites {
         let favorite = create_default_favorite_cached_ref(&json);
@@ -388,7 +390,13 @@ fn build_remote_favorite_snapshot(
                     .push(roster_id);
             }
             "avatar" => favorite_avatar_ids.push(favorite_id),
-            "world" | "vrcPlusWorld" => favorite_world_ids.push(favorite_id),
+            "world" | "vrcPlusWorld" => {
+                favorite_world_ids.push(favorite_id.clone());
+                grouped_world_ids
+                    .entry(group_key)
+                    .or_default()
+                    .push(favorite_id);
+            }
             _ => {}
         }
     }
@@ -401,6 +409,7 @@ fn build_remote_favorite_snapshot(
         favorite_world_ids,
         favorite_avatar_ids,
         grouped_favorite_friend_ids_by_group_key: grouped_friend_ids,
+        grouped_favorite_world_ids_by_group_key: grouped_world_ids,
     }
 }
 
@@ -677,6 +686,7 @@ pub async fn build_favorites_baseline(
         "favoriteFriendIds": remote_snapshot.favorite_friend_ids,
         "groupedFavoriteFriendIdsByGroupKey": string_groups_to_json(&remote_snapshot.grouped_favorite_friend_ids_by_group_key),
         "favoriteWorldIds": remote_snapshot.favorite_world_ids,
+        "groupedFavoriteWorldIdsByGroupKey": string_groups_to_json(&remote_snapshot.grouped_favorite_world_ids_by_group_key),
         "favoriteAvatarIds": remote_snapshot.favorite_avatar_ids,
         "cachedFavoriteGroupsById": cached_favorite_groups_by_id,
         "favoriteFriendGroups": favorite_friend_groups,

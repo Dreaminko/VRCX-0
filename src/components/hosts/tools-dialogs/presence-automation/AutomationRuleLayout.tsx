@@ -1,10 +1,11 @@
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
-import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
     Empty,
     EmptyContent,
@@ -12,7 +13,7 @@ import {
     EmptyHeader,
     EmptyTitle
 } from '@/ui/shadcn/empty';
-import { Field, FieldContent, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
+import { Input } from '@/ui/shadcn/input';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import { Switch } from '@/ui/shadcn/switch';
 
@@ -27,7 +28,7 @@ export function AutomationSplitLayout({
     editor: ReactNode;
 }) {
     return (
-        <div className="grid min-h-0 gap-3 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
+        <div className="grid min-h-0 gap-3 lg:min-h-[26rem] lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
             {list}
             {editor}
         </div>
@@ -216,62 +217,81 @@ export function RuleEditorPanel({
     );
 }
 
+const CHECKLIST_FILTER_THRESHOLD = 12;
+
 export function CompactCheckList({
-    idPrefix,
     values,
     options,
     disabled,
-    columns = 'auto',
     onChange
 }: {
-    idPrefix: string;
     values: string[];
     options: PresenceOption[];
     disabled?: boolean;
-    columns?: 'auto' | 'two';
     onChange: (next: string[]) => void;
 }) {
+    const { t } = useTranslation();
+    const [filter, setFilter] = useState('');
+    const filterable = options.length > CHECKLIST_FILTER_THRESHOLD;
+    const query = filter.trim().toLowerCase();
+    const visibleOptions =
+        filterable && query
+            ? options.filter((option) =>
+                  option.label.toLowerCase().includes(query)
+              )
+            : options;
+
     return (
-        <FieldGroup
-            data-slot="checkbox-group"
-            className={cn(
-                'grid gap-1.5',
-                columns === 'two'
-                    ? 'sm:grid-cols-2'
-                    : 'sm:grid-cols-2 xl:grid-cols-3'
-            )}
-        >
-            {options.map((option) => {
-                const id = `${idPrefix}-${option.value}`;
-                return (
-                    <Field
-                        key={option.value}
-                        orientation="horizontal"
-                        data-disabled={disabled}
-                        className="min-h-9 rounded-md border px-2 py-1.5"
-                    >
-                        <Checkbox
-                            id={id}
-                            checked={values.includes(option.value)}
+        <div className="flex min-w-0 flex-col gap-1.5">
+            {filterable ? (
+                <div className="flex items-center gap-2">
+                    <Input
+                        value={filter}
+                        disabled={disabled}
+                        placeholder={t('common.actions.search')}
+                        className="h-8 max-w-60"
+                        onChange={(event) => setFilter(event.target.value)}
+                    />
+                    <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                        {values.length}/{options.length}
+                    </span>
+                </div>
+            ) : null}
+            <div
+                className={cn(
+                    'flex flex-wrap content-start gap-1.5',
+                    filterable && 'max-h-28 overflow-y-auto pr-1'
+                )}
+            >
+                {visibleOptions.map((option) => {
+                    const selected = values.includes(option.value);
+                    return (
+                        <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={selected}
                             disabled={disabled}
-                            onCheckedChange={(checked) =>
+                            className={cn(
+                                'max-w-full truncate rounded-full border px-2.5 py-1 text-xs transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50',
+                                selected
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-input text-muted-foreground hover:border-foreground/25 hover:text-foreground'
+                            )}
+                            onClick={() =>
                                 onChange(
                                     updateArrayValue(
                                         values,
                                         option.value,
-                                        Boolean(checked)
+                                        !selected
                                     )
                                 )
                             }
-                        />
-                        <FieldContent>
-                            <FieldLabel htmlFor={id} className="truncate">
-                                {option.label}
-                            </FieldLabel>
-                        </FieldContent>
-                    </Field>
-                );
-            })}
-        </FieldGroup>
+                        >
+                            {option.label}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
     );
 }

@@ -18,6 +18,7 @@ pub(in crate::state) async fn run_background_presence_tick(
     context: &BackgroundTickContext<'_>,
     presence_state: &mut BackgroundPresenceAutomationState,
     favorite_friend_groups_by_key: &HashMap<String, Vec<String>>,
+    favorite_world_groups_by_key: &HashMap<String, Vec<String>>,
 ) {
     context.background_jobs.mark_running(
         BACKGROUND_PRESENCE_AUTOMATION_JOB,
@@ -53,6 +54,7 @@ pub(in crate::state) async fn run_background_presence_tick(
             now_playing: context.desktop_services.now_playing(),
             friends_by_id,
             favorite_friend_groups_by_key: favorite_friend_groups_by_key.clone(),
+            favorite_world_groups_by_key: favorite_world_groups_by_key.clone(),
         },
     ) {
         Ok(facts) => facts,

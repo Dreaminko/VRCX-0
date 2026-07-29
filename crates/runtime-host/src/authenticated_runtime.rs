@@ -1074,6 +1074,19 @@ pub fn favorite_group_membership_from_snapshot(snapshot: &Value) -> HashMap<Stri
     groups
 }
 
+pub fn favorite_world_group_membership_from_snapshot(
+    snapshot: &Value,
+) -> HashMap<String, Vec<String>> {
+    let mut groups = HashMap::new();
+    append_favorite_group_membership(
+        &mut groups,
+        snapshot.get("groupedFavoriteWorldIdsByGroupKey"),
+        "",
+    );
+    append_favorite_group_membership(&mut groups, snapshot.get("localWorldFavorites"), "local:");
+    groups
+}
+
 fn append_favorite_group_membership(
     groups: &mut HashMap<String, Vec<String>>,
     value: Option<&Value>,

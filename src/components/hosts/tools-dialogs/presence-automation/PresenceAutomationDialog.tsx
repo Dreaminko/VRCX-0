@@ -89,21 +89,35 @@ function usePresenceOptions() {
     const localFriendFavoriteGroups = useFavoriteStore(
         (state) => state.localFriendFavoriteGroups
     );
+    const favoriteWorldGroups = useFavoriteStore(
+        (state) => state.favoriteWorldGroups
+    );
+    const localWorldFavoriteGroups = useFavoriteStore(
+        (state) => state.localWorldFavoriteGroups
+    );
 
     const groupOptions = useMemo(
         () =>
             createGroupOptions({
-                favoriteFriendGroups,
-                localFriendFavoriteGroups
+                remoteGroups: favoriteFriendGroups,
+                localGroups: localFriendFavoriteGroups
             }),
         [favoriteFriendGroups, localFriendFavoriteGroups]
+    );
+    const worldGroupOptions = useMemo(
+        () =>
+            createGroupOptions({
+                remoteGroups: favoriteWorldGroups,
+                localGroups: localWorldFavoriteGroups
+            }),
+        [favoriteWorldGroups, localWorldFavoriteGroups]
     );
     const instanceOptions = useMemo(
         () => createInstanceOptions(instanceTypes, t),
         [t]
     );
 
-    return { groupOptions, instanceOptions };
+    return { groupOptions, worldGroupOptions, instanceOptions };
 }
 
 export function PresenceScheduleDialog({
@@ -202,7 +216,8 @@ export function PresenceRoomRulesDialog({
 }: DialogOpenProps) {
     const { t } = useTranslation();
     const writeQueuesRef = useRef(new Map());
-    const { groupOptions, instanceOptions } = usePresenceOptions();
+    const { groupOptions, worldGroupOptions, instanceOptions } =
+        usePresenceOptions();
     const [contextRules, setContextRules] = useState<ContextAutomationRule[]>(
         []
     );
@@ -267,7 +282,7 @@ export function PresenceRoomRulesDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex h-[86vh] max-h-[calc(100vh-4rem)] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
+            <DialogContent className="flex max-h-[calc(100vh-4rem)] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
                 <DialogHeader className="px-4 pt-4 pr-12 pb-3">
                     <DialogTitle>
                         {t(`${I18N_ROOT}.room_status_rules`)}
@@ -281,6 +296,7 @@ export function PresenceRoomRulesDialog({
                         <ContextRulesTab
                             loading={loading}
                             groupOptions={groupOptions}
+                            worldGroupOptions={worldGroupOptions}
                             instanceOptions={instanceOptions}
                             contextRules={contextRules}
                             onRulesChange={(nextRules) => {

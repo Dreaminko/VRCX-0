@@ -59,6 +59,7 @@ type ContextRulesTabProps = {
     instanceOptions: PresenceOption[];
     loading: boolean;
     onRulesChange: (rules: ContextAutomationRule[]) => unknown;
+    worldGroupOptions: PresenceOption[];
 };
 
 function hasAction(rule: ContextAutomationRule, key: string) {
@@ -112,6 +113,7 @@ function actionSummary(rule: ContextAutomationRule, t: TFunction) {
 export function ContextRulesTab({
     loading,
     groupOptions,
+    worldGroupOptions,
     instanceOptions,
     contextRules,
     onRulesChange
@@ -275,15 +277,12 @@ export function ContextRulesTab({
                             </Select>
                         </Field>
                     </div>
-                    <FieldSet className="rounded-md border p-3">
+                    <FieldSet className="border-t pt-4">
                         <FieldLegend variant="label">
                             {t(`${I18N_ROOT}.when`)}
                         </FieldLegend>
                         <FieldGroup>
                             <Field>
-                                <FieldLabel>
-                                    {t(`${I18N_ROOT}.when`)}
-                                </FieldLabel>
                                 <Select
                                     value={selectedRule.preset || 'alone'}
                                     disabled={loading}
@@ -300,7 +299,9 @@ export function ContextRulesTab({
                                         }))
                                     }
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger
+                                        aria-label={t(`${I18N_ROOT}.when`)}
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -325,19 +326,44 @@ export function ContextRulesTab({
                                         {t(`${I18N_ROOT}.friend_groups`)}
                                     </FieldLabel>
                                     <CompactCheckList
-                                        idPrefix={`${selectedRule.id}-groups`}
                                         values={
                                             selectedRule.selectedGroups || []
                                         }
                                         options={groupOptions}
                                         disabled={loading}
-                                        columns="two"
                                         onChange={(next) =>
                                             update(
                                                 selectedRule.id,
                                                 (current) => ({
                                                     ...current,
                                                     selectedGroups: next
+                                                })
+                                            )
+                                        }
+                                    />
+                                </Field>
+                            ) : null}
+                            {selectedRule.preset === 'inFavoriteWorlds' ? (
+                                <Field>
+                                    <FieldLabel>
+                                        {t(`${I18N_ROOT}.world_groups`)}
+                                    </FieldLabel>
+                                    <FieldDescription>
+                                        {t(`${I18N_ROOT}.world_groups_hint`)}
+                                    </FieldDescription>
+                                    <CompactCheckList
+                                        values={
+                                            selectedRule.selectedWorldGroups ||
+                                            []
+                                        }
+                                        options={worldGroupOptions}
+                                        disabled={loading}
+                                        onChange={(next) =>
+                                            update(
+                                                selectedRule.id,
+                                                (current) => ({
+                                                    ...current,
+                                                    selectedWorldGroups: next
                                                 })
                                             )
                                         }
@@ -434,13 +460,11 @@ export function ContextRulesTab({
                                     {t(`${I18N_ROOT}.room_types_hint`)}
                                 </FieldDescription>
                                 <CompactCheckList
-                                    idPrefix={`${selectedRule.id}-instances`}
                                     values={
                                         selectedRule.selectedInstanceTypes || []
                                     }
                                     options={instanceOptions}
                                     disabled={loading}
-                                    columns="two"
                                     onChange={(next) =>
                                         update(selectedRule.id, (current) => ({
                                             ...current,

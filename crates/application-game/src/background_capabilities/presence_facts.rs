@@ -22,6 +22,7 @@ pub struct BackgroundPresenceFactsInput {
     pub now_playing: Value,
     pub friends_by_id: HashMap<String, FriendRecord>,
     pub favorite_friend_groups_by_key: HashMap<String, Vec<String>>,
+    pub favorite_world_groups_by_key: HashMap<String, Vec<String>>,
 }
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -46,6 +47,7 @@ pub struct BackgroundPresenceFacts {
     pub friend_count: usize,
     pub present_friend_ids: Vec<String>,
     pub present_favorite_group_keys: Vec<String>,
+    pub current_world_favorite_group_keys: Vec<String>,
     pub can_invite_from_current_location: bool,
     pub world_name: String,
     pub now_playing: Value,
@@ -105,6 +107,10 @@ pub fn build_background_presence_facts(
         &players,
         &input.favorite_friend_groups_by_key,
     )?;
+    let current_world_favorite_group_keys = collect_world_favorite_group_keys(
+        &parsed_location.world_id,
+        &input.favorite_world_groups_by_key,
+    );
     let can_invite_from_current_location = check_can_invite(
         &current_location,
         &parsed_location,
@@ -132,6 +138,7 @@ pub fn build_background_presence_facts(
         friend_count: friend_ids.len(),
         present_friend_ids: friend_ids,
         present_favorite_group_keys,
+        current_world_favorite_group_keys,
         can_invite_from_current_location,
         world_name: game_snapshot.world_name,
         now_playing: input.now_playing,
@@ -260,6 +267,22 @@ fn collect_present_favorite_group_keys(
     let mut keys: Vec<String> = keys.into_iter().collect();
     keys.sort();
     Ok(keys)
+}
+
+fn collect_world_favorite_group_keys(
+    world_id: &str,
+    favorite_world_groups_by_key: &HashMap<String, Vec<String>>,
+) -> Vec<String> {
+    if world_id.is_empty() {
+        return Vec::new();
+    }
+    let mut keys: Vec<String> = favorite_world_groups_by_key
+        .iter()
+        .filter(|(_, world_ids)| world_ids.iter().any(|id| id == world_id))
+        .map(|(group_key, _)| group_key.clone())
+        .collect();
+    keys.sort();
+    keys
 }
 
 fn check_can_invite(location: &str, parsed: &ParsedLocation, current_user_id: &str) -> bool {

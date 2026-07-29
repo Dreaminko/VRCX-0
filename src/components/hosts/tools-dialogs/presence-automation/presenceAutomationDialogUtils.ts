@@ -41,6 +41,7 @@ export type ContextAutomationRule = PresenceAutomationRule & {
     preset?: string;
     selectedGroups?: string[];
     selectedInstanceTypes?: string[];
+    selectedWorldGroups?: string[];
     specificFriendIds?: string[];
 };
 
@@ -93,6 +94,10 @@ export const contextPresetOptions = [
     {
         value: 'inSelectedInstanceTypes',
         labelKey: 'view.tools.social_automation.preset_in_selected_room_types'
+    },
+    {
+        value: 'inFavoriteWorlds',
+        labelKey: 'view.tools.social_automation.preset_in_favorite_worlds'
     }
 ] as const;
 
@@ -178,38 +183,39 @@ export function createInstanceOptions(
     return instanceTypes.map((type) => {
         const mapKey = type === 'groupOnly' ? 'groupMembers' : type;
         const localeKey = accessTypeLocaleKeyMap[mapKey];
-        const groupKey = accessTypeLocaleKeyMap.group;
+        const isGroupAccessType =
+            mapKey === 'groupPublic' ||
+            mapKey === 'groupPlus' ||
+            mapKey === 'groupMembers';
+        if (!isGroupAccessType) {
+            return { value: type, label: localeKey ? t(localeKey) : type };
+        }
+        const groupLabel = t(accessTypeLocaleKeyMap.group);
+        const typeLabel = t(localeKey);
         return {
             value: type,
-            label:
-                mapKey === 'groupPublic' ||
-                mapKey === 'groupPlus' ||
-                mapKey === 'groupMembers'
-                    ? `${t(groupKey)} ${t(localeKey)}`
-                    : localeKey
-                      ? t(localeKey)
-                      : type
+            label: typeLabel.toLowerCase().startsWith(groupLabel.toLowerCase())
+                ? typeLabel
+                : `${groupLabel} ${typeLabel}`
         };
     });
 }
 
 export function createGroupOptions({
-    favoriteFriendGroups,
-    localFriendFavoriteGroups
+    remoteGroups,
+    localGroups
 }: {
-    favoriteFriendGroups?: FavoriteGroup[];
-    localFriendFavoriteGroups?: string[];
+    remoteGroups?: FavoriteGroup[];
+    localGroups?: string[];
 }): PresenceOption[] {
-    const remoteGroupOptions = (favoriteFriendGroups || []).map((group) => ({
+    const remoteGroupOptions = (remoteGroups || []).map((group) => ({
         value: group.key || '',
         label: group.displayName || group.name || group.key || ''
     }));
-    const localGroupOptions = (localFriendFavoriteGroups || []).map(
-        (group) => ({
-            value: `local:${group}`,
-            label: group
-        })
-    );
+    const localGroupOptions = (localGroups || []).map((group) => ({
+        value: `local:${group}`,
+        label: group
+    }));
     return [...remoteGroupOptions, ...localGroupOptions].filter(
         (group) => group.value
     );
@@ -308,6 +314,11 @@ export function buildContextConditions(rule: ContextAutomationRule) {
             type: 'hasSpecificFriend',
             values: rule.specificFriendIds || []
         });
+    } else if (rule.preset === 'inFavoriteWorlds') {
+        conditions.push({
+            type: 'worldInFavoriteGroups',
+            values: rule.selectedWorldGroups || []
+        });
     }
 
     if (rule.selectedInstanceTypes?.length) {
@@ -329,6 +340,7 @@ export function createContextRule(label = ''): ContextAutomationRule {
         preset: 'alone',
         selectedGroups: [],
         selectedInstanceTypes: ['public', 'friends+'],
+        selectedWorldGroups: [],
         specificFriendIds: [],
         friendCountValue: 1,
         playerCountValue: 1,
@@ -351,6 +363,7 @@ export function normalizeContextRule(rule: unknown): ContextAutomationRule {
         preset: String(source.preset || 'alone'),
         selectedGroups: asStringArray(source.selectedGroups),
         selectedInstanceTypes: asStringArray(source.selectedInstanceTypes),
+        selectedWorldGroups: asStringArray(source.selectedWorldGroups),
         specificFriendIds: asStringArray(source.specificFriendIds),
         friendCountValue: Number(source.friendCountValue) || 1,
         playerCountValue: Number(source.playerCountValue) || 1,

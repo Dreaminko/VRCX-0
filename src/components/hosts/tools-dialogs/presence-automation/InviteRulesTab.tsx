@@ -155,7 +155,6 @@ export function InviteRulesTab({
                             {t(`${I18N_ROOT}.selected_favorite_groups_label`)}
                         </FieldLabel>
                         <CompactCheckList
-                            idPrefix="autoAcceptInviteGroups"
                             values={values.autoAcceptInviteGroups}
                             options={groupOptions}
                             disabled={
