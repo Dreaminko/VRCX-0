@@ -69,7 +69,7 @@ pub use sync::{RuntimeSyncEngine, RuntimeSyncSnapshot};
 pub use task_supervisor::{
     RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,
 };
-pub use web_client::WebClient;
+pub use web_client::{RealtimeAuthTokenFetch, WebClient};
 pub use world_cache::WorldCache;
 
 pub use vrcx_0_core::location::ParsedLocation;

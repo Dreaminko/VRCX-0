@@ -14,6 +14,11 @@ use vrcx_0_vrchat_client::web_client::{self as transport, WebExecuteRequest};
 
 use crate::Result;
 
+pub struct RealtimeAuthTokenFetch {
+    pub response: HttpApiExecuteResponse,
+    pub rejected_pooled_status: Option<i32>,
+}
+
 pub struct WebClient {
     inner: transport::WebClient,
     realtime_origin: String,
@@ -127,12 +132,28 @@ impl WebClient {
         &self,
         endpoint: &str,
         db: &DatabaseService,
-    ) -> Result<HttpApiExecuteResponse> {
+    ) -> Result<RealtimeAuthTokenFetch> {
         let input = vrcx_0_vrchat_client::auth::session_get_input(endpoint.to_string());
         let scope = ApiScope::Vrchat;
-        let request = self.build_api_request(input, scope)?;
-        let (status, data) = self.inner.execute_fresh_standard(request).await?;
-        self.finish_api_request(status, data, db)
+        let (pooled_status, pooled_data) = self
+            .inner
+            .execute(self.build_api_request(input.clone(), scope)?)
+            .await?;
+        if (200..300).contains(&pooled_status) {
+            return Ok(RealtimeAuthTokenFetch {
+                response: self.finish_api_request(pooled_status, pooled_data, db)?,
+                rejected_pooled_status: None,
+            });
+        }
+
+        let (status, data) = self
+            .inner
+            .execute_fresh_standard(self.build_api_request(input, scope)?)
+            .await?;
+        Ok(RealtimeAuthTokenFetch {
+            response: self.finish_api_request(status, data, db)?,
+            rejected_pooled_status: Some(pooled_status),
+        })
     }
 
     pub async fn execute_external_api(

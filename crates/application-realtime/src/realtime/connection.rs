@@ -114,12 +114,21 @@ impl From<RealtimeTransportError> for RealtimeConnectionError {
 async fn fetch_auth_token(
     deps: &RealtimeTransportDeps,
     session: &RealtimeSessionContext,
+    trail_db_path: &std::path::Path,
 ) -> std::result::Result<String, RealtimeConnectionError> {
-    let response = deps
+    let fetch = deps
         .web
         .fetch_realtime_auth_token(&session.endpoint, deps.db.as_ref())
         .await?;
-    auth_token_from_response(response.status, &response.data).map_err(RealtimeConnectionError::from)
+    if let Some(pooled_status) = fetch.rejected_pooled_status {
+        trail(
+            trail_db_path,
+            "authTokenPooledRejected",
+            serde_json::json!({ "pooledStatus": pooled_status }),
+        );
+    }
+    auth_token_from_response(fetch.response.status, &fetch.response.data)
+        .map_err(RealtimeConnectionError::from)
 }
 
 pub async fn run_realtime_transport(
@@ -336,7 +345,7 @@ async fn connect_once(
     let trail_db_path = deps.db.db_path().to_path_buf();
     let auth_started_at = tokio::time::Instant::now();
     let Some(token) = wait_for_result_or_cancel(
-        fetch_auth_token(&deps, attempt.session),
+        fetch_auth_token(&deps, attempt.session, &trail_db_path),
         attempt.cancel_rx,
         attempt.generation,
         AUTH_BOOTSTRAP_TIMEOUT,

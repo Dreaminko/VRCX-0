@@ -50,6 +50,10 @@ impl RealtimeAttemptCounters {
     fn auth_budget_exhausted(&self) -> bool {
         self.auth_attempt >= MAX_AUTH_ATTEMPTS
     }
+
+    fn is_auth_retry(&self) -> bool {
+        self.auth_attempt > 0
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -272,7 +276,14 @@ impl AuthenticatedRuntimeOrchestrator {
         let mut counters = RealtimeAttemptCounters::default();
         loop {
             let termination = self
-                .run_realtime_transport(session, scope, run_id, stop_token, counters, friends_by_id)
+                .run_realtime_transport(
+                    session,
+                    scope,
+                    run_id,
+                    stop_token,
+                    counters,
+                    friends_by_id.clone(),
+                )
                 .await;
             let reason = match termination {
                 Some(RealtimeTransportTermination::UnexpectedExit {
@@ -356,26 +367,39 @@ impl AuthenticatedRuntimeOrchestrator {
                 );
                 return;
             }
-            let Some(fresh) = self
-                .run_friend_baseline(session, scope, run_id, stop_token)
-                .await
-            else {
-                self.trail(
-                    "supervisionEnded",
-                    json!({ "runId": run_id, "stage": "rebaseline" }),
-                );
-                return;
-            };
-            self.trail(
-                "rebaselined",
-                json!({
-                    "runId": run_id,
-                    "attempt": counters.attempt,
-                    "authAttempt": counters.auth_attempt,
-                    "friends": fresh.len(),
-                }),
-            );
-            friends_by_id = fresh;
+            if !counters.is_auth_retry() {
+                match self
+                    .try_friend_baseline(session, scope, run_id, stop_token, counters.attempt)
+                    .await
+                {
+                    Ok(Some(fresh)) => {
+                        self.trail(
+                            "rebaselined",
+                            json!({
+                                "runId": run_id,
+                                "attempt": counters.attempt,
+                                "friends": fresh.len(),
+                            }),
+                        );
+                        friends_by_id = fresh;
+                    }
+                    Ok(None) => {
+                        self.trail(
+                            "supervisionEnded",
+                            json!({ "runId": run_id, "stage": "rebaseline" }),
+                        );
+                        return;
+                    }
+                    Err(error) => self.trail(
+                        "rebaselineSkipped",
+                        json!({
+                            "runId": run_id,
+                            "attempt": counters.attempt,
+                            "reason": error.to_string(),
+                        }),
+                    ),
+                }
+            }
             counters.attempt = counters.attempt.saturating_add(1);
         }
     }
@@ -389,57 +413,13 @@ impl AuthenticatedRuntimeOrchestrator {
     ) -> Option<HashMap<String, FriendRecord>> {
         let mut attempt = 1;
         loop {
-            if !self.is_active(run_id, scope, stop_token) {
-                return None;
-            }
-            self.set_step_running(run_id, RuntimeStep::Friends, attempt);
-            let result = build_synced_friend_roster_baseline(
-                self.social_baseline_deps(),
-                &self.realtime_runtime,
-                SocialFriendRosterBaselineInput {
-                    user_id: session.user_id.clone(),
-                    endpoint: session.endpoint.clone(),
-                    websocket: session.websocket.clone(),
-                    current_user_snapshot: RawJson::from(session.current_user.clone()),
-                    is_first_load: true,
-                },
-            )
-            .await
-            .map_err(Error::from)
-            .and_then(|baseline| {
-                let output = baseline.output;
-                match baseline.friends_by_id {
-                    Some(friends_by_id) => Ok((output, friends_by_id)),
-                    None => Err(Error::Custom(if output.detail.trim().is_empty() {
-                        "Friend roster baseline was stale.".into()
-                    } else {
-                        output.detail
-                    })),
-                }
-            });
-            if !self.is_active(run_id, scope, stop_token) {
-                return None;
-            }
-
-            match result {
-                Ok((mut output, friends_by_id)) => {
-                    if output.detail.trim().is_empty() {
-                        output.detail = format!(
-                            "Friend roster baseline loaded for {}.",
-                            session.display_name
-                        );
-                    }
-                    self.update_snapshot(run_id, |snapshot| {
-                        commit_friend_baseline(snapshot, attempt, output.clone());
-                    });
-                    return Some(friends_by_id);
-                }
+            match self
+                .try_friend_baseline(session, scope, run_id, stop_token, attempt)
+                .await
+            {
+                Ok(Some(friends_by_id)) => return Some(friends_by_id),
+                Ok(None) => return None,
                 Err(error) => {
-                    self.emit_auth_failure_if_needed(
-                        scope,
-                        "runtime/social-baseline/friends",
-                        &error,
-                    );
                     let delay = retry_delay_seconds(attempt);
                     self.set_step_retry(
                         run_id,
@@ -453,6 +433,66 @@ impl AuthenticatedRuntimeOrchestrator {
                     }
                     attempt = attempt.saturating_add(1);
                 }
+            }
+        }
+    }
+
+    async fn try_friend_baseline(
+        &self,
+        session: &AuthenticatedRuntimeSession,
+        scope: &RuntimeAuthScopeSnapshot,
+        run_id: u64,
+        stop_token: &TaskStopToken,
+        attempt: u32,
+    ) -> Result<Option<HashMap<String, FriendRecord>>> {
+        if !self.is_active(run_id, scope, stop_token) {
+            return Ok(None);
+        }
+        self.set_step_running(run_id, RuntimeStep::Friends, attempt);
+        let result = build_synced_friend_roster_baseline(
+            self.social_baseline_deps(),
+            &self.realtime_runtime,
+            SocialFriendRosterBaselineInput {
+                user_id: session.user_id.clone(),
+                endpoint: session.endpoint.clone(),
+                websocket: session.websocket.clone(),
+                current_user_snapshot: RawJson::from(session.current_user.clone()),
+                is_first_load: true,
+            },
+        )
+        .await
+        .map_err(Error::from)
+        .and_then(|baseline| {
+            let output = baseline.output;
+            match baseline.friends_by_id {
+                Some(friends_by_id) => Ok((output, friends_by_id)),
+                None => Err(Error::Custom(if output.detail.trim().is_empty() {
+                    "Friend roster baseline was stale.".into()
+                } else {
+                    output.detail
+                })),
+            }
+        });
+        if !self.is_active(run_id, scope, stop_token) {
+            return Ok(None);
+        }
+
+        match result {
+            Ok((mut output, friends_by_id)) => {
+                if output.detail.trim().is_empty() {
+                    output.detail = format!(
+                        "Friend roster baseline loaded for {}.",
+                        session.display_name
+                    );
+                }
+                self.update_snapshot(run_id, |snapshot| {
+                    commit_friend_baseline(snapshot, attempt, output.clone());
+                });
+                Ok(Some(friends_by_id))
+            }
+            Err(error) => {
+                self.emit_auth_failure_if_needed(scope, "runtime/social-baseline/friends", &error);
+                Err(error)
             }
         }
     }
