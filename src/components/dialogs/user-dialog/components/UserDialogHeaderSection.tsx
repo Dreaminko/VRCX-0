@@ -580,7 +580,7 @@ export function UserDialogHeaderSection({
                         />
                         <CardTitle
                             className={cn(
-                                'relative z-10 flex min-h-9 min-w-0 flex-wrap items-center gap-1.5 px-1 text-lg leading-tight',
+                                'relative z-10 flex min-h-9 min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 text-lg leading-tight',
                                 hasNameplateAppearance && 'text-white'
                             )}
                         >
@@ -643,7 +643,12 @@ export function UserDialogHeaderSection({
                             ) : null}
                             {pronounsText ? (
                                 <span
-                                    className="text-muted-foreground shrink-0 font-mono text-xs font-normal"
+                                    className={cn(
+                                        'shrink-0 rounded-full px-1.5 py-0.5 font-mono text-xs leading-none font-normal',
+                                        hasNameplateAppearance
+                                            ? 'bg-white/15 text-white/90'
+                                            : 'bg-foreground/10 text-muted-foreground'
+                                    )}
                                     title={t('dialog.user.pronouns')}
                                 >
                                     {pronounsText}
