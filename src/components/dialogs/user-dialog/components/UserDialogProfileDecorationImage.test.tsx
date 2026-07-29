@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { UserDialogProfileDecorationImage } from './UserDialogProfileDecorationImage';
 
 describe('UserDialogProfileDecorationImage', () => {
-    it('renders the looping asset with a reduced-motion base fallback', () => {
+    it('marks the looping asset and app fallback without OS motion overrides', () => {
         const { container } = render(
             <UserDialogProfileDecorationImage
                 item={{
@@ -32,13 +32,22 @@ describe('UserDialogProfileDecorationImage', () => {
         expect(images[0]?.getAttribute('src')).toBe(
             'https://example.test/main.webp'
         );
+        expect(images[0]?.getAttribute('data-profile-decoration-asset')).toBe(
+            'animation'
+        );
         expect(images[0]?.classList.contains('motion-reduce:hidden')).toBe(
-            true
+            false
         );
         expect(images[1]?.getAttribute('src')).toBe(
             'https://example.test/base.webp'
         );
-        expect(images[1]?.classList.contains('motion-reduce:block')).toBe(true);
+        expect(images[1]?.getAttribute('data-profile-decoration-asset')).toBe(
+            'fallback'
+        );
+        expect(images[1]?.classList.contains('hidden')).toBe(true);
+        expect(images[1]?.classList.contains('motion-reduce:block')).toBe(
+            false
+        );
     });
 
     it('renders a base-only decoration for all motion preferences', () => {

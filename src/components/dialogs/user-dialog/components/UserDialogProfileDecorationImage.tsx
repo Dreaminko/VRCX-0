@@ -31,13 +31,11 @@ export function UserDialogProfileDecorationImage({
                 <FadeInImage
                     src={animatedUrl}
                     alt=""
+                    data-profile-decoration-asset="animation"
                     loading="lazy"
                     decoding="async"
                     fallback={null}
-                    className={cn(
-                        'size-full motion-reduce:hidden',
-                        imageClassName
-                    )}
+                    className={cn('size-full', imageClassName)}
                     onError={() => {
                         setFailedAnimatedUrl(animatedUrl);
                     }}
@@ -47,13 +45,12 @@ export function UserDialogProfileDecorationImage({
                 <FadeInImage
                     src={staticUrl}
                     alt=""
+                    data-profile-decoration-asset="fallback"
                     loading="lazy"
                     decoding="async"
                     className={cn(
                         'size-full',
-                        animatedUrl &&
-                            !animationFailed &&
-                            'hidden motion-reduce:block',
+                        animatedUrl && !animationFailed && 'hidden',
                         imageClassName
                     )}
                 />

@@ -427,6 +427,14 @@
         scroll-behavior: auto !important;
     }
 
+    .reduce-effects [data-profile-decoration-asset='animation'] {
+        display: none !important;
+    }
+
+    .reduce-effects [data-profile-decoration-asset='fallback'] {
+        display: block !important;
+    }
+
     .reduce-effects [class*='backdrop-blur'],
     .reduce-effects [class*='backdrop-blur']::before,
     .reduce-effects [class*='backdrop-blur']::after,
