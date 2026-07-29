@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { UserDialogHeaderMedia } from './UserDialogHeaderMedia';
@@ -23,7 +23,7 @@ function renderMedia(frame?: typeof iconFrame) {
     return render(
         <UserDialogHeaderMedia
             bannerAlt="Profile banner"
-            bannerColor="#123456"
+            bannerFallbackUrl="https://example.test/legacy.webp"
             bannerUrl="https://example.test/banner.webp"
             iconFrame={frame}
             onBannerClick={vi.fn()}
@@ -48,6 +48,55 @@ describe('UserDialogHeaderMedia', () => {
                 .getByAltText('Profile banner')
                 .classList.contains('object-cover')
         ).toBe(true);
+    });
+
+    it('keeps the legacy image behind the profile banner without a color layer', () => {
+        const { container } = renderMedia(iconFrame);
+        const bannerButton = within(container).getByRole('button', {
+            name: 'Profile banner'
+        });
+        const images = [...bannerButton.querySelectorAll('img')];
+
+        expect(bannerButton.style.backgroundColor).toBe('');
+        expect(images.map((image) => image.getAttribute('src'))).toEqual([
+            'https://example.test/legacy.webp',
+            'https://example.test/banner.webp'
+        ]);
+
+        fireEvent.load(images[0]);
+        expect(images[0].classList.contains('opacity-100')).toBe(true);
+        expect(images[1].classList.contains('opacity-0')).toBe(true);
+
+        fireEvent.error(images[1]);
+        expect(
+            bannerButton.querySelector(
+                'img[src="https://example.test/banner.webp"]'
+            )
+        ).toBeNull();
+        expect(
+            bannerButton.querySelector(
+                'img[src="https://example.test/legacy.webp"]'
+            )
+        ).not.toBeNull();
+    });
+
+    it('leaves the banner empty when no image is available', () => {
+        const { container } = render(
+            <UserDialogHeaderMedia
+                bannerAlt="Profile banner"
+                bannerFallbackUrl=""
+                bannerUrl=""
+                onOpenUserIcon={vi.fn()}
+                userIconLabel="Open user icon"
+                userIconUrl=""
+            />
+        );
+        const bannerButton = within(container).getByRole('button');
+
+        expect(bannerButton.querySelector('img')).toBeNull();
+        expect(bannerButton.querySelector('svg')).toBeNull();
+        expect(bannerButton.childElementCount).toBe(0);
+        expect(bannerButton.textContent).toBe('');
     });
 
     it('uses a compact frame without the avatar white border', () => {

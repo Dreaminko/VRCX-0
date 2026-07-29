@@ -28,7 +28,7 @@ import type {
     resolvePlatformMeta
 } from './user-dialog/userDialogContentHelpers';
 import { buildUserDialogLocationUsers } from './user-dialog/userDialogLocationUsers';
-import { resolveUserDialogBanner } from './user-dialog/userDialogProfileAppearance';
+import { resolveUserDialogBannerUrl } from './user-dialog/userDialogProfileAppearance';
 import {
     isOfflineLikeValue,
     normalizedText
@@ -499,8 +499,12 @@ export function UserDialogTabbedView({
     const showAvatarAuthor = useUserDialogAvatarAuthorAction({
         currentAvatarTarget
     });
-    const banner = resolveUserDialogBanner(profile);
-    const bannerUrl = convertFileUrlToImageUrl(banner.url, 1024);
+    const bannerUrl = convertFileUrlToImageUrl(
+        resolveUserDialogBannerUrl(profile),
+        1024
+    );
+    const bannerFallbackUrl = convertFileUrlToImageUrl(imageUrl, 1024);
+    const displayedBannerUrl = bannerUrl || bannerFallbackUrl;
     const profileIconUrl = convertFileUrlToImageUrl(
         normalizedText(profile.iconUrl) ||
             normalizedText(profile.userIcon) ||
@@ -523,6 +527,7 @@ export function UserDialogTabbedView({
         fallbackAvatarTarget,
         friendNumber,
         friendRequestState,
+        bannerFallbackUrl,
         imageUrl: bannerUrl,
         isCurrentUser,
         isFriend,
@@ -564,7 +569,7 @@ export function UserDialogTabbedView({
         onGroupModeration,
         onImageClick: () =>
             openImagePreview({
-                url: bannerUrl,
+                url: displayedBannerUrl,
                 title: profileTitle
             }),
         onInvite,

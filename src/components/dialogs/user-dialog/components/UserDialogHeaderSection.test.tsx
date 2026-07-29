@@ -45,6 +45,7 @@ function createHeaderModel(effect?: InventoryItemRecord): UserHeaderModel {
             hideAvatar: false,
             showAvatar: false
         },
+        bannerFallbackUrl: '',
         canInviteFromCurrentLocation: false,
         currentAvatarTarget: '',
         currentUserBoopingEnabled: false,

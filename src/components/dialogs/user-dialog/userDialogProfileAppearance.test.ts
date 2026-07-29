@@ -4,7 +4,7 @@ import {
     mergeUserDialogProfileAppearance,
     normalizeProfileAppearanceColor,
     resolveProfileDecorationAssetUrls,
-    resolveUserDialogBanner
+    resolveUserDialogBannerUrl
 } from './userDialogProfileAppearance';
 
 describe('mergeUserDialogProfileAppearance', () => {
@@ -135,31 +135,33 @@ describe('profile appearance assets', () => {
         expect(normalizeProfileAppearanceColor('')).toBe('');
     });
 
-    it('uses a color banner without leaking a retained custom image', () => {
+    it('ignores retained image urls for color banners', () => {
         expect(
-            resolveUserDialogBanner({
+            resolveUserDialogBannerUrl({
                 bannerType: 'color',
-                bannerColor: '2cc968',
                 bannerUrl: 'https://example.test/old-banner.png',
                 bannerCustomUrl: 'https://example.test/old-custom.png'
             })
-        ).toEqual({
-            color: '#2cc968',
-            url: ''
-        });
+        ).toBe('');
     });
 
     it('prefers the resolved banner url for image banners', () => {
         expect(
-            resolveUserDialogBanner({
+            resolveUserDialogBannerUrl({
                 bannerType: 'customImage',
-                bannerColor: '2cc968',
                 bannerUrl: 'https://example.test/banner.png',
                 bannerCustomUrl: 'https://example.test/custom.png'
             })
-        ).toEqual({
-            color: '#2cc968',
-            url: 'https://example.test/banner.png'
-        });
+        ).toBe('https://example.test/banner.png');
+    });
+
+    it('returns no profile banner when image urls are empty', () => {
+        expect(
+            resolveUserDialogBannerUrl({
+                bannerType: 'customImage',
+                bannerUrl: '',
+                bannerCustomUrl: ''
+            })
+        ).toBe('');
     });
 });

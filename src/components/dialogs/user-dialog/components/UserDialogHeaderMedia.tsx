@@ -1,4 +1,3 @@
-import { UsersIcon } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
@@ -11,7 +10,7 @@ import { UserDialogProfileDecorationImage } from './UserDialogProfileDecorationI
 
 interface UserDialogHeaderMediaProps {
     bannerAlt: string;
-    bannerColor: string;
+    bannerFallbackUrl: string;
     bannerUrl: string;
     iconFrame?: InventoryItemRecord;
     onBannerClick?: () => void;
@@ -22,7 +21,7 @@ interface UserDialogHeaderMediaProps {
 
 export function UserDialogHeaderMedia({
     bannerAlt,
-    bannerColor,
+    bannerFallbackUrl,
     bannerUrl,
     iconFrame,
     onBannerClick,
@@ -33,37 +32,41 @@ export function UserDialogHeaderMedia({
     const { animatedUrl, staticUrl } =
         resolveProfileDecorationAssetUrls(iconFrame);
     const hasIconFrame = Boolean(animatedUrl || staticUrl);
-    const bannerFallback = bannerColor ? (
-        <span aria-hidden className="size-full" />
-    ) : (
-        <UsersIcon className="text-muted-foreground size-8" />
-    );
+    const displayedBannerUrl = bannerUrl || bannerFallbackUrl;
 
     return (
         <div className="relative">
             <Button
                 type="button"
                 variant="ghost"
-                disabled={!bannerUrl || !onBannerClick}
+                aria-label={bannerAlt}
+                disabled={!displayedBannerUrl || !onBannerClick}
                 onClick={onBannerClick}
-                style={
-                    bannerColor ? { backgroundColor: bannerColor } : undefined
-                }
                 className={cn(
                     'bg-muted aspect-[4/3] h-auto w-full overflow-hidden rounded-lg border p-0 disabled:pointer-events-none disabled:opacity-100',
-                    bannerUrl ? 'cursor-pointer' : 'cursor-default'
+                    displayedBannerUrl ? 'cursor-pointer' : 'cursor-default'
                 )}
             >
-                {bannerUrl ? (
-                    <FadeInImage
-                        src={bannerUrl}
-                        alt={bannerAlt}
-                        className="size-full object-cover"
-                        fallback={bannerFallback}
-                    />
-                ) : (
-                    bannerFallback
-                )}
+                {displayedBannerUrl ? (
+                    <span className="relative size-full">
+                        {bannerFallbackUrl ? (
+                            <FadeInImage
+                                src={bannerFallbackUrl}
+                                alt={bannerUrl ? '' : bannerAlt}
+                                className="absolute inset-0 size-full object-cover"
+                                fallback={null}
+                            />
+                        ) : null}
+                        {bannerUrl ? (
+                            <FadeInImage
+                                src={bannerUrl}
+                                alt={bannerAlt}
+                                className="absolute inset-0 size-full object-cover"
+                                fallback={null}
+                            />
+                        ) : null}
+                    </span>
+                ) : null}
             </Button>
             {userIconUrl ? (
                 <div className="absolute bottom-3 left-3 z-30 size-16">

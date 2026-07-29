@@ -43,11 +43,6 @@ type ProfileDecorationAssetUrls = {
     staticUrl: string;
 };
 
-type UserDialogBanner = {
-    color: string;
-    url: string;
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
@@ -88,17 +83,16 @@ export function normalizeProfileAppearanceColor(value: unknown): string {
     return /^[\da-f]{6}$/i.test(color) ? `#${color.toLowerCase()}` : '';
 }
 
-export function resolveUserDialogBanner(
+export function resolveUserDialogBannerUrl(
     profile: UserDialogProfileRecord
-): UserDialogBanner {
-    return {
-        color: normalizeProfileAppearanceColor(profile.bannerColor),
-        url:
-            normalizeText(profile.bannerType) === 'color'
-                ? ''
-                : normalizeText(profile.bannerUrl) ||
-                  normalizeText(profile.bannerCustomUrl)
-    };
+): string {
+    if (normalizeText(profile.bannerType) === 'color') {
+        return '';
+    }
+    return (
+        normalizeText(profile.bannerUrl) ||
+        normalizeText(profile.bannerCustomUrl)
+    );
 }
 
 export function resolveProfileDecorationAssetUrls(

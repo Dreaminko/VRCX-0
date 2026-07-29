@@ -79,6 +79,7 @@ function linearGradientStyle(
 export interface UserHeaderModel {
     actionStatus: string;
     avatarOverrideState: AvatarOverrideState;
+    bannerFallbackUrl: string;
     canInviteFromCurrentLocation: boolean;
     currentAvatarTarget: string;
     currentUserBoopingEnabled: boolean;
@@ -376,6 +377,7 @@ export function UserDialogHeaderSection({
     const {
         actionStatus = 'idle',
         avatarOverrideState,
+        bannerFallbackUrl,
         canInviteFromCurrentLocation,
         currentAvatarTarget,
         currentUserBoopingEnabled,
@@ -508,7 +510,6 @@ export function UserDialogHeaderSection({
         : '';
     const hasProfileBadges = hasRenderableUserProfileBadges(profile);
     const isOwner = profile.id === OWNER_USER_ID;
-    const bannerColor = normalizeProfileAppearanceColor(profile.bannerColor);
     const backgroundGradientTop = normalizeProfileAppearanceColor(
         profile.backgroundGradientTop
     );
@@ -552,7 +553,7 @@ export function UserDialogHeaderSection({
             media={
                 <UserDialogHeaderMedia
                     bannerAlt={profile.displayName || profile.id || 'User'}
-                    bannerColor={bannerColor}
+                    bannerFallbackUrl={bannerFallbackUrl}
                     bannerUrl={imageUrl}
                     iconFrame={profileAppearance.iconFrame}
                     onBannerClick={onImageClick}
