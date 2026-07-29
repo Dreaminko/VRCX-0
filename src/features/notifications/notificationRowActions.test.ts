@@ -1,11 +1,11 @@
 import type { TFunction } from 'i18next';
+import { ReplyIcon } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
 
 import {
     buildOrderedActions,
-    PRIMARY_ACTION_KEYS,
     type NotificationRowActionHandlers
 } from './notificationRowActions';
 
@@ -47,7 +47,7 @@ describe('buildOrderedActions', () => {
         const actions = buildActions(notification, handlers);
 
         expect(actions.map((action) => action.key)).toEqual(['reply-boop']);
-        expect(PRIMARY_ACTION_KEYS.has('reply-boop')).toBe(true);
+        expect(actions[0]?.Icon).toBe(ReplyIcon);
         expect(actions[0]?.label).toBe('view.notification.action.send_boop');
         actions[0]?.onClick();
         expect(handlers.onSendNotificationResponse).toHaveBeenCalledWith(

@@ -143,11 +143,7 @@ export function canMarkNotificationSeen(
     );
 }
 
-export const PRIMARY_ACTION_KEYS = new Set<string>([
-    'accept',
-    'invite',
-    'reply-boop'
-]);
+export const PRIMARY_ACTION_KEYS = new Set<string>(['accept', 'invite']);
 
 const MANUAL_BOOP_REPLY_RESPONSE = {
     icon: 'reply',
@@ -225,7 +221,7 @@ export function buildOrderedActions({
         actions.push({
             key: 'reply-boop',
             label: t('view.notification.action.send_boop'),
-            Icon: getResponseIcon(MANUAL_BOOP_REPLY_RESPONSE, type),
+            Icon: ReplyIcon,
             onClick: () =>
                 handlers.onSendNotificationResponse(
                     notification,
