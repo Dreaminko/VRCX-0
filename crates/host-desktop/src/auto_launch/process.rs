@@ -2,12 +2,14 @@ use super::*;
 
 const UNTRACKED_CLOSE_PROCESS_DENYLIST: &[&str] = &["steam", "steam.sh"];
 
+#[cfg(any(windows, test))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum ShellExecuteVerb {
     Open,
     RunAs,
 }
 
+#[cfg(any(windows, test))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum LocalLaunchStrategy {
     Direct,
@@ -36,6 +38,7 @@ impl LaunchFailure {
     }
 }
 
+#[cfg(any(windows, test))]
 pub(super) fn local_launch_strategy(
     entry: &AppLauncherEntry,
     windows: bool,
