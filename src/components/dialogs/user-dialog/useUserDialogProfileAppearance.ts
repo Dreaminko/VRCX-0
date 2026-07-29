@@ -13,8 +13,10 @@ import type { UserDialogProfileRecord } from './userDialogProfileTypes';
 const EMPTY_APPEARANCE: UserDialogProfileAppearance = Object.freeze({});
 
 export function useUserDialogProfileAppearance({
+    enabled = true,
     profile
 }: {
+    enabled?: boolean;
     profile: UserDialogProfileRecord | null | undefined;
 }): UserDialogProfileAppearance {
     const userId = profile?.id?.trim() ?? '';
@@ -55,7 +57,7 @@ export function useUserDialogProfileAppearance({
         const templateIds = [
             ...new Set(Object.values(templateIdsBySlot).filter(Boolean))
         ];
-        if (!userId || templateIds.length === 0) {
+        if (!enabled || !userId || templateIds.length === 0) {
             return;
         }
 
@@ -108,7 +110,9 @@ export function useUserDialogProfileAppearance({
         return () => {
             active = false;
         };
-    }, [resourceKey, templateIdsBySlot, userId]);
+    }, [enabled, resourceKey, templateIdsBySlot, userId]);
 
-    return resource.key === resourceKey ? resource.value : EMPTY_APPEARANCE;
+    return enabled && resource.key === resourceKey
+        ? resource.value
+        : EMPTY_APPEARANCE;
 }

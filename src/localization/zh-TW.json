@@ -2247,6 +2247,8 @@
                 },
                 "user_dialog": {
                     "header": "用戶資訊",
+                    "profile_decorations": "顯示個人資料裝飾",
+                    "profile_decorations_description": "在用戶資訊中顯示 VRChat 個人資料裝飾。",
                     "vrchat_notes": "VRChat 備註",
                     "vrchat_notes_description": "顯示儲存在 VRChat 中的備註",
                     "vrcx_memos": "本機備註",

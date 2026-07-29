@@ -2249,6 +2249,8 @@
                 },
                 "user_dialog": {
                     "header": "Меню пользователя",
+                    "profile_decorations": "Оформление профиля",
+                    "profile_decorations_description": "Показывать оформление профиля VRChat в меню пользователя.",
                     "vrchat_notes": "Заметки VRChat",
                     "vrchat_notes_description": "Показать записи, хранящиеся в VRChat",
                     "vrcx_memos": "Заметки VRCX-0",

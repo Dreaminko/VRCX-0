@@ -30,6 +30,7 @@ export function SettingsInterfaceDisplayCards({
     onAgeGatedInstancesVisibleChange,
     onHideNicknamesChange,
     onDisplayVrcPlusIconsAsAvatarChange,
+    onShowUserDialogProfileDecorationsChange,
     onShowNewDashboardButtonChange,
     onOpenTablePageSizes,
     onOpenTableLimits,
@@ -257,6 +258,22 @@ export function SettingsInterfaceDisplayCards({
             <SettingsGroup
                 title={t('view.settings.appearance.user_dialog.header')}
             >
+                <Field
+                    label={t(
+                        'view.settings.appearance.user_dialog.profile_decorations'
+                    )}
+                    description={t(
+                        'view.settings.appearance.user_dialog.profile_decorations_description'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.showUserDialogProfileDecorations}
+                        onCheckedChange={
+                            onShowUserDialogProfileDecorationsChange
+                        }
+                    />
+                </Field>
+
                 <Field
                     label={t(
                         'view.settings.appearance.user_dialog.vrchat_notes'

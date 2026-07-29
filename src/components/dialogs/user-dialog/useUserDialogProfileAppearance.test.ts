@@ -166,4 +166,40 @@ describe('useUserDialogProfileAppearance', () => {
         expect(result.current).toEqual({});
         expect(mocks.getInventoryTemplate).not.toHaveBeenCalled();
     });
+
+    it('requests and exposes profile decorations only while display is enabled', async () => {
+        const { result, rerender } = renderHook(
+            ({ enabled }: { enabled: boolean }) =>
+                useUserDialogProfileAppearance({
+                    enabled,
+                    profile: {
+                        id: 'usr_target',
+                        iconFrame: 'invt_frame',
+                        profileEffect: 'invt_profile',
+                        nameplateEffect: 'invt_nameplate'
+                    }
+                }),
+            {
+                initialProps: {
+                    enabled: false
+                }
+            }
+        );
+
+        expect(result.current).toEqual({});
+        expect(mocks.getInventoryTemplate).not.toHaveBeenCalled();
+
+        rerender({ enabled: true });
+
+        await waitFor(() => {
+            expect(result.current.iconFrame?.id).toBe('invt_frame');
+            expect(result.current.profileEffect?.id).toBe('invt_profile');
+            expect(result.current.nameplateEffect?.id).toBe('invt_nameplate');
+        });
+        expect(mocks.getInventoryTemplate).toHaveBeenCalledTimes(3);
+
+        rerender({ enabled: false });
+
+        expect(result.current).toEqual({});
+    });
 });

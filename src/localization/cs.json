@@ -2249,6 +2249,8 @@
                 },
                 "user_dialog": {
                     "header": "Dialog uživatele",
+                    "profile_decorations": "Dekorace profilu",
+                    "profile_decorations_description": "Zobrazí dekorace profilu z VRChatu v dialogu uživatele.",
                     "vrchat_notes": "VRChat poznámky",
                     "vrchat_notes_description": "Zobrazuje poznámky uložené ve VRChat",
                     "vrcx_memos": "VRCX-0 poznámky",

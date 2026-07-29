@@ -9,6 +9,18 @@ import {
 } from './preferencesStore';
 
 describe('preferencesStore normalizers', () => {
+    it('shows user dialog profile decorations by default and preserves an explicit opt-out', () => {
+        expect(DEFAULT_PREFERENCES.showUserDialogProfileDecorations).toBe(true);
+        expect(
+            normalizePreferenceSnapshot({}).showUserDialogProfileDecorations
+        ).toBe(true);
+        expect(
+            normalizePreferenceSnapshot({
+                showUserDialogProfileDecorations: false
+            }).showUserDialogProfileDecorations
+        ).toBe(false);
+    });
+
     it('keeps startup auto update enabled by default', () => {
         expect(DEFAULT_PREFERENCES.autoInstallUpdatesOnStartup).toBe(true);
         expect(

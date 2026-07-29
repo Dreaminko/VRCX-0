@@ -45,6 +45,7 @@ export function createDefaultSettingsPrefs() {
         showInstanceIdInLocation: false,
         isAgeGatedInstancesVisible: true,
         displayVRCPlusIconsAsAvatar: true,
+        showUserDialogProfileDecorations: true,
         weekStartsOn: 1,
         dtIsoFormat: false,
         dtHour12: false,

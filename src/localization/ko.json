@@ -2194,6 +2194,8 @@
                 },
                 "user_dialog": {
                     "header": "유저 정보 대화 상자",
+                    "profile_decorations": "프로필 장식",
+                    "profile_decorations_description": "사용자 정보에 VRChat 프로필 장식을 표시합니다.",
                     "vrcx_memos": "로컬 메모",
                     "recent_action_cooldown": "최근 작업 아이콘",
                     "recent_action_cooldown_description": "최근 초대 및 요청 작업에 시계 아이콘을 표시합니다.",

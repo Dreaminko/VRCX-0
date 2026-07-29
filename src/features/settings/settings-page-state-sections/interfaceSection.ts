@@ -165,6 +165,14 @@ export function buildInterfaceSection({
                 enabled
             );
         },
+        onShowUserDialogProfileDecorationsChange: (checked: unknown) => {
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'showUserDialogProfileDecorations',
+                'showUserDialogProfileDecorations',
+                enabled
+            );
+        },
         onShowNewDashboardButtonChange: (checked: unknown) => {
             const enabled = normalizeCheckedState(checked);
             savePreferenceValue('showNewDashboardButton', enabled, () =>

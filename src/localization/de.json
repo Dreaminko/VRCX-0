@@ -2247,6 +2247,8 @@
                 },
                 "user_dialog": {
                     "header": "Benutzer-Dialog",
+                    "profile_decorations": "Profildekorationen",
+                    "profile_decorations_description": "Zeigt VRChat-Profildekorationen im Benutzer-Dialog an.",
                     "vrchat_notes": "VRChat-Notizen",
                     "vrchat_notes_description": "Zeigt in VRChat gespeicherte Notizen an",
                     "vrcx_memos": "Lokale Notizen",

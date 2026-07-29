@@ -12,6 +12,7 @@ import { isActionRecent } from '@/services/recentActionService';
 import { MINUTE_MS } from '@/shared/constants/time';
 import { vrchatUserUrl } from '@/shared/constants/vrchatWebUrls';
 import { parseLocation } from '@/shared/utils/location';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import {
@@ -172,7 +173,13 @@ export function UserDialogTabbedView({
         reloadToken = 0,
         initialAction = ''
     } = resource;
-    const profileAppearance = useUserDialogProfileAppearance({ profile });
+    const showUserDialogProfileDecorations = usePreferencesStore(
+        (state) => state.showUserDialogProfileDecorations
+    );
+    const profileAppearance = useUserDialogProfileAppearance({
+        enabled: showUserDialogProfileDecorations,
+        profile
+    });
     const {
         moderationState,
         extendedModerationState = { interactOff: false, muteChat: false },

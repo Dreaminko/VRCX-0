@@ -30,6 +30,7 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
         onAgeGatedInstancesVisibleChange,
         onHideNicknamesChange,
         onDisplayVrcPlusIconsAsAvatarChange,
+        onShowUserDialogProfileDecorationsChange,
         onShowNewDashboardButtonChange,
         onOpenTablePageSizes,
         onOpenTableLimits,
@@ -78,6 +79,9 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
                 onHideNicknamesChange={onHideNicknamesChange}
                 onDisplayVrcPlusIconsAsAvatarChange={
                     onDisplayVrcPlusIconsAsAvatarChange
+                }
+                onShowUserDialogProfileDecorationsChange={
+                    onShowUserDialogProfileDecorationsChange
                 }
                 onShowNewDashboardButtonChange={onShowNewDashboardButtonChange}
                 onOpenTablePageSizes={onOpenTablePageSizes}

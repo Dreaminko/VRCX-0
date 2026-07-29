@@ -289,6 +289,28 @@ describe('settingsPageStateSections', () => {
         expect(setAvatarProviderDialogOpen).toHaveBeenCalledWith(true);
     });
 
+    it('routes profile decoration visibility through the interface section', () => {
+        const saveBoolPreference = vi.fn();
+        const prefs = createDefaultSettingsPrefs();
+        const sections = buildSettingsPageStateSections(
+            createInput({
+                activeSettingsTab: 'interface',
+                prefs,
+                saveBoolPreference
+            })
+        );
+
+        expect(prefs.showUserDialogProfileDecorations).toBe(true);
+
+        sections.interface.onShowUserDialogProfileDecorationsChange(false);
+
+        expect(saveBoolPreference).toHaveBeenCalledWith(
+            'showUserDialogProfileDecorations',
+            'showUserDialogProfileDecorations',
+            false
+        );
+    });
+
     it('routes the hide-unfriend-event preference through the social section', () => {
         const saveBoolPreference = vi.fn();
         const sections = buildSettingsPageStateSections(

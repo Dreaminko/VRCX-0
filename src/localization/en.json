@@ -2247,6 +2247,8 @@
                 },
                 "user_dialog": {
                     "header": "User Dialog",
+                    "profile_decorations": "Profile Decorations",
+                    "profile_decorations_description": "Show VRChat profile decorations in user dialogs.",
                     "vrchat_notes": "VRChat Notes",
                     "vrchat_notes_description": "Shows notes stored in VRChat",
                     "vrcx_memos": "Local Notes",

@@ -2247,6 +2247,8 @@
                 },
                 "user_dialog": {
                     "header": "玩家信息",
+                    "profile_decorations": "显示个人资料装饰",
+                    "profile_decorations_description": "在玩家信息中显示 VRChat 个人资料装饰。",
                     "vrchat_notes": "显示线上备注",
                     "vrchat_notes_description": "显示 VRChat 服务器上保存的备注",
                     "vrcx_memos": "显示本地备注",

@@ -2243,6 +2243,8 @@
                 },
                 "user_dialog": {
                     "header": "ユーザーダイアログ",
+                    "profile_decorations": "プロフィールの装飾",
+                    "profile_decorations_description": "VRChat で設定されたプロフィールの装飾をユーザー情報に表示します。",
                     "vrchat_notes": "VRChat のノート",
                     "vrchat_notes_description": "VRChat のノートを表示",
                     "vrcx_memos": "ローカルノート",

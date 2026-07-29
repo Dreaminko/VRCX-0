@@ -76,6 +76,7 @@ export const ConfigKeys = defineConfigKeys({
     showInstanceIdInLocation: { type: 'bool', default: false },
     isAgeGatedInstancesVisible: { type: 'bool', default: true },
     displayVRCPlusIconsAsAvatar: { type: 'bool', default: true },
+    showUserDialogProfileDecorations: { type: 'bool', default: true },
     hideUserMemos: { type: 'bool', default: false },
     hideUserNotes: { type: 'bool', default: false },
     compactTableMode: { type: 'bool', default: false },

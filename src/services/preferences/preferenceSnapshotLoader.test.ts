@@ -246,6 +246,27 @@ describe('preferenceSnapshotLoader', () => {
         );
     });
 
+    it('loads the user dialog profile decoration visibility preference', async () => {
+        mocks.getBool.mockImplementation((key: string, fallback = false) =>
+            Promise.resolve(
+                key === 'showUserDialogProfileDecorations'
+                    ? false
+                    : Boolean(fallback)
+            )
+        );
+
+        const snapshot = await loadPreferenceSnapshot();
+
+        expect(mocks.getBool).toHaveBeenCalledWith(
+            'showUserDialogProfileDecorations',
+            true
+        );
+        expect(snapshot.showUserDialogProfileDecorations).toBe(false);
+        expect(
+            usePreferencesStore.getState().showUserDialogProfileDecorations
+        ).toBe(false);
+    });
+
     it('keeps hidden interactive VR panel settings out of the preference load', async () => {
         const snapshot = await loadPreferenceSnapshot();
 

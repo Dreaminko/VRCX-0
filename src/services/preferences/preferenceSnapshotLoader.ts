@@ -119,6 +119,7 @@ export async function loadPreferenceSnapshot() {
         isAgeGatedInstancesVisible,
         hideNicknames,
         displayVRCPlusIconsAsAvatar,
+        showUserDialogProfileDecorations,
         weekStartsOn,
         hideUserNotes,
         hideUserMemos,
@@ -244,6 +245,7 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('VRCX_isAgeGatedInstancesVisible', true),
         configRepository.getBool('hideNicknames', false),
         configRepository.getBool('displayVRCPlusIconsAsAvatar', true),
+        configRepository.getBool('showUserDialogProfileDecorations', true),
         configRepository.getInt('weekStartsOn', 1),
         configRepository.getBool('hideUserNotes', false),
         configRepository.getBool('hideUserMemos', false),
@@ -427,6 +429,9 @@ export async function loadPreferenceSnapshot() {
         isAgeGatedInstancesVisible: Boolean(isAgeGatedInstancesVisible),
         hideNicknames: Boolean(hideNicknames),
         displayVRCPlusIconsAsAvatar: Boolean(displayVRCPlusIconsAsAvatar),
+        showUserDialogProfileDecorations: Boolean(
+            showUserDialogProfileDecorations
+        ),
         weekStartsOn: normalizeWeekStartsOn(weekStartsOn),
         hideUserNotes: Boolean(hideUserNotes),
         hideUserMemos: Boolean(hideUserMemos),
