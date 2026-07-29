@@ -45,6 +45,7 @@ pub struct InviteLocationFacts {
 pub struct CooldownView {
     pub last_sent_at_ms: Option<i64>,
     pub is_pending: bool,
+    pub in_failure_backoff: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -108,6 +109,46 @@ pub fn normalize_invite_automation_mode(value: &str) -> InviteAutomationMode {
     }
 }
 
+pub fn context_gates(
+    config: &InviteAutomationConfig,
+    location: &InviteLocationFacts,
+) -> Result<(), InviteAutomationSkipReason> {
+    if config.mode == InviteAutomationMode::Off {
+        return Err(InviteAutomationSkipReason::Disabled);
+    }
+    if !location.local_game_context_available {
+        return Err(InviteAutomationSkipReason::LocalGameContextUnavailable);
+    }
+    if !location.is_game_running {
+        return Err(InviteAutomationSkipReason::GameNotRunning);
+    }
+    if location.current_user_id.trim().is_empty()
+        || location.current_location.trim().is_empty()
+        || location.current_location.trim() == "traveling"
+    {
+        return Err(InviteAutomationSkipReason::MissingCurrentSessionOrLocation);
+    }
+    Ok(())
+}
+
+pub fn cooldown_gate(
+    cooldown: &CooldownView,
+    now_ms: i64,
+) -> Result<(), InviteAutomationSkipReason> {
+    if cooldown.is_pending {
+        return Err(InviteAutomationSkipReason::Pending);
+    }
+    if cooldown.in_failure_backoff {
+        return Err(InviteAutomationSkipReason::FailureBackoff);
+    }
+    if cooldown.last_sent_at_ms.is_some_and(|last_sent_at| {
+        now_ms.saturating_sub(last_sent_at) < INVITE_AUTOMATION_COOLDOWN_MS
+    }) {
+        return Err(InviteAutomationSkipReason::Cooldown);
+    }
+    Ok(())
+}
+
 pub fn evaluate_invite_automation(input: &InviteAutomationInput) -> InviteDecision {
     if input.notification.notification_type != "requestInvite"
         || input.notification.id.trim().is_empty()
@@ -115,36 +156,14 @@ pub fn evaluate_invite_automation(input: &InviteAutomationInput) -> InviteDecisi
     {
         return skip(InviteAutomationSkipReason::InvalidNotification);
     }
-    if input.config.mode == InviteAutomationMode::Off {
-        return skip(InviteAutomationSkipReason::Disabled);
+    if let Err(reason) = context_gates(&input.config, &input.location) {
+        return skip(reason);
     }
     if !sender_allowed(&input.config, &input.allowlist) {
         return skip(InviteAutomationSkipReason::SenderNotAllowlisted);
     }
-    if !input.location.local_game_context_available {
-        return skip(InviteAutomationSkipReason::LocalGameContextUnavailable);
-    }
-    if !input.location.is_game_running {
-        return skip(InviteAutomationSkipReason::GameNotRunning);
-    }
-    if input.location.current_user_id.trim().is_empty()
-        || input.location.current_location.trim().is_empty()
-        || input.location.current_location.trim() == "traveling"
-    {
-        return skip(InviteAutomationSkipReason::MissingCurrentSessionOrLocation);
-    }
-    if input.cooldown.is_pending {
-        return skip(InviteAutomationSkipReason::Pending);
-    }
-    if input
-        .cooldown
-        .last_sent_at_ms
-        .map(|last_sent_at| {
-            input.now_ms.saturating_sub(last_sent_at) < INVITE_AUTOMATION_COOLDOWN_MS
-        })
-        .unwrap_or(false)
-    {
-        return skip(InviteAutomationSkipReason::Cooldown);
+    if let Err(reason) = cooldown_gate(&input.cooldown, input.now_ms) {
+        return skip(reason);
     }
 
     let parsed = parse_location(&input.location.current_location);
@@ -244,6 +263,7 @@ mod tests {
             cooldown: CooldownView {
                 last_sent_at_ms: None,
                 is_pending: false,
+                in_failure_backoff: false,
             },
             now_ms: 1_000_000,
         }
@@ -369,6 +389,15 @@ mod tests {
             evaluate_invite_automation(&cooling_down),
             InviteDecision::Skip {
                 reason: InviteAutomationSkipReason::Cooldown,
+            }
+        );
+
+        let mut backing_off = base_input();
+        backing_off.cooldown.in_failure_backoff = true;
+        assert_eq!(
+            evaluate_invite_automation(&backing_off),
+            InviteDecision::Skip {
+                reason: InviteAutomationSkipReason::FailureBackoff,
             }
         );
     }

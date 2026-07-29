@@ -22,14 +22,15 @@ pub(crate) struct InviteAutomationState {
 }
 
 impl InviteAutomationState {
-    pub(crate) fn cooldown_view(&self, scope_key: &str) -> CooldownView {
+    pub(crate) fn cooldown_view(&self, scope_key: &str, now_ms: i64) -> CooldownView {
         CooldownView {
             last_sent_at_ms: self.cooldowns.get(scope_key).copied(),
             is_pending: self.pending.contains(scope_key),
+            in_failure_backoff: self.is_in_failure_backoff(scope_key, now_ms),
         }
     }
 
-    pub(crate) fn is_in_failure_backoff(&self, scope_key: &str, now_ms: i64) -> bool {
+    fn is_in_failure_backoff(&self, scope_key: &str, now_ms: i64) -> bool {
         self.failure_backoff
             .get(scope_key)
             .is_some_and(|until_ms| now_ms < *until_ms)
@@ -116,7 +117,9 @@ mod tests {
         );
         assert!(!state.is_in_failure_backoff("scope", now + INVITE_FAILURE_BACKOFF_MS));
         assert_eq!(
-            state.cooldown_view("scope").last_sent_at_ms,
+            state
+                .cooldown_view("scope", now + INVITE_FAILURE_BACKOFF_MS)
+                .last_sent_at_ms,
             Some(now + INVITE_FAILURE_BACKOFF_MS)
         );
     }
@@ -126,9 +129,10 @@ mod tests {
         let mut state = InviteAutomationState::default();
         state.begin("scope");
         state.finish("scope", InviteOutcome::Skipped, 5_000);
-        assert!(!state.cooldown_view("scope").is_pending);
-        assert_eq!(state.cooldown_view("scope").last_sent_at_ms, None);
-        assert!(!state.is_in_failure_backoff("scope", 5_000));
+        let view = state.cooldown_view("scope", 5_000);
+        assert!(!view.is_pending);
+        assert_eq!(view.last_sent_at_ms, None);
+        assert!(!view.in_failure_backoff);
     }
 
     #[test]

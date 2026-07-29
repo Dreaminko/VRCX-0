@@ -2,14 +2,16 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use serde_json::{json, Value};
-use vrcx_0_core::json::trimmed_text_of as string_field;
+use vrcx_0_core::json::JsonExt;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_vrchat_client::notifications::{invite_send_input, notification_hide_remote_input};
 
+use crate::realtime::invite_automation::decision::{context_gates, cooldown_gate, CooldownView};
 use crate::social_baseline::{
     build_favorites_baseline, SocialBaselineDeps, SocialFavoritesBaselineInput,
 };
 
+use super::message_dispatch::json_string_field;
 use super::*;
 
 impl RealtimeHostRuntime {
@@ -17,16 +19,11 @@ impl RealtimeHostRuntime {
         self: &Arc<Self>,
         projection: &RealtimeNotificationProjection,
     ) {
-        let notifications = projection
-            .upserts
-            .iter()
-            .filter(|upsert| {
-                upsert.run_automation && notification_type(&upsert.notification) == "requestInvite"
-            })
-            .map(|upsert| upsert.notification.clone())
-            .collect::<Vec<_>>();
-        for notification in notifications {
+        for upsert in projection.upserts.iter().filter(|upsert| {
+            upsert.run_automation && notification_type(&upsert.notification) == "requestInvite"
+        }) {
             let runtime = Arc::clone(self);
+            let notification = upsert.notification.clone();
             self.deps.tasks.spawn(async move {
                 runtime.run_invite_automation(notification).await;
             });
@@ -56,18 +53,13 @@ impl RealtimeHostRuntime {
                     return;
                 }
             };
-            let cooldown = state.automation.invite.cooldown_view(&scope_key);
-            if cooldown.is_pending {
-                Err(InviteAutomationSkipReason::Pending)
-            } else if state
-                .automation
-                .invite
-                .is_in_failure_backoff(&scope_key, now_ms)
-            {
-                Err(InviteAutomationSkipReason::FailureBackoff)
-            } else {
-                state.automation.invite.begin(&scope_key);
-                Ok(cooldown)
+            let cooldown = state.automation.invite.cooldown_view(&scope_key, now_ms);
+            match cooldown_gate(&cooldown, now_ms) {
+                Err(reason) => Err(reason),
+                Ok(()) => {
+                    state.automation.invite.begin(&scope_key);
+                    Ok(cooldown)
+                }
             }
         };
         let cooldown = match gate {
@@ -79,14 +71,7 @@ impl RealtimeHostRuntime {
         };
 
         let result = self
-            .run_invite_automation_inner(
-                notification,
-                facts,
-                session,
-                scope_key.clone(),
-                cooldown,
-                now_ms,
-            )
+            .run_invite_automation_inner(facts, session, scope_key.clone(), cooldown, now_ms)
             .await;
         let outcome = match &result {
             Ok(true) => InviteOutcome::Sent,
@@ -106,47 +91,16 @@ impl RealtimeHostRuntime {
 
     async fn run_invite_automation_inner(
         &self,
-        notification: Value,
         notification_facts: InviteNotificationFacts,
         session: RealtimeSessionContext,
         scope_key: String,
-        cooldown: crate::realtime::invite_automation::decision::CooldownView,
+        cooldown: CooldownView,
         now_ms: i64,
     ) -> Result<bool> {
         let config = load_invite_automation_config(self.deps.db.as_ref())?;
         let location = self.current_invite_location_facts(&session);
-        if config.mode == InviteAutomationMode::Off {
-            self.record_invite_automation_skip(InviteAutomationSkipReason::Disabled);
-            return Ok(false);
-        }
-        if !location.local_game_context_available {
-            self.record_invite_automation_skip(
-                InviteAutomationSkipReason::LocalGameContextUnavailable,
-            );
-            return Ok(false);
-        }
-        if !location.is_game_running {
-            self.record_invite_automation_skip(InviteAutomationSkipReason::GameNotRunning);
-            return Ok(false);
-        }
-        if location.current_user_id.trim().is_empty()
-            || location.current_location.trim().is_empty()
-            || location.current_location.trim() == "traveling"
-        {
-            self.record_invite_automation_skip(
-                InviteAutomationSkipReason::MissingCurrentSessionOrLocation,
-            );
-            return Ok(false);
-        }
-        if cooldown
-            .last_sent_at_ms
-            .map(|last_sent_at| {
-                now_ms.saturating_sub(last_sent_at)
-                    < crate::realtime::invite_automation::decision::INVITE_AUTOMATION_COOLDOWN_MS
-            })
-            .unwrap_or(false)
-        {
-            self.record_invite_automation_skip(InviteAutomationSkipReason::Cooldown);
+        if let Err(reason) = context_gates(&config, &location) {
+            self.record_invite_automation_skip(reason);
             return Ok(false);
         }
         let allowlist = self
@@ -188,8 +142,9 @@ impl RealtimeHostRuntime {
         }
 
         let world_name = self
-            .resolve_invite_world_name(&session.endpoint, &world_id)
-            .await;
+            .fetch_and_cache_world(session.endpoint.clone(), world_id.clone())
+            .await
+            .unwrap_or_else(|| world_id.clone());
         let (_, request) = invite_send_input(
             session.endpoint.clone(),
             receiver_user_id.clone(),
@@ -212,7 +167,7 @@ impl RealtimeHostRuntime {
             )));
         }
 
-        self.cleanup_invite_request_notification(&session, &notification, &notification_facts)
+        self.cleanup_invite_request_notification(&session, &notification_facts)
             .await;
         self.deps.sync.record(
             "inviteAutomation",
@@ -315,16 +270,9 @@ impl RealtimeHostRuntime {
         Ok(output.snapshot.map(RawJson::into_value))
     }
 
-    async fn resolve_invite_world_name(&self, endpoint: &str, world_id: &str) -> String {
-        self.fetch_and_cache_world(endpoint.to_string(), world_id.to_string())
-            .await
-            .unwrap_or_else(|| world_id.to_string())
-    }
-
     async fn cleanup_invite_request_notification(
         &self,
         session: &RealtimeSessionContext,
-        notification: &Value,
         facts: &InviteNotificationFacts,
     ) {
         let Ok((_, request)) = notification_hide_remote_input(
@@ -358,7 +306,7 @@ impl RealtimeHostRuntime {
             });
         tracing::debug!(
             notification_id = facts.id,
-            notification_type = notification_type(notification),
+            notification_type = facts.notification_type,
             "invite automation cleaned notification"
         );
     }
@@ -374,15 +322,15 @@ impl RealtimeHostRuntime {
 }
 
 pub(super) fn notification_type(notification: &Value) -> String {
-    string_field(notification.get("type"))
+    json_string_field(notification.get("type"))
 }
 
 pub(super) fn notification_facts(notification: &Value) -> InviteNotificationFacts {
     InviteNotificationFacts {
-        id: string_field(notification.get("id")),
+        id: json_string_field(notification.get("id")),
         notification_type: notification_type(notification),
-        sender_user_id: string_field(notification.get("senderUserId")),
-        version: int_field(notification.get("version")).unwrap_or(1),
+        sender_user_id: json_string_field(notification.get("senderUserId")),
+        version: notification.i64_field("version").unwrap_or(1),
     }
 }
 
@@ -392,11 +340,14 @@ fn load_invite_automation_config(db: &DatabaseService) -> Result<InviteAutomatio
         "autoAcceptInviteRequests",
         "Off",
     )?);
-    let selected_groups = safe_string_array(&config_store::get_string(
-        db,
-        "autoAcceptInviteGroups",
-        "[]",
-    )?);
+    let groups = config_store::get_json(db, "autoAcceptInviteGroups", json!([]))?;
+    let selected_groups = groups
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|value| json_string_field(Some(value)))
+        .filter(|value| !value.is_empty())
+        .collect();
     Ok(InviteAutomationConfig {
         mode,
         selected_groups,
@@ -418,9 +369,7 @@ fn sender_allowlist_from_snapshot(snapshot: &Value, sender_user_id: &str) -> Sen
         "local:",
         sender_user_id,
     );
-    let is_favorite = string_array(snapshot.get("favoriteFriendIds"))
-        .iter()
-        .any(|user_id| user_id == sender_user_id);
+    let is_favorite = json_array_contains_user(snapshot.get("favoriteFriendIds"), sender_user_id);
     SenderAllowlist {
         is_favorite,
         group_keys_of_sender: group_keys,
@@ -437,41 +386,16 @@ fn collect_sender_groups(
         return;
     };
     for (group_key, user_ids) in object {
-        if string_array(Some(user_ids))
-            .iter()
-            .any(|user_id| user_id == sender_user_id)
-        {
+        if json_array_contains_user(Some(user_ids), sender_user_id) {
             groups.insert(format!("{key_prefix}{group_key}"));
         }
     }
 }
 
-fn safe_string_array(value: &str) -> Vec<String> {
-    serde_json::from_str::<Value>(value)
-        .ok()
-        .and_then(|value| value.as_array().cloned())
-        .unwrap_or_default()
-        .into_iter()
-        .map(|value| string_field(Some(&value)))
-        .filter(|value: &String| !value.is_empty())
-        .collect()
-}
-
-fn string_array(value: Option<&Value>) -> Vec<String> {
+fn json_array_contains_user(value: Option<&Value>, sender_user_id: &str) -> bool {
     value
         .and_then(Value::as_array)
-        .map(|items| {
-            items
-                .iter()
-                .map(|value| string_field(Some(value)))
-                .filter(|value: &String| !value.is_empty())
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
-fn int_field(value: Option<&Value>) -> Option<i64> {
-    value
-        .and_then(Value::as_i64)
-        .or_else(|| string_field(value).parse().ok())
+        .into_iter()
+        .flatten()
+        .any(|value| json_string_field(Some(value)) == sender_user_id)
 }
