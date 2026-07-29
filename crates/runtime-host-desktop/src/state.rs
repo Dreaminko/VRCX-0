@@ -101,6 +101,7 @@ struct DesktopRuntimeProfileExtension {
     desktop_maintenance_running: Arc<AtomicBool>,
     discord_reconcile_generation: Arc<AtomicU64>,
     registry_backup_lock: Arc<Mutex<()>>,
+    presence_state_path: PathBuf,
 }
 
 struct VrOverlayProcessSink {
@@ -246,6 +247,7 @@ impl DesktopRuntimeHostState {
             desktop_maintenance_running: Arc::new(AtomicBool::new(false)),
             discord_reconcile_generation: Arc::new(AtomicU64::new(0)),
             registry_backup_lock: Arc::new(Mutex::new(())),
+            presence_state_path: builder.paths.app_data.join("presenceAutomationState.json"),
         });
         let local_game_context = Arc::new(GameLogLocalGameContextSource::new(
             builder.runtime_context.session.clone(),
@@ -806,12 +808,17 @@ impl DesktopRuntimeProfileExtension {
         let desktop_services = Arc::clone(&self.desktop.services);
         let discord_rpc = Arc::clone(&self.desktop.discord_rpc);
         let discord_reconcile_generation = Arc::clone(&self.discord_reconcile_generation);
+        let presence_state_path = self.presence_state_path.clone();
         state
             .runtime_context
             .tasks
             .spawn_cancellable(move |stop_token| async move {
                 let mut presence_state =
-                    vrcx_0_application_game::BackgroundPresenceAutomationState::default();
+                    vrcx_0_application_game::BackgroundPresenceAutomationState::load_cached(
+                        &presence_state_path,
+                    );
+                let mut presence_state_serialized =
+                    serde_json::to_string(&presence_state).unwrap_or_default();
                 let mut discord_state =
                     vrcx_0_application_game::BackgroundDiscordPresenceState::default();
                 let mut last_discord_output: Option<String> = None;
@@ -894,6 +901,10 @@ impl DesktopRuntimeProfileExtension {
                             &favorite_world_groups_by_key,
                         )
                         .await;
+                        presence_state.persist_cached(
+                            &presence_state_path,
+                            &mut presence_state_serialized,
+                        );
                         next_presence =
                             now + Duration::from_secs(BACKGROUND_PRESENCE_CADENCE_SECONDS);
                     }

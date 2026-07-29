@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 
 use chrono::{Datelike, Local, Timelike, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
@@ -17,7 +18,8 @@ use vrcx_0_core::json::JsonExt;
 const DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS: i64 = 60_000;
 const DEFAULT_MIN_DESCRIPTION_WRITE_INTERVAL_MS: i64 = 60_000;
 const DEFAULT_STABLE_LOCATION_MS: i64 = 30_000;
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct BackgroundPresenceAutomationState {
     scope_key: String,
     last_status_write_at_ms: i64,
@@ -29,6 +31,27 @@ pub struct BackgroundPresenceAutomationState {
     time_restore_snapshots: HashMap<String, TimeRestoreSnapshot>,
 }
 
+impl BackgroundPresenceAutomationState {
+    pub fn load_cached(path: &Path) -> Self {
+        std::fs::read_to_string(path)
+            .ok()
+            .and_then(|raw| serde_json::from_str(&raw).ok())
+            .unwrap_or_default()
+    }
+
+    pub fn persist_cached(&self, path: &Path, last_serialized: &mut String) {
+        let Ok(serialized) = serde_json::to_string(self) else {
+            return;
+        };
+        if serialized == *last_serialized {
+            return;
+        }
+        if std::fs::write(path, &serialized).is_ok() {
+            *last_serialized = serialized;
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct BackgroundPresenceAutomationResult {
@@ -38,7 +61,8 @@ pub struct BackgroundPresenceAutomationResult {
     pub updated_user: Option<Value>,
     pub matched_rule_ids: Vec<String>,
 }
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 struct TimeRestoreSnapshot {
     previous_value: String,
     automated_value: String,
@@ -808,6 +832,59 @@ mod tests {
             result.patch.get("status"),
             Some(&Value::String("busy".into()))
         );
+    }
+
+    #[test]
+    fn cached_automation_state_restores_previous_status_after_restart() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "vrcx-0-presence-state-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("presenceAutomationState.json");
+
+        let mut state = BackgroundPresenceAutomationState {
+            scope_key: "https://api.example:usr_1".into(),
+            ..Default::default()
+        };
+        state.time_restore_snapshots.insert(
+            "status".into(),
+            TimeRestoreSnapshot {
+                previous_value: "active".into(),
+                automated_value: "busy".into(),
+            },
+        );
+        let mut last_serialized = String::new();
+        state.persist_cached(&path, &mut last_serialized);
+        assert!(!last_serialized.is_empty());
+        let before_rewrite = std::fs::metadata(&path).unwrap().modified().unwrap();
+        state.persist_cached(&path, &mut last_serialized);
+        assert_eq!(
+            std::fs::metadata(&path).unwrap().modified().unwrap(),
+            before_rewrite
+        );
+
+        let mut loaded = BackgroundPresenceAutomationState::load_cached(&path);
+        assert_eq!(loaded.scope_key, "https://api.example:usr_1");
+
+        let facts = BackgroundPresenceFacts {
+            current_user: json!({ "status": "busy" }),
+            ..Default::default()
+        };
+        let effective =
+            build_patch_with_time_restore(&facts, &PresenceRuleEvaluation::default(), &mut loaded);
+        assert_eq!(
+            effective.patch.get("status"),
+            Some(&Value::String("active".into()))
+        );
+
+        let missing = BackgroundPresenceAutomationState::load_cached(&dir.join("missing.json"));
+        assert!(missing.scope_key.is_empty());
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
