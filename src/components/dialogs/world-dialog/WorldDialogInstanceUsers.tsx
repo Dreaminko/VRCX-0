@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -14,7 +15,9 @@ import {
     type InstanceRosterRow
 } from '@/domain/instances/instanceRoster';
 import { timeToText } from '@/lib/dateTime';
+import { entityQueryPolicies, queryKeys } from '@/lib/entityQueryCache';
 import { useKnownUserFact } from '@/lib/useKnownUser';
+import userProfileRepository from '@/repositories/userProfileRepository';
 import { openUserDialog } from '@/services/dialogService';
 import { userImage } from '@/services/entityMediaService';
 import { userStatusLabel } from '@/shared/utils/userStatus';
@@ -119,6 +122,41 @@ export function InstanceUserTiles({ instance }: { instance: unknown }) {
     const knownCreatorUser = useKnownUserFact(creatorUserId, {
         endpoint: currentEndpoint
     });
+    const knownCreatorUserRecord = record(knownCreatorUser);
+    const creatorUserSeed = {
+        ...knownCreatorUserRecord,
+        ...creatorUser,
+        id: creatorUserId,
+        userId: firstText(
+            creatorUser.userId,
+            knownCreatorUserRecord.userId,
+            creatorUserId
+        ),
+        displayName: firstDisplayName(
+            creatorUserId,
+            creatorUser,
+            knownCreatorUser
+        )
+    };
+    const creatorHasDisplayMedia =
+        creatorUserSeed.displayName !== creatorUserId &&
+        Boolean(userImage(creatorUserSeed, true));
+    const creatorProfileQuery = useQuery({
+        queryKey: queryKeys.user(creatorUserId, currentEndpoint),
+        queryFn: () =>
+            userProfileRepository.getUserProfile({
+                userId: creatorUserId
+            }),
+        enabled:
+            Boolean(creatorUserId) &&
+            !isGroupId(creatorUserId) &&
+            !creatorHasDisplayMedia,
+        staleTime: entityQueryPolicies.userAvatarLookup.staleTime,
+        gcTime: entityQueryPolicies.userAvatarLookup.gcTime,
+        retry: entityQueryPolicies.userAvatarLookup.retry,
+        refetchOnWindowFocus:
+            entityQueryPolicies.userAvatarLookup.refetchOnWindowFocus
+    });
     const userMap = new Map<string, InstanceRosterRow>();
     const pushUser = (user: InstanceUserSource) => {
         const row = createInstanceUserRow(user);
@@ -133,14 +171,22 @@ export function InstanceUserTiles({ instance }: { instance: unknown }) {
     };
 
     if (creatorUserId && !isGroupId(creatorUserId)) {
+        const creatorProfile = record(creatorProfileQuery.data);
         pushUser({
-            ...record(knownCreatorUser),
+            ...knownCreatorUserRecord,
+            ...creatorProfile,
             ...creatorUser,
             id: creatorUserId,
-            userId: creatorUser.userId || creatorUserId,
+            userId: firstText(
+                creatorUser.userId,
+                creatorProfile.userId,
+                knownCreatorUserRecord.userId,
+                creatorUserId
+            ),
             displayName: firstDisplayName(
                 creatorUserId,
                 creatorUser,
+                creatorProfile,
                 knownCreatorUser
             ),
             $subtitle: t('dialog.world.instances.instance_creator')
