@@ -1,4 +1,4 @@
-import { BanIcon, ImageIcon, PackageIcon } from 'lucide-react';
+import { BanIcon, CheckIcon, ImageIcon, PackageIcon } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -34,6 +34,9 @@ function DecorationTile({
     icon: Icon,
     isCurrent,
     disabled,
+    aspectClassName = 'aspect-square',
+    contentClassName,
+    imageClassName = 'max-h-full max-w-full object-contain',
     onClick
 }: {
     label: string;
@@ -41,6 +44,9 @@ function DecorationTile({
     icon?: ComponentType<{ className?: string }>;
     isCurrent: boolean;
     disabled: boolean;
+    aspectClassName?: string;
+    contentClassName?: string;
+    imageClassName?: string;
     onClick: () => void;
 }) {
     return (
@@ -52,11 +58,17 @@ function DecorationTile({
             title={label}
             onClick={onClick}
             className={cn(
-                'relative aspect-square h-auto w-full min-w-0 overflow-hidden rounded-lg border p-0 transition-transform active:scale-[0.97]',
-                isCurrent && 'ring-primary ring-2'
+                'pointer-fine:hover:border-foreground/25 relative h-auto w-full min-w-0 overflow-hidden rounded-lg border p-0 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]',
+                aspectClassName,
+                isCurrent && 'disabled:opacity-100'
             )}
         >
-            <div className="bg-muted/30 text-muted-foreground flex size-full items-center justify-center overflow-hidden">
+            <div
+                className={cn(
+                    'bg-muted/30 text-muted-foreground pointer-fine:group-hover/button:bg-muted/50 flex size-full items-center justify-center overflow-hidden transition-colors duration-150',
+                    contentClassName
+                )}
+            >
                 {Icon ? (
                     <Icon className="size-6" />
                 ) : imageUrl ? (
@@ -64,13 +76,18 @@ function DecorationTile({
                         src={imageUrl}
                         alt={label}
                         loading="lazy"
-                        className="size-full object-contain"
+                        className={imageClassName}
                         fallback={<ImageIcon className="size-6" />}
                     />
                 ) : (
                     <ImageIcon className="size-6" />
                 )}
             </div>
+            {isCurrent ? (
+                <span className="bg-primary text-primary-foreground ring-background absolute end-1.5 top-1.5 flex size-5 items-center justify-center rounded-full shadow-sm ring-2">
+                    <CheckIcon className="size-3" />
+                </span>
+            ) : null}
         </Button>
     );
 }
@@ -88,6 +105,20 @@ export function UserDialogProfileDecorationsPanel({
 
     const items = itemsBySlot[activeSlot];
     const hasEquipped = items.some(isEquippedProfileDecoration);
+    const isIconFrame = activeSlot === 'iconFrame';
+    const isNameplate = activeSlot === 'nameplateEffect';
+    const gridClassName = isNameplate
+        ? 'grid-cols-1 sm:grid-cols-2'
+        : 'grid-cols-3 sm:grid-cols-4';
+    const tileAspectClassName = isNameplate ? 'aspect-[5/1]' : 'aspect-square';
+    const tileContentClassName = isIconFrame
+        ? undefined
+        : isNameplate
+          ? 'px-4 py-3'
+          : 'p-3';
+    const tileImageClassName = isIconFrame
+        ? undefined
+        : 'size-full object-cover';
 
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -137,12 +168,15 @@ export function UserDialogProfileDecorationsPanel({
                     <LoadingState className="min-h-48" />
                 ) : (
                     <div className="flex flex-col gap-3">
-                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        <div className={cn('grid gap-2', gridClassName)}>
                             <DecorationTile
                                 label={t('dialog.gallery_select.none')}
                                 icon={BanIcon}
                                 isCurrent={!hasEquipped}
                                 disabled={pending || !hasEquipped}
+                                aspectClassName={tileAspectClassName}
+                                contentClassName={tileContentClassName}
+                                imageClassName={tileImageClassName}
                                 onClick={() => unequipSlot(activeSlot)}
                             />
                             {items.map((item) => {
@@ -157,6 +191,9 @@ export function UserDialogProfileDecorationsPanel({
                                         )}
                                         isCurrent={equipped}
                                         disabled={pending || equipped}
+                                        aspectClassName={tileAspectClassName}
+                                        contentClassName={tileContentClassName}
+                                        imageClassName={tileImageClassName}
                                         onClick={() => equipItem(item)}
                                     />
                                 );
