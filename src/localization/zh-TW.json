@@ -1769,6 +1769,7 @@
                 "days": "日期",
                 "every_day": "每天",
                 "run_every_day_hint": "全部不勾選時每天生效。",
+                "same_start_end_hint": "開始與結束時間相同代表全天生效。",
                 "only_when_game_running": "僅遊戲執行時",
                 "only_when_game_running_description": "VRChat 未執行時跳過這個規則。",
                 "restore_previous_status": "還原時段前狀態",

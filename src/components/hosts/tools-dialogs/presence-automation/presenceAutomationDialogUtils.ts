@@ -1,5 +1,10 @@
+import type { TFunction } from 'i18next';
+
 import { accessTypeLocaleKeyMap } from '@/shared/constants/accessType';
+import { userStatusLabel } from '@/shared/utils/userStatus';
 import type { FavoriteGroup } from '@/state/favoriteStoreTypes';
+
+const I18N_ROOT = 'view.tools.social_automation';
 
 export type PresenceRuleActions = Record<string, unknown> & {
     status?: string;
@@ -15,7 +20,6 @@ export type TimeWindowCondition = PresenceRuleCondition & {
     days: number[];
     end: string;
     start: string;
-    timezone: string;
 };
 
 export type PresenceAutomationRule = Record<string, unknown> & {
@@ -221,11 +225,65 @@ export function createGroupOptions({
     );
 }
 
+function createRuleId(prefix: string) {
+    return `${prefix}-${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 6)}`;
+}
+
+export function hasRuleAction(rule: PresenceAutomationRule, key: string) {
+    return Object.prototype.hasOwnProperty.call(rule.actions || {}, key);
+}
+
+export function updateRuleAction<TRule extends PresenceAutomationRule>(
+    rule: TRule,
+    patch: Partial<PresenceRuleActions>
+): TRule {
+    return {
+        ...rule,
+        actions: {
+            ...(rule.actions || {}),
+            ...patch
+        }
+    };
+}
+
+export function removeRuleAction<TRule extends PresenceAutomationRule>(
+    rule: TRule,
+    key: string
+): TRule {
+    const actions: PresenceRuleActions = { ...(rule.actions || {}) };
+    delete actions[key];
+    return {
+        ...rule,
+        actions
+    };
+}
+
+export function ruleTitle(
+    rule: PresenceAutomationRule,
+    t: TFunction,
+    fallbackLabelKey: string
+) {
+    return rule?.label || t(fallbackLabelKey);
+}
+
+export function ruleActionSummary(rule: PresenceAutomationRule, t: TFunction) {
+    const parts = [];
+    if (rule.actions?.status) {
+        parts.push(userStatusLabel(rule.actions.status, t));
+    }
+    if (hasRuleAction(rule, 'statusDescription')) {
+        parts.push(t(`${I18N_ROOT}.signature`));
+    }
+    return parts.length ? parts.join(' / ') : t(`${I18N_ROOT}.do_not_change`);
+}
+
 export function createTimeRule(label = ''): TimeAutomationRule {
     const days: number[] = [];
 
     return {
-        id: `time-${Date.now()}`,
+        id: createRuleId('time'),
         enabled: true,
         domain: 'time',
         priority: 700,
@@ -236,8 +294,7 @@ export function createTimeRule(label = ''): TimeAutomationRule {
                 type: 'timeWindow',
                 start: '21:00',
                 end: '02:00',
-                days,
-                timezone: 'local'
+                days
             }
         ],
         actions: {}
@@ -251,8 +308,7 @@ export function getTimeWindow(rule: PresenceAutomationRule) {
         type: 'timeWindow',
         start: '21:00',
         end: '02:00',
-        days: [],
-        timezone: 'local'
+        days: []
     }) as TimeWindowCondition;
 }
 
@@ -332,7 +388,7 @@ export function buildContextConditions(rule: ContextAutomationRule) {
 
 export function createContextRule(label = ''): ContextAutomationRule {
     const rule: ContextAutomationRule = {
-        id: `context-${Date.now()}`,
+        id: createRuleId('context'),
         enabled: true,
         domain: 'context',
         priority: 400,
@@ -358,7 +414,7 @@ export function normalizeContextRule(rule: unknown): ContextAutomationRule {
     const source = asRuleRecord(rule);
     const normalized: ContextAutomationRule = {
         ...source,
-        id: String(source.id || `context-${Date.now()}`),
+        id: String(source.id || createRuleId('context')),
         domain: 'context',
         preset: String(source.preset || 'alone'),
         selectedGroups: asStringArray(source.selectedGroups),

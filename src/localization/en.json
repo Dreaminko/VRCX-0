@@ -1769,6 +1769,7 @@
                 "days": "Days",
                 "every_day": "Every day",
                 "run_every_day_hint": "Leave all unchecked to run every day.",
+                "same_start_end_hint": "Same start and end time keeps the rule active all day.",
                 "only_when_game_running": "Only while in game",
                 "only_when_game_running_description": "Skip this rule when VRChat is not running.",
                 "restore_previous_status": "Restore previous status",

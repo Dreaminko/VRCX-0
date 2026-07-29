@@ -1771,6 +1771,7 @@
                 "days": "Дни",
                 "every_day": "Каждый день",
                 "run_every_day_hint": "Оставь все незаметно, чтобы каждый день бегать.",
+                "same_start_end_hint": "Если время начала и окончания совпадает, правило действует весь день.",
                 "only_when_game_running": "Только во время игры.",
                 "only_when_game_running_description": "Пропускать это правило, когда VRChat не запущен.",
                 "restore_previous_status": "Восстановить предыдущий статус",

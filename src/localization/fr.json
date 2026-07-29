@@ -1769,6 +1769,7 @@
                 "days": "Jours",
                 "every_day": "Tous les jours",
                 "run_every_day_hint": "Ne rien cocher pour appliquer tous les jours.",
+                "same_start_end_hint": "Si l'heure de début et de fin sont identiques, la règle s'applique toute la journée.",
                 "only_when_game_running": "Uniquement en jeu",
                 "only_when_game_running_description": "Ignorer cette règle lorsque VRChat n'est pas en cours d'exécution.",
                 "restore_previous_status": "Restaurer le statut précédent",

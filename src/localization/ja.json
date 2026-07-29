@@ -1765,6 +1765,7 @@
                 "days": "曜日",
                 "every_day": "毎日",
                 "run_every_day_hint": "すべて未選択の場合は毎日実行します。",
+                "same_start_end_hint": "開始と終了を同じ時刻にすると終日有効になります。",
                 "only_when_game_running": "ゲーム中のみ",
                 "only_when_game_running_description": "VRChat が起動していないときは、このルールをスキップします。",
                 "restore_previous_status": "以前のステータスに戻す",

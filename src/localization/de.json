@@ -1769,6 +1769,7 @@
                 "days": "Tage",
                 "every_day": "Jeden Tag",
                 "run_every_day_hint": "Alle Kästchen leer lassen, um jeden Tag auszuführen.",
+                "same_start_end_hint": "Bei gleicher Start- und Endzeit gilt die Regel den ganzen Tag.",
                 "only_when_game_running": "Nur während des Spiels",
                 "only_when_game_running_description": "Diese Regel überspringen, wenn VRChat nicht läuft.",
                 "restore_previous_status": "Vorherigen Status wiederherstellen",

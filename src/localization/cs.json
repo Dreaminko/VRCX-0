@@ -1771,6 +1771,7 @@
                 "days": "Dny",
                 "every_day": "Každý den",
                 "run_every_day_hint": "Ponechte vše nezaškrtnuté, pokud chcete spouštět každý den.",
+                "same_start_end_hint": "Při stejném čase začátku a konce platí pravidlo celý den.",
                 "only_when_game_running": "Pouze ve hře",
                 "only_when_game_running_description": "Přeskočit toto pravidlo, když VRChat neběží.",
                 "restore_previous_status": "Obnovit předchozí stav",

@@ -1769,6 +1769,7 @@
                 "days": "Dias",
                 "every_day": "Todos os dias",
                 "run_every_day_hint": "Deixe tudo desmarcado para executar todos os dias.",
+                "same_start_end_hint": "Se o horário de início e de término forem iguais, a regra vale o dia inteiro.",
                 "only_when_game_running": "Apenas durante o jogo",
                 "only_when_game_running_description": "Ignore esta regra quando o VRChat não estiver em execução.",
                 "restore_previous_status": "Restaurar status anterior",

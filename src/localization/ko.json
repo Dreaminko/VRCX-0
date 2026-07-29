@@ -1732,6 +1732,7 @@
                 "days": "일",
                 "every_day": "매일",
                 "run_every_day_hint": "매일 실행하려면 모두 선택하지 않은 상태로 둡니다.",
+                "same_start_end_hint": "시작과 종료 시간이 같으면 하루 종일 적용됩니다.",
                 "only_when_game_running": "게임 중에만",
                 "restore_previous_status": "이전 상태 복원",
                 "restore_previous_status_description": "기간이 끝나면 이 규칙이 변경된 상태 및 상태 메시지를 복원합니다. 예약된 값을 유지하려면 이 기능을 끄세요.",

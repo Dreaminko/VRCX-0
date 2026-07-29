@@ -1,8 +1,6 @@
 import type { TFunction } from 'i18next';
-import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { userStatusLabel } from '@/shared/utils/userStatus';
 import {
     Empty,
     EmptyDescription,
@@ -11,11 +9,10 @@ import {
 } from '@/ui/shadcn/empty';
 import {
     Field,
+    FieldContent,
     FieldDescription,
     FieldGroup,
-    FieldLabel,
-    FieldLegend,
-    FieldSet
+    FieldLabel
 } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import {
@@ -41,24 +38,26 @@ import {
     dayOptions,
     getTimeWindow,
     hasGameRunningCondition,
+    hasRuleAction,
     priorityLabelKeyFromNumber,
     priorityNumberFromValue,
     priorityOptions,
     priorityValueFromNumber,
+    removeRuleAction,
+    ruleActionSummary,
+    ruleTitle,
     setGameRunningCondition,
     shouldRestorePreviousState,
-    type PresenceRuleActions,
     type TimeAutomationRule,
     type TimeWindowCondition,
-    updateRule
+    updateRule,
+    updateRuleAction
 } from './presenceAutomationDialogUtils';
 import { PresenceRuleActionFields } from './PresenceRuleActionFields';
+import { useRuleSelection } from './useRuleSelection';
 
 const I18N_ROOT = 'view.tools.social_automation';
-
-function hasAction(rule: TimeAutomationRule, key: string) {
-    return Object.prototype.hasOwnProperty.call(rule.actions || {}, key);
-}
+const TITLE_FALLBACK_KEY = `${I18N_ROOT}.schedule_rule_default`;
 
 function updateTimeWindow(
     rule: TimeAutomationRule,
@@ -74,32 +73,6 @@ function updateTimeWindow(
     };
 }
 
-function updateAction(
-    rule: TimeAutomationRule,
-    patch: Partial<PresenceRuleActions>
-): TimeAutomationRule {
-    return {
-        ...rule,
-        actions: {
-            ...(rule.actions || {}),
-            ...patch
-        }
-    };
-}
-
-function removeAction(rule: TimeAutomationRule, key: string) {
-    const actions: PresenceRuleActions = { ...(rule.actions || {}) };
-    delete actions[key];
-    return {
-        ...rule,
-        actions
-    };
-}
-
-function ruleTitle(rule: TimeAutomationRule, t: TFunction) {
-    return rule?.label || t(`${I18N_ROOT}.schedule_rule_default`);
-}
-
 function daysSummary(days: unknown, t: TFunction) {
     if (!Array.isArray(days) || days.length === 0) {
         return t(`${I18N_ROOT}.every_day`);
@@ -109,17 +82,6 @@ function daysSummary(days: unknown, t: TFunction) {
         .filter((day) => selectedDays.has(day.value))
         .map((day) => t(day.labelKey))
         .join(', ');
-}
-
-function actionSummary(rule: TimeAutomationRule, t: TFunction) {
-    const parts = [];
-    if (rule.actions?.status) {
-        parts.push(userStatusLabel(rule.actions.status, t));
-    }
-    if (hasAction(rule, 'statusDescription')) {
-        parts.push(t(`${I18N_ROOT}.signature`));
-    }
-    return parts.length ? parts.join(' / ') : t(`${I18N_ROOT}.do_not_change`);
 }
 
 type TimeRulesTabProps = {
@@ -134,22 +96,12 @@ export function TimeRulesTab({
     onRulesChange
 }: TimeRulesTabProps) {
     const { t } = useTranslation();
-    const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!rules.length) {
-            setSelectedRuleId(null);
-            return;
-        }
-        if (!rules.some((rule) => rule.id === selectedRuleId)) {
-            setSelectedRuleId(rules[0].id);
-        }
-    }, [rules, selectedRuleId]);
-
-    const selectedRule = useMemo(
-        () => rules.find((rule) => rule.id === selectedRuleId) || null,
-        [rules, selectedRuleId]
-    );
+    const {
+        selectedRule,
+        selectedRuleId,
+        setSelectedRuleId,
+        removeRule: removeRuleFromSelection
+    } = useRuleSelection(rules);
     const selectedTimeWindow = selectedRule
         ? getTimeWindow(selectedRule)
         : null;
@@ -170,14 +122,7 @@ export function TimeRulesTab({
     }
 
     function removeRule(ruleId: string) {
-        const ruleIndex = rules.findIndex((rule) => rule.id === ruleId);
-        const nextRules = rules.filter((rule) => rule.id !== ruleId);
-        if (selectedRuleId === ruleId) {
-            setSelectedRuleId(
-                nextRules[Math.min(ruleIndex, nextRules.length - 1)]?.id ?? null
-            );
-        }
-        onRulesChange(nextRules);
+        onRulesChange(removeRuleFromSelection(ruleId));
     }
 
     const list = (
@@ -197,7 +142,7 @@ export function TimeRulesTab({
                     <RuleListItem
                         key={rule.id}
                         selected={rule.id === selectedRuleId}
-                        title={ruleTitle(rule, t)}
+                        title={ruleTitle(rule, t, TITLE_FALLBACK_KEY)}
                         description={`${timeWindow.start} - ${timeWindow.end} / ${daysSummary(
                             timeWindow.days,
                             t
@@ -216,7 +161,7 @@ export function TimeRulesTab({
                                     )}
                                 </RuleSummaryBadge>
                                 <RuleSummaryBadge>
-                                    {actionSummary(rule, t)}
+                                    {ruleActionSummary(rule, t)}
                                 </RuleSummaryBadge>
                                 {hasGameRunningCondition(rule) ? (
                                     <RuleSummaryBadge>
@@ -245,7 +190,7 @@ export function TimeRulesTab({
         <RuleEditorPanel
             title={
                 selectedRule
-                    ? ruleTitle(selectedRule, t)
+                    ? ruleTitle(selectedRule, t, TITLE_FALLBACK_KEY)
                     : t(`${I18N_ROOT}.schedule_rule_default`)
             }
             description={
@@ -345,6 +290,9 @@ export function TimeRulesTab({
                                 }
                             />
                         </Field>
+                        <FieldDescription className="sm:col-span-2">
+                            {t(`${I18N_ROOT}.same_start_end_hint`)}
+                        </FieldDescription>
                     </div>
                     <Field>
                         <FieldLabel>{t(`${I18N_ROOT}.days`)}</FieldLabel>
@@ -380,28 +328,15 @@ export function TimeRulesTab({
                             ))}
                         </ToggleGroup>
                     </Field>
-                    <FieldSet
-                        className="rounded-md border p-3"
-                        disabled={disabled}
-                        data-disabled={disabled}
-                    >
-                        <div className="flex min-w-0 items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <FieldLegend variant="label">
-                                    {t(`${I18N_ROOT}.only_when_game_running`)}
-                                </FieldLegend>
-                                <FieldDescription className="text-xs leading-snug">
-                                    {t(
-                                        `${I18N_ROOT}.only_when_game_running_description`
-                                    )}
-                                </FieldDescription>
-                            </div>
+                    <div className="flex flex-col gap-3 border-t pt-4">
+                        <Field
+                            orientation="horizontal"
+                            data-disabled={disabled}
+                        >
                             <Switch
+                                id={`${selectedRule.id}-game-running`}
                                 checked={hasGameRunningCondition(selectedRule)}
                                 disabled={disabled}
-                                aria-label={t(
-                                    `${I18N_ROOT}.only_when_game_running`
-                                )}
                                 onCheckedChange={(checked) =>
                                     update(selectedRule.id, (current) =>
                                         setGameRunningCondition(
@@ -411,32 +346,29 @@ export function TimeRulesTab({
                                     )
                                 }
                             />
-                        </div>
-                    </FieldSet>
-                    <FieldSet
-                        className="rounded-md border p-3"
-                        disabled={disabled}
-                        data-disabled={disabled}
-                    >
-                        <div className="flex min-w-0 items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <FieldLegend variant="label">
-                                    {t(`${I18N_ROOT}.restore_previous_status`)}
-                                </FieldLegend>
+                            <FieldContent>
+                                <FieldLabel
+                                    htmlFor={`${selectedRule.id}-game-running`}
+                                >
+                                    {t(`${I18N_ROOT}.only_when_game_running`)}
+                                </FieldLabel>
                                 <FieldDescription className="text-xs leading-snug">
                                     {t(
-                                        `${I18N_ROOT}.restore_previous_status_description`
+                                        `${I18N_ROOT}.only_when_game_running_description`
                                     )}
                                 </FieldDescription>
-                            </div>
+                            </FieldContent>
+                        </Field>
+                        <Field
+                            orientation="horizontal"
+                            data-disabled={disabled}
+                        >
                             <Switch
+                                id={`${selectedRule.id}-restore-previous`}
                                 checked={shouldRestorePreviousState(
                                     selectedRule
                                 )}
                                 disabled={disabled}
-                                aria-label={t(
-                                    `${I18N_ROOT}.restore_previous_status`
-                                )}
                                 onCheckedChange={(checked) =>
                                     update(selectedRule.id, (current) => ({
                                         ...current,
@@ -444,13 +376,25 @@ export function TimeRulesTab({
                                     }))
                                 }
                             />
-                        </div>
-                    </FieldSet>
+                            <FieldContent>
+                                <FieldLabel
+                                    htmlFor={`${selectedRule.id}-restore-previous`}
+                                >
+                                    {t(`${I18N_ROOT}.restore_previous_status`)}
+                                </FieldLabel>
+                                <FieldDescription className="text-xs leading-snug">
+                                    {t(
+                                        `${I18N_ROOT}.restore_previous_status_description`
+                                    )}
+                                </FieldDescription>
+                            </FieldContent>
+                        </Field>
+                    </div>
                     <PresenceRuleActionFields
                         idPrefix={selectedRule.id}
                         disabled={disabled}
                         status={selectedRule.actions?.status || 'no-change'}
-                        statusDescriptionEnabled={hasAction(
+                        statusDescriptionEnabled={hasRuleAction(
                             selectedRule,
                             'statusDescription'
                         )}
@@ -460,22 +404,27 @@ export function TimeRulesTab({
                         onStatusChange={(value) =>
                             update(selectedRule.id, (current) =>
                                 value === 'no-change'
-                                    ? removeAction(current, 'status')
-                                    : updateAction(current, { status: value })
+                                    ? removeRuleAction(current, 'status')
+                                    : updateRuleAction(current, {
+                                          status: value
+                                      })
                             )
                         }
                         onStatusDescriptionEnabledChange={(checked) =>
                             update(selectedRule.id, (current) =>
                                 checked
-                                    ? updateAction(current, {
+                                    ? updateRuleAction(current, {
                                           statusDescription: ''
                                       })
-                                    : removeAction(current, 'statusDescription')
+                                    : removeRuleAction(
+                                          current,
+                                          'statusDescription'
+                                      )
                             )
                         }
                         onStatusDescriptionChange={(value) =>
                             update(selectedRule.id, (current) =>
-                                updateAction(current, {
+                                updateRuleAction(current, {
                                     statusDescription: value
                                 })
                             )

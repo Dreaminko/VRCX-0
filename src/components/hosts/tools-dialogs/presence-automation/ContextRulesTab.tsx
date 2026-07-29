@@ -1,8 +1,5 @@
-import type { TFunction } from 'i18next';
-import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { userStatusLabel } from '@/shared/utils/userStatus';
 import {
     Empty,
     EmptyDescription,
@@ -39,19 +36,25 @@ import {
     contextPresetLabelKeyFromValue,
     contextPresetOptions,
     createContextRule,
+    hasRuleAction,
     normalizeContextRule,
     type ContextAutomationRule,
     type PresenceOption,
-    type PresenceRuleActions,
     priorityLabelKeyFromNumber,
     priorityNumberFromValue,
     priorityOptions,
     priorityValueFromNumber,
-    updateRule
+    removeRuleAction,
+    ruleActionSummary,
+    ruleTitle,
+    updateRule,
+    updateRuleAction
 } from './presenceAutomationDialogUtils';
 import { PresenceRuleActionFields } from './PresenceRuleActionFields';
+import { useRuleSelection } from './useRuleSelection';
 
 const I18N_ROOT = 'view.tools.social_automation';
+const TITLE_FALLBACK_KEY = `${I18N_ROOT}.room_rule_default`;
 
 type ContextRulesTabProps = {
     contextRules: ContextAutomationRule[];
@@ -62,52 +65,11 @@ type ContextRulesTabProps = {
     worldGroupOptions: PresenceOption[];
 };
 
-function hasAction(rule: ContextAutomationRule, key: string) {
-    return Object.prototype.hasOwnProperty.call(rule.actions || {}, key);
-}
-
-function updateAction(
-    rule: ContextAutomationRule,
-    patch: Partial<PresenceRuleActions>
-): ContextAutomationRule {
-    return {
-        ...rule,
-        actions: {
-            ...(rule.actions || {}),
-            ...patch
-        }
-    };
-}
-
-function removeAction(rule: ContextAutomationRule, key: string) {
-    const actions: PresenceRuleActions = { ...(rule.actions || {}) };
-    delete actions[key];
-    return {
-        ...rule,
-        actions
-    };
-}
-
 function parseUserIds(value: unknown) {
     return String(value || '')
         .split(',')
         .map((entry) => entry.trim())
         .filter(Boolean);
-}
-
-function ruleTitle(rule: ContextAutomationRule, t: TFunction) {
-    return rule?.label || t(`${I18N_ROOT}.room_rule_default`);
-}
-
-function actionSummary(rule: ContextAutomationRule, t: TFunction) {
-    const parts = [];
-    if (rule.actions?.status) {
-        parts.push(userStatusLabel(rule.actions.status, t));
-    }
-    if (hasAction(rule, 'statusDescription')) {
-        parts.push(t(`${I18N_ROOT}.signature`));
-    }
-    return parts.length ? parts.join(' / ') : t(`${I18N_ROOT}.do_not_change`);
 }
 
 export function ContextRulesTab({
@@ -120,22 +82,12 @@ export function ContextRulesTab({
 }: ContextRulesTabProps) {
     const { t } = useTranslation();
     const rules = Array.isArray(contextRules) ? contextRules : [];
-    const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!rules.length) {
-            setSelectedRuleId(null);
-            return;
-        }
-        if (!rules.some((rule) => rule.id === selectedRuleId)) {
-            setSelectedRuleId(rules[0].id);
-        }
-    }, [rules, selectedRuleId]);
-
-    const selectedRule = useMemo(
-        () => rules.find((rule) => rule.id === selectedRuleId) || null,
-        [rules, selectedRuleId]
-    );
+    const {
+        selectedRule,
+        selectedRuleId,
+        setSelectedRuleId,
+        removeRule: removeRuleFromSelection
+    } = useRuleSelection(rules);
 
     function update(
         ruleId: string,
@@ -149,20 +101,13 @@ export function ContextRulesTab({
     }
 
     function addRule() {
-        const nextRule = createContextRule(t(`${I18N_ROOT}.room_rule_default`));
+        const nextRule = createContextRule(t(TITLE_FALLBACK_KEY));
         setSelectedRuleId(nextRule.id);
         onRulesChange([...rules, nextRule]);
     }
 
     function removeRule(ruleId: string) {
-        const ruleIndex = rules.findIndex((rule) => rule.id === ruleId);
-        const nextRules = rules.filter((rule) => rule.id !== ruleId);
-        if (selectedRuleId === ruleId) {
-            setSelectedRuleId(
-                nextRules[Math.min(ruleIndex, nextRules.length - 1)]?.id ?? null
-            );
-        }
-        onRulesChange(nextRules);
+        onRulesChange(removeRuleFromSelection(ruleId));
     }
 
     const customRulesList = (
@@ -180,7 +125,7 @@ export function ContextRulesTab({
                 <RuleListItem
                     key={rule.id}
                     selected={rule.id === selectedRuleId}
-                    title={ruleTitle(rule, t)}
+                    title={ruleTitle(rule, t, TITLE_FALLBACK_KEY)}
                     description={t(contextPresetLabelKeyFromValue(rule.preset))}
                     enabled={rule.enabled !== false}
                     disabled={loading}
@@ -191,7 +136,7 @@ export function ContextRulesTab({
                                 {t(priorityLabelKeyFromNumber(rule.priority))}
                             </RuleSummaryBadge>
                             <RuleSummaryBadge>
-                                {actionSummary(rule, t)}
+                                {ruleActionSummary(rule, t)}
                             </RuleSummaryBadge>
                         </>
                     }
@@ -212,7 +157,7 @@ export function ContextRulesTab({
         <RuleEditorPanel
             title={
                 selectedRule
-                    ? ruleTitle(selectedRule, t)
+                    ? ruleTitle(selectedRule, t, TITLE_FALLBACK_KEY)
                     : t(`${I18N_ROOT}.room_rule_default`)
             }
             description={
@@ -479,7 +424,7 @@ export function ContextRulesTab({
                         idPrefix={selectedRule.id}
                         disabled={loading}
                         status={selectedRule.actions?.status || 'no-change'}
-                        statusDescriptionEnabled={hasAction(
+                        statusDescriptionEnabled={hasRuleAction(
                             selectedRule,
                             'statusDescription'
                         )}
@@ -489,22 +434,27 @@ export function ContextRulesTab({
                         onStatusChange={(value) =>
                             update(selectedRule.id, (current) =>
                                 value === 'no-change'
-                                    ? removeAction(current, 'status')
-                                    : updateAction(current, { status: value })
+                                    ? removeRuleAction(current, 'status')
+                                    : updateRuleAction(current, {
+                                          status: value
+                                      })
                             )
                         }
                         onStatusDescriptionEnabledChange={(checked) =>
                             update(selectedRule.id, (current) =>
                                 checked
-                                    ? updateAction(current, {
+                                    ? updateRuleAction(current, {
                                           statusDescription: ''
                                       })
-                                    : removeAction(current, 'statusDescription')
+                                    : removeRuleAction(
+                                          current,
+                                          'statusDescription'
+                                      )
                             )
                         }
                         onStatusDescriptionChange={(value) =>
                             update(selectedRule.id, (current) =>
-                                updateAction(current, {
+                                updateRuleAction(current, {
                                     statusDescription: value
                                 })
                             )
