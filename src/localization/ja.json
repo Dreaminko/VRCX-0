@@ -1682,7 +1682,7 @@
                 "gallery": "ギャラリー",
                 "gallery_description": "ギャラリーや絵文字、プリント、アイテムなどを管理",
                 "inventory": "インベントリ",
-                "inventory_description": "Emoji、ステッカー、アイテム、装飾を管理"
+                "inventory_description": "Emoji、ステッカー、アイテム、コスメティックを管理"
             },
             "shortcuts": {
                 "header": "フォルダー",
@@ -2243,8 +2243,8 @@
                 },
                 "user_dialog": {
                     "header": "ユーザーダイアログ",
-                    "profile_decorations": "プロフィールの装飾",
-                    "profile_decorations_description": "VRChat で設定されたプロフィールの装飾をユーザー情報に表示します。",
+                    "profile_decorations": "プロフィールデコレーション",
+                    "profile_decorations_description": "VRChat で設定されたプロフィールデコレーションをユーザー情報に表示します。",
                     "vrchat_notes": "VRChat のノート",
                     "vrchat_notes_description": "VRChat のノートを表示",
                     "vrcx_memos": "ローカルノート",
@@ -4332,7 +4332,7 @@
             "profile_decorations": "プロフィールデコレーション",
             "icon_frame": "アイコンフレーム",
             "profile_effect": "プロフィールエフェクト",
-            "nameplate_effect": "ネームプレートエフェクト",
+            "nameplate_effect": "ネームプレートテーマ",
             "equipped": "装備中",
             "equip": "装備する",
             "unequip": "装備を外す",
