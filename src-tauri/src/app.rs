@@ -195,7 +195,6 @@ pub fn run() {
                 });
             },
         )
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(
@@ -214,13 +213,7 @@ pub fn run() {
                 .build(),
         );
 
-    #[cfg(target_os = "windows")]
-    let builder = builder.plugin(tauri_plugin_autostart::init(
-        tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-        Some(vec!["--autostart"]),
-    ));
-
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
     let builder = builder.plugin(tauri_plugin_autostart::init(
         tauri_plugin_autostart::MacosLauncher::LaunchAgent,
         Some(vec!["--autostart"]),

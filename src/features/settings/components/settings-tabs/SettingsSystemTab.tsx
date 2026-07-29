@@ -64,22 +64,18 @@ export function SettingsSystemTab({
     onProxySettings
 }: SettingsSystemTabProps) {
     const { t } = useTranslation();
-    const startupLabel =
-        hostPlatform === 'linux'
-            ? t('view.settings.general.application.startup_system', {
-                  defaultValue: 'Start at System Startup'
-              })
-            : t('view.settings.general.application.startup');
-    const startupDescription =
-        hostPlatform === 'linux'
-            ? t(
-                  'view.settings.general.application.startup_system_description',
-                  {
-                      defaultValue:
-                          'Creates a desktop autostart entry that launches VRCX-0 with --autostart.'
-                  }
-              )
-            : '';
+    const isWindows = hostPlatform === 'windows';
+    const startupLabel = isWindows
+        ? t('view.settings.general.application.startup')
+        : t('view.settings.general.application.startup_system', {
+              defaultValue: 'Start at System Startup'
+          });
+    const startupDescription = isWindows
+        ? ''
+        : t('view.settings.general.application.startup_system_description', {
+              defaultValue:
+                  'Creates a desktop autostart entry that launches VRCX-0 with --autostart.'
+          });
     const backgroundModeDelayDisabled =
         !isCloseToTray || !backgroundModeEnabled;
 

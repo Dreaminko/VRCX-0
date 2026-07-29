@@ -286,7 +286,7 @@ export async function setStartAtWindowsStartupPreference(value: boolean) {
             .appSetStartup(previousEnabled)
             .catch((rollbackError: unknown) => {
                 console.warn(
-                    'Failed to roll back Windows startup setting:',
+                    'Failed to roll back system startup setting:',
                     rollbackError
                 );
             });

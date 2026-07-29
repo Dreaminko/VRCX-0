@@ -229,8 +229,8 @@ pub fn app__exit_application(app_handle: AppHandle) -> Result<(), AppError> {
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__set_startup(app_handle: AppHandle, _enabled: bool) -> Result<(), AppError> {
-    if !(cfg!(target_os = "windows") || cfg!(target_os = "linux")) {
+pub fn app__set_startup(app_handle: AppHandle, enabled: bool) -> Result<(), AppError> {
+    if !(cfg!(target_os = "windows") || cfg!(target_os = "linux") || cfg!(target_os = "macos")) {
         return Err(AppError::Custom(format!(
             "Autostart is not supported on {}",
             vrcx_0_host::host_capabilities::current_platform()
@@ -238,7 +238,7 @@ pub fn app__set_startup(app_handle: AppHandle, _enabled: bool) -> Result<(), App
     }
 
     let autolaunch = app_handle.autolaunch();
-    if _enabled {
+    if enabled {
         autolaunch
             .enable()
             .map_err(|e| AppError::Custom(format!("enable autostart: {e}")))?;
