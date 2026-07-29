@@ -7,7 +7,7 @@ import {
     Route,
     Routes,
     useLocation
-} from 'react-router-dom';
+} from 'react-router';
 
 import { GlobalHosts } from '@/components/hosts/GlobalHosts';
 import { AppTitleBar } from '@/components/layout/AppTitleBar';

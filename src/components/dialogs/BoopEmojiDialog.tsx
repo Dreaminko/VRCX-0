@@ -1,7 +1,7 @@
 import { CheckIcon, ImageIcon, RefreshCcwIcon, SendIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';

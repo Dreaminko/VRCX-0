@@ -1,7 +1,7 @@
 import { CopyIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 import { EmptyState as AppEmptyState } from '@/components/layout/PageScaffold';
 import { ImageCropDialog } from '@/components/media/ImageCropDialog';

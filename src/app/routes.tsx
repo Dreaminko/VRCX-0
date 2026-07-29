@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentType, type ReactElement } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 
 import { Spinner } from '@/ui/shadcn/spinner';
 

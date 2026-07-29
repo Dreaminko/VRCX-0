@@ -1,5 +1,5 @@
 import { ExternalLinkIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';

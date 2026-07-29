@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { toast } from 'sonner';
 
 import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut';

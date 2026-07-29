@@ -7,7 +7,7 @@ import {
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
 import {
