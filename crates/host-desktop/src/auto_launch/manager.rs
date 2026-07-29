@@ -348,6 +348,7 @@ pub(super) fn new_run(id: &str, entry: &AppLauncherEntry, test: bool) -> AppLaun
         started_at: None,
         finished_at: None,
         error: None,
+        os_error_code: None,
         skipped_reason: None,
         entry_signature: entry_signature(entry),
     }

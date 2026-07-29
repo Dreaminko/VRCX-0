@@ -2904,6 +2904,7 @@ export type AppLauncherEntry = {
     launchDelaySeconds: number;
     runPolicy: AppLauncherRunPolicy;
     stopPolicy: AppLauncherStopPolicy;
+    runAsAdministrator?: boolean;
     processName?: string | null;
     workingDirectory?: string | null;
 };
@@ -2929,6 +2930,7 @@ export type AppLauncherRun = {
     startedAt: number | null;
     finishedAt: number | null;
     error: string | null;
+    osErrorCode: number | null;
     skippedReason: string | null;
 };
 export type AppLauncherRunPolicy = 'always' | 'skipIfRunning';

@@ -9,9 +9,11 @@ import type {
     AppLauncherEntry,
     AppLauncherEntryKind,
     AppLauncherPickedTarget,
+    AppLauncherRun,
     AppLauncherSnapshot
 } from '@/platform/tauri/bindings';
 import appLauncherRepository from '@/repositories/appLauncherRepository';
+import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -20,7 +22,13 @@ import {
     DialogTitle
 } from '@/ui/shadcn/dialog';
 import { Empty, EmptyHeader, EmptyTitle } from '@/ui/shadcn/empty';
-import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel
+} from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import { Separator } from '@/ui/shadcn/separator';
@@ -36,6 +44,11 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
 const MAX_LAUNCH_DELAY_SECONDS = 4_294_967_295;
+
+type AppLauncherDialogProps = {
+    open: boolean;
+    onOpenChange?: (open: boolean) => void;
+};
 
 function createEntryId(): string {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -59,6 +72,7 @@ function createDefaultEntry(
         launchDelaySeconds: 0,
         runPolicy: 'always',
         stopPolicy: 'keepRunning',
+        runAsAdministrator: false,
         processName: '',
         workingDirectory: null,
         ...patch
@@ -66,6 +80,8 @@ function createDefaultEntry(
 }
 
 function normalizeEntry(entry: AppLauncherEntry): AppLauncherEntry {
+    const runAsAdministrator =
+        entry.kind === 'localApp' && Boolean(entry.runAsAdministrator);
     return {
         ...entry,
         name: entry.name.trim(),
@@ -75,9 +91,15 @@ function normalizeEntry(entry: AppLauncherEntry): AppLauncherEntry {
             entry.launchDelaySeconds
         ),
         stopPolicy:
-            entry.kind === 'steamApp' ? 'keepRunning' : entry.stopPolicy,
+            entry.kind === 'steamApp' || runAsAdministrator
+                ? 'keepRunning'
+                : entry.stopPolicy,
+        runAsAdministrator,
         processName: entry.processName?.trim() || null,
-        workingDirectory: null
+        workingDirectory:
+            entry.kind === 'localApp'
+                ? entry.workingDirectory?.trim() || null
+                : null
     };
 }
 
@@ -111,13 +133,47 @@ function applyPickedTarget(
                 : '',
         stopPolicy:
             picked.kind === 'steamApp' ? 'keepRunning' : entry.stopPolicy,
+        runAsAdministrator:
+            picked.kind === 'localApp' &&
+            entry.kind === 'localApp' &&
+            Boolean(entry.runAsAdministrator),
         processName: picked.processName ?? '',
-        workingDirectory: null
+        workingDirectory:
+            picked.kind === 'localApp' ? picked.workingDirectory : null
     });
 }
 
-export function AppLauncherDialog({ open, onOpenChange }: any) {
+function activeRunForEntry(
+    snapshot: AppLauncherSnapshot | null,
+    entryId: string
+): AppLauncherRun | null {
+    return (
+        snapshot?.activeSession?.runs.find((run) => run.entryId === entryId) ??
+        null
+    );
+}
+
+function runErrorKey(run: AppLauncherRun): string | null {
+    if (run.status !== 'failed') {
+        return null;
+    }
+    if (run.osErrorCode === 740) {
+        return 'dialog.app_launcher.run_error_elevation_required';
+    }
+    if (run.osErrorCode === 1223) {
+        return 'dialog.app_launcher.run_error_elevation_cancelled';
+    }
+    return 'dialog.app_launcher.run_error_failed';
+}
+
+export function AppLauncherDialog({
+    open,
+    onOpenChange
+}: AppLauncherDialogProps) {
     const { t } = useTranslation();
+    const hostPlatform = useRuntimeStore(
+        (state) => state.hostCapabilities.platform
+    );
     const [snapshot, setSnapshot] = useState<AppLauncherSnapshot | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -401,6 +457,10 @@ export function AppLauncherDialog({ open, onOpenChange }: any) {
                                     {entries.map((entry) => {
                                         const selected =
                                             editing?.id === entry.id;
+                                        const run = activeRunForEntry(
+                                            snapshot,
+                                            entry.id
+                                        );
                                         return (
                                             <TableRow
                                                 key={entry.id}
@@ -418,9 +478,25 @@ export function AppLauncherDialog({ open, onOpenChange }: any) {
                                                 }
                                             >
                                                 <TableCell className="min-w-0">
-                                                    <span className="truncate font-medium">
-                                                        {entry.name}
-                                                    </span>
+                                                    <div className="flex min-w-0 flex-col gap-0.5">
+                                                        <span className="truncate font-medium">
+                                                            {entry.name}
+                                                        </span>
+                                                        {run ? (
+                                                            <span
+                                                                className={cn(
+                                                                    'text-muted-foreground text-xs',
+                                                                    run.status ===
+                                                                        'failed' &&
+                                                                        'text-destructive'
+                                                                )}
+                                                            >
+                                                                {t(
+                                                                    `dialog.app_launcher.run_status_${run.status}`
+                                                                )}
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     {t(
@@ -483,6 +559,12 @@ export function AppLauncherDialog({ open, onOpenChange }: any) {
                     <EntryDetailsPanel
                         entry={editing}
                         saving={saving}
+                        isWindows={hostPlatform === 'windows'}
+                        run={
+                            editing
+                                ? activeRunForEntry(snapshot, editing.id)
+                                : null
+                        }
                         onChange={setEditing}
                         onClose={() => onOpenChange?.(false)}
                         onSave={saveEditing}
@@ -497,6 +579,8 @@ export function AppLauncherDialog({ open, onOpenChange }: any) {
 function EntryDetailsPanel({
     entry,
     saving,
+    isWindows,
+    run,
     onChange,
     onClose,
     onSave,
@@ -504,6 +588,8 @@ function EntryDetailsPanel({
 }: {
     entry: AppLauncherEntry | null;
     saving: boolean;
+    isWindows: boolean;
+    run: AppLauncherRun | null;
     onChange: (entry: AppLauncherEntry) => void;
     onClose: () => void;
     onSave: () => void;
@@ -529,6 +615,10 @@ function EntryDetailsPanel({
         );
     }
 
+    const errorKey = run ? runErrorKey(run) : null;
+    const stopPolicyLocked =
+        entry.kind === 'steamApp' || Boolean(entry.runAsAdministrator);
+
     return (
         <div className="flex min-h-0 flex-col rounded-lg border">
             <div className="px-3 py-2 text-sm font-medium">
@@ -552,6 +642,52 @@ function EntryDetailsPanel({
                             }
                         />
                     </Field>
+                    {isWindows && entry.kind === 'localApp' ? (
+                        <Field>
+                            <div className="flex items-center gap-2">
+                                <FieldLabel className="flex-1">
+                                    {t(
+                                        'dialog.app_launcher.run_as_administrator'
+                                    )}
+                                </FieldLabel>
+                                <Switch
+                                    aria-label={t(
+                                        'dialog.app_launcher.run_as_administrator'
+                                    )}
+                                    checked={Boolean(entry.runAsAdministrator)}
+                                    disabled={saving}
+                                    onCheckedChange={(runAsAdministrator) =>
+                                        onChange({
+                                            ...entry,
+                                            runAsAdministrator,
+                                            stopPolicy: runAsAdministrator
+                                                ? 'keepRunning'
+                                                : entry.stopPolicy
+                                        })
+                                    }
+                                />
+                            </div>
+                            <FieldDescription>
+                                {t(
+                                    'dialog.app_launcher.run_as_administrator_description'
+                                )}
+                            </FieldDescription>
+                        </Field>
+                    ) : null}
+                    {errorKey && run ? (
+                        <Field>
+                            <FieldError>
+                                {t(errorKey, {
+                                    code: run.osErrorCode ?? ''
+                                })}
+                            </FieldError>
+                            {run.error ? (
+                                <p className="text-muted-foreground font-mono text-xs break-all">
+                                    {run.error}
+                                </p>
+                            ) : null}
+                        </Field>
+                    ) : null}
                     <Field>
                         <FieldLabel>{t('dialog.app_launcher.name')}</FieldLabel>
                         <Input
@@ -624,11 +760,9 @@ function EntryDetailsPanel({
                     <ToggleField
                         label={t('dialog.app_launcher.stop')}
                         value={
-                            entry.kind === 'steamApp'
-                                ? 'keepRunning'
-                                : entry.stopPolicy
+                            stopPolicyLocked ? 'keepRunning' : entry.stopPolicy
                         }
-                        disabled={entry.kind === 'steamApp'}
+                        disabled={stopPolicyLocked}
                         options={['keepRunning', 'closeByVrcx'].map(
                             (value) => ({
                                 value,

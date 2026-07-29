@@ -124,6 +124,7 @@ mod app_launcher_tests {
             launch_delay_seconds: 0,
             run_policy: AppLauncherRunPolicy::Always,
             stop_policy: AppLauncherStopPolicy::CloseByVrcx,
+            run_as_administrator: false,
             process_name: None,
             working_directory: None,
         }

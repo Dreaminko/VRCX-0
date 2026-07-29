@@ -3,6 +3,7 @@ use super::*;
 pub fn picked_local_target(path: impl Into<PathBuf>) -> AppLauncherPickedTarget {
     let path = path.into();
     let target = path.to_string_lossy().to_string();
+    let working_directory = default_working_directory_for_local_target(&target);
     AppLauncherPickedTarget {
         kind: AppLauncherEntryKind::LocalApp,
         name: display_name_for_path(&path),
@@ -13,7 +14,7 @@ pub fn picked_local_target(path: impl Into<PathBuf>) -> AppLauncherPickedTarget 
         } else {
             None
         },
-        working_directory: None,
+        working_directory,
         target,
     }
 }

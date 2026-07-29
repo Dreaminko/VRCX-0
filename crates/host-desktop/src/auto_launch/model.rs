@@ -46,6 +46,8 @@ pub struct AppLauncherEntry {
     pub launch_delay_seconds: u32,
     pub run_policy: AppLauncherRunPolicy,
     pub stop_policy: AppLauncherStopPolicy,
+    #[serde(default)]
+    pub run_as_administrator: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub process_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -79,6 +81,7 @@ pub struct AppLauncherRun {
     pub started_at: Option<u64>,
     pub finished_at: Option<u64>,
     pub error: Option<String>,
+    pub os_error_code: Option<i32>,
     pub skipped_reason: Option<String>,
     #[serde(skip)]
     pub(super) entry_signature: String,
@@ -129,13 +132,22 @@ pub fn normalize_app_launcher_entries(entries: Vec<AppLauncherEntry>) -> Vec<App
             if entry.name.is_empty() {
                 entry.name = display_name_for_target(&entry.target);
             }
+            entry.working_directory = normalize_optional_string(entry.working_directory);
             if matches!(entry.kind, AppLauncherEntryKind::SteamApp) {
                 entry.stop_policy = AppLauncherStopPolicy::KeepRunning;
+                entry.run_as_administrator = false;
                 entry.args.clear();
                 entry.working_directory = None;
+            } else {
+                if entry.run_as_administrator {
+                    entry.stop_policy = AppLauncherStopPolicy::KeepRunning;
+                }
+                if entry.working_directory.is_none() {
+                    entry.working_directory =
+                        default_working_directory_for_local_target(&entry.target);
+                }
             }
             entry.process_name = normalize_optional_string(entry.process_name);
-            entry.working_directory = normalize_optional_string(entry.working_directory);
             entry
         })
         .collect()
@@ -239,4 +251,19 @@ pub(super) fn path_extension_eq(path: &Path, expected: &str) -> bool {
 
 pub(super) fn is_windows_executable_path(path: &Path) -> bool {
     path_extension_eq(path, "exe")
+}
+
+pub(super) fn default_working_directory_for_local_target(target: &str) -> Option<String> {
+    #[cfg(windows)]
+    {
+        let path = Path::new(target);
+        if is_windows_executable_path(path) {
+            return path
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .map(|parent| parent.to_string_lossy().to_string());
+        }
+    }
+    let _ = target;
+    None
 }

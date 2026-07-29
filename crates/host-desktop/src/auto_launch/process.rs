@@ -2,10 +2,62 @@ use super::*;
 
 const UNTRACKED_CLOSE_PROCESS_DENYLIST: &[&str] = &["steam", "steam.sh"];
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum ShellExecuteVerb {
+    Open,
+    RunAs,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum LocalLaunchStrategy {
+    Direct,
+    ShellExecute(ShellExecuteVerb),
+}
+
+#[derive(Debug)]
+pub(super) struct LaunchFailure {
+    message: String,
+    pub(super) os_error_code: Option<i32>,
+}
+
+impl LaunchFailure {
+    fn message(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            os_error_code: None,
+        }
+    }
+
+    pub(super) fn from_io(target: &str, error: std::io::Error) -> Self {
+        Self {
+            message: format!("failed to launch {target}: {error}"),
+            os_error_code: error.raw_os_error(),
+        }
+    }
+}
+
+pub(super) fn local_launch_strategy(
+    entry: &AppLauncherEntry,
+    windows: bool,
+) -> LocalLaunchStrategy {
+    if !windows {
+        return LocalLaunchStrategy::Direct;
+    }
+    if entry.run_as_administrator {
+        return LocalLaunchStrategy::ShellExecute(ShellExecuteVerb::RunAs);
+    }
+    if is_windows_executable_path(Path::new(&entry.target)) {
+        LocalLaunchStrategy::Direct
+    } else {
+        LocalLaunchStrategy::ShellExecute(ShellExecuteVerb::Open)
+    }
+}
+
 pub(super) fn launch_entry(run: &mut AppLauncherRun, entry: &AppLauncherEntry) {
     run.started_at = Some(now_timestamp());
     run.finished_at = None;
     run.error = None;
+    run.os_error_code = None;
     run.skipped_reason = None;
 
     if should_skip_entry(entry, is_process_name_running) {
@@ -30,7 +82,8 @@ pub(super) fn launch_entry(run: &mut AppLauncherRun, entry: &AppLauncherEntry) {
             Err(error) => {
                 run.status = AppLauncherRunStatus::Failed;
                 run.finished_at = Some(now_timestamp());
-                run.error = Some(error);
+                run.error = Some(error.message);
+                run.os_error_code = error.os_error_code;
             }
         },
         AppLauncherEntryKind::SteamApp => match start_steam_app(&entry.target) {
@@ -41,20 +94,21 @@ pub(super) fn launch_entry(run: &mut AppLauncherRun, entry: &AppLauncherEntry) {
             Err(error) => {
                 run.status = AppLauncherRunStatus::Failed;
                 run.finished_at = Some(now_timestamp());
-                run.error = Some(error);
+                run.error = Some(error.message);
+                run.os_error_code = error.os_error_code;
             }
         },
     }
 }
 
 #[cfg(not(windows))]
-fn start_local_app(entry: &AppLauncherEntry) -> Result<Option<u32>, String> {
+fn start_local_app(entry: &AppLauncherEntry) -> Result<Option<u32>, LaunchFailure> {
     let target = entry.target.trim();
     if target.is_empty() {
-        return Err("target is empty".to_string());
+        return Err(LaunchFailure::message("target is empty"));
     }
 
-    let args = split_command_line_args(&entry.args)?;
+    let args = split_command_line_args(&entry.args).map_err(LaunchFailure::message)?;
     let mut command = Command::new(target);
     command.args(args);
     if let Some(working_directory) = entry.working_directory.as_deref() {
@@ -64,31 +118,37 @@ fn start_local_app(entry: &AppLauncherEntry) -> Result<Option<u32>, String> {
     command
         .spawn()
         .map(|child| Some(child.id()))
-        .map_err(|error| format!("failed to launch {target}: {error}"))
+        .map_err(|error| LaunchFailure::from_io(target, error))
 }
 
 #[cfg(windows)]
-fn start_local_app(entry: &AppLauncherEntry) -> Result<Option<u32>, String> {
+fn start_local_app(entry: &AppLauncherEntry) -> Result<Option<u32>, LaunchFailure> {
     let target = entry.target.trim();
     if target.is_empty() {
-        return Err("target is empty".to_string());
+        return Err(LaunchFailure::message("target is empty"));
     }
 
-    if is_windows_executable_path(Path::new(target)) {
-        let args = split_command_line_args(&entry.args)?;
-        let mut command = Command::new(target);
-        command.args(args);
-        if let Some(working_directory) = entry.working_directory.as_deref() {
-            command.current_dir(working_directory);
+    match local_launch_strategy(entry, true) {
+        LocalLaunchStrategy::Direct => {
+            let args = split_command_line_args(&entry.args).map_err(LaunchFailure::message)?;
+            let mut command = Command::new(target);
+            command.args(args);
+            if let Some(working_directory) = entry.working_directory.as_deref() {
+                command.current_dir(working_directory);
+            }
+
+            command
+                .spawn()
+                .map(|child| Some(child.id()))
+                .map_err(|error| LaunchFailure::from_io(target, error))
         }
-
-        return command
-            .spawn()
-            .map(|child| Some(child.id()))
-            .map_err(|error| format!("failed to launch {target}: {error}"));
+        LocalLaunchStrategy::ShellExecute(verb) => shell_execute_local_app(
+            target,
+            &entry.args,
+            entry.working_directory.as_deref(),
+            verb,
+        ),
     }
-
-    shell_execute_local_app(target, &entry.args, entry.working_directory.as_deref())
 }
 
 #[cfg(windows)]
@@ -96,7 +156,8 @@ fn shell_execute_local_app(
     target: &str,
     args: &str,
     working_directory: Option<&str>,
-) -> Result<Option<u32>, String> {
+    verb: ShellExecuteVerb,
+) -> Result<Option<u32>, LaunchFailure> {
     use std::ptr;
 
     use windows_sys::Win32::Foundation::CloseHandle;
@@ -107,6 +168,10 @@ fn shell_execute_local_app(
     use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
     let target_wide = wide_null(target);
+    let verb_wide = match verb {
+        ShellExecuteVerb::Open => None,
+        ShellExecuteVerb::RunAs => Some(wide_null("runas")),
+    };
     let args = args.trim();
     let args_wide = if args.is_empty() {
         None
@@ -122,7 +187,9 @@ fn shell_execute_local_app(
         cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
         fMask: SEE_MASK_NOCLOSEPROCESS,
         hwnd: ptr::null_mut(),
-        lpVerb: ptr::null(),
+        lpVerb: verb_wide
+            .as_ref()
+            .map_or(ptr::null(), |value| value.as_ptr()),
         lpFile: target_wide.as_ptr(),
         lpParameters: args_wide
             .as_ref()
@@ -142,9 +209,9 @@ fn shell_execute_local_app(
 
     let launched = unsafe { ShellExecuteExW(&mut info) };
     if launched == 0 {
-        return Err(format!(
-            "failed to launch {target}: {}",
-            std::io::Error::last_os_error()
+        return Err(LaunchFailure::from_io(
+            target,
+            std::io::Error::last_os_error(),
         ));
     }
 
@@ -153,11 +220,21 @@ fn shell_execute_local_app(
     }
 
     let pid = unsafe { GetProcessId(info.hProcess) };
+    let pid_error = std::io::Error::last_os_error();
     unsafe {
         CloseHandle(info.hProcess);
     }
+    tracked_shell_process_id(target, pid, pid_error)
+}
+
+#[cfg(any(windows, test))]
+pub(super) fn tracked_shell_process_id(
+    target: &str,
+    pid: u32,
+    error: std::io::Error,
+) -> Result<Option<u32>, LaunchFailure> {
     if pid == 0 {
-        Ok(None)
+        Err(LaunchFailure::from_io(target, error))
     } else {
         Ok(Some(pid))
     }
@@ -168,11 +245,12 @@ fn wide_null(value: &str) -> Vec<u16> {
     value.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
-fn start_steam_app(app_id: &str) -> Result<(), String> {
+fn start_steam_app(app_id: &str) -> Result<(), LaunchFailure> {
     let Some(url) = steam_launch_url(app_id) else {
-        return Err("Steam app ID is empty".to_string());
+        return Err(LaunchFailure::message("Steam app ID is empty"));
     };
-    open::that(&url).map_err(|error| format!("failed to launch {url}: {error}"))
+    open::that(&url)
+        .map_err(|error| LaunchFailure::message(format!("failed to launch {url}: {error}")))
 }
 
 pub(super) fn should_skip_entry(

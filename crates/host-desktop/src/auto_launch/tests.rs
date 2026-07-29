@@ -12,6 +12,7 @@ fn local_entry(id: &str) -> AppLauncherEntry {
         launch_delay_seconds: 0,
         run_policy: AppLauncherRunPolicy::Always,
         stop_policy: AppLauncherStopPolicy::KeepRunning,
+        run_as_administrator: false,
         process_name: None,
         working_directory: None,
     }
@@ -179,9 +180,147 @@ fn app_launcher_json_invalid_config_falls_back_to_empty_entries() {
 
 #[test]
 fn app_launcher_json_round_trips_entries() {
-    let entry = local_entry("local");
+    let entry = normalize_app_launcher_entries(vec![local_entry("local")])
+        .into_iter()
+        .next()
+        .unwrap();
     let value = serde_json::to_value(vec![entry.clone()]).unwrap();
     assert_eq!(deserialize_app_launcher_entries(value), vec![entry]);
+}
+
+#[test]
+fn app_launcher_legacy_json_defaults_run_as_administrator_to_false() {
+    let entries = deserialize_app_launcher_entries(serde_json::json!([{
+        "id": "legacy",
+        "enabled": true,
+        "name": "Legacy Tool",
+        "kind": "localApp",
+        "scope": "all",
+        "target": "C:\\Tools\\Legacy.exe",
+        "launchDelaySeconds": 0,
+        "runPolicy": "always",
+        "stopPolicy": "keepRunning"
+    }]));
+
+    assert_eq!(entries.len(), 1);
+    assert!(!entries[0].run_as_administrator);
+}
+
+#[test]
+#[cfg(windows)]
+fn app_launcher_picks_windows_exe_with_parent_working_directory() {
+    let picked = picked_app_launcher_target(r"C:\Tools\Overlay\Overlay.exe").unwrap();
+
+    assert_eq!(
+        picked.working_directory.as_deref(),
+        Some(r"C:\Tools\Overlay")
+    );
+}
+
+#[test]
+fn app_launcher_preserves_explicit_working_directory() {
+    let mut entry = local_entry("local");
+    entry.working_directory = Some(r"C:\Custom".to_string());
+
+    let entries = normalize_app_launcher_entries(vec![entry]);
+
+    assert_eq!(entries[0].working_directory.as_deref(), Some(r"C:\Custom"));
+}
+
+#[test]
+#[cfg(windows)]
+fn app_launcher_empty_working_directory_uses_exe_parent() {
+    let mut entry = local_entry("local");
+    entry.target = r"C:\Tools\Overlay\Overlay.exe".to_string();
+    entry.working_directory = Some("  ".to_string());
+
+    let entries = normalize_app_launcher_entries(vec![entry]);
+
+    assert_eq!(
+        entries[0].working_directory.as_deref(),
+        Some(r"C:\Tools\Overlay")
+    );
+}
+
+#[test]
+fn app_launcher_shortcut_keeps_shell_working_directory() {
+    let picked = picked_app_launcher_target(r"C:\Tools\Overlay.lnk").unwrap();
+
+    assert_eq!(picked.working_directory, None);
+}
+
+#[test]
+fn app_launcher_steam_entry_disables_run_as_administrator() {
+    let mut entry = local_entry("steam");
+    entry.kind = AppLauncherEntryKind::SteamApp;
+    entry.target = "438100".to_string();
+    entry.run_as_administrator = true;
+
+    let entries = normalize_app_launcher_entries(vec![entry]);
+
+    assert!(!entries[0].run_as_administrator);
+}
+
+#[test]
+fn app_launcher_elevated_entry_keeps_running_after_vrchat() {
+    let mut entry = local_entry("elevated");
+    entry.run_as_administrator = true;
+    entry.stop_policy = AppLauncherStopPolicy::CloseByVrcx;
+
+    let entries = normalize_app_launcher_entries(vec![entry]);
+
+    assert_eq!(entries[0].stop_policy, AppLauncherStopPolicy::KeepRunning);
+}
+
+#[test]
+fn app_launcher_windows_launch_strategy_elevates_only_explicit_entries() {
+    let direct = local_entry("direct");
+    assert_eq!(
+        local_launch_strategy(&direct, true),
+        LocalLaunchStrategy::Direct
+    );
+
+    let mut elevated = local_entry("elevated");
+    elevated.run_as_administrator = true;
+    assert_eq!(
+        local_launch_strategy(&elevated, true),
+        LocalLaunchStrategy::ShellExecute(ShellExecuteVerb::RunAs)
+    );
+
+    let mut shortcut = local_entry("shortcut");
+    shortcut.target = r"C:\Tools\Tool.lnk".to_string();
+    assert_eq!(
+        local_launch_strategy(&shortcut, true),
+        LocalLaunchStrategy::ShellExecute(ShellExecuteVerb::Open)
+    );
+    assert_eq!(
+        local_launch_strategy(&elevated, false),
+        LocalLaunchStrategy::Direct
+    );
+}
+
+#[test]
+fn app_launcher_launch_failure_preserves_os_error_code() {
+    let elevation = LaunchFailure::from_io("Tool.exe", std::io::Error::from_raw_os_error(740));
+    assert_eq!(elevation.os_error_code, Some(740));
+
+    let cancelled = LaunchFailure::from_io("Tool.exe", std::io::Error::from_raw_os_error(1223));
+    assert_eq!(cancelled.os_error_code, Some(1223));
+
+    let denied = LaunchFailure::from_io("Tool.exe", std::io::Error::from_raw_os_error(5));
+    assert_eq!(denied.os_error_code, Some(5));
+}
+
+#[test]
+fn app_launcher_shell_pid_failure_preserves_os_error_code() {
+    let failure =
+        tracked_shell_process_id("Tool.exe", 0, std::io::Error::from_raw_os_error(6)).unwrap_err();
+
+    assert_eq!(failure.os_error_code, Some(6));
+    assert_eq!(
+        tracked_shell_process_id("Tool.exe", 42, std::io::Error::from_raw_os_error(6)).unwrap(),
+        Some(42)
+    );
 }
 
 #[test]
