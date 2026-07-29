@@ -37,7 +37,7 @@ export function MutualFriendsPage() {
 
                 <MutualFriendsHud
                     baseNodeCount={graph.baseNodeCount}
-                    canFetch={Boolean(graph.currentUserId && graph.friendCount)}
+                    canFetch={Boolean(graph.currentUserId)}
                     fetchProgress={fetch.fetchProgress}
                     isReloading={
                         graph.status === 'running' && graph.baseNodeCount > 0
