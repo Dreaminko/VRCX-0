@@ -264,14 +264,12 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                         <StatusSegment
                             visible={visibility.steamvr}
                             active={Boolean(isSteamVRRunning)}
-                            label={t('status_bar.steamvr')}
+                            label="SteamVR"
                         />
                         <StatusSegment
                             visible={visibility.vrchat}
                             active={Boolean(isGameRunning)}
-                            label={t(
-                                'view.settings.advanced.advanced.vrchat_settings.header'
-                            )}
+                            label="VRChat"
                             tooltip={
                                 <div className="flex flex-col gap-1 text-xs">
                                     {isGameRunning ? (
@@ -445,7 +443,7 @@ export const StatusBarFooter = forwardRef<HTMLElement, StatusBarFooterProps>(
                                 />
                                 <TooltipContent className="flex max-w-xs flex-col gap-1 text-xs">
                                     <span>
-                                        {t('view.login.field.websocket')}{' '}
+                                        WebSocket{' '}
                                         {runtimeTransport.websocketConnected
                                             ? t('status_bar.ws_connected')
                                             : t('status_bar.ws_disconnected')}

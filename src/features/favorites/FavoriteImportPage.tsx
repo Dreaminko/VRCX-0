@@ -494,9 +494,7 @@ export function FavoriteImportPage() {
                         value={[location]}
                         onValueChange={handleLocationChange}
                     >
-                        <ToggleGroupItem value="remote">
-                            {t('dialog.favorite_import.label.vrchat')}
-                        </ToggleGroupItem>
+                        <ToggleGroupItem value="remote">VRChat</ToggleGroupItem>
                         <ToggleGroupItem value="local">
                             {t('dialog.favorite_import.label.local')}
                         </ToggleGroupItem>

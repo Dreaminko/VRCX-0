@@ -425,10 +425,6 @@
                     "source": "nativeShell.notification.authFailure.body"
                 },
                 {
-                    "key": "nativeShell.menu.app.title",
-                    "source": "nativeShell.menu.app.title"
-                },
-                {
                     "key": "nativeShell.menu.app.about",
                     "source": "nativeShell.menu.app.about"
                 },
@@ -567,14 +563,6 @@
                 {
                     "key": "nativeShell.menu.help.reportIssue",
                     "source": "nativeShell.menu.help.reportIssue"
-                },
-                {
-                    "key": "nativeShell.menu.help.github",
-                    "source": "nativeShell.menu.help.github"
-                },
-                {
-                    "key": "nativeShell.menu.help.discord",
-                    "source": "nativeShell.menu.help.discord"
                 },
                 {
                     "key": "nativeShell.menu.help.qqGroup",

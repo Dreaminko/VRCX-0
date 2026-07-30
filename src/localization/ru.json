@@ -383,7 +383,6 @@
         },
         "menu": {
             "app": {
-                "title": "VRCX-0",
                 "about": "О VRCX-0",
                 "settings": "Настройки...",
                 "checkUpdates": "Проверить обновления",
@@ -429,8 +428,6 @@
                 "changelog": "Список изменений",
                 "keyboardShortcuts": "Горячие клавиши",
                 "reportIssue": "Сообщить о проблеме",
-                "github": "GitHub",
-                "discord": "Discord",
                 "qqGroup": "QQ-группа",
                 "openDevtools": "Открыть DevTools",
                 "supportVrcx": "Поддержать VRCX-0"
@@ -464,7 +461,6 @@
     },
     "nav_menu": {
         "qq_group": "QQ-группа",
-        "discord": "Discord",
         "changelog": "Изменить журнал",
         "update": "Обновление",
         "update_downloaded": "Перезапустить",
@@ -569,7 +565,6 @@
         }
     },
     "app_menu": {
-        "app": "VRCX-0",
         "view": "Вид",
         "tools": "Инструменты",
         "help": "Справка",
@@ -591,7 +586,6 @@
         "reset_zoom": "Перезагрузить",
         "all_tools": "Все инструменты...",
         "open_devtools": "Открыть \"DevTools\"",
-        "github": "GitHub",
         "report_issue": "Вопрос о докладе",
         "community": "Сообщество",
         "open_source_licenses": "Уведомления третьих сторон",
@@ -744,9 +738,7 @@
     },
     "support_vrcx": {
         "title": "Поддержка VRCX-0",
-        "description": "Поддержите дальнейшую разработку VRCX-0 через GitHub Sponsors или Ko-fi.",
-        "github_sponsors": "GitHub Спонсоры",
-        "kofi": "Ko-fi"
+        "description": "Поддержите дальнейшую разработку VRCX-0 через GitHub Sponsors или Ko-fi."
     },
     "view": {
         "login": {
@@ -762,8 +754,7 @@
             "field": {
                 "username": "Имя пользователя или Email",
                 "password": "Пароль",
-                "saveCredentials": "Сохранить учетные данные",
-                "websocket": "ВебСокет"
+                "saveCredentials": "Сохранить учетные данные"
             },
             "placeholder": {
                 "account": "Аккаунт VRChat",
@@ -778,10 +769,6 @@
                 "description": "{name} будет удален",
                 "confirm": "Удалить",
                 "removing": "Удаление..."
-            },
-            "footer": {
-                "github": "GitHub",
-                "discord": "Discord"
             }
         },
         "feed": {
@@ -1919,11 +1906,6 @@
                 "preset": "Пресет",
                 "preset_custom": "Пользовательский",
                 "presets": {
-                    "openai": "OpenAI",
-                    "openrouter": "OpenRouter",
-                    "gemini": "Google Gemini",
-                    "deepseek": "DeepSeek",
-                    "xai": "xAI (Grok)",
                     "siliconflow": "SiliconFlow"
                 },
                 "name": "Имя",
@@ -2063,7 +2045,6 @@
                     "port_active_connections": "Порт {port}; активные соединения {count}",
                     "client_config": "Конфигурация клиента",
                     "client_config_description": "Выбери вариант для своего клиента. Claude Code:: один раз `claude mcp add` Команда терминала.HTTP): a JSON Конфигурация для прямого HTTP Общие (mcp-relect): a JSON Конфигурировать туннель через а Node.js прокси для клиентов, не имеющих местных HTTP (например. Claude Desktop); потребности Node.js Когда подключены к LAN, используются скопированные конфигурации `YOUR-LAN-IP`; заменить его местным IP этого компьютера, прежде чем использовать его с другого устройства.",
-                    "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "Универсальный (mcp-remote)",
                     "copy_generic": "Общие (порядковые)HTTP)",
                     "security_note": "Конфигурации клиентов содержат токен в открытом виде. Передавайте их только доверенным инструментам и устройствам.",
@@ -2142,13 +2123,7 @@
                     "theme_mode": "Тема",
                     "font_family": "Шрифт",
                     "cjk_font_pack": "Шрифт CJK",
-                    "font_family_inter": "Интерн.",
-                    "font_family_noto_sans": "Ното Санс",
                     "font_family_geist": "Geist (по умолчанию)",
-                    "font_family_nunito_sans": "Нунито Санс",
-                    "font_family_ibm_plex_sans": "IBM Plex Sans",
-                    "font_family_jetbrains_mono": "Моно (RetBrains Mono)",
-                    "font_family_fantasque_sans_mono": "Fantasque Sans Mono",
                     "font_family_system_ui": "Шрифт системы",
                     "font_family_description": "Выберите готовый вариант или используйте шрифты, установленные на этом устройстве.",
                     "font_family_custom": "Пользовательский шрифт…",
@@ -2176,8 +2151,6 @@
                     "font_family_custom_override_hint": "Пример: 'My Font', Arial, sans-serif",
                     "font_family_custom_override_active": "Продвинутое переключение активировано; выбранные шрифты выше проигнорированы.",
                     "font_family_custom_override_placeholder": "\"Мой шрифт\", \"Ариал\", \"Sans-serif\"",
-                    "cjk_font_pack_noto": "Noto Sans CJK",
-                    "cjk_font_pack_puhuiti": "PuHuiTi CJK",
                     "theme_mode_system": "Системная",
                     "theme_mode_light": "Светлая",
                     "theme_mode_dark": "Тёмная",
@@ -2324,7 +2297,6 @@
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Формат загрузки",
                         "format_generic": "Общие положения JSON",
-                        "format_discord": "Discord",
                         "notification_filters": "Фильтры уведомлений webhook",
                         "send_test": "Отправить тестовый webhook",
                         "test_sent": "Тестовый webhook отправлен (HTTP {status})",
@@ -2456,9 +2428,6 @@
                 "advanced": {
                     "launch_options": "Параметры запуска",
                     "vrc_registry_backup": "VRChat Резервирование регистра",
-                    "vrchat_settings": {
-                        "header": "VRChat"
-                    },
                     "relaunch_vrchat": {
                         "header": "Автозапуск VRChat После крушения",
                         "description": "Автоматически возобновляйте и возвращайтесь в последний раз после аварии."
@@ -3186,8 +3155,7 @@
             },
             "pronouns": "Местоимение",
             "tags": {
-                "open_in_discord": "Открыто Discord",
-                "discord": "Discord"
+                "open_in_discord": "Открыто Discord"
             },
             "badges": {
                 "assigned": "Назначен",
@@ -4497,7 +4465,6 @@
             "guide": "Руководство",
             "mode": "Поставщик",
             "mode_google": "Google",
-            "mode_openai": "OpenAI",
             "mode_deepl": "Свободная API",
             "test": "Испытание",
             "save": "Сохранить",
@@ -4849,7 +4816,6 @@
                 "actions": "Меры",
                 "rows_yet": "ряды",
                 "import_to": "Импортировать в",
-                "vrchat": "VRChat",
                 "local": "Локально",
                 "select_group": "Выберите группу"
             },
@@ -5390,7 +5356,6 @@
         "servers_issue": "Проблемы с серверами VRChat",
         "servers_ok": "Серверы VRChat работают",
         "view_status": "Проверить статус",
-        "steamvr": "SteamVR",
         "proxy": "Прокси",
         "realtime_connection": "В режиме реального времени",
         "ws_connected": "Подключено",
@@ -5709,7 +5674,6 @@
         "error_unsupported": "Перевод не настроен"
     },
     "app": {
-        "title": "VRCX-0",
         "routes": {
             "feed": "Лента",
             "table_heavy_social_feed_page": "Табличная страница социальной ленты.",

@@ -383,7 +383,6 @@
         },
         "menu": {
             "app": {
-                "title": "VRCX-0",
                 "about": "Sobre o VRCX-0",
                 "settings": "Configurações...",
                 "checkUpdates": "Verificar atualizações",
@@ -429,8 +428,6 @@
                 "changelog": "Registro de alterações",
                 "keyboardShortcuts": "Atalhos de teclado",
                 "reportIssue": "Reportar problema",
-                "github": "GitHub",
-                "discord": "Discord",
                 "qqGroup": "Grupo do QQ (comunidade chinesa)",
                 "openDevtools": "Abrir DevTools",
                 "supportVrcx": "Apoiar o VRCX-0"
@@ -464,7 +461,6 @@
     },
     "nav_menu": {
         "qq_group": "Grupo do QQ (comunidade chinesa)",
-        "discord": "Discord",
         "changelog": "Registro de alterações",
         "update": "Atualizar",
         "update_downloaded": "Reiniciar",
@@ -569,7 +565,6 @@
         }
     },
     "app_menu": {
-        "app": "VRCX-0",
         "view": "Exibir",
         "tools": "Ferramentas",
         "help": "Ajuda",
@@ -591,7 +586,6 @@
         "reset_zoom": "Redefinir Zoom",
         "all_tools": "Todas as Ferramentas...",
         "open_devtools": "Abrir DevTools",
-        "github": "GitHub",
         "report_issue": "Relatar Problema",
         "community": "Comunidade",
         "open_source_licenses": "Avisos de Terceiros",
@@ -744,9 +738,7 @@
     },
     "support_vrcx": {
         "title": "Apoiar o VRCX-0",
-        "description": "Apoie o desenvolvimento futuro do VRCX-0 pelo GitHub Sponsors ou Ko-fi.",
-        "github_sponsors": "GitHub Sponsors",
-        "kofi": "Ko-fi"
+        "description": "Apoie o desenvolvimento futuro do VRCX-0 pelo GitHub Sponsors ou Ko-fi."
     },
     "view": {
         "login": {
@@ -762,8 +754,7 @@
             "field": {
                 "username": "Usuário ou E-mail",
                 "password": "Senha",
-                "saveCredentials": "Salvar Credenciais",
-                "websocket": "WebSocket"
+                "saveCredentials": "Salvar Credenciais"
             },
             "placeholder": {
                 "account": "Conta do VRChat",
@@ -778,10 +769,6 @@
                 "description": "{name} será removido",
                 "confirm": "Remover",
                 "removing": "Removendo..."
-            },
-            "footer": {
-                "github": "GitHub",
-                "discord": "Discord"
             }
         },
         "feed": {
@@ -1917,11 +1904,6 @@
                 "preset": "Predefinição",
                 "preset_custom": "Personalizada",
                 "presets": {
-                    "openai": "OpenAI",
-                    "openrouter": "OpenRouter",
-                    "gemini": "Google Gemini",
-                    "deepseek": "DeepSeek",
-                    "xai": "xAI (Grok)",
                     "siliconflow": "SiliconFlow"
                 },
                 "name": "Nome",
@@ -2061,7 +2043,6 @@
                     "port_active_connections": "Porta {port}; conexões ativas {count}",
                     "client_config": "Configuração do cliente",
                     "client_config_description": "Escolha a opção do seu cliente. Claude Code: um comando de terminal `claude mcp add` executado uma única vez. Genérico (HTTP): uma configuração JSON para conexão HTTP direta — sem ferramentas extras. Genérico (mcp-remote): uma configuração JSON que faz túnel via um proxy Node.js para clientes sem HTTP nativo (ex.: Claude Desktop); requer Node.js no PATH. Quando as conexões LAN estiverem ativadas, as configurações copiadas usam `YOUR-LAN-IP`; substitua pelo IP local deste computador antes de usá-las em outro dispositivo.",
-                    "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "Genérico (mcp-remote)",
                     "copy_generic": "Genérico (HTTP)",
                     "security_note": "As configurações do cliente contêm um token em texto puro. Compartilhe-as apenas com ferramentas ou dispositivos em que você confia.",
@@ -2140,13 +2121,7 @@
                     "theme_mode": "Tema",
                     "font_family": "Fonte",
                     "cjk_font_pack": "Fonte CJK",
-                    "font_family_inter": "Inter",
-                    "font_family_noto_sans": "Noto Sans",
                     "font_family_geist": "Geist (Padrão)",
-                    "font_family_nunito_sans": "Nunito Sans",
-                    "font_family_ibm_plex_sans": "IBM Plex Sans",
-                    "font_family_jetbrains_mono": "JetBrains Mono",
-                    "font_family_fantasque_sans_mono": "Fantasque Sans Mono",
                     "font_family_system_ui": "Fonte do Sistema",
                     "font_family_description": "Escolha uma predefinição ou use fontes instaladas neste dispositivo.",
                     "font_family_custom": "Fonte personalizada…",
@@ -2174,8 +2149,6 @@
                     "font_family_custom_override_hint": "Exemplo: 'My Font', Arial, sans-serif",
                     "font_family_custom_override_active": "A substituição avançada está ativa; as fontes selecionadas acima são ignoradas.",
                     "font_family_custom_override_placeholder": "'My Font', Arial, sans-serif",
-                    "cjk_font_pack_noto": "Noto Sans CJK",
-                    "cjk_font_pack_puhuiti": "PuHuiTi CJK",
                     "theme_mode_system": "Sistema",
                     "theme_mode_light": "Claro",
                     "theme_mode_dark": "Escuro",
@@ -2322,7 +2295,6 @@
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Formato do Payload",
                         "format_generic": "JSON Genérico",
-                        "format_discord": "Discord",
                         "notification_filters": "Filtros de Notificação do Webhook",
                         "send_test": "Enviar Webhook de Teste",
                         "test_sent": "Webhook de teste enviado (HTTP {status})",
@@ -2454,9 +2426,6 @@
                 "advanced": {
                     "launch_options": "Opções de Inicialização",
                     "vrc_registry_backup": "Backup de Registro do VRC",
-                    "vrchat_settings": {
-                        "header": "VRChat"
-                    },
                     "relaunch_vrchat": {
                         "header": "Reiniciar VRChat Após Falha",
                         "description": "Reingressar na Última Instância Quando o VRChat Travar"
@@ -3184,8 +3153,7 @@
             },
             "pronouns": "Pronomes",
             "tags": {
-                "open_in_discord": "Abrir no Discord",
-                "discord": "Discord"
+                "open_in_discord": "Abrir no Discord"
             },
             "badges": {
                 "assigned": "Atribuído",
@@ -4493,7 +4461,6 @@
             "guide": "Guia",
             "mode": "Provedor",
             "mode_google": "Google Tradutor",
-            "mode_openai": "OpenAI",
             "mode_deepl": "DeepL Free API",
             "test": "Testar",
             "save": "Salvar",
@@ -4845,7 +4812,6 @@
                 "actions": "Ações",
                 "rows_yet": "linhas ainda",
                 "import_to": "Importar para",
-                "vrchat": "VRChat",
                 "local": "Local",
                 "select_group": "Selecione um grupo"
             },
@@ -5386,7 +5352,6 @@
         "servers_issue": "Problemas nos servidores do VRChat",
         "servers_ok": "Os servidores do VRChat estão operacionais",
         "view_status": "Ver status",
-        "steamvr": "SteamVR",
         "proxy": "Proxy",
         "realtime_connection": "Tempo real",
         "ws_connected": "Conectado",
@@ -5705,7 +5670,6 @@
         "error_unsupported": "A tradução não está configurada"
     },
     "app": {
-        "title": "VRCX-0",
         "routes": {
             "feed": "Feed",
             "table_heavy_social_feed_page": "Página de feed social com muitas tabelas.",

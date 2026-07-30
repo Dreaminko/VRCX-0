@@ -383,7 +383,6 @@
         },
         "menu": {
             "app": {
-                "title": "VRCX-0",
                 "about": "关于 VRCX-0",
                 "settings": "设置...",
                 "checkUpdates": "检查更新",
@@ -429,8 +428,6 @@
                 "changelog": "更新日志",
                 "keyboardShortcuts": "键盘快捷键",
                 "reportIssue": "反馈问题",
-                "github": "在 GitHub 上查看",
-                "discord": "Discord",
                 "qqGroup": "QQ群",
                 "openDevtools": "打开 DevTools",
                 "supportVrcx": "支持 VRCX-0"
@@ -464,7 +461,6 @@
     },
     "nav_menu": {
         "qq_group": "QQ群",
-        "discord": "Discord",
         "changelog": "更新日志",
         "update": "更新",
         "update_downloaded": "重启",
@@ -569,7 +565,6 @@
         }
     },
     "app_menu": {
-        "app": "VRCX-0",
         "view": "视图",
         "tools": "工具",
         "help": "帮助",
@@ -591,7 +586,6 @@
         "reset_zoom": "重置缩放",
         "all_tools": "所有工具...",
         "open_devtools": "打开 DevTools",
-        "github": "在 GitHub 上查看",
         "report_issue": "反馈问题",
         "community": "社区",
         "open_source_licenses": "第三方声明",
@@ -744,9 +738,7 @@
     },
     "support_vrcx": {
         "title": "支持 VRCX-0",
-        "description": "通过 GitHub Sponsors 或 Ko-fi 支持 VRCX-0 后续开发。",
-        "github_sponsors": "GitHub Sponsors",
-        "kofi": "Ko-fi"
+        "description": "通过 GitHub Sponsors 或 Ko-fi 支持 VRCX-0 后续开发。"
     },
     "view": {
         "login": {
@@ -762,8 +754,7 @@
             "field": {
                 "username": "用户名或邮箱地址",
                 "password": "密码",
-                "saveCredentials": "保存登录数据",
-                "websocket": "WebSocket"
+                "saveCredentials": "保存登录数据"
             },
             "placeholder": {
                 "account": "VRChat 账号",
@@ -778,10 +769,6 @@
                 "description": "将移除 {name}",
                 "confirm": "移除",
                 "removing": "正在移除..."
-            },
-            "footer": {
-                "github": "在 GitHub 上查看",
-                "discord": "Discord"
             }
         },
         "feed": {
@@ -1917,11 +1904,6 @@
                 "preset": "预设",
                 "preset_custom": "自定义",
                 "presets": {
-                    "openai": "OpenAI",
-                    "openrouter": "OpenRouter",
-                    "gemini": "Google Gemini",
-                    "deepseek": "DeepSeek",
-                    "xai": "xAI (Grok)",
                     "siliconflow": "硅基流动"
                 },
                 "name": "名称",
@@ -2061,7 +2043,6 @@
                     "port_active_connections": "端口 {port}；活动连接 {count}",
                     "client_config": "客户端配置",
                     "client_config_description": "按客户端选择: Claude Code：执行一次性 `claude mcp add` 命令。\nHTTP 方式：直连 HTTP 的 JSON 配置，无需额外工具。mcp-remote 方式：经 Node.js 代理隧道的 JSON 配置,适用于不支持原生 HTTP 的客户端（如 Claude Desktop）；需 PATH 中有 Node.js。开启局域网连接后，复制出的配置会使用 `YOUR-LAN-IP`；在其他设备上使用前请替换为本机局域网 IP。",
-                    "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "mcp-remote 方式",
                     "copy_generic": "HTTP 方式",
                     "security_note": "客户端配置包含明文 token，应只提供给你信任的工具或设备。",
@@ -2140,13 +2121,7 @@
                     "theme_mode": "主题",
                     "font_family": "字体",
                     "cjk_font_pack": "CJK 字体",
-                    "font_family_inter": "Inter",
-                    "font_family_noto_sans": "Noto Sans",
                     "font_family_geist": "Geist（默认）",
-                    "font_family_nunito_sans": "Nunito Sans",
-                    "font_family_ibm_plex_sans": "IBM Plex Sans",
-                    "font_family_jetbrains_mono": "JetBrains Mono",
-                    "font_family_fantasque_sans_mono": "Fantasque Sans Mono",
                     "font_family_system_ui": "跟随系统字体",
                     "font_family_description": "选择预设字体，或使用此设备上已安装的字体。",
                     "font_family_custom": "自定义字体…",
@@ -2174,8 +2149,6 @@
                     "font_family_custom_override_hint": "示例：'My Font', Arial, sans-serif",
                     "font_family_custom_override_active": "高级选项配置已生效，上面的字体选择会被忽略。",
                     "font_family_custom_override_placeholder": "'My Font', Arial, sans-serif",
-                    "cjk_font_pack_noto": "Noto Sans CJK",
-                    "cjk_font_pack_puhuiti": "PuHuiTi CJK",
                     "theme_mode_system": "跟随系统",
                     "theme_mode_light": "浅色",
                     "theme_mode_dark": "深色",
@@ -2322,7 +2295,6 @@
                         "url_placeholder": "https://example.com/webhook",
                         "format": "载荷格式",
                         "format_generic": "通用 JSON",
-                        "format_discord": "Discord",
                         "notification_filters": "Webhook 通知过滤器",
                         "send_test": "发送测试 Webhook",
                         "test_sent": "Webhook 测试已发送（HTTP {status}）",
@@ -2454,9 +2426,6 @@
                 "advanced": {
                     "launch_options": "启动选项",
                     "vrc_registry_backup": "VRC 设置数据备份工具",
-                    "vrchat_settings": {
-                        "header": "VRChat"
-                    },
                     "relaunch_vrchat": {
                         "header": "崩溃后重启",
                         "description": "重新加入崩溃前的房间"
@@ -3184,8 +3153,7 @@
             },
             "pronouns": "人称代词",
             "tags": {
-                "open_in_discord": "在 Discord 中打开",
-                "discord": "Discord"
+                "open_in_discord": "在 Discord 中打开"
             },
             "badges": {
                 "assigned": "获得于",
@@ -4493,7 +4461,6 @@
             "guide": "查看教程（英语）",
             "mode": "提供商",
             "mode_google": "Google 翻译",
-            "mode_openai": "OpenAI",
             "mode_deepl": "DeepL Free API",
             "test": "测试",
             "save": "保存",
@@ -4845,7 +4812,6 @@
                 "actions": "操作",
                 "rows_yet": "行",
                 "import_to": "导入到",
-                "vrchat": "VRChat",
                 "local": "本地",
                 "select_group": "选择收藏分组"
             },
@@ -5390,7 +5356,6 @@
         "servers_issue": "VRChat 服务器出现异常",
         "servers_ok": "VRChat 服务目前一切正常",
         "view_status": "查看服务状态",
-        "steamvr": "SteamVR",
         "proxy": "代理服务器",
         "realtime_connection": "实时连接",
         "ws_connected": "已连接",
@@ -5709,7 +5674,6 @@
         "error_unsupported": "翻译功能未配置"
     },
     "app": {
-        "title": "VRCX-0",
         "routes": {
             "feed": "好友动态",
             "table_heavy_social_feed_page": "表格密集型社交动态页面。",

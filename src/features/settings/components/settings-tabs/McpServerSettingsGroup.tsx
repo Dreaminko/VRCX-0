@@ -22,13 +22,14 @@ type McpCommandOptions = {
 
 type McpSnippetButton = {
     snippetKey: keyof ClientConfigSnippets;
-    labelKey: string;
+    label?: string;
+    labelKey?: string;
 };
 
 const MCP_SNIPPET_BUTTONS: McpSnippetButton[] = [
     {
         snippetKey: 'claudeCodeCommand',
-        labelKey: 'view.settings.integrations.mcp_server.copy_claude_code'
+        label: 'Claude Code'
     },
     {
         snippetKey: 'mcpRemoteJson',
@@ -155,7 +156,7 @@ export function McpServerSettingsGroup() {
 
     async function copyMcpSnippet(
         key: keyof ClientConfigSnippets,
-        labelKey: string
+        target: string
     ) {
         const value = mcpClientConfig?.[key];
         if (!value) {
@@ -163,7 +164,7 @@ export function McpServerSettingsGroup() {
         }
         await copyTextToClipboard(value, {
             successMessage: t('view.settings.integrations.mcp_server.copied', {
-                target: t(labelKey)
+                target
             }),
             errorMessage: (error) => String(error)
         });
@@ -294,19 +295,26 @@ export function McpServerSettingsGroup() {
                 controlClassName="lg:justify-start"
             >
                 <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
-                    {MCP_SNIPPET_BUTTONS.map(({ snippetKey, labelKey }) => (
-                        <Button
-                            key={snippetKey}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={!mcpClientConfig}
-                            onClick={() => copyMcpSnippet(snippetKey, labelKey)}
-                        >
-                            <CopyIcon data-icon="inline-start" />
-                            {t(labelKey)}
-                        </Button>
-                    ))}
+                    {MCP_SNIPPET_BUTTONS.map((button) => {
+                        const label =
+                            button.label ||
+                            (button.labelKey ? t(button.labelKey) : '');
+                        return (
+                            <Button
+                                key={button.snippetKey}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={!mcpClientConfig}
+                                onClick={() =>
+                                    copyMcpSnippet(button.snippetKey, label)
+                                }
+                            >
+                                <CopyIcon data-icon="inline-start" />
+                                {label}
+                            </Button>
+                        );
+                    })}
                 </div>
             </Field>
 

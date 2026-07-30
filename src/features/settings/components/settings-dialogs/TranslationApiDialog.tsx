@@ -45,7 +45,11 @@ type TranslationDraft = {
     translationAPIReasoningEffort: string;
 };
 
-type TranslationProviderOption = readonly [value: string, labelKey: string];
+type TranslationProviderOption = {
+    value: string;
+    label?: string;
+    labelKey?: string;
+};
 
 type TranslationApiDialogProps = {
     open: boolean;
@@ -166,12 +170,12 @@ export function TranslationApiDialog({
                     >
                         <Select
                             value={translationDraft.translationAPIType}
-                            items={translationProviderOptions.map(
-                                ([value, labelKey]) => ({
-                                    value,
-                                    label: t(labelKey)
-                                })
-                            )}
+                            items={translationProviderOptions.map((option) => ({
+                                value: option.value,
+                                label:
+                                    option.label ||
+                                    (option.labelKey ? t(option.labelKey) : '')
+                            }))}
                             onValueChange={(value) => {
                                 setTranslationDraftValue(
                                     'translationAPIType',
@@ -196,12 +200,15 @@ export function TranslationApiDialog({
                             <SelectContent>
                                 <SelectGroup>
                                     {translationProviderOptions.map(
-                                        ([value, labelKey]) => (
+                                        (option) => (
                                             <SelectItem
-                                                key={value}
-                                                value={value}
+                                                key={option.value}
+                                                value={option.value}
                                             >
-                                                {t(labelKey)}
+                                                {option.label ||
+                                                    (option.labelKey
+                                                        ? t(option.labelKey)
+                                                        : '')}
                                             </SelectItem>
                                         )
                                     )}

@@ -93,7 +93,7 @@ pub(crate) mod macos_menu {
 
     pub(crate) fn app_menu_labels_for_language(language: &str) -> AppMenuLabels {
         AppMenuLabels {
-            title: text(language, ShellKey::NativeShellMenuAppTitle),
+            title: "VRCX-0".to_string(),
             about: text(language, ShellKey::NativeShellMenuAppAbout),
             settings: text(language, ShellKey::NativeShellMenuAppSettings),
             check_updates: text(language, ShellKey::NativeShellMenuAppCheckUpdates),
@@ -157,8 +157,8 @@ pub(crate) mod macos_menu {
             changelog: text(language, ShellKey::NativeShellMenuHelpChangelog),
             keyboard_shortcuts: text(language, ShellKey::NativeShellMenuHelpKeyboardShortcuts),
             report_issue: text(language, ShellKey::NativeShellMenuHelpReportIssue),
-            github: text(language, ShellKey::NativeShellMenuHelpGithub),
-            discord: text(language, ShellKey::NativeShellMenuHelpDiscord),
+            github: "GitHub".to_string(),
+            discord: "Discord".to_string(),
             qq_group: text(language, ShellKey::NativeShellMenuHelpQqGroup),
             #[cfg(feature = "devtools")]
             open_devtools: text(language, ShellKey::NativeShellMenuHelpOpenDevtools),

@@ -383,7 +383,6 @@
         },
         "menu": {
             "app": {
-                "title": "VRCX-0",
                 "about": "VRCX-0 について",
                 "settings": "設定...",
                 "checkUpdates": "アップデートを確認",
@@ -429,8 +428,6 @@
                 "changelog": "新機能 (更新履歴)",
                 "keyboardShortcuts": "キーボードショートカット",
                 "reportIssue": "問題を報告",
-                "github": "GitHub",
-                "discord": "Discord",
                 "qqGroup": "QQグループ",
                 "openDevtools": "DevTools を開く",
                 "supportVrcx": "VRCX-0 をサポート"
@@ -464,7 +461,6 @@
     },
     "nav_menu": {
         "qq_group": "QQグループ",
-        "discord": "Discord",
         "changelog": "新機能 (更新履歴)",
         "update": "更新",
         "update_downloaded": "再起動",
@@ -569,7 +565,6 @@
         }
     },
     "app_menu": {
-        "app": "VRCX-0",
         "view": "表示",
         "tools": "ツール",
         "help": "ヘルプ",
@@ -591,7 +586,6 @@
         "reset_zoom": "ズームをリセット",
         "all_tools": "すべてのツール...",
         "open_devtools": "DevTools を開く",
-        "github": "GitHub",
         "report_issue": "問題を報告",
         "community": "コミュニティ",
         "open_source_licenses": "サードパーティー通知",
@@ -744,9 +738,7 @@
     },
     "support_vrcx": {
         "title": "VRCX-0 をサポート",
-        "description": "VRCX-0 の開発を続けていくため、GitHub Sponsors または Ko-fi から応援していただけます。",
-        "github_sponsors": "GitHub Sponsors",
-        "kofi": "Ko-fi"
+        "description": "VRCX-0 の開発を続けていくため、GitHub Sponsors または Ko-fi から応援していただけます。"
     },
     "view": {
         "login": {
@@ -762,8 +754,7 @@
             "field": {
                 "username": "ユーザーネームまたはメールアドレス",
                 "password": "パスワード",
-                "saveCredentials": "ログイン情報を保存",
-                "websocket": "ウェブソケット"
+                "saveCredentials": "ログイン情報を保存"
             },
             "placeholder": {
                 "account": "VRChat アカウント",
@@ -778,10 +769,6 @@
                 "description": "{name} を削除します",
                 "confirm": "削除",
                 "removing": "削除中..."
-            },
-            "footer": {
-                "github": "GitHub",
-                "discord": "Discord"
             }
         },
         "feed": {
@@ -1913,11 +1900,6 @@
                 "preset": "プリセット",
                 "preset_custom": "カスタム",
                 "presets": {
-                    "openai": "OpenAI",
-                    "openrouter": "OpenRouter",
-                    "gemini": "Google Gemini",
-                    "deepseek": "DeepSeek",
-                    "xai": "xAI (Grok)",
                     "siliconflow": "SiliconFlow"
                 },
                 "name": "名前",
@@ -2057,7 +2039,6 @@
                     "port_active_connections": "ポート {port}、アクティブ接続 {count}",
                     "client_config": "クライアント設定",
                     "client_config_description": "クライアントに合わせて選択してください。Claude Code の場合は、一度だけ実行する `claude mcp add` ターミナルコマンドです。汎用 (HTTP) は、追加ツール不要で HTTP に直接接続するための JSON 設定です。汎用 (mcp-remote) は、HTTP にネイティブ対応していないクライアント（Claude Desktop など）向けに Node.js プロキシ経由で中継する JSON 設定で、PATH に Node.js が必要です。LAN 接続を有効にすると、コピーした設定には `YOUR-LAN-IP` と入ります。別のデバイスで使う前に、このコンピューターのローカル IP アドレスに置き換えてください。",
-                    "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "汎用 (mcp-remote)",
                     "copy_generic": "汎用 (HTTP)",
                     "security_note": "クライアント設定には平文の token が含まれます。信頼できるツールまたはデバイスにのみ共有してください。",
@@ -2136,13 +2117,7 @@
                     "theme_mode": "テーマ",
                     "font_family": "フォント",
                     "cjk_font_pack": "CJK フォント",
-                    "font_family_inter": "Inter",
-                    "font_family_noto_sans": "Noto Sans",
                     "font_family_geist": "Geist",
-                    "font_family_nunito_sans": "Nunito Sans",
-                    "font_family_ibm_plex_sans": "IBM Plex Sans",
-                    "font_family_jetbrains_mono": "JetBrains Mono",
-                    "font_family_fantasque_sans_mono": "Fantasque Sans Mono",
                     "font_family_system_ui": "システムフォント",
                     "font_family_description": "プリセットを選ぶか、このデバイスにインストールされているフォントを使用します。",
                     "font_family_custom": "カスタムフォント…",
@@ -2170,8 +2145,6 @@
                     "font_family_custom_override_hint": "例：'My Font', Arial, sans-serif",
                     "font_family_custom_override_active": "詳細 override が有効です。上のフォント選択は無視されます。",
                     "font_family_custom_override_placeholder": "'My Font', Arial, sans-serif",
-                    "cjk_font_pack_noto": "Noto Sans CJK",
-                    "cjk_font_pack_puhuiti": "PuHuiTi CJK",
                     "theme_mode_system": "システムに合わせる",
                     "theme_mode_light": "ライト",
                     "theme_mode_dark": "ダーク",
@@ -2318,7 +2291,6 @@
                         "url_placeholder": "https://example.com/webhook",
                         "format": "ペイロード形式",
                         "format_generic": "汎用 JSON",
-                        "format_discord": "Discord",
                         "notification_filters": "Webhook 通知フィルター",
                         "send_test": "テスト Webhook を送信",
                         "test_sent": "Webhook テストを送信しました（HTTP {status}）",
@@ -2450,9 +2422,6 @@
                 "advanced": {
                     "launch_options": "VRChat の起動オプション",
                     "vrc_registry_backup": "VRChat のレジストリバックアップ",
-                    "vrchat_settings": {
-                        "header": "VRChat"
-                    },
                     "relaunch_vrchat": {
                         "header": "VRChat がクラッシュした場合に自動再起動する",
                         "description": "クラッシュ時、自動で再起動し、インスタンスに再参加を試みます"
@@ -3180,8 +3149,7 @@
             },
             "pronouns": "代名詞",
             "tags": {
-                "open_in_discord": "Discord を開く",
-                "discord": "Discord"
+                "open_in_discord": "Discord を開く"
             },
             "badges": {
                 "assigned": "授与済",
@@ -4488,7 +4456,6 @@
             "guide": "設定方法",
             "mode": "翻訳サービスプロバイダ",
             "mode_google": "Google 翻訳",
-            "mode_openai": "OpenAI",
             "mode_deepl": "DeepL Free API",
             "test": "テスト",
             "save": "保存",
@@ -4837,7 +4804,6 @@
                 "actions": "アクション",
                 "rows_yet": "行",
                 "import_to": "インポート先",
-                "vrchat": "VRChat",
                 "local": "ローカル",
                 "select_group": "グループを選択"
             },
@@ -5382,7 +5348,6 @@
         "servers_issue": "VRChatのサーバーで障害が発生しています",
         "servers_ok": "VRChat サーバーは正常に動作しています",
         "view_status": "稼働状況を確認",
-        "steamvr": "SteamVR",
         "proxy": "プロキシ",
         "realtime_connection": "リアルタイム",
         "ws_connected": "接続済み",
@@ -5701,7 +5666,6 @@
         "error_unsupported": "翻訳が設定されていません"
     },
     "app": {
-        "title": "VRCX-0",
         "routes": {
             "feed": "フィード",
             "table_heavy_social_feed_page": "テーブル中心のソーシャルフィードページです。",

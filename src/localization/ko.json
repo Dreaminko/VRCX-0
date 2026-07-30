@@ -383,7 +383,6 @@
         },
         "menu": {
             "app": {
-                "title": "VRCX-0",
                 "about": "VRCX-0 정보",
                 "settings": "설정...",
                 "checkUpdates": "업데이트 확인",
@@ -429,8 +428,6 @@
                 "changelog": "변경 내역",
                 "keyboardShortcuts": "키보드 단축키",
                 "reportIssue": "문제 보고",
-                "github": "GitHub",
-                "discord": "Discord",
                 "qqGroup": "QQ그룹 (중국 커뮤니티)",
                 "openDevtools": "DevTools 열기",
                 "supportVrcx": "VRCX-0 후원"
@@ -493,8 +490,7 @@
                 "remove_value": "{value} 제거",
                 "show_value": "{value} 표시"
             }
-        },
-        "discord": "Discord"
+        }
     },
     "dashboard": {
         "default_name": "대시보드",
@@ -607,10 +603,8 @@
         "action": {
             "close_window": "창 닫기"
         },
-        "app": "VRCX-0",
         "restart": "VRCX-0 다시 시작",
         "quit": "VRCX-0 종료",
-        "github": "GitHub",
         "about": "VRCX-0 정보"
     },
     "shortcuts": {
@@ -754,8 +748,7 @@
             "field": {
                 "username": "닉네임 혹은 이메일",
                 "password": "비밀번호",
-                "saveCredentials": "로그인 정보 저장",
-                "websocket": "WebSocket"
+                "saveCredentials": "로그인 정보 저장"
             },
             "validation": {
                 "username_required": "사용자 이름 또는 이메일이 필요합니다",
@@ -771,10 +764,6 @@
             "placeholder": {
                 "account": "VRChat 계정",
                 "password": "VRChat 비밀번호"
-            },
-            "footer": {
-                "github": "GitHub",
-                "discord": "Discord"
             }
         },
         "feed": {
@@ -1888,11 +1877,6 @@
                 "preset": "사전 설정",
                 "preset_custom": "맞춤",
                 "presets": {
-                    "openai": "OpenAI",
-                    "openrouter": "OpenRouter",
-                    "gemini": "Google Gemini",
-                    "deepseek": "DeepSeek",
-                    "xai": "xAI (Grok)",
                     "siliconflow": "SiliconFlow"
                 },
                 "name": "이름",
@@ -2012,7 +1996,6 @@
                     "port_active_connections": "포트 {port}; 활성 연결 {count}",
                     "client_config": "클라이언트 설정",
                     "client_config_description": "클라이언트에 맞게 선택하세요. Claude Code: 한 번 실행하는 `claude mcp add` 터미널 명령어. 일반 (HTTP): HTTP 직접 연결용 JSON 설정, 추가 도구 불필요. 일반 (mcp-remote): 네이티브 HTTP 미지원 클라이언트(예: Claude Desktop)를 위한 Node.js 프록시 터널링 JSON 설정; PATH에 Node.js 필요. LAN 연결을 켜면 복사한 설정에 `YOUR-LAN-IP`가 들어갑니다. 다른 기기에서 사용하기 전에 이 컴퓨터의 로컬 IP로 바꾸세요.",
-                    "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "일반 (mcp-remote)",
                     "copy_generic": "일반 (HTTP)",
                     "security_note": "클라이언트 설정에는 일반 텍스트 token이 포함됩니다. 신뢰하는 도구나 기기에만 공유하세요.",
@@ -2087,19 +2070,12 @@
                     "theme_mode": "테마 모드",
                     "font_family": "글꼴",
                     "cjk_font_pack": "CJK 글꼴",
-                    "font_family_inter": "인테르",
-                    "font_family_noto_sans": "노토 산스",
                     "font_family_geist": "가이스트(기본값)",
-                    "font_family_nunito_sans": "누니토 산스",
-                    "font_family_jetbrains_mono": "JetBrains 모노",
-                    "font_family_fantasque_sans_mono": "판타스크 산스 모노",
                     "font_family_system_ui": "시스템 글꼴",
                     "font_family_description": "프리셋을 선택하거나 이 기기에 설치된 글꼴을 사용하세요.",
                     "font_family_custom": "사용자 지정 글꼴…",
                     "font_family_custom_dialog_title": "사용자 지정 글꼴 선택",
                     "font_family_custom_invalid": "잘못된 글꼴 모음입니다. 쉼표로 구분된 글꼴 이름을 사용하세요. '내 글꼴', Arial, 산세리프체",
-                    "cjk_font_pack_noto": "노토 산스 CJK",
-                    "cjk_font_pack_puhuiti": "푸후이티 CJK",
                     "theme_mode_system": "시스템",
                     "theme_mode_light": "라이트",
                     "theme_mode_dark": "다크",
@@ -2130,7 +2106,6 @@
                     "table_density_compact": "콤팩트",
                     "table_entries_settings": "테이블 항목 설정",
                     "table_entries_settings_description": "목록 및 검색을 위해 로드되는 항목 수를 제어합니다.",
-                    "font_family_ibm_plex_sans": "IBM Plex Sans",
                     "font_family_custom_dialog_description": "이 기기에 설치된 글꼴을 사용하거나 CSS 글꼴 스택을 입력하세요.",
                     "font_family_custom_primary": "앱 글꼴",
                     "font_family_custom_primary_description": "앱 전체에서 사용됩니다.",
@@ -2267,7 +2242,6 @@
                         "url_placeholder": "https://example.com/webhook",
                         "format": "페이로드 형식",
                         "format_generic": "범용 JSON",
-                        "format_discord": "Discord",
                         "notification_filters": "Webhook 알림 필터",
                         "send_test": "테스트 Webhook 보내기",
                         "test_sent": "Webhook 테스트를 보냈습니다 (HTTP {status})",
@@ -2560,9 +2534,6 @@
                         "description": "인쇄물, 스티커 등 VRChat 콘텐츠에 대한 폴더를 열거나 설정하세요."
                     },
                     "vrc_registry_backup": "VRChat 레지스트리 백업",
-                    "vrchat_settings": {
-                        "header": "VRChat"
-                    },
                     "auto_delete_prints": {
                         "enable": "Auto-delete old VRChat prints",
                         "description": "Delete the oldest non-favorite VRChat prints when your print list is above the limit.",
@@ -3129,8 +3100,7 @@
             },
             "pronouns": "대명사",
             "tags": {
-                "open_in_discord": "Discord에 열기",
-                "discord": "Discord"
+                "open_in_discord": "Discord에 열기"
             },
             "badges": {
                 "assigned": "할당됨",
@@ -4432,7 +4402,6 @@
             "guide": "가이드",
             "mode": "공급자",
             "mode_google": "구글 번역",
-            "mode_openai": "OpenAI",
             "mode_deepl": "DeepL Free API",
             "test": "테스트",
             "save": "저장",
@@ -4769,7 +4738,6 @@
                 "rows_yet": "아직 행",
                 "vrchat_group": "VRChat 그룹",
                 "import_to": "가져올 위치",
-                "vrchat": "VRChat",
                 "local": "로컬",
                 "select_group": "그룹 선택"
             },
@@ -5336,7 +5304,6 @@
         "start_background_mode_tooltip": "배경 모드로 전환",
         "game_stopped": "VRChat이(가) 실행되고 있지 않습니다.",
         "servers_ok": "VRChat 서버가 작동 중입니다.",
-        "steamvr": "SteamVR",
         "instance_queue_position": "#{position}",
         "instance_queue_ready_to_join": "인스턴스가 {location}에 참여할 준비가 되었습니다.",
         "modify_proxy_address": "프록시 주소 수정",
@@ -5680,7 +5647,6 @@
             "vrchat_log": "VRChat 로그 뷰어",
             "vrchat_log_viewer_for_local_output_logs": "로컬 VRChat 출력 로그 뷰어.",
             "themes_description": "테마 소스 및 사용자 정의 CSS 관리."
-        },
-        "title": "VRCX-0"
+        }
     }
 }

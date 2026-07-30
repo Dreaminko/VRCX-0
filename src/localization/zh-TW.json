@@ -383,7 +383,6 @@
         },
         "menu": {
             "app": {
-                "title": "VRCX-0",
                 "about": "關於 VRCX-0",
                 "settings": "設定...",
                 "checkUpdates": "檢查更新",
@@ -429,8 +428,6 @@
                 "changelog": "更新紀錄",
                 "keyboardShortcuts": "鍵盤快捷鍵",
                 "reportIssue": "回報問題",
-                "github": "GitHub",
-                "discord": "Discord",
                 "qqGroup": "QQ 群組",
                 "openDevtools": "開啟開發者工具",
                 "supportVrcx": "支援 VRCX-0"
@@ -464,7 +461,6 @@
     },
     "nav_menu": {
         "qq_group": "QQ 群組",
-        "discord": "Discord",
         "changelog": "最新更新",
         "update": "更新",
         "update_downloaded": "重新啟動",
@@ -569,7 +565,6 @@
         }
     },
     "app_menu": {
-        "app": "VRCX-0",
         "view": "檢視",
         "tools": "工具",
         "help": "說明",
@@ -591,7 +586,6 @@
         "reset_zoom": "重設縮放",
         "all_tools": "所有工具...",
         "open_devtools": "開啟 DevTools",
-        "github": "在 GitHub 上查看",
         "report_issue": "回報問題",
         "community": "社群",
         "open_source_licenses": "第三方聲明",
@@ -744,9 +738,7 @@
     },
     "support_vrcx": {
         "title": "支持 VRCX-0",
-        "description": "透過 GitHub Sponsors 或 Ko-fi 支持 VRCX-0 後續開發。",
-        "github_sponsors": "GitHub 贊助者",
-        "kofi": "Ko-fi"
+        "description": "透過 GitHub Sponsors 或 Ko-fi 支持 VRCX-0 後續開發。"
     },
     "view": {
         "login": {
@@ -762,8 +754,7 @@
             "field": {
                 "username": "用戶名稱或電子信箱",
                 "password": "密碼",
-                "saveCredentials": "儲存登入資料",
-                "websocket": "WebSocket"
+                "saveCredentials": "儲存登入資料"
             },
             "placeholder": {
                 "account": "VRChat 帳號",
@@ -778,10 +769,6 @@
                 "description": "將移除 {name}",
                 "confirm": "移除",
                 "removing": "正在移除..."
-            },
-            "footer": {
-                "github": "在 GitHub 上查看",
-                "discord": "Discord"
             }
         },
         "feed": {
@@ -1917,11 +1904,6 @@
                 "preset": "預設",
                 "preset_custom": "自訂",
                 "presets": {
-                    "openai": "OpenAI",
-                    "openrouter": "OpenRouter",
-                    "gemini": "Google Gemini",
-                    "deepseek": "DeepSeek",
-                    "xai": "xAI (Grok)",
                     "siliconflow": "矽基流動"
                 },
                 "name": "名稱",
@@ -2061,7 +2043,6 @@
                     "port_active_connections": "連接埠 {port} · {count} 個使用中連線",
                     "client_config": "客戶端設定",
                     "client_config_description": "選擇適合你的用戶端。\nClaude Code：執行一次 `claude mcp add` 終端機命令即可完成設定。\nGeneric（HTTP）：透過 JSON 設定直接建立 HTTP 連線，無需額外工具。\nGeneric（mcp-remote）：透過 JSON 設定並經由 Node.js Proxy 建立通道，適用於不支援原生 HTTP 的用戶端（例如 Claude Desktop）；需先將 Node.js 加入 PATH。\n啟用 LAN 連線後，複製的設定會使用 `YOUR-LAN-IP`。若要在其他裝置上使用，請先將它替換為這台電腦的本機 IP 位址。",
-                    "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "通用（mcp-remote）",
                     "copy_generic": "通用 (HTTP)",
                     "security_note": "用戶端設定包含明文 Token。請僅與你信任的工具或裝置分享。",
@@ -2140,13 +2121,7 @@
                     "theme_mode": "主題",
                     "font_family": "字型",
                     "cjk_font_pack": "CJK 字型包",
-                    "font_family_inter": "Inter（預設）",
-                    "font_family_noto_sans": "Noto Sans",
                     "font_family_geist": "Geist（預設）",
-                    "font_family_nunito_sans": "Nunito Sans",
-                    "font_family_ibm_plex_sans": "IBM Plex Sans",
-                    "font_family_jetbrains_mono": "JetBrains Mono",
-                    "font_family_fantasque_sans_mono": "Fantasque Sans Mono",
                     "font_family_system_ui": "系統字型",
                     "font_family_description": "選擇預設字型，或使用此裝置上已安裝的字型。",
                     "font_family_custom": "自訂字型…",
@@ -2174,8 +2149,6 @@
                     "font_family_custom_override_hint": "範例：「My Font」、Arial、無襯線字體",
                     "font_family_custom_override_active": "進階覆寫功能已啟用；上方選取的字型將被忽略。",
                     "font_family_custom_override_placeholder": "「我的字型」，Arial，無襯線字體",
-                    "cjk_font_pack_noto": "Noto Sans CJK",
-                    "cjk_font_pack_puhuiti": "普惠提 CJK",
                     "theme_mode_system": "系統",
                     "theme_mode_light": "淺色",
                     "theme_mode_dark": "深色",
@@ -2322,7 +2295,6 @@
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Payload 格式",
                         "format_generic": "通用 JSON",
-                        "format_discord": "Discord",
                         "notification_filters": "Webhook 通知篩選器",
                         "send_test": "傳送測試 Webhook",
                         "test_sent": "已發送 Webhook 測試（HTTP {status}）",
@@ -2454,9 +2426,6 @@
                 "advanced": {
                     "launch_options": "啟動選項",
                     "vrc_registry_backup": "VRC 註冊表備份",
-                    "vrchat_settings": {
-                        "header": "VRChat"
-                    },
                     "relaunch_vrchat": {
                         "header": "VRChat 崩潰後自動重啟",
                         "description": "自動重新加入 VRChat 崩潰前所在的房間"
@@ -3184,8 +3153,7 @@
             },
             "pronouns": "代稱",
             "tags": {
-                "open_in_discord": "在 Discord 中開啟",
-                "discord": "Discord"
+                "open_in_discord": "在 Discord 中開啟"
             },
             "badges": {
                 "assigned": "給予",
@@ -4493,7 +4461,6 @@
             "guide": "使用指南",
             "mode": "服務提供者",
             "mode_google": "Google 翻譯",
-            "mode_openai": "OpenAI",
             "mode_deepl": "DeepL 免費 API",
             "test": "測試",
             "save": "儲存",
@@ -4845,7 +4812,6 @@
                 "actions": "操作",
                 "rows_yet": "行",
                 "import_to": "匯入到",
-                "vrchat": "VRChat",
                 "local": "本機",
                 "select_group": "選擇收藏分組"
             },
@@ -5390,7 +5356,6 @@
         "servers_issue": "VRChat 伺服器發生問題",
         "servers_ok": "VRChat 伺服器運作正常",
         "view_status": "檢視狀態",
-        "steamvr": "SteamVR",
         "proxy": "代理",
         "realtime_connection": "即時連線",
         "ws_connected": "已連線",
@@ -5709,7 +5674,6 @@
         "error_unsupported": "尚未設定翻譯"
     },
     "app": {
-        "title": "VRCX-0",
         "routes": {
             "feed": "好友動態",
             "table_heavy_social_feed_page": "表格密集型社交動態頁面。",

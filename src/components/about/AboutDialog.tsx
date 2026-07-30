@@ -35,8 +35,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 type AboutActionLink = {
     key: string;
-    labelKey?: string;
-    label?: string;
+    label: string;
     href: string;
     icon: LucideIcon;
 };
@@ -44,13 +43,13 @@ type AboutActionLink = {
 const SUPPORT_LINKS: AboutActionLink[] = [
     {
         key: 'github-sponsors',
-        labelKey: 'support_vrcx.github_sponsors',
+        label: 'GitHub Sponsors',
         href: links.githubSponsors,
         icon: HeartIcon
     },
     {
         key: 'kofi',
-        labelKey: 'support_vrcx.kofi',
+        label: 'Ko-fi',
         href: links.kofi,
         icon: CoffeeIcon
     },
@@ -266,7 +265,7 @@ export function AboutVrcxDialog({
                         aria-labelledby="about-support-title"
                     >
                         {SUPPORT_LINKS.map(
-                            ({ key, labelKey, label, href, icon: Icon }) => (
+                            ({ key, label, href, icon: Icon }) => (
                                 <Button
                                     key={key}
                                     type="button"
@@ -278,7 +277,7 @@ export function AboutVrcxDialog({
                                     }}
                                 >
                                     <Icon data-icon="inline-start" />
-                                    {labelKey ? t(labelKey) : label}
+                                    {label}
                                 </Button>
                             )
                         )}

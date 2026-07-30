@@ -76,34 +76,46 @@ type SettingsInterfaceAppearanceCardProps = {
     onReducedMotionAndBlurChange: (value: boolean) => void;
 };
 
-const fontFamilyLabelKeys: Record<string, string> = {
-    inter: 'view.settings.appearance.appearance.font_family_inter',
-    noto_sans: 'view.settings.appearance.appearance.font_family_noto_sans',
-    geist: 'view.settings.appearance.appearance.font_family_geist',
-    nunito_sans: 'view.settings.appearance.appearance.font_family_nunito_sans',
-    ibm_plex_sans:
-        'view.settings.appearance.appearance.font_family_ibm_plex_sans',
-    jetbrains_mono:
-        'view.settings.appearance.appearance.font_family_jetbrains_mono',
-    fantasque_sans_mono:
-        'view.settings.appearance.appearance.font_family_fantasque_sans_mono',
-    system_ui: 'view.settings.appearance.appearance.font_family_system_ui',
-    custom: 'view.settings.appearance.appearance.font_family_custom'
+const fontFamilyNames: Record<string, string> = {
+    inter: 'Inter',
+    noto_sans: 'Noto Sans',
+    nunito_sans: 'Nunito Sans',
+    ibm_plex_sans: 'IBM Plex Sans',
+    jetbrains_mono: 'JetBrains Mono',
+    fantasque_sans_mono: 'Fantasque Sans Mono'
 };
 
-const cjkFontPackLabelKeys: Record<string, string> = {
-    noto: 'view.settings.appearance.appearance.cjk_font_pack_noto',
-    puhuiti: 'view.settings.appearance.appearance.cjk_font_pack_puhuiti',
-    system: 'view.settings.appearance.appearance.font_family_system_ui'
+const cjkFontPackNames: Record<string, string> = {
+    noto: 'Noto Sans CJK',
+    puhuiti: 'PuHuiTi CJK'
 };
 
-const westernFontDropdownOptions: SettingsOption[] = APP_FONT_FAMILIES.filter(
+const westernFontDropdownOptions = APP_FONT_FAMILIES.filter(
     (value) => value !== 'custom' && value !== 'system_ui'
-).map((value) => [value, fontFamilyLabelKeys[value]] as const);
-
-const cjkFontPackOptions: SettingsOption[] = APP_CJK_FONT_PACKS.map(
-    (value) => [value, cjkFontPackLabelKeys[value]] as const
 );
+
+const cjkFontPackOptions = APP_CJK_FONT_PACKS;
+
+function getFontFamilyLabel(t: TFunction, value: string) {
+    const fixedName = fontFamilyNames[value];
+    if (fixedName) {
+        return fixedName;
+    }
+    if (value === 'system_ui') {
+        return t('view.settings.appearance.appearance.font_family_system_ui');
+    }
+    if (value === 'custom') {
+        return t('view.settings.appearance.appearance.font_family_custom');
+    }
+    return t('view.settings.appearance.appearance.font_family_geist');
+}
+
+function getCjkFontPackLabel(t: TFunction, value: string) {
+    return (
+        cjkFontPackNames[value] ||
+        t('view.settings.appearance.appearance.font_family_system_ui')
+    );
+}
 
 function getCustomFontDisplayText(t: TFunction, prefs: FontPreferencePrefs) {
     const override = (prefs.customFontOverride ?? '').trim();
@@ -134,17 +146,19 @@ function getFontDropdownDisplayText(
         return getCustomFontDisplayText(t, prefs);
     }
 
-    const fontLabel =
-        fontFamilyLabelKeys[prefs.appFontFamily] ||
-        fontFamilyLabelKeys[APP_FONT_DEFAULT_KEY];
+    const fontLabel = getFontFamilyLabel(
+        t,
+        prefs.appFontFamily || APP_FONT_DEFAULT_KEY
+    );
     if (!showCjkFontPack) {
-        return t(fontLabel);
+        return fontLabel;
     }
 
-    const cjkLabel =
-        cjkFontPackLabelKeys[prefs.appCjkFontPack] ||
-        cjkFontPackLabelKeys[APP_CJK_FONT_PACK_DEFAULT_KEY];
-    return `${t(fontLabel)} / ${t(cjkLabel)}`;
+    const cjkLabel = getCjkFontPackLabel(
+        t,
+        prefs.appCjkFontPack || APP_CJK_FONT_PACK_DEFAULT_KEY
+    );
+    return `${fontLabel} / ${cjkLabel}`;
 }
 
 function FontFamilyPreferenceField({
@@ -201,16 +215,14 @@ function FontFamilyPreferenceField({
                                 value={customActive ? '' : prefs.appFontFamily}
                                 onValueChange={onFontFamilyChange}
                             >
-                                {westernFontDropdownOptions.map(
-                                    ([value, labelKey]) => (
-                                        <DropdownMenuRadioItem
-                                            key={value}
-                                            value={value}
-                                        >
-                                            {t(labelKey)}
-                                        </DropdownMenuRadioItem>
-                                    )
-                                )}
+                                {westernFontDropdownOptions.map((value) => (
+                                    <DropdownMenuRadioItem
+                                        key={value}
+                                        value={value}
+                                    >
+                                        {getFontFamilyLabel(t, value)}
+                                    </DropdownMenuRadioItem>
+                                ))}
                             </DropdownMenuRadioGroup>
                         </DropdownMenuGroup>
                         {showCjkFontPack && !customActive ? (
@@ -221,16 +233,14 @@ function FontFamilyPreferenceField({
                                         value={prefs.appCjkFontPack}
                                         onValueChange={onCjkFontPackChange}
                                     >
-                                        {cjkFontPackOptions.map(
-                                            ([value, labelKey]) => (
-                                                <DropdownMenuRadioItem
-                                                    key={value}
-                                                    value={value}
-                                                >
-                                                    {t(labelKey)}
-                                                </DropdownMenuRadioItem>
-                                            )
-                                        )}
+                                        {cjkFontPackOptions.map((value) => (
+                                            <DropdownMenuRadioItem
+                                                key={value}
+                                                value={value}
+                                            >
+                                                {getCjkFontPackLabel(t, value)}
+                                            </DropdownMenuRadioItem>
+                                        ))}
                                     </DropdownMenuRadioGroup>
                                 </DropdownMenuGroup>
                             </>

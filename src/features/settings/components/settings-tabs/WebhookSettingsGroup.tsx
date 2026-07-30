@@ -78,10 +78,7 @@ const webhookFormatOptions = [
         'generic',
         'view.settings.notifications.notifications.webhook.format_generic'
     ],
-    [
-        'discord',
-        'view.settings.notifications.notifications.webhook.format_discord'
-    ]
+    ['discord', 'Discord']
 ] as const;
 
 type WebhookPayloadFieldsDialogProps = {
@@ -231,7 +228,7 @@ export function WebhookSettingsGroup({
                     value={prefs.webhookFormat || 'generic'}
                     items={webhookFormatOptions.map(([value, labelKey]) => ({
                         value,
-                        label: t(labelKey)
+                        label: value === 'discord' ? 'Discord' : t(labelKey)
                     }))}
                     disabled={!webhookControlsEnabled}
                     onValueChange={(value) =>
@@ -250,7 +247,9 @@ export function WebhookSettingsGroup({
                                 {webhookFormatOptions.map(
                                     ([value, labelKey]) => (
                                         <SelectItem key={value} value={value}>
-                                            {t(labelKey)}
+                                            {value === 'discord'
+                                                ? 'Discord'
+                                                : t(labelKey)}
                                         </SelectItem>
                                     )
                                 )}

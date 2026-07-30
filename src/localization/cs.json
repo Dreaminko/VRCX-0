@@ -383,7 +383,6 @@
         },
         "menu": {
             "app": {
-                "title": "VRCX-0",
                 "about": "O aplikaci VRCX-0",
                 "settings": "Nastavení...",
                 "checkUpdates": "Zkontrolovat aktualizace",
@@ -429,8 +428,6 @@
                 "changelog": "Seznam změn",
                 "keyboardShortcuts": "Klávesové zkratky",
                 "reportIssue": "Nahlásit problém",
-                "github": "GitHub",
-                "discord": "Discord",
                 "qqGroup": "QQ skupina",
                 "openDevtools": "Otevřít DevTools",
                 "supportVrcx": "Podpořte VRCX-0"
@@ -464,7 +461,6 @@
     },
     "nav_menu": {
         "qq_group": "QQ skupina",
-        "discord": "Discord",
         "changelog": "Seznam změn",
         "update": "Aktualizace",
         "update_downloaded": "Restartovat",
@@ -569,7 +565,6 @@
         }
     },
     "app_menu": {
-        "app": "VRCX-0",
         "view": "Zobrazit",
         "tools": "Nástroje",
         "help": "Nápověda",
@@ -591,7 +586,6 @@
         "reset_zoom": "Obnovit přiblížení",
         "all_tools": "Všechny nástroje...",
         "open_devtools": "Otevřít DevTools",
-        "github": "GitHub",
         "report_issue": "Nahlásit problém",
         "community": "Komunita",
         "open_source_licenses": "Licence třetích stran",
@@ -744,9 +738,7 @@
     },
     "support_vrcx": {
         "title": "Podpořte VRCX-0",
-        "description": "Podpořte budoucí vývoj VRCX-0 přes GitHub Sponsors nebo Ko-fi.",
-        "github_sponsors": "GitHub Sponsors",
-        "kofi": "Ko-fi"
+        "description": "Podpořte budoucí vývoj VRCX-0 přes GitHub Sponsors nebo Ko-fi."
     },
     "view": {
         "login": {
@@ -762,8 +754,7 @@
             "field": {
                 "username": "Jméno nebo Email",
                 "password": "Heslo",
-                "saveCredentials": "Uložit přihlašovací údaje",
-                "websocket": "WebSocket"
+                "saveCredentials": "Uložit přihlašovací údaje"
             },
             "placeholder": {
                 "account": "VRChat účet",
@@ -778,10 +769,6 @@
                 "description": "{name} bude odebrán",
                 "confirm": "Odebrat",
                 "removing": "Odebírání..."
-            },
-            "footer": {
-                "github": "GitHub",
-                "discord": "Discord"
             }
         },
         "feed": {
@@ -1919,11 +1906,6 @@
                 "preset": "Předvolba",
                 "preset_custom": "Vlastní",
                 "presets": {
-                    "openai": "OpenAI",
-                    "openrouter": "OpenRouter",
-                    "gemini": "Google Gemini",
-                    "deepseek": "DeepSeek",
-                    "xai": "xAI (Grok)",
                     "siliconflow": "SiliconFlow"
                 },
                 "name": "Název",
@@ -2063,7 +2045,6 @@
                     "port_active_connections": "Port {port}; active connections {count}",
                     "client_config": "Konfigurace klienta",
                     "client_config_description": "Vyberte možnost odpovídající vašemu klientovi. Claude Code: jednorázový terminálový příkaz `claude mcp add`. Obecné (HTTP): JSON konfigurace pro přímé HTTP připojení – žádné další nástroje nejsou potřeba. Obecné (mcp-remote): JSON konfigurace, která tuneluje přes proxy Node.js pro klienty bez nativní podpory HTTP (např. Claude Desktop); vyžaduje Node.js v PATH. Když je povoleno připojení z LAN, zkopírované konfigurace používají `YOUR-LAN-IP`; před použitím z jiného zařízení jej nahraďte lokální IP adresou tohoto počítače.",
-                    "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "Obecné (mcp-remote)",
                     "copy_generic": "Obecné (HTTP)",
                     "security_note": "Konfigurace klienta obsahují token v čitelném textu. Sdílejte je pouze s nástroji nebo zařízeními, kterým důvěřujete.",
@@ -2142,13 +2123,7 @@
                     "theme_mode": "Téma",
                     "font_family": "Písmo",
                     "cjk_font_pack": "CJK písmo",
-                    "font_family_inter": "Inter",
-                    "font_family_noto_sans": "Noto Sans",
                     "font_family_geist": "Geist (výchozí)",
-                    "font_family_nunito_sans": "Nunito Sans",
-                    "font_family_ibm_plex_sans": "IBM Plex Sans",
-                    "font_family_jetbrains_mono": "JetBrains Mono",
-                    "font_family_fantasque_sans_mono": "Fantasque Sans Mono",
                     "font_family_system_ui": "Systémové písmo",
                     "font_family_description": "Vyberte předvolbu nebo použijte písma nainstalovaná v tomto zařízení.",
                     "font_family_custom": "Vlastní písmo…",
@@ -2176,8 +2151,6 @@
                     "font_family_custom_override_hint": "Příklad: 'My Font', Arial, sans-serif",
                     "font_family_custom_override_active": "Pokročilé přepsání je aktivní; vybraná písma výše se ignorují.",
                     "font_family_custom_override_placeholder": "'My Font', Arial, sans-serif",
-                    "cjk_font_pack_noto": "Noto Sans CJK",
-                    "cjk_font_pack_puhuiti": "PuHuiTi CJK",
                     "theme_mode_system": "Systémové",
                     "theme_mode_light": "Světlé",
                     "theme_mode_dark": "Tmavé",
@@ -2324,7 +2297,6 @@
                         "url_placeholder": "https://example.com/webhook",
                         "format": "Formát payloadu",
                         "format_generic": "Obecný JSON",
-                        "format_discord": "Discord",
                         "notification_filters": "Filtry oznámení webhooku",
                         "send_test": "Odeslat testovací webhook",
                         "test_sent": "Testovací webhook odeslán (HTTP {status})",
@@ -2456,9 +2428,6 @@
                 "advanced": {
                     "launch_options": "Možnosti spuštění",
                     "vrc_registry_backup": "VRC Registry Backup",
-                    "vrchat_settings": {
-                        "header": "VRChat"
-                    },
                     "relaunch_vrchat": {
                         "header": "Relaunch VRChat after crashing",
                         "description": "Rejoin last instance when VRChat crashes"
@@ -3186,8 +3155,7 @@
             },
             "pronouns": "Zájmena",
             "tags": {
-                "open_in_discord": "Otevřít v Discordu",
-                "discord": "Discord"
+                "open_in_discord": "Otevřít v Discordu"
             },
             "badges": {
                 "assigned": "Přiřazeno",
@@ -4497,7 +4465,6 @@
             "guide": "Návod",
             "mode": "Poskytovatel",
             "mode_google": "Google Translate",
-            "mode_openai": "OpenAI",
             "mode_deepl": "DeepL Free API",
             "test": "Otestovat",
             "save": "Uložit",
@@ -4849,7 +4816,6 @@
                 "actions": "Akce",
                 "rows_yet": "řádků zatím",
                 "import_to": "Importovat do",
-                "vrchat": "VRChat",
                 "local": "Místní",
                 "select_group": "Vyberte skupinu"
             },
@@ -5390,7 +5356,6 @@
         "servers_issue": "Problémy se servery VRChat",
         "servers_ok": "Servery VRChat jsou v provozu",
         "view_status": "Zobrazit stav",
-        "steamvr": "SteamVR",
         "proxy": "Proxy",
         "realtime_connection": "V reálném čase",
         "ws_connected": "Připojeno",
@@ -5709,7 +5674,6 @@
         "error_unsupported": "Překlad není nakonfigurován"
     },
     "app": {
-        "title": "VRCX-0",
         "routes": {
             "feed": "Zdroj",
             "table_heavy_social_feed_page": "Stránka sociálního zdroje s bohatou tabulkou.",

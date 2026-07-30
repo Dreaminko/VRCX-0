@@ -15,7 +15,8 @@ export type LlmEndpointProviderId =
 export type LlmEndpointProviderPreset = {
     id: Exclude<LlmEndpointProviderId, typeof CUSTOM_LLM_ENDPOINT_PROVIDER_ID>;
     name: string;
-    labelKey: string;
+    label: string;
+    labelKey?: string;
     baseUrl: string;
 };
 
@@ -35,36 +36,37 @@ export const LLM_ENDPOINT_PROVIDER_PRESETS: LlmEndpointProviderPreset[] = [
     {
         id: 'openai',
         name: 'OpenAI',
-        labelKey: 'view.tools.llm_endpoints.presets.openai',
+        label: 'OpenAI',
         baseUrl: 'https://api.openai.com/v1'
     },
     {
         id: 'openrouter',
         name: 'OpenRouter',
-        labelKey: 'view.tools.llm_endpoints.presets.openrouter',
+        label: 'OpenRouter',
         baseUrl: 'https://openrouter.ai/api/v1'
     },
     {
         id: 'gemini',
         name: 'Google Gemini',
-        labelKey: 'view.tools.llm_endpoints.presets.gemini',
+        label: 'Google Gemini',
         baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai'
     },
     {
         id: 'deepseek',
         name: 'DeepSeek',
-        labelKey: 'view.tools.llm_endpoints.presets.deepseek',
+        label: 'DeepSeek',
         baseUrl: 'https://api.deepseek.com'
     },
     {
         id: 'xai',
         name: 'xAI',
-        labelKey: 'view.tools.llm_endpoints.presets.xai',
+        label: 'xAI (Grok)',
         baseUrl: 'https://api.x.ai/v1'
     },
     {
         id: 'siliconflow',
         name: 'SiliconFlow',
+        label: 'SiliconFlow',
         labelKey: 'view.tools.llm_endpoints.presets.siliconflow',
         baseUrl: 'https://api.siliconflow.cn/v1'
     }

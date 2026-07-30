@@ -99,9 +99,18 @@ export const sqliteTableSizeRows = [
 ] as const;
 
 export const translationProviderOptions = [
-    ['google', 'dialog.translation_api.mode_google'],
-    ['openai', 'dialog.translation_api.mode_openai'],
-    ['deepl', 'dialog.translation_api.mode_deepl']
+    {
+        value: 'google',
+        labelKey: 'dialog.translation_api.mode_google'
+    },
+    {
+        value: 'openai',
+        label: 'OpenAI'
+    },
+    {
+        value: 'deepl',
+        labelKey: 'dialog.translation_api.mode_deepl'
+    }
 ];
 
 export const settingsTabs = [
