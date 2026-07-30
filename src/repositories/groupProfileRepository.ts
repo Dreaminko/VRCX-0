@@ -7,12 +7,7 @@ import {
     getGroupGallery,
     getGroupPosts
 } from './group-profile/content';
-import {
-    getAllGroupLogs,
-    getGroupAuditLogTypes,
-    getGroupLogs,
-    getGroupLogsPage
-} from './group-profile/logs';
+import { getAllGroupLogs, getGroupAuditLogTypes } from './group-profile/logs';
 import {
     cancelGroupRequest,
     getAllGroupMembers,
@@ -88,8 +83,6 @@ const groupProfileRepository = Object.freeze({
     getGroupJoinRequests,
     getAllGroupJoinRequests,
     getGroupAuditLogTypes,
-    getGroupLogs,
-    getGroupLogsPage,
     getAllGroupLogs,
     setGroupRepresentation,
     setGroupMemberProps,
@@ -133,8 +126,6 @@ export {
     getGroupJoinRequests,
     getAllGroupJoinRequests,
     getGroupAuditLogTypes,
-    getGroupLogs,
-    getGroupLogsPage,
     getAllGroupLogs,
     setGroupRepresentation,
     setGroupMemberProps,

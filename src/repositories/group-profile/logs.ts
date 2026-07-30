@@ -28,22 +28,7 @@ export async function getGroupAuditLogTypes({ groupId }: GroupIdInput) {
     return Array.isArray(response.json) ? response.json : [];
 }
 
-export async function getGroupLogs({
-    groupId,
-    n = VRCHAT_API_DEFAULT_PAGE_SIZE,
-    offset = 0,
-    eventTypes = []
-}: GroupLogsInput) {
-    const page = await getGroupLogsPage({
-        groupId,
-        n,
-        offset,
-        eventTypes
-    });
-    return page.results;
-}
-
-export async function getGroupLogsPage({
+async function getGroupLogsPage({
     groupId,
     n = VRCHAT_API_DEFAULT_PAGE_SIZE,
     offset = 0,

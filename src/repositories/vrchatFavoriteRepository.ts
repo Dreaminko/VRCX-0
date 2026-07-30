@@ -1,14 +1,7 @@
-import {
-    entityQueryPolicies,
-    fetchCachedData,
-    queryKeys
-} from '@/lib/entityQueryCache';
 import { commands } from '@/platform/tauri/bindings';
-import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
 import { unwrapVrchatResponse } from './vrchatRequest';
 
-const FAVORITES_PAGE_SIZE = 300;
 const FAVORITE_GROUPS_PAGE_SIZE = 50;
 const FAVORITE_DETAIL_PAGE_SIZE = 300;
 
@@ -61,56 +54,6 @@ function unwrapVrchatFavoriteResponse<TJson = unknown>(
     fallbackMessage: string
 ) {
     return unwrapVrchatResponse<TJson>(response, path, { fallbackMessage });
-}
-
-async function getFavoriteLimits({ force = false }: { force?: boolean } = {}) {
-    return fetchCachedData({
-        queryKey: queryKeys.favoriteLimits(DEFAULT_VRCHAT_API_ENDPOINT),
-        policy: entityQueryPolicies.favoriteLimits,
-        force,
-        queryFn: async () => {
-            const response = await commands.appVrchatFavoriteLimitsGet();
-            return unwrapVrchatFavoriteResponse(
-                response,
-                'auth/user/favoritelimits',
-                'VRChat favorite request failed'
-            );
-        }
-    });
-}
-
-async function getFavorites({
-    n = FAVORITES_PAGE_SIZE,
-    offset = 0
-}: FavoritePagingInput = {}) {
-    const response = await commands.appVrchatFavoritesGet({
-        n,
-        offset
-    });
-    return unwrapVrchatFavoriteResponse(
-        response,
-        'favorites',
-        'VRChat favorite request failed'
-    );
-}
-
-async function getAllFavorites() {
-    const favorites = [];
-
-    for (let offset = 0; ; offset += FAVORITES_PAGE_SIZE) {
-        const response = await getFavorites({
-            n: FAVORITES_PAGE_SIZE,
-            offset
-        });
-        const page = Array.isArray(response.json) ? response.json : [];
-        favorites.push(...page);
-
-        if (page.length < FAVORITES_PAGE_SIZE) {
-            break;
-        }
-    }
-
-    return favorites;
 }
 
 async function addFavorite({
@@ -379,32 +322,20 @@ async function clearFavoriteGroup({
 }
 
 const vrchatFavoriteRepository = Object.freeze({
-    getFavoriteLimits,
-    getFavorites,
-    getAllFavorites,
     addFavorite,
     deleteFavorite,
-    getFavoriteWorlds,
     getAllFavoriteWorlds,
-    getFavoriteAvatars,
     getAllFavoriteAvatars,
-    getFavoriteGroups,
     getAllFavoriteGroups,
     saveFavoriteGroup,
     clearFavoriteGroup
 });
 
 export {
-    getFavoriteLimits,
-    getFavorites,
-    getAllFavorites,
     addFavorite,
     deleteFavorite,
-    getFavoriteWorlds,
     getAllFavoriteWorlds,
-    getFavoriteAvatars,
     getAllFavoriteAvatars,
-    getFavoriteGroups,
     getAllFavoriteGroups,
     saveFavoriteGroup,
     clearFavoriteGroup

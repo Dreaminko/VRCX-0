@@ -291,39 +291,4 @@ describe('GroupProfileRepository', () => {
             eventTypes: 'group.member.ban,group.member.kick'
         });
     });
-
-    it('keeps getGroupLogs compatible with row-array callers', async () => {
-        tauriMock.commands.appVrchatGroupLogsGet.mockResolvedValue({
-            status: 200,
-            data: JSON.stringify({
-                hasNext: false,
-                results: [
-                    {
-                        id: 'log_rows',
-                        eventType: 'group.member.remove'
-                    }
-                ],
-                totalCount: 1
-            })
-        });
-
-        await expect(
-            groupProfileRepository.getGroupLogs({
-                groupId: 'grp_123',
-                eventTypes: ['group.member.remove']
-            })
-        ).resolves.toEqual([
-            {
-                id: 'log_rows',
-                eventType: 'group.member.remove'
-            }
-        ]);
-
-        expect(tauriMock.commands.appVrchatGroupLogsGet).toHaveBeenCalledWith({
-            groupId: 'grp_123',
-            n: 100,
-            offset: 0,
-            eventTypes: 'group.member.remove'
-        });
-    });
 });

@@ -105,12 +105,6 @@ export const entityQueryPolicies = Object.freeze({
         retry: 1,
         refetchOnWindowFocus: false
     }),
-    favoriteLimits: Object.freeze({
-        staleTime: 600 * SECOND_MS,
-        gcTime: 1800 * SECOND_MS,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
     inventoryCollection: Object.freeze({
         staleTime: 20 * SECOND_MS,
         gcTime: 120 * SECOND_MS,
@@ -258,8 +252,6 @@ export const queryKeys = Object.freeze({
     ) => withEndpoint(['calendar', groupId, eventId], endpoint),
     avatarGallery: (avatarId: unknown, endpoint: unknown = '') =>
         withEndpoint(['avatar', avatarId, 'gallery'], endpoint),
-    favoriteLimits: (endpoint: unknown = '') =>
-        withEndpoint(['favorite', 'limits'], endpoint),
     userInventoryItem: (
         {
             inventoryId = '',

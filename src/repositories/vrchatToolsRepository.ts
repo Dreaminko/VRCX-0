@@ -374,9 +374,7 @@ async function editInviteMessage({
 
 const vrchatToolsRepository = Object.freeze({
     getGroupCalendar,
-    getGroupCalendars,
     getFollowingGroupCalendars,
-    getFeaturedGroupCalendars,
     getAllGroupCalendars,
     getAllFollowingGroupCalendars,
     getAllFeaturedGroupCalendars,
@@ -390,9 +388,7 @@ const vrchatToolsRepository = Object.freeze({
 
 export {
     getGroupCalendar,
-    getGroupCalendars,
     getFollowingGroupCalendars,
-    getFeaturedGroupCalendars,
     getAllGroupCalendars,
     getAllFollowingGroupCalendars,
     getAllFeaturedGroupCalendars,
