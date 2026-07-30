@@ -18,7 +18,10 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     ArrowDownIcon,
     ArrowUpIcon,
+    ChevronDownIcon,
+    FolderHeartIcon,
     GripVerticalIcon,
+    MoreVerticalIcon,
     PlusIcon,
     Trash2Icon
 } from 'lucide-react';
@@ -38,33 +41,42 @@ import {
     NAV_ICON_OPTIONS,
     normalizeNavIconKey
 } from '@/shared/constants/navIcons';
+import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger
+} from '@/ui/shadcn/collapsible';
+import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
 import {
-    Field,
-    FieldContent,
-    FieldGroup,
-    FieldLabel,
-    FieldLegend,
-    FieldSet
-} from '@/ui/shadcn/field';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from '@/ui/shadcn/dropdown-menu';
+import { Field, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import {
     Select,
     SelectContent,
     SelectGroup,
     SelectItem,
-    SelectTrigger,
-    SelectValue
+    SelectTrigger
 } from '@/ui/shadcn/select';
 import { Separator } from '@/ui/shadcn/separator';
+import { Switch } from '@/ui/shadcn/switch';
+import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     DEFAULT_SIDEBAR_TAB_LAYOUT,
@@ -99,6 +111,10 @@ function tabActionLabel(
     });
 }
 
+function isFriendsTab(item: SidebarTabLayoutItem) {
+    return item.type === 'system' && item.systemTab === 'friends';
+}
+
 function getTabLabel(item: SidebarTabLayoutItem, t: (key: string) => string) {
     if (item.type === 'favoriteCollection') {
         return item.name;
@@ -120,6 +136,7 @@ function NavIconSelect({
     onValueChange: (value: string) => void;
 }) {
     const normalizedIcon = normalizeNavIconKey(value, fallbackIcon);
+    const CurrentIcon = getNavIconComponent(normalizedIcon);
 
     return (
         <Select
@@ -138,8 +155,12 @@ function NavIconSelect({
             })}
             onValueChange={(value) => onValueChange(value ?? '')}
         >
-            <SelectTrigger size="sm" className="w-32" aria-label={ariaLabel}>
-                <SelectValue />
+            <SelectTrigger
+                size="sm"
+                className="w-auto shrink-0 px-2"
+                aria-label={ariaLabel}
+            >
+                <CurrentIcon data-icon="inline-start" />
             </SelectTrigger>
             <SelectContent align="start">
                 <SelectGroup>
@@ -220,7 +241,7 @@ function FavoriteSourceChecklist({
             <Field
                 key={group.key}
                 orientation="horizontal"
-                className="hover:bg-muted/50 cursor-pointer gap-2 rounded px-1.5 py-1 text-xs"
+                className="hover:bg-muted/60 cursor-pointer gap-2 rounded-md px-1.5 py-1 text-xs"
             >
                 <Checkbox
                     id={`${item.id}-${group.key}`}
@@ -231,7 +252,7 @@ function FavoriteSourceChecklist({
                 />
                 <FieldLabel
                     htmlFor={`${item.id}-${group.key}`}
-                    className="min-w-0 flex-1 truncate text-xs"
+                    className="min-w-0 flex-1 truncate text-xs font-normal"
                 >
                     {group.label}
                 </FieldLabel>
@@ -241,26 +262,25 @@ function FavoriteSourceChecklist({
 
     if (!favoriteGroupItems.length) {
         return (
-            <div className="text-muted-foreground rounded-md border border-dashed px-2 py-1.5 text-xs">
+            <div className="text-muted-foreground border-dashed px-2 py-2 text-center text-xs">
                 {t('side_panel.settings.custom_tabs.no_favorite_groups')}
             </div>
         );
     }
 
     return (
-        <div className="flex max-h-44 flex-col gap-2 overflow-auto rounded-md border p-1">
+        <div className="bg-muted/30 mt-1 flex max-h-52 flex-col gap-2 overflow-auto rounded-md p-1">
             {remoteGroups.length ? (
-                <div className="flex flex-col gap-1">
-                    <span className="text-muted-foreground px-1 text-xs font-medium">
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-muted-foreground px-1.5 pt-1 text-[11px] font-medium tracking-wide uppercase">
                         {t('side_panel.settings.custom_tabs.remote_groups')}
                     </span>
                     {renderGroups(remoteGroups)}
                 </div>
             ) : null}
-            {remoteGroups.length && localGroups.length ? <Separator /> : null}
             {localGroups.length ? (
-                <div className="flex flex-col gap-1">
-                    <span className="text-muted-foreground px-1 text-xs font-medium">
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-muted-foreground px-1.5 pt-1 text-[11px] font-medium tracking-wide uppercase">
                         {t('side_panel.settings.custom_tabs.local_groups')}
                     </span>
                     {renderGroups(localGroups)}
@@ -269,6 +289,12 @@ function FavoriteSourceChecklist({
         </div>
     );
 }
+
+const DISPLAY_MODE_OPTIONS = [
+    ['auto', 'side_panel.settings.custom_tabs.display_auto'],
+    ['iconText', 'side_panel.settings.custom_tabs.display_icon_text'],
+    ['iconOnly', 'side_panel.settings.custom_tabs.display_icon_only']
+] as const satisfies ReadonlyArray<readonly [SidebarTabDisplayMode, string]>;
 
 export function SidePanelCustomTabsDialog({
     open,
@@ -311,6 +337,10 @@ export function SidePanelCustomTabsDialog({
     const sortableIds = useMemo(
         () => draftLayout.map((item) => item.id),
         [draftLayout]
+    );
+    const availableGroupKeys = useMemo(
+        () => new Set(favoriteGroupItems.map((group) => group.key)),
+        [favoriteGroupItems]
     );
 
     useEffect(() => {
@@ -370,6 +400,34 @@ export function SidePanelCustomTabsDialog({
         );
     }
 
+    function setItemVisible(item: SidebarTabLayoutItem, visible: boolean) {
+        if (isFriendsTab(item)) {
+            return;
+        }
+        updateItem(item.id, (current) => ({
+            ...current,
+            visible
+        }));
+    }
+
+    function toggleCollectionSource(id: string, key: string, checked: boolean) {
+        updateItem(id, (current) => {
+            if (current.type !== 'favoriteCollection') {
+                return current;
+            }
+            const selected = new Set(current.sourceGroupKeys);
+            if (checked) {
+                selected.add(key);
+            } else {
+                selected.delete(key);
+            }
+            return {
+                ...current,
+                sourceGroupKeys: [...selected]
+            };
+        });
+    }
+
     function addFavoriteCollection() {
         setDraftLayout((current) =>
             normalizeSidebarTabLayout([
@@ -395,6 +453,14 @@ export function SidePanelCustomTabsDialog({
         );
     }
 
+    function handleDisplayModeChange(next: string[]) {
+        const value = next[next.length - 1];
+        if (!value) {
+            return;
+        }
+        setDraftDisplayMode(normalizeSidebarTabDisplayMode(value));
+    }
+
     function save() {
         onSave(normalizeSidebarTabLayout(draftLayout), draftDisplayMode);
         onOpenChange(false);
@@ -407,74 +473,54 @@ export function SidePanelCustomTabsDialog({
                     <DialogTitle>
                         {t('side_panel.settings.custom_tabs.title')}
                     </DialogTitle>
+                    <DialogDescription>
+                        {t('side_panel.settings.custom_tabs.subtitle')}
+                    </DialogDescription>
                 </DialogHeader>
-                <div className="flex min-h-0 flex-col gap-4 overflow-auto pr-1">
-                    <FieldGroup className="gap-3">
-                        <Field orientation="horizontal" className="gap-3">
-                            <FieldContent>
-                                <FieldLabel>
-                                    {t(
-                                        'side_panel.settings.custom_tabs.display_mode'
-                                    )}
-                                </FieldLabel>
-                            </FieldContent>
-                            <Select
-                                value={draftDisplayMode}
-                                items={[
-                                    {
-                                        value: 'auto',
-                                        label: t(
-                                            'side_panel.settings.custom_tabs.display_auto'
-                                        )
-                                    },
-                                    {
-                                        value: 'iconText',
-                                        label: t(
-                                            'side_panel.settings.custom_tabs.display_icon_text'
-                                        )
-                                    },
-                                    {
-                                        value: 'iconOnly',
-                                        label: t(
-                                            'side_panel.settings.custom_tabs.display_icon_only'
-                                        )
-                                    }
-                                ]}
-                                onValueChange={(value) =>
-                                    setDraftDisplayMode(
-                                        normalizeSidebarTabDisplayMode(value)
-                                    )
-                                }
-                            >
-                                <SelectTrigger size="sm" className="w-40">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectItem value="auto">
-                                            {t(
-                                                'side_panel.settings.custom_tabs.display_auto'
-                                            )}
-                                        </SelectItem>
-                                        <SelectItem value="iconText">
-                                            {t(
-                                                'side_panel.settings.custom_tabs.display_icon_text'
-                                            )}
-                                        </SelectItem>
-                                        <SelectItem value="iconOnly">
-                                            {t(
-                                                'side_panel.settings.custom_tabs.display_icon_only'
-                                            )}
-                                        </SelectItem>
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </Field>
-                    </FieldGroup>
-                    <FieldSet>
-                        <FieldLegend>
-                            {t('side_panel.settings.custom_tabs.tab_layout')}
-                        </FieldLegend>
+                <div className="flex min-h-0 flex-col gap-5 overflow-auto pr-1">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                            <span className="text-sm font-medium">
+                                {t(
+                                    'side_panel.settings.custom_tabs.display_mode'
+                                )}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                                {t(
+                                    'side_panel.settings.custom_tabs.display_hint'
+                                )}
+                            </span>
+                        </div>
+                        <ToggleGroup
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0"
+                            value={[draftDisplayMode]}
+                            onValueChange={handleDisplayModeChange}
+                        >
+                            {DISPLAY_MODE_OPTIONS.map(([value, labelKey]) => (
+                                <ToggleGroupItem key={value} value={value}>
+                                    {t(labelKey)}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex min-h-0 flex-col gap-3">
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-medium">
+                                {t(
+                                    'side_panel.settings.custom_tabs.tab_layout'
+                                )}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                                {t(
+                                    'side_panel.settings.custom_tabs.layout_hint'
+                                )}
+                            </span>
+                        </div>
                         <DndContext
                             accessibility={
                                 typeof document === 'undefined'
@@ -492,14 +538,17 @@ export function SidePanelCustomTabsDialog({
                                 <div className="flex flex-col gap-2">
                                     {draftLayout.map((item, index) => {
                                         const label = getTabLabel(item, t);
-                                        const Icon = getNavIconComponent(
-                                            item.icon,
-                                            sidebarTabFallbackIcon(item)
-                                        );
-                                        const canHide =
-                                            item.type ===
-                                                'favoriteCollection' ||
-                                            item.systemTab === 'groups';
+                                        const isCustom =
+                                            item.type === 'favoriteCollection';
+                                        const isFriends = isFriendsTab(item);
+                                        const selectedCount = isCustom
+                                            ? item.sourceGroupKeys.filter(
+                                                  (key) =>
+                                                      availableGroupKeys.has(
+                                                          key
+                                                      )
+                                              ).length
+                                            : 0;
                                         return (
                                             <SortableTabRow
                                                 key={item.id}
@@ -515,17 +564,20 @@ export function SidePanelCustomTabsDialog({
                                                         ref={rowRef}
                                                         style={rowStyle}
                                                         className={cn(
-                                                            'flex flex-col gap-2 rounded-md border p-2 text-sm transition-colors',
+                                                            'flex flex-col rounded-lg border transition-colors',
+                                                            isCustom
+                                                                ? 'bg-card'
+                                                                : 'bg-muted/30 border-transparent',
                                                             isDragging &&
-                                                                'opacity-50'
+                                                                'ring-ring/40 relative z-10 opacity-80 shadow-lg ring-1'
                                                         )}
                                                     >
-                                                        <div className="flex min-w-0 items-center gap-2">
+                                                        <div className="flex min-w-0 items-center gap-2 p-2">
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="icon-sm"
-                                                                className="shrink-0 cursor-grab touch-none active:cursor-grabbing"
+                                                                className="text-muted-foreground shrink-0 cursor-grab touch-none active:cursor-grabbing"
                                                                 aria-label={tabActionLabel(
                                                                     t,
                                                                     'drag_value',
@@ -561,14 +613,12 @@ export function SidePanelCustomTabsDialog({
                                                                     )
                                                                 }
                                                             />
-                                                            <Icon data-icon="inline-start" />
-                                                            {item.type ===
-                                                            'favoriteCollection' ? (
+                                                            {isCustom ? (
                                                                 <Input
                                                                     value={
                                                                         item.name
                                                                     }
-                                                                    className="min-w-0 flex-1"
+                                                                    className="h-8 min-w-0 flex-1"
                                                                     aria-label={t(
                                                                         'side_panel.settings.custom_tabs.tab_name'
                                                                     )}
@@ -593,164 +643,209 @@ export function SidePanelCustomTabsDialog({
                                                                     }
                                                                 />
                                                             ) : (
-                                                                <span className="min-w-0 flex-1 truncate font-medium">
-                                                                    {label}
-                                                                </span>
+                                                                <div className="flex min-w-0 flex-1 items-center gap-2">
+                                                                    <span className="min-w-0 truncate text-sm font-medium">
+                                                                        {label}
+                                                                    </span>
+                                                                    <Badge
+                                                                        variant="secondary"
+                                                                        className="shrink-0"
+                                                                    >
+                                                                        {t(
+                                                                            'side_panel.settings.custom_tabs.system_badge'
+                                                                        )}
+                                                                    </Badge>
+                                                                </div>
                                                             )}
-                                                            <span className="text-muted-foreground text-xs">
-                                                                {t(
-                                                                    'side_panel.settings.custom_tabs.visible'
-                                                                )}
-                                                            </span>
-                                                            <Checkbox
-                                                                checked={
-                                                                    item.visible
-                                                                }
-                                                                disabled={
-                                                                    !canHide
-                                                                }
-                                                                aria-label={tabActionLabel(
-                                                                    t,
-                                                                    item.visible
-                                                                        ? 'hide_value'
-                                                                        : 'show_value',
-                                                                    label
-                                                                )}
-                                                                onCheckedChange={(
-                                                                    checked
-                                                                ) =>
-                                                                    updateItem(
-                                                                        item.id,
-                                                                        (
-                                                                            current
-                                                                        ) => ({
-                                                                            ...current,
-                                                                            visible:
-                                                                                current.type ===
-                                                                                    'system' &&
-                                                                                current.systemTab ===
-                                                                                    'friends'
-                                                                                    ? true
-                                                                                    : Boolean(
-                                                                                          checked
-                                                                                      )
-                                                                        })
-                                                                    )
-                                                                }
-                                                            />
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon-sm"
-                                                                aria-label={tabActionLabel(
-                                                                    t,
-                                                                    'move_value_up',
-                                                                    label
-                                                                )}
-                                                                disabled={
-                                                                    index === 0
-                                                                }
-                                                                onClick={() =>
-                                                                    moveItem(
-                                                                        index,
-                                                                        -1
-                                                                    )
-                                                                }
-                                                            >
-                                                                <ArrowUpIcon data-icon="inline-start" />
-                                                            </Button>
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon-sm"
-                                                                aria-label={tabActionLabel(
-                                                                    t,
-                                                                    'move_value_down',
-                                                                    label
-                                                                )}
-                                                                disabled={
-                                                                    index ===
-                                                                    draftLayout.length -
-                                                                        1
-                                                                }
-                                                                onClick={() =>
-                                                                    moveItem(
-                                                                        index,
-                                                                        1
-                                                                    )
-                                                                }
-                                                            >
-                                                                <ArrowDownIcon data-icon="inline-start" />
-                                                            </Button>
-                                                            {item.type ===
-                                                            'favoriteCollection' ? (
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon-sm"
+                                                            {isFriends ? (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger
+                                                                        render={
+                                                                            <span className="inline-flex shrink-0 cursor-not-allowed">
+                                                                                <Switch
+                                                                                    checked
+                                                                                    disabled
+                                                                                    className="pointer-events-none"
+                                                                                    aria-label={t(
+                                                                                        'side_panel.settings.custom_tabs.always_visible'
+                                                                                    )}
+                                                                                />
+                                                                            </span>
+                                                                        }
+                                                                    />
+                                                                    <TooltipContent>
+                                                                        {t(
+                                                                            'side_panel.settings.custom_tabs.always_visible'
+                                                                        )}
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            ) : (
+                                                                <Switch
+                                                                    checked={
+                                                                        item.visible
+                                                                    }
+                                                                    className="shrink-0"
                                                                     aria-label={tabActionLabel(
                                                                         t,
-                                                                        'delete_value',
+                                                                        item.visible
+                                                                            ? 'hide_value'
+                                                                            : 'show_value',
                                                                         label
                                                                     )}
-                                                                    onClick={() =>
-                                                                        removeFavoriteCollection(
-                                                                            item.id
+                                                                    onCheckedChange={(
+                                                                        checked
+                                                                    ) =>
+                                                                        setItemVisible(
+                                                                            item,
+                                                                            Boolean(
+                                                                                checked
+                                                                            )
                                                                         )
                                                                     }
-                                                                >
-                                                                    <Trash2Icon data-icon="inline-start" />
-                                                                </Button>
-                                                            ) : null}
-                                                        </div>
-                                                        {item.type ===
-                                                        'favoriteCollection' ? (
-                                                            <FavoriteSourceChecklist
-                                                                item={item}
-                                                                favoriteGroupItems={
-                                                                    favoriteGroupItems
-                                                                }
-                                                                onToggleSource={(
-                                                                    key,
-                                                                    checked
-                                                                ) =>
-                                                                    updateItem(
-                                                                        item.id,
-                                                                        (
-                                                                            current
-                                                                        ) => {
-                                                                            if (
-                                                                                current.type !==
-                                                                                'favoriteCollection'
-                                                                            ) {
-                                                                                return current;
+                                                                />
+                                                            )}
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger
+                                                                    render={
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            className="text-muted-foreground shrink-0"
+                                                                            aria-label={
+                                                                                label
                                                                             }
-                                                                            const selected =
-                                                                                new Set(
-                                                                                    current.sourceGroupKeys
-                                                                                );
-                                                                            if (
-                                                                                checked
-                                                                            ) {
-                                                                                selected.add(
-                                                                                    key
-                                                                                );
-                                                                            } else {
-                                                                                selected.delete(
-                                                                                    key
-                                                                                );
-                                                                            }
-                                                                            return {
-                                                                                ...current,
-                                                                                sourceGroupKeys:
-                                                                                    [
-                                                                                        ...selected
-                                                                                    ]
-                                                                            };
+                                                                        >
+                                                                            <MoreVerticalIcon data-icon="inline-start" />
+                                                                        </Button>
+                                                                    }
+                                                                />
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem
+                                                                        disabled={
+                                                                            index ===
+                                                                            0
                                                                         }
-                                                                    )
+                                                                        onClick={() =>
+                                                                            moveItem(
+                                                                                index,
+                                                                                -1
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <ArrowUpIcon data-icon="inline-start" />
+                                                                        {t(
+                                                                            'side_panel.settings.custom_tabs.move_up'
+                                                                        )}
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        disabled={
+                                                                            index ===
+                                                                            draftLayout.length -
+                                                                                1
+                                                                        }
+                                                                        onClick={() =>
+                                                                            moveItem(
+                                                                                index,
+                                                                                1
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <ArrowDownIcon data-icon="inline-start" />
+                                                                        {t(
+                                                                            'side_panel.settings.custom_tabs.move_down'
+                                                                        )}
+                                                                    </DropdownMenuItem>
+                                                                    {isCustom ? (
+                                                                        <>
+                                                                            <DropdownMenuSeparator />
+                                                                            <DropdownMenuItem
+                                                                                variant="destructive"
+                                                                                onClick={() =>
+                                                                                    removeFavoriteCollection(
+                                                                                        item.id
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <Trash2Icon data-icon="inline-start" />
+                                                                                {t(
+                                                                                    'side_panel.settings.custom_tabs.delete_tab'
+                                                                                )}
+                                                                            </DropdownMenuItem>
+                                                                        </>
+                                                                    ) : null}
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                        {isCustom ? (
+                                                            <Collapsible
+                                                                defaultOpen={
+                                                                    selectedCount ===
+                                                                    0
                                                                 }
-                                                            />
+                                                            >
+                                                                <div className="border-t px-2 py-1">
+                                                                    <CollapsibleTrigger
+                                                                        render={
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="group h-auto w-full justify-between px-1.5 py-1"
+                                                                            >
+                                                                                <span className="text-muted-foreground flex min-w-0 items-center gap-2 text-xs">
+                                                                                    <FolderHeartIcon data-icon="inline-start" />
+                                                                                    <span className="truncate">
+                                                                                        {t(
+                                                                                            'side_panel.settings.custom_tabs.favorite_groups_summary'
+                                                                                        )}
+                                                                                    </span>
+                                                                                    <Badge
+                                                                                        variant={
+                                                                                            selectedCount
+                                                                                                ? 'secondary'
+                                                                                                : 'outline'
+                                                                                        }
+                                                                                        className={cn(
+                                                                                            'shrink-0',
+                                                                                            !selectedCount &&
+                                                                                                'border-amber-500/40 text-amber-600 dark:text-amber-500'
+                                                                                        )}
+                                                                                    >
+                                                                                        {
+                                                                                            selectedCount
+                                                                                        }
+                                                                                    </Badge>
+                                                                                </span>
+                                                                                <ChevronDownIcon
+                                                                                    data-icon="inline-end"
+                                                                                    className="text-muted-foreground transition-transform group-aria-[expanded=true]:rotate-180"
+                                                                                />
+                                                                            </Button>
+                                                                        }
+                                                                    />
+                                                                    <CollapsibleContent>
+                                                                        <FavoriteSourceChecklist
+                                                                            item={
+                                                                                item
+                                                                            }
+                                                                            favoriteGroupItems={
+                                                                                favoriteGroupItems
+                                                                            }
+                                                                            onToggleSource={(
+                                                                                key,
+                                                                                checked
+                                                                            ) =>
+                                                                                toggleCollectionSource(
+                                                                                    item.id,
+                                                                                    key,
+                                                                                    checked
+                                                                                )
+                                                                            }
+                                                                        />
+                                                                    </CollapsibleContent>
+                                                                </div>
+                                                            </Collapsible>
                                                         ) : null}
                                                     </div>
                                                 )}
@@ -760,23 +855,25 @@ export function SidePanelCustomTabsDialog({
                                 </div>
                             </SortableContext>
                         </DndContext>
-                    </FieldSet>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="w-fit"
-                        onClick={addFavoriteCollection}
-                    >
-                        <PlusIcon data-icon="inline-start" />
-                        {t('side_panel.settings.custom_tabs.add_favorite_tab')}
-                    </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="border-dashed"
+                            onClick={addFavoriteCollection}
+                        >
+                            <PlusIcon data-icon="inline-start" />
+                            {t(
+                                'side_panel.settings.custom_tabs.add_favorite_tab'
+                            )}
+                        </Button>
+                    </div>
                 </div>
                 <DialogFooter>
                     <Button
                         type="button"
-                        variant="secondary"
+                        variant="ghost"
                         size="sm"
+                        className="mr-auto"
                         onClick={() => {
                             setDraftLayout(
                                 normalizeSidebarTabLayout(
