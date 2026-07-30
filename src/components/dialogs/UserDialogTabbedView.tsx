@@ -345,7 +345,6 @@ export function UserDialogTabbedView({
             ? profile.username
             : '';
     const profileTitle = profile.displayName || profile.username || 'User';
-    const userSubtitle = username;
     const pronounsText = Array.isArray(profile.pronouns)
         ? profile.pronouns.join(', ')
         : normalizedText(profile.pronouns);
@@ -546,7 +545,7 @@ export function UserDialogTabbedView({
         recentDialogShortcut,
         statusDotClassName,
         statusStateText,
-        userSubtitle,
+        username,
         userUrl,
         estimatedOnlineDurationMs
     };
@@ -559,6 +558,11 @@ export function UserDialogTabbedView({
         onCopyUserUrl: () => {
             copyUserText(userUrl, t('dialog.user.info.url'));
         },
+        onCopyUsername: username
+            ? () => {
+                  copyUserText(username, t('dialog.user.info.username'));
+              }
+            : undefined,
         onEditMemo,
         onEditSelfProfileDetails,
         onEditSelfProfileMedia: () => setSelfPanel('profile-media'),
@@ -591,11 +595,6 @@ export function UserDialogTabbedView({
         onReportHacking,
         onShowAvatarAuthor: showAvatarAuthor,
         onShowInstanceHistory: openInstanceHistory,
-        onSubtitleClick: username
-            ? () => {
-                  copyUserText(username, t('dialog.user.info.username'));
-              }
-            : undefined,
         onTitleClick:
             profile.displayName || profile.username
                 ? () => {

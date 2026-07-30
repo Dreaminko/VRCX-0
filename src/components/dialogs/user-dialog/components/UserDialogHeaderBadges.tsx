@@ -148,23 +148,27 @@ export function UserDialogHeaderBadges({
                 </Badge>
             ) : null}
             <Badge variant="outline">{trustLevel}</Badge>
-            <Badge variant="outline">
-                {PlatformIcon ? (
-                    <PlatformIcon data-icon="inline-start" />
-                ) : null}
-                {platform.label}
+            <Badge
+                variant="outline"
+                className={
+                    PlatformIcon ? 'size-5 justify-center p-0' : undefined
+                }
+                title={platform.label}
+                aria-label={platform.label}
+            >
+                {PlatformIcon ? <PlatformIcon /> : platform.label}
             </Badge>
             {discordId ? (
                 <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     size="xs"
                     className="h-5 rounded-4xl px-2 py-0.5 text-xs"
                     aria-label={t('dialog.user.tags.open_in_discord')}
                     title={t('dialog.user.tags.open_in_discord')}
                     onClick={() => onOpenDiscordProfile(discordId)}
                 >
-                    {t('dialog.user.tags.discord')}
+                    Discord
                 </Button>
             ) : null}
         </>

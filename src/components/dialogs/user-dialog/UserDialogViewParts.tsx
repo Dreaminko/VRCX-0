@@ -1,7 +1,6 @@
 export {
     PreviousDisplayNamesBadge,
     SelfPreferenceCheckboxItem,
-    UserTitleLanguages,
     downloadJsonFile
 } from './components/UserDialogIdentityParts';
 export {

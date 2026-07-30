@@ -85,7 +85,7 @@ function createHeaderModel(effect?: InventoryItemRecord): UserHeaderModel {
         recentDialogShortcut: () => null,
         statusDotClassName: '',
         statusStateText: '',
-        userSubtitle: '',
+        username: '',
         userUrl: ''
     };
 }

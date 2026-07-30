@@ -14,40 +14,6 @@ import {
     formatStatsDate,
     normalizePreviousDisplayNames
 } from '../userDialogRows';
-import { languageOptionLabel } from '../userProfileFields';
-
-type UserLanguageRow = { key?: unknown; value?: unknown };
-
-export function UserTitleLanguages({
-    languages
-}: {
-    languages: UserLanguageRow[];
-}) {
-    if (!languages.length) {
-        return null;
-    }
-
-    return (
-        <span className="flex max-w-full min-w-0 flex-wrap items-start gap-1">
-            {languages.map((language) => {
-                const key = String(
-                    language?.key || language?.value || ''
-                ).trim();
-                const label = languageOptionLabel(language);
-                return (
-                    <Badge
-                        key={`${key}:${language?.value || ''}`}
-                        variant="outline"
-                        className="h-auto min-h-5 max-w-full shrink justify-start text-left text-xs leading-tight whitespace-normal"
-                        title={label}
-                    >
-                        <span className="min-w-0 break-words">{label}</span>
-                    </Badge>
-                );
-            })}
-        </span>
-    );
-}
 
 export function PreviousDisplayNamesBadge({
     names
@@ -71,8 +37,8 @@ export function PreviousDisplayNamesBadge({
                 delay={150}
                 render={
                     <Badge
-                        variant="outline"
-                        className="bg-background max-w-52 cursor-default text-xs"
+                        variant="ghost"
+                        className="text-muted-foreground max-w-52 cursor-pointer px-1 text-xs font-normal"
                         render={
                             <button type="button" aria-label={label}>
                                 <HistoryIcon data-icon="inline-start" />
@@ -80,7 +46,7 @@ export function PreviousDisplayNamesBadge({
                                     {primaryName}
                                 </span>
                                 {names.length > 1 ? (
-                                    <span className="text-muted-foreground shrink-0">
+                                    <span className="shrink-0 opacity-70">
                                         +{names.length - 1}
                                     </span>
                                 ) : null}

@@ -4,7 +4,9 @@ import {
     CopyIcon,
     ExternalLinkIcon,
     GemIcon,
-    PencilIcon
+    GlobeIcon,
+    PencilIcon,
+    UserRoundIcon
 } from 'lucide-react';
 import {
     isValidElement,
@@ -39,10 +41,8 @@ import {
     formatStatsDuration,
     normalizePreviousDisplayNames
 } from '../userDialogRows';
-import {
-    PreviousDisplayNamesBadge,
-    UserTitleLanguages
-} from '../UserDialogViewParts';
+import { PreviousDisplayNamesBadge } from '../UserDialogViewParts';
+import { languageDisplayName } from '../userProfileFields';
 import type {
     AvatarOverrideState,
     ExtendedModerationState,
@@ -107,7 +107,7 @@ export interface UserHeaderModel {
     recentDialogShortcut: (actionType: unknown) => ReactNode;
     statusDotClassName: string;
     statusStateText: string;
-    userSubtitle: string;
+    username: string;
     userUrl: string;
 }
 
@@ -115,6 +115,7 @@ export interface UserHeaderCommands {
     onAvatarOverride: (type: AvatarOverrideType) => void;
     onBoop: () => void;
     onCopyUserId: () => void;
+    onCopyUsername?: () => void;
     onCopyUserUrl: () => void;
     onEditMemo: () => void;
     onEditSelfProfileDetails: () => void;
@@ -143,7 +144,6 @@ export interface UserHeaderCommands {
     onReportHacking: () => void;
     onShowAvatarAuthor: () => void;
     onShowInstanceHistory: () => void;
-    onSubtitleClick?: () => void;
     onTitleClick?: () => void;
     onToggleBadgeShowcased: (
         badge: UserBadgeRecord,
@@ -183,6 +183,51 @@ function HeaderFactRow({
                 </span>
             )}
         </div>
+    );
+}
+
+function HeaderFactValue({
+    display,
+    title,
+    children
+}: {
+    display: ReactNode;
+    title?: string;
+    children?: ReactNode;
+}) {
+    return (
+        <span className="flex min-w-0 items-center justify-end gap-1">
+            <span
+                className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
+                title={title}
+            >
+                {display}
+            </span>
+            {children}
+        </span>
+    );
+}
+
+function HeaderFactIconButton({
+    label,
+    icon,
+    onClick
+}: {
+    label: string;
+    icon: ReactNode;
+    onClick?: () => void;
+}) {
+    return (
+        <Button
+            type="button"
+            aria-label={label}
+            title={label}
+            size="icon-xs"
+            variant="ghost"
+            onClick={onClick}
+        >
+            {icon}
+        </Button>
     );
 }
 
@@ -247,11 +292,12 @@ function UserDialogHeaderFacts({
 }: {
     factsModel: Pick<
         UserHeaderModel,
-        'actionStatus' | 'isCurrentUser' | 'profile' | 'userUrl'
+        'actionStatus' | 'isCurrentUser' | 'profile' | 'username' | 'userUrl'
     >;
     factsCommands: Pick<
         UserHeaderCommands,
         | 'onCopyUserId'
+        | 'onCopyUsername'
         | 'onCopyUserUrl'
         | 'onOpenUserUrl'
         | 'onToggleSelfAvatarCopying'
@@ -265,10 +311,12 @@ function UserDialogHeaderFacts({
         actionStatus = 'idle',
         isCurrentUser,
         profile = {},
+        username,
         userUrl
     } = model;
     const {
         onCopyUserId,
+        onCopyUsername,
         onCopyUserUrl,
         onOpenUserUrl,
         onToggleSelfAvatarCopying,
@@ -308,58 +356,50 @@ function UserDialogHeaderFacts({
                     />
                 </>
             ) : null}
+            {username ? (
+                <HeaderFactRow label={t('dialog.user.info.username')}>
+                    <HeaderFactValue display={username} title={username}>
+                        {onCopyUsername ? (
+                            <HeaderFactIconButton
+                                label={t('common.actions.copy')}
+                                icon={<CopyIcon data-icon="inline-start" />}
+                                onClick={onCopyUsername}
+                            />
+                        ) : null}
+                    </HeaderFactValue>
+                </HeaderFactRow>
+            ) : null}
             {profile.id ? (
                 <HeaderFactRow label={t('dialog.user.info.id')}>
-                    <span className="flex min-w-0 items-center justify-end gap-1">
-                        <span
-                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                            title={profile.id}
-                        >
-                            {compactUserId(profile.id)}
-                        </span>
-                        <Button
-                            type="button"
-                            aria-label={t('dialog.user.info.copy_id')}
-                            title={t('dialog.user.info.copy_id')}
-                            size="icon-xs"
-                            variant="ghost"
+                    <HeaderFactValue
+                        display={compactUserId(profile.id)}
+                        title={profile.id}
+                    >
+                        <HeaderFactIconButton
+                            label={t('dialog.user.info.copy_id')}
+                            icon={<CopyIcon data-icon="inline-start" />}
                             onClick={onCopyUserId}
-                        >
-                            <CopyIcon data-icon="inline-start" />
-                        </Button>
-                    </span>
+                        />
+                    </HeaderFactValue>
                 </HeaderFactRow>
             ) : null}
             {userUrl ? (
                 <HeaderFactRow label={t('dialog.user.info.url')}>
-                    <span className="flex min-w-0 items-center justify-end gap-1">
-                        <span
-                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                            title={userUrl}
-                        >
-                            {compactUrl(userUrl)}
-                        </span>
-                        <Button
-                            type="button"
-                            aria-label={t('common.actions.open_link')}
-                            title={t('common.actions.open_link')}
-                            size="icon-xs"
-                            variant="ghost"
+                    <HeaderFactValue
+                        display={compactUrl(userUrl)}
+                        title={userUrl}
+                    >
+                        <HeaderFactIconButton
+                            label={t('common.actions.open_link')}
+                            icon={<ExternalLinkIcon data-icon="inline-start" />}
                             onClick={onOpenUserUrl}
-                        >
-                            <ExternalLinkIcon data-icon="inline-start" />
-                        </Button>
-                        <Button
-                            type="button"
-                            aria-label={t('dialog.user.info.copy_url')}
-                            title={t('dialog.user.info.copy_url')}
-                            size="icon-xs"
-                            variant="ghost"
+                        />
+                        <HeaderFactIconButton
+                            label={t('dialog.user.info.copy_url')}
+                            icon={<CopyIcon data-icon="inline-start" />}
                             onClick={onCopyUserUrl}
-                        >
-                            <CopyIcon data-icon="inline-start" />
-                        </Button>
-                    </span>
+                        />
+                    </HeaderFactValue>
                 </HeaderFactRow>
             ) : null}
         </div>
@@ -405,13 +445,14 @@ export function UserDialogHeaderSection({
         recentDialogShortcut,
         statusDotClassName,
         statusStateText,
-        userSubtitle,
+        username,
         userUrl
     } = model;
     const {
         onAvatarOverride,
         onBoop,
         onCopyUserId,
+        onCopyUsername,
         onCopyUserUrl,
         onEditMemo,
         onEditSelfProfileDetails,
@@ -437,7 +478,6 @@ export function UserDialogHeaderSection({
         onReportHacking,
         onShowAvatarAuthor,
         onShowInstanceHistory,
-        onSubtitleClick,
         onTitleClick,
         onToggleBadgeShowcased,
         onToggleBadgeVisibility,
@@ -492,10 +532,12 @@ export function UserDialogHeaderSection({
         actionStatus,
         isCurrentUser,
         profile,
+        username,
         userUrl
     };
     const factsCommands = {
         onCopyUserId,
+        onCopyUsername,
         onCopyUserUrl,
         onOpenUserUrl,
         onToggleSelfAvatarCopying,
@@ -505,6 +547,9 @@ export function UserDialogHeaderSection({
     };
     const userIconUrl = profileIconUrl || userImage(profile, true, '256', true);
     const hasTitleMeta = Boolean(profileLanguages?.length);
+    const hasIdentityMeta = Boolean(
+        pronounsText || previousDisplayNames.length
+    );
     const estimatedOnlineForText = estimatedOnlineDurationMs
         ? formatStatsDuration(estimatedOnlineDurationMs)
         : '';
@@ -568,11 +613,11 @@ export function UserDialogHeaderSection({
                 className="absolute inset-x-0 top-0 z-20 aspect-[4/5] overflow-hidden rounded-t-lg"
                 imageClassName="object-cover"
             />
-            <div className="flex min-w-0 items-start gap-2">
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex min-w-0 flex-col gap-2.5">
+                <div className="flex min-w-0 items-center gap-2">
                     <div
                         style={nameplateStyle}
-                        className="relative isolate min-h-9 min-w-0 overflow-hidden rounded-md"
+                        className="relative isolate min-h-9 min-w-0 flex-1 overflow-hidden rounded-md"
                     >
                         <UserDialogProfileDecorationImage
                             item={profileAppearance.nameplateEffect}
@@ -581,7 +626,7 @@ export function UserDialogHeaderSection({
                         />
                         <CardTitle
                             className={cn(
-                                'relative z-10 flex min-h-9 min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 px-1.5 py-1 text-lg leading-tight',
+                                'relative z-10 flex min-h-9 min-w-0 items-center gap-x-1.5 px-1.5 py-1 text-lg leading-tight',
                                 hasNameplateAppearance && 'text-white'
                             )}
                         >
@@ -600,10 +645,13 @@ export function UserDialogHeaderSection({
                                             <Button
                                                 type="button"
                                                 variant="ghost"
-                                                className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold break-words whitespace-normal"
+                                                className="hover:text-primary h-auto min-w-0 justify-start p-0 text-left text-lg leading-tight font-semibold"
+                                                title={profileTitle}
                                                 onClick={onTitleClick}
                                             >
-                                                {profileTitle}
+                                                <span className="min-w-0 truncate">
+                                                    {profileTitle}
+                                                </span>
                                             </Button>
                                         }
                                     />
@@ -612,7 +660,10 @@ export function UserDialogHeaderSection({
                                     </TooltipContent>
                                 </Tooltip>
                             ) : (
-                                <span className="min-w-0 break-words">
+                                <span
+                                    className="min-w-0 truncate"
+                                    title={profileTitle}
+                                >
                                     {profileTitle}
                                 </span>
                             )}
@@ -642,76 +693,101 @@ export function UserDialogHeaderSection({
                                     </TooltipContent>
                                 </Tooltip>
                             ) : null}
-                            {pronounsText ? (
-                                <span
-                                    className={cn(
-                                        'shrink-0 rounded-full px-1.5 py-0.5 font-mono text-xs leading-none font-normal',
-                                        hasNameplateAppearance
-                                            ? 'bg-white/15 text-white/90'
-                                            : 'bg-foreground/10 text-muted-foreground'
-                                    )}
-                                    title={t('dialog.user.pronouns')}
-                                >
-                                    {pronounsText}
-                                </span>
-                            ) : null}
-                            <PreviousDisplayNamesBadge
-                                names={previousDisplayNames}
-                            />
                         </CardTitle>
                     </div>
-                    {userSubtitle ? (
-                        onSubtitleClick ? (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="text-muted-foreground hover:text-primary mr-1.5 ml-2 h-auto justify-start p-0 text-left font-mono text-xs break-all whitespace-normal"
-                                onClick={onSubtitleClick}
-                            >
-                                {userSubtitle}
-                            </Button>
-                        ) : (
-                            <div className="text-muted-foreground font-mono text-xs break-all">
-                                {userSubtitle}
-                            </div>
-                        )
-                    ) : null}
-                    {estimatedOnlineForText ? (
-                        <div className="text-muted-foreground/80 flex min-w-0 items-center gap-1.5 text-[11px] leading-tight font-normal">
-                            <ClockIcon
-                                data-icon="inline-start"
-                                className="size-3 shrink-0 opacity-70"
-                            />
-                            <span className="min-w-0 truncate">
-                                {t('dialog.user.info.estimated_online_for', {
-                                    duration: estimatedOnlineForText
-                                })}
-                            </span>
-                        </div>
-                    ) : null}
-                    {hasTitleMeta ? (
-                        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                            <UserTitleLanguages languages={profileLanguages} />
-                        </div>
-                    ) : null}
+                    <div className="flex shrink-0 items-center gap-2">
+                        <UserDialogHeaderActions
+                            actionMenuModel={actionMenuModel}
+                            actionMenuCommands={actionMenuCommands}
+                        />
+                    </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                    <UserDialogHeaderActions
-                        actionMenuModel={actionMenuModel}
-                        actionMenuCommands={actionMenuCommands}
+                {estimatedOnlineForText ? (
+                    <div className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
+                        <ClockIcon
+                            data-icon="inline-start"
+                            className="size-3 shrink-0 opacity-70"
+                        />
+                        <span className="min-w-0 truncate">
+                            {t('dialog.user.info.estimated_online_for', {
+                                duration: estimatedOnlineForText
+                            })}
+                        </span>
+                    </div>
+                ) : null}
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <UserDialogHeaderBadges
+                        profile={profile}
+                        moderationState={moderationState}
+                        friendNumber={friendNumber}
+                        platform={platform}
+                        PlatformIcon={PlatformIcon}
+                        onOpenDiscordProfile={onOpenDiscordProfile}
                     />
                 </div>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-                <UserDialogHeaderBadges
-                    profile={profile}
-                    moderationState={moderationState}
-                    friendNumber={friendNumber}
-                    platform={platform}
-                    PlatformIcon={PlatformIcon}
-                    onOpenDiscordProfile={onOpenDiscordProfile}
-                />
+                {hasIdentityMeta || hasTitleMeta ? (
+                    <div className="text-muted-foreground flex min-w-0 flex-col gap-1.5 text-xs">
+                        {hasIdentityMeta ? (
+                            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                                {pronounsText ? (
+                                    <Tooltip>
+                                        <TooltipTrigger
+                                            render={
+                                                <span className="inline-flex min-w-0 shrink-0 cursor-default items-center gap-1">
+                                                    <UserRoundIcon className="size-3 shrink-0 opacity-70" />
+                                                    <span className="min-w-0 truncate">
+                                                        {pronounsText}
+                                                    </span>
+                                                </span>
+                                            }
+                                        />
+                                        <TooltipContent>
+                                            {t('dialog.user.pronouns')}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ) : null}
+                                <PreviousDisplayNamesBadge
+                                    names={previousDisplayNames}
+                                />
+                            </div>
+                        ) : null}
+                        {hasTitleMeta ? (
+                            <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
+                                <GlobeIcon className="mr-0.5 size-3 shrink-0 opacity-70" />
+                                {profileLanguages.map((language, index) => {
+                                    const code = language.key.toUpperCase();
+                                    return (
+                                        <span
+                                            key={language.key}
+                                            className="inline-flex shrink-0 items-center"
+                                        >
+                                            <Tooltip>
+                                                <TooltipTrigger
+                                                    render={
+                                                        <span className="cursor-default">
+                                                            {languageDisplayName(
+                                                                language
+                                                            )}
+                                                        </span>
+                                                    }
+                                                />
+                                                <TooltipContent>
+                                                    {code}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                            {index <
+                                            profileLanguages.length - 1 ? (
+                                                <span className="mx-1 opacity-50">
+                                                    ·
+                                                </span>
+                                            ) : null}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        ) : null}
+                    </div>
+                ) : null}
             </div>
 
             {hasProfileBadges ? (
