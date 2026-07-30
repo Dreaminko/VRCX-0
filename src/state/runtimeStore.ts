@@ -193,7 +193,6 @@ type RuntimeStore = {
         currentLocationPlayers: unknown[];
         lastGameStateChangedAt: string | null;
         lastGameStartedAt: string | null;
-        lastCrashedAt: string | null;
         lastGameLogAt: string | null;
         lastGameLogType: string;
         lastScreenshotPath: string;
@@ -480,7 +479,6 @@ const initialState: RuntimeStoreState = {
         currentLocationPlayers: [],
         lastGameStateChangedAt: null,
         lastGameStartedAt: null,
-        lastCrashedAt: null,
         lastGameLogAt: null,
         lastGameLogType: '',
         lastScreenshotPath: '',

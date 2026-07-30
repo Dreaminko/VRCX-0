@@ -10,23 +10,23 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { formatDateFilter } from '@/lib/dateTime';
-import {
-    backgroundImageRemoteProviders,
-    chooseBackgroundImageFiles,
-    chooseBackgroundImageFolder,
-    refreshBackgroundImage,
-    setBackgroundImageCustomRotationInterval,
-    setBackgroundImageMode,
-    setBackgroundImageProvider
-} from '@/services/background-image/backgroundImageService';
-import { isBackgroundImageCustomSourceRotating } from '@/services/background-image/localSourceService';
 import type {
     BackgroundImageCustomSource,
     BackgroundImageMode,
     BackgroundImageProviderId,
     BackgroundImageRotationInterval,
     BackgroundImageSnapshot
-} from '@/services/background-image/types';
+} from '@/platform/tauri/bindings';
+import {
+    backgroundImageRemoteProviders,
+    chooseBackgroundImageFiles,
+    chooseBackgroundImageFolder,
+    isBackgroundImageCustomSourceRotating,
+    refreshBackgroundImage,
+    setBackgroundImageCustomRotationInterval,
+    setBackgroundImageMode,
+    setBackgroundImageProvider
+} from '@/services/background-image/backgroundImageService';
 import { useBackgroundImageStore } from '@/state/backgroundImageStore';
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent } from '@/ui/shadcn/card';
@@ -43,7 +43,7 @@ function countKey(baseKey: string, count: number): string {
     return count === 1 ? baseKey : `${baseKey}_plural`;
 }
 
-function fileNameFromPath(path?: string): string {
+function fileNameFromPath(path?: string | null): string {
     return (
         String(path || '')
             .split(/[\\/]/)

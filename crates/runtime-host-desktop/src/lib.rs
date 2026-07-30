@@ -1,3 +1,4 @@
+mod background_image;
 mod context;
 mod game_client;
 mod game_log;
@@ -11,6 +12,9 @@ mod registry_backup;
 mod state;
 pub mod vr_overlay;
 
+pub use background_image::{
+    background_image_files_from_paths, HostBackgroundImageFileResolver, BACKGROUND_IMAGE_EXTENSIONS,
+};
 pub use context::DesktopRuntimeServices;
 pub use game_client::GameClientHostRuntime;
 pub use game_log::GameLogHostRuntime;

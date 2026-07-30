@@ -2,26 +2,12 @@ import {
     commands,
     type HostSessionProjection
 } from '@/platform/tauri/bindings';
-import configRepository from '@/repositories/configRepository';
-import gameLogRepository from '@/repositories/gameLogRepository';
 import {
     startCurrentAvatarWearTimer,
     stopCurrentAvatarWearTimer
 } from '@/services/avatarWearTimeService';
-import {
-    isRuntimeGameClientLifecycleActive,
-    resetRuntimeCrashRelaunchDecision,
-    shouldSkipFrontendCrashRelaunch,
-    waitForRuntimeCrashRelaunchDecision
-} from '@/services/gameClientLifecycle';
 import { resetGameLogSessionState } from '@/services/gameLogIngestService';
-import {
-    isHostCapabilitySupported,
-    requireHostCapabilitySupported
-} from '@/services/hostCapabilityService';
-import { showSQLiteErrorDialog } from '@/services/sqliteErrorDialogService';
 import { normalizeBoolean } from '@/shared/utils/coerce';
-import { isRealInstance } from '@/shared/utils/instance';
 import { normalizeString } from '@/shared/utils/string';
 import { useNotificationStore } from '@/state/notificationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -33,198 +19,8 @@ type GameStatePatch = Parameters<RuntimeState['setGameState']>[0];
 type GameRunningPayload = Partial<HostSessionProjection> &
     Record<string, unknown>;
 
-let crashRelaunchTimer: ReturnType<typeof window.setTimeout> | null = null;
-
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
-}
-
-function clearCrashRelaunchTimer() {
-    if (crashRelaunchTimer !== null) {
-        window.clearTimeout(crashRelaunchTimer);
-        crashRelaunchTimer = null;
-    }
-}
-
-function buildLaunchUrl(location: unknown) {
-    return `vrchat://launch?id=${encodeURIComponent(
-        normalizeString(location)
-    )}`;
-}
-
-async function launchVrchat(location: unknown, desktopMode: unknown) {
-    requireHostCapabilitySupported('gameLaunch');
-    const args = [buildLaunchUrl(location)];
-    const launchArguments = await configRepository.getString(
-        'launchArguments',
-        ''
-    );
-    const launchPathOverride = await configRepository.getString(
-        'vrcLaunchPathOverride',
-        ''
-    );
-    if (launchArguments) {
-        args.push(String(launchArguments));
-    }
-    if (desktopMode) {
-        args.push('--no-vr');
-    }
-
-    const argumentString = args.join(' ');
-    const launched = launchPathOverride
-        ? await commands.appStartGameFromPath(
-              String(launchPathOverride),
-              argumentString
-          )
-        : await commands.appStartGame(argumentString);
-    if (!launched) {
-        throw new Error(
-            launchPathOverride
-                ? 'Failed to launch VRChat from the configured custom path.'
-                : 'Failed to find VRChat. Configure a custom launch path in launch options.'
-        );
-    }
-}
-
-async function persistGameStopSession(previousGameState: GameState) {
-    const startedAt = Date.parse(previousGameState.lastGameStartedAt || '');
-    const offlineAt = Date.now();
-
-    if (!isRuntimeGameClientLifecycleActive() && Number.isFinite(startedAt)) {
-        const sessionDuration = Math.max(0, offlineAt - startedAt);
-        if (sessionDuration > 0) {
-            await Promise.all([
-                configRepository.setString(
-                    'lastGameSessionMs',
-                    String(sessionDuration)
-                ),
-                configRepository.setString(
-                    'lastGameOfflineAt',
-                    String(offlineAt)
-                )
-            ]);
-        }
-    }
-
-    await stopCurrentAvatarWearTimer({
-        fallbackStartedAt: Number.isFinite(startedAt) ? startedAt : 0,
-        now: offlineAt
-    });
-}
-
-async function sweepVrchatCacheIfEnabled() {
-    if (isRuntimeGameClientLifecycleActive()) {
-        return;
-    }
-
-    if (!(await configRepository.getBool('autoSweepVRChatCache', false))) {
-        return;
-    }
-
-    try {
-        const removedPaths = await commands.assetBundleSweepCache();
-        const removedCount = Array.isArray(removedPaths)
-            ? removedPaths.length
-            : 0;
-        useNotificationStore.getState().pushNotification({
-            level: 'info',
-            title: 'VRChat cache swept',
-            message: removedCount
-                ? `Removed ${removedCount} cache entries.`
-                : 'No cache entries were removed.'
-        });
-    } catch (error) {
-        console.warn('SweepCache failed:', error);
-    }
-}
-
-async function scheduleCrashRelaunchIfNeeded(previousGameState: GameState) {
-    if (isRuntimeGameClientLifecycleActive()) {
-        await waitForRuntimeCrashRelaunchDecision();
-        return;
-    }
-
-    if (shouldSkipFrontendCrashRelaunch()) {
-        return;
-    }
-
-    if (!isHostCapabilitySupported('gameLaunch')) {
-        return;
-    }
-
-    if (!(await configRepository.getBool('relaunchVRChatAfterCrash', false))) {
-        return;
-    }
-
-    const location = previousGameState.currentLocation;
-    if (!isRealInstance(location)) {
-        return;
-    }
-
-    const closedGracefully = await commands
-        .logWatcherVrcClosedGracefully()
-        .catch(() => true);
-    if (closedGracefully) {
-        return;
-    }
-
-    const now = Date.now();
-    const lastCrashedAt = Date.parse(previousGameState.lastCrashedAt || '');
-    if (Number.isFinite(lastCrashedAt) && now - lastCrashedAt < 120_000) {
-        return;
-    }
-
-    useRuntimeStore.getState().setGameState({
-        lastCrashedAt: new Date(now).toISOString()
-    });
-    clearCrashRelaunchTimer();
-    crashRelaunchTimer = window.setTimeout(
-        () => {
-            crashRelaunchTimer = null;
-            (async () => {
-                if (shouldSkipFrontendCrashRelaunch()) {
-                    return;
-                }
-
-                if (!previousGameState.isGameNoVR) {
-                    const steamVrRunning = await commands
-                        .appIsSteamvrRunning()
-                        .catch(
-                            () =>
-                                useRuntimeStore.getState().gameState
-                                    .isSteamVRRunning
-                        );
-                    if (!steamVrRunning) {
-                        return;
-                    }
-                }
-
-                await commands.appFocusWindow().catch(() => {});
-                const message =
-                    'VRChat crashed, attempting to rejoin last instance.';
-                await gameLogRepository.addGamelogEventToDatabase({
-                    created_at: new Date().toJSON(),
-                    type: 'Event',
-                    data: message
-                });
-                useNotificationStore.getState().pushNotification({
-                    level: 'warning',
-                    title: 'VRChat crash detected',
-                    message
-                });
-                await launchVrchat(location, previousGameState.isGameNoVR);
-            })().catch((error: unknown) => {
-                showSQLiteErrorDialog(error);
-                useNotificationStore.getState().pushNotification({
-                    level: 'error',
-                    title: 'VRChat relaunch failed',
-                    message:
-                        error instanceof Error ? error.message : String(error)
-                });
-            });
-        },
-        previousGameState.isGameNoVR ? 2000 : 8000
-    );
 }
 
 async function handleGameStopped(
@@ -246,15 +42,14 @@ async function handleGameStopped(
             );
         });
 
-    const results = await Promise.allSettled([
-        persistGameStopSession(previousGameState),
-        sweepVrchatCacheIfEnabled(),
-        scheduleCrashRelaunchIfNeeded(previousGameState)
-    ]);
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            console.warn('Game stop side effect failed:', result.reason);
-        }
+    const startedAt = Date.parse(previousGameState.lastGameStartedAt || '');
+    try {
+        await stopCurrentAvatarWearTimer({
+            fallbackStartedAt: Number.isFinite(startedAt) ? startedAt : 0,
+            now: Date.now()
+        });
+    } catch (error) {
+        console.warn('Game stop side effect failed:', error);
     }
 }
 
@@ -386,13 +181,9 @@ export async function handleGameRunningUpdate(payload: unknown = {}) {
         });
     }
 
-    if (nextGameRunning) {
-        if (gameRunningChanged) {
-            resetRuntimeCrashRelaunchDecision();
-            useRuntimeStore.getState().resetNowPlayingState();
-            startCurrentAvatarWearTimer();
-        }
-        clearCrashRelaunchTimer();
+    if (nextGameRunning && gameRunningChanged) {
+        useRuntimeStore.getState().resetNowPlayingState();
+        startCurrentAvatarWearTimer();
     }
 
     if (
@@ -414,8 +205,4 @@ export async function handleGameRunningUpdate(payload: unknown = {}) {
                 );
             });
     }
-}
-
-export function stopGameStateService() {
-    clearCrashRelaunchTimer();
 }

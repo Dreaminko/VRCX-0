@@ -328,17 +328,6 @@ export const COMMUNITY_THEME_CONFIG_KEYS = Object.freeze({
     legacyMarketplaceCatalogUrl: 'VRCX_themeMarketplaceCatalogUrl'
 });
 
-export const BACKGROUND_IMAGE_CONFIG_KEYS = Object.freeze({
-    enabled: 'VRCX_backgroundImageEnabled',
-    mode: 'VRCX_backgroundImageMode',
-    providerId: 'VRCX_backgroundImageProviderId',
-    snapshots: 'VRCX_backgroundImageSnapshots',
-    customSource: 'VRCX_backgroundImageCustomSource',
-    legacyEnabled: 'VRCX_officialBackgroundEnabled',
-    legacyProviderId: 'VRCX_officialBackgroundProviderId',
-    legacySnapshots: 'VRCX_officialBackgroundSnapshots'
-});
-
 export const FAVORITES_LAYOUT_CONFIG_KEYS = Object.freeze({
     splitter: Object.freeze({
         friend: 'VRCX_FavoritesFriendSplitter',

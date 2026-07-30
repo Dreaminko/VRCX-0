@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { commands } from '@/platform/tauri/bindings';
+import type { BackgroundImageMode } from '@/platform/tauri/bindings';
 import type { CommunityThemeStatsById } from '@/repositories/communityThemeRepository';
 import {
     loadCommunityThemeStats,
@@ -12,7 +13,6 @@ import {
     disableBackgroundImage,
     setBackgroundImageMode
 } from '@/services/background-image/backgroundImageService';
-import type { BackgroundImageMode } from '@/services/background-image/types';
 import {
     clearCommunityThemeOverrideCss,
     deleteInstalledCommunityTheme,

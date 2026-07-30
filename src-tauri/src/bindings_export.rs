@@ -2,8 +2,8 @@ use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, Builder, ErrorHandlingMode};
 use vrcx_0_application::{
     AppUpdateDownloadProgressPayload, AppUpdateInstalledPayload, AppUpdateStatusSnapshot,
-    AuthenticatedRuntimePhaseSnapshot, DataDirMigrationStatus, ProfileBackupStatus,
-    ProfileRestoreProgress,
+    AuthenticatedRuntimePhaseSnapshot, BackgroundImageProjection, DataDirMigrationStatus,
+    ProfileBackupStatus, ProfileRestoreProgress,
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
@@ -38,6 +38,7 @@ struct BackendRuntimeEventPayloadMap {
     app_update_download_progress: AppUpdateDownloadProgressPayload,
     app_update_installed: AppUpdateInstalledPayload,
     backend_runtime_telemetry: BackendRuntimeTelemetry,
+    background_image_state: BackgroundImageProjection,
     game_log_projection: GameLogProjection,
     game_log_persistence_fallback: GameLogPersistenceFallbackPayload,
     game_log_side_effect: GameLogSideEffectEvent,
@@ -524,8 +525,10 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::shell::app__open_vrc_screenshots_folder,
             commands::host::shell::app__open_crash_vrc_crash_dumps,
             commands::host::shell::app__open_folder_and_select_item,
-            commands::host::shell::app__background_image_files_resolve,
             commands::host::shell::app__open_background_image_files_selector_dialog,
+            commands::application::background_image::app__background_image_state_get,
+            commands::application::background_image::app__background_image_configure,
+            commands::application::background_image::app__background_image_refresh,
             commands::host::shell::app__open_file_selector_dialog,
             commands::host::shell::app__save_file_selector_dialog,
             commands::host::shell::app__open_folder_selector_dialog,

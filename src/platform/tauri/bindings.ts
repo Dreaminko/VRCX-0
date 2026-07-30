@@ -2328,13 +2328,6 @@ export const commands = {
             isFolder
         });
     },
-    async appBackgroundImageFilesResolve(
-        input: BackgroundImageFilesResolveInput
-    ): Promise<string[]> {
-        return await TAURI_INVOKE('app__background_image_files_resolve', {
-            input
-        });
-    },
     async appOpenBackgroundImageFilesSelectorDialog(
         defaultPath: string | null
     ): Promise<string[]> {
@@ -2342,6 +2335,17 @@ export const commands = {
             'app__open_background_image_files_selector_dialog',
             { defaultPath }
         );
+    },
+    async appBackgroundImageStateGet(): Promise<BackgroundImageProjection> {
+        return await TAURI_INVOKE('app__background_image_state_get');
+    },
+    async appBackgroundImageConfigure(
+        input: BackgroundImageConfigureInput
+    ): Promise<BackgroundImageProjection> {
+        return await TAURI_INVOKE('app__background_image_configure', { input });
+    },
+    async appBackgroundImageRefresh(): Promise<BackgroundImageProjection> {
+        return await TAURI_INVOKE('app__background_image_refresh');
     },
     async appOpenFileSelectorDialog(
         defaultPath: string | null,
@@ -3142,6 +3146,7 @@ export type BackendRuntimeEventPayloadMap = {
     appUpdateDownloadProgress: AppUpdateDownloadProgressPayload;
     appUpdateInstalled: AppUpdateInstalledPayload;
     backendRuntimeTelemetry: BackendRuntimeTelemetry;
+    backgroundImageState: BackgroundImageProjection;
     gameLogProjection: GameLogProjection;
     gameLogPersistenceFallback: GameLogPersistenceFallbackPayload;
     gameLogSideEffect: GameLogSideEffectEvent;
@@ -3203,9 +3208,53 @@ export type BackendRuntimeTelemetry = {
     detail: string;
     snapshot: BackendRuntimeSnapshot;
 };
-export type BackgroundImageFilesResolveInput = {
-    paths: string[] | null;
-    folderPath: string | null;
+export type BackgroundImageConfigureInput =
+    | { kind: 'disable' }
+    | { kind: 'enableDaily'; providerId: BackgroundImageProviderId | null }
+    | { kind: 'setProvider'; providerId: BackgroundImageProviderId }
+    | { kind: 'enableCustom' }
+    | { kind: 'setCustomFiles'; paths: string[] }
+    | { kind: 'setCustomFolder'; folderPath: string }
+    | {
+          kind: 'setRotationInterval';
+          rotationInterval: BackgroundImageRotationInterval;
+      }
+    | { kind: 'migrateLegacyNasaApod' };
+export type BackgroundImageCustomSource = {
+    kind: BackgroundImageCustomSourceKind;
+    paths: string[];
+    folderPath: string;
+    rotationInterval: BackgroundImageRotationInterval;
+};
+export type BackgroundImageCustomSourceKind = 'files' | 'folder';
+export type BackgroundImageMode = 'off' | 'daily' | 'custom';
+export type BackgroundImageProjection = {
+    revision: number;
+    enabled: boolean;
+    mode: BackgroundImageMode;
+    providerId: BackgroundImageProviderId;
+    customSource: BackgroundImageCustomSource | null;
+    snapshot: BackgroundImageSnapshot | null;
+    error: string | null;
+};
+export type BackgroundImageProviderId =
+    | 'nasa-epic'
+    | 'aic-public-domain'
+    | 'nasa-apod-safe';
+export type BackgroundImageRotationInterval = 'daily' | 'hourly';
+export type BackgroundImageSnapshot = {
+    mode: BackgroundImageMode;
+    providerId?: BackgroundImageProviderId | null;
+    sourceKind?: BackgroundImageCustomSourceKind | null;
+    imageUrl: string;
+    imagePath?: string | null;
+    imageCount?: number | null;
+    title: string;
+    author: string;
+    license: string;
+    source: string;
+    resolvedAt: string;
+    resolvedForKey: string;
 };
 export type BatchMutationItemResult = {
     id: string;

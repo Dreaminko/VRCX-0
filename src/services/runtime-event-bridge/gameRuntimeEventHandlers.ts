@@ -10,7 +10,6 @@ import { useModalStore } from '@/state/modalStore';
 import { useNotificationStore } from '@/state/notificationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
-import { recordRuntimeGameClientEvent } from '../gameClientLifecycle';
 import { applyRuntimeGameLogProjection } from '../gameLogIngestService';
 import { handleGameRunningUpdate } from '../gameStateService';
 import { isHostCapabilityAvailable } from '../hostCapabilityService';
@@ -131,7 +130,6 @@ export function handleGameClientEvent(
     if (!isHostCapabilityAvailable('runtimeGameClientLifecycle')) {
         return;
     }
-    recordRuntimeGameClientEvent(event.kind, event.payload);
     if (event.kind === 'notification') {
         useNotificationStore.getState().pushNotification({ ...event.payload });
     } else if (event.kind === 'debugLoggingOutcome') {

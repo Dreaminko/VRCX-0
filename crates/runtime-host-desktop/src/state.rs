@@ -7,7 +7,7 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use vrcx_0_application::{AppUpdateBuildInfo, AppUpdateRuntime};
+use vrcx_0_application::{AppUpdateBuildInfo, AppUpdateRuntime, BackgroundImageService};
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
     BackendRuntimeMode, BackendRuntimePhase, GameProcessEvent, GameProcessEventSink,
@@ -84,6 +84,7 @@ pub struct DesktopRuntimeBundle {
     pub vr_overlay_runtime: Arc<DesktopVrOverlayRuntime>,
     pub app_update: AppUpdateRuntime,
     pub telemetry: TelemetryRuntime,
+    pub background_image: BackgroundImageService,
 }
 
 pub struct DesktopRuntimeHostState {
@@ -98,6 +99,7 @@ struct DesktopRuntimeProfileExtension {
     desktop: Arc<DesktopRuntimeBundle>,
     registry_backup_maintenance_running: Arc<AtomicBool>,
     desktop_maintenance_running: Arc<AtomicBool>,
+    background_image_started: AtomicBool,
     discord_reconcile_generation: Arc<AtomicU64>,
     registry_backup_lock: Arc<Mutex<()>>,
     presence_state_path: PathBuf,
@@ -222,6 +224,16 @@ impl DesktopRuntimeHostState {
                 .get_json(APP_LAUNCHER_ENTRIES_CONFIG_KEY, json!([]))?,
         );
         let auto_launch = AutoAppLaunchManager::new(app_launcher_enabled, app_launcher_entries);
+        let background_image = BackgroundImageService::new(
+            Arc::clone(&builder.db),
+            Arc::clone(&builder.web),
+            builder.runtime_context.event_bus.clone(),
+            Arc::new(
+                crate::background_image::HostBackgroundImageFileResolver::new(
+                    host_file_access.clone(),
+                ),
+            ),
+        );
         let game = Arc::new(GameRuntimeBundle {
             process_monitor,
             log_watcher,
@@ -238,12 +250,14 @@ impl DesktopRuntimeHostState {
             vr_overlay_runtime,
             app_update,
             telemetry,
+            background_image,
         });
         let extension = Arc::new(DesktopRuntimeProfileExtension {
             game: Arc::clone(&game),
             desktop: Arc::clone(&desktop),
             registry_backup_maintenance_running: Arc::new(AtomicBool::new(false)),
             desktop_maintenance_running: Arc::new(AtomicBool::new(false)),
+            background_image_started: AtomicBool::new(false),
             discord_reconcile_generation: Arc::new(AtomicU64::new(0)),
             registry_backup_lock: Arc::new(Mutex::new(())),
             presence_state_path: builder.paths.app_data.join("presenceAutomationState.json"),
@@ -504,6 +518,19 @@ impl DesktopRuntimeProfileExtension {
         self.desktop
             .app_update
             .start_loop(state.runtime_context.tasks.clone());
+        if self.background_image_started.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        let background_image = self.desktop.background_image.clone();
+        state
+            .runtime_context
+            .tasks
+            .spawn_cancellable(move |stop_token| async move {
+                if let Err(error) = background_image.initialize().await {
+                    tracing::warn!(error = %error, "failed to initialize background image runtime");
+                }
+                background_image.run_rotation_loop(stop_token).await;
+            });
     }
 
     fn start_game_services(&self, state: &RuntimeHostState) {

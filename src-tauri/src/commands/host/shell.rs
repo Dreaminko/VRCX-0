@@ -1,11 +1,7 @@
 #![allow(non_snake_case)]
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 
-use serde::Deserialize;
 use tauri::{AppHandle, State};
 
 use crate::error::AppError;
@@ -13,8 +9,7 @@ use crate::state::AppState;
 use vrcx_0_host_desktop::shell_actions;
 
 use vrcx_0_host_desktop::host_capabilities::{require_host_capability, HostCapability};
-
-const BACKGROUND_IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp"];
+use vrcx_0_runtime_host_desktop::{background_image_files_from_paths, BACKGROUND_IMAGE_EXTENSIONS};
 
 fn with_fixed_extension(mut path: PathBuf, extension: Option<&str>) -> PathBuf {
     let Some(extension) = extension
@@ -27,57 +22,6 @@ fn with_fixed_extension(mut path: PathBuf, extension: Option<&str>) -> PathBuf {
         path.set_extension(extension);
     }
     path
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct BackgroundImageFilesResolveInput {
-    paths: Option<Vec<String>>,
-    folder_path: Option<String>,
-}
-
-fn is_background_image_file(path: &Path) -> bool {
-    if !path.is_file() {
-        return false;
-    }
-
-    let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
-        return false;
-    };
-    BACKGROUND_IMAGE_EXTENSIONS
-        .iter()
-        .any(|allowed| extension.eq_ignore_ascii_case(allowed))
-}
-
-fn background_image_files_in_folder(folder: &Path) -> Result<Vec<String>, AppError> {
-    if !folder.is_dir() {
-        return Err(AppError::Custom(
-            "Background image folder is not available.".into(),
-        ));
-    }
-
-    let mut files = Vec::new();
-    for entry in fs::read_dir(folder)? {
-        let entry = entry?;
-        let path = entry.path();
-        if is_background_image_file(&path) {
-            files.push(path.to_string_lossy().to_string());
-        }
-    }
-    files.sort_by_key(|path| path.to_ascii_lowercase());
-    Ok(files)
-}
-
-fn background_image_files_from_paths(paths: Vec<String>) -> Vec<String> {
-    let mut files: Vec<String> = paths
-        .into_iter()
-        .map(PathBuf::from)
-        .filter(|path| is_background_image_file(path))
-        .map(|path| path.to_string_lossy().to_string())
-        .collect();
-    files.sort_by_key(|path| path.to_ascii_lowercase());
-    files.dedup_by(|left, right| left.eq_ignore_ascii_case(right));
-    files
 }
 
 #[tauri::command]
@@ -355,7 +299,7 @@ pub async fn app__open_background_image_files_selector_dialog(
     let mut builder = app_handle
         .dialog()
         .file()
-        .add_filter("Images", BACKGROUND_IMAGE_EXTENSIONS);
+        .add_filter("Images", &BACKGROUND_IMAGE_EXTENSIONS);
 
     if let Some(ref path) = default_path {
         let p = PathBuf::from(path);
@@ -382,27 +326,6 @@ pub async fn app__open_background_image_files_selector_dialog(
             })
             .collect(),
     );
-    for file in &files {
-        state.desktop.host_file_access.register_path(file);
-    }
-    Ok(files)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__background_image_files_resolve(
-    state: State<'_, AppState>,
-    input: BackgroundImageFilesResolveInput,
-) -> Result<Vec<String>, AppError> {
-    let files = if let Some(folder_path) = input.folder_path.filter(|path| !path.trim().is_empty())
-    {
-        let folder = PathBuf::from(folder_path);
-        state.desktop.host_file_access.register_path(&folder);
-        background_image_files_in_folder(&folder)?
-    } else {
-        background_image_files_from_paths(input.paths.unwrap_or_default())
-    };
-
     for file in &files {
         state.desktop.host_file_access.register_path(file);
     }

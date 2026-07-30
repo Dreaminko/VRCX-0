@@ -7,6 +7,9 @@ use url::Url;
 const STATUS_API_ORIGIN: &str = "https://status.vrchat.com";
 const YOUTUBE_API_ORIGIN: &str = "https://www.googleapis.com";
 const GITHUB_API_ORIGIN: &str = "https://api.github.com";
+const BACKGROUND_IMAGE_EPIC_ORIGIN: &str = "https://epic.gsfc.nasa.gov";
+const BACKGROUND_IMAGE_AIC_ORIGIN: &str = "https://api.artic.edu";
+const BACKGROUND_IMAGE_APOD_ORIGIN: &str = "https://api.nasa.gov";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExternalApiError {
@@ -23,6 +26,7 @@ pub enum ExternalApiScope {
     UpdateRelease,
     GithubContributors,
     Image,
+    BackgroundImage,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq, specta::Type)]
@@ -186,6 +190,10 @@ pub fn image_data_url_get_input(url: &str) -> ExternalHttpRequestInput {
     external_get_input(url.to_string(), HashMap::new())
 }
 
+pub fn background_image_get_input(url: &str) -> ExternalHttpRequestInput {
+    external_get_input(url.to_string(), HashMap::new())
+}
+
 pub fn build_web_execute_request(
     input: ExternalHttpRequestInput,
     scope: ExternalApiScope,
@@ -260,6 +268,7 @@ fn scope_name(scope: ExternalApiScope) -> &'static str {
         ExternalApiScope::UpdateRelease => "externalUpdateRelease",
         ExternalApiScope::GithubContributors => "externalGithubContributors",
         ExternalApiScope::Image => "externalImage",
+        ExternalApiScope::BackgroundImage => "externalBackgroundImage",
     }
 }
 
@@ -326,6 +335,13 @@ fn external_url_allowed(url: &Url, scope: ExternalApiScope, policy: &ExternalApi
             origin == GITHUB_API_ORIGIN
                 && url.path().starts_with("/repos/")
                 && url.path().ends_with("/contributors")
+        }
+        ExternalApiScope::BackgroundImage => {
+            (origin == BACKGROUND_IMAGE_EPIC_ORIGIN && url.path().starts_with("/api/natural"))
+                || (origin == BACKGROUND_IMAGE_AIC_ORIGIN
+                    && url.path().starts_with("/api/v1/artworks/search"))
+                || (origin == BACKGROUND_IMAGE_APOD_ORIGIN
+                    && url.path().starts_with("/planetary/apod"))
         }
     }
 }

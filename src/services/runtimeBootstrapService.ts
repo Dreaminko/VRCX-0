@@ -4,7 +4,6 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 import { DEFAULT_TIME_UNIT_LABELS, useShellStore } from '@/state/shellStore';
 
 import { startRuntimeGameClientSync } from './gameClientLifecycle';
-import { stopGameStateService } from './gameStateService';
 import { getTimeUnitLabels, setI18nLanguage } from './i18nService';
 import { bindRuntimeEvents } from './runtimeEventBridgeService';
 import { initializeReactRuntime } from './startupService';
@@ -56,7 +55,6 @@ function createReactRuntimeStartPromise() {
                 for (const entry of cleanups) {
                     entry?.();
                 }
-                stopGameStateService();
             };
 
             if (reactRuntimeConsumerCount === 0) {

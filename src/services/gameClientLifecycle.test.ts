@@ -18,12 +18,7 @@ vi.mock('./hostCapabilityService', () => ({
     isHostCapabilityAvailable: mocks.isHostCapabilityAvailable
 }));
 
-import {
-    recordRuntimeGameClientEvent,
-    resetRuntimeCrashRelaunchDecision,
-    shouldSkipFrontendCrashRelaunch,
-    syncRuntimeGameClientState
-} from './gameClientLifecycle';
+import { syncRuntimeGameClientState } from './gameClientLifecycle';
 
 describe('GameClient lifecycle routing', () => {
     beforeEach(async () => {
@@ -32,55 +27,6 @@ describe('GameClient lifecycle routing', () => {
         mocks.isHostCapabilityAvailable.mockReturnValue(false);
         await syncRuntimeGameClientState();
         mocks.isHostCapabilityAvailable.mockReturnValue(true);
-    });
-
-    it('skips frontend crash relaunch only after runtime schedules it', () => {
-        expect(
-            shouldSkipFrontendCrashRelaunch({
-                runtimeGameClientLifecycleAvailable: true,
-                runtimeCrashRelaunchHandled: true
-            })
-        ).toBe(true);
-        expect(
-            shouldSkipFrontendCrashRelaunch({
-                runtimeGameClientLifecycleAvailable: true,
-                runtimeCrashRelaunchHandled: false
-            })
-        ).toBe(false);
-        expect(
-            shouldSkipFrontendCrashRelaunch({
-                runtimeGameClientLifecycleAvailable: false,
-                runtimeCrashRelaunchHandled: true
-            })
-        ).toBe(false);
-    });
-
-    it('keeps frontend fallback when runtime reports no crash relaunch plan', () => {
-        resetRuntimeCrashRelaunchDecision();
-        expect(
-            shouldSkipFrontendCrashRelaunch({
-                runtimeGameClientLifecycleAvailable: true
-            })
-        ).toBe(false);
-
-        recordRuntimeGameClientEvent('crashRelaunchDecision', {
-            handled: false
-        });
-        expect(
-            shouldSkipFrontendCrashRelaunch({
-                runtimeGameClientLifecycleAvailable: true
-            })
-        ).toBe(false);
-
-        recordRuntimeGameClientEvent('crashRelaunchDecision', {
-            handled: true
-        });
-        expect(
-            shouldSkipFrontendCrashRelaunch({
-                runtimeGameClientLifecycleAvailable: true
-            })
-        ).toBe(true);
-        resetRuntimeCrashRelaunchDecision();
     });
 
     it('syncs an empty location when runtime state has not been sent yet', async () => {

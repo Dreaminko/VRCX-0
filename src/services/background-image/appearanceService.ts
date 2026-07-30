@@ -1,3 +1,4 @@
+import type { BackgroundImageSnapshot } from '@/platform/tauri/bindings';
 import { APP_THEME_CONFIG_KEYS } from '@/repositories/configKeys';
 import configRepository from '@/repositories/configRepository';
 import { useBackgroundImageStore } from '@/state/backgroundImageStore';
@@ -17,11 +18,6 @@ import {
     setVrcxCssLayer,
     setVrcxCssLayersSuppressed
 } from '../vrcx0CssLayerService';
-import {
-    clearBackgroundImageRotationTimer,
-    scheduleBackgroundImageRotation
-} from './rotationController';
-import type { BackgroundImageSnapshot } from './types';
 
 const BACKGROUND_IMAGE_LAYER = 'background-image';
 const COMMUNITY_CSS_LAYERS: VrcxCssLayer[] = [
@@ -105,7 +101,6 @@ export function isCommunityAppearanceActive(): boolean {
 }
 
 export async function syncBackgroundImageAppearance(
-    refreshBackgroundImage: () => Promise<boolean>,
     restoreAppTheme = true
 ): Promise<void> {
     const state = useBackgroundImageStore.getState();
@@ -121,11 +116,9 @@ export async function syncBackgroundImageAppearance(
 
     if (shouldApply) {
         await setCommunityThemeAppearanceControl(true);
-        scheduleBackgroundImageRotation(refreshBackgroundImage);
         return;
     }
 
-    clearBackgroundImageRotationTimer();
     if (restoreAppTheme && !isCommunityAppearanceActive()) {
         await applySavedThemeMode();
         await applySavedThemeColor();

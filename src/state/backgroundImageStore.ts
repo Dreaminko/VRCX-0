@@ -5,7 +5,7 @@ import type {
     BackgroundImageMode,
     BackgroundImageProviderId,
     BackgroundImageSnapshot
-} from '@/services/background-image/types';
+} from '@/platform/tauri/bindings';
 
 interface BackgroundImageStore {
     mode: BackgroundImageMode;
@@ -15,19 +15,13 @@ interface BackgroundImageStore {
     snapshot: BackgroundImageSnapshot | null;
     loading: boolean;
     error: string | null;
-    hydrate(options: {
+    applyProjection(options: {
         mode: BackgroundImageMode;
         enabled: boolean;
         providerId: BackgroundImageProviderId;
         customSource: BackgroundImageCustomSource | null;
         snapshot: BackgroundImageSnapshot | null;
-    }): void;
-    setStateSnapshot(options: {
-        mode: BackgroundImageMode;
-        enabled: boolean;
-        providerId: BackgroundImageProviderId;
-        customSource: BackgroundImageCustomSource | null;
-        snapshot: BackgroundImageSnapshot | null;
+        error: string | null;
     }): void;
     setLoading(loading: boolean): void;
     setError(error: string | null): void;
@@ -41,23 +35,8 @@ export const useBackgroundImageStore = create<BackgroundImageStore>((set) => ({
     snapshot: null,
     loading: false,
     error: null,
-    hydrate({ mode, enabled, providerId, customSource, snapshot }) {
-        set({
-            mode,
-            enabled: Boolean(enabled),
-            providerId,
-            customSource,
-            snapshot
-        });
-    },
-    setStateSnapshot({ mode, enabled, providerId, customSource, snapshot }) {
-        set({
-            mode,
-            enabled: Boolean(enabled),
-            providerId,
-            customSource,
-            snapshot
-        });
+    applyProjection(options) {
+        set(options);
     },
     setLoading(loading) {
         set({ loading: Boolean(loading) });

@@ -2,8 +2,8 @@ use vrcx_0_application_core::RuntimeEventPayload;
 
 use crate::{
     AppUpdateDownloadProgressPayload, AppUpdateInstalledPayload, AppUpdateStatusSnapshot,
-    AuthenticatedRuntimePhaseSnapshot, FavoriteImportStatus, NoteExportStatus, ProfileBackupStatus,
-    ProfileRestoreProgress, SharedCollectionImportStatus,
+    AuthenticatedRuntimePhaseSnapshot, BackgroundImageProjection, FavoriteImportStatus,
+    NoteExportStatus, ProfileBackupStatus, ProfileRestoreProgress, SharedCollectionImportStatus,
 };
 
 impl RuntimeEventPayload for AuthenticatedRuntimePhaseSnapshot {
@@ -40,4 +40,8 @@ impl RuntimeEventPayload for SharedCollectionImportStatus {
 
 impl RuntimeEventPayload for NoteExportStatus {
     const EVENT_NAME: &'static str = "noteExportStatus";
+}
+
+impl RuntimeEventPayload for BackgroundImageProjection {
+    const EVENT_NAME: &'static str = "backgroundImageState";
 }

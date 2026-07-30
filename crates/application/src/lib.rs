@@ -151,6 +151,12 @@ pub use system::{
     AppUpdateTargetResolver,
 };
 pub use system::{
+    BackgroundImageConfigureInput, BackgroundImageCustomSource, BackgroundImageCustomSourceKind,
+    BackgroundImageFileResolver, BackgroundImageMode, BackgroundImageProjection,
+    BackgroundImageProviderId, BackgroundImageRotationInterval, BackgroundImageService,
+    BackgroundImageSnapshot, UnavailableBackgroundImageFileResolver,
+};
+pub use system::{
     DataDirMigrationActionOutcome, DataDirMigrationError, DataDirMigrationErrorCode,
     DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan, DataDirMigrationRuntime,
     DataDirMigrationState, DataDirMigrationStatus, DataDirPointerCommitter,

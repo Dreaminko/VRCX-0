@@ -1,4 +1,5 @@
 mod app_update;
+mod background_image;
 mod batch_mutation;
 mod data_dir_migration;
 mod database_upgrade;
@@ -12,6 +13,12 @@ pub use app_update::{
     AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
     AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
     AppUpdateTargetResolver,
+};
+pub use background_image::{
+    BackgroundImageConfigureInput, BackgroundImageCustomSource, BackgroundImageCustomSourceKind,
+    BackgroundImageFileResolver, BackgroundImageMode, BackgroundImageProjection,
+    BackgroundImageProviderId, BackgroundImageRotationInterval, BackgroundImageService,
+    BackgroundImageSnapshot, UnavailableBackgroundImageFileResolver,
 };
 pub use batch_mutation::{
     run_avatar_content_tags_batch, run_group_leave_batch, run_group_visibility_batch,

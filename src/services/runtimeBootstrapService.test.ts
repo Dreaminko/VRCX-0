@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     startRuntimeGameClientSync: vi.fn(),
-    stopGameStateService: vi.fn(),
     getTimeUnitLabels: vi.fn(),
     setI18nLanguage: vi.fn(),
     bindRuntimeEvents: vi.fn(),
@@ -14,10 +13,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('./gameClientLifecycle', () => ({
     startRuntimeGameClientSync: mocks.startRuntimeGameClientSync
-}));
-
-vi.mock('./gameStateService', () => ({
-    stopGameStateService: mocks.stopGameStateService
 }));
 
 vi.mock('./i18nService', () => ({
@@ -149,7 +144,6 @@ describe('runtimeBootstrapService', () => {
         expect(gameClientCleanup).toHaveBeenCalledTimes(1);
         expect(updateLoopCleanup).toHaveBeenCalledTimes(1);
         expect(statusCleanup).toHaveBeenCalledTimes(1);
-        expect(mocks.stopGameStateService).toHaveBeenCalledTimes(1);
     });
 
     it('cleans up runtime startup after its consumer leaves', async () => {
@@ -163,6 +157,5 @@ describe('runtimeBootstrapService', () => {
         initialization.resolve();
 
         await vi.waitFor(() => expect(eventCleanup).toHaveBeenCalledTimes(1));
-        expect(mocks.stopGameStateService).toHaveBeenCalledTimes(1);
     });
 });

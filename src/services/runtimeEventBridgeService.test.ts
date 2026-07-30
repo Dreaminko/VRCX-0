@@ -14,7 +14,8 @@ const mocks = vi.hoisted(() => ({
             ) => Promise<() => void>
         >(),
     applyRuntimeGameLogProjection: vi.fn(),
-    recordRuntimeGameClientEvent: vi.fn(),
+    applyBackgroundImageProjectionEvent: vi.fn(),
+    appBackgroundImageStateGet: vi.fn(),
     handleGameRunningUpdate: vi.fn<() => Promise<void>>(),
     isHostCapabilityAvailable: vi.fn<(name: string) => boolean>(),
     refreshHostCapabilities: vi.fn(),
@@ -65,7 +66,8 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appAppUpdateCheckRun: mocks.getAppUpdateStatus,
         appAppUpdateDownloadStatusGet: mocks.getAppUpdateDownloadStatus,
         appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh,
-        appGameClientDebugLoggingStatus: mocks.appGameClientDebugLoggingStatus
+        appGameClientDebugLoggingStatus: mocks.appGameClientDebugLoggingStatus,
+        appBackgroundImageStateGet: mocks.appBackgroundImageStateGet
     }
 }));
 
@@ -81,8 +83,9 @@ vi.mock('./gameLogIngestService', () => ({
     applyRuntimeGameLogProjection: mocks.applyRuntimeGameLogProjection
 }));
 
-vi.mock('./gameClientLifecycle', () => ({
-    recordRuntimeGameClientEvent: mocks.recordRuntimeGameClientEvent
+vi.mock('./background-image/backgroundImageService', () => ({
+    applyBackgroundImageProjectionEvent:
+        mocks.applyBackgroundImageProjectionEvent
 }));
 
 vi.mock('./gameStateService', () => ({
@@ -121,6 +124,7 @@ vi.mock('./authSessionRecoveryService', () => ({
 
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
+import { useNotificationStore } from '@/state/notificationStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -263,6 +267,7 @@ describe('runtimeEventBridgeService', () => {
         vi.clearAllMocks();
         useRuntimeStore.getState().resetRuntimeState();
         useFriendRosterStore.getState().resetRoster();
+        useNotificationStore.getState().resetNotificationState();
         useSessionStore.getState().resetSessionState();
         useUserFactsStore.getState().resetUserFacts();
         useProfileBackupStore.getState().resetProfileBackupState();
@@ -563,7 +568,7 @@ describe('runtimeEventBridgeService', () => {
             'subscription failed'
         );
 
-        expect(unsubscribe).toHaveBeenCalledTimes(6);
+        expect(unsubscribe).toHaveBeenCalledTimes(7);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });
@@ -589,7 +594,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(30);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(31);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});
@@ -770,21 +775,20 @@ describe('runtimeEventBridgeService', () => {
         mocks.isHostCapabilityAvailable.mockImplementation(
             (name) => name === 'runtimeGameClientLifecycle'
         );
-        const payload = {
-            handled: true,
-            location: 'wrld_test:1',
-            delayMs: 500
-        };
 
         handlers.get('gameClientEvent')?.({
-            kind: 'crashRelaunchDecision',
-            payload
+            kind: 'notification',
+            payload: {
+                level: 'warning',
+                title: 'VRChat crash detected',
+                message: 'VRChat crashed, attempting to rejoin last instance.'
+            }
         });
 
-        expect(mocks.recordRuntimeGameClientEvent).toHaveBeenCalledWith(
-            'crashRelaunchDecision',
-            payload
-        );
+        expect(useNotificationStore.getState().items[0]).toMatchObject({
+            level: 'warning',
+            title: 'VRChat crash detected'
+        });
     });
 
     it('applies runtime GameLog projection when runtime ingest is active', async () => {

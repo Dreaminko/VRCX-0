@@ -12,6 +12,7 @@ import {
     resetAuthenticatedRuntimeMirror
 } from './authenticatedRuntimeService';
 import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
+import { applyBackgroundImageProjectionEvent } from './background-image/backgroundImageService';
 import { handleAppUpdateStatusEvent } from './backgroundMaintenanceUpdateService';
 import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
@@ -116,6 +117,11 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
+    if (event.name === 'backgroundImageState') {
+        applyBackgroundImageProjectionEvent(event.payload);
+        return;
+    }
+
     if (event.name === 'favoritesChanged') {
         runtimeStore.recordRuntimeEvent(event.name, event.payload);
         handleFavoritesChangedEvent(event.payload);
@@ -205,6 +211,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'appUpdateDownloadProgress',
         'appUpdateInstalled',
         'backendRuntimeTelemetry',
+        'backgroundImageState',
         'gameLogProjection',
         'gameLogPersistenceFallback',
         'gameLogSideEffect',
@@ -270,6 +277,13 @@ export async function bindRuntimeEvents(): Promise<() => void> {
             }
         } catch (error) {
             console.warn('Failed to hydrate debug logging status:', error);
+        }
+        try {
+            applyBackgroundImageProjectionEvent(
+                await commands.appBackgroundImageStateGet()
+            );
+        } catch (error) {
+            console.warn('Failed to hydrate background image state:', error);
         }
         try {
             await runForegroundUpdateRegistryBackupMaintenance();
