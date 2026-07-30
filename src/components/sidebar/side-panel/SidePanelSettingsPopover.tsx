@@ -234,20 +234,6 @@ export function SidePanelSettingsPopover({
                         {t('side_panel.refresh_tooltip')}
                     </Button>
                     <Separator />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => {
-                            onOpenChange(false);
-                            onOpenCustomTabsDialog();
-                        }}
-                    >
-                        <SlidersHorizontalIcon data-icon="inline-start" />
-                        {t('side_panel.settings.custom_tabs.configure')}
-                    </Button>
-                    <Separator />
                     <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                         {t('side_panel.settings.display')}
                     </span>
@@ -440,6 +426,20 @@ export function SidePanelSettingsPopover({
                             ) : null}
                         </div>
                     ) : null}
+                    <Separator />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                            onOpenChange(false);
+                            onOpenCustomTabsDialog();
+                        }}
+                    >
+                        <SlidersHorizontalIcon data-icon="inline-start" />
+                        {t('side_panel.settings.custom_tabs.configure')}
+                    </Button>
                 </div>
             </PopoverContent>
         </Popover>

@@ -276,6 +276,7 @@ export function SidePanelCustomTabsDialog({
     layout,
     displayMode,
     favoriteGroupItems,
+    autoCreateCollection = false,
     onSave
 }: {
     open: boolean;
@@ -283,6 +284,7 @@ export function SidePanelCustomTabsDialog({
     layout: SidebarTabLayout;
     displayMode: SidebarTabDisplayMode;
     favoriteGroupItems: FavoriteGroupItem[];
+    autoCreateCollection?: boolean;
     onSave: (
         layout: SidebarTabLayout,
         displayMode: SidebarTabDisplayMode
@@ -315,9 +317,22 @@ export function SidePanelCustomTabsDialog({
         if (!open) {
             return;
         }
-        setDraftLayout(normalizeSidebarTabLayout(layout));
+        const baseLayout = normalizeSidebarTabLayout(layout);
+        setDraftLayout(
+            autoCreateCollection
+                ? normalizeSidebarTabLayout([
+                      ...baseLayout,
+                      createFavoriteCollectionTab(
+                          baseLayout,
+                          t(
+                              'side_panel.settings.custom_tabs.favorite_collection_default'
+                          )
+                      )
+                  ])
+                : baseLayout
+        );
         setDraftDisplayMode(normalizeSidebarTabDisplayMode(displayMode));
-    }, [displayMode, layout, open]);
+    }, [autoCreateCollection, displayMode, layout, open, t]);
 
     function updateItem(
         id: string,

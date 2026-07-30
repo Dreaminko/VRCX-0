@@ -1,4 +1,4 @@
-import { EyeOffIcon, SlidersHorizontalIcon } from 'lucide-react';
+import { EyeOffIcon, PlusIcon, SlidersHorizontalIcon } from 'lucide-react';
 import { forwardRef, useEffect, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import configRepository from '@/repositories/configRepository';
 import { refreshFriendAndFavoriteSnapshots } from '@/services/backgroundMaintenanceService';
 import { SECOND_MS } from '@/shared/constants/time';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { Button } from '@/ui/shadcn/button';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -90,6 +91,12 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
         const [friendRefreshCooldownUntil, setFriendRefreshCooldownUntil] =
             useState(0);
         const [customTabsDialogOpen, setCustomTabsDialogOpen] = useState(false);
+        const [customTabsAutoAdd, setCustomTabsAutoAdd] = useState(false);
+
+        function openCustomTabsDialog(autoAdd = false) {
+            setCustomTabsAutoAdd(autoAdd);
+            setCustomTabsDialogOpen(true);
+        }
 
         useEffect(() => {
             let active = true;
@@ -393,9 +400,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                                                 <ContextMenuGroup>
                                                     <ContextMenuItem
                                                         onClick={() =>
-                                                            setCustomTabsDialogOpen(
-                                                                true
-                                                            )
+                                                            openCustomTabsDialog()
                                                         }
                                                     >
                                                         <SlidersHorizontalIcon />
@@ -410,6 +415,21 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                                 })}
                             </TabsList>
                         </div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0"
+                            title={t(
+                                'side_panel.settings.custom_tabs.add_favorite_tab'
+                            )}
+                            aria-label={t(
+                                'side_panel.settings.custom_tabs.add_favorite_tab'
+                            )}
+                            onClick={() => openCustomTabsDialog(true)}
+                        >
+                            <PlusIcon data-icon="inline-start" />
+                        </Button>
                         <SidePanelSettingsPopover
                             open={settingsPopoverOpen}
                             onOpenChange={setSettingsPopoverOpen}
@@ -438,7 +458,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                                 setFavoriteGroupOrderDialogOpen(true)
                             }
                             onOpenCustomTabsDialog={() =>
-                                setCustomTabsDialogOpen(true)
+                                openCustomTabsDialog()
                             }
                         />
                     </div>
@@ -491,10 +511,16 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                 />
                 <SidePanelCustomTabsDialog
                     open={customTabsDialogOpen}
-                    onOpenChange={setCustomTabsDialogOpen}
+                    onOpenChange={(open) => {
+                        setCustomTabsDialogOpen(open);
+                        if (!open) {
+                            setCustomTabsAutoAdd(false);
+                        }
+                    }}
                     layout={tabLayout}
                     displayMode={tabDisplayMode}
                     favoriteGroupItems={favoriteGroupItems}
+                    autoCreateCollection={customTabsAutoAdd}
                     onSave={saveCustomTabs}
                 />
             </aside>
