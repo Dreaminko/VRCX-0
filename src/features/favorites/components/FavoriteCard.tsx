@@ -689,11 +689,12 @@ const FavoriteCard = memo(function FavoriteCard({
     return (
         <div
             className={cn(
-                'group/fav-card hover:bg-muted flex h-full w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg border px-2.5 py-2 text-sm transition-colors',
+                'group/fav-card hover:bg-muted relative flex h-full w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg border px-2.5 py-2 text-sm transition-colors',
                 selected && 'border-primary ring-primary/50 ring-1'
             )}
             {...cardShellProps}
         >
+            {renderSelectionCheckbox('absolute top-1 left-1 z-20')}
             <UserHoverCard {...friendHoverCardProps}>
                 <div
                     className={cn(
@@ -733,9 +734,6 @@ const FavoriteCard = memo(function FavoriteCard({
                             className="absolute -right-0.5 -bottom-0.5 z-10 size-3.75"
                         />
                     ) : null}
-                    {renderSelectionCheckbox(
-                        'absolute inset-0 z-20 flex items-center justify-center'
-                    )}
                 </div>
             </UserHoverCard>
             <div className="min-w-0 flex-1">
