@@ -331,7 +331,7 @@ const FavoriteCard = memo(function FavoriteCard({
             className={cn(
                 positionClassName,
                 'opacity-0 transition-opacity',
-                'group-focus-within/fav-card:opacity-100 group-hover/fav-card:opacity-100',
+                'group-hover/fav-card:opacity-100 group-has-[:focus-visible]/fav-card:opacity-100',
                 selected && 'opacity-100'
             )}
             onClickCapture={handleCheckboxClickCapture}
