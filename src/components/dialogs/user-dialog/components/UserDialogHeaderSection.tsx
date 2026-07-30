@@ -34,6 +34,7 @@ import type {
 } from '../userDialogContentHelpers';
 import {
     normalizeProfileAppearanceColor,
+    resolveUserDialogBackgroundTextureUrl,
     resolveProfileDecorationAssetUrls,
     type UserDialogProfileAppearance
 } from '../userDialogProfileAppearance';
@@ -74,6 +75,31 @@ function linearGradientStyle(
     return {
         backgroundImage: `linear-gradient(${angle}deg, ${start}, ${end})`
     };
+}
+
+function resolveProfileBackgroundStyle(
+    profile: UserDialogProfileRecord
+): CSSProperties | undefined {
+    if (profile.backgroundType === 'gradient') {
+        return linearGradientStyle(
+            180,
+            normalizeProfileAppearanceColor(profile.backgroundGradientTop),
+            normalizeProfileAppearanceColor(profile.backgroundGradientBottom)
+        );
+    }
+    if (profile.backgroundType === 'texture') {
+        const url = resolveUserDialogBackgroundTextureUrl(profile);
+        if (url) {
+            const overlay = 'color-mix(in oklch, var(--card) 55%, transparent)';
+            return {
+                backgroundImage: `linear-gradient(${overlay}, ${overlay}), url("${url}")`,
+                backgroundPosition: 'top center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover'
+            };
+        }
+    }
+    return undefined;
 }
 
 export interface UserHeaderModel {
@@ -555,20 +581,7 @@ export function UserDialogHeaderSection({
         : '';
     const hasProfileBadges = hasRenderableUserProfileBadges(profile);
     const isOwner = profile.id === OWNER_USER_ID;
-    const backgroundGradientTop = normalizeProfileAppearanceColor(
-        profile.backgroundGradientTop
-    );
-    const backgroundGradientBottom = normalizeProfileAppearanceColor(
-        profile.backgroundGradientBottom
-    );
-    const profileBackgroundStyle =
-        profile.backgroundType === 'gradient'
-            ? linearGradientStyle(
-                  180,
-                  backgroundGradientTop,
-                  backgroundGradientBottom
-              )
-            : undefined;
+    const profileBackgroundStyle = resolveProfileBackgroundStyle(profile);
     const nameplateGradientStart = normalizeProfileAppearanceColor(
         profileAppearance.nameplateEffect?.metadata?.gradientStart
     );

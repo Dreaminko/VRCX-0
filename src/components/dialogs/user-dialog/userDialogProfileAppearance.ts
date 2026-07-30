@@ -1,4 +1,8 @@
 import type { InventoryItemRecord } from '@/repositories/vrchatMediaRepository';
+import {
+    profileBackgroundAssetUrl,
+    profileBackgroundFileList
+} from '@/shared/constants/profileBackgrounds';
 
 import type {
     UserDialogProfileRecord,
@@ -81,6 +85,14 @@ export function mergeUserDialogProfileAppearance(
 export function normalizeProfileAppearanceColor(value: unknown): string {
     const color = normalizeText(value).replace(/^#/, '');
     return /^[\da-f]{6}$/i.test(color) ? `#${color.toLowerCase()}` : '';
+}
+
+export function resolveUserDialogBackgroundTextureUrl(
+    profile: UserDialogProfileRecord
+): string {
+    const fileName =
+        profileBackgroundFileList[normalizeText(profile.backgroundTextureId)];
+    return fileName ? `${profileBackgroundAssetUrl}${fileName}` : '';
 }
 
 export function resolveUserDialogBannerUrl(
