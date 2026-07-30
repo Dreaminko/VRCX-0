@@ -253,9 +253,7 @@ export function FavoritesContentPanel({
         ].join(':'),
         showGroupLabel: viewData.isSearchActive
     });
-    const showCopyIdsButton = selection.selectedContentItems.some(
-        (item: any) => item.source !== 'local'
-    );
+    const showCopyIdsButton = selection.selectedContentItems.length > 0;
     const title = viewData.isSearchActive
         ? viewData.pageConfig.searchPlaceholder
         : viewData.selectedGroup
