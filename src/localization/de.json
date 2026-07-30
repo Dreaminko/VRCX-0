@@ -447,6 +447,7 @@
         "favorite_friends": "Favoriten-Freunde",
         "favorite_worlds": "Favoriten-Welten",
         "favorite_avatars": "Favoriten-Avatare",
+        "favorite_import": "Favoriten-Import",
         "my_avatars": "Meine Avatare",
         "social": "Sozial",
         "friend_log": "Freundschaftsverlauf",
@@ -4818,7 +4819,8 @@
             "action": {
                 "import": "importieren",
                 "clear_table": "Tabelle leeren",
-                "clear_errors": "Fehler löschen"
+                "clear_errors": "Fehler löschen",
+                "exclude": "Ausschließen"
             },
             "description": {
                 "paste_exported_ids_process_the_list_then_import_to_a_vrchat_or_local_favorite_group": "Füge exportierte IDs ein, verarbeite die Liste und importiere sie anschließend in eine VRChat-Favoritengruppe oder eine lokale Favoritengruppe"
@@ -4831,7 +4833,21 @@
                 "name": "Name",
                 "detail": "Details",
                 "actions": "Aktionen",
-                "rows_yet": "Zeilen bisher"
+                "rows_yet": "Zeilen bisher",
+                "import_to": "Importieren nach",
+                "vrchat": "VRChat",
+                "local": "Lokal",
+                "select_group": "Gruppe auswählen"
+            },
+            "status": {
+                "processing": "Wird verarbeitet",
+                "importing": "Wird importiert"
+            },
+            "placeholder": {
+                "paste_ids": "Exportierte IDs hier einfügen"
+            },
+            "dynamic": {
+                "detected_count": "{count} erkannt"
             },
             "empty": {
                 "no_parsed": "Keine verarbeitet"

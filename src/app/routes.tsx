@@ -116,6 +116,16 @@ export const protectedRoutes: AppRouteDefinition[] = [
         )
     },
     {
+        path: '/favorites/import/:kind',
+        titleKey: 'app.routes.favorite_import',
+        descriptionKey:
+            'app.routes.favorite_import_paste_export_and_import_to_groups',
+        element: lazyRouteElement(
+            () => import('@/features/favorites/FavoriteImportPage'),
+            'FavoriteImportPage'
+        )
+    },
+    {
         path: '/favorites/friends',
         titleKey: 'app.routes.favorite_friends',
         descriptionKey:

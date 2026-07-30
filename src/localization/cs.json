@@ -447,6 +447,7 @@
         "favorite_friends": "Oblíbení přátelé",
         "favorite_worlds": "Oblíbené světy",
         "favorite_avatars": "Oblíbení avataři",
+        "favorite_import": "Import oblíbených",
         "my_avatars": "Moji avataři",
         "social": "Sociální",
         "friend_log": "Záznam přátel",
@@ -4822,7 +4823,8 @@
             "action": {
                 "import": "importovat",
                 "clear_table": "Vymazat tabulku",
-                "clear_errors": "Vymazat chyby"
+                "clear_errors": "Vymazat chyby",
+                "exclude": "Vyloučit"
             },
             "description": {
                 "paste_exported_ids_process_the_list_then_import_to_a_vrchat_or_local_favorite_group": "Vložte exportovaná ID, zpracujte seznam a poté je importujte do skupiny oblíbených VRChat nebo do místní skupiny oblíbených"
@@ -4835,7 +4837,21 @@
                 "name": "Název",
                 "detail": "Podrobnosti",
                 "actions": "Akce",
-                "rows_yet": "řádků zatím"
+                "rows_yet": "řádků zatím",
+                "import_to": "Importovat do",
+                "vrchat": "VRChat",
+                "local": "Místní",
+                "select_group": "Vyberte skupinu"
+            },
+            "status": {
+                "processing": "Zpracovávání",
+                "importing": "Importování"
+            },
+            "placeholder": {
+                "paste_ids": "Sem vložte exportovaná ID"
+            },
+            "dynamic": {
+                "detected_count": "Nalezeno: {count}"
             },
             "empty": {
                 "no_parsed": "Nezpracováno"

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 
-import { openFavoriteImportDialog } from '@/services/favoriteImportService';
 import { useFavoriteStore } from '@/state/favoriteStore';
 
 import type {
@@ -68,6 +68,7 @@ export function useFavoritesActions({
     setSelectedKeys(value: string[] | ((current: string[]) => string[])): void;
     setSelectedSource(value: FavoriteSource): void;
 }) {
+    const navigate = useNavigate();
     const [refreshing, setRefreshing] = useState(false);
     const [removingFavoriteKey, setRemovingFavoriteKey] = useState('');
     const removingFavoriteKeyRef = useRef('');
@@ -129,9 +130,7 @@ export function useFavoritesActions({
     });
 
     function importFavorites() {
-        openFavoriteImportDialog({
-            type: kind
-        });
+        navigate(`/favorites/import/${kind}`);
     }
 
     return {

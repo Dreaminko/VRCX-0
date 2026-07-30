@@ -447,6 +447,7 @@
         "favorite_friends": "好友分组",
         "favorite_worlds": "世界收藏",
         "favorite_avatars": "模型收藏",
+        "favorite_import": "收藏导入",
         "my_avatars": "我的模型",
         "social": "社交",
         "friend_log": "好友日志",
@@ -4818,7 +4819,8 @@
             "action": {
                 "import": "导入",
                 "clear_table": "清除表格",
-                "clear_errors": "清除错误"
+                "clear_errors": "清除错误",
+                "exclude": "排除"
             },
             "description": {
                 "paste_exported_ids_process_the_list_then_import_to_a_vrchat_or_local_favorite_group": "粘贴导出的 ID，处理列表后导入到 VRChat 收藏分组或本地收藏分组"
@@ -4831,7 +4833,21 @@
                 "name": "名称",
                 "detail": "详细信息",
                 "actions": "操作",
-                "rows_yet": "行"
+                "rows_yet": "行",
+                "import_to": "导入到",
+                "vrchat": "VRChat",
+                "local": "本地",
+                "select_group": "选择收藏分组"
+            },
+            "status": {
+                "processing": "处理中",
+                "importing": "导入中"
+            },
+            "placeholder": {
+                "paste_ids": "在此粘贴导出的 ID"
+            },
+            "dynamic": {
+                "detected_count": "检测到 {count} 个"
             },
             "empty": {
                 "no_parsed": "没有可导入的条目"

@@ -447,6 +447,7 @@
         "favorite_friends": "Favorite Friends",
         "favorite_worlds": "Favorite Worlds",
         "favorite_avatars": "Favorite Avatars",
+        "favorite_import": "Favorite Import",
         "my_avatars": "My Avatars",
         "social": "Social",
         "friend_log": "Friend History",
@@ -4818,7 +4819,8 @@
             "action": {
                 "import": "import",
                 "clear_table": "Clear table",
-                "clear_errors": "Clear errors"
+                "clear_errors": "Clear errors",
+                "exclude": "Exclude"
             },
             "description": {
                 "paste_exported_ids_process_the_list_then_import_to_a_vrchat_or_local_favorite_group": "Paste exported IDs, process the list, then import to a VRChat favorite group or a local favorite group"
@@ -4831,7 +4833,21 @@
                 "name": "Name",
                 "detail": "Detail",
                 "actions": "Actions",
-                "rows_yet": "rows yet"
+                "rows_yet": "rows yet",
+                "import_to": "Import to",
+                "vrchat": "VRChat",
+                "local": "Local",
+                "select_group": "Select a group"
+            },
+            "status": {
+                "processing": "Processing",
+                "importing": "Importing"
+            },
+            "placeholder": {
+                "paste_ids": "Paste exported IDs here"
+            },
+            "dynamic": {
+                "detected_count": "{count} detected"
             },
             "empty": {
                 "no_parsed": "No parsed"

@@ -4,7 +4,6 @@ import { AppToaster } from './AppToaster';
 import { BackgroundRouteResumeHost } from './BackgroundRouteResumeHost';
 import { CommunityThemeSafetyHost } from './CommunityThemeSafetyHost';
 import { DialogHost } from './DialogHost';
-import { FavoriteImportHost } from './FavoriteImportHost';
 import { FriendProfileLoadHost } from './FriendProfileLoadHost';
 import { LaunchDialogHost } from './LaunchDialogHost';
 import { ModalHost } from './ModalHost';
@@ -22,7 +21,6 @@ export function GlobalHosts() {
             <BackgroundRouteResumeHost />
             <ModalHost />
             <DialogHost />
-            <FavoriteImportHost />
             <FriendProfileLoadHost />
             <NotificationHost />
             <VrcNotificationCenterHost />

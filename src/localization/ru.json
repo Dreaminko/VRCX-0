@@ -447,6 +447,7 @@
         "favorite_friends": "Избранные друзья",
         "favorite_worlds": "Избранные миры",
         "favorite_avatars": "Избранные аватары",
+        "favorite_import": "Импорт избранного",
         "my_avatars": "Мои Аватары",
         "social": "Социальные",
         "friend_log": "Журнал друзей",
@@ -4822,7 +4823,8 @@
             "action": {
                 "import": "импорт",
                 "clear_table": "Очистить стол",
-                "clear_errors": "Очистить ошибки"
+                "clear_errors": "Очистить ошибки",
+                "exclude": "Исключить"
             },
             "description": {
                 "paste_exported_ids_process_the_list_then_import_to_a_vrchat_or_local_favorite_group": "Вставьте экспортированные ID, обработайте список, затем импортируйте их в группу избранного VRChat или локальную группу избранного."
@@ -4835,7 +4837,21 @@
                 "name": "Имя",
                 "detail": "Подробная информация",
                 "actions": "Меры",
-                "rows_yet": "ряды"
+                "rows_yet": "ряды",
+                "import_to": "Импортировать в",
+                "vrchat": "VRChat",
+                "local": "Локально",
+                "select_group": "Выберите группу"
+            },
+            "status": {
+                "processing": "Обработка",
+                "importing": "Импорт"
+            },
+            "placeholder": {
+                "paste_ids": "Вставьте сюда экспортированные ID"
+            },
+            "dynamic": {
+                "detected_count": "Найдено: {count}"
             },
             "empty": {
                 "no_parsed": "Без обрезания"

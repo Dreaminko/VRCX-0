@@ -446,6 +446,7 @@
         "favorite_friends": "좋아하는 친구",
         "favorite_worlds": "좋아하는 세계",
         "favorite_avatars": "좋아하는 아바타",
+        "favorite_import": "즐겨찾기 가져오기",
         "my_avatars": "내 아바타",
         "social": "소셜",
         "friend_log": "친구 기록",
@@ -4745,7 +4746,8 @@
             "action": {
                 "import": "가져오기",
                 "clear_table": "테이블 지우기",
-                "clear_errors": "오류 지우기"
+                "clear_errors": "오류 지우기",
+                "exclude": "제외"
             },
             "label": {
                 "process_list": "프로세스 목록",
@@ -4755,7 +4757,21 @@
                 "detail": "세부정보",
                 "actions": "작업",
                 "rows_yet": "아직 행",
-                "vrchat_group": "VRChat 그룹"
+                "vrchat_group": "VRChat 그룹",
+                "import_to": "가져올 위치",
+                "vrchat": "VRChat",
+                "local": "로컬",
+                "select_group": "그룹 선택"
+            },
+            "status": {
+                "processing": "처리 중",
+                "importing": "가져오는 중"
+            },
+            "placeholder": {
+                "paste_ids": "내보낸 ID를 여기에 붙여넣기"
+            },
+            "dynamic": {
+                "detected_count": "{count}개 감지됨"
             },
             "empty": {
                 "no_parsed": "파싱되지 않음"

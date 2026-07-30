@@ -149,24 +149,41 @@ async function waitForFavoriteImport(
     type: FavoriteImportKind
 ): Promise<FavoriteImportStatus> {
     let status = initialStatus;
+    let appliedItems = 0;
     while (status.runId === initialStatus.runId && isBackendActive(status)) {
         if (!isActiveDialogSession(sessionId, type)) {
             return commands.appFavoriteImportCancel();
         }
         setProgress(status.operation, status.processed, status.total);
+        appliedItems = applyFavoriteImportItems(
+            type,
+            status.operation,
+            status.items,
+            appliedItems
+        );
         await windowDelay(100);
         status = await commands.appFavoriteImportStatus();
+    }
+    if (isActiveDialogSession(sessionId, type)) {
+        applyFavoriteImportItems(
+            type,
+            status.operation,
+            status.items,
+            appliedItems
+        );
     }
     return status;
 }
 
-function applyFavoriteImportResults(
+function applyFavoriteImportItems(
     type: FavoriteImportKind,
     operation: FavoriteImportOperation,
-    status: FavoriteImportStatus
-): void {
+    items: FavoriteImportStatus['items'],
+    fromIndex: number
+): number {
     const store = useFavoriteImportStore.getState();
-    for (const item of status.items) {
+    for (let index = fromIndex; index < items.length; index += 1) {
+        const item = items[index];
         if (item.state === 'failed') {
             store.appendError(buildError(type, item.id, item.message));
             continue;
@@ -180,9 +197,7 @@ function applyFavoriteImportResults(
             store.removeRow(item.id);
         }
     }
-    if (status.status === 'error' && status.lastError) {
-        store.appendError(buildError(type, '', status.lastError));
-    }
+    return items.length;
 }
 
 function appendFavoriteImportError(
@@ -225,8 +240,14 @@ async function runFavoriteImport({
             sessionId,
             type
         );
-        if (isActiveDialogSession(sessionId, type)) {
-            applyFavoriteImportResults(type, operation, status);
+        if (
+            isActiveDialogSession(sessionId, type) &&
+            status.status === 'error' &&
+            status.lastError
+        ) {
+            useFavoriteImportStore
+                .getState()
+                .appendError(buildError(type, '', status.lastError));
         }
         return status;
     } finally {
@@ -270,7 +291,6 @@ export async function processFavoriteImportList(): Promise<void> {
     );
     const sessionId = store.sessionId;
     store.setErrors('');
-    store.setInput('');
     if (!ids.length) {
         store.setProgress(0, 0);
         return;

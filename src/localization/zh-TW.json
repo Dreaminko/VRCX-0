@@ -447,6 +447,7 @@
         "favorite_friends": "收藏好友",
         "favorite_worlds": "收藏世界",
         "favorite_avatars": "收藏角色",
+        "favorite_import": "收藏匯入",
         "my_avatars": "我的角色",
         "social": "社交",
         "friend_log": "好友紀錄",
@@ -4818,7 +4819,8 @@
             "action": {
                 "import": "匯入",
                 "clear_table": "清除表格",
-                "clear_errors": "清除錯誤"
+                "clear_errors": "清除錯誤",
+                "exclude": "排除"
             },
             "description": {
                 "paste_exported_ids_process_the_list_then_import_to_a_vrchat_or_local_favorite_group": "貼上匯出的 ID，處理列表後匯入到 VRChat 收藏分組或本機收藏分組"
@@ -4831,7 +4833,21 @@
                 "name": "名稱",
                 "detail": "詳細資訊",
                 "actions": "操作",
-                "rows_yet": "行"
+                "rows_yet": "行",
+                "import_to": "匯入到",
+                "vrchat": "VRChat",
+                "local": "本機",
+                "select_group": "選擇收藏分組"
+            },
+            "status": {
+                "processing": "處理中",
+                "importing": "匯入中"
+            },
+            "placeholder": {
+                "paste_ids": "在此貼上匯出的 ID"
+            },
+            "dynamic": {
+                "detected_count": "偵測到 {count} 個"
             },
             "empty": {
                 "no_parsed": "沒有可匯入的項目"

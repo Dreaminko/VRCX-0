@@ -447,6 +447,7 @@
         "favorite_friends": "お気に入りのフレンド",
         "favorite_worlds": "お気に入りのワールド",
         "favorite_avatars": "お気に入りのアバター",
+        "favorite_import": "お気に入りのインポート",
         "my_avatars": "自分のアバター",
         "social": "ソーシャル",
         "friend_log": "フレンドログ",
@@ -4810,7 +4811,8 @@
             "action": {
                 "import": "インポート",
                 "clear_table": "テーブルをクリア",
-                "clear_errors": "エラーをクリア"
+                "clear_errors": "エラーをクリア",
+                "exclude": "除外"
             },
             "description": {
                 "paste_exported_ids_process_the_list_then_import_to_a_vrchat_or_local_favorite_group": "エクスポートした ID を貼り付け、一覧を処理してから VRChat のお気に入りグループまたはローカルのお気に入りグループにインポートします"
@@ -4823,7 +4825,21 @@
                 "name": "名前",
                 "detail": "詳細",
                 "actions": "アクション",
-                "rows_yet": "行"
+                "rows_yet": "行",
+                "import_to": "インポート先",
+                "vrchat": "VRChat",
+                "local": "ローカル",
+                "select_group": "グループを選択"
+            },
+            "status": {
+                "processing": "取得中",
+                "importing": "インポート中"
+            },
+            "placeholder": {
+                "paste_ids": "エクスポートした ID を貼り付け"
+            },
+            "dynamic": {
+                "detected_count": "{count} 件を検出"
             },
             "empty": {
                 "no_parsed": "解析済みの項目がありません"
