@@ -1,8 +1,29 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveRemoteFavoriteGroupLabel } from './FavoriteActionMenu';
+import {
+    resolveFavoriteEntityLabel,
+    resolveRemoteFavoriteGroupLabel
+} from './FavoriteActionMenu';
 
 describe('FavoriteActionMenu helpers', () => {
+    it('uses a fetched friend display name in the remove confirmation', () => {
+        expect(
+            resolveFavoriteEntityLabel(
+                {
+                    id: 'usr_friend',
+                    displayName: 'Example Friend'
+                },
+                'usr_friend'
+            )
+        ).toBe('Example Friend');
+    });
+
+    it('falls back to the entity id before profile details are available', () => {
+        expect(resolveFavoriteEntityLabel(null, 'usr_friend')).toBe(
+            'usr_friend'
+        );
+    });
+
     it('shows the remote favorite group display name instead of its key', () => {
         expect(
             resolveRemoteFavoriteGroupLabel(

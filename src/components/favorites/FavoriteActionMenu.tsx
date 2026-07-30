@@ -52,6 +52,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
+export function resolveFavoriteEntityLabel(
+    entity: unknown,
+    entityId: unknown
+): string {
+    const normalizedEntityId = normalizeEntityId(entityId);
+    if (!isRecord(entity)) {
+        return normalizedEntityId;
+    }
+
+    return (
+        normalizeEntityId(entity.displayName) ||
+        normalizeEntityId(entity.name) ||
+        normalizeEntityId(entity.username) ||
+        normalizedEntityId
+    );
+}
+
 function resolveGroups(kind: FavoriteKind, state: FavoriteStore) {
     if (kind === 'friend') {
         return state.favoriteFriendGroups;
@@ -156,6 +173,7 @@ export function FavoriteActionMenu({
     const { t } = useTranslation();
 
     const normalizedEntityId = normalizeEntityId(entityId);
+    const entityLabel = resolveFavoriteEntityLabel(entity, normalizedEntityId);
     const confirm = useModalStore((state) => state.confirm);
     const groups = useFavoriteStore((state) => resolveGroups(kind, state));
     const storedLocalGroups = useFavoriteStore((state) =>
@@ -252,7 +270,7 @@ export function FavoriteActionMenu({
             ),
             description: t(
                 'component.favorite_action_menu.dynamic.remove_value_from_vrchat_favorites',
-                { value: normalizedEntityId }
+                { value: entityLabel }
             ),
             destructive: true,
             confirmText: t('common.actions.remove'),
