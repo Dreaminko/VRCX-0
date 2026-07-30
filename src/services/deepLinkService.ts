@@ -6,6 +6,7 @@ import type {
     SharedCollectionImportStatus
 } from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
+import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import shareCollectionRepository from '@/repositories/shareCollectionRepository';
 import { isCollectionShortcode } from '@/shared/constants/collectionShare';
 import { isAvatarId, isWorldId } from '@/shared/constants/vrchatIds';
@@ -207,22 +208,53 @@ async function importSharedCollectionFlow(collectionId: string): Promise<void> {
         return;
     }
 
-    const prompt = await useModalStore.getState().prompt({
-        title: i18n.t('deep_link.import_collection.prompt.title'),
-        description: i18n.t('deep_link.import_collection.prompt.description', {
-            count: worldCount
-        }),
-        inputValue: preview.title || collectionId,
-        pattern: /\S/,
-        confirmText: i18n.t('deep_link.import_collection.confirm.confirm'),
-        cancelText: i18n.t('deep_link.import_collection.confirm.cancel')
-    });
-    if (!prompt.ok || typeof prompt.value !== 'string') {
-        return;
-    }
-    const groupName = prompt.value.trim();
-    if (!groupName) {
-        return;
+    let groupName = preview.title || collectionId;
+    while (true) {
+        const prompt = await useModalStore.getState().prompt({
+            title: i18n.t('deep_link.import_collection.prompt.title'),
+            description: i18n.t(
+                'deep_link.import_collection.prompt.description',
+                {
+                    count: worldCount
+                }
+            ),
+            inputValue: groupName,
+            pattern: /\S/,
+            confirmText: i18n.t('deep_link.import_collection.confirm.confirm'),
+            cancelText: i18n.t('deep_link.import_collection.confirm.cancel')
+        });
+        if (!prompt.ok || typeof prompt.value !== 'string') {
+            return;
+        }
+        groupName = prompt.value.trim();
+        if (!groupName) {
+            return;
+        }
+        let existingGroups: string[];
+        try {
+            existingGroups =
+                await favoritePersistenceRepository.getFreshExplicitLocalFavoriteGroups(
+                    'world'
+                );
+        } catch (error) {
+            toast.error(
+                errorMessage(
+                    error,
+                    i18n.t('deep_link.import_collection.toast.import_failed')
+                )
+            );
+            return;
+        }
+        if (existingGroups.includes(groupName)) {
+            toast.error(
+                i18n.t(
+                    'deep_link.import_collection.prompt.name_already_exists',
+                    { name: groupName }
+                )
+            );
+            continue;
+        }
+        break;
     }
 
     try {

@@ -53,7 +53,8 @@
         "import_collection": {
             "prompt": {
                 "title": "新建本地世界收藏",
-                "description": "为即将导入的 {count} 个世界输入本地收藏夹名称。"
+                "description": "为即将导入的 {count} 个世界输入本地收藏夹名称。",
+                "name_already_exists": "已存在名为「{name}」的本地收藏夹，请换一个名称。"
             },
             "confirm": {
                 "title": "导入世界合集？",

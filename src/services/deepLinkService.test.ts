@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     prompt: vi.fn(),
     openAvatarDialog: vi.fn(),
     openWorldDialog: vi.fn(),
+    getFreshExplicitLocalFavoriteGroups: vi.fn(),
     previewSharedCollection: vi.fn(),
     toastSuccess: vi.fn(),
     toastError: vi.fn(),
@@ -58,6 +59,13 @@ vi.mock('@/platform/tauri/client', () => ({
 vi.mock('@/repositories/shareCollectionRepository', () => ({
     default: {
         previewSharedCollection: mocks.previewSharedCollection
+    }
+}));
+
+vi.mock('@/repositories/favoritePersistenceRepository', () => ({
+    default: {
+        getFreshExplicitLocalFavoriteGroups:
+            mocks.getFreshExplicitLocalFavoriteGroups
     }
 }));
 
@@ -124,6 +132,7 @@ describe('deepLinkService', () => {
         useWorldCollectionImportStore.getState().reset();
         mocks.appDrainPendingDeepLinks.mockResolvedValue([]);
         mocks.appSharedCollectionImportStatus.mockResolvedValue(importStatus());
+        mocks.getFreshExplicitLocalFavoriteGroups.mockResolvedValue([]);
         mocks.subscribe.mockImplementation(async (name, handler) => {
             mocks.eventHandlers.set(name, handler);
             return name === 'deepLinkArrived'
@@ -244,6 +253,86 @@ describe('deepLinkService', () => {
             );
         });
         unbind();
+    });
+
+    it('asks for a different name when the local world group already exists', async () => {
+        const completed = importStatus({
+            runId: 'run-renamed',
+            status: 'completed',
+            total: 1,
+            processed: 1,
+            imported: 1,
+            groupName: 'Renamed collection'
+        });
+        mocks.getFreshExplicitLocalFavoriteGroups.mockResolvedValue([
+            'Scenic picks'
+        ]);
+        mocks.previewSharedCollection.mockResolvedValueOnce({
+            title: 'Scenic picks',
+            worldIds: [WORLD_ID]
+        });
+        mocks.prompt
+            .mockResolvedValueOnce({
+                ok: true,
+                reason: 'ok',
+                value: 'Scenic picks'
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                reason: 'ok',
+                value: 'Renamed collection'
+            });
+        mocks.appSharedCollectionImportStart.mockResolvedValueOnce(completed);
+
+        handleDeepLinkAction({
+            type: 'importCollection',
+            collectionId: 'Rename1'
+        });
+
+        await vi.waitFor(() => {
+            expect(mocks.prompt).toHaveBeenCalledTimes(2);
+            expect(mocks.appSharedCollectionImportStart).toHaveBeenCalledWith({
+                worldIds: [WORLD_ID],
+                groupName: 'Renamed collection'
+            });
+        });
+        expect(mocks.toastError).toHaveBeenCalledWith(
+            'deep_link.import_collection.prompt.name_already_exists:{"name":"Scenic picks"}'
+        );
+        expect(mocks.getFreshExplicitLocalFavoriteGroups).toHaveBeenCalledTimes(
+            2
+        );
+        expect(mocks.prompt).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({ inputValue: 'Scenic picks' })
+        );
+    });
+
+    it('does not import when existing local groups cannot be checked', async () => {
+        mocks.previewSharedCollection.mockResolvedValueOnce({
+            title: 'Scenic picks',
+            worldIds: [WORLD_ID]
+        });
+        mocks.prompt.mockResolvedValueOnce({
+            ok: true,
+            reason: 'ok',
+            value: 'Scenic picks'
+        });
+        mocks.getFreshExplicitLocalFavoriteGroups.mockRejectedValueOnce(
+            new Error('group lookup failed')
+        );
+
+        handleDeepLinkAction({
+            type: 'importCollection',
+            collectionId: 'Lookup1'
+        });
+
+        await vi.waitFor(() => {
+            expect(mocks.toastError).toHaveBeenCalledWith(
+                'group lookup failed'
+            );
+        });
+        expect(mocks.appSharedCollectionImportStart).not.toHaveBeenCalled();
     });
 
     it('serializes collection prompts until the backend run is terminal', async () => {

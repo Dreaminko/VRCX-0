@@ -53,7 +53,8 @@
         "import_collection": {
             "prompt": {
                 "title": "建立本機世界集合",
-                "description": "請選擇本機集合的名稱，用來接收 {count} 個世界。"
+                "description": "請選擇本機集合的名稱，用來接收 {count} 個世界。",
+                "name_already_exists": "已經有名為「{name}」的本機集合，請換一個名稱。"
             },
             "confirm": {
                 "title": "要匯入世界集合嗎？",

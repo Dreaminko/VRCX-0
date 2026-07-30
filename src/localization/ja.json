@@ -53,7 +53,8 @@
         "import_collection": {
             "prompt": {
                 "title": "ローカルのワールドコレクションを作成",
-                "description": "{count} 件のワールドを保存するローカルコレクション名を入力してください。"
+                "description": "{count} 件のワールドを保存するローカルコレクション名を入力してください。",
+                "name_already_exists": "「{name}」というローカルコレクションはすでにあります。別の名前を入力してください。"
             },
             "confirm": {
                 "title": "ワールドコレクションをインポートしますか？",

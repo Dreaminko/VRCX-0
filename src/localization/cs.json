@@ -53,7 +53,8 @@
         "import_collection": {
             "prompt": {
                 "title": "Vytvořit místní kolekci světů",
-                "description": "Zvolte název místní kolekce pro {count} světů."
+                "description": "Zvolte název místní kolekce pro {count} světů.",
+                "name_already_exists": "Místní kolekce s názvem „{name}“ už existuje. Zvolte jiný název."
             },
             "confirm": {
                 "title": "Importovat kolekci světů?",

@@ -53,7 +53,8 @@
         "import_collection": {
             "prompt": {
                 "title": "Lokale Welten-Sammlung erstellen",
-                "description": "Wähle einen Namen für die lokale Sammlung mit {count} Welten."
+                "description": "Wähle einen Namen für die lokale Sammlung mit {count} Welten.",
+                "name_already_exists": "Eine lokale Sammlung namens \"{name}\" ist bereits vorhanden. Wähle einen anderen Namen."
             },
             "confirm": {
                 "title": "Weltensammlung importieren?",

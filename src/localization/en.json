@@ -53,7 +53,8 @@
         "import_collection": {
             "prompt": {
                 "title": "Create local world collection",
-                "description": "Choose a name for the local collection that will receive {count} worlds."
+                "description": "Choose a name for the local collection that will receive {count} worlds.",
+                "name_already_exists": "A local collection named \"{name}\" already exists. Choose a different name."
             },
             "confirm": {
                 "title": "Import world collection?",
