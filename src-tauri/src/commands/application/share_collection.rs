@@ -80,11 +80,3 @@ pub fn app__shared_collection_import_status(
 ) -> SharedCollectionImportStatus {
     state.shared_collection_import.status()
 }
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__shared_collection_import_cancel(
-    state: State<'_, AppState>,
-) -> SharedCollectionImportStatus {
-    state.shared_collection_import.cancel()
-}

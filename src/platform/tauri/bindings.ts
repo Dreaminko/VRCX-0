@@ -226,9 +226,6 @@ export const commands = {
     async appSharedCollectionImportStatus(): Promise<SharedCollectionImportStatus> {
         return await TAURI_INVOKE('app__shared_collection_import_status');
     },
-    async appSharedCollectionImportCancel(): Promise<SharedCollectionImportStatus> {
-        return await TAURI_INVOKE('app__shared_collection_import_cancel');
-    },
     async appFavoriteImportStart(
         input: FavoriteImportStartInput
     ): Promise<FavoriteImportStatus> {
