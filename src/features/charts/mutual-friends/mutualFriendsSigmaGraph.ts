@@ -470,6 +470,10 @@ export function renderSigmaGraph({
             return result;
         }
 
+        if (!graph.hasEdge(edge)) {
+            return result;
+        }
+
         const [source, target] = graph.extremities(edge);
         const isIncident = source === hovered || target === hovered;
         result.color = isIncident
