@@ -4,6 +4,8 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::time::{Duration, Instant};
+#[cfg(test)]
+use std::{future::Future, pin::Pin};
 
 use chrono::{Datelike, Local, Timelike};
 use uuid::Uuid;
@@ -31,6 +33,12 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30 * 60);
 const LOOP_SLEEP: Duration = Duration::from_secs(1);
 const SHUTDOWN_FLUSH_TIMEOUT: Duration = Duration::from_secs(1);
 const SEND_RETRY_BACKOFF: Duration = Duration::from_secs(60);
+
+#[cfg(test)]
+type TestPost = Arc<
+    dyn Fn(String, serde_json::Value) -> Pin<Box<dyn Future<Output = bool> + Send>> + Send + Sync,
+>;
+
 #[derive(Clone)]
 pub struct TelemetryRuntime {
     inner: Arc<TelemetryRuntimeInner>,
@@ -58,6 +66,8 @@ struct TelemetryRuntimeInner {
     running: AtomicBool,
     shutdown_requested: AtomicBool,
     shutdown_flushed: AtomicBool,
+    #[cfg(test)]
+    test_post: Option<TestPost>,
 }
 
 #[derive(Default)]
@@ -95,8 +105,19 @@ impl TelemetryRuntime {
                 running: AtomicBool::new(false),
                 shutdown_requested: AtomicBool::new(false),
                 shutdown_flushed: AtomicBool::new(false),
+                #[cfg(test)]
+                test_post: None,
             }),
         }
+    }
+
+    #[cfg(test)]
+    fn new_with_test_post(deps: TelemetryRuntimeDeps, test_post: TestPost) -> Self {
+        let mut runtime = Self::new(deps);
+        Arc::get_mut(&mut runtime.inner)
+            .expect("new telemetry runtime should have one owner")
+            .test_post = Some(test_post);
+        runtime
     }
 
     pub fn start(&self) {
@@ -402,6 +423,13 @@ impl TelemetryRuntime {
     where
         T: serde::Serialize + ?Sized,
     {
+        #[cfg(test)]
+        if let Some(test_post) = &self.inner.test_post {
+            let Ok(payload) = serde_json::to_value(payload) else {
+                return false;
+            };
+            return test_post(path.to_string(), payload).await;
+        }
         match self.inner.client.post(path, payload).await {
             Ok(()) => true,
             Err(error) => {
@@ -709,6 +737,31 @@ mod tests {
     use super::*;
 
     use chrono::Weekday;
+    use std::sync::atomic::AtomicUsize;
+    use vrcx_0_persistence::DatabaseService;
+
+    struct TestDir(PathBuf);
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx0-telemetry-contract-{name}-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
 
     fn instant_past_epoch_safe(headroom: Duration) -> Instant {
         Instant::now() + headroom
@@ -790,5 +843,95 @@ mod tests {
 
         clear_committed_error_cursor(&mut pending, "2026-07-13T10:00:00Z");
         assert!(pending.is_none());
+    }
+
+    #[tokio::test]
+    async fn client_error_flush_retries_before_advancing_versioned_log_cursor() {
+        let dir = TestDir::new("retry");
+        let error_log = (1..=21)
+            .map(|day| {
+                let version = if day == 1 { "2.0.0" } else { "2.1.0" };
+                format!(
+                    "[2026-07-{day:02} 00:00:00.000 +00:00] [2026-07-{day:02}T00:00:00.000Z] [v{version}] [rust:tracing]\nrelease failure {day}\n\n"
+                )
+            })
+            .collect::<String>();
+        std::fs::write(dir.0.join("error-log.txt"), error_log).unwrap();
+        let db = Arc::new(DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap());
+        let config = ConfigRepository::new(db);
+        config
+            .set_string(
+                TELEMETRY_CLIENT_ERROR_CURSOR_CONFIG_KEY,
+                "2026-06-30T00:00:00.000Z",
+            )
+            .unwrap();
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let payloads = Arc::new(Mutex::new(Vec::new()));
+        let runtime = TelemetryRuntime::new_with_test_post(
+            TelemetryRuntimeDeps {
+                config: config.clone(),
+                tasks: TaskSupervisor::new(),
+                backend_runtime: BackendRuntime::new(),
+                app_version: "2.2.0".into(),
+                app_data: dir.0.clone(),
+                system_theme_category: Arc::new(|| "dark".into()),
+            },
+            {
+                let attempts = attempts.clone();
+                let payloads = payloads.clone();
+                Arc::new(move |path, payload| {
+                    let attempts = attempts.clone();
+                    let payloads = payloads.clone();
+                    Box::pin(async move {
+                        assert_eq!(path, "/api/v1/telemetry/client-error");
+                        payloads.lock().unwrap().push(payload);
+                        attempts.fetch_add(1, Ordering::SeqCst) != 1
+                    })
+                })
+            },
+        );
+        let session = TelemetrySession {
+            install_id: "install".into(),
+            session_id: "session".into(),
+            is_new_install: false,
+        };
+
+        runtime.drain_rust_errors();
+        runtime.flush_collectors_locked(&session).await;
+
+        assert_eq!(
+            config
+                .get_string(TELEMETRY_CLIENT_ERROR_CURSOR_CONFIG_KEY, "")
+                .unwrap(),
+            "2026-06-30T00:00:00.000Z"
+        );
+        assert_eq!(attempts.load(Ordering::SeqCst), 2);
+        let first_attempt_payloads = payloads.lock().unwrap().clone();
+        let mut app_versions = first_attempt_payloads
+            .iter()
+            .flat_map(|payload| payload["errors"].as_array().unwrap())
+            .map(|error| error["appVersion"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        app_versions.sort_unstable();
+        assert_eq!(app_versions.len(), 21);
+        assert_eq!(app_versions[0], "2.0.0");
+        assert!(app_versions[1..].iter().all(|version| *version == "2.1.0"));
+
+        runtime.flush_collectors_locked(&session).await;
+
+        assert_eq!(attempts.load(Ordering::SeqCst), 4);
+        assert_eq!(
+            config
+                .get_string(TELEMETRY_CLIENT_ERROR_CURSOR_CONFIG_KEY, "")
+                .unwrap(),
+            "2026-07-21T00:00:00.000Z"
+        );
+        assert!(runtime
+            .inner
+            .state
+            .lock()
+            .unwrap()
+            .pending_error_cursor
+            .is_none());
     }
 }

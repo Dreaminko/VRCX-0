@@ -2,8 +2,12 @@ use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
     Arc, Mutex,
 };
+#[cfg(test)]
+use std::{future::Future, pin::Pin};
 
 use chrono::Utc;
+#[cfg(test)]
+use vrcx_0_application::PreparedSharedCollectionImport;
 use vrcx_0_application::{
     prepare_shared_collection_import, run_shared_collection_import, SharedCollectionImportProgress,
     SharedCollectionImportResult, SharedCollectionImportStartInput, SharedCollectionImportState,
@@ -17,6 +21,20 @@ use vrcx_0_persistence::DatabaseService;
 
 use crate::{Error, Result};
 
+#[cfg(test)]
+type TestImportRunner = Arc<
+    dyn Fn(
+            PreparedSharedCollectionImport,
+            Arc<AtomicBool>,
+        ) -> Pin<
+            Box<
+                dyn Future<Output = vrcx_0_application_core::Result<SharedCollectionImportResult>>
+                    + Send,
+            >,
+        > + Send
+        + Sync,
+>;
+
 #[derive(Clone)]
 pub struct SharedCollectionImportRuntime {
     inner: Arc<Mutex<SharedCollectionImportRuntimeInner>>,
@@ -27,6 +45,8 @@ pub struct SharedCollectionImportRuntime {
     event_bus: RuntimeEventBus,
     tasks: TaskSupervisor,
     auth_scope: RuntimeAuthScope,
+    #[cfg(test)]
+    test_runner: Option<TestImportRunner>,
 }
 
 #[derive(Default)]
@@ -54,6 +74,24 @@ impl SharedCollectionImportRuntime {
             event_bus,
             tasks,
             auth_scope,
+            #[cfg(test)]
+            test_runner: None,
+        }
+    }
+
+    #[cfg(test)]
+    fn new_with_test_runner(
+        db: Arc<DatabaseService>,
+        web: Arc<WebClient>,
+        world_cache: Arc<WorldCache>,
+        event_bus: RuntimeEventBus,
+        tasks: TaskSupervisor,
+        auth_scope: RuntimeAuthScope,
+        test_runner: TestImportRunner,
+    ) -> Self {
+        Self {
+            test_runner: Some(test_runner),
+            ..Self::new(db, web, world_cache, event_bus, tasks, auth_scope)
         }
     }
 
@@ -104,6 +142,12 @@ impl SharedCollectionImportRuntime {
         let runtime = self.clone();
         let run_id = status.run_id.clone();
         self.tasks.spawn_cancellable(move |stop_token| async move {
+            #[cfg(test)]
+            if let Some(test_runner) = runtime.test_runner.clone() {
+                let result = test_runner(prepared, Arc::clone(&cancel)).await;
+                runtime.finish(&run_id, result);
+                return;
+            }
             let actions = VrchatSharedCollectionImportActions {
                 db: runtime.db.as_ref(),
                 web: runtime.web.as_ref(),
@@ -277,6 +321,31 @@ struct AppliedSharedCollectionImportTerminal {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{path::PathBuf, time::Duration};
+    use vrcx_0_persistence::storage::StorageService;
+
+    struct TestDir(PathBuf);
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx0-shared-import-contract-{name}-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
 
     fn running_inner() -> SharedCollectionImportRuntimeInner {
         SharedCollectionImportRuntimeInner {
@@ -353,5 +422,99 @@ mod tests {
         );
         assert!(terminal.unwrap().emit_favorites_changed);
         assert!(duplicate.is_none());
+    }
+
+    #[test]
+    fn runtime_start_is_single_flight_and_cancel_emits_one_terminal_refresh() {
+        let dir = TestDir::new("lifecycle");
+        let db = Arc::new(DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap());
+        let storage = StorageService::new(&dir.0.join("storage.json")).unwrap();
+        let web = Arc::new(
+            WebClient::new(
+                &storage,
+                db.as_ref(),
+                "wss://pipeline.vrchat.cloud".into(),
+                "2.2.0",
+            )
+            .unwrap(),
+        );
+        let world_cache = Arc::new(WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60)));
+        let event_bus = RuntimeEventBus::new();
+        let tasks = TaskSupervisor::new();
+        let auth_scope = RuntimeAuthScope::new();
+        auth_scope.set("usr_current", "https://api.vrchat.cloud/api/1");
+        let runtime = SharedCollectionImportRuntime::new_with_test_runner(
+            db,
+            web,
+            world_cache,
+            event_bus.clone(),
+            tasks.clone(),
+            auth_scope,
+            Arc::new(|prepared, cancel| {
+                Box::pin(async move {
+                    while !cancel.load(Ordering::Acquire) {
+                        tokio::time::sleep(Duration::from_millis(5)).await;
+                    }
+                    Ok(SharedCollectionImportResult {
+                        total: prepared.world_ids.len(),
+                        processed: 1,
+                        imported: 1,
+                        cancelled: true,
+                        ..Default::default()
+                    })
+                })
+            }),
+        );
+        let input = SharedCollectionImportStartInput {
+            world_ids: vec!["wrld_11111111-1111-1111-1111-111111111111".into()],
+            group_name: "Imported worlds".into(),
+        };
+
+        let running = runtime.start(input.clone()).unwrap();
+        assert_eq!(running.status, SharedCollectionImportState::Running);
+        assert!(runtime
+            .start(input)
+            .unwrap_err()
+            .to_string()
+            .contains("already active"));
+
+        let cancelling = runtime.cancel();
+        assert_eq!(cancelling.status, SharedCollectionImportState::Cancelling);
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while is_active_status(runtime.status().status) && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+
+        let terminal = runtime.status();
+        assert_eq!(terminal.status, SharedCollectionImportState::Cancelled);
+        assert_eq!(terminal.imported, 1);
+        let mut events = Vec::new();
+        let event_deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while events.len() < 4 && std::time::Instant::now() < event_deadline {
+            events.extend(event_bus.take_events_for_test());
+            if events.len() < 4 {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
+        assert_eq!(
+            events
+                .iter()
+                .map(|event| event.name.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "sharedCollectionImportStatus",
+                "sharedCollectionImportStatus",
+                "favoritesChanged",
+                "sharedCollectionImportStatus"
+            ]
+        );
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| event.name == "favoritesChanged")
+                .count(),
+            1
+        );
+        tasks.stop_all();
     }
 }

@@ -60,13 +60,22 @@ pub fn parse_deep_link(value: &str) -> Option<DeepLinkAction> {
     }
 }
 
+pub(crate) fn queue_deep_link_action(
+    pending: &PendingDeepLinks,
+    action: DeepLinkAction,
+    after_queue: impl FnOnce(),
+) {
+    pending.push(action);
+    after_queue();
+}
+
 fn is_collection_id(value: &str) -> bool {
     (6..=12).contains(&value.len()) && value.bytes().all(|byte| byte.is_ascii_alphanumeric())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_deep_link, DeepLinkAction, PendingDeepLinks};
+    use super::{parse_deep_link, queue_deep_link_action, DeepLinkAction, PendingDeepLinks};
 
     #[test]
     fn parses_open_world_deep_link_with_full_world_id() {
@@ -146,6 +155,27 @@ mod tests {
                     collection_id: "AbC123z".to_string(),
                 },
             ]
+        );
+        assert!(pending.drain().is_empty());
+    }
+
+    #[test]
+    fn queue_is_populated_before_wake_side_effects_run() {
+        let pending = PendingDeepLinks::default();
+        let mut observed = Vec::new();
+
+        queue_deep_link_action(
+            &pending,
+            DeepLinkAction::ImportCollection {
+                collection_id: "AbC123z".into(),
+            },
+            || observed = pending.drain(),
+        );
+        assert_eq!(
+            observed,
+            vec![DeepLinkAction::ImportCollection {
+                collection_id: "AbC123z".into()
+            }]
         );
         assert!(pending.drain().is_empty());
     }

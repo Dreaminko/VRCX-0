@@ -132,7 +132,19 @@ describe('settingsValues', () => {
     });
 
     it('builds HMD activity filters from the interruptive notification defaults', () => {
-        expect(DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS.types).toMatchObject({
+        expect(DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS.types).toEqual({
+            invite: { scope: 'friends', favoriteGroupKeys: 'all' },
+            requestInvite: { scope: 'friends', favoriteGroupKeys: 'all' },
+            inviteResponse: { scope: 'friends', favoriteGroupKeys: 'all' },
+            requestInviteResponse: {
+                scope: 'friends',
+                favoriteGroupKeys: 'all'
+            },
+            friendRequest: { scope: 'on', favoriteGroupKeys: 'all' },
+            boop: { scope: 'friends', favoriteGroupKeys: 'all' },
+            'group.queueReady': { scope: 'on', favoriteGroupKeys: 'all' },
+            'instance.closed': { scope: 'on', favoriteGroupKeys: 'all' },
+            OnPlayerJoining: { scope: 'friends', favoriteGroupKeys: 'all' },
             OnPlayerJoined: {
                 scope: 'friends',
                 favoriteGroupKeys: 'all'
@@ -145,12 +157,59 @@ describe('settingsValues', () => {
                 scope: 'allFavorites',
                 favoriteGroupKeys: 'all'
             },
+            Offline: {
+                scope: 'allFavorites',
+                favoriteGroupKeys: 'all'
+            },
             GPS: {
                 scope: 'allFavorites',
                 favoriteGroupKeys: 'all'
             },
             Status: {
                 scope: 'allFavorites',
+                favoriteGroupKeys: 'all'
+            },
+            Friend: { scope: 'on', favoriteGroupKeys: 'all' },
+            Unfriend: { scope: 'off', favoriteGroupKeys: 'all' },
+            DisplayName: { scope: 'friends', favoriteGroupKeys: 'all' },
+            TrustLevel: { scope: 'friends', favoriteGroupKeys: 'all' },
+            AvatarChange: { scope: 'off', favoriteGroupKeys: 'all' },
+            Bio: { scope: 'off', favoriteGroupKeys: 'all' },
+            groupChange: { scope: 'off', favoriteGroupKeys: 'all' },
+            'group.announcement': {
+                scope: 'off',
+                favoriteGroupKeys: 'all'
+            },
+            'group.informative': {
+                scope: 'off',
+                favoriteGroupKeys: 'all'
+            },
+            'group.invite': { scope: 'on', favoriteGroupKeys: 'all' },
+            'group.joinRequest': {
+                scope: 'off',
+                favoriteGroupKeys: 'all'
+            },
+            'group.transfer': { scope: 'off', favoriteGroupKeys: 'all' },
+            Event: { scope: 'off', favoriteGroupKeys: 'all' },
+            External: { scope: 'off', favoriteGroupKeys: 'all' },
+            Blocked: { scope: 'off', favoriteGroupKeys: 'all' },
+            Unblocked: { scope: 'off', favoriteGroupKeys: 'all' },
+            Muted: { scope: 'off', favoriteGroupKeys: 'all' },
+            Unmuted: { scope: 'off', favoriteGroupKeys: 'all' },
+            BlockedOnPlayerJoined: {
+                scope: 'everyoneInInstance',
+                favoriteGroupKeys: 'all'
+            },
+            BlockedOnPlayerLeft: {
+                scope: 'off',
+                favoriteGroupKeys: 'all'
+            },
+            MutedOnPlayerJoined: {
+                scope: 'off',
+                favoriteGroupKeys: 'all'
+            },
+            MutedOnPlayerLeft: {
+                scope: 'off',
                 favoriteGroupKeys: 'all'
             },
             VideoPlay: {

@@ -10,7 +10,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 
-use crate::deep_link::{parse_deep_link, DEEP_LINK_ARRIVED_EVENT};
+use crate::deep_link::{parse_deep_link, queue_deep_link_action, DEEP_LINK_ARRIVED_EVENT};
 use crate::error::AppError;
 use crate::state::{AppState, BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY};
 
@@ -297,15 +297,15 @@ fn queue_deep_link_url(app: &tauri::AppHandle, value: &str) {
         tracing::warn!(url = %value, "ignored deep link before app state was ready");
         return;
     };
-    state.pending_deep_links.push(action);
-
-    let app_handle = app.clone();
-    if let Err(error) = app.run_on_main_thread(move || {
-        show_main_window_for_deep_link(&app_handle);
-        emit_deep_link_arrived(&app_handle);
-    }) {
-        tracing::warn!(error = %error, "failed to schedule deep link window restore");
-    }
+    queue_deep_link_action(&state.pending_deep_links, action, || {
+        let app_handle = app.clone();
+        if let Err(error) = app.run_on_main_thread(move || {
+            show_main_window_for_deep_link(&app_handle);
+            emit_deep_link_arrived(&app_handle);
+        }) {
+            tracing::warn!(error = %error, "failed to schedule deep link window restore");
+        }
+    });
 }
 
 fn show_main_window_for_deep_link(app: &tauri::AppHandle) {
