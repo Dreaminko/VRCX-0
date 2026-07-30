@@ -46,7 +46,7 @@ describe('showUpdateAvailableToast', () => {
             'service.background_maintenance.label.vrcx_update_available',
             expect.objectContaining({
                 id: 'vrcx-update-available',
-                description: 'v2.7.0',
+                description: '2.7.0',
                 duration: Infinity,
                 position: 'bottom-right',
                 action: expect.objectContaining({
@@ -75,7 +75,7 @@ describe('showUpdateAvailableToast', () => {
         });
 
         expect(mocks.toastSuccess).toHaveBeenCalledWith(
-            'dialog.vrcx_updater.ready_for_update:{"value":"v2.7.0"}',
+            'dialog.vrcx_updater.ready_for_update:{"value":"2.7.0"}',
             expect.objectContaining({
                 id: 'vrcx-update-available',
                 duration: Infinity,
@@ -88,6 +88,7 @@ describe('showUpdateAvailableToast', () => {
         expect(mocks.toastInfo).not.toHaveBeenCalled();
 
         const options = mocks.toastSuccess.mock.calls[0][1];
+        expect(options.description).toBeUndefined();
         options.action.onClick();
         expect(onUpdate).toHaveBeenCalled();
     });

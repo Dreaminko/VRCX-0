@@ -465,7 +465,7 @@
         "discord": "Discord",
         "changelog": "Изменить журнал",
         "update": "Обновление",
-        "update_downloaded": "Обновление готово",
+        "update_downloaded": "Перезапустить",
         "mark_all_read": "Отметить всё как прочитанное",
         "edit_dashboard": "Правка Dashboard",
         "delete_dashboard": "Удалить Dashboard",

@@ -275,6 +275,7 @@ export function handleAppUpdateInstalledEvent(
         }),
         {
             id: UPDATE_AVAILABLE_TOAST_ID,
+            description: undefined,
             duration: UPDATE_READY_TOAST_DURATION_MS,
             position: 'bottom-right'
         }

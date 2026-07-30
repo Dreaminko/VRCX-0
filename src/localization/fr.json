@@ -465,7 +465,7 @@
         "discord": "Discord",
         "changelog": "Journal des modifications",
         "update": "Mettre à jour",
-        "update_downloaded": "Mise à jour prête",
+        "update_downloaded": "Redémarrer",
         "mark_all_read": "Tout marquer comme lu",
         "edit_dashboard": "Modifier le tableau de bord",
         "delete_dashboard": "Supprimer le tableau de bord",

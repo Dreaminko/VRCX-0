@@ -465,7 +465,7 @@
         "discord": "Discord",
         "changelog": "Changelog",
         "update": "Update",
-        "update_downloaded": "Update Ready",
+        "update_downloaded": "Restart",
         "mark_all_read": "Mark All as Read",
         "edit_dashboard": "Edit Dashboard",
         "delete_dashboard": "Delete Dashboard",

@@ -26,11 +26,11 @@ function getLatestUpdaterDisplayVersion(release: unknown) {
     );
 }
 
-function formatUpdateVersionLabel(version: string) {
+function formatUpdateVersion(version: string) {
     if (!version || version === '-') {
         return version;
     }
-    return /^v/i.test(version) ? version : `v${version}`;
+    return version.replace(/^v/i, '');
 }
 
 function getReleaseCanonicalVersion(release: unknown) {
@@ -68,7 +68,7 @@ export function showUpdateAvailableToast({
         {
             id: UPDATE_AVAILABLE_TOAST_ID,
             icon: null,
-            description: formatUpdateVersionLabel(
+            description: formatUpdateVersion(
                 getLatestUpdaterDisplayVersion(latestUpdaterRelease)
             ),
             duration: Infinity,
@@ -92,7 +92,7 @@ export function showUpdateReadyToast({
     t: (key: string, values?: Record<string, unknown>) => string;
     onUpdate: () => void;
 }) {
-    const version = formatUpdateVersionLabel(
+    const version = formatUpdateVersion(
         getLatestUpdaterDisplayVersion(latestUpdaterRelease)
     );
     toast.success(
@@ -101,6 +101,7 @@ export function showUpdateReadyToast({
         }),
         {
             id: UPDATE_AVAILABLE_TOAST_ID,
+            description: undefined,
             duration: Infinity,
             position: 'bottom-right',
             closeButton: true,

@@ -23,7 +23,7 @@ vi.mock('react-i18next', () => ({
         t: (key: string) =>
             ({
                 'nav_menu.update': 'Update',
-                'nav_menu.update_downloaded': 'Update Ready',
+                'nav_menu.update_downloaded': 'Restart',
                 'message.vrcx_updater.current_version': 'Current Version',
                 'message.vrcx_updater.latest_version': 'Latest Version',
                 'message.vrcx_updater.released': 'Released'
@@ -133,7 +133,7 @@ describe('TitleBarUpdateButton', () => {
             })
         );
 
-        expect(html).toContain('Update Ready');
+        expect(html).toContain('Restart');
         expect(html).toContain('data-variant="default"');
     });
 
