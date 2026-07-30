@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use tauri::{Emitter, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 use tracing::Level;
 use tracing_subscriber::filter::filter_fn;
 use tracing_subscriber::layer::SubscriberExt;
@@ -10,6 +11,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 
 use crate::deep_link::{parse_deep_link, DEEP_LINK_ARRIVED_EVENT};
+use crate::error::AppError;
 use crate::state::{AppState, BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY};
 
 use super::adapters::{
@@ -105,13 +107,105 @@ pub fn apply_linux_webkit_workaround() {
     }
 }
 
+fn initialize_app_state(
+    app: &tauri::App,
+    app_data_dir: vrcx_0_host::app_paths::AppDataDirResolution,
+    updater_port: Arc<TauriUpdaterPort>,
+) -> AppState {
+    let error = match AppState::new(app_data_dir.clone(), updater_port.clone()) {
+        Ok(state) => return state,
+        Err(error) => error,
+    };
+
+    if is_database_corruption_error(&error) {
+        match quarantine_corrupt_database(&app_data_dir.current_dir) {
+            Ok(quarantined) => {
+                tracing::error!(
+                    error = %error,
+                    quarantined = %quarantined.display(),
+                    "local database is corrupted; quarantined it to recreate a fresh database"
+                );
+                match AppState::new(app_data_dir, updater_port) {
+                    Ok(state) => {
+                        show_blocking_dialog(
+                            app,
+                            MessageDialogKind::Warning,
+                            &format!(
+                                "The local database was corrupted and could not be opened.\n\n\
+                                 It was moved to:\n{}\n\n\
+                                 VRCX-0 created a fresh database; please sign in again.",
+                                quarantined.display()
+                            ),
+                        );
+                        return state;
+                    }
+                    Err(retry_error) => exit_with_startup_error(app, &retry_error),
+                }
+            }
+            Err(quarantine_error) => {
+                tracing::error!(
+                    error = %quarantine_error,
+                    "failed to quarantine the corrupted local database"
+                );
+            }
+        }
+    }
+
+    exit_with_startup_error(app, &error)
+}
+
+fn is_database_corruption_error(error: &AppError) -> bool {
+    let message = error.to_string().to_ascii_lowercase();
+    message.contains("malformed") || message.contains("not a database")
+}
+
+fn quarantine_corrupt_database(app_data: &std::path::Path) -> std::io::Result<PathBuf> {
+    let db_file = vrcx_0_host::app_paths::AppPaths::from_app_data(app_data.to_path_buf()).db_file;
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs())
+        .unwrap_or(0);
+    let quarantined = appended_path(&db_file, &format!(".corrupt-{timestamp}"));
+    std::fs::rename(&db_file, &quarantined)?;
+    for suffix in ["-wal", "-shm"] {
+        let sidecar = appended_path(&db_file, suffix);
+        if sidecar.exists() {
+            let _ = std::fs::rename(&sidecar, appended_path(&quarantined, suffix));
+        }
+    }
+    Ok(quarantined)
+}
+
+fn appended_path(path: &std::path::Path, suffix: &str) -> PathBuf {
+    let mut appended = path.as_os_str().to_os_string();
+    appended.push(suffix);
+    PathBuf::from(appended)
+}
+
+fn exit_with_startup_error(app: &tauri::App, error: &AppError) -> ! {
+    tracing::error!(error = %error, "failed to initialize app state");
+    show_blocking_dialog(
+        app,
+        MessageDialogKind::Error,
+        &format!("VRCX-0 failed to start.\n\n{error}"),
+    );
+    std::process::exit(1);
+}
+
+fn show_blocking_dialog(app: &tauri::App, kind: MessageDialogKind, message: &str) {
+    app.dialog()
+        .message(message)
+        .kind(kind)
+        .title("VRCX-0")
+        .blocking_show();
+}
+
 pub fn setup_app_with_data_dir(
     app: &mut tauri::App,
     app_data_dir: vrcx_0_host::app_paths::AppDataDirResolution,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let updater_port = Arc::new(TauriUpdaterPort::new(app.handle().clone()));
-    let app_state =
-        AppState::new(app_data_dir, updater_port).expect("failed to initialize app state");
+    let app_state = initialize_app_state(app, app_data_dir, updater_port);
     let language = app_language(&app_state);
     app.manage(app_state);
 
