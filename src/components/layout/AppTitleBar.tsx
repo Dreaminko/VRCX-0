@@ -13,13 +13,23 @@ import {
 import { AppMenuBar } from './AppMenuBar';
 import { TitleBarButton, useTitleBarActions } from './useTitleBarActions';
 
-function TitleBarWindowButton({ className, ...props }: any) {
+function TitleBarWindowButton({ className, onAction, ...props }: any) {
     return (
         <TitleBarButton
             className={cn(
                 'text-muted-foreground hover:text-foreground h-full w-9 rounded-none border-0',
                 className
             )}
+            onPointerDown={(event: React.PointerEvent) => {
+                if (event.button === 0) {
+                    onAction();
+                }
+            }}
+            onClick={(event: React.MouseEvent) => {
+                if (event.detail === 0) {
+                    onAction();
+                }
+            }}
             {...props}
         />
     );
@@ -113,7 +123,7 @@ export function AppTitleBar() {
                 <div className="flex h-full shrink-0 items-center">
                     <TitleBarWindowButton
                         label={t('app_menu.label.minimize_window')}
-                        onClick={() => {
+                        onAction={() => {
                             runWindowAction(minimizeWindow, false);
                         }}
                     >
@@ -121,7 +131,7 @@ export function AppTitleBar() {
                     </TitleBarWindowButton>
                     <TitleBarWindowButton
                         label={maximizeLabel}
-                        onClick={() => {
+                        onAction={() => {
                             runWindowAction(toggleMaximizeWindow);
                         }}
                     >
@@ -130,7 +140,7 @@ export function AppTitleBar() {
                     <TitleBarWindowButton
                         label={t('app_menu.action.close_window')}
                         className="hover:bg-destructive! hover:text-destructive-foreground!"
-                        onClick={() => {
+                        onAction={() => {
                             runWindowAction(closeWindow, false);
                         }}
                     >
