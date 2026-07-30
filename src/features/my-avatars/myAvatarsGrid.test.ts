@@ -9,31 +9,32 @@ import {
 describe('myAvatarsGrid', () => {
     it('lays out more avatar cards per row when the grid has more horizontal space', () => {
         const narrow = getMyAvatarsGridMetrics({
-            cardScale: 1,
-            cardSpacing: 1,
+            gridDensity: 'standard',
             width: 320
         });
         const wide = getMyAvatarsGridMetrics({
-            cardScale: 1,
-            cardSpacing: 1,
+            gridDensity: 'standard',
             width: 980
         });
 
         expect(narrow.gridColumnCount).toBe(1);
         expect(wide.gridColumnCount).toBeGreaterThan(narrow.gridColumnCount);
-        expect(wide.gridGap).toBe(12);
-        expect(wide.gridMinWidth).toBe(320);
+        expect(wide.gridGap).toBe(8);
+        expect(wide.gridMinWidth).toBe(180);
     });
 
-    it('uses smaller cards to fit more columns while keeping a minimum row height', () => {
-        const compact = getMyAvatarsGridMetrics({
-            cardScale: 0.5,
-            cardSpacing: 0.6,
+    it('fits more columns when the user selects a denser grid', () => {
+        const standard = getMyAvatarsGridMetrics({
+            gridDensity: 'standard',
+            width: 640
+        });
+        const dense = getMyAvatarsGridMetrics({
+            gridDensity: 'dense',
             width: 640
         });
 
-        expect(compact.gridColumnCount).toBeGreaterThan(1);
-        expect(compact.gridMinWidth).toBe(200);
+        expect(dense.gridColumnCount).toBeGreaterThan(standard.gridColumnCount);
+        expect(dense.gridMinWidth).toBe(125);
     });
 
     it('groups avatars into stable virtual rows for the current column count', () => {

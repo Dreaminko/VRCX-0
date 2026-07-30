@@ -1536,8 +1536,7 @@
                     "header": "Nastavení",
                     "bar_width": "Šířka sloupce",
                     "show_solo_instance": "Zobrazit sólo instance",
-                    "show_no_friend_instance": "Zobrazit instance bez přátel",
-                    "show_detail": "Zobrazit podrobnosti"
+                    "show_no_friend_instance": "Zobrazit instance bez přátel"
                 }
             },
             "mutual_friend": {

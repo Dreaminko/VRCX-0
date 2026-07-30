@@ -73,18 +73,6 @@ export function userDialogDataKeyForTab(tab: UserDialogDataTab) {
     return tab === 'favorite-worlds' ? 'favoriteWorlds' : tab;
 }
 
-export function userDialogAvatarSortRequest(avatarSort: unknown) {
-    return {
-        sort:
-            avatarSort === 'createdAt'
-                ? 'createdAt'
-                : avatarSort === 'update'
-                  ? 'updated'
-                  : 'name',
-        order: avatarSort === 'name' ? 'ascending' : 'descending'
-    };
-}
-
 function countRows(rows: unknown) {
     return Array.isArray(rows) ? rows.length : 0;
 }

@@ -21,12 +21,6 @@ const mocks = vi.hoisted(() => ({
                 import('@/platform/tauri/bindings').SharedCollectionImportStatus
             >
         >(),
-    appSharedCollectionImportCancel:
-        vi.fn<
-            () => Promise<
-                import('@/platform/tauri/bindings').SharedCollectionImportStatus
-            >
-        >(),
     eventHandlers: new Map<string, (payload: unknown) => void>(),
     prompt: vi.fn(),
     openAvatarDialog: vi.fn(),
@@ -49,8 +43,7 @@ vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appDrainPendingDeepLinks: mocks.appDrainPendingDeepLinks,
         appSharedCollectionImportStart: mocks.appSharedCollectionImportStart,
-        appSharedCollectionImportStatus: mocks.appSharedCollectionImportStatus,
-        appSharedCollectionImportCancel: mocks.appSharedCollectionImportCancel
+        appSharedCollectionImportStatus: mocks.appSharedCollectionImportStatus
     }
 }));
 
@@ -99,7 +92,6 @@ import { useWorldCollectionImportStore } from '@/state/worldCollectionImportStor
 
 import {
     bindDeepLinkEvents,
-    cancelSharedCollectionImport,
     drainPendingDeepLinks,
     handleDeepLinkAction
 } from './deepLinkService';
@@ -132,9 +124,6 @@ describe('deepLinkService', () => {
         useWorldCollectionImportStore.getState().reset();
         mocks.appDrainPendingDeepLinks.mockResolvedValue([]);
         mocks.appSharedCollectionImportStatus.mockResolvedValue(importStatus());
-        mocks.appSharedCollectionImportCancel.mockResolvedValue(
-            importStatus({ status: 'cancelled' })
-        );
         mocks.subscribe.mockImplementation(async (name, handler) => {
             mocks.eventHandlers.set(name, handler);
             return name === 'deepLinkArrived'
@@ -340,27 +329,6 @@ describe('deepLinkService', () => {
             expect(mocks.toastSuccess).toHaveBeenCalledTimes(2);
         });
         unbind();
-    });
-
-    it('cancels through the typed backend command and hydrates its result', async () => {
-        const cancelled = importStatus({
-            runId: 'run-cancel',
-            status: 'cancelling',
-            total: 3,
-            processed: 1,
-            groupName: 'Cancelled'
-        });
-        mocks.appSharedCollectionImportCancel.mockResolvedValueOnce(cancelled);
-
-        await cancelSharedCollectionImport();
-
-        expect(mocks.appSharedCollectionImportCancel).toHaveBeenCalledOnce();
-        expect(useWorldCollectionImportStore.getState()).toMatchObject({
-            active: true,
-            runId: 'run-cancel',
-            status: 'cancelling',
-            progress: 1
-        });
     });
 
     it('opens worlds from actions', () => {

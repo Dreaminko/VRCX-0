@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
     isUserDialogDataTab,
     loadUserDialogTabData,
-    userDialogAvatarSortRequest,
     userDialogDataKeyForTab,
     type UserDialogRepositories
 } from './userDialogTabService';
@@ -164,14 +163,6 @@ describe('userDialogTabService', () => {
             currentUserId: 'usr_self',
             currentAvatarId: 'avtr_current',
             previousAvatarSwapTime: 1234
-        });
-        expect(userDialogAvatarSortRequest('createdAt')).toEqual({
-            sort: 'createdAt',
-            order: 'descending'
-        });
-        expect(userDialogAvatarSortRequest('name')).toEqual({
-            sort: 'name',
-            order: 'ascending'
         });
     });
 

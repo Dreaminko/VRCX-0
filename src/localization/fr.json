@@ -1534,8 +1534,7 @@
                     "header": "Paramètres",
                     "bar_width": "Largeur des barres",
                     "show_solo_instance": "Afficher les instances solo",
-                    "show_no_friend_instance": "Afficher les instances sans ami",
-                    "show_detail": "Afficher les détails"
+                    "show_no_friend_instance": "Afficher les instances sans ami"
                 }
             },
             "mutual_friend": {

@@ -1534,8 +1534,7 @@
                     "header": "設定",
                     "bar_width": "長條寬度",
                     "show_solo_instance": "顯示單人房間",
-                    "show_no_friend_instance": "顯示無好友的房間",
-                    "show_detail": "顯示詳細資訊"
+                    "show_no_friend_instance": "顯示無好友的房間"
                 }
             },
             "mutual_friend": {

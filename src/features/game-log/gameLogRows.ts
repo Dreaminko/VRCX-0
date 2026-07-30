@@ -292,26 +292,6 @@ export function collectGameLogSessionFriends(
     return friends;
 }
 
-export function countGameLogSessionEvent(
-    events: readonly GameLogSessionEvent[],
-    type: string
-) {
-    return events.reduce((count, event) => {
-        const eventType = normalizeGameLogId(event.type);
-        if (type === 'OnPlayerJoined' && eventType === 'JoinGroup') {
-            return (
-                count + (event.members?.length || (event.count as number) || 0)
-            );
-        }
-        if (type === 'OnPlayerLeft' && eventType === 'LeftGroup') {
-            return (
-                count + (event.members?.length || (event.count as number) || 0)
-            );
-        }
-        return count + (eventType === type ? 1 : 0);
-    }, 0);
-}
-
 export function resolveGameLogSessionDuration(
     session: GameLogSession | null | undefined
 ) {

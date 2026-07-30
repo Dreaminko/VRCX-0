@@ -75,7 +75,6 @@ export type InstanceActivityDetailRow = InstanceActivityRawRow & {
 export type InstanceActivityDetailGroup = InstanceActivityDetailRow[];
 
 export type InstanceActivityGroupsFilterOptions = {
-    isDetailVisible: boolean;
     isSoloInstanceVisible: boolean;
     isNoFriendInstanceVisible: boolean;
 };

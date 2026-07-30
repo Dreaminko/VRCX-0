@@ -4,14 +4,10 @@ import { parseLocation } from '@/shared/utils/location';
 
 import {
     buildChartOption,
-    buildDetailChartOption,
     getMainChartClickedRow
 } from './instanceActivityChart';
 import { getLocalDayBounds } from './instanceActivityRows';
-import type {
-    InstanceActivityChartRow,
-    InstanceActivityDetailRow
-} from './instanceActivityTypes';
+import type { InstanceActivityChartRow } from './instanceActivityTypes';
 
 type ChartRowFixture = Partial<
     Omit<InstanceActivityChartRow, 'parsedLocation'>
@@ -38,25 +34,6 @@ function chartRow(row: ChartRowFixture): InstanceActivityChartRow {
         visibleStartMs: row.visibleStartMs || 0,
         visibleDurationMs: row.visibleDurationMs || 0,
         activityKey: row.activityKey || 'wrld_test:1:0'
-    };
-}
-
-function detailRow(
-    row: Partial<InstanceActivityDetailRow>
-): InstanceActivityDetailRow {
-    return {
-        id: row.id || 'detail',
-        user_id: row.user_id || row.userId || 'usr_self',
-        display_name: row.display_name || row.displayName || 'Self',
-        location: row.location || 'wrld_test:1',
-        displayName: row.displayName || 'Self',
-        userId: row.userId || 'usr_self',
-        joinMs: row.joinMs || 0,
-        leaveMs: row.leaveMs || 0,
-        durationMs: row.durationMs || 0,
-        isCurrentUser: row.isCurrentUser || false,
-        isFriend: row.isFriend || false,
-        isFavorite: row.isFavorite || false
     };
 }
 
@@ -160,41 +137,5 @@ describe('instanceActivityChart', () => {
                 rows
             )
         ).toBe(null);
-    });
-
-    it('marks detail chart rows without relying on display name lookups', () => {
-        const option = buildDetailChartOption({
-            barWidth: 12,
-            hour12: false,
-            group: [
-                detailRow({
-                    userId: 'usr_regular',
-                    displayName: 'Same Name',
-                    joinMs: 0,
-                    leaveMs: 1000,
-                    durationMs: 1000,
-                    isCurrentUser: true,
-                    isFriend: false,
-                    isFavorite: false
-                }),
-                detailRow({
-                    userId: 'usr_favorite',
-                    displayName: 'Same Name',
-                    joinMs: 100,
-                    leaveMs: 900,
-                    durationMs: 800,
-                    isCurrentUser: false,
-                    isFriend: true,
-                    isFavorite: true
-                })
-            ]
-        });
-
-        expect(option).not.toBeNull();
-        expect(option!.yAxis.data).toEqual(['Same Name', '\u2b50 Same Name']);
-        expect(option!.firstEntries.map((entry) => entry.userId)).toEqual([
-            'usr_regular',
-            'usr_favorite'
-        ]);
     });
 });

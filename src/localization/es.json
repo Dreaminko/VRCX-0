@@ -1534,8 +1534,7 @@
                     "header": "Ajustes",
                     "bar_width": "Ancho de Barra",
                     "show_solo_instance": "Mostrar instancia en solitario",
-                    "show_no_friend_instance": "Mostrar instancia Sin Amigos",
-                    "show_detail": "Mostrar Detalle"
+                    "show_no_friend_instance": "Mostrar instancia Sin Amigos"
                 }
             },
             "mutual_friend": {

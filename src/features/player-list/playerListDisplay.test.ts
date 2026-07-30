@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
     fileAnalysisSizeForPlatform,
-    formatCount,
     getHomeWorldId,
     getWorldImage,
     resolvePlatformBadge,
@@ -115,9 +114,7 @@ describe('playerListDisplay', () => {
         expect(getHomeWorldId(null)).toBe('');
     });
 
-    it('formats world header counts, images, platform badges, and file sizes', () => {
-        expect(formatCount(1234)).toBe('1,234');
-        expect(formatCount('not numeric')).toBe('-');
+    it('formats world header images, platform badges, and file sizes', () => {
         expect(
             getWorldImage({
                 thumbnailImageUrl: 'https://example.test/thumb.png'

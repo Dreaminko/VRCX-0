@@ -1534,8 +1534,7 @@
                     "header": "设置",
                     "bar_width": "柱条宽度",
                     "show_solo_instance": "显示“只有一人”的房间",
-                    "show_no_friend_instance": "显示没有好友的房间",
-                    "show_detail": "显示更多信息"
+                    "show_no_friend_instance": "显示没有好友的房间"
                 }
             },
             "mutual_friend": {

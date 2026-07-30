@@ -65,33 +65,6 @@ export function parseWebJson(response: { data?: unknown } | null | undefined) {
     return {};
 }
 
-export function buildOpenAiModelsEndpoint(endpoint: string | undefined) {
-    const baseEndpoint = endpoint || DEFAULT_TRANSLATION_ENDPOINT;
-    try {
-        const url = new URL(baseEndpoint);
-        const basePath = url.pathname.replace(/\/+$/, '');
-        if (basePath.endsWith('/chat/completions')) {
-            url.pathname = basePath.replace(/\/chat\/completions$/, '/models');
-        } else if (!basePath.endsWith('/models')) {
-            url.pathname = `${basePath}/models`;
-        }
-        url.search = '';
-        url.hash = '';
-        return url.toString();
-    } catch {
-        const normalized = baseEndpoint.endsWith('/')
-            ? baseEndpoint.slice(0, -1)
-            : baseEndpoint;
-        if (normalized.endsWith('/models')) {
-            return normalized;
-        }
-        if (normalized.includes('/chat/completions')) {
-            return normalized.replace(/\/chat\/completions$/, '/models');
-        }
-        return `${normalized}/models`;
-    }
-}
-
 export function normalizeTablePageSizes(input: unknown): number[] {
     const source = Array.isArray(input) ? input : TABLE_PAGE_SIZE_DEFAULTS;
     const values = source
@@ -237,18 +210,4 @@ export function createCustomFontDraftFromPrefs(
         secondary,
         override
     };
-}
-
-export function formatByteSize(value: unknown) {
-    const bytes = Number(value);
-    if (!Number.isFinite(bytes) || bytes <= 0) {
-        return '0 B';
-    }
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const exponent = Math.min(
-        Math.floor(Math.log(bytes) / Math.log(1024)),
-        units.length - 1
-    );
-    const amount = bytes / 1024 ** exponent;
-    return `${amount.toFixed(exponent === 0 ? 0 : 2)} ${units[exponent]}`;
 }

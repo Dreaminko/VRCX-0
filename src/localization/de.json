@@ -1534,8 +1534,7 @@
                     "header": "Einstellungen",
                     "bar_width": "Balkenbreite",
                     "show_solo_instance": "Solo-Instanzen anzeigen",
-                    "show_no_friend_instance": "Instanzen ohne Freunde anzeigen",
-                    "show_detail": "Details anzeigen"
+                    "show_no_friend_instance": "Instanzen ohne Freunde anzeigen"
                 }
             },
             "mutual_friend": {

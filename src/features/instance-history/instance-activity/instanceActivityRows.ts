@@ -273,15 +273,10 @@ export function buildDetailGroups(
 export function filterDetailGroups(
     groups: InstanceActivityDetailGroup[],
     {
-        isDetailVisible,
         isSoloInstanceVisible,
         isNoFriendInstanceVisible
     }: InstanceActivityGroupsFilterOptions
 ): InstanceActivityDetailGroup[] {
-    if (!isDetailVisible) {
-        return [];
-    }
-
     return groups.filter((group) => {
         if (!isSoloInstanceVisible && group.length <= 1) {
             return false;

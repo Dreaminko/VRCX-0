@@ -177,7 +177,7 @@ describe('instanceActivityRows', () => {
         );
     });
 
-    it('filters detail groups according to visibility toggles', () => {
+    it('filters detail groups according to instance visibility toggles', () => {
         const soloGroup = [detailRow('solo', false)];
         const noFriendGroup = [
             detailRow('self', false),
@@ -191,21 +191,12 @@ describe('instanceActivityRows', () => {
 
         expect(
             filterDetailGroups(groups, {
-                isDetailVisible: false,
-                isSoloInstanceVisible: true,
-                isNoFriendInstanceVisible: true
-            })
-        ).toEqual([]);
-        expect(
-            filterDetailGroups(groups, {
-                isDetailVisible: true,
                 isSoloInstanceVisible: false,
                 isNoFriendInstanceVisible: true
             })
         ).toEqual([noFriendGroup, friendGroup]);
         expect(
             filterDetailGroups(groups, {
-                isDetailVisible: true,
                 isSoloInstanceVisible: true,
                 isNoFriendInstanceVisible: false
             })

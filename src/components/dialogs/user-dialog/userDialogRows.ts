@@ -36,11 +36,6 @@ type UserDialogRow = ComparableRecord & {
     $travelingToTime?: unknown;
 };
 
-type LanguageRow = {
-    key: string;
-    value: string;
-};
-
 export type PreviousDisplayNameRow = {
     displayName: string;
     updated_at?: string;
@@ -232,44 +227,6 @@ export function hydrateMutualFriendRows<T extends UserDialogRow>(
 export function worldOccupantSubtitle(row: UserDialogRow) {
     const occupants = Number(row?.occupants ?? row?.userCount ?? 0) || 0;
     return occupants > 0 ? `(${occupants})` : '';
-}
-
-export function normalizeLanguageRows(rows: unknown, tags: unknown[] = []) {
-    const normalizedRows = firstArray(rows)
-        .map((entry): LanguageRow => {
-            if (typeof entry === 'string') {
-                return { key: entry, value: entry };
-            }
-            const record = isRecord(entry) ? entry : {};
-            return {
-                key: normalizedText(record.key || record.id || record.value),
-                value:
-                    normalizedText(
-                        record.value || record.label || record.name
-                    ) || normalizedText(record.key)
-            };
-        })
-        .filter((entry) => entry.key || entry.value);
-    const seen = new Set(
-        normalizedRows.map((entry) =>
-            String(entry.key || entry.value).toLowerCase()
-        )
-    );
-    for (const tag of firstArray(tags)) {
-        const normalizedTag = String(tag || '')
-            .trim()
-            .toLowerCase();
-        if (!normalizedTag.startsWith('language_')) {
-            continue;
-        }
-        const key = normalizedTag.replace(/^language_/, '');
-        if (!key || seen.has(key)) {
-            continue;
-        }
-        normalizedRows.push({ key, value: key });
-        seen.add(key);
-    }
-    return normalizedRows;
 }
 
 export function formatStatsDate(value: unknown) {

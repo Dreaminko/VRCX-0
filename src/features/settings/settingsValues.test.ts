@@ -2,15 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { settingsTabs } from './settingsOptions';
 import {
-    buildOpenAiModelsEndpoint,
     buildTablePageSizeOptions,
     composeCustomFontFamily,
     createEffectiveCustomFontDraft,
     createCustomFontDraftFromPrefs,
     DEFAULT_HMD_NOTIFICATION_ACTIVITY_FILTERS,
-    DEFAULT_TRANSLATION_ENDPOINT,
     filterTablePageSizeOptions,
-    formatByteSize,
     isValidFontFamilyList,
     normalizeOverlayActivityFilters,
     normalizeTablePageSizes,
@@ -236,20 +233,6 @@ describe('settingsValues', () => {
         );
     });
 
-    it('builds the OpenAI models endpoint from chat completion endpoints users enter', () => {
-        expect(buildOpenAiModelsEndpoint(DEFAULT_TRANSLATION_ENDPOINT)).toBe(
-            'https://api.openai.com/v1/models'
-        );
-        expect(
-            buildOpenAiModelsEndpoint(
-                'https://proxy.example.test/openai/chat/completions?x=1#top'
-            )
-        ).toBe('https://proxy.example.test/openai/models');
-        expect(buildOpenAiModelsEndpoint('custom-base/chat/completions')).toBe(
-            'custom-base/models'
-        );
-    });
-
     it('parses JSON responses from web requests regardless of object or text payload shape', () => {
         expect(parseWebJson({ data: { ok: true } })).toEqual({ ok: true });
         expect(parseWebJson({ data: '{"models":["gpt"]}' })).toEqual({
@@ -369,13 +352,6 @@ describe('settingsValues', () => {
             secondary: 'Noto Sans JP',
             override: ''
         });
-    });
-
-    it('formats cache sizes into readable units for settings diagnostics', () => {
-        expect(formatByteSize(0)).toBe('0 B');
-        expect(formatByteSize(512)).toBe('512 B');
-        expect(formatByteSize(1536)).toBe('1.50 KB');
-        expect(formatByteSize(5 * 1024 * 1024)).toBe('5.00 MB');
     });
 
     it('uses a fallback when numeric settings input is empty or invalid', () => {

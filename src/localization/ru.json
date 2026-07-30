@@ -1536,8 +1536,7 @@
                     "header": "Настройки",
                     "bar_width": "Ширина полосы",
                     "show_solo_instance": "Показать Одиночный Инстанс",
-                    "show_no_friend_instance": "Показать инстанс без друзей",
-                    "show_detail": "Показать Детали"
+                    "show_no_friend_instance": "Показать инстанс без друзей"
                 }
             },
             "mutual_friend": {

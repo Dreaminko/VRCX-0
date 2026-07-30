@@ -334,7 +334,6 @@ export function InstanceHistoryPage({
     const visibleDetailGroups = useMemo(
         () =>
             filterDetailGroups(detailGroups, {
-                isDetailVisible: true,
                 isSoloInstanceVisible: activitySettings.isSoloInstanceVisible,
                 isNoFriendInstanceVisible:
                     activitySettings.isNoFriendInstanceVisible
@@ -882,14 +881,12 @@ export function InstanceHistoryPage({
                                 <div className="flex items-center gap-1">
                                     <InstanceActivitySettingsPopover
                                         barWidth={activitySettings.barWidth}
-                                        isDetailVisible
                                         isSoloInstanceVisible={
                                             activitySettings.isSoloInstanceVisible
                                         }
                                         isNoFriendInstanceVisible={
                                             activitySettings.isNoFriendInstanceVisible
                                         }
-                                        showDetailControl={false}
                                         onBarWidthCommit={
                                             activitySettings.handleBarWidthCommit
                                         }

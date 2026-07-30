@@ -38,17 +38,6 @@ export function mergeManualModels(
     return [...new Set(models)];
 }
 
-export function fallbackEndpointIdAfterDelete(
-    endpoints: LlmEndpointDto[],
-    removedId: string,
-    selectedEndpointId: string | null
-): string | null {
-    if (selectedEndpointId !== removedId) {
-        return selectedEndpointId;
-    }
-    return endpoints.find((endpoint) => endpoint.id !== removedId)?.id ?? null;
-}
-
 function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }

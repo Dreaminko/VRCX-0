@@ -4,7 +4,6 @@ import {
     annotateGameLogSessionEvent,
     buildGameLogFavoriteIdSet,
     canDeleteGameLogRow,
-    countGameLogSessionEvent,
     describeGameLogDetail,
     getGameLogCopyTarget,
     getGameLogExternalTarget,
@@ -145,7 +144,7 @@ describe('gameLogRows', () => {
         ).toBe('session_1:2026-04-16T00:00:00.000Z:wrld_session:1');
     });
 
-    it('marks session events and counts grouped joins/leaves the way the session summary displays them', () => {
+    it('marks session members and normalizes the visible session duration', () => {
         const favoriteIds = buildGameLogFavoriteIdSet({
             favorite: ['usr_favorite', ' usr_trimmed ']
         });
@@ -178,23 +177,6 @@ describe('gameLogRows', () => {
             [false, false]
         ]);
 
-        expect(
-            countGameLogSessionEvent(
-                [
-                    { type: 'JoinGroup', members: [{}, {}] },
-                    { type: 'OnPlayerJoined' },
-                    { type: 'LeftGroup', count: 3 },
-                    { type: 'VideoPlay' }
-                ],
-                'OnPlayerJoined'
-            )
-        ).toBe(3);
-        expect(
-            countGameLogSessionEvent(
-                [{ type: 'LeftGroup', count: 3 }, { type: 'OnPlayerLeft' }],
-                'OnPlayerLeft'
-            )
-        ).toBe(4);
         expect(resolveGameLogSessionDuration({ duration: 120000 })).toBe(
             120000
         );

@@ -80,54 +80,17 @@ export function getMyAvatarsGridDensityConfig(
 }
 
 type MyAvatarsGridMetricsInput = {
-    cardScale?: number;
-    cardSpacing?: number;
-    gridDensity?: MyAvatarsGridDensity | null;
+    gridDensity: MyAvatarsGridDensity;
     width: number;
 };
 
 export function getMyAvatarsGridMetrics({
-    cardScale,
-    cardSpacing,
     gridDensity,
     width
 }: MyAvatarsGridMetricsInput) {
-    if (gridDensity) {
-        const densityConfig = getMyAvatarsGridDensityConfig(gridDensity);
-        const gridGap = densityConfig.gridGap;
-        const gridMinWidth = densityConfig.gridMinWidth;
-        const gridColumnCount = Math.max(
-            1,
-            Math.floor((width + gridGap) / (gridMinWidth + gridGap)) || 1
-        );
-        const gridColumnWidth =
-            width > 0
-                ? Math.max(
-                      gridMinWidth,
-                      (width - gridGap * Math.max(0, gridColumnCount - 1)) /
-                          gridColumnCount
-                  )
-                : gridMinWidth;
-        const gridRowHeight = Math.ceil(
-            gridColumnWidth * densityConfig.imageHeightRatio +
-                densityConfig.rowPaddingY +
-                gridGap
-        );
-
-        return {
-            densityConfig,
-            gridGap,
-            gridMinWidth,
-            gridColumnCount,
-            gridColumnWidth,
-            gridRowHeight
-        };
-    }
-
-    const gridGap = Math.round(12 * (cardSpacing ?? Number.NaN));
-    const gridMinWidth = Math.round(
-        Math.max(200, 320 * (cardScale ?? Number.NaN))
-    );
+    const densityConfig = getMyAvatarsGridDensityConfig(gridDensity);
+    const gridGap = densityConfig.gridGap;
+    const gridMinWidth = densityConfig.gridMinWidth;
     const gridColumnCount = Math.max(
         1,
         Math.floor((width + gridGap) / (gridMinWidth + gridGap)) || 1
@@ -140,13 +103,14 @@ export function getMyAvatarsGridMetrics({
                       gridColumnCount
               )
             : gridMinWidth;
-    const rowPaddingY = 4;
     const gridRowHeight = Math.ceil(
-        gridColumnWidth * 0.66 + rowPaddingY + gridGap
+        gridColumnWidth * densityConfig.imageHeightRatio +
+            densityConfig.rowPaddingY +
+            gridGap
     );
 
     return {
-        densityConfig: getMyAvatarsGridDensityConfig(gridDensity),
+        densityConfig,
         gridGap,
         gridMinWidth,
         gridColumnCount,

@@ -1505,8 +1505,7 @@
                     "header": "설정",
                     "bar_width": "바 너비",
                     "show_solo_instance": "솔로 인스턴스 표시",
-                    "show_no_friend_instance": "친구 인스턴스 표시 안 함",
-                    "show_detail": "세부정보 표시"
+                    "show_no_friend_instance": "친구 인스턴스 표시 안 함"
                 }
             },
             "mutual_friend": {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     appCheckGameRunning: vi.fn(),
     appRuntimeGroupInstancesRefresh: vi.fn(),
+    getInstanceJoinHistory: vi.fn(),
     isHostCapabilityAvailable: vi.fn(),
     syncStartupServicesTask: vi.fn()
 }));
@@ -11,6 +12,12 @@ vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appCheckGameRunning: mocks.appCheckGameRunning,
         appRuntimeGroupInstancesRefresh: mocks.appRuntimeGroupInstancesRefresh
+    }
+}));
+
+vi.mock('@/repositories/gameLogPersistenceRepository', () => ({
+    default: {
+        getInstanceJoinHistory: mocks.getInstanceJoinHistory
     }
 }));
 
@@ -26,9 +33,12 @@ describe('sessionBootstrapService', () => {
     beforeEach(async () => {
         vi.clearAllMocks();
 
+        const { useInstanceJoinHistoryStore } =
+            await import('@/state/instanceJoinHistoryStore');
         const { useRuntimeStore } = await import('@/state/runtimeStore');
         const { useSessionStore } = await import('@/state/sessionStore');
 
+        useInstanceJoinHistoryStore.getState().resetInstanceJoinHistory();
         useRuntimeStore.getState().resetRuntimeState();
         useSessionStore.getState().resetSessionState();
         useRuntimeStore.getState().setAuthBootstrap({
@@ -43,9 +53,14 @@ describe('sessionBootstrapService', () => {
         mocks.isHostCapabilityAvailable.mockReturnValue(false);
         mocks.appCheckGameRunning.mockResolvedValue(null);
         mocks.appRuntimeGroupInstancesRefresh.mockResolvedValue(null);
+        mocks.getInstanceJoinHistory.mockResolvedValue(
+            new Map([['wrld_test:123', 123456]])
+        );
     });
 
     it('hydrates the frontend after the backend session is committed', async () => {
+        const { useInstanceJoinHistoryStore } =
+            await import('@/state/instanceJoinHistoryStore');
         const { useSessionStore } = await import('@/state/sessionStore');
         const { beginAuthAttempt } = await import('./authAttempt');
         const { bootstrapAuthenticatedSession } =
@@ -60,6 +75,12 @@ describe('sessionBootstrapService', () => {
         );
 
         expect(mocks.appRuntimeGroupInstancesRefresh).toHaveBeenCalledTimes(1);
+        expect(mocks.getInstanceJoinHistory).toHaveBeenCalledWith('usr_self');
+        expect(
+            useInstanceJoinHistoryStore.getState().joinedAtByLocation
+        ).toEqual({
+            'wrld_test:123': 123456
+        });
         expect(useSessionStore.getState().isLoggedIn).toBe(true);
         expect(useSessionStore.getState().sessionPhase).toBe('ready');
         expect(useSessionStore.getState().isFriendsLoaded).toBe(false);

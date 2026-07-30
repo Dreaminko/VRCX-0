@@ -184,12 +184,6 @@ function waitForSharedCollectionImport(
     });
 }
 
-export async function cancelSharedCollectionImport(): Promise<void> {
-    handleSharedCollectionImportStatus(
-        await commands.appSharedCollectionImportCancel()
-    );
-}
-
 async function importSharedCollectionFlow(collectionId: string): Promise<void> {
     let preview;
     try {

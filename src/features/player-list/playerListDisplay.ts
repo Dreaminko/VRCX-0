@@ -186,11 +186,6 @@ export function getHomeWorldId(homeLocation: unknown) {
     );
 }
 
-export function formatCount(value: unknown) {
-    const number = Number(value);
-    return Number.isFinite(number) ? number.toLocaleString() : '-';
-}
-
 export function getWorldImage(world: PlayerListRecord | null | undefined) {
     const imageUrl = normalizeString(
         world?.thumbnailImageUrl || world?.imageUrl || ''

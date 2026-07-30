@@ -2,18 +2,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
     MY_AVATARS_COLUMN_IDS,
-    MY_AVATARS_DEFAULT_CARD_SCALE,
-    MY_AVATARS_DEFAULT_CARD_SPACING,
     MY_AVATARS_DEFAULT_PAGE_SIZES,
     MY_AVATARS_DEFAULT_SORTING,
     normalizeMyAvatarsColumnId,
     readPersistedMyAvatarsState,
+    resolveMyAvatarsGridDensity,
     resolveMyAvatarsPageSize,
-    sanitizeMyAvatarsCardScale,
-    sanitizeMyAvatarsCardSpacing,
     sanitizeMyAvatarsColumnOrder,
     sanitizeMyAvatarsColumnSizing,
     sanitizeMyAvatarsColumnVisibility,
+    sanitizeMyAvatarsGridDensity,
     sanitizeMyAvatarsPageSizes,
     sanitizeMyAvatarsSorting,
     writePersistedMyAvatarsState
@@ -138,16 +136,25 @@ describe('myAvatarsState', () => {
         expect(resolveMyAvatarsPageSize('999', [10, 50], 25)).toBe(50);
         expect(resolveMyAvatarsPageSize('bad', [], 25)).toBe(10);
 
-        expect(sanitizeMyAvatarsCardScale('0.2')).toBe(0.4);
-        expect(sanitizeMyAvatarsCardScale('2')).toBe(1.4);
-        expect(sanitizeMyAvatarsCardScale('bad')).toBe(
-            MY_AVATARS_DEFAULT_CARD_SCALE
-        );
-        expect(sanitizeMyAvatarsCardSpacing('0.2')).toBe(0.6);
-        expect(sanitizeMyAvatarsCardSpacing('3')).toBe(2);
-        expect(sanitizeMyAvatarsCardSpacing('bad')).toBe(
-            MY_AVATARS_DEFAULT_CARD_SPACING
-        );
+        expect(sanitizeMyAvatarsGridDensity('compact')).toBe('compact');
+        expect(sanitizeMyAvatarsGridDensity('invalid')).toBe('standard');
+        expect(
+            resolveMyAvatarsGridDensity({
+                persistedDensity: 'dense',
+                legacyGridDensity: 'compact',
+                legacyCardScale: '0.4'
+            })
+        ).toBe('dense');
+        expect(
+            resolveMyAvatarsGridDensity({
+                legacyGridDensity: 'micro'
+            })
+        ).toBe('dense');
+        expect(
+            resolveMyAvatarsGridDensity({
+                legacyCardScale: '0.5'
+            })
+        ).toBe('compact');
     });
 
     it('sanitizes saved column visibility, order, and sizing with migrated ids', () => {

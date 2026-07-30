@@ -19,7 +19,6 @@ export const MY_AVATARS_VIEW_MODES = ['grid', 'table'];
 export const MY_AVATARS_RELEASE_STATUS_OPTIONS = ['all', 'public', 'private'];
 export const MY_AVATARS_PLATFORM_OPTIONS = ['all', 'pc', 'android', 'ios'];
 export const MY_AVATARS_DEFAULT_CARD_SCALE = 0.6;
-export const MY_AVATARS_DEFAULT_CARD_SPACING = 1;
 export const MY_AVATARS_GRID_DENSITY_CONFIG_KEY = 'VRCX_MyAvatarsGridDensityV2';
 export const MY_AVATARS_LEGACY_GRID_DENSITY_CONFIG_KEY =
     'VRCX_MyAvatarsGridDensity';
@@ -187,22 +186,6 @@ export function resolveMyAvatarsPageSize(
     }
 
     return nearestPageSize(Number(fallback) || fallbackPageSize);
-}
-
-export function sanitizeMyAvatarsCardScale(value: unknown) {
-    const parsed = Number.parseFloat(String(value));
-    if (Number.isFinite(parsed)) {
-        return Math.min(1.4, Math.max(0.4, parsed));
-    }
-    return MY_AVATARS_DEFAULT_CARD_SCALE;
-}
-
-export function sanitizeMyAvatarsCardSpacing(value: unknown) {
-    const parsed = Number.parseFloat(String(value));
-    if (Number.isFinite(parsed)) {
-        return Math.min(2, Math.max(0.6, parsed));
-    }
-    return MY_AVATARS_DEFAULT_CARD_SPACING;
 }
 
 export function sanitizeMyAvatarsGridDensity(

@@ -1530,8 +1530,7 @@
                     "header": "設定",
                     "bar_width": "棒グラフ幅",
                     "show_solo_instance": "一人インスタンス",
-                    "show_no_friend_instance": "フレンドなしインスタンス",
-                    "show_detail": "インスタンス詳細"
+                    "show_no_friend_instance": "フレンドなしインスタンス"
                 }
             },
             "mutual_friend": {

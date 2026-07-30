@@ -8,29 +8,22 @@ import { Switch } from '@/ui/shadcn/switch';
 
 type InstanceActivitySettingsPopoverProps = {
     barWidth: number;
-    isDetailVisible: boolean;
     isSoloInstanceVisible: boolean;
     isNoFriendInstanceVisible: boolean;
-    showDetailControl?: boolean;
     onBarWidthCommit: (value: number) => void;
-    onDetailVisibleChange?: (value: boolean) => void;
     onSoloInstanceVisibleChange: (value: boolean) => void;
     onNoFriendInstanceVisibleChange: (value: boolean) => void;
 };
 
 export function InstanceActivitySettingsPopover({
     barWidth,
-    isDetailVisible,
     isSoloInstanceVisible,
     isNoFriendInstanceVisible,
-    showDetailControl = true,
     onBarWidthCommit,
-    onDetailVisibleChange,
     onSoloInstanceVisibleChange,
     onNoFriendInstanceVisibleChange
 }: InstanceActivitySettingsPopoverProps) {
     const { t } = useTranslation();
-    const showInstanceFilters = isDetailVisible || !showDetailControl;
 
     return (
         <Popover>
@@ -70,49 +63,28 @@ export function InstanceActivitySettingsPopover({
                         className="w-40"
                     />
                 </div>
-                {showDetailControl ? (
-                    <div className="flex h-8 items-center justify-between gap-4 text-sm">
-                        <span className="shrink-0">
-                            {t(
-                                'view.charts.instance_activity.settings.show_detail'
-                            )}
-                        </span>
-                        <Switch
-                            checked={isDetailVisible}
-                            onCheckedChange={
-                                onDetailVisibleChange || (() => {})
-                            }
-                        />
-                    </div>
-                ) : null}
-                {showInstanceFilters ? (
-                    <>
-                        <div className="flex h-8 items-center justify-between gap-4 text-sm">
-                            <span className="shrink-0">
-                                {t(
-                                    'view.charts.instance_activity.settings.show_solo_instance'
-                                )}
-                            </span>
-                            <Switch
-                                checked={isSoloInstanceVisible}
-                                onCheckedChange={onSoloInstanceVisibleChange}
-                            />
-                        </div>
-                        <div className="flex h-8 items-center justify-between gap-4 text-sm">
-                            <span className="shrink-0">
-                                {t(
-                                    'view.charts.instance_activity.settings.show_no_friend_instance'
-                                )}
-                            </span>
-                            <Switch
-                                checked={isNoFriendInstanceVisible}
-                                onCheckedChange={
-                                    onNoFriendInstanceVisibleChange
-                                }
-                            />
-                        </div>
-                    </>
-                ) : null}
+                <div className="flex h-8 items-center justify-between gap-4 text-sm">
+                    <span className="shrink-0">
+                        {t(
+                            'view.charts.instance_activity.settings.show_solo_instance'
+                        )}
+                    </span>
+                    <Switch
+                        checked={isSoloInstanceVisible}
+                        onCheckedChange={onSoloInstanceVisibleChange}
+                    />
+                </div>
+                <div className="flex h-8 items-center justify-between gap-4 text-sm">
+                    <span className="shrink-0">
+                        {t(
+                            'view.charts.instance_activity.settings.show_no_friend_instance'
+                        )}
+                    </span>
+                    <Switch
+                        checked={isNoFriendInstanceVisible}
+                        onCheckedChange={onNoFriendInstanceVisibleChange}
+                    />
+                </div>
             </PopoverContent>
         </Popover>
     );

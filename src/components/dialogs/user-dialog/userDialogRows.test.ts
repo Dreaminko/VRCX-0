@@ -18,7 +18,6 @@ import {
     hydrateMutualFriendRows,
     isOfflineLikeValue,
     mergePreviousDisplayNames,
-    normalizeLanguageRows,
     normalizePreviousDisplayNames,
     replacePreviousDisplayNameSource,
     resolveStatusStateText,
@@ -221,19 +220,6 @@ describe('userDialogRows', () => {
         ]);
         expect(sections.remainingGroups.map(groupIdForRow)).toEqual([
             'grp_regular'
-        ]);
-    });
-
-    it('combines explicit profile languages and language tags once for the title row', () => {
-        expect(
-            normalizeLanguageRows(
-                ['eng', { key: 'jpn', value: 'Japanese' }],
-                ['language_jpn', 'language_spa', 'system_supporter']
-            )
-        ).toEqual([
-            { key: 'eng', value: 'eng' },
-            { key: 'jpn', value: 'Japanese' },
-            { key: 'spa', value: 'spa' }
         ]);
     });
 
