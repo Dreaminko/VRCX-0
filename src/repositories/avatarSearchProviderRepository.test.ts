@@ -10,6 +10,7 @@ vi.mock('./configRepository', () => ({
         getString: vi.fn(),
         setString: vi.fn(),
         setBool: vi.fn(),
+        setMany: vi.fn(),
         has: vi.fn(),
         remove: vi.fn()
     }
@@ -48,6 +49,7 @@ describe('AvatarSearchProviderRepository', () => {
         );
         vi.mocked(configRepository.setString).mockResolvedValue(undefined);
         vi.mocked(configRepository.setBool).mockResolvedValue(undefined);
+        vi.mocked(configRepository.setMany).mockResolvedValue(undefined);
         vi.mocked(configRepository.has).mockResolvedValue(true);
         vi.mocked(configRepository.remove).mockResolvedValue(undefined);
         vi.mocked(externalApiRepository.searchAvatarProvider).mockResolvedValue(
@@ -266,21 +268,17 @@ describe('AvatarSearchProviderRepository', () => {
             selectedProvider: DEFAULT_PROVIDER
         });
 
-        expect(configRepository.setString).toHaveBeenCalledWith(
-            'VRCX_avatarRemoteDatabaseProviderList',
-            JSON.stringify([
-                DEFAULT_PROVIDER,
-                'https://custom.example.test/search'
-            ])
-        );
-        expect(configRepository.setBool).toHaveBeenCalledWith(
-            'VRCX_avatarRemoteDatabase',
-            true
-        );
-        expect(configRepository.setString).toHaveBeenCalledWith(
-            'VRCX_avatarRemoteDatabaseProvider',
-            DEFAULT_PROVIDER
-        );
+        expect(configRepository.setMany).toHaveBeenCalledWith([
+            [
+                'VRCX_avatarRemoteDatabaseProviderList',
+                JSON.stringify([
+                    DEFAULT_PROVIDER,
+                    'https://custom.example.test/search'
+                ])
+            ],
+            ['VRCX_avatarRemoteDatabase', 'true'],
+            ['VRCX_avatarRemoteDatabaseProvider', DEFAULT_PROVIDER]
+        ]);
         expect(publishPreferenceChanged).toHaveBeenCalledWith(
             'VRCX_avatarRemoteDatabaseProviderList',
             {

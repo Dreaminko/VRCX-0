@@ -5,7 +5,11 @@ import type {
 } from '@/domain/entities/profileEntities';
 import { replaceBioSymbols } from '@/shared/utils/string';
 
-import { VRCHAT_API_DEFAULT_PAGE_SIZE } from '../paginationConstants';
+import {
+    collectPages as collectBoundedPages,
+    type CollectPagesOptions,
+    type PageRequest
+} from '../pagination';
 import { unwrapVrchatResponse } from '../vrchatRequest';
 
 export type GroupRecord = Record<string, unknown>;
@@ -68,15 +72,7 @@ export type VrchatApiResult = {
     data: unknown;
 };
 
-export interface PageRequest {
-    n: number;
-    offset: number;
-}
-
-export interface CollectPagesOptions {
-    pageSize?: number;
-    maxPages?: number;
-}
+export type { CollectPagesOptions, PageRequest };
 
 export interface GroupProfileInput {
     groupId?: unknown;
@@ -233,24 +229,7 @@ export function responsePage<TRow = unknown>(json: unknown, key = '') {
 
 export async function collectPages<TRow = unknown>(
     fetchPage: (page: PageRequest) => Promise<TRow[]>,
-    {
-        pageSize = VRCHAT_API_DEFAULT_PAGE_SIZE,
-        maxPages = Number.POSITIVE_INFINITY
-    }: CollectPagesOptions = {}
+    { pageSize, maxPages = Number.POSITIVE_INFINITY }: CollectPagesOptions = {}
 ) {
-    const rows: TRow[] = [];
-
-    for (let page = 0; page < maxPages; page += 1) {
-        const nextRows = await fetchPage({
-            n: pageSize,
-            offset: page * pageSize
-        });
-        rows.push(...nextRows);
-
-        if (nextRows.length < pageSize) {
-            break;
-        }
-    }
-
-    return rows;
+    return collectBoundedPages(fetchPage, { pageSize, maxPages });
 }

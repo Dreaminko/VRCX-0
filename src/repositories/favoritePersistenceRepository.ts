@@ -99,6 +99,16 @@ function getLocalFavoriteGroupConfigKey(kind: unknown): string | undefined {
         : undefined;
 }
 
+function applyLocalFavoriteGroupWrite(write: {
+    configKey: string;
+    groupNames: string[];
+}): void {
+    configRepository.applyServerEntry(
+        write.configKey,
+        JSON.stringify(write.groupNames)
+    );
+}
+
 function normalizeCacheRow(
     row: CacheOutputRow | ObjectRow | null | undefined
 ): FavoriteCacheEntity {
@@ -227,8 +237,9 @@ async function createLocalFavoriteGroup({
         groupName: normalizedGroupName
     } satisfies IpcLocalFavoriteGroupInput;
 
-    await commands.appLocalFavoriteGroupCreate(input);
-    await configRepository.reload();
+    applyLocalFavoriteGroupWrite(
+        await commands.appLocalFavoriteGroupCreate(input)
+    );
 }
 
 async function getWorldFavorites() {
@@ -390,11 +401,9 @@ async function renameLocalFavoriteGroup({
         newGroupName: normalizedNewGroupName
     } satisfies IpcLocalFavoriteGroupRenameInput;
 
-    const result = await commands.appLocalFavoriteGroupRename(input);
-
-    await configRepository.reload();
-
-    return result;
+    const write = await commands.appLocalFavoriteGroupRename(input);
+    applyLocalFavoriteGroupWrite(write);
+    return write.affected;
 }
 
 async function deleteLocalFavoriteGroup({
@@ -415,11 +424,9 @@ async function deleteLocalFavoriteGroup({
         groupName: normalizedGroupName
     } satisfies IpcLocalFavoriteGroupInput;
 
-    const result = await commands.appLocalFavoriteGroupDelete(input);
-
-    await configRepository.reload();
-
-    return result;
+    const write = await commands.appLocalFavoriteGroupDelete(input);
+    applyLocalFavoriteGroupWrite(write);
+    return write.affected;
 }
 
 const favoritePersistenceRepository = Object.freeze({

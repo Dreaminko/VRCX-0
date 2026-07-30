@@ -3,12 +3,7 @@ import type {
     VrchatAvatarIdInput as IpcVrchatAvatarIdInput
 } from '@/platform/tauri/bindings';
 
-import {
-    VRCHAT_API_DEFAULT_PAGE_SIZE,
-    VRCHAT_PROFILE_MAX_PAGES
-} from '../paginationConstants';
 import { unwrapVrchatResponse } from '../vrchatRequest';
-import type { CollectPagesOptions } from './types';
 
 export function normalizeEntityId(value: unknown): string {
     return typeof value === 'string'
@@ -64,26 +59,4 @@ export function unwrapVrchatAvatarResponse<TJson = unknown>(
     });
 }
 
-export async function collectPages<T>(
-    fetchPage: (page: { n: number; offset: number }) => Promise<T[]>,
-    {
-        pageSize = VRCHAT_API_DEFAULT_PAGE_SIZE,
-        maxPages = VRCHAT_PROFILE_MAX_PAGES
-    }: CollectPagesOptions = {}
-): Promise<T[]> {
-    const rows: T[] = [];
-
-    for (let page = 0; page < maxPages; page += 1) {
-        const nextRows = await fetchPage({
-            n: pageSize,
-            offset: page * pageSize
-        });
-        rows.push(...nextRows);
-
-        if (nextRows.length < pageSize) {
-            break;
-        }
-    }
-
-    return rows;
-}
+export { collectPages } from '../pagination';

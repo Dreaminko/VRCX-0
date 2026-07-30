@@ -212,21 +212,18 @@ async function saveConfig({
     )
         ? persistedSelectedProvider
         : normalizedProviderList[0] || '';
-    await Promise.all([
-        configRepository.setString(
+    await configRepository.setMany([
+        [
             'VRCX_avatarRemoteDatabaseProviderList',
             JSON.stringify(normalizedProviderList)
-        ),
-        configRepository.setBool(
+        ],
+        [
             'VRCX_avatarRemoteDatabase',
             Boolean(enabled) && normalizedProviderList.length > 0
-        ),
-        resolvedSelectedProvider
-            ? configRepository.setString(
-                  'VRCX_avatarRemoteDatabaseProvider',
-                  resolvedSelectedProvider
-              )
-            : configRepository.remove('VRCX_avatarRemoteDatabaseProvider')
+                ? 'true'
+                : 'false'
+        ],
+        ['VRCX_avatarRemoteDatabaseProvider', resolvedSelectedProvider]
     ]);
 
     const savedConfig: ProviderConfig = {

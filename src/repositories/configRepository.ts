@@ -280,6 +280,17 @@ class ConfigRepository {
         return this.setObject(key, value);
     }
 
+    applyServerEntry(key: string, value: string): void {
+        if (!this.#ready) {
+            return;
+        }
+        const dbKey = this.#resolveKey(key);
+        if (isHiddenVrPanelConfigDbKey(dbKey)) {
+            return;
+        }
+        this.#cache.set(dbKey, value);
+    }
+
     async remove(key: string): Promise<unknown> {
         await this.#ensureReady();
         const dbKey = this.#resolveKey(key);

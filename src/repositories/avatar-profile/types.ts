@@ -78,11 +78,6 @@ export interface AvatarStylesInput {
     force?: boolean;
 }
 
-export interface CollectPagesOptions {
-    pageSize?: number;
-    maxPages?: number;
-}
-
 export interface AvatarProfileInput extends AvatarIdInput {
     force?: boolean;
     dialog?: boolean;

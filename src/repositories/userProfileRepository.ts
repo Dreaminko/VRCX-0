@@ -20,10 +20,8 @@ import {
 } from '@/shared/utils/userTransforms';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
-import {
-    VRCHAT_API_DEFAULT_PAGE_SIZE,
-    VRCHAT_PROFILE_MAX_PAGES
-} from './paginationConstants';
+import { collectPages } from './pagination';
+import { VRCHAT_API_DEFAULT_PAGE_SIZE } from './paginationConstants';
 import { unwrapVrchatResponse } from './vrchatRequest';
 
 type VrchatApiResult = {
@@ -70,16 +68,6 @@ type UserMutualFriendRow = UserRecord & {
     status?: string;
     statusDescription?: string;
 };
-
-interface PageRequest {
-    n: number;
-    offset: number;
-}
-
-interface CollectPagesOptions {
-    pageSize?: number;
-    maxPages?: number;
-}
 
 interface UserEndpointInput {
     userId?: unknown;
@@ -164,30 +152,6 @@ function normalizeUserProfile(user: unknown): UserProfileRecord {
                           : ''
                   )
     };
-}
-
-async function collectPages<T>(
-    fetchPage: (page: PageRequest) => Promise<T[]>,
-    {
-        pageSize = VRCHAT_API_DEFAULT_PAGE_SIZE,
-        maxPages = VRCHAT_PROFILE_MAX_PAGES
-    }: CollectPagesOptions = {}
-): Promise<T[]> {
-    const rows: T[] = [];
-
-    for (let page = 0; page < maxPages; page += 1) {
-        const nextRows = await fetchPage({
-            n: pageSize,
-            offset: page * pageSize
-        });
-        rows.push(...nextRows);
-
-        if (nextRows.length < pageSize) {
-            break;
-        }
-    }
-
-    return rows;
 }
 
 function normalize(user: unknown): UserProfileRecord {

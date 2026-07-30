@@ -148,6 +148,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::frontend_batch::app__group_leave_batch,
             commands::application::frontend_batch::app__notification_mark_seen_batch,
             commands::application::frontend_batch::app__notification_sync,
+            commands::application::my_avatars::app__my_avatars_get,
+            commands::application::my_avatars::app__my_avatar_by_id_get,
             commands::application::note_export::app__note_export_start,
             commands::application::note_export::app__note_export_status,
             commands::application::note_export::app__note_export_cancel,

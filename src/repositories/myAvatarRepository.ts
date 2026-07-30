@@ -4,16 +4,11 @@ import {
     queryKeys
 } from '@/lib/entityQueryCache';
 import { commands } from '@/platform/tauri/bindings';
-import { normalizeString } from '@/shared/utils/string';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
 import avatarCacheRepository from './avatarCacheRepository';
 import type { AvatarStyleRecord } from './avatarProfileRepository';
-import userSessionRepository from './userSessionRepository';
 import { unwrapVrchatResponse } from './vrchatRequest';
-
-const PAGE_SIZE = 50;
-const MAX_OFFSET = 5000;
 
 type AvatarRecord = Record<string, unknown>;
 type VrchatApiResult = {
@@ -25,22 +20,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
 
-function normalizeAvatarTagEntry(entry: unknown): AvatarTagEntry | null {
-    if (!isRecord(entry) || typeof entry.tag !== 'string') {
-        return null;
-    }
-
-    const tag = entry.tag.trim();
-    if (!tag) {
-        return null;
-    }
-
-    return {
-        tag,
-        color: typeof entry.color === 'string' ? entry.color : null
-    };
-}
-
 function unwrapVrchatAvatarResponse<TJson = unknown>(
     response: VrchatApiResult,
     path: string
@@ -48,11 +27,6 @@ function unwrapVrchatAvatarResponse<TJson = unknown>(
     return unwrapVrchatResponse<TJson>(response, path, {
         fallbackMessage: 'VRChat avatar request failed'
     });
-}
-
-interface AvatarPageOptions {
-    offset?: number;
-    n?: number;
 }
 
 interface AvatarByIdOptions {
@@ -94,23 +68,6 @@ interface AvatarStylesInput {
     force?: boolean;
 }
 
-async function getAvatarsPage({
-    offset = 0,
-    n = PAGE_SIZE
-}: AvatarPageOptions = {}) {
-    return unwrapVrchatAvatarResponse<AvatarRecord[]>(
-        await commands.appVrchatAvatarListByUserGet({
-            user: 'me',
-            n,
-            offset,
-            sort: 'updated',
-            order: 'descending',
-            releaseStatus: 'all'
-        }),
-        'avatars'
-    );
-}
-
 function avatarIdFromValue(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
@@ -125,79 +82,25 @@ async function getMyAvatarById({ avatarId }: AvatarByIdOptions = {}) {
         );
     }
 
-    for (let offset = 0; offset <= MAX_OFFSET; offset += PAGE_SIZE) {
-        const response = await getAvatarsPage({
-            offset,
-            n: PAGE_SIZE
-        });
-        const page = Array.isArray(response.json) ? response.json : [];
-        const match = page.find(
-            (avatar) => avatarIdFromValue(avatar?.id) === normalizedAvatarId
-        );
-        if (match) {
-            return match;
-        }
-
-        if (page.length < PAGE_SIZE) {
-            break;
-        }
-    }
-
-    return null;
+    const avatar = await commands.appMyAvatarByIdGet({
+        avatarId: normalizedAvatarId
+    });
+    return isRecord(avatar) ? avatar : null;
 }
 
 async function getMyAvatars({
-    currentUserId = '',
     currentAvatarId = '',
     previousAvatarSwapTime = 0
 }: MyAvatarsOptions = {}) {
-    const avatars: AvatarRecord[] = [];
-
-    if (currentUserId) {
-        await userSessionRepository.ensureUserTables(currentUserId);
-    }
-
-    for (let offset = 0; offset <= MAX_OFFSET; offset += PAGE_SIZE) {
-        const response = await getAvatarsPage({
-            offset,
-            n: PAGE_SIZE
-        });
-        const page = Array.isArray(response.json) ? response.json : [];
-        avatars.push(...page);
-
-        if (page.length < PAGE_SIZE) {
-            break;
-        }
-    }
-
-    const [tagsMap, avatarTimeSpentMap] = await Promise.all([
-        avatarCacheRepository.getAllAvatarTags(),
-        currentUserId
-            ? avatarCacheRepository.getAllAvatarTimeSpent(currentUserId)
-            : Promise.resolve(new Map())
-    ]);
-
-    return avatars.map((avatar: AvatarRecord) => {
-        const avatarId = normalizeString(avatar.id);
-        const nextAvatar: MyAvatarRecord = {
-            ...avatar,
-            $tags: (tagsMap.get(avatarId) || [])
-                .map(normalizeAvatarTagEntry)
-                .filter((entry): entry is AvatarTagEntry => Boolean(entry)),
-            $timeSpent: avatarTimeSpentMap.get(avatarId) || 0
-        };
-
-        if (
-            currentAvatarId &&
-            avatar.id === currentAvatarId &&
-            Number.isFinite(previousAvatarSwapTime) &&
-            previousAvatarSwapTime > 0
-        ) {
-            nextAvatar.$timeSpent += Date.now() - previousAvatarSwapTime;
-        }
-
-        return nextAvatar;
+    const avatars = await commands.appMyAvatarsGet({
+        currentAvatarId,
+        previousAvatarSwapTime: Number.isFinite(previousAvatarSwapTime)
+            ? previousAvatarSwapTime
+            : 0
     });
+    return (Array.isArray(avatars) ? avatars : []).filter(
+        (avatar): avatar is MyAvatarRecord => isRecord(avatar)
+    );
 }
 
 async function updateAvatarTags({
@@ -307,7 +210,6 @@ async function getAvailableAvatarStyles({
 }
 
 const myAvatarRepository = Object.freeze({
-    getAvatarsPage,
     getMyAvatarById,
     getMyAvatars,
     updateAvatarTags,
@@ -317,7 +219,6 @@ const myAvatarRepository = Object.freeze({
 });
 
 export {
-    getAvatarsPage,
     getMyAvatarById,
     getMyAvatars,
     updateAvatarTags,

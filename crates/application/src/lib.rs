@@ -1,5 +1,6 @@
 mod auth;
 mod authenticated_runtime;
+mod avatars;
 mod background_capabilities;
 mod collections;
 mod event_payloads;
@@ -33,6 +34,9 @@ pub use authenticated_runtime::{
     AuthenticatedRuntimePhase, AuthenticatedRuntimePhaseSnapshot, AuthenticatedRuntimeStepSnapshot,
     AuthenticatedRuntimeStepStatus,
 };
+pub use avatars::{
+    get_my_avatar_by_id, get_my_avatars, MyAvatarByIdInput, MyAvatarsDeps, MyAvatarsInput,
+};
 pub use background_capabilities::{
     refresh_background_current_user, refresh_background_group_instances,
     BackgroundCapabilitySession, BackgroundGroupInstancesRefresh,
@@ -53,6 +57,7 @@ pub use collections::{
 pub use collections::{preview_shared_collection, ImportPreview};
 pub use favorites::{
     create_local_favorite_group, delete_local_favorite_group, rename_local_favorite_group,
+    LocalFavoriteGroupWrite,
 };
 pub use favorites::{
     favorite_transfer_plan_for_item, transfer_favorites, FavoriteTransferDeps,

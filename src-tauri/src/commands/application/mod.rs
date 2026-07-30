@@ -9,6 +9,7 @@ pub mod lifecycle;
 pub mod llm_endpoint;
 pub mod mcp_server;
 pub mod moderation_sync;
+pub mod my_avatars;
 pub mod note_export;
 pub mod overlay_activity;
 pub mod profile_backup;

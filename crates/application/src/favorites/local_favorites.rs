@@ -1,8 +1,17 @@
+use vrcx_0_persistence::config::resolve_config_key;
 use vrcx_0_persistence::favorites;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::{Error, Result};
 use vrcx_0_application_core::{read_config_string_array, write_config_string_array};
+
+#[derive(Clone, Debug, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalFavoriteGroupWrite {
+    pub config_key: String,
+    pub group_names: Vec<String>,
+    pub affected: i64,
+}
 
 pub(super) fn local_group_config_key(kind: &str) -> Result<&'static str> {
     match kind.trim() {
@@ -27,11 +36,16 @@ pub fn create_local_favorite_group(
     owner_user_id: &str,
     kind: &str,
     group_name: String,
-) -> Result<()> {
+) -> Result<LocalFavoriteGroupWrite> {
     let key = writable_group_config_key(kind, owner_user_id)?;
     let mut groups = read_config_string_array(db, &key)?;
     add_group_value(&mut groups, &group_name);
-    write_config_string_array(db, &key, &groups)
+    write_config_string_array(db, &key, &groups)?;
+    Ok(LocalFavoriteGroupWrite {
+        config_key: resolve_config_key(&key),
+        group_names: groups,
+        affected: 0,
+    })
 }
 
 pub fn rename_local_favorite_group(
@@ -40,14 +54,14 @@ pub fn rename_local_favorite_group(
     kind: &str,
     group_name: String,
     new_group_name: String,
-) -> Result<i64> {
+) -> Result<LocalFavoriteGroupWrite> {
     let key = group_config_realm_key(db, kind, owner_user_id, &group_name)?;
     let mut groups = read_config_string_array(db, &key)?
         .into_iter()
         .filter(|value| value != &group_name)
         .collect::<Vec<_>>();
     add_group_value(&mut groups, &new_group_name);
-    favorites::favorite_group_rename_with_config(
+    let affected = favorites::favorite_group_rename_with_config(
         db,
         Some(owner_user_id),
         kind,
@@ -56,7 +70,12 @@ pub fn rename_local_favorite_group(
         &new_group_name,
         &groups,
     )
-    .map_err(Error::from)
+    .map_err(Error::from)?;
+    Ok(LocalFavoriteGroupWrite {
+        config_key: resolve_config_key(&key),
+        group_names: groups,
+        affected,
+    })
 }
 
 pub fn delete_local_favorite_group(
@@ -64,13 +83,13 @@ pub fn delete_local_favorite_group(
     owner_user_id: &str,
     kind: &str,
     group_name: String,
-) -> Result<i64> {
+) -> Result<LocalFavoriteGroupWrite> {
     let key = group_config_realm_key(db, kind, owner_user_id, &group_name)?;
     let groups = read_config_string_array(db, &key)?
         .into_iter()
         .filter(|value| value != &group_name)
         .collect::<Vec<_>>();
-    favorites::favorite_group_delete_with_config(
+    let affected = favorites::favorite_group_delete_with_config(
         db,
         Some(owner_user_id),
         kind,
@@ -78,7 +97,12 @@ pub fn delete_local_favorite_group(
         &group_name,
         &groups,
     )
-    .map_err(Error::from)
+    .map_err(Error::from)?;
+    Ok(LocalFavoriteGroupWrite {
+        config_key: resolve_config_key(&key),
+        group_names: groups,
+        affected,
+    })
 }
 
 fn writable_group_config_key(kind: &str, owner_user_id: &str) -> Result<String> {

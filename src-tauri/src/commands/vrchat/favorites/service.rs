@@ -254,14 +254,14 @@ pub fn app__local_favorite_remove(
 pub fn app__local_favorite_group_create(
     state: State<'_, AppState>,
     input: LocalFavoriteGroupInput,
-) -> Result<(), AppError> {
+) -> Result<vrcx_0_application::LocalFavoriteGroupWrite, AppError> {
     let kind = require_text(input.kind, "LocalFavoriteGroupCreate requires kind.")?;
     let group_name = require_text(
         input.group_name,
         "LocalFavoriteGroupCreate requires groupName.",
     )?;
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    vrcx_0_application::create_local_favorite_group(
+    let write = vrcx_0_application::create_local_favorite_group(
         state.db.as_ref(),
         &owner_user_id,
         &kind,
@@ -271,7 +271,7 @@ pub fn app__local_favorite_group_create(
     state
         .realtime_runtime
         .notify_favorites_changed(&kind, true, false);
-    Ok(())
+    Ok(write)
 }
 
 #[tauri::command]
@@ -279,7 +279,7 @@ pub fn app__local_favorite_group_create(
 pub fn app__local_favorite_group_rename(
     state: State<'_, AppState>,
     input: LocalFavoriteGroupRenameInput,
-) -> Result<i64, AppError> {
+) -> Result<vrcx_0_application::LocalFavoriteGroupWrite, AppError> {
     let kind = require_text(input.kind, "LocalFavoriteGroupRename requires kind.")?;
     let group_name = require_text(
         input.group_name,
@@ -290,7 +290,7 @@ pub fn app__local_favorite_group_rename(
         "LocalFavoriteGroupRename requires newGroupName.",
     )?;
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    let affected = vrcx_0_application::rename_local_favorite_group(
+    let write = vrcx_0_application::rename_local_favorite_group(
         state.db.as_ref(),
         &owner_user_id,
         &kind,
@@ -301,7 +301,7 @@ pub fn app__local_favorite_group_rename(
     state
         .realtime_runtime
         .notify_favorites_changed(&kind, true, false);
-    Ok(affected)
+    Ok(write)
 }
 
 #[tauri::command]
@@ -309,14 +309,14 @@ pub fn app__local_favorite_group_rename(
 pub fn app__local_favorite_group_delete(
     state: State<'_, AppState>,
     input: LocalFavoriteGroupInput,
-) -> Result<i64, AppError> {
+) -> Result<vrcx_0_application::LocalFavoriteGroupWrite, AppError> {
     let kind = require_text(input.kind, "LocalFavoriteGroupDelete requires kind.")?;
     let group_name = require_text(
         input.group_name,
         "LocalFavoriteGroupDelete requires groupName.",
     )?;
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    let affected = vrcx_0_application::delete_local_favorite_group(
+    let write = vrcx_0_application::delete_local_favorite_group(
         state.db.as_ref(),
         &owner_user_id,
         &kind,
@@ -326,5 +326,5 @@ pub fn app__local_favorite_group_delete(
     state
         .realtime_runtime
         .notify_favorites_changed(&kind, true, false);
-    Ok(affected)
+    Ok(write)
 }

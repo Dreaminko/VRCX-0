@@ -262,6 +262,14 @@ export const commands = {
     async appNotificationSync(): Promise<NotificationSyncOutcome> {
         return await TAURI_INVOKE('app__notification_sync');
     },
+    async appMyAvatarsGet(input: MyAvatarsInput): Promise<JsonValue[]> {
+        return await TAURI_INVOKE('app__my_avatars_get', { input });
+    },
+    async appMyAvatarByIdGet(
+        input: MyAvatarByIdInput
+    ): Promise<JsonValue | null> {
+        return await TAURI_INVOKE('app__my_avatar_by_id_get', { input });
+    },
     async appNoteExportStart(
         input: NoteExportStartInput
     ): Promise<NoteExportStatus> {
@@ -1450,21 +1458,21 @@ export const commands = {
     },
     async appLocalFavoriteGroupCreate(
         input: LocalFavoriteGroupInput
-    ): Promise<null> {
+    ): Promise<LocalFavoriteGroupWrite> {
         return await TAURI_INVOKE('app__local_favorite_group_create', {
             input
         });
     },
     async appLocalFavoriteGroupDelete(
         input: LocalFavoriteGroupInput
-    ): Promise<number> {
+    ): Promise<LocalFavoriteGroupWrite> {
         return await TAURI_INVOKE('app__local_favorite_group_delete', {
             input
         });
     },
     async appLocalFavoriteGroupRename(
         input: LocalFavoriteGroupRenameInput
-    ): Promise<number> {
+    ): Promise<LocalFavoriteGroupWrite> {
         return await TAURI_INVOKE('app__local_favorite_group_rename', {
             input
         });
@@ -3962,6 +3970,11 @@ export type LocalFavoriteGroupRenameInput = {
     groupName?: string;
     newGroupName?: string;
 };
+export type LocalFavoriteGroupWrite = {
+    configKey: string;
+    groupNames: string[];
+    affected: number;
+};
 export type LocalFavoriteInput = {
     kind?: string;
     entityId?: string;
@@ -4131,6 +4144,11 @@ export type MutualGraphSnapshotOutput = {
     friendIds: string[];
     links: MutualGraphLinkOutput[];
     meta: MutualGraphMetaOutput[];
+};
+export type MyAvatarByIdInput = { avatarId: string };
+export type MyAvatarsInput = {
+    currentAvatarId?: string;
+    previousAvatarSwapTime?: number;
 };
 export type NoteExportItemInput = {
     userId: string;

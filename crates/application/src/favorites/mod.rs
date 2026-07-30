@@ -15,4 +15,5 @@ pub use favorite_transfer::{
 };
 pub use local_favorites::{
     create_local_favorite_group, delete_local_favorite_group, rename_local_favorite_group,
+    LocalFavoriteGroupWrite,
 };
