@@ -92,6 +92,9 @@ pub trait VrOverlayServiceControl {
         self.is_running()
     }
     fn stop(&mut self);
+    fn stop_detached(&mut self) {
+        self.stop();
+    }
     fn is_running(&self) -> bool;
 }
 
@@ -580,6 +583,16 @@ impl VrOverlayServiceControl for HostVrOverlayService {
 
     fn stop(&mut self) {
         let _ = self.stop_active_actor();
+    }
+
+    fn stop_detached(&mut self) {
+        if let Some(actor) = self.actor.take() {
+            actor.send_detached(OverlayServiceCommand::Stop);
+        }
+        for entry in self.condemned.drain(..) {
+            entry.actor.send_detached(OverlayServiceCommand::Stop);
+        }
+        self.clear_active_state();
     }
 
     fn should_stop_when_ineligible(&self) -> bool {

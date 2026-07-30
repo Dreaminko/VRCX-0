@@ -465,7 +465,7 @@ impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
     }
 
     fn stop_profile_services(&self) {
-        self.desktop.vr_overlay_runtime.stop();
+        self.desktop.vr_overlay_runtime.stop_detached();
         self.game.process_monitor.stop();
         self.game.log_watcher.stop();
         self.game.game_log_runtime.stop();

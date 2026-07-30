@@ -80,6 +80,12 @@ where
         }
     }
 
+    pub fn stop_detached(&mut self) {
+        self.reset_retry_state();
+        self.unsupported_eligibility = None;
+        self.service.stop_detached();
+    }
+
     fn reset_retry_state(&mut self) {
         self.next_start_attempt_at = None;
         self.start_retry_backoff = OVERLAY_START_RETRY_INITIAL_BACKOFF;

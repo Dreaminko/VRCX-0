@@ -29,7 +29,7 @@ const TELEMETRY_CLIENT_ERROR_CURSOR_CONFIG_KEY: &str = "telemetryClientErrorCurs
 const ANONYMOUS_USAGE_TELEMETRY_CONFIG_KEY: &str = "anonymousUsageTelemetry";
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30 * 60);
 const LOOP_SLEEP: Duration = Duration::from_secs(1);
-const SHUTDOWN_FLUSH_TIMEOUT: Duration = Duration::from_secs(3);
+const SHUTDOWN_FLUSH_TIMEOUT: Duration = Duration::from_secs(1);
 const SEND_RETRY_BACKOFF: Duration = Duration::from_secs(60);
 #[derive(Clone)]
 pub struct TelemetryRuntime {

@@ -717,9 +717,9 @@ impl VrOverlayRuntime {
         self.reconcile_current_with_device_refresh(true);
     }
 
-    pub fn stop(&self) {
+    pub fn stop_detached(&self) {
         if let Ok(mut manager) = self.manager.lock() {
-            manager.reconcile(VrOverlayEligibility::default());
+            manager.stop_detached();
             self.refresh_manager_mirror(&manager);
         }
         self.release_frame_producer();

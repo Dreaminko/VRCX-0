@@ -129,6 +129,16 @@ impl OverlayActorHandle {
         self.send_with_timeout(command, timeout)
     }
 
+    pub fn send_detached(&self, command: OverlayServiceCommand) {
+        let (reply, _result) = mpsc::channel();
+        let _ = self
+            .sender
+            .send(OverlayActorMessage::Command(OverlayCommandEnvelope {
+                command,
+                reply,
+            }));
+    }
+
     fn send_with_timeout(
         &self,
         command: OverlayServiceCommand,

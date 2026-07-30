@@ -132,9 +132,9 @@ impl DesktopVrOverlayRuntime {
         self.runtime.reconcile_current();
     }
 
-    pub fn stop(&self) {
+    pub fn stop_detached(&self) {
         #[cfg(any(windows, target_os = "linux"))]
-        self.runtime.stop();
+        self.runtime.stop_detached();
     }
 
     pub fn clear_friends_panel_session_state(&self) {
