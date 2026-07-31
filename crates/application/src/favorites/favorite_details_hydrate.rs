@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::Utc;
+use futures_util::{stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use vrcx_0_core::json::RawJson;
@@ -13,12 +14,14 @@ use vrcx_0_persistence::{
 use vrcx_0_vrchat_client::{
     favorites::{favorite_avatars_get_input, favorite_worlds_get_input},
     http_api::{normalize_text, ApiScope, HttpApiRequestInput},
+    worlds::world_get_input,
 };
 
 use crate::{Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient};
 
 const FAVORITE_DETAILS_PAGE_SIZE: i64 = 300;
 const FAVORITE_DETAILS_MAX_PAGES: usize = 50;
+const FAVORITE_DETAILS_PROBE_CONCURRENCY: usize = 3;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -41,6 +44,7 @@ pub struct FavoriteDetailsHydrateInput {
 #[serde(rename_all = "camelCase")]
 pub struct FavoriteDetailsHydrateOutput {
     pub details_by_id: HashMap<String, RawJson>,
+    pub availability_by_id: HashMap<String, String>,
     pub cached_count: u32,
     pub fetched_at: String,
 }
@@ -62,16 +66,128 @@ pub async fn hydrate_favorite_details(
         }
         FavoriteDetailsHydrateKind::World => fetch_favorite_world_entities(deps).await?,
     };
-    let details_by_id = filter_details_by_id(entities, &input.favorite_ids);
+    let mut details_by_id = filter_details_by_id(entities, &input.favorite_ids);
+    let availability_by_id = match input.kind {
+        FavoriteDetailsHydrateKind::Avatar => HashMap::new(),
+        FavoriteDetailsHydrateKind::World => {
+            probe_missing_world_details(deps, &input.favorite_ids, &mut details_by_id).await?
+        }
+    };
     let cached_count = persist_details(deps.db, input.kind, &details_by_id);
     Ok(FavoriteDetailsHydrateOutput {
         details_by_id: details_by_id
             .into_iter()
             .map(|(id, entity)| (id, RawJson::from(entity)))
             .collect(),
+        availability_by_id,
         cached_count,
         fetched_at: Utc::now().to_rfc3339(),
     })
+}
+
+async fn probe_missing_world_details(
+    deps: &FavoriteDetailsHydrateDeps<'_>,
+    favorite_ids: &[String],
+    details_by_id: &mut HashMap<String, Value>,
+) -> Result<HashMap<String, String>> {
+    let mut availability_by_id = HashMap::new();
+    let mut probes = stream::iter(
+        missing_world_ids(favorite_ids, details_by_id)
+            .into_iter()
+            .map(|id| async move {
+                let outcome = probe_world(deps, &id).await;
+                (id, outcome)
+            }),
+    )
+    .buffer_unordered(FAVORITE_DETAILS_PROBE_CONCURRENCY);
+    while let Some((id, outcome)) = probes.next().await {
+        match outcome? {
+            WorldProbeOutcome::Deleted => {
+                availability_by_id.insert(id, "deleted".to_string());
+            }
+            WorldProbeOutcome::Available(entity, availability) => {
+                availability_by_id.insert(id.clone(), availability);
+                details_by_id.insert(id, entity);
+            }
+            WorldProbeOutcome::Failed => {}
+        }
+    }
+    Ok(availability_by_id)
+}
+
+async fn probe_world(deps: &FavoriteDetailsHydrateDeps<'_>, id: &str) -> Result<WorldProbeOutcome> {
+    let request = match world_get_input(deps.expected_scope.endpoint.clone(), id.to_string()) {
+        Ok((_, request)) => request,
+        Err(error) => {
+            tracing::warn!("failed to build world availability probe for {id}: {error}");
+            return Ok(WorldProbeOutcome::Failed);
+        }
+    };
+    match execute_json(deps, request).await {
+        Ok((status, payload)) => Ok(classify_world_probe(status, payload)),
+        Err(error) => {
+            ensure_scope_matches(&deps.auth_scope.snapshot(), &deps.expected_scope)?;
+            tracing::warn!("world availability probe failed for {id}: {error}");
+            Ok(WorldProbeOutcome::Failed)
+        }
+    }
+}
+
+fn missing_world_ids(
+    favorite_ids: &[String],
+    details_by_id: &HashMap<String, Value>,
+) -> Vec<String> {
+    let mut seen = HashSet::new();
+    favorite_ids
+        .iter()
+        .map(normalize_text)
+        .filter(|id| !id.is_empty())
+        .filter(|id| seen.insert(id.clone()))
+        .filter(|id| {
+            details_by_id
+                .get(id)
+                .is_none_or(|entity| !has_displayable_detail(entity))
+        })
+        .collect()
+}
+
+fn has_displayable_detail(entity: &Value) -> bool {
+    let display_fields = [
+        "name",
+        "authorName",
+        "thumbnailImageUrl",
+        "imageUrl",
+        "description",
+        "releaseStatus",
+    ];
+    if display_fields.iter().any(
+        |field| matches!(entity.get(*field), Some(Value::String(text)) if !text.trim().is_empty()),
+    ) {
+        return true;
+    }
+    matches!(entity.get("tags"), Some(Value::Array(tags)) if !tags.is_empty())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum WorldProbeOutcome {
+    Available(Value, String),
+    Deleted,
+    Failed,
+}
+
+fn classify_world_probe(status: i32, payload: Value) -> WorldProbeOutcome {
+    if status == 404 {
+        return WorldProbeOutcome::Deleted;
+    }
+    if status >= 400 || payload.get("error").is_some() {
+        return WorldProbeOutcome::Failed;
+    }
+    let availability = if release_status(&payload) == "public" {
+        "public"
+    } else {
+        "private"
+    };
+    WorldProbeOutcome::Available(payload, availability.to_string())
 }
 
 async fn fetch_favorite_world_entities(
@@ -127,11 +243,10 @@ async fn fetch_favorite_avatar_entities(
     Ok(entities)
 }
 
-async fn execute_page(
+async fn execute_json(
     deps: &FavoriteDetailsHydrateDeps<'_>,
     request: HttpApiRequestInput,
-    action: &str,
-) -> Result<Vec<Value>> {
+) -> Result<(i32, Value)> {
     ensure_scope_matches(&deps.auth_scope.snapshot(), &deps.expected_scope)?;
     let response = deps
         .web
@@ -140,11 +255,18 @@ async fn execute_page(
     ensure_scope_matches(&deps.auth_scope.snapshot(), &deps.expected_scope)?;
     let payload = serde_json::from_str::<Value>(&response.data)
         .unwrap_or_else(|_| Value::String(response.data.clone()));
-    if response.status >= 400 || payload.get("error").is_some() {
+    Ok((response.status, payload))
+}
+
+async fn execute_page(
+    deps: &FavoriteDetailsHydrateDeps<'_>,
+    request: HttpApiRequestInput,
+    action: &str,
+) -> Result<Vec<Value>> {
+    let (status, payload) = execute_json(deps, request).await?;
+    if status >= 400 || payload.get("error").is_some() {
         return Err(Error::Custom(response_error_message(
-            &payload,
-            response.status,
-            action,
+            &payload, status, action,
         )));
     }
     Ok(payload.as_array().cloned().unwrap_or_default())
@@ -572,6 +694,68 @@ mod tests {
         );
         assert_eq!(normalize_avatar_tags(&[]), vec![String::new()]);
         assert_eq!(normalize_avatar_tags(&["  ".into()]), vec![String::new()]);
+    }
+
+    #[test]
+    fn missing_world_ids_returns_favorites_without_displayable_details() {
+        let details_by_id = HashMap::from([
+            ("wrld_named".to_string(), json!({ "name": "Named" })),
+            ("wrld_tagged".to_string(), json!({ "tags": ["tag"] })),
+            ("wrld_blank".to_string(), json!({ "name": "   " })),
+            ("wrld_empty".to_string(), json!({})),
+        ]);
+
+        let missing = missing_world_ids(
+            &[
+                " wrld_named ".to_string(),
+                "wrld_tagged".to_string(),
+                "wrld_blank".to_string(),
+                "wrld_empty".to_string(),
+                "wrld_absent".to_string(),
+                "wrld_absent".to_string(),
+                "  ".to_string(),
+            ],
+            &details_by_id,
+        );
+
+        assert_eq!(missing, vec!["wrld_blank", "wrld_empty", "wrld_absent"]);
+    }
+
+    #[test]
+    fn world_probe_marks_http_404_as_deleted() {
+        assert_eq!(
+            classify_world_probe(404, json!({ "error": { "message": "not found" } })),
+            WorldProbeOutcome::Deleted
+        );
+    }
+
+    #[test]
+    fn world_probe_failures_do_not_produce_availability() {
+        assert_eq!(
+            classify_world_probe(500, json!({ "message": "boom" })),
+            WorldProbeOutcome::Failed
+        );
+        assert_eq!(
+            classify_world_probe(200, json!({ "error": { "message": "soft error" } })),
+            WorldProbeOutcome::Failed
+        );
+    }
+
+    #[test]
+    fn world_probe_classifies_release_status_into_public_or_private() {
+        let world = json!({ "id": "wrld_1", "name": "World", "releaseStatus": "Public" });
+        assert_eq!(
+            classify_world_probe(200, world.clone()),
+            WorldProbeOutcome::Available(world, "public".to_string())
+        );
+
+        for status in ["private", "hidden", ""] {
+            let world = json!({ "id": "wrld_1", "releaseStatus": status });
+            assert_eq!(
+                classify_world_probe(200, world.clone()),
+                WorldProbeOutcome::Available(world, "private".to_string())
+            );
+        }
     }
 
     #[test]

@@ -4,12 +4,44 @@ use super::thumbnail::delete_thumbnail_cache_for_source_paths;
 use super::*;
 use crate::{TaskStopToken, TaskSupervisor};
 
+pub(super) fn screenshot_search_result(
+    path: &str,
+    metadata: ScreenshotMetadata,
+) -> ScreenshotSearchResult {
+    let p = Path::new(path);
+    let file_name = p
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let (file_size_bytes, creation_date) = match std::fs::metadata(p) {
+        Ok(file_metadata) => (
+            file_metadata.len() as i64,
+            file_metadata.created().ok().map(|created| {
+                let dt: chrono::DateTime<chrono::Utc> = created.into();
+                dt.to_rfc3339()
+            }),
+        ),
+        Err(_) => (0, None),
+    };
+    let (width, height) = read_png_dimensions(path);
+
+    ScreenshotSearchResult {
+        file_path: path.to_string(),
+        file_name,
+        file_size_bytes,
+        creation_date,
+        width,
+        height,
+        metadata,
+    }
+}
+
 pub fn find_screenshots(
     query: &str,
     directory: &str,
     search_type: ScreenshotSearchType,
     cache_db: &MetadataCacheDb,
-) -> Vec<String> {
+) -> Vec<ScreenshotSearchResult> {
     let dir = Path::new(directory);
     if !dir.exists() {
         return Vec::new();
@@ -45,7 +77,7 @@ pub fn find_screenshots(
             m.filter(|m| m.error.is_none())
         };
 
-        if let Some(ref meta) = metadata {
+        if let Some(meta) = metadata {
             let matched = match search_type {
                 ScreenshotSearchType::Username => meta.contains_player_name(query),
                 ScreenshotSearchType::UserId => meta.contains_player_id(query),
@@ -57,11 +89,8 @@ pub fn find_screenshots(
                 ScreenshotSearchType::WorldId => meta.world.id == query,
             };
             if matched {
-                if let Some(ref sf) = meta.source_file {
-                    result.push(sf.clone());
-                } else {
-                    result.push(file.clone());
-                }
+                let path = meta.source_file.clone().unwrap_or_else(|| file.clone());
+                result.push(screenshot_search_result(&path, meta));
             }
         }
     }

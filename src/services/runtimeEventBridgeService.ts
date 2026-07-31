@@ -18,6 +18,7 @@ import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import { handleFavoriteImportStatusEvent } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
+import { handleGroupBanImportStatusEvent } from './groupBanImportService';
 import { getCurrentProfileBackupStatus } from './profileBackupService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
@@ -128,6 +129,11 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
+    if (event.name === 'groupBanImportStatus') {
+        handleGroupBanImportStatusEvent(event.payload);
+        return;
+    }
+
     if (event.name === 'favoritesChanged') {
         runtimeStore.recordRuntimeEvent(event.name, event.payload);
         handleFavoritesChangedEvent(event.payload);
@@ -229,6 +235,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'dataDirMigration',
         'favoriteImportStatus',
         'favoritesChanged',
+        'groupBanImportStatus',
         'friendProfileLoadStatus',
         'gameClientEvent',
         'runtimeWorkerError',

@@ -83,18 +83,17 @@ pub fn screenshot_metadata_json(path: &str) -> Result<String> {
     }
 }
 
-pub fn find_screenshots_json(
+pub fn find_screenshot_search_results(
     search_query: &str,
     search_type: Option<i32>,
     cache: &MetadataCacheDb,
     photos_dir: &str,
-) -> Result<String> {
+) -> Vec<ScreenshotSearchResult> {
     let st = ScreenshotSearchType::from_i32(search_type.unwrap_or(0));
     if photos_dir.is_empty() {
-        return Ok("[]".into());
+        return Vec::new();
     }
-    let results = find_screenshots(search_query, photos_dir, st, cache);
-    serde_json::to_string(&results).map_err(|e| Error::Custom(format!("serialize: {e}")))
+    find_screenshots(search_query, photos_dir, st, cache)
 }
 
 pub(super) fn is_screenshot_content_asset_path(path: &Path) -> bool {

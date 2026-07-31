@@ -22,6 +22,7 @@ import {
     buildScreenshotSearchRow,
     getDroppedScreenshotPath,
     normalizeScreenshotMetadata,
+    normalizeScreenshotSearchResult,
     SCREENSHOT_METADATA_SEARCH_TYPES,
     sortScreenshotRowsByNewest
 } from './screenshotMetadataValues';
@@ -375,7 +376,7 @@ export function ScreenshotMetadataPage() {
         setIsSearchLoading(true);
 
         try {
-            const paths = await mediaRepository.findScreenshotsBySearch(
+            const results = await mediaRepository.findScreenshotsBySearch(
                 query,
                 selectedSearchType.index
             );
@@ -384,7 +385,7 @@ export function ScreenshotMetadataPage() {
                 return;
             }
 
-            if (!Array.isArray(paths) || paths.length === 0) {
+            if (!Array.isArray(results) || results.length === 0) {
                 const message = t('dialog.screenshot_metadata.no_results');
                 resetSearchContext({ clearPreview: true });
                 setMetadataError(message);
@@ -392,37 +393,14 @@ export function ScreenshotMetadataPage() {
                 return;
             }
 
-            const rows = await Promise.all(
-                paths.map(async (path: any) => {
-                    try {
-                        const [rawMetadata, extra] = await Promise.all([
-                            mediaRepository.getScreenshotMetadata(path),
-                            mediaRepository.getExtraScreenshotData(path, false)
-                        ]);
-                        const normalized = normalizeScreenshotMetadata(
-                            rawMetadata ?? {},
-                            extra ?? {}
-                        );
-                        return buildScreenshotSearchRow(
-                            normalized,
-                            selectedSearchType,
-                            query,
-                            dateLocale
-                        );
-                    } catch (error) {
-                        console.error(
-                            'Failed to enrich screenshot search result:',
-                            path,
-                            error
-                        );
-                        return null;
-                    }
-                })
+            const rows = results.map((result: any) =>
+                buildScreenshotSearchRow(
+                    normalizeScreenshotSearchResult(result),
+                    selectedSearchType,
+                    query,
+                    dateLocale
+                )
             );
-
-            if (searchRequestRef.current !== requestId) {
-                return;
-            }
 
             const nextRows = sortScreenshotRowsByNewest(rows);
 

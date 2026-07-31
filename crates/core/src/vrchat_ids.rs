@@ -6,6 +6,10 @@ pub fn is_avatar_id(value: &str) -> bool {
     is_prefixed_uuid(value, "avtr_")
 }
 
+pub fn is_user_id(value: &str) -> bool {
+    is_prefixed_uuid(value, "usr_")
+}
+
 fn is_prefixed_uuid(value: &str, prefix: &str) -> bool {
     let Some(uuid) = value.strip_prefix(prefix) else {
         return false;
@@ -26,7 +30,7 @@ fn is_uuid(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_avatar_id, is_world_id};
+    use super::{is_avatar_id, is_user_id, is_world_id};
 
     #[test]
     fn accepts_canonical_world_ids() {
@@ -42,6 +46,18 @@ mod tests {
             "usr_12345678-1234-1234-1234-1234567890ab",
         ] {
             assert!(!is_world_id(value), "{value}");
+        }
+    }
+
+    #[test]
+    fn validates_canonical_user_ids() {
+        assert!(is_user_id("usr_12345678-1234-1234-1234-1234567890ab"));
+        for value in [
+            "",
+            "usr_not-a-vrchat-id",
+            "wrld_12345678-1234-1234-1234-1234567890ab",
+        ] {
+            assert!(!is_user_id(value), "{value}");
         }
     }
 

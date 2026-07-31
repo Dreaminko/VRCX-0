@@ -62,6 +62,7 @@ pub struct RuntimeHostState {
     pub image_cache: Arc<ImageCache>,
     pub authenticated_runtime: AuthenticatedRuntimeOrchestrator,
     pub favorite_import: FavoriteImportRuntime,
+    pub group_ban_import: GroupBanImportRuntime,
     pub shared_collection_import: SharedCollectionImportRuntime,
     pub note_export: NoteExportRuntime,
     pub group_order_source: Arc<dyn GroupOrderSource>,
@@ -453,6 +454,19 @@ impl RuntimeHostStateBuilder {
             self.runtime_context.tasks.clone(),
             self.runtime_context.auth_scope.clone(),
         );
+        let group_ban_import = GroupBanImportRuntime::new(
+            Arc::new(VrchatGroupBanImportActions {
+                deps: GroupApiDeps {
+                    db: Arc::clone(&self.db),
+                    web: Arc::clone(&self.web),
+                    diagnostics: self.runtime_context.diagnostics.clone(),
+                    sync: self.runtime_context.sync.clone(),
+                },
+            }),
+            self.runtime_context.event_bus.clone(),
+            self.runtime_context.tasks.clone(),
+            self.runtime_context.auth_scope.clone(),
+        );
         let shared_collection_import = SharedCollectionImportRuntime::new(
             Arc::clone(&self.db),
             Arc::clone(&self.web),
@@ -483,6 +497,7 @@ impl RuntimeHostStateBuilder {
             image_cache: self.image_cache,
             authenticated_runtime,
             favorite_import,
+            group_ban_import,
             shared_collection_import,
             note_export,
             group_order_source,

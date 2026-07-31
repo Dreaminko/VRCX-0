@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import groupProfileRepository from '@/repositories/groupProfileRepository';
-import { windowDelay } from '@/shared/utils/delays';
+import type { GroupBanImportStatus } from '@/platform/tauri/bindings';
+import {
+    cancelGroupBanImport,
+    getGroupBanImportStatus,
+    isGroupBanImportActive,
+    startGroupBanImport,
+    subscribeGroupBanImportStatus
+} from '@/services/groupBanImportService';
 import { Alert, AlertDescription } from '@/ui/shadcn/alert';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -16,8 +22,6 @@ import { Spinner } from '@/ui/shadcn/spinner';
 import { Textarea } from '@/ui/shadcn/textarea';
 
 import { extractGroupBanUserIds } from './groupModerationBanImport';
-
-const IMPORT_INTERVAL_MS = 1000;
 
 export function GroupModerationBanImportDialog({
     open,
@@ -36,18 +40,95 @@ export function GroupModerationBanImportDialog({
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [errors, setErrors] = useState('');
     const [resultMessage, setResultMessage] = useState('');
-    const cancelledRef = useRef(false);
+    const runIdRef = useRef<string | null>(null);
+    const appliedItemsRef = useRef(0);
+    const applyStatusRef = useRef<(status: GroupBanImportStatus) => void>(
+        () => {}
+    );
+
+    applyStatusRef.current = (status: GroupBanImportStatus) => {
+        if (status.runId !== runIdRef.current) {
+            return;
+        }
+        const active = isGroupBanImportActive(status);
+        setProgress({
+            current: active
+                ? Math.min(status.processed + 1, status.total)
+                : status.processed,
+            total: status.total
+        });
+        for (
+            let index = appliedItemsRef.current;
+            index < status.items.length;
+            index += 1
+        ) {
+            const item = status.items[index];
+            if (item.state === 'failed') {
+                setErrors(
+                    (current) => `${current}${item.userId}: ${item.message}\n`
+                );
+            }
+        }
+        appliedItemsRef.current = status.items.length;
+        if (active) {
+            return;
+        }
+        runIdRef.current = null;
+        setImporting(false);
+        setProgress({ current: 0, total: 0 });
+        setResultMessage(
+            status.status === 'completed'
+                ? t('dialog.group_member_moderation.import_bans_done', {
+                      success: status.succeeded,
+                      total: status.total
+                  })
+                : t('dialog.group_member_moderation.import_bans_cancelled', {
+                      success: status.succeeded,
+                      total: status.total
+                  })
+        );
+        if (status.succeeded > 0) {
+            onImported();
+        }
+    };
 
     useEffect(() => {
         if (!open) {
-            cancelledRef.current = false;
+            runIdRef.current = null;
+            appliedItemsRef.current = 0;
             setInput('');
             setImporting(false);
             setProgress({ current: 0, total: 0 });
             setErrors('');
             setResultMessage('');
+            return;
         }
-    }, [open]);
+        const unsubscribe = subscribeGroupBanImportStatus((status) => {
+            applyStatusRef.current(status);
+        });
+        void getGroupBanImportStatus()
+            .then((status) => {
+                if (
+                    !isGroupBanImportActive(status) ||
+                    status.groupId !== groupId
+                ) {
+                    return;
+                }
+                runIdRef.current = status.runId;
+                appliedItemsRef.current = 0;
+                setImporting(true);
+                setErrors('');
+                setResultMessage('');
+                applyStatusRef.current(status);
+            })
+            .catch((error: unknown) => {
+                console.warn(
+                    'Failed to hydrate group ban import status:',
+                    error
+                );
+            });
+        return unsubscribe;
+    }, [open, groupId]);
 
     async function startImport() {
         const userIds = extractGroupBanUserIds(input);
@@ -58,64 +139,30 @@ export function GroupModerationBanImportDialog({
             return;
         }
 
-        setImporting(true);
-        cancelledRef.current = false;
-        setProgress({ current: 0, total: userIds.length });
         setErrors('');
         setResultMessage('');
-        let successCount = 0;
-
-        for (let i = 0; i < userIds.length; i += 1) {
-            if (cancelledRef.current) {
-                break;
-            }
-            const userId = userIds[i];
-            setProgress({ current: i + 1, total: userIds.length });
-
-            try {
-                await groupProfileRepository.banGroupMember({
-                    groupId,
-                    userId
-                });
-                successCount += 1;
-            } catch (banError) {
-                setErrors(
-                    (current) =>
-                        `${current}${userId}: ${
-                            banError instanceof Error
-                                ? banError.message
-                                : String(banError)
-                        }\n`
-                );
-            }
-
-            if (i < userIds.length - 1 && !cancelledRef.current) {
-                await windowDelay(IMPORT_INTERVAL_MS);
-            }
-        }
-
-        setResultMessage(
-            cancelledRef.current
-                ? t('dialog.group_member_moderation.import_bans_cancelled', {
-                      success: successCount,
-                      total: userIds.length
-                  })
-                : t('dialog.group_member_moderation.import_bans_done', {
-                      success: successCount,
-                      total: userIds.length
-                  })
-        );
-
-        setImporting(false);
-        setProgress({ current: 0, total: 0 });
-
-        if (successCount > 0) {
-            onImported();
+        try {
+            const status = await startGroupBanImport(groupId, userIds);
+            runIdRef.current = status.runId;
+            appliedItemsRef.current = 0;
+            setImporting(true);
+            setProgress({
+                current: Math.min(1, status.total),
+                total: status.total
+            });
+        } catch (startError) {
+            setErrors(
+                startError instanceof Error
+                    ? startError.message
+                    : String(startError)
+            );
         }
     }
 
     function cancelImport() {
-        cancelledRef.current = true;
+        void cancelGroupBanImport().catch((error: unknown) => {
+            console.warn('Failed to cancel group ban import:', error);
+        });
     }
 
     const progressPercent = progress.total
@@ -123,15 +170,7 @@ export function GroupModerationBanImportDialog({
         : 0;
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={(nextOpen) => {
-                if (!nextOpen && importing) {
-                    cancelImport();
-                }
-                onOpenChange(nextOpen);
-            }}
-        >
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[min(92vw,40rem)]">
                 <DialogHeader>
                     <DialogTitle>

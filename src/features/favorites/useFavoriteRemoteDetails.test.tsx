@@ -36,6 +36,7 @@ describe('useFavoriteRemoteDetails', () => {
         vi.clearAllMocks();
         mocks.appFavoriteDetailsHydrate.mockResolvedValue({
             detailsById: {},
+            availabilityById: {},
             cachedCount: 0,
             fetchedAt: '2026-07-31T00:00:00.000Z'
         });
@@ -49,6 +50,12 @@ describe('useFavoriteRemoteDetails', () => {
                     name: 'World One',
                     releaseStatus: 'public'
                 }
+            },
+            availabilityById: {
+                wrld_1: 'public',
+                ' wrld_2 ': 'deleted',
+                wrld_3: '   ',
+                '': 'private'
             },
             cachedCount: 1,
             fetchedAt: '2026-07-31T00:00:00.000Z'
@@ -76,6 +83,10 @@ describe('useFavoriteRemoteDetails', () => {
                 name: 'World One',
                 releaseStatus: 'public'
             }
+        });
+        expect(result.current.availabilityById).toEqual({
+            wrld_1: 'public',
+            wrld_2: 'deleted'
         });
         expect(result.current.lastLoadedAt).toBe('2026-07-31T00:00:00.000Z');
     });
@@ -193,5 +204,6 @@ describe('useFavoriteRemoteDetails', () => {
         });
         expect(result.current.detail).toBe('hydrate failed');
         expect(result.current.data).toEqual({});
+        expect(result.current.availabilityById).toEqual({});
     });
 });

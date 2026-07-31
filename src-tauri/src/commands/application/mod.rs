@@ -18,6 +18,7 @@ pub mod profile_backup;
 pub mod proxy;
 pub mod realtime;
 pub mod registry_backup;
+pub mod scope;
 pub mod share_collection;
 pub mod social_baseline;
 pub mod social_mutation;

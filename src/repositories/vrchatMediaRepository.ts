@@ -115,6 +115,11 @@ export type InventoryItemsResponse = {
     totalCount: number;
 };
 
+export type InventoryItemsCollectResult = {
+    items: InventoryItemRecord[];
+    truncated: boolean;
+};
+
 const PROFILE_DECORATION_EQUIP_SLOTS = [
     'iconFrame',
     'profileEffect',
@@ -510,6 +515,23 @@ async function getInventoryItems(
     );
 }
 
+async function collectInventoryItems(
+    params: MediaApiParams = {}
+): Promise<InventoryItemsCollectResult> {
+    const normalizedParams = normalizeParams(params);
+    try {
+        const result = await commands.appVrchatMediaInventoryItemsCollect({
+            params: normalizedParams
+        });
+        return {
+            items: (result.items ?? []) as InventoryItemRecord[],
+            truncated: Boolean(result.truncated)
+        };
+    } catch (error) {
+        throw normalizePlatformError(error, 'Media request failed');
+    }
+}
+
 async function getInventoryTemplate(
     inventoryTemplateId: unknown
 ): Promise<VrchatRequestResponse<InventoryItemRecord>> {
@@ -831,6 +853,7 @@ const vrchatMediaRepository = Object.freeze({
     getPrintFavorites,
     setPrintFavorite,
     getInventoryItems,
+    collectInventoryItems,
     getInventoryTemplate,
     equipProfileDecoration,
     unequipProfileDecoration,
@@ -859,6 +882,7 @@ export {
     getPrintFavorites,
     setPrintFavorite,
     getInventoryItems,
+    collectInventoryItems,
     getInventoryTemplate,
     equipProfileDecoration,
     unequipProfileDecoration,

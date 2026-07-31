@@ -6,7 +6,7 @@ use std::time::Duration;
 use crate::{Error, Result};
 pub use vrcx_0_core::screenshots::{
     ScreenshotFolderTree, ScreenshotLibraryImage, ScreenshotLibraryScanStatus, ScreenshotMetadata,
-    ScreenshotSearchType,
+    ScreenshotSearchResult, ScreenshotSearchType,
 };
 use vrcx_0_media::png;
 pub use vrcx_0_media::screenshot_metadata::{
@@ -35,7 +35,7 @@ pub use library::{
 };
 pub use metadata::{
     add_screenshot_metadata, delete_all_screenshot_metadata, extra_screenshot_data,
-    find_screenshots_json, last_screenshot, screenshot_metadata_json,
+    find_screenshot_search_results, last_screenshot, screenshot_metadata_json,
 };
 pub use thumbnail::ensure_screenshot_thumbnail;
 

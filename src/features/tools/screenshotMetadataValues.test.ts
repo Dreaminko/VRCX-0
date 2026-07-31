@@ -12,6 +12,7 @@ import {
     normalizeGalleryScrollTop,
     normalizeDroppedFilePath,
     normalizeScreenshotMetadata,
+    normalizeScreenshotSearchResult,
     resolveGalleryFolder,
     SCREENSHOT_METADATA_SEARCH_TYPES,
     serializeGalleryScrollPositions,
@@ -98,6 +99,48 @@ describe('screenshotMetadataValues', () => {
         expect(metadata.dateTime!.getFullYear()).toBe(2026);
         expect(metadata.dateTime!.getMonth()).toBe(3);
         expect(metadata.dateTime!.getDate()).toBe(15);
+    });
+
+    it('normalizes typed search results into the same shape as metadata + extra data', () => {
+        const normalized = normalizeScreenshotSearchResult({
+            filePath: 'D:\\VRChat\\shot.png',
+            fileName: 'shot.png',
+            fileSizeBytes: 2048,
+            creationDate: '2026-04-16T01:02:03.000Z',
+            width: 1920,
+            height: 1080,
+            metadata: {
+                sourceFile: 'D:\\VRChat\\shot.png',
+                world: { id: 'wrld_1', name: 'Great World' },
+                author: { id: 'usr_author', displayName: 'Author' },
+                players: [{ id: 'usr_ava', displayName: 'Ava' }]
+            }
+        });
+
+        expect(normalized).toMatchObject({
+            filePath: 'D:\\VRChat\\shot.png',
+            fileName: 'shot.png',
+            fileSizeBytes: 2048,
+            resolution: '1920x1080',
+            world: { id: 'wrld_1', name: 'Great World' },
+            author: { id: 'usr_author', displayName: 'Author' },
+            players: [{ id: 'usr_ava', displayName: 'Ava' }]
+        });
+        expect(normalized.dateTime!.toISOString()).toBe(
+            '2026-04-16T01:02:03.000Z'
+        );
+
+        const degenerate = normalizeScreenshotSearchResult({
+            filePath: 'D:\\VRChat\\broken.png',
+            fileName: 'broken.png',
+            fileSizeBytes: 0,
+            creationDate: null,
+            width: null,
+            height: null,
+            metadata: null
+        });
+        expect(degenerate.resolution).toBe('');
+        expect(degenerate.dateTime).toBeNull();
     });
 
     it('builds search rows with visible match text for player name and id searches', () => {

@@ -325,6 +325,18 @@ export function normalizeScreenshotMetadata(metadata: any, extra: any) {
     };
 }
 
+export function normalizeScreenshotSearchResult(result: any) {
+    const width = Number(result?.width) || 0;
+    const height = Number(result?.height) || 0;
+    return normalizeScreenshotMetadata(result?.metadata ?? {}, {
+        filePath: result?.filePath || '',
+        fileName: result?.fileName || '',
+        fileSizeBytes: result?.fileSizeBytes ?? 0,
+        creationDate: result?.creationDate || '',
+        resolution: width > 0 && height > 0 ? `${width}x${height}` : ''
+    });
+}
+
 export function buildScreenshotSearchRow(
     normalized: any,
     selectedSearchType: any,

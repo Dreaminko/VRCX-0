@@ -13,7 +13,7 @@ use vrcx_0_application_core::RuntimeAuthScopeSnapshot;
 use crate::{error::AppError, state::AppState};
 
 fn active_scope(state: &AppState) -> Result<RuntimeAuthScopeSnapshot, AppError> {
-    super::frontend_batch::require_active_scope(state, "Notification action")
+    super::scope::require_active_scope(state, "Notification action")
 }
 
 fn chain_actions(state: &AppState) -> Result<VrchatNotificationChainActions<'_>, AppError> {

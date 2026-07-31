@@ -70,9 +70,7 @@ async function findScreenshotsBySearch(
     searchQuery: string,
     searchType: number
 ) {
-    return parseResponseValue(
-        await invokeApp('FindScreenshotsBySearch', searchQuery, searchType)
-    );
+    return invokeApp('FindScreenshotsBySearch', searchQuery, searchType);
 }
 
 async function startScreenshotLibraryScan(

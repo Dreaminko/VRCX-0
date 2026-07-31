@@ -75,8 +75,10 @@ pub use favorites::{
     FavoriteImportStatus, FavoriteImportTarget, FAVORITE_IMPORT_MAX_ITEMS,
 };
 pub use media::{
-    prepare_media_upload_request, require_prepared_image_data, upload_legacy_entity_image,
-    LegacyEntityImageKind, LegacyEntityImageUploadInput, LegacyMediaUploadDeps,
+    collect_inventory_items, prepare_media_upload_request, require_prepared_image_data,
+    upload_legacy_entity_image, InventoryItemsCollectDeps, InventoryItemsCollectInput,
+    InventoryItemsCollectOutput, LegacyEntityImageKind, LegacyEntityImageUploadInput,
+    LegacyMediaUploadDeps,
 };
 pub use social::{
     accept_friend_request, cancel_friend_request, send_friend_request, unfriend,
@@ -118,6 +120,11 @@ pub use social::{
     refresh_player_moderations, update_player_moderation, ModerationSyncDeps,
     ModerationSyncMutationInput, ModerationSyncMutationOutput, ModerationSyncRefreshInput,
     ModerationSyncRefreshOutput, RemoteModerationRow,
+};
+pub use social::{
+    GroupBanImportActions, GroupBanImportFuture, GroupBanImportItemResult, GroupBanImportItemState,
+    GroupBanImportRuntime, GroupBanImportStartInput, GroupBanImportState, GroupBanImportStatus,
+    VrchatGroupBanImportActions,
 };
 pub use social::{
     MutualGraphFetchCancelInput, MutualGraphFetchRuntime, MutualGraphFetchStartInput,

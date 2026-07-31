@@ -103,6 +103,7 @@ interface RemoteDetailsState {
     status: string;
     detail: string;
     data: FavoriteRemoteDetailsById;
+    availabilityById: Record<string, string>;
     lastLoadedAt: string | null;
 }
 
@@ -114,8 +115,26 @@ function buildInitialState(
         status,
         detail,
         data: {},
+        availabilityById: {},
         lastLoadedAt: null
     };
+}
+
+function mapAvailabilityById(
+    availabilityById: unknown
+): Record<string, string> {
+    const byId: Record<string, string> = {};
+    if (!isRecord(availabilityById)) {
+        return byId;
+    }
+    for (const [key, value] of Object.entries(availabilityById)) {
+        const id = normalizeEntityId(key);
+        const status = normalizeOptionalString(value);
+        if (id && status) {
+            byId[id] = status;
+        }
+    }
+    return byId;
 }
 
 function normalizeFavoriteEntityDetail(
@@ -251,6 +270,9 @@ export function useFavoriteRemoteDetails({
                             ? `Loaded remote avatar details for ${Object.keys(data).length} favorites.`
                             : `Loaded remote world details for ${Object.keys(data).length} favorites.`,
                     data,
+                    availabilityById: mapAvailabilityById(
+                        output.availabilityById
+                    ),
                     lastLoadedAt: output.fetchedAt
                 });
             })
@@ -266,6 +288,7 @@ export function useFavoriteRemoteDetails({
                             ? error.message
                             : `Failed to load remote ${type} favorites.`,
                     data: {},
+                    availabilityById: {},
                     lastLoadedAt: new Date().toISOString()
                 });
             });

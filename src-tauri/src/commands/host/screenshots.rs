@@ -66,15 +66,15 @@ pub fn app__find_screenshots_by_search(
     state: State<'_, AppState>,
     search_query: String,
     search_type: Option<i32>,
-) -> Result<String, AppError> {
+) -> Result<Vec<screenshot::ScreenshotSearchResult>, AppError> {
     require_host_capability(HostCapability::ScreenshotCache)?;
     let cache = &state.game.screenshot_cache;
-    Ok(screenshot::find_screenshots_json(
+    Ok(screenshot::find_screenshot_search_results(
         &search_query,
         search_type,
         cache,
         &vrchat_paths::vrchat_photos_location(),
-    )?)
+    ))
 }
 
 #[tauri::command]

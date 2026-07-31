@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mediaMocks = vi.hoisted(() => ({
     equipProfileDecoration: vi.fn(),
     getFileList: vi.fn(),
-    getInventoryItems: vi.fn(),
+    collectInventoryItems: vi.fn(),
     unequipProfileDecoration: vi.fn()
 }));
 
@@ -81,8 +81,9 @@ describe('useInventoryPageState', () => {
         runtimeState.auth.currentUserSnapshot = {};
         runtimeState.auth.currentUserWebsocket = 'wss://pipeline.vrchat.cloud';
         mediaMocks.getFileList.mockResolvedValue({ json: [] });
-        mediaMocks.getInventoryItems.mockResolvedValue({
-            json: { data: [], totalCount: 0 }
+        mediaMocks.collectInventoryItems.mockResolvedValue({
+            items: [],
+            truncated: false
         });
         mediaMocks.equipProfileDecoration.mockResolvedValue({
             json: { ok: true }
@@ -116,9 +117,7 @@ describe('useInventoryPageState', () => {
             inventoryId: 'inv_frame',
             equipSlot: 'iconFrame'
         });
-        expect(mediaMocks.getInventoryItems).toHaveBeenCalledWith({
-            n: 100,
-            offset: 0,
+        expect(mediaMocks.collectInventoryItems).toHaveBeenCalledWith({
             order: 'newest',
             types: 'iconFrame,profileEffect,nameplateEffect',
             notFlags: 'ugc',
@@ -253,7 +252,7 @@ describe('useInventoryPageState', () => {
             await mutationPromise;
         });
 
-        expect(mediaMocks.getInventoryItems).not.toHaveBeenCalled();
+        expect(mediaMocks.collectInventoryItems).not.toHaveBeenCalled();
         expect(maintenanceMocks.refreshCurrentUser).not.toHaveBeenCalled();
         expect(toastMocks.success).not.toHaveBeenCalled();
     });

@@ -240,6 +240,17 @@ export const commands = {
     async appFavoriteImportCancel(): Promise<FavoriteImportStatus> {
         return await TAURI_INVOKE('app__favorite_import_cancel');
     },
+    async appGroupBanImportStart(
+        input: GroupBanImportStartInput
+    ): Promise<GroupBanImportStatus> {
+        return await TAURI_INVOKE('app__group_ban_import_start', { input });
+    },
+    async appGroupBanImportStatus(): Promise<GroupBanImportStatus> {
+        return await TAURI_INVOKE('app__group_ban_import_status');
+    },
+    async appGroupBanImportCancel(): Promise<GroupBanImportStatus> {
+        return await TAURI_INVOKE('app__group_ban_import_cancel');
+    },
     async appFavoriteDetailsHydrate(
         input: FavoriteDetailsHydrateInput
     ): Promise<FavoriteDetailsHydrateOutput> {
@@ -269,6 +280,14 @@ export const commands = {
     },
     async appNotificationSync(): Promise<NotificationSyncOutcome> {
         return await TAURI_INVOKE('app__notification_sync');
+    },
+    async appMyAvatarsGet(input: MyAvatarsInput): Promise<JsonValue[]> {
+        return await TAURI_INVOKE('app__my_avatars_get', { input });
+    },
+    async appMyAvatarByIdGet(
+        input: MyAvatarByIdInput
+    ): Promise<JsonValue | null> {
+        return await TAURI_INVOKE('app__my_avatar_by_id_get', { input });
     },
     async appNotificationHideAndExpire(
         input: NotificationHideExpireInput
@@ -1501,21 +1520,21 @@ export const commands = {
     },
     async appLocalFavoriteGroupCreate(
         input: LocalFavoriteGroupInput
-    ): Promise<null> {
+    ): Promise<LocalFavoriteGroupWrite> {
         return await TAURI_INVOKE('app__local_favorite_group_create', {
             input
         });
     },
     async appLocalFavoriteGroupDelete(
         input: LocalFavoriteGroupInput
-    ): Promise<number> {
+    ): Promise<LocalFavoriteGroupWrite> {
         return await TAURI_INVOKE('app__local_favorite_group_delete', {
             input
         });
     },
     async appLocalFavoriteGroupRename(
         input: LocalFavoriteGroupRenameInput
-    ): Promise<number> {
+    ): Promise<LocalFavoriteGroupWrite> {
         return await TAURI_INVOKE('app__local_favorite_group_rename', {
             input
         });
@@ -1832,6 +1851,13 @@ export const commands = {
         input: VrchatMediaInventoryItemInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_media_inventory_item_update', {
+            input
+        });
+    },
+    async appVrchatMediaInventoryItemsCollect(
+        input: InventoryItemsCollectInput
+    ): Promise<InventoryItemsCollectOutput> {
+        return await TAURI_INVOKE('app__vrchat_media_inventory_items_collect', {
             input
         });
     },
@@ -2697,7 +2723,7 @@ export const commands = {
     async appFindScreenshotsBySearch(
         searchQuery: string,
         searchType: number | null
-    ): Promise<string> {
+    ): Promise<ScreenshotSearchResult[]> {
         return await TAURI_INVOKE('app__find_screenshots_by_search', {
             searchQuery,
             searchType
@@ -3207,6 +3233,7 @@ export type BackendRuntimeEventPayloadMap = {
     dataDirMigration: DataDirMigrationStatus;
     favoritesChanged: FavoritesChangedPayload;
     favoriteImportStatus: FavoriteImportStatus;
+    groupBanImportStatus: GroupBanImportStatus;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
     realtimeUserProjection: RealtimeUserProjection;
@@ -3555,6 +3582,7 @@ export type FavoriteDetailsHydrateInput = {
 export type FavoriteDetailsHydrateKind = 'avatar' | 'world';
 export type FavoriteDetailsHydrateOutput = {
     detailsById: Partial<{ [key in string]: RawJson }>;
+    availabilityById: Partial<{ [key in string]: string }>;
     cachedCount: number;
     fetchedAt: string;
 };
@@ -3931,6 +3959,33 @@ export type GameLogWriteBatch = {
     externals: GameLogExternalEntry[];
 };
 export type GameNoVrPayload = { isGameNoVR: boolean };
+export type GroupBanImportItemResult = {
+    userId: string;
+    state: GroupBanImportItemState;
+    message: string;
+};
+export type GroupBanImportItemState = 'succeeded' | 'failed';
+export type GroupBanImportStartInput = { groupId: string; userIds?: string[] };
+export type GroupBanImportState =
+    | 'idle'
+    | 'running'
+    | 'cancelling'
+    | 'completed'
+    | 'cancelled';
+export type GroupBanImportStatus = {
+    runId: string;
+    status: GroupBanImportState;
+    groupId: string;
+    total: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+    cancelRequested: boolean;
+    items: GroupBanImportItemResult[];
+    startedAt: string | null;
+    finishedAt: string | null;
+    lastError: string | null;
+};
 export type GroupLeaveBatchInput = { groupIds?: string[] };
 export type GroupQuickModerationActionInput = {
     currentUserId?: string;
@@ -4023,6 +4078,13 @@ export type InstanceLaunchOutcome =
     | { status: 'opened' }
     | { status: 'selfInvited' }
     | { status: 'failed'; reason: string };
+export type InventoryItemsCollectInput = {
+    params?: Partial<{ [key in string]: JsonValue }>;
+};
+export type InventoryItemsCollectOutput = {
+    items: RawJson[];
+    truncated: boolean;
+};
 export type JsonValue = any;
 export type LegacyVrcxMigrationStatus = {
     detected: boolean;
@@ -4077,6 +4139,11 @@ export type LocalFavoriteGroupRenameInput = {
     kind?: string;
     groupName?: string;
     newGroupName?: string;
+};
+export type LocalFavoriteGroupWrite = {
+    configKey: string;
+    groupNames: string[];
+    affected: number;
 };
 export type LocalFavoriteInput = {
     kind?: string;
@@ -4247,6 +4314,11 @@ export type MutualGraphSnapshotOutput = {
     friendIds: string[];
     links: MutualGraphLinkOutput[];
     meta: MutualGraphMetaOutput[];
+};
+export type MyAvatarByIdInput = { avatarId: string };
+export type MyAvatarsInput = {
+    currentAvatarId?: string;
+    previousAvatarSwapTime?: number;
 };
 export type NoteExportItemInput = {
     userId: string;
@@ -5044,6 +5116,15 @@ export type ScreenshotMetadata = {
     error?: string | null;
 };
 export type ScreenshotProcessedPayload = { path: string };
+export type ScreenshotSearchResult = {
+    filePath: string;
+    fileName: string;
+    fileSizeBytes: number;
+    creationDate: string | null;
+    width: number | null;
+    height: number | null;
+    metadata: ScreenshotMetadata;
+};
 export type SendResult = { sessionId: string; turnId: string };
 export type Session = {
     id: string;

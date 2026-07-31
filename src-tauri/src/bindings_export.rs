@@ -3,7 +3,7 @@ use tauri_specta::{collect_commands, Builder, ErrorHandlingMode};
 use vrcx_0_application::{
     AppUpdateDownloadProgressPayload, AppUpdateInstalledPayload, AppUpdateStatusSnapshot,
     AuthenticatedRuntimePhaseSnapshot, BackgroundImageProjection, DataDirMigrationStatus,
-    FavoriteImportStatus, ProfileBackupStatus, ProfileRestoreProgress,
+    FavoriteImportStatus, GroupBanImportStatus, ProfileBackupStatus, ProfileRestoreProgress,
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
@@ -53,6 +53,7 @@ struct BackendRuntimeEventPayloadMap {
     data_dir_migration: DataDirMigrationStatus,
     favorites_changed: FavoritesChangedPayload,
     favorite_import_status: FavoriteImportStatus,
+    group_ban_import_status: GroupBanImportStatus,
     friend_profile_load_status: FriendProfileLoadStatusPayload,
     realtime_friend_projection: FriendProjection,
     realtime_user_projection: RealtimeUserProjection,
@@ -146,6 +147,9 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::frontend_batch::app__favorite_import_start,
             commands::application::frontend_batch::app__favorite_import_status,
             commands::application::frontend_batch::app__favorite_import_cancel,
+            commands::application::frontend_batch::app__group_ban_import_start,
+            commands::application::frontend_batch::app__group_ban_import_status,
+            commands::application::frontend_batch::app__group_ban_import_cancel,
             commands::application::frontend_batch::app__favorite_details_hydrate,
             commands::application::frontend_batch::app__avatar_content_tags_batch,
             commands::application::frontend_batch::app__group_visibility_batch,
@@ -438,6 +442,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::vrchat::media::service::app__vrchat_media_gallery_image_upload,
             commands::vrchat::media::service::app__vrchat_media_inventory_bundle_consume,
             commands::vrchat::media::service::app__vrchat_media_inventory_item_update,
+            commands::vrchat::media::service::app__vrchat_media_inventory_items_collect,
             commands::vrchat::media::service::app__vrchat_media_inventory_items_get,
             commands::vrchat::media::service::app__vrchat_media_inventory_template_get,
             commands::vrchat::media::service::app__vrchat_media_profile_decoration_equip,

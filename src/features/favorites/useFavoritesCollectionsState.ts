@@ -16,7 +16,6 @@ import type { FavoriteKind } from './favoritesTypes';
 import { useFavoriteRemoteDetails } from './useFavoriteRemoteDetails';
 import { useRemoteAvatarCacheFallbacks } from './useRemoteAvatarCacheFallbacks';
 import { useRemoteWorldCacheFallbacks } from './useRemoteWorldCacheFallbacks';
-import { useWorldAvailabilityProbe } from './useWorldAvailabilityProbe';
 
 const EMPTY_WORLD_FACTS: Record<string, WorldFact> = {};
 
@@ -103,12 +102,7 @@ export function useFavoritesCollectionsState({
         remoteEntityDetailsData: remoteEntityDetails.data,
         remoteEntityDetailsStatus: remoteEntityDetails.status
     });
-    const worldAvailabilityById = useWorldAvailabilityProbe({
-        favoriteWorldIds: favoriteState.favoriteWorldIds,
-        kind,
-        remoteEntityDetailsData: remoteEntityDetails.data,
-        remoteEntityDetailsStatus: remoteEntityDetails.status
-    });
+    const worldAvailabilityById = remoteEntityDetails.availabilityById;
 
     useEffect(() => {
         let active = true;

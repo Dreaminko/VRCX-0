@@ -27,6 +27,11 @@ pub use groups::{
     get_user_groups_overview, UserGroupsOverviewDeps, UserGroupsOverviewGroup,
     UserGroupsOverviewInput, UserGroupsOverviewOutput,
 };
+pub use groups::{
+    GroupBanImportActions, GroupBanImportFuture, GroupBanImportItemResult, GroupBanImportItemState,
+    GroupBanImportRuntime, GroupBanImportStartInput, GroupBanImportState, GroupBanImportStatus,
+    VrchatGroupBanImportActions,
+};
 pub use moderation_sync::{
     refresh_player_moderations, update_player_moderation, ModerationSyncDeps,
     ModerationSyncMutationInput, ModerationSyncMutationOutput, ModerationSyncRefreshInput,

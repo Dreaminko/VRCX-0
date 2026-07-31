@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use vrcx_0_application_core::{read_config_string_array, FavoritesChangedPayload, TaskStopToken};
 use vrcx_0_core::json::RawJson;
+use vrcx_0_core::vrchat_ids::{is_avatar_id, is_user_id, is_world_id};
 use vrcx_0_persistence::{
     avatars::avatar_cache_upsert, cache_entities::CacheEntityInput, favorites::favorite_add,
     DatabaseService,
@@ -778,22 +779,11 @@ fn favorite_type_matches_kind(kind: FavoriteImportKind, favorite_type: &str) -> 
 }
 
 fn is_entity_id(kind: FavoriteImportKind, value: &str) -> bool {
-    let prefix = match kind {
-        FavoriteImportKind::Avatar => "avtr_",
-        FavoriteImportKind::World => "wrld_",
-        FavoriteImportKind::Friend => "usr_",
-    };
-    let Some(uuid) = value.strip_prefix(prefix) else {
-        return false;
-    };
-    uuid.len() == 36
-        && uuid.bytes().enumerate().all(|(index, byte)| {
-            if matches!(index, 8 | 13 | 18 | 23) {
-                byte == b'-'
-            } else {
-                byte.is_ascii_hexdigit()
-            }
-        })
+    match kind {
+        FavoriteImportKind::Avatar => is_avatar_id(value),
+        FavoriteImportKind::World => is_world_id(value),
+        FavoriteImportKind::Friend => is_user_id(value),
+    }
 }
 
 fn cache_entity_from_payload(payload: &Value) -> CacheEntityInput {

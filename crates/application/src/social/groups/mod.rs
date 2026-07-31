@@ -1,9 +1,15 @@
+mod group_ban_import;
 mod permissions;
 mod quick_moderation;
 mod service;
 mod types;
 mod user_groups_overview;
 
+pub use group_ban_import::{
+    GroupBanImportActions, GroupBanImportFuture, GroupBanImportItemResult, GroupBanImportItemState,
+    GroupBanImportRuntime, GroupBanImportStartInput, GroupBanImportState, GroupBanImportStatus,
+    VrchatGroupBanImportActions,
+};
 pub use quick_moderation::{
     get_group_quick_moderation, run_group_quick_moderation_action, GroupQuickModerationActionInput,
     GroupQuickModerationActionOutput, GroupQuickModerationDeps, GroupQuickModerationGroup,

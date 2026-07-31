@@ -16,8 +16,9 @@ use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 use crate::error::AppError;
 use crate::state::AppState;
 use vrcx_0_application::{
-    self as media_upload, LegacyEntityImageKind, LegacyEntityImageUploadInput,
-    LegacyMediaUploadDeps, PrintFavoriteState,
+    self as media_upload, collect_inventory_items, InventoryItemsCollectDeps,
+    InventoryItemsCollectInput, InventoryItemsCollectOutput, LegacyEntityImageKind,
+    LegacyEntityImageUploadInput, LegacyMediaUploadDeps, PrintFavoriteState,
 };
 use vrcx_0_application_core::{
     vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope},
@@ -370,6 +371,23 @@ pub async fn app__vrchat_media_inventory_items_get(
         inventory_items_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.params),
     )
     .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__vrchat_media_inventory_items_collect(
+    state: State<'_, AppState>,
+    input: InventoryItemsCollectInput,
+) -> Result<InventoryItemsCollectOutput, AppError> {
+    let expected_scope =
+        crate::commands::application::scope::require_active_scope(&state, "Inventory collect")?;
+    let deps = InventoryItemsCollectDeps {
+        db: state.db.as_ref(),
+        web: state.web.as_ref(),
+        auth_scope: &state.runtime_context.auth_scope,
+        expected_scope,
+    };
+    Ok(collect_inventory_items(&deps, input).await?)
 }
 
 #[tauri::command]

@@ -100,6 +100,18 @@ pub struct PlayerDetail {
     pub pos: Option<[f32; 3]>,
 }
 
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ScreenshotSearchResult {
+    pub file_path: String,
+    pub file_name: String,
+    pub file_size_bytes: i64,
+    pub creation_date: Option<String>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub metadata: ScreenshotMetadata,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScreenshotSearchType {
     Username = 0,

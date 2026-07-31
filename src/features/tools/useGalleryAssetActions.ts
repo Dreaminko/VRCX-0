@@ -124,23 +124,17 @@ export function useGalleryAssetActions({
     }
     async function refreshInventory() {
         const authTarget = getAuthTarget();
-        const nextItems = [];
         setTabLoading('inventory', true);
         try {
-            for (let pageIndex = 0; pageIndex < 100; pageIndex += 1) {
-                const { json } = await mediaRepository.getInventoryItems({
-                    n: 100,
-                    offset: pageIndex * 100,
+            const { items, truncated } =
+                await mediaRepository.collectInventoryItems({
                     order: 'newest'
                 });
-                const pageRows = Array.isArray(json?.data) ? json.data : [];
-                nextItems.push(...pageRows);
-                if (pageRows.length === 0) {
-                    break;
-                }
+            if (truncated) {
+                console.warn('Inventory listing truncated at the page limit.');
             }
             if (isRuntimeAuthTarget(authTarget)) {
-                updateAssets('inventory', nextItems);
+                updateAssets('inventory', items);
             }
         } catch (error) {
             if (isRuntimeAuthTarget(authTarget)) {

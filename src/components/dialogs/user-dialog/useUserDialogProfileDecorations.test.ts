@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mediaMocks = vi.hoisted(() => ({
     equipProfileDecoration: vi.fn(),
-    getInventoryItems: vi.fn(),
+    collectInventoryItems: vi.fn(),
     unequipProfileDecoration: vi.fn()
 }));
 
@@ -62,8 +62,9 @@ function equippableItem(overrides: Record<string, unknown> = {}) {
 describe('useUserDialogProfileDecorations', () => {
     beforeEach(() => {
         vi.resetAllMocks();
-        mediaMocks.getInventoryItems.mockResolvedValue({
-            json: { data: [], totalCount: 0 }
+        mediaMocks.collectInventoryItems.mockResolvedValue({
+            items: [],
+            truncated: false
         });
         mediaMocks.equipProfileDecoration.mockResolvedValue({
             json: { ok: true }
@@ -76,19 +77,17 @@ describe('useUserDialogProfileDecorations', () => {
     afterEach(cleanup);
 
     it('loads owned decorations and groups them by slot', async () => {
-        mediaMocks.getInventoryItems
+        mediaMocks.collectInventoryItems
             .mockResolvedValueOnce({
-                json: {
-                    data: [
-                        { id: 'inv_frame', itemType: 'iconFrame' },
-                        { id: 'inv_effect', itemType: 'profileEffect' },
-                        { id: 'inv_plate', itemType: 'nameplateEffect' },
-                        { id: 'inv_other', itemType: 'droneskin' }
-                    ],
-                    totalCount: 4
-                }
+                items: [
+                    { id: 'inv_frame', itemType: 'iconFrame' },
+                    { id: 'inv_effect', itemType: 'profileEffect' },
+                    { id: 'inv_plate', itemType: 'nameplateEffect' },
+                    { id: 'inv_other', itemType: 'droneskin' }
+                ],
+                truncated: false
             })
-            .mockResolvedValue({ json: { data: [], totalCount: 0 } });
+            .mockResolvedValue({ items: [], truncated: false });
 
         const { result } = renderHook(() =>
             useUserDialogProfileDecorations({ enabled: true })
@@ -96,9 +95,7 @@ describe('useUserDialogProfileDecorations', () => {
 
         await waitFor(() => expect(result.current.isReady).toBe(true));
 
-        expect(mediaMocks.getInventoryItems).toHaveBeenCalledWith({
-            n: 100,
-            offset: 0,
+        expect(mediaMocks.collectInventoryItems).toHaveBeenCalledWith({
             order: 'newest',
             types: 'iconFrame,profileEffect,nameplateEffect',
             notFlags: 'ugc',
@@ -111,7 +108,7 @@ describe('useUserDialogProfileDecorations', () => {
 
     it('does not load while disabled', () => {
         renderHook(() => useUserDialogProfileDecorations({ enabled: false }));
-        expect(mediaMocks.getInventoryItems).not.toHaveBeenCalled();
+        expect(mediaMocks.collectInventoryItems).not.toHaveBeenCalled();
     });
 
     it('equips an unequipped item and refreshes the self profile', async () => {

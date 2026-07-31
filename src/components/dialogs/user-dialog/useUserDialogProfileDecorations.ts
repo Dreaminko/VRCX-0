@@ -6,10 +6,6 @@ import { resolveProfileDecorationMutation } from '@/features/tools/inventoryHelp
 import mediaRepository, {
     type InventoryItemRecord
 } from '@/repositories/mediaRepository';
-import {
-    VRCHAT_API_DEFAULT_PAGE_SIZE,
-    VRCHAT_INVENTORY_MAX_PAGES
-} from '@/repositories/paginationConstants';
 import { refreshCurrentUser } from '@/services/backgroundMaintenanceSessionService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -95,25 +91,17 @@ export function useUserDialogProfileDecorations({
         }
         setLoading(true);
         try {
-            const rows: InventoryItemRecord[] = [];
-            for (
-                let pageIndex = 0;
-                pageIndex < VRCHAT_INVENTORY_MAX_PAGES;
-                pageIndex += 1
-            ) {
-                const { json } = await mediaRepository.getInventoryItems({
-                    n: VRCHAT_API_DEFAULT_PAGE_SIZE,
-                    offset: pageIndex * VRCHAT_API_DEFAULT_PAGE_SIZE,
+            const { items: rows, truncated } =
+                await mediaRepository.collectInventoryItems({
                     order: 'newest',
                     types: PROFILE_DECORATION_TYPES_PARAM,
                     notFlags: 'ugc',
                     archived: false
                 });
-                const pageRows = Array.isArray(json?.data) ? json.data : [];
-                rows.push(...pageRows);
-                if (!pageRows.length) {
-                    break;
-                }
+            if (truncated) {
+                console.warn(
+                    'Profile decoration listing truncated at the page limit.'
+                );
             }
             if (authTargetKey(authTargetRef.current) !== targetKey) {
                 return;

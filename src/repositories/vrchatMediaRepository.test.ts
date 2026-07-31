@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 const commandMocks = vi.hoisted(() => ({
     appVrchatMediaFilesGet: vi.fn(),
     appVrchatMediaFileDelete: vi.fn(),
+    appVrchatMediaInventoryItemsCollect: vi.fn(),
     appVrchatMediaInventoryItemsGet: vi.fn(),
     appVrchatMediaInventoryTemplateGet: vi.fn(),
     appVrchatMediaProfileDecorationEquip: vi.fn(),
@@ -249,6 +250,28 @@ describe('vrchatMediaRepository', () => {
             };
             templateId?: string;
         }>();
+    });
+
+    it('collects inventory items through the typed collect command', async () => {
+        commandMocks.appVrchatMediaInventoryItemsCollect.mockResolvedValueOnce({
+            items: [{ id: 'inv_1' }],
+            truncated: true
+        });
+
+        await expect(
+            vrchatMediaRepository.collectInventoryItems({
+                order: 'newest',
+                types: 'emoji'
+            })
+        ).resolves.toEqual({
+            items: [{ id: 'inv_1' }],
+            truncated: true
+        });
+        expect(
+            commandMocks.appVrchatMediaInventoryItemsCollect
+        ).toHaveBeenCalledWith({
+            params: { order: 'newest', types: 'emoji' }
+        });
     });
 
     it('equips an owned profile decoration with the authenticated user target', async () => {

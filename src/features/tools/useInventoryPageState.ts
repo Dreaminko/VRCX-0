@@ -6,10 +6,7 @@ import { toast } from 'sonner';
 import mediaRepository, {
     type InventoryItemRecord
 } from '@/repositories/mediaRepository';
-import {
-    VRCHAT_API_DEFAULT_PAGE_SIZE,
-    VRCHAT_INVENTORY_MAX_PAGES
-} from '@/repositories/paginationConstants';
+import { VRCHAT_API_DEFAULT_PAGE_SIZE } from '@/repositories/paginationConstants';
 import { refreshCurrentUser } from '@/services/backgroundMaintenanceSessionService';
 import {
     IMAGE_UPLOAD_ACCEPT,
@@ -198,25 +195,15 @@ export function useInventoryPageState() {
         if (definition.source === 'empty') {
             return [];
         }
-        const nextRows: InventoryRow[] = [];
-        for (
-            let pageIndex = 0;
-            pageIndex < VRCHAT_INVENTORY_MAX_PAGES;
-            pageIndex += 1
-        ) {
-            const { json } = await mediaRepository.getInventoryItems({
-                n: VRCHAT_API_DEFAULT_PAGE_SIZE,
-                offset: pageIndex * VRCHAT_API_DEFAULT_PAGE_SIZE,
+        const { items, truncated } =
+            await mediaRepository.collectInventoryItems({
                 order: 'newest',
                 ...(definition.params || {})
             });
-            const pageRows = Array.isArray(json?.data) ? json.data : [];
-            nextRows.push(...pageRows);
-            if (!pageRows.length) {
-                break;
-            }
+        if (truncated) {
+            console.warn('Inventory listing truncated at the page limit.');
         }
-        return nextRows;
+        return items;
     }
 
     async function refreshScope(

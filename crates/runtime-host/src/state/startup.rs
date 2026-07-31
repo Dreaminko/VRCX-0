@@ -11,6 +11,7 @@ impl RuntimeHostState {
             return current;
         }
         self.favorite_import.cancel();
+        self.group_ban_import.cancel();
         self.shared_collection_import.cancel();
         self.note_export.cancel();
         self.backend_runtime
@@ -71,6 +72,7 @@ impl RuntimeHostState {
     ) -> BackendRuntimeSnapshot {
         self.runtime_context.auth_scope.set("", "");
         self.favorite_import.cancel();
+        self.group_ban_import.cancel();
         self.shared_collection_import.cancel();
         self.note_export.cancel();
         let _ = self.runtime_context.mutual_graph_fetch.cancel_active();

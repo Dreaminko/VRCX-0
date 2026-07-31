@@ -3,7 +3,8 @@ use vrcx_0_application_core::RuntimeEventPayload;
 use crate::{
     AppUpdateDownloadProgressPayload, AppUpdateInstalledPayload, AppUpdateStatusSnapshot,
     AuthenticatedRuntimePhaseSnapshot, BackgroundImageProjection, FavoriteImportStatus,
-    NoteExportStatus, ProfileBackupStatus, ProfileRestoreProgress, SharedCollectionImportStatus,
+    GroupBanImportStatus, NoteExportStatus, ProfileBackupStatus, ProfileRestoreProgress,
+    SharedCollectionImportStatus,
 };
 
 impl RuntimeEventPayload for AuthenticatedRuntimePhaseSnapshot {
@@ -32,6 +33,10 @@ impl RuntimeEventPayload for ProfileRestoreProgress {
 
 impl RuntimeEventPayload for FavoriteImportStatus {
     const EVENT_NAME: &'static str = "favoriteImportStatus";
+}
+
+impl RuntimeEventPayload for GroupBanImportStatus {
+    const EVENT_NAME: &'static str = "groupBanImportStatus";
 }
 
 impl RuntimeEventPayload for SharedCollectionImportStatus {
