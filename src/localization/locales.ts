@@ -1,4 +1,4 @@
-// Separate file, to be importable in `vite.config.ts`.
+// Separate file, to be importable in `vite.config.mts`.
 import languageCodes from './languageCodes.json';
 
 export const DEFAULT_LANGUAGE_CODE = 'en';

@@ -7,6 +7,6 @@
         "noEmit": true,
         "types": ["node"]
     },
-    "include": ["vite.config.ts", "vitest.config.ts", "scripts/**/*.ts"],
+    "include": ["vite.config.mts", "vitest.config.mts", "scripts/**/*.ts"],
     "exclude": ["node_modules", "build", "dist"]
 }
