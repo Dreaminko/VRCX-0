@@ -51,6 +51,7 @@
     },
     "bundle": {
         "active": true,
+        "licenseFile": "DISCLAIMER.txt",
         "resources": {
             "../LICENSE": "LICENSE",
             "../LICENSE-MIT": "LICENSE-MIT",
