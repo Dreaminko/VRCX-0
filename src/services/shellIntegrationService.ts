@@ -4,6 +4,7 @@ import type {
     AppDataDirValidation
 } from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
+import type { WindowResizeDirection } from '@/platform/tauri/webview';
 
 export async function openExternalLink(url: string): Promise<void> {
     await commands.appOpenLink(url);
@@ -176,6 +177,12 @@ export async function deleteAllScreenshotMetadata(): Promise<void> {
 
 export async function isWindowMaximized(): Promise<boolean> {
     return Boolean(await tauriClient.webview.isWindowMaximized());
+}
+
+export async function startResizeDraggingWindow(
+    direction: WindowResizeDirection
+): Promise<void> {
+    await tauriClient.webview.startResizeDraggingWindow(direction);
 }
 
 export async function minimizeWindow(): Promise<void> {
