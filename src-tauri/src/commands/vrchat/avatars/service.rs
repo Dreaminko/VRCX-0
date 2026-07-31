@@ -16,8 +16,36 @@ use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, V
 
 use super::types::{
     VrchatAvatarFileInput, VrchatAvatarIdInput, VrchatAvatarListByUserInput,
-    VrchatAvatarModerationInput, VrchatAvatarSaveInput,
+    VrchatAvatarModerationInput, VrchatAvatarSaveInput, VrchatAvatarSelectionOutcome,
 };
+
+async fn execute_avatar_selection(
+    state: State<'_, AppState>,
+    command: &str,
+    detail: String,
+    request: VrchatApiRequest,
+    response_authority_fields: &[&str],
+) -> Result<VrchatAvatarSelectionOutcome, AppError> {
+    let expectation = state
+        .realtime_runtime
+        .capture_current_user_refresh_expectation();
+    let response = execute_avatar_api(state.clone(), command, detail, request).await?;
+    let mut applied = false;
+    if let Some(expectation) = expectation {
+        if (200..300).contains(&response.status) {
+            if let Ok(snapshot) = serde_json::from_str::<serde_json::Value>(&response.data) {
+                applied = state
+                    .realtime_runtime
+                    .apply_current_user_refreshed_snapshot_if_sequence(
+                        expectation,
+                        snapshot,
+                        response_authority_fields,
+                    );
+            }
+        }
+    }
+    Ok(VrchatAvatarSelectionOutcome { applied, response })
+}
 
 async fn execute_avatar_api(
     state: State<'_, AppState>,
@@ -138,14 +166,15 @@ pub async fn app__vrchat_avatar_file_get(
 pub async fn app__vrchat_avatar_select(
     state: State<'_, AppState>,
     input: VrchatAvatarIdInput,
-) -> Result<VrchatApiResponse, AppError> {
+) -> Result<VrchatAvatarSelectionOutcome, AppError> {
     let (avatar_id, request) =
         avatar_select_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    execute_avatar_api(
+    execute_avatar_selection(
         state,
         "app__vrchat_avatar_select",
         format!("Selecting avatar {avatar_id}."),
         request,
+        vrcx_0_application_realtime::CURRENT_USER_AVATAR_RESPONSE_AUTHORITY_FIELDS,
     )
     .await
 }
@@ -155,14 +184,15 @@ pub async fn app__vrchat_avatar_select(
 pub async fn app__vrchat_avatar_select_fallback(
     state: State<'_, AppState>,
     input: VrchatAvatarIdInput,
-) -> Result<VrchatApiResponse, AppError> {
+) -> Result<VrchatAvatarSelectionOutcome, AppError> {
     let (avatar_id, request) =
         avatar_select_fallback_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    execute_avatar_api(
+    execute_avatar_selection(
         state,
         "app__vrchat_avatar_select_fallback",
         format!("Selecting fallback avatar {avatar_id}."),
         request,
+        vrcx_0_application_realtime::CURRENT_USER_FALLBACK_AVATAR_RESPONSE_AUTHORITY_FIELDS,
     )
     .await
 }

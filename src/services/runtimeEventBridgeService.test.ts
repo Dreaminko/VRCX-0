@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
     applyRuntimeGameLogProjection: vi.fn(),
     applyBackgroundImageProjectionEvent: vi.fn(),
     appBackgroundImageStateGet: vi.fn(),
+    handleFavoriteImportStatusEvent: vi.fn(),
     handleGameRunningUpdate: vi.fn<() => Promise<void>>(),
     isHostCapabilityAvailable: vi.fn<(name: string) => boolean>(),
     refreshHostCapabilities: vi.fn(),
@@ -86,6 +87,10 @@ vi.mock('./gameLogIngestService', () => ({
 vi.mock('./background-image/backgroundImageService', () => ({
     applyBackgroundImageProjectionEvent:
         mocks.applyBackgroundImageProjectionEvent
+}));
+
+vi.mock('./favoriteImportService', () => ({
+    handleFavoriteImportStatusEvent: mocks.handleFavoriteImportStatusEvent
 }));
 
 vi.mock('./gameStateService', () => ({
@@ -594,7 +599,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(31);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(32);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});

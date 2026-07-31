@@ -74,10 +74,12 @@ use background::{
     background_capability_session, background_capability_session_matches, emit_background_info,
     emit_background_warning, gui_maintenance_runtime_mode,
 };
+pub use background_ticks::SocialBaselineRefreshOutput;
 use background_ticks::{
     run_background_current_user_refresh, run_background_group_instance_refresh,
     run_background_moderation_refresh, run_background_print_cleanup,
-    run_background_social_baseline_refresh, BackgroundTickContext,
+    run_background_social_baseline_refresh, run_social_baseline_refresh_core,
+    BackgroundTickContext,
 };
 pub use frontend_session::{
     replace_backend_frontend_session_user_if_session_matches,

@@ -11,7 +11,6 @@ import type { AvatarGalleryFile } from '@/repositories/avatarProfileRepository';
 import { getPlatformInfo } from '@/shared/utils/avatarPlatform';
 import { useDialogStore } from '@/state/dialogStore';
 import { useModalStore } from '@/state/modalStore';
-import { useRuntimeStore } from '@/state/runtimeStore';
 
 export type AvatarActionStatus =
     | 'idle'
@@ -151,9 +150,6 @@ export type AvatarDialogActionDependencies = {
     normalizedAvatarId: string;
     prompt: ReturnType<typeof useModalStore.getState>['prompt'];
     setActionStatus: Dispatch<SetStateAction<AvatarActionStatus>>;
-    setAuthBootstrap: ReturnType<
-        typeof useRuntimeStore.getState
-    >['setAuthBootstrap'];
     setAvatar: Dispatch<SetStateAction<AvatarProfileRecord | null>>;
     setAvatarBlocked: Dispatch<SetStateAction<boolean>>;
     setAvatarSideData: Dispatch<SetStateAction<AvatarSideData>>;

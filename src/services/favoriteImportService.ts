@@ -6,7 +6,6 @@ import {
     type FavoriteImportTarget
 } from '@/platform/tauri/bindings';
 import i18n from '@/services/i18nService';
-import { windowDelay } from '@/shared/utils/delays';
 import { normalizeString } from '@/shared/utils/string';
 import { useFavoriteImportStore } from '@/state/favoriteImportStore';
 import { useFavoriteStore } from '@/state/favoriteStore';
@@ -143,36 +142,59 @@ function setProgress(
     }
 }
 
-async function waitForFavoriteImport(
+interface FavoriteImportWatcher {
+    runId: string;
+    sessionId: number;
+    type: FavoriteImportKind;
+    appliedItems: number;
+    resolve: (status: FavoriteImportStatus) => void;
+}
+
+let favoriteImportWatcher: FavoriteImportWatcher | null = null;
+
+export function handleFavoriteImportStatusEvent(
+    status: FavoriteImportStatus
+): void {
+    const watcher = favoriteImportWatcher;
+    if (!watcher || status.runId !== watcher.runId) {
+        return;
+    }
+    if (!isActiveDialogSession(watcher.sessionId, watcher.type)) {
+        favoriteImportWatcher = null;
+        commands
+            .appFavoriteImportCancel()
+            .then(watcher.resolve)
+            .catch(() => watcher.resolve(status));
+        return;
+    }
+    setProgress(status.operation, status.processed, status.total);
+    watcher.appliedItems = applyFavoriteImportItems(
+        watcher.type,
+        status.operation,
+        status.items,
+        watcher.appliedItems
+    );
+    if (!isBackendActive(status)) {
+        favoriteImportWatcher = null;
+        watcher.resolve(status);
+    }
+}
+
+function waitForFavoriteImport(
     initialStatus: FavoriteImportStatus,
     sessionId: number,
     type: FavoriteImportKind
 ): Promise<FavoriteImportStatus> {
-    let status = initialStatus;
-    let appliedItems = 0;
-    while (status.runId === initialStatus.runId && isBackendActive(status)) {
-        if (!isActiveDialogSession(sessionId, type)) {
-            return commands.appFavoriteImportCancel();
-        }
-        setProgress(status.operation, status.processed, status.total);
-        appliedItems = applyFavoriteImportItems(
+    return new Promise<FavoriteImportStatus>((resolve) => {
+        favoriteImportWatcher = {
+            runId: initialStatus.runId,
+            sessionId,
             type,
-            status.operation,
-            status.items,
-            appliedItems
-        );
-        await windowDelay(100);
-        status = await commands.appFavoriteImportStatus();
-    }
-    if (isActiveDialogSession(sessionId, type)) {
-        applyFavoriteImportItems(
-            type,
-            status.operation,
-            status.items,
-            appliedItems
-        );
-    }
-    return status;
+            appliedItems: 0,
+            resolve
+        };
+        handleFavoriteImportStatusEvent(initialStatus);
+    });
 }
 
 function applyFavoriteImportItems(

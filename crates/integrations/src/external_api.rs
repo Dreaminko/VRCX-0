@@ -7,6 +7,9 @@ use url::Url;
 const STATUS_API_ORIGIN: &str = "https://status.vrchat.com";
 const YOUTUBE_API_ORIGIN: &str = "https://www.googleapis.com";
 const GITHUB_API_ORIGIN: &str = "https://api.github.com";
+const TRANSLATION_GOOGLE_ORIGIN: &str = "https://translation.googleapis.com";
+const TRANSLATION_DEEPL_FREE_ORIGIN: &str = "https://api-free.deepl.com";
+const TRANSLATION_DEEPL_PRO_ORIGIN: &str = "https://api.deepl.com";
 const BACKGROUND_IMAGE_EPIC_ORIGIN: &str = "https://epic.gsfc.nasa.gov";
 const BACKGROUND_IMAGE_AIC_ORIGIN: &str = "https://api.artic.edu";
 const BACKGROUND_IMAGE_APOD_ORIGIN: &str = "https://api.nasa.gov";
@@ -317,9 +320,14 @@ fn external_url_allowed(url: &Url, scope: ExternalApiScope, policy: &ExternalApi
     let _ = policy;
     let origin = url_origin(url);
     match scope {
-        ExternalApiScope::AvatarSearch
-        | ExternalApiScope::Translation
-        | ExternalApiScope::Image => true,
+        ExternalApiScope::AvatarSearch | ExternalApiScope::Image => true,
+        ExternalApiScope::Translation => {
+            (origin == TRANSLATION_GOOGLE_ORIGIN
+                && url.path().starts_with("/language/translate/v2"))
+                || ((origin == TRANSLATION_DEEPL_FREE_ORIGIN
+                    || origin == TRANSLATION_DEEPL_PRO_ORIGIN)
+                    && url.path().starts_with("/v2/translate"))
+        }
         ExternalApiScope::Youtube => {
             origin == YOUTUBE_API_ORIGIN && url.path().starts_with("/youtube/v3/videos")
         }

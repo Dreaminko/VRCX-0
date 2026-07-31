@@ -1,10 +1,11 @@
 import {
     commands,
+    type NotificationActionOutcome,
+    type NotificationTarget,
     type SocialFriendMutationOutcome
 } from '@/platform/tauri/bindings';
 import notificationPersistenceRepository from '@/repositories/notificationPersistenceRepository';
-
-import { sendBoopToUser, sendInviteToLocation } from './inviteDeliveryService';
+import vrchatSearchRepository from '@/repositories/vrchatSearchRepository';
 
 type NotificationRecord = Record<string, unknown> & {
     id?: unknown;
@@ -72,6 +73,33 @@ function requireNotification(
     return notification;
 }
 
+function toNotificationTarget(
+    notification: NotificationRecord
+): NotificationTarget {
+    return {
+        id: normalizeText(notification.id),
+        version: Number(notification.version) || 0,
+        type: normalizeText(notification.type),
+        senderUserId: normalizeText(notification.senderUserId)
+    };
+}
+
+function unwrapNotificationActionOutcome(
+    outcome: NotificationActionOutcome
+): NotificationActionOutcome {
+    if (outcome.status === 'remoteFailed') {
+        throw new Error(
+            outcome.remoteError || 'VRChat notification request failed'
+        );
+    }
+    if (outcome.status === 'remoteOkLocalFailed') {
+        throw new Error(
+            outcome.localError || 'Notification local update failed.'
+        );
+    }
+    return outcome;
+}
+
 export async function findIncomingFriendRequestNotification({
     currentUserId,
     targetUserId
@@ -110,24 +138,16 @@ export async function expireNotificationLocally({
     });
 }
 
-async function hideRemoteNotification({
-    notification
-}: NotificationActionInput) {
-    const target = requireNotification(notification);
-    await notificationPersistenceRepository.hideRemoteNotification({
-        id: target.id,
-        version: target.version,
-        type: normalizeText(target.type),
-        senderUserId: target.senderUserId
-    });
-}
-
 export async function hideRemoteAndExpireNotification({
     currentUserId,
     notification
 }: NotificationActionInput) {
-    await hideRemoteNotification({ notification });
-    await expireNotificationLocally({ currentUserId, notification });
+    const target = requireNotification(notification);
+    const outcome = await commands.appNotificationHideAndExpire({
+        ownerUserId: normalizeText(currentUserId),
+        target: toNotificationTarget(target)
+    });
+    unwrapNotificationActionOutcome(outcome);
 }
 
 export async function acceptFriendRequestNotification({
@@ -177,16 +197,29 @@ export async function acceptRequestInviteNotification({
     worldId
 }: AcceptRequestInviteInput) {
     const target = requireNotification(notification);
-    await sendInviteToLocation({
-        receiverUserId: target.senderUserId,
-        instanceId,
-        worldId,
-        rsvp: true
+    const notificationTarget = toNotificationTarget(target);
+    const normalizedInstanceId = normalizeText(instanceId);
+    const normalizedWorldId = normalizeText(worldId);
+    let worldName = '';
+    if (
+        notificationTarget.senderUserId &&
+        normalizedInstanceId &&
+        normalizedWorldId
+    ) {
+        const worldResponse = await vrchatSearchRepository.getWorlds(
+            {},
+            normalizedWorldId
+        );
+        worldName = normalizeText(worldResponse?.json?.name);
+    }
+    const outcome = await commands.appNotificationRequestInviteAccept({
+        ownerUserId: normalizeText(currentUserId),
+        target: notificationTarget,
+        instanceId: normalizedInstanceId,
+        worldId: normalizedWorldId,
+        worldName
     });
-    await hideRemoteAndExpireNotification({
-        currentUserId,
-        notification: target
-    });
+    unwrapNotificationActionOutcome(outcome);
 }
 
 export async function sendInviteResponseNotification({
@@ -205,29 +238,18 @@ export async function sendInviteResponseNotification({
         throw new Error('Response slot must be a number.');
     }
 
-    if (imageData) {
-        const upload =
-            notificationPersistenceRepository.sendInviteResponsePhoto({
-                id: target.id,
-                responseSlot: normalizedResponseSlot,
-                imageData
-            });
-        if (withUploadTimeout) {
-            await withUploadTimeout(upload);
-        } else {
-            await upload;
-        }
-    } else {
-        await notificationPersistenceRepository.sendInviteResponse({
-            id: target.id,
-            responseSlot: normalizedResponseSlot
+    const invoke = () =>
+        commands.appNotificationInviteResponseSend({
+            ownerUserId: normalizeText(currentUserId),
+            target: toNotificationTarget(target),
+            responseSlot: normalizedResponseSlot,
+            imageData: imageData ? normalizeText(imageData) : ''
         });
-    }
-
-    await hideRemoteAndExpireNotification({
-        currentUserId,
-        notification: target
-    });
+    const outcome =
+        imageData && withUploadTimeout
+            ? await withUploadTimeout(invoke())
+            : await invoke();
+    unwrapNotificationActionOutcome(outcome as NotificationActionOutcome);
     return { sentPhoto: Boolean(imageData) };
 }
 
@@ -242,33 +264,10 @@ export async function dismissBoopNotifications({
     if (!currentUserId || !normalizedSenderUserId) {
         return;
     }
-    const items = await notificationPersistenceRepository.queryNotifications({
-        userId: currentUserId,
-        filters: ['boop']
+    await commands.appNotificationBoopDismiss({
+        ownerUserId: normalizeText(currentUserId),
+        senderUserId: normalizedSenderUserId
     });
-    const matchingRows = items.filter(
-        (item) =>
-            item?.type === 'boop' &&
-            !item.expired &&
-            item.link === `user:${normalizedSenderUserId}`
-    );
-    await Promise.allSettled(
-        matchingRows.map(async (item) => {
-            try {
-                await notificationPersistenceRepository.hideRemoteNotification({
-                    id: item.id,
-                    version: item.version,
-                    type: normalizeText(item.type),
-                    senderUserId: item.senderUserId
-                });
-            } finally {
-                await notificationPersistenceRepository.expireNotification({
-                    userId: currentUserId,
-                    id: item.id
-                });
-            }
-        })
-    );
 }
 
 export async function sendBoopReplyNotification({
@@ -281,16 +280,12 @@ export async function sendBoopReplyNotification({
     if (!senderUserId) {
         throw new Error('Cannot send boop: no sender user id is available.');
     }
-    await dismissBoopNotifications({
-        currentUserId,
-        senderUserId
+    const outcome = await commands.appNotificationBoopReply({
+        ownerUserId: normalizeText(currentUserId),
+        target: toNotificationTarget(target),
+        emojiId: normalizeText(emojiId)
     });
-    await sendBoopToUser({
-        userId: senderUserId,
-        emojiId
-    });
-    await hideRemoteNotification({ notification: target }).catch(() => {});
-    await expireNotificationLocally({ currentUserId, notification: target });
+    unwrapNotificationActionOutcome(outcome);
 }
 
 export async function sendNotificationButtonResponse({
@@ -299,23 +294,11 @@ export async function sendNotificationButtonResponse({
     response
 }: NotificationResponseInput) {
     const target = requireNotification(notification);
-    try {
-        await notificationPersistenceRepository.sendNotificationResponse({
-            id: target.id,
-            responseType: response?.type,
-            responseData: response?.data || ''
-        });
-        await expireNotificationLocally({
-            currentUserId,
-            notification: target
-        });
-    } catch (error) {
-        if (Number(target.version) >= 2) {
-            await expireNotificationLocally({
-                currentUserId,
-                notification: target
-            });
-        }
-        throw error;
-    }
+    const outcome = await commands.appNotificationRespondAndExpire({
+        ownerUserId: normalizeText(currentUserId),
+        target: toNotificationTarget(target),
+        responseType: normalizeText(response?.type),
+        responseData: response?.data || ''
+    });
+    unwrapNotificationActionOutcome(outcome);
 }

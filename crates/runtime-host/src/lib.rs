@@ -32,5 +32,5 @@ pub use state::{
     replace_backend_frontend_session_user_if_session_matches,
     update_backend_frontend_session_user_if_session_matches, BackendRuntimeFrontendSessionSnapshot,
     CliLoginPrompt, CliTwoFactorChoice, RuntimeHostOptions, RuntimeHostState,
-    RuntimeHostStateBuilder,
+    RuntimeHostStateBuilder, SocialBaselineRefreshOutput,
 };

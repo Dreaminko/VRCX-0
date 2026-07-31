@@ -3,13 +3,6 @@ import { normalizeString } from '@/shared/utils/string';
 
 type ExternalHeaders = Record<string, string>;
 
-interface ExternalRequestInput {
-    url: string;
-    method?: string;
-    headers?: ExternalHeaders;
-    body?: unknown;
-}
-
 async function searchAvatarProvider({
     url,
     vrcxId
@@ -18,20 +11,6 @@ async function searchAvatarProvider({
     vrcxId: string;
 }) {
     return commands.appExternalApiAvatarSearchGet({ url, vrcxId });
-}
-
-async function executeTranslationRequest({
-    url,
-    method = 'GET',
-    headers = {},
-    body = null
-}: ExternalRequestInput) {
-    return commands.appExternalApiTranslationRequest({
-        url,
-        method,
-        headers,
-        body
-    });
 }
 
 async function fetchYoutubeVideoMetadata({
@@ -85,7 +64,6 @@ async function fetchImageDataUrl(url: string) {
 
 const externalApiRepository = Object.freeze({
     searchAvatarProvider,
-    executeTranslationRequest,
     fetchYoutubeVideoMetadata,
     fetchVrcStatusJson,
     fetchGithubReleases,
@@ -94,7 +72,6 @@ const externalApiRepository = Object.freeze({
 });
 
 export {
-    executeTranslationRequest,
     fetchGithubContributors,
     fetchGithubReleases,
     fetchImageDataUrl,

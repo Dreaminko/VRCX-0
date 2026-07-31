@@ -145,6 +145,9 @@ export const commands = {
             overlayPatch
         });
     },
+    async appCurrentUserRefresh(): Promise<CurrentUserRefreshOutcome> {
+        return await TAURI_INVOKE('app__current_user_refresh');
+    },
     async appExpireRealtimeNotification(
         userId: string,
         notificationId: string
@@ -237,6 +240,11 @@ export const commands = {
     async appFavoriteImportCancel(): Promise<FavoriteImportStatus> {
         return await TAURI_INVOKE('app__favorite_import_cancel');
     },
+    async appFavoriteDetailsHydrate(
+        input: FavoriteDetailsHydrateInput
+    ): Promise<FavoriteDetailsHydrateOutput> {
+        return await TAURI_INVOKE('app__favorite_details_hydrate', { input });
+    },
     async appAvatarContentTagsBatch(
         input: AvatarContentTagsBatchInput
     ): Promise<BatchMutationResult> {
@@ -262,13 +270,43 @@ export const commands = {
     async appNotificationSync(): Promise<NotificationSyncOutcome> {
         return await TAURI_INVOKE('app__notification_sync');
     },
-    async appMyAvatarsGet(input: MyAvatarsInput): Promise<JsonValue[]> {
-        return await TAURI_INVOKE('app__my_avatars_get', { input });
+    async appNotificationHideAndExpire(
+        input: NotificationHideExpireInput
+    ): Promise<NotificationActionOutcome> {
+        return await TAURI_INVOKE('app__notification_hide_and_expire', {
+            input
+        });
     },
-    async appMyAvatarByIdGet(
-        input: MyAvatarByIdInput
-    ): Promise<JsonValue | null> {
-        return await TAURI_INVOKE('app__my_avatar_by_id_get', { input });
+    async appNotificationRequestInviteAccept(
+        input: NotificationRequestInviteAcceptInput
+    ): Promise<NotificationActionOutcome> {
+        return await TAURI_INVOKE('app__notification_request_invite_accept', {
+            input
+        });
+    },
+    async appNotificationInviteResponseSend(
+        input: NotificationInviteResponseInput
+    ): Promise<NotificationActionOutcome> {
+        return await TAURI_INVOKE('app__notification_invite_response_send', {
+            input
+        });
+    },
+    async appNotificationBoopDismiss(
+        input: NotificationBoopDismissInput
+    ): Promise<NotificationActionOutcome> {
+        return await TAURI_INVOKE('app__notification_boop_dismiss', { input });
+    },
+    async appNotificationBoopReply(
+        input: NotificationBoopReplyInput
+    ): Promise<NotificationActionOutcome> {
+        return await TAURI_INVOKE('app__notification_boop_reply', { input });
+    },
+    async appNotificationRespondAndExpire(
+        input: NotificationRespondInput
+    ): Promise<NotificationActionOutcome> {
+        return await TAURI_INVOKE('app__notification_respond_and_expire', {
+            input
+        });
     },
     async appNoteExportStart(
         input: NoteExportStartInput
@@ -411,6 +449,11 @@ export const commands = {
     },
     async appLlmTranslate(input: LlmTranslateInput): Promise<string> {
         return await TAURI_INVOKE('app__llm_translate', { input });
+    },
+    async appTranslationTranslate(
+        input: TranslationTranslateInput
+    ): Promise<TranslationResult> {
+        return await TAURI_INVOKE('app__translation_translate', { input });
     },
     async appAssistantReasoningEffort(): Promise<string> {
         return await TAURI_INVOKE('app__assistant_reasoning_effort');
@@ -1393,12 +1436,12 @@ export const commands = {
     },
     async appVrchatAvatarSelect(
         input: VrchatAvatarIdInput
-    ): Promise<HttpApiExecuteResponse> {
+    ): Promise<VrchatAvatarSelectionOutcome> {
         return await TAURI_INVOKE('app__vrchat_avatar_select', { input });
     },
     async appVrchatAvatarSelectFallback(
         input: VrchatAvatarIdInput
-    ): Promise<HttpApiExecuteResponse> {
+    ): Promise<VrchatAvatarSelectionOutcome> {
         return await TAURI_INVOKE('app__vrchat_avatar_select_fallback', {
             input
         });
@@ -1458,21 +1501,21 @@ export const commands = {
     },
     async appLocalFavoriteGroupCreate(
         input: LocalFavoriteGroupInput
-    ): Promise<LocalFavoriteGroupWrite> {
+    ): Promise<null> {
         return await TAURI_INVOKE('app__local_favorite_group_create', {
             input
         });
     },
     async appLocalFavoriteGroupDelete(
         input: LocalFavoriteGroupInput
-    ): Promise<LocalFavoriteGroupWrite> {
+    ): Promise<number> {
         return await TAURI_INVOKE('app__local_favorite_group_delete', {
             input
         });
     },
     async appLocalFavoriteGroupRename(
         input: LocalFavoriteGroupRenameInput
-    ): Promise<LocalFavoriteGroupWrite> {
+    ): Promise<number> {
         return await TAURI_INVOKE('app__local_favorite_group_rename', {
             input
         });
@@ -2024,6 +2067,9 @@ export const commands = {
         input: VrchatSearchWorldsInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_search_worlds_get', { input });
+    },
+    async appSocialBaselineRefresh(): Promise<SocialBaselineRefreshOutput> {
+        return await TAURI_INVOKE('app__social_baseline_refresh');
     },
     async appSocialFavoritesBaselineGet(
         input: SocialFavoritesBaselineInput
@@ -3160,6 +3206,7 @@ export type BackendRuntimeEventPayloadMap = {
     profileRestoreProgress: ProfileRestoreProgress;
     dataDirMigration: DataDirMigrationStatus;
     favoritesChanged: FavoritesChangedPayload;
+    favoriteImportStatus: FavoriteImportStatus;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
     realtimeUserProjection: RealtimeUserProjection;
@@ -3336,6 +3383,7 @@ export type ConfigWriteEntry = { key: string; value: string };
 export type CrashRelaunchDecisionPayload =
     | { handled: boolean; error: string }
     | { handled: boolean; location: string; delayMs: number | null };
+export type CurrentUserRefreshOutcome = { applied: boolean };
 export type DataDirCleanupPending = {
     oldDir: string;
     bytes: number;
@@ -3498,6 +3546,17 @@ export type ExternalApiVrcStatusInput = { path?: string };
 export type ExternalApiYoutubeVideoInput = {
     videoId?: string;
     apiKey?: string;
+};
+export type FavoriteDetailsHydrateInput = {
+    kind: FavoriteDetailsHydrateKind;
+    favoriteIds?: string[];
+    avatarTags?: string[];
+};
+export type FavoriteDetailsHydrateKind = 'avatar' | 'world';
+export type FavoriteDetailsHydrateOutput = {
+    detailsById: Partial<{ [key in string]: RawJson }>;
+    cachedCount: number;
+    fetchedAt: string;
 };
 export type FavoriteImportItemResult = {
     id: string;
@@ -4019,11 +4078,6 @@ export type LocalFavoriteGroupRenameInput = {
     groupName?: string;
     newGroupName?: string;
 };
-export type LocalFavoriteGroupWrite = {
-    configKey: string;
-    groupNames: string[];
-    affected: number;
-};
 export type LocalFavoriteInput = {
     kind?: string;
     entityId?: string;
@@ -4194,11 +4248,6 @@ export type MutualGraphSnapshotOutput = {
     links: MutualGraphLinkOutput[];
     meta: MutualGraphMetaOutput[];
 };
-export type MyAvatarByIdInput = { avatarId: string };
-export type MyAvatarsInput = {
-    currentAvatarId?: string;
-    previousAvatarSwapTime?: number;
-};
 export type NoteExportItemInput = {
     userId: string;
     displayName: string;
@@ -4236,6 +4285,41 @@ export type NoteExportStatus = {
     startedAt: string | null;
     finishedAt: string | null;
     lastError: string | null;
+};
+export type NotificationActionOutcome = {
+    status: NotificationActionStatus;
+    expiredIds: string[];
+    sentPhoto: boolean;
+    remoteError: string | null;
+    localError: string | null;
+};
+export type NotificationActionStatus =
+    | 'applied'
+    | 'remoteOkLocalFailed'
+    | 'alreadyResolved'
+    | 'remoteFailed';
+export type NotificationBoopDismissInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    senderUserId: string;
+};
+export type NotificationBoopReplyInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    target: NotificationTarget;
+    emojiId?: string;
+};
+export type NotificationHideExpireInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    target: NotificationTarget;
+};
+export type NotificationInviteResponseInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    target: NotificationTarget;
+    responseSlot: number;
+    imageData?: string;
 };
 export type NotificationListItemOutput = {
     id: string;
@@ -4290,6 +4374,21 @@ export type NotificationMarkSeenItemResult = {
 };
 export type NotificationMarkSeenItemState = 'succeeded' | 'failed';
 export type NotificationMarkSeenLocation = 'remote' | 'local';
+export type NotificationRequestInviteAcceptInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    target: NotificationTarget;
+    instanceId?: string;
+    worldId?: string;
+    worldName?: string;
+};
+export type NotificationRespondInput = {
+    ownerUserId: string;
+    endpoint?: string;
+    target: NotificationTarget;
+    responseType?: string;
+    responseData?: JsonValue;
+};
 export type NotificationRowsOutput = {
     v1Rows: NotificationV1RowOutput[];
     v2Rows: NotificationV2RowOutput[];
@@ -4306,6 +4405,12 @@ export type NotificationSyncOutcome = {
     v2Count: number;
     hiddenFriendRequestCount: number;
     truncated: boolean;
+};
+export type NotificationTarget = {
+    id: string;
+    version?: number;
+    type?: string;
+    senderUserId?: string;
 };
 export type NotificationV1RowOutput = {
     id: string;
@@ -4996,6 +5101,12 @@ export type SharedCollectionImportStatus = {
     finishedAt: string | null;
     lastError: string | null;
 };
+export type SocialBaselineRefreshOutput = {
+    stale: boolean;
+    friendCount: number;
+    friendLogChanged: boolean;
+    favoritesSnapshot: JsonValue | null;
+};
 export type SocialFavoritesBaselineInput = {
     userId?: string;
     endpoint?: string;
@@ -5064,6 +5175,25 @@ export type TelemetryClientEvent =
           summary: string | null;
       }
     | { type: 'assistantTurnError'; code: string; summary: string | null };
+export type TranslationOverrides = {
+    enabled: boolean | null;
+    apiType: string | null;
+    key: string | null;
+    endpointId: string | null;
+    model: string | null;
+    prompt: string | null;
+    reasoningEffort: string | null;
+};
+export type TranslationResult = {
+    text: string;
+    detectedSourceLanguage: string | null;
+    provider: string;
+};
+export type TranslationTranslateInput = {
+    text: string;
+    targetLanguage: string | null;
+    overrides: TranslationOverrides | null;
+};
 export type TtsVoice = { id: string; name: string; language: string };
 export type TurnStatus = 'running' | 'done' | 'error' | 'cancelled';
 export type UpdaterMetadata = {
@@ -5126,6 +5256,10 @@ export type VrchatAvatarModerationInput = { avatarId?: string; type?: string };
 export type VrchatAvatarSaveInput = {
     avatarId?: string;
     params: JsonValue | null;
+};
+export type VrchatAvatarSelectionOutcome = {
+    applied: boolean;
+    response: HttpApiExecuteResponse;
 };
 export type VrchatBoopInput = { userId?: string; emojiId?: string };
 export type VrchatConfigWriteResult = { oldCacheCleanupError: string | null };

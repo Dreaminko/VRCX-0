@@ -214,6 +214,37 @@ impl RuntimeHostState {
             });
     }
 
+    pub async fn refresh_social_baseline_now(
+        &self,
+    ) -> vrcx_0_application_core::Result<SocialBaselineRefreshOutput> {
+        let Some(session) = background_capability_session(&self.backend_frontend_session) else {
+            return Err(vrcx_0_application_core::Error::Custom(
+                "Social baseline refresh requires an authenticated session.".into(),
+            ));
+        };
+        let deps = vrcx_0_application_realtime::SocialBaselineDeps {
+            db: Arc::clone(&self.db),
+            web: Arc::clone(&self.web),
+            auth_scope: self.runtime_context.auth_scope.clone(),
+            session: self.runtime_context.session.clone(),
+        };
+        let core = run_social_baseline_refresh_core(
+            deps,
+            &self.realtime_runtime,
+            &self.runtime_context.event_bus,
+            &self.authenticated_runtime,
+            &session,
+        )
+        .await?;
+        let favorites_snapshot = core.favorites?.map(|favorites| favorites.snapshot);
+        Ok(SocialBaselineRefreshOutput {
+            stale: core.stale,
+            friend_count: core.friend_count,
+            friend_log_changed: core.friend_log_changed,
+            favorites_snapshot,
+        })
+    }
+
     pub(super) fn start_profile_maintenance_loops(&self) {
         if let Some(extension) = &self.profile_extension {
             extension.start_profile_maintenance(self);

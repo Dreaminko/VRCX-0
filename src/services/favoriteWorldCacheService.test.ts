@@ -7,8 +7,7 @@ import { useFavoriteStore } from '@/state/favoriteStore';
 
 import {
     cacheFavoriteWorldDetails,
-    cacheWorldDetails,
-    cacheWorldDetailsById
+    cacheWorldDetails
 } from './favoriteWorldCacheService';
 
 vi.mock('@/repositories/favoritePersistenceRepository', () => ({
@@ -84,34 +83,6 @@ describe('favoriteWorldCacheService', () => {
                 name: 'Fallback World'
             })
         );
-    });
-
-    it('writes each world detail from a favorite detail map', async () => {
-        await cacheWorldDetailsById({
-            wrld_a: {
-                name: 'World A',
-                releaseStatus: 'public',
-                thumbnailImageUrl: 'https://example.test/a.png'
-            },
-            wrld_b: {
-                id: 'wrld_b',
-                name: 'World B',
-                releaseStatus: 'unknown',
-                thumbnailImageUrl: 'https://example.test/b.png'
-            }
-        });
-
-        expect(
-            favoritePersistenceRepository.addWorldToCache
-        ).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 'wrld_a',
-                name: 'World A'
-            })
-        );
-        expect(
-            favoritePersistenceRepository.addWorldToCache
-        ).toHaveBeenCalledTimes(1);
     });
 
     it('refreshes DB cache automatically for local favorite worlds', async () => {

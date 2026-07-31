@@ -25,6 +25,7 @@ impl RealtimeHostRuntime {
                 super::friend_profile_bulk_load::FriendProfileBulkLoadState::default(),
             ),
             friend_profile_bulk_cancel_tx,
+            current_user_refresh_inflight: Mutex::new(None),
         }
     }
 

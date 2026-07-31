@@ -283,7 +283,7 @@ fn normalize_items(
     }
 }
 
-fn ensure_scope_matches(
+pub(super) fn ensure_scope_matches(
     current: &RuntimeAuthScopeSnapshot,
     expected: &RuntimeAuthScopeSnapshot,
 ) -> Result<()> {

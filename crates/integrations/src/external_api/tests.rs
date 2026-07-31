@@ -112,15 +112,6 @@ fn external_scopes_allow_any_http_and_https_url() {
     .is_ok());
 
     let request = ExternalHttpRequestInput {
-        url: Some("http://example.com/v1/chat/completions".into()),
-        ..Default::default()
-    };
-    assert!(
-        build_web_execute_request_with_policy(request, ExternalApiScope::Translation, &policy)
-            .is_ok()
-    );
-
-    let request = ExternalHttpRequestInput {
         url: Some("http://10.0.0.5/image.png".into()),
         ..Default::default()
     };
@@ -241,15 +232,15 @@ fn fixed_external_scopes_keep_origin_and_path_restrictions() {
 
 #[test]
 fn translation_scope_allows_bearer_authorization_header() {
-    let policy = ExternalApiPolicy::with_allowed_origins(["https://api.openai.com"]);
+    let policy = ExternalApiPolicy::with_allowed_origins(["https://api.deepl.com"]);
     let request = ExternalHttpRequestInput {
-        url: Some("https://api.openai.com/v1/chat/completions".into()),
+        url: Some("https://api.deepl.com/v2/translate".into()),
         method: Some("POST".into()),
         headers: Some(HashMap::from([(
             "Authorization".to_string(),
             "Bearer test-token".to_string(),
         )])),
-        body: Some(json!({ "messages": [] })),
+        body: Some(json!({ "text": ["hello"] })),
         ..Default::default()
     };
 
@@ -261,6 +252,23 @@ fn translation_scope_allows_bearer_authorization_header() {
         .headers
         .iter()
         .any(|(name, value)| name == "Authorization" && value == "Bearer test-token"));
+}
+
+#[test]
+fn translation_scope_rejects_unlisted_origins() {
+    let request = ExternalHttpRequestInput {
+        url: Some("https://api.openai.com/v1/chat/completions".into()),
+        method: Some("POST".into()),
+        body: Some(json!({ "messages": [] })),
+        ..Default::default()
+    };
+
+    assert!(build_web_execute_request_with_policy(
+        request,
+        ExternalApiScope::Translation,
+        &ExternalApiPolicy,
+    )
+    .is_err());
 }
 
 #[test]

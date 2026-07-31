@@ -16,6 +16,7 @@ import { applyBackgroundImageProjectionEvent } from './background-image/backgrou
 import { handleAppUpdateStatusEvent } from './backgroundMaintenanceUpdateService';
 import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
+import { handleFavoriteImportStatusEvent } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
 import { getCurrentProfileBackupStatus } from './profileBackupService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
@@ -122,6 +123,11 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
+    if (event.name === 'favoriteImportStatus') {
+        handleFavoriteImportStatusEvent(event.payload);
+        return;
+    }
+
     if (event.name === 'favoritesChanged') {
         runtimeStore.recordRuntimeEvent(event.name, event.payload);
         handleFavoritesChangedEvent(event.payload);
@@ -221,6 +227,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'profileBackupStatus',
         'profileRestoreProgress',
         'dataDirMigration',
+        'favoriteImportStatus',
         'favoritesChanged',
         'friendProfileLoadStatus',
         'gameClientEvent',

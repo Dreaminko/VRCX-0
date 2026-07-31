@@ -11,7 +11,6 @@ import {
     setTranslationApiConfigPreference,
     setYoutubeApiKeyPreference
 } from '@/services/preferencesService';
-import { normalizeDeepLTargetLanguage } from '@/services/translationService';
 import { useLlmEndpointsStore } from '@/state/llmEndpointsStore';
 import {
     normalizeTranslationApiType,
@@ -438,89 +437,53 @@ export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
             translationDraft.translationAPIType
         );
         const apiKey = translationDraft.translationAPIKey.trim();
+        if (provider === 'google' && !apiKey) {
+            toast.warning(t('dialog.translation_api.description'));
+            return;
+        }
+        if (provider === 'deepl' && !apiKey) {
+            toast.warning(t('dialog.translation_api.deepl.api_key'));
+            return;
+        }
+        const endpointId = translationDraft.translationEndpointId.trim();
+        const model =
+            translationDraft.translationAPIModel.trim() ||
+            DEFAULT_TRANSLATION_MODEL;
+        if (provider === 'openai') {
+            if (!endpointId || !model) {
+                toast.warning(
+                    t('dialog.translation_api.msg_fill_endpoint_model')
+                );
+                return;
+            }
+        }
+        const reasoningEffort = normalizeTranslationReasoningEffort(
+            translationDraft.translationAPIReasoningEffort,
+            provider,
+            llmEndpoints,
+            endpointId,
+            model
+        );
         setIntegrationStatus((current) => ({
             ...current,
             translation: 'running'
         }));
         try {
-            if (provider === 'google') {
-                if (!apiKey) {
-                    toast.warning(t('dialog.translation_api.description'));
-                    return;
-                }
-                const response =
-                    await externalApiRepository.executeTranslationRequest({
-                        url: `https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(apiKey)}`,
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            q: 'Hello world',
-                            target: translationDraft.bioLanguage || 'en',
-                            format: 'text'
-                        })
-                    });
-                if (response.status !== 200) {
-                    throw new Error(
-                        t('dialog.translation_api.msg_test_failed')
-                    );
-                }
-            } else if (provider === 'deepl') {
-                if (!apiKey) {
-                    toast.warning(t('dialog.translation_api.deepl.api_key'));
-                    return;
-                }
-                const response =
-                    await externalApiRepository.executeTranslationRequest({
-                        url: 'https://api-free.deepl.com/v2/translate',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `DeepL-Auth-Key ${apiKey}`
-                        },
-                        body: JSON.stringify({
-                            text: ['Hello world'],
-                            target_lang: normalizeDeepLTargetLanguage(
-                                translationDraft.bioLanguage || 'en'
-                            )
-                        })
-                    });
-                if (response.status !== 200) {
-                    throw new Error(
-                        t('dialog.translation_api.msg_test_failed')
-                    );
-                }
-            } else {
-                const endpointId =
-                    translationDraft.translationEndpointId.trim();
-                const model =
-                    translationDraft.translationAPIModel.trim() ||
-                    DEFAULT_TRANSLATION_MODEL;
-                if (!endpointId || !model) {
-                    toast.warning(
-                        t('dialog.translation_api.msg_fill_endpoint_model')
-                    );
-                    return;
-                }
-                const reasoningEffort = normalizeTranslationReasoningEffort(
-                    translationDraft.translationAPIReasoningEffort,
-                    'openai',
-                    llmEndpoints,
-                    endpointId,
-                    model
-                );
-                const translated = await commands.appLlmTranslate({
+            const result = await commands.appTranslationTranslate({
+                text: 'Hello world',
+                targetLanguage: translationDraft.bioLanguage || 'en',
+                overrides: {
+                    enabled: true,
+                    apiType: provider,
+                    key: apiKey,
                     endpointId,
                     model,
-                    text: 'Hello world',
-                    targetLang: translationDraft.bioLanguage || 'en',
                     prompt: translationDraft.translationAPIPrompt || null,
                     reasoningEffort: reasoningEffort || null
-                });
-                if (!translated.trim()) {
-                    throw new Error(
-                        t('dialog.translation_api.msg_test_failed')
-                    );
                 }
+            });
+            if (!result.text.trim()) {
+                throw new Error(t('dialog.translation_api.msg_test_failed'));
             }
             toast.success(t('dialog.translation_api.msg_test_success'));
         } catch (error) {

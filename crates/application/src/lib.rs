@@ -66,6 +66,10 @@ pub use favorites::{
     FavoriteTransferResult, FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
 pub use favorites::{
+    hydrate_favorite_details, FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput,
+    FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,
+};
+pub use favorites::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
     FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,
     FavoriteImportStatus, FavoriteImportTarget, FAVORITE_IMPORT_MAX_ITEMS,
@@ -122,6 +126,15 @@ pub use social::{
 pub use system::DatabaseUpgradeRuntime;
 pub use system::ProfileOperationGate;
 pub use system::{
+    accept_request_invite_notification, dismiss_boop_notifications, hide_and_expire_notification,
+    respond_and_expire_notification, send_boop_reply_notification,
+    send_invite_response_notification, NotificationActionOutcome, NotificationActionStatus,
+    NotificationBoopDismissInput, NotificationBoopReplyInput, NotificationChainActions,
+    NotificationHideExpireInput, NotificationInviteResponseInput,
+    NotificationRequestInviteAcceptInput, NotificationRespondInput, NotificationTarget,
+    VrchatNotificationChainActions,
+};
+pub use system::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
     DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
     DatabaseUpgradeStage,
@@ -137,6 +150,11 @@ pub use system::{
     NotificationMarkSeenBatchItem, NotificationMarkSeenBatchResult, NotificationMarkSeenItemResult,
     NotificationMarkSeenItemState, NotificationMarkSeenLocation, VrchatNotificationMarkSeenActions,
     NOTIFICATION_MARK_SEEN_MAX_ITEMS,
+};
+pub use system::{
+    resolved_openai_translation_endpoint_id, translate_text, OpenAiTranslationRequest,
+    TranslationDispatch, TranslationOverrides, TranslationResult, TranslationTranslateInput,
+    DEFAULT_TRANSLATION_MODEL,
 };
 pub use system::{
     run_avatar_content_tags_batch, run_group_leave_batch, run_group_visibility_batch,

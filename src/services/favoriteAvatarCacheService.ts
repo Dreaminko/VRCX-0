@@ -93,14 +93,6 @@ export async function cacheAvatarDetails(
     return true;
 }
 
-export async function cacheAvatarDetailsById(avatarsById: any) {
-    await Promise.all(
-        Object.entries(avatarsById || {}).map(([avatarId, avatar]) =>
-            cacheAvatarDetails(avatar, avatarId)
-        )
-    );
-}
-
 function isFavoriteAvatarId(id: string) {
     const state = useFavoriteStore.getState();
     return (
@@ -130,10 +122,6 @@ export function persistAvatarDetails(avatar: any, fallbackAvatarId?: unknown) {
     void cacheAvatarDetails(avatar, fallbackAvatarId).catch(
         reportAvatarCacheError
     );
-}
-
-export function persistAvatarDetailsById(avatarsById: any) {
-    void cacheAvatarDetailsById(avatarsById).catch(reportAvatarCacheError);
 }
 
 export function persistFavoriteAvatarDetails(avatar: any) {

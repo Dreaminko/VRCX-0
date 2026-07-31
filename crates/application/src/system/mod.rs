@@ -6,8 +6,10 @@ mod database_upgrade;
 mod database_upgrade_runtime;
 mod instance_launch;
 mod notification_actions;
+mod notification_chains;
 mod notification_sync;
 mod profile_backup;
+mod translation;
 
 pub use app_update::{
     AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
@@ -49,6 +51,15 @@ pub use notification_actions::{
     NotificationMarkSeenItemState, NotificationMarkSeenLocation, VrchatNotificationMarkSeenActions,
     NOTIFICATION_MARK_SEEN_MAX_ITEMS,
 };
+pub use notification_chains::{
+    accept_request_invite_notification, dismiss_boop_notifications, hide_and_expire_notification,
+    respond_and_expire_notification, send_boop_reply_notification,
+    send_invite_response_notification, NotificationActionOutcome, NotificationActionStatus,
+    NotificationBoopDismissInput, NotificationBoopReplyInput, NotificationChainActions,
+    NotificationHideExpireInput, NotificationInviteResponseInput,
+    NotificationRequestInviteAcceptInput, NotificationRespondInput, NotificationTarget,
+    VrchatNotificationChainActions,
+};
 pub use notification_sync::{sync_notifications, NotificationSyncDeps, NotificationSyncOutcome};
 pub use profile_backup::ProfileOperationGate;
 pub use profile_backup::{
@@ -59,4 +70,9 @@ pub use profile_backup::{
     ProfileRestoreProgressOperation, ProfileRestoreProgressPhase, ProfileRestoreResult,
     ProfileRestoreResultStatus, ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState,
     ProfileRestoreValidation, ProfileRestoreValidationOutcome,
+};
+pub use translation::{
+    resolved_openai_translation_endpoint_id, translate_text, OpenAiTranslationRequest,
+    TranslationDispatch, TranslationOverrides, TranslationResult, TranslationTranslateInput,
+    DEFAULT_TRANSLATION_MODEL,
 };

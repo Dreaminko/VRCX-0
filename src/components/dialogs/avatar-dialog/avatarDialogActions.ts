@@ -1,13 +1,12 @@
 import { toast } from 'sonner';
 
-import type { EntityRecord } from '@/domain/entities/profileEntities';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import {
     selectAvatar as selectCurrentAvatar,
     selectFallbackAvatar as selectCurrentFallbackAvatar
 } from '@/services/avatarSelectionService';
+import { refreshCurrentUser } from '@/services/backgroundMaintenanceService';
 import { useDialogStore } from '@/state/dialogStore';
 
 import type {
@@ -20,12 +19,6 @@ import {
     createAvatarImageUploadActions
 } from './avatarMediaActions';
 import { createAvatarModerationActions } from './avatarModerationActions';
-
-type CurrentUserRecord = EntityRecord & {
-    id?: string;
-    displayName?: string;
-    username?: string;
-};
 
 function normalizeEntityId(value: unknown): string {
     return typeof value === 'string'
@@ -56,7 +49,6 @@ export function createAvatarDialogActions({
     normalizedAvatarId,
     prompt,
     setActionStatus,
-    setAuthBootstrap,
     setAvatar,
     setAvatarBlocked,
     setAvatarSideData,
@@ -116,23 +108,6 @@ export function createAvatarDialogActions({
         } finally {
             actionStatusRef.current = 'idle';
             setActionStatus('idle');
-        }
-    }
-
-    async function refreshCurrentUserSnapshot() {
-        const currentUserResponse = await vrchatAuthRepository.getCurrentUser();
-        const nextUser =
-            currentUserResponse.json &&
-            typeof currentUserResponse.json === 'object'
-                ? (currentUserResponse.json as CurrentUserRecord)
-                : null;
-        if (nextUser?.id) {
-            setAuthBootstrap({
-                currentUserId: nextUser.id,
-                currentUserDisplayName:
-                    nextUser.displayName || nextUser.username || nextUser.id,
-                currentUserSnapshot: nextUser
-            });
         }
     }
 
@@ -273,7 +248,7 @@ export function createAvatarDialogActions({
             });
             let refreshFailed = false;
             try {
-                await refreshCurrentUserSnapshot();
+                await refreshCurrentUser();
             } catch {
                 refreshFailed = true;
             }

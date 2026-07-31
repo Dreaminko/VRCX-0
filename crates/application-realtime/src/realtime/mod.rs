@@ -14,6 +14,10 @@ pub(crate) mod user_cache;
 pub(crate) mod user_query_cache;
 mod ws_event_log;
 
+pub use current_user::{
+    CURRENT_USER_AVATAR_RESPONSE_AUTHORITY_FIELDS,
+    CURRENT_USER_FALLBACK_AVATAR_RESPONSE_AUTHORITY_FIELDS,
+};
 pub use friends::{is_friend_event_type, RealtimeFriendsRuntime};
 pub use notifications::{normalize_v1_notification, normalize_v2_notification};
 pub use output::{
@@ -35,6 +39,7 @@ pub use runtime_types::{
     RealtimeWsStatusPayload,
 };
 pub use service::{
-    FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, RealtimeHostRuntime,
-    RealtimeHostRuntimeDeps, RealtimeStopRequest, SyntheticFriendEventOutcome,
+    FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
+    RealtimeCurrentUserRefreshExpectation, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
+    RealtimeStopRequest, SyntheticFriendEventOutcome,
 };

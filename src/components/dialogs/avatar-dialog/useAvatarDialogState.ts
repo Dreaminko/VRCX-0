@@ -45,7 +45,6 @@ export function useAvatarDialogState({
     const currentAvatarId = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot?.currentAvatar || ''
     );
-    const setAuthBootstrap = useRuntimeStore((state) => state.setAuthBootstrap);
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
     const closeDialog = useDialogStore((state) => state.closeDialog);
@@ -422,7 +421,6 @@ export function useAvatarDialogState({
         normalizedAvatarId,
         prompt,
         setActionStatus,
-        setAuthBootstrap,
         setAvatar,
         setAvatarBlocked,
         setAvatarSideData,

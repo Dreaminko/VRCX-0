@@ -107,18 +107,6 @@ export async function cacheWorldDetails(
     return true;
 }
 
-export async function cacheWorldDetailsById(worldsById: unknown) {
-    if (!isRecord(worldsById)) {
-        return;
-    }
-
-    await Promise.all(
-        Object.entries(worldsById).map(([worldId, world]) =>
-            cacheWorldDetails(world, worldId)
-        )
-    );
-}
-
 function isFavoriteWorldId(id: string) {
     const state = useFavoriteStore.getState();
     return (
@@ -146,10 +134,6 @@ function reportWorldCacheError(error: unknown) {
 
 export function persistWorldDetails(world: unknown, fallbackWorldId?: unknown) {
     void cacheWorldDetails(world, fallbackWorldId).catch(reportWorldCacheError);
-}
-
-export function persistWorldDetailsById(worldsById: unknown) {
-    void cacheWorldDetailsById(worldsById).catch(reportWorldCacheError);
 }
 
 export function persistFavoriteWorldDetails(world: unknown) {

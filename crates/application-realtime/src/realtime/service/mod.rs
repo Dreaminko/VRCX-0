@@ -4,6 +4,7 @@ mod host;
 pub use host::test_support;
 
 pub use host::{
-    FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, RealtimeHostRuntime,
-    RealtimeHostRuntimeDeps, RealtimeStopRequest, SyntheticFriendEventOutcome,
+    FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
+    RealtimeCurrentUserRefreshExpectation, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
+    RealtimeStopRequest, SyntheticFriendEventOutcome,
 };

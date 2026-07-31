@@ -24,6 +24,52 @@ fn social_baseline_deps(state: &State<'_, AppState>) -> SocialBaselineDeps {
 
 #[tauri::command]
 #[specta::specta]
+pub async fn app__social_baseline_refresh(
+    state: State<'_, AppState>,
+) -> Result<vrcx_0_runtime_host::SocialBaselineRefreshOutput, AppError> {
+    let command = "app__social_baseline_refresh";
+    let diagnostics = state.runtime_context.diagnostics.clone();
+    let sync = state.runtime_context.sync.clone();
+    diagnostics.record_command(command, "running", "Social baseline refresh started.");
+
+    let result = state
+        .runtime
+        .refresh_social_baseline_now()
+        .await
+        .map_err(AppError::from);
+    match &result {
+        Ok(output) => {
+            let status = if output.stale { "stale" } else { "ok" };
+            diagnostics.record_command(
+                command,
+                status,
+                format!(
+                    "stale={} count={} friendLogChanged={}",
+                    output.stale, output.friend_count, output.friend_log_changed
+                ),
+            );
+            sync.record(
+                "friends",
+                if output.stale { "stale" } else { "ready" },
+                if output.stale {
+                    "Social baseline refresh skipped a stale request.".to_string()
+                } else {
+                    format!("Social baseline refreshed {} friends.", output.friend_count)
+                },
+                0,
+            );
+        }
+        Err(error) => {
+            diagnostics.record_command(command, "error", error.to_string());
+            sync.record_failure("friends", error.to_string());
+        }
+    }
+
+    result
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn app__social_favorites_baseline_get(
     state: State<'_, AppState>,
     input: SocialFavoritesBaselineInput,

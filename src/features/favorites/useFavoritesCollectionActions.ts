@@ -6,7 +6,6 @@ import avatarCacheRepository from '@/repositories/avatarCacheRepository';
 import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
 import { bootstrapFavorites } from '@/services/favoriteBootstrapService';
-import { clearFavoriteRemoteDetailsCache } from '@/services/favoriteRemoteDetailsCacheService';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useModalStore } from '@/state/modalStore';
 
@@ -88,7 +87,6 @@ export function useFavoritesCollectionActions({
         }
         setRefreshing(true);
         try {
-            clearFavoriteRemoteDetailsCache();
             refreshRemoteDetails();
             await bootstrapFavorites({
                 userId: currentUserId,

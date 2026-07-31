@@ -133,6 +133,8 @@ pub struct RealtimeHostRuntime {
     pub(super) friend_profile_bulk_load:
         Mutex<super::friend_profile_bulk_load::FriendProfileBulkLoadState>,
     pub(super) friend_profile_bulk_cancel_tx: watch::Sender<u64>,
+    pub(super) current_user_refresh_inflight:
+        Mutex<Option<watch::Receiver<Option<std::result::Result<bool, String>>>>>,
 }
 
 pub(super) struct RealtimeHostRuntimeMessageSink {

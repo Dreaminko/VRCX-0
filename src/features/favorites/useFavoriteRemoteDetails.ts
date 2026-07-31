@@ -1,16 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-
-import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
-import { persistAvatarDetailsById } from '@/services/favoriteAvatarCacheService';
 import {
-    deleteFavoriteRemoteDetailsPromise,
-    getFavoriteRemoteDetailsCache,
-    getFavoriteRemoteDetailsCacheGeneration,
-    getFavoriteRemoteDetailsPromise,
-    setFavoriteRemoteDetailsCache,
-    setFavoriteRemoteDetailsPromise
-} from '@/services/favoriteRemoteDetailsCacheService';
-import { persistWorldDetailsById } from '@/services/favoriteWorldCacheService';
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    useSyncExternalStore
+} from 'react';
+
+import { commands } from '@/platform/tauri/bindings';
 import type { FavoriteEntityDetail } from '@/state/favoriteStoreTypes';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -28,6 +24,47 @@ interface UseFavoriteRemoteDetailsOptions {
     avatarTags?: unknown;
     enabled?: boolean;
     refreshToken?: number;
+}
+
+let remoteDetailsRefreshGeneration = 0;
+const remoteDetailsRefreshListeners = new Set<() => void>();
+
+export function bumpFavoriteRemoteDetailsRefresh(): void {
+    remoteDetailsRefreshGeneration += 1;
+    for (const listener of [...remoteDetailsRefreshListeners]) {
+        listener();
+    }
+}
+
+function subscribeToRemoteDetailsRefresh(listener: () => void) {
+    remoteDetailsRefreshListeners.add(listener);
+    return () => {
+        remoteDetailsRefreshListeners.delete(listener);
+    };
+}
+
+function getRemoteDetailsRefreshGeneration() {
+    return remoteDetailsRefreshGeneration;
+}
+
+const inflightHydrations = new Map<
+    string,
+    Promise<Awaited<ReturnType<typeof commands.appFavoriteDetailsHydrate>>>
+>();
+
+function hydrateFavoriteDetails(
+    requestKey: string,
+    input: Parameters<typeof commands.appFavoriteDetailsHydrate>[0]
+) {
+    const inflight = inflightHydrations.get(requestKey);
+    if (inflight) {
+        return inflight;
+    }
+    const request = commands.appFavoriteDetailsHydrate(input).finally(() => {
+        inflightHydrations.delete(requestKey);
+    });
+    inflightHydrations.set(requestKey, request);
+    return request;
 }
 
 function normalizeValues(values: unknown): string[] {
@@ -62,42 +99,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
-function buildCacheKey(
-    type: FavoriteRemoteDetailKind,
-    endpoint: string,
-    idsKey: string,
-    tagsKey: string
-) {
-    return [type, endpoint || '', idsKey || '', tagsKey || ''].join('::');
-}
-
 interface RemoteDetailsState {
     status: string;
     detail: string;
     data: FavoriteRemoteDetailsById;
     lastLoadedAt: string | null;
-}
-
-function isRemoteDetailsState(value: unknown): value is RemoteDetailsState {
-    return Boolean(
-        value &&
-        typeof value === 'object' &&
-        typeof Reflect.get(value, 'status') === 'string' &&
-        typeof Reflect.get(value, 'detail') === 'string'
-    );
-}
-
-function getCachedRemoteDetailsState(cacheKey: string) {
-    const cachedState = getFavoriteRemoteDetailsCache(cacheKey);
-    return isRemoteDetailsState(cachedState) ? cachedState : null;
-}
-
-function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
-    return Boolean(
-        value &&
-        typeof value === 'object' &&
-        typeof Reflect.get(value, 'then') === 'function'
-    );
 }
 
 function buildInitialState(
@@ -156,31 +162,19 @@ function normalizeFavoriteEntityDetail(
     return detail;
 }
 
-function mapEntitiesById(items: unknown): FavoriteRemoteDetailsById {
+function mapDetailsById(detailsById: unknown): FavoriteRemoteDetailsById {
     const byId: FavoriteRemoteDetailsById = {};
-    for (const item of Array.isArray(items) ? items : []) {
-        const detail = normalizeFavoriteEntityDetail(item);
+    if (!isRecord(detailsById)) {
+        return byId;
+    }
+    for (const value of Object.values(detailsById)) {
+        const detail = normalizeFavoriteEntityDetail(value);
         if (!detail) {
             continue;
         }
         byId[detail.id] = detail;
     }
     return byId;
-}
-
-async function loadRemoteDetails(
-    type: FavoriteRemoteDetailKind,
-    tags: string[]
-): Promise<FavoriteRemoteDetailsById> {
-    if (type === 'avatar') {
-        const avatars = await vrchatFavoriteRepository.getAllFavoriteAvatars({
-            tags
-        });
-        return mapEntitiesById(avatars);
-    }
-
-    const worlds = await vrchatFavoriteRepository.getAllFavoriteWorlds();
-    return mapEntitiesById(worlds);
 }
 
 export function useFavoriteRemoteDetails({
@@ -191,6 +185,10 @@ export function useFavoriteRemoteDetails({
     refreshToken = 0
 }: UseFavoriteRemoteDetailsOptions) {
     const endpoint = useRuntimeStore((state) => state.auth.currentUserEndpoint);
+    const refreshGeneration = useSyncExternalStore(
+        subscribeToRemoteDetailsRefresh,
+        getRemoteDetailsRefreshGeneration
+    );
     const normalizedIds = useMemo(
         () => normalizeValues(favoriteIds),
         [favoriteIds]
@@ -199,48 +197,35 @@ export function useFavoriteRemoteDetails({
         () => normalizeValues(avatarTags),
         [avatarTags]
     );
-    const idsKey = normalizedIds.join('|');
-    const tagsKey = normalizedTags.join('|');
-    const cacheKey = buildCacheKey(type, endpoint, idsKey, tagsKey);
-    const [state, setState] = useState(
-        () => getCachedRemoteDetailsState(cacheKey) ?? buildInitialState()
-    );
+    const requestKey = [
+        type,
+        endpoint || '',
+        normalizedIds.join('|'),
+        normalizedTags.join('|'),
+        String(refreshToken),
+        String(refreshGeneration)
+    ].join('::');
+    const hasIds = normalizedIds.length > 0;
+    const [state, setState] = useState(() => buildInitialState());
+    const loadedKeyRef = useRef<string | null>(null);
+    const requestParamsRef = useRef({
+        ids: normalizedIds,
+        tags: normalizedTags
+    });
+    requestParamsRef.current = { ids: normalizedIds, tags: normalizedTags };
 
     useEffect(() => {
-        const cachedState = getCachedRemoteDetailsState(cacheKey);
-        if (cachedState) {
-            setState(cachedState);
-            return;
-        }
-
-        if (!enabled || normalizedIds.length === 0) {
+        if (!enabled || !hasIds) {
+            loadedKeyRef.current = null;
             setState(buildInitialState('ready'));
             return;
         }
-
-        setState(
-            buildInitialState(
-                'idle',
-                type === 'avatar'
-                    ? 'Remote avatar detail sync is waiting to start.'
-                    : 'Remote world detail sync is waiting to start.'
-            )
-        );
-    }, [cacheKey, enabled, normalizedIds.length, refreshToken, type]);
-
-    useEffect(() => {
-        if (!enabled || normalizedIds.length === 0) {
-            return;
-        }
-
-        const cachedState = getCachedRemoteDetailsState(cacheKey);
-        if (cachedState) {
-            setState(cachedState);
+        if (loadedKeyRef.current === requestKey) {
             return;
         }
 
         let active = true;
-        const effectGeneration = getFavoriteRemoteDetailsCacheGeneration();
+        loadedKeyRef.current = requestKey;
         setState(
             buildInitialState(
                 'running',
@@ -249,68 +234,31 @@ export function useFavoriteRemoteDetails({
                     : 'Loading remote world details.'
             )
         );
-
-        let promise = getFavoriteRemoteDetailsPromise(cacheKey);
-        if (!isPromiseLike(promise)) {
-            const promiseGeneration = getFavoriteRemoteDetailsCacheGeneration();
-            promise = loadRemoteDetails(type, normalizedTags)
-                .then((data) => {
-                    if (
-                        promiseGeneration !==
-                        getFavoriteRemoteDetailsCacheGeneration()
-                    ) {
-                        return null;
-                    }
-                    const filtered: FavoriteRemoteDetailsById = {};
-                    for (const favoriteId of normalizedIds) {
-                        if (data[favoriteId]) {
-                            filtered[favoriteId] = data[favoriteId];
-                        }
-                    }
-                    if (type === 'world') {
-                        persistWorldDetailsById(filtered);
-                    } else if (type === 'avatar') {
-                        persistAvatarDetailsById(filtered);
-                    }
-
-                    const nextState: RemoteDetailsState = {
-                        status: 'ready',
-                        detail:
-                            type === 'avatar'
-                                ? `Loaded remote avatar details for ${Object.keys(filtered).length} favorites.`
-                                : `Loaded remote world details for ${Object.keys(filtered).length} favorites.`,
-                        data: filtered,
-                        lastLoadedAt: new Date().toISOString()
-                    };
-                    setFavoriteRemoteDetailsCache(cacheKey, nextState);
-                    return nextState;
-                })
-                .finally(() => {
-                    if (
-                        promiseGeneration ===
-                        getFavoriteRemoteDetailsCacheGeneration()
-                    ) {
-                        deleteFavoriteRemoteDetailsPromise(cacheKey);
-                    }
-                });
-            setFavoriteRemoteDetailsPromise(cacheKey, promise);
-        }
-
-        Promise.resolve(promise)
-            .then((nextState: unknown) => {
-                if (active && isRemoteDetailsState(nextState)) {
-                    setState(nextState);
-                }
-            })
-            .catch((error: unknown) => {
-                if (
-                    !active ||
-                    effectGeneration !==
-                        getFavoriteRemoteDetailsCacheGeneration()
-                ) {
+        hydrateFavoriteDetails(requestKey, {
+            kind: type,
+            favoriteIds: requestParamsRef.current.ids,
+            avatarTags: type === 'avatar' ? requestParamsRef.current.tags : []
+        })
+            .then((output) => {
+                if (!active) {
                     return;
                 }
-
+                const data = mapDetailsById(output.detailsById);
+                setState({
+                    status: 'ready',
+                    detail:
+                        type === 'avatar'
+                            ? `Loaded remote avatar details for ${Object.keys(data).length} favorites.`
+                            : `Loaded remote world details for ${Object.keys(data).length} favorites.`,
+                    data,
+                    lastLoadedAt: output.fetchedAt
+                });
+            })
+            .catch((error: unknown) => {
+                if (!active) {
+                    return;
+                }
+                loadedKeyRef.current = null;
                 setState({
                     status: 'error',
                     detail:
@@ -325,15 +273,7 @@ export function useFavoriteRemoteDetails({
         return () => {
             active = false;
         };
-    }, [
-        cacheKey,
-        enabled,
-        endpoint,
-        normalizedIds,
-        normalizedTags,
-        refreshToken,
-        type
-    ]);
+    }, [enabled, hasIds, requestKey, type]);
 
     return state;
 }

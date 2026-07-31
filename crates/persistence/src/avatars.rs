@@ -86,6 +86,44 @@ pub fn avatar_cache_get(
         .map(|row| cache_entity_from_row(row)))
 }
 
+pub fn avatar_cache_existing_ids(
+    db: &DatabaseService,
+    avatar_ids: &[String],
+) -> Result<Vec<String>, Error> {
+    ensure_global_store_tables(db)?;
+    let avatar_ids = avatar_ids
+        .iter()
+        .map(|id| normalize_text(id.clone()))
+        .filter(|id| !id.is_empty())
+        .collect::<Vec<_>>();
+    if avatar_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut params = ParamsBuilder::new();
+    let placeholders = avatar_ids
+        .iter()
+        .enumerate()
+        .map(|(index, avatar_id)| {
+            let param = format!("avatar_id_{index}");
+            params = std::mem::take(&mut params).set(&param, avatar_id.clone());
+            format!("@{param}")
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    Ok(db
+        .execute(
+            &format!("SELECT id FROM cache_avatar WHERE id IN ({placeholders})"),
+            &params.build(),
+        )?
+        .into_iter()
+        .filter_map(|row| {
+            row.first()
+                .and_then(|value| value.as_str().map(ToOwned::to_owned))
+        })
+        .collect())
+}
+
 pub fn avatar_cache_list(db: &DatabaseService) -> Result<Vec<AvatarCacheOutput>, Error> {
     ensure_global_store_tables(db)?;
     Ok(db

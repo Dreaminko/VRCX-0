@@ -1,37 +1,45 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { NotificationActionOutcome } from '@/platform/tauri/bindings';
+
 const mocks = vi.hoisted(() => ({
     queryNotifications: vi.fn(),
     expireNotification: vi.fn(),
-    hideRemoteNotification: vi.fn(),
-    sendNotificationResponse: vi.fn(),
-    sendInviteResponse: vi.fn(),
-    sendInviteResponsePhoto: vi.fn(),
     appSocialFriendRequestAccept: vi.fn(),
-    sendBoopToUser: vi.fn(),
-    sendInviteToLocation: vi.fn()
+    appNotificationHideAndExpire: vi.fn(),
+    appNotificationRequestInviteAccept: vi.fn(),
+    appNotificationInviteResponseSend: vi.fn(),
+    appNotificationBoopDismiss: vi.fn(),
+    appNotificationBoopReply: vi.fn(),
+    appNotificationRespondAndExpire: vi.fn(),
+    getWorlds: vi.fn()
 }));
 
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
-        appSocialFriendRequestAccept: mocks.appSocialFriendRequestAccept
+        appSocialFriendRequestAccept: mocks.appSocialFriendRequestAccept,
+        appNotificationHideAndExpire: mocks.appNotificationHideAndExpire,
+        appNotificationRequestInviteAccept:
+            mocks.appNotificationRequestInviteAccept,
+        appNotificationInviteResponseSend:
+            mocks.appNotificationInviteResponseSend,
+        appNotificationBoopDismiss: mocks.appNotificationBoopDismiss,
+        appNotificationBoopReply: mocks.appNotificationBoopReply,
+        appNotificationRespondAndExpire: mocks.appNotificationRespondAndExpire
     }
 }));
 
 vi.mock('@/repositories/notificationPersistenceRepository', () => ({
     default: {
         queryNotifications: mocks.queryNotifications,
-        expireNotification: mocks.expireNotification,
-        hideRemoteNotification: mocks.hideRemoteNotification,
-        sendNotificationResponse: mocks.sendNotificationResponse,
-        sendInviteResponse: mocks.sendInviteResponse,
-        sendInviteResponsePhoto: mocks.sendInviteResponsePhoto
+        expireNotification: mocks.expireNotification
     }
 }));
 
-vi.mock('./inviteDeliveryService', () => ({
-    sendBoopToUser: mocks.sendBoopToUser,
-    sendInviteToLocation: mocks.sendInviteToLocation
+vi.mock('@/repositories/vrchatSearchRepository', () => ({
+    default: {
+        getWorlds: mocks.getWorlds
+    }
 }));
 
 const endpoint = 'https://api.example.test/api/1';
@@ -42,6 +50,19 @@ const notification = {
     senderUserId: 'usr_sender',
     senderUsername: 'Sender'
 };
+
+function outcome(
+    overrides: Partial<NotificationActionOutcome> = {}
+): NotificationActionOutcome {
+    return {
+        status: 'applied',
+        expiredIds: [],
+        sentPhoto: false,
+        remoteError: null,
+        localError: null,
+        ...overrides
+    };
+}
 
 function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -56,168 +77,251 @@ describe('notificationActionService', () => {
         vi.clearAllMocks();
         mocks.queryNotifications.mockResolvedValue([]);
         mocks.expireNotification.mockResolvedValue(undefined);
-        mocks.hideRemoteNotification.mockResolvedValue(undefined);
-        mocks.sendNotificationResponse.mockResolvedValue(undefined);
-        mocks.sendInviteResponse.mockResolvedValue(undefined);
-        mocks.sendInviteResponsePhoto.mockResolvedValue(undefined);
         mocks.appSocialFriendRequestAccept.mockResolvedValue({
             status: 'applied',
             targetUserId: 'usr_sender'
         });
-        mocks.sendBoopToUser.mockResolvedValue(undefined);
-        mocks.sendInviteToLocation.mockResolvedValue(undefined);
+        mocks.appNotificationHideAndExpire.mockResolvedValue(outcome());
+        mocks.appNotificationRequestInviteAccept.mockResolvedValue(outcome());
+        mocks.appNotificationInviteResponseSend.mockResolvedValue(outcome());
+        mocks.appNotificationBoopDismiss.mockResolvedValue(outcome());
+        mocks.appNotificationBoopReply.mockResolvedValue(outcome());
+        mocks.appNotificationRespondAndExpire.mockResolvedValue(outcome());
+        mocks.getWorlds.mockResolvedValue({ json: { name: 'World Name' } });
     });
 
-    it('dismisses matching boops before sending a reply, then cleans up the target', async () => {
-        const previousHide = deferred<void>();
-        const previousExpire = deferred<void>();
-        mocks.hideRemoteNotification
-            .mockReturnValueOnce(previousHide.promise)
-            .mockResolvedValue(undefined);
-        mocks.expireNotification
-            .mockReturnValueOnce(previousExpire.promise)
-            .mockResolvedValue(undefined);
-        const previousBoop = {
-            id: 'notif_previous',
-            version: 1,
-            type: 'boop',
-            senderUserId: 'usr_sender',
-            link: 'user:usr_sender',
-            expired: false
-        };
-        mocks.queryNotifications.mockResolvedValue([previousBoop]);
+    it('sends a boop reply through the single backend chain command', async () => {
+        mocks.appNotificationBoopReply.mockResolvedValue(
+            outcome({ expiredIds: ['notif_previous', 'notif_target'] })
+        );
         const { sendBoopReplyNotification } =
             await import('./notificationActionService');
 
-        const reply = sendBoopReplyNotification({
+        await sendBoopReplyNotification({
             currentUserId: 'usr_self',
             notification,
             emojiId: 'emoji_wave'
         });
 
-        await vi.waitFor(() =>
-            expect(mocks.hideRemoteNotification).toHaveBeenCalledTimes(1)
-        );
-        expect(mocks.expireNotification).not.toHaveBeenCalled();
-        expect(mocks.sendBoopToUser).not.toHaveBeenCalled();
-
-        previousHide.resolve();
-        await vi.waitFor(() =>
-            expect(mocks.expireNotification).toHaveBeenCalledTimes(1)
-        );
-        expect(mocks.sendBoopToUser).not.toHaveBeenCalled();
-
-        previousExpire.resolve();
-        await reply;
-
-        expect(mocks.hideRemoteNotification).toHaveBeenNthCalledWith(1, {
-            id: 'notif_previous',
-            version: 1,
-            type: 'boop',
-            senderUserId: 'usr_sender'
-        });
-        expect(mocks.expireNotification).toHaveBeenNthCalledWith(1, {
-            userId: 'usr_self',
-            id: 'notif_previous'
-        });
-        expect(mocks.sendBoopToUser).toHaveBeenCalledWith({
-            userId: 'usr_sender',
+        expect(mocks.appNotificationBoopReply).toHaveBeenCalledWith({
+            ownerUserId: 'usr_self',
+            target: {
+                id: 'notif_target',
+                version: 2,
+                type: 'boop',
+                senderUserId: 'usr_sender'
+            },
             emojiId: 'emoji_wave'
-        });
-        expect(mocks.hideRemoteNotification).toHaveBeenNthCalledWith(2, {
-            id: 'notif_target',
-            version: 2,
-            type: 'boop',
-            senderUserId: 'usr_sender'
-        });
-        expect(mocks.expireNotification).toHaveBeenNthCalledWith(2, {
-            userId: 'usr_self',
-            id: 'notif_target'
         });
     });
 
-    it('finishes dismiss cleanup before surfacing a boop send failure', async () => {
-        const previousHide = deferred<void>();
-        const previousExpire = deferred<void>();
-        mocks.hideRemoteNotification.mockReturnValue(previousHide.promise);
-        mocks.expireNotification.mockReturnValue(previousExpire.promise);
-        mocks.queryNotifications.mockResolvedValue([
-            {
-                id: 'notif_previous',
-                version: 1,
-                type: 'boop',
-                senderUserId: 'usr_sender',
-                link: 'user:usr_sender',
-                expired: false
-            }
-        ]);
-        mocks.sendBoopToUser.mockRejectedValue(new Error('send failed'));
+    it('surfaces a boop send failure reported by the backend chain', async () => {
+        mocks.appNotificationBoopReply.mockResolvedValue(
+            outcome({
+                status: 'remoteFailed',
+                expiredIds: ['notif_previous'],
+                remoteError: 'send failed'
+            })
+        );
         const { sendBoopReplyNotification } =
             await import('./notificationActionService');
 
-        const reply = sendBoopReplyNotification({
+        await expect(
+            sendBoopReplyNotification({
+                currentUserId: 'usr_self',
+                notification
+            })
+        ).rejects.toThrow('send failed');
+    });
+
+    it('dismisses boops for a sender through the backend command', async () => {
+        const { dismissBoopNotifications } =
+            await import('./notificationActionService');
+
+        await dismissBoopNotifications({
             currentUserId: 'usr_self',
-            notification
+            senderUserId: 'usr_sender'
         });
 
-        await vi.waitFor(() =>
-            expect(mocks.hideRemoteNotification).toHaveBeenCalledTimes(1)
-        );
-        expect(mocks.expireNotification).not.toHaveBeenCalled();
-        expect(mocks.sendBoopToUser).not.toHaveBeenCalled();
-
-        previousHide.resolve();
-        await vi.waitFor(() =>
-            expect(mocks.expireNotification).toHaveBeenCalledTimes(1)
-        );
-        expect(mocks.sendBoopToUser).not.toHaveBeenCalled();
-
-        previousExpire.resolve();
-        await expect(reply).rejects.toThrow('send failed');
-
-        expect(mocks.hideRemoteNotification).toHaveBeenCalledTimes(1);
-        expect(mocks.expireNotification).toHaveBeenCalledTimes(1);
-        expect(mocks.expireNotification).toHaveBeenCalledWith({
-            userId: 'usr_self',
-            id: 'notif_previous'
+        expect(mocks.appNotificationBoopDismiss).toHaveBeenCalledWith({
+            ownerUserId: 'usr_self',
+            senderUserId: 'usr_sender'
         });
     });
 
-    it.each([
-        { version: 1, expires: false },
-        { version: 2, expires: true }
-    ])(
-        'uses v$version response failure expiration semantics',
-        async ({ version, expires }) => {
-            const responseError = new Error('response failed');
-            mocks.sendNotificationResponse.mockRejectedValue(responseError);
-            const { sendNotificationButtonResponse } =
-                await import('./notificationActionService');
+    it('skips the boop dismiss command without a sender user id', async () => {
+        const { dismissBoopNotifications } =
+            await import('./notificationActionService');
 
-            await expect(
-                sendNotificationButtonResponse({
-                    currentUserId: 'usr_self',
-                    notification: { ...notification, version },
-                    response: { type: 'accept', data: 'payload' }
-                })
-            ).rejects.toBe(responseError);
+        await dismissBoopNotifications({
+            currentUserId: 'usr_self',
+            senderUserId: ' '
+        });
 
-            expect(mocks.sendNotificationResponse).toHaveBeenCalledWith({
+        expect(mocks.appNotificationBoopDismiss).not.toHaveBeenCalled();
+    });
+
+    it('throws the remote error for a failed notification response', async () => {
+        mocks.appNotificationRespondAndExpire.mockResolvedValue(
+            outcome({ status: 'remoteFailed', remoteError: 'response failed' })
+        );
+        const { sendNotificationButtonResponse } =
+            await import('./notificationActionService');
+
+        await expect(
+            sendNotificationButtonResponse({
+                currentUserId: 'usr_self',
+                notification,
+                response: { type: 'accept', data: 'payload' }
+            })
+        ).rejects.toThrow('response failed');
+
+        expect(mocks.appNotificationRespondAndExpire).toHaveBeenCalledWith({
+            ownerUserId: 'usr_self',
+            target: {
                 id: 'notif_target',
-                responseType: 'accept',
-                responseData: 'payload'
-            });
-            expect(mocks.expireNotification).toHaveBeenCalledTimes(
-                expires ? 1 : 0
-            );
-            if (expires) {
-                expect(mocks.expireNotification).toHaveBeenCalledWith({
-                    userId: 'usr_self',
-                    id: 'notif_target'
-                });
-            }
-        }
-    );
+                version: 2,
+                type: 'boop',
+                senderUserId: 'usr_sender'
+            },
+            responseType: 'accept',
+            responseData: 'payload'
+        });
+    });
+
+    it('treats an already-resolved response as success', async () => {
+        mocks.appNotificationRespondAndExpire.mockResolvedValue(
+            outcome({
+                status: 'alreadyResolved',
+                expiredIds: ['notif_target'],
+                remoteError: 'not found (404)'
+            })
+        );
+        const { sendNotificationButtonResponse } =
+            await import('./notificationActionService');
+
+        await expect(
+            sendNotificationButtonResponse({
+                currentUserId: 'usr_self',
+                notification,
+                response: { type: 'accept', data: 'payload' }
+            })
+        ).resolves.toBeUndefined();
+    });
+
+    it('does not swallow a remote-ok-local-failed hide outcome', async () => {
+        mocks.appNotificationHideAndExpire.mockResolvedValue(
+            outcome({
+                status: 'remoteOkLocalFailed',
+                localError: 'database failed'
+            })
+        );
+        const { hideRemoteAndExpireNotification } =
+            await import('./notificationActionService');
+
+        await expect(
+            hideRemoteAndExpireNotification({
+                currentUserId: 'usr_self',
+                notification
+            })
+        ).rejects.toThrow('database failed');
+    });
+
+    it('resolves the invite request world name before delegating to the backend', async () => {
+        const { acceptRequestInviteNotification } =
+            await import('./notificationActionService');
+
+        await acceptRequestInviteNotification({
+            currentUserId: 'usr_self',
+            notification,
+            instanceId: 'wrld_1:1234',
+            worldId: 'wrld_1'
+        });
+
+        expect(mocks.getWorlds).toHaveBeenCalledWith({}, 'wrld_1');
+        expect(mocks.appNotificationRequestInviteAccept).toHaveBeenCalledWith({
+            ownerUserId: 'usr_self',
+            target: {
+                id: 'notif_target',
+                version: 2,
+                type: 'boop',
+                senderUserId: 'usr_sender'
+            },
+            instanceId: 'wrld_1:1234',
+            worldId: 'wrld_1',
+            worldName: 'World Name'
+        });
+    });
+
+    it('skips the world lookup when the invite location is incomplete', async () => {
+        const { acceptRequestInviteNotification } =
+            await import('./notificationActionService');
+
+        await acceptRequestInviteNotification({
+            currentUserId: 'usr_self',
+            notification,
+            instanceId: '',
+            worldId: 'wrld_1'
+        });
+
+        expect(mocks.getWorlds).not.toHaveBeenCalled();
+        expect(mocks.appNotificationRequestInviteAccept).toHaveBeenCalledWith(
+            expect.objectContaining({ instanceId: '', worldName: '' })
+        );
+    });
+
+    it('wraps the photo invite response command in the upload timeout', async () => {
+        const pending = deferred<NotificationActionOutcome>();
+        mocks.appNotificationInviteResponseSend.mockReturnValue(
+            pending.promise
+        );
+        const withUploadTimeout = vi.fn((promise: Promise<unknown>) => promise);
+        const { sendInviteResponseNotification } =
+            await import('./notificationActionService');
+
+        const action = sendInviteResponseNotification({
+            currentUserId: 'usr_self',
+            notification,
+            responseSlot: '1',
+            imageData: 'base64data',
+            withUploadTimeout
+        });
+
+        expect(withUploadTimeout).toHaveBeenCalledTimes(1);
+        pending.resolve(outcome({ sentPhoto: true }));
+        await expect(action).resolves.toEqual({ sentPhoto: true });
+        expect(mocks.appNotificationInviteResponseSend).toHaveBeenCalledWith({
+            ownerUserId: 'usr_self',
+            target: {
+                id: 'notif_target',
+                version: 2,
+                type: 'boop',
+                senderUserId: 'usr_sender'
+            },
+            responseSlot: 1,
+            imageData: 'base64data'
+        });
+    });
+
+    it('sends a plain invite response without the upload timeout', async () => {
+        const withUploadTimeout = vi.fn((promise: Promise<unknown>) => promise);
+        const { sendInviteResponseNotification } =
+            await import('./notificationActionService');
+
+        await expect(
+            sendInviteResponseNotification({
+                currentUserId: 'usr_self',
+                notification,
+                responseSlot: 0,
+                withUploadTimeout
+            })
+        ).resolves.toEqual({ sentPhoto: false });
+
+        expect(withUploadTimeout).not.toHaveBeenCalled();
+        expect(mocks.appNotificationInviteResponseSend).toHaveBeenCalledWith(
+            expect.objectContaining({ responseSlot: 0, imageData: '' })
+        );
+    });
 
     it('accepts a friend request through the backend command and expires the notification', async () => {
         const accepted = deferred<{ status: string; targetUserId: string }>();
@@ -322,7 +426,7 @@ describe('notificationActionService', () => {
         });
     });
 
-    it('rejects invalid action input before crossing repository or delivery boundaries', async () => {
+    it('rejects invalid action input before crossing the command boundary', async () => {
         const {
             expireNotificationLocally,
             findIncomingFriendRequestNotification,
@@ -358,8 +462,7 @@ describe('notificationActionService', () => {
 
         expect(mocks.queryNotifications).not.toHaveBeenCalled();
         expect(mocks.expireNotification).not.toHaveBeenCalled();
-        expect(mocks.sendBoopToUser).not.toHaveBeenCalled();
-        expect(mocks.sendInviteResponse).not.toHaveBeenCalled();
-        expect(mocks.sendInviteResponsePhoto).not.toHaveBeenCalled();
+        expect(mocks.appNotificationBoopReply).not.toHaveBeenCalled();
+        expect(mocks.appNotificationInviteResponseSend).not.toHaveBeenCalled();
     });
 });

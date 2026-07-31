@@ -1,13 +1,8 @@
 import { commands } from '@/platform/tauri/bindings';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
-import { mergeCurrentUserResponseSnapshot } from '@/shared/utils/currentUserSnapshot';
-import { normalizeVrchatEndpointKey } from '@/shared/vrchatEndpoint';
+import { useFavoriteStore } from '@/state/favoriteStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { useSessionStore } from '@/state/sessionStore';
 
-import { buildAvatarWearSnapshotUpdate } from './avatarWearTimeService';
-import { recordCurrentUserSnapshot } from './domainIngestionService';
-import { bootstrapFavorites } from './favoriteBootstrapService';
-import { bootstrapFriendRoster } from './friendBootstrapService';
 import { refreshModerationSync } from './moderationSyncService';
 
 type RuntimeAuthSnapshot = {
@@ -21,12 +16,6 @@ type RuntimeAuthTarget = {
     currentUserId: string;
     currentUserEndpoint: string;
     currentUserWebsocket: string;
-};
-
-type CurrentUserRefreshRecord = {
-    target: RuntimeAuthTarget;
-    overlayPatch: Record<string, unknown> | null;
-    promise: Promise<Record<string, unknown> | null>;
 };
 
 type RefreshCurrentUserOptions = {
@@ -62,227 +51,76 @@ function normalizeRuntimeAuthValue(value: unknown) {
         : String(value ?? '').trim();
 }
 
-function getRuntimeAuthTargetKey(target: RuntimeAuthTarget) {
-    return `${target.currentUserEndpoint}\u0000${target.currentUserId}\u0000${target.currentUserWebsocket}`;
-}
-
-const currentUserRefreshes = new Map<string, CurrentUserRefreshRecord>();
-
-async function syncRuntimeCurrentUserSnapshot(
-    snapshot: Record<string, unknown>,
-    overlayPatch: Record<string, unknown> | null
-): Promise<void> {
-    const auth = getRuntimeAuth();
-    const phase = await commands.appAuthenticatedRuntimePhaseSnapshotGet();
-    const generation = Number(phase.realtimeTransport?.generation);
-    if (
-        phase.userId !== auth.currentUserId ||
-        normalizeVrchatEndpointKey(phase.endpoint) !==
-            normalizeVrchatEndpointKey(auth.currentUserEndpoint) ||
-        phase.websocket !== auth.currentUserWebsocket ||
-        !Number.isFinite(generation) ||
-        generation <= 0
-    ) {
-        return;
-    }
-
-    await commands.appSyncRealtimeCurrentUserSnapshot(
-        phase.userId,
-        phase.endpoint,
-        phase.websocket,
-        generation,
-        snapshot,
-        overlayPatch
-    );
-}
-function mergeCurrentUserRefreshOverlayPatch(
-    record: CurrentUserRefreshRecord,
-    patch: unknown
-) {
-    if (!isRecord(patch)) {
-        return;
-    }
-
-    record.overlayPatch = {
-        ...(record.overlayPatch || {}),
-        ...patch
-    };
-}
-
 export async function refreshCurrentUser({
     expectedUserId = '',
     expectedEndpoint = '',
     expectedWebsocket = '',
     overlayPatch = null
-}: RefreshCurrentUserOptions = {}) {
-    const initialAuth = getRuntimeAuth();
+}: RefreshCurrentUserOptions = {}): Promise<boolean | null> {
+    void overlayPatch;
+    const auth = getRuntimeAuth();
     const target: RuntimeAuthTarget = {
         currentUserId: normalizeRuntimeAuthValue(
-            expectedUserId || initialAuth.currentUserId
+            expectedUserId || auth.currentUserId
         ),
         currentUserEndpoint: normalizeRuntimeAuthValue(
-            expectedEndpoint || initialAuth.currentUserEndpoint
+            expectedEndpoint || auth.currentUserEndpoint
         ),
         currentUserWebsocket: normalizeRuntimeAuthValue(
-            expectedWebsocket || initialAuth.currentUserWebsocket
+            expectedWebsocket || auth.currentUserWebsocket
         )
     };
 
     if (!target.currentUserId) {
         return null;
     }
-
-    const key = getRuntimeAuthTargetKey(target);
-    const activeRecord = currentUserRefreshes.get(key);
-    if (activeRecord) {
-        mergeCurrentUserRefreshOverlayPatch(activeRecord, overlayPatch);
-        return activeRecord.promise;
-    }
-
-    const record: CurrentUserRefreshRecord = {
-        target,
-        overlayPatch: null,
-        promise: Promise.resolve(null)
-    };
-    mergeCurrentUserRefreshOverlayPatch(record, overlayPatch);
-    record.promise = refreshCurrentUserForTarget({
-        target,
-        record
-    }).finally(() => {
-        if (currentUserRefreshes.get(key) === record) {
-            currentUserRefreshes.delete(key);
-        }
-    });
-    currentUserRefreshes.set(key, record);
-
-    return record.promise;
-}
-
-async function refreshCurrentUserForTarget({
-    target,
-    record
-}: {
-    target: RuntimeAuthTarget;
-    record: CurrentUserRefreshRecord;
-}) {
-    const {
-        currentUserId,
-        currentUserEndpoint,
-        currentUserWebsocket,
-        currentUserSnapshot: baseSnapshot
-    } = getRuntimeAuth();
     if (
+        target.currentUserId !==
+            normalizeRuntimeAuthValue(auth.currentUserId) ||
         target.currentUserEndpoint !==
-            normalizeRuntimeAuthValue(currentUserEndpoint) ||
-        target.currentUserId !== normalizeRuntimeAuthValue(currentUserId) ||
+            normalizeRuntimeAuthValue(auth.currentUserEndpoint) ||
         target.currentUserWebsocket !==
-            normalizeRuntimeAuthValue(currentUserWebsocket)
+            normalizeRuntimeAuthValue(auth.currentUserWebsocket)
     ) {
         return null;
     }
 
-    const response = await vrchatAuthRepository.getCurrentUser();
-    const responseUser =
-        response.json && isRecord(response.json) ? response.json : null;
-    if (!responseUser?.id) {
-        return null;
-    }
-    if (normalizeRuntimeAuthValue(responseUser.id) !== target.currentUserId) {
-        return null;
-    }
-
-    const runtimeStore = useRuntimeStore.getState();
-    if (
-        normalizeRuntimeAuthValue(runtimeStore.auth.currentUserId) !==
-            target.currentUserId ||
-        normalizeRuntimeAuthValue(runtimeStore.auth.currentUserEndpoint) !==
-            target.currentUserEndpoint ||
-        normalizeRuntimeAuthValue(runtimeStore.auth.currentUserWebsocket) !==
-            target.currentUserWebsocket
-    ) {
-        return null;
-    }
-    const user = mergeCurrentUserResponseSnapshot({
-        responseUser,
-        baseSnapshot,
-        currentSnapshot: runtimeStore.auth.currentUserSnapshot,
-        overlayPatch: record.overlayPatch
-    });
-
-    syncRuntimeCurrentUserSnapshot(user, record.overlayPatch).catch(
-        (error: unknown) => {
-            console.warn(
-                'Failed to sync current user snapshot to runtime:',
-                error
-            );
-        }
-    );
-
-    const { snapshot } = buildAvatarWearSnapshotUpdate({
-        previousSnapshot: runtimeStore.auth.currentUserSnapshot,
-        nextSnapshot: user,
-        isGameRunning: runtimeStore.gameState.isGameRunning
-    });
-    const nextSnapshot = isRecord(snapshot) ? snapshot : user;
-
-    useRuntimeStore.getState().setAuthBootstrap({
-        currentUserId: normalizeRuntimeAuthValue(nextSnapshot.id),
-        currentUserDisplayName:
-            normalizeRuntimeAuthValue(nextSnapshot.displayName) ||
-            normalizeRuntimeAuthValue(nextSnapshot.username) ||
-            normalizeRuntimeAuthValue(nextSnapshot.id),
-        currentUserEndpoint: target.currentUserEndpoint,
-        currentUserWebsocket: target.currentUserWebsocket,
-        currentUserSnapshot: nextSnapshot
-    });
-    recordCurrentUserSnapshot(nextSnapshot, {
-        endpoint: target.currentUserEndpoint
-    });
-    return nextSnapshot;
-}
-
-async function refreshFriendsAndFavorites() {
-    const auth = getRuntimeAuth();
-    if (!auth.currentUserId || !auth.currentUserSnapshot) {
-        return;
-    }
-
-    const results = await Promise.allSettled([
-        bootstrapFriendRoster({
-            userId: auth.currentUserId,
-            endpoint: auth.currentUserEndpoint,
-            websocket: auth.currentUserWebsocket,
-            currentUserSnapshot: auth.currentUserSnapshot,
-            preserveLoadedState: true
-        }),
-        bootstrapFavorites({
-            userId: auth.currentUserId,
-            endpoint: auth.currentUserEndpoint,
-            currentUserSnapshot: auth.currentUserSnapshot
-        })
-    ]);
-    const failed = results.find(
-        (result): result is PromiseRejectedResult =>
-            result.status === 'rejected'
-    );
-    if (failed) {
-        throw failed.reason;
-    }
+    const result = await commands.appCurrentUserRefresh();
+    return result.applied;
 }
 
 export async function refreshFriendAndFavoriteSnapshots(
     _options: { syncRealtime?: boolean } = {}
 ) {
     void _options;
-    let refreshError: unknown = null;
-    try {
-        await refreshFriendsAndFavorites();
-    } catch (error) {
-        refreshError = error;
+    const auth = getRuntimeAuth();
+    if (!auth.currentUserId || !auth.currentUserSnapshot) {
+        return;
     }
-    if (refreshError) {
-        throw refreshError;
+
+    const result = await commands.appSocialBaselineRefresh();
+    const favoritesSnapshot = isRecord(result.favoritesSnapshot)
+        ? result.favoritesSnapshot
+        : null;
+    if (!favoritesSnapshot) {
+        return;
     }
+
+    const latestAuth = getRuntimeAuth();
+    const sessionState = useSessionStore.getState();
+    if (
+        latestAuth.currentUserId !== auth.currentUserId ||
+        latestAuth.currentUserEndpoint !== auth.currentUserEndpoint ||
+        !sessionState.isLoggedIn ||
+        sessionState.sessionPhase !== 'ready'
+    ) {
+        return;
+    }
+    useFavoriteStore.getState().setFavoritesSnapshot({
+        ...favoritesSnapshot,
+        detail: String(favoritesSnapshot.detail || '')
+    });
+    useSessionStore.getState().setFavoritesLoaded(true);
 }
 
 export async function refreshPlayerModerations({

@@ -1,7 +1,12 @@
+mod favorite_details_hydrate;
 mod favorite_import;
 mod favorite_transfer;
 mod local_favorites;
 
+pub use favorite_details_hydrate::{
+    hydrate_favorite_details, FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput,
+    FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,
+};
 pub use favorite_import::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
     FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,

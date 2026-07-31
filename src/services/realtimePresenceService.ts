@@ -16,6 +16,7 @@ import { useShellStore } from '@/state/shellStore';
 import { useUserFactsStore } from '@/state/userFactsStore';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
+import { buildAvatarWearSnapshotUpdate } from './avatarWearTimeService';
 import { recordCurrentUserSnapshot } from './domainIngestionService';
 import { handleRealtimeInstanceQueueProjection } from './realtimeInstanceQueueService';
 import { pushSharedFeedNotification } from './sharedFeedNotificationService';
@@ -348,10 +349,18 @@ function handleRealtimeCurrentUserProjection(
 ) {
     const projection = payload ?? {};
     const runtimeStore = useRuntimeStore.getState();
-    const snapshot = mergeCurrentUserProjectionSnapshot(
+    const mergedSnapshot = mergeCurrentUserProjectionSnapshot(
         runtimeStore,
         projection
     );
+    const { snapshot: stampedSnapshot } = buildAvatarWearSnapshotUpdate({
+        previousSnapshot: runtimeStore.auth.currentUserSnapshot,
+        nextSnapshot: mergedSnapshot,
+        isGameRunning: runtimeStore.gameState.isGameRunning
+    });
+    const snapshot = isRecord(stampedSnapshot)
+        ? stampedSnapshot
+        : mergedSnapshot;
     runtimeStore.setAuthBootstrap({
         currentUserSnapshot: snapshot,
         currentUserDisplayName: currentUserDisplayName(

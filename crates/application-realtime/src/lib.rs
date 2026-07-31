@@ -16,10 +16,10 @@ pub use realtime::{
     FriendBaselineResult, FriendBaselineSyncOutcome, FriendProfileBulkLoadStatus,
     FriendProfileLoadStatusPayload, FriendProjection, FriendProjectionPatch,
     PendingOfflineTimerAction, RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput,
-    RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
-    RealtimeEntryCorrectionStream, RealtimeFriendApplyResult, RealtimeFriendOutput,
-    RealtimeFriendSnapshot, RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
-    RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
+    RealtimeCurrentUserProjection, RealtimeCurrentUserRefreshExpectation, RealtimeEntryCorrection,
+    RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream, RealtimeFriendApplyResult,
+    RealtimeFriendOutput, RealtimeFriendSnapshot, RealtimeFriendsRuntime, RealtimeHostRuntime,
+    RealtimeHostRuntimeDeps, RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
     RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
     RealtimeNotificationUpsert, RealtimeSessionContext, RealtimeStopRequest,
     RealtimeTransportLifecycleEvent, RealtimeTransportStartResult, RealtimeTransportTermination,
@@ -27,6 +27,10 @@ pub use realtime::{
     SyntheticFriendEventOutcome,
 };
 pub use realtime::{normalize_v1_notification, normalize_v2_notification};
+pub use realtime::{
+    CURRENT_USER_AVATAR_RESPONSE_AUTHORITY_FIELDS,
+    CURRENT_USER_FALLBACK_AVATAR_RESPONSE_AUTHORITY_FIELDS,
+};
 pub use social_baseline::{
     apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
     build_friend_roster_baseline, build_friend_roster_baseline_deferred,

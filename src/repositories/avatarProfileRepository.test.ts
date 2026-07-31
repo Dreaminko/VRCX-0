@@ -148,24 +148,30 @@ describe('AvatarProfileRepository', () => {
         );
         queryClient.setQueryData(avatarQueryKey, cachedAvatar);
         mocks.appVrchatAvatarSelect.mockResolvedValue({
-            status: 200,
-            data: JSON.stringify(currentUser)
+            applied: true,
+            response: {
+                status: 200,
+                data: JSON.stringify(currentUser)
+            }
         });
         mocks.appVrchatAvatarSelectFallback.mockResolvedValue({
-            status: 200,
-            data: JSON.stringify(currentUser)
+            applied: true,
+            response: {
+                status: 200,
+                data: JSON.stringify(currentUser)
+            }
         });
 
         await expect(
             avatarProfileRepository.selectAvatar({
                 avatarId: ` ${cachedAvatar.id} `
             })
-        ).resolves.toMatchObject({ json: currentUser });
+        ).resolves.toMatchObject({ applied: true, json: currentUser });
         await expect(
             avatarProfileRepository.selectFallbackAvatar({
                 avatarId: ` ${cachedAvatar.id} `
             })
-        ).resolves.toMatchObject({ json: currentUser });
+        ).resolves.toMatchObject({ applied: true, json: currentUser });
 
         expect(mocks.appVrchatAvatarSelect).toHaveBeenCalledWith({
             avatarId: cachedAvatar.id

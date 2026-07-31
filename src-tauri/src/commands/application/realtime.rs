@@ -28,6 +28,24 @@ pub fn app__sync_realtime_current_user_snapshot(
     )?)
 }
 
+#[derive(serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrentUserRefreshOutcome {
+    pub applied: bool,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__current_user_refresh(
+    state: State<'_, AppState>,
+) -> Result<CurrentUserRefreshOutcome, AppError> {
+    let applied = state
+        .realtime_runtime
+        .refresh_current_user_now(Value::Null)
+        .await?;
+    Ok(CurrentUserRefreshOutcome { applied })
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn app__expire_realtime_notification(

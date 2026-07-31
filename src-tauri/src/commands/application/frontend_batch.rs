@@ -2,12 +2,13 @@
 
 use tauri::State;
 use vrcx_0_application::{
-    mark_notifications_seen_batch, run_avatar_content_tags_batch, run_group_leave_batch,
-    run_group_visibility_batch, sync_notifications, AvatarContentTagsBatchInput,
-    BatchMutationResult, FavoriteImportStartInput, FavoriteImportStatus, GroupLeaveBatchInput,
-    GroupVisibilityBatchInput, NotificationMarkSeenBatchInput, NotificationMarkSeenBatchResult,
-    NotificationSyncDeps, NotificationSyncOutcome, VrchatBatchMutationActions,
-    VrchatNotificationMarkSeenActions,
+    hydrate_favorite_details, mark_notifications_seen_batch, run_avatar_content_tags_batch,
+    run_group_leave_batch, run_group_visibility_batch, sync_notifications,
+    AvatarContentTagsBatchInput, BatchMutationResult, FavoriteDetailsHydrateDeps,
+    FavoriteDetailsHydrateInput, FavoriteDetailsHydrateOutput, FavoriteImportStartInput,
+    FavoriteImportStatus, GroupLeaveBatchInput, GroupVisibilityBatchInput,
+    NotificationMarkSeenBatchInput, NotificationMarkSeenBatchResult, NotificationSyncDeps,
+    NotificationSyncOutcome, VrchatBatchMutationActions, VrchatNotificationMarkSeenActions,
 };
 use vrcx_0_application_core::RuntimeAuthScopeSnapshot;
 
@@ -32,6 +33,22 @@ pub fn app__favorite_import_status(state: State<'_, AppState>) -> FavoriteImport
 #[specta::specta]
 pub fn app__favorite_import_cancel(state: State<'_, AppState>) -> FavoriteImportStatus {
     state.favorite_import.cancel()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__favorite_details_hydrate(
+    state: State<'_, AppState>,
+    input: FavoriteDetailsHydrateInput,
+) -> Result<FavoriteDetailsHydrateOutput, AppError> {
+    let expected_scope = active_scope(&state)?;
+    let deps = FavoriteDetailsHydrateDeps {
+        db: state.db.as_ref(),
+        web: state.web.as_ref(),
+        auth_scope: &state.runtime_context.auth_scope,
+        expected_scope,
+    };
+    Ok(hydrate_favorite_details(&deps, input).await?)
 }
 
 #[tauri::command]
@@ -113,14 +130,21 @@ pub async fn app__notification_sync(
     Ok(sync_notifications(&deps).await?)
 }
 
-fn active_scope(state: &AppState) -> Result<RuntimeAuthScopeSnapshot, AppError> {
+pub(crate) fn require_active_scope(
+    state: &AppState,
+    requirement: &str,
+) -> Result<RuntimeAuthScopeSnapshot, AppError> {
     let scope = state.runtime_context.auth_scope.snapshot();
     if scope.active && !scope.current_user_id.trim().is_empty() {
         Ok(scope)
     } else {
-        Err(vrcx_0_application_core::Error::Custom(
-            "Batch action requires an authenticated session.".into(),
-        )
+        Err(vrcx_0_application_core::Error::Custom(format!(
+            "{requirement} requires an authenticated session."
+        ))
         .into())
     }
+}
+
+fn active_scope(state: &AppState) -> Result<RuntimeAuthScopeSnapshot, AppError> {
+    require_active_scope(state, "Batch action")
 }

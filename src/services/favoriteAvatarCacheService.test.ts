@@ -5,7 +5,6 @@ import { useFavoriteStore } from '@/state/favoriteStore';
 
 import {
     cacheAvatarDetails,
-    cacheAvatarDetailsById,
     cacheFavoriteAvatarDetails
 } from './favoriteAvatarCacheService';
 
@@ -74,36 +73,6 @@ describe('favoriteAvatarCacheService', () => {
             expect.objectContaining({
                 id: 'avtr_fallback',
                 name: 'Fallback Avatar'
-            })
-        );
-    });
-
-    it('writes each avatar detail from a favorite detail map', async () => {
-        await cacheAvatarDetailsById({
-            avtr_a: {
-                name: 'Avatar A',
-                releaseStatus: 'public',
-                thumbnailImageUrl: 'https://example.test/a.png'
-            },
-            avtr_b: {
-                id: 'avtr_b',
-                name: 'Avatar B',
-                releaseStatus: 'private',
-                thumbnailImageUrl: 'https://example.test/b.png'
-            }
-        });
-
-        expect(avatarCacheRepository.addAvatarToCache).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 'avtr_a',
-                name: 'Avatar A'
-            })
-        );
-        expect(avatarCacheRepository.addAvatarToCache).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 'avtr_b',
-                name: 'Avatar B',
-                releaseStatus: 'private'
             })
         );
     });

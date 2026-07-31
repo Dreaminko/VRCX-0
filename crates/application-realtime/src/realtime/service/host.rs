@@ -93,6 +93,7 @@ mod world_cache_tests;
 
 use world_cache::WorldNameFetchOutcome;
 
+pub use current_user::RealtimeCurrentUserRefreshExpectation;
 pub use friend_mutation::SyntheticFriendEventOutcome;
 pub use friend_profile_bulk_load::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
 pub use state::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};

@@ -24,10 +24,16 @@ export async function selectAvatar({ avatarId }: AvatarIdInput) {
         );
     }
 
-    return unwrapVrchatAvatarResponse<Record<string, unknown>>(
-        await commands.appVrchatAvatarSelect(avatarIdInput(normalizedAvatarId)),
-        `avatars/${encodeURIComponent(normalizedAvatarId)}/select`
+    const outcome = await commands.appVrchatAvatarSelect(
+        avatarIdInput(normalizedAvatarId)
     );
+    return {
+        applied: outcome.applied,
+        ...unwrapVrchatAvatarResponse<Record<string, unknown>>(
+            outcome.response,
+            `avatars/${encodeURIComponent(normalizedAvatarId)}/select`
+        )
+    };
 }
 
 export async function selectFallbackAvatar({ avatarId }: AvatarIdInput) {
@@ -38,12 +44,16 @@ export async function selectFallbackAvatar({ avatarId }: AvatarIdInput) {
         );
     }
 
-    return unwrapVrchatAvatarResponse<Record<string, unknown>>(
-        await commands.appVrchatAvatarSelectFallback(
-            avatarIdInput(normalizedAvatarId)
-        ),
-        `avatars/${encodeURIComponent(normalizedAvatarId)}/selectfallback`
+    const outcome = await commands.appVrchatAvatarSelectFallback(
+        avatarIdInput(normalizedAvatarId)
     );
+    return {
+        applied: outcome.applied,
+        ...unwrapVrchatAvatarResponse<Record<string, unknown>>(
+            outcome.response,
+            `avatars/${encodeURIComponent(normalizedAvatarId)}/selectfallback`
+        )
+    };
 }
 
 export async function saveAvatar({ avatarId, params = {} }: SaveAvatarInput) {

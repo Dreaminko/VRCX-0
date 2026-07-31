@@ -124,8 +124,7 @@ export function useTextTranslation({
             setTargetLang(config.bioLanguage);
             const result = await translateTextDetailed(
                 source,
-                config.bioLanguage,
-                config
+                config.bioLanguage
             );
             if (!result.text) {
                 throw new Error('No translation returned.');

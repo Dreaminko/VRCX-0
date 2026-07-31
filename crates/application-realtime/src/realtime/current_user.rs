@@ -20,6 +20,7 @@ use super::{
 #[derive(Clone, Debug, Default)]
 struct RealtimeCurrentUserState {
     generation: u64,
+    sequence: u64,
     current_user_id: String,
     snapshot: RealtimeCurrentUserStateSnapshot,
     remote_snapshot: RealtimeCurrentUserStateSnapshot,
@@ -151,6 +152,16 @@ const CURRENT_USER_REFRESH_LOCAL_AUTHORITY_FIELDS: &[&str] = &[
     "$previousLocation_at",
 ];
 
+pub const CURRENT_USER_AVATAR_RESPONSE_AUTHORITY_FIELDS: &[&str] = &[
+    "currentAvatar",
+    "currentAvatarImageUrl",
+    "currentAvatarName",
+    "currentAvatarTags",
+    "currentAvatarThumbnailImageUrl",
+];
+
+pub const CURRENT_USER_FALLBACK_AVATAR_RESPONSE_AUTHORITY_FIELDS: &[&str] = &["fallbackAvatar"];
+
 const CURRENT_USER_REMOTE_PRESENCE_FIELDS: &[&str] = &[
     "location",
     "$location",
@@ -197,6 +208,7 @@ impl RealtimeCurrentUserRuntime {
         {
             snapshot = merge_preserved_remote_presence(snapshot, &state.remote_snapshot);
         }
+        state.sequence = state.sequence.saturating_add(1);
         state.snapshot = snapshot.clone();
         state.remote_snapshot = snapshot;
         state.pending_offline = None;
@@ -248,6 +260,14 @@ impl RealtimeCurrentUserRuntime {
         }
     }
 
+    pub fn snapshot_sequence(&self, generation: u64) -> Option<u64> {
+        let state = self.lock_state();
+        if state.generation != generation || state.current_user_id.is_empty() {
+            return None;
+        }
+        Some(state.sequence)
+    }
+
     pub fn apply_refreshed_snapshot(
         &self,
         generation: u64,
@@ -255,8 +275,49 @@ impl RealtimeCurrentUserRuntime {
         overlay_patch: serde_json::Value,
         authority: RealtimeCurrentUserAuthority,
     ) -> Option<RealtimeCurrentUserOutput> {
+        self.apply_refreshed_snapshot_inner(
+            generation,
+            None,
+            snapshot,
+            overlay_patch,
+            &[],
+            authority,
+        )
+    }
+
+    pub fn apply_refreshed_snapshot_if_sequence(
+        &self,
+        generation: u64,
+        expected_sequence: u64,
+        snapshot: serde_json::Value,
+        overlay_patch: serde_json::Value,
+        response_authority_fields: &[&str],
+        authority: RealtimeCurrentUserAuthority,
+    ) -> Option<RealtimeCurrentUserOutput> {
+        self.apply_refreshed_snapshot_inner(
+            generation,
+            Some(expected_sequence),
+            snapshot,
+            overlay_patch,
+            response_authority_fields,
+            authority,
+        )
+    }
+
+    fn apply_refreshed_snapshot_inner(
+        &self,
+        generation: u64,
+        expected_sequence: Option<u64>,
+        snapshot: serde_json::Value,
+        overlay_patch: serde_json::Value,
+        response_authority_fields: &[&str],
+        authority: RealtimeCurrentUserAuthority,
+    ) -> Option<RealtimeCurrentUserOutput> {
         let mut state = self.lock_state();
         if state.generation != generation || state.current_user_id.is_empty() {
+            return None;
+        }
+        if expected_sequence.is_some_and(|expected_sequence| state.sequence != expected_sequence) {
             return None;
         }
         let event_user_id = snapshot
@@ -267,7 +328,7 @@ impl RealtimeCurrentUserRuntime {
             return None;
         }
         let mut patch = snapshot.as_object().cloned().unwrap_or_default();
-        remove_current_user_refresh_local_authority_fields(&mut patch);
+        remove_current_user_refresh_local_authority_fields(&mut patch, response_authority_fields);
         if let Some(overlay) = overlay_patch.as_object() {
             for (key, value) in overlay {
                 patch.insert(key.clone(), value.clone());
@@ -385,6 +446,7 @@ impl RealtimeCurrentUserRuntime {
             close_remote_game_log_interval(&mut state, &now, &mut persistence);
         }
         let previous_avatar_swap_time = snapshot.previous_avatar_swap_time;
+        state.sequence = state.sequence.saturating_add(1);
         state.snapshot = snapshot.clone();
         state.remote_snapshot.set_previous_avatar_swap_time(
             (previous_avatar_swap_time > 0).then_some(previous_avatar_swap_time),
@@ -407,8 +469,14 @@ impl RealtimeCurrentUserRuntime {
     }
 }
 
-fn remove_current_user_refresh_local_authority_fields(patch: &mut Map<String, Value>) {
+fn remove_current_user_refresh_local_authority_fields(
+    patch: &mut Map<String, Value>,
+    response_authority_fields: &[&str],
+) {
     for field in CURRENT_USER_REFRESH_LOCAL_AUTHORITY_FIELDS {
+        if response_authority_fields.contains(field) {
+            continue;
+        }
         patch.remove(*field);
     }
 }
@@ -595,6 +663,7 @@ fn apply_current_user_patch(
     };
 
     let snapshot_map = snapshot.to_map();
+    state.sequence = state.sequence.saturating_add(1);
     state.snapshot = snapshot;
     Some(RealtimeCurrentUserOutput {
         owner_user_id: state.current_user_id.clone(),
@@ -1192,6 +1261,124 @@ mod tests {
             output.projection.patch["$location"]["tag"],
             json!("wrld_auth:123")
         );
+    }
+
+    #[test]
+    fn refreshed_snapshot_with_stale_sequence_is_dropped() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot(
+            "usr_self".into(),
+            7,
+            json!({ "id": "usr_self", "bio": "old bio" }),
+        );
+        let stale_sequence = runtime.snapshot_sequence(7).expect("sequence");
+
+        runtime
+            .apply_ws_message(
+                7,
+                &current_user_location_message("wrld_remote:456", "", "2026-05-15T00:00:00Z"),
+                remote_authority(true),
+            )
+            .expect("interleaved location apply");
+
+        assert!(runtime
+            .apply_refreshed_snapshot_if_sequence(
+                7,
+                stale_sequence,
+                json!({ "id": "usr_self", "bio": "stale bio" }),
+                json!({}),
+                &[],
+                remote_authority(true),
+            )
+            .is_none());
+        let fresh_sequence = runtime.snapshot_sequence(7).expect("sequence");
+        let output = runtime
+            .apply_refreshed_snapshot_if_sequence(
+                7,
+                fresh_sequence,
+                json!({ "id": "usr_self", "bio": "fresh bio" }),
+                json!({}),
+                &[],
+                remote_authority(true),
+            )
+            .expect("fresh sequence applies");
+        assert_eq!(output.projection.snapshot["bio"], json!("fresh bio"));
+    }
+
+    #[test]
+    fn interleaved_avatar_and_fallback_selection_drops_the_stale_response() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot(
+            "usr_self".into(),
+            7,
+            json!({
+                "id": "usr_self",
+                "currentAvatar": "avtr_old",
+                "fallbackAvatar": "avtr_old_fallback"
+            }),
+        );
+        let shared_sequence = runtime.snapshot_sequence(7).expect("sequence");
+
+        let avatar_output = runtime
+            .apply_refreshed_snapshot_if_sequence(
+                7,
+                shared_sequence,
+                json!({
+                    "id": "usr_self",
+                    "currentAvatar": "avtr_new",
+                    "fallbackAvatar": "avtr_old_fallback"
+                }),
+                json!({}),
+                CURRENT_USER_AVATAR_RESPONSE_AUTHORITY_FIELDS,
+                remote_authority(true),
+            )
+            .expect("avatar selection response applies");
+        assert_eq!(
+            avatar_output.projection.snapshot["currentAvatar"],
+            json!("avtr_new")
+        );
+
+        assert!(runtime
+            .apply_refreshed_snapshot_if_sequence(
+                7,
+                shared_sequence,
+                json!({
+                    "id": "usr_self",
+                    "currentAvatar": "avtr_old",
+                    "fallbackAvatar": "avtr_new_fallback"
+                }),
+                json!({}),
+                CURRENT_USER_FALLBACK_AVATAR_RESPONSE_AUTHORITY_FIELDS,
+                remote_authority(true),
+            )
+            .is_none());
+        let snapshot = runtime.snapshot_value().expect("snapshot");
+        assert_eq!(snapshot["currentAvatar"], json!("avtr_new"));
+        assert_eq!(snapshot["fallbackAvatar"], json!("avtr_old_fallback"));
+    }
+
+    #[test]
+    fn response_authority_fields_override_the_local_authority_strip() {
+        let runtime = RealtimeCurrentUserRuntime::new();
+        runtime.set_snapshot(
+            "usr_self".into(),
+            7,
+            json!({ "id": "usr_self", "status": "join me" }),
+        );
+        let sequence = runtime.snapshot_sequence(7).expect("sequence");
+
+        let output = runtime
+            .apply_refreshed_snapshot_if_sequence(
+                7,
+                sequence,
+                json!({ "id": "usr_self", "status": "busy" }),
+                json!({}),
+                &["status"],
+                remote_authority(true),
+            )
+            .expect("response authority field applies");
+
+        assert_eq!(output.projection.snapshot["status"], json!("busy"));
     }
 
     #[test]

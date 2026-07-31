@@ -1,16 +1,5 @@
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
-import { mergeCurrentUserResponseSnapshot } from '@/shared/utils/currentUserSnapshot';
-import {
-    useRuntimeStore,
-    type CurrentUserSnapshotState
-} from '@/state/runtimeStore';
-
-import { buildAvatarWearSnapshotUpdate } from './avatarWearTimeService';
-import { recordCurrentUserSnapshot } from './domainIngestionService';
-
-type CurrentUserResponse = CurrentUserSnapshotState & {
-    id: string;
-};
+import { useRuntimeStore } from '@/state/runtimeStore';
 
 type AuthTarget = {
     currentUserId: string;
@@ -26,36 +15,14 @@ type AvatarSelectionResult = {
     applied: boolean;
 };
 
-type AvatarSelectionKind = 'avatar' | 'fallback';
-
-const RESPONSE_AUTHORITY_FIELDS: Record<
-    AvatarSelectionKind,
-    ReadonlySet<string>
-> = {
-    avatar: new Set([
-        'currentAvatar',
-        'currentAvatarImageUrl',
-        'currentAvatarName',
-        'currentAvatarTags',
-        'currentAvatarThumbnailImageUrl'
-    ]),
-    fallback: new Set(['fallbackAvatar'])
-};
-
-let selectionSequence = 0;
-const latestAppliedSelectionSequence: Record<AvatarSelectionKind, number> = {
-    avatar: 0,
-    fallback: 0
-};
-
-function isCurrentUserResponse(value: unknown): value is CurrentUserResponse {
+function isCurrentUserResponse(value: unknown): boolean {
     return Boolean(
         value &&
         typeof value === 'object' &&
         !Array.isArray(value) &&
         'id' in value &&
-        typeof value.id === 'string' &&
-        value.id.trim()
+        typeof (value as { id: unknown }).id === 'string' &&
+        (value as { id: string }).id.trim()
     );
 }
 
@@ -68,12 +35,7 @@ function isCurrentAuthTarget(target: AuthTarget): boolean {
     );
 }
 
-function getCurrentUserDisplayName(user: CurrentUserResponse): string {
-    return user.displayName || user.username || user.id;
-}
-
 async function selectAvatarWithCurrentUserResponse(
-    kind: AvatarSelectionKind,
     request: () => Promise<AvatarSelectionResponse>
 ): Promise<AvatarSelectionResult> {
     const runtimeStore = useRuntimeStore.getState();
@@ -86,8 +48,6 @@ async function selectAvatarWithCurrentUserResponse(
         currentUserEndpoint: runtimeStore.auth.currentUserEndpoint,
         currentUserWebsocket: runtimeStore.auth.currentUserWebsocket
     };
-    const baseSnapshot = runtimeStore.auth.currentUserSnapshot;
-    const sequence = ++selectionSequence;
     const response = await request();
     if (!isCurrentAuthTarget(target)) {
         return { applied: false };
@@ -97,53 +57,17 @@ async function selectAvatarWithCurrentUserResponse(
             'VRChat avatar selection returned an invalid current user.'
         );
     }
-    const responseUserId = response.json.id.trim();
-    if (
-        responseUserId !== target.currentUserId ||
-        sequence < latestAppliedSelectionSequence[kind]
-    ) {
-        return { applied: false };
-    }
-
-    const currentState = useRuntimeStore.getState();
-    const responseUser =
-        responseUserId === response.json.id
-            ? response.json
-            : { ...response.json, id: responseUserId };
-    const mergedUser = mergeCurrentUserResponseSnapshot({
-        responseUser,
-        baseSnapshot,
-        currentSnapshot: currentState.auth.currentUserSnapshot,
-        overlayPatch: null,
-        responseAuthorityFields: RESPONSE_AUTHORITY_FIELDS[kind]
-    });
-    const { snapshot } = buildAvatarWearSnapshotUpdate({
-        previousSnapshot: currentState.auth.currentUserSnapshot,
-        nextSnapshot: mergedUser,
-        isGameRunning: currentState.gameState.isGameRunning
-    });
-    const nextUser = isCurrentUserResponse(snapshot) ? snapshot : responseUser;
-
-    latestAppliedSelectionSequence[kind] = sequence;
-    currentState.setAuthBootstrap({
-        currentUserId: nextUser.id,
-        currentUserDisplayName: getCurrentUserDisplayName(nextUser),
-        currentUserSnapshot: nextUser
-    });
-    recordCurrentUserSnapshot(nextUser, {
-        endpoint: target.currentUserEndpoint
-    });
-    return { applied: true };
+    return { applied: response.applied };
 }
 
 export function selectAvatar(avatarId: string) {
-    return selectAvatarWithCurrentUserResponse('avatar', () =>
+    return selectAvatarWithCurrentUserResponse(() =>
         avatarProfileRepository.selectAvatar({ avatarId })
     );
 }
 
 export function selectFallbackAvatar(avatarId: string) {
-    return selectAvatarWithCurrentUserResponse('fallback', () =>
+    return selectAvatarWithCurrentUserResponse(() =>
         avatarProfileRepository.selectFallbackAvatar({ avatarId })
     );
 }

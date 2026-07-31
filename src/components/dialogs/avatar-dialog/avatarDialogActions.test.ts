@@ -104,7 +104,6 @@ function createDependencies() {
         normalizedAvatarId: 'avtr_target',
         prompt: vi.fn(),
         setActionStatus: vi.fn(),
-        setAuthBootstrap: vi.fn(),
         setAvatar,
         setAvatarBlocked: vi.fn(),
         setAvatarSideData: vi.fn(),
