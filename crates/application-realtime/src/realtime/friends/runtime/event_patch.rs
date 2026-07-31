@@ -114,396 +114,19 @@ fn apply_friend_event_with_source(
     let mut output = RealtimeFriendOutput::new(owner_user_id, generation, baseline_revision);
 
     match event_kind {
-        FriendEventKind::Add => {
-            let user_id = event_user_id(content)?;
-            let mut patch = profile_patch(content, &user_id);
-            let previous = get_friend_record(state, &user_id);
-            normalize_patch_trust(&mut patch, previous.as_ref());
-            let state_bucket = resolve_state_bucket(
-                content,
-                previous.as_ref(),
-                source.trusts_embedded_state(),
-                StateBucket::Offline.as_str(),
-            );
-            let already_friend = previous.is_some();
-            output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
-            apply_patch_to_state(
-                state,
-                &mut output,
-                &user_id,
-                patch.clone(),
-                &state_bucket,
-                &now.iso,
-            );
-            if !already_friend {
-                output
-                    .persistence
-                    .friend_log_upserts
-                    .push(friend_log_upsert(
-                        &user_id,
-                        &patch,
-                        previous.as_ref(),
-                        &state_bucket,
-                        &now.iso,
-                    ));
-                output
-                    .persistence
-                    .feed_entries
-                    .push(friend_relationship_feed_entry(
-                        FriendRelationshipFeedKind::Friend,
-                        &user_id,
-                        &patch,
-                        previous.as_ref(),
-                        &now.iso,
-                    ));
-                output.projection.friend_log_changed = true;
-            }
-        }
-        FriendEventKind::Delete => {
-            let user_id = event_user_id(content)?;
-            let previous = get_friend_record(state, &user_id);
-            state.pending_offline.remove(&user_id);
-            state.recent_gps.remove(&user_id);
-            if let Some(baseline) = state.baseline.as_mut() {
-                baseline.friends_by_id.remove(&user_id);
-            }
-            output.projection.removals.push(user_id.clone());
-            output.persistence.friend_log_deletes.push(FriendLogDelete {
-                target_user_id: user_id.clone(),
-                created_at: now.iso.clone(),
-            });
-            let patch = json!({ "id": user_id.clone() });
-            output
-                .persistence
-                .feed_entries
-                .push(friend_relationship_feed_entry(
-                    FriendRelationshipFeedKind::Unfriend,
-                    &user_id,
-                    &patch,
-                    previous.as_ref(),
-                    &now.iso,
-                ));
-            output.projection.friend_log_changed = true;
-        }
-        FriendEventKind::Update => {
-            let user_id = event_user_id(content)?;
-            let mut patch = profile_patch(content, &user_id);
-            if !source.trusts_embedded_state()
-                && patch.as_object().map(|object| object.len()).unwrap_or(0) <= 1
-            {
-                return None;
-            }
-            let previous = get_friend_record(state, &user_id);
-            normalize_patch_trust(&mut patch, previous.as_ref());
-            let changes = FriendChangedProps::from_patch(&patch, previous.as_ref());
-            let location_changed = changes.has("location");
-            if location_changed {
-                normalize_friend_update_location_patch(&mut patch, previous.as_ref(), now);
-            }
-            output.friend_note_changed |= changes.has("note");
-            let state_bucket = if source.trusts_embedded_state() {
-                resolve_state_bucket(
-                    content,
-                    previous.as_ref(),
-                    source.trusts_embedded_state(),
-                    StateBucket::Offline.as_str(),
-                )
-            } else {
-                previous
-                    .as_ref()
-                    .map(|previous| previous.state_bucket.trim())
-                    .filter(|state_bucket| !state_bucket.is_empty())
-                    .map(ToString::to_string)
-                    .unwrap_or_else(|| StateBucket::Offline.as_str().to_string())
-            };
-            if source.trusts_embedded_state() && state.pending_offline.remove(&user_id).is_some() {
-                if let Some(patch_object) = patch.as_object_mut() {
-                    patch_object.insert("pendingOffline".into(), Value::Bool(false));
-                }
-            }
-            record_profile_identity_change(
-                &mut output,
-                &user_id,
-                &patch,
-                previous.as_ref(),
-                &state_bucket,
-                now,
-            );
-            if source.emits_profile_diff_feed() {
-                if location_changed {
-                    if let Some(previous) = previous.as_ref() {
-                        add_gps_feed_entry_if_not_repeated(
-                            state,
-                            &mut output,
-                            &user_id,
-                            &patch,
-                            previous,
-                            now,
-                            false,
-                        );
-                    }
-                }
-                add_profile_diff_feed_entries(
-                    &mut output,
-                    &user_id,
-                    &patch,
-                    previous.as_ref(),
-                    &changes,
-                    &now.iso,
-                );
-            }
-            request_profile_refetch_for_impossible_location(
-                &mut output,
-                &user_id,
-                &patch,
-                &state_bucket,
-            );
-            apply_patch_to_state(state, &mut output, &user_id, patch, &state_bucket, &now.iso);
-        }
-        FriendEventKind::Online => {
-            let user_id = event_user_id(content)?;
-            let canceled_pending = state.pending_offline.remove(&user_id).is_some();
-            let previous_record = state
-                .baseline
-                .as_ref()?
-                .friends_by_id
-                .get(&user_id)
-                .cloned();
-            let user_patch = profile_patch(content, &user_id);
-            let mut patch = online_patch(
-                content,
-                user_patch,
-                previous_record.as_ref(),
-                now,
-                StateBucket::Online.as_str(),
-            );
-            normalize_patch_trust(&mut patch, previous_record.as_ref());
-            output.friend_note_changed |= patch_changes_note(&patch, previous_record.as_ref());
-            record_profile_identity_change(
-                &mut output,
-                &user_id,
-                &patch,
-                previous_record.as_ref(),
-                StateBucket::Online.as_str(),
-                now,
-            );
-            if !canceled_pending
-                && !previous_record
-                    .as_ref()
-                    .map(is_online_state)
-                    .unwrap_or(false)
-            {
-                output.persistence.feed_entries.push(online_feed_entry(
-                    &user_id,
-                    &patch,
-                    previous_record.as_ref(),
-                    &patch.text_field("location"),
-                    0,
-                    &now.iso,
-                ));
-            } else if let Some(previous) = previous_record.as_ref() {
-                add_gps_feed_entry_if_not_repeated(
-                    state,
-                    &mut output,
-                    &user_id,
-                    &patch,
-                    previous,
-                    now,
-                    state_bucket_changed(previous, StateBucket::Online.as_str()),
-                );
-            }
-            apply_patch_to_state(
-                state,
-                &mut output,
-                &user_id,
-                patch,
-                StateBucket::Online.as_str(),
-                &now.iso,
-            );
-        }
+        FriendEventKind::Add => apply_add(state, &mut output, content, now, source)?,
+        FriendEventKind::Delete => apply_delete(state, &mut output, content, now)?,
+        FriendEventKind::Update => apply_update(state, &mut output, content, now, source)?,
+        FriendEventKind::Online => apply_online(state, &mut output, content, now)?,
         FriendEventKind::Active | FriendEventKind::Offline => {
-            let user_id = event_user_id(content)?;
             let next_state = match event_kind {
                 FriendEventKind::Active => StateBucket::Active.as_str(),
                 FriendEventKind::Offline => StateBucket::Offline.as_str(),
                 _ => unreachable!("matched active or offline event"),
             };
-            let previous_record = state
-                .baseline
-                .as_ref()?
-                .friends_by_id
-                .get(&user_id)
-                .cloned();
-            let mut patch = offline_like_patch(content, &user_id, next_state);
-            normalize_patch_trust(&mut patch, previous_record.as_ref());
-            if let Some(previous) = previous_record
-                .as_ref()
-                .filter(|previous| is_online_state(previous))
-            {
-                if state.pending_offline.contains_key(&user_id) {
-                    return None;
-                }
-                record_profile_identity_change(
-                    &mut output,
-                    &user_id,
-                    &patch,
-                    previous_record.as_ref(),
-                    StateBucket::Online.as_str(),
-                    now,
-                );
-                state.timer_token = state.timer_token.saturating_add(1);
-                let token = state.timer_token;
-                state.pending_offline.insert(
-                    user_id.clone(),
-                    PendingOffline {
-                        token,
-                        patch: FriendRecordPatch::from_value(&patch),
-                        state_bucket: next_state.to_string(),
-                        previous: previous.clone(),
-                    },
-                );
-                let pending_patch = json!({
-                    "id": user_id,
-                    "pendingOffline": true,
-                });
-                apply_patch_to_state(
-                    state,
-                    &mut output,
-                    &user_id,
-                    pending_patch,
-                    StateBucket::Online.as_str(),
-                    &now.iso,
-                );
-                output.timer_action = PendingOfflineTimerAction::Schedule {
-                    user_id,
-                    token,
-                    delay_ms: PENDING_OFFLINE_DELAY_MS,
-                };
-            } else {
-                state.recent_gps.remove(&user_id);
-                record_profile_identity_change(
-                    &mut output,
-                    &user_id,
-                    &patch,
-                    previous_record.as_ref(),
-                    next_state,
-                    now,
-                );
-                apply_patch_to_state(state, &mut output, &user_id, patch, next_state, &now.iso);
-            }
+            apply_active_offline(state, &mut output, content, now, next_state)?
         }
-        FriendEventKind::Location => {
-            let user_id = event_user_id(content)?;
-            let user_patch = profile_patch(content, &user_id);
-            let previous_record = state
-                .baseline
-                .as_ref()?
-                .friends_by_id
-                .get(&user_id)
-                .cloned();
-            let presence = location_presence(content, &user_patch, previous_record.as_ref())?;
-            let has_embedded_user = presence.has_embedded_user;
-            let has_online_location = presence.has_online_location;
-            let has_offline_location = presence.has_offline_location;
-            let state_bucket = presence.state_bucket;
-            let state_bucket_authority = presence.authority;
-            let preserve_pending_offline =
-                !has_online_location && state.pending_offline.contains_key(&user_id);
-            if has_embedded_user && has_online_location {
-                state.pending_offline.remove(&user_id);
-            }
-            let mut patch = online_patch(
-                content,
-                user_patch,
-                previous_record.as_ref(),
-                now,
-                &state_bucket,
-            );
-            normalize_patch_trust(&mut patch, previous_record.as_ref());
-            let start_pending_offline = !preserve_pending_offline
-                && !has_online_location
-                && has_offline_location
-                && previous_record
-                    .as_ref()
-                    .map(is_online_state)
-                    .unwrap_or(false);
-            if start_pending_offline {
-                state.timer_token = state.timer_token.saturating_add(1);
-                let token = state.timer_token;
-                state.pending_offline.insert(
-                    user_id.clone(),
-                    PendingOffline {
-                        token,
-                        patch: FriendRecordPatch::from_value(&offline_like_patch(
-                            content,
-                            &user_id,
-                            StateBucket::Offline.as_str(),
-                        )),
-                        state_bucket: StateBucket::Offline.as_str().to_string(),
-                        previous: previous_record
-                            .as_ref()
-                            .expect("checked previous record")
-                            .clone(),
-                    },
-                );
-                if let Some(patch_object) = patch.as_object_mut() {
-                    patch_object.insert("pendingOffline".into(), Value::Bool(true));
-                }
-                output.timer_action = PendingOfflineTimerAction::Schedule {
-                    user_id: user_id.clone(),
-                    token,
-                    delay_ms: PENDING_OFFLINE_DELAY_MS,
-                };
-            } else if preserve_pending_offline {
-                if let Some(patch_object) = patch.as_object_mut() {
-                    patch_object.insert("pendingOffline".into(), Value::Bool(true));
-                }
-            } else if !has_embedded_user {
-                if let Some(patch_object) = patch.as_object_mut() {
-                    patch_object.remove("pendingOffline");
-                }
-            }
-            output.friend_note_changed |= patch_changes_note(&patch, previous_record.as_ref());
-            record_profile_identity_change(
-                &mut output,
-                &user_id,
-                &patch,
-                previous_record.as_ref(),
-                &state_bucket,
-                now,
-            );
-            if let Some(previous) = previous_record.as_ref() {
-                add_gps_feed_entry_if_not_repeated(
-                    state,
-                    &mut output,
-                    &user_id,
-                    &patch,
-                    previous,
-                    now,
-                    state_bucket_changed(previous, &state_bucket),
-                );
-            }
-            if !StateBucket::Online.matches(&state_bucket) {
-                state.recent_gps.remove(&user_id);
-            }
-            request_profile_refetch_for_location_event(
-                &mut output,
-                &user_id,
-                &patch,
-                &state_bucket,
-                has_embedded_user,
-                has_online_location,
-            );
-            apply_patch_to_state_with_authority(
-                state,
-                &mut output,
-                &user_id,
-                patch,
-                &state_bucket,
-                state_bucket_authority,
-                &now.iso,
-            );
-        }
+        FriendEventKind::Location => apply_location(state, &mut output, content, now)?,
     }
 
     let mut feed_entries = output.persistence.feed_entries.clone();
@@ -516,6 +139,425 @@ fn apply_friend_event_with_source(
         return None;
     }
     Some(output)
+}
+
+fn apply_add(
+    state: &mut RealtimeFriendState,
+    output: &mut RealtimeFriendOutput,
+    content: &Value,
+    now: &EventTime,
+    source: EventSource,
+) -> Option<()> {
+    let user_id = event_user_id(content)?;
+    let mut patch = profile_patch(content, &user_id);
+    let previous = get_friend_record(state, &user_id);
+    normalize_patch_trust(&mut patch, previous.as_ref());
+    let state_bucket = resolve_state_bucket(
+        content,
+        previous.as_ref(),
+        source.trusts_embedded_state(),
+        StateBucket::Offline.as_str(),
+    );
+    let already_friend = previous.is_some();
+    output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
+    apply_patch_to_state(
+        state,
+        output,
+        &user_id,
+        patch.clone(),
+        &state_bucket,
+        &now.iso,
+    );
+    if !already_friend {
+        output
+            .persistence
+            .friend_log_upserts
+            .push(friend_log_upsert(
+                &user_id,
+                &patch,
+                previous.as_ref(),
+                &state_bucket,
+                &now.iso,
+            ));
+        output
+            .persistence
+            .feed_entries
+            .push(friend_relationship_feed_entry(
+                FriendRelationshipFeedKind::Friend,
+                &user_id,
+                &patch,
+                previous.as_ref(),
+                &now.iso,
+            ));
+        output.projection.friend_log_changed = true;
+    }
+    Some(())
+}
+
+fn apply_delete(
+    state: &mut RealtimeFriendState,
+    output: &mut RealtimeFriendOutput,
+    content: &Value,
+    now: &EventTime,
+) -> Option<()> {
+    let user_id = event_user_id(content)?;
+    let previous = get_friend_record(state, &user_id);
+    state.pending_offline.remove(&user_id);
+    state.recent_gps.remove(&user_id);
+    if let Some(baseline) = state.baseline.as_mut() {
+        baseline.friends_by_id.remove(&user_id);
+    }
+    output.projection.removals.push(user_id.clone());
+    output.persistence.friend_log_deletes.push(FriendLogDelete {
+        target_user_id: user_id.clone(),
+        created_at: now.iso.clone(),
+    });
+    let patch = json!({ "id": user_id.clone() });
+    output
+        .persistence
+        .feed_entries
+        .push(friend_relationship_feed_entry(
+            FriendRelationshipFeedKind::Unfriend,
+            &user_id,
+            &patch,
+            previous.as_ref(),
+            &now.iso,
+        ));
+    output.projection.friend_log_changed = true;
+    Some(())
+}
+
+fn apply_update(
+    state: &mut RealtimeFriendState,
+    output: &mut RealtimeFriendOutput,
+    content: &Value,
+    now: &EventTime,
+    source: EventSource,
+) -> Option<()> {
+    let user_id = event_user_id(content)?;
+    let mut patch = profile_patch(content, &user_id);
+    if !source.trusts_embedded_state()
+        && patch.as_object().map(|object| object.len()).unwrap_or(0) <= 1
+    {
+        return None;
+    }
+    let previous = get_friend_record(state, &user_id);
+    normalize_patch_trust(&mut patch, previous.as_ref());
+    let changes = FriendChangedProps::from_patch(&patch, previous.as_ref());
+    let location_changed = changes.has("location");
+    if location_changed {
+        normalize_friend_update_location_patch(&mut patch, previous.as_ref(), now);
+    }
+    output.friend_note_changed |= changes.has("note");
+    let state_bucket = if source.trusts_embedded_state() {
+        resolve_state_bucket(
+            content,
+            previous.as_ref(),
+            source.trusts_embedded_state(),
+            StateBucket::Offline.as_str(),
+        )
+    } else {
+        previous
+            .as_ref()
+            .map(|previous| previous.state_bucket.trim())
+            .filter(|state_bucket| !state_bucket.is_empty())
+            .map(ToString::to_string)
+            .unwrap_or_else(|| StateBucket::Offline.as_str().to_string())
+    };
+    if source.trusts_embedded_state() && state.pending_offline.remove(&user_id).is_some() {
+        if let Some(patch_object) = patch.as_object_mut() {
+            patch_object.insert("pendingOffline".into(), Value::Bool(false));
+        }
+    }
+    record_profile_identity_change(
+        output,
+        &user_id,
+        &patch,
+        previous.as_ref(),
+        &state_bucket,
+        now,
+    );
+    if source.emits_profile_diff_feed() {
+        if location_changed {
+            if let Some(previous) = previous.as_ref() {
+                add_gps_feed_entry_if_not_repeated(
+                    state, output, &user_id, &patch, previous, now, false,
+                );
+            }
+        }
+        add_profile_diff_feed_entries(
+            output,
+            &user_id,
+            &patch,
+            previous.as_ref(),
+            &changes,
+            &now.iso,
+        );
+    }
+    request_profile_refetch_for_impossible_location(output, &user_id, &patch, &state_bucket);
+    apply_patch_to_state(state, output, &user_id, patch, &state_bucket, &now.iso);
+    Some(())
+}
+
+fn apply_online(
+    state: &mut RealtimeFriendState,
+    output: &mut RealtimeFriendOutput,
+    content: &Value,
+    now: &EventTime,
+) -> Option<()> {
+    let user_id = event_user_id(content)?;
+    let canceled_pending = state.pending_offline.remove(&user_id).is_some();
+    let previous_record = state
+        .baseline
+        .as_ref()?
+        .friends_by_id
+        .get(&user_id)
+        .cloned();
+    let user_patch = profile_patch(content, &user_id);
+    let mut patch = online_patch(
+        content,
+        user_patch,
+        previous_record.as_ref(),
+        now,
+        StateBucket::Online.as_str(),
+    );
+    normalize_patch_trust(&mut patch, previous_record.as_ref());
+    output.friend_note_changed |= patch_changes_note(&patch, previous_record.as_ref());
+    record_profile_identity_change(
+        output,
+        &user_id,
+        &patch,
+        previous_record.as_ref(),
+        StateBucket::Online.as_str(),
+        now,
+    );
+    if !canceled_pending
+        && !previous_record
+            .as_ref()
+            .map(is_online_state)
+            .unwrap_or(false)
+    {
+        output.persistence.feed_entries.push(online_feed_entry(
+            &user_id,
+            &patch,
+            previous_record.as_ref(),
+            &patch.text_field("location"),
+            0,
+            &now.iso,
+        ));
+    } else if let Some(previous) = previous_record.as_ref() {
+        add_gps_feed_entry_if_not_repeated(
+            state,
+            output,
+            &user_id,
+            &patch,
+            previous,
+            now,
+            state_bucket_changed(previous, StateBucket::Online.as_str()),
+        );
+    }
+    apply_patch_to_state(
+        state,
+        output,
+        &user_id,
+        patch,
+        StateBucket::Online.as_str(),
+        &now.iso,
+    );
+    Some(())
+}
+
+fn apply_active_offline(
+    state: &mut RealtimeFriendState,
+    output: &mut RealtimeFriendOutput,
+    content: &Value,
+    now: &EventTime,
+    next_state: &str,
+) -> Option<()> {
+    let user_id = event_user_id(content)?;
+    let previous_record = state
+        .baseline
+        .as_ref()?
+        .friends_by_id
+        .get(&user_id)
+        .cloned();
+    let mut patch = offline_like_patch(content, &user_id, next_state);
+    normalize_patch_trust(&mut patch, previous_record.as_ref());
+    if let Some(previous) = previous_record
+        .as_ref()
+        .filter(|previous| is_online_state(previous))
+    {
+        if state.pending_offline.contains_key(&user_id) {
+            return None;
+        }
+        record_profile_identity_change(
+            output,
+            &user_id,
+            &patch,
+            previous_record.as_ref(),
+            StateBucket::Online.as_str(),
+            now,
+        );
+        state.timer_token = state.timer_token.saturating_add(1);
+        let token = state.timer_token;
+        state.pending_offline.insert(
+            user_id.clone(),
+            PendingOffline {
+                token,
+                patch: FriendRecordPatch::from_value(&patch),
+                state_bucket: next_state.to_string(),
+                previous: previous.clone(),
+            },
+        );
+        let pending_patch = json!({
+            "id": user_id,
+            "pendingOffline": true,
+        });
+        apply_patch_to_state(
+            state,
+            output,
+            &user_id,
+            pending_patch,
+            StateBucket::Online.as_str(),
+            &now.iso,
+        );
+        output.timer_action = PendingOfflineTimerAction::Schedule {
+            user_id,
+            token,
+            delay_ms: PENDING_OFFLINE_DELAY_MS,
+        };
+    } else {
+        state.recent_gps.remove(&user_id);
+        record_profile_identity_change(
+            output,
+            &user_id,
+            &patch,
+            previous_record.as_ref(),
+            next_state,
+            now,
+        );
+        apply_patch_to_state(state, output, &user_id, patch, next_state, &now.iso);
+    }
+    Some(())
+}
+
+fn apply_location(
+    state: &mut RealtimeFriendState,
+    output: &mut RealtimeFriendOutput,
+    content: &Value,
+    now: &EventTime,
+) -> Option<()> {
+    let user_id = event_user_id(content)?;
+    let user_patch = profile_patch(content, &user_id);
+    let previous_record = state
+        .baseline
+        .as_ref()?
+        .friends_by_id
+        .get(&user_id)
+        .cloned();
+    let presence = location_presence(content, &user_patch, previous_record.as_ref())?;
+    let has_embedded_user = presence.has_embedded_user;
+    let has_online_location = presence.has_online_location;
+    let has_offline_location = presence.has_offline_location;
+    let state_bucket = presence.state_bucket;
+    let state_bucket_authority = presence.authority;
+    let preserve_pending_offline =
+        !has_online_location && state.pending_offline.contains_key(&user_id);
+    if has_embedded_user && has_online_location {
+        state.pending_offline.remove(&user_id);
+    }
+    let mut patch = online_patch(
+        content,
+        user_patch,
+        previous_record.as_ref(),
+        now,
+        &state_bucket,
+    );
+    normalize_patch_trust(&mut patch, previous_record.as_ref());
+    let start_pending_offline = !preserve_pending_offline
+        && !has_online_location
+        && has_offline_location
+        && previous_record
+            .as_ref()
+            .map(is_online_state)
+            .unwrap_or(false);
+    if start_pending_offline {
+        state.timer_token = state.timer_token.saturating_add(1);
+        let token = state.timer_token;
+        state.pending_offline.insert(
+            user_id.clone(),
+            PendingOffline {
+                token,
+                patch: FriendRecordPatch::from_value(&offline_like_patch(
+                    content,
+                    &user_id,
+                    StateBucket::Offline.as_str(),
+                )),
+                state_bucket: StateBucket::Offline.as_str().to_string(),
+                previous: previous_record
+                    .as_ref()
+                    .expect("checked previous record")
+                    .clone(),
+            },
+        );
+        if let Some(patch_object) = patch.as_object_mut() {
+            patch_object.insert("pendingOffline".into(), Value::Bool(true));
+        }
+        output.timer_action = PendingOfflineTimerAction::Schedule {
+            user_id: user_id.clone(),
+            token,
+            delay_ms: PENDING_OFFLINE_DELAY_MS,
+        };
+    } else if preserve_pending_offline {
+        if let Some(patch_object) = patch.as_object_mut() {
+            patch_object.insert("pendingOffline".into(), Value::Bool(true));
+        }
+    } else if !has_embedded_user {
+        if let Some(patch_object) = patch.as_object_mut() {
+            patch_object.remove("pendingOffline");
+        }
+    }
+    output.friend_note_changed |= patch_changes_note(&patch, previous_record.as_ref());
+    record_profile_identity_change(
+        output,
+        &user_id,
+        &patch,
+        previous_record.as_ref(),
+        &state_bucket,
+        now,
+    );
+    if let Some(previous) = previous_record.as_ref() {
+        add_gps_feed_entry_if_not_repeated(
+            state,
+            output,
+            &user_id,
+            &patch,
+            previous,
+            now,
+            state_bucket_changed(previous, &state_bucket),
+        );
+    }
+    if !StateBucket::Online.matches(&state_bucket) {
+        state.recent_gps.remove(&user_id);
+    }
+    request_profile_refetch_for_location_event(
+        output,
+        &user_id,
+        &patch,
+        &state_bucket,
+        has_embedded_user,
+        has_online_location,
+    );
+    apply_patch_to_state_with_authority(
+        state,
+        output,
+        &user_id,
+        patch,
+        &state_bucket,
+        state_bucket_authority,
+        &now.iso,
+    );
+    Some(())
 }
 
 fn request_profile_refetch_for_impossible_location(
