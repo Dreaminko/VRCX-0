@@ -182,17 +182,21 @@ function mergeCurrentUserProjectionSnapshot(
     return nextSnapshot;
 }
 
-function pushProjectionFeedEntry(entry: unknown) {
-    const feedEntry = asRecord(entry);
-    if (!Object.keys(feedEntry).length) {
-        return;
-    }
-    useFeedLiveStore.getState().pushEntry(feedEntry, {
+function pushProjectionFeedEntries(entries: unknown[]) {
+    const feedEntries = entries
+        .map((entry) => asRecord(entry))
+        .filter((entry) => Object.keys(entry).length > 0);
+    useFeedLiveStore.getState().pushEntries(feedEntries, {
         ownerUserId: useRuntimeStore.getState().auth.currentUserId ?? undefined
     });
-    pushSharedFeedNotification(feedEntry).catch((error: unknown) => {
-        console.warn('Failed to publish realtime feed notification:', error);
-    });
+    for (const feedEntry of feedEntries) {
+        pushSharedFeedNotification(feedEntry).catch((error: unknown) => {
+            console.warn(
+                'Failed to publish realtime feed notification:',
+                error
+            );
+        });
+    }
 }
 
 function clearNotificationMenuIfNoUnseen() {
@@ -269,9 +273,7 @@ function handleRealtimeFriendProjection(payload: FriendProjectionInput) {
         useFriendRosterStore.getState().applyFriendPatches(patchEntries);
     }
 
-    for (const entry of projection.feedEntries ?? []) {
-        pushProjectionFeedEntry(entry);
-    }
+    pushProjectionFeedEntries(projection.feedEntries ?? []);
 
     if (projection.friendLogChanged) {
         useShellStore.getState().notifyMenu('friend-log');

@@ -11,6 +11,7 @@ import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
+import { subscribeFeedLiveMerge } from './feedLiveMergeScheduler';
 import {
     buildFeedFavoriteIdSet as buildFavoriteIdSet,
     normalizeFeedId as normalizeId,
@@ -69,6 +70,7 @@ export function useFeedRows({
     const lastLiveFeedSequenceRef = useRef(0);
     const rowsRef = useRef(rows);
     const liveMergeRequestIdRef = useRef(0);
+    const unresolvedUserIdsRef = useRef<Set<string>>(new Set());
 
     const favoriteIdSet = useMemo(
         () =>
@@ -172,6 +174,7 @@ export function useFeedRows({
 
     useEffect(() => {
         let active = true;
+        unresolvedUserIdsRef.current = new Set();
         const normalizedCurrentUserId = normalizeId(currentUserId);
         if (!normalizedCurrentUserId) {
             setFriendLogNamesById({});
@@ -209,14 +212,15 @@ export function useFeedRows({
     }, [currentUserId, friendRosterLastLoadedAt]);
 
     useEffect(() => {
-        const missingUserIds = [];
+        const missingUserIds: string[] = [];
         const seenUserIds = new Set<string>();
         for (const row of rows) {
             const userId = resolveFeedUserId(row);
             if (
                 !userId ||
                 friendLogNamesById[userId] ||
-                seenUserIds.has(userId)
+                seenUserIds.has(userId) ||
+                unresolvedUserIdsRef.current.has(userId)
             ) {
                 continue;
             }
@@ -241,20 +245,31 @@ export function useFeedRows({
                 if (!active) {
                     return;
                 }
+                const resolvedNamesById: Record<string, string> = {};
+                for (const row of Array.isArray(statsRows) ? statsRows : []) {
+                    const userId = normalizeId(row?.userId);
+                    const displayName = resolveDisplayNameCandidate(
+                        row?.displayName,
+                        userId
+                    );
+                    if (userId && displayName) {
+                        resolvedNamesById[userId] = displayName;
+                    }
+                }
+                for (const userId of missingUserIds) {
+                    if (!resolvedNamesById[userId]) {
+                        unresolvedUserIdsRef.current.add(userId);
+                    }
+                }
                 setFriendLogNamesById((current) => {
                     let changed = false;
                     const nextNamesById = {
                         ...current
                     };
-                    for (const row of Array.isArray(statsRows)
-                        ? statsRows
-                        : []) {
-                        const userId = normalizeId(row?.userId);
-                        const displayName = resolveDisplayNameCandidate(
-                            row?.displayName,
-                            userId
-                        );
-                        if (userId && displayName && !nextNamesById[userId]) {
+                    for (const [userId, displayName] of Object.entries(
+                        resolvedNamesById
+                    )) {
+                        if (!nextNamesById[userId]) {
                             nextNamesById[userId] = displayName;
                             changed = true;
                         }
@@ -365,13 +380,7 @@ export function useFeedRows({
         if (!preferencesReady || !currentUserId) {
             return undefined;
         }
-        return useFeedLiveStore.subscribe((state, previousState) => {
-            if (
-                state.version === previousState?.version ||
-                state.entries.length === 0
-            ) {
-                return;
-            }
+        return subscribeFeedLiveMerge(() => {
             const mergeRequestId = liveMergeRequestIdRef.current + 1;
             liveMergeRequestIdRef.current = mergeRequestId;
             const minLiveSequence = lastLiveFeedSequenceRef.current;

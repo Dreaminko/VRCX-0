@@ -14,6 +14,7 @@ import {
     buildFeedColumnFavoriteIds
 } from '../feedColumnScope';
 import type { FeedColumnConfig } from '../feedColumnsState';
+import { subscribeFeedLiveMerge } from '../feedLiveMergeScheduler';
 import { getFeedRowId, normalizeFeedId as normalizeId } from '../feedRows';
 import type { FeedLoadStatus, FeedRow } from '../feedTypes';
 
@@ -321,42 +322,38 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
         if (loadStatus !== 'ready' || !normalizeId(currentUserId)) {
             return undefined;
         }
-        return useFeedLiveStore.subscribe((state, previousState) => {
-            if (
-                state.version === previousState?.version ||
-                state.entries.length === 0 ||
-                state.version <= liveSequenceRef.current
-            ) {
-                return;
-            }
-            const requestId = requestIdRef.current;
-            const mergeRequestId = liveMergeRequestIdRef.current + 1;
-            liveMergeRequestIdRef.current = mergeRequestId;
-            const requestIsCurrent = () =>
-                requestIdRef.current === requestId &&
-                liveMergeRequestIdRef.current === mergeRequestId;
-            mergeWithLiveRows({
-                minLiveSequence: liveSequenceRef.current,
-                requestIsCurrent,
-                rows: rowsRef.current
-            })
-                .then((merged) => {
-                    if (!merged) {
-                        return;
-                    }
-                    if (!requestIsCurrent()) {
-                        return;
-                    }
-                    if (merged.maxSequence > liveSequenceRef.current) {
-                        liveSequenceRef.current = merged.maxSequence;
-                    }
-                    rowsRef.current = merged.rows;
-                    setRows(merged.rows);
+        return subscribeFeedLiveMerge(
+            () => {
+                const requestId = requestIdRef.current;
+                const mergeRequestId = liveMergeRequestIdRef.current + 1;
+                liveMergeRequestIdRef.current = mergeRequestId;
+                const requestIsCurrent = () =>
+                    requestIdRef.current === requestId &&
+                    liveMergeRequestIdRef.current === mergeRequestId;
+                mergeWithLiveRows({
+                    minLiveSequence: liveSequenceRef.current,
+                    requestIsCurrent,
+                    rows: rowsRef.current
                 })
-                .catch((error: unknown) => {
-                    console.error(error);
-                });
-        });
+                    .then((merged) => {
+                        if (!merged) {
+                            return;
+                        }
+                        if (!requestIsCurrent()) {
+                            return;
+                        }
+                        if (merged.maxSequence > liveSequenceRef.current) {
+                            liveSequenceRef.current = merged.maxSequence;
+                        }
+                        rowsRef.current = merged.rows;
+                        setRows(merged.rows);
+                    })
+                    .catch((error: unknown) => {
+                        console.error(error);
+                    });
+            },
+            (state) => state.version > liveSequenceRef.current
+        );
     }, [currentUserId, loadStatus, mergeWithLiveRows]);
 
     const loadOlder = useCallback(() => {
