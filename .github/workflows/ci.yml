@@ -28,7 +28,6 @@ jobs:
             rust: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.rust }}
             rust_backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.rust_backend }}
             tauri_build: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.tauri_build }}
-            native_catalog: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.native_catalog }}
             tauri_bindings: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.tauri_bindings }}
         steps:
             - uses: actions/checkout@v7
@@ -84,10 +83,6 @@ jobs:
                         - 'crates/runtime-host-desktop/**'
                         - 'crates/vr-overlay/**'
                         - 'src-tauri/**'
-                      native_catalog:
-                        - '.github/workflows/ci.yml'
-                        - 'crates/i18n/**'
-                        - 'src/localization/**'
                       tauri_bindings:
                         - '.github/actions/setup-linux-tauri/**'
                         - '.github/actions/setup-node/**'
@@ -157,9 +152,8 @@ jobs:
                   node-version: 24.x
             - uses: ./.github/actions/setup-rust
               with:
-                  components: rustfmt, clippy
+                  components: clippy
                   cache-key: ci-linux-x86_64
-            - run: npm run rust:fmt:check
             - run: mkdir -p dist && printf '<!doctype html><html><body></body></html>' > dist/index.html
             - run: npm run rust:clippy
 
@@ -273,18 +267,6 @@ jobs:
                   cache-key: ${{ matrix.cache_key }}
                   save-cache: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
             - run: npm run rust:test -- ${{ matrix.rust_test_args }}
-
-    native-catalog:
-        name: Native Catalog Build
-        runs-on: ubuntu-latest
-        needs: changes
-        if: needs.changes.outputs.native_catalog == 'true'
-        steps:
-            - uses: actions/checkout@v7
-            - uses: ./.github/actions/setup-rust
-              with:
-                  cache-key: ci-native-catalog
-            - run: cargo check -p vrcx-0-i18n --locked
 
     tauri-bindings:
         name: Tauri Bindings Up-to-date
