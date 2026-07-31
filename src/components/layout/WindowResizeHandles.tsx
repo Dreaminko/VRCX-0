@@ -11,38 +11,38 @@ interface ResizeHandle {
 const CORNER_HANDLES: ResizeHandle[] = [
     {
         direction: 'NorthWest',
-        className: 'top-0 left-0 size-4 cursor-nwse-resize'
+        className: 'top-0 left-0 size-3 cursor-nwse-resize'
     },
     {
         direction: 'NorthEast',
-        className: 'top-0 right-0 size-4 cursor-nesw-resize'
+        className: 'top-0 right-0 size-3 cursor-nesw-resize'
     },
     {
         direction: 'SouthWest',
-        className: 'bottom-0 left-0 size-4 cursor-nesw-resize'
+        className: 'bottom-0 left-0 size-3 cursor-nesw-resize'
     },
     {
         direction: 'SouthEast',
-        className: 'right-0 bottom-0 size-4 cursor-nwse-resize'
+        className: 'right-0 bottom-0 size-3 cursor-nwse-resize'
     }
 ];
 
 const EDGE_HANDLES: ResizeHandle[] = [
     {
         direction: 'North',
-        className: 'top-0 right-4 left-4 h-2.5 cursor-ns-resize'
+        className: 'top-0 right-3 left-3 h-1.5 cursor-ns-resize'
     },
     {
         direction: 'South',
-        className: 'right-4 bottom-0 left-4 h-2.5 cursor-ns-resize'
+        className: 'right-3 bottom-0 left-3 h-1.5 cursor-ns-resize'
     },
     {
         direction: 'West',
-        className: 'top-4 bottom-4 left-0 w-2.5 cursor-ew-resize'
+        className: 'top-3 bottom-3 left-0 w-1.5 cursor-ew-resize'
     },
     {
         direction: 'East',
-        className: 'top-4 right-0 bottom-4 w-2.5 cursor-ew-resize'
+        className: 'top-3 right-0 bottom-3 w-1.5 cursor-ew-resize'
     }
 ];
 
@@ -65,7 +65,12 @@ export function WindowResizeHandles() {
                         }
                         event.preventDefault();
                         startResizeDraggingWindow(handle.direction).catch(
-                            () => undefined
+                            (error) => {
+                                console.warn(
+                                    'Window resize drag failed:',
+                                    error
+                                );
+                            }
                         );
                     }}
                 />
