@@ -203,6 +203,10 @@ pub(super) fn create_main_window(
         })?;
 
     let mut builder = WebviewWindowBuilder::from_config(app, window_config)?;
+    #[cfg(target_os = "windows")]
+    {
+        builder = builder.transparent(true).shadow(false);
+    }
     #[cfg(target_os = "macos")]
     {
         builder = builder

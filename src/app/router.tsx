@@ -14,6 +14,7 @@ import { AppTitleBar } from '@/components/layout/AppTitleBar';
 import { MacNativeMenuActionHost } from '@/components/layout/MacNativeMenuActionHost';
 import { MacOverlayTitleBar } from '@/components/layout/MacOverlayTitleBar';
 import { useGlobalKeyboardShortcuts } from '@/components/layout/useGlobalKeyboardShortcuts';
+import { cn } from '@/lib/utils';
 import { recordRouteEnter } from '@/services/telemetry/telemetryPageReach';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -94,9 +95,10 @@ function AppShellRoute() {
 }
 
 function AppRouterContent() {
-    const isMacHost = useRuntimeStore(
-        (state) => state.hostCapabilities.platform === 'macos'
+    const hostPlatform = useRuntimeStore(
+        (state) => state.hostCapabilities.platform
     );
+    const isMacHost = hostPlatform === 'macos';
     const { pathname } = useLocation();
     useGlobalKeyboardShortcuts();
     useEffect(() => {
@@ -120,7 +122,12 @@ function AppRouterContent() {
     return (
         <div
             data-vrcx-0-surface="app-root"
-            className="vrcx-0-app-root flex h-screen min-h-0 w-full flex-col overflow-hidden"
+            className={cn(
+                'vrcx-0-app-root flex min-h-0 w-full flex-col overflow-hidden',
+                hostPlatform === 'windows'
+                    ? 'vrcx-0-custom-window-frame h-full'
+                    : 'h-screen'
+            )}
         >
             {isMacHost ? <MacOverlayTitleBar /> : <AppTitleBar />}
             <div

@@ -271,10 +271,45 @@
 }
 
 @layer components {
+    body:has(.vrcx-0-custom-window-frame) {
+        background: transparent;
+    }
+
+    #root:has(.vrcx-0-custom-window-frame) {
+        padding: 0.125rem;
+    }
+
     .vrcx-0-app-root {
         position: relative;
         isolation: isolate;
         background: var(--vrcx-0-app-surface);
+    }
+
+    .vrcx-0-custom-window-frame {
+        border-radius: 1.125rem;
+        corner-shape: superellipse(2);
+        transform: translateZ(0);
+        box-shadow:
+            0 0 2px rgb(0 0 0 / 32%),
+            0 1px 2px rgb(0 0 0 / 48%),
+            inset 0 0 0 1px
+                color-mix(in oklch, var(--foreground) 10%, transparent),
+            inset 0 1px 0 color-mix(in oklch, white 6%, transparent);
+    }
+
+    .dark .vrcx-0-custom-window-frame {
+        box-shadow:
+            0 0 1px rgb(255 255 255 / 4%),
+            0 1px 2px rgb(0 0 0 / 52%);
+    }
+
+    #root:has(.vrcx-0-custom-window-frame [data-window-maximized='true']) {
+        padding: 0;
+    }
+
+    .vrcx-0-custom-window-frame:has([data-window-maximized='true']) {
+        border-radius: 0;
+        box-shadow: none;
     }
 
     .vrcx-0-app-root::before {
