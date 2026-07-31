@@ -153,16 +153,19 @@ describe('friends locations row helpers', () => {
         const first = {
             id: 'usr_1',
             displayName: 'First',
+            state: 'online',
             location: sharedLocation
         };
         const second = {
             id: 'usr_2',
             displayName: 'Second',
+            state: 'online',
             location: sharedLocation
         };
         const solo = {
             id: 'usr_3',
             displayName: 'Solo',
+            state: 'online',
             location: soloLocation
         };
 
@@ -172,6 +175,29 @@ describe('friends locations row helpers', () => {
                 friends: [first, second]
             }
         ]);
+    });
+
+    it('keeps the original two-friend threshold on Friends Locations', () => {
+        const currentLocation = 'wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:123';
+        const otherLocation = 'wrld_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb:456';
+        const friendWithCurrentUser = {
+            id: 'usr_1',
+            displayName: 'With current user',
+            state: 'online',
+            location: currentLocation
+        };
+        const soloElsewhere = {
+            id: 'usr_2',
+            displayName: 'Solo elsewhere',
+            state: 'online',
+            location: otherLocation
+        };
+
+        expect(
+            buildSameInstanceGroups([friendWithCurrentUser, soloElsewhere], {
+                location: currentLocation
+            })
+        ).toEqual([]);
     });
 
     it('matches search text against friend and location summary fields', () => {

@@ -15,9 +15,9 @@ import {
 import { dialogTargetKey } from './user-dialog/userDialogCache';
 import {
     isSameLocationTag,
+    resolveUserDialogTargetPresenceLocation,
     resolveFriendRequestState,
-    resolvePlatformMeta,
-    resolvePresenceLocation
+    resolvePlatformMeta
 } from './user-dialog/userDialogContentHelpers';
 import {
     buildFavoriteIdSet,
@@ -180,6 +180,14 @@ export function UserDialogContent({
     const currentSnapshotLocation = normalizeUserId(
         currentUserSnapshot?.$locationTag || currentUserSnapshot?.location
     );
+    const presenceLocation = resolveUserDialogTargetPresenceLocation({
+        profile,
+        targetUserId: normalizedUserId,
+        currentLocation: currentGameLocation || currentSnapshotLocation,
+        currentLocationPlayerIds: gameState?.currentLocationPlayerIds,
+        currentLocationPlayers: gameState?.currentLocationPlayers,
+        friendsById
+    });
 
     useEffect(
         () =>
@@ -201,6 +209,7 @@ export function UserDialogContent({
         gameState,
         groupInstancesState,
         friendsById,
+        presenceLocation,
         profile,
         reloadToken
     });
@@ -292,8 +301,6 @@ export function UserDialogContent({
               256
           )
         : '';
-    const presenceLocation = resolvePresenceLocation(profile);
-
     const { memo, editMemo, memoDialog } = useUserDialogMemoState({
         activeUserTargetRef,
         applyFriendPatch,

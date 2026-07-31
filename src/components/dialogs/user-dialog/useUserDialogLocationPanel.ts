@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { firstNonNegativeLocationNumber } from '@/components/location/locationModel';
 import {
+    resolveObservedPlayerUserId,
+    resolveObservedPlayerUserIds,
+    resolveSameInstanceFriendLocation
+} from '@/domain/friends/sameInstanceFriends';
+import {
     createInstanceUserRow as createLocationUserRow,
     isSameInstanceLocation as isSameLocationTag,
     mergeInstanceUser as mergeLocationUser,
@@ -34,6 +39,10 @@ import {
     resolveOwnerId,
     resolveOwnerSeed
 } from './userDialogLocationOwner';
+import {
+    filterVisibleUserDialogLocationUsers,
+    shouldIncludeUserDialogLocationFriend
+} from './userDialogLocationUsers';
 import { normalizeUserId } from './userProfileFields';
 
 const locationUserProfileFetchConcurrency = 4;
@@ -200,6 +209,7 @@ export function useUserDialogLocationPanel({
     gameState,
     groupInstancesState,
     friendsById,
+    presenceLocation,
     profile,
     reloadToken
 }: {
@@ -209,6 +219,7 @@ export function useUserDialogLocationPanel({
     gameState: Record<string, unknown> | null;
     groupInstancesState: Record<string, unknown>;
     friendsById: Record<string, Record<string, unknown>>;
+    presenceLocation: string;
     profile: Record<string, unknown> | null;
     reloadToken: number;
 }) {
@@ -245,7 +256,8 @@ export function useUserDialogLocationPanel({
     useEffect(() => {
         let active = true;
 
-        const activeLocation = resolvePresenceLocation(profile);
+        const activeLocation =
+            presenceLocation || resolvePresenceLocation(profile);
         const parsedLocation = parseLocation(activeLocation);
         if (
             !profile?.id ||
@@ -265,6 +277,17 @@ export function useUserDialogLocationPanel({
             currentLocation,
             activeLocation
         );
+        const currentLocationPlayerIds = new Set(
+            resolveObservedPlayerUserIds(
+                gameState?.currentLocationPlayerIds,
+                gameState?.currentLocationPlayers,
+                friendsById
+            )
+        );
+        const currentFriendLocationSnapshot = {
+            location: currentLocation,
+            friendList: currentLocationPlayerIds
+        };
         const snapshotLocation =
             currentLocationMatches && currentLocation
                 ? currentLocation
@@ -291,7 +314,10 @@ export function useUserDialogLocationPanel({
                 return false;
             }
             return isSameLocationTag(
-                resolvePresenceLocation(user, { requireInstance: true }),
+                resolveSameInstanceFriendLocation(
+                    user,
+                    currentFriendLocationSnapshot
+                ),
                 activeLocation
             );
         }
@@ -318,7 +344,13 @@ export function useUserDialogLocationPanel({
             if (!userIsAtLocation(friend)) {
                 continue;
             }
-            if (friend?.state !== 'online' && friend?.location === 'private') {
+            if (
+                !shouldIncludeUserDialogLocationFriend({
+                    currentLocationMatches,
+                    currentLocationPlayerIds,
+                    friend
+                })
+            ) {
                 continue;
             }
             mergeLocationUser(rowsById, friend);
@@ -402,12 +434,18 @@ export function useUserDialogLocationPanel({
                         Array.isArray(playerSnapshot?.players)
                             ? playerSnapshot.players
                             : []
-                    ).map((player) => ({
-                        id: player.userId,
-                        userId: player.userId,
-                        displayName: player.displayName,
-                        joinedAt: player.joinedAt
-                    }));
+                    ).map((player) => {
+                        const userId = resolveObservedPlayerUserId(
+                            player,
+                            friendsById
+                        );
+                        return {
+                            id: userId,
+                            userId,
+                            displayName: player.displayName,
+                            joinedAt: player.joinedAt
+                        };
+                    });
                     const instanceOwnerId = resolveOwnerId(
                         instance,
                         parsedLocation.userId,
@@ -516,10 +554,15 @@ export function useUserDialogLocationPanel({
                         );
                     }
 
-                    const users = sortLocationUsers(
+                    const allUsers = sortLocationUsers(
                         Array.from(rowsById.values())
                     );
-                    const friendCount = users.filter((user) => {
+                    const users = filterVisibleUserDialogLocationUsers({
+                        currentUserId: normalizedCurrentUserId,
+                        friendsById,
+                        users: allUsers
+                    });
+                    const friendCount = allUsers.filter((user) => {
                         const userId = normalizeUserId(
                             user?.id || user?.userId
                         );
@@ -546,7 +589,7 @@ export function useUserDialogLocationPanel({
                                 instance?.occupants,
                                 instance?.n_users,
                                 playerSnapshot?.context?.playerCount
-                            ) || users.length
+                            ) || allUsers.length
                     });
 
                     enrichLocationUsersWithProfiles({
@@ -579,7 +622,14 @@ export function useUserDialogLocationPanel({
                     return;
                 }
 
-                const users = sortLocationUsers(Array.from(rowsById.values()));
+                const allUsers = sortLocationUsers(
+                    Array.from(rowsById.values())
+                );
+                const users = filterVisibleUserDialogLocationUsers({
+                    currentUserId: normalizedCurrentUserId,
+                    friendsById,
+                    users: allUsers
+                });
                 setLocationPanel({
                     ...createEmptyUserDialogLocationPanel(activeLocation),
                     users,
@@ -602,8 +652,11 @@ export function useUserDialogLocationPanel({
         currentUserSnapshot,
         friendsById,
         gameState?.currentLocationStartedAt,
+        gameState?.currentLocationPlayerIds,
+        gameState?.currentLocationPlayers,
         locationRefreshToken,
         normalizedCurrentUserId,
+        presenceLocation,
         profile,
         reloadToken
     ]);
@@ -659,7 +712,8 @@ export function useUserDialogLocationPanel({
     }, [currentEndpoint, currentInviteLocation, reloadToken]);
 
     function refreshLocationPanel(requestLocation: unknown): null {
-        const activeLocation = resolvePresenceLocation(profile);
+        const activeLocation =
+            presenceLocation || resolvePresenceLocation(profile);
         if (
             requestLocation &&
             activeLocation &&

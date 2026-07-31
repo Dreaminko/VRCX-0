@@ -1,6 +1,8 @@
 import { ChevronDownIcon } from 'lucide-react';
 
+import { CurrentInstanceBadge } from '@/components/instances/CurrentInstanceBadge';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Collapsible, CollapsibleTrigger } from '@/ui/shadcn/collapsible';
 
@@ -96,12 +98,14 @@ export function FriendSectionHeader({
 export function InstanceHeaderRow({
     location,
     count,
+    isCurrentInstance = false,
     metadata = null,
     showInstanceIdInLocation = false,
     ageGatedInstancesVisible = false
 }: {
     location?: unknown;
     count?: number;
+    isCurrentInstance?: boolean;
     metadata?: Record<string, unknown> | null;
     showInstanceIdInLocation?: boolean;
     ageGatedInstancesVisible?: boolean;
@@ -117,7 +121,12 @@ export function InstanceHeaderRow({
                 showInstanceIdInLocation={showInstanceIdInLocation}
                 ageGatedInstancesVisible={ageGatedInstancesVisible}
             />
-            <span className="ml-1.5 shrink-0">{`(${count})`}</span>
+            {isCurrentInstance ? (
+                <CurrentInstanceBadge className="ml-1.5" />
+            ) : null}
+            <Badge variant="outline" className="ml-1.5">
+                {count}
+            </Badge>
         </div>
     );
 }

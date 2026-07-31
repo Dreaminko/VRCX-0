@@ -1,12 +1,108 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    buildSameInstanceGroups,
     readFriendRefLocation,
     readFriendStatusSource,
     resolveCurrentUserStateBucket,
     resolveSidebarStatusDotClassName,
     toLegacyFriendSortRow
 } from './friendsSidebarModel';
+
+describe('friendsSidebarModel same-instance groups', () => {
+    it('groups one friend with the current user but not a solo friend elsewhere', () => {
+        const currentLocation = 'wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:123';
+        const otherLocation = 'wrld_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb:456';
+        const friendWithCurrentUser = {
+            id: 'usr_1',
+            displayName: 'With current user',
+            stateBucket: 'online',
+            location: currentLocation,
+            $location_at: 1
+        };
+        const soloElsewhere = {
+            id: 'usr_2',
+            displayName: 'Solo elsewhere',
+            stateBucket: 'online',
+            location: otherLocation,
+            $location_at: 1
+        };
+
+        expect(
+            buildSameInstanceGroups(
+                [friendWithCurrentUser, soloElsewhere],
+                { isShowCurrentUserInSameInstance: true },
+                { location: currentLocation },
+                new Map()
+            )
+        ).toEqual([
+            {
+                location: currentLocation,
+                rows: [friendWithCurrentUser],
+                isCurrentInstance: true
+            }
+        ]);
+    });
+
+    it('requires two friends in the current instance when the current user is hidden', () => {
+        const currentLocation = 'wrld_current:123';
+        const friend = {
+            id: 'usr_friend',
+            displayName: 'Friend',
+            stateBucket: 'online',
+            location: currentLocation,
+            $location_at: 1
+        };
+
+        expect(
+            buildSameInstanceGroups(
+                [friend],
+                { isShowCurrentUserInSameInstance: false },
+                { location: currentLocation },
+                new Map()
+            )
+        ).toEqual([]);
+    });
+
+    it('keeps a fallback join time while a remote instance still has one friend', () => {
+        const location = 'wrld_remote:456';
+        const first = {
+            id: 'usr_1',
+            displayName: 'First',
+            state: 'online',
+            location
+        };
+        const fallbackJoinTimes = new Map<string, number>();
+
+        expect(
+            buildSameInstanceGroups(
+                [first],
+                {},
+                { location: 'wrld_current:123' },
+                fallbackJoinTimes
+            )
+        ).toEqual([]);
+        const firstJoinTime = fallbackJoinTimes.get(`${location}:${first.id}`);
+        expect(firstJoinTime).toBeTypeOf('number');
+
+        const groups = buildSameInstanceGroups(
+            [
+                first,
+                {
+                    id: 'usr_2',
+                    displayName: 'Second',
+                    state: 'online',
+                    location
+                }
+            ],
+            {},
+            { location: 'wrld_current:123' },
+            fallbackJoinTimes
+        );
+
+        expect(groups[0]?.rows[0]?.$location_at).toBe(firstJoinTime);
+    });
+});
 
 describe('friendsSidebarModel friend status source', () => {
     it('uses top-level roster presence over stale nested ref presence', () => {

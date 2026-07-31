@@ -1,5 +1,6 @@
 import { AppleIcon, MonitorIcon, RectangleGogglesIcon } from 'lucide-react';
 
+import { resolveObservedPlayerUserIds } from '@/domain/friends/sameInstanceFriends';
 import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
 import {
     parseLocation,
@@ -128,6 +129,43 @@ export function resolvePlatformMeta(platform: unknown) {
 
 export function resolvePresenceLocation(profile: unknown) {
     return resolveFriendPresenceLocation(profile);
+}
+
+export function resolveUserDialogTargetPresenceLocation({
+    profile,
+    targetUserId,
+    currentLocation,
+    currentLocationPlayerIds,
+    currentLocationPlayers,
+    friendsById = {}
+}: {
+    profile: unknown;
+    targetUserId: unknown;
+    currentLocation: unknown;
+    currentLocationPlayerIds: unknown;
+    currentLocationPlayers?: unknown;
+    friendsById?: Record<string, unknown>;
+}) {
+    const presenceLocation = resolvePresenceLocation(profile);
+    if (parseLocation(presenceLocation).isRealInstance) {
+        return presenceLocation;
+    }
+
+    const normalizedTargetUserId = normalizeUserId(targetUserId);
+    const normalizedCurrentLocation = normalizeUserId(currentLocation);
+    if (
+        !normalizedTargetUserId ||
+        !parseLocation(normalizedCurrentLocation).isRealInstance ||
+        !resolveObservedPlayerUserIds(
+            currentLocationPlayerIds,
+            currentLocationPlayers,
+            friendsById
+        ).includes(normalizedTargetUserId)
+    ) {
+        return presenceLocation;
+    }
+
+    return normalizedCurrentLocation;
 }
 
 export function isSameLocationTag(left: unknown, right: unknown) {

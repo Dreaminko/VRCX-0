@@ -1,9 +1,76 @@
+import { resolveObservedPlayerUserId } from '@/domain/friends/sameInstanceFriends';
 import {
     buildInstanceRosterRows,
-    firstText
+    firstText,
+    resolvePresenceLocation
 } from '@/domain/instances/instanceRoster';
+import { parseLocation } from '@/shared/utils/location';
+
+function shouldIncludeUserDialogLocationFriend({
+    currentLocationMatches,
+    currentLocationPlayerIds,
+    friend
+}: {
+    currentLocationMatches: boolean;
+    currentLocationPlayerIds: ReadonlySet<string>;
+    friend: unknown;
+}): boolean {
+    const friendRecord =
+        friend && typeof friend === 'object'
+            ? (friend as Record<string, unknown>)
+            : {};
+    const friendId = firstText(
+        friendRecord.id,
+        friendRecord.userId,
+        friendRecord.user_id
+    );
+    const friendState = firstText(
+        friendRecord.stateBucket,
+        friendRecord.state
+    ).toLowerCase();
+    const observedInCurrentInstance = Boolean(
+        currentLocationMatches &&
+        friendId &&
+        currentLocationPlayerIds.has(friendId)
+    );
+    return !(
+        friendState !== 'online' &&
+        parseLocation(resolvePresenceLocation(friend)).isPrivate &&
+        !observedInCurrentInstance
+    );
+}
+
+function filterVisibleUserDialogLocationUsers<TUser>({
+    currentUserId,
+    friendsById,
+    users
+}: {
+    currentUserId: unknown;
+    friendsById: unknown;
+    users: readonly TUser[];
+}): TUser[] {
+    const friendIds = new Set(
+        Object.keys(
+            friendsById && typeof friendsById === 'object' ? friendsById : {}
+        )
+    );
+    const normalizedCurrentUserId = firstText(currentUserId);
+    return users.filter((user) => {
+        const userRecord =
+            user && typeof user === 'object'
+                ? (user as Record<string, unknown>)
+                : {};
+        const userId = firstText(userRecord.id, userRecord.userId);
+        return Boolean(
+            userId &&
+            (userId === normalizedCurrentUserId || friendIds.has(userId))
+        );
+    });
+}
 
 export function buildUserDialogLocationUsers({
+    currentUserId,
+    friendsById,
     locationInstance,
     locationOwnerGroup,
     locationOwnerUser,
@@ -12,6 +79,8 @@ export function buildUserDialogLocationUsers({
     t,
     visiblePresenceParsedLocation
 }: {
+    currentUserId: unknown;
+    friendsById: unknown;
     locationInstance: unknown;
     locationOwnerGroup: unknown;
     locationOwnerUser: unknown;
@@ -32,6 +101,7 @@ export function buildUserDialogLocationUsers({
               : null;
     const instance = record(locationInstance);
     const parsedLocation = record(visiblePresenceParsedLocation);
+    const friendDirectory = record(friendsById);
     const group =
         instance.group && typeof instance.group === 'object'
             ? Object.fromEntries(Object.entries(instance.group))
@@ -57,11 +127,35 @@ export function buildUserDialogLocationUsers({
         ownerUser: source(locationOwnerUser),
         parsedLocation,
         profile: source(profile),
-        users: Array.isArray(sameInstanceUsers) ? sameInstanceUsers : []
+        users: (Array.isArray(sameInstanceUsers) ? sameInstanceUsers : []).map(
+            (user) => {
+                const userId = resolveObservedPlayerUserId(
+                    user,
+                    friendDirectory
+                );
+                return userId
+                    ? {
+                          ...record(user),
+                          id: userId,
+                          userId
+                      }
+                    : user;
+            }
+        )
+    });
+    const visibleRows = filterVisibleUserDialogLocationUsers({
+        currentUserId,
+        friendsById,
+        users: roster.rows
     });
 
     return {
-        locationInstanceUsers: roster.rows,
+        locationInstanceUsers: visibleRows,
         locationOwnerId: roster.ownerId
     };
 }
+
+export {
+    filterVisibleUserDialogLocationUsers,
+    shouldIncludeUserDialogLocationFriend
+};
