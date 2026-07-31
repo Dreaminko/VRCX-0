@@ -1,8 +1,11 @@
+use serde_json::{json, Value};
+use vrcx_0_core::friends::{normalize_state_bucket, FriendRecord};
+
+use crate::realtime::FriendStateBucketAuthority;
+
 use super::patch_builders::{
     event_user_patch, has_embedded_location_user, is_online_location_proof,
 };
-use super::*;
-use vrcx_0_core::friends::normalize_state_bucket;
 
 #[derive(Clone, Copy)]
 pub(super) enum EventSource {

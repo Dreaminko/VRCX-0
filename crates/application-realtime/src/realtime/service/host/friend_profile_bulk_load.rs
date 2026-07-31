@@ -1,13 +1,44 @@
+use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 
+use serde_json::Value;
+use vrcx_0_application_core::{Error, Result};
 pub use vrcx_0_application_core::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
+use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
+
+use crate::realtime::RealtimeSessionContext;
 
 use super::state::ActiveRealtimeContext;
-use super::*;
+use super::{RealtimeHostRuntime, RealtimeStopRequest};
 
 const FRIEND_PROFILE_BULK_LOAD_MAX_RETRIES: u32 = 4;
 const FRIEND_PROFILE_BULK_LOAD_BASE_DELAY_MS: u64 = 500;
 pub(super) const FRIEND_PROFILE_BULK_LOAD_REQUEST_INTERVAL_MS: u64 = 1_000;
+
+pub(super) struct FriendProfileBulkLoadInitialProgress {
+    pub(super) total: u32,
+    pub(super) processed: u32,
+}
+
+impl FriendProfileBulkLoadInitialProgress {
+    pub(super) fn new(total_friends: usize, pending_friends: usize) -> Self {
+        let total = u32::try_from(total_friends).unwrap_or(u32::MAX);
+        let pending = u32::try_from(pending_friends)
+            .unwrap_or(u32::MAX)
+            .min(total);
+        Self {
+            total,
+            processed: total.saturating_sub(pending),
+        }
+    }
+}
+
+pub(super) enum FriendProfileBulkLoadItemOutcome {
+    Loaded,
+    Failed,
+}
 
 #[derive(Default)]
 pub struct FriendProfileBulkLoadState {
@@ -108,17 +139,6 @@ pub(super) fn friend_profile_bulk_load_backoff_delay_ms(attempt: u32) -> u64 {
     FRIEND_PROFILE_BULK_LOAD_BASE_DELAY_MS.saturating_mul(1u64 << attempt.min(16))
 }
 
-pub(super) fn friend_profile_bulk_load_initial_progress(
-    total_friends: usize,
-    pending_friends: usize,
-) -> (u32, u32) {
-    let total = u32::try_from(total_friends).unwrap_or(u32::MAX);
-    let pending = u32::try_from(pending_friends)
-        .unwrap_or(u32::MAX)
-        .min(total);
-    (total, total.saturating_sub(pending))
-}
-
 impl RealtimeHostRuntime {
     pub fn start_friend_profile_bulk_load(
         self: &Arc<Self>,
@@ -159,7 +179,7 @@ impl RealtimeHostRuntime {
             };
             let stale_run_id = is_active_bulk_load_status(bulk.status).then_some(bulk.run_id);
             let targets = select_friend_profile_bulk_load_targets(&snapshot.friends_by_id);
-            let (total, processed) = friend_profile_bulk_load_initial_progress(
+            let initial_progress = FriendProfileBulkLoadInitialProgress::new(
                 snapshot.friends_by_id.len(),
                 targets.len(),
             );
@@ -167,8 +187,8 @@ impl RealtimeHostRuntime {
             let now = chrono::Utc::now().to_rfc3339();
             bulk.run_id = run_id;
             bulk.owner = Some(owner.clone());
-            bulk.total = total;
-            bulk.processed = processed;
+            bulk.total = initial_progress.total;
+            bulk.processed = initial_progress.processed;
             bulk.loaded = 0;
             bulk.failed = 0;
             bulk.started_at = now.clone();
@@ -390,7 +410,7 @@ impl RealtimeHostRuntime {
         user_id: &str,
         cancel_rx: &mut tokio::sync::watch::Receiver<u64>,
         transport_rx: &mut tokio::sync::watch::Receiver<u64>,
-    ) -> Option<(bool, bool)> {
+    ) -> Option<FriendProfileBulkLoadItemOutcome> {
         let mut attempt = 0u32;
         loop {
             let active = self
@@ -417,7 +437,7 @@ impl RealtimeHostRuntime {
             }
             match response {
                 Ok(response) if (200..300).contains(&response.status) => {
-                    return Some((true, false));
+                    return Some(FriendProfileBulkLoadItemOutcome::Loaded);
                 }
                 Ok(response)
                     if response.status == 429 && attempt < FRIEND_PROFILE_BULK_LOAD_MAX_RETRIES =>
@@ -434,7 +454,7 @@ impl RealtimeHostRuntime {
                         return None;
                     }
                 }
-                _ => return Some((false, true)),
+                _ => return Some(FriendProfileBulkLoadItemOutcome::Failed),
             }
         }
     }
@@ -443,8 +463,7 @@ impl RealtimeHostRuntime {
         &self,
         run_id: u64,
         owner: &FriendProfileBulkLoadOwner,
-        loaded: bool,
-        failed: bool,
+        outcome: FriendProfileBulkLoadItemOutcome,
     ) -> bool {
         if !self.friend_profile_bulk_load_is_current(run_id, owner) {
             return false;
@@ -457,11 +476,13 @@ impl RealtimeHostRuntime {
                 return false;
             }
             bulk.processed = bulk.processed.saturating_add(1);
-            if loaded {
-                bulk.loaded = bulk.loaded.saturating_add(1);
-            }
-            if failed {
-                bulk.failed = bulk.failed.saturating_add(1);
+            match outcome {
+                FriendProfileBulkLoadItemOutcome::Loaded => {
+                    bulk.loaded = bulk.loaded.saturating_add(1);
+                }
+                FriendProfileBulkLoadItemOutcome::Failed => {
+                    bulk.failed = bulk.failed.saturating_add(1);
+                }
             }
         }
         self.emit_friend_profile_bulk_load_status();
@@ -492,7 +513,7 @@ impl RealtimeHostRuntime {
                     break;
                 }
             }
-            let Some((loaded, failed)) = self
+            let Some(outcome) = self
                 .load_friend_profile_bulk_item(
                     run_id,
                     &owner,
@@ -504,7 +525,7 @@ impl RealtimeHostRuntime {
             else {
                 break;
             };
-            if !self.friend_profile_bulk_load_record_progress(run_id, &owner, loaded, failed) {
+            if !self.friend_profile_bulk_load_record_progress(run_id, &owner, outcome) {
                 break;
             }
         }
@@ -561,13 +582,12 @@ impl RealtimeHostRuntime {
     pub(super) fn test_friend_profile_bulk_load_record_progress(
         &self,
         run_id: u64,
-        loaded: bool,
-        failed: bool,
+        outcome: FriendProfileBulkLoadItemOutcome,
     ) -> bool {
         let Some(owner) = self.friend_profile_bulk_load.lock().unwrap().owner.clone() else {
             return false;
         };
-        self.friend_profile_bulk_load_record_progress(run_id, &owner, loaded, failed)
+        self.friend_profile_bulk_load_record_progress(run_id, &owner, outcome)
     }
 }
 

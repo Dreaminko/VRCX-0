@@ -1,4 +1,6 @@
-use super::*;
+use chrono::{DateTime, Utc};
+use serde_json::Value;
+use vrcx_0_core::friends::FriendRecord;
 
 use super::event_patch::record_string;
 
@@ -13,7 +15,7 @@ pub(super) fn string_or_previous(patch: &Value, previous: &FriendRecord, key: &s
 
 pub(super) use vrcx_0_core::json::JsonExt;
 
-pub(super) fn first_string<'a>(values: impl IntoIterator<Item = Option<&'a str>>) -> String {
+pub(super) fn first_string(values: [Option<&str>; 2]) -> String {
     values
         .into_iter()
         .flatten()

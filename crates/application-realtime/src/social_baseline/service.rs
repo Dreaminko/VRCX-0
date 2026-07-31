@@ -11,7 +11,7 @@ use vrcx_0_vrchat_client::http_api::{
 };
 use vrcx_0_vrchat_client::{favorites as remote_favorites, friends as remote_friends};
 
-use crate::realtime::{FriendBaselineSyncOutcome, RealtimeHostRuntime};
+use crate::realtime::{FriendBaselineSyncOutcome, RealtimeHostRuntime, RealtimeSessionContext};
 use vrcx_0_application_core::RuntimeAuthScope;
 use vrcx_0_application_core::{Error, Result};
 use vrcx_0_application_core::{HostSessionRuntime, WebClient};
@@ -189,9 +189,7 @@ pub async fn build_synced_friend_roster_baseline(
             .await;
 
     let outcome = runtime.sync_friend_snapshot_with_watermark(
-        output.user_id.clone(),
-        endpoint,
-        websocket,
+        RealtimeSessionContext::new(output.user_id.clone(), endpoint, websocket),
         watermark,
         friends_by_id,
         verdicts,

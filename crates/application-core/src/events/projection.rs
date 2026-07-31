@@ -1,5 +1,6 @@
 use serde::Serialize;
 use serde_json::{Map, Value};
+use vrcx_0_core::friends::FriendRecord;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -14,17 +15,17 @@ pub enum FriendStateBucketAuthority {
     Preserve,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, specta::Type)]
+#[derive(Clone, Debug, PartialEq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FriendProjectionPatch {
     pub user_id: String,
-    pub patch: Value,
+    pub patch: FriendRecord,
     pub state_bucket: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state_bucket_authority: Option<FriendStateBucketAuthority>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, specta::Type)]
+#[derive(Clone, Debug, PartialEq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FriendProjection {
     pub generation: u64,
@@ -36,6 +37,19 @@ pub struct FriendProjection {
     #[serde(default)]
     pub feed_entries: Vec<Value>,
     pub friend_log_changed: bool,
+}
+
+impl FriendProjection {
+    pub fn new(generation: u64, baseline_revision: u64) -> Self {
+        Self {
+            generation,
+            baseline_revision,
+            patches: Vec::new(),
+            removals: Vec::new(),
+            feed_entries: Vec::new(),
+            friend_log_changed: false,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, specta::Type)]

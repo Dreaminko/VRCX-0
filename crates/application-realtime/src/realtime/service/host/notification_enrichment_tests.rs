@@ -5,11 +5,11 @@ use super::*;
 fn notification_cache_hits_enrich_projection_and_persistence() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("notification-cache-hit")?;
     world_cache_upsert(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         cached_world_entry("wrld_cached", "Cached World", "2026-01-01T00:00:00.000Z"),
     )?;
-    runtime.world_cache.init_load();
-    runtime.ingest_user_facts(vec![json!({
+    runtime.runtime().world_cache.init_load();
+    runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_sender",
             "displayName": "Cached Sender"
@@ -17,7 +17,7 @@ fn notification_cache_hits_enrich_projection_and_persistence() -> Result<()> {
         "source": "test",
         "isFriend": false
     })]);
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
         "id": "notif-cache-hit",
         "createdAt": "2026-06-21T00:00:00.000Z",
@@ -31,26 +31,28 @@ fn notification_cache_hits_enrich_projection_and_persistence() -> Result<()> {
         }
     });
 
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id.clone(),
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: notification.clone(),
-                insert_defaults: None,
-                notify_menu: true,
-                deliver_runtime: true,
-                run_automation: false,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![notification],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeNotificationProjection")
@@ -61,7 +63,7 @@ fn notification_cache_hits_enrich_projection_and_persistence() -> Result<()> {
     assert_eq!(projected["details"]["worldName"], "Cached World");
 
     let rows = notification_list_query(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         NotificationListQueryInput {
             user_id: active_session.user_id,
             search: String::new(),
@@ -84,7 +86,7 @@ fn notification_cache_hits_enrich_projection_and_persistence() -> Result<()> {
 fn notification_cache_hit_enriches_avatar_image_for_runtime_delivery() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("notification-avatar-cache-hit")?;
-    runtime.ingest_user_facts(vec![json!({
+    runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_sender",
             "displayName": "Cached Sender",
@@ -95,7 +97,7 @@ fn notification_cache_hit_enriches_avatar_image_for_runtime_delivery() -> Result
         "source": "test",
         "isFriend": false
     })]);
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
         "id": "notif-avatar-cache-hit",
         "createdAt": "2026-06-21T00:00:00.000Z",
@@ -105,26 +107,28 @@ fn notification_cache_hit_enriches_avatar_image_for_runtime_delivery() -> Result
         "message": "Friend request"
     });
 
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id.clone(),
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: notification.clone(),
-                insert_defaults: None,
-                notify_menu: true,
-                deliver_runtime: true,
-                run_automation: false,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![notification],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeNotificationProjection")
@@ -150,7 +154,7 @@ fn notification_cache_hit_enriches_avatar_image_for_runtime_delivery() -> Result
 fn notification_avatar_resolves_from_user_id_when_sender_field_absent() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("notification-avatar-user-id")?;
-    runtime.ingest_user_facts(vec![json!({
+    runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_sender",
             "displayName": "Cached Sender",
@@ -161,7 +165,7 @@ fn notification_avatar_resolves_from_user_id_when_sender_field_absent() -> Resul
         "source": "test",
         "isFriend": false
     })]);
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
         "id": "notif-avatar-user-id",
         "createdAt": "2026-06-21T00:00:00.000Z",
@@ -171,26 +175,28 @@ fn notification_avatar_resolves_from_user_id_when_sender_field_absent() -> Resul
         "message": "Friend request"
     });
 
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id.clone(),
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: notification.clone(),
-                insert_defaults: None,
-                notify_menu: true,
-                deliver_runtime: true,
-                run_automation: false,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![notification],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeNotificationProjection")
@@ -207,7 +213,7 @@ fn notification_avatar_resolves_from_user_id_when_sender_field_absent() -> Resul
 fn notification_avatar_fallback_skips_owner_receiver_when_sender_is_absent() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("notification-avatar-receiver")?;
-    runtime.ingest_user_facts(vec![json!({
+    runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_self",
             "displayName": "Self",
@@ -218,7 +224,7 @@ fn notification_avatar_fallback_skips_owner_receiver_when_sender_is_absent() -> 
         "source": "test",
         "isFriend": false
     })]);
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
         "id": "notif-avatar-receiver",
         "createdAt": "2026-06-21T00:00:00.000Z",
@@ -228,26 +234,28 @@ fn notification_avatar_fallback_skips_owner_receiver_when_sender_is_absent() -> 
         "message": "Group announcement"
     });
 
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id.clone(),
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: notification.clone(),
-                insert_defaults: None,
-                notify_menu: true,
-                deliver_runtime: true,
-                run_automation: false,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![notification],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeNotificationProjection")
@@ -268,7 +276,7 @@ fn notification_avatar_fallback_skips_owner_receiver_when_sender_is_absent() -> 
 fn notification_avatar_fallback_skips_current_user_sender() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("notification-avatar-self-sender")?;
-    runtime.ingest_user_facts(vec![json!({
+    runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_self",
             "displayName": "Self",
@@ -279,7 +287,7 @@ fn notification_avatar_fallback_skips_current_user_sender() -> Result<()> {
         "source": "test",
         "isFriend": false
     })]);
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
         "id": "notif-avatar-self-sender",
         "createdAt": "2026-06-21T00:00:00.000Z",
@@ -289,26 +297,28 @@ fn notification_avatar_fallback_skips_current_user_sender() -> Result<()> {
         "message": "Friend request"
     });
 
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id,
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: notification.clone(),
-                insert_defaults: None,
-                notify_menu: true,
-                deliver_runtime: true,
-                run_automation: false,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![notification],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id,
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeNotificationProjection")
@@ -330,11 +340,11 @@ fn notification_avatar_fallback_respects_vrc_plus_icon_preference() -> Result<()
     let (_dir, runtime, active_session) =
         runtime_with_active_session("notification-avatar-vrc-plus-disabled")?;
     config_store::set_bool(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         "displayVRCPlusIconsAsAvatar",
         false,
     )?;
-    runtime.ingest_user_facts(vec![json!({
+    runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_sender",
             "displayName": "Cached Sender",
@@ -345,7 +355,7 @@ fn notification_avatar_fallback_respects_vrc_plus_icon_preference() -> Result<()
         "source": "test",
         "isFriend": false
     })]);
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
         "id": "notif-avatar-vrc-plus-disabled",
         "createdAt": "2026-06-21T00:00:00.000Z",
@@ -355,26 +365,28 @@ fn notification_avatar_fallback_respects_vrc_plus_icon_preference() -> Result<()
         "message": "Friend request"
     });
 
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id,
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: notification.clone(),
-                insert_defaults: None,
-                notify_menu: true,
-                deliver_runtime: true,
-                run_automation: false,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![notification],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id,
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeNotificationProjection")
@@ -388,7 +400,7 @@ fn notification_avatar_fallback_respects_vrc_plus_icon_preference() -> Result<()
 fn notification_avatar_fallback_preserves_existing_image_and_skips_group_sender() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("notification-avatar-existing-and-group")?;
-    runtime.ingest_user_facts(vec![json!({
+    runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_sender",
             "displayName": "Cached Sender",
@@ -398,7 +410,7 @@ fn notification_avatar_fallback_preserves_existing_image_and_skips_group_sender(
         "source": "test",
         "isFriend": false
     })]);
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
     let existing_image = json!({
         "id": "notif-avatar-existing",
         "createdAt": "2026-06-21T00:00:00.000Z",
@@ -417,35 +429,37 @@ fn notification_avatar_fallback_preserves_existing_image_and_skips_group_sender(
         "message": "Group request"
     });
 
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id,
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![
-                RealtimeNotificationUpsert {
-                    notification: existing_image.clone(),
-                    insert_defaults: None,
-                    notify_menu: true,
-                    deliver_runtime: true,
-                    run_automation: false,
-                },
-                RealtimeNotificationUpsert {
-                    notification: group_sender.clone(),
-                    insert_defaults: None,
-                    notify_menu: true,
-                    deliver_runtime: true,
-                    run_automation: false,
-                },
-            ],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![existing_image, group_sender],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id,
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![
+                    RealtimeNotificationUpsert {
+                        notification: existing_image.clone(),
+                        insert_defaults: None,
+                        notify_menu: true,
+                        deliver_runtime: true,
+                        run_automation: false,
+                    },
+                    RealtimeNotificationUpsert {
+                        notification: group_sender.clone(),
+                        insert_defaults: None,
+                        notify_menu: true,
+                        deliver_runtime: true,
+                        run_automation: false,
+                    },
+                ],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![existing_image, group_sender],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeNotificationProjection")
@@ -486,26 +500,28 @@ fn unresolved_person_location_notification_persists_without_runtime_projection()
         }
     });
 
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id.clone(),
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: notification.clone(),
-                insert_defaults: None,
-                notify_menu: true,
-                deliver_runtime: true,
-                run_automation: true,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![notification],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: true,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     assert!(
         events
             .iter()
@@ -514,7 +530,7 @@ fn unresolved_person_location_notification_persists_without_runtime_projection()
     );
 
     let rows = notification_list_query(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         NotificationListQueryInput {
             user_id: active_session.user_id,
             search: String::new(),
@@ -534,6 +550,7 @@ fn unresolved_person_location_notification_persists_without_runtime_projection()
     assert_eq!(row.details["worldName"], "");
     assert!(
         runtime
+            .runtime()
             .state
             .lock()
             .unwrap()
@@ -551,7 +568,11 @@ fn cached_user_notification_image_url_returns_none_before_cache_populated() -> R
         runtime_with_active_session("cached-user-image-url-miss")?;
 
     assert_eq!(
-        runtime.cached_user_notification_image_url(&runtime.active_endpoint(), "usr_target", true),
+        runtime.runtime().cached_user_notification_image_url(
+            &runtime.runtime().active_endpoint(),
+            "usr_target",
+            true
+        ),
         None
     );
     Ok(())
@@ -561,7 +582,7 @@ fn cached_user_notification_image_url_returns_none_before_cache_populated() -> R
 fn cached_user_notification_image_url_reads_realtime_cache_hit() -> Result<()> {
     let (_dir, runtime, _active_session) =
         runtime_with_active_session("cached-user-image-url-hit")?;
-    runtime.ingest_user_facts(vec![json!({
+    runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_target",
             "displayName": "Target",
@@ -571,14 +592,18 @@ fn cached_user_notification_image_url_reads_realtime_cache_hit() -> Result<()> {
         "source": "test",
         "isFriend": false
     })]);
-    let endpoint = runtime.active_endpoint();
+    let endpoint = runtime.runtime().active_endpoint();
 
     assert_eq!(
-        runtime.cached_user_notification_image_url(&endpoint, "usr_target", true),
+        runtime
+            .runtime()
+            .cached_user_notification_image_url(&endpoint, "usr_target", true),
         Some("https://images.example/user-icon.png".into())
     );
     assert_eq!(
-        runtime.cached_user_notification_image_url(&endpoint, "usr_target", false),
+        runtime
+            .runtime()
+            .cached_user_notification_image_url(&endpoint, "usr_target", false),
         Some("https://images.example/profile.png".into())
     );
     Ok(())
@@ -600,25 +625,27 @@ fn notification_v2_update_sanitizes_id_like_names_before_persistence() -> Result
             "worldName": "Initial World"
         }
     });
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id.clone(),
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: initial.clone(),
-                insert_defaults: None,
-                notify_menu: false,
-                deliver_runtime: false,
-                run_automation: false,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_upserts: vec![initial],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
-    runtime.deps.event_bus.take_events_for_test();
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: initial.clone(),
+                    insert_defaults: None,
+                    notify_menu: false,
+                    deliver_runtime: false,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![initial],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
+    runtime.runtime().deps.event_bus.take_events_for_test();
 
     let update = json!({
         "id": "notif-update-sanitize",
@@ -629,35 +656,37 @@ fn notification_v2_update_sanitizes_id_like_names_before_persistence() -> Result
             "worldName": "wrld_missing"
         }
     });
-    runtime.apply_notification_output(RealtimeNotificationOutput {
-        owner_user_id: active_session.user_id.clone(),
-        projection: RealtimeNotificationProjection {
-            generation: 7,
-            upserts: vec![RealtimeNotificationUpsert {
-                notification: update.clone(),
-                insert_defaults: Some(json!({
-                    "createdAt": "2026-06-21T00:01:00.000Z",
-                    "created_at": "2026-06-21T00:01:00.000Z",
-                    "seen": false
-                })),
-                notify_menu: false,
-                deliver_runtime: false,
-                run_automation: false,
-            }],
-            ..RealtimeNotificationProjection::default()
-        },
-        persistence: RealtimePersistenceBatch {
-            notification_v2_updates: vec![NotificationV2Update {
-                id: "notif-update-sanitize".into(),
-                updates: update,
-                received_at: "2026-06-21T00:01:00.000Z".into(),
-            }],
-            ..RealtimePersistenceBatch::default()
-        },
-    });
+    runtime
+        .runtime()
+        .apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: update.clone(),
+                    insert_defaults: Some(json!({
+                        "createdAt": "2026-06-21T00:01:00.000Z",
+                        "created_at": "2026-06-21T00:01:00.000Z",
+                        "seen": false
+                    })),
+                    notify_menu: false,
+                    deliver_runtime: false,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_updates: vec![NotificationV2Update {
+                    id: "notif-update-sanitize".into(),
+                    updates: update,
+                    received_at: "2026-06-21T00:01:00.000Z".into(),
+                }],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
 
     let rows = notification_list_query(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         NotificationListQueryInput {
             user_id: active_session.user_id,
             search: String::new(),

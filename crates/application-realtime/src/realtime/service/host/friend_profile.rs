@@ -1,10 +1,16 @@
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+use serde_json::Value;
+use vrcx_0_application_core::{Error, Result};
+use vrcx_0_vrchat_client::http_api::ApiScope;
+use vrcx_0_vrchat_client::users as remote_users;
 
 use super::message_dispatch::json_string_field;
 use super::state::ActiveRealtimeContext;
-use super::*;
+use super::RealtimeHostRuntime;
 use crate::realtime::user_query_cache::UserQueryKind;
-use crate::realtime::RealtimeUserProjection;
+use crate::realtime::{RealtimeFriendApplyResult, RealtimeUserProjection};
 use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 

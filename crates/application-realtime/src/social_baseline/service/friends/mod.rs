@@ -46,4 +46,6 @@ pub(crate) use baseline::{
     reconcile_friend_roster_records, verify_friend_log_relationship_changes,
     FriendRosterReconcileOutcome,
 };
-pub(super) use state_map::{build_friend_state_map, build_snapshot_friend_ids};
+pub(super) use state_map::{
+    build_friend_state_map, build_snapshot_friend_ids, FriendStateMap, SnapshotFriendIds,
+};

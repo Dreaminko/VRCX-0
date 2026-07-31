@@ -68,7 +68,7 @@ pub(super) fn apply_friend_patch(
     FriendRecordTransition {
         projection: FriendProjectionPatch {
             user_id: user_id.to_string(),
-            patch: serde_json::to_value(&next).unwrap_or(Value::Null),
+            patch: next.clone(),
             state_bucket: state_bucket.to_string(),
             state_bucket_authority: Some(state_bucket_authority),
         },
@@ -231,6 +231,11 @@ mod tests {
         assert_eq!(transition.next.location, "traveling");
         assert_eq!(transition.next.status_description, "hi");
         assert_eq!(transition.next.extra["$location"]["tag"], "traveling");
-        assert!(transition.projection.patch.get("last_platform").is_none());
+        assert!(transition
+            .projection
+            .patch
+            .extra
+            .get("last_platform")
+            .is_none());
     }
 }

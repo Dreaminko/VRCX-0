@@ -1,6 +1,34 @@
+use std::collections::HashMap;
+
+use chrono::Utc;
+use serde_json::{json, Map, Value};
+use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_persistence::realtime::FriendLogUpsert;
+
+use crate::realtime::RealtimeFriendOutput;
+
 use super::event_patch::{record_string, record_value};
-use super::utils::*;
-use super::*;
+use super::utils::{first_non_empty, first_owned, parse_location, string_or_previous, JsonExt};
+
+struct ResolvedLocationNames {
+    world_name: String,
+    group_name: String,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(super) enum FriendRelationshipFeedKind {
+    Friend,
+    Unfriend,
+}
+
+impl FriendRelationshipFeedKind {
+    fn feed_type(self) -> &'static str {
+        match self {
+            Self::Friend => "Friend",
+            Self::Unfriend => "Unfriend",
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(super) struct FriendFieldChange {
@@ -221,7 +249,7 @@ pub(super) fn add_profile_diff_feed_entries(
 }
 
 pub(super) fn friend_relationship_feed_entry(
-    entry_type: &str,
+    relationship: FriendRelationshipFeedKind,
     user_id: &str,
     patch: &Value,
     previous: Option<&FriendRecord>,
@@ -229,7 +257,7 @@ pub(super) fn friend_relationship_feed_entry(
 ) -> Value {
     json!({
         "created_at": created_at,
-        "type": entry_type,
+        "type": relationship.feed_type(),
         "userId": user_id,
         "displayName": display_name(user_id, patch, previous),
     })
@@ -249,10 +277,13 @@ pub(super) fn gps_feed_entry(
     {
         return None;
     }
-    let (world_name, group_name) = if is_real_location(&location) {
+    let location_names = if is_real_location(&location) {
         resolve_location_name(&location, patch, Some(previous))
     } else {
-        (String::new(), String::new())
+        ResolvedLocationNames {
+            world_name: String::new(),
+            group_name: String::new(),
+        }
     };
     Some(json!({
         "created_at": created_at,
@@ -260,10 +291,10 @@ pub(super) fn gps_feed_entry(
         "userId": user_id,
         "displayName": display_name(user_id, patch, Some(previous)),
         "location": location,
-        "worldName": world_name,
+        "worldName": location_names.world_name,
         "previousLocation": previous_location,
         "time": resolve_gps_duration(previous),
-        "groupName": group_name,
+        "groupName": location_names.group_name,
     }))
 }
 
@@ -289,8 +320,7 @@ pub(crate) fn player_joining_feed_entry(
     }))
 }
 
-pub(super) fn online_offline_feed_entry(
-    entry_type: &str,
+pub(super) fn online_feed_entry(
     user_id: &str,
     patch: &Value,
     previous: Option<&FriendRecord>,
@@ -298,19 +328,22 @@ pub(super) fn online_offline_feed_entry(
     time: i64,
     created_at: &str,
 ) -> Value {
-    let (world_name, group_name) = if is_real_location(location) {
+    let location_names = if is_real_location(location) {
         resolve_location_name(location, patch, previous)
     } else {
-        ("".to_string(), "".to_string())
+        ResolvedLocationNames {
+            world_name: String::new(),
+            group_name: String::new(),
+        }
     };
     json!({
         "created_at": created_at,
-        "type": entry_type,
+        "type": "Online",
         "userId": user_id,
         "displayName": display_name(user_id, patch, previous),
         "location": location,
-        "worldName": world_name,
-        "groupName": group_name,
+        "worldName": location_names.world_name,
+        "groupName": location_names.group_name,
         "time": if time > 0 { json!(time) } else { json!("") },
     })
 }
@@ -323,10 +356,13 @@ pub(super) fn offline_feed_entry(
     timestamp_ms: i64,
 ) -> Value {
     let location = previous.location.clone();
-    let (world_name, group_name) = if is_real_location(&location) {
+    let location_names = if is_real_location(&location) {
         resolve_record_location_name(&location, current, Some(previous))
     } else {
-        (String::new(), String::new())
+        ResolvedLocationNames {
+            world_name: String::new(),
+            group_name: String::new(),
+        }
     };
     let time = duration_ms(previous, timestamp_ms);
     json!({
@@ -339,8 +375,8 @@ pub(super) fn offline_feed_entry(
             "Unknown".to_string(),
         ]),
         "location": location,
-        "worldName": world_name,
-        "groupName": group_name,
+        "worldName": location_names.world_name,
+        "groupName": location_names.group_name,
         "time": if time > 0 { json!(time) } else { json!("") },
     })
 }
@@ -430,14 +466,14 @@ pub(super) fn meaningful_name(value: &Value, user_id: &str) -> String {
     .unwrap_or_default()
 }
 
-pub(super) fn resolve_location_name(
+fn resolve_location_name(
     location: &str,
     patch: &Value,
     previous: Option<&FriendRecord>,
-) -> (String, String) {
+) -> ResolvedLocationNames {
     let parsed = parse_location(location);
-    (
-        first_owned([
+    ResolvedLocationNames {
+        world_name: first_owned([
             patch.text_field("worldName"),
             patch
                 .get("world")
@@ -451,24 +487,24 @@ pub(super) fn resolve_location_name(
             parsed.world_id.clone(),
             location.to_string(),
         ]),
-        first_owned([
+        group_name: first_owned([
             patch.text_field("groupName"),
             previous
                 .map(|previous| record_string(previous, "groupName"))
                 .unwrap_or_default(),
             parsed.group_id.clone().unwrap_or_default(),
         ]),
-    )
+    }
 }
 
 fn resolve_record_location_name(
     location: &str,
     current: &FriendRecord,
     previous: Option<&FriendRecord>,
-) -> (String, String) {
+) -> ResolvedLocationNames {
     let parsed = parse_location(location);
-    (
-        first_owned([
+    ResolvedLocationNames {
+        world_name: first_owned([
             record_string(current, "worldName"),
             current
                 .extra
@@ -483,14 +519,14 @@ fn resolve_record_location_name(
             parsed.world_id.clone(),
             location.to_string(),
         ]),
-        first_owned([
+        group_name: first_owned([
             record_string(current, "groupName"),
             previous
                 .map(|previous| record_string(previous, "groupName"))
                 .unwrap_or_default(),
             parsed.group_id.unwrap_or_default(),
         ]),
-    )
+    }
 }
 
 pub(super) fn resolve_previous_location(previous: &FriendRecord) -> String {

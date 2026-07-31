@@ -1,15 +1,16 @@
 use super::test_support::*;
 use super::*;
 use vrcx_0_application_core::HostSessionGameProcessStatus as GameProcessStatus;
+use vrcx_0_core::friends::FriendRecord;
 
 fn joining_output(
     owner_user_id: &str,
     baseline_revision: u64,
     destination: &str,
 ) -> RealtimeFriendOutput {
-    RealtimeFriendOutput {
-        owner_user_id: owner_user_id.to_string(),
-        projection: FriendProjection {
+    RealtimeFriendOutput::from_projection(
+        owner_user_id.to_string(),
+        FriendProjection {
             generation: 7,
             baseline_revision,
             feed_entries: vec![json!({
@@ -20,10 +21,9 @@ fn joining_output(
                 "location": "traveling",
                 "travelingToLocation": destination,
             })],
-            ..FriendProjection::default()
+            ..FriendProjection::new(7, baseline_revision)
         },
-        ..RealtimeFriendOutput::default()
-    }
+    )
 }
 
 #[test]
@@ -31,10 +31,8 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
     let (_dir, runtime, active_session) = runtime_with_active_session("player-joining")?;
     let local_game_context = runtime.local_game_context_for_test();
     let activity_sink = runtime.activity_sink_for_test();
-    let baseline = runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    let baseline = runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [(
             "usr_friend".to_string(),
@@ -50,11 +48,11 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
         .into_iter()
         .collect(),
     )?;
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
     activity_sink.take_friend_projections();
     local_game_context.set_location("wrld_current:456");
     let apply_joining = |destination: &str| {
-        runtime.apply_friend_output(joining_output(
+        runtime.runtime().apply_friend_output(joining_output(
             &active_session.user_id,
             baseline.baseline_revision,
             destination,
@@ -68,6 +66,7 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
         .all(|projection| projection.feed_entries.is_empty()));
 
     runtime
+        .runtime()
         .deps
         .session
         .apply_game_process_status(GameProcessStatus {
@@ -99,7 +98,7 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0]["type"], "OnPlayerJoining");
     assert_eq!(entries[0]["userId"], "usr_friend");
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     assert!(events
         .iter()
         .filter(|event| event.name == "realtimeFriendProjection")
@@ -115,6 +114,7 @@ fn initial_traveling_baseline_emits_player_joining() -> Result<()> {
     let local_game_context = runtime.local_game_context_for_test();
     let activity_sink = runtime.activity_sink_for_test();
     runtime
+        .runtime()
         .deps
         .session
         .apply_game_process_status(GameProcessStatus {
@@ -124,10 +124,8 @@ fn initial_traveling_baseline_emits_player_joining() -> Result<()> {
         });
     local_game_context.set_location("wrld_current:456");
 
-    runtime.sync_friend_snapshot(
-        active_session.user_id,
-        active_session.endpoint,
-        active_session.websocket,
+    runtime.runtime().sync_friend_snapshot(
+        active_session,
         Some(7),
         [(
             "usr_friend".to_string(),
@@ -153,7 +151,7 @@ fn initial_traveling_baseline_emits_player_joining() -> Result<()> {
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0]["type"], "OnPlayerJoining");
     assert_eq!(entries[0]["userId"], "usr_friend");
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeFriendProjection")

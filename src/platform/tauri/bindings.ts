@@ -3827,9 +3827,36 @@ export type FriendProjection = {
 };
 export type FriendProjectionPatch = {
     userId: string;
-    patch: JsonValue;
+    patch: FriendRecord;
     stateBucket: string;
     stateBucketAuthority?: FriendStateBucketAuthority | null;
+};
+export type FriendRecord = Partial<{
+    [key in string]:
+        | null
+        | boolean
+        | number
+        | string
+        | JsonValue[]
+        | Partial<{ [key in string]: JsonValue }>;
+}> & {
+    id?: string;
+    displayName?: string;
+    username?: string;
+    state?: string;
+    stateBucket?: string;
+    location?: string;
+    travelingToLocation?: string;
+    worldId?: string;
+    platform?: string;
+    lastPlatform?: string;
+    status?: string;
+    statusDescription?: string;
+    bio?: string;
+    currentAvatarImageUrl?: string;
+    currentAvatarThumbnailImageUrl?: string;
+    currentAvatarAuthorId?: string;
+    currentAvatarName?: string;
 };
 export type FriendStateBucketAuthority = 'explicit' | 'preserve';
 export type GameClientEvent =

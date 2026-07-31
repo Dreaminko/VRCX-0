@@ -277,7 +277,7 @@ mod tests {
         else {
             panic!("friend-online should produce an output");
         };
-        let (_, schedules) = runtime.set_baseline_with_schedules(
+        let effects = runtime.set_baseline_with_effects(
             FriendRosterBaseline {
                 current_user_id: "usr_self".into(),
                 friends_by_id: [(
@@ -296,6 +296,7 @@ mod tests {
             },
             1,
             1,
+            None,
         );
 
         let snapshot = runtime.snapshot().expect("baseline present");
@@ -305,7 +306,7 @@ mod tests {
             .expect("friend present");
         assert_eq!(friend.state_bucket, "online");
         assert_eq!(friend.extra.get("pendingOffline"), Some(&json!(false)));
-        assert!(schedules.is_empty());
+        assert!(effects.schedules.is_empty());
     }
 
     #[test]

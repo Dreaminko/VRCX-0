@@ -1,6 +1,11 @@
+use std::collections::HashMap;
+
 use super::friend_profile::FriendProfileRefreshExpectation;
 use super::test_support::*;
 use super::*;
+use crate::realtime::RealtimeSessionContext;
+use vrcx_0_application_core::RuntimeAuthScope;
+use vrcx_0_core::friends::FriendRecord;
 
 #[test]
 fn sync_friend_snapshot_debounces_online_to_offline() -> Result<()> {
@@ -17,14 +22,10 @@ fn sync_friend_snapshot_debounces_online_to_offline() -> Result<()> {
             ..FriendRecord::default()
         },
     );
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        initial_friends,
-    )?;
-    runtime.deps.event_bus.take_events_for_test();
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), initial_friends)?;
+    runtime.runtime().deps.event_bus.take_events_for_test();
 
     let mut refreshed_friends = HashMap::new();
     refreshed_friends.insert(
@@ -38,15 +39,13 @@ fn sync_friend_snapshot_debounces_online_to_offline() -> Result<()> {
             ..FriendRecord::default()
         },
     );
-    let result = runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    let result = runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         refreshed_friends,
     )?;
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeFriendProjection")
@@ -89,16 +88,14 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
             ..FriendRecord::default()
         },
     );
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        initial_friends,
-    )?;
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), initial_friends)?;
 
-    let RealtimeFriendApplyResult::Output(pending_output) =
-        runtime.friends.apply_ws_message(&RealtimeWsMessagePayload {
+    let RealtimeFriendApplyResult::Output(pending_output) = runtime
+        .runtime()
+        .friends
+        .apply_ws_message(&RealtimeWsMessagePayload {
             json: json!({
                 "type": "friend-offline",
                 "content": { "userId": "usr_friend" }
@@ -109,9 +106,9 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
     else {
         panic!("friend-offline should produce an output");
     };
-    runtime.apply_friend_output(*pending_output);
-    runtime.deps.event_bus.take_events_for_test();
-    let watermark = runtime.capture_friend_baseline_watermark()?;
+    runtime.runtime().apply_friend_output(*pending_output);
+    runtime.runtime().deps.event_bus.take_events_for_test();
+    let watermark = runtime.runtime().capture_friend_baseline_watermark()?;
 
     let mut refreshed_friends = HashMap::new();
     refreshed_friends.insert(
@@ -125,16 +122,14 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
             ..FriendRecord::default()
         },
     );
-    runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
         watermark,
         refreshed_friends.clone(),
         FriendStatusVerdicts::default(),
     )?;
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeFriendProjection")
@@ -155,6 +150,7 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
     assert_eq!(projection.payload["feedEntries"][0]["type"], "Offline");
     assert_eq!(
         runtime
+            .runtime()
             .friend_snapshot()
             .unwrap()
             .friends_by_id
@@ -167,16 +163,14 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         event.name == "backendRuntimeTelemetry" && event.payload["kind"] == "wsPersisted"
     }));
 
-    let repeated_watermark = runtime.capture_friend_baseline_watermark()?;
-    runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    let repeated_watermark = runtime.runtime().capture_friend_baseline_watermark()?;
+    runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
         repeated_watermark,
         refreshed_friends,
         FriendStatusVerdicts::default(),
     )?;
-    let repeated_events = runtime.deps.event_bus.take_events_for_test();
+    let repeated_events = runtime.runtime().deps.event_bus.take_events_for_test();
     assert!(repeated_events.iter().all(|event| {
         event.name != "realtimeFriendProjection"
             || event.payload["feedEntries"]
@@ -187,7 +181,7 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         event.name != "backendRuntimeTelemetry" || event.payload["kind"] != "wsPersisted"
     }));
     let persisted_rows = vrcx_0_persistence::feed::feed_rows_query(
-        &runtime.deps.db,
+        &runtime.runtime().deps.db,
         vrcx_0_persistence::feed::FeedRowsQueryInput {
             user_id: active_session.user_id,
             mode: "recent".into(),
@@ -211,10 +205,8 @@ fn host_watermark_preserves_pending_created_after_capture() -> Result<()> {
     for (state_bucket, location) in [("online", "wrld_old:123"), ("offline", "offline")] {
         let (_dir, runtime, active_session) =
             runtime_with_active_session(&format!("host-stale-watermark-{state_bucket}"))?;
-        runtime.sync_friend_snapshot(
-            active_session.user_id.clone(),
-            active_session.endpoint.clone(),
-            active_session.websocket.clone(),
+        runtime.runtime().sync_friend_snapshot(
+            active_session.clone(),
             Some(7),
             [(
                 "usr_friend".to_string(),
@@ -230,9 +222,11 @@ fn host_watermark_preserves_pending_created_after_capture() -> Result<()> {
             .into_iter()
             .collect(),
         )?;
-        let stale_watermark = runtime.capture_friend_baseline_watermark()?;
-        let RealtimeFriendApplyResult::Output(pending_output) =
-            runtime.friends.apply_ws_message(&RealtimeWsMessagePayload {
+        let stale_watermark = runtime.runtime().capture_friend_baseline_watermark()?;
+        let RealtimeFriendApplyResult::Output(pending_output) = runtime
+            .runtime()
+            .friends
+            .apply_ws_message(&RealtimeWsMessagePayload {
                 json: json!({
                     "type": "friend-offline",
                     "content": { "userId": "usr_friend" }
@@ -246,13 +240,11 @@ fn host_watermark_preserves_pending_created_after_capture() -> Result<()> {
         let PendingOfflineTimerAction::Schedule { token, .. } = pending_output.timer_action else {
             panic!("friend-offline should schedule a timer");
         };
-        runtime.apply_friend_output(*pending_output);
-        runtime.deps.event_bus.take_events_for_test();
+        runtime.runtime().apply_friend_output(*pending_output);
+        runtime.runtime().deps.event_bus.take_events_for_test();
 
-        runtime.sync_friend_snapshot_with_watermark(
-            active_session.user_id.clone(),
-            active_session.endpoint.clone(),
-            active_session.websocket.clone(),
+        runtime.runtime().sync_friend_snapshot_with_watermark(
+            active_session.clone(),
             stale_watermark,
             [(
                 "usr_friend".to_string(),
@@ -270,17 +262,19 @@ fn host_watermark_preserves_pending_created_after_capture() -> Result<()> {
             FriendStatusVerdicts::default(),
         )?;
 
-        let snapshot = runtime.friend_snapshot().unwrap();
+        let snapshot = runtime.runtime().friend_snapshot().unwrap();
         let friend = snapshot.friends_by_id.get("usr_friend").unwrap();
         assert_eq!(friend.state_bucket, "online");
         assert_eq!(friend.extra.get("pendingOffline"), Some(&json!(true)));
         assert!(runtime
+            .runtime()
             .deps
             .event_bus
             .take_events_for_test()
             .iter()
             .all(|event| event.name != "realtimeFriendProjection"));
         let fired = runtime
+            .runtime()
             .friends
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .expect("the original pending timer should remain active");
@@ -293,10 +287,8 @@ fn host_watermark_preserves_pending_created_after_capture() -> Result<()> {
 fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("host-online-cancel-watermark")?;
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [(
             "usr_friend".to_string(),
@@ -312,8 +304,10 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
         .into_iter()
         .collect(),
     )?;
-    let RealtimeFriendApplyResult::Output(pending_output) =
-        runtime.friends.apply_ws_message(&RealtimeWsMessagePayload {
+    let RealtimeFriendApplyResult::Output(pending_output) = runtime
+        .runtime()
+        .friends
+        .apply_ws_message(&RealtimeWsMessagePayload {
             json: json!({
                 "type": "friend-offline",
                 "content": { "userId": "usr_friend" }
@@ -327,9 +321,10 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
     let PendingOfflineTimerAction::Schedule { token, .. } = pending_output.timer_action else {
         panic!("friend-offline should schedule a timer");
     };
-    runtime.apply_friend_output(*pending_output);
-    let stale_watermark = runtime.capture_friend_baseline_watermark()?;
+    runtime.runtime().apply_friend_output(*pending_output);
+    let stale_watermark = runtime.runtime().capture_friend_baseline_watermark()?;
     let active = runtime
+        .runtime()
         .state
         .lock()
         .unwrap()
@@ -337,7 +332,7 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
         .active_context
         .clone()
         .unwrap();
-    runtime.handle_friend_ws_message(
+    runtime.runtime().handle_friend_ws_message(
         active.generation,
         active.session_generation,
         &active.session,
@@ -358,12 +353,10 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
             received_at: "2026-05-15T00:00:01Z".into(),
         },
     );
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
 
-    let outcome = runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id,
-        active_session.endpoint,
-        active_session.websocket,
+    let outcome = runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
         stale_watermark,
         [(
             "usr_friend".to_string(),
@@ -388,12 +381,14 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
     assert_eq!(friend.location, "wrld_new:456");
     assert_ne!(friend.extra.get("pendingOffline"), Some(&json!(true)));
     assert!(runtime
+        .runtime()
         .deps
         .event_bus
         .take_events_for_test()
         .iter()
         .all(|event| event.name != "realtimeFriendProjection"));
     assert!(runtime
+        .runtime()
         .friends
         .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
         .is_none());
@@ -412,18 +407,20 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
         location: "wrld_old:123".to_string(),
         ..FriendRecord::default()
     };
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [("usr_friend".to_string(), stale_friend.clone())]
             .into_iter()
             .collect(),
     )?;
-    config_store::set_bool(runtime.deps.db.as_ref(), "friendLogInit_usr_self", true)?;
+    config_store::set_bool(
+        runtime.runtime().deps.db.as_ref(),
+        "friendLogInit_usr_self",
+        true,
+    )?;
     write_realtime_batch(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         &active_session.user_id,
         &RealtimePersistenceBatch {
             friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
@@ -437,8 +434,9 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
             ..RealtimePersistenceBatch::default()
         },
     )?;
-    let stale_watermark = runtime.capture_friend_baseline_watermark()?;
+    let stale_watermark = runtime.runtime().capture_friend_baseline_watermark()?;
     let active = runtime
+        .runtime()
         .state
         .lock()
         .unwrap()
@@ -446,7 +444,7 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
         .active_context
         .clone()
         .unwrap();
-    runtime.handle_friend_ws_message(
+    runtime.runtime().handle_friend_ws_message(
         active.generation,
         active.session_generation,
         &active.session,
@@ -459,12 +457,10 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
             received_at: "2026-05-15T00:00:01Z".into(),
         },
     );
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
 
-    let outcome = runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id.clone(),
-        active_session.endpoint,
-        active_session.websocket,
+    let outcome = runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
         stale_watermark,
         [("usr_friend".to_string(), stale_friend)]
             .into_iter()
@@ -480,11 +476,12 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
         .friends_by_id
         .contains_key("usr_friend"));
     assert!(vrcx_0_persistence::friends::friend_log_current_list(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         active_session.user_id,
     )?
     .is_empty());
     assert!(runtime
+        .runtime()
         .deps
         .event_bus
         .take_events_for_test()
@@ -504,17 +501,15 @@ fn causal_watermark_rejects_baseline_after_local_friend_log_mutation() -> Result
         state_bucket: "online".to_string(),
         ..FriendRecord::default()
     };
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [("usr_friend".to_string(), friend.clone())]
             .into_iter()
             .collect(),
     )?;
     write_realtime_batch(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         &active_session.user_id,
         &RealtimePersistenceBatch {
             friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
@@ -528,19 +523,17 @@ fn causal_watermark_rejects_baseline_after_local_friend_log_mutation() -> Result
             ..RealtimePersistenceBatch::default()
         },
     )?;
-    let stale_watermark = runtime.capture_friend_baseline_watermark()?;
-    runtime.run_friend_log_current_mutation(|| {
+    let stale_watermark = runtime.runtime().capture_friend_baseline_watermark()?;
+    runtime.runtime().run_friend_log_current_mutation(|| {
         vrcx_0_persistence::friends::friend_log_delete_current(
-            runtime.deps.db.as_ref(),
+            runtime.runtime().deps.db.as_ref(),
             active_session.user_id.clone(),
             "usr_friend".into(),
         )
     })?;
 
-    let outcome = runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id.clone(),
-        active_session.endpoint,
-        active_session.websocket,
+    let outcome = runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
         stale_watermark,
         [("usr_friend".to_string(), friend)].into_iter().collect(),
         FriendStatusVerdicts::default(),
@@ -549,7 +542,7 @@ fn causal_watermark_rejects_baseline_after_local_friend_log_mutation() -> Result
     assert!(!outcome.result.accepted);
     assert!(outcome.snapshot.is_none());
     assert!(vrcx_0_persistence::friends::friend_log_current_list(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         active_session.user_id,
     )?
     .is_empty());
@@ -1178,9 +1171,13 @@ fn first_time_init_treats_friend_accepted_during_init_window_as_preexisting() ->
 #[test]
 fn active_baseline_trust_change_fans_out_after_atomic_persistence() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("active-baseline-trust")?;
-    config_store::set_bool(runtime.deps.db.as_ref(), "friendLogInit_usr_self", true)?;
+    config_store::set_bool(
+        runtime.runtime().deps.db.as_ref(),
+        "friendLogInit_usr_self",
+        true,
+    )?;
     write_realtime_batch(
-        runtime.deps.db.as_ref(),
+        runtime.runtime().deps.db.as_ref(),
         "usr_self",
         &RealtimePersistenceBatch {
             friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
@@ -1194,7 +1191,7 @@ fn active_baseline_trust_change_fans_out_after_atomic_persistence() -> Result<()
             ..RealtimePersistenceBatch::default()
         },
     )?;
-    let watermark = runtime.capture_friend_baseline_watermark()?;
+    let watermark = runtime.runtime().capture_friend_baseline_watermark()?;
     let friend = FriendRecord {
         id: "usr_friend".into(),
         display_name: "Friend".into(),
@@ -1204,17 +1201,15 @@ fn active_baseline_trust_change_fans_out_after_atomic_persistence() -> Result<()
         ..FriendRecord::default()
     };
 
-    let outcome = runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id,
-        active_session.endpoint,
-        active_session.websocket,
+    let outcome = runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
         watermark,
         [("usr_friend".to_string(), friend)].into_iter().collect(),
         FriendStatusVerdicts::default(),
     )?;
 
     assert!(outcome.friend_log_changed);
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let trust_entries = events
         .iter()
         .filter(|event| event.name == "realtimeFriendProjection")
@@ -1250,26 +1245,16 @@ fn causal_watermark_rejects_superseded_baseline() -> Result<()> {
         .into_iter()
         .collect()
     };
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        friend("Initial"),
-    )?;
-    let stale_watermark = runtime.capture_friend_baseline_watermark()?;
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        friend("Newer"),
-    )?;
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), friend("Initial"))?;
+    let stale_watermark = runtime.runtime().capture_friend_baseline_watermark()?;
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), friend("Newer"))?;
 
-    let result = runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id,
-        active_session.endpoint,
-        active_session.websocket,
+    let result = runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
         stale_watermark,
         friend("Stale"),
         FriendStatusVerdicts::default(),
@@ -1279,6 +1264,7 @@ fn causal_watermark_rejects_superseded_baseline() -> Result<()> {
     assert_eq!(result.result.baseline_revision, 1);
     assert_eq!(
         runtime
+            .runtime()
             .friend_snapshot()
             .unwrap()
             .friends_by_id
@@ -1293,23 +1279,17 @@ fn causal_watermark_rejects_superseded_baseline() -> Result<()> {
 #[test]
 fn causal_baseline_from_stopped_generation_is_not_cached() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("stopped-watermark")?;
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        HashMap::new(),
-    )?;
-    let watermark = runtime.capture_friend_baseline_watermark()?;
-    runtime.stop(RealtimeStopRequest {
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), HashMap::new())?;
+    let watermark = runtime.runtime().capture_friend_baseline_watermark()?;
+    runtime.runtime().stop(RealtimeStopRequest {
         generation: Some(7),
         ..RealtimeStopRequest::default()
     });
 
-    let result = runtime.sync_friend_snapshot_with_watermark(
-        active_session.user_id,
-        active_session.endpoint,
-        active_session.websocket,
+    let result = runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
         watermark,
         HashMap::new(),
         FriendStatusVerdicts::default(),
@@ -1317,6 +1297,7 @@ fn causal_baseline_from_stopped_generation_is_not_cached() -> Result<()> {
 
     assert!(!result.result.accepted);
     assert!(runtime
+        .runtime()
         .state
         .lock()
         .unwrap()
@@ -1331,7 +1312,7 @@ fn stop_with_unavailable_local_game_context_skips_game_running_output() -> Resul
     let (_dir, runtime, _) = runtime_with_unavailable_game_context_active_session(
         "stop-unavailable-local-game-context",
     )?;
-    runtime.current_user.set_snapshot(
+    runtime.runtime().current_user.set_snapshot(
         "usr_self".into(),
         7,
         json!({
@@ -1340,14 +1321,15 @@ fn stop_with_unavailable_local_game_context_skips_game_running_output() -> Resul
             "$previousAvatarSwapTime": 1_000
         }),
     );
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
 
-    runtime.stop(RealtimeStopRequest {
+    runtime.runtime().stop(RealtimeStopRequest {
         generation: Some(7),
         ..RealtimeStopRequest::default()
     });
 
     assert!(!runtime
+        .runtime()
         .deps
         .event_bus
         .take_events_for_test()
@@ -1370,28 +1352,21 @@ fn sync_friend_snapshot_emits_projection_for_active_removals() -> Result<()> {
             ..FriendRecord::default()
         },
     );
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        initial_friends,
-    )?;
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), initial_friends)?;
     assert_eq!(
         runtime.activity_sink_for_test().friend_user_ids(),
         vec!["usr_removed".to_string()]
     );
-    runtime.deps.event_bus.take_events_for_test();
+    runtime.runtime().deps.event_bus.take_events_for_test();
 
-    let result = runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        HashMap::new(),
-    )?;
+    let result =
+        runtime
+            .runtime()
+            .sync_friend_snapshot(active_session.clone(), Some(7), HashMap::new())?;
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeFriendProjection")
@@ -1403,7 +1378,12 @@ fn sync_friend_snapshot_emits_projection_for_active_removals() -> Result<()> {
         projection.payload["removals"].as_array().unwrap(),
         &vec![json!("usr_removed")]
     );
-    assert!(runtime.friend_snapshot().unwrap().friends_by_id.is_empty());
+    assert!(runtime
+        .runtime()
+        .friend_snapshot()
+        .unwrap()
+        .friends_by_id
+        .is_empty());
     assert!(runtime
         .activity_sink_for_test()
         .friend_user_ids()
@@ -1426,19 +1406,16 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
             ..FriendRecord::default()
         },
     );
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        friends_by_id,
-    )?;
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), friends_by_id)?;
 
     let friend_sequence = runtime
+        .runtime()
         .friends
         .friend_state_sequence_for_user(7, "usr_friend")
         .expect("friend should have a causal sequence");
-    let updated = runtime.apply_friend_profile_refresh(
+    let updated = runtime.runtime().apply_friend_profile_refresh(
         active_session.endpoint.clone(),
         "usr_friend".into(),
         json!({
@@ -1452,7 +1429,7 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
             sequence: friend_sequence,
         },
     )?;
-    let stranger_added = runtime.apply_friend_profile_refresh(
+    let stranger_added = runtime.runtime().apply_friend_profile_refresh(
         active_session.endpoint.clone(),
         "usr_stranger".into(),
         json!({
@@ -1466,7 +1443,7 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
         },
     )?;
 
-    let snapshot = runtime.friend_snapshot().unwrap();
+    let snapshot = runtime.runtime().friend_snapshot().unwrap();
     let friend = snapshot.friends_by_id.get("usr_friend").unwrap();
     assert!(updated);
     assert!(!stranger_added);
@@ -1487,21 +1464,18 @@ fn friend_projection_clears_feed_entries_when_persistence_fails() -> Result<()> 
         "displayName": "Friend"
     });
 
-    runtime.apply_friend_output(RealtimeFriendOutput {
-        owner_user_id: active_session.user_id,
-        projection: FriendProjection {
+    let mut output = RealtimeFriendOutput::from_projection(
+        active_session.user_id,
+        FriendProjection {
             generation: 7,
             feed_entries: vec![feed_entry.clone()],
-            ..FriendProjection::default()
+            ..FriendProjection::new(7, 0)
         },
-        persistence: RealtimePersistenceBatch {
-            feed_entries: vec![feed_entry],
-            ..RealtimePersistenceBatch::default()
-        },
-        ..RealtimeFriendOutput::default()
-    });
+    );
+    output.persistence.feed_entries.push(feed_entry);
+    runtime.runtime().apply_friend_output(output);
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let projection = events
         .iter()
         .find(|event| event.name == "realtimeFriendProjection")
@@ -1584,9 +1558,7 @@ fn friend_note_change_notifies_note_cache_sink() -> Result<()> {
     };
     friend.extra.insert("note".into(), json!("old note"));
     runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+        active_session.clone(),
         Some(7),
         [("usr_friend".to_string(), friend)].into_iter().collect(),
     )?;

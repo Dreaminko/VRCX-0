@@ -1,19 +1,33 @@
+use serde_json::{json, Value};
+use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_core::trust::{trust_level_changed, trust_level_differs};
+use vrcx_0_persistence::realtime::FriendLogDelete;
+
+use crate::realtime::{
+    FriendStateBucketAuthority, PendingOfflineTimerAction, RealtimeFriendOutput,
+};
+
 use super::persistence::{
     add_profile_diff_feed_entries, friend_log_upsert, friend_relationship_feed_entry,
     gps_feed_entry, is_online_state, is_private_location, meaningful_name, meaningful_record_name,
-    online_offline_feed_entry, player_joining_feed_entry, trust_level_feed_entry,
-    value_equal_for_diff, FriendChangedProps,
+    online_feed_entry, player_joining_feed_entry, trust_level_feed_entry, value_equal_for_diff,
+    FriendChangedProps, FriendRelationshipFeedKind,
 };
 use super::state::{PendingOffline, RealtimeFriendState, PENDING_OFFLINE_DELAY_MS};
-use super::utils::*;
-use super::*;
+use super::utils::{first_owned, parse_location, EventTime, JsonExt};
 
 mod event_split;
 mod patch_builders;
 mod record_transition;
 
 use event_split::{location_presence, profile_patch, EventSource};
-use patch_builders::*;
+#[cfg(test)]
+use patch_builders::event_user_patch;
+use patch_builders::{
+    event_user_id, is_online_location_proof, normalize_friend_update_location_patch,
+    normalize_patch_trust, offline_like_patch, online_patch, resolve_state_bucket,
+    state_bucket_changed,
+};
 use record_transition::apply_friend_patch;
 pub(super) use record_transition::{record_string, record_value, FriendRecordPatch};
 
@@ -136,7 +150,7 @@ fn apply_friend_event_with_source(
                     .persistence
                     .feed_entries
                     .push(friend_relationship_feed_entry(
-                        "Friend",
+                        FriendRelationshipFeedKind::Friend,
                         &user_id,
                         &patch,
                         previous.as_ref(),
@@ -163,7 +177,7 @@ fn apply_friend_event_with_source(
                 .persistence
                 .feed_entries
                 .push(friend_relationship_feed_entry(
-                    "Unfriend",
+                    FriendRelationshipFeedKind::Unfriend,
                     &user_id,
                     &patch,
                     previous.as_ref(),
@@ -274,18 +288,14 @@ fn apply_friend_event_with_source(
                     .map(is_online_state)
                     .unwrap_or(false)
             {
-                output
-                    .persistence
-                    .feed_entries
-                    .push(online_offline_feed_entry(
-                        "Online",
-                        &user_id,
-                        &patch,
-                        previous_record.as_ref(),
-                        &patch.text_field("location"),
-                        0,
-                        &now.iso,
-                    ));
+                output.persistence.feed_entries.push(online_feed_entry(
+                    &user_id,
+                    &patch,
+                    previous_record.as_ref(),
+                    &patch.text_field("location"),
+                    0,
+                    &now.iso,
+                ));
             } else if let Some(previous) = previous_record.as_ref() {
                 add_gps_feed_entry_if_not_repeated(
                     state,

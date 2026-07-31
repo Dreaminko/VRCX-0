@@ -1,11 +1,104 @@
-use super::*;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
+
+use serde_json::Value;
+use tokio::sync::{broadcast, watch};
+use vrcx_0_application_core::{
+    HostSessionRuntime, LocalGameContextSource, OverlayActivityInputSink, PrintCleanupInputSink,
+    RuntimeAuthScope, RuntimeEventBus, RuntimeSyncEngine, TaskSupervisor, WebClient, WorldCache,
+};
+use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_persistence::DatabaseService;
+use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
+
+use crate::realtime::current_user::RealtimeCurrentUserRuntime;
+use crate::realtime::friends::RealtimeFriendsRuntime;
 use crate::realtime::invite_automation::runtime::InviteAutomationState;
+use crate::realtime::user_cache::UserCacheRuntime;
+use crate::realtime::user_query_cache::UserQueryCache;
+use crate::realtime::{
+    FriendProjection, FriendStateBucketAuthority, RealtimeSessionContext,
+    RealtimeTransportLifecycleEvent,
+};
 use crate::world_enrich::PendingEntryCorrection;
-use std::collections::HashSet;
-use vrcx_0_application_core::WorldCache;
 
 pub(super) struct FriendOwnerGuard<'a> {
     pub(super) _guard: std::sync::MutexGuard<'a, ()>,
+}
+
+pub(super) enum FriendLogMutation {
+    Remove { user_id: String },
+    Upsert { record: FriendRecord },
+}
+
+pub(super) struct ScopedFriendLogMutation {
+    owner_user_id: String,
+    endpoint: String,
+    mutation: FriendLogMutation,
+}
+
+impl ScopedFriendLogMutation {
+    pub(super) fn new(owner_user_id: &str, endpoint: &str, mutation: FriendLogMutation) -> Self {
+        Self {
+            owner_user_id: owner_user_id.trim().to_string(),
+            endpoint: normalize_vrchat_api_endpoint(Some(endpoint)),
+            mutation,
+        }
+    }
+
+    pub(super) fn apply(self, baseline: &mut FriendBaselineState) {
+        let Some(pending) = baseline.pending.as_mut() else {
+            return;
+        };
+        if pending.session.user_id.trim() != self.owner_user_id
+            || normalize_vrchat_api_endpoint(Some(&pending.session.endpoint)) != self.endpoint
+        {
+            return;
+        }
+
+        match self.mutation {
+            FriendLogMutation::Remove { user_id } => {
+                pending.friends_by_id.remove(&user_id);
+                pending
+                    .projection
+                    .patches
+                    .retain(|patch| patch.user_id != user_id);
+                if !pending
+                    .projection
+                    .removals
+                    .iter()
+                    .any(|removed_user_id| removed_user_id == &user_id)
+                {
+                    pending.projection.removals.push(user_id);
+                }
+            }
+            FriendLogMutation::Upsert { record } => {
+                let user_id = record.id.clone();
+                let state_bucket = record.state_bucket.clone();
+                pending
+                    .friends_by_id
+                    .insert(user_id.clone(), record.clone());
+                pending
+                    .projection
+                    .removals
+                    .retain(|removed_user_id| removed_user_id != &user_id);
+                pending
+                    .projection
+                    .patches
+                    .retain(|existing| existing.user_id != user_id);
+                pending
+                    .projection
+                    .patches
+                    .push(crate::realtime::FriendProjectionPatch {
+                        user_id,
+                        patch: record,
+                        state_bucket,
+                        state_bucket_authority: Some(FriendStateBucketAuthority::Explicit),
+                    });
+            }
+        }
+        pending.projection.friend_log_changed = true;
+    }
 }
 
 #[derive(Clone, Debug)]

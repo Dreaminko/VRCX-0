@@ -1,10 +1,23 @@
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex, MutexGuard};
+
+use chrono::Utc;
+use serde_json::{json, Value};
+use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
+use vrcx_0_core::realtime::RealtimeWsMessagePayload;
+use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
+
+use crate::realtime::{
+    FriendBaselineCausalWatermark, FriendBaselineResult, FriendStateBucketAuthority,
+    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
+};
+
 use super::event_patch::{
     apply_friend_event, apply_record_patch_to_state, apply_refetched_friend_profile_event,
     apply_trusted_friend_add_event, FriendEventKind, FriendRecordPatch,
 };
 use super::persistence::{is_online_state, offline_feed_entry};
 use super::utils::EventTime;
-use super::*;
 
 pub(super) use crate::realtime::runtime_types::PENDING_OFFLINE_DELAY_MS;
 
@@ -31,6 +44,28 @@ pub(crate) struct FriendBaselineEffects {
     pub(crate) result: FriendBaselineResult,
     pub(crate) schedules: Vec<PendingOfflineSchedule>,
     pub(crate) confirmed_feed_entries: Vec<Value>,
+}
+
+pub(crate) enum SyntheticFriendEvent {
+    Delete { user_id: String },
+    TrustedAdd { user_id: String, profile: Value },
+}
+
+#[derive(Clone, Copy)]
+enum FriendEventTrust {
+    Untrusted,
+    TrustedFriendAdd,
+}
+
+struct ExpectedFriendScope<'a> {
+    owner_user_id: &'a str,
+    endpoint: &'a str,
+}
+
+struct OfflineBaselineTransition {
+    user_id: String,
+    next: FriendRecord,
+    previous: FriendRecord,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -77,22 +112,6 @@ impl RealtimeFriendsRuntime {
             .result
     }
 
-    pub fn set_baseline_with_schedules(
-        &self,
-        baseline: FriendRosterBaseline,
-        realtime_generation: u64,
-        baseline_revision: u64,
-    ) -> (FriendBaselineResult, Vec<(String, u64, u64)>) {
-        let effects = self.apply_baseline(baseline, realtime_generation, baseline_revision, None);
-        let schedules = effects
-            .schedules
-            .into_iter()
-            .map(|schedule| (schedule.user_id, schedule.token, schedule.delay_ms))
-            .collect();
-        let result = effects.result;
-        (result, schedules)
-    }
-
     pub(crate) fn set_baseline_with_effects(
         &self,
         baseline: FriendRosterBaseline,
@@ -123,9 +142,9 @@ impl RealtimeFriendsRuntime {
             .as_ref()
             .is_some_and(|snapshot| snapshot.generation == generation);
         state.generation = state.generation.max(generation);
-        let mut pending_to_create: Vec<(String, FriendRecord, FriendRecord)> = Vec::new();
+        let mut pending_to_create = Vec::new();
         let mut resolved_pending_ids = HashSet::new();
-        let mut confirmed_pending: Vec<(String, FriendRecord, FriendRecord)> = Vec::new();
+        let mut confirmed_pending = Vec::new();
         let friend_state_sequence_watermark = friend_state_sequence_watermark.unwrap_or(0);
         let mut stale_incoming_ids = HashSet::new();
         let mut newer_missing_records = Vec::new();
@@ -180,20 +199,20 @@ impl RealtimeFriendsRuntime {
                         .extra
                         .insert("pendingOffline".into(), Value::Bool(false));
                     if matches!(record.state_bucket.as_str(), "offline" | "active") {
-                        confirmed_pending.push((
-                            user_id.clone(),
-                            record.clone(),
-                            pending.previous.clone(),
-                        ));
+                        confirmed_pending.push(OfflineBaselineTransition {
+                            user_id: user_id.clone(),
+                            next: record.clone(),
+                            previous: pending.previous.clone(),
+                        });
                     }
                 } else if existing_record.state_bucket == "online"
                     && matches!(record.state_bucket.as_str(), "offline" | "active")
                 {
-                    pending_to_create.push((
-                        user_id.clone(),
-                        record.clone(),
-                        existing_record.clone(),
-                    ));
+                    pending_to_create.push(OfflineBaselineTransition {
+                        user_id: user_id.clone(),
+                        next: record.clone(),
+                        previous: existing_record.clone(),
+                    });
                     *record = existing_record.clone();
                     record
                         .extra
@@ -211,31 +230,31 @@ impl RealtimeFriendsRuntime {
         let confirmed_at_iso = confirmed_at.to_rfc3339();
         let confirmed_feed_entries = confirmed_pending
             .into_iter()
-            .map(|(user_id, record, previous)| {
+            .map(|transition| {
                 offline_feed_entry(
-                    &user_id,
-                    &record,
-                    &previous,
+                    &transition.user_id,
+                    &transition.next,
+                    &transition.previous,
                     &confirmed_at_iso,
                     confirmed_at.timestamp_millis(),
                 )
             })
             .collect::<Vec<_>>();
         let mut schedules = Vec::new();
-        for (user_id, new_record, existing_online) in pending_to_create {
+        for transition in pending_to_create {
             state.timer_token = state.timer_token.saturating_add(1);
             let token = state.timer_token;
             state.pending_offline.insert(
-                user_id.clone(),
+                transition.user_id.clone(),
                 PendingOffline {
                     token,
-                    patch: FriendRecordPatch::from_record(&new_record),
-                    state_bucket: new_record.state_bucket.clone(),
-                    previous: existing_online,
+                    patch: FriendRecordPatch::from_record(&transition.next),
+                    state_bucket: transition.next.state_bucket.clone(),
+                    previous: transition.previous,
                 },
             );
             schedules.push(PendingOfflineSchedule {
-                user_id,
+                user_id: transition.user_id,
                 token,
                 delay_ms: PENDING_OFFLINE_DELAY_MS,
             });
@@ -378,28 +397,43 @@ impl RealtimeFriendsRuntime {
         &self,
         payload: &RealtimeWsMessagePayload,
     ) -> RealtimeFriendApplyResult {
-        self.apply_friend_message(payload, None, false)
+        self.apply_friend_message(payload)
     }
 
-    pub(crate) fn apply_scoped_synthetic_message(
+    pub(crate) fn apply_scoped_synthetic_event(
         &self,
         expected_owner_user_id: &str,
         expected_endpoint: &str,
-        payload: &RealtimeWsMessagePayload,
-        trust_friend_add_profile_state: bool,
+        event: SyntheticFriendEvent,
+        received_at: &str,
     ) -> RealtimeFriendApplyResult {
-        self.apply_friend_message(
-            payload,
-            Some((expected_owner_user_id, expected_endpoint)),
-            trust_friend_add_profile_state,
+        let (event_kind, content, trust) = match event {
+            SyntheticFriendEvent::Delete { user_id } => (
+                FriendEventKind::Delete,
+                json!({ "userId": user_id }),
+                FriendEventTrust::Untrusted,
+            ),
+            SyntheticFriendEvent::TrustedAdd { user_id, profile } => (
+                FriendEventKind::Add,
+                json!({ "userId": user_id, "user": profile }),
+                FriendEventTrust::TrustedFriendAdd,
+            ),
+        };
+        self.apply_friend_content(
+            event_kind,
+            &content,
+            received_at,
+            Some(ExpectedFriendScope {
+                owner_user_id: expected_owner_user_id,
+                endpoint: expected_endpoint,
+            }),
+            trust,
         )
     }
 
     fn apply_friend_message(
         &self,
         payload: &RealtimeWsMessagePayload,
-        expected_scope: Option<(&str, &str)>,
-        trust_friend_add_profile_state: bool,
     ) -> RealtimeFriendApplyResult {
         let Some(message_type) = payload.json.get("type").and_then(Value::as_str) else {
             return RealtimeFriendApplyResult::Ignored;
@@ -408,22 +442,42 @@ impl RealtimeFriendsRuntime {
             return RealtimeFriendApplyResult::Ignored;
         };
         let content = payload.json.get("content").unwrap_or(&Value::Null);
-        let now = EventTime::from_received_at(&payload.received_at);
+        self.apply_friend_content(
+            event_kind,
+            content,
+            &payload.received_at,
+            None,
+            FriendEventTrust::Untrusted,
+        )
+    }
+
+    fn apply_friend_content(
+        &self,
+        event_kind: FriendEventKind,
+        content: &Value,
+        received_at: &str,
+        expected_scope: Option<ExpectedFriendScope<'_>>,
+        trust: FriendEventTrust,
+    ) -> RealtimeFriendApplyResult {
+        let now = EventTime::from_received_at(received_at);
         let mut state = self.lock_state();
         let Some(baseline) = state.baseline.as_ref() else {
             return RealtimeFriendApplyResult::MissingBaseline;
         };
-        if expected_scope.is_some_and(|(expected_owner_user_id, expected_endpoint)| {
-            baseline.current_user_id != expected_owner_user_id.trim()
+        if expected_scope.is_some_and(|expected| {
+            baseline.current_user_id != expected.owner_user_id.trim()
                 || normalize_vrchat_api_endpoint(Some(&baseline.endpoint))
-                    != normalize_vrchat_api_endpoint(Some(expected_endpoint))
+                    != normalize_vrchat_api_endpoint(Some(expected.endpoint))
         }) {
             return RealtimeFriendApplyResult::MissingBaseline;
         }
-        let output = if trust_friend_add_profile_state && event_kind == FriendEventKind::Add {
-            apply_trusted_friend_add_event(&mut state, content, &now)
-        } else {
-            apply_friend_event(&mut state, event_kind, content, &now)
+        let output = match trust {
+            FriendEventTrust::TrustedFriendAdd => {
+                apply_trusted_friend_add_event(&mut state, content, &now)
+            }
+            FriendEventTrust::Untrusted => {
+                apply_friend_event(&mut state, event_kind, content, &now)
+            }
         };
         let Some(output) = output else {
             return RealtimeFriendApplyResult::Ignored;
@@ -549,7 +603,7 @@ impl RealtimeFriendsRuntime {
         Some(output)
     }
 
-    fn lock_state(&self) -> std::sync::MutexGuard<'_, RealtimeFriendState> {
+    fn lock_state(&self) -> MutexGuard<'_, RealtimeFriendState> {
         self.state.lock().unwrap_or_else(|error| error.into_inner())
     }
 }

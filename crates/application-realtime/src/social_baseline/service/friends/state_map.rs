@@ -1,9 +1,23 @@
-use super::*;
+use std::collections::{HashMap, HashSet};
+
+use serde_json::Value;
+
+use super::super::{object_field, string_array_field, unique_push};
+
+pub(in super::super) struct FriendStateMap {
+    pub(in super::super) state_by_id: HashMap<String, String>,
+    pub(in super::super) ordered_ids: Vec<String>,
+}
+
+pub(in super::super) struct SnapshotFriendIds {
+    pub(in super::super) friend_ids: Vec<String>,
+    pub(in super::super) has_friend_list: bool,
+}
 
 fn add_state_bucket_ids(
     snapshot: &Value,
     key: &str,
-    deps: &str,
+    state_bucket: &str,
     state_by_id: &mut HashMap<String, String>,
     ordered_ids: &mut Vec<String>,
     seen: &mut HashSet<String>,
@@ -13,13 +27,11 @@ fn add_state_bucket_ids(
             continue;
         }
         unique_push(ordered_ids, seen, user_id.clone());
-        state_by_id.insert(user_id, deps.to_string());
+        state_by_id.insert(user_id, state_bucket.to_string());
     }
 }
 
-pub(in super::super) fn build_friend_state_map(
-    snapshot: &Value,
-) -> (HashMap<String, String>, Vec<String>) {
+pub(in super::super) fn build_friend_state_map(snapshot: &Value) -> FriendStateMap {
     let mut state_by_id = HashMap::new();
     let mut ordered_ids = Vec::new();
     let mut seen = HashSet::new();
@@ -55,14 +67,17 @@ pub(in super::super) fn build_friend_state_map(
         &mut ordered_ids,
         &mut seen,
     );
-    (state_by_id, ordered_ids)
+    FriendStateMap {
+        state_by_id,
+        ordered_ids,
+    }
 }
 
-pub(in super::super) fn build_snapshot_friend_ids(
-    snapshot: &Value,
-) -> (Vec<String>, HashSet<String>, bool) {
+pub(in super::super) fn build_snapshot_friend_ids(snapshot: &Value) -> SnapshotFriendIds {
     let has_friend_list = object_field(snapshot, "friends").is_some_and(Value::is_array);
     let friend_ids = string_array_field(snapshot, "friends");
-    let friend_set = friend_ids.iter().cloned().collect();
-    (friend_ids, friend_set, has_friend_list)
+    SnapshotFriendIds {
+        friend_ids,
+        has_friend_list,
+    }
 }

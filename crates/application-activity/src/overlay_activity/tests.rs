@@ -84,7 +84,7 @@ fn friend_projection_feed_entries_are_ingested_with_canonical_activity_types() {
             "userId": "usr_avatar",
             "displayName": "Avatar User"
         })],
-        ..FriendProjection::default()
+        ..FriendProjection::new(0, 0)
     };
 
     runtime.ingest_friend_projection(&projection);
@@ -119,7 +119,7 @@ fn trust_level_friend_projection_preserves_new_level_in_overlay_content() {
             "previousTrustLevel": "Known User",
             "friendNumber": 7
         })],
-        ..FriendProjection::default()
+        ..FriendProjection::new(0, 0)
     });
 
     let entries = runtime.snapshot().entries;
@@ -162,7 +162,7 @@ fn player_joining_friend_feed_matches_everyone_in_instance_scope() {
             "location": "traveling",
             "travelingToLocation": "wrld_current:456"
         })],
-        ..FriendProjection::default()
+        ..FriendProjection::new(0, 0)
     };
 
     runtime.ingest_friend_projection(&projection);
@@ -206,7 +206,7 @@ fn friend_projection_feed_entries_do_not_restore_removed_friend_membership() {
                 "displayName": "Removed User"
             }),
         ],
-        ..FriendProjection::default()
+        ..FriendProjection::new(0, 0)
     };
 
     runtime.ingest_friend_projection(&projection);
@@ -389,7 +389,7 @@ fn friend_projection_location_content_exposes_raw_and_display_location() {
             "worldName": "World Name",
             "groupName": "Group Name"
         })],
-        ..FriendProjection::default()
+        ..FriendProjection::new(0, 0)
     };
 
     runtime.ingest_friend_projection(&projection);

@@ -328,7 +328,7 @@ mod tests {
                                 }
                             }
                         }
-                        let (_result, schedules) = runtime.set_baseline_with_schedules(
+                        let effects = runtime.set_baseline_with_effects(
                             FriendRosterBaseline {
                                 current_user_id: "usr_self".into(),
                                 friends_by_id,
@@ -336,9 +336,10 @@ mod tests {
                             },
                             generation,
                             revision,
+                            None,
                         );
-                        for (uid, token, _delay) in schedules {
-                            latest_token.insert(uid, token);
+                        for schedule in effects.schedules {
+                            latest_token.insert(schedule.user_id, schedule.token);
                         }
                     }
                     "ws" => {

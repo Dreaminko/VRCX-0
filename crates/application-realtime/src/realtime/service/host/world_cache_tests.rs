@@ -12,7 +12,9 @@ fn enrich_projection_world_names_returns_unresolved_world_ids() -> Result<()> {
         "worldName": "wrld_missing"
     })];
 
-    let unresolved_world_ids = runtime.enrich_projection_world_names(&mut entries);
+    let unresolved_world_ids = runtime
+        .runtime()
+        .enrich_projection_world_names(&mut entries);
 
     assert_eq!(unresolved_world_ids.len(), 1);
     assert_eq!(unresolved_world_ids[0].world_id, "wrld_missing");
@@ -148,7 +150,7 @@ fn world_cache_init_pins_favorites_and_bounds_working_set() -> Result<()> {
 fn failed_world_name_warm_drains_pending_corrections_without_emit() -> Result<()> {
     let (_dir, runtime, _active_session) = runtime_with_active_session("world-warm-failure-drain")?;
     {
-        let mut state = runtime.state.lock().unwrap();
+        let mut state = runtime.runtime().state.lock().unwrap();
         state.world_enrichment.inflight.insert("wrld_fail".into());
         state.world_enrichment.pending_corrections.insert(
             "wrld_fail".into(),
@@ -161,16 +163,23 @@ fn failed_world_name_warm_drains_pending_corrections_without_emit() -> Result<()
         );
     }
 
-    runtime.resolve_pending_world_corrections("wrld_fail", None);
+    runtime
+        .runtime()
+        .resolve_pending_world_corrections("wrld_fail", None);
 
-    let state = runtime.state.lock().unwrap();
+    let state = runtime.runtime().state.lock().unwrap();
     assert!(!state.world_enrichment.inflight.contains("wrld_fail"));
     assert!(!state
         .world_enrichment
         .pending_corrections
         .contains_key("wrld_fail"));
     drop(state);
-    assert!(runtime.deps.event_bus.take_events_for_test().is_empty());
+    assert!(runtime
+        .runtime()
+        .deps
+        .event_bus
+        .take_events_for_test()
+        .is_empty());
     Ok(())
 }
 
@@ -178,9 +187,11 @@ fn failed_world_name_warm_drains_pending_corrections_without_emit() -> Result<()
 fn notify_favorites_changed_emits_event_and_normalizes_vrc_plus_world() -> Result<()> {
     let (_dir, runtime, _active_session) = runtime_with_active_session("favorites-changed-notify")?;
 
-    runtime.notify_favorites_changed("vrcPlusWorld", true, false);
+    runtime
+        .runtime()
+        .notify_favorites_changed("vrcPlusWorld", true, false);
 
-    let events = runtime.deps.event_bus.take_events_for_test();
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].name, "favoritesChanged");
     assert_eq!(events[0].payload["kind"], "world");

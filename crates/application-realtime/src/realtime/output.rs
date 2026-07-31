@@ -6,7 +6,7 @@ use super::projection::{
 };
 use super::runtime_types::PendingOfflineTimerAction;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RealtimeFriendOutput {
     pub owner_user_id: String,
     pub projection: FriendProjection,
@@ -18,14 +18,20 @@ pub struct RealtimeFriendOutput {
 
 impl RealtimeFriendOutput {
     pub(crate) fn new(owner_user_id: String, generation: u64, baseline_revision: u64) -> Self {
+        Self::from_projection(
+            owner_user_id,
+            FriendProjection::new(generation, baseline_revision),
+        )
+    }
+
+    pub(crate) fn from_projection(owner_user_id: String, projection: FriendProjection) -> Self {
         Self {
             owner_user_id,
-            projection: FriendProjection {
-                generation,
-                baseline_revision,
-                ..FriendProjection::default()
-            },
-            ..Self::default()
+            projection,
+            persistence: RealtimePersistenceBatch::default(),
+            timer_action: PendingOfflineTimerAction::None,
+            profile_refetch_user_ids: Vec::new(),
+            friend_note_changed: false,
         }
     }
 }

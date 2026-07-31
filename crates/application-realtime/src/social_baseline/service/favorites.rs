@@ -2,6 +2,8 @@ use super::*;
 
 use serde::Serialize;
 
+use super::friends::{FriendStateMap, SnapshotFriendIds};
+
 const MAX_FAVORITE_GROUPS_KEY: &str = "maxFavoriteGroups";
 const MAX_FAVORITES_PER_GROUP_KEY: &str = "maxFavoritesPerGroup";
 
@@ -335,8 +337,14 @@ pub(super) struct CurrentUserSnapshotView {
 
 impl CurrentUserSnapshotView {
     pub(super) fn from_raw(snapshot: &Value) -> Self {
-        let (state_by_id, state_order_ids) = build_friend_state_map(snapshot);
-        let (friend_ids, _, has_friend_list) = build_snapshot_friend_ids(snapshot);
+        let FriendStateMap {
+            state_by_id,
+            ordered_ids: state_order_ids,
+        } = build_friend_state_map(snapshot);
+        let SnapshotFriendIds {
+            friend_ids,
+            has_friend_list,
+        } = build_snapshot_friend_ids(snapshot);
         Self {
             user_id: object_field_string(snapshot, &["id"]),
             state_by_id,

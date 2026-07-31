@@ -48,7 +48,7 @@ mod tests {
             output.projection.patches[0].state_bucket_authority,
             Some(FriendStateBucketAuthority::Preserve)
         );
-        assert_eq!(output.projection.patches[0].patch["location"], "wrld_2:456");
+        assert_eq!(output.projection.patches[0].patch.location, "wrld_2:456");
         assert_eq!(output.profile_refetch_user_ids, vec!["usr_friend"]);
     }
 
@@ -101,7 +101,7 @@ mod tests {
 
         let patch = &output.projection.patches[0].patch;
         assert_eq!(output.projection.patches[0].state_bucket, "offline");
-        assert_eq!(patch["stateBucket"], "offline");
+        assert_eq!(patch.state_bucket, "offline");
         assert_eq!(output.profile_refetch_user_ids, vec!["usr_friend"]);
         assert_eq!(
             runtime
@@ -168,8 +168,8 @@ mod tests {
         };
         assert_eq!(output.projection.patches[0].state_bucket, "online");
         assert!(output.persistence.feed_entries.is_empty());
-        assert_eq!(patch["location"], "offline");
-        assert_eq!(patch["pendingOffline"], true);
+        assert_eq!(patch.location, "offline");
+        assert_eq!(patch.extra["pendingOffline"], true);
         let fired = runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .unwrap();
@@ -230,8 +230,8 @@ mod tests {
         };
         assert_eq!(output.projection.patches[0].state_bucket, "online");
         assert!(output.persistence.feed_entries.is_empty());
-        assert_eq!(patch["location"], "offline");
-        assert_eq!(patch["pendingOffline"], true);
+        assert_eq!(patch.location, "offline");
+        assert_eq!(patch.extra["pendingOffline"], true);
         let fired = runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .unwrap();

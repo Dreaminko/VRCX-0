@@ -88,15 +88,15 @@ mod tests {
 
         let patch = &output.projection.patches[0];
         assert_eq!(patch.state_bucket, "online");
-        assert_eq!(patch.patch["state"], "online");
-        assert_eq!(patch.patch["location"], "wrld_home:42~region(jp)");
-        assert_eq!(patch.patch["worldId"], "wrld_home");
-        assert_eq!(patch.patch["platform"], "standalonewindows");
-        assert_eq!(patch.patch["status"], "join me");
-        assert_eq!(patch.patch["statusDescription"], "come vibe");
-        assert_eq!(patch.patch["bio"], "hi there");
-        assert_eq!(patch.patch["displayName"], "Friend");
-        assert_eq!(patch.patch["$trustLevel"], "Trusted User");
+        assert_eq!(patch.patch.state, "online");
+        assert_eq!(patch.patch.location, "wrld_home:42~region(jp)");
+        assert_eq!(patch.patch.world_id, "wrld_home");
+        assert_eq!(patch.patch.platform, "standalonewindows");
+        assert_eq!(patch.patch.status, "join me");
+        assert_eq!(patch.patch.status_description, "come vibe");
+        assert_eq!(patch.patch.bio, "hi there");
+        assert_eq!(patch.patch.display_name, "Friend");
+        assert_eq!(patch.patch.extra["$trustLevel"], "Trusted User");
         assert!(output
             .persistence
             .feed_entries
@@ -132,8 +132,8 @@ mod tests {
 
         let patch = &output.projection.patches[0];
         assert_eq!(patch.state_bucket, "online");
-        assert_eq!(patch.patch["location"], "traveling");
-        assert_eq!(patch.patch["travelingToLocation"], "wrld_dest:7~region(us)");
+        assert_eq!(patch.patch.location, "traveling");
+        assert_eq!(patch.patch.traveling_to_location, "wrld_dest:7~region(us)");
         assert!(output
             .projection
             .feed_entries
@@ -177,9 +177,9 @@ mod tests {
             patch.state_bucket_authority,
             Some(FriendStateBucketAuthority::Explicit)
         );
-        assert_eq!(patch.patch["location"], "wrld_new:2~region(jp)");
-        assert_eq!(patch.patch["status"], "join me");
-        assert_eq!(patch.patch["displayName"], "New Name");
+        assert_eq!(patch.patch.location, "wrld_new:2~region(jp)");
+        assert_eq!(patch.patch.status, "join me");
+        assert_eq!(patch.patch.display_name, "New Name");
         assert!(output
             .persistence
             .feed_entries
@@ -211,7 +211,7 @@ mod tests {
             patch.state_bucket_authority,
             Some(FriendStateBucketAuthority::Preserve)
         );
-        assert_eq!(patch.patch["location"], "wrld_new:2~region(jp)");
+        assert_eq!(patch.patch.location, "wrld_new:2~region(jp)");
         assert!(output
             .persistence
             .feed_entries
@@ -243,9 +243,9 @@ mod tests {
 
         let patch = &output.projection.patches[0];
         assert_eq!(patch.state_bucket, "active");
-        assert_eq!(patch.patch["location"], "offline");
-        assert_eq!(patch.patch["status"], "busy");
-        assert_eq!(patch.patch["displayName"], "Friend");
+        assert_eq!(patch.patch.location, "offline");
+        assert_eq!(patch.patch.status, "busy");
+        assert_eq!(patch.patch.display_name, "Friend");
 
         let friend = snapshot_friend(&runtime);
         assert_eq!(friend.state_bucket, "active");
@@ -272,7 +272,7 @@ mod tests {
 
         let patch = &output.projection.patches[0];
         assert_eq!(patch.state_bucket, "online");
-        assert_eq!(patch.patch["pendingOffline"], true);
+        assert_eq!(patch.patch.extra["pendingOffline"], true);
         assert!(output.persistence.feed_entries.is_empty());
         let PendingOfflineTimerAction::Schedule { token, .. } = output.timer_action else {
             panic!("online->offline should schedule a pending-offline timer");
@@ -315,11 +315,11 @@ mod tests {
 
         let patch = &output.projection.patches[0];
         assert_eq!(patch.state_bucket, "online");
-        assert_eq!(patch.patch["stateBucket"], "online");
-        assert_eq!(patch.patch["state"], "online");
-        assert_eq!(patch.patch["location"], "wrld_1:123~region(jp)");
-        assert_eq!(patch.patch["status"], "active");
-        assert_eq!(patch.patch["statusDescription"], "fresh");
+        assert_eq!(patch.patch.state_bucket, "online");
+        assert_eq!(patch.patch.state, "online");
+        assert_eq!(patch.patch.location, "wrld_1:123~region(jp)");
+        assert_eq!(patch.patch.status, "active");
+        assert_eq!(patch.patch.status_description, "fresh");
 
         let friend = snapshot_friend(&runtime);
         assert_eq!(friend.state_bucket, "online");

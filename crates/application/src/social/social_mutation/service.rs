@@ -136,12 +136,10 @@ pub(in crate::social) fn apply_unfriend_locally(
     target_user_id: &str,
     target_display_name: &str,
 ) -> SocialFriendMutationOutcome {
-    let content = json!({ "userId": target_user_id });
-    match deps.realtime.apply_synthetic_friend_event(
+    match deps.realtime.apply_synthetic_friend_delete(
         owner_user_id,
         endpoint,
-        "friend-delete",
-        content,
+        target_user_id,
         now_iso(),
     ) {
         SyntheticFriendEventOutcome::Applied => {
@@ -202,11 +200,11 @@ pub(in crate::social) fn apply_friend_request_accept_locally(
     target_display_name: &str,
     profile: Value,
 ) -> SocialFriendMutationOutcome {
-    let content = json!({ "userId": target_user_id, "user": profile.clone() });
     match deps.realtime.apply_synthetic_trusted_friend_add(
         owner_user_id,
         endpoint,
-        content,
+        target_user_id,
+        profile.clone(),
         now_iso(),
     ) {
         SyntheticFriendEventOutcome::Applied => {

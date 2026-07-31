@@ -46,7 +46,7 @@ fn deps(runtime: &TestRealtimeHostRuntime) -> SocialMutationDeps<'_> {
         db: runtime.database(),
         web: runtime.web_client(),
         auth_scope: runtime.auth_scope(),
-        realtime: runtime,
+        realtime: runtime.runtime(),
     }
 }
 
@@ -146,7 +146,7 @@ fn pending_unfriend_updates_start_baseline_and_emits_projection() -> Result<()> 
 
     runtime.take_events_for_test();
     runtime.set_task_executor_for_test(DiscardTaskExecutor);
-    let started = runtime.start(
+    let started = runtime.runtime().start(
         session.user_id.clone(),
         session.endpoint.clone(),
         session.websocket.clone(),
@@ -156,6 +156,7 @@ fn pending_unfriend_updates_start_baseline_and_emits_projection() -> Result<()> 
     )?;
 
     assert!(!runtime
+        .runtime()
         .friend_snapshot()
         .expect("started friend snapshot")
         .friends_by_id
@@ -195,7 +196,7 @@ fn pending_accept_preserves_trusted_profile_state_on_start() -> Result<()> {
 
     runtime.take_events_for_test();
     runtime.set_task_executor_for_test(DiscardTaskExecutor);
-    let started = runtime.start(
+    let started = runtime.runtime().start(
         session.user_id.clone(),
         session.endpoint.clone(),
         session.websocket.clone(),
@@ -204,7 +205,10 @@ fn pending_accept_preserves_trusted_profile_state_on_start() -> Result<()> {
         HashMap::new(),
     )?;
 
-    let snapshot = runtime.friend_snapshot().expect("started friend snapshot");
+    let snapshot = runtime
+        .runtime()
+        .friend_snapshot()
+        .expect("started friend snapshot");
     let friend = snapshot
         .friends_by_id
         .get("usr_target")
@@ -235,10 +239,8 @@ fn unfriend_locally_applies_via_synthetic_event_when_baseline_present() -> Resul
         state_bucket: "online".to_string(),
         ..FriendRecord::default()
     };
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [("usr_friend".to_string(), friend)].into_iter().collect(),
     )?;
@@ -261,6 +263,7 @@ fn unfriend_locally_applies_via_synthetic_event_when_baseline_present() -> Resul
         1
     );
     assert!(!runtime
+        .runtime()
         .friend_snapshot()
         .expect("baseline snapshot")
         .friends_by_id
@@ -279,10 +282,8 @@ fn unfriend_locally_with_stale_owner_falls_back_without_touching_active_roster()
         state_bucket: "online".to_string(),
         ..FriendRecord::default()
     };
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [("usr_friend".to_string(), friend)].into_iter().collect(),
     )?;
@@ -299,6 +300,7 @@ fn unfriend_locally_with_stale_owner_falls_back_without_touching_active_roster()
 
     assert_eq!(outcome.status, SocialFriendMutationStatus::Applied);
     assert!(runtime
+        .runtime()
         .friend_snapshot()
         .expect("active baseline")
         .friends_by_id
@@ -331,24 +333,22 @@ fn synthetic_event_with_stale_endpoint_reports_missing_baseline() -> Result<()> 
         state_bucket: "online".to_string(),
         ..FriendRecord::default()
     };
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [("usr_friend".to_string(), friend)].into_iter().collect(),
     )?;
 
-    let outcome = runtime.apply_synthetic_friend_event(
+    let outcome = runtime.runtime().apply_synthetic_friend_delete(
         &active_session.user_id,
         "https://api.example.test/api/1",
-        "friend-delete",
-        json!({ "userId": "usr_friend" }),
+        "usr_friend",
         "2026-05-15T00:00:01Z".into(),
     );
 
     assert_eq!(outcome, SyntheticFriendEventOutcome::MissingBaseline);
     assert!(runtime
+        .runtime()
         .friend_snapshot()
         .expect("active baseline")
         .friends_by_id
@@ -360,13 +360,9 @@ fn synthetic_event_with_stale_endpoint_reports_missing_baseline() -> Result<()> 
 fn accept_locally_applies_via_synthetic_event_when_baseline_present() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("mutation-sink-accept-baseline")?;
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        HashMap::new(),
-    )?;
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), HashMap::new())?;
 
     let outcome = apply_friend_request_accept_locally(
         &deps(&runtime),
@@ -389,7 +385,10 @@ fn accept_locally_applies_via_synthetic_event_when_baseline_present() -> Result<
         history_rows(&runtime, &active_session.user_id, "usr_target", "Friend"),
         1
     );
-    let snapshot = runtime.friend_snapshot().expect("baseline snapshot");
+    let snapshot = runtime
+        .runtime()
+        .friend_snapshot()
+        .expect("baseline snapshot");
     let friend = snapshot
         .friends_by_id
         .get("usr_target")
@@ -410,10 +409,8 @@ fn unfriend_then_later_ws_friend_delete_records_exactly_one_unfriend_history() -
         state_bucket: "online".to_string(),
         ..FriendRecord::default()
     };
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [("usr_friend".to_string(), friend)].into_iter().collect(),
     )?;
@@ -448,10 +445,8 @@ fn ws_friend_delete_then_later_unfriend_records_exactly_one_unfriend_history() -
         state_bucket: "online".to_string(),
         ..FriendRecord::default()
     };
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
         Some(7),
         [("usr_friend".to_string(), friend)].into_iter().collect(),
     )?;
@@ -479,13 +474,9 @@ fn ws_friend_delete_then_later_unfriend_records_exactly_one_unfriend_history() -
 fn accept_then_later_ws_friend_add_records_exactly_one_friend_history() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("mutation-sink-accept-race-local-first")?;
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        HashMap::new(),
-    )?;
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), HashMap::new())?;
 
     let outcome = apply_friend_request_accept_locally(
         &deps(&runtime),
@@ -510,13 +501,9 @@ fn accept_then_later_ws_friend_add_records_exactly_one_friend_history() -> Resul
 fn ws_friend_add_then_later_accept_records_exactly_one_friend_history() -> Result<()> {
     let (_dir, runtime, active_session) =
         runtime_with_active_session("mutation-sink-accept-race-ws-first")?;
-    runtime.sync_friend_snapshot(
-        active_session.user_id.clone(),
-        active_session.endpoint.clone(),
-        active_session.websocket.clone(),
-        Some(7),
-        HashMap::new(),
-    )?;
+    runtime
+        .runtime()
+        .sync_friend_snapshot(active_session.clone(), Some(7), HashMap::new())?;
 
     runtime.handle_active_friend_ws_message_for_test(&friend_add_payload("usr_target", "Target"));
 

@@ -1,66 +1,33 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
 use serde_json::Value;
-use tokio::sync::{broadcast, watch};
 
-use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
-use vrcx_0_core::realtime::RealtimeWsMessagePayload;
-use vrcx_0_persistence::config as config_store;
-use vrcx_0_persistence::realtime::{
-    lookup_game_log_world_name, write_realtime_batch, NotificationExpiration,
-    RealtimePersistenceBatch, RealtimeWriteCounts,
-};
-use vrcx_0_persistence::DatabaseService;
-use vrcx_0_vrchat_client::auth::current_user_get_input;
-use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
-use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
-use vrcx_0_vrchat_client::users as remote_users;
+use vrcx_0_persistence::realtime::{lookup_game_log_world_name, RealtimePersistenceBatch};
 
-use crate::realtime::connection::{
-    run_realtime_transport, supervise_realtime_transport, RealtimeMessageSink,
-    RealtimeTransportDeps,
-};
-use crate::realtime::current_user::RealtimeCurrentUserRuntime;
-use crate::realtime::friends::{
-    is_friend_event_type, player_joining_feed_entry, RealtimeFriendsRuntime,
-};
-use crate::realtime::instance_queue::apply_instance_queue_ws_message;
-use crate::realtime::invite_automation::decision::{
-    evaluate_invite_automation, normalize_invite_automation_mode, InviteAutomationConfig,
-    InviteAutomationInput, InviteAutomationSkipReason, InviteDecision, InviteLocationFacts,
-    InviteNotificationFacts, SenderAllowlist,
-};
-use crate::realtime::invite_automation::runtime::{sender_scope_key, InviteOutcome};
-use crate::realtime::notifications::{
-    apply_instance_closed_ws_message, apply_notification_ws_message,
-};
-use crate::realtime::user_cache::UserCacheRuntime;
-use crate::realtime::user_query_cache::UserQueryCache;
 use crate::realtime::{
-    FriendBaselineCausalWatermark, FriendBaselineResult, FriendBaselineSyncOutcome,
-    FriendProjection, FriendStateBucketAuthority, PendingOfflineTimerAction,
-    RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeEntryCorrection,
-    RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream, RealtimeFriendApplyResult,
-    RealtimeFriendOutput, RealtimeFriendSnapshot, RealtimeInstanceClosedOutput,
-    RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
-    RealtimeNotificationUpsert, RealtimeSessionContext, RealtimeTransportLifecycleEvent,
-    RealtimeTransportStartResult, RealtimeTransportTermination, RealtimeWsStatusPayload,
+    RealtimeCurrentUserOutput, RealtimeEntryCorrectionStream, RealtimeInstanceQueueProjection,
+    RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeNotificationUpsert,
 };
 #[cfg(test)]
 use crate::social_baseline::service::friend_log_relationship_candidates;
-use crate::social_baseline::service::{
-    reconcile_friend_roster_records, FriendRosterReconcileOutcome, FriendStatusVerdicts,
-};
 use crate::world_enrich::is_meaningful_world_name;
-use vrcx_0_application_core::HostSessionRuntime;
-use vrcx_0_application_core::{
-    Error, FavoritesChangedPayload, LocalGameContextSnapshot, LocalGameContextSource,
-    OverlayActivityInputSink, PrintCleanupInputSink, PrintCleanupTrigger, Result, RuntimeAuthScope,
-    RuntimeEventBus, RuntimeVrchatAuthFailurePayload,
+
+#[cfg(test)]
+use vrcx_0_application_core::Result;
+#[cfg(test)]
+use vrcx_0_core::realtime::RealtimeWsMessagePayload;
+#[cfg(test)]
+use vrcx_0_persistence::config as config_store;
+#[cfg(test)]
+use vrcx_0_persistence::realtime::write_realtime_batch;
+
+#[cfg(test)]
+use crate::realtime::connection::RealtimeMessageSink;
+#[cfg(test)]
+use crate::realtime::{
+    PendingOfflineTimerAction, RealtimeFriendApplyResult, RealtimeFriendOutput,
+    RealtimeTransportStartResult, RealtimeTransportTermination,
 };
-use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
-use vrcx_0_application_core::{RuntimeSyncEngine, TaskSupervisor, WebClient};
+#[cfg(test)]
+use crate::social_baseline::service::{reconcile_friend_roster_records, FriendStatusVerdicts};
 
 mod automation;
 mod baseline;

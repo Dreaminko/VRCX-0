@@ -1,7 +1,32 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+use tokio::sync::{broadcast, watch};
+use vrcx_0_application_core::{Error, FavoritesChangedPayload, Result};
+use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
+use vrcx_0_persistence::realtime::{
+    write_realtime_batch, NotificationExpiration, RealtimePersistenceBatch,
+};
+use vrcx_0_vrchat_client::realtime::normalize_websocket_domain;
+
+use crate::realtime::connection::{
+    run_realtime_transport, supervise_realtime_transport, RealtimeMessageSink,
+    RealtimeTransportDeps,
+};
+use crate::realtime::current_user::RealtimeCurrentUserRuntime;
+use crate::realtime::friends::RealtimeFriendsRuntime;
+use crate::realtime::user_cache::UserCacheRuntime;
+use crate::realtime::user_query_cache::UserQueryCache;
+use crate::realtime::{
+    FriendProjection, RealtimeFriendOutput, RealtimeSessionContext,
+    RealtimeTransportLifecycleEvent, RealtimeTransportStartResult, RealtimeTransportTermination,
+    RealtimeWsStatusPayload,
+};
+
 use super::state::{
     ActiveRealtimeContext, RealtimeHostRuntimeMessageSink, RealtimeHostRuntimeState,
 };
-use super::*;
+use super::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};
 
 impl RealtimeHostRuntime {
     pub fn new(deps: RealtimeHostRuntimeDeps) -> Self {
@@ -89,7 +114,7 @@ impl RealtimeHostRuntime {
         }
         let mut friends_by_id = friends_by_id;
         let mut pending_feed_entries = Vec::new();
-        let mut pending_projection = FriendProjection::default();
+        let mut pending_projection = FriendProjection::new(0, 0);
         let friend_owner = self.lock_friend_owner();
         let generation = {
             let mut state = self
@@ -162,11 +187,7 @@ impl RealtimeHostRuntime {
             pending_projection.baseline_revision = baseline_revision;
             self.apply_friend_output_owned(
                 &friend_owner,
-                RealtimeFriendOutput {
-                    owner_user_id: session.user_id.clone(),
-                    projection: pending_projection,
-                    ..RealtimeFriendOutput::default()
-                },
+                RealtimeFriendOutput::from_projection(session.user_id.clone(), pending_projection),
             );
         }
         self.apply_persisted_friend_feed_entries_owned(

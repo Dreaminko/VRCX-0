@@ -71,7 +71,7 @@ pub(in crate::state) async fn run_social_baseline_refresh_core(
     if output.friend_log_changed {
         event_bus.emit_realtime_friend_projection(FriendProjection {
             friend_log_changed: true,
-            ..Default::default()
+            ..FriendProjection::new(0, 0)
         });
     }
     let friends_value = output

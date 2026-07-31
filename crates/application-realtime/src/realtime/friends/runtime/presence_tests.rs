@@ -768,8 +768,8 @@ mod tests {
         };
 
         assert_eq!(output.projection.patches[0].state_bucket, "online");
-        assert_eq!(output.projection.patches[0].patch["stateBucket"], "online");
-        assert_eq!(output.projection.patches[0].patch["state"], "online");
+        assert_eq!(output.projection.patches[0].patch.state_bucket, "online");
+        assert_eq!(output.projection.patches[0].patch.state, "online");
     }
 
     #[test]
@@ -875,13 +875,10 @@ mod tests {
         };
         assert_eq!(delay_ms, 170_000);
         assert_eq!(output.projection.patches[0].state_bucket, "online");
+        assert_eq!(output.projection.patches[0].patch.location, "wrld_1:123");
         assert_eq!(
-            output.projection.patches[0].patch["location"],
-            json!("wrld_1:123")
-        );
-        assert_eq!(
-            output.projection.patches[0].patch["pendingOffline"],
-            json!(true)
+            output.projection.patches[0].patch.extra["pendingOffline"],
+            true
         );
 
         let fired = runtime
@@ -1053,7 +1050,7 @@ mod tests {
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .unwrap();
         assert_eq!(fired.projection.patches[0].state_bucket, "active");
-        assert_eq!(fired.projection.patches[0].patch["state"], json!("active"));
+        assert_eq!(fired.projection.patches[0].patch.state, "active");
     }
 
     #[test]
@@ -1151,8 +1148,8 @@ mod tests {
         assert!(online.persistence.feed_entries.is_empty());
         assert_eq!(online.projection.patches[0].state_bucket, "online");
         assert_eq!(
-            online.projection.patches[0].patch["pendingOffline"],
-            json!(false)
+            online.projection.patches[0].patch.extra["pendingOffline"],
+            false
         );
         assert!(runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())

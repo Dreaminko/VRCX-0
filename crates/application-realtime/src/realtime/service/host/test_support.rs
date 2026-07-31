@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub(super) use std::sync::Arc;
@@ -37,15 +37,20 @@ pub(super) use vrcx_0_application_core::{
 #[cfg(test)]
 pub(super) use vrcx_0_application_core::{LocalGameContextSnapshot, OverlayActivityInputSink};
 use vrcx_0_application_core::{
-    NoopPrintCleanupInputSink, RuntimeAuthScope, RuntimeEventForTest, RuntimeTaskExecutor,
+    NoopPrintCleanupInputSink, Result, RuntimeAuthScope, RuntimeEventForTest, RuntimeTaskExecutor,
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
 #[cfg(test)]
 pub(super) use super::state::RealtimeHostRuntimeMessageSink;
-pub(super) use super::state::{ActiveRealtimeContext, RealtimeHostRuntimeState};
-use super::*;
+pub(super) use super::state::{
+    ActiveRealtimeContext, RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeHostRuntimeState,
+};
+use crate::realtime::notifications::apply_notification_ws_message;
+use crate::realtime::{
+    RealtimeSessionContext, RealtimeTransportStartResult, RealtimeTransportTermination,
+};
 
 impl RealtimeHostRuntime {
     pub fn ingest_notification_ws_message_for_test(
@@ -74,15 +79,11 @@ pub struct TestRealtimeHostRuntime {
     local_game_context: Option<Arc<TestLocalGameContextSource>>,
 }
 
-impl Deref for TestRealtimeHostRuntime {
-    type Target = Arc<RealtimeHostRuntime>;
-
-    fn deref(&self) -> &Self::Target {
+impl TestRealtimeHostRuntime {
+    pub fn runtime(&self) -> &Arc<RealtimeHostRuntime> {
         &self.runtime
     }
-}
 
-impl TestRealtimeHostRuntime {
     pub fn database(&self) -> &DatabaseService {
         self.runtime.deps.db.as_ref()
     }
@@ -113,13 +114,8 @@ impl TestRealtimeHostRuntime {
     ) -> Result<()> {
         self.runtime.state.lock().unwrap().connection.active_context = None;
         self.runtime.friends.clear();
-        self.runtime.sync_friend_snapshot(
-            session.user_id.clone(),
-            session.endpoint.clone(),
-            session.websocket.clone(),
-            None,
-            friends_by_id,
-        )?;
+        self.runtime
+            .sync_friend_snapshot(session.clone(), None, friends_by_id)?;
         Ok(())
     }
 

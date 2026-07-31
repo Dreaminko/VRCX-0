@@ -1,5 +1,40 @@
-use super::state::{FriendBaselineState, PendingFriendBaseline};
-use super::*;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use serde_json::Value;
+use vrcx_0_application_core::{Error, Result};
+use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
+
+use crate::realtime::friends::{player_joining_feed_entry, PendingOfflineSchedule};
+use crate::realtime::{
+    FriendBaselineCausalWatermark, FriendBaselineResult, FriendBaselineSyncOutcome,
+    FriendProjection, FriendStateBucketAuthority, RealtimeFriendOutput, RealtimeFriendSnapshot,
+    RealtimeSessionContext,
+};
+use crate::social_baseline::service::{
+    reconcile_friend_roster_records, FriendRosterReconcileOutcome, FriendStatusVerdicts,
+};
+
+use super::state::{ActiveRealtimeContext, PendingFriendBaseline, ScopedFriendLogMutation};
+use super::RealtimeHostRuntime;
+
+enum FriendBaselineSyncMode {
+    Direct {
+        generation: Option<u64>,
+    },
+    Causal {
+        watermark: FriendBaselineCausalWatermark,
+        verdicts: FriendStatusVerdicts,
+    },
+}
+
+struct FriendBaselineApplyPlan {
+    result: FriendBaselineResult,
+    active: ActiveRealtimeContext,
+    projection: Option<FriendProjection>,
+    schedules: Vec<PendingOfflineSchedule>,
+    confirmed_feed_entries: Vec<Value>,
+}
 
 impl RealtimeHostRuntime {
     pub fn capture_friend_baseline_watermark(&self) -> Result<FriendBaselineCausalWatermark> {
@@ -22,77 +57,85 @@ impl RealtimeHostRuntime {
         Ok(watermark)
     }
 
-    pub fn run_friend_log_current_mutation<T, E>(
+    pub fn run_friend_log_current_mutation<T>(
         &self,
-        mutation: impl FnOnce() -> std::result::Result<T, E>,
-    ) -> std::result::Result<T, E> {
-        self.run_friend_log_current_mutation_with_state(mutation, |_| {})
+        mutation: impl FnOnce() -> vrcx_0_persistence::Result<T>,
+    ) -> vrcx_0_persistence::Result<T> {
+        self.run_friend_log_current_mutation_with_effect(mutation, None)
     }
 
-    pub(super) fn run_friend_log_current_mutation_with_state<T, E>(
+    pub(super) fn run_friend_log_current_mutation_with_effect<T>(
         &self,
-        mutation: impl FnOnce() -> std::result::Result<T, E>,
-        on_success: impl FnOnce(&mut FriendBaselineState),
-    ) -> std::result::Result<T, E> {
+        mutation: impl FnOnce() -> vrcx_0_persistence::Result<T>,
+        effect: Option<ScopedFriendLogMutation>,
+    ) -> vrcx_0_persistence::Result<T> {
         let _owner = self.lock_friend_owner();
         let result = mutation();
         if result.is_ok() {
             let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
             state.friend_baseline.friend_log_sequence =
                 state.friend_baseline.friend_log_sequence.saturating_add(1);
-            on_success(&mut state.friend_baseline);
+            if let Some(effect) = effect {
+                effect.apply(&mut state.friend_baseline);
+            }
         }
         result
     }
 
     pub fn sync_friend_snapshot(
         self: &Arc<Self>,
-        user_id: String,
-        endpoint: String,
-        websocket: String,
+        session: RealtimeSessionContext,
         generation: Option<u64>,
         friends_by_id: HashMap<String, FriendRecord>,
     ) -> Result<FriendBaselineResult> {
         Ok(self
             .sync_friend_snapshot_inner(
-                RealtimeSessionContext::new(user_id, endpoint, websocket),
-                generation,
-                None,
+                session,
+                FriendBaselineSyncMode::Direct { generation },
                 friends_by_id,
-                None,
             )?
             .result)
     }
 
     pub fn sync_friend_snapshot_with_watermark(
         self: &Arc<Self>,
-        user_id: String,
-        endpoint: String,
-        websocket: String,
+        session: RealtimeSessionContext,
         watermark: FriendBaselineCausalWatermark,
         friends_by_id: HashMap<String, FriendRecord>,
         verdicts: FriendStatusVerdicts,
     ) -> Result<FriendBaselineSyncOutcome> {
         self.sync_friend_snapshot_inner(
-            RealtimeSessionContext::new(user_id, endpoint, websocket),
-            watermark.generation,
-            Some(watermark),
+            session,
+            FriendBaselineSyncMode::Causal {
+                watermark,
+                verdicts,
+            },
             friends_by_id,
-            Some(verdicts),
         )
     }
 
     fn sync_friend_snapshot_inner(
         self: &Arc<Self>,
         requested_session: RealtimeSessionContext,
-        generation: Option<u64>,
-        causal_watermark: Option<FriendBaselineCausalWatermark>,
+        mode: FriendBaselineSyncMode,
         friends_by_id: HashMap<String, FriendRecord>,
-        friend_log_verdicts: Option<FriendStatusVerdicts>,
     ) -> Result<FriendBaselineSyncOutcome> {
+        let (generation, causal_watermark, friend_log_verdicts) = match mode {
+            FriendBaselineSyncMode::Direct { generation } => (generation, None, None),
+            FriendBaselineSyncMode::Causal {
+                watermark,
+                verdicts,
+            } => (watermark.generation, Some(watermark), Some(verdicts)),
+        };
         let owner = self.lock_friend_owner();
         let friend_count = friends_by_id.len();
-        let (result, active, baseline_projection, baseline_schedules, confirmed_feed_entries) = {
+        let FriendBaselineApplyPlan {
+            result,
+            active,
+            projection: baseline_projection,
+            schedules: baseline_schedules,
+            confirmed_feed_entries,
+        } = {
             let mut state = self
                 .state
                 .lock()
@@ -106,19 +149,16 @@ impl RealtimeHostRuntime {
                     "Friend baseline superseded by a local friend-log mutation.",
                     friend_count as u64,
                 );
-                return Ok(FriendBaselineSyncOutcome {
-                    result: FriendBaselineResult {
-                        accepted: false,
-                        generation: causal_watermark
-                            .and_then(|watermark| watermark.generation)
-                            .unwrap_or(0),
-                        baseline_revision: causal_watermark
-                            .and_then(|watermark| watermark.baseline_revision)
-                            .unwrap_or(0),
-                        friend_count,
-                    },
-                    ..FriendBaselineSyncOutcome::default()
-                });
+                return Ok(FriendBaselineSyncOutcome::rejected(FriendBaselineResult {
+                    accepted: false,
+                    generation: causal_watermark
+                        .and_then(|watermark| watermark.generation)
+                        .unwrap_or(0),
+                    baseline_revision: causal_watermark
+                        .and_then(|watermark| watermark.baseline_revision)
+                        .unwrap_or(0),
+                    friend_count,
+                }));
             }
             let Some(active) = state.connection.active_context.clone() else {
                 if causal_watermark.is_some_and(|watermark| watermark.generation.is_some()) {
@@ -128,19 +168,16 @@ impl RealtimeHostRuntime {
                         "Friend baseline from a stopped realtime generation was ignored.",
                         friend_count as u64,
                     );
-                    return Ok(FriendBaselineSyncOutcome {
-                        result: FriendBaselineResult {
-                            accepted: false,
-                            generation: causal_watermark
-                                .and_then(|watermark| watermark.generation)
-                                .unwrap_or(0),
-                            baseline_revision: causal_watermark
-                                .and_then(|watermark| watermark.baseline_revision)
-                                .unwrap_or(0),
-                            friend_count,
-                        },
-                        ..FriendBaselineSyncOutcome::default()
-                    });
+                    return Ok(FriendBaselineSyncOutcome::rejected(FriendBaselineResult {
+                        accepted: false,
+                        generation: causal_watermark
+                            .and_then(|watermark| watermark.generation)
+                            .unwrap_or(0),
+                        baseline_revision: causal_watermark
+                            .and_then(|watermark| watermark.baseline_revision)
+                            .unwrap_or(0),
+                        friend_count,
+                    }));
                 }
                 let pending_snapshot = RealtimeFriendSnapshot {
                     current_user_id: requested_session.user_id.clone(),
@@ -154,7 +191,7 @@ impl RealtimeHostRuntime {
                     session: requested_session.clone(),
                     friends_by_id,
                     feed_entries: Vec::new(),
-                    projection: FriendProjection::default(),
+                    projection: FriendProjection::new(0, 0),
                 });
                 drop(state);
                 self.deps.sync.record(
@@ -194,16 +231,16 @@ impl RealtimeHostRuntime {
                         }
                     }
                 }
-                return Ok(FriendBaselineSyncOutcome {
-                    result: FriendBaselineResult {
+                return Ok(FriendBaselineSyncOutcome::accepted(
+                    FriendBaselineResult {
                         accepted: true,
                         generation: 0,
                         baseline_revision: 0,
                         friend_count,
                     },
-                    snapshot: Some(pending_snapshot),
+                    Some(pending_snapshot),
                     friend_log_changed,
-                });
+                ));
             };
             if active.session != requested_session
                 || generation
@@ -220,19 +257,16 @@ impl RealtimeHostRuntime {
                     "Stale friend baseline ignored by Rust realtime runtime.",
                     friend_count as u64,
                 );
-                return Ok(FriendBaselineSyncOutcome {
-                    result: FriendBaselineResult {
-                        accepted: false,
-                        generation: generation.unwrap_or(active.generation),
-                        baseline_revision: self
-                            .friends
-                            .snapshot()
-                            .map(|snapshot| snapshot.baseline_revision)
-                            .unwrap_or(0),
-                        friend_count: friends_by_id.len(),
-                    },
-                    ..FriendBaselineSyncOutcome::default()
-                });
+                return Ok(FriendBaselineSyncOutcome::rejected(FriendBaselineResult {
+                    accepted: false,
+                    generation: generation.unwrap_or(active.generation),
+                    baseline_revision: self
+                        .friends
+                        .snapshot()
+                        .map(|snapshot| snapshot.baseline_revision)
+                        .unwrap_or(0),
+                    friend_count: friends_by_id.len(),
+                }));
             }
 
             let previous_snapshot = self
@@ -252,15 +286,12 @@ impl RealtimeHostRuntime {
                     "Superseded friend baseline ignored by Rust realtime runtime.",
                     friend_count as u64,
                 );
-                return Ok(FriendBaselineSyncOutcome {
-                    result: FriendBaselineResult {
-                        accepted: false,
-                        generation: active.generation,
-                        baseline_revision: current_baseline_revision.unwrap_or(0),
-                        friend_count,
-                    },
-                    ..FriendBaselineSyncOutcome::default()
-                });
+                return Ok(FriendBaselineSyncOutcome::rejected(FriendBaselineResult {
+                    accepted: false,
+                    generation: active.generation,
+                    baseline_revision: current_baseline_revision.unwrap_or(0),
+                    friend_count,
+                }));
             }
             let baseline_revision = current_baseline_revision
                 .map(|revision| revision.saturating_add(1))
@@ -289,13 +320,13 @@ impl RealtimeHostRuntime {
             } else {
                 None
             };
-            (
+            FriendBaselineApplyPlan {
                 result,
                 active,
-                baseline_projection,
-                baseline_schedules,
+                projection: baseline_projection,
+                schedules: baseline_schedules,
                 confirmed_feed_entries,
-            )
+            }
         };
 
         let canonical_snapshot = if result.accepted {
@@ -326,26 +357,16 @@ impl RealtimeHostRuntime {
             FriendRosterReconcileOutcome::default()
         };
         if baseline_projection.is_some() || !confirmed_feed_entries.is_empty() {
-            let mut projection = baseline_projection.unwrap_or(FriendProjection {
-                generation: result.generation,
-                baseline_revision: result.baseline_revision,
-                ..FriendProjection::default()
+            let mut projection = baseline_projection.unwrap_or_else(|| {
+                FriendProjection::new(result.generation, result.baseline_revision)
             });
             let mut feed_entries = confirmed_feed_entries.clone();
             feed_entries.append(&mut projection.feed_entries);
             projection.feed_entries = feed_entries;
-            self.apply_friend_output_owned(
-                &owner,
-                RealtimeFriendOutput {
-                    owner_user_id: active.session.user_id.clone(),
-                    projection,
-                    persistence: RealtimePersistenceBatch {
-                        feed_entries: confirmed_feed_entries,
-                        ..RealtimePersistenceBatch::default()
-                    },
-                    ..RealtimeFriendOutput::default()
-                },
-            );
+            let mut output =
+                RealtimeFriendOutput::from_projection(active.session.user_id.clone(), projection);
+            output.persistence.feed_entries = confirmed_feed_entries;
+            self.apply_friend_output_owned(&owner, output);
         }
         let FriendRosterReconcileOutcome {
             changed: friend_log_changed,
@@ -389,11 +410,11 @@ impl RealtimeHostRuntime {
             0,
         );
 
-        Ok(FriendBaselineSyncOutcome {
+        Ok(FriendBaselineSyncOutcome::accepted(
             result,
-            snapshot: final_snapshot,
+            final_snapshot,
             friend_log_changed,
-        })
+        ))
     }
 }
 
@@ -402,11 +423,7 @@ fn friend_snapshot_diff_projection(
     next: &crate::realtime::RealtimeFriendSnapshot,
 ) -> Option<FriendProjection> {
     let created_at = chrono::Utc::now().to_rfc3339();
-    let mut projection = FriendProjection {
-        generation: next.generation,
-        baseline_revision: next.baseline_revision,
-        ..FriendProjection::default()
-    };
+    let mut projection = FriendProjection::new(next.generation, next.baseline_revision);
 
     if let Some(previous) = previous {
         let mut removals = previous
@@ -431,17 +448,6 @@ fn friend_snapshot_diff_projection(
         if !changed {
             continue;
         }
-        let patch = match serde_json::to_value(record) {
-            Ok(value) => value,
-            Err(error) => {
-                tracing::warn!(
-                    user_id,
-                    error = %error,
-                    "[Realtime] failed to serialize friend baseline projection patch"
-                );
-                continue;
-            }
-        };
         let was_traveling = previous_record.is_some_and(|record| {
             vrcx_0_core::location::parse_location(&record.location).is_traveling
         });
@@ -450,7 +456,7 @@ fn friend_snapshot_diff_projection(
             .patches
             .push(crate::realtime::FriendProjectionPatch {
                 user_id,
-                patch,
+                patch: record.clone(),
                 state_bucket,
                 state_bucket_authority: Some(FriendStateBucketAuthority::Explicit),
             });

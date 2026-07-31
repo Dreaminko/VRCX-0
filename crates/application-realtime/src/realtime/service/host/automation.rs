@@ -2,17 +2,27 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use serde_json::{json, Value};
+use vrcx_0_application_core::{Error, LocalGameContextSnapshot, Result};
 use vrcx_0_core::json::JsonExt;
 use vrcx_0_core::json::RawJson;
+use vrcx_0_persistence::config as config_store;
+use vrcx_0_persistence::DatabaseService;
+use vrcx_0_vrchat_client::http_api::ApiScope;
 use vrcx_0_vrchat_client::notifications::{invite_send_input, notification_hide_remote_input};
 
-use crate::realtime::invite_automation::decision::{context_gates, cooldown_gate, CooldownView};
+use crate::realtime::invite_automation::decision::{
+    context_gates, cooldown_gate, evaluate_invite_automation, normalize_invite_automation_mode,
+    CooldownView, InviteAutomationConfig, InviteAutomationInput, InviteAutomationSkipReason,
+    InviteDecision, InviteLocationFacts, InviteNotificationFacts, SenderAllowlist,
+};
+use crate::realtime::invite_automation::runtime::{sender_scope_key, InviteOutcome};
+use crate::realtime::{RealtimeNotificationProjection, RealtimeSessionContext};
 use crate::social_baseline::{
     build_favorites_baseline, SocialBaselineDeps, SocialFavoritesBaselineInput,
 };
 
 use super::message_dispatch::json_string_field;
-use super::*;
+use super::RealtimeHostRuntime;
 
 impl RealtimeHostRuntime {
     pub(super) fn schedule_invite_automation(

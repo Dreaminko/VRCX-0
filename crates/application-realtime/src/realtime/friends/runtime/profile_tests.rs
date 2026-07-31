@@ -323,7 +323,10 @@ mod tests {
 
         assert_eq!(output.projection.patches[0].state_bucket, "offline");
         assert!(output.persistence.feed_entries.is_empty());
-        assert_eq!(output.projection.patches[0].patch["pendingOffline"], false);
+        assert_eq!(
+            output.projection.patches[0].patch.extra["pendingOffline"],
+            false
+        );
         assert!(runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .is_none());
@@ -399,7 +402,10 @@ mod tests {
         };
 
         assert_eq!(output.projection.patches[0].state_bucket, "online");
-        assert_eq!(output.projection.patches[0].patch["pendingOffline"], false);
+        assert_eq!(
+            output.projection.patches[0].patch.extra["pendingOffline"],
+            false
+        );
         assert!(runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .is_none());

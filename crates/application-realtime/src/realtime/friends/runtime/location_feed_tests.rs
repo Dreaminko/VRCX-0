@@ -49,10 +49,7 @@ mod tests {
         };
 
         assert_eq!(output.projection.patches[0].state_bucket, "online");
-        assert_eq!(
-            output.projection.patches[0].patch["location"],
-            "wrld_new:456"
-        );
+        assert_eq!(output.projection.patches[0].patch.location, "wrld_new:456");
         assert!(output.persistence.feed_entries.is_empty());
         assert!(output.projection.feed_entries.is_empty());
     }
@@ -205,9 +202,9 @@ mod tests {
             "wrld_current:456"
         );
         assert_eq!(private.persistence.feed_entries[1]["type"], "Status");
-        assert_eq!(private.projection.patches[0].patch["location"], "private");
+        assert_eq!(private.projection.patches[0].patch.location, "private");
         assert_eq!(
-            private.projection.patches[0].patch["$location"]["isPrivate"],
+            private.projection.patches[0].patch.extra["$location"]["isPrivate"],
             true
         );
 
@@ -228,11 +225,11 @@ mod tests {
         );
         assert_eq!(restored.persistence.feed_entries[1]["type"], "Status");
         assert_eq!(
-            restored.projection.patches[0].patch["$location"]["worldId"],
+            restored.projection.patches[0].patch.extra["$location"]["worldId"],
             "wrld_current"
         );
         assert_eq!(
-            restored.projection.patches[0].patch["$location_at"],
+            restored.projection.patches[0].patch.extra["$location_at"],
             1_778_803_320_000i64
         );
     }

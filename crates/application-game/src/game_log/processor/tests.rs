@@ -413,7 +413,7 @@ fn game_log_presence_enables_current_instance_gps_surface_filtering() -> Result<
             "displayName": "Selected Friend",
             "location": "wrld_current:123"
         })],
-        ..FriendProjection::default()
+        ..FriendProjection::new(0, 0)
     });
 
     let gps = sink.take_deliveries();

@@ -37,11 +37,33 @@ pub struct FriendBaselineCausalWatermark {
     pub friend_log_sequence: u64,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FriendBaselineSyncOutcome {
     pub result: FriendBaselineResult,
     pub snapshot: Option<RealtimeFriendSnapshot>,
     pub friend_log_changed: bool,
+}
+
+impl FriendBaselineSyncOutcome {
+    pub(crate) fn rejected(result: FriendBaselineResult) -> Self {
+        Self {
+            result,
+            snapshot: None,
+            friend_log_changed: false,
+        }
+    }
+
+    pub(crate) fn accepted(
+        result: FriendBaselineResult,
+        snapshot: Option<RealtimeFriendSnapshot>,
+        friend_log_changed: bool,
+    ) -> Self {
+        Self {
+            result,
+            snapshot,
+            friend_log_changed,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]

@@ -1,6 +1,22 @@
+use std::sync::Arc;
+
 use super::state::FriendOwnerGuard;
-use super::*;
+use serde_json::Value;
+use vrcx_0_application_core::LocalGameContextSnapshot;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
+use vrcx_0_persistence::realtime::{write_realtime_batch, RealtimeWriteCounts};
+
+use crate::realtime::{
+    FriendProjection, PendingOfflineTimerAction, RealtimeCurrentUserOutput, RealtimeFriendOutput,
+    RealtimeInstanceClosedOutput, RealtimeNotificationOutput, RealtimeSessionContext,
+};
+
+use super::RealtimeHostRuntime;
+
+pub(super) enum FriendOutputApplyOutcome {
+    Stale,
+    Applied { persistence_succeeded: bool },
+}
 
 impl RealtimeHostRuntime {
     pub(super) fn set_activity_friend_user_ids(&self, user_ids: Vec<String>) {
@@ -34,12 +50,8 @@ impl RealtimeHostRuntime {
         if feed_entries.is_empty() {
             return;
         }
-        let projection = FriendProjection {
-            generation,
-            baseline_revision,
-            feed_entries,
-            ..FriendProjection::default()
-        };
+        let mut projection = FriendProjection::new(generation, baseline_revision);
+        projection.feed_entries = feed_entries;
         if !self.is_friend_projection_current(&projection) {
             self.friends
                 .clear_baseline_if_revision(projection.generation, projection.baseline_revision);
@@ -57,7 +69,7 @@ impl RealtimeHostRuntime {
         self: &Arc<Self>,
         _owner: &FriendOwnerGuard<'_>,
         mut output: RealtimeFriendOutput,
-    ) -> bool {
+    ) -> FriendOutputApplyOutcome {
         let timer_action = output.timer_action.clone();
         let profile_refetch_user_ids = output.profile_refetch_user_ids.clone();
         let mut projection = output.projection.clone();
@@ -65,7 +77,7 @@ impl RealtimeHostRuntime {
         if !self.is_friend_projection_current(&projection) {
             self.friends
                 .clear_baseline_if_revision(projection.generation, projection.baseline_revision);
-            return false;
+            return FriendOutputApplyOutcome::Stale;
         }
         self.retain_current_instance_joining_entries(&mut projection, &output.owner_user_id);
         let friend_note_changed = output.friend_note_changed;
@@ -109,7 +121,10 @@ impl RealtimeHostRuntime {
             let values: Vec<Value> = projection
                 .patches
                 .iter()
-                .map(|patch| patch.patch.clone())
+                .map(|patch| {
+                    serde_json::to_value(&patch.patch)
+                        .expect("FriendRecord contains only JSON-serializable fields")
+                })
                 .collect();
             self.record_users_into_cache(
                 &values,
@@ -141,7 +156,9 @@ impl RealtimeHostRuntime {
         }
         self.schedule_friend_profile_refetches(projection_generation, profile_refetch_user_ids);
         self.schedule_world_name_warm(world_name_fetch_ids);
-        persisted
+        FriendOutputApplyOutcome::Applied {
+            persistence_succeeded: persisted,
+        }
     }
 
     fn retain_current_instance_joining_entries(
