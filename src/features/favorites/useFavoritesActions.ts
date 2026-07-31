@@ -115,9 +115,6 @@ export function useFavoritesActions({
     });
     const bulkActions = useFavoritesBulkActions({
         currentEndpoint,
-        handleRemoveLocalFavorite: collectionActions.handleRemoveLocalFavorite,
-        handleRemoveRemoteFavorite:
-            collectionActions.handleRemoveRemoteFavorite,
         kind,
         localGroups,
         refreshFavorites: collectionActions.refreshFavorites,

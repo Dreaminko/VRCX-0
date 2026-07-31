@@ -1,4 +1,8 @@
-import { commands } from '@/platform/tauri/bindings';
+import {
+    commands,
+    type SocialUnfriendBatchItemResult,
+    type SocialUnfriendBatchResult
+} from '@/platform/tauri/bindings';
 import { signalFriendLogChanged } from '@/services/friendLogMutationService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -17,8 +21,17 @@ type DeleteFriendResult = {
     userId: string;
     localError?: string;
 };
+type DeleteFriendsOptions = {
+    expectedEndpoint: string;
+    expectedOwnerUserId: string;
+    friends?: FriendLike[];
+};
+type DeleteFriendsResult = SocialUnfriendBatchResult & {
+    stale: boolean;
+};
 
 const STALE_AUTH_SCOPE_ERROR_TEXT = 'stale for the current auth scope';
+const CHANGED_AUTH_SCOPE_ERROR_TEXT = 'authentication scope changed';
 
 function normalizeUserId(value: unknown): string {
     return typeof value === 'string'
@@ -30,6 +43,14 @@ function isStaleAuthScopeError(error: unknown): boolean {
     return (
         error instanceof Error &&
         error.message.includes(STALE_AUTH_SCOPE_ERROR_TEXT)
+    );
+}
+
+function currentAuthScopeMatches(ownerUserId: string, endpoint: string) {
+    const auth = useRuntimeStore.getState().auth;
+    return (
+        normalizeUserId(auth.currentUserId) === normalizeUserId(ownerUserId) &&
+        normalizeUserId(auth.currentUserEndpoint) === normalizeUserId(endpoint)
     );
 }
 
@@ -73,6 +94,18 @@ async function deleteFriend({
             targetUserId: normalizedUserId,
             targetDisplayName: normalizeUserId(friend?.displayName)
         });
+        const stale =
+            !currentAuthScopeMatches(normalizeUserId(currentUserId), endpoint) ||
+            (outcome.status === 'remoteOkLocalFailed' &&
+                outcome.localError
+                    ?.toLowerCase()
+                    .includes(CHANGED_AUTH_SCOPE_ERROR_TEXT));
+        if (stale) {
+            return {
+                stale: true,
+                userId: normalizedUserId
+            };
+        }
         patchCurrentUserSnapshotFriendArrays(normalizedUserId);
         signalFriendLogChanged();
 
@@ -85,7 +118,10 @@ async function deleteFriend({
                     : undefined
         };
     } catch (error) {
-        if (isStaleAuthScopeError(error)) {
+        if (
+            isStaleAuthScopeError(error) ||
+            !currentAuthScopeMatches(normalizeUserId(currentUserId), endpoint)
+        ) {
             return {
                 stale: true,
                 userId: normalizedUserId
@@ -95,9 +131,69 @@ async function deleteFriend({
     }
 }
 
+async function deleteFriends({
+    expectedEndpoint,
+    expectedOwnerUserId,
+    friends = []
+}: DeleteFriendsOptions): Promise<DeleteFriendsResult> {
+    const targets = Array.from(
+        new Map(
+            friends
+                .map((friend) => {
+                    const userId = normalizeUserId(friend?.id);
+                    return [
+                        userId,
+                        {
+                            userId,
+                            displayName: normalizeUserId(friend?.displayName)
+                        }
+                    ] as const;
+                })
+                .filter(([userId]) => Boolean(userId))
+        ).values()
+    );
+    if (!targets.length) {
+        throw new Error('deleteFriends requires at least one friend user id.');
+    }
+    const outcome = await commands.appSocialUnfriendBatch({
+        expectedEndpoint,
+        expectedOwnerUserId,
+        targets
+    });
+    const stale =
+        !currentAuthScopeMatches(expectedOwnerUserId, expectedEndpoint) ||
+        outcome.items.some((item) =>
+            item.message
+                .toLowerCase()
+                .includes(CHANGED_AUTH_SCOPE_ERROR_TEXT)
+        );
+    const appliedItems = stale
+        ? []
+        : outcome.items.filter(isRemoteUnfriendApplied);
+    if (appliedItems.length) {
+        for (const item of appliedItems) {
+            patchCurrentUserSnapshotFriendArrays(item.userId);
+        }
+        signalFriendLogChanged();
+    }
+    return {
+        ...outcome,
+        stale
+    };
+}
+
+function isRemoteUnfriendApplied(
+    item: SocialUnfriendBatchItemResult
+): boolean {
+    return (
+        item.state === 'applied' || item.state === 'remoteOkLocalFailed'
+    );
+}
+
 const friendRelationshipService = Object.freeze({
-    deleteFriend
+    deleteFriend,
+    deleteFriends
 });
 
-export { deleteFriend };
+export { deleteFriend, deleteFriends };
 export default friendRelationshipService;

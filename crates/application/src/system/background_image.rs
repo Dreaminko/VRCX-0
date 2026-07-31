@@ -15,7 +15,10 @@ use vrcx_0_core::json::text_of;
 use vrcx_0_core::time::now_iso;
 use vrcx_0_integrations::background_image as protocol;
 use vrcx_0_integrations::external_api::{self, ExternalApiScope};
-use vrcx_0_persistence::{config as config_store, DatabaseService};
+use vrcx_0_persistence::{
+    config::{self as config_store, ConfigMutation},
+    DatabaseService,
+};
 
 use crate::{Error, Result};
 
@@ -28,6 +31,8 @@ const KEY_LEGACY_ENABLED: &str = "VRCX_officialBackgroundEnabled";
 const KEY_LEGACY_PROVIDER_ID: &str = "VRCX_officialBackgroundProviderId";
 const KEY_LEGACY_SNAPSHOTS: &str = "VRCX_officialBackgroundSnapshots";
 const KEY_COMMUNITY_THEME_ENABLED: &str = "VRCX_communityThemeEnabled";
+const KEY_COMMUNITY_THEME_ID: &str = "VRCX_communityThemeId";
+const KEY_COMMUNITY_THEME_VERSION: &str = "VRCX_communityThemeVersion";
 const KEY_COMMUNITY_THEME_INSTALLED_THEMES: &str = "VRCX_communityThemeInstalledThemes";
 const KEY_COMMUNITY_THEME_INSTALL_METADATA: &str = "VRCX_communityThemeInstallMetadata";
 const KEY_COMMUNITY_THEME_CSS_SNAPSHOT: &str = "VRCX_communityThemeCssSnapshot";
@@ -232,8 +237,8 @@ impl BackgroundImageService {
             .saturating_add(1)
     }
 
-    fn is_current_operation(&self, operation: u64) -> bool {
-        self.inner.generation.load(AtomicOrdering::Acquire) == operation
+    fn current_operation(&self) -> u64 {
+        self.inner.generation.load(AtomicOrdering::Acquire)
     }
 
     fn next_revision(&self) -> u64 {
@@ -246,11 +251,26 @@ impl BackgroundImageService {
     fn apply_projection(
         &self,
         operation: u64,
+        projection: BackgroundImageProjection,
+        persist: impl FnOnce(&Self, &BackgroundImageProjection) -> Result<()>,
+    ) -> Result<BackgroundImageProjection> {
+        self.apply_projection_guarded(operation, None, projection, persist)
+    }
+
+    fn apply_projection_guarded(
+        &self,
+        operation: u64,
+        expected_revision: Option<u64>,
         mut projection: BackgroundImageProjection,
         persist: impl FnOnce(&Self, &BackgroundImageProjection) -> Result<()>,
     ) -> Result<BackgroundImageProjection> {
         let mut slot = self.inner.projection.lock().unwrap();
-        if !self.is_current_operation(operation) {
+        if !projection_update_is_current(
+            self.current_operation(),
+            operation,
+            slot.revision,
+            expected_revision,
+        ) {
             return Ok(slot.clone());
         }
         persist(self, &projection)?;
@@ -263,26 +283,51 @@ impl BackgroundImageService {
     }
 
     fn persist_state(&self, projection: &BackgroundImageProjection) -> Result<()> {
-        config_store::set_bool(&self.inner.db, KEY_ENABLED, projection.enabled)?;
-        config_store::set_string(&self.inner.db, KEY_MODE, mode_as_str(projection.mode))?;
-        config_store::set_string(
-            &self.inner.db,
-            KEY_PROVIDER_ID,
-            projection.provider_id.as_str(),
-        )?;
-        Ok(())
+        self.persist_state_with_mutations(projection, Vec::new(), false)
     }
 
     fn persist_custom_source(&self, source: Option<&BackgroundImageCustomSource>) -> Result<()> {
-        match source {
-            Some(source) => config_store::set_json(
-                &self.inner.db,
+        let mutation = match source {
+            Some(source) => ConfigMutation::set(
                 KEY_CUSTOM_SOURCE,
-                &serde_json::to_value(source).map_err(|error| Error::Custom(error.to_string()))?,
+                serde_json::to_string(source).map_err(|error| Error::Custom(error.to_string()))?,
             ),
-            None => config_store::remove(&self.inner.db, KEY_CUSTOM_SOURCE),
+            None => ConfigMutation::remove(KEY_CUSTOM_SOURCE),
+        };
+        config_store::config_apply_mutations(&self.inner.db, &[mutation]).map_err(Error::from)
+    }
+
+    fn persist_state_with_mutations(
+        &self,
+        projection: &BackgroundImageProjection,
+        mut mutations: Vec<ConfigMutation>,
+        include_custom_source: bool,
+    ) -> Result<()> {
+        mutations.extend([
+            ConfigMutation::set(KEY_ENABLED, projection.enabled.to_string()),
+            ConfigMutation::set(KEY_MODE, mode_as_str(projection.mode)),
+            ConfigMutation::set(KEY_PROVIDER_ID, projection.provider_id.as_str()),
+        ]);
+        if include_custom_source {
+            mutations.push(match projection.custom_source.as_ref() {
+                Some(source) => ConfigMutation::set(
+                    KEY_CUSTOM_SOURCE,
+                    serde_json::to_string(source)
+                        .map_err(|error| Error::Custom(error.to_string()))?,
+                ),
+                None => ConfigMutation::remove(KEY_CUSTOM_SOURCE),
+            });
         }
-        .map_err(Error::from)
+        if projection.enabled {
+            mutations.extend([
+                ConfigMutation::set(KEY_COMMUNITY_THEME_ENABLED, "false"),
+                ConfigMutation::remove(KEY_COMMUNITY_THEME_ID),
+                ConfigMutation::remove(KEY_COMMUNITY_THEME_VERSION),
+                ConfigMutation::remove(KEY_COMMUNITY_THEME_CSS_SNAPSHOT),
+                ConfigMutation::remove(KEY_COMMUNITY_THEME_INSTALL_METADATA),
+            ]);
+        }
+        config_store::config_apply_mutations(&self.inner.db, &mutations).map_err(Error::from)
     }
 
     fn load_custom_source(&self) -> Result<Option<BackgroundImageCustomSource>> {
@@ -584,6 +629,20 @@ impl BackgroundImageService {
         self.apply_projection(operation, projection, Self::persist_state)
     }
 
+    pub(super) fn disable_for_community_theme(
+        &self,
+        mutations: Vec<ConfigMutation>,
+    ) -> Result<BackgroundImageProjection> {
+        let operation = self.begin_operation();
+        let mut projection = self.projection();
+        projection.enabled = false;
+        projection.mode = BackgroundImageMode::Off;
+        projection.error = None;
+        self.apply_projection(operation, projection, move |service, projection| {
+            service.persist_state_with_mutations(projection, mutations, false)
+        })
+    }
+
     async fn enable_daily(
         &self,
         provider_id: Option<BackgroundImageProviderId>,
@@ -609,7 +668,7 @@ impl BackgroundImageService {
                 self.apply_projection(operation, projection, Self::persist_state)
             }
             Err(error) => {
-                self.record_error(operation, &error);
+                self.record_error(operation, None, &error);
                 Err(error)
             }
         }
@@ -692,20 +751,20 @@ impl BackgroundImageService {
                 self.apply_projection(operation, projection, Self::persist_state_and_source)
             }
             Err(error) => {
-                self.apply_custom_failure(operation, current, Some(source), &error)?;
+                self.apply_custom_failure(operation, None, current, Some(source), &error)?;
                 Err(error)
             }
         }
     }
 
     fn persist_state_and_source(&self, projection: &BackgroundImageProjection) -> Result<()> {
-        self.persist_custom_source(projection.custom_source.as_ref())?;
-        self.persist_state(projection)
+        self.persist_state_with_mutations(projection, Vec::new(), true)
     }
 
     fn apply_custom_failure(
         &self,
         operation: u64,
+        expected_revision: Option<u64>,
         current: BackgroundImageProjection,
         custom_source: Option<BackgroundImageCustomSource>,
         error: &Error,
@@ -718,7 +777,12 @@ impl BackgroundImageService {
             error: Some(error.to_string()),
             ..current
         };
-        self.apply_projection(operation, projection, Self::persist_state_and_source)?;
+        self.apply_projection_guarded(
+            operation,
+            expected_revision,
+            projection,
+            Self::persist_state_and_source,
+        )?;
         Ok(())
     }
 
@@ -762,9 +826,39 @@ impl BackgroundImageService {
         self.apply_projection(operation, projection, Self::persist_state)
     }
 
-    pub async fn refresh(&self, force: bool) -> Result<BackgroundImageProjection> {
+    pub(super) fn migrate_legacy_nasa_apod_for_community_theme(
+        &self,
+        mutations: Vec<ConfigMutation>,
+    ) -> Result<BackgroundImageProjection> {
         let operation = self.begin_operation();
+        let mut current = self.projection();
+        let snapshot = current.snapshot.take().filter(|snapshot| {
+            snapshot.provider_id == Some(BackgroundImageProviderId::NasaApodSafe)
+        });
+        let projection = BackgroundImageProjection {
+            enabled: true,
+            mode: BackgroundImageMode::Daily,
+            provider_id: BackgroundImageProviderId::NasaApodSafe,
+            snapshot,
+            error: None,
+            ..current
+        };
+        self.apply_projection(operation, projection, move |service, projection| {
+            service.persist_state_with_mutations(projection, mutations, false)
+        })
+    }
+
+    pub async fn refresh(&self, force: bool) -> Result<BackgroundImageProjection> {
+        let operation = if force {
+            self.begin_operation()
+        } else {
+            self.current_operation()
+        };
         let current = self.projection();
+        let expected_revision = (!force).then_some(current.revision);
+        if !force && !current.enabled {
+            return Ok(current);
+        }
         let resolved = match current.mode {
             BackgroundImageMode::Custom => match current.custom_source.as_ref() {
                 Some(source) => self
@@ -792,23 +886,46 @@ impl BackgroundImageService {
                     error: None,
                     ..current
                 };
-                self.apply_projection(operation, projection, Self::persist_state)
+                self.apply_projection_guarded(
+                    operation,
+                    expected_revision,
+                    projection,
+                    Self::persist_state,
+                )
             }
-            Ok(None) => self.disable(),
+            Ok(None) => {
+                let projection = BackgroundImageProjection {
+                    enabled: false,
+                    mode: BackgroundImageMode::Off,
+                    error: None,
+                    ..current
+                };
+                self.apply_projection_guarded(
+                    operation,
+                    expected_revision,
+                    projection,
+                    Self::persist_state,
+                )
+            }
             Err(error) => {
                 if current.mode == BackgroundImageMode::Custom {
-                    self.apply_custom_failure(operation, current, None, &error)?;
+                    self.apply_custom_failure(operation, expected_revision, current, None, &error)?;
                 } else {
-                    self.record_error(operation, &error);
+                    self.record_error(operation, expected_revision, &error);
                 }
                 Err(error)
             }
         }
     }
 
-    fn record_error(&self, operation: u64, error: &Error) {
+    fn record_error(&self, operation: u64, expected_revision: Option<u64>, error: &Error) {
         let mut slot = self.inner.projection.lock().unwrap();
-        if !self.is_current_operation(operation) {
+        if !projection_update_is_current(
+            self.current_operation(),
+            operation,
+            slot.revision,
+            expected_revision,
+        ) {
             return;
         }
         slot.error = Some(error.to_string());
@@ -1131,6 +1248,16 @@ fn stable_hash(value: &str) -> u32 {
     hash
 }
 
+fn projection_update_is_current(
+    current_operation: u64,
+    operation: u64,
+    current_revision: u64,
+    expected_revision: Option<u64>,
+) -> bool {
+    current_operation == operation
+        && expected_revision.is_none_or(|revision| current_revision == revision)
+}
+
 fn file_name_from_path(path: &str) -> String {
     Path::new(path)
         .file_name()
@@ -1321,5 +1448,13 @@ mod tests {
         let files = vec!["c:\\img\\a.png".to_string(), "C:\\img\\b.png".to_string()];
         assert!(assert_selected_files_available(&source, &files).is_ok());
         assert!(assert_selected_files_available(&source, &files[..1].to_vec()).is_err());
+    }
+
+    #[test]
+    fn automatic_refresh_cannot_overwrite_a_user_operation() {
+        assert!(!projection_update_is_current(2, 1, 4, Some(4)));
+        assert!(!projection_update_is_current(2, 2, 5, Some(4)));
+        assert!(projection_update_is_current(2, 2, 4, Some(4)));
+        assert!(projection_update_is_current(2, 2, 5, None));
     }
 }

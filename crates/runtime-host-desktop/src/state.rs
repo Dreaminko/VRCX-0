@@ -7,7 +7,9 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use vrcx_0_application::{AppUpdateBuildInfo, AppUpdateRuntime, BackgroundImageService};
+use vrcx_0_application::{
+    AppUpdateBuildInfo, AppUpdateRuntime, BackgroundImageService, CommunityThemeService,
+};
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
     BackendRuntimeMode, BackendRuntimePhase, GameProcessEvent, GameProcessEventSink,
@@ -85,6 +87,7 @@ pub struct DesktopRuntimeBundle {
     pub app_update: AppUpdateRuntime,
     pub telemetry: TelemetryRuntime,
     pub background_image: BackgroundImageService,
+    pub community_theme: CommunityThemeService,
 }
 
 pub struct DesktopRuntimeHostState {
@@ -234,6 +237,12 @@ impl DesktopRuntimeHostState {
                 ),
             ),
         );
+        let community_theme = CommunityThemeService::new(
+            Arc::clone(&builder.db),
+            Arc::clone(&builder.web),
+            builder.runtime_context.event_bus.clone(),
+            background_image.clone(),
+        );
         let game = Arc::new(GameRuntimeBundle {
             process_monitor,
             log_watcher,
@@ -251,6 +260,7 @@ impl DesktopRuntimeHostState {
             app_update,
             telemetry,
             background_image,
+            community_theme,
         });
         let extension = Arc::new(DesktopRuntimeProfileExtension {
             game: Arc::clone(&game),
@@ -522,10 +532,14 @@ impl DesktopRuntimeProfileExtension {
             return;
         }
         let background_image = self.desktop.background_image.clone();
+        let community_theme = self.desktop.community_theme.clone();
         state
             .runtime_context
             .tasks
             .spawn_cancellable(move |stop_token| async move {
+                if let Err(error) = community_theme.initialize().await {
+                    tracing::warn!(error = %error, "failed to initialize community theme runtime");
+                }
                 if let Err(error) = background_image.initialize().await {
                     tracing::warn!(error = %error, "failed to initialize background image runtime");
                 }

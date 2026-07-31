@@ -271,6 +271,11 @@ export const commands = {
     ): Promise<BatchMutationResult> {
         return await TAURI_INVOKE('app__group_leave_batch', { input });
     },
+    async appGroupModerationBatch(
+        input: GroupModerationBatchInput
+    ): Promise<GroupModerationBatchResult> {
+        return await TAURI_INVOKE('app__group_moderation_batch', { input });
+    },
     async appNotificationMarkSeenBatch(
         input: NotificationMarkSeenBatchInput
     ): Promise<NotificationMarkSeenBatchResult> {
@@ -288,6 +293,32 @@ export const commands = {
         input: MyAvatarByIdInput
     ): Promise<JsonValue | null> {
         return await TAURI_INVOKE('app__my_avatar_by_id_get', { input });
+    },
+    async appFriendLogNamesResolve(
+        input: FriendLogNameResolutionInput
+    ): Promise<ResolvedFriendLogName[]> {
+        return await TAURI_INVOKE('app__friend_log_names_resolve', { input });
+    },
+    async appFriendLogNamesCancel(requestId: string): Promise<boolean> {
+        return await TAURI_INVOKE('app__friend_log_names_cancel', {
+            requestId
+        });
+    },
+    async appGroupCalendarSnapshotGet(
+        input: GroupCalendarInput
+    ): Promise<GroupCalendarSnapshot> {
+        return await TAURI_INVOKE('app__group_calendar_snapshot_get', {
+            input
+        });
+    },
+    async appQuickSearchCatalogGet(): Promise<QuickSearchCatalogSnapshot> {
+        return await TAURI_INVOKE('app__quick_search_catalog_get');
+    },
+    async appVrcStatusGet(): Promise<VrcStatusSnapshot> {
+        return await TAURI_INVOKE('app__vrc_status_get');
+    },
+    async appVrcStatusRefresh(): Promise<VrcStatusSnapshot> {
+        return await TAURI_INVOKE('app__vrc_status_refresh');
     },
     async appNotificationHideAndExpire(
         input: NotificationHideExpireInput
@@ -497,6 +528,11 @@ export const commands = {
         input: FavoriteTransferInput
     ): Promise<FavoriteTransferResult> {
         return await TAURI_INVOKE('app__favorites_transfer', { input });
+    },
+    async appFavoritesBulkRemove(
+        input: FavoriteBulkRemoveInput
+    ): Promise<FavoriteBulkRemoveResult> {
+        return await TAURI_INVOKE('app__favorites_bulk_remove', { input });
     },
     async appVrOverlayStatusGet(): Promise<VrOverlayRuntimeSnapshot> {
         return await TAURI_INVOKE('app__vr_overlay_status_get');
@@ -1256,21 +1292,6 @@ export const commands = {
             promptedAt
         });
     },
-    async appRuntimeFrontendScheduleJobDueClaim(
-        input: RuntimeFrontendScheduleJobDueClaimInput
-    ): Promise<boolean> {
-        return await TAURI_INVOKE(
-            'app__runtime_frontend_schedule_job_due_claim',
-            { input }
-        );
-    },
-    async appRuntimeFrontendScheduleJobDefer(
-        input: RuntimeFrontendScheduleJobDeferInput
-    ): Promise<boolean> {
-        return await TAURI_INVOKE('app__runtime_frontend_schedule_job_defer', {
-            input
-        });
-    },
     async appRuntimeGroupInstancesRefresh(): Promise<null> {
         return await TAURI_INVOKE('app__runtime_group_instances_refresh');
     },
@@ -1314,13 +1335,6 @@ export const commands = {
         input: ExternalApiTranslationInput
     ): Promise<ExternalApiExecuteResponse> {
         return await TAURI_INVOKE('app__external_api_translation_request', {
-            input
-        });
-    },
-    async appExternalApiVrcStatusJsonGet(
-        input: ExternalApiVrcStatusInput
-    ): Promise<ExternalApiExecuteResponse> {
-        return await TAURI_INVOKE('app__external_api_vrc_status_json_get', {
             input
         });
     },
@@ -2135,6 +2149,11 @@ export const commands = {
     ): Promise<SocialFriendMutationOutcome> {
         return await TAURI_INVOKE('app__social_unfriend', { input });
     },
+    async appSocialUnfriendBatch(
+        input: SocialUnfriendBatchInput
+    ): Promise<SocialUnfriendBatchResult> {
+        return await TAURI_INVOKE('app__social_unfriend_batch', { input });
+    },
     async appVrchatToolsCalendarsGet(
         input: VrchatToolsCalendarListInput
     ): Promise<HttpApiExecuteResponse> {
@@ -2418,6 +2437,27 @@ export const commands = {
     },
     async appBackgroundImageRefresh(): Promise<BackgroundImageProjection> {
         return await TAURI_INVOKE('app__background_image_refresh');
+    },
+    async appCommunityThemeStateGet(): Promise<CommunityThemeProjection> {
+        return await TAURI_INVOKE('app__community_theme_state_get');
+    },
+    async appCommunityThemeCatalogGet(): Promise<CommunityThemeCatalog> {
+        return await TAURI_INVOKE('app__community_theme_catalog_get');
+    },
+    async appCommunityThemeStatsGet(): Promise<
+        Partial<{ [key in string]: CommunityThemeStatsEntry }>
+    > {
+        return await TAURI_INVOKE('app__community_theme_stats_get');
+    },
+    async appCommunityThemeConfigure(
+        input: CommunityThemeConfigureInput
+    ): Promise<CommunityThemeProjection> {
+        return await TAURI_INVOKE('app__community_theme_configure', { input });
+    },
+    async appCommunityThemeInstallReport(themeId: string): Promise<boolean> {
+        return await TAURI_INVOKE('app__community_theme_install_report', {
+            themeId
+        });
     },
     async appOpenFileSelectorDialog(
         defaultPath: string | null,
@@ -3219,6 +3259,8 @@ export type BackendRuntimeEventPayloadMap = {
     appUpdateInstalled: AppUpdateInstalledPayload;
     backendRuntimeTelemetry: BackendRuntimeTelemetry;
     backgroundImageState: BackgroundImageProjection;
+    communityThemeState: CommunityThemeProjection;
+    vrcStatus: VrcStatusSnapshot;
     gameLogProjection: GameLogProjection;
     gameLogPersistenceFallback: GameLogPersistenceFallbackPayload;
     gameLogSideEffect: GameLogSideEffectEvent;
@@ -3234,6 +3276,9 @@ export type BackendRuntimeEventPayloadMap = {
     favoritesChanged: FavoritesChangedPayload;
     favoriteImportStatus: FavoriteImportStatus;
     groupBanImportStatus: GroupBanImportStatus;
+    groupModerationBatchProgress: GroupModerationBatchProgress;
+    mutualGraphFetchStatus: MutualGraphFetchStatus;
+    screenshotLibraryScanStatus: ScreenshotLibraryScanStatus;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
     realtimeUserProjection: RealtimeUserProjection;
@@ -3395,6 +3440,23 @@ export type ClientErrorLogEntry = {
     source: string;
     message: string;
 };
+export type CommunityThemeAuthor = {
+    name: string;
+    github: string;
+    url?: string | null;
+};
+export type CommunityThemeCatalog = {
+    sourceUrl: string;
+    schemaVersion: number;
+    themes: CommunityThemeManifest[];
+};
+export type CommunityThemeConfigureInput =
+    | { kind: 'install'; themeId: string }
+    | { kind: 'enable'; themeId: string | null }
+    | { kind: 'disable' }
+    | { kind: 'delete'; themeId: string | null }
+    | { kind: 'setOverride'; cssText: string }
+    | { kind: 'disableOverride' };
 export type CommunityThemeDebugLocalThemeOutput = {
     folderPath: string;
     cssPath: string;
@@ -3405,6 +3467,42 @@ export type CommunityThemeDebugLocalThemeOutput = {
     accentMode: boolean;
     css: string;
 };
+export type CommunityThemeInstallMetadata = {
+    themeId: string;
+    themeName: string;
+    version: string;
+    sourceUrl: string;
+    sha256: string;
+    installedAt: string;
+    updatedAt: string;
+    darkMode: boolean;
+    accentMode: boolean;
+};
+export type CommunityThemeManifest = {
+    id: string;
+    name: string;
+    version: string;
+    author: CommunityThemeAuthor;
+    description: string;
+    tags: string[];
+    testedWith: string;
+    remoteAssets: boolean;
+    darkMode: boolean;
+    accentMode: boolean;
+    previewUrl: string;
+    readmeUrl: string;
+};
+export type CommunityThemeProjection = {
+    revision: number;
+    catalogUrl: string;
+    enabled: boolean;
+    installedTheme: CommunityThemeInstallMetadata | null;
+    installedThemes: CommunityThemeInstallMetadata[];
+    installedCssSnapshot: string;
+    overrideCss: string;
+    overrideCssEnabled: boolean;
+};
+export type CommunityThemeStatsEntry = { downloads: number };
 export type ConfigReadEntry = { key: string; value: string };
 export type ConfigWriteEntry = { key: string; value: string };
 export type CrashRelaunchDecisionPayload =
@@ -3569,11 +3667,43 @@ export type ExternalApiUrlInput = {
     url?: string;
     headers?: Partial<{ [key in string]: string }>;
 };
-export type ExternalApiVrcStatusInput = { path?: string };
 export type ExternalApiYoutubeVideoInput = {
     videoId?: string;
     apiKey?: string;
 };
+export type FavoriteBulkRemoveInput = {
+    expectedOwnerUserId: string;
+    expectedEndpoint: string;
+    kind: string;
+    items?: FavoriteBulkRemoveItem[];
+};
+export type FavoriteBulkRemoveItem = {
+    key: string;
+    source: FavoriteBulkRemoveSource;
+    entityId: string;
+    groupName?: string;
+};
+export type FavoriteBulkRemoveItemResult = {
+    key: string;
+    source: FavoriteBulkRemoveSource;
+    entityId: string;
+    state: FavoriteBulkRemoveItemState;
+    localAffected: number;
+    message: string;
+};
+export type FavoriteBulkRemoveItemState = 'removed' | 'failed' | 'notAttempted';
+export type FavoriteBulkRemoveResult = {
+    ownerUserId: string;
+    kind: string;
+    total: number;
+    succeeded: number;
+    failed: number;
+    localChanged: boolean;
+    remoteChanged: boolean;
+    items: FavoriteBulkRemoveItemResult[];
+    lastError: string | null;
+};
+export type FavoriteBulkRemoveSource = 'local' | 'remote';
 export type FavoriteDetailsHydrateInput = {
     kind: FavoriteDetailsHydrateKind;
     favoriteIds?: string[];
@@ -3801,6 +3931,10 @@ export type FriendLogHistoryQueryInput = {
     targetUserId?: string;
     types?: string[];
 };
+export type FriendLogNameResolutionInput = {
+    requestId: string;
+    userIds?: string[];
+};
 export type FriendProfileBulkLoadStatus =
     | 'idle'
     | 'running'
@@ -4014,7 +4148,61 @@ export type GroupBanImportStatus = {
     finishedAt: string | null;
     lastError: string | null;
 };
+export type GroupCalendarInput = { date: string; includeFeatured?: boolean };
+export type GroupCalendarSnapshot = {
+    events: JsonValue[];
+    followingEventIds: string[];
+    groupNames: Partial<{ [key in string]: string }>;
+    groupProfiles: Partial<{ [key in string]: JsonValue }>;
+};
 export type GroupLeaveBatchInput = { groupIds?: string[] };
+export type GroupModerationBatchAction =
+    | { type: 'kick' }
+    | { type: 'ban' }
+    | { type: 'unban' }
+    | { type: 'saveNote'; note: string }
+    | { type: 'addRoles' }
+    | { type: 'removeRoles' };
+export type GroupModerationBatchInput = {
+    expectedOwnerUserId: string;
+    expectedEndpoint: string;
+    groupId: string;
+    action: GroupModerationBatchAction;
+    targets?: GroupModerationBatchTarget[];
+};
+export type GroupModerationBatchItemResult = {
+    userId: string;
+    state: GroupModerationBatchItemState;
+    appliedRoleIds: string[];
+    failedRoleIds: string[];
+    message: string;
+};
+export type GroupModerationBatchItemState =
+    | 'applied'
+    | 'partiallyApplied'
+    | 'skipped'
+    | 'failed'
+    | 'notAttempted';
+export type GroupModerationBatchProgress = {
+    ownerUserId: string;
+    endpoint: string;
+    groupId: string;
+    completed: number;
+    total: number;
+};
+export type GroupModerationBatchResult = {
+    ownerUserId: string;
+    endpoint: string;
+    total: number;
+    succeeded: number;
+    failed: number;
+    skipped: number;
+    appliedOperations: number;
+    failedOperations: number;
+    items: GroupModerationBatchItemResult[];
+    lastError: string | null;
+};
+export type GroupModerationBatchTarget = { userId: string; roleIds?: string[] };
 export type GroupQuickModerationActionInput = {
     currentUserId?: string;
     targetUserId?: string;
@@ -4309,6 +4497,7 @@ export type MutualGraphFetchStartInput = {
 };
 export type MutualGraphFetchStatus = {
     runId: number;
+    revision: number;
     status: string;
     ownerUserId: string;
     totalFriends: number;
@@ -4922,6 +5111,17 @@ export type ProxySettingsTestResult = {
     normalizedProxy: string | null;
     status: number;
 };
+export type QuickSearchCatalogSnapshot = {
+    status: string;
+    detail: string;
+    ownAvatars: JsonValue[];
+    favoriteAvatars: JsonValue[];
+    ownWorlds: JsonValue[];
+    favoriteWorlds: JsonValue[];
+    groups: JsonValue[];
+    userMemos: JsonValue[];
+    userNotes: JsonValue[];
+};
 export type RawJson = JsonValue;
 export type RealtimeCurrentUserProjection = {
     generation: number;
@@ -5007,21 +5207,13 @@ export type RemoteModerationRow = {
     targetDisplayName: string;
     created: string;
 };
+export type ResolvedFriendLogName = { userId: string; displayName: string };
 export type Role = 'user' | 'assistant';
 export type RuntimeAuthScopeSnapshot = {
     currentUserId: string;
     endpoint: string;
     generation: number;
     active: boolean;
-};
-export type RuntimeFrontendScheduleJobDeferInput = {
-    name: string;
-    delaySeconds: number;
-};
-export type RuntimeFrontendScheduleJobDueClaimInput = {
-    name: string;
-    cadenceSeconds: number;
-    initialDelaySeconds?: number;
 };
 export type RuntimeGameLogEventPayload = {
     runtimePersisted: boolean;
@@ -5269,6 +5461,34 @@ export type SocialFriendRosterBaselineOutput = {
     snapshot: RawJson | null;
     friendLogChanged: boolean;
 };
+export type SocialUnfriendBatchInput = {
+    expectedOwnerUserId: string;
+    expectedEndpoint: string;
+    targets?: SocialUnfriendBatchTarget[];
+};
+export type SocialUnfriendBatchItemResult = {
+    userId: string;
+    state: SocialUnfriendBatchItemState;
+    message: string;
+};
+export type SocialUnfriendBatchItemState =
+    | 'applied'
+    | 'remoteOkLocalFailed'
+    | 'failed'
+    | 'notAttempted';
+export type SocialUnfriendBatchResult = {
+    ownerUserId: string;
+    total: number;
+    succeeded: number;
+    failed: number;
+    localFailed: number;
+    items: SocialUnfriendBatchItemResult[];
+    lastError: string | null;
+};
+export type SocialUnfriendBatchTarget = {
+    userId: string;
+    displayName?: string;
+};
 export type TelemetryClientEvent =
     | { type: 'pageVisit'; route: string }
     | {
@@ -5343,6 +5563,16 @@ export type VrOverlayRuntimeSnapshot = {
     vrMode: boolean;
     steamvrRunning: boolean;
     activeBackend: string | null;
+};
+export type VrcStatusSnapshot = {
+    status: string;
+    indicator: string;
+    summary: string;
+    updatedAt: string | null;
+    lastFetchedAt: string | null;
+    pollingIntervalMs: number;
+    refreshing: boolean;
+    error: string;
 };
 export type VrchatAuthFileAnalysisInput = {
     fileId?: string;

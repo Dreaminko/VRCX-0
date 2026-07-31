@@ -6,6 +6,7 @@ mod collections;
 mod event_payloads;
 mod favorites;
 mod media;
+mod remote_mutation_gate;
 mod social;
 mod system;
 
@@ -70,6 +71,11 @@ pub use favorites::{
     FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,
 };
 pub use favorites::{
+    remove_favorites_bulk, FavoriteBulkRemoveDeps, FavoriteBulkRemoveInput, FavoriteBulkRemoveItem,
+    FavoriteBulkRemoveItemResult, FavoriteBulkRemoveItemState, FavoriteBulkRemoveResult,
+    FavoriteBulkRemoveSource, FAVORITE_BULK_REMOVE_MAX_ITEMS,
+};
+pub use favorites::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
     FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,
     FavoriteImportStatus, FavoriteImportTarget, FAVORITE_IMPORT_MAX_ITEMS,
@@ -80,10 +86,13 @@ pub use media::{
     InventoryItemsCollectOutput, LegacyEntityImageKind, LegacyEntityImageUploadInput,
     LegacyMediaUploadDeps,
 };
+pub use remote_mutation_gate::RemoteMutationGate;
 pub use social::{
-    accept_friend_request, cancel_friend_request, send_friend_request, unfriend,
+    accept_friend_request, cancel_friend_request, send_friend_request, unfriend, unfriend_batch,
     SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendMutationStatus,
     SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
+    SocialUnfriendBatchInput, SocialUnfriendBatchItemResult, SocialUnfriendBatchItemState,
+    SocialUnfriendBatchResult, SocialUnfriendBatchTarget, SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
 };
 pub use social::{
     add_member_role, ban_member, block_group, cancel_request, create_post, delete_invite,
@@ -111,6 +120,10 @@ pub use social::{
     UserGroupsOverviewInput, UserGroupsOverviewOutput,
 };
 pub use social::{
+    load_group_calendar, GroupCalendarDeps, GroupCalendarInput, GroupCalendarSnapshot,
+};
+pub use social::{load_quick_search_catalog, QuickSearchCatalogDeps, QuickSearchCatalogSnapshot};
+pub use social::{
     prepare_note_export, run_note_export, NoteExportActions, NoteExportItemInput,
     NoteExportItemState, NoteExportItemStatus, NoteExportProgress, NoteExportResult,
     NoteExportStartInput, NoteExportState, NoteExportStatus, VrchatNoteExportActions,
@@ -120,6 +133,17 @@ pub use social::{
     refresh_player_moderations, update_player_moderation, ModerationSyncDeps,
     ModerationSyncMutationInput, ModerationSyncMutationOutput, ModerationSyncRefreshInput,
     ModerationSyncRefreshOutput, RemoteModerationRow,
+};
+pub use social::{
+    resolve_friend_log_names, FriendLogNameResolutionCoordinator, FriendLogNameResolutionDeps,
+    FriendLogNameResolutionInput, ResolvedFriendLogName, FRIEND_LOG_NAME_RESOLUTION_MAX_USERS,
+};
+pub use social::{
+    run_group_moderation_batch, GroupModerationBatchAction, GroupModerationBatchCoordinator,
+    GroupModerationBatchInput, GroupModerationBatchItemResult, GroupModerationBatchItemState,
+    GroupModerationBatchProgress, GroupModerationBatchResult, GroupModerationBatchTarget,
+    VrchatGroupModerationBatchActions, GROUP_MODERATION_BATCH_MAX_OPERATIONS,
+    GROUP_MODERATION_BATCH_MAX_TARGETS,
 };
 pub use social::{
     GroupBanImportActions, GroupBanImportFuture, GroupBanImportItemResult, GroupBanImportItemState,
@@ -132,6 +156,7 @@ pub use social::{
 };
 pub use system::DatabaseUpgradeRuntime;
 pub use system::ProfileOperationGate;
+pub use system::VrcStatusService;
 pub use system::{
     accept_request_invite_notification, dismiss_boop_notifications, hide_and_expire_notification,
     respond_and_expire_notification, send_boop_reply_notification,
@@ -182,6 +207,11 @@ pub use system::{
     BackgroundImageSnapshot, UnavailableBackgroundImageFileResolver,
 };
 pub use system::{
+    CommunityThemeAuthor, CommunityThemeCatalog, CommunityThemeConfigureInput,
+    CommunityThemeInstallMetadata, CommunityThemeManifest, CommunityThemeProjection,
+    CommunityThemeService, CommunityThemeStatsById, CommunityThemeStatsEntry,
+};
+pub use system::{
     DataDirMigrationActionOutcome, DataDirMigrationError, DataDirMigrationErrorCode,
     DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan, DataDirMigrationRuntime,
     DataDirMigrationState, DataDirMigrationStatus, DataDirPointerCommitter,
@@ -212,6 +242,7 @@ pub use vrcx_0_application_core::{
 };
 pub use vrcx_0_application_core::{
     Error, RuntimeDiagnostics, RuntimeEventBus, RuntimeEventSink, RuntimeVrchatAuthFailurePayload,
+    VrcStatusSnapshot,
 };
 pub use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 pub use vrcx_0_application_core::{

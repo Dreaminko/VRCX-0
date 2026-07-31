@@ -250,6 +250,8 @@ export const queryKeys = Object.freeze({
         }: { eventId?: unknown; groupId?: unknown } = {},
         endpoint: unknown = ''
     ) => withEndpoint(['calendar', groupId, eventId], endpoint),
+    quickSearchCatalog: (userId: unknown, endpoint: unknown = '') =>
+        withEndpoint(['quickSearch', userId], endpoint),
     avatarGallery: (avatarId: unknown, endpoint: unknown = '') =>
         withEndpoint(['avatar', avatarId, 'gallery'], endpoint),
     userInventoryItem: (

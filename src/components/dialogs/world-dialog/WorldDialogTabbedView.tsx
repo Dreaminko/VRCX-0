@@ -30,6 +30,11 @@ import {
     convertFileUrlToImageUrl,
     openExternalLink
 } from '@/services/entityMediaService';
+import {
+    getCurrentScreenshotLibraryScanStatus,
+    startScreenshotLibraryScan,
+    subscribeScreenshotLibraryScanStatus
+} from '@/services/screenshotLibraryScanService';
 import { vrchatWorldUrl } from '@/shared/constants/vrchatWebUrls';
 import { vrcxWorldDeepLink } from '@/shared/constants/vrcxDeepLinks';
 import { parseLocation } from '@/shared/utils/location';
@@ -476,8 +481,7 @@ export function WorldDialogTabbedView({
         }
 
         let active = true;
-        let pollTimer = 0;
-        let pollInFlight = false;
+        let scanActive = false;
         let scanCompleted = false;
         let scanError = '';
 
@@ -520,6 +524,7 @@ export function WorldDialogTabbedView({
             if (scanCompleted) {
                 return;
             }
+            scanActive = false;
             scanCompleted = true;
             if (status?.error) {
                 scanError = status.error;
@@ -527,70 +532,51 @@ export function WorldDialogTabbedView({
             loadWorldScreenshots();
         };
 
-        const pollScanStatus = () => {
-            if (pollInFlight || scanCompleted) {
+        const handleScanStatus = (status: ScreenshotScanStatus) => {
+            if (!active) {
                 return;
             }
-            pollInFlight = true;
-            mediaRepository
-                .getScreenshotLibraryStatus()
-                .then((status) => {
-                    if (!active) {
-                        return;
-                    }
-                    if (status?.error) {
-                        scanError = status.error;
-                    }
-                    if (!status?.running) {
-                        if (pollTimer) {
-                            window.clearInterval(pollTimer);
-                            pollTimer = 0;
-                        }
-                        completeScan(status);
-                    }
-                })
-                .catch((error: unknown) => {
-                    if (!active) {
-                        return;
-                    }
-                    if (pollTimer) {
-                        window.clearInterval(pollTimer);
-                        pollTimer = 0;
-                    }
-                    setWorldScreenshots([]);
-                    setWorldScreenshotsError(
-                        error instanceof Error
-                            ? error.message
-                            : t('dialog.world.screenshots.load_failed')
-                    );
-                    setWorldScreenshotsStatus('error');
-                })
-                .finally(() => {
-                    pollInFlight = false;
-                });
+            if (status.error) {
+                scanError = status.error;
+            }
+            if (status.running) {
+                scanError = '';
+                scanActive = true;
+                scanCompleted = false;
+                return;
+            }
+            if (scanActive) {
+                completeScan(status);
+            }
         };
 
+        const unsubscribe =
+            subscribeScreenshotLibraryScanStatus(handleScanStatus);
         setWorldScreenshotsStatus('loading');
         setWorldScreenshotsError('');
         const forceRefresh = worldScreenshotsForceRefreshRef.current;
         worldScreenshotsForceRefreshRef.current = false;
-        mediaRepository
-            .startScreenshotLibraryScan(forceRefresh)
-            .then((status) => {
-                if (!active) {
+        const initializeScan = async () => {
+            try {
+                const currentStatus =
+                    await getCurrentScreenshotLibraryScanStatus();
+                if (!active || !currentStatus) {
                     return;
                 }
-                if (status?.error) {
-                    scanError = status.error;
-                }
-                if (status?.running) {
-                    pollTimer = window.setInterval(pollScanStatus, 1000);
-                    pollScanStatus();
+                if (currentStatus.running) {
+                    handleScanStatus(currentStatus);
                     return;
                 }
-                completeScan(status);
-            })
-            .catch((error: unknown) => {
+                scanActive = true;
+                const status = await startScreenshotLibraryScan(forceRefresh);
+                if (!active || !status) {
+                    return;
+                }
+                handleScanStatus(status);
+                if (!status.running) {
+                    completeScan(status);
+                }
+            } catch (error) {
                 if (!active) {
                     return;
                 }
@@ -601,13 +587,13 @@ export function WorldDialogTabbedView({
                         : t('dialog.world.screenshots.load_failed')
                 );
                 setWorldScreenshotsStatus('error');
-            });
+            }
+        };
+        void initializeScan();
 
         return () => {
             active = false;
-            if (pollTimer) {
-                window.clearInterval(pollTimer);
-            }
+            unsubscribe();
         };
     }, [activeTab, openNonce, t, world?.id, worldScreenshotsRefreshToken]);
 

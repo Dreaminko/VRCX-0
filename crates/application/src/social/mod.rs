@@ -1,12 +1,22 @@
+mod friend_log_names;
+mod group_calendar;
 mod groups;
 mod moderation_sync;
 mod mutual_graph_fetch;
 mod note_export;
 mod prints;
+mod quick_search_catalog;
 #[cfg(test)]
 mod realtime;
 mod social_mutation;
 
+pub use friend_log_names::{
+    resolve_friend_log_names, FriendLogNameResolutionCoordinator, FriendLogNameResolutionDeps,
+    FriendLogNameResolutionInput, ResolvedFriendLogName, FRIEND_LOG_NAME_RESOLUTION_MAX_USERS,
+};
+pub use group_calendar::{
+    load_group_calendar, GroupCalendarDeps, GroupCalendarInput, GroupCalendarSnapshot,
+};
 pub use groups::{
     add_member_role, ban_member, block_group, cancel_request, create_post, delete_invite,
     delete_post, edit_post, get_audit_log_types, get_bans, get_gallery, get_group,
@@ -26,6 +36,13 @@ pub use groups::{
 pub use groups::{
     get_user_groups_overview, UserGroupsOverviewDeps, UserGroupsOverviewGroup,
     UserGroupsOverviewInput, UserGroupsOverviewOutput,
+};
+pub use groups::{
+    run_group_moderation_batch, GroupModerationBatchAction, GroupModerationBatchCoordinator,
+    GroupModerationBatchInput, GroupModerationBatchItemResult, GroupModerationBatchItemState,
+    GroupModerationBatchProgress, GroupModerationBatchResult, GroupModerationBatchTarget,
+    VrchatGroupModerationBatchActions, GROUP_MODERATION_BATCH_MAX_OPERATIONS,
+    GROUP_MODERATION_BATCH_MAX_TARGETS,
 };
 pub use groups::{
     GroupBanImportActions, GroupBanImportFuture, GroupBanImportItemResult, GroupBanImportItemState,
@@ -52,8 +69,13 @@ pub use prints::{
     CleanupWarningKind, PrintAutoCleanupEvent, PrintCleanupDeps, PrintCleanupQueue,
     PrintCleanupQueueSink, PrintCleanupTrigger, PrintFavoriteState,
 };
+pub use quick_search_catalog::{
+    load_quick_search_catalog, QuickSearchCatalogDeps, QuickSearchCatalogSnapshot,
+};
 pub use social_mutation::{
-    accept_friend_request, cancel_friend_request, send_friend_request, unfriend,
+    accept_friend_request, cancel_friend_request, send_friend_request, unfriend, unfriend_batch,
     SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendMutationStatus,
     SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
+    SocialUnfriendBatchInput, SocialUnfriendBatchItemResult, SocialUnfriendBatchItemState,
+    SocialUnfriendBatchResult, SocialUnfriendBatchTarget, SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
 };

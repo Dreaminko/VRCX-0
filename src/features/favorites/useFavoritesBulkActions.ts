@@ -6,9 +6,12 @@ import type {
     FavoriteTransferItemResult,
     FavoriteTransferMode
 } from '@/platform/tauri/bindings';
+import { commands } from '@/platform/tauri/bindings';
 import favoriteTransferRepository from '@/repositories/favoriteTransferRepository';
+import { useFavoriteStore } from '@/state/favoriteStore';
 import type { FavoriteRecord } from '@/state/favoriteStoreTypes';
 import { useModalStore } from '@/state/modalStore';
+import { useRuntimeStore } from '@/state/runtimeStore';
 
 import type {
     FavoriteGroup,
@@ -27,11 +30,13 @@ import {
     resolveFavoriteSourceGroup,
     summarizeFavoriteTransferStatuses
 } from './favoriteTransfer';
+import {
+    buildFavoriteBulkRemoveInput,
+    favoriteBulkRemoveSuccessfulKeys
+} from './favoriteBulkRemove';
 
 export function useFavoritesBulkActions({
     currentEndpoint,
-    handleRemoveLocalFavorite,
-    handleRemoveRemoteFavorite,
     kind,
     localGroups,
     refreshFavorites,
@@ -43,14 +48,6 @@ export function useFavoritesBulkActions({
     setSelectedKeys
 }: {
     currentEndpoint: string;
-    handleRemoveLocalFavorite(
-        item: FavoriteItem,
-        options?: { silent?: boolean }
-    ): Promise<boolean>;
-    handleRemoveRemoteFavorite(
-        item: FavoriteItem,
-        options?: { silent?: boolean }
-    ): Promise<boolean>;
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
     refreshFavorites(options?: { silent?: boolean }): Promise<void>;
@@ -63,6 +60,13 @@ export function useFavoritesBulkActions({
 }) {
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
+    const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
+    const removeLocalFavorite = useFavoriteStore(
+        (state) => state.removeLocalFavorite
+    );
+    const removeRemoteFavorite = useFavoriteStore(
+        (state) => state.removeRemoteFavorite
+    );
     const moveTargets = useMemo(
         () =>
             buildFavoriteMoveTargets({
@@ -103,9 +107,11 @@ export function useFavoritesBulkActions({
     );
 
     async function bulkRemoveSelection() {
-        if (!selectedContentItems.length) {
+        if (!currentUserId || !selectedContentItems.length) {
             return;
         }
+        const batchOwnerUserId = currentUserId;
+        const batchEndpoint = currentEndpoint;
         const result = await confirm({
             title: t('view.favorites.modal.delete_value_favorites', {
                 value: selectedContentItems.length
@@ -118,46 +124,76 @@ export function useFavoritesBulkActions({
         if (!result.ok) {
             return;
         }
-        let removedCount = 0;
-        let failedCount = 0;
-        const removedKeys = new Set<string>();
-        for (const item of selectedContentItems) {
-            try {
-                const removed =
-                    item.source === 'local'
-                        ? await handleRemoveLocalFavorite(item, {
-                              silent: true
-                          })
-                        : await handleRemoveRemoteFavorite(item, {
-                              silent: true
-                          });
-                if (removed) {
-                    removedCount += 1;
-                    removedKeys.add(item.key);
-                } else {
-                    failedCount += 1;
-                }
-            } catch {
-                failedCount += 1;
+        try {
+            const batchResult = await commands.appFavoritesBulkRemove(
+                buildFavoriteBulkRemoveInput({
+                    expectedEndpoint: currentEndpoint,
+                    expectedOwnerUserId: batchOwnerUserId,
+                    items: selectedContentItems,
+                    kind
+                })
+            );
+            const removedKeys =
+                favoriteBulkRemoveSuccessfulKeys(batchResult);
+            const currentAuth = useRuntimeStore.getState().auth;
+            if (
+                currentAuth.currentUserId !== batchResult.ownerUserId ||
+                currentAuth.currentUserEndpoint !== batchEndpoint
+            ) {
+                return;
             }
-        }
-        if (removedCount > 0) {
-            setSelectedKeys((current) =>
-                current.filter((key) => !removedKeys.has(key))
+            if (removedKeys.size) {
+                const itemsByKey = new Map(
+                    selectedContentItems.map((item) => [item.key, item])
+                );
+                for (const key of removedKeys) {
+                    const item = itemsByKey.get(key);
+                    if (!item) {
+                        continue;
+                    }
+                    if (item.source === 'local') {
+                        removeLocalFavorite({
+                            kind: item.kind,
+                            entityId: item.id,
+                            groupName: item.groupKey
+                        });
+                    } else {
+                        removeRemoteFavorite(item.id);
+                    }
+                }
+                setSelectedKeys((current) =>
+                    current.filter((key) => !removedKeys.has(key))
+                );
+            }
+            if (batchResult.failed === 0) {
+                toast.success(
+                    t('view.favorite.success.selected_favorites_removed')
+                );
+                return;
+            }
+            toast.error(
+                t('view.favorites.dynamic.removed_value_value_failed', {
+                    value: batchResult.succeeded,
+                    value2: batchResult.failed
+                })
+            );
+        } catch (error) {
+            const currentAuth = useRuntimeStore.getState().auth;
+            if (
+                currentAuth.currentUserId !== batchOwnerUserId ||
+                currentAuth.currentUserEndpoint !== batchEndpoint
+            ) {
+                return;
+            }
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('view.favorites.dynamic.removed_value_value_failed', {
+                          value: 0,
+                          value2: selectedContentItems.length
+                      })
             );
         }
-        if (failedCount === 0) {
-            toast.success(
-                t('view.favorite.success.selected_favorites_removed')
-            );
-            return;
-        }
-        toast.error(
-            t('view.favorites.dynamic.removed_value_value_failed', {
-                value: removedCount,
-                value2: failedCount
-            })
-        );
     }
 
     function describeFavoriteTransferNotices(

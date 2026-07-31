@@ -1,8 +1,14 @@
+mod bulk_remove;
 mod favorite_details_hydrate;
 mod favorite_import;
 mod favorite_transfer;
 mod local_favorites;
 
+pub use bulk_remove::{
+    remove_favorites_bulk, FavoriteBulkRemoveDeps, FavoriteBulkRemoveInput, FavoriteBulkRemoveItem,
+    FavoriteBulkRemoveItemResult, FavoriteBulkRemoveItemState, FavoriteBulkRemoveResult,
+    FavoriteBulkRemoveSource, FAVORITE_BULK_REMOVE_MAX_ITEMS,
+};
 pub use favorite_details_hydrate::{
     hydrate_favorite_details, FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput,
     FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,

@@ -23,6 +23,7 @@ type TransportState = Record<string, unknown> & {
 
 type MutualGraphState = Record<string, unknown> & {
     runId: number;
+    revision: number;
     status: string;
     ownerUserId: string;
     totalFriends: number;
@@ -285,6 +286,7 @@ function createTransportState(): TransportState {
 function createMutualGraphState(): MutualGraphState {
     return {
         runId: 0,
+        revision: 0,
         status: 'idle',
         ownerUserId: '',
         totalFriends: 0,

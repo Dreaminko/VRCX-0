@@ -33,15 +33,37 @@ pub async fn unfriend(
     require_participants(&owner_user_id, &target_user_id)?;
     let auth_scope = ensure_current_auth_scope(&deps, &owner_user_id, &endpoint)?;
 
-    let (_, request) = friend_delete_input(endpoint.clone(), target_user_id.clone())?;
-    execute_vrchat_json_request(&deps, &auth_scope, request).await?;
-
-    Ok(apply_unfriend_locally(
+    unfriend_with_expected_scope(
         &deps,
-        &owner_user_id,
-        &endpoint,
+        &auth_scope,
         &target_user_id,
         &input.target_display_name,
+    )
+    .await
+}
+
+pub(super) async fn unfriend_with_expected_scope(
+    deps: &SocialMutationDeps<'_>,
+    auth_scope: &RuntimeAuthScopeSnapshot,
+    target_user_id: &str,
+    target_display_name: &str,
+) -> Result<SocialFriendMutationOutcome> {
+    ensure_expected_auth_scope(deps, auth_scope)?;
+    let (_, request) =
+        friend_delete_input(auth_scope.endpoint.clone(), target_user_id.to_string())?;
+    execute_vrchat_json_request(deps, auth_scope, request).await?;
+    if let Err(error) = ensure_expected_auth_scope(deps, auth_scope) {
+        return Ok(SocialFriendMutationOutcome::remote_ok_local_failed(
+            target_user_id,
+            error,
+        ));
+    }
+    Ok(apply_unfriend_locally(
+        deps,
+        &auth_scope.current_user_id,
+        &auth_scope.endpoint,
+        target_user_id,
+        target_display_name,
     ))
 }
 
@@ -391,6 +413,19 @@ fn ensure_current_auth_scope(
     ))
 }
 
+fn ensure_expected_auth_scope(
+    deps: &SocialMutationDeps<'_>,
+    expected: &RuntimeAuthScopeSnapshot,
+) -> Result<()> {
+    if deps.auth_scope.snapshot().generation_matches(expected) {
+        Ok(())
+    } else {
+        Err(Error::Custom(
+            "Backend social mutation authentication scope changed.".into(),
+        ))
+    }
+}
+
 fn normalize_text(value: &str) -> String {
     value.trim().to_string()
 }
@@ -427,12 +462,41 @@ async fn execute_vrchat_json_request(
         .web
         .execute_api(request, ApiScope::Vrchat, deps.db)
         .await?;
-    let response = ApiJsonResponse::from(&response);
-    if response.is_failure() {
+    match validate_vrchat_mutation_response(response.status, &response.data) {
+        Ok(payload) => Ok(payload),
+        Err(message) => {
+            let message = error_message_with_status_suffix(message, response.status);
+            emit_current_scope_auth_failure(deps, auth_scope, &path, &message, response.status);
+            Err(Error::Custom(message))
+        }
+    }
+}
+
+fn validate_vrchat_mutation_response(
+    status: i32,
+    data: &str,
+) -> std::result::Result<Value, String> {
+    let trimmed = data.trim();
+    let payload = if trimmed.is_empty() {
+        Value::Null
+    } else {
+        match serde_json::from_str::<Value>(trimmed) {
+            Ok(payload) => payload,
+            Err(error) if (200..300).contains(&status) => {
+                return Err(format!(
+                    "VRChat social mutation returned invalid JSON: {error}"
+                ));
+            }
+            Err(_) => Value::String(data.to_string()),
+        }
+    };
+    let response = ApiJsonResponse {
+        status,
+        json: payload,
+    };
+    if !(200..300).contains(&status) || response.has_error_field() {
         let message = response.error_message_or("VRChat social mutation request failed");
-        let message = error_message_with_status_suffix(message, response.status);
-        emit_current_scope_auth_failure(deps, auth_scope, &path, &message, response.status);
-        return Err(Error::Custom(message));
+        return Err(message);
     }
     Ok(response.json)
 }
