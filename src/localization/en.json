@@ -779,7 +779,7 @@
             "search_placeholder": "Search",
             "date_range": "Date range",
             "filters": {
-                "GPS": "GPS",
+                "GPS": "Location",
                 "Online": "Online",
                 "Offline": "Offline",
                 "Status": "Status",
@@ -4538,7 +4538,7 @@
                 "favoriteMovement": {
                     "label": "Favorite Movement",
                     "description": "Online, offline, location, and status changes for favorite friends.",
-                    "example": "Online, GPS"
+                    "example": "Online, location"
                 },
                 "profileChange": {
                     "label": "Profile Changes",
