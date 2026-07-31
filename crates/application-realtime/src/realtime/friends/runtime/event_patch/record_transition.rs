@@ -1,5 +1,5 @@
 use serde_json::{Map, Value};
-use vrcx_0_application_core::FriendProjectionPatch;
+use vrcx_0_application_core::{FriendProjectionPatch, FriendStateBucketAuthority};
 use vrcx_0_core::friends::FriendRecord;
 
 use super::super::utils::parse_location;
@@ -55,7 +55,7 @@ pub(super) fn apply_friend_patch(
     user_id: &str,
     patch: &FriendRecordPatch,
     state_bucket: &str,
-    state_bucket_authority: &str,
+    state_bucket_authority: FriendStateBucketAuthority,
 ) -> FriendRecordTransition {
     let mut next = previous.cloned().unwrap_or_default();
     let was_traveling = parse_location(&next.location).is_traveling;
@@ -70,7 +70,7 @@ pub(super) fn apply_friend_patch(
             user_id: user_id.to_string(),
             patch: serde_json::to_value(&next).unwrap_or(Value::Null),
             state_bucket: state_bucket.to_string(),
-            state_bucket_authority: Some(state_bucket_authority.to_string()),
+            state_bucket_authority: Some(state_bucket_authority),
         },
         next,
         was_traveling,
@@ -219,7 +219,13 @@ mod tests {
             "statusDescription": Value::Null,
             "$location": { "tag": "traveling" }
         }));
-        let transition = apply_friend_patch(Some(&previous), "usr_x", &patch, "online", "explicit");
+        let transition = apply_friend_patch(
+            Some(&previous),
+            "usr_x",
+            &patch,
+            "online",
+            FriendStateBucketAuthority::Explicit,
+        );
 
         assert_eq!(transition.next.last_platform, "standalonewindows");
         assert_eq!(transition.next.location, "traveling");

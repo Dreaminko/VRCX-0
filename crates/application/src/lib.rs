@@ -243,7 +243,7 @@ pub use vrcx_0_application_realtime::{
 pub use vrcx_0_application_realtime::{
     is_friend_event_type, FriendBaselineCausalWatermark, FriendBaselineResult,
     FriendBaselineSyncOutcome, FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
-    FriendProjection, FriendProjectionPatch, PendingOfflineTimerAction,
+    FriendProjection, FriendProjectionPatch, FriendStateBucketAuthority, PendingOfflineTimerAction,
     RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeCurrentUserProjection,
     RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
     RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,

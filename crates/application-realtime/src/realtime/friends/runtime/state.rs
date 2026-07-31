@@ -1,6 +1,6 @@
 use super::event_patch::{
     apply_friend_event, apply_record_patch_to_state, apply_refetched_friend_profile_event,
-    apply_trusted_friend_add_event, is_friend_event_type, FriendRecordPatch,
+    apply_trusted_friend_add_event, FriendEventKind, FriendRecordPatch,
 };
 use super::persistence::{is_online_state, offline_feed_entry};
 use super::utils::EventTime;
@@ -19,6 +19,18 @@ pub(super) struct PendingOffline {
     pub(super) patch: FriendRecordPatch,
     pub(super) state_bucket: String,
     pub(super) previous: FriendRecord,
+}
+
+pub(crate) struct PendingOfflineSchedule {
+    pub(crate) user_id: String,
+    pub(crate) token: u64,
+    pub(crate) delay_ms: u64,
+}
+
+pub(crate) struct FriendBaselineEffects {
+    pub(crate) result: FriendBaselineResult,
+    pub(crate) schedules: Vec<PendingOfflineSchedule>,
+    pub(crate) confirmed_feed_entries: Vec<Value>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -62,7 +74,7 @@ impl RealtimeFriendsRuntime {
         baseline_revision: u64,
     ) -> FriendBaselineResult {
         self.apply_baseline(baseline, realtime_generation, baseline_revision, None)
-            .0
+            .result
     }
 
     pub fn set_baseline_with_schedules(
@@ -71,8 +83,13 @@ impl RealtimeFriendsRuntime {
         realtime_generation: u64,
         baseline_revision: u64,
     ) -> (FriendBaselineResult, Vec<(String, u64, u64)>) {
-        let (result, schedules, _) =
-            self.apply_baseline(baseline, realtime_generation, baseline_revision, None);
+        let effects = self.apply_baseline(baseline, realtime_generation, baseline_revision, None);
+        let schedules = effects
+            .schedules
+            .into_iter()
+            .map(|schedule| (schedule.user_id, schedule.token, schedule.delay_ms))
+            .collect();
+        let result = effects.result;
         (result, schedules)
     }
 
@@ -82,7 +99,7 @@ impl RealtimeFriendsRuntime {
         realtime_generation: u64,
         baseline_revision: u64,
         friend_state_sequence_watermark: Option<u64>,
-    ) -> (FriendBaselineResult, Vec<(String, u64, u64)>, Vec<Value>) {
+    ) -> FriendBaselineEffects {
         self.apply_baseline(
             baseline,
             realtime_generation,
@@ -97,7 +114,7 @@ impl RealtimeFriendsRuntime {
         realtime_generation: u64,
         baseline_revision: u64,
         friend_state_sequence_watermark: Option<u64>,
-    ) -> (FriendBaselineResult, Vec<(String, u64, u64)>, Vec<Value>) {
+    ) -> FriendBaselineEffects {
         let mut baseline = baseline.normalized();
         let mut state = self.lock_state();
         let generation = realtime_generation;
@@ -204,7 +221,7 @@ impl RealtimeFriendsRuntime {
                 )
             })
             .collect::<Vec<_>>();
-        let mut schedules: Vec<(String, u64, u64)> = Vec::new();
+        let mut schedules = Vec::new();
         for (user_id, new_record, existing_online) in pending_to_create {
             state.timer_token = state.timer_token.saturating_add(1);
             let token = state.timer_token;
@@ -217,7 +234,11 @@ impl RealtimeFriendsRuntime {
                     previous: existing_online,
                 },
             );
-            schedules.push((user_id, token, PENDING_OFFLINE_DELAY_MS));
+            schedules.push(PendingOfflineSchedule {
+                user_id,
+                token,
+                delay_ms: PENDING_OFFLINE_DELAY_MS,
+            });
         }
         if same_generation {
             state.pending_offline.retain(|user_id, _pending| {
@@ -277,8 +298,8 @@ impl RealtimeFriendsRuntime {
             }
         }
 
-        (
-            FriendBaselineResult {
+        FriendBaselineEffects {
+            result: FriendBaselineResult {
                 accepted: true,
                 generation,
                 baseline_revision,
@@ -286,7 +307,7 @@ impl RealtimeFriendsRuntime {
             },
             schedules,
             confirmed_feed_entries,
-        )
+        }
     }
 
     pub fn clear(&self) -> u64 {
@@ -383,9 +404,9 @@ impl RealtimeFriendsRuntime {
         let Some(message_type) = payload.json.get("type").and_then(Value::as_str) else {
             return RealtimeFriendApplyResult::Ignored;
         };
-        if !is_friend_event_type(message_type) {
+        let Some(event_kind) = FriendEventKind::from_message_type(message_type) else {
             return RealtimeFriendApplyResult::Ignored;
-        }
+        };
         let content = payload.json.get("content").unwrap_or(&Value::Null);
         let now = EventTime::from_received_at(&payload.received_at);
         let mut state = self.lock_state();
@@ -399,10 +420,10 @@ impl RealtimeFriendsRuntime {
         }) {
             return RealtimeFriendApplyResult::MissingBaseline;
         }
-        let output = if trust_friend_add_profile_state && message_type == "friend-add" {
+        let output = if trust_friend_add_profile_state && event_kind == FriendEventKind::Add {
             apply_trusted_friend_add_event(&mut state, content, &now)
         } else {
-            apply_friend_event(&mut state, message_type, content, &now)
+            apply_friend_event(&mut state, event_kind, content, &now)
         };
         let Some(output) = output else {
             return RealtimeFriendApplyResult::Ignored;
@@ -502,22 +523,14 @@ impl RealtimeFriendsRuntime {
         patch.set_pending_offline(false);
         let state_bucket = pending.state_bucket;
         let previous = pending.previous;
-        let mut output = RealtimeFriendOutput {
-            owner_user_id,
-            projection: FriendProjection {
-                generation,
-                baseline_revision,
-                ..FriendProjection::default()
-            },
-            ..RealtimeFriendOutput::default()
-        };
+        let mut output = RealtimeFriendOutput::new(owner_user_id, generation, baseline_revision);
         apply_record_patch_to_state(
             &mut state,
             &mut output,
             user_id,
             patch,
             &state_bucket,
-            "explicit",
+            FriendStateBucketAuthority::Explicit,
             &now_iso,
         );
         let current = state

@@ -173,7 +173,10 @@ mod tests {
 
         let patch = &output.projection.patches[0];
         assert_eq!(patch.state_bucket, "online");
-        assert_eq!(patch.state_bucket_authority.as_deref(), Some("explicit"));
+        assert_eq!(
+            patch.state_bucket_authority,
+            Some(FriendStateBucketAuthority::Explicit)
+        );
         assert_eq!(patch.patch["location"], "wrld_new:2~region(jp)");
         assert_eq!(patch.patch["status"], "join me");
         assert_eq!(patch.patch["displayName"], "New Name");
@@ -204,7 +207,10 @@ mod tests {
 
         let patch = &output.projection.patches[0];
         assert_eq!(patch.state_bucket, "online");
-        assert_eq!(patch.state_bucket_authority.as_deref(), Some("preserve"));
+        assert_eq!(
+            patch.state_bucket_authority,
+            Some(FriendStateBucketAuthority::Preserve)
+        );
         assert_eq!(patch.patch["location"], "wrld_new:2~region(jp)");
         assert!(output
             .persistence

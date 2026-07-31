@@ -265,18 +265,20 @@ impl RealtimeHostRuntime {
             let baseline_revision = current_baseline_revision
                 .map(|revision| revision.saturating_add(1))
                 .unwrap_or(0);
-            let (result, baseline_schedules, confirmed_feed_entries) =
-                self.friends.set_baseline_with_effects(
-                    FriendRosterBaseline {
-                        current_user_id: active.session.user_id.clone(),
-                        endpoint: active.session.endpoint.clone(),
-                        websocket: active.session.websocket.clone(),
-                        friends_by_id,
-                    },
-                    active.generation,
-                    baseline_revision,
-                    causal_watermark.map(|watermark| watermark.friend_state_sequence),
-                );
+            let baseline_effects = self.friends.set_baseline_with_effects(
+                FriendRosterBaseline {
+                    current_user_id: active.session.user_id.clone(),
+                    endpoint: active.session.endpoint.clone(),
+                    websocket: active.session.websocket.clone(),
+                    friends_by_id,
+                },
+                active.generation,
+                baseline_revision,
+                causal_watermark.map(|watermark| watermark.friend_state_sequence),
+            );
+            let result = baseline_effects.result;
+            let baseline_schedules = baseline_effects.schedules;
+            let confirmed_feed_entries = baseline_effects.confirmed_feed_entries;
             let baseline_projection = if result.accepted {
                 self.friends
                     .snapshot()
@@ -355,12 +357,12 @@ impl RealtimeHostRuntime {
             result.baseline_revision,
             feed_entries,
         );
-        for (user_id, token, delay_ms) in baseline_schedules {
+        for schedule in baseline_schedules {
             let runtime = Arc::clone(self);
             self.deps.tasks.spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                tokio::time::sleep(std::time::Duration::from_millis(schedule.delay_ms)).await;
                 let now = chrono::Utc::now().to_rfc3339();
-                runtime.fire_pending_offline(&user_id, token, now);
+                runtime.fire_pending_offline(&schedule.user_id, schedule.token, now);
             });
         }
         drop(owner);
@@ -450,7 +452,7 @@ fn friend_snapshot_diff_projection(
                 user_id,
                 patch,
                 state_bucket,
-                state_bucket_authority: Some("explicit".to_string()),
+                state_bucket_authority: Some(FriendStateBucketAuthority::Explicit),
             });
         if let Some(entry) = joining_entry {
             projection.feed_entries.push(entry);

@@ -3829,8 +3829,9 @@ export type FriendProjectionPatch = {
     userId: string;
     patch: JsonValue;
     stateBucket: string;
-    stateBucketAuthority?: string | null;
+    stateBucketAuthority?: FriendStateBucketAuthority | null;
 };
+export type FriendStateBucketAuthority = 'explicit' | 'preserve';
 export type GameClientEvent =
     | { kind: 'crashRelaunchDecision'; payload: CrashRelaunchDecisionPayload }
     | { kind: 'debugLoggingOutcome'; payload: DebugLoggingOutcome }

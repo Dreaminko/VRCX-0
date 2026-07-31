@@ -50,10 +50,8 @@ mod tests {
 
         assert_eq!(output.projection.patches[0].state_bucket, "online");
         assert_eq!(
-            output.projection.patches[0]
-                .state_bucket_authority
-                .as_deref(),
-            Some("preserve")
+            output.projection.patches[0].state_bucket_authority,
+            Some(FriendStateBucketAuthority::Preserve)
         );
         assert!(output.persistence.feed_entries.is_empty());
         assert_eq!(output.projection.patches[0].patch["stateBucket"], "online");
@@ -205,10 +203,8 @@ mod tests {
         let patch = &location_output.projection.patches[0].patch;
         assert_eq!(location_output.projection.patches[0].state_bucket, "online");
         assert_eq!(
-            location_output.projection.patches[0]
-                .state_bucket_authority
-                .as_deref(),
-            Some("preserve")
+            location_output.projection.patches[0].state_bucket_authority,
+            Some(FriendStateBucketAuthority::Preserve)
         );
         assert_eq!(patch["pendingOffline"], true);
         assert_eq!(patch["location"], "wrld_2:456");

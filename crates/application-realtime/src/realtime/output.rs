@@ -16,6 +16,20 @@ pub struct RealtimeFriendOutput {
     pub friend_note_changed: bool,
 }
 
+impl RealtimeFriendOutput {
+    pub(crate) fn new(owner_user_id: String, generation: u64, baseline_revision: u64) -> Self {
+        Self {
+            owner_user_id,
+            projection: FriendProjection {
+                generation,
+                baseline_revision,
+                ..FriendProjection::default()
+            },
+            ..Self::default()
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealtimeNotificationOutput {
     pub owner_user_id: String,

@@ -26,10 +26,11 @@ pub use output::{
 };
 pub use print_content_refresh::is_print_created_content_refresh;
 pub use projection::{
-    FriendProjection, FriendProjectionPatch, RealtimeCurrentUserProjection,
-    RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
-    RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
-    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeUserProjection,
+    FriendProjection, FriendProjectionPatch, FriendStateBucketAuthority,
+    RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
+    RealtimeEntryCorrectionStream, RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeNotificationUpsert,
+    RealtimeUserProjection,
 };
 pub use runtime_types::{
     FriendBaselineCausalWatermark, FriendBaselineResult, FriendBaselineSyncOutcome,

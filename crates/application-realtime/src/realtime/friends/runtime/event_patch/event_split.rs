@@ -33,7 +33,7 @@ pub(super) struct LocationPresence {
     pub(super) has_online_location: bool,
     pub(super) has_offline_location: bool,
     pub(super) state_bucket: String,
-    pub(super) authority: &'static str,
+    pub(super) authority: FriendStateBucketAuthority,
 }
 
 pub(super) fn location_presence(
@@ -47,9 +47,9 @@ pub(super) fn location_presence(
     let state_bucket =
         resolve_location_event_state_bucket(previous, has_embedded_user, has_online_location)?;
     let authority = if has_embedded_user && has_online_location {
-        "explicit"
+        FriendStateBucketAuthority::Explicit
     } else {
-        "preserve"
+        FriendStateBucketAuthority::Preserve
     };
     Some(LocationPresence {
         has_embedded_user,

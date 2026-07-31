@@ -459,7 +459,7 @@ mod tests {
         };
         let watermark = runtime.baseline_causal_watermark().friend_state_sequence;
 
-        let (_, schedules, feed_entries) = runtime.set_baseline_with_effects(
+        let effects = runtime.set_baseline_with_effects(
             FriendRosterBaseline {
                 current_user_id: "usr_self".into(),
                 friends_by_id: [(
@@ -487,8 +487,8 @@ mod tests {
         assert_eq!(friend.state_bucket, "online");
         assert_eq!(friend.location, "wrld_2:456");
         assert_eq!(friend.extra.get("pendingOffline"), Some(&json!(false)));
-        assert!(schedules.is_empty());
-        assert!(feed_entries.is_empty());
+        assert!(effects.schedules.is_empty());
+        assert!(effects.confirmed_feed_entries.is_empty());
         assert!(runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .is_none());

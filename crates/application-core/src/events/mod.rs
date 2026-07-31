@@ -5,8 +5,9 @@ pub use payloads::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, PrintAutoCleanupEvent,
 };
 pub use projection::{
-    FriendProjection, FriendProjectionPatch, RealtimeCurrentUserProjection,
-    RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
-    RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
-    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeUserProjection,
+    FriendProjection, FriendProjectionPatch, FriendStateBucketAuthority,
+    RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
+    RealtimeEntryCorrectionStream, RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeNotificationUpsert,
+    RealtimeUserProjection,
 };

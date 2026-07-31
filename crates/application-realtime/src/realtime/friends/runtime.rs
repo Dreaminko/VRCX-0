@@ -10,7 +10,7 @@ use vrcx_0_persistence::realtime::{FriendLogDelete, FriendLogUpsert};
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
 use super::super::{
-    FriendBaselineCausalWatermark, FriendBaselineResult, FriendProjection,
+    FriendBaselineCausalWatermark, FriendBaselineResult, FriendStateBucketAuthority,
     PendingOfflineTimerAction, RealtimeFriendApplyResult, RealtimeFriendOutput,
     RealtimeFriendSnapshot,
 };

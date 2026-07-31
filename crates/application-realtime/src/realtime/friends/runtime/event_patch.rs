@@ -19,26 +19,43 @@ pub(super) use record_transition::{record_string, record_value, FriendRecordPatc
 
 const GPS_REPEAT_WINDOW_MS: i64 = 5 * 60 * 1000;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum FriendEventKind {
+    Add,
+    Delete,
+    Update,
+    Online,
+    Active,
+    Offline,
+    Location,
+}
+
+impl FriendEventKind {
+    pub(super) fn from_message_type(message_type: &str) -> Option<Self> {
+        match message_type {
+            "friend-add" => Some(Self::Add),
+            "friend-delete" => Some(Self::Delete),
+            "friend-update" => Some(Self::Update),
+            "friend-online" => Some(Self::Online),
+            "friend-active" => Some(Self::Active),
+            "friend-offline" => Some(Self::Offline),
+            "friend-location" => Some(Self::Location),
+            _ => None,
+        }
+    }
+}
+
 pub fn is_friend_event_type(message_type: &str) -> bool {
-    matches!(
-        message_type,
-        "friend-add"
-            | "friend-delete"
-            | "friend-update"
-            | "friend-online"
-            | "friend-active"
-            | "friend-offline"
-            | "friend-location"
-    )
+    FriendEventKind::from_message_type(message_type).is_some()
 }
 
 pub(super) fn apply_friend_event(
     state: &mut RealtimeFriendState,
-    message_type: &str,
+    event_kind: FriendEventKind,
     content: &Value,
     now: &EventTime,
 ) -> Option<RealtimeFriendOutput> {
-    apply_friend_event_with_source(state, message_type, content, now, EventSource::Websocket)
+    apply_friend_event_with_source(state, event_kind, content, now, EventSource::Websocket)
 }
 
 pub(super) fn apply_refetched_friend_profile_event(
@@ -48,7 +65,7 @@ pub(super) fn apply_refetched_friend_profile_event(
 ) -> Option<RealtimeFriendOutput> {
     apply_friend_event_with_source(
         state,
-        "friend-update",
+        FriendEventKind::Update,
         content,
         now,
         EventSource::ApiProfile,
@@ -62,7 +79,7 @@ pub(super) fn apply_trusted_friend_add_event(
 ) -> Option<RealtimeFriendOutput> {
     apply_friend_event_with_source(
         state,
-        "friend-add",
+        FriendEventKind::Add,
         content,
         now,
         EventSource::TrustedFriendAdd,
@@ -71,7 +88,7 @@ pub(super) fn apply_trusted_friend_add_event(
 
 fn apply_friend_event_with_source(
     state: &mut RealtimeFriendState,
-    message_type: &str,
+    event_kind: FriendEventKind,
     content: &Value,
     now: &EventTime,
     source: EventSource,
@@ -80,18 +97,10 @@ fn apply_friend_event_with_source(
     let owner_user_id = baseline.current_user_id.clone();
     let generation = baseline.generation;
     let baseline_revision = baseline.baseline_revision;
-    let mut output = RealtimeFriendOutput {
-        owner_user_id,
-        projection: FriendProjection {
-            generation,
-            baseline_revision,
-            ..FriendProjection::default()
-        },
-        ..RealtimeFriendOutput::default()
-    };
+    let mut output = RealtimeFriendOutput::new(owner_user_id, generation, baseline_revision);
 
-    match message_type {
-        "friend-add" => {
+    match event_kind {
+        FriendEventKind::Add => {
             let user_id = event_user_id(content)?;
             let mut patch = profile_patch(content, &user_id);
             let previous = get_friend_record(state, &user_id);
@@ -136,7 +145,7 @@ fn apply_friend_event_with_source(
                 output.projection.friend_log_changed = true;
             }
         }
-        "friend-delete" => {
+        FriendEventKind::Delete => {
             let user_id = event_user_id(content)?;
             let previous = get_friend_record(state, &user_id);
             state.pending_offline.remove(&user_id);
@@ -162,7 +171,7 @@ fn apply_friend_event_with_source(
                 ));
             output.projection.friend_log_changed = true;
         }
-        "friend-update" => {
+        FriendEventKind::Update => {
             let user_id = event_user_id(content)?;
             let mut patch = profile_patch(content, &user_id);
             if !source.trusts_embedded_state()
@@ -237,7 +246,7 @@ fn apply_friend_event_with_source(
             );
             apply_patch_to_state(state, &mut output, &user_id, patch, &state_bucket, &now.iso);
         }
-        "friend-online" => {
+        FriendEventKind::Online => {
             let user_id = event_user_id(content)?;
             let canceled_pending = state.pending_offline.remove(&user_id).is_some();
             let previous_record = state
@@ -290,12 +299,12 @@ fn apply_friend_event_with_source(
             }
             apply_patch_to_state(state, &mut output, &user_id, patch, "online", &now.iso);
         }
-        "friend-active" | "friend-offline" => {
+        FriendEventKind::Active | FriendEventKind::Offline => {
             let user_id = event_user_id(content)?;
-            let next_state = if message_type == "friend-active" {
-                "active"
-            } else {
-                "offline"
+            let next_state = match event_kind {
+                FriendEventKind::Active => "active",
+                FriendEventKind::Offline => "offline",
+                _ => unreachable!("matched active or offline event"),
             };
             let previous_record = state
                 .baseline
@@ -361,7 +370,7 @@ fn apply_friend_event_with_source(
                 apply_patch_to_state(state, &mut output, &user_id, patch, next_state, &now.iso);
             }
         }
-        "friend-location" => {
+        FriendEventKind::Location => {
             let user_id = event_user_id(content)?;
             let user_patch = profile_patch(content, &user_id);
             let previous_record = state
@@ -471,7 +480,6 @@ fn apply_friend_event_with_source(
                 &now.iso,
             );
         }
-        _ => return None,
     }
 
     let mut feed_entries = output.persistence.feed_entries.clone();
@@ -673,7 +681,7 @@ pub(super) fn apply_patch_to_state(
         user_id,
         patch,
         state_bucket,
-        "explicit",
+        FriendStateBucketAuthority::Explicit,
         created_at,
     );
 }
@@ -684,7 +692,7 @@ pub(super) fn apply_patch_to_state_with_authority(
     user_id: &str,
     patch: serde_json::Value,
     state_bucket: &str,
-    state_bucket_authority: &str,
+    state_bucket_authority: FriendStateBucketAuthority,
     created_at: &str,
 ) {
     let patch = FriendRecordPatch::from_value(&patch);
@@ -705,7 +713,7 @@ pub(super) fn apply_record_patch_to_state(
     user_id: &str,
     patch: FriendRecordPatch,
     state_bucket: &str,
-    state_bucket_authority: &str,
+    state_bucket_authority: FriendStateBucketAuthority,
     created_at: &str,
 ) {
     let previous = state

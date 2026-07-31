@@ -39,13 +39,13 @@ use crate::realtime::user_cache::UserCacheRuntime;
 use crate::realtime::user_query_cache::UserQueryCache;
 use crate::realtime::{
     FriendBaselineCausalWatermark, FriendBaselineResult, FriendBaselineSyncOutcome,
-    FriendProjection, PendingOfflineTimerAction, RealtimeCurrentUserAuthority,
-    RealtimeCurrentUserOutput, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
-    RealtimeEntryCorrectionStream, RealtimeFriendApplyResult, RealtimeFriendOutput,
-    RealtimeFriendSnapshot, RealtimeInstanceClosedOutput, RealtimeInstanceQueueProjection,
-    RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeNotificationUpsert,
-    RealtimeSessionContext, RealtimeTransportLifecycleEvent, RealtimeTransportStartResult,
-    RealtimeTransportTermination, RealtimeWsStatusPayload,
+    FriendProjection, FriendStateBucketAuthority, PendingOfflineTimerAction,
+    RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeEntryCorrection,
+    RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream, RealtimeFriendApplyResult,
+    RealtimeFriendOutput, RealtimeFriendSnapshot, RealtimeInstanceClosedOutput,
+    RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
+    RealtimeNotificationUpsert, RealtimeSessionContext, RealtimeTransportLifecycleEvent,
+    RealtimeTransportStartResult, RealtimeTransportTermination, RealtimeWsStatusPayload,
 };
 #[cfg(test)]
 use crate::social_baseline::service::friend_log_relationship_candidates;

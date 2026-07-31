@@ -81,7 +81,7 @@ impl RealtimeHostRuntime {
                     user_id,
                     patch,
                     state_bucket,
-                    state_bucket_authority: Some("explicit".to_string()),
+                    state_bucket_authority: Some(FriendStateBucketAuthority::Explicit),
                 });
             pending.projection.friend_log_changed = true;
         })

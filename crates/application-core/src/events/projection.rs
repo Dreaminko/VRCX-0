@@ -7,6 +7,13 @@ pub struct RealtimeUserProjection {
     pub users: Vec<Value>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum FriendStateBucketAuthority {
+    Explicit,
+    Preserve,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FriendProjectionPatch {
@@ -14,7 +21,7 @@ pub struct FriendProjectionPatch {
     pub patch: Value,
     pub state_bucket: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub state_bucket_authority: Option<String>,
+    pub state_bucket_authority: Option<FriendStateBucketAuthority>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, specta::Type)]
