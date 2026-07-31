@@ -103,15 +103,18 @@ pub fn parse_location(tag: &str) -> ParsedLocation {
                 parsed.instance_name = segment.to_string();
                 continue;
             }
-            let (key, value) = parse_location_segment(segment);
-            match key.as_str() {
-                "hidden" => parsed.hidden_id = Some(value),
-                "private" => parsed.private_id = Some(value),
-                "friends" => parsed.friends_id = Some(value),
+            let LocationSegment {
+                qualifier,
+                qualifier_value,
+            } = parse_location_segment(segment);
+            match qualifier.as_str() {
+                "hidden" => parsed.hidden_id = Some(qualifier_value),
+                "private" => parsed.private_id = Some(qualifier_value),
+                "friends" => parsed.friends_id = Some(qualifier_value),
                 "canRequestInvite" => parsed.can_request_invite = true,
-                "region" => parsed.region = value,
-                "group" => parsed.group_id = Some(value),
-                "groupAccessType" => parsed.group_access_type = Some(value),
+                "region" => parsed.region = qualifier_value,
+                "group" => parsed.group_id = Some(qualifier_value),
+                "groupAccessType" => parsed.group_access_type = Some(qualifier_value),
                 "strict" => parsed.strict = true,
                 "ageGate" => parsed.age_gate = true,
                 _ => {}
@@ -160,20 +163,34 @@ pub fn world_id_from_location(tag: &str) -> String {
         .to_string()
 }
 
-fn parse_location_segment(segment: &str) -> (String, String) {
+struct LocationSegment {
+    qualifier: String,
+    qualifier_value: String,
+}
+
+impl LocationSegment {
+    fn without_value(qualifier: &str) -> Self {
+        Self {
+            qualifier: qualifier.to_string(),
+            qualifier_value: String::new(),
+        }
+    }
+}
+
+fn parse_location_segment(segment: &str) -> LocationSegment {
     let Some(open) = segment.find('(') else {
-        return (segment.to_string(), String::new());
+        return LocationSegment::without_value(segment);
     };
     let Some(close) = segment.rfind(')') else {
-        return (segment.to_string(), String::new());
+        return LocationSegment::without_value(segment);
     };
     if open >= close {
-        return (segment.to_string(), String::new());
+        return LocationSegment::without_value(segment);
     }
-    (
-        segment[..open].to_string(),
-        segment[open + 1..close].to_string(),
-    )
+    LocationSegment {
+        qualifier: segment[..open].to_string(),
+        qualifier_value: segment[open + 1..close].to_string(),
+    }
 }
 
 pub fn normalize_instance_type(parsed: &ParsedLocation) -> String {

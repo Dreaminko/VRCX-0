@@ -1,6 +1,11 @@
-use super::*;
+use super::{append_event, clean_location, GameLogEventKind, Inner, LogContext};
 
-pub(super) fn parse_user_info(s: &str) -> (String, String) {
+pub(super) struct ParsedUserInfo {
+    pub(super) display_name: String,
+    pub(super) user_id: String,
+}
+
+pub(super) fn parse_user_info(s: &str) -> ParsedUserInfo {
     if let Some(pos) = s.rfind(" (") {
         let display_name = s[..pos].to_string();
         let end = s.rfind(')').unwrap_or(s.len());
@@ -8,9 +13,15 @@ pub(super) fn parse_user_info(s: &str) -> (String, String) {
             .chars()
             .filter(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | '~' | ':' | '(' | ')'))
             .collect();
-        (display_name, user_id)
+        ParsedUserInfo {
+            display_name,
+            user_id,
+        }
     } else {
-        (s.to_string(), String::new())
+        ParsedUserInfo {
+            display_name: s.to_string(),
+            user_id: String::new(),
+        }
     }
 }
 
@@ -97,7 +108,10 @@ pub(super) fn parse_player_joined_or_left(
     if content.contains("[Behaviour] OnPlayerJoined") && !content.contains("] OnPlayerJoined:") {
         if let Some(pos) = line.rfind("] OnPlayerJoined") {
             let user_info = &line[pos + 17..];
-            let (display_name, user_id) = parse_user_info(user_info);
+            let ParsedUserInfo {
+                display_name,
+                user_id,
+            } = parse_user_info(user_info);
             if !display_name.is_empty() || !user_id.is_empty() {
                 append_event(
                     inner,
@@ -120,7 +134,10 @@ pub(super) fn parse_player_joined_or_left(
     {
         if let Some(pos) = line.rfind("] OnPlayerLeft") {
             let user_info = &line[pos + 15..];
-            let (display_name, user_id) = parse_user_info(user_info);
+            let ParsedUserInfo {
+                display_name,
+                user_id,
+            } = parse_user_info(user_info);
             if !display_name.is_empty() || !user_id.is_empty() {
                 append_event(
                     inner,

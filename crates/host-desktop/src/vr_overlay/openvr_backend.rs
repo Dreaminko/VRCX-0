@@ -20,7 +20,16 @@ use vrcx_0_vr_overlay::{
 
 #[cfg(windows)]
 use super::gpu_presenter::GpuPresenter;
-use super::openvr_helpers::*;
+use super::openvr_helpers::{
+    click_up_event_for_release, device_sort_key, device_status, frame_fingerprint,
+    grip_pressed_for_state, is_display_device_class, nearest_interactive_hit, overlay_button_mask,
+    overlay_quad_size, overlay_transform_to_matrix, panel_id_for_surface,
+    pointer_laser_surface_id_for_hand, pointer_laser_transform, pointer_laser_width,
+    pointer_miss_uv, pose_transform, scroll_delta_for_state, set_overlay_premultiplied_alpha,
+    short_device_label, should_emit_hover, surface_id_for_panel_id, surface_transform,
+    trigger_drag_scroll_delta, trigger_pressed, FrameFingerprint, InteractiveHit,
+    InteractiveSurfaceCandidate, InteractiveTarget,
+};
 use super::{
     actor::{OverlayBackend, TickOutcome},
     policy::WristVisibilityPolicy,

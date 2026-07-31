@@ -37,6 +37,18 @@ pub(crate) fn build_vrcx_user_agent(app_version: &str) -> String {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct AuthCookieState {
+    pub domain: String,
+    pub expired: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct AuthCookieSummary {
+    pub total_cookie_count: usize,
+    pub auth_cookies: Vec<AuthCookieState>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub enum WebUploadMode {
     #[default]
@@ -366,15 +378,21 @@ impl WebClient {
         });
     }
 
-    pub fn auth_cookie_summary(&self) -> (usize, Vec<(String, bool)>) {
+    pub fn auth_cookie_summary(&self) -> AuthCookieSummary {
         self.jar.read_with(|store| {
-            let total = store.iter_any().count();
-            let auth = store
+            let total_cookie_count = store.iter_any().count();
+            let auth_cookies = store
                 .iter_any()
                 .filter(|cookie| cookie.name() == "auth")
-                .map(|cookie| (String::from(&cookie.domain), cookie.is_expired()))
+                .map(|cookie| AuthCookieState {
+                    domain: String::from(&cookie.domain),
+                    expired: cookie.is_expired(),
+                })
                 .collect();
-            (total, auth)
+            AuthCookieSummary {
+                total_cookie_count,
+                auth_cookies,
+            }
         })
     }
 

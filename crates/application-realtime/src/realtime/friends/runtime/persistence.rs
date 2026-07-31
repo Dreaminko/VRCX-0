@@ -2,13 +2,21 @@ use std::collections::HashMap;
 
 use chrono::Utc;
 use serde_json::{json, Map, Value};
-use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_core::friends::{FriendRecord, StateBucket};
 use vrcx_0_persistence::realtime::FriendLogUpsert;
 
 use crate::realtime::RealtimeFriendOutput;
 
 use super::event_patch::{record_string, record_value};
 use super::utils::{first_non_empty, first_owned, parse_location, string_or_previous, JsonExt};
+
+mod feed_entry;
+
+use feed_entry::{
+    feed_duration_ms, feed_entry_value, AvatarFeedEntry, BioFeedEntry, FeedEntryType,
+    FriendRelationshipFeedEntry, GpsFeedEntry, OfflineFeedEntry, OnlineFeedEntry,
+    PlayerJoiningFeedEntry, StatusFeedEntry, TrustLevelFeedEntry,
+};
 
 struct ResolvedLocationNames {
     world_name: String,
@@ -22,10 +30,10 @@ pub(super) enum FriendRelationshipFeedKind {
 }
 
 impl FriendRelationshipFeedKind {
-    fn feed_type(self) -> &'static str {
+    fn feed_type(self) -> FeedEntryType {
         match self {
-            Self::Friend => "Friend",
-            Self::Unfriend => "Unfriend",
+            Self::Friend => FeedEntryType::Friend,
+            Self::Unfriend => FeedEntryType::Unfriend,
         }
     }
 }
@@ -137,14 +145,14 @@ pub(crate) fn trust_level_feed_entry(
     previous_trust_level: &str,
     friend_number: i64,
 ) -> Value {
-    json!({
-        "created_at": created_at,
-        "type": "TrustLevel",
-        "userId": user_id,
-        "displayName": display_name,
-        "trustLevel": trust_level,
-        "previousTrustLevel": previous_trust_level,
-        "friendNumber": friend_number,
+    feed_entry_value(&TrustLevelFeedEntry {
+        created_at,
+        entry_type: FeedEntryType::TrustLevel,
+        user_id,
+        display_name,
+        trust_level,
+        previous_trust_level,
+        friend_number,
     })
 }
 
@@ -167,26 +175,32 @@ pub(super) fn add_profile_diff_feed_entries(
         && next_status != "offline"
         && previous_status != "offline"
     {
-        output.persistence.feed_entries.push(json!({
-            "created_at": created_at,
-            "type": "Status",
-            "userId": user_id,
-            "displayName": display_name(user_id, patch, Some(previous)),
-            "status": next_status,
-            "statusDescription": string_or_previous(patch, previous, "statusDescription"),
-            "previousStatus": previous_status,
-            "previousStatusDescription": previous.status_description,
-        }));
+        output
+            .persistence
+            .feed_entries
+            .push(feed_entry_value(&StatusFeedEntry {
+                created_at,
+                entry_type: FeedEntryType::Status,
+                user_id,
+                display_name: display_name(user_id, patch, Some(previous)),
+                status: next_status,
+                status_description: string_or_previous(patch, previous, "statusDescription"),
+                previous_status,
+                previous_status_description: &previous.status_description,
+            }));
     }
     if changes.has("bio") && !patch.text_field("bio").is_empty() && !previous.bio.is_empty() {
-        output.persistence.feed_entries.push(json!({
-            "created_at": created_at,
-            "type": "Bio",
-            "userId": user_id,
-            "displayName": display_name(user_id, patch, Some(previous)),
-            "bio": patch.text_field("bio"),
-            "previousBio": previous.bio,
-        }));
+        output
+            .persistence
+            .feed_entries
+            .push(feed_entry_value(&BioFeedEntry {
+                created_at,
+                entry_type: FeedEntryType::Bio,
+                user_id,
+                display_name: display_name(user_id, patch, Some(previous)),
+                bio: patch.text_field("bio"),
+                previous_bio: &previous.bio,
+            }));
     }
     let avatar_image_changed =
         changes.has("currentAvatarImageUrl") || changes.has("currentAvatarThumbnailImageUrl");
@@ -213,38 +227,50 @@ pub(super) fn add_profile_diff_feed_entries(
             .map(|change| change.previous.clone())
             .or_else(|| previous.extra.get("currentAvatarTags").cloned())
             .unwrap_or_else(|| json!([]));
-        output.persistence.feed_entries.push(json!({
-            "created_at": created_at,
-            "type": "Avatar",
-            "userId": user_id,
-            "displayName": display_name(user_id, patch, Some(previous)),
-            "ownerId": first_owned([
-                patch.text_field("currentAvatarAuthorId"),
-                patch.text_field("authorId"),
-                previous.current_avatar_author_id.clone(),
-                record_string(previous, "authorId"),
-            ]),
-            "previousOwnerId": first_owned([
-                previous.current_avatar_author_id.clone(),
-                record_string(previous, "authorId"),
-            ]),
-            "avatarName": first_owned([
-                patch.text_field("currentAvatarName"),
-                patch.text_field("avatarName"),
-                previous.current_avatar_name.clone(),
-                record_string(previous, "avatarName"),
-            ]),
-            "previousAvatarName": first_owned([
-                previous.current_avatar_name.clone(),
-                record_string(previous, "avatarName"),
-            ]),
-            "currentAvatarImageUrl": string_or_previous(patch, previous, "currentAvatarImageUrl"),
-            "currentAvatarThumbnailImageUrl": string_or_previous(patch, previous, "currentAvatarThumbnailImageUrl"),
-            "previousCurrentAvatarImageUrl": previous.current_avatar_image_url,
-            "previousCurrentAvatarThumbnailImageUrl": previous.current_avatar_thumbnail_image_url,
-            "currentAvatarTags": current_avatar_tags,
-            "previousCurrentAvatarTags": previous_avatar_tags,
-        }));
+        output
+            .persistence
+            .feed_entries
+            .push(feed_entry_value(&AvatarFeedEntry {
+                created_at,
+                entry_type: FeedEntryType::Avatar,
+                user_id,
+                display_name: display_name(user_id, patch, Some(previous)),
+                owner_id: first_owned([
+                    patch.text_field("currentAvatarAuthorId"),
+                    patch.text_field("authorId"),
+                    previous.current_avatar_author_id.clone(),
+                    record_string(previous, "authorId"),
+                ]),
+                previous_owner_id: first_owned([
+                    previous.current_avatar_author_id.clone(),
+                    record_string(previous, "authorId"),
+                ]),
+                avatar_name: first_owned([
+                    patch.text_field("currentAvatarName"),
+                    patch.text_field("avatarName"),
+                    previous.current_avatar_name.clone(),
+                    record_string(previous, "avatarName"),
+                ]),
+                previous_avatar_name: first_owned([
+                    previous.current_avatar_name.clone(),
+                    record_string(previous, "avatarName"),
+                ]),
+                current_avatar_image_url: string_or_previous(
+                    patch,
+                    previous,
+                    "currentAvatarImageUrl",
+                ),
+                current_avatar_thumbnail_image_url: string_or_previous(
+                    patch,
+                    previous,
+                    "currentAvatarThumbnailImageUrl",
+                ),
+                previous_current_avatar_image_url: &previous.current_avatar_image_url,
+                previous_current_avatar_thumbnail_image_url: &previous
+                    .current_avatar_thumbnail_image_url,
+                current_avatar_tags,
+                previous_current_avatar_tags: previous_avatar_tags,
+            }));
     }
 }
 
@@ -255,11 +281,11 @@ pub(super) fn friend_relationship_feed_entry(
     previous: Option<&FriendRecord>,
     created_at: &str,
 ) -> Value {
-    json!({
-        "created_at": created_at,
-        "type": relationship.feed_type(),
-        "userId": user_id,
-        "displayName": display_name(user_id, patch, previous),
+    feed_entry_value(&FriendRelationshipFeedEntry {
+        created_at,
+        entry_type: relationship.feed_type(),
+        user_id,
+        display_name: display_name(user_id, patch, previous),
     })
 }
 
@@ -285,16 +311,16 @@ pub(super) fn gps_feed_entry(
             group_name: String::new(),
         }
     };
-    Some(json!({
-        "created_at": created_at,
-        "type": "GPS",
-        "userId": user_id,
-        "displayName": display_name(user_id, patch, Some(previous)),
-        "location": location,
-        "worldName": location_names.world_name,
-        "previousLocation": previous_location,
-        "time": resolve_gps_duration(previous),
-        "groupName": location_names.group_name,
+    Some(feed_entry_value(&GpsFeedEntry {
+        created_at,
+        entry_type: FeedEntryType::Gps,
+        user_id,
+        display_name: display_name(user_id, patch, Some(previous)),
+        location,
+        world_name: location_names.world_name,
+        previous_location,
+        time: json!(resolve_gps_duration(previous)),
+        group_name: location_names.group_name,
     }))
 }
 
@@ -310,13 +336,13 @@ pub(crate) fn player_joining_feed_entry(
     {
         return None;
     }
-    Some(json!({
-        "created_at": created_at,
-        "type": "OnPlayerJoining",
-        "userId": user_id,
-        "displayName": current.display_name,
-        "location": current.location,
-        "travelingToLocation": current.traveling_to_location,
+    Some(feed_entry_value(&PlayerJoiningFeedEntry {
+        created_at,
+        entry_type: FeedEntryType::OnPlayerJoining,
+        user_id,
+        display_name: &current.display_name,
+        location: &current.location,
+        traveling_to_location: &current.traveling_to_location,
     }))
 }
 
@@ -336,15 +362,15 @@ pub(super) fn online_feed_entry(
             group_name: String::new(),
         }
     };
-    json!({
-        "created_at": created_at,
-        "type": "Online",
-        "userId": user_id,
-        "displayName": display_name(user_id, patch, previous),
-        "location": location,
-        "worldName": location_names.world_name,
-        "groupName": location_names.group_name,
-        "time": if time > 0 { json!(time) } else { json!("") },
+    feed_entry_value(&OnlineFeedEntry {
+        created_at,
+        entry_type: FeedEntryType::Online,
+        user_id,
+        display_name: display_name(user_id, patch, previous),
+        location,
+        world_name: location_names.world_name,
+        group_name: location_names.group_name,
+        time: feed_duration_ms(time),
     })
 }
 
@@ -365,19 +391,19 @@ pub(super) fn offline_feed_entry(
         }
     };
     let time = duration_ms(previous, timestamp_ms);
-    json!({
-        "created_at": created_at,
-        "type": "Offline",
-        "userId": user_id,
-        "displayName": first_owned([
+    feed_entry_value(&OfflineFeedEntry {
+        created_at,
+        entry_type: FeedEntryType::Offline,
+        user_id,
+        display_name: first_owned([
             meaningful_record_name(current, user_id),
             meaningful_record_name(previous, user_id),
             "Unknown".to_string(),
         ]),
-        "location": location,
-        "worldName": location_names.world_name,
-        "groupName": location_names.group_name,
-        "time": if time > 0 { json!(time) } else { json!("") },
+        location: &location,
+        world_name: location_names.world_name,
+        group_name: location_names.group_name,
+        time: feed_duration_ms(time),
     })
 }
 
@@ -579,7 +605,7 @@ pub(super) fn duration_ms(previous: &FriendRecord, now_ms: i64) -> i64 {
 }
 
 pub(super) fn is_online_state(record: &FriendRecord) -> bool {
-    record.state_bucket == "online" || record.state == "online"
+    StateBucket::Online.matches(&record.state_bucket) || StateBucket::Online.matches(&record.state)
 }
 
 pub(super) fn is_real_location(location: &str) -> bool {

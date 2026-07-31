@@ -24,8 +24,7 @@ pub fn app__get_legacy_vrcx_migration_status(
 #[tauri::command]
 #[specta::specta]
 pub fn app__get_legacy_vrcx_force_migration_status() -> LegacyVrcxMigrationStatus {
-    let (_, status) = vrcx_0_persistence::legacy_vrcx::discover_supported_legacy_source();
-    status
+    vrcx_0_persistence::legacy_vrcx::discover_supported_legacy_source().status
 }
 
 fn legacy_migration_unavailable_reason(status: &LegacyVrcxMigrationStatus) -> String {
@@ -71,10 +70,10 @@ pub fn app__request_legacy_vrcx_force_migration(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<bool, AppError> {
-    let (source, status) = vrcx_0_persistence::legacy_vrcx::discover_supported_legacy_source();
-    let Some(source) = source.as_ref() else {
+    let discovery = vrcx_0_persistence::legacy_vrcx::discover_supported_legacy_source();
+    let Some(source) = discovery.importable_source.as_ref() else {
         return Err(AppError::Custom(legacy_migration_unavailable_reason(
-            &status,
+            &discovery.status,
         )));
     };
     vrcx_0_persistence::legacy_vrcx::validate_legacy_source(source).map_err(AppError::Custom)?;

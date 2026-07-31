@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_core::friends::{FriendRecord, StateBucket};
 use vrcx_0_core::trust::{trust_level_changed, trust_level_differs};
 use vrcx_0_persistence::realtime::FriendLogDelete;
 
@@ -123,7 +123,7 @@ fn apply_friend_event_with_source(
                 content,
                 previous.as_ref(),
                 source.trusts_embedded_state(),
-                "offline",
+                StateBucket::Offline.as_str(),
             );
             let already_friend = previous.is_some();
             output.friend_note_changed |= patch_changes_note(&patch, previous.as_ref());
@@ -206,7 +206,7 @@ fn apply_friend_event_with_source(
                     content,
                     previous.as_ref(),
                     source.trusts_embedded_state(),
-                    "offline",
+                    StateBucket::Offline.as_str(),
                 )
             } else {
                 previous
@@ -214,7 +214,7 @@ fn apply_friend_event_with_source(
                     .map(|previous| previous.state_bucket.trim())
                     .filter(|state_bucket| !state_bucket.is_empty())
                     .map(ToString::to_string)
-                    .unwrap_or_else(|| "offline".to_string())
+                    .unwrap_or_else(|| StateBucket::Offline.as_str().to_string())
             };
             if source.trusts_embedded_state() && state.pending_offline.remove(&user_id).is_some() {
                 if let Some(patch_object) = patch.as_object_mut() {
@@ -270,8 +270,13 @@ fn apply_friend_event_with_source(
                 .get(&user_id)
                 .cloned();
             let user_patch = profile_patch(content, &user_id);
-            let mut patch =
-                online_patch(content, user_patch, previous_record.as_ref(), now, "online");
+            let mut patch = online_patch(
+                content,
+                user_patch,
+                previous_record.as_ref(),
+                now,
+                StateBucket::Online.as_str(),
+            );
             normalize_patch_trust(&mut patch, previous_record.as_ref());
             output.friend_note_changed |= patch_changes_note(&patch, previous_record.as_ref());
             record_profile_identity_change(
@@ -279,7 +284,7 @@ fn apply_friend_event_with_source(
                 &user_id,
                 &patch,
                 previous_record.as_ref(),
-                "online",
+                StateBucket::Online.as_str(),
                 now,
             );
             if !canceled_pending
@@ -304,16 +309,23 @@ fn apply_friend_event_with_source(
                     &patch,
                     previous,
                     now,
-                    state_bucket_changed(previous, "online"),
+                    state_bucket_changed(previous, StateBucket::Online.as_str()),
                 );
             }
-            apply_patch_to_state(state, &mut output, &user_id, patch, "online", &now.iso);
+            apply_patch_to_state(
+                state,
+                &mut output,
+                &user_id,
+                patch,
+                StateBucket::Online.as_str(),
+                &now.iso,
+            );
         }
         FriendEventKind::Active | FriendEventKind::Offline => {
             let user_id = event_user_id(content)?;
             let next_state = match event_kind {
-                FriendEventKind::Active => "active",
-                FriendEventKind::Offline => "offline",
+                FriendEventKind::Active => StateBucket::Active.as_str(),
+                FriendEventKind::Offline => StateBucket::Offline.as_str(),
                 _ => unreachable!("matched active or offline event"),
             };
             let previous_record = state
@@ -336,7 +348,7 @@ fn apply_friend_event_with_source(
                     &user_id,
                     &patch,
                     previous_record.as_ref(),
-                    "online",
+                    StateBucket::Online.as_str(),
                     now,
                 );
                 state.timer_token = state.timer_token.saturating_add(1);
@@ -359,7 +371,7 @@ fn apply_friend_event_with_source(
                     &mut output,
                     &user_id,
                     pending_patch,
-                    "online",
+                    StateBucket::Online.as_str(),
                     &now.iso,
                 );
                 output.timer_action = PendingOfflineTimerAction::Schedule {
@@ -423,9 +435,11 @@ fn apply_friend_event_with_source(
                     PendingOffline {
                         token,
                         patch: FriendRecordPatch::from_value(&offline_like_patch(
-                            content, &user_id, "offline",
+                            content,
+                            &user_id,
+                            StateBucket::Offline.as_str(),
                         )),
-                        state_bucket: "offline".to_string(),
+                        state_bucket: StateBucket::Offline.as_str().to_string(),
                         previous: previous_record
                             .as_ref()
                             .expect("checked previous record")
@@ -469,7 +483,7 @@ fn apply_friend_event_with_source(
                     state_bucket_changed(previous, &state_bucket),
                 );
             }
-            if state_bucket != "online" {
+            if !StateBucket::Online.matches(&state_bucket) {
                 state.recent_gps.remove(&user_id);
             }
             request_profile_refetch_for_location_event(
@@ -510,7 +524,7 @@ fn request_profile_refetch_for_impossible_location(
     patch: &Value,
     state_bucket: &str,
 ) {
-    if state_bucket != "online" && is_real_instance_patch(patch) {
+    if !StateBucket::Online.matches(state_bucket) && is_real_instance_patch(patch) {
         push_profile_refetch_user_id(output, user_id);
     }
 }
@@ -525,9 +539,9 @@ fn request_profile_refetch_for_location_event(
 ) {
     let embedded_user_without_online_proof = has_embedded_user && !has_online_location;
     let online_with_missing_or_offline_location =
-        state_bucket == "online" && !patch_has_online_location(patch);
+        StateBucket::Online.matches(state_bucket) && !patch_has_online_location(patch);
     let non_online_with_real_instance_location =
-        state_bucket != "online" && is_real_instance_patch(patch);
+        !StateBucket::Online.matches(state_bucket) && is_real_instance_patch(patch);
 
     if embedded_user_without_online_proof
         || online_with_missing_or_offline_location

@@ -87,11 +87,16 @@ impl LogEntryFilter {
     }
 }
 
-pub fn parse_log_document(file_name: &str, content: &str) -> (Vec<LogEntry>, usize) {
-    (
-        parse_log_entries(file_name, content),
-        content.lines().count(),
-    )
+pub struct ParsedLogDocument {
+    pub entries: Vec<LogEntry>,
+    pub total_lines: usize,
+}
+
+pub fn parse_log_document(file_name: &str, content: &str) -> ParsedLogDocument {
+    ParsedLogDocument {
+        entries: parse_log_entries(file_name, content),
+        total_lines: content.lines().count(),
+    }
 }
 
 pub fn parse_log_entries(file_name: &str, content: &str) -> Vec<LogEntry> {
@@ -187,7 +192,10 @@ continued detail
 2026.06.21 12:00:02 Warning - no category
 2026.06.21 12:00:03 Error - [Network] failed";
 
-        let (entries, total_lines) = parse_log_document("output_log_2026-06-21.txt", content);
+        let ParsedLogDocument {
+            entries,
+            total_lines,
+        } = parse_log_document("output_log_2026-06-21.txt", content);
 
         assert_eq!(total_lines, 4);
         assert_eq!(entries.len(), 3);

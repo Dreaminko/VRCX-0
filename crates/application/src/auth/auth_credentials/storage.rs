@@ -86,31 +86,64 @@ pub fn migrate_saved_credential_secrets(config: &ConfigRepository) -> Result<boo
     Ok(true)
 }
 
-fn decode_secret(stored: String, field: &str) -> (Option<String>, bool) {
+struct DecodedSecret {
+    plaintext: Option<String>,
+    cleared_as_undecryptable: bool,
+}
+
+struct DecodedSavedCredential {
+    needs_rewrite: bool,
+    entry: Option<DecodedSavedCredentialEntry>,
+}
+
+struct DecodedSavedCredentialEntry {
+    user_id: String,
+    credential: SavedCredential,
+}
+
+impl DecodedSavedCredential {
+    fn unusable() -> Self {
+        Self {
+            needs_rewrite: true,
+            entry: None,
+        }
+    }
+}
+
+fn decode_secret(stored: String, field: &str) -> DecodedSecret {
     if stored.is_empty() {
-        return (None, false);
+        return DecodedSecret {
+            plaintext: None,
+            cleared_as_undecryptable: false,
+        };
     }
     match secrets::open_secret(&stored) {
-        Some(plaintext) => (Some(plaintext), false),
+        Some(plaintext) => DecodedSecret {
+            plaintext: Some(plaintext),
+            cleared_as_undecryptable: false,
+        },
         None => {
             tracing::info!(
                 field,
                 "stored credential secret is not decryptable; clearing it"
             );
-            (None, true)
+            DecodedSecret {
+                plaintext: None,
+                cleared_as_undecryptable: true,
+            }
         }
     }
 }
 
-fn decode_saved_credential(key: &str, entry: &Value) -> (bool, Option<(String, SavedCredential)>) {
+fn decode_saved_credential(key: &str, entry: &Value) -> DecodedSavedCredential {
     let Some(record) = entry.as_object() else {
-        return (true, None);
+        return DecodedSavedCredential::unusable();
     };
     let Some(user_value) = record.get("user") else {
-        return (true, None);
+        return DecodedSavedCredential::unusable();
     };
     let Some(user) = saved_credential_user_from_value(user_value, key) else {
-        return (true, None);
+        return DecodedSavedCredential::unusable();
     };
 
     let raw_login_params = record
@@ -138,18 +171,17 @@ fn decode_saved_credential(key: &str, entry: &Value) -> (bool, Option<(String, S
         edited |= secrets::is_encrypting_writes();
     } else {
         if let Some(stored_password) = login_params.password.take() {
-            let (password, password_edited) =
-                decode_secret(stored_password, "loginParams.password");
-            login_params.password = password;
-            edited |= password_edited;
+            let decoded = decode_secret(stored_password, "loginParams.password");
+            login_params.password = decoded.plaintext;
+            edited |= decoded.cleared_as_undecryptable;
         }
     }
 
     let cookies = match record.get("cookies") {
         Some(Value::String(value)) => {
-            let (cookies, cookies_edited) = decode_secret(value.clone(), "cookies");
-            edited |= cookies_edited;
-            cookies
+            let decoded = decode_secret(value.clone(), "cookies");
+            edited |= decoded.cleared_as_undecryptable;
+            decoded.plaintext
         }
         Some(Value::Null) | None => None,
         Some(_) => {
@@ -159,25 +191,36 @@ fn decode_saved_credential(key: &str, entry: &Value) -> (bool, Option<(String, S
     };
 
     let user_id = user.id.clone();
-    (
-        edited,
-        Some((
+    DecodedSavedCredential {
+        needs_rewrite: edited,
+        entry: Some(DecodedSavedCredentialEntry {
             user_id,
-            SavedCredential {
+            credential: SavedCredential {
                 user,
                 login_params,
                 cookies,
             },
-        )),
-    )
+        }),
+    }
 }
 
-fn seal_secret(plaintext: &str) -> (String, bool) {
+struct SealedCredentialSecret {
+    stored: String,
+    is_plaintext: bool,
+}
+
+fn seal_secret(plaintext: &str) -> SealedCredentialSecret {
     if plaintext.is_empty() {
-        return (String::new(), false);
+        return SealedCredentialSecret {
+            stored: String::new(),
+            is_plaintext: false,
+        };
     }
-    let (stored, encrypted) = secrets::seal_secret_with_status(plaintext);
-    (stored, secrets::is_initialized() && !encrypted)
+    let sealed = secrets::seal_secret_with_status(plaintext);
+    SealedCredentialSecret {
+        stored: sealed.stored,
+        is_plaintext: secrets::is_initialized() && !sealed.encrypted,
+    }
 }
 
 fn persisted_saved_credentials<'a>(
@@ -190,21 +233,21 @@ fn persisted_saved_credentials<'a>(
             credential.login_params.password.as_deref().map_or_else(
                 || (None, false),
                 |password| {
-                    let (stored, plaintext) = seal_secret(password);
-                    (Some(stored), plaintext)
+                    let sealed = seal_secret(password);
+                    (Some(sealed.stored), sealed.is_plaintext)
                 },
             );
         let (cookies, cookies_are_plaintext) = credential.cookies.as_deref().map_or_else(
             || (None, false),
             |cookies| {
-                let (stored, plaintext) = seal_secret(cookies);
+                let sealed = seal_secret(cookies);
                 (
-                    if stored.is_empty() {
+                    if sealed.stored.is_empty() {
                         None
                     } else {
-                        Some(stored)
+                        Some(sealed.stored)
                     },
-                    plaintext,
+                    sealed.is_plaintext,
                 )
             },
         );
@@ -275,11 +318,11 @@ pub(super) fn read_saved_credentials(config: &ConfigRepository) -> Result<SavedC
     let mut normalized = SavedCredentials::new();
     let mut edited = !source.is_object();
     for (key, value) in &source_object {
-        let (entry_edited, normalized_entry) = decode_saved_credential(key, value);
-        if let Some((normalized_key, normalized_value)) = normalized_entry {
-            normalized.insert(normalized_key, normalized_value);
+        let decoded = decode_saved_credential(key, value);
+        if let Some(entry) = decoded.entry {
+            normalized.insert(entry.user_id, entry.credential);
         }
-        edited |= entry_edited;
+        edited |= decoded.needs_rewrite;
     }
 
     if edited {

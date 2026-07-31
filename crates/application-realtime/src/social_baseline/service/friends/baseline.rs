@@ -1,4 +1,35 @@
-use super::*;
+use std::collections::{HashMap, HashSet};
+
+use serde_json::Value;
+use vrcx_0_application_core::{Error, Result};
+use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_core::trust::{trust_level_changed, trust_level_differs};
+use vrcx_0_persistence::config::{get_bool as config_get_bool, set_bool as config_set_bool};
+use vrcx_0_persistence::friends::{
+    friend_log_current_list, friend_log_replace_current, FriendLogCurrentEntryInput,
+    FriendLogReplaceOptionsInput,
+};
+use vrcx_0_persistence::realtime::{
+    write_realtime_batch, FriendLogDelete, FriendLogUpsert, RealtimePersistenceBatch,
+};
+use vrcx_0_persistence::DatabaseService;
+use vrcx_0_vrchat_client::auth::current_user_get_input;
+
+use crate::realtime::friends::trust_level_feed_entry;
+
+use super::super::{
+    auth_scope_matches, execute_vrchat_json_request, extend_unique,
+    fetch_friend_statuses_concurrent, normalize_text, object_field_string,
+    refetch_users_concurrent, stale_friend_output, value_as_string, CurrentUserSnapshotView,
+    FriendBaselineSyncOutcome, Ordering, RawJson, SocialBaselineDeps,
+    SocialFriendRosterBaselineInput, SocialFriendRosterBaselineOutput,
+};
+use super::entry::{
+    build_fast_roster_snapshot, build_roster_snapshot_from_records, infer_state_from_platform,
+};
+use super::profile::{
+    fetch_all_friends, insert_fetched_friend, normalize_state_bucket, RemoteFriendProfile,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct FriendStatusVerdicts(HashMap<String, bool>);

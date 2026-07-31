@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use chrono::Utc;
 use serde_json::{json, Value};
-use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
+use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline, StateBucket};
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
@@ -198,15 +198,15 @@ impl RealtimeFriendsRuntime {
                     record
                         .extra
                         .insert("pendingOffline".into(), Value::Bool(false));
-                    if matches!(record.state_bucket.as_str(), "offline" | "active") {
+                    if leaves_online(&record.state_bucket) {
                         confirmed_pending.push(OfflineBaselineTransition {
                             user_id: user_id.clone(),
                             next: record.clone(),
                             previous: pending.previous.clone(),
                         });
                     }
-                } else if existing_record.state_bucket == "online"
-                    && matches!(record.state_bucket.as_str(), "offline" | "active")
+                } else if StateBucket::Online.matches(&existing_record.state_bucket)
+                    && leaves_online(&record.state_bucket)
                 {
                     pending_to_create.push(OfflineBaselineTransition {
                         user_id: user_id.clone(),
@@ -606,6 +606,13 @@ impl RealtimeFriendsRuntime {
     fn lock_state(&self) -> MutexGuard<'_, RealtimeFriendState> {
         self.state.lock().unwrap_or_else(|error| error.into_inner())
     }
+}
+
+fn leaves_online(state_bucket: &str) -> bool {
+    matches!(
+        StateBucket::from_exact(state_bucket),
+        Some(StateBucket::Offline | StateBucket::Active)
+    )
 }
 
 fn current_friend_state_sequence(state: &RealtimeFriendState, user_id: &str) -> u64 {

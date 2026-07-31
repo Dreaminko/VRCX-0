@@ -40,11 +40,11 @@ fn load_default_cookies_raw(db: &DatabaseService) -> Result<Option<String>, Erro
 }
 
 pub fn save_default_cookies(db: &DatabaseService, value: &str) -> Result<(), Error> {
-    let (stored, encrypted) = secrets::seal_secret_with_status(value);
-    if secrets::is_initialized() && !encrypted && !value.is_empty() {
+    let sealed = secrets::seal_secret_with_status(value);
+    if secrets::is_initialized() && !sealed.encrypted && !value.is_empty() {
         config::remove(db, secrets::CLEANUP_COMPLETED_CONFIG_KEY)?;
     }
-    upsert_default_cookies_raw(db, &stored)
+    upsert_default_cookies_raw(db, &sealed.stored)
 }
 
 fn upsert_default_cookies_raw(db: &DatabaseService, value: &str) -> Result<(), Error> {
@@ -70,13 +70,13 @@ pub fn migrate_default_cookies(db: &DatabaseService) -> Result<bool, Error> {
     if stored.is_empty() || secrets::is_sealed_secret(&stored) {
         return Ok(false);
     }
-    let (sealed, encrypted) = secrets::seal_secret_with_status(&stored);
-    if !encrypted {
+    let sealed = secrets::seal_secret_with_status(&stored);
+    if !sealed.encrypted {
         return Err(Error::Custom(
             "failed to encrypt stored cookies during migration".into(),
         ));
     }
     config::remove(db, secrets::CLEANUP_COMPLETED_CONFIG_KEY)?;
-    upsert_default_cookies_raw(db, &sealed)?;
+    upsert_default_cookies_raw(db, &sealed.stored)?;
     Ok(true)
 }

@@ -87,12 +87,13 @@ impl WebClient {
     }
 
     pub fn cookie_diagnostics(&self) -> serde_json::Value {
-        let (total, auth) = self.inner.auth_cookie_summary();
+        let summary = self.inner.auth_cookie_summary();
         serde_json::json!({
-            "cookieCount": total,
-            "authCookies": auth
+            "cookieCount": summary.total_cookie_count,
+            "authCookies": summary
+                .auth_cookies
                 .into_iter()
-                .map(|(domain, expired)| serde_json::json!({ "domain": domain, "expired": expired }))
+                .map(|cookie| serde_json::json!({ "domain": cookie.domain, "expired": cookie.expired }))
                 .collect::<Vec<_>>(),
         })
     }

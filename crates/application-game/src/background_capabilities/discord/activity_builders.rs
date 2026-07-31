@@ -155,11 +155,10 @@ pub(super) fn build_discord_activity(
                 details_text = now_playing_name;
             }
             if now_playing_has_content(&facts.now_playing) {
-                let (now_playing_start, now_playing_end) =
-                    now_playing_activity_times(&facts.now_playing);
-                if !now_playing_start.is_empty() {
-                    start_time = now_playing_start;
-                    end_time = now_playing_end;
+                let now_playing_times = now_playing_activity_times(&facts.now_playing);
+                if !now_playing_times.start_time.is_empty() {
+                    start_time = now_playing_times.start_time;
+                    end_time = now_playing_times.end_time;
                 }
             }
         }
@@ -444,12 +443,20 @@ fn now_playing_has_content(now_playing: &Value) -> bool {
     string_field(now_playing, "url").is_some() || string_field(now_playing, "name").is_some()
 }
 
-fn now_playing_activity_times(now_playing: &Value) -> (String, String) {
+struct NowPlayingActivityTimes {
+    start_time: String,
+    end_time: String,
+}
+
+fn now_playing_activity_times(now_playing: &Value) -> NowPlayingActivityTimes {
     let start_time = string_field(now_playing, "startedAt")
         .or_else(|| string_field(now_playing, "created_at"))
         .unwrap_or_default();
     let Some(start_seconds) = timestamp_seconds(&start_time).filter(|value| *value > 0) else {
-        return (start_time, String::new());
+        return NowPlayingActivityTimes {
+            start_time,
+            end_time: String::new(),
+        };
     };
     let length = now_playing.i64_field("length").unwrap_or(0);
     let end_time = if length > 0 {
@@ -457,7 +464,10 @@ fn now_playing_activity_times(now_playing: &Value) -> (String, String) {
     } else {
         String::new()
     };
-    (start_time, end_time)
+    NowPlayingActivityTimes {
+        start_time,
+        end_time,
+    }
 }
 
 fn is_popcorn_palace_world(world_id: &str) -> bool {

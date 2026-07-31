@@ -226,8 +226,19 @@ pub(super) fn normalize_release(
     })
 }
 
-pub(super) fn version_sort_key(canonical_version: &str) -> (u32, u32, u32) {
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) struct ReleaseVersionSortKey {
+    pub(super) major: u32,
+    pub(super) minor: u32,
+    pub(super) patch: u32,
+}
+
+pub(super) fn version_sort_key(canonical_version: &str) -> ReleaseVersionSortKey {
     parse_release_version(canonical_version)
-        .map(|parsed| (parsed.major, parsed.minor, parsed.patch))
+        .map(|parsed| ReleaseVersionSortKey {
+            major: parsed.major,
+            minor: parsed.minor,
+            patch: parsed.patch,
+        })
         .unwrap_or_default()
 }

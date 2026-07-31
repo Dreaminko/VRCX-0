@@ -227,11 +227,12 @@ fn open_profile(paths: &AppPaths) -> Result<OpenedProfile> {
     if let Err(error) = cleanup_profile_backup_artifacts(&paths.app_data) {
         tracing::warn!(error = %error, "failed to clean up profile backup artifacts");
     }
-    let (legacy_vrcx_source, legacy_vrcx_migration_status) =
-        vrcx_0_persistence::legacy_vrcx::discover_legacy_vrcx_migration(
-            &paths.db_file,
-            &paths.config_file,
-        );
+    let legacy_vrcx_discovery = vrcx_0_persistence::legacy_vrcx::discover_legacy_vrcx_migration(
+        &paths.db_file,
+        &paths.config_file,
+    );
+    let legacy_vrcx_source = legacy_vrcx_discovery.importable_source;
+    let legacy_vrcx_migration_status = legacy_vrcx_discovery.status;
     let legacy_vrcx_available = legacy_vrcx_migration_status.available;
     let storage = Arc::new(StorageService::new(&paths.config_file)?);
     let db = match DatabaseService::new(&paths.db_file) {

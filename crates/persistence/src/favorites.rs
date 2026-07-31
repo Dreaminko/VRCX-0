@@ -61,7 +61,10 @@ pub fn favorite_add(
     ensure_global_store_tables(db)?;
     let (table, column, entity_param) = normalize_kind(&kind)?;
     let owner_id = owner_id_for_kind_write(db, &kind, owner_user_id)?;
-    let (owner_column, owner_value) = owner_insert_parts(&kind);
+    let OwnerInsertParts {
+        column_sql: owner_column,
+        value_sql: owner_value,
+    } = owner_insert_parts(&kind);
     db.execute_non_query(
         &format!("INSERT OR IGNORE INTO {table} ({column}, group_name, created_at{owner_column}) VALUES ({entity_param}, @group_name, @created_at{owner_value})"),
         &ParamsBuilder::new()
@@ -110,7 +113,10 @@ pub fn favorite_move(
     let normalized_source_group_name = normalize_text(source_group_name);
     let normalized_target_group_name = normalize_text(target_group_name);
     let owner_id = owner_id_for_kind_write(db, &kind, owner_user_id)?;
-    let (owner_column, owner_value) = owner_insert_parts(&kind);
+    let OwnerInsertParts {
+        column_sql: owner_column,
+        value_sql: owner_value,
+    } = owner_insert_parts(&kind);
     if normalized_entity_id.is_empty() {
         return Err(Error::Custom("favorite_move requires entity id".into()));
     }
@@ -347,11 +353,22 @@ fn visible_owner_and(kind: &str) -> &'static str {
     }
 }
 
-fn owner_insert_parts(kind: &str) -> (&'static str, &'static str) {
+struct OwnerInsertParts {
+    column_sql: &'static str,
+    value_sql: &'static str,
+}
+
+fn owner_insert_parts(kind: &str) -> OwnerInsertParts {
     if kind.trim() == "friend" {
-        (", owner_id", ", @owner_id")
+        OwnerInsertParts {
+            column_sql: ", owner_id",
+            value_sql: ", @owner_id",
+        }
     } else {
-        ("", "")
+        OwnerInsertParts {
+            column_sql: "",
+            value_sql: "",
+        }
     }
 }
 

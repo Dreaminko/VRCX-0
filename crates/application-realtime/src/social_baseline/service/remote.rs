@@ -1,9 +1,23 @@
-use super::*;
-use futures_util::stream::{FuturesUnordered, StreamExt};
+use std::collections::HashMap;
 use std::future::Future;
 use std::time::Duration;
+
+use futures_util::stream::{FuturesUnordered, StreamExt};
+use serde_json::Value;
 use tokio::time::{sleep, timeout_at, Instant};
+use vrcx_0_application_core::{Error, Result};
 use vrcx_0_vrchat_client::users::user_get_input;
+
+use super::{
+    object_field, remote_friends, ApiJsonResponse, ApiScope, HttpApiRequestInput,
+    SocialBaselineDeps,
+};
+
+#[cfg(test)]
+use std::sync::Arc;
+
+#[cfg(test)]
+use super::json;
 
 const PAGED_ARRAY_CONCURRENCY: usize = 5;
 const PAGED_ARRAY_MAX_RETRIES: usize = 5;

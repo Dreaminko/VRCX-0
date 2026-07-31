@@ -1,5 +1,5 @@
-use super::presence::parse_user_info;
-use super::*;
+use super::presence::{parse_user_info, ParsedUserInfo};
+use super::{append_event, GameLogEventKind, Inner, LogContext};
 
 const VRCHAT_LOCAL_RESOURCE_URL_PREFIXES: [&str; 2] =
     ["http://127.0.0.1:22500", "http://localhost:22500"];
@@ -335,7 +335,10 @@ pub(super) fn parse_sticker_spawn(
             .split_once(" spawned sticker")
             .map(|(user_info, _)| user_info)
             .unwrap_or(info);
-        let (display_name, user_id) = parse_user_info(user_info);
+        let ParsedUserInfo {
+            display_name,
+            user_id,
+        } = parse_user_info(user_info);
         if display_name.is_empty() && user_id.is_empty() {
             return true;
         }

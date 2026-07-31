@@ -5,6 +5,40 @@ use serde_json::{Map, Value};
 
 use crate::text::first_non_empty;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StateBucket {
+    Online,
+    Active,
+    Offline,
+}
+
+impl StateBucket {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Online => "online",
+            Self::Active => "active",
+            Self::Offline => "offline",
+        }
+    }
+
+    pub fn from_exact(value: &str) -> Option<Self> {
+        match value {
+            "online" => Some(Self::Online),
+            "active" => Some(Self::Active),
+            "offline" => Some(Self::Offline),
+            _ => None,
+        }
+    }
+
+    pub fn normalize(value: &str) -> Option<Self> {
+        Self::from_exact(value.trim().to_ascii_lowercase().as_str())
+    }
+
+    pub fn matches(self, value: &str) -> bool {
+        value == self.as_str()
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FriendRecord {
@@ -53,13 +87,21 @@ impl FriendRecord {
             return None;
         }
 
-        self.state_bucket = normalize_state_bucket(first_non_empty([
+        self.state_bucket = StateBucket::normalize(first_non_empty([
             self.state_bucket.as_str(),
             self.state.as_str(),
         ]))
-        .unwrap_or_else(|| "offline".to_string());
+        .unwrap_or(StateBucket::Offline)
+        .as_str()
+        .to_string();
         self.state = self.state_bucket.clone();
         Some(self)
+    }
+
+    pub fn resolved_state_bucket(&self) -> Option<StateBucket> {
+        [self.state_bucket.as_str(), self.state.as_str()]
+            .into_iter()
+            .find_map(StateBucket::normalize)
     }
 
     pub fn is_placeholder(&self) -> bool {
@@ -123,12 +165,7 @@ pub fn normalize_user_id(value: &str) -> String {
 }
 
 pub fn normalize_state_bucket(value: &str) -> Option<String> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "online" => Some("online".to_string()),
-        "active" => Some("active".to_string()),
-        "offline" => Some("offline".to_string()),
-        _ => None,
-    }
+    StateBucket::normalize(value).map(|bucket| bucket.as_str().to_string())
 }
 
 pub fn meaningful_display_name(

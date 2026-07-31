@@ -65,8 +65,8 @@ fn get_vrchat_cache_full_location_in(
             let a_name = a.file_name().and_then(|n| n.to_str()).unwrap_or_default();
             let b_name = b.file_name().and_then(|n| n.to_str()).unwrap_or_default();
             reverse_hex_to_decimal(b_name)
-                .1
-                .cmp(&reverse_hex_to_decimal(a_name).1)
+                .variant_version
+                .cmp(&reverse_hex_to_decimal(a_name).variant_version)
         });
         return matches[0].to_string_lossy().into_owned();
     }
@@ -378,9 +378,15 @@ fn asset_version(version: i32, variant_version: i32) -> String {
     format!("{out:0>32}")
 }
 
-fn reverse_hex_to_decimal(hex_string: &str) -> (i32, i32) {
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct AssetVersionParts {
+    file_version: i32,
+    variant_version: i32,
+}
+
+fn reverse_hex_to_decimal(hex_string: &str) -> AssetVersionParts {
     if hex_string.len() != 32 {
-        return (0, 0);
+        return AssetVersionParts::default();
     }
 
     let variant_hex = &hex_string[..8];
@@ -396,16 +402,16 @@ fn reverse_hex_to_decimal(hex_string: &str) -> (i32, i32) {
     };
 
     let Some(version_bytes) = parse_part(version_hex) else {
-        return (0, 0);
+        return AssetVersionParts::default();
     };
     let Some(variant_bytes) = parse_part(variant_hex) else {
-        return (0, 0);
+        return AssetVersionParts::default();
     };
 
-    (
-        i32::from_le_bytes(version_bytes),
-        i32::from_le_bytes(variant_bytes),
-    )
+    AssetVersionParts {
+        file_version: i32::from_le_bytes(version_bytes),
+        variant_version: i32::from_le_bytes(variant_bytes),
+    }
 }
 
 fn dir_size(path: &Path) -> i64 {

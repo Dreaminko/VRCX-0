@@ -4,7 +4,11 @@ use super::paths::{
     sleep_before_next_screenshot_attempt, SCREENSHOT_CONTENT_FOLDERS, SCREENSHOT_READY_RETRY_COUNT,
 };
 use super::thumbnail::delete_all_thumbnail_cache_files;
-use super::*;
+use super::{
+    can_decode_image, delete_text_metadata, get_screenshot_metadata, has_vrcx_metadata,
+    is_png_file, png, write_vrcx_metadata, Error, MetadataCacheDb, Path, PathBuf, Result,
+    ScreenshotSearchResult, ScreenshotSearchType,
+};
 
 pub fn extra_screenshot_data(path: &str, carousel_cache: bool) -> Result<String> {
     let p = Path::new(path);

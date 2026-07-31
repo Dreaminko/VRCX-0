@@ -52,14 +52,13 @@ fn clear_payloads(inner: &Inner) {
 
 #[test]
 fn parse_user_info_keeps_display_name_and_filters_user_id() {
-    assert_eq!(
-        presence::parse_user_info("Maple (usr_1234-5678~90:abc!?)"),
-        ("Maple".into(), "usr_1234-5678~90:abc".into())
-    );
-    assert_eq!(
-        presence::parse_user_info("Display Name Only"),
-        ("Display Name Only".into(), String::new())
-    );
+    let parsed = presence::parse_user_info("Maple (usr_1234-5678~90:abc!?)");
+    assert_eq!(parsed.display_name, "Maple");
+    assert_eq!(parsed.user_id, "usr_1234-5678~90:abc");
+
+    let parsed = presence::parse_user_info("Display Name Only");
+    assert_eq!(parsed.display_name, "Display Name Only");
+    assert_eq!(parsed.user_id, String::new());
 }
 
 #[test]

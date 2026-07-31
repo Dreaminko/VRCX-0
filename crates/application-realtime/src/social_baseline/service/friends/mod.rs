@@ -1,19 +1,3 @@
-use super::*;
-use vrcx_0_core::trust::{
-    compute_trust_level, compute_user_platform, trust_level_changed, trust_level_differs,
-};
-use vrcx_0_persistence::config::{get_bool as config_get_bool, set_bool as config_set_bool};
-use vrcx_0_persistence::friends::{
-    friend_log_current_list, friend_log_replace_current, FriendLogCurrentEntryInput,
-    FriendLogReplaceOptionsInput,
-};
-use vrcx_0_persistence::realtime::{
-    write_realtime_batch, FriendLogDelete, FriendLogUpsert, RealtimePersistenceBatch,
-};
-use vrcx_0_vrchat_client::auth::current_user_get_input;
-
-use crate::realtime::friends::trust_level_feed_entry;
-
 mod baseline;
 mod entry;
 mod profile;
@@ -22,16 +6,25 @@ mod state_map;
 #[cfg(test)]
 mod tests;
 
-use entry::{
-    build_fast_roster_snapshot, build_roster_snapshot_from_records, infer_state_from_platform,
-};
-use profile::{
-    fallback_friend_user, fetch_all_friends, float_value, get_display_name,
-    get_meaningful_display_name, insert_fetched_friend, normalize_state_bucket, number_value,
-    RemoteFriendProfile,
-};
+#[cfg(test)]
+use std::collections::{HashMap, HashSet};
 
-use super::fetch_friend_statuses_concurrent;
+#[cfg(test)]
+use serde_json::Value;
+#[cfg(test)]
+use vrcx_0_application_core::Result;
+#[cfg(test)]
+use vrcx_0_core::friends::FriendRecord;
+
+#[cfg(test)]
+use super::{
+    json, object_field, object_field_string, FriendBaselineSyncOutcome, RawJson,
+    SocialFriendRosterBaselineOutput,
+};
+#[cfg(test)]
+use entry::build_fast_roster_snapshot;
+#[cfg(test)]
+use profile::{insert_fetched_friend, RemoteFriendProfile};
 
 #[cfg(test)]
 use baseline::collect_suspicious_friend_ids;

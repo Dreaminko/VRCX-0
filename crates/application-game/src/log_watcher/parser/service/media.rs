@@ -1,4 +1,7 @@
-use super::*;
+use super::{append_event, GameLogEventKind, Inner, LogContext};
+
+#[cfg(test)]
+use super::parse_log_line_header;
 
 pub(super) fn parse_api_request(
     inner: &Inner,

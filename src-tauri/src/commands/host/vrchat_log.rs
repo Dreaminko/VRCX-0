@@ -8,7 +8,9 @@ use std::time::SystemTime;
 use serde::{Deserialize, Serialize};
 
 use crate::error::AppError;
-use vrcx_0_core::vrchat_log_reader::{parse_log_document, LogEntry, LogEntryFilter};
+use vrcx_0_core::vrchat_log_reader::{
+    parse_log_document, LogEntry, LogEntryFilter, ParsedLogDocument,
+};
 use vrcx_0_host_desktop::host_capabilities::{require_host_capability, HostCapability};
 use vrcx_0_host_desktop::vrchat_paths;
 
@@ -118,7 +120,10 @@ pub fn app__vrchat_log_entries_read(
 
     let file_name = validate_log_file_name(&input.file_name)?.to_string();
     let file_state = log_file_state(&file_name)?;
-    let (entries, total_lines) = read_log_entries(&file_name)?;
+    let ParsedLogDocument {
+        entries,
+        total_lines,
+    } = read_log_entries(&file_name)?;
     let filter = LogEntryFilter::from_parts(input.query, input.levels, input.categories);
     let offset = input.offset.unwrap_or(0);
     let limit = normalize_limit(input.limit);
@@ -199,7 +204,10 @@ pub fn app__vrchat_log_tail_read(
         });
     }
 
-    let (entries, total_lines) = read_log_entries(&file_name)?;
+    let ParsedLogDocument {
+        entries,
+        total_lines,
+    } = read_log_entries(&file_name)?;
     let filter = LogEntryFilter::from_parts(input.query, input.levels, input.categories);
     let filtered_entries = entries
         .into_iter()
@@ -320,7 +328,7 @@ fn system_time_to_iso(time: SystemTime) -> String {
     timestamp.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
 
-fn read_log_entries(file_name: &str) -> Result<(Vec<LogEntry>, usize), AppError> {
+fn read_log_entries(file_name: &str) -> Result<ParsedLogDocument, AppError> {
     let path = resolve_log_file_path(file_name)?;
     let bytes = fs::read(path)?;
     let content = String::from_utf8_lossy(&bytes);

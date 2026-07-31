@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use vrcx_0_core::friends::{normalize_state_bucket, FriendRecord};
+use vrcx_0_core::friends::{FriendRecord, StateBucket};
 
 use crate::realtime::FriendStateBucketAuthority;
 
@@ -69,17 +69,11 @@ fn resolve_location_event_state_bucket(
     has_online_location: bool,
 ) -> Option<String> {
     if has_embedded_user && has_online_location {
-        return Some("online".into());
+        return Some(StateBucket::Online.as_str().to_string());
     }
-    for candidate in previous
-        .map(|previous| [previous.state_bucket.as_str(), previous.state.as_str()])
-        .unwrap_or_default()
-    {
-        if let Some(normalized) = normalize_state_bucket(candidate) {
-            return Some(normalized);
-        }
-    }
-    None
+    previous
+        .and_then(FriendRecord::resolved_state_bucket)
+        .map(|bucket| bucket.as_str().to_string())
 }
 
 fn location_event_has_online_proof(content: &Value, user_patch: &Value) -> bool {

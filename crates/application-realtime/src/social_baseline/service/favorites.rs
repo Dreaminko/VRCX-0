@@ -1,8 +1,18 @@
-use super::*;
+use std::collections::{HashMap, HashSet};
 
 use serde::Serialize;
+use serde_json::Value;
+use vrcx_0_application_core::{Error, Result};
 
 use super::friends::{FriendStateMap, SnapshotFriendIds};
+use super::{
+    auth_scope_matches, build_friend_state_map, build_snapshot_friend_ids,
+    execute_vrchat_json_request, fetch_paged_array, get_config_array, json, normalize_endpoint,
+    normalize_text, object_field, object_field_normalized, object_field_string, remote_favorites,
+    stale_favorites_output, unique_values, value_as_i64, value_as_string, BTreeMap, Map, RawJson,
+    SocialBaselineDeps, SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput,
+    FAVORITES_PAGE_SIZE, FAVORITE_GROUPS_PAGE_SIZE,
+};
 
 const MAX_FAVORITE_GROUPS_KEY: &str = "maxFavoriteGroups";
 const MAX_FAVORITES_PER_GROUP_KEY: &str = "maxFavoritesPerGroup";

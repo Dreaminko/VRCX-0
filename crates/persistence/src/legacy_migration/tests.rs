@@ -1,4 +1,5 @@
 use super::*;
+use crate::legacy_vrcx::LegacyVrcxMigrationStatus;
 
 struct TestDir {
     path: PathBuf,
@@ -159,15 +160,13 @@ fn confirmed_legacy_migration_replaces_precreated_vrcx0_targets() -> Result<(), 
     write_file(&paths.config_file, b"{}")?;
     write_file(&migration_flag, b"1")?;
 
-    consume_pending_legacy_migration_with_discovery(&paths, || {
-        (
-            Some(LegacyVrcxSource {
-                db_path: legacy_db,
-                config_path: Some(legacy_config),
-                version: 16,
-            }),
-            LegacyVrcxMigrationStatus::unavailable(),
-        )
+    consume_pending_legacy_migration_with_discovery(&paths, || LegacyVrcxDiscovery {
+        importable_source: Some(LegacyVrcxSource {
+            db_path: legacy_db,
+            config_path: Some(legacy_config),
+            version: 16,
+        }),
+        status: LegacyVrcxMigrationStatus::unavailable(),
     })?;
 
     assert_eq!(std::fs::read(&paths.db_file)?, b"legacy-db");
@@ -195,15 +194,13 @@ fn pending_legacy_migration_survives_partial_failure_and_can_retry() -> Result<(
     write_file(&paths.config_file, b"precreated-config")?;
     write_file(&migration_flag, b"1")?;
 
-    let failed = consume_pending_legacy_migration_with_discovery(&paths, || {
-        (
-            Some(LegacyVrcxSource {
-                db_path: legacy_db.clone(),
-                config_path: Some(bad_config_source.clone()),
-                version: 16,
-            }),
-            LegacyVrcxMigrationStatus::unavailable(),
-        )
+    let failed = consume_pending_legacy_migration_with_discovery(&paths, || LegacyVrcxDiscovery {
+        importable_source: Some(LegacyVrcxSource {
+            db_path: legacy_db.clone(),
+            config_path: Some(bad_config_source.clone()),
+            version: 16,
+        }),
+        status: LegacyVrcxMigrationStatus::unavailable(),
     });
     assert!(failed.is_err());
     assert!(migration_flag.exists());
@@ -212,15 +209,13 @@ fn pending_legacy_migration_survives_partial_failure_and_can_retry() -> Result<(
     std::fs::remove_dir_all(&bad_config_source)?;
     write_file(&legacy_config, br#"{"VRCX_CloseToTray":"true"}"#)?;
 
-    consume_pending_legacy_migration_with_discovery(&paths, || {
-        (
-            Some(LegacyVrcxSource {
-                db_path: legacy_db,
-                config_path: Some(legacy_config),
-                version: 16,
-            }),
-            LegacyVrcxMigrationStatus::unavailable(),
-        )
+    consume_pending_legacy_migration_with_discovery(&paths, || LegacyVrcxDiscovery {
+        importable_source: Some(LegacyVrcxSource {
+            db_path: legacy_db,
+            config_path: Some(legacy_config),
+            version: 16,
+        }),
+        status: LegacyVrcxMigrationStatus::unavailable(),
     })?;
 
     assert_eq!(std::fs::read(&paths.db_file)?, b"legacy-db");
@@ -259,29 +254,25 @@ fn completed_legacy_migration_is_idempotent_without_pending_flag() -> Result<(),
     write_file(&legacy_db, b"legacy-db-v1")?;
     write_file(&legacy_config, br#"{"value":"v1"}"#)?;
     write_file(&migration_flag, b"1")?;
-    consume_pending_legacy_migration_with_discovery(&paths, || {
-        (
-            Some(LegacyVrcxSource {
-                db_path: legacy_db.clone(),
-                config_path: Some(legacy_config.clone()),
-                version: 16,
-            }),
-            LegacyVrcxMigrationStatus::unavailable(),
-        )
+    consume_pending_legacy_migration_with_discovery(&paths, || LegacyVrcxDiscovery {
+        importable_source: Some(LegacyVrcxSource {
+            db_path: legacy_db.clone(),
+            config_path: Some(legacy_config.clone()),
+            version: 16,
+        }),
+        status: LegacyVrcxMigrationStatus::unavailable(),
     })?;
     assert!(!migration_flag.exists());
 
     write_file(&legacy_db, b"legacy-db-v2")?;
     write_file(&legacy_config, br#"{"value":"v2"}"#)?;
-    consume_pending_legacy_migration_with_discovery(&paths, || {
-        (
-            Some(LegacyVrcxSource {
-                db_path: legacy_db,
-                config_path: Some(legacy_config),
-                version: 16,
-            }),
-            LegacyVrcxMigrationStatus::unavailable(),
-        )
+    consume_pending_legacy_migration_with_discovery(&paths, || LegacyVrcxDiscovery {
+        importable_source: Some(LegacyVrcxSource {
+            db_path: legacy_db,
+            config_path: Some(legacy_config),
+            version: 16,
+        }),
+        status: LegacyVrcxMigrationStatus::unavailable(),
     })?;
 
     assert_eq!(std::fs::read(&paths.db_file)?, b"legacy-db-v1");
@@ -317,18 +308,16 @@ fn pending_legacy_migration_without_source_clears_flag_without_replacing_targets
     write_file(&paths.config_file, b"existing-config")?;
     write_file(&migration_flag, b"1")?;
 
-    consume_pending_legacy_migration_with_discovery(&paths, || {
-        (
-            None,
-            LegacyVrcxMigrationStatus {
-                detected: true,
-                available: false,
-                version: None,
-                db_path: None,
-                config_path: None,
-                reason: Some("Legacy source unavailable.".into()),
-            },
-        )
+    consume_pending_legacy_migration_with_discovery(&paths, || LegacyVrcxDiscovery {
+        importable_source: None,
+        status: LegacyVrcxMigrationStatus {
+            detected: true,
+            available: false,
+            version: None,
+            db_path: None,
+            config_path: None,
+            reason: Some("Legacy source unavailable.".into()),
+        },
     })?;
 
     assert_eq!(std::fs::read(&paths.db_file)?, b"existing-db");

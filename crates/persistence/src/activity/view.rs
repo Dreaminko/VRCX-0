@@ -335,14 +335,15 @@ fn cached_activity_output(
     let Some((raw_buckets, normalized_buckets)) = cached_bucket_values(&cached) else {
         return Ok(None);
     };
-    let (derived_day, derived_start, derived_end) =
-        activity_peak_indices_from_buckets(&raw_buckets);
+    let derived = activity_peak_indices_from_buckets(&raw_buckets);
     let output = ActivityViewOutput {
         raw_buckets,
         normalized_buckets,
-        peak_day_index: summary_i32(&cached.summary, "peakDayIndex").unwrap_or(derived_day),
-        peak_hour_start: summary_i32(&cached.summary, "peakHourStart").unwrap_or(derived_start),
-        peak_hour_end: summary_i32(&cached.summary, "peakHourEnd").unwrap_or(derived_end),
+        peak_day_index: summary_i32(&cached.summary, "peakDayIndex")
+            .unwrap_or(derived.peak_day_index),
+        peak_hour_start: summary_i32(&cached.summary, "peakHourStart")
+            .unwrap_or(derived.peak_hour_start),
+        peak_hour_end: summary_i32(&cached.summary, "peakHourEnd").unwrap_or(derived.peak_hour_end),
         filtered_event_count: summary_i64(&cached.summary, "filteredEventCount").unwrap_or(0),
         has_any_data,
         built_from_cursor: cached.built_from_cursor,
@@ -378,15 +379,17 @@ fn cached_overlap_output(
         Some(value) => value,
         None => return Ok(None),
     };
-    let (derived_day, derived_start, derived_end) = overlap_best_indices_from_buckets(&raw_buckets);
+    let derived = overlap_best_indices_from_buckets(&raw_buckets);
     let has_overlap_data = raw_buckets.iter().any(|value| *value > 0.0);
     Ok(Some(ActivityOverlapViewOutput {
         raw_buckets,
         normalized_buckets,
         overlap_percent,
-        best_day_index: summary_i32(&cached.summary, "bestDayIndex").unwrap_or(derived_day),
-        best_hour_start: summary_i32(&cached.summary, "bestHourStart").unwrap_or(derived_start),
-        best_hour_end: summary_i32(&cached.summary, "bestHourEnd").unwrap_or(derived_end),
+        best_day_index: summary_i32(&cached.summary, "bestDayIndex")
+            .unwrap_or(derived.best_day_index),
+        best_hour_start: summary_i32(&cached.summary, "bestHourStart")
+            .unwrap_or(derived.best_hour_start),
+        best_hour_end: summary_i32(&cached.summary, "bestHourEnd").unwrap_or(derived.best_hour_end),
         has_overlap_data,
         built_from_cursor: cached.built_from_cursor,
         built_at: cached.built_at,

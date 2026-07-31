@@ -3,7 +3,18 @@ use super::paths::{
     SCREENSHOT_THUMBNAIL_HARD_LIMIT_BYTES, SCREENSHOT_THUMBNAIL_LAST_CLEANUP_AT,
     SCREENSHOT_THUMBNAIL_TARGET_BYTES,
 };
-use super::*;
+use super::{
+    encode_screenshot_thumbnail_webp, is_path_inside_directory, is_png_file,
+    screenshot_thumbnail_cache_key, screenshot_thumbnail_cache_size, screenshot_thumbnail_files,
+    screenshot_thumbnail_source_state, validate_thumbnail_media_source, write_thumbnail_atomically,
+    Error, HashSet, MetadataCacheDb, Ordering, Path, PathBuf, Result,
+};
+
+#[cfg(test)]
+use super::{
+    add_screenshot_metadata, get_screenshot_metadata, has_vrcx_metadata, png,
+    ScreenshotLibraryEntry, ScreenshotSearchType,
+};
 
 fn thumbnail_path(cache_dir: &Path, stored_path: &str) -> PathBuf {
     let stored_path = Path::new(stored_path);

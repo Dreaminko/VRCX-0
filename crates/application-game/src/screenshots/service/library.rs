@@ -1,7 +1,12 @@
 use super::metadata::is_screenshot_content_asset_path;
 use super::paths::{now_rfc3339, option_string, path_string, unix_time_millis};
 use super::thumbnail::delete_thumbnail_cache_for_source_paths;
-use super::*;
+use super::{
+    get_screenshot_metadata, read_png_dimensions, HashSet, MetadataCacheDb, Path, PathBuf,
+    PngDimensions, Result, ScreenshotFolderTree, ScreenshotLibraryEntry, ScreenshotLibraryImage,
+    ScreenshotLibraryScanStatus, ScreenshotMetadata, ScreenshotSearchResult, ScreenshotSearchType,
+    SCREENSHOT_LIBRARY_INDEX_VERSION,
+};
 use crate::{TaskStopToken, TaskSupervisor};
 
 pub(super) fn screenshot_search_result(
@@ -23,7 +28,7 @@ pub(super) fn screenshot_search_result(
         ),
         Err(_) => (0, None),
     };
-    let (width, height) = read_png_dimensions(path);
+    let PngDimensions { width, height } = read_png_dimensions(path);
 
     ScreenshotSearchResult {
         file_path: path.to_string(),
@@ -118,7 +123,7 @@ fn screenshot_library_entry_from_path(
         .map(unix_time_millis)
         .unwrap_or_default();
     let created_at = metadata.created().ok().map(unix_time_millis);
-    let (width, height) = read_png_dimensions(&path_value);
+    let PngDimensions { width, height } = read_png_dimensions(&path_value);
     let screenshot_metadata = get_screenshot_metadata(&path_value);
     let error = screenshot_metadata
         .as_ref()

@@ -1,5 +1,5 @@
 use serde_json::{json, Map, Value};
-use vrcx_0_core::friends::{normalize_state_bucket, FriendRecord};
+use vrcx_0_core::friends::{FriendRecord, StateBucket};
 use vrcx_0_core::trust::compute_trust_level;
 
 use super::super::persistence::add_location_metadata;
@@ -17,16 +17,12 @@ pub(super) fn resolve_state_bucket(
         .flatten();
     if let Some(normalized) = user_state
         .and_then(Value::as_str)
-        .and_then(normalize_state_bucket)
+        .and_then(StateBucket::normalize)
     {
-        return normalized;
+        return normalized.as_str().to_string();
     }
-    if let Some(previous) = previous {
-        for candidate in [previous.state_bucket.as_str(), previous.state.as_str()] {
-            if let Some(normalized) = normalize_state_bucket(candidate) {
-                return normalized;
-            }
-        }
+    if let Some(previous_bucket) = previous.and_then(FriendRecord::resolved_state_bucket) {
+        return previous_bucket.as_str().to_string();
     }
     fallback.to_string()
 }
@@ -115,10 +111,9 @@ pub(super) fn has_embedded_location_user(content: &Value) -> bool {
 }
 
 pub(super) fn state_bucket_changed(previous: &FriendRecord, next_state_bucket: &str) -> bool {
-    [previous.state_bucket.as_str(), previous.state.as_str()]
-        .into_iter()
-        .find_map(normalize_state_bucket)
-        .map(|previous_state_bucket| previous_state_bucket != next_state_bucket)
+    previous
+        .resolved_state_bucket()
+        .map(|previous_state_bucket| !previous_state_bucket.matches(next_state_bucket))
         .unwrap_or(false)
 }
 

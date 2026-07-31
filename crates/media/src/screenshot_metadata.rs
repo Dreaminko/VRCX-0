@@ -99,17 +99,24 @@ pub fn can_decode_image(path: &Path) -> bool {
         .is_some()
 }
 
-pub fn read_png_dimensions(path: &str) -> (Option<i32>, Option<i32>) {
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PngDimensions {
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+}
+
+pub fn read_png_dimensions(path: &str) -> PngDimensions {
     let Ok(mut png) = png::PngFile::open_read(path) else {
-        return (None, None);
+        return PngDimensions::default();
     };
     let resolution = png::read_resolution(&mut png);
     let Some((width, height)) = resolution.split_once('x') else {
-        return (None, None);
+        return PngDimensions::default();
     };
-    let width = width.parse::<i32>().ok().filter(|value| *value > 0);
-    let height = height.parse::<i32>().ok().filter(|value| *value > 0);
-    (width, height)
+    PngDimensions {
+        width: width.parse::<i32>().ok().filter(|value| *value > 0),
+        height: height.parse::<i32>().ok().filter(|value| *value > 0),
+    }
 }
 
 pub fn get_screenshot_metadata(path: &str) -> Option<ScreenshotMetadata> {

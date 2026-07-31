@@ -11,7 +11,7 @@ pub use vrcx_0_core::screenshots::{
 use vrcx_0_media::png;
 pub use vrcx_0_media::screenshot_metadata::{
     can_decode_image, delete_text_metadata, get_screenshot_metadata, has_vrcx_metadata,
-    is_png_file, read_png_dimensions, write_vrcx_metadata,
+    is_png_file, read_png_dimensions, write_vrcx_metadata, PngDimensions,
 };
 use vrcx_0_media::screenshot_thumbnail::{
     encode_screenshot_thumbnail_webp, screenshot_thumbnail_cache_key,

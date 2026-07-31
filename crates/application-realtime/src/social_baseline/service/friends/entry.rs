@@ -1,4 +1,18 @@
-use super::*;
+use std::collections::HashMap;
+
+use serde_json::Value;
+use vrcx_0_application_core::Result;
+use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_core::trust::{compute_trust_level, compute_user_platform};
+
+use super::super::{
+    json, object_field, object_field_normalized, object_field_string, value_as_i64,
+    value_as_string, Map, Ordering,
+};
+use super::profile::{
+    fallback_friend_user, float_value, get_display_name, get_meaningful_display_name, number_value,
+    RemoteFriendProfile,
+};
 
 fn normalize_friend_entry(
     friend: Option<&Value>,

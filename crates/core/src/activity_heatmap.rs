@@ -45,6 +45,20 @@ pub struct OverlapView {
     pub best_hour_end: i32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ActivityPeakIndices {
+    pub peak_day_index: i32,
+    pub peak_hour_start: i32,
+    pub peak_hour_end: i32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OverlapBestIndices {
+    pub best_day_index: i32,
+    pub best_hour_start: i32,
+    pub best_hour_end: i32,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct OverlapViewOptions {
     pub range_days: i64,
@@ -95,15 +109,14 @@ pub fn compute_activity_view(
         max_session_ms,
     );
     let normalized_buckets = normalize_buckets(&raw_buckets, with_range_days(config, range_days));
-    let (peak_day_index, peak_hour_start, peak_hour_end) =
-        activity_peak_indices_from_buckets(&raw_buckets);
+    let peak = activity_peak_indices_from_buckets(&raw_buckets);
 
     ActivityView {
         raw_buckets,
         normalized_buckets,
-        peak_day_index,
-        peak_hour_start,
-        peak_hour_end,
+        peak_day_index: peak.peak_day_index,
+        peak_hour_start: peak.peak_hour_start,
+        peak_hour_end: peak.peak_hour_end,
         filtered_event_count: clipped_sessions.len(),
     }
 }
@@ -169,19 +182,19 @@ pub fn compute_overlap_view(
         0
     };
     let normalized_buckets = normalize_buckets(&raw_buckets, with_range_days(&config, range_days));
-    let (best_day_index, best_hour_start, best_hour_end) = if overlap_minutes > 0.0 {
+    let best = if overlap_minutes > 0.0 {
         overlap_best_indices_from_buckets(&raw_buckets)
     } else {
-        (-1, -1, -1)
+        OverlapBestIndices::none()
     };
 
     OverlapView {
         raw_buckets,
         normalized_buckets,
         overlap_percent,
-        best_day_index,
-        best_hour_start,
-        best_hour_end,
+        best_day_index: best.best_day_index,
+        best_hour_start: best.best_hour_start,
+        best_hour_end: best.best_hour_end,
     }
 }
 
@@ -418,7 +431,27 @@ fn zero_hour_range(
     }
 }
 
-pub fn activity_peak_indices_from_buckets(buckets: &[f64]) -> (i32, i32, i32) {
+impl ActivityPeakIndices {
+    fn hours_unknown(peak_day_index: i32) -> Self {
+        Self {
+            peak_day_index,
+            peak_hour_start: -1,
+            peak_hour_end: -1,
+        }
+    }
+}
+
+impl OverlapBestIndices {
+    fn none() -> Self {
+        Self {
+            best_day_index: -1,
+            best_hour_start: -1,
+            best_hour_end: -1,
+        }
+    }
+}
+
+pub fn activity_peak_indices_from_buckets(buckets: &[f64]) -> ActivityPeakIndices {
     let mut day_sums = [0.0; DAYS_PER_WEEK];
     let mut hour_sums = [0.0; HOURS_PER_DAY];
     for (day, day_sum) in day_sums.iter_mut().enumerate() {
@@ -445,7 +478,7 @@ pub fn activity_peak_indices_from_buckets(buckets: &[f64]) -> (i32, i32, i32) {
 
     let max_hour_sum = hour_sums.iter().copied().fold(0.0, f64::max);
     if max_hour_sum <= 0.0 {
-        return (peak_day_index, -1, -1);
+        return ActivityPeakIndices::hours_unknown(peak_day_index);
     }
 
     let threshold = max_hour_sum * 0.7;
@@ -461,10 +494,14 @@ pub fn activity_peak_indices_from_buckets(buckets: &[f64]) -> (i32, i32, i32) {
         end_hour += 1;
     }
 
-    (peak_day_index, start_hour as i32, end_hour as i32 + 1)
+    ActivityPeakIndices {
+        peak_day_index,
+        peak_hour_start: start_hour as i32,
+        peak_hour_end: end_hour as i32 + 1,
+    }
 }
 
-pub fn overlap_best_indices_from_buckets(buckets: &[f64]) -> (i32, i32, i32) {
+pub fn overlap_best_indices_from_buckets(buckets: &[f64]) -> OverlapBestIndices {
     let mut hour_sums = [0.0; HOURS_PER_DAY];
     for (hour, hour_sum) in hour_sums.iter_mut().enumerate() {
         for day in 0..DAYS_PER_WEEK {
@@ -477,7 +514,7 @@ pub fn overlap_best_indices_from_buckets(buckets: &[f64]) -> (i32, i32, i32) {
 
     let max_hour_sum = hour_sums.iter().copied().fold(0.0, f64::max);
     if max_hour_sum <= 0.0 {
-        return (-1, -1, -1);
+        return OverlapBestIndices::none();
     }
 
     let threshold = max_hour_sum * 0.6;
@@ -505,7 +542,7 @@ pub fn overlap_best_indices_from_buckets(buckets: &[f64]) -> (i32, i32, i32) {
 
     let max_day_sum = day_sums.iter().copied().fold(0.0, f64::max);
     if max_day_sum <= 0.0 {
-        return (-1, -1, -1);
+        return OverlapBestIndices::none();
     }
     let day_index = day_sums
         .iter()
@@ -513,7 +550,11 @@ pub fn overlap_best_indices_from_buckets(buckets: &[f64]) -> (i32, i32, i32) {
         .map(|index| index as i32)
         .unwrap_or(-1);
 
-    (day_index, start_hour as i32, end_hour as i32 + 1)
+    OverlapBestIndices {
+        best_day_index: day_index,
+        best_hour_start: start_hour as i32,
+        best_hour_end: end_hour as i32 + 1,
+    }
 }
 
 fn percentile(sorted_values: &[f64], percentile_value: f64) -> f64 {

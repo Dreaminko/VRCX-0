@@ -15,6 +15,21 @@ struct SecretsAtRest {
     encrypt_writes: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SealedSecret {
+    pub stored: String,
+    pub encrypted: bool,
+}
+
+impl SealedSecret {
+    fn plaintext(plaintext: &str) -> Self {
+        Self {
+            stored: plaintext.to_string(),
+            encrypted: false,
+        }
+    }
+}
+
 static SECRETS: OnceLock<SecretsAtRest> = OnceLock::new();
 
 fn seal_with_nonce(key: &[u8; 32], nonce: &XNonce, plaintext: &str) -> Option<String> {
@@ -47,21 +62,24 @@ fn open_with(key: Option<&[u8; 32]>, stored: &str) -> Option<String> {
     String::from_utf8(plaintext).ok()
 }
 
-fn seal_with_state(state: Option<&SecretsAtRest>, plaintext: &str) -> (String, bool) {
+fn seal_with_state(state: Option<&SecretsAtRest>, plaintext: &str) -> SealedSecret {
     let Some(state) = state else {
-        return (plaintext.to_string(), false);
+        return SealedSecret::plaintext(plaintext);
     };
     if !state.encrypt_writes {
-        return (plaintext.to_string(), false);
+        return SealedSecret::plaintext(plaintext);
     }
     let Some(key) = state.key.as_ref() else {
-        return (plaintext.to_string(), false);
+        return SealedSecret::plaintext(plaintext);
     };
     match try_seal_with(key, plaintext) {
-        Some(sealed) => (sealed, true),
+        Some(sealed) => SealedSecret {
+            stored: sealed,
+            encrypted: true,
+        },
         None => {
             tracing::warn!("failed to encrypt a stored secret; falling back to plaintext");
-            (plaintext.to_string(), false)
+            SealedSecret::plaintext(plaintext)
         }
     }
 }
@@ -86,10 +104,10 @@ pub fn init_secrets(key: Option<[u8; 32]>, encrypt_writes: bool) {
 }
 
 pub fn seal_secret(plaintext: &str) -> String {
-    seal_secret_with_status(plaintext).0
+    seal_secret_with_status(plaintext).stored
 }
 
-pub fn seal_secret_with_status(plaintext: &str) -> (String, bool) {
+pub fn seal_secret_with_status(plaintext: &str) -> SealedSecret {
     seal_with_state(SECRETS.get(), plaintext)
 }
 
@@ -166,21 +184,27 @@ mod tests {
             encrypt_writes: true,
         };
 
-        assert_eq!(seal_with_state(None, "plain"), ("plain".into(), false));
+        assert_eq!(
+            seal_with_state(None, "plain"),
+            SealedSecret::plaintext("plain")
+        );
         assert_eq!(
             open_with_state(None, "enc1:not-decoded").as_deref(),
             Some("enc1:not-decoded")
         );
         assert_eq!(
             seal_with_state(Some(&disabled), "plain"),
-            ("plain".into(), false)
+            SealedSecret::plaintext("plain")
         );
         assert_eq!(
             seal_with_state(Some(&missing_key), "plain"),
-            ("plain".into(), false)
+            SealedSecret::plaintext("plain")
         );
 
-        let (sealed, encrypted) = seal_with_state(Some(&enabled), "plain");
+        let SealedSecret {
+            stored: sealed,
+            encrypted,
+        } = seal_with_state(Some(&enabled), "plain");
         assert!(encrypted);
         assert!(is_sealed_secret(&sealed));
         assert_eq!(

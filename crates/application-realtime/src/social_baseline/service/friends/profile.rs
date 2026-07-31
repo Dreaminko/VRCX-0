@@ -1,4 +1,12 @@
-use super::*;
+use std::collections::{HashMap, HashSet};
+
+use serde_json::Value;
+use vrcx_0_application_core::Result;
+
+use super::super::{
+    fetch_paged_array, json, object_field_normalized, object_field_string, remote_friends,
+    unique_push, Number, SocialBaselineDeps, FRIEND_PAGE_SIZE,
+};
 
 pub(super) struct RemoteFriendProfile {
     pub(super) id: String,

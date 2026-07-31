@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::legacy_vrcx::{LegacyVrcxMigrationStatus, LegacyVrcxSource};
+use crate::legacy_vrcx::{LegacyVrcxDiscovery, LegacyVrcxSource};
 use crate::Error;
 
 #[derive(Clone, Debug)]
@@ -54,15 +54,18 @@ fn consume_pending_legacy_migration_with_discovery<F>(
     discover_legacy_source: F,
 ) -> Result<(), Error>
 where
-    F: FnOnce() -> (Option<LegacyVrcxSource>, LegacyVrcxMigrationStatus),
+    F: FnOnce() -> LegacyVrcxDiscovery,
 {
     let migration_flag = paths.app_data.join("pending_vrcx_migration");
     if !migration_flag.exists() {
         return Ok(());
     }
 
-    let (source, status) = discover_legacy_source();
-    if let Some(source) = source.as_ref() {
+    let LegacyVrcxDiscovery {
+        importable_source,
+        status,
+    } = discover_legacy_source();
+    if let Some(source) = importable_source.as_ref() {
         if paths.db_file.exists() || paths.config_file.exists() {
             tracing::warn!(
                 "Legacy VRCX data migration replacing pre-created VRCX-0 database or config"

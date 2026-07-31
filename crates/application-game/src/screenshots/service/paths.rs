@@ -1,4 +1,4 @@
-use super::*;
+use super::{AtomicI64, Duration, Path, PathBuf};
 
 pub(super) const SCREENSHOT_READY_RETRY_COUNT: usize = 10;
 pub(super) const SCREENSHOT_READY_RETRY_DELAY: Duration = Duration::from_secs(1);

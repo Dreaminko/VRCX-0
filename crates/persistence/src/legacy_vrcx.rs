@@ -71,31 +71,51 @@ impl LegacyVrcxMigrationStatus {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct LegacyVrcxDiscovery {
+    pub importable_source: Option<LegacyVrcxSource>,
+    pub status: LegacyVrcxMigrationStatus,
+}
+
+impl LegacyVrcxDiscovery {
+    fn without_source(status: LegacyVrcxMigrationStatus) -> Self {
+        Self {
+            importable_source: None,
+            status,
+        }
+    }
+}
+
 pub fn discover_legacy_vrcx_migration(
     target_db: &Path,
     target_config: &Path,
-) -> (Option<LegacyVrcxSource>, LegacyVrcxMigrationStatus) {
+) -> LegacyVrcxDiscovery {
     if target_db.exists() || target_config.exists() {
-        return (None, LegacyVrcxMigrationStatus::unavailable());
+        return LegacyVrcxDiscovery::without_source(LegacyVrcxMigrationStatus::unavailable());
     }
 
     discover_supported_legacy_source()
 }
 
-pub fn discover_supported_legacy_source() -> (Option<LegacyVrcxSource>, LegacyVrcxMigrationStatus) {
+pub fn discover_supported_legacy_source() -> LegacyVrcxDiscovery {
     match discover_legacy_source() {
         Ok(Some(source)) => match validate_legacy_source(&source) {
             Ok(()) => {
                 let status = LegacyVrcxMigrationStatus::from_source(&source);
-                (Some(source), status)
+                LegacyVrcxDiscovery {
+                    importable_source: Some(source),
+                    status,
+                }
             }
-            Err(reason) => {
-                let status = LegacyVrcxMigrationStatus::blocked(Some(&source), reason);
-                (None, status)
-            }
+            Err(reason) => LegacyVrcxDiscovery::without_source(LegacyVrcxMigrationStatus::blocked(
+                Some(&source),
+                reason,
+            )),
         },
-        Ok(None) => (None, LegacyVrcxMigrationStatus::unavailable()),
-        Err(reason) => (None, LegacyVrcxMigrationStatus::blocked(None, reason)),
+        Ok(None) => LegacyVrcxDiscovery::without_source(LegacyVrcxMigrationStatus::unavailable()),
+        Err(reason) => {
+            LegacyVrcxDiscovery::without_source(LegacyVrcxMigrationStatus::blocked(None, reason))
+        }
     }
 }
 
@@ -362,11 +382,11 @@ mod validate_tests {
         let target_config = dir.path.join("VRCX-0.json");
         std::fs::write(&target_db, b"already-created").unwrap();
 
-        let (source, status) = discover_legacy_vrcx_migration(&target_db, &target_config);
+        let discovery = discover_legacy_vrcx_migration(&target_db, &target_config);
 
-        assert!(source.is_none());
-        assert!(!status.detected);
-        assert!(!status.available);
-        assert_eq!(status.version, None);
+        assert!(discovery.importable_source.is_none());
+        assert!(!discovery.status.detected);
+        assert!(!discovery.status.available);
+        assert_eq!(discovery.status.version, None);
     }
 }

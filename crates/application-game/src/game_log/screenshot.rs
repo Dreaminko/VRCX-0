@@ -171,13 +171,13 @@ fn build_metadata(
     context: &ScreenshotContext,
     world_id: &str,
 ) -> serde_json::Value {
-    let (author_id, author_name) = current_author(db);
+    let author = current_author(db);
     serde_json::json!({
         "application": "VRCX-0",
         "version": 1,
         "author": {
-            "id": author_id,
-            "displayName": author_name,
+            "id": author.user_id,
+            "displayName": author.display_name,
         },
         "world": {
             "name": &context.world_name,
@@ -191,10 +191,16 @@ fn build_metadata(
     })
 }
 
-fn current_author(db: &DatabaseService) -> (String, String) {
+#[derive(Default)]
+struct ScreenshotAuthor {
+    user_id: String,
+    display_name: String,
+}
+
+fn current_author(db: &DatabaseService) -> ScreenshotAuthor {
     let author_id = config_store::get_string(db, "lastUserLoggedIn", "").unwrap_or_default();
     if author_id.is_empty() {
-        return (String::new(), String::new());
+        return ScreenshotAuthor::default();
     }
 
     let saved_credentials = config_store::get_json(db, "savedCredentials", serde_json::json!({}))
@@ -211,5 +217,8 @@ fn current_author(db: &DatabaseService) -> (String, String) {
         .trim()
         .to_string();
 
-    (author_id, author_name)
+    ScreenshotAuthor {
+        user_id: author_id,
+        display_name: author_name,
+    }
 }

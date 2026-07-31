@@ -240,7 +240,10 @@ pub fn notification_rows_query(
     } else {
         500
     };
-    let (where_sql, mut params) = build_type_filter(&query.filters);
+    let NotificationTypeFilter {
+        where_sql,
+        mut params,
+    } = build_type_filter(&query.filters);
     params.insert("@limit".into(), Value::from(limit));
 
     let v1_rows = db
@@ -445,7 +448,12 @@ fn notification_v2_from_row(row: &[Value]) -> Result<NotificationV2RowOutput, Er
         details: strict_row_string(row, 15)?,
     })
 }
-fn build_type_filter(filters: &[String]) -> (String, DbParams) {
+struct NotificationTypeFilter {
+    where_sql: String,
+    params: DbParams,
+}
+
+fn build_type_filter(filters: &[String]) -> NotificationTypeFilter {
     let mut params = HashMap::new();
     let filters = filters
         .iter()
@@ -453,7 +461,10 @@ fn build_type_filter(filters: &[String]) -> (String, DbParams) {
         .filter(|value| !value.is_empty())
         .collect::<Vec<_>>();
     if filters.is_empty() {
-        return (String::new(), params);
+        return NotificationTypeFilter {
+            where_sql: String::new(),
+            params,
+        };
     }
     let mut placeholders = Vec::with_capacity(filters.len());
     for (index, filter) in filters.into_iter().enumerate() {
@@ -461,10 +472,10 @@ fn build_type_filter(filters: &[String]) -> (String, DbParams) {
         params.insert(key.clone(), Value::String(filter));
         placeholders.push(key);
     }
-    (
-        format!(" WHERE type IN ({})", placeholders.join(", ")),
+    NotificationTypeFilter {
+        where_sql: format!(" WHERE type IN ({})", placeholders.join(", ")),
         params,
-    )
+    }
 }
 
 #[cfg(test)]
