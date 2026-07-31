@@ -17,6 +17,22 @@ use super::{
 const MAIN_WINDOW_REBUILD_DESTROY_TIMEOUT: Duration = Duration::from_secs(2);
 const MAIN_WINDOW_REBUILD_DESTROY_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
+#[cfg(target_os = "windows")]
+const WINDOW_CHROME_STATE_EVENT: &str = "windowChromeState";
+#[cfg(target_os = "windows")]
+const WINDOW_EDGE_TOLERANCE: i32 = 2;
+#[cfg(target_os = "windows")]
+const WINDOW_DOCKED_EDGE_COUNT: usize = 2;
+
+#[cfg(target_os = "windows")]
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WindowChromeState {
+    maximized: bool,
+    docked: bool,
+    focused: bool,
+}
+
 pub fn ensure_main_window(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     if app.get_webview_window("main").is_none() {
         let state = app.state::<AppState>();
@@ -237,8 +253,60 @@ pub(super) fn create_main_window(
         builder = builder.proxy_url(proxy_url);
     }
 
-    builder.build()?;
+    let main_window = builder.build()?;
+    #[cfg(target_os = "windows")]
+    attach_window_chrome_state_events(&main_window);
+    #[cfg(not(target_os = "windows"))]
+    let _ = main_window;
     Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn attach_window_chrome_state_events(window: &tauri::WebviewWindow) {
+    let chrome_window = window.clone();
+    window.on_window_event(move |event| match event {
+        tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_) => {
+            let focused = chrome_window.is_focused().unwrap_or(true);
+            emit_window_chrome_state(&chrome_window, focused);
+        }
+        tauri::WindowEvent::Focused(focused) => {
+            emit_window_chrome_state(&chrome_window, *focused);
+        }
+        _ => {}
+    });
+}
+
+#[cfg(target_os = "windows")]
+fn emit_window_chrome_state(window: &tauri::WebviewWindow, focused: bool) {
+    use tauri::Emitter;
+
+    let maximized = window.is_maximized().unwrap_or(false);
+    let state = WindowChromeState {
+        maximized,
+        docked: maximized || is_window_docked(window),
+        focused,
+    };
+    let _ = window.emit(WINDOW_CHROME_STATE_EVENT, state);
+}
+
+#[cfg(target_os = "windows")]
+fn is_window_docked(window: &tauri::WebviewWindow) -> bool {
+    let Ok(Some(monitor)) = window.current_monitor() else {
+        return false;
+    };
+    let (Ok(position), Ok(size)) = (window.outer_position(), window.outer_size()) else {
+        return false;
+    };
+    let area = monitor.work_area();
+    let area_right = area.position.x + area.size.width as i32;
+    let area_bottom = area.position.y + area.size.height as i32;
+    let edges = [
+        (position.x - area.position.x).abs() <= WINDOW_EDGE_TOLERANCE,
+        (position.y - area.position.y).abs() <= WINDOW_EDGE_TOLERANCE,
+        (position.x + size.width as i32 - area_right).abs() <= WINDOW_EDGE_TOLERANCE,
+        (position.y + size.height as i32 - area_bottom).abs() <= WINDOW_EDGE_TOLERANCE,
+    ];
+    edges.iter().filter(|edge| **edge).count() >= WINDOW_DOCKED_EDGE_COUNT
 }
 
 pub(super) fn disable_windows_default_context_menu(app: &tauri::AppHandle) {

@@ -1,17 +1,24 @@
 import { CopyIcon, MinusIcon, SquareIcon, XIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 import {
     closeWindow,
-    isWindowMaximized,
     minimizeWindow,
     toggleMaximizeWindow
 } from '@/services/shellIntegrationService';
 
 import { AppMenuBar } from './AppMenuBar';
 import { TitleBarButton, useTitleBarActions } from './useTitleBarActions';
+import { useWindowChromeState } from './useWindowChromeState';
+
+async function runWindowAction(action: () => Promise<unknown>) {
+    try {
+        await action();
+    } catch (error) {
+        console.warn('Window control action failed:', error);
+    }
+}
 
 function TitleBarWindowButton({ className, onAction, ...props }: any) {
     return (
@@ -37,7 +44,11 @@ function TitleBarWindowButton({ className, onAction, ...props }: any) {
 
 export function AppTitleBar() {
     const { t } = useTranslation();
-    const [isMaximized, setIsMaximized] = useState(false);
+    const {
+        maximized: isMaximized,
+        docked: isDocked,
+        focused: isFocused
+    } = useWindowChromeState();
     const {
         isSessionReady,
         actions,
@@ -49,33 +60,6 @@ export function AppTitleBar() {
         rightSidebarOpen
     } = useTitleBarActions('px-1');
 
-    async function syncMaximizedState() {
-        try {
-            setIsMaximized(Boolean(await isWindowMaximized()));
-        } catch {
-            setIsMaximized(false);
-        }
-    }
-
-    useEffect(() => {
-        syncMaximizedState();
-        window.addEventListener('resize', syncMaximizedState);
-        return () => {
-            window.removeEventListener('resize', syncMaximizedState);
-        };
-    }, []);
-
-    async function runWindowAction(action: any, shouldSync: any = true) {
-        try {
-            await action();
-            if (shouldSync) {
-                await syncMaximizedState();
-            }
-        } catch (error) {
-            console.warn('Window control action failed:', error);
-        }
-    }
-
     const MaximizeIcon = isMaximized ? CopyIcon : SquareIcon;
     const maximizeLabel = isMaximized ? 'Restore window' : 'Maximize window';
 
@@ -83,7 +67,8 @@ export function AppTitleBar() {
         <>
             <header
                 data-app-titlebar="true"
-                data-window-maximized={isMaximized ? 'true' : 'false'}
+                data-window-docked={isDocked || undefined}
+                data-window-blurred={!isFocused || undefined}
                 data-vrcx-0-surface="titlebar"
                 className="vrcx-0-titlebar text-foreground pointer-events-auto relative z-[60] flex h-8 shrink-0 items-center border-b select-none"
             >
@@ -125,7 +110,7 @@ export function AppTitleBar() {
                     <TitleBarWindowButton
                         label={t('app_menu.label.minimize_window')}
                         onAction={() => {
-                            runWindowAction(minimizeWindow, false);
+                            runWindowAction(minimizeWindow);
                         }}
                     >
                         <MinusIcon data-icon="inline-start" />
@@ -142,7 +127,7 @@ export function AppTitleBar() {
                         label={t('app_menu.action.close_window')}
                         className="hover:bg-destructive! hover:text-destructive-foreground!"
                         onAction={() => {
-                            runWindowAction(closeWindow, false);
+                            runWindowAction(closeWindow);
                         }}
                     >
                         <XIcon data-icon="inline-start" />
