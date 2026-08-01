@@ -136,6 +136,54 @@ pub async fn unfriend_batch(
     Ok(run_social_unfriend_batch(&actions, owner_user_id, targets).await)
 }
 
+pub async fn unfriend_selection(
+    deps: SocialMutationDeps<'_>,
+    remote_mutation_gate: &RemoteMutationGate,
+    input: SocialUnfriendBatchInput,
+) -> Result<SocialUnfriendBatchResult> {
+    if input.targets.len() <= SOCIAL_UNFRIEND_BATCH_MAX_ITEMS {
+        return unfriend_batch(deps, remote_mutation_gate, input).await;
+    }
+    let mut result = SocialUnfriendBatchResult {
+        owner_user_id: input.expected_owner_user_id.clone(),
+        total: 0,
+        succeeded: 0,
+        failed: 0,
+        local_failed: 0,
+        scope_changed: false,
+        items: Vec::new(),
+        last_error: None,
+    };
+    for targets in input.targets.chunks(SOCIAL_UNFRIEND_BATCH_MAX_ITEMS) {
+        let chunk = unfriend_batch(
+            deps,
+            remote_mutation_gate,
+            SocialUnfriendBatchInput {
+                expected_owner_user_id: input.expected_owner_user_id.clone(),
+                expected_endpoint: input.expected_endpoint.clone(),
+                targets: targets.to_vec(),
+            },
+        )
+        .await?;
+        result.owner_user_id = chunk.owner_user_id;
+        result.total += chunk.total;
+        result.succeeded += chunk.succeeded;
+        result.failed += chunk.failed;
+        result.local_failed += chunk.local_failed;
+        result.scope_changed |= chunk.scope_changed;
+        result.items.extend(chunk.items);
+        result.last_error = chunk.last_error.or(result.last_error);
+        let scope = deps.auth_scope.snapshot();
+        if result.scope_changed
+            || scope.current_user_id != input.expected_owner_user_id
+            || scope.endpoint != input.expected_endpoint
+        {
+            break;
+        }
+    }
+    Ok(result)
+}
+
 async fn run_social_unfriend_batch(
     actions: &dyn SocialUnfriendBatchActions,
     owner_user_id: String,

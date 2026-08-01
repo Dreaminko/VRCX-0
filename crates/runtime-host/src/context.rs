@@ -16,8 +16,10 @@ use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::notification::{
-    load_overlay_activity_filters, NotificationWebhookSink, NotificationWebhookSinkDeps,
-    UserImageCache,
+    load_overlay_activity_filters, save_notification_activity_filters,
+    save_overlay_activity_preference_filters, seed_hmd_notifications_default,
+    NotificationActivityFiltersSetInput, NotificationWebhookSink, NotificationWebhookSinkDeps,
+    OverlayActivityPreferenceFilters, UserImageCache,
 };
 
 const WORLD_CACHE_WORKING_CAPACITY: u64 = 512;
@@ -103,6 +105,9 @@ impl RuntimeHostContext {
         image_cache: Arc<ImageCache>,
     ) -> Self {
         let config = ConfigRepository::new(Arc::clone(&db));
+        if let Err(error) = seed_hmd_notifications_default(&config) {
+            tracing::warn!(error = %error, "failed to seed HMD notification preference");
+        }
         let event_bus = RuntimeEventBus::new();
         let diagnostics = RuntimeDiagnostics::new();
         let tasks = TaskSupervisor::new();
@@ -177,5 +182,23 @@ impl RuntimeHostContext {
     pub fn reload_overlay_activity_filters(&self) {
         self.overlay_activity
             .set_filters(load_overlay_activity_filters(&self.config));
+    }
+
+    pub fn set_overlay_activity_preference_filters(
+        &self,
+        filters: OverlayActivityPreferenceFilters,
+    ) -> crate::Result<()> {
+        save_overlay_activity_preference_filters(&self.config, filters)?;
+        self.reload_overlay_activity_filters();
+        Ok(())
+    }
+
+    pub fn set_notification_activity_filters(
+        &self,
+        input: NotificationActivityFiltersSetInput,
+    ) -> crate::Result<()> {
+        save_notification_activity_filters(&self.config, input)?;
+        self.reload_overlay_activity_filters();
+        Ok(())
     }
 }

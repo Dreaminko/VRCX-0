@@ -4,6 +4,9 @@ use tauri::State;
 use vrcx_0_application_activity::{
     overlay_activity_type_definitions, OverlayActivitySnapshot, OverlayActivityTypeDefinition,
 };
+use vrcx_0_runtime_host::notification::{
+    NotificationActivityFiltersSetInput, OverlayActivityPreferenceFilters,
+};
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -25,7 +28,26 @@ pub fn app__overlay_activity_definitions_get(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__overlay_activity_filters_reload(state: State<'_, AppState>) -> Result<(), AppError> {
-    state.reload_overlay_activity_filters();
+pub fn app__overlay_activity_filters_set(
+    state: State<'_, AppState>,
+    filters: OverlayActivityPreferenceFilters,
+) -> Result<(), AppError> {
+    state
+        .runtime_context
+        .set_overlay_activity_preference_filters(filters)?;
+    state.desktop.vr_overlay_runtime.reconcile_current();
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__notification_activity_filters_set(
+    state: State<'_, AppState>,
+    input: NotificationActivityFiltersSetInput,
+) -> Result<(), AppError> {
+    state
+        .runtime_context
+        .set_notification_activity_filters(input)?;
+    state.desktop.vr_overlay_runtime.reconcile_current();
     Ok(())
 }

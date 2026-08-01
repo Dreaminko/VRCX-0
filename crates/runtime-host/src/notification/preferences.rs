@@ -83,6 +83,24 @@ fn config_bool_with_legacy(config: &ConfigRepository, key: &str, default_value: 
     default_value
 }
 
+pub fn seed_hmd_notifications_default(
+    config: &ConfigRepository,
+) -> Result<Option<bool>, vrcx_0_persistence::Error> {
+    if config.get_raw("hmdNotificationsEnabled")?.is_some() {
+        return Ok(None);
+    }
+    let external_overlay_enabled = [
+        "xsNotifications",
+        "ovrtHudNotifications",
+        "ovrtWristNotifications",
+    ]
+    .into_iter()
+    .any(|key| config_bool_with_legacy(config, key, false));
+    let enabled = !external_overlay_enabled;
+    config.set_bool("hmdNotificationsEnabled", enabled)?;
+    Ok(Some(enabled))
+}
+
 fn config_int_with_legacy(config: &ConfigRepository, key: &str, default_value: i32) -> i32 {
     if let Some(raw) = config.get_raw(key).ok().flatten() {
         return parse_config_int(&raw, default_value);
@@ -148,5 +166,64 @@ pub fn notification_tts_name_mode(value: &str) -> &'static str {
         "note" => "note",
         "usernameAndNote" => "usernameAndNote",
         _ => "username",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{path::PathBuf, sync::Arc};
+
+    use vrcx_0_persistence::{config::ConfigRepository, DatabaseService};
+
+    use super::seed_hmd_notifications_default;
+
+    struct TestDir(PathBuf);
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx-0-notification-preferences-{name}-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn test_config(name: &str) -> (TestDir, ConfigRepository) {
+        let dir = TestDir::new(name);
+        let db = Arc::new(DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap());
+        (dir, ConfigRepository::new(db))
+    }
+
+    #[test]
+    fn hmd_default_seed_preserves_legacy_forwarding_contract() {
+        let (_dir, config) = test_config("legacy-enabled");
+        config.set_bool("VRCX-0_xsNotifications", true).unwrap();
+
+        assert_eq!(
+            seed_hmd_notifications_default(&config).unwrap(),
+            Some(false)
+        );
+        assert!(!config.get_bool("hmdNotificationsEnabled", true).unwrap());
+    }
+
+    #[test]
+    fn hmd_default_seed_runs_once() {
+        let (_dir, config) = test_config("existing-value");
+        config.set_bool("hmdNotificationsEnabled", false).unwrap();
+
+        assert_eq!(seed_hmd_notifications_default(&config).unwrap(), None);
+        assert!(!config.get_bool("hmdNotificationsEnabled", true).unwrap());
     }
 }

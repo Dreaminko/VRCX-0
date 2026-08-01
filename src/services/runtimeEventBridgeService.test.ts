@@ -610,7 +610,7 @@ describe('runtimeEventBridgeService', () => {
             'subscription failed'
         );
 
-        expect(unsubscribe).toHaveBeenCalledTimes(8);
+        expect(unsubscribe).toHaveBeenCalledTimes(9);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });
@@ -636,7 +636,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(38);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(39);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});

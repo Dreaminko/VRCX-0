@@ -14,6 +14,7 @@ use crate::{Result, WebClient};
 use super::presence_facts::BackgroundPresenceFacts;
 use super::shared::{parse_response_json, string_field};
 use vrcx_0_core::json::JsonExt;
+use vrcx_0_core::json::RawJson;
 
 const DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS: i64 = 60_000;
 const DEFAULT_MIN_DESCRIPTION_WRITE_INTERVAL_MS: i64 = 60_000;
@@ -86,6 +87,44 @@ struct PresenceAutomationThrottle {
     min_status_write_interval_ms: i64,
     min_description_write_interval_ms: i64,
     stable_location_ms: i64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum PresenceAutomationRuleKind {
+    Time,
+    Context,
+}
+
+pub fn presence_automation_rules_get(
+    config: &ConfigRepository,
+    kind: PresenceAutomationRuleKind,
+) -> Result<Vec<RawJson>> {
+    Ok(
+        safe_value_array(&config.get_string(presence_rules_key(kind), "[]")?)
+            .into_iter()
+            .map(RawJson::from)
+            .collect(),
+    )
+}
+
+pub fn presence_automation_rules_set(
+    config: &ConfigRepository,
+    kind: PresenceAutomationRuleKind,
+    rules: Vec<RawJson>,
+) -> Result<Vec<RawJson>> {
+    config.set_json(
+        presence_rules_key(kind),
+        &Value::Array(rules.iter().map(|rule| rule.as_value().clone()).collect()),
+    )?;
+    Ok(rules)
+}
+
+fn presence_rules_key(kind: PresenceAutomationRuleKind) -> &'static str {
+    match kind {
+        PresenceAutomationRuleKind::Time => "presenceAutomationTimeRules",
+        PresenceAutomationRuleKind::Context => "presenceAutomationContextRules",
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -797,7 +836,44 @@ fn merge_object_patch(mut current_user: Value, patch: Value) -> Value {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
+
+    #[test]
+    fn presence_rule_storage_preserves_open_json_fields() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "vrcx-0-presence-rules-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = Arc::new(DatabaseService::new(&dir.join("VRCX-0.sqlite3")).unwrap());
+        let config = ConfigRepository::new(db);
+        let rule = json!({
+            "id": "future-rule",
+            "conditions": [{"type": "futureCondition", "extra": 42}],
+            "actions": {"futureAction": {"enabled": true}}
+        });
+
+        presence_automation_rules_set(
+            &config,
+            PresenceAutomationRuleKind::Context,
+            vec![RawJson::from(rule.clone())],
+        )
+        .unwrap();
+        let loaded =
+            presence_automation_rules_get(&config, PresenceAutomationRuleKind::Context).unwrap();
+
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].as_value(), &rule);
+
+        drop(config);
+        std::fs::remove_dir_all(&dir).ok();
+    }
 
     #[test]
     fn legacy_company_rule_beats_alone_rule_by_priority() {

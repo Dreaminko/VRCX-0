@@ -129,6 +129,26 @@ pub struct FavoriteTransferResult {
     pub items: Vec<FavoriteTransferItemResult>,
 }
 
+#[derive(Clone, Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FavoriteTransferSelectionInput {
+    #[serde(default)]
+    pub batches: Vec<FavoriteTransferInput>,
+}
+
+#[derive(Clone, Debug, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FavoriteTransferSelectionResult {
+    pub total: usize,
+    pub succeeded: usize,
+    pub failed: usize,
+    pub local_changed: bool,
+    pub remote_changed: bool,
+    pub items: Vec<FavoriteTransferItemResult>,
+    pub last_error: Option<String>,
+}
+
+#[derive(Clone, Copy)]
 pub struct FavoriteTransferDeps<'a> {
     pub db: &'a DatabaseService,
     pub owner_user_id: &'a str,
@@ -235,6 +255,47 @@ pub async fn transfer_favorites(
         remote_changed,
         items: item_results,
     })
+}
+
+pub async fn transfer_favorite_selection(
+    deps: FavoriteTransferDeps<'_>,
+    input: FavoriteTransferSelectionInput,
+) -> Result<FavoriteTransferSelectionResult> {
+    if input.batches.is_empty() {
+        return Err(Error::Custom(
+            "Favorite transfer requires at least one source group.".into(),
+        ));
+    }
+    let mut output = FavoriteTransferSelectionResult {
+        total: 0,
+        succeeded: 0,
+        failed: 0,
+        local_changed: false,
+        remote_changed: false,
+        items: Vec::new(),
+        last_error: None,
+    };
+    for batch in input.batches {
+        let batch_size = batch.items.len();
+        match transfer_favorites(deps, batch).await {
+            Ok(result) => {
+                output.total += result.total;
+                output.succeeded += result.succeeded;
+                output.failed += result.failed;
+                output.local_changed |= result.local_changed;
+                output.remote_changed |= result.remote_changed;
+                output.items.extend(result.items);
+            }
+            Err(error) => {
+                output.total += batch_size;
+                output.failed += batch_size;
+                if output.last_error.is_none() {
+                    output.last_error = Some(error.to_string());
+                }
+            }
+        }
+    }
+    Ok(output)
 }
 
 async fn transfer_item(

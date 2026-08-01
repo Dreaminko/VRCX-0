@@ -60,25 +60,6 @@ import {
     setDocumentLanguage
 } from './preferencesCore';
 
-async function seedHmdNotificationsDefault() {
-    if (await configRepository.has('hmdNotificationsEnabled')) {
-        return;
-    }
-    const [xsNotifications, ovrtHudNotifications, ovrtWristNotifications] =
-        await Promise.all([
-            getBoolConfigWithLegacy('xsNotifications', false),
-            getBoolConfigWithLegacy('ovrtHudNotifications', false),
-            getBoolConfigWithLegacy('ovrtWristNotifications', false)
-        ]);
-    const externalOverlayEnabled =
-        xsNotifications || ovrtHudNotifications || ovrtWristNotifications;
-    await configRepository.setBool(
-        'hmdNotificationsEnabled',
-        !externalOverlayEnabled
-    );
-    await commands.appVrOverlayConfigReload();
-}
-
 function resolveProxyEnabled(
     rawEnabled: unknown,
     proxyServer: unknown
@@ -91,7 +72,6 @@ function resolveProxyEnabled(
 }
 
 export async function loadPreferenceSnapshot() {
-    await seedHmdNotificationsDefault();
     const [
         navIsCollapsed,
         navPanelWidth,

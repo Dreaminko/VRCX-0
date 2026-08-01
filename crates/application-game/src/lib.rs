@@ -17,10 +17,12 @@ use vrcx_0_application_core::{
 
 pub use background_capabilities::{
     build_background_discord_presence_command, build_background_presence_facts,
+    presence_automation_rules_get, presence_automation_rules_set,
     run_background_presence_automation, BackgroundDiscordActivityPayload,
     BackgroundDiscordPresenceCommand, BackgroundDiscordPresenceState,
     BackgroundPresenceAutomationResult, BackgroundPresenceAutomationState, BackgroundPresenceFacts,
-    BackgroundPresenceFactsInput, DiscordPresenceLabels, PresencePlayer,
+    BackgroundPresenceFactsInput, DiscordPresenceLabels, PresenceAutomationRuleKind,
+    PresencePlayer,
 };
 pub use game_client::{
     DebugLoggingOutcome, DebugLoggingOutcomeKind, GameClientActions, GameClientCacheActions,
@@ -52,8 +54,8 @@ pub use process_monitor::{GameProcessMonitorActions, GameProcessStatus, ProcessM
 pub use registry_backup::{
     registry_backup_create, registry_backup_delete, registry_backup_export_json,
     registry_backup_import_json, registry_backup_list, registry_backup_maintenance_run,
-    registry_backup_restore, RegistryBackupHostActions, RegistryBackupMaintenanceMode,
-    RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
+    registry_backup_restore, registry_backup_restore_prompt_acknowledge, RegistryBackupHostActions,
+    RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
 };
 pub use screenshots::{
     add_screenshot_metadata, can_decode_image, delete_all_screenshot_metadata,

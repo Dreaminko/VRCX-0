@@ -3,7 +3,7 @@ mod service;
 mod types;
 
 pub use batch::{
-    unfriend_batch, SocialUnfriendBatchInput, SocialUnfriendBatchItemResult,
+    unfriend_batch, unfriend_selection, SocialUnfriendBatchInput, SocialUnfriendBatchItemResult,
     SocialUnfriendBatchItemState, SocialUnfriendBatchResult, SocialUnfriendBatchTarget,
     SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
 };

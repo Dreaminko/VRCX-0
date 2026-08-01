@@ -1,5 +1,5 @@
 import { FolderOpenIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -13,6 +13,10 @@ import type {
     AppLauncherSnapshot
 } from '@/platform/tauri/bindings';
 import appLauncherRepository from '@/repositories/appLauncherRepository';
+import {
+    getCurrentAppLauncherSnapshot,
+    subscribeAppLauncherSnapshot
+} from '@/services/appLauncherSnapshotService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -180,43 +184,18 @@ export function AppLauncherDialog({
     const [editing, setEditing] = useState<AppLauncherEntry | null>(null);
 
     const entries = snapshot?.entries ?? [];
-    const loadSnapshot = useCallback(
-        (silent = false) => {
-            if (!silent) {
-                setLoading(true);
-            }
-            return appLauncherRepository
-                .snapshot()
-                .then((next) => {
-                    setSnapshot(next);
-                })
-                .catch((error) => {
-                    if (!silent) {
-                        toast.error(
-                            userFacingErrorMessage(
-                                error,
-                                t('dialog.app_launcher.toast.load_failed')
-                            )
-                        );
-                    }
-                })
-                .finally(() => {
-                    if (!silent) {
-                        setLoading(false);
-                    }
-                });
-        },
-        [t]
-    );
-
     useEffect(() => {
         if (!open) {
             return undefined;
         }
         let active = true;
         setLoading(true);
-        appLauncherRepository
-            .snapshot()
+        const unsubscribe = subscribeAppLauncherSnapshot((next) => {
+            if (active) {
+                setSnapshot(next);
+            }
+        });
+        getCurrentAppLauncherSnapshot()
             .then((next) => {
                 if (active) {
                     setSnapshot(next);
@@ -238,18 +217,9 @@ export function AppLauncherDialog({
             });
         return () => {
             active = false;
+            unsubscribe();
         };
     }, [open, t]);
-
-    useEffect(() => {
-        if (!open) {
-            return undefined;
-        }
-        const interval = window.setInterval(() => {
-            loadSnapshot(true);
-        }, 2000);
-        return () => window.clearInterval(interval);
-    }, [loadSnapshot, open]);
 
     useEffect(() => {
         if (!snapshot || !editing) {

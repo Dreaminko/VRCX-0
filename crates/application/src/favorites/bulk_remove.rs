@@ -225,6 +225,55 @@ pub async fn remove_favorites_bulk(
     Ok(run_favorite_bulk_remove(&actions, owner_user_id, kind, items).await)
 }
 
+pub async fn remove_favorites_selection(
+    deps: &FavoriteBulkRemoveDeps<'_>,
+    input: FavoriteBulkRemoveInput,
+) -> Result<FavoriteBulkRemoveResult> {
+    if input.items.len() <= FAVORITE_BULK_REMOVE_MAX_ITEMS {
+        return remove_favorites_bulk(deps, input).await;
+    }
+    let mut result = FavoriteBulkRemoveResult {
+        owner_user_id: input.expected_owner_user_id.clone(),
+        kind: input.kind.clone(),
+        total: 0,
+        succeeded: 0,
+        failed: 0,
+        local_changed: false,
+        remote_changed: false,
+        items: Vec::new(),
+        last_error: None,
+    };
+    for items in input.items.chunks(FAVORITE_BULK_REMOVE_MAX_ITEMS) {
+        let chunk = remove_favorites_bulk(
+            deps,
+            FavoriteBulkRemoveInput {
+                expected_owner_user_id: input.expected_owner_user_id.clone(),
+                expected_endpoint: input.expected_endpoint.clone(),
+                kind: input.kind.clone(),
+                items: items.to_vec(),
+            },
+        )
+        .await?;
+        result.owner_user_id = chunk.owner_user_id;
+        result.kind = chunk.kind;
+        result.total += chunk.total;
+        result.succeeded += chunk.succeeded;
+        result.failed += chunk.failed;
+        result.local_changed |= chunk.local_changed;
+        result.remote_changed |= chunk.remote_changed;
+        result.items.extend(chunk.items);
+        result.last_error = chunk.last_error.or(result.last_error);
+        if !deps
+            .auth_scope
+            .snapshot()
+            .generation_matches(&deps.expected_scope)
+        {
+            break;
+        }
+    }
+    Ok(result)
+}
+
 async fn run_favorite_bulk_remove(
     actions: &dyn FavoriteBulkRemoveActions,
     owner_user_id: String,
@@ -621,6 +670,70 @@ mod tests {
         .unwrap();
 
         assert_eq!(result.succeeded, 1);
+        assert!(
+            favorites::favorite_list(&db, Some("usr_self"), "friend".into(),)
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[tokio::test]
+    async fn selection_chunks_more_than_one_protected_batch() {
+        let dir = TestDir::new("selection-chunks");
+        let db = DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap();
+        let storage = StorageService::new(&dir.0.join("storage.json")).unwrap();
+        let web = WebClient::new(
+            &storage,
+            &db,
+            "wss://pipeline.vrchat.cloud".into(),
+            env!("CARGO_PKG_VERSION"),
+        )
+        .unwrap();
+        let auth_scope = RuntimeAuthScope::new();
+        let expected_scope = auth_scope.set("usr_self", "");
+        let expected_endpoint = expected_scope.endpoint.clone();
+        let remote_mutation_gate = RemoteMutationGate::default();
+        let items = (0..=FAVORITE_BULK_REMOVE_MAX_ITEMS)
+            .map(|index| {
+                let entity_id = format!("usr_{index}");
+                favorites::favorite_add(
+                    &db,
+                    Some("usr_self"),
+                    "friend".into(),
+                    entity_id.clone(),
+                    "Friends".into(),
+                )
+                .unwrap();
+                FavoriteBulkRemoveItem {
+                    key: format!("local:Friends:{entity_id}"),
+                    source: FavoriteBulkRemoveSource::Local,
+                    entity_id,
+                    group_name: "Friends".into(),
+                }
+            })
+            .collect();
+
+        let result = remove_favorites_selection(
+            &FavoriteBulkRemoveDeps {
+                db: &db,
+                web: &web,
+                auth_scope: &auth_scope,
+                expected_scope,
+                remote_mutation_gate: &remote_mutation_gate,
+            },
+            FavoriteBulkRemoveInput {
+                expected_owner_user_id: "usr_self".into(),
+                expected_endpoint,
+                kind: "friend".into(),
+                items,
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result.total, FAVORITE_BULK_REMOVE_MAX_ITEMS + 1);
+        assert_eq!(result.succeeded, FAVORITE_BULK_REMOVE_MAX_ITEMS + 1);
+        assert_eq!(result.failed, 0);
         assert!(
             favorites::favorite_list(&db, Some("usr_self"), "friend".into(),)
                 .unwrap()

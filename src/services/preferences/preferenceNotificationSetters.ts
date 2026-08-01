@@ -35,11 +35,11 @@ export async function setOverlayActivityFiltersPreference(
               activityDefinitions
           )
         : normalizeOverlayActivityFilters(value);
-    await configRepository.setString(
+    await commands.appOverlayActivityFiltersSet(overlayActivityFilters);
+    configRepository.applyServerEntry(
         'overlayActivityFilters',
         JSON.stringify(overlayActivityFilters)
     );
-    await commands.appOverlayActivityFiltersReload();
     patchPreferences({ overlayActivityFilters });
     publishPreferenceChanged('overlayActivityFilters', overlayActivityFilters);
     return overlayActivityFilters;
@@ -54,8 +54,18 @@ async function setNotificationActivityFilterSurfacePreference(
     value: unknown
 ) {
     const normalized = normalizeOverlayActivityFilterProfile(value);
-    await configRepository.setString(key, JSON.stringify(normalized));
-    await commands.appOverlayActivityFiltersReload();
+    await commands.appNotificationActivityFiltersSet({
+        surface:
+            key === 'vrNotificationActivityFilters'
+                ? 'vr'
+                : key === 'desktopNotificationActivityFilters'
+                  ? 'desktop'
+                  : key === 'webhookActivityFilters'
+                    ? 'webhook'
+                    : 'tts',
+        filters: normalized
+    });
+    configRepository.applyServerEntry(key, JSON.stringify(normalized));
     patchPreferences({ [key]: normalized });
     publishPreferenceChanged(key, normalized);
     return normalized;
@@ -84,11 +94,14 @@ export async function setHmdNotificationActivityFiltersPreference(
     const normalized = definitions.length
         ? normalizeHmdOverlayActivityFilterProfile(value, definitions)
         : normalizeHmdOverlayActivityFilterProfile(value);
-    await configRepository.setString(
+    await commands.appNotificationActivityFiltersSet({
+        surface: 'hmd',
+        filters: normalized
+    });
+    configRepository.applyServerEntry(
         'hmdNotificationActivityFilters',
         JSON.stringify(normalized)
     );
-    await commands.appOverlayActivityFiltersReload();
     patchPreferences({ hmdNotificationActivityFilters: normalized });
     publishPreferenceChanged('hmdNotificationActivityFilters', normalized);
     return normalized;

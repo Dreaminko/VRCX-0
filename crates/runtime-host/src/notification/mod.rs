@@ -15,7 +15,14 @@ mod user_image;
 mod webhook;
 mod webhook_sink;
 
-pub use activity_filters::load_overlay_activity_filters;
+pub use activity_filters::{
+    load_overlay_activity_filters, NotificationActivityFilterSurface,
+    NotificationActivityFiltersSetInput, OverlayActivityFilterProfile,
+    OverlayActivityPreferenceFilters, OverlayActivityPreferenceSurface,
+};
+pub(crate) use activity_filters::{
+    save_notification_activity_filters, save_overlay_activity_preference_filters,
+};
 pub use auth_webhook::{
     auth_webhook_generic_payload, auth_webhook_is_enabled, auth_webhook_should_recover,
     send_auth_webhook, AuthWebhookEvent, AuthWebhookEventKind,
@@ -35,7 +42,7 @@ pub use localization::{
 };
 pub use preferences::{
     config_bool, config_tts_name_mode, load_preferences, notification_tts_name_mode,
-    parse_webhook_fields,
+    parse_webhook_fields, seed_hmd_notifications_default,
 };
 pub use rendered::RenderedNotification;
 pub use rendering::{load_notification_locale, render_delivery};

@@ -4,7 +4,7 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 
 const commandMocks = vi.hoisted(() => ({
     unfriend: vi.fn(),
-    unfriendBatch: vi.fn()
+    unfriendSelection: vi.fn()
 }));
 const friendLogMocks = vi.hoisted(() => ({
     signalChanged: vi.fn()
@@ -13,7 +13,7 @@ const friendLogMocks = vi.hoisted(() => ({
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appSocialUnfriend: commandMocks.unfriend,
-        appSocialUnfriendBatch: commandMocks.unfriendBatch
+        appSocialUnfriendSelection: commandMocks.unfriendSelection
     }
 }));
 
@@ -86,7 +86,7 @@ describe('friendRelationshipService.deleteFriends', () => {
     });
 
     it('invokes one typed batch and applies only remote-success mirror corrections', async () => {
-        commandMocks.unfriendBatch.mockResolvedValue({
+        commandMocks.unfriendSelection.mockResolvedValue({
             ownerUserId: 'usr_self',
             total: 3,
             succeeded: 2,
@@ -123,7 +123,7 @@ describe('friendRelationshipService.deleteFriends', () => {
             ]
         });
 
-        expect(commandMocks.unfriendBatch).toHaveBeenCalledWith({
+        expect(commandMocks.unfriendSelection).toHaveBeenCalledWith({
             expectedEndpoint: 'https://api.example.test',
             expectedOwnerUserId: 'usr_self',
             targets: [
@@ -145,7 +145,7 @@ describe('friendRelationshipService.deleteFriends', () => {
     });
 
     it('does not patch a newly authenticated account mirror', async () => {
-        commandMocks.unfriendBatch.mockImplementation(async () => {
+        commandMocks.unfriendSelection.mockImplementation(async () => {
             useRuntimeStore.getState().setAuthBootstrap({
                 currentUserId: 'usr_other',
                 currentUserEndpoint: 'https://api.example.test',
@@ -186,7 +186,7 @@ describe('friendRelationshipService.deleteFriends', () => {
     });
 
     it('treats a backend-reported scope change as stale without message matching', async () => {
-        commandMocks.unfriendBatch.mockResolvedValue({
+        commandMocks.unfriendSelection.mockResolvedValue({
             ownerUserId: 'usr_self',
             total: 2,
             succeeded: 1,
@@ -224,7 +224,7 @@ describe('friendRelationshipService.deleteFriends', () => {
     });
 
     it('does not patch the same account after its endpoint changes', async () => {
-        commandMocks.unfriendBatch.mockImplementation(async () => {
+        commandMocks.unfriendSelection.mockImplementation(async () => {
             useRuntimeStore.getState().setAuthBootstrap({
                 currentUserId: 'usr_self',
                 currentUserEndpoint: 'https://api.other.test',

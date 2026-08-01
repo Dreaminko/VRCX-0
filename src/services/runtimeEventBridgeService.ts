@@ -5,6 +5,7 @@ import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
+import { handleAppLauncherSnapshotEvent } from './appLauncherSnapshotService';
 import {
     applyAuthenticatedRuntimePhaseSnapshot,
     handleAuthenticatedRuntimeRealtimeStatus,
@@ -101,6 +102,11 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
     if (event.name === 'appUpdateStatus') {
         void handleAppUpdateStatusEvent(event.payload);
         void runForegroundUpdateRegistryBackupMaintenance();
+        return;
+    }
+
+    if (event.name === 'appLauncherSnapshot') {
+        handleAppLauncherSnapshotEvent(event.payload);
         return;
     }
 
@@ -252,6 +258,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'appUpdateStatus',
         'appUpdateDownloadProgress',
         'appUpdateInstalled',
+        'appLauncherSnapshot',
         'backendRuntimeTelemetry',
         'backgroundImageState',
         'communityThemeState',

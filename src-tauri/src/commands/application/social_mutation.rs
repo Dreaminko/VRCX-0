@@ -50,6 +50,44 @@ fn record_outcome(
     }
 }
 
+fn record_batch_outcome(
+    state: &State<'_, AppState>,
+    command: &str,
+    result: &vrcx_0_application_core::Result<SocialUnfriendBatchResult>,
+) {
+    match result {
+        Ok(output) => {
+            state.runtime_context.diagnostics.record_command(
+                command,
+                "ok",
+                format!(
+                    "succeeded={}, failed={}, localFailed={}",
+                    output.succeeded, output.failed, output.local_failed
+                ),
+            );
+            state.runtime_context.sync.record(
+                "socialMutation",
+                "ready",
+                format!(
+                    "{command} completed for {} user(s); {} failed.",
+                    output.succeeded, output.failed
+                ),
+                0,
+            );
+        }
+        Err(error) => {
+            state
+                .runtime_context
+                .diagnostics
+                .record_command(command, "error", error.to_string());
+            state
+                .runtime_context
+                .sync
+                .record_failure("socialMutation", error.to_string());
+        }
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn app__social_unfriend(
@@ -85,37 +123,28 @@ pub async fn app__social_unfriend_batch(
 
     let result =
         social_mutation::unfriend_batch(deps(&state), &state.remote_mutations, input).await;
-    match &result {
-        Ok(output) => {
-            state.runtime_context.diagnostics.record_command(
-                command,
-                "ok",
-                format!(
-                    "succeeded={}, failed={}, localFailed={}",
-                    output.succeeded, output.failed, output.local_failed
-                ),
-            );
-            state.runtime_context.sync.record(
-                "socialMutation",
-                "ready",
-                format!(
-                    "{command} completed for {} user(s); {} failed.",
-                    output.succeeded, output.failed
-                ),
-                0,
-            );
-        }
-        Err(error) => {
-            state
-                .runtime_context
-                .diagnostics
-                .record_command(command, "error", error.to_string());
-            state
-                .runtime_context
-                .sync
-                .record_failure("socialMutation", error.to_string());
-        }
-    }
+    record_batch_outcome(&state, command, &result);
+
+    Ok(result?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__social_unfriend_selection(
+    state: State<'_, AppState>,
+    input: SocialUnfriendBatchInput,
+) -> Result<SocialUnfriendBatchResult, AppError> {
+    let command = "app__social_unfriend_selection";
+    let target_count = input.targets.len();
+    state.runtime_context.diagnostics.record_command(
+        command,
+        "running",
+        format!("Unfriending {target_count} user(s)."),
+    );
+
+    let result =
+        social_mutation::unfriend_selection(deps(&state), &state.remote_mutations, input).await;
+    record_batch_outcome(&state, command, &result);
 
     Ok(result?)
 }

@@ -1,11 +1,82 @@
 use std::collections::BTreeSet;
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use vrcx_0_application_activity::{
-    OverlayActivityFilters, OverlayActivityScope, OverlayActivitySurface,
+    OverlayActivityFilters, OverlayActivityRule, OverlayActivityScope, OverlayActivitySurface,
     OverlayActivitySurfaceFilters,
 };
-use vrcx_0_persistence::config::ConfigRepository;
+use vrcx_0_persistence::{config::ConfigRepository, Error};
+
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct OverlayActivityPreferenceFilters {
+    pub version: u32,
+    pub wrist: OverlayActivityPreferenceSurface,
+    pub hmd: OverlayActivityPreferenceSurface,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct OverlayActivityPreferenceSurface {
+    pub types: std::collections::BTreeMap<String, OverlayActivityRule>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct OverlayActivityFilterProfile {
+    pub version: u32,
+    pub types: std::collections::BTreeMap<String, OverlayActivityRule>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum NotificationActivityFilterSurface {
+    Vr,
+    Hmd,
+    Desktop,
+    Webhook,
+    Tts,
+}
+
+#[derive(Clone, Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationActivityFiltersSetInput {
+    pub surface: NotificationActivityFilterSurface,
+    pub filters: OverlayActivityFilterProfile,
+}
+
+pub fn save_overlay_activity_preference_filters(
+    config: &ConfigRepository,
+    mut filters: OverlayActivityPreferenceFilters,
+) -> Result<OverlayActivityPreferenceFilters, Error> {
+    filters.version = 1;
+    config.set_json("overlayActivityFilters", &serde_json::to_value(&filters)?)?;
+    Ok(filters)
+}
+
+pub fn save_notification_activity_filters(
+    config: &ConfigRepository,
+    input: NotificationActivityFiltersSetInput,
+) -> Result<OverlayActivityFilterProfile, Error> {
+    let mut filters = input.filters;
+    filters.version = 1;
+    config.set_json(
+        notification_activity_filter_key(input.surface),
+        &serde_json::to_value(&filters)?,
+    )?;
+    Ok(filters)
+}
+
+fn notification_activity_filter_key(surface: NotificationActivityFilterSurface) -> &'static str {
+    match surface {
+        NotificationActivityFilterSurface::Vr => "vrNotificationActivityFilters",
+        NotificationActivityFilterSurface::Hmd => "hmdNotificationActivityFilters",
+        NotificationActivityFilterSurface::Desktop => "desktopNotificationActivityFilters",
+        NotificationActivityFilterSurface::Webhook => "webhookActivityFilters",
+        NotificationActivityFilterSurface::Tts => "ttsNotificationActivityFilters",
+    }
+}
 
 pub fn load_overlay_activity_filters(config: &ConfigRepository) -> OverlayActivityFilters {
     let mut filters = match config.get_raw("overlayActivityFilters") {

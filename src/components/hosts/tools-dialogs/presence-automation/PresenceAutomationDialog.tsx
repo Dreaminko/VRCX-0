@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
+import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import {
@@ -136,13 +137,13 @@ export function PresenceScheduleDialog({
 
         let active = true;
         setLoading(true);
-        configRepository
-            .getString('presenceAutomationTimeRules', '[]')
+        commands
+            .appPresenceAutomationRulesGet('time')
             .then((result) => {
                 if (!active) {
                     return;
                 }
-                setTimeRules(parseJsonArray(result) as TimeAutomationRule[]);
+                setTimeRules(result as TimeAutomationRule[]);
             })
             .catch((error: unknown) =>
                 toast.error(
@@ -168,11 +169,16 @@ export function PresenceScheduleDialog({
         await enqueueConfigWrite(
             writeQueuesRef,
             'presenceAutomationTimeRules',
-            () =>
-                configRepository.setString(
+            async () => {
+                const savedRules = await commands.appPresenceAutomationRulesSet(
+                    'time',
+                    nextRules
+                );
+                configRepository.applyServerEntry(
                     'presenceAutomationTimeRules',
-                    JSON.stringify(nextRules)
-                ),
+                    JSON.stringify(savedRules)
+                );
+            },
             (error) =>
                 toast.error(
                     userFacingErrorMessage(
@@ -230,15 +236,13 @@ export function PresenceRoomRulesDialog({
 
         let active = true;
         setLoading(true);
-        configRepository
-            .getString('presenceAutomationContextRules', '[]')
+        commands
+            .appPresenceAutomationRulesGet('context')
             .then((result) => {
                 if (!active) {
                     return;
                 }
-                setContextRules(
-                    parseJsonArray(result).map(normalizeContextRule)
-                );
+                setContextRules(result.map(normalizeContextRule));
             })
             .catch((error: unknown) =>
                 toast.error(
@@ -265,11 +269,16 @@ export function PresenceRoomRulesDialog({
         await enqueueConfigWrite(
             writeQueuesRef,
             'presenceAutomationContextRules',
-            () =>
-                configRepository.setString(
+            async () => {
+                const savedRules = await commands.appPresenceAutomationRulesSet(
+                    'context',
+                    normalizedRules
+                );
+                configRepository.applyServerEntry(
                     'presenceAutomationContextRules',
-                    JSON.stringify(normalizedRules)
-                ),
+                    JSON.stringify(savedRules)
+                );
+            },
             (error) =>
                 toast.error(
                     userFacingErrorMessage(

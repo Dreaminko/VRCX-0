@@ -28,6 +28,7 @@ use vrcx_0_harness::{
 use vrcx_0_host_desktop::tts::TtsVoice;
 use vrcx_0_mcp::McpServerStatus;
 use vrcx_0_runtime_host::RuntimeGroupInstancesProjection;
+use vrcx_0_runtime_host_desktop::AppLauncherSnapshotEvent;
 
 use crate::commands;
 
@@ -40,6 +41,7 @@ struct BackendRuntimeEventPayloadMap {
     app_update_status: AppUpdateStatusSnapshot,
     app_update_download_progress: AppUpdateDownloadProgressPayload,
     app_update_installed: AppUpdateInstalledPayload,
+    app_launcher_snapshot: AppLauncherSnapshotEvent,
     backend_runtime_telemetry: BackendRuntimeTelemetry,
     background_image_state: BackgroundImageProjection,
     community_theme_state: CommunityThemeProjection,
@@ -212,10 +214,15 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::llm_endpoint::app__assistant_reasoning_effort,
             commands::application::llm_endpoint::app__assistant_set_reasoning_effort,
             commands::application::overlay_activity::app__overlay_activity_definitions_get,
-            commands::application::overlay_activity::app__overlay_activity_filters_reload,
+            commands::application::overlay_activity::app__overlay_activity_filters_set,
+            commands::application::overlay_activity::app__notification_activity_filters_set,
             commands::application::overlay_activity::app__overlay_activity_snapshot_get,
+            commands::application::presence_automation::app__presence_automation_rules_get,
+            commands::application::presence_automation::app__presence_automation_rules_set,
             commands::application::favorite_transfer::app__favorites_transfer,
+            commands::application::favorite_transfer::app__favorites_transfer_selection,
             commands::application::favorite_transfer::app__favorites_bulk_remove,
+            commands::application::favorite_transfer::app__favorites_remove_selection,
             commands::application::vr_overlay::app__vr_overlay_status_get,
             commands::application::vr_overlay::app__vr_overlay_enabled_set,
             commands::application::vr_overlay::app__vr_overlay_config_reload,
@@ -226,6 +233,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::registry_backup::app__registry_backup_export_json,
             commands::application::registry_backup::app__registry_backup_import_json,
             commands::application::registry_backup::app__registry_backup_maintenance_run,
+            commands::application::registry_backup::app__registry_backup_restore_prompt_acknowledge,
             commands::application::profile_backup::app__profile_backup_get_settings,
             commands::application::profile_backup::app__profile_backup_set_settings,
             commands::application::profile_backup::app__profile_backup_run_manual,
@@ -500,6 +508,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::social_mutation::app__social_friend_request_send,
             commands::application::social_mutation::app__social_unfriend,
             commands::application::social_mutation::app__social_unfriend_batch,
+            commands::application::social_mutation::app__social_unfriend_selection,
             commands::vrchat::tools::service::app__vrchat_tools_calendars_get,
             commands::vrchat::tools::service::app__vrchat_tools_featured_calendars_get,
             commands::vrchat::tools::service::app__vrchat_tools_following_calendars_get,

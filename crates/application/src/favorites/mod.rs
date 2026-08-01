@@ -9,9 +9,10 @@ mod remote_favorites;
 pub use vrcx_0_persistence::favorites::FavoriteRow;
 
 pub use bulk_remove::{
-    remove_favorites_bulk, FavoriteBulkRemoveDeps, FavoriteBulkRemoveInput, FavoriteBulkRemoveItem,
-    FavoriteBulkRemoveItemResult, FavoriteBulkRemoveItemState, FavoriteBulkRemoveResult,
-    FavoriteBulkRemoveSource, FAVORITE_BULK_REMOVE_MAX_ITEMS,
+    remove_favorites_bulk, remove_favorites_selection, FavoriteBulkRemoveDeps,
+    FavoriteBulkRemoveInput, FavoriteBulkRemoveItem, FavoriteBulkRemoveItemResult,
+    FavoriteBulkRemoveItemState, FavoriteBulkRemoveResult, FavoriteBulkRemoveSource,
+    FAVORITE_BULK_REMOVE_MAX_ITEMS,
 };
 pub use cache_policy::{
     persist_favorite_cache_snapshot, FavoriteCacheKind, FavoriteCacheSnapshotInput,
@@ -26,10 +27,11 @@ pub use favorite_import::{
     FavoriteImportStatus, FavoriteImportTarget, FAVORITE_IMPORT_MAX_ITEMS,
 };
 pub use favorite_transfer::{
-    favorite_transfer_plan_for_item, transfer_favorites, FavoriteTransferDeps,
-    FavoriteTransferInput, FavoriteTransferItem, FavoriteTransferItemResult,
+    favorite_transfer_plan_for_item, transfer_favorite_selection, transfer_favorites,
+    FavoriteTransferDeps, FavoriteTransferInput, FavoriteTransferItem, FavoriteTransferItemResult,
     FavoriteTransferItemStatus, FavoriteTransferLocation, FavoriteTransferMode,
-    FavoriteTransferResult, FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
+    FavoriteTransferResult, FavoriteTransferSelectionInput, FavoriteTransferSelectionResult,
+    FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
 pub use local_favorites::{
     add_local_favorite, create_local_favorite_group, delete_local_favorite_entries,

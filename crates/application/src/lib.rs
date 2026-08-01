@@ -69,10 +69,11 @@ pub use favorites::{
     FavoriteRemoteGroupClearInput, FavoriteRemoteGroupSaveInput, FavoriteRemoteMutationDeps,
 };
 pub use favorites::{
-    favorite_transfer_plan_for_item, transfer_favorites, FavoriteTransferDeps,
-    FavoriteTransferInput, FavoriteTransferItem, FavoriteTransferItemResult,
+    favorite_transfer_plan_for_item, transfer_favorite_selection, transfer_favorites,
+    FavoriteTransferDeps, FavoriteTransferInput, FavoriteTransferItem, FavoriteTransferItemResult,
     FavoriteTransferItemStatus, FavoriteTransferLocation, FavoriteTransferMode,
-    FavoriteTransferResult, FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
+    FavoriteTransferResult, FavoriteTransferSelectionInput, FavoriteTransferSelectionResult,
+    FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
 pub use favorites::{
     hydrate_favorite_details, FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput,
@@ -82,9 +83,10 @@ pub use favorites::{
     persist_favorite_cache_snapshot, FavoriteCacheKind, FavoriteCacheSnapshotInput,
 };
 pub use favorites::{
-    remove_favorites_bulk, FavoriteBulkRemoveDeps, FavoriteBulkRemoveInput, FavoriteBulkRemoveItem,
-    FavoriteBulkRemoveItemResult, FavoriteBulkRemoveItemState, FavoriteBulkRemoveResult,
-    FavoriteBulkRemoveSource, FAVORITE_BULK_REMOVE_MAX_ITEMS,
+    remove_favorites_bulk, remove_favorites_selection, FavoriteBulkRemoveDeps,
+    FavoriteBulkRemoveInput, FavoriteBulkRemoveItem, FavoriteBulkRemoveItemResult,
+    FavoriteBulkRemoveItemState, FavoriteBulkRemoveResult, FavoriteBulkRemoveSource,
+    FAVORITE_BULK_REMOVE_MAX_ITEMS,
 };
 pub use favorites::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
@@ -100,10 +102,11 @@ pub use media::{
 pub use remote_mutation_gate::RemoteMutationGate;
 pub use social::{
     accept_friend_request, cancel_friend_request, send_friend_request, unfriend, unfriend_batch,
-    SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendMutationStatus,
-    SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
-    SocialUnfriendBatchInput, SocialUnfriendBatchItemResult, SocialUnfriendBatchItemState,
-    SocialUnfriendBatchResult, SocialUnfriendBatchTarget, SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
+    unfriend_selection, SocialFriendMutationInput, SocialFriendMutationOutcome,
+    SocialFriendMutationStatus, SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput,
+    SocialMutationDeps, SocialUnfriendBatchInput, SocialUnfriendBatchItemResult,
+    SocialUnfriendBatchItemState, SocialUnfriendBatchResult, SocialUnfriendBatchTarget,
+    SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
 };
 pub use social::{
     add_member_role, ban_member, block_group, cancel_request, create_post, delete_invite,

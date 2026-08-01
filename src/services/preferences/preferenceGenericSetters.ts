@@ -274,24 +274,8 @@ export async function setUserGeneratedContentPathPreference(value: string) {
 }
 
 export async function setStartAtWindowsStartupPreference(value: boolean) {
-    const enabled = value;
-    const previousEnabled = Boolean(
-        await configRepository.getBool('StartAtWindowsStartup', false)
-    );
-    await commands.appSetStartup(enabled);
-    try {
-        await configRepository.setBool('StartAtWindowsStartup', enabled);
-    } catch (error) {
-        await commands
-            .appSetStartup(previousEnabled)
-            .catch((rollbackError: unknown) => {
-                console.warn(
-                    'Failed to roll back system startup setting:',
-                    rollbackError
-                );
-            });
-        throw error;
-    }
+    const enabled = await commands.appSetStartup(value);
+    configRepository.applyServerEntry('StartAtWindowsStartup', String(enabled));
     patchPreferences({ isStartAtWindowsStartup: enabled });
     publishPreferenceChanged('StartAtWindowsStartup', enabled);
 }

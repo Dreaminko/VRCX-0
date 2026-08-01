@@ -42,9 +42,13 @@ export async function runRegistryBackupMaintenance(reason: string) {
     useRuntimeStore.getState().setSystemHostOpen('registryBackupOpen', true);
     await commands.appFocusWindow().catch(() => {});
     if (result.restorePromptBackupDate) {
-        await configRepository.setString(
+        const acknowledgedDate =
+            await commands.appRegistryBackupRestorePromptAcknowledge(
+                result.restorePromptBackupDate
+            );
+        configRepository.applyServerEntry(
             'VRChatRegistryLastRestoreCheck',
-            result.restorePromptBackupDate
+            acknowledgedDate
         );
     }
 }

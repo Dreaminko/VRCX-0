@@ -7,6 +7,7 @@ use vrcx_0_application_core::RuntimeAuthScope;
 use vrcx_0_application_core::WebClient;
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 
+#[derive(Clone, Copy)]
 pub struct SocialMutationDeps<'a> {
     pub db: &'a DatabaseService,
     pub web: &'a WebClient,

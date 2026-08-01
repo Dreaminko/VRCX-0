@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
     setArray: vi.fn(),
     setMany: vi.fn(),
     setObject: vi.fn(),
+    applyServerEntry: vi.fn(),
     storageSetString: vi.fn(),
     publishPreferenceChanged: vi.fn(),
     configureRecentActionCooldown: vi.fn(),
@@ -48,7 +49,8 @@ vi.mock('@/repositories/configRepository', () => ({
         setInt: mocks.setInt,
         setArray: mocks.setArray,
         setMany: mocks.setMany,
-        setObject: mocks.setObject
+        setObject: mocks.setObject,
+        applyServerEntry: mocks.applyServerEntry
     }
 }));
 
@@ -143,7 +145,7 @@ describe('preferenceGenericSetters', () => {
         mocks.setMany.mockResolvedValue(undefined);
         mocks.setObject.mockResolvedValue(undefined);
         mocks.storageSetString.mockResolvedValue(undefined);
-        mocks.appSetStartup.mockResolvedValue(undefined);
+        mocks.appSetStartup.mockResolvedValue(false);
         mocks.appRestartApplication.mockResolvedValue(undefined);
         mocks.appVrOverlayConfigReload.mockResolvedValue(undefined);
         mocks.readRecentActionCooldown.mockReturnValue({
@@ -153,16 +155,40 @@ describe('preferenceGenericSetters', () => {
         mocks.isCommunityThemeAppearanceControlled.mockReturnValue(false);
     });
 
-    it('rolls back the OS startup toggle when persisting the config fails', async () => {
-        mocks.getBool.mockResolvedValue(false);
-        mocks.setBool.mockRejectedValueOnce(new Error('config write failed'));
+    it('uses the backend autostart transaction result as the committed preference', async () => {
+        mocks.appSetStartup.mockResolvedValueOnce(true);
+
+        await expect(
+            setStartAtWindowsStartupPreference(true)
+        ).resolves.toBeUndefined();
+
+        expect(mocks.appSetStartup).toHaveBeenCalledOnce();
+        expect(mocks.appSetStartup).toHaveBeenCalledWith(true);
+        expect(mocks.applyServerEntry).toHaveBeenCalledWith(
+            'StartAtWindowsStartup',
+            'true'
+        );
+        expect(mocks.setBool).not.toHaveBeenCalledWith(
+            'StartAtWindowsStartup',
+            expect.anything()
+        );
+        expect(usePreferencesStore.getState().isStartAtWindowsStartup).toBe(
+            true
+        );
+        expect(mocks.publishPreferenceChanged).toHaveBeenCalledWith(
+            'StartAtWindowsStartup',
+            true
+        );
+    });
+
+    it('leaves the frontend mirror unchanged when the backend transaction fails', async () => {
+        mocks.appSetStartup.mockRejectedValueOnce(new Error('startup failed'));
 
         await expect(setStartAtWindowsStartupPreference(true)).rejects.toThrow(
-            'config write failed'
+            'startup failed'
         );
 
-        expect(mocks.appSetStartup).toHaveBeenNthCalledWith(1, true);
-        expect(mocks.appSetStartup).toHaveBeenNthCalledWith(2, false);
+        expect(mocks.applyServerEntry).not.toHaveBeenCalled();
         expect(usePreferencesStore.getState().isStartAtWindowsStartup).toBe(
             false
         );

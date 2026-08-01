@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import type {
     FavoriteBulkRemoveResult,
     FavoriteTransferItemResult,
-    FavoriteTransferMode
+    FavoriteTransferMode,
+    FavoriteTransferSelectionResult
 } from '@/platform/tauri/bindings';
 import { commands } from '@/platform/tauri/bindings';
 import favoriteTransferRepository from '@/repositories/favoriteTransferRepository';
@@ -18,8 +19,6 @@ import {
     buildFavoriteBulkRemoveInput,
     favoriteBulkRemoveSuccessfulKeys
 } from './favoriteBulkRemove';
-
-const FAVORITE_BULK_REMOVE_CHUNK_SIZE = 250;
 import type {
     FavoriteGroup,
     FavoriteItem,
@@ -128,52 +127,15 @@ export function useFavoritesBulkActions({
             return;
         }
         try {
-            const batchResult: FavoriteBulkRemoveResult = {
-                ownerUserId: batchOwnerUserId,
-                kind,
-                total: 0,
-                succeeded: 0,
-                failed: 0,
-                localChanged: false,
-                remoteChanged: false,
-                items: [],
-                lastError: null
-            };
-            for (
-                let start = 0;
-                start < selectedContentItems.length;
-                start += FAVORITE_BULK_REMOVE_CHUNK_SIZE
-            ) {
-                const chunkResult = await commands.appFavoritesBulkRemove(
+            const batchResult: FavoriteBulkRemoveResult =
+                await commands.appFavoritesRemoveSelection(
                     buildFavoriteBulkRemoveInput({
                         expectedEndpoint: currentEndpoint,
                         expectedOwnerUserId: batchOwnerUserId,
-                        items: selectedContentItems.slice(
-                            start,
-                            start + FAVORITE_BULK_REMOVE_CHUNK_SIZE
-                        ),
+                        items: selectedContentItems,
                         kind
                     })
                 );
-                batchResult.ownerUserId = chunkResult.ownerUserId;
-                batchResult.total += chunkResult.total;
-                batchResult.succeeded += chunkResult.succeeded;
-                batchResult.failed += chunkResult.failed;
-                batchResult.localChanged =
-                    batchResult.localChanged || chunkResult.localChanged;
-                batchResult.remoteChanged =
-                    batchResult.remoteChanged || chunkResult.remoteChanged;
-                batchResult.items.push(...chunkResult.items);
-                batchResult.lastError =
-                    chunkResult.lastError ?? batchResult.lastError;
-                const chunkAuth = useRuntimeStore.getState().auth;
-                if (
-                    chunkAuth.currentUserId !== chunkResult.ownerUserId ||
-                    chunkAuth.currentUserEndpoint !== batchEndpoint
-                ) {
-                    break;
-                }
-            }
             const removedKeys = favoriteBulkRemoveSuccessfulKeys(batchResult);
             const currentAuth = useRuntimeStore.getState().auth;
             if (
@@ -285,45 +247,45 @@ export function useFavoritesBulkActions({
             return;
         }
         const batches = groupFavoriteItemsBySourceGroup(selectedContentItems);
-        let succeeded = 0;
-        let failed = 0;
-        const successfulKeys = new Set<string>();
-        const allResults: FavoriteTransferItemResult[] = [];
-        let thrownErrorMessage = '';
-
-        for (const batchItems of batches) {
+        const transferBatches = batches.map((batchItems) => {
             const sourceGroup = resolveFavoriteSourceGroup({
                 item: batchItems[0],
                 remoteGroups,
                 localGroups
             });
-            try {
-                const result =
-                    await favoriteTransferRepository.transferFavorites(
-                        buildFavoriteTransferInput({
-                            endpoint: currentEndpoint,
-                            kind,
-                            mode,
-                            sourceGroup,
-                            targetGroup,
-                            selectedItems: batchItems
-                        })
-                    );
-                succeeded += result.succeeded;
-                failed += result.failed;
-                for (const key of buildFavoriteTransferSuccessfulKeys(
-                    result.items
-                )) {
-                    successfulKeys.add(key);
+            return buildFavoriteTransferInput({
+                endpoint: currentEndpoint,
+                kind,
+                mode,
+                sourceGroup,
+                targetGroup,
+                selectedItems: batchItems
+            });
+        });
+        let result: FavoriteTransferSelectionResult;
+        try {
+            result = await favoriteTransferRepository.transferFavoriteSelection(
+                {
+                    batches: transferBatches
                 }
-                allResults.push(...result.items);
-            } catch (error) {
-                failed += batchItems.length;
-                if (!thrownErrorMessage && error instanceof Error) {
-                    thrownErrorMessage = error.message;
-                }
-            }
+            );
+        } catch (error) {
+            result = {
+                total: selectedContentItems.length,
+                succeeded: 0,
+                failed: selectedContentItems.length,
+                localChanged: false,
+                remoteChanged: false,
+                items: [],
+                lastError: error instanceof Error ? error.message : null
+            };
         }
+        const succeeded = result.succeeded;
+        const failed = result.failed;
+        const allResults: FavoriteTransferItemResult[] = result.items;
+        const successfulKeys = buildFavoriteTransferSuccessfulKeys(
+            result.items
+        );
 
         if (succeeded > 0) {
             await refreshFavorites({ silent: true });
@@ -360,7 +322,7 @@ export function useFavoritesBulkActions({
         }
 
         const fallbackMessage =
-            thrownErrorMessage ||
+            result.lastError ||
             t('view.favorites.toast.failed_to_move_selected_favorites');
         const failureDescription = buildFavoriteTransferFailureDescription({
             results: allResults.filter((item) => item.status === 'failed'),

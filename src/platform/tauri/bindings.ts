@@ -523,21 +523,60 @@ export const commands = {
     > {
         return await TAURI_INVOKE('app__overlay_activity_definitions_get');
     },
-    async appOverlayActivityFiltersReload(): Promise<null> {
-        return await TAURI_INVOKE('app__overlay_activity_filters_reload');
+    async appOverlayActivityFiltersSet(
+        filters: OverlayActivityPreferenceFilters
+    ): Promise<null> {
+        return await TAURI_INVOKE('app__overlay_activity_filters_set', {
+            filters
+        });
+    },
+    async appNotificationActivityFiltersSet(
+        input: NotificationActivityFiltersSetInput
+    ): Promise<null> {
+        return await TAURI_INVOKE('app__notification_activity_filters_set', {
+            input
+        });
     },
     async appOverlayActivitySnapshotGet(): Promise<OverlayActivitySnapshot> {
         return await TAURI_INVOKE('app__overlay_activity_snapshot_get');
+    },
+    async appPresenceAutomationRulesGet(
+        kind: PresenceAutomationRuleKind
+    ): Promise<RawJson[]> {
+        return await TAURI_INVOKE('app__presence_automation_rules_get', {
+            kind
+        });
+    },
+    async appPresenceAutomationRulesSet(
+        kind: PresenceAutomationRuleKind,
+        rules: RawJson[]
+    ): Promise<RawJson[]> {
+        return await TAURI_INVOKE('app__presence_automation_rules_set', {
+            kind,
+            rules
+        });
     },
     async appFavoritesTransfer(
         input: FavoriteTransferInput
     ): Promise<FavoriteTransferResult> {
         return await TAURI_INVOKE('app__favorites_transfer', { input });
     },
+    async appFavoritesTransferSelection(
+        input: FavoriteTransferSelectionInput
+    ): Promise<FavoriteTransferSelectionResult> {
+        return await TAURI_INVOKE('app__favorites_transfer_selection', {
+            input
+        });
+    },
     async appFavoritesBulkRemove(
         input: FavoriteBulkRemoveInput
     ): Promise<FavoriteBulkRemoveResult> {
         return await TAURI_INVOKE('app__favorites_bulk_remove', { input });
+    },
+    async appFavoritesRemoveSelection(
+        input: FavoriteBulkRemoveInput
+    ): Promise<FavoriteBulkRemoveResult> {
+        return await TAURI_INVOKE('app__favorites_remove_selection', { input });
     },
     async appVrOverlayStatusGet(): Promise<VrOverlayRuntimeSnapshot> {
         return await TAURI_INVOKE('app__vr_overlay_status_get');
@@ -580,6 +619,14 @@ export const commands = {
         return await TAURI_INVOKE('app__registry_backup_maintenance_run', {
             reason
         });
+    },
+    async appRegistryBackupRestorePromptAcknowledge(
+        backupDate: string
+    ): Promise<string> {
+        return await TAURI_INVOKE(
+            'app__registry_backup_restore_prompt_acknowledge',
+            { backupDate }
+        );
     },
     async appProfileBackupGetSettings(): Promise<ProfileBackupSettings> {
         return await TAURI_INVOKE('app__profile_backup_get_settings');
@@ -2148,6 +2195,11 @@ export const commands = {
     ): Promise<SocialUnfriendBatchResult> {
         return await TAURI_INVOKE('app__social_unfriend_batch', { input });
     },
+    async appSocialUnfriendSelection(
+        input: SocialUnfriendBatchInput
+    ): Promise<SocialUnfriendBatchResult> {
+        return await TAURI_INVOKE('app__social_unfriend_selection', { input });
+    },
     async appVrchatToolsCalendarsGet(
         input: VrchatToolsCalendarListInput
     ): Promise<HttpApiExecuteResponse> {
@@ -2581,7 +2633,7 @@ export const commands = {
     async appCopyImageToClipboard(path: string): Promise<null> {
         return await TAURI_INVOKE('app__copy_image_to_clipboard', { path });
     },
-    async appSetStartup(enabled: boolean): Promise<null> {
+    async appSetStartup(enabled: boolean): Promise<boolean> {
         return await TAURI_INVOKE('app__set_startup', { enabled });
     },
     async appGetVrchatRegistryKey(key: string): Promise<JsonValue> {
@@ -3063,6 +3115,7 @@ export type AppLauncherSnapshot = {
     activeSession: AppLauncherSession | null;
     testRuns: AppLauncherRun[];
 };
+export type AppLauncherSnapshotEvent = { snapshot: AppLauncherSnapshot };
 export type AppLauncherStopPolicy = 'keepRunning' | 'closeByVrcx';
 export type AppUpdateDownloadPhase =
     | 'idle'
@@ -3257,6 +3310,7 @@ export type BackendRuntimeEventPayloadMap = {
     appUpdateStatus: AppUpdateStatusSnapshot;
     appUpdateDownloadProgress: AppUpdateDownloadProgressPayload;
     appUpdateInstalled: AppUpdateInstalledPayload;
+    appLauncherSnapshot: AppLauncherSnapshotEvent;
     backendRuntimeTelemetry: BackendRuntimeTelemetry;
     backgroundImageState: BackgroundImageProjection;
     communityThemeState: CommunityThemeProjection;
@@ -3853,6 +3907,18 @@ export type FavoriteTransferResult = {
     localChanged: boolean;
     remoteChanged: boolean;
     items: FavoriteTransferItemResult[];
+};
+export type FavoriteTransferSelectionInput = {
+    batches?: FavoriteTransferInput[];
+};
+export type FavoriteTransferSelectionResult = {
+    total: number;
+    succeeded: number;
+    failed: number;
+    localChanged: boolean;
+    remoteChanged: boolean;
+    items: FavoriteTransferItemResult[];
+    lastError: string | null;
 };
 export type FavoriteTransferSource = {
     location: FavoriteTransferLocation;
@@ -4596,6 +4662,16 @@ export type NotificationActionStatus =
     | 'remoteOkLocalFailed'
     | 'alreadyResolved'
     | 'remoteFailed';
+export type NotificationActivityFilterSurface =
+    | 'vr'
+    | 'hmd'
+    | 'desktop'
+    | 'webhook'
+    | 'tts';
+export type NotificationActivityFiltersSetInput = {
+    surface: NotificationActivityFilterSurface;
+    filters: OverlayActivityFilterProfile;
+};
 export type NotificationBoopDismissInput = {
     ownerUserId: string;
     endpoint?: string;
@@ -4799,6 +4875,22 @@ export type OverlayActivityEntry = {
     actorRelation?: OverlayActivityActorRelation;
     payload?: JsonValue;
 };
+export type OverlayActivityFilterProfile = {
+    version: number;
+    types: Partial<{ [key in string]: OverlayActivityRule }>;
+};
+export type OverlayActivityPreferenceFilters = {
+    version: number;
+    wrist: OverlayActivityPreferenceSurface;
+    hmd: OverlayActivityPreferenceSurface;
+};
+export type OverlayActivityPreferenceSurface = {
+    types: Partial<{ [key in string]: OverlayActivityRule }>;
+};
+export type OverlayActivityRule = {
+    scope: OverlayActivityScope;
+    favoriteGroupKeys: string | string[];
+};
 export type OverlayActivityScope =
     | 'off'
     | 'on'
@@ -4973,6 +5065,7 @@ export type PlayerState = {
     displayName: string;
     joinTimeMs: number | null;
 };
+export type PresenceAutomationRuleKind = 'time' | 'context';
 export type PrintAutoCleanupEvent = {
     deleted: number;
     remaining: number;

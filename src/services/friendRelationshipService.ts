@@ -32,7 +32,6 @@ type DeleteFriendsResult = SocialUnfriendBatchResult & {
 
 const STALE_AUTH_SCOPE_ERROR_TEXT = 'stale for the current auth scope';
 const CHANGED_AUTH_SCOPE_ERROR_TEXT = 'authentication scope changed';
-const UNFRIEND_BATCH_CHUNK_SIZE = 250;
 
 function normalizeUserId(value: unknown): string {
     return typeof value === 'string'
@@ -159,42 +158,11 @@ async function deleteFriends({
     if (!targets.length) {
         throw new Error('deleteFriends requires at least one friend user id.');
     }
-    const outcome: SocialUnfriendBatchResult = {
-        ownerUserId: expectedOwnerUserId,
-        total: 0,
-        succeeded: 0,
-        failed: 0,
-        localFailed: 0,
-        scopeChanged: false,
-        items: [],
-        lastError: null
-    };
-    for (
-        let start = 0;
-        start < targets.length;
-        start += UNFRIEND_BATCH_CHUNK_SIZE
-    ) {
-        const chunkOutcome = await commands.appSocialUnfriendBatch({
-            expectedEndpoint,
-            expectedOwnerUserId,
-            targets: targets.slice(start, start + UNFRIEND_BATCH_CHUNK_SIZE)
-        });
-        outcome.ownerUserId = chunkOutcome.ownerUserId;
-        outcome.total += chunkOutcome.total;
-        outcome.succeeded += chunkOutcome.succeeded;
-        outcome.failed += chunkOutcome.failed;
-        outcome.localFailed += chunkOutcome.localFailed;
-        outcome.scopeChanged =
-            outcome.scopeChanged || chunkOutcome.scopeChanged;
-        outcome.items.push(...chunkOutcome.items);
-        outcome.lastError = chunkOutcome.lastError ?? outcome.lastError;
-        if (
-            outcome.scopeChanged ||
-            !currentAuthScopeMatches(expectedOwnerUserId, expectedEndpoint)
-        ) {
-            break;
-        }
-    }
+    const outcome = await commands.appSocialUnfriendSelection({
+        expectedEndpoint,
+        expectedOwnerUserId,
+        targets
+    });
     const stale =
         outcome.scopeChanged ||
         !currentAuthScopeMatches(expectedOwnerUserId, expectedEndpoint);

@@ -1,3 +1,5 @@
+mod app_launcher;
+mod autostart;
 mod background_image;
 mod context;
 mod game_client;
@@ -12,6 +14,8 @@ mod registry_backup;
 mod state;
 pub mod vr_overlay;
 
+pub use app_launcher::AppLauncherSnapshotEvent;
+pub use autostart::{set_autostart_preference, AutostartPlatform};
 pub use background_image::{
     background_image_files_from_paths, HostBackgroundImageFileResolver, BACKGROUND_IMAGE_EXTENSIONS,
 };

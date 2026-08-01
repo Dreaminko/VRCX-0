@@ -38,6 +38,7 @@ use vrcx_0_runtime_host::{
     RuntimeHostStateBuilder,
 };
 
+use crate::app_launcher::start_app_launcher_snapshot_events;
 use crate::group_order::HostGroupOrderSource;
 use crate::vr_overlay::{DesktopVrOverlayRuntime, VrOverlayRuntimeSnapshot};
 use crate::{
@@ -104,6 +105,7 @@ struct DesktopRuntimeProfileExtension {
     registry_backup_maintenance_running: Arc<AtomicBool>,
     desktop_maintenance_running: Arc<AtomicBool>,
     background_image_started: AtomicBool,
+    app_launcher_events_started: AtomicBool,
     discord_reconcile_generation: Arc<AtomicU64>,
     registry_backup_lock: Arc<Mutex<()>>,
     presence_state_path: PathBuf,
@@ -269,6 +271,7 @@ impl DesktopRuntimeHostState {
             registry_backup_maintenance_running: Arc::new(AtomicBool::new(false)),
             desktop_maintenance_running: Arc::new(AtomicBool::new(false)),
             background_image_started: AtomicBool::new(false),
+            app_launcher_events_started: AtomicBool::new(false),
             discord_reconcile_generation: Arc::new(AtomicU64::new(0)),
             registry_backup_lock: Arc::new(Mutex::new(())),
             presence_state_path: builder.paths.app_data.join("presenceAutomationState.json"),
@@ -532,6 +535,16 @@ impl DesktopRuntimeProfileExtension {
         self.desktop
             .app_update
             .start_loop(state.runtime_context.tasks.clone());
+        if !self
+            .app_launcher_events_started
+            .swap(true, Ordering::AcqRel)
+        {
+            start_app_launcher_snapshot_events(
+                self.game.auto_launch.clone(),
+                state.runtime_context.event_bus.clone(),
+                state.runtime_context.tasks.clone(),
+            );
+        }
         if self.background_image_started.swap(true, Ordering::AcqRel) {
             return;
         }

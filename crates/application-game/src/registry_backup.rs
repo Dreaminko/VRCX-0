@@ -151,6 +151,14 @@ pub fn registry_backup_import_json(
     Ok(())
 }
 
+pub fn registry_backup_restore_prompt_acknowledge(
+    db: &DatabaseService,
+    backup_date: &str,
+) -> Result<String> {
+    config::set_string(db, CONFIG_LAST_RESTORE_CHECK, backup_date)?;
+    Ok(backup_date.to_string())
+}
+
 pub fn registry_backup_maintenance_run(
     db: &DatabaseService,
     host: &dyn RegistryBackupHostActions,
@@ -386,4 +394,36 @@ fn parse_backup_date(value: &str) -> Option<chrono::DateTime<Utc>> {
     chrono::DateTime::parse_from_rfc3339(value)
         .ok()
         .map(|date| date.with_timezone(&Utc))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn restore_prompt_acknowledgement_persists_the_shown_backup_date() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "vrcx-0-registry-ack-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = DatabaseService::new(&dir.join("VRCX-0.sqlite3")).unwrap();
+        let backup_date = "2026-08-01T12:34:56.000Z";
+
+        assert_eq!(
+            registry_backup_restore_prompt_acknowledge(&db, backup_date).unwrap(),
+            backup_date
+        );
+        assert_eq!(
+            config::get_string(&db, CONFIG_LAST_RESTORE_CHECK, "").unwrap(),
+            backup_date
+        );
+
+        drop(db);
+        std::fs::remove_dir_all(&dir).ok();
+    }
 }

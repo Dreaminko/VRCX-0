@@ -80,3 +80,17 @@ pub fn app__registry_backup_maintenance_run(
             .registry_backup_maintenance_run(&reason, RegistryBackupMaintenanceMode::Foreground)?,
     )
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__registry_backup_restore_prompt_acknowledge(
+    state: State<'_, AppState>,
+    backup_date: String,
+) -> Result<String, AppError> {
+    Ok(
+        vrcx_0_application_game::registry_backup_restore_prompt_acknowledge(
+            state.db.as_ref(),
+            &backup_date,
+        )?,
+    )
+}

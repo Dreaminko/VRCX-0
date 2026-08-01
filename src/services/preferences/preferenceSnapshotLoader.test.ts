@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     appSystemCulture: vi.fn(),
-    appVrOverlayConfigReload: vi.fn(),
     getRawValue: vi.fn(),
-    has: vi.fn(),
     getBool: vi.fn(),
     getString: vi.fn(),
     getInt: vi.fn(),
@@ -19,15 +17,13 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
-        appSystemCulture: mocks.appSystemCulture,
-        appVrOverlayConfigReload: mocks.appVrOverlayConfigReload
+        appSystemCulture: mocks.appSystemCulture
     }
 }));
 
 vi.mock('@/repositories/configRepository', () => ({
     default: {
         getRawValue: mocks.getRawValue,
-        has: mocks.has,
         getBool: mocks.getBool,
         getString: mocks.getString,
         getInt: mocks.getInt,
@@ -102,7 +98,6 @@ describe('preferenceSnapshotLoader', () => {
             rightSidebarOpen: true
         } as Partial<ReturnType<typeof useShellStore.getState>>);
 
-        mocks.has.mockResolvedValue(true);
         mocks.getRawValue.mockResolvedValue(null);
         mocks.getBool.mockImplementation((_key: string, fallback = false) =>
             Promise.resolve(Boolean(fallback))
@@ -126,27 +121,21 @@ describe('preferenceSnapshotLoader', () => {
                 Promise.resolve(String(fallback ?? ''))
         );
         mocks.appSystemCulture.mockResolvedValue('ja-JP');
-        mocks.appVrOverlayConfigReload.mockResolvedValue(undefined);
     });
 
-    it('seeds HMD notifications off when legacy overlay forwarding is enabled', async () => {
-        mocks.has.mockResolvedValue(false);
-        mocks.getRawValue.mockImplementation((key: string) =>
-            Promise.resolve(key === 'xsNotifications' ? 'true' : null)
-        );
+    it('only reads the backend-seeded HMD notification preference', async () => {
         mocks.getBool.mockImplementation((key: string, fallback = false) =>
             Promise.resolve(
-                key === 'xsNotifications' ? true : Boolean(fallback)
+                key === 'hmdNotificationsEnabled' ? false : Boolean(fallback)
             )
         );
 
         const snapshot = await loadPreferenceSnapshot();
 
-        expect(mocks.setBool).toHaveBeenCalledWith(
+        expect(mocks.setBool).not.toHaveBeenCalledWith(
             'hmdNotificationsEnabled',
-            false
+            expect.anything()
         );
-        expect(mocks.appVrOverlayConfigReload).toHaveBeenCalledTimes(1);
         expect(snapshot.hmdNotificationsEnabled).toBe(false);
     });
 

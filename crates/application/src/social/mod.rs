@@ -74,8 +74,9 @@ pub use quick_search_catalog::{
 };
 pub use social_mutation::{
     accept_friend_request, cancel_friend_request, send_friend_request, unfriend, unfriend_batch,
-    SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendMutationStatus,
-    SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
-    SocialUnfriendBatchInput, SocialUnfriendBatchItemResult, SocialUnfriendBatchItemState,
-    SocialUnfriendBatchResult, SocialUnfriendBatchTarget, SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
+    unfriend_selection, SocialFriendMutationInput, SocialFriendMutationOutcome,
+    SocialFriendMutationStatus, SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput,
+    SocialMutationDeps, SocialUnfriendBatchInput, SocialUnfriendBatchItemResult,
+    SocialUnfriendBatchItemState, SocialUnfriendBatchResult, SocialUnfriendBatchTarget,
+    SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
 };

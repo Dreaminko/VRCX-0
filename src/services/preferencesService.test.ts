@@ -5,13 +5,13 @@ const mocks = vi.hoisted(() => ({
     appLanguageChanged: vi.fn(),
     appRestartApplication: vi.fn(),
     appOverlayActivityDefinitionsGet: vi.fn(),
-    appOverlayActivityFiltersReload: vi.fn(),
+    appOverlayActivityFiltersSet: vi.fn(),
+    appNotificationActivityFiltersSet: vi.fn(),
     appVrOverlayEnabledSet: vi.fn(),
     appDisableVrchatRichPresence: vi.fn(),
     appRuntimeDiscordReconcileRequest: vi.fn(),
     appSystemCulture: vi.fn(),
     getRawValue: vi.fn(),
-    has: vi.fn(),
     getBool: vi.fn(),
     getString: vi.fn(),
     getInt: vi.fn(),
@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
     setArray: vi.fn(),
     setObject: vi.fn(),
     setMany: vi.fn(),
+    applyServerEntry: vi.fn(),
     storageGetString: vi.fn(),
     storageSetString: vi.fn(),
     publishPreferenceChanged: vi.fn(),
@@ -44,7 +45,9 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appRestartApplication: mocks.appRestartApplication,
         appOverlayActivityDefinitionsGet:
             mocks.appOverlayActivityDefinitionsGet,
-        appOverlayActivityFiltersReload: mocks.appOverlayActivityFiltersReload,
+        appOverlayActivityFiltersSet: mocks.appOverlayActivityFiltersSet,
+        appNotificationActivityFiltersSet:
+            mocks.appNotificationActivityFiltersSet,
         appVrOverlayEnabledSet: mocks.appVrOverlayEnabledSet,
         appDisableVrchatRichPresence: mocks.appDisableVrchatRichPresence,
         appRuntimeDiscordReconcileRequest:
@@ -56,7 +59,6 @@ vi.mock('@/platform/tauri/bindings', () => ({
 vi.mock('@/repositories/configRepository', () => ({
     default: {
         getRawValue: mocks.getRawValue,
-        has: mocks.has,
         getBool: mocks.getBool,
         getString: mocks.getString,
         getInt: mocks.getInt,
@@ -67,7 +69,8 @@ vi.mock('@/repositories/configRepository', () => ({
         setInt: mocks.setInt,
         setArray: mocks.setArray,
         setObject: mocks.setObject,
-        setMany: mocks.setMany
+        setMany: mocks.setMany,
+        applyServerEntry: mocks.applyServerEntry
     }
 }));
 
@@ -246,7 +249,6 @@ describe('preferencesService characterization', () => {
         });
 
         mocks.getRawValue.mockResolvedValue(null);
-        mocks.has.mockResolvedValue(true);
         mocks.getBool.mockImplementation((_key: string, fallback = false) =>
             Promise.resolve(Boolean(fallback))
         );
@@ -274,7 +276,8 @@ describe('preferencesService characterization', () => {
         );
         mocks.storageSetString.mockResolvedValue(undefined);
         mocks.appOverlayActivityDefinitionsGet.mockResolvedValue([]);
-        mocks.appOverlayActivityFiltersReload.mockResolvedValue(undefined);
+        mocks.appOverlayActivityFiltersSet.mockResolvedValue(undefined);
+        mocks.appNotificationActivityFiltersSet.mockResolvedValue(undefined);
         mocks.appVrOverlayConfigReload.mockResolvedValue(undefined);
         mocks.appLanguageChanged.mockResolvedValue(undefined);
         mocks.appRestartApplication.mockResolvedValue(undefined);
@@ -384,44 +387,20 @@ describe('preferencesService characterization', () => {
         );
     });
 
-    it('seeds hmdNotificationsEnabled off when external overlay forwarding is on', async () => {
-        mocks.has.mockResolvedValue(false);
-        mocks.getRawValue.mockImplementation((key: string) =>
-            Promise.resolve(key === 'xsNotifications' ? 'true' : null)
-        );
+    it('reads the backend-seeded hmdNotificationsEnabled value without writing it', async () => {
         mocks.getBool.mockImplementation((key: string, fallback = false) =>
             Promise.resolve(
-                key === 'xsNotifications' ? true : Boolean(fallback)
+                key === 'hmdNotificationsEnabled' ? false : Boolean(fallback)
             )
         );
 
-        await loadPreferenceSnapshot();
-
-        expect(mocks.setBool).toHaveBeenCalledWith(
-            'hmdNotificationsEnabled',
-            false
-        );
-        expect(mocks.appVrOverlayConfigReload).toHaveBeenCalled();
-    });
-
-    it('seeds hmdNotificationsEnabled on when all external overlay forwarding is off', async () => {
-        mocks.has.mockResolvedValue(false);
-
-        await loadPreferenceSnapshot();
-
-        expect(mocks.setBool).toHaveBeenCalledWith(
-            'hmdNotificationsEnabled',
-            true
-        );
-    });
-
-    it('does not reseed hmdNotificationsEnabled when the key already exists', async () => {
-        await loadPreferenceSnapshot();
+        const snapshot = await loadPreferenceSnapshot();
 
         expect(mocks.setBool).not.toHaveBeenCalledWith(
             'hmdNotificationsEnabled',
             expect.anything()
         );
+        expect(snapshot.hmdNotificationsEnabled).toBe(false);
     });
 
     it('normalizes notification layout and syncs shell/store state', async () => {
@@ -507,27 +486,25 @@ describe('preferencesService characterization', () => {
             }
         });
 
-        const hmdSetStringCall = mocks.setString.mock.calls.find(
-            ([key]) => key === 'hmdNotificationActivityFilters'
-        );
-        if (!hmdSetStringCall) {
-            throw new Error('Missing HMD activity filter persistence call');
-        }
-        const persisted: unknown = JSON.parse(String(hmdSetStringCall[1]));
-
-        expect(persisted).toMatchObject({
-            types: {
-                OnPlayerJoined: {
-                    scope: 'friends',
-                    favoriteGroupKeys: 'all'
-                },
-                Online: {
-                    scope: 'off',
-                    favoriteGroupKeys: 'all'
-                }
-            }
+        expect(mocks.appNotificationActivityFiltersSet).toHaveBeenCalledWith({
+            surface: 'hmd',
+            filters: expect.objectContaining({
+                types: expect.objectContaining({
+                    OnPlayerJoined: {
+                        scope: 'friends',
+                        favoriteGroupKeys: 'all'
+                    },
+                    Online: {
+                        scope: 'off',
+                        favoriteGroupKeys: 'all'
+                    }
+                })
+            })
         });
-        expect(mocks.appOverlayActivityFiltersReload).toHaveBeenCalledTimes(1);
+        expect(mocks.applyServerEntry).toHaveBeenCalledWith(
+            'hmdNotificationActivityFilters',
+            expect.any(String)
+        );
         expect(mocks.publishPreferenceChanged).toHaveBeenCalledWith(
             'hmdNotificationActivityFilters',
             expect.objectContaining({
@@ -579,29 +556,24 @@ describe('preferencesService characterization', () => {
             warn.mockRestore();
         }
 
-        const hmdSetStringCall = mocks.setString.mock.calls.find(
-            ([key]) => key === 'hmdNotificationActivityFilters'
-        );
-        if (!hmdSetStringCall) {
-            throw new Error('Missing HMD activity filter persistence call');
-        }
-        const persisted: unknown = JSON.parse(String(hmdSetStringCall[1]));
-
-        expect(persisted).toMatchObject({
-            types: {
-                OnPlayerJoined: {
-                    scope: 'friends',
-                    favoriteGroupKeys: 'all'
-                },
-                Online: {
-                    scope: 'allFavorites',
-                    favoriteGroupKeys: 'all'
-                },
-                VideoPlay: {
-                    scope: 'off',
-                    favoriteGroupKeys: 'all'
-                }
-            }
+        expect(mocks.appNotificationActivityFiltersSet).toHaveBeenCalledWith({
+            surface: 'hmd',
+            filters: expect.objectContaining({
+                types: expect.objectContaining({
+                    OnPlayerJoined: {
+                        scope: 'friends',
+                        favoriteGroupKeys: 'all'
+                    },
+                    Online: {
+                        scope: 'allFavorites',
+                        favoriteGroupKeys: 'all'
+                    },
+                    VideoPlay: {
+                        scope: 'off',
+                        favoriteGroupKeys: 'all'
+                    }
+                })
+            })
         });
     });
 

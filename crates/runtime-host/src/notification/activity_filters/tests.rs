@@ -209,3 +209,41 @@ fn backend_load_seeds_tts_filters_from_vr_when_desktop_is_off(
     );
     Ok(())
 }
+
+#[test]
+fn backend_save_updates_only_requested_notification_surface(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (_dir, config) = test_config("overlay-activity-save-surface")?;
+    config.set_string("desktopNotificationActivityFilters", "desktop-before")?;
+    let filters = OverlayActivityFilterProfile {
+        version: 9,
+        types: [(
+            "future.activity".to_string(),
+            vrcx_0_application_activity::OverlayActivityRule {
+                scope: OverlayActivityScope::On,
+                favorite_group_keys:
+                    vrcx_0_application_activity::OverlayActivityFavoriteGroupKeys::All,
+            },
+        )]
+        .into(),
+    };
+
+    let saved = save_notification_activity_filters(
+        &config,
+        NotificationActivityFiltersSetInput {
+            surface: NotificationActivityFilterSurface::Tts,
+            filters,
+        },
+    )?;
+
+    assert_eq!(saved.version, 1);
+    assert!(saved.types.contains_key("future.activity"));
+    assert_eq!(
+        config.get_string("desktopNotificationActivityFilters", "")?,
+        "desktop-before"
+    );
+    assert!(config
+        .get_string("ttsNotificationActivityFilters", "")?
+        .contains("future.activity"));
+    Ok(())
+}

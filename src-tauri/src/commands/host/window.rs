@@ -7,6 +7,7 @@ use tauri_plugin_autostart::ManagerExt as _;
 
 use crate::error::AppError;
 use crate::state::AppState;
+use vrcx_0_runtime_host_desktop::AutostartPlatform;
 
 const TRAY_ICON_DEFAULT: &[u8] = include_bytes!("../../../icons/icon.png");
 const TRAY_ICON_NOTIFY: &[u8] = include_bytes!("../../../icons/icon_notify.png");
@@ -229,25 +230,42 @@ pub fn app__exit_application(app_handle: AppHandle) -> Result<(), AppError> {
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__set_startup(app_handle: AppHandle, enabled: bool) -> Result<(), AppError> {
-    if !(cfg!(target_os = "windows") || cfg!(target_os = "linux") || cfg!(target_os = "macos")) {
-        return Err(AppError::Custom(format!(
-            "Autostart is not supported on {}",
-            vrcx_0_host::host_capabilities::current_platform()
-        )));
+pub fn app__set_startup(
+    app_handle: AppHandle,
+    state: State<'_, AppState>,
+    enabled: bool,
+) -> Result<bool, AppError> {
+    struct TauriAutostartPlatform(AppHandle);
+
+    impl AutostartPlatform for TauriAutostartPlatform {
+        fn set_enabled(&self, enabled: bool) -> Result<(), String> {
+            if !(cfg!(target_os = "windows")
+                || cfg!(target_os = "linux")
+                || cfg!(target_os = "macos"))
+            {
+                return Err(format!(
+                    "Autostart is not supported on {}",
+                    vrcx_0_host::host_capabilities::current_platform()
+                ));
+            }
+            let autolaunch = self.0.autolaunch();
+            if enabled {
+                autolaunch
+                    .enable()
+                    .map_err(|error| format!("enable autostart: {error}"))
+            } else {
+                autolaunch
+                    .disable()
+                    .map_err(|error| format!("disable autostart: {error}"))
+            }
+        }
     }
 
-    let autolaunch = app_handle.autolaunch();
-    if enabled {
-        autolaunch
-            .enable()
-            .map_err(|e| AppError::Custom(format!("enable autostart: {e}")))?;
-    } else {
-        autolaunch
-            .disable()
-            .map_err(|e| AppError::Custom(format!("disable autostart: {e}")))?;
-    }
-    Ok(())
+    Ok(vrcx_0_runtime_host_desktop::set_autostart_preference(
+        state.runtime_context.config(),
+        &TauriAutostartPlatform(app_handle),
+        enabled,
+    )?)
 }
 
 #[tauri::command]
