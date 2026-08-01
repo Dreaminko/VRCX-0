@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { CurrentInstanceRosterPlayer } from '@/domain/instances/currentInstanceRoster';
 import { MINUTE_MS } from '@/shared/constants/time';
 
 type TaskState = {
@@ -190,8 +191,8 @@ type RuntimeStore = {
         currentWorldName: string;
         currentDestination: string;
         currentLocationStartedAt: string | null;
-        currentLocationPlayerIds: unknown[];
-        currentLocationPlayers: unknown[];
+        currentLocationPlayerIds: string[];
+        currentLocationPlayers: CurrentInstanceRosterPlayer[];
         lastGameStateChangedAt: string | null;
         lastGameStartedAt: string | null;
         lastGameLogAt: string | null;

@@ -14,13 +14,17 @@ import type {
     GroupProfileRecord,
     WorldProfileRecord
 } from '@/domain/entities/profileEntities';
+import {
+    resolveRuntimeCurrentInstanceRoster,
+    type CurrentInstanceRosterSnapshot
+} from '@/domain/instances/currentInstanceRoster';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
 import mediaRepository from '@/repositories/mediaRepository';
-import playerListPersistenceRepository from '@/repositories/playerListPersistenceRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import vrchatInstanceRepository from '@/repositories/vrchatInstanceRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { copyTextToClipboard } from '@/services/clipboardService';
+import { loadCurrentInstanceRoster } from '@/services/currentInstanceRosterService';
 import { openUserDialog } from '@/services/dialogService';
 import {
     recordGameRuntimePresence,
@@ -188,7 +192,7 @@ type CurrentInstanceDetails = {
     instance: EntityRecord | null;
     ownerUser: EntityRecord | null;
     ownerGroup: EntityRecord | null;
-    playerSnapshot: unknown;
+    playerSnapshot: CurrentInstanceRosterSnapshot | null;
 };
 
 type InstanceDetailTarget = {
@@ -317,9 +321,12 @@ export function WorldDialogTabbedView({
     const {
         currentEndpoint,
         currentGameLocation,
+        currentLocationPlayers,
         currentLocationStartedAt,
         currentUserId,
         currentUserSnapshot,
+        currentWorldId,
+        currentWorldName,
         friendsById,
         openImagePreview,
         screenshotCacheStatus
@@ -758,34 +765,29 @@ export function WorldDialogTabbedView({
                 )
                 .catch((): null => null),
             isCurrentLiveInstance
-                ? playerListPersistenceRepository
-                      .getCurrentInstanceSnapshot({
-                          currentUserId,
-                          currentLocation: normalizedWorldId
-                      })
-                      .catch((): null => null)
+                ? loadCurrentInstanceRoster({
+                      currentUserId,
+                      currentLocation: normalizedWorldId,
+                      runtime: {
+                          currentLocation: currentResolvedLocation,
+                          currentLocationStartedAt,
+                          currentWorldId,
+                          currentWorldName,
+                          players: currentLocationPlayers
+                      }
+                  }).catch((): null => null)
                 : Promise.resolve(null)
         ])
             .then(async ([instance, playerSnapshot]) => {
-                const playerSnapshotRecord = record(playerSnapshot);
-                const playerContext = record(playerSnapshotRecord.context);
-                const snapshotPlayers = (
-                    Array.isArray(playerSnapshotRecord.players)
-                        ? playerSnapshotRecord.players
-                        : []
-                ).map((player) => {
-                    const source = record(player);
-                    const userId = firstText(source.userId, source.user_id);
-                    return {
-                        id: userId,
-                        userId,
-                        displayName: firstText(
-                            source.displayName,
-                            source.display_name
-                        ),
-                        joinedAt: firstText(source.joinedAt, source.joined_at)
-                    };
-                });
+                const playerContext = playerSnapshot?.context;
+                const snapshotPlayers = (playerSnapshot?.players || []).map(
+                    (player) => ({
+                        id: player.userId,
+                        userId: player.userId,
+                        displayName: player.displayName,
+                        joinedAt: player.joinedAt
+                    })
+                );
                 const instanceRecord = instance || {};
                 const ownerUserRecord = record(instanceRecord.ownerUser);
                 const ownerRecord = record(instanceRecord.owner);
@@ -891,11 +893,11 @@ export function WorldDialogTabbedView({
                         currentLocation: normalizedWorldId,
                         currentLocationStartedAt:
                             currentLocationStartedAt ||
-                            playerContext.createdAt ||
+                            playerContext?.createdAt ||
                             '',
                         currentLocationPlayers: snapshotPlayers,
                         currentWorldName:
-                            playerContext.worldName || world?.name || ''
+                            playerContext?.worldName || world?.name || ''
                     });
                 }
                 setCurrentInstanceDetails({
@@ -927,9 +929,48 @@ export function WorldDialogTabbedView({
         currentLocationStartedAt,
         currentUserId,
         currentUserSnapshot,
+        currentWorldId,
+        currentWorldName,
         isInstanceLocation,
         normalizedWorldId,
         world?.name
+    ]);
+
+    useEffect(() => {
+        if (
+            !isInstanceLocation ||
+            !sameLocationTag(currentResolvedLocation, normalizedWorldId)
+        ) {
+            return;
+        }
+
+        const playerSnapshot = resolveRuntimeCurrentInstanceRoster({
+            requestedLocation: normalizedWorldId,
+            runtime: {
+                currentLocation: currentResolvedLocation,
+                currentLocationStartedAt,
+                currentWorldId,
+                currentWorldName,
+                players: currentLocationPlayers
+            }
+        });
+        if (!playerSnapshot) {
+            return;
+        }
+
+        setCurrentInstanceDetails((current) => ({
+            ...current,
+            location: normalizedWorldId,
+            playerSnapshot
+        }));
+    }, [
+        currentLocationPlayers,
+        currentLocationStartedAt,
+        currentResolvedLocation,
+        currentWorldId,
+        currentWorldName,
+        isInstanceLocation,
+        normalizedWorldId
     ]);
 
     const worldUrl = world.id ? vrchatWorldUrl(world.id) : '';
