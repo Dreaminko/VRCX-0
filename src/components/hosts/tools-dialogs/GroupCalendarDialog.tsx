@@ -12,12 +12,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import {
     entityQueryPolicies,
     fetchCachedData,
     queryKeys
 } from '@/lib/entityQueryCache';
+import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
@@ -248,10 +248,10 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                     })
             });
             const normalizedRows = snapshot.events.map((event: any) => ({
-                    ...event,
-                    title: replaceBioSymbols(event.title || ''),
-                    description: replaceBioSymbols(event.description || '')
-                }));
+                ...event,
+                title: replaceBioSymbols(event.title || ''),
+                description: replaceBioSymbols(event.description || '')
+            }));
             if (requestId !== loadRequestRef.current) {
                 return;
             }

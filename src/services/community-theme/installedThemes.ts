@@ -64,7 +64,10 @@ export function applyCommunityThemeProjectionEvent(
     projection: CommunityThemeProjection
 ): void {
     void applyCommunityThemeProjection(projection).catch((error: unknown) => {
-        console.warn('Failed to apply community theme projection event:', error);
+        console.warn(
+            'Failed to apply community theme projection event:',
+            error
+        );
     });
 }
 

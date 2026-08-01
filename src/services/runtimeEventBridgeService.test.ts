@@ -592,9 +592,7 @@ describe('runtimeEventBridgeService', () => {
             'communityThemeState',
             expect.any(Function)
         );
-        expect(
-            mocks.subscribe.mock.invocationCallOrder.at(-1)
-        ).toBeLessThan(
+        expect(mocks.subscribe.mock.invocationCallOrder.at(-1)).toBeLessThan(
             mocks.refreshCommunityThemeProjection.mock.invocationCallOrder[0]
         );
     });

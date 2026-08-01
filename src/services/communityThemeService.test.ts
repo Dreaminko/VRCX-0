@@ -252,9 +252,9 @@ describe('communityThemeService', () => {
         await expect(
             service.reportCommunityThemeInstall('theme-a')
         ).resolves.toBe(true);
-        expect(
-            mocks.appCommunityThemeInstallReport
-        ).toHaveBeenCalledWith('theme-a');
+        expect(mocks.appCommunityThemeInstallReport).toHaveBeenCalledWith(
+            'theme-a'
+        );
         expect(useCommunityThemeStore.getState()).toMatchObject({
             catalogUrl: CATALOG_URL,
             catalog: [],

@@ -287,18 +287,16 @@ export function useFriendListRowActions({
             return next;
         });
         try {
-            const batchResult =
-                await friendRelationshipService.deleteFriends({
-                    expectedEndpoint: currentEndpoint,
-                    expectedOwnerUserId: currentUserId,
-                    friends: selectedRows
-                });
+            const batchResult = await friendRelationshipService.deleteFriends({
+                expectedEndpoint: currentEndpoint,
+                expectedOwnerUserId: currentUserId,
+                friends: selectedRows
+            });
             if (
                 batchResult.stale ||
                 bulkUnfriendRunRef.current !== runId ||
-                normalizeId(
-                    useRuntimeStore.getState().auth.currentUserId
-                ) !== batchResult.ownerUserId ||
+                normalizeId(useRuntimeStore.getState().auth.currentUserId) !==
+                    batchResult.ownerUserId ||
                 normalizeId(
                     useRuntimeStore.getState().auth.currentUserEndpoint
                 ) !== normalizeId(currentEndpoint)

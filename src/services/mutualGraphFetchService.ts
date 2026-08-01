@@ -47,8 +47,7 @@ function normalizeStatus(
 function isNewerStatus(runId: number, revision: number): boolean {
     return (
         runId > latestAcceptedRunId ||
-        (runId === latestAcceptedRunId &&
-            revision > latestAcceptedRevision)
+        (runId === latestAcceptedRunId && revision > latestAcceptedRevision)
     );
 }
 

@@ -18,7 +18,9 @@ export function buildFavoriteBulkRemoveInput({
 }): FavoriteBulkRemoveInput {
     const batchItems = items.map((item) => {
         if (item.source === 'history') {
-            throw new Error('Favorite history entries cannot be removed as favorites.');
+            throw new Error(
+                'Favorite history entries cannot be removed as favorites.'
+            );
         }
         return {
             key: item.key,

@@ -26,8 +26,8 @@ import {
     hasGroupPermission,
     type GroupModerationTabValue
 } from './groupDialogUtils';
-import { buildGroupModerationBatchInput } from './groupModerationBatch';
 import { GroupModerationBanImportDialog } from './GroupModerationBanImportDialog';
+import { buildGroupModerationBatchInput } from './groupModerationBatch';
 import {
     GroupModerationBulkPanel,
     type GroupModerationBulkProgress
@@ -378,8 +378,7 @@ export function GroupModerationWorkspace({
         if (!result.ok) {
             return;
         }
-        const batchOwnerUserId =
-            useRuntimeStore.getState().auth.currentUserId;
+        const batchOwnerUserId = useRuntimeStore.getState().auth.currentUserId;
         const batchEndpoint = endpoint;
         if (
             !batchOwnerUserId ||

@@ -16,10 +16,7 @@ vi.mock('@/platform/tauri/bindings', () => ({
 
 import { useRuntimeStore } from '@/state/runtimeStore';
 
-import {
-    applyVrcStatusSnapshot,
-    hydrateVrcStatus
-} from './vrcStatusService';
+import { applyVrcStatusSnapshot, hydrateVrcStatus } from './vrcStatusService';
 
 function snapshot(status: string, lastFetchedAt: string): VrcStatusSnapshot {
     return {

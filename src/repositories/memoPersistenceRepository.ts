@@ -1,6 +1,4 @@
-import {
-    invalidateEntityQueries
-} from '@/lib/entityQueryCache';
+import { invalidateEntityQueries } from '@/lib/entityQueryCache';
 import {
     commands,
     type AvatarMemoOutput,

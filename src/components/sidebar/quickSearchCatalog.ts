@@ -1,13 +1,13 @@
 import {
-    commands,
-    type QuickSearchCatalogSnapshot
-} from '@/platform/tauri/bindings';
-import {
     entityQueryPolicies,
     fetchCachedData,
     invalidateEntityQueries,
     queryKeys
 } from '@/lib/entityQueryCache';
+import {
+    commands,
+    type QuickSearchCatalogSnapshot
+} from '@/platform/tauri/bindings';
 
 export type QuickSearchCatalog = QuickSearchCatalogSnapshot;
 
