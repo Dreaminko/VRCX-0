@@ -32,6 +32,7 @@ type DeleteFriendsResult = SocialUnfriendBatchResult & {
 
 const STALE_AUTH_SCOPE_ERROR_TEXT = 'stale for the current auth scope';
 const CHANGED_AUTH_SCOPE_ERROR_TEXT = 'authentication scope changed';
+const UNFRIEND_BATCH_CHUNK_SIZE = 250;
 
 function normalizeUserId(value: unknown): string {
     return typeof value === 'string'
@@ -95,7 +96,10 @@ async function deleteFriend({
             targetDisplayName: normalizeUserId(friend?.displayName)
         });
         const stale =
-            !currentAuthScopeMatches(normalizeUserId(currentUserId), endpoint) ||
+            !currentAuthScopeMatches(
+                normalizeUserId(currentUserId),
+                endpoint
+            ) ||
             (outcome.status === 'remoteOkLocalFailed' &&
                 outcome.localError
                     ?.toLowerCase()
@@ -155,18 +159,45 @@ async function deleteFriends({
     if (!targets.length) {
         throw new Error('deleteFriends requires at least one friend user id.');
     }
-    const outcome = await commands.appSocialUnfriendBatch({
-        expectedEndpoint,
-        expectedOwnerUserId,
-        targets
-    });
+    const outcome: SocialUnfriendBatchResult = {
+        ownerUserId: expectedOwnerUserId,
+        total: 0,
+        succeeded: 0,
+        failed: 0,
+        localFailed: 0,
+        scopeChanged: false,
+        items: [],
+        lastError: null
+    };
+    for (
+        let start = 0;
+        start < targets.length;
+        start += UNFRIEND_BATCH_CHUNK_SIZE
+    ) {
+        const chunkOutcome = await commands.appSocialUnfriendBatch({
+            expectedEndpoint,
+            expectedOwnerUserId,
+            targets: targets.slice(start, start + UNFRIEND_BATCH_CHUNK_SIZE)
+        });
+        outcome.ownerUserId = chunkOutcome.ownerUserId;
+        outcome.total += chunkOutcome.total;
+        outcome.succeeded += chunkOutcome.succeeded;
+        outcome.failed += chunkOutcome.failed;
+        outcome.localFailed += chunkOutcome.localFailed;
+        outcome.scopeChanged =
+            outcome.scopeChanged || chunkOutcome.scopeChanged;
+        outcome.items.push(...chunkOutcome.items);
+        outcome.lastError = chunkOutcome.lastError ?? outcome.lastError;
+        if (
+            outcome.scopeChanged ||
+            !currentAuthScopeMatches(expectedOwnerUserId, expectedEndpoint)
+        ) {
+            break;
+        }
+    }
     const stale =
-        !currentAuthScopeMatches(expectedOwnerUserId, expectedEndpoint) ||
-        outcome.items.some((item) =>
-            item.message
-                .toLowerCase()
-                .includes(CHANGED_AUTH_SCOPE_ERROR_TEXT)
-        );
+        outcome.scopeChanged ||
+        !currentAuthScopeMatches(expectedOwnerUserId, expectedEndpoint);
     const appliedItems = stale
         ? []
         : outcome.items.filter(isRemoteUnfriendApplied);
@@ -182,12 +213,8 @@ async function deleteFriends({
     };
 }
 
-function isRemoteUnfriendApplied(
-    item: SocialUnfriendBatchItemResult
-): boolean {
-    return (
-        item.state === 'applied' || item.state === 'remoteOkLocalFailed'
-    );
+function isRemoteUnfriendApplied(item: SocialUnfriendBatchItemResult): boolean {
+    return item.state === 'applied' || item.state === 'remoteOkLocalFailed';
 }
 
 const friendRelationshipService = Object.freeze({

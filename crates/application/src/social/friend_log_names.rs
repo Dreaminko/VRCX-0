@@ -228,27 +228,14 @@ fn merge_game_log_names(
 }
 
 fn require_active_scope(auth_scope: &RuntimeAuthScope) -> Result<RuntimeAuthScopeSnapshot> {
-    let scope = auth_scope.snapshot();
-    if scope.active {
-        Ok(scope)
-    } else {
-        Err(Error::Custom(
-            "Friend log name resolution requires an authenticated session.".into(),
-        ))
-    }
+    crate::scope_gate::require_active_scope(auth_scope, "Friend log name resolution")
 }
 
 fn ensure_scope_matches(
     auth_scope: &RuntimeAuthScope,
     expected: &RuntimeAuthScopeSnapshot,
 ) -> Result<()> {
-    if auth_scope.snapshot().generation_matches(expected) {
-        Ok(())
-    } else {
-        Err(Error::Custom(
-            "Friend log name resolution authentication scope changed.".into(),
-        ))
-    }
+    crate::scope_gate::ensure_scope_matches(auth_scope, expected, "Friend log name resolution")
 }
 
 fn normalize_user_ids(user_ids: Vec<String>) -> Vec<String> {

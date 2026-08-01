@@ -761,24 +761,11 @@ fn ensure_scope_matches(
     current: &RuntimeAuthScopeSnapshot,
     expected: &RuntimeAuthScopeSnapshot,
 ) -> Result<()> {
-    if current.generation_matches(expected) {
-        Ok(())
-    } else {
-        Err(Error::Custom(
-            "Group moderation batch authentication scope changed.".into(),
-        ))
-    }
+    crate::scope_gate::ensure_snapshot_scope_matches(current, expected, "Group moderation batch")
 }
 
 fn response_error_message(payload: &Value, status: i32, action: &str) -> String {
-    payload
-        .get("error")
-        .and_then(Value::as_object)
-        .and_then(|error| error.get("message"))
-        .and_then(Value::as_str)
-        .or_else(|| payload.get("message").and_then(Value::as_str))
-        .map(str::to_string)
-        .unwrap_or_else(|| format!("VRChat {action} failed with HTTP {status}."))
+    crate::scope_gate::response_error_message(payload, status, action)
 }
 
 #[cfg(test)]

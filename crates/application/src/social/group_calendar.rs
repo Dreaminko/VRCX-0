@@ -477,27 +477,14 @@ fn event_id(row: &Value) -> Option<String> {
 }
 
 fn require_active_scope(auth_scope: &RuntimeAuthScope) -> Result<RuntimeAuthScopeSnapshot> {
-    let scope = auth_scope.snapshot();
-    if scope.active {
-        Ok(scope)
-    } else {
-        Err(Error::Custom(
-            "Group calendar snapshot requires an authenticated session.".into(),
-        ))
-    }
+    crate::scope_gate::require_active_scope(auth_scope, "Group calendar snapshot")
 }
 
 fn ensure_scope_matches(
     auth_scope: &RuntimeAuthScope,
     expected: &RuntimeAuthScopeSnapshot,
 ) -> Result<()> {
-    if auth_scope.snapshot().generation_matches(expected) {
-        Ok(())
-    } else {
-        Err(Error::Custom(
-            "Group calendar authentication scope changed.".into(),
-        ))
-    }
+    crate::scope_gate::ensure_scope_matches(auth_scope, expected, "Group calendar")
 }
 
 #[cfg(test)]

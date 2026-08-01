@@ -5482,6 +5482,7 @@ export type SocialUnfriendBatchResult = {
     succeeded: number;
     failed: number;
     localFailed: number;
+    scopeChanged: boolean;
     items: SocialUnfriendBatchItemResult[];
     lastError: string | null;
 };

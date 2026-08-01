@@ -92,6 +92,7 @@ describe('friendRelationshipService.deleteFriends', () => {
             succeeded: 2,
             failed: 1,
             localFailed: 1,
+            scopeChanged: false,
             items: [
                 {
                     userId: 'usr_a',
@@ -158,6 +159,7 @@ describe('friendRelationshipService.deleteFriends', () => {
                 succeeded: 1,
                 failed: 0,
                 localFailed: 0,
+                scopeChanged: false,
                 items: [
                     {
                         userId: 'usr_a',
@@ -183,6 +185,44 @@ describe('friendRelationshipService.deleteFriends', () => {
         expect(friendLogMocks.signalChanged).not.toHaveBeenCalled();
     });
 
+    it('treats a backend-reported scope change as stale without message matching', async () => {
+        commandMocks.unfriendBatch.mockResolvedValue({
+            ownerUserId: 'usr_self',
+            total: 2,
+            succeeded: 1,
+            failed: 1,
+            localFailed: 0,
+            scopeChanged: true,
+            items: [
+                {
+                    userId: 'usr_a',
+                    state: 'applied',
+                    message: ''
+                },
+                {
+                    userId: 'usr_b',
+                    state: 'notAttempted',
+                    message: 'Reworded backend error text.'
+                }
+            ],
+            lastError: 'Reworded backend error text.'
+        });
+
+        const result = await deleteFriends({
+            expectedEndpoint: 'https://api.example.test',
+            expectedOwnerUserId: 'usr_self',
+            friends: [{ id: 'usr_a' }, { id: 'usr_b' }]
+        });
+
+        expect(result.stale).toBe(true);
+        expect(
+            useRuntimeStore.getState().auth.currentUserSnapshot
+        ).toMatchObject({
+            friends: ['usr_a', 'usr_b', 'usr_c']
+        });
+        expect(friendLogMocks.signalChanged).not.toHaveBeenCalled();
+    });
+
     it('does not patch the same account after its endpoint changes', async () => {
         commandMocks.unfriendBatch.mockImplementation(async () => {
             useRuntimeStore.getState().setAuthBootstrap({
@@ -198,6 +238,7 @@ describe('friendRelationshipService.deleteFriends', () => {
                 succeeded: 1,
                 failed: 0,
                 localFailed: 0,
+                scopeChanged: false,
                 items: [
                     {
                         userId: 'usr_a',

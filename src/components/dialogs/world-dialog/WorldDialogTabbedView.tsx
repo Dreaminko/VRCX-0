@@ -558,12 +558,19 @@ export function WorldDialogTabbedView({
         worldScreenshotsForceRefreshRef.current = false;
         const initializeScan = async () => {
             try {
-                const currentStatus =
+                let currentStatus =
                     await getCurrentScreenshotLibraryScanStatus();
-                if (!active || !currentStatus) {
+                if (!active) {
                     return;
                 }
-                if (currentStatus.running) {
+                if (!currentStatus) {
+                    currentStatus =
+                        await getCurrentScreenshotLibraryScanStatus();
+                    if (!active) {
+                        return;
+                    }
+                }
+                if (currentStatus?.running) {
                     handleScanStatus(currentStatus);
                     return;
                 }

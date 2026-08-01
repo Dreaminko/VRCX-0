@@ -226,7 +226,22 @@ async fn fetch_user_groups(
 ) -> Result<Vec<Value>> {
     let (_, request) =
         user_groups_get_input(scope.endpoint.clone(), scope.current_user_id.clone())?;
-    execute_rows(deps, scope, request).await
+    let mut rows = execute_rows(deps, scope, request).await?;
+    for row in &mut rows {
+        let Some(object) = row.as_object_mut() else {
+            continue;
+        };
+        let Some(group_id) = object
+            .get("groupId")
+            .and_then(Value::as_str)
+            .filter(|group_id| !group_id.is_empty())
+            .map(str::to_owned)
+        else {
+            continue;
+        };
+        object.insert("id".into(), Value::String(group_id));
+    }
+    Ok(rows)
 }
 
 async fn execute_rows(
@@ -269,27 +284,14 @@ fn rows_or_empty(result: Result<Vec<Value>>, failures: &mut usize) -> Vec<Value>
 }
 
 fn require_active_scope(auth_scope: &RuntimeAuthScope) -> Result<RuntimeAuthScopeSnapshot> {
-    let scope = auth_scope.snapshot();
-    if scope.active {
-        Ok(scope)
-    } else {
-        Err(Error::Custom(
-            "Quick search catalog requires an authenticated session.".into(),
-        ))
-    }
+    crate::scope_gate::require_active_scope(auth_scope, "Quick search catalog")
 }
 
 fn ensure_scope_matches(
     auth_scope: &RuntimeAuthScope,
     expected: &RuntimeAuthScopeSnapshot,
 ) -> Result<()> {
-    if auth_scope.snapshot().generation_matches(expected) {
-        Ok(())
-    } else {
-        Err(Error::Custom(
-            "Quick search catalog authentication scope changed.".into(),
-        ))
-    }
+    crate::scope_gate::ensure_scope_matches(auth_scope, expected, "Quick search catalog")
 }
 
 #[cfg(test)]

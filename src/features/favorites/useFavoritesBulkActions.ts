@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import type {
+    FavoriteBulkRemoveResult,
     FavoriteTransferItemResult,
     FavoriteTransferMode
 } from '@/platform/tauri/bindings';
@@ -13,6 +14,12 @@ import type { FavoriteRecord } from '@/state/favoriteStoreTypes';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+import {
+    buildFavoriteBulkRemoveInput,
+    favoriteBulkRemoveSuccessfulKeys
+} from './favoriteBulkRemove';
+
+const FAVORITE_BULK_REMOVE_CHUNK_SIZE = 250;
 import type {
     FavoriteGroup,
     FavoriteItem,
@@ -30,10 +37,6 @@ import {
     resolveFavoriteSourceGroup,
     summarizeFavoriteTransferStatuses
 } from './favoriteTransfer';
-import {
-    buildFavoriteBulkRemoveInput,
-    favoriteBulkRemoveSuccessfulKeys
-} from './favoriteBulkRemove';
 
 export function useFavoritesBulkActions({
     currentEndpoint,
@@ -125,16 +128,53 @@ export function useFavoritesBulkActions({
             return;
         }
         try {
-            const batchResult = await commands.appFavoritesBulkRemove(
-                buildFavoriteBulkRemoveInput({
-                    expectedEndpoint: currentEndpoint,
-                    expectedOwnerUserId: batchOwnerUserId,
-                    items: selectedContentItems,
-                    kind
-                })
-            );
-            const removedKeys =
-                favoriteBulkRemoveSuccessfulKeys(batchResult);
+            const batchResult: FavoriteBulkRemoveResult = {
+                ownerUserId: batchOwnerUserId,
+                kind,
+                total: 0,
+                succeeded: 0,
+                failed: 0,
+                localChanged: false,
+                remoteChanged: false,
+                items: [],
+                lastError: null
+            };
+            for (
+                let start = 0;
+                start < selectedContentItems.length;
+                start += FAVORITE_BULK_REMOVE_CHUNK_SIZE
+            ) {
+                const chunkResult = await commands.appFavoritesBulkRemove(
+                    buildFavoriteBulkRemoveInput({
+                        expectedEndpoint: currentEndpoint,
+                        expectedOwnerUserId: batchOwnerUserId,
+                        items: selectedContentItems.slice(
+                            start,
+                            start + FAVORITE_BULK_REMOVE_CHUNK_SIZE
+                        ),
+                        kind
+                    })
+                );
+                batchResult.ownerUserId = chunkResult.ownerUserId;
+                batchResult.total += chunkResult.total;
+                batchResult.succeeded += chunkResult.succeeded;
+                batchResult.failed += chunkResult.failed;
+                batchResult.localChanged =
+                    batchResult.localChanged || chunkResult.localChanged;
+                batchResult.remoteChanged =
+                    batchResult.remoteChanged || chunkResult.remoteChanged;
+                batchResult.items.push(...chunkResult.items);
+                batchResult.lastError =
+                    chunkResult.lastError ?? batchResult.lastError;
+                const chunkAuth = useRuntimeStore.getState().auth;
+                if (
+                    chunkAuth.currentUserId !== chunkResult.ownerUserId ||
+                    chunkAuth.currentUserEndpoint !== batchEndpoint
+                ) {
+                    break;
+                }
+            }
+            const removedKeys = favoriteBulkRemoveSuccessfulKeys(batchResult);
             const currentAuth = useRuntimeStore.getState().auth;
             if (
                 currentAuth.currentUserId !== batchResult.ownerUserId ||

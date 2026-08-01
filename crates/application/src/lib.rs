@@ -7,6 +7,7 @@ mod event_payloads;
 mod favorites;
 mod media;
 mod remote_mutation_gate;
+mod scope_gate;
 mod social;
 mod system;
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { commands } from '@/platform/tauri/bindings';
 import { getKnownUserFact } from '@/services/userFactAccessService';
@@ -49,9 +49,9 @@ export function useFriendLogResolvedNames(
         setNamesById({});
     }, [currentUserId, endpoint]);
 
-    useEffect(() => {
+    const missingKey = useMemo(() => {
         if (!normalizeUserId(currentUserId)) {
-            return undefined;
+            return '';
         }
         const missing: string[] = [];
         const seen = new Set<string>();
@@ -76,9 +76,14 @@ export function useFriendLogResolvedNames(
                 break;
             }
         }
-        if (missing.length === 0) {
+        return missing.join('\n');
+    }, [currentUserId, rows, namesById, resolveSyncName]);
+
+    useEffect(() => {
+        if (!missingKey) {
             return undefined;
         }
+        const missing = missingKey.split('\n');
         for (const userId of missing) {
             attemptedRef.current.add(userId);
         }
@@ -103,7 +108,11 @@ export function useFriendLogResolvedNames(
                     setNamesById((current) => ({ ...current, ...resolved }));
                 }
             })
-            .catch(() => {})
+            .catch(() => {
+                for (const userId of missing) {
+                    attemptedRef.current.delete(userId);
+                }
+            })
             .finally(() => {
                 settled = true;
             });
@@ -116,7 +125,7 @@ export function useFriendLogResolvedNames(
                 void commands.appFriendLogNamesCancel(requestId);
             }
         };
-    }, [currentUserId, rows, namesById, resolveSyncName]);
+    }, [missingKey]);
 
     return useCallback(
         (row: FriendLogRow) => {

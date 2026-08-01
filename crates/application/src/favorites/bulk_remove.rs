@@ -89,6 +89,11 @@ enum RemoteRemoveOutcome {
     RemovedScopeChanged,
 }
 
+struct FavoriteBulkRemoveWorkItem {
+    item: FavoriteBulkRemoveItem,
+    rejection: Option<String>,
+}
+
 trait FavoriteBulkRemoveActions: Send + Sync {
     fn remove_local(&self, kind: &str, item: &FavoriteBulkRemoveItem) -> Result<i64>;
     fn remove_remote<'a>(
@@ -107,18 +112,11 @@ struct VrchatFavoriteBulkRemoveActions<'a> {
 
 impl VrchatFavoriteBulkRemoveActions<'_> {
     fn ensure_scope(&self) -> Result<()> {
-        if self
-            .deps
-            .auth_scope
-            .snapshot()
-            .generation_matches(&self.deps.expected_scope)
-        {
-            Ok(())
-        } else {
-            Err(Error::Custom(
-                "Favorite bulk remove authentication scope changed.".into(),
-            ))
-        }
+        crate::scope_gate::ensure_scope_matches(
+            self.deps.auth_scope,
+            &self.deps.expected_scope,
+            "Favorite bulk remove",
+        )
     }
 
     async fn execute_remote(&self, request: HttpApiRequestInput) -> Result<RemoteRemoveOutcome> {
@@ -231,17 +229,33 @@ async fn run_favorite_bulk_remove(
     actions: &dyn FavoriteBulkRemoveActions,
     owner_user_id: String,
     kind: String,
-    input_items: Vec<FavoriteBulkRemoveItem>,
+    input_items: Vec<FavoriteBulkRemoveWorkItem>,
 ) -> FavoriteBulkRemoveResult {
-    let mut items = input_items.iter().map(not_attempted).collect::<Vec<_>>();
+    let mut items = input_items
+        .iter()
+        .map(|work| not_attempted(&work.item))
+        .collect::<Vec<_>>();
     let mut last_error = None;
 
-    for (index, item) in input_items.iter().enumerate() {
+    for (index, work) in input_items.iter().enumerate() {
         if !actions.scope_matches() {
             let message = "Favorite bulk remove authentication scope changed.".to_string();
             mark_not_attempted(&mut items[index..], &message);
             last_error = Some(message);
             break;
+        }
+        let item = &work.item;
+        if let Some(message) = &work.rejection {
+            items[index] = FavoriteBulkRemoveItemResult {
+                key: item.key.clone(),
+                source: item.source,
+                entity_id: item.entity_id.clone(),
+                state: FavoriteBulkRemoveItemState::Failed,
+                local_affected: 0,
+                message: message.clone(),
+            };
+            last_error = Some(message.clone());
+            continue;
         }
         let outcome = match item.source {
             FavoriteBulkRemoveSource::Local => actions
@@ -328,7 +342,7 @@ fn normalize_kind(kind: &str) -> Result<String> {
 fn normalize_items(
     kind: &str,
     input_items: Vec<FavoriteBulkRemoveItem>,
-) -> Result<Vec<FavoriteBulkRemoveItem>> {
+) -> Result<Vec<FavoriteBulkRemoveWorkItem>> {
     let expected_prefix = match kind {
         "friend" => "usr_",
         "world" => "wrld_",
@@ -350,22 +364,24 @@ fn normalize_items(
                 "Favorite bulk remove requires an item key.".into(),
             ));
         }
-        if !entity_id.starts_with(expected_prefix) || entity_id.len() == expected_prefix.len() {
-            return Err(Error::Custom(
-                "Favorite bulk remove contains an invalid entity id.".into(),
-            ));
-        }
-        if item.source == FavoriteBulkRemoveSource::Local && group_name.is_empty() {
-            return Err(Error::Custom(
-                "Local favorite bulk remove requires a group name.".into(),
-            ));
-        }
+        let rejection = if !entity_id.starts_with(expected_prefix)
+            || entity_id.len() == expected_prefix.len()
+        {
+            Some("Favorite bulk remove contains an invalid entity id.".to_string())
+        } else if item.source == FavoriteBulkRemoveSource::Local && group_name.is_empty() {
+            Some("Local favorite bulk remove requires a group name.".to_string())
+        } else {
+            None
+        };
         if seen.insert(key.clone()) {
-            items.push(FavoriteBulkRemoveItem {
-                key,
-                source: item.source,
-                entity_id,
-                group_name,
+            items.push(FavoriteBulkRemoveWorkItem {
+                item: FavoriteBulkRemoveItem {
+                    key,
+                    source: item.source,
+                    entity_id,
+                    group_name,
+                },
+                rejection,
             });
         }
     }
@@ -400,14 +416,7 @@ fn mark_not_attempted(items: &mut [FavoriteBulkRemoveItemResult], message: &str)
 }
 
 fn response_error_message(payload: &Value, status: i32) -> String {
-    payload
-        .get("error")
-        .and_then(Value::as_object)
-        .and_then(|error| error.get("message"))
-        .and_then(Value::as_str)
-        .or_else(|| payload.get("message").and_then(Value::as_str))
-        .map(str::to_string)
-        .unwrap_or_else(|| format!("VRChat favorite removal failed with HTTP {status}."))
+    crate::scope_gate::response_error_message(payload, status, "favorite removal")
 }
 
 #[cfg(test)]
@@ -458,12 +467,15 @@ mod tests {
         }
     }
 
-    fn item(key: &str, source: FavoriteBulkRemoveSource) -> FavoriteBulkRemoveItem {
-        FavoriteBulkRemoveItem {
-            key: key.into(),
-            source,
-            entity_id: format!("wrld_{key}"),
-            group_name: "Worlds".into(),
+    fn item(key: &str, source: FavoriteBulkRemoveSource) -> FavoriteBulkRemoveWorkItem {
+        FavoriteBulkRemoveWorkItem {
+            item: FavoriteBulkRemoveItem {
+                key: key.into(),
+                source,
+                entity_id: format!("wrld_{key}"),
+                group_name: "Worlds".into(),
+            },
+            rejection: None,
         }
     }
 
@@ -614,6 +626,41 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
+    }
+
+    #[tokio::test]
+    async fn invalid_items_fail_individually_and_valid_items_still_run() {
+        let actions = FakeActions {
+            local_outcomes: Mutex::new(VecDeque::new()),
+            remote_outcomes: Mutex::new(vec![Ok(RemoteRemoveOutcome::Removed)].into()),
+            scope_current: AtomicBool::new(true),
+        };
+        let work_items = normalize_items(
+            "world",
+            vec![
+                FavoriteBulkRemoveItem {
+                    key: "dirty".into(),
+                    source: FavoriteBulkRemoveSource::Remote,
+                    entity_id: "not-a-world-id".into(),
+                    group_name: String::new(),
+                },
+                FavoriteBulkRemoveItem {
+                    key: "valid".into(),
+                    source: FavoriteBulkRemoveSource::Remote,
+                    entity_id: "wrld_valid".into(),
+                    group_name: String::new(),
+                },
+            ],
+        )
+        .unwrap();
+
+        let result =
+            run_favorite_bulk_remove(&actions, "usr_self".into(), "world".into(), work_items).await;
+
+        assert_eq!(result.items[0].state, FavoriteBulkRemoveItemState::Failed);
+        assert_eq!(result.items[1].state, FavoriteBulkRemoveItemState::Removed);
+        assert_eq!(result.succeeded, 1);
+        assert_eq!(result.failed, 1);
     }
 
     #[test]

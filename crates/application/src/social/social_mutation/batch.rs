@@ -54,6 +54,7 @@ pub struct SocialUnfriendBatchResult {
     pub succeeded: usize,
     pub failed: usize,
     pub local_failed: usize,
+    pub scope_changed: bool,
     pub items: Vec<SocialUnfriendBatchItemResult>,
     pub last_error: Option<String>,
 }
@@ -149,12 +150,14 @@ async fn run_social_unfriend_batch(
         })
         .collect::<Vec<_>>();
     let mut last_error = None;
+    let mut scope_changed = false;
 
     for (index, target) in targets.iter().enumerate() {
         if !actions.scope_matches() {
             let message = "Social unfriend batch authentication scope changed.".to_string();
             mark_not_attempted(&mut items[index..], &message);
             last_error = Some(message);
+            scope_changed = true;
             break;
         }
         actions.wait_for_remote_slot().await;
@@ -191,6 +194,7 @@ async fn run_social_unfriend_batch(
             let message = "Social unfriend batch authentication scope changed.".to_string();
             mark_not_attempted(&mut items[index + 1..], &message);
             last_error = Some(message);
+            scope_changed = true;
             break;
         }
     }
@@ -228,6 +232,7 @@ async fn run_social_unfriend_batch(
         succeeded,
         failed: items.len() - succeeded,
         local_failed,
+        scope_changed,
         items,
         last_error,
     }
@@ -398,6 +403,7 @@ mod tests {
             result.items[1].state,
             SocialUnfriendBatchItemState::NotAttempted
         );
+        assert!(result.scope_changed);
     }
 
     #[test]
