@@ -1,10 +1,12 @@
 import type {
     ColumnDef,
     PaginationState,
-    Table as ReactTable
+    Table as ReactTable,
+    RowData
 } from '@tanstack/react-table';
 import type { Dispatch, SetStateAction } from 'react';
 
+import type { UserFact } from '@/domain/users/userFacts';
 import type { FeedEntry, FeedFilterType } from '@/repositories/feedRepository';
 
 export type FeedRow = FeedEntry & {
@@ -60,6 +62,20 @@ export type FeedFriendActions = {
     sendFeedFriendBoop(friend: FeedFriendActionTarget): Promise<void>;
     openFeedNewInstance(payload?: FeedLocationActionPayload): void;
 };
+
+export type FeedTableMeta = {
+    actions: FeedFriendActions;
+    friendLogNamesById: Record<string, string>;
+    knownUsersById: Record<string, UserFact>;
+    loadingPreviousInstancesKey: string;
+    onOpenPreviousInstances(payload?: FeedLocationActionPayload): void;
+};
+
+declare module '@tanstack/react-table' {
+    interface TableMeta<TData extends RowData> {
+        feed?: FeedTableMeta;
+    }
+}
 
 export type FeedColumns = ColumnDef<FeedRow>[];
 

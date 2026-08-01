@@ -4,6 +4,7 @@ import {
     buildFeedFavoriteIdSet,
     canExpandFeedRow,
     canRequestInviteFromFeedFriend,
+    getFeedRowCreatedAtMs,
     getFeedRowId,
     isUserIdLike,
     normalizeFeedId,
@@ -203,5 +204,26 @@ describe('feed row helpers', () => {
             canExpandFeedRow({ type: 'Bio', bio: 'Hello', previousBio: '' })
         ).toBe(true);
         expect(canExpandFeedRow({ type: 'Friend' })).toBe(false);
+    });
+});
+
+describe('getFeedRowCreatedAtMs', () => {
+    it('parses timestamps and caches them per row reference', () => {
+        const row = { created_at: '2024-01-02T03:04:05.000Z' };
+        const expected = new Date('2024-01-02T03:04:05.000Z').valueOf();
+
+        expect(getFeedRowCreatedAtMs(row)).toBe(expected);
+
+        row.created_at = '2025-06-07T08:09:10.000Z';
+        expect(getFeedRowCreatedAtMs(row)).toBe(expected);
+        expect(
+            getFeedRowCreatedAtMs({ created_at: '2025-06-07T08:09:10.000Z' })
+        ).toBe(new Date('2025-06-07T08:09:10.000Z').valueOf());
+    });
+
+    it('returns 0 for missing rows and unparsable timestamps', () => {
+        expect(getFeedRowCreatedAtMs(null)).toBe(0);
+        expect(getFeedRowCreatedAtMs(undefined)).toBe(0);
+        expect(getFeedRowCreatedAtMs({ created_at: 'not-a-date' })).toBe(0);
     });
 });

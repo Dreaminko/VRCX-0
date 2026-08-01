@@ -140,6 +140,21 @@ export function resolveFeedLocationForDisplay(row: FeedRowLike) {
     return location;
 }
 
+const feedRowCreatedAtMsCache = new WeakMap<FeedRecord, number>();
+
+export function getFeedRowCreatedAtMs(row: FeedRowLike): number {
+    if (!isRecord(row)) {
+        return 0;
+    }
+    const cached = feedRowCreatedAtMsCache.get(row);
+    if (cached !== undefined) {
+        return cached;
+    }
+    const parsed = new Date(String(row.created_at || 0)).valueOf() || 0;
+    feedRowCreatedAtMsCache.set(row, parsed);
+    return parsed;
+}
+
 export function canExpandFeedRow(row: FeedRow): boolean {
     const type = normalizeFeedId(row.type);
     switch (type) {
