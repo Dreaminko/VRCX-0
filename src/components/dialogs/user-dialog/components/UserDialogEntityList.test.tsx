@@ -35,6 +35,12 @@ vi.mock('@/components/sidebar/friends-sidebar/friendsSidebarModel', () => ({
     resolveSidebarStatusDotClassName: () => ''
 }));
 
+vi.mock('@/components/sidebar/friends-sidebar/FriendsSidebarLocation', () => ({
+    FriendInstanceTimer: ({ epoch }: { epoch?: unknown }) => (
+        <span data-testid="instance-timer" data-epoch={String(epoch)} />
+    )
+}));
+
 vi.mock('@/services/entityMediaService', () => ({
     convertFileUrlToImageUrl: () => '',
     userImage: () => ''
@@ -104,5 +110,27 @@ describe('UserDialog EntityList', () => {
 
         fireEvent.click(visibleButton);
         expect(mocks.openRow).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the instance timer instead of the status signature', () => {
+        render(
+            <EntityList
+                kind="user"
+                rows={[
+                    {
+                        id: 'usr_friend',
+                        displayName: 'Friend',
+                        statusDescription: 'World hopping',
+                        $location_at: 1_700_000_000_000
+                    }
+                ]}
+                showInstanceDuration
+            />
+        );
+
+        expect(screen.getByTestId('instance-timer').dataset.epoch).toBe(
+            '1700000000000'
+        );
+        expect(screen.queryByText('World hopping')).toBeNull();
     });
 });

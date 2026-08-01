@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
+import { FriendInstanceTimer } from '@/components/sidebar/friends-sidebar/FriendsSidebarLocation';
 import { resolveSidebarStatusDotClassName } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { UserDetailTile } from '@/components/UserDetailTile';
 import type { EntityRecord } from '@/domain/entities/profileEntities';
@@ -29,12 +30,14 @@ export function EntityList({
     rows,
     kind,
     loading = false,
-    error = ''
+    error = '',
+    showInstanceDuration = false
 }: {
     rows: readonly EntityRecord[];
     kind: UserDialogEntityKind;
     loading?: boolean;
     error?: string;
+    showInstanceDuration?: boolean;
 }) {
     const { t } = useTranslation();
     const currentEndpoint = useRuntimeStore(
@@ -137,7 +140,22 @@ export function EntityList({
                                 userColour ? { color: userColour } : undefined
                             }
                             subline={
-                                travelingTimestamp ? (
+                                showInstanceDuration ? (
+                                    <FriendInstanceTimer
+                                        epoch={
+                                            travelingTimestamp ||
+                                            row.$location_at ||
+                                            row.locationUpdatedAt ||
+                                            row.locationAt ||
+                                            row.location_at ||
+                                            row.joinedAt ||
+                                            row.joined_at ||
+                                            row.created_at ||
+                                            row.createdAt
+                                        }
+                                        traveling={Boolean(travelingTimestamp)}
+                                    />
+                                ) : travelingTimestamp ? (
                                     <>
                                         <Spinner
                                             data-icon="inline-start"
