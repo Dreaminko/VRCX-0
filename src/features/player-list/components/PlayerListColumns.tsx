@@ -381,7 +381,7 @@ export function usePlayerListColumns(): ColumnDef<PlayerListRow>[] {
                 cell: ({ row }) => (
                     <span className="text-sm">
                         {Number(row.original.joinedAtMs) > 0
-                            ? timeToText(row.original.timerMs, true)
+                            ? timeToText(row.original.timerMs)
                             : ''}
                     </span>
                 )

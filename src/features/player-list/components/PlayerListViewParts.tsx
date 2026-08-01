@@ -298,7 +298,7 @@ export function CurrentWorldHeader({
                             title={t('table.playerList.timer')}
                         >
                             <Clock3Icon className="size-3.5" />
-                            {timeToText(elapsedMs, true)}
+                            {timeToText(elapsedMs)}
                         </Badge>
                     ) : null}
                 </div>
