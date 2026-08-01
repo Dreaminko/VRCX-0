@@ -794,7 +794,7 @@ export function UserDialogHeaderSection({
                     <HeaderMetaRow icon={<ShieldCheckIcon />}>
                         <UserDialogHeaderAttributes
                             profile={profile}
-                            friendNumber={friendNumber}
+                            friendNumber={isFriend ? friendNumber : undefined}
                             platform={platform}
                             PlatformIcon={PlatformIcon}
                         />

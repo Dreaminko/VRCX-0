@@ -187,3 +187,39 @@ describe('UserDialogHeaderSection nameplate', () => {
         expect(titleRow?.classList.contains('text-white')).toBe(false);
     });
 });
+
+describe('UserDialogHeaderSection friend number', () => {
+    it('shows the stored friend number for a current friend', () => {
+        const headerModel = createHeaderModel();
+        headerModel.friendNumber = 42;
+        headerModel.isCurrentUser = false;
+        headerModel.isFriend = true;
+
+        render(
+            <UserDialogHeaderSection
+                headerModel={headerModel}
+                headerCommands={createHeaderCommands()}
+            />
+        );
+
+        expect(
+            screen.getByText(/dialog\.user\.label\.friend/).textContent
+        ).toContain('42');
+    });
+
+    it('hides the stored friend number for a former friend', () => {
+        const headerModel = createHeaderModel();
+        headerModel.friendNumber = 42;
+        headerModel.isCurrentUser = false;
+        headerModel.isFriend = false;
+
+        render(
+            <UserDialogHeaderSection
+                headerModel={headerModel}
+                headerCommands={createHeaderCommands()}
+            />
+        );
+
+        expect(screen.queryByText(/dialog\.user\.label\.friend/)).toBeNull();
+    });
+});

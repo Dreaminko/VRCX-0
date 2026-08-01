@@ -31,6 +31,7 @@ import {
 import { openExternalLink } from '@/services/entityMediaService';
 import {
     vrchatAvatarUrl,
+    vrchatUserUrl,
     vrchatWorldUrl
 } from '@/shared/constants/vrchatWebUrls';
 import {
@@ -172,6 +173,8 @@ const FavoriteCard = memo(function FavoriteCard({
         item.id !== currentAvatarId &&
         onAvatarSelect
     );
+    const vrchatUserPageUrl =
+        isFriendCard && item.id ? vrchatUserUrl(item.id) : '';
     const avatarId = item.kind === 'avatar' ? item.id : '';
     const vrchatAvatarPageUrl = avatarId ? vrchatAvatarUrl(avatarId) : '';
     const vrcxAvatarShareUrl =
@@ -368,6 +371,17 @@ const FavoriteCard = memo(function FavoriteCard({
                         <DropdownMenuItem onClick={() => openHandler?.()}>
                             {t('common.actions.view_details')}
                         </DropdownMenuItem>
+                        {isFriendCard ? (
+                            <DropdownMenuItem
+                                disabled={!vrchatUserPageUrl}
+                                onClick={() => {
+                                    void openExternalLink(vrchatUserPageUrl);
+                                }}
+                            >
+                                <ExternalLinkIcon data-icon="inline-start" />
+                                {t('common.actions.view_on_website')}
+                            </DropdownMenuItem>
+                        ) : null}
                         {item.kind === 'world' ? (
                             <>
                                 <DropdownMenuItem
