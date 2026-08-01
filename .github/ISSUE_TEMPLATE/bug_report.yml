@@ -1,45 +1,37 @@
 name: Bug Report
-description: Create a report to help us improve
+description: Something isn't working right
 labels:
     - bug
 body:
     - type: markdown
       attributes:
           value: |
-              Thank you for submitting a bug report.
+              Thanks for reporting! Please make sure you're on the **latest version** first — the bug may already be fixed.
 
-              You may join our [Discord](https://discord.gg/fehKP3SVPN) server for assistance and updates.
-
-              Please confirm you are using the latest version of VRCX-0, as the issue might already be resolved.
-
-              We appreciate including as much detail as possible.
+              Need quick help? Join our [Discord](https://discord.gg/fehKP3SVPN).
 
     - type: input
       attributes:
-          label: Which version of VRCX-0 are you using?
-          description: e.g., 2.9.1
+          label: VRCX-0 version
+          description: You can find this in Settings → About (e.g., 2.9.1)
     - type: input
       attributes:
-          label: Which OS version are you using?
+          label: Operating system
           description: e.g., Windows 11, macOS 26, Ubuntu 26.04
     - type: textarea
       attributes:
-          label: What steps will reproduce the bug?
-          description: Explain the bug and provide steps to reproduce it.
+          label: What happened?
+          description: Describe the bug — what were you doing, and what went wrong?
       validations:
           required: true
     - type: textarea
       attributes:
-          label: What is the expected behavior?
+          label: What did you expect to happen?
     - type: textarea
       attributes:
-          label: What do you see instead?
-    - type: textarea
-      attributes:
-          label: Screenshots / Logs
+          label: Screenshots / error log
           description: |
-              Attach screenshots and/or the error log if applicable.
-
-              - Windows: `%APPDATA%\VRCX-0\error-log.txt`
-              - macOS: `~/Library/Application Support/VRCX-0/error-log.txt`
-              - Linux: `~/.local/share/VRCX-0/error-log.txt`
+              Screenshots help a lot! If you see an error, the log file is at:
+              - **Windows:** `%APPDATA%\VRCX-0\error-log.txt`
+              - **macOS:** `~/Library/Application Support/VRCX-0/error-log.txt`
+              - **Linux:** `~/.local/share/VRCX-0/error-log.txt`
