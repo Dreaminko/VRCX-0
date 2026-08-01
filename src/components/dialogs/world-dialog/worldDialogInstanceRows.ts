@@ -1,5 +1,9 @@
 import type { EntityRecord } from '@/domain/entities/profileEntities';
-import { resolveObservedPlayerUserId } from '@/domain/friends/sameInstanceFriends';
+import {
+    resolveObservedPlayerDwellEpochs,
+    resolveObservedPlayerUserId
+} from '@/domain/friends/sameInstanceFriends';
+import { applyInstanceDwellEpochs } from '@/domain/instances/instanceRoster';
 import {
     parseLocation,
     resolveFriendPresenceLocation
@@ -134,9 +138,14 @@ export function buildWorldDialogDisplayInstanceRows({
             id: userId,
             userId,
             displayName: firstText(source.displayName, source.display_name),
-            joinedAt: firstText(source.joinedAt, source.joined_at)
+            joinedAt: firstText(source.joinedAt, source.joined_at),
+            joinedAtMs: source.joinedAtMs
         };
     });
+    const currentInstanceDwellEpochsByUserId = resolveObservedPlayerDwellEpochs(
+        snapshotPlayers,
+        friendsById
+    );
     const currentInstanceRow: WorldDialogInstanceRow | null =
         parsedCurrentInstanceLocation?.worldId &&
         parsedCurrentInstanceLocation?.instanceId
@@ -313,14 +322,24 @@ export function buildWorldDialogDisplayInstanceRows({
         const creatorGroupProfile = creatorGroupId
             ? creatorGroupsById[creatorGroupId]
             : null;
+        const mergedUsers = mergeInstanceUsers(
+            instance.users,
+            friendsInInstance
+        );
+        const isCurrentInstance = sameInstanceLocation(
+            world,
+            instance,
+            currentLocation || normalizedWorldId
+        );
         const instanceWithFriends: WorldDialogInstanceRow = {
             ...instance,
-            isCurrentInstance: sameInstanceLocation(
-                world,
-                instance,
-                currentLocation
-            ),
-            users: mergeInstanceUsers(instance.users, friendsInInstance)
+            isCurrentInstance,
+            users: isCurrentInstance
+                ? applyInstanceDwellEpochs(
+                      mergedUsers,
+                      currentInstanceDwellEpochsByUserId
+                  )
+                : mergedUsers
         };
         return creatorGroupProfile
             ? {

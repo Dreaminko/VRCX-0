@@ -181,7 +181,8 @@ describe('worldDialogInstanceRows', () => {
         expect(users).toHaveLength(1);
         expect(users[0]).toMatchObject({
             id: 'usr_dup',
-            userId: 'usr_dup'
+            userId: 'usr_dup',
+            $location_at: '2024-01-01T00:00:00Z'
         });
     });
 

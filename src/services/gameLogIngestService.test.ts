@@ -188,7 +188,9 @@ describe('gameLogIngestService characterization', () => {
         ).toEqual([
             expect.objectContaining({
                 id: 'display:Name Only',
-                displayName: 'Name Only'
+                displayName: 'Name Only',
+                joinedAt: new Date(1_768_348_800_000).toISOString(),
+                joinedAtMs: 1_768_348_800_000
             })
         ]);
     });

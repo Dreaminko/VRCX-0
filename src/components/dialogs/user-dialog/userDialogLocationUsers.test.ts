@@ -100,6 +100,34 @@ describe('buildUserDialogLocationUsers', () => {
         ]);
     });
 
+    it('uses the current-instance projection time over a stale profile time', () => {
+        const observedJoinTime = 1_700_000_000_000;
+        const result = buildUserDialogLocationUsers({
+            currentUserId: 'usr_self',
+            dwellEpochsByUserId: new Map([['usr_friend', observedJoinTime]]),
+            friendsById: {
+                usr_friend: { id: 'usr_friend' }
+            },
+            locationInstance: {},
+            locationOwnerGroup: null,
+            locationOwnerUser: null,
+            profile: null,
+            sameInstanceUsers: [
+                {
+                    id: 'usr_friend',
+                    displayName: 'Friend',
+                    $location_at: 1_600_000_000_000
+                }
+            ],
+            t,
+            visiblePresenceParsedLocation: parsedLocation
+        });
+
+        expect(result.locationInstanceUsers[0]?.$location_at).toBe(
+            observedJoinTime
+        );
+    });
+
     it('keeps the original private inactive friend guard outside the observed current roster', () => {
         const friend = {
             id: 'usr_friend',

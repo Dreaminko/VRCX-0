@@ -7,6 +7,7 @@ import { FriendInstanceTimer } from '@/components/sidebar/friends-sidebar/Friend
 import { resolveSidebarStatusDotClassName } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { UserDetailTile } from '@/components/UserDetailTile';
 import type { EntityRecord } from '@/domain/entities/profileEntities';
+import { resolveInstanceDwellEpoch } from '@/domain/instances/instanceRoster';
 import { timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -144,14 +145,7 @@ export function EntityList({
                                     <FriendInstanceTimer
                                         epoch={
                                             travelingTimestamp ||
-                                            row.$location_at ||
-                                            row.locationUpdatedAt ||
-                                            row.locationAt ||
-                                            row.location_at ||
-                                            row.joinedAt ||
-                                            row.joined_at ||
-                                            row.created_at ||
-                                            row.createdAt
+                                            resolveInstanceDwellEpoch(row)
                                         }
                                         traveling={Boolean(travelingTimestamp)}
                                     />

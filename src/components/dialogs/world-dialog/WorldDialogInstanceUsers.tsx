@@ -13,6 +13,7 @@ import {
     isGroupId,
     mergeInstanceUsers,
     normalizeInstanceUsers,
+    resolveInstanceDwellEpoch,
     type InstanceRosterRow
 } from '@/domain/instances/instanceRoster';
 import { timeToText } from '@/lib/dateTime';
@@ -301,14 +302,7 @@ export function InstanceUserTiles({
                                 <FriendInstanceTimer
                                     epoch={
                                         travelingTimestamp ||
-                                        user.$location_at ||
-                                        user.locationUpdatedAt ||
-                                        user.locationAt ||
-                                        user.location_at ||
-                                        user.joinedAt ||
-                                        user.joined_at ||
-                                        user.created_at ||
-                                        user.createdAt
+                                        resolveInstanceDwellEpoch(user)
                                     }
                                     traveling={Boolean(travelingTimestamp)}
                                 />

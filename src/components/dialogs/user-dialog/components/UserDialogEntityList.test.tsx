@@ -133,4 +133,23 @@ describe('UserDialog EntityList', () => {
         );
         expect(screen.queryByText('World hopping')).toBeNull();
     });
+
+    it('does not treat a profile refresh timestamp as a join time', () => {
+        render(
+            <EntityList
+                kind="user"
+                rows={[
+                    {
+                        id: 'usr_friend',
+                        displayName: 'Friend',
+                        locationUpdatedAt: 1_700_000_000_000
+                    }
+                ]}
+                showInstanceDuration
+            />
+        );
+
+        const timer = screen.getByTestId('instance-timer');
+        expect(timer.dataset.epoch).toBe('');
+    });
 });
