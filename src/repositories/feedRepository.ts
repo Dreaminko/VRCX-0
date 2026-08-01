@@ -294,16 +294,6 @@ class FeedRepository {
             entry
         );
     }
-
-    async purgeAvatarFeedData(
-        userId: unknown,
-        cutoffDate: string | null = null
-    ) {
-        return feedPersistenceRepository.purgeAvatarFeedData(
-            userId,
-            cutoffDate
-        );
-    }
 }
 
 const feedRepository = new FeedRepository();

@@ -794,12 +794,10 @@ export const commands = {
     async appFeedAddEntry(userId: string, entry: RawJson): Promise<null> {
         return await TAURI_INVOKE('app__feed_add_entry', { userId, entry });
     },
-    async appFeedAvatarPurge(
-        userId: string,
+    async appAvatarFeedHistoryCleanup(
         cutoffDate: string | null
-    ): Promise<number> {
-        return await TAURI_INVOKE('app__feed_avatar_purge', {
-            userId,
+    ): Promise<AvatarFeedCleanupOutcome> {
+        return await TAURI_INVOKE('app__avatar_feed_history_cleanup', {
             cutoffDate
         });
     },
@@ -1255,15 +1253,6 @@ export const commands = {
     },
     async appGetAppDataDirState(): Promise<AppDataDirState> {
         return await TAURI_INVOKE('app__get_app_data_dir_state');
-    },
-    async appValidateAppDataDir(path: string): Promise<AppDataDirValidation> {
-        return await TAURI_INVOKE('app__validate_app_data_dir', { path });
-    },
-    async appSetAppDataDir(path: string): Promise<AppDataDirState> {
-        return await TAURI_INVOKE('app__set_app_data_dir', { path });
-    },
-    async appClearAppDataDir(): Promise<AppDataDirState> {
-        return await TAURI_INVOKE('app__clear_app_data_dir');
     },
     async appPlanDataDirMigration(path: string): Promise<DataDirMigrationPlan> {
         return await TAURI_INVOKE('app__plan_data_dir_migration', { path });
@@ -3013,15 +3002,6 @@ export type AppDataDirState = {
     cleanupPending: DataDirCleanupPending | null;
     migrationStatus: DataDirMigrationStatus;
 };
-export type AppDataDirValidation = {
-    path: string;
-    exists: boolean;
-    isEmpty: boolean;
-    hasDatabase: boolean;
-    hasConfig: boolean;
-    warningKind: string | null;
-    warning: string | null;
-};
 export type AppLauncherEntry = {
     id: string;
     enabled: boolean;
@@ -3249,6 +3229,12 @@ export type AvatarContentTagsBatchInput = {
     avatarIds?: string[];
     contentTags?: string[];
 };
+export type AvatarFeedCleanupOutcome = {
+    deletedRows: number;
+    status: AvatarFeedCleanupStatus;
+    optimizationError?: string | null;
+};
+export type AvatarFeedCleanupStatus = 'completed' | 'optimizationFailed';
 export type AvatarMemoOutput = {
     avatarId: string;
     editedAt: string;
@@ -3548,6 +3534,9 @@ export type DataDirMigrationErrorCode =
     | 'pendingLegacyMigration'
     | 'pendingMigration'
     | 'cleanupConflict'
+    | 'insufficientSpace'
+    | 'invalidAdoptionTarget'
+    | 'invalidFreshStartTarget'
     | 'copyFailed'
     | 'commitFailed'
     | 'pointerCommitFailed'

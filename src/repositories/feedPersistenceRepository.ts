@@ -185,16 +185,6 @@ const feed = {
         return addFeedEntry(userId, 'Avatar', entry);
     },
 
-    /**
-     * @param {string|null} cutoffDate - null deletes every record, not just old ones.
-     */
-    async purgeAvatarFeedData(userId: unknown, cutoffDate: unknown) {
-        await commands.appFeedAvatarPurge(
-            normalizeString(userId),
-            normalizeString(cutoffDate) || null
-        );
-    },
-
     addOnlineOfflineToDatabase(
         userId: unknown,
         entry: Record<string, unknown>

@@ -178,6 +178,13 @@ pub use system::{
     VrchatNotificationChainActions,
 };
 pub use system::{
+    build_data_dir_migration_plan, DataDirMigrationActionOutcome, DataDirMigrationError,
+    DataDirMigrationErrorCode, DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan,
+    DataDirMigrationRuntime, DataDirMigrationState, DataDirMigrationStatus,
+    DataDirPointerCommitter,
+};
+pub use system::{cleanup_avatar_feed_history, AvatarFeedCleanupOutcome, AvatarFeedCleanupStatus};
+pub use system::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
     DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
     DatabaseUpgradeStage,
@@ -221,11 +228,6 @@ pub use system::{
     CommunityThemeAuthor, CommunityThemeCatalog, CommunityThemeConfigureInput,
     CommunityThemeInstallMetadata, CommunityThemeManifest, CommunityThemeProjection,
     CommunityThemeService, CommunityThemeStatsById, CommunityThemeStatsEntry,
-};
-pub use system::{
-    DataDirMigrationActionOutcome, DataDirMigrationError, DataDirMigrationErrorCode,
-    DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan, DataDirMigrationRuntime,
-    DataDirMigrationState, DataDirMigrationStatus, DataDirPointerCommitter,
 };
 pub use system::{
     ProfileBackupActionOutcome, ProfileBackupError, ProfileBackupErrorCode, ProfileBackupKind,

@@ -1,4 +1,5 @@
 mod app_update;
+mod avatar_feed_cleanup;
 mod background_image;
 mod batch_mutation;
 mod community_theme;
@@ -18,6 +19,9 @@ pub use app_update::{
     AppUpdateDownloadStatusSnapshot, AppUpdateInstalledPayload, AppUpdateReleaseSnapshot,
     AppUpdateRuntime, AppUpdateStatusSnapshot, AppUpdateTargetResolver,
 };
+pub use avatar_feed_cleanup::{
+    cleanup_avatar_feed_history, AvatarFeedCleanupOutcome, AvatarFeedCleanupStatus,
+};
 pub use background_image::{
     BackgroundImageConfigureInput, BackgroundImageCustomSource, BackgroundImageCustomSourceKind,
     BackgroundImageFileResolver, BackgroundImageMode, BackgroundImageProjection,
@@ -36,9 +40,10 @@ pub use community_theme::{
     CommunityThemeService, CommunityThemeStatsById, CommunityThemeStatsEntry,
 };
 pub use data_dir_migration::{
-    DataDirMigrationActionOutcome, DataDirMigrationError, DataDirMigrationErrorCode,
-    DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan, DataDirMigrationRuntime,
-    DataDirMigrationState, DataDirMigrationStatus, DataDirPointerCommitter,
+    build_data_dir_migration_plan, DataDirMigrationActionOutcome, DataDirMigrationError,
+    DataDirMigrationErrorCode, DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan,
+    DataDirMigrationRuntime, DataDirMigrationState, DataDirMigrationStatus,
+    DataDirPointerCommitter,
 };
 pub use database_upgrade::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
