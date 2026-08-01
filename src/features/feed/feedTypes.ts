@@ -7,26 +7,10 @@ import type {
 import type { Dispatch, SetStateAction } from 'react';
 
 import type { UserFact } from '@/domain/users/userFacts';
-import type { FeedEntry, FeedFilterType } from '@/repositories/feedRepository';
+import type { FeedRowOutput } from '@/platform/tauri/bindings';
+import type { FeedFilterType } from '@/repositories/feedRepository';
 
-export type FeedRow = FeedEntry & {
-    id?: unknown;
-    rowId?: unknown;
-    row_id?: unknown;
-    sourceRank?: unknown;
-    source_rank?: unknown;
-    type?: unknown;
-    created_at?: unknown;
-    createdAt?: unknown;
-    userId?: unknown;
-    senderUserId?: unknown;
-    location?: unknown;
-    worldId?: unknown;
-    worldName?: unknown;
-    groupName?: unknown;
-    message?: unknown;
-    [key: string]: unknown;
-};
+export type FeedRow = FeedRowOutput;
 
 export type FeedLoadStatus = 'idle' | 'running' | 'ready' | 'error';
 
@@ -35,7 +19,7 @@ export type FeedDateRange = {
     to?: Date;
 };
 
-export type FeedFriendActionTarget = FeedRow | Record<string, unknown> | null;
+export type FeedFriendActionTarget = Record<string, unknown> | null;
 
 export type FeedLocationActionPayload = {
     location?: unknown;

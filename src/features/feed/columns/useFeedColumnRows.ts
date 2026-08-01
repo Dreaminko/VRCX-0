@@ -30,10 +30,14 @@ export function resolveFeedColumnInitialLiveSequence(value: unknown) {
 }
 
 function resolveFeedCursor(row: FeedRow): FeedCursor | null {
-    const createdAt = normalizeId(row?.created_at || row?.createdAt);
-    const sourceRank = Number(row?.sourceRank ?? row?.source_rank);
-    const rowId = Number(row?.rowId ?? row?.row_id);
-    if (!createdAt || !Number.isFinite(sourceRank) || !Number.isFinite(rowId)) {
+    const createdAt = normalizeId(row?.created_at);
+    const sourceRank = row?.sourceRank;
+    const rowId = row?.rowId;
+    if (
+        !createdAt ||
+        typeof sourceRank !== 'number' ||
+        typeof rowId !== 'number'
+    ) {
         return null;
     }
     return {

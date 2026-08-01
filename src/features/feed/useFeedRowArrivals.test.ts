@@ -7,7 +7,7 @@ import type { FeedLoadStatus, FeedRow } from './feedTypes';
 import { useFeedRowArrivals } from './useFeedRowArrivals';
 
 function rowsOf(...ids: string[]): FeedRow[] {
-    return ids.map((id) => ({ id }));
+    return ids.map((userId) => ({ userId }));
 }
 
 function renderArrivals(rows: FeedRow[], loadStatus: FeedLoadStatus) {
@@ -33,7 +33,7 @@ describe('useFeedRowArrivals', () => {
 
         rerender({ rows: rowsOf('c', 'a', 'b'), loadStatus: 'ready' });
 
-        expect([...result.current]).toEqual(['id:c']);
+        expect([...result.current]).toEqual(['::c:']);
     });
 
     it('only registers seen ids on full query paths', () => {
@@ -45,7 +45,7 @@ describe('useFeedRowArrivals', () => {
 
         rerender({ rows: rowsOf('a', 'b', 'c'), loadStatus: 'ready' });
 
-        expect([...result.current]).toEqual(['id:c']);
+        expect([...result.current]).toEqual(['::c:']);
     });
 
     it('keeps the same set reference when rows are unchanged', () => {
@@ -61,7 +61,7 @@ describe('useFeedRowArrivals', () => {
         rerender({ rows: nextRows, loadStatus: 'ready' });
         const withArrival = result.current;
 
-        expect([...withArrival]).toEqual(['id:b']);
+        expect([...withArrival]).toEqual(['::b:']);
 
         rerender({ rows: nextRows, loadStatus: 'ready' });
 
@@ -73,12 +73,12 @@ describe('useFeedRowArrivals', () => {
 
         rerender({ rows: rowsOf('a', 'b'), loadStatus: 'ready' });
 
-        expect([...result.current]).toEqual(['id:b']);
+        expect([...result.current]).toEqual(['::b:']);
 
         vi.advanceTimersByTime(5000);
         rerender({ rows: rowsOf('a', 'b', 'c'), loadStatus: 'ready' });
 
-        expect([...result.current]).toEqual(['id:c']);
+        expect([...result.current]).toEqual(['::c:']);
     });
 
     it('drops expired arrivals on re-renders without rows changes', () => {
@@ -87,7 +87,7 @@ describe('useFeedRowArrivals', () => {
 
         rerender({ rows, loadStatus: 'ready' });
 
-        expect([...result.current]).toEqual(['id:b']);
+        expect([...result.current]).toEqual(['::b:']);
 
         vi.advanceTimersByTime(5000);
         rerender({ rows, loadStatus: 'ready' });

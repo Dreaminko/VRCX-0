@@ -172,8 +172,7 @@ export function useFeedColumns(meta: FeedTableMeta): FeedColumns {
                         row?.worldName,
                         row?.statusDescription,
                         row?.avatarName,
-                        row?.bio,
-                        row?.message
+                        row?.bio
                     ]
                         .filter(Boolean)
                         .join(' '),

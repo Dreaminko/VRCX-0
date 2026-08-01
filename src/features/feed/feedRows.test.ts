@@ -29,7 +29,7 @@ describe('feed row helpers', () => {
         expect(resolveDisplayNameCandidate(USER_ID, USER_ID)).toBe('');
         expect(resolveDisplayNameCandidate('Unknown', USER_ID)).toBe('');
         expect(resolveDisplayNameCandidate('Maple', USER_ID)).toBe('Maple');
-        expect(resolveFeedUserId({ sender_user_id: USER_ID })).toBe(USER_ID);
+        expect(resolveFeedUserId({ userId: USER_ID })).toBe(USER_ID);
         expect(resolveFeedUserId({ displayName: USER_ID })).toBe(USER_ID);
         expect(
             resolveFeedUserDisplayName(
@@ -42,14 +42,22 @@ describe('feed row helpers', () => {
             UNKNOWN_FEED_USER_DISPLAY_NAME
         );
         expect(getFeedRowId({ rowId: 1, type: 'GPS', userId: USER_ID })).toBe(
-            'row:GPS:1'
+            'row:GPS::1'
         );
-        expect(getFeedRowId({ row_id: 1, type: 'GPS', sourceRank: 60 })).toBe(
+        expect(getFeedRowId({ rowId: 1, type: 'GPS', sourceRank: 60 })).toBe(
             'row:GPS:60:1'
         );
+        expect(getFeedRowId({ rowId: 1, type: 'Status', sourceRank: 40 })).toBe(
+            'row:Status:40:1'
+        );
         expect(
-            getFeedRowId({ row_id: 1, type: 'Status', sourceRank: 40 })
-        ).toBe('row:Status:40:1');
+            getFeedRowId({
+                type: 'GPS',
+                created_at: '2026-05-15T00:00:00Z',
+                userId: USER_ID,
+                location: 'wrld_1:instance'
+            })
+        ).toBe(`GPS:2026-05-15T00:00:00Z:${USER_ID}:wrld_1:instance`);
     });
 
     it('resolves friend state and current invite location from visible session data', () => {

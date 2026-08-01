@@ -27,22 +27,22 @@ vi.mock('@/repositories/feedRepository', () => ({
 }));
 
 vi.mock('@/state/runtimeStore', () => ({
-    useRuntimeStore: <T,>(selector: (state: typeof mocks.runtime) => T): T =>
+    useRuntimeStore: <T>(selector: (state: typeof mocks.runtime) => T): T =>
         selector(mocks.runtime)
 }));
 
 vi.mock('@/state/sessionStore', () => ({
-    useSessionStore: <T,>(selector: (state: typeof mocks.session) => T): T =>
+    useSessionStore: <T>(selector: (state: typeof mocks.session) => T): T =>
         selector(mocks.session)
 }));
 
 vi.mock('@/state/favoriteStore', () => ({
-    useFavoriteStore: <T,>(selector: (state: typeof mocks.favorites) => T): T =>
+    useFavoriteStore: <T>(selector: (state: typeof mocks.favorites) => T): T =>
         selector(mocks.favorites)
 }));
 
 vi.mock('@/state/preferencesStore', () => ({
-    usePreferencesStore: <T,>(
+    usePreferencesStore: <T>(
         selector: (state: typeof mocks.preferences) => T
     ): T => selector(mocks.preferences)
 }));
@@ -158,7 +158,7 @@ describe('useFeedColumnRows', () => {
         rerender(createColumn('second'));
 
         await act(async () => {
-            staleQuery.resolve({ rows: [{ id: 'stale' }], maxSequence: 0 });
+            staleQuery.resolve({ rows: [{ userId: 'stale' }], maxSequence: 0 });
         });
         await flush();
 
@@ -166,25 +166,25 @@ describe('useFeedColumnRows', () => {
         expect(mocks.mergeLiveRows).not.toHaveBeenCalled();
 
         await act(async () => {
-            freshQuery.resolve({ rows: [{ id: 'fresh' }], maxSequence: 0 });
+            freshQuery.resolve({ rows: [{ userId: 'fresh' }], maxSequence: 0 });
         });
         await flush();
 
-        expect(result.current.rows).toEqual([{ id: 'fresh' }]);
+        expect(result.current.rows).toEqual([{ userId: 'fresh' }]);
         expect(result.current.loadStatus).toBe('ready');
         expect(mocks.queryFeedReadModel).toHaveBeenCalledTimes(2);
     });
 
     it('discards a live merge that a newer merge superseded', async () => {
         mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [{ id: 'base' }],
+            rows: [{ userId: 'base' }],
             maxSequence: 0
         });
 
         const { result } = renderColumnRows(createColumn('first'));
         await flush();
 
-        expect(result.current.rows).toEqual([{ id: 'base' }]);
+        expect(result.current.rows).toEqual([{ userId: 'base' }]);
 
         const merges: Deferred<FeedReadModelResult<FeedRow>>[] = [];
         mocks.mergeLiveRows.mockImplementation(() => {
@@ -205,23 +205,29 @@ describe('useFeedColumnRows', () => {
         expect(merges).toHaveLength(2);
 
         await act(async () => {
-            merges[0].resolve({ rows: [{ id: 'stale-live' }], maxSequence: 1 });
+            merges[0].resolve({
+                rows: [{ userId: 'stale-live' }],
+                maxSequence: 1
+            });
         });
         await flush();
 
-        expect(result.current.rows).toEqual([{ id: 'base' }]);
+        expect(result.current.rows).toEqual([{ userId: 'base' }]);
 
         await act(async () => {
-            merges[1].resolve({ rows: [{ id: 'fresh-live' }], maxSequence: 2 });
+            merges[1].resolve({
+                rows: [{ userId: 'fresh-live' }],
+                maxSequence: 2
+            });
         });
         await flush();
 
-        expect(result.current.rows).toEqual([{ id: 'fresh-live' }]);
+        expect(result.current.rows).toEqual([{ userId: 'fresh-live' }]);
     });
 
     it('ignores live entries at or below the committed sequence', async () => {
         mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [{ id: 'base' }],
+            rows: [{ userId: 'base' }],
             maxSequence: 5
         });
         mocks.mergeLiveRows.mockImplementation(async ({ rows }: MergeArgs) => ({
@@ -251,7 +257,7 @@ describe('useFeedColumnRows', () => {
 
     it('merges live entries from the committed high-water sequence', async () => {
         mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [{ id: 'base' }],
+            rows: [{ userId: 'base' }],
             maxSequence: 2
         });
         mocks.mergeLiveRows.mockImplementation(async ({ rows }: MergeArgs) => ({
@@ -271,12 +277,12 @@ describe('useFeedColumnRows', () => {
         expect(mergeCallArgs()).toHaveLength(1);
         expect(mergeCallArgs()[0].minLiveSequence).toBe(2);
         expect(mergeCallArgs()[0].maxRows).toBe(81);
-        expect(result.current.rows).toEqual([{ id: 'base' }]);
+        expect(result.current.rows).toEqual([{ userId: 'base' }]);
     });
 
     it('keeps merging until the live version is caught up', async () => {
         mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [{ id: 'base' }],
+            rows: [{ userId: 'base' }],
             maxSequence: 0
         });
 
@@ -290,10 +296,10 @@ describe('useFeedColumnRows', () => {
                 useFeedLiveStore
                     .getState()
                     .pushEntry({ id: 'live-2', type: 'Online' });
-                return { rows: [{ id: 'a' }], maxSequence: 1 };
+                return { rows: [{ userId: 'a' }], maxSequence: 1 };
             }
             return {
-                rows: [{ id: 'a' }, { id: 'b' }],
+                rows: [{ userId: 'a' }, { userId: 'b' }],
                 maxSequence: 2
             };
         });
@@ -304,6 +310,6 @@ describe('useFeedColumnRows', () => {
         expect(mergeCallArgs().map((args) => args.minLiveSequence)).toEqual([
             0, 1
         ]);
-        expect(result.current.rows).toEqual([{ id: 'a' }, { id: 'b' }]);
+        expect(result.current.rows).toEqual([{ userId: 'a' }, { userId: 'b' }]);
     });
 });

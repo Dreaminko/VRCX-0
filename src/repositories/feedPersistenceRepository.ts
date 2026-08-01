@@ -5,6 +5,7 @@ import {
     type FeedLiveRowsMergeInput,
     type FeedReadModelOutput,
     type FeedReadModelQueryInput,
+    type FeedRowOutput,
     type FeedRowsQueryInput
 } from '@/platform/tauri/bindings';
 import {
@@ -16,32 +17,6 @@ import { normalizeString } from '@/shared/utils/string';
 import { normalizeUserTablePrefix } from './userSessionRepository';
 
 type FeedRowValue = Record<string, unknown>;
-
-type FeedDatabaseRow = FeedRowValue & {
-    rowId?: unknown;
-    sourceRank?: unknown;
-    created_at?: unknown;
-    userId?: unknown;
-    displayName?: unknown;
-    type?: unknown;
-    location?: unknown;
-    worldName?: unknown;
-    previousLocation?: unknown;
-    time?: unknown;
-    groupName?: unknown;
-    status?: unknown;
-    statusDescription?: unknown;
-    previousStatus?: unknown;
-    previousStatusDescription?: unknown;
-    bio?: unknown;
-    previousBio?: unknown;
-    ownerId?: unknown;
-    avatarName?: unknown;
-    currentAvatarImageUrl?: unknown;
-    currentAvatarThumbnailImageUrl?: unknown;
-    previousCurrentAvatarImageUrl?: unknown;
-    previousCurrentAvatarThumbnailImageUrl?: unknown;
-};
 
 type FeedMode = 'search' | 'lookup' | 'instance' | string;
 export type FeedCursor = {
@@ -91,10 +66,6 @@ function normalizeStringList(value: unknown): string[] {
     return Array.isArray(value)
         ? value.map(normalizeString).filter(Boolean)
         : [];
-}
-
-function isFeedRowValue(value: unknown): value is FeedRowValue {
-    return Boolean(value && typeof value === 'object');
 }
 
 function getUserPrefix(userId: unknown) {
@@ -152,7 +123,7 @@ async function queryFeedRows({
     dateFrom = '',
     dateTo = '',
     cursor = null
-}: FeedRowsQueryOptions): Promise<FeedDatabaseRow[]> {
+}: FeedRowsQueryOptions): Promise<FeedRowOutput[]> {
     await ensureFeedTablesForUser(userId);
     const query = {
         userId: normalizeString(userId),
@@ -166,17 +137,15 @@ async function queryFeedRows({
         dateTo,
         cursor
     } satisfies FeedRowsQueryInput;
-    const rows: unknown = await commands.appFeedRowsQuery(query);
-    return Array.isArray(rows) ? rows.filter(isFeedRowValue) : [];
+    return commands.appFeedRowsQuery(query);
 }
 
 function normalizeFeedReadModelResult(
     result: FeedReadModelOutput
-): FeedReadModelResult<FeedRowValue> {
-    const rows: unknown = result.rows;
+): FeedReadModelResult<FeedRowOutput> {
     const maxSequence = Number(result.maxSequence);
     return {
-        rows: Array.isArray(rows) ? rows.filter(isFeedRowValue) : [],
+        rows: result.rows,
         maxSequence: Number.isFinite(maxSequence) ? maxSequence : 0
     };
 }
