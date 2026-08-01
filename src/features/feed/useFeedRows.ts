@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import type { FeedReadModelResult } from '@/domain/feed/feedReadModelTypes';
 import feedRepository from '@/repositories/feedRepository';
 import friendLogRepository from '@/repositories/friendLogRepository';
 import gameLogRepository from '@/repositories/gameLogRepository';
@@ -11,6 +10,11 @@ import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
+import type { FeedLiveMergeOptionsBuilder } from './feedLiveMerge';
+import {
+    mergeFeedRowsWithLiveEntries,
+    prepareFeedRowsForCommit
+} from './feedLiveMerge';
 import { subscribeFeedLiveMerge } from './feedLiveMergeScheduler';
 import {
     buildFeedFavoriteIdSet as buildFavoriteIdSet,
@@ -87,85 +91,27 @@ export function useFeedRows({
         rowsRef.current = rows;
     }, [rows]);
 
-    async function mergeRowsWithLatestLive({
-        rows,
-        minLiveSequence,
+    function createMergeOptionsBuilder({
         excludedUserIds,
-        favoriteUserIds,
-        requestIsCurrent
+        favoriteUserIds
     }: {
-        rows: FeedRow[];
-        minLiveSequence: number;
         excludedUserIds: unknown[];
         favoriteUserIds: unknown[];
-        requestIsCurrent(): boolean;
-    }): Promise<FeedReadModelResult<FeedRow> | null> {
-        let result: FeedReadModelResult<FeedRow> = {
+    }): FeedLiveMergeOptionsBuilder {
+        return ({ liveEntries, minLiveSequence, rows }) => ({
             rows,
-            maxSequence: minLiveSequence
-        };
-        let previousMaxSequence = minLiveSequence;
-        while (requestIsCurrent()) {
-            const liveFeedSnapshot = useFeedLiveStore.getState();
-            result = await feedRepository.mergeLiveRows({
-                rows: result.rows,
-                userId: currentUserId,
-                search: deferredSearchQuery,
-                filters: activeFilters,
-                excludedFavoriteUserIds: excludedUserIds,
-                favoriteUserIds,
-                dateFrom: toIsoRangeStart(dateFrom),
-                dateTo: toIsoRangeEnd(dateTo),
-                liveEntries: liveFeedSnapshot.entries,
-                minLiveSequence: result.maxSequence,
-                favoritesOnly,
-                maxRows: maxFeedRows
-            });
-            if (!requestIsCurrent()) {
-                return null;
-            }
-            const liveVersion = useFeedLiveStore.getState().version;
-            if (
-                liveVersion <= result.maxSequence ||
-                result.maxSequence <= previousMaxSequence
-            ) {
-                return result;
-            }
-            previousMaxSequence = result.maxSequence;
-        }
-        return null;
-    }
-
-    async function prepareFullQueryRowsForCommit({
-        result,
-        excludedUserIds,
-        favoriteUserIds,
-        requestIsCurrent
-    }: {
-        result: FeedReadModelResult<FeedRow>;
-        excludedUserIds: unknown[];
-        favoriteUserIds: unknown[];
-        requestIsCurrent(): boolean;
-    }) {
-        let nextResult = result;
-        while (requestIsCurrent()) {
-            liveMergeRequestIdRef.current += 1;
-            if (useFeedLiveStore.getState().version <= nextResult.maxSequence) {
-                return nextResult;
-            }
-            const mergedResult = await mergeRowsWithLatestLive({
-                rows: nextResult.rows,
-                excludedUserIds,
-                favoriteUserIds,
-                minLiveSequence: nextResult.maxSequence,
-                requestIsCurrent
-            });
-            if (!mergedResult) {
-                return null;
-            }
-            nextResult = mergedResult;
-        }
-        return null;
+            userId: currentUserId,
+            search: deferredSearchQuery,
+            filters: activeFilters,
+            excludedFavoriteUserIds: excludedUserIds,
+            favoriteUserIds,
+            dateFrom: toIsoRangeStart(dateFrom),
+            dateTo: toIsoRangeEnd(dateTo),
+            liveEntries,
+            minLiveSequence,
+            favoritesOnly,
+            maxRows: maxFeedRows
+        });
     }
 
     useEffect(() => {
@@ -323,21 +269,26 @@ export function useFeedRows({
                 if (requestIdRef.current !== requestId) {
                     return;
                 }
-                const mergedResult = await mergeRowsWithLatestLive({
-                    rows: result.rows,
+                const buildMergeOptions = createMergeOptionsBuilder({
                     excludedUserIds: hiddenUserIds,
-                    favoriteUserIds,
+                    favoriteUserIds
+                });
+                const mergedResult = await mergeFeedRowsWithLiveEntries({
+                    buildMergeOptions,
                     minLiveSequence: result.maxSequence,
-                    requestIsCurrent: () => requestIdRef.current === requestId
+                    requestIsCurrent: () => requestIdRef.current === requestId,
+                    rows: result.rows
                 });
                 if (!mergedResult || requestIdRef.current !== requestId) {
                     return;
                 }
-                const commitResult = await prepareFullQueryRowsForCommit({
-                    result: mergedResult,
-                    excludedUserIds: hiddenUserIds,
-                    favoriteUserIds,
-                    requestIsCurrent: () => requestIdRef.current === requestId
+                const commitResult = await prepareFeedRowsForCommit({
+                    buildMergeOptions,
+                    onMergeRound: () => {
+                        liveMergeRequestIdRef.current += 1;
+                    },
+                    requestIsCurrent: () => requestIdRef.current === requestId,
+                    result: mergedResult
                 });
                 if (!commitResult || requestIdRef.current !== requestId) {
                     return;
@@ -384,13 +335,17 @@ export function useFeedRows({
             const mergeRequestId = liveMergeRequestIdRef.current + 1;
             liveMergeRequestIdRef.current = mergeRequestId;
             const minLiveSequence = lastLiveFeedSequenceRef.current;
-            mergeRowsWithLatestLive({
-                rows: rowsRef.current,
-                excludedUserIds: hiddenUserIds,
-                favoriteUserIds: favoritesOnly ? Array.from(favoriteIdSet) : [],
+            mergeFeedRowsWithLiveEntries({
+                buildMergeOptions: createMergeOptionsBuilder({
+                    excludedUserIds: hiddenUserIds,
+                    favoriteUserIds: favoritesOnly
+                        ? Array.from(favoriteIdSet)
+                        : []
+                }),
                 minLiveSequence,
                 requestIsCurrent: () =>
-                    liveMergeRequestIdRef.current === mergeRequestId
+                    liveMergeRequestIdRef.current === mergeRequestId,
+                rows: rowsRef.current
             })
                 .then((result) => {
                     if (!result) {
