@@ -487,7 +487,7 @@
             "restore_default": "デフォルトに戻す",
             "dynamic": {
                 "drag_value": "{value} をドラッグ",
-                "icon_for_value": "{value} の Icon",
+                "icon_for_value": "{value} のアイコン",
                 "edit_value": "{value}を編集",
                 "delete_value": "{value} を削除",
                 "hide_value": "{value}を非表示",
@@ -686,8 +686,8 @@
                 "delete_tab": "タブを削除",
                 "favorite_groups_summary": "お気に入りグループ",
                 "display_auto": "自動",
-                "display_icon_text": "Icon + テキスト",
-                "display_icon_only": "Icon のみ",
+                "display_icon_text": "アイコン + テキスト",
+                "display_icon_only": "アイコンのみ",
                 "tab_layout": "タブ",
                 "tab_name": "タブ名",
                 "visible": "表示範囲: 全員",
@@ -701,7 +701,7 @@
                 "empty_favorite_collection": "このお気に入りタブにフレンドはいません。",
                 "dynamic": {
                     "drag_value": "{value} をドラッグ",
-                    "icon_for_value": "{value} の Icon",
+                    "icon_for_value": "{value} のアイコン",
                     "hide_value": "{value}を非表示",
                     "show_value": "{value}を表示",
                     "move_value_up": "{value} を上へ移動",
@@ -873,8 +873,8 @@
                 "value_copied": "{value}をコピーしました"
             },
             "context": {
-                "hide_user": "Feedから非表示",
-                "unhide_user": "Feedの非表示を解除"
+                "hide_user": "フィードから非表示",
+                "unhide_user": "フィードの非表示を解除"
             }
         },
         "friends_locations": {
@@ -1961,11 +1961,11 @@
                     "header": "お気に入り"
                 },
                 "hidden_feed": {
-                    "header": "Feedで非表示のユーザー",
+                    "header": "フィードで非表示のユーザー",
                     "description": "保存済みデータを削除せずに、選択したユーザーをフィードから非表示にします。",
                     "add": "ユーザーを追加",
                     "search_placeholder": "ユーザーを検索",
-                    "empty": "Feedで非表示のユーザーはいません。",
+                    "empty": "フィードで非表示のユーザーはいません。",
                     "remove": "非表示ユーザーを削除",
                     "unknown_user": "不明なユーザー"
                 }
@@ -2449,7 +2449,7 @@
                     "save_instance_prints_to_file": {
                         "header": "インスタンス内にあるプリントを、ローカルファイルに保存",
                         "header_tooltip": "「--enable-sdk-log-levels」オプションをつけて、VRChat を起動する必要があります。",
-                        "description": "印刷されたプリントを、VRChat の画像フォルダに保存する",
+                        "description": "プリントを VRChat の画像フォルダに保存する",
                         "crop": "自動でプリントの外枠 (白い部分) をトリミングする"
                     },
                     "save_instance_stickers_to_file": {
@@ -2851,7 +2851,7 @@
             },
             "error": {
                 "world_details_unavailable": "ワールド詳細を利用できません。",
-                "world_deleted": "This world has been deleted.",
+                "world_deleted": "このワールドは削除されています。",
                 "avatar_details_unavailable": "アバター詳細を利用できません。"
             },
             "loading": {
@@ -3394,7 +3394,7 @@
                 "search_worlds": "ワールドを検索",
                 "search_favorite_worlds": "お気に入りワールドを検索",
                 "search_avatars": "アバターを検索",
-                "unfriend_was_not_sent_because_the_active_account_changed": "Unfriend wasn't sent because the active account changed. Refresh and try again."
+                "unfriend_was_not_sent_because_the_active_account_changed": "アカウントが切り替わったため、フレンド解除を送信できませんでした。更新してもう一度お試しください。"
             },
             "loading": {
                 "loading_activity": "活動を読み込み中",
@@ -3476,7 +3476,7 @@
                 "failed_to_update_discord_connections_setting": "Discord 接続設定を更新できませんでした",
                 "failed_to_update_badge": "バッジを更新できませんでした",
                 "failed_to_unfriend_user": "ユーザーのフレンド解除に失敗しました",
-                "applied_on_vrchat_but_local_update_failed": "Applied on VRChat, but the local update failed.",
+                "applied_on_vrchat_but_local_update_failed": "VRChat には反映されましたが、ローカルの更新に失敗しました。",
                 "friend_request_accepted": "フレンド申請を承認しました",
                 "friend_request_sent": "フレンド申請を送信しました",
                 "friend_request_declined": "フレンド申請を辞退しました",
@@ -4248,9 +4248,9 @@
             "description2": "以下の制限にご注意ください:",
             "description3": "- API エンドポイントにはレート制限があり、リクエストを送る際は間隔を開ける必要があります。",
             "description4": "- ノート1つにつき256文字の制限があります。",
-            "description5": "- 汚い言葉はフィルタリングされます (おふざけは禁止されています)。",
+            "description5": "- 不適切な表現はフィルタリングされます。",
             "description6": "- 改行はできません。スペースに置き換えられます。",
-            "description7": "- 既にノートが設定されているユーザーのノートは上書きされます。",
+            "description7": "- すでにノートがあるユーザーは上書きされます。",
             "description8": "- ここで編集した内容は VRCX-0 のローカルノートには影響しませんが、エクスポートされた VRChat のノートには影響します。",
             "refresh": "更新",
             "export": "エクスポート",
@@ -4657,10 +4657,10 @@
             "kick": "キック",
             "ban": "BAN",
             "unban": "BAN解除",
-            "delete": "Delete",
-            "accept": "Accept",
-            "reject": "Reject",
-            "block": "Block",
+            "delete": "削除",
+            "accept": "承認",
+            "reject": "拒否",
+            "block": "ブロック",
             "display_name": "表示名",
             "created_at": "作成日時",
             "type": "種類",
@@ -4691,10 +4691,10 @@
             "import_bans_cancelled": "キャンセルしました。{success}/{total} 人をBANしました。",
             "export_logs": "CSV をエクスポート",
             "export_logs_copied": "監査ログのCSVをクリップボードにコピーしました",
-            "inspector_empty": "Select a row to view details",
-            "view_full_profile": "View full profile",
+            "inspector_empty": "行を選択して詳細を表示",
+            "view_full_profile": "プロフィールを表示",
             "loaded_count": "{count} 件読み込み済み",
-            "no_permission": "You don't have moderation permission for this group.",
+            "no_permission": "このグループの管理権限がありません。",
             "status": {
                 "member": "メンバー",
                 "invited": "招待済み",
@@ -4765,10 +4765,10 @@
             "loading": "サードパーティーの通知を読み込んでいます...",
             "unavailable": "サードパーティーの通知を読み込めませんでした。プロダクションのビルドを行い、再生成してください。",
             "search_placeholder": "パッケージ、ライセンス、またはバージョンで検索",
-            "notice_location_prefix": "完全な notices のファイルは、アプリのインストールディレクトリにあります:",
+            "notice_location_prefix": "完全なライセンス通知ファイルは、アプリのインストールディレクトリにあります:",
             "open_project": "プロジェクトを開く",
             "open_license_url": "ライセンスURLを開く",
-            "notice_unavailable": "この項目には利用可能なローカル ライセンス テキストがありません。完全な通知ファイルで、この依存関係の通知を確認できます。",
+            "notice_unavailable": "この項目にはローカルのライセンステキストがありません。完全な通知ファイルでこのパッケージのライセンス表記を確認できます。",
             "select_package": "詳細を表示するパッケージを選択",
             "no_results": "一致するパッケージが見つかりません。",
             "no_version": "バージョンメタデータがありません"
@@ -4873,7 +4873,7 @@
         "instance": {
             "label": {
                 "closed_at": "終了時刻:",
-                "open_for_at_least": "立ってから{duration}以上経過",
+                "open_for_at_least": "開設から{duration}以上経過",
                 "android": "Android:",
                 "ios": "iOS:",
                 "game_version": "ゲームバージョン",
@@ -5583,7 +5583,7 @@
                 "rail_title": "管理しているグループ",
                 "select_a_group_title": "グループを選択",
                 "select_a_group_description": "リストからグループを選択して、メンバー・BAN・招待・参加リクエストを管理します。",
-                "moderator_hint": "You have moderation access in this group",
+                "moderator_hint": "このグループの管理権限があります",
                 "member_online_count": "メンバー{members}人・オンライン{online}人"
             }
         }

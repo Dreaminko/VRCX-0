@@ -1065,7 +1065,7 @@
             "empty": {
                 "this_avatar_has_no_local_tags_yet": "This avatar has no local tags yet",
                 "no_avatars_match_the_current_filters": "No avatars match the current filters",
-                "no_authenticated_user_is_available_for_the_avatar_inventory": "No authenticated user is available for the avatar inventory."
+                "no_authenticated_user_is_available_for_the_avatar_inventory": "Sign in to view your avatar inventory."
             },
             "loading": {
                 "loading_the_avatar_inventory": "Loading the avatar inventory"
@@ -1630,7 +1630,7 @@
             },
             "modal": {
                 "refresh_non_friend_mutuals": "Refresh non-friend mutuals",
-                "this_node_is_not_currently_in_the_friend_roster_continue_refreshing_its_mutual_friends_cache": "This node is not currently in the friend roster. Continue refreshing its mutual-friends cache?"
+                "this_node_is_not_currently_in_the_friend_roster_continue_refreshing_its_mutual_friends_cache": "This person is not on your friends list. Continue refreshing their mutual-friends data?"
             },
             "dynamic": {
                 "refreshed_mutuals_for_value": "Refreshed mutuals for {value}",
@@ -2037,7 +2037,7 @@
                     "enable": "Enable MCP server",
                     "enable_description": "Starts an HTTP MCP server protected by a bearer token. Localhost-only access is the default.",
                     "allow_vrchat_writes": "Allow VRChat account writes",
-                    "allow_vrchat_writes_description": "When off, favorite-to-VRChat tool calls are forced to dry-run. Turn on to let AI write favorites to your real VRChat account. Resets to off each time the server starts.",
+                    "allow_vrchat_writes_description": "When off, AI favorite actions are simulated without saving. Turn on to let AI write favorites to your real VRChat account. Resets to off each time the server starts.",
                     "allow_lan_connections": "Allow LAN connections",
                     "allow_lan_connections_description": "Listen on all IPv4 interfaces so other devices on your local network can connect with this computer's IP address and the bearer token. Keep off on untrusted networks.",
                     "port_label": "Server port",
@@ -2094,7 +2094,7 @@
                     "tray": "Minimize to Tray When Closing",
                     "tray_description": "When enabled, clicking the close button (X) minimizes VRCX-0 to the system tray instead of quitting. When disabled, clicking X quits VRCX-0.",
                     "background_mode": "Switch to Background Mode When Minimized to Tray",
-                    "background_mode_description": "Automatically switch to background mode when minimized to tray. This reduces memory usage to around 10%, same as before. Some page states may reset when restored.",
+                    "background_mode_description": "Automatically switch to background mode when minimized to tray. This reduces memory usage by about 90%. Some page states may reset when restored.",
                     "background_mode_delay": "Delay Switching to Background Mode",
                     "background_mode_delay_description": "After VRCX-0 is closed to the tray, switch to Background Mode only after the window stays unopened for the configured number of minutes. Opening the window resets the timer.",
                     "background_mode_delay_button": "Set Delay Minutes",
@@ -2159,7 +2159,7 @@
                     "theme_mode_dark": "Dark",
                     "theme_mode_blue": "Blue",
                     "theme_mode_darkblue": "Dark Blue",
-                    "theme_mode_amoled": "Amoled",
+                    "theme_mode_amoled": "AMOLED",
                     "theme_mode_darkvanillaold": "Dark Vanilla (old)",
                     "theme_mode_darkvanilla": "Dark Vanilla",
                     "theme_mode_pink": "Pink",
@@ -2437,7 +2437,7 @@
                     },
                     "vrchat_quit_fix": {
                         "header": "Force Quit VRChat on Exit",
-                        "description": "Kill VRChat After Exiting Game"
+                        "description": "Force close VRChat after exiting the game"
                     },
                     "auto_cache_management": {
                         "header": "Auto Manage Cache on Exit",
@@ -2467,7 +2467,7 @@
                     "delete_all_screenshot_metadata": {
                         "button": "Remove Screenshot Metadata",
                         "ask": "Are you sure you want to delete all VRChat & VRCX-0 screenshot metadata from your VRChat Pictures folder?",
-                        "confirm": "Deleting all screenshot metadata is a very destructive action and cannot be undone! This includes all prints, subfolders, and other unrelated images in your VRChat Pictures folder. If these photos are precious to you, please back them up before proceeding.",
+                        "confirm": "This permanently deletes all screenshot metadata and cannot be undone. This includes all prints, subfolders, and other files in your VRChat Pictures folder. Back up anything important before proceeding.",
                         "confirm_yes": "Yes",
                         "confirm_no": "No"
                     },
@@ -2481,7 +2481,7 @@
                         "header": "YouTube API",
                         "enable": "Enable",
                         "youtube_api_key": "YouTube API Key",
-                        "enable_tooltip": "Fetches video titles for use with gameLog and duration for overlay progress bar"
+                        "enable_tooltip": "Fetches video titles for the Game Log and video duration for the overlay progress bar"
                     },
                     "translation_api": {
                         "header": "Enable Content Translation",
@@ -2531,7 +2531,7 @@
                         "header": "Cache",
                         "udon_exception_logging": "Udon Exception Logging",
                         "disable_gamelog": "Disable GameLog",
-                        "disable_gamelog_notice": "(will likely break things)",
+                        "disable_gamelog_notice": "(may disable features that depend on game logs)",
                         "user_cache": "User Cache:",
                         "world_cache": "World Cache:",
                         "avatar_cache": "Avatar Cache:",
@@ -2695,7 +2695,7 @@
                 "back_to_feed": "Back to Feed",
                 "add_a_row_to_start_building_this_dashboard": "Add a row to start building this dashboard",
                 "add_row": "Add Row:",
-                "start_vrchat_before_the_dashboard_can_rebuild_the_current_instance_roster": "Start VRChat before the dashboard can rebuild the current instance roster"
+                "start_vrchat_before_the_dashboard_can_rebuild_the_current_instance_roster": "Start VRChat to see current instance players on this dashboard"
             },
             "description": {
                 "matches_the_stored_feed_widget_config": "Uses the saved Feed widget settings",
@@ -2733,7 +2733,7 @@
                 "no_current_instance_detected": "No current instance detected",
                 "no_players_reconstructed_for_this_instance_yet": "No current players found yet",
                 "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "Enable game log in Settings to see current players.",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Start VRChat and let VRCX-0 receive game-log events before this page can rebuild the current instance.",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Start VRChat to see current players. VRCX-0 will populate this list from game-log events.",
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "Stay in the instance until VRCX-0 detects player activity. This list will update automatically.",
                 "current_players_follow_live_instance_locations": "Current players will appear after VRCX-0 detects your next location.",
                 "local_join_leave_history_has_no_current_players": "The local join/leave history does not have any current players for the active location yet."
@@ -4097,10 +4097,10 @@
             "presets": "Presets"
         },
         "bio": {
-            "bio_placeholder": "Please input a bio"
+            "bio_placeholder": "Write a bio"
         },
         "pronouns": {
-            "pronouns_placeholder": "Please input your pronouns"
+            "pronouns_placeholder": "Enter your pronouns"
         },
         "new_instance": {
             "header": "New Instance",
@@ -4227,11 +4227,11 @@
         },
         "edit_send_invite_message": {
             "header": "Edit and Send Message Template",
-            "description": "1 hour edit cool down time.",
+            "description": "1-hour edit cooldown.",
             "send": "Send"
         },
         "edit_send_invite_response_message": {
-            "description": "1 hour edit cool down time."
+            "description": "1-hour edit cooldown."
         },
         "export_friends_list": {
             "header": "Export Friends List",
@@ -4253,7 +4253,7 @@
             "description2": "Be warned of the following limitations:",
             "description3": "- API endpoint has a rate limit that requires a large delay between requests.",
             "description4": "- Character limit of 256 per note.",
-            "description5": "- Swear words filter (no fun allowed).",
+            "description5": "- Profanity filter applies.",
             "description6": "- No new lines (they will replaced with a space).",
             "description7": "- This will overwrite any existing VRChat notes for these users.",
             "description8": "- Any edits made here won't affect VRCX-0 local notes, but will affect VRChat notes once exported.",
@@ -4833,7 +4833,7 @@
                 "detected_count": "{count} detected"
             },
             "empty": {
-                "no_parsed": "No parsed"
+                "no_parsed": "Nothing to import"
             }
         },
         "tools": {
@@ -4908,8 +4908,8 @@
                 "failed_to_load_own_avatars": "Failed to load own avatars"
             },
             "dynamic": {
-                "value_rolled_back_value_avatar_s": "{value} Rolled back {value2} avatar(s)",
-                "value_rolled_back_value_avatar_s_but_value_rollback": "{value} Rolled back {value2} avatar(s), but {value3} rollback(s) failed"
+                "value_rolled_back_value_avatar_s": "{value} rolled back {value2} avatar(s)",
+                "value_rolled_back_value_avatar_s_but_value_rollback": "{value} rolled back {value2} avatar(s), but {value3} rollback(s) failed"
             }
         },
         "instance_invite": {
@@ -5029,7 +5029,7 @@
             "search_limit_returns": "Search Limit Returns",
             "search_limit_returns_error": "Enter a number between {min} and {max}",
             "search_limit_returns_hint": "Valid range: {min} – {max}",
-            "search_limit_returns_warning": "Too large values can freeze the app",
+            "search_limit_returns_warning": "Very high values may freeze the app",
             "cancel": "Cancel",
             "save": "Save"
         }
