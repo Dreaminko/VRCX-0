@@ -13,7 +13,7 @@ use vrcx_0_application::{
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
     BackendRuntimeMode, BackendRuntimePhase, GameProcessEvent, GameProcessEventSink,
-    SessionHostRuntime,
+    SessionHostRuntime, TaskStopToken,
 };
 use vrcx_0_application_game::{
     GameLogLocalGameContextSource, ProcessMonitor, RegistryBackupMaintenanceMode,
@@ -58,6 +58,7 @@ const USER_GENERATED_CONTENT_PATH_CONFIG_KEY: &str = "userGeneratedContentPath";
 const REGISTRY_BACKUP_MAINTENANCE_JOB: &str = "registryBackupMaintenance";
 const REGISTRY_BACKUP_MAINTENANCE_CADENCE_SECONDS: u64 = 3 * 60 * 60;
 const BACKGROUND_OVERLAY_ACTIVITY_CONFIG_CADENCE_SECONDS: u64 = 5;
+const DESKTOP_MAINTENANCE_STOP_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 pub struct DesktopRuntimeHostOptions {
     pub realtime_origin: String,
@@ -489,6 +490,9 @@ impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
     }
 
     fn stop_profile_services(&self) {
+        if let Err(error) = self.desktop.discord_rpc.clear() {
+            tracing::warn!(error = %error, "Discord presence cleanup failed while stopping desktop services");
+        }
         self.desktop.vr_overlay_runtime.stop_detached();
         self.game.process_monitor.stop();
         self.game.log_watcher.stop();
@@ -960,18 +964,50 @@ impl DesktopRuntimeProfileExtension {
                         next_discord =
                             now + Duration::from_secs(BACKGROUND_DISCORD_CADENCE_SECONDS);
                     }
-                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    if wait_for_desktop_maintenance_tick(&stop_token).await {
+                        break;
+                    }
                 }
+                let cleanup_rpc = Arc::clone(&discord_rpc);
+                let discord_cleanup_result = match tokio::task::spawn_blocking(move || {
+                    cleanup_rpc.clear()
+                })
+                .await
+                {
+                    Ok(Ok(())) => Ok(()),
+                    Ok(Err(error)) => Err(error.to_string()),
+                    Err(error) => Err(error.to_string()),
+                };
                 running.store(false, Ordering::Release);
                 background_jobs.mark_completed(
                     BACKGROUND_PRESENCE_AUTOMATION_JOB,
                     "Background presence automation stopped.",
                 );
-                background_jobs.mark_completed(
-                    BACKGROUND_DISCORD_PRESENCE_JOB,
-                    "Background Discord presence stopped.",
-                );
+                match discord_cleanup_result {
+                    Ok(()) => background_jobs.mark_completed(
+                        BACKGROUND_DISCORD_PRESENCE_JOB,
+                        "Background Discord presence stopped and cleared.",
+                    ),
+                    Err(error) => {
+                        tracing::warn!(error = %error, "background Discord shutdown cleanup failed");
+                        background_jobs.mark_failed(BACKGROUND_DISCORD_PRESENCE_JOB, error);
+                    }
+                }
             });
+    }
+}
+
+async fn wait_for_desktop_maintenance_tick(stop_token: &TaskStopToken) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(1);
+    loop {
+        if stop_token.is_stop_requested() {
+            return true;
+        }
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return false;
+        }
+        tokio::time::sleep(remaining.min(DESKTOP_MAINTENANCE_STOP_POLL_INTERVAL)).await;
     }
 }
 

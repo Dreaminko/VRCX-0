@@ -2362,6 +2362,9 @@ export const commands = {
     async appWriteConfigFile(json: string): Promise<null> {
         return await TAURI_INVOKE('app__write_config_file', { json });
     },
+    async appDisableVrchatRichPresence(): Promise<VrchatRichPresenceDisableResult> {
+        return await TAURI_INVOKE('app__disable_vrchat_rich_presence');
+    },
     async appWriteConfigFileWithCacheCleanup(
         json: string
     ): Promise<VrchatConfigWriteResult> {
@@ -5986,6 +5989,7 @@ export type VrchatPrintFavoriteSetInput = {
     printId?: string;
     favorite?: boolean;
 };
+export type VrchatRichPresenceDisableResult = { changed: boolean };
 export type VrchatSearchParamsInput = {
     params?: Partial<{ [key in string]: JsonValue }>;
 };

@@ -540,6 +540,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::shell::app__read_config_file_safe,
             commands::host::shell::app__vrchat_cache_location_would_change,
             commands::host::shell::app__write_config_file,
+            commands::host::shell::app__disable_vrchat_rich_presence,
             commands::host::shell::app__write_config_file_with_cache_cleanup,
             commands::host::paths::app__get_vrchat_app_data_location,
             commands::host::paths::app__get_vrchat_photos_location,
