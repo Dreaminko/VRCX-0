@@ -256,6 +256,11 @@ export const commands = {
     ): Promise<FavoriteDetailsHydrateOutput> {
         return await TAURI_INVOKE('app__favorite_details_hydrate', { input });
     },
+    async appFavoriteCacheSnapshot(
+        input: FavoriteCacheSnapshotInput
+    ): Promise<boolean> {
+        return await TAURI_INVOKE('app__favorite_cache_snapshot', { input });
+    },
     async appAvatarContentTagsBatch(
         input: AvatarContentTagsBatchInput
     ): Promise<BatchMutationResult> {
@@ -1048,7 +1053,7 @@ export const commands = {
     async appWorldCacheRemove(worldId: string): Promise<null> {
         return await TAURI_INVOKE('app__world_cache_remove', { worldId });
     },
-    async appFavoriteList(kind: string): Promise<JsonValue[]> {
+    async appFavoriteList(kind: string): Promise<FavoriteRow[]> {
         return await TAURI_INVOKE('app__favorite_list', { kind });
     },
     async appFavoriteAdd(
@@ -3677,6 +3682,34 @@ export type ExternalApiYoutubeVideoInput = {
     videoId?: string;
     apiKey?: string;
 };
+export type FavoriteBaselineSnapshot = {
+    currentUserId: string;
+    favoriteLimits: RawJson;
+    favoritesSortOrder: string[];
+    remoteFavoritesById: Partial<{ [key in string]: RawJson }>;
+    remoteFavoritesByObjectId: Partial<{ [key in string]: RawJson }>;
+    favoriteFriendIds: string[];
+    groupedFavoriteFriendIdsByGroupKey: Partial<{ [key in string]: string[] }>;
+    favoriteWorldIds: string[];
+    groupedFavoriteWorldIdsByGroupKey: Partial<{ [key in string]: string[] }>;
+    favoriteAvatarIds: string[];
+    cachedFavoriteGroupsById: Partial<{ [key in string]: RawJson }>;
+    favoriteFriendGroups: FavoriteGroupOutput[];
+    favoriteWorldGroups: FavoriteGroupOutput[];
+    favoriteAvatarGroups: FavoriteGroupOutput[];
+    localWorldFavorites: Partial<{ [key in string]: string[] }>;
+    localAvatarFavorites: Partial<{ [key in string]: string[] }>;
+    localFriendFavorites: Partial<{ [key in string]: string[] }>;
+    localWorldFavoriteGroups: string[];
+    localAvatarFavoriteGroups: string[];
+    localFriendFavoriteGroups: string[];
+    localWorldFavoritesList: string[];
+    localAvatarFavoritesList: string[];
+    localFriendFavoritesList: string[];
+    localWorldDetailsById: Partial<{ [key in string]: RawJson }>;
+    localAvatarDetailsById: Partial<{ [key in string]: RawJson }>;
+    detail: string;
+};
 export type FavoriteBulkRemoveInput = {
     expectedOwnerUserId: string;
     expectedEndpoint: string;
@@ -3710,6 +3743,12 @@ export type FavoriteBulkRemoveResult = {
     lastError: string | null;
 };
 export type FavoriteBulkRemoveSource = 'local' | 'remote';
+export type FavoriteCacheKind = 'avatar' | 'world';
+export type FavoriteCacheSnapshotInput = {
+    kind: FavoriteCacheKind;
+    entity: RawJson;
+    fallbackEntityId?: string;
+};
 export type FavoriteDetailsHydrateInput = {
     kind: FavoriteDetailsHydrateKind;
     favoriteIds?: string[];
@@ -3721,6 +3760,16 @@ export type FavoriteDetailsHydrateOutput = {
     availabilityById: Partial<{ [key in string]: string }>;
     cachedCount: number;
     fetchedAt: string;
+};
+export type FavoriteGroupOutput = {
+    assign: boolean;
+    key: string;
+    type: string;
+    name: string;
+    displayName: string;
+    capacity: number;
+    count: number;
+    visibility: string;
 };
 export type FavoriteImportItemResult = {
     id: string;
@@ -3765,6 +3814,13 @@ export type FavoriteImportTarget = {
     location: FavoriteImportLocation;
     group?: string;
     favoriteType?: string;
+};
+export type FavoriteRow = {
+    createdAt: string;
+    groupName: string;
+    userId?: string | null;
+    avatarId?: string | null;
+    worldId?: string | null;
 };
 export type FavoriteTransferInput = {
     endpoint?: string;
@@ -5444,7 +5500,7 @@ export type SocialFavoritesBaselineOutput = {
     userId: string;
     stale: boolean;
     count: number;
-    snapshot: RawJson | null;
+    snapshot: FavoriteBaselineSnapshot | null;
 };
 export type SocialFriendMutationInput = {
     ownerUserId: string;

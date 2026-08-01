@@ -13,7 +13,8 @@ mod state;
 pub mod telemetry;
 
 pub use authenticated_runtime::{
-    favorite_group_membership_from_snapshot, favorite_world_group_membership_from_snapshot,
+    favorite_group_membership_from_baseline, favorite_group_membership_from_snapshot,
+    favorite_world_group_membership_from_baseline, favorite_world_group_membership_from_snapshot,
     AuthenticatedRuntimeOrchestrator,
 };
 pub use composition::{

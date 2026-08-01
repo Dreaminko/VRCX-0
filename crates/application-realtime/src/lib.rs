@@ -36,8 +36,8 @@ pub use social_baseline::{
     apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
     build_favorites_baseline_from_friend_records, build_friend_roster_baseline,
     build_friend_roster_baseline_deferred, build_synced_friend_roster_baseline,
-    FriendStatusVerdicts, SocialBaselineDeps, SocialFavoritesBaselineInput,
-    SocialFavoritesBaselineOutput, SocialFavoritesBaselineRequest, SocialFriendRosterBaselineInput,
-    SocialFriendRosterBaselineOutput, SyncedFriendRosterBaseline,
+    FavoriteBaselineSnapshot, FavoriteGroupOutput, FriendStatusVerdicts, SocialBaselineDeps,
+    SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFavoritesBaselineRequest,
+    SocialFriendRosterBaselineInput, SocialFriendRosterBaselineOutput, SyncedFriendRosterBaseline,
 };
 pub use world_enrich::world_id_from_location_or_id;

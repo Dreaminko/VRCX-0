@@ -167,8 +167,8 @@ impl RuntimeHostState {
                             .and_then(|baseline| baseline.snapshot.as_ref())
                         {
                             favorite_friend_groups_by_key =
-                                crate::authenticated_runtime::favorite_group_membership_from_snapshot(
-                                    favorites.as_value(),
+                                crate::authenticated_runtime::favorite_group_membership_from_baseline(
+                                    favorites,
                                 );
                             favorite_groups_initialized = true;
                         }

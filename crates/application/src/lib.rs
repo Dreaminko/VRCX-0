@@ -58,8 +58,15 @@ pub use collections::{
 };
 pub use collections::{preview_shared_collection, ImportPreview};
 pub use favorites::{
-    create_local_favorite_group, delete_local_favorite_group, rename_local_favorite_group,
+    add_local_favorite, create_local_favorite_group, delete_local_favorite_entries,
+    delete_local_favorite_group, list_local_favorites, remove_local_favorite,
+    rename_local_favorite_entries, rename_local_favorite_group, FavoriteRow,
     LocalFavoriteGroupWrite,
+};
+pub use favorites::{
+    add_remote_favorite, clear_remote_favorite_group, delete_remote_favorite,
+    save_remote_favorite_group, FavoriteRemoteAddInput, FavoriteRemoteDeleteInput,
+    FavoriteRemoteGroupClearInput, FavoriteRemoteGroupSaveInput, FavoriteRemoteMutationDeps,
 };
 pub use favorites::{
     favorite_transfer_plan_for_item, transfer_favorites, FavoriteTransferDeps,
@@ -70,6 +77,9 @@ pub use favorites::{
 pub use favorites::{
     hydrate_favorite_details, FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput,
     FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,
+};
+pub use favorites::{
+    persist_favorite_cache_snapshot, FavoriteCacheKind, FavoriteCacheSnapshotInput,
 };
 pub use favorites::{
     remove_favorites_bulk, FavoriteBulkRemoveDeps, FavoriteBulkRemoveInput, FavoriteBulkRemoveItem,
@@ -268,8 +278,9 @@ pub use vrcx_0_application_core::{
 pub use vrcx_0_application_realtime::world_id_from_location_or_id;
 pub use vrcx_0_application_realtime::{
     apply_friend_roster_baseline_sync_outcome, build_favorites_baseline,
-    build_friend_roster_baseline, build_friend_roster_baseline_deferred, SocialBaselineDeps,
-    SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
+    build_friend_roster_baseline, build_friend_roster_baseline_deferred, FavoriteBaselineSnapshot,
+    FavoriteGroupOutput, SocialBaselineDeps, SocialFavoritesBaselineInput,
+    SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
     SocialFriendRosterBaselineOutput,
 };
 pub use vrcx_0_application_realtime::{

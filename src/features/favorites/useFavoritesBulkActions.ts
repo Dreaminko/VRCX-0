@@ -53,7 +53,7 @@ export function useFavoritesBulkActions({
     currentEndpoint: string;
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
-    refreshFavorites(options?: { silent?: boolean }): Promise<void>;
+    refreshFavorites(options?: { silent?: boolean }): Promise<boolean>;
     remoteFavoritesByObjectId: Record<string, FavoriteRecord | undefined>;
     remoteGroups: FavoriteGroup[];
     selectedContentItems: FavoriteItem[];

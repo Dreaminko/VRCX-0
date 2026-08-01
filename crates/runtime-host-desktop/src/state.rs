@@ -914,11 +914,11 @@ impl DesktopRuntimeProfileExtension {
                             .and_then(|baseline| baseline.snapshot.as_ref())
                             .map(|snapshot| {
                                 (
-                                    vrcx_0_runtime_host::favorite_group_membership_from_snapshot(
-                                        snapshot.as_value(),
+                                    vrcx_0_runtime_host::favorite_group_membership_from_baseline(
+                                        snapshot,
                                     ),
-                                    vrcx_0_runtime_host::favorite_world_group_membership_from_snapshot(
-                                        snapshot.as_value(),
+                                    vrcx_0_runtime_host::favorite_world_group_membership_from_baseline(
+                                        snapshot,
                                     ),
                                 )
                             })

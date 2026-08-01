@@ -276,7 +276,7 @@ impl RealtimeHostRuntime {
         if output.stale {
             return Ok(None);
         }
-        Ok(output.snapshot.map(RawJson::into_value))
+        Ok(output.snapshot.map(|snapshot| snapshot.into_value()))
     }
 
     async fn cleanup_invite_request_notification(

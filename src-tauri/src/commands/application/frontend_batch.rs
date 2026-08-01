@@ -2,15 +2,16 @@
 
 use tauri::State;
 use vrcx_0_application::{
-    hydrate_favorite_details, mark_notifications_seen_batch, run_avatar_content_tags_batch,
-    run_group_leave_batch, run_group_moderation_batch, run_group_visibility_batch,
-    sync_notifications, AvatarContentTagsBatchInput, BatchMutationResult,
-    FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput, FavoriteDetailsHydrateOutput,
-    FavoriteImportStartInput, FavoriteImportStatus, GroupBanImportStartInput, GroupBanImportStatus,
-    GroupLeaveBatchInput, GroupModerationBatchInput, GroupModerationBatchResult,
-    GroupVisibilityBatchInput, NotificationMarkSeenBatchInput, NotificationMarkSeenBatchResult,
-    NotificationSyncDeps, NotificationSyncOutcome, VrchatBatchMutationActions,
-    VrchatGroupModerationBatchActions, VrchatNotificationMarkSeenActions,
+    hydrate_favorite_details, mark_notifications_seen_batch, persist_favorite_cache_snapshot,
+    run_avatar_content_tags_batch, run_group_leave_batch, run_group_moderation_batch,
+    run_group_visibility_batch, sync_notifications, AvatarContentTagsBatchInput,
+    BatchMutationResult, FavoriteCacheSnapshotInput, FavoriteDetailsHydrateDeps,
+    FavoriteDetailsHydrateInput, FavoriteDetailsHydrateOutput, FavoriteImportStartInput,
+    FavoriteImportStatus, GroupBanImportStartInput, GroupBanImportStatus, GroupLeaveBatchInput,
+    GroupModerationBatchInput, GroupModerationBatchResult, GroupVisibilityBatchInput,
+    NotificationMarkSeenBatchInput, NotificationMarkSeenBatchResult, NotificationSyncDeps,
+    NotificationSyncOutcome, VrchatBatchMutationActions, VrchatGroupModerationBatchActions,
+    VrchatNotificationMarkSeenActions,
 };
 use vrcx_0_application_core::RuntimeAuthScopeSnapshot;
 
@@ -72,6 +73,15 @@ pub async fn app__favorite_details_hydrate(
         expected_scope,
     };
     Ok(hydrate_favorite_details(&deps, input).await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__favorite_cache_snapshot(
+    state: State<'_, AppState>,
+    input: FavoriteCacheSnapshotInput,
+) -> Result<bool, AppError> {
+    Ok(persist_favorite_cache_snapshot(state.db.as_ref(), input)?)
 }
 
 #[tauri::command]

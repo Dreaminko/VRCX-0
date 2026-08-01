@@ -140,11 +140,11 @@ pub(crate) fn local_favorite_friend_groups_from_db(
     let rows = favorite_list(db, Some(owner_user_id), "friend".to_string())?;
     let mut groups_by_key: HashMap<String, Vec<String>> = HashMap::new();
     for row in rows {
-        let user_id = json_string_field(&row, "userId").unwrap_or_default();
+        let user_id = row.user_id.unwrap_or_default();
         if user_id.is_empty() {
             continue;
         }
-        let group_name = json_string_field(&row, "groupName").unwrap_or_else(|| "Favorites".into());
+        let group_name = row.group_name;
         let group_name = if group_name.trim().is_empty() {
             "Favorites".to_string()
         } else {

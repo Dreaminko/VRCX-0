@@ -8,6 +8,7 @@ pub use service::{
     FriendStatusVerdicts, SocialBaselineDeps, SyncedFriendRosterBaseline,
 };
 pub use types::{
-    SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFavoritesBaselineRequest,
-    SocialFriendRosterBaselineInput, SocialFriendRosterBaselineOutput,
+    FavoriteBaselineSnapshot, FavoriteGroupOutput, SocialFavoritesBaselineInput,
+    SocialFavoritesBaselineOutput, SocialFavoritesBaselineRequest, SocialFriendRosterBaselineInput,
+    SocialFriendRosterBaselineOutput,
 };

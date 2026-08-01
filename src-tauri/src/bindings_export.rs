@@ -159,6 +159,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::frontend_batch::app__group_ban_import_status,
             commands::application::frontend_batch::app__group_ban_import_cancel,
             commands::application::frontend_batch::app__favorite_details_hydrate,
+            commands::application::frontend_batch::app__favorite_cache_snapshot,
             commands::application::frontend_batch::app__avatar_content_tags_batch,
             commands::application::frontend_batch::app__group_visibility_batch,
             commands::application::frontend_batch::app__group_leave_batch,

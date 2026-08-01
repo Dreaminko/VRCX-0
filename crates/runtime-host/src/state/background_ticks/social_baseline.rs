@@ -9,7 +9,7 @@ use vrcx_0_application_realtime::{
 };
 use vrcx_0_core::json::RawJson;
 
-use crate::authenticated_runtime::favorite_group_membership_from_snapshot;
+use crate::authenticated_runtime::favorite_group_membership_from_baseline;
 use crate::AuthenticatedRuntimeOrchestrator;
 
 use super::super::{
@@ -89,8 +89,8 @@ pub(in crate::state) async fn run_social_baseline_refresh_core(
         Ok(favorites_output) => {
             authenticated_runtime.update_favorites_baseline(favorites_output.clone());
             Ok(favorites_output.snapshot.map(|snapshot| {
+                let groups = favorite_group_membership_from_baseline(&snapshot);
                 let value = snapshot.into_value();
-                let groups = favorite_group_membership_from_snapshot(&value);
                 authenticated_runtime.apply_favorites_snapshot(&value);
                 SocialBaselineFavoritesRefresh {
                     snapshot: value,
