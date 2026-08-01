@@ -1,9 +1,7 @@
 import type { FeedLiveEntry } from '@/domain/feed/feedLiveTypes';
-import type { FeedReadModelResult } from '@/domain/feed/feedReadModelTypes';
 import {
     commands,
     type FeedLiveRowsMergeInput,
-    type FeedReadModelOutput,
     type FeedReadModelQueryInput,
     type FeedRowOutput,
     type FeedRowsQueryInput
@@ -140,16 +138,6 @@ async function queryFeedRows({
     return commands.appFeedRowsQuery(query);
 }
 
-function normalizeFeedReadModelResult(
-    result: FeedReadModelOutput
-): FeedReadModelResult<FeedRowOutput> {
-    const maxSequence = Number(result.maxSequence);
-    return {
-        rows: result.rows,
-        maxSequence: Number.isFinite(maxSequence) ? maxSequence : 0
-    };
-}
-
 const feed = {
     markFeedTablesEnsured,
 
@@ -281,9 +269,7 @@ const feed = {
             excludedUserIds: normalizeStringList(excludedUserIds),
             maxRows
         } satisfies FeedReadModelQueryInput;
-        return normalizeFeedReadModelResult(
-            await commands.appFeedReadModelQuery(query)
-        );
+        return commands.appFeedReadModelQuery(query);
     },
 
     async mergeFeedLiveRows({
@@ -316,9 +302,7 @@ const feed = {
             minLiveSequence,
             maxRows
         } satisfies FeedLiveRowsMergeInput;
-        return normalizeFeedReadModelResult(
-            await commands.appFeedLiveRowsMerge(query)
-        );
+        return commands.appFeedLiveRowsMerge(query);
     },
 
     async lookupFeedDatabase(

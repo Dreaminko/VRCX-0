@@ -68,6 +68,13 @@ vi.mock('@/state/friendRosterStore', () => ({
 
 import { useFeedLiveStore } from '@/state/feedLiveStore';
 
+import type { Deferred, MergeArgs } from './feedLiveMergeTestUtils';
+import {
+    createDeferred,
+    flush,
+    mergeCallArgsOf,
+    pushLiveEntry
+} from './feedLiveMergeTestUtils';
 import type { FeedFilterType, FeedRow } from './feedTypes';
 import { useFeedRows } from './useFeedRows';
 
@@ -78,17 +85,6 @@ type FeedRowsProps = {
     deferredSearchQuery: string;
     favoritesOnly: boolean;
     preferencesReady: boolean;
-};
-
-type MergeArgs = {
-    rows: FeedRow[];
-    minLiveSequence: number;
-    maxRows?: number;
-};
-
-type Deferred<T> = {
-    promise: Promise<T>;
-    resolve(value: T): void;
 };
 
 const ACTIVE_FILTERS: FeedFilterType[] = [];
@@ -102,33 +98,7 @@ const BASE_PROPS: FeedRowsProps = {
     preferencesReady: true
 };
 
-function createDeferred<T>(): Deferred<T> {
-    let resolve: (value: T) => void = () => {};
-    const promise = new Promise<T>((resolvePromise) => {
-        resolve = resolvePromise;
-    });
-    return { promise, resolve };
-}
-
-async function flush(times = 8): Promise<void> {
-    for (let index = 0; index < times; index += 1) {
-        await act(async () => {
-            await Promise.resolve();
-        });
-    }
-}
-
-function mergeCallArgs(): MergeArgs[] {
-    return mocks.mergeLiveRows.mock.calls.map(
-        (call: unknown[]) => call[0] as MergeArgs
-    );
-}
-
-function pushLiveEntry(id: string): void {
-    act(() => {
-        useFeedLiveStore.getState().pushEntry({ id, type: 'Online' });
-    });
-}
+const mergeCallArgs = () => mergeCallArgsOf(mocks.mergeLiveRows);
 
 function renderFeedRows() {
     return renderHook((props: FeedRowsProps) => useFeedRows(props), {

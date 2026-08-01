@@ -439,6 +439,18 @@ fn row_opt_i64(row: &[Value], index: usize) -> Option<i64> {
     value_opt_i64(row.get(index))
 }
 
+fn entry_opt_string(entry: &Value, keys: &[&str]) -> Option<String> {
+    value_opt_string(feed_entry_value(entry, keys))
+}
+
+fn entry_opt_i64(entry: &Value, keys: &[&str]) -> Option<i64> {
+    value_opt_i64(feed_entry_value(entry, keys))
+}
+
+fn entry_opt_string_list(entry: &Value, keys: &[&str]) -> Option<Vec<String>> {
+    value_opt_string_list(feed_entry_value(entry, keys))
+}
+
 fn feed_row_from_unified_row(row: &[Value]) -> FeedRowOutput {
     FeedRowOutput {
         row_id: row_opt_i64(row, 0),
@@ -474,79 +486,67 @@ fn feed_row_from_unified_row(row: &[Value]) -> FeedRowOutput {
 
 fn feed_row_from_value(entry: &Value) -> FeedRowOutput {
     FeedRowOutput {
-        row_id: value_opt_i64(feed_entry_value(entry, &["rowId", "row_id"])),
-        source_rank: value_opt_i64(feed_entry_value(entry, &["sourceRank", "source_rank"])),
-        created_at: value_opt_string(feed_entry_value(entry, &["created_at", "createdAt"])),
-        user_id: value_opt_string(feed_entry_value(entry, &["userId", "user_id"])),
-        display_name: value_opt_string(feed_entry_value(entry, &["displayName", "display_name"])),
-        r#type: value_opt_string(feed_entry_value(entry, &["type"])),
-        location: value_opt_string(feed_entry_value(entry, &["location"])),
-        world_name: value_opt_string(feed_entry_value(entry, &["worldName", "world_name"])),
-        previous_location: value_opt_string(feed_entry_value(
-            entry,
-            &["previousLocation", "previous_location"],
-        )),
-        time: value_opt_i64(feed_entry_value(entry, &["time"])),
-        group_name: value_opt_string(feed_entry_value(entry, &["groupName", "group_name"])),
-        status: value_opt_string(feed_entry_value(entry, &["status"])),
-        status_description: value_opt_string(feed_entry_value(
-            entry,
-            &["statusDescription", "status_description"],
-        )),
-        previous_status: value_opt_string(feed_entry_value(
-            entry,
-            &["previousStatus", "previous_status"],
-        )),
-        previous_status_description: value_opt_string(feed_entry_value(
+        row_id: entry_opt_i64(entry, &["rowId", "row_id"]),
+        source_rank: entry_opt_i64(entry, &["sourceRank", "source_rank"]),
+        created_at: entry_opt_string(entry, &["created_at", "createdAt"]),
+        user_id: entry_opt_string(entry, &["userId", "user_id"]),
+        display_name: entry_opt_string(entry, &["displayName", "display_name"]),
+        r#type: entry_opt_string(entry, &["type"]),
+        location: entry_opt_string(entry, &["location"]),
+        world_name: entry_opt_string(entry, &["worldName", "world_name"]),
+        previous_location: entry_opt_string(entry, &["previousLocation", "previous_location"]),
+        time: entry_opt_i64(entry, &["time"]),
+        group_name: entry_opt_string(entry, &["groupName", "group_name"]),
+        status: entry_opt_string(entry, &["status"]),
+        status_description: entry_opt_string(entry, &["statusDescription", "status_description"]),
+        previous_status: entry_opt_string(entry, &["previousStatus", "previous_status"]),
+        previous_status_description: entry_opt_string(
             entry,
             &["previousStatusDescription", "previous_status_description"],
-        )),
-        bio: value_opt_string(feed_entry_value(entry, &["bio"])),
-        previous_bio: value_opt_string(feed_entry_value(entry, &["previousBio", "previous_bio"])),
-        owner_id: value_opt_string(feed_entry_value(entry, &["ownerId", "owner_id"])),
-        avatar_name: value_opt_string(feed_entry_value(entry, &["avatarName", "avatar_name"])),
-        current_avatar_image_url: value_opt_string(feed_entry_value(
+        ),
+        bio: entry_opt_string(entry, &["bio"]),
+        previous_bio: entry_opt_string(entry, &["previousBio", "previous_bio"]),
+        owner_id: entry_opt_string(entry, &["ownerId", "owner_id"]),
+        avatar_name: entry_opt_string(entry, &["avatarName", "avatar_name"]),
+        current_avatar_image_url: entry_opt_string(
             entry,
             &["currentAvatarImageUrl", "current_avatar_image_url"],
-        )),
-        current_avatar_thumbnail_image_url: value_opt_string(feed_entry_value(
+        ),
+        current_avatar_thumbnail_image_url: entry_opt_string(
             entry,
             &[
                 "currentAvatarThumbnailImageUrl",
                 "current_avatar_thumbnail_image_url",
             ],
-        )),
-        current_avatar_tags: value_opt_string_list(feed_entry_value(
+        ),
+        current_avatar_tags: entry_opt_string_list(
             entry,
             &["currentAvatarTags", "current_avatar_tags"],
-        )),
-        previous_owner_id: value_opt_string(feed_entry_value(
-            entry,
-            &["previousOwnerId", "previous_owner_id"],
-        )),
-        previous_avatar_name: value_opt_string(feed_entry_value(
+        ),
+        previous_owner_id: entry_opt_string(entry, &["previousOwnerId", "previous_owner_id"]),
+        previous_avatar_name: entry_opt_string(
             entry,
             &["previousAvatarName", "previous_avatar_name"],
-        )),
-        previous_current_avatar_image_url: value_opt_string(feed_entry_value(
+        ),
+        previous_current_avatar_image_url: entry_opt_string(
             entry,
             &[
                 "previousCurrentAvatarImageUrl",
                 "previous_current_avatar_image_url",
             ],
-        )),
-        previous_current_avatar_thumbnail_image_url: value_opt_string(feed_entry_value(
+        ),
+        previous_current_avatar_thumbnail_image_url: entry_opt_string(
             entry,
             &[
                 "previousCurrentAvatarThumbnailImageUrl",
                 "previous_current_avatar_thumbnail_image_url",
             ],
-        )),
-        previous_current_avatar_tags: value_opt_string_list(feed_entry_value(
+        ),
+        previous_current_avatar_tags: entry_opt_string_list(
             entry,
             &["previousCurrentAvatarTags", "previous_current_avatar_tags"],
-        )),
-        owner_user_id: value_opt_string(feed_entry_value(entry, &["ownerUserId", "owner_user_id"])),
+        ),
+        owner_user_id: entry_opt_string(entry, &["ownerUserId", "owner_user_id"]),
     }
 }
 

@@ -30,9 +30,9 @@ export function resolveFeedColumnInitialLiveSequence(value: unknown) {
 }
 
 function resolveFeedCursor(row: FeedRow): FeedCursor | null {
-    const createdAt = normalizeId(row?.created_at);
-    const sourceRank = row?.sourceRank;
-    const rowId = row?.rowId;
+    const createdAt = normalizeId(row.created_at);
+    const sourceRank = row.sourceRank;
+    const rowId = row.rowId;
     if (
         !createdAt ||
         typeof sourceRank !== 'number' ||
@@ -328,11 +328,10 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
                 maxEntries: FEED_COLUMN_PAGE_SIZE,
                 cursor
             })
-            .then((dbRows) => {
+            .then((pageRows) => {
                 if (requestIdRef.current !== requestId) {
                     return;
                 }
-                const pageRows: FeedRow[] = Array.isArray(dbRows) ? dbRows : [];
                 cursorRef.current = resolveLastFeedCursor(pageRows);
                 setHasMore(pageRows.length >= FEED_COLUMN_PAGE_SIZE);
                 setRows((currentRows) => {

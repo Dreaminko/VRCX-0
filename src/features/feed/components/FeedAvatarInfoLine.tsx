@@ -50,7 +50,10 @@ function isAvatarRecord(value: unknown): value is ResolvedAvatarRecord {
     return Boolean(value) && typeof value === 'object';
 }
 
-function avatarMatchesFileId(avatar: unknown, fileId: string): boolean {
+function avatarMatchesFileId(
+    avatar: unknown,
+    fileId: string
+): avatar is ResolvedAvatarRecord {
     if (!isAvatarRecord(avatar) || !avatar.id) {
         return false;
     }
@@ -93,10 +96,12 @@ async function findAvatarByImageUrl({
         query
     });
 
-    const providerMatch = response.avatars.find((avatar: unknown) =>
-        avatarMatchesFileId(avatar, fileId)
+    return (
+        response.avatars.find(
+            (avatar: unknown): avatar is ResolvedAvatarRecord =>
+                avatarMatchesFileId(avatar, fileId)
+        ) ?? null
     );
-    return isAvatarRecord(providerMatch) ? providerMatch : null;
 }
 
 const avatarInfoLineCache = new Map<string, AvatarInfoLineState>();
@@ -206,7 +211,9 @@ function avatarTagsEqual(left: unknown, right: unknown): boolean {
     if (left.length !== right.length) {
         return false;
     }
-    return left.every((value: unknown, index: number) => value === right[index]);
+    return left.every(
+        (value: unknown, index: number) => value === right[index]
+    );
 }
 
 export const AvatarInfoLine = memo(function AvatarInfoLine({
