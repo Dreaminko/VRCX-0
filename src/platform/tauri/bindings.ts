@@ -4070,44 +4070,9 @@ export type GameClientEvent =
     | { kind: 'crashRelaunchDecision'; payload: CrashRelaunchDecisionPayload }
     | { kind: 'debugLoggingOutcome'; payload: DebugLoggingOutcome }
     | { kind: 'notification'; payload: RuntimeNotificationPayload };
-export type GameLogEventEntry = { created_at: string; data: string };
-export type GameLogExternalEntry = {
-    created_at: string;
-    message: string;
-    display_name: string;
-    user_id: string;
-    location: string;
-};
-export type GameLogJoinLeaveEntry = {
-    created_at: string;
-    event_type: string;
-    display_name: string;
-    location: string;
-    user_id: string;
-    world_name: string;
-    time: number;
-};
-export type GameLogLocationEntry = {
-    created_at: string;
-    location: string;
-    world_id: string;
-    world_name: string;
-    time: number;
-    group_name: string;
-};
-export type GameLogLocationTimeUpdate = { created_at: string; time: number };
 export type GameLogPersistenceFallbackPayload = {
-    batch: GameLogWriteBatch;
-    rawRows: string[][];
+    attemptedRowCount: number;
     error: string;
-};
-export type GameLogPortalSpawnEntry = {
-    created_at: string;
-    display_name: string;
-    location: string;
-    user_id: string;
-    instance_id: string;
-    world_name: string;
 };
 export type GameLogProjection = {
     currentLocation: string;
@@ -4121,12 +4086,6 @@ export type GameLogProjection = {
     lastGameLogType: string;
 };
 export type GameLogQueryInput = { kind: string; params?: RawJson };
-export type GameLogResourceLoadEntry = {
-    created_at: string;
-    resource_url: string;
-    resource_type: string;
-    location: string;
-};
 export type GameLogSessionDto = {
     id?: number | null;
     created_at: string;
@@ -4174,25 +4133,6 @@ export type GameLogSideEffectEvent =
     | { kind: 'screenshotProcessed'; payload: ScreenshotProcessedPayload }
     | { kind: 'gameNoVR'; payload: GameNoVrPayload }
     | { kind: 'notification'; payload: RuntimeNotificationPayload };
-export type GameLogVideoPlayEntry = {
-    created_at: string;
-    video_url: string;
-    video_name: string;
-    video_id: string;
-    location: string;
-    display_name: string;
-    user_id: string;
-};
-export type GameLogWriteBatch = {
-    locations: GameLogLocationEntry[];
-    location_time_updates: GameLogLocationTimeUpdate[];
-    join_leave: GameLogJoinLeaveEntry[];
-    portal_spawns: GameLogPortalSpawnEntry[];
-    video_plays: GameLogVideoPlayEntry[];
-    resource_loads: GameLogResourceLoadEntry[];
-    events: GameLogEventEntry[];
-    externals: GameLogExternalEntry[];
-};
 export type GameNoVrPayload = { isGameNoVR: boolean };
 export type GroupBanImportItemResult = {
     userId: string;

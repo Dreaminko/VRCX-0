@@ -783,23 +783,7 @@ describe('runtimeEventBridgeService', () => {
 
         handlers.get('gameLogPersistenceFallback')?.({
             error: 'database is locked',
-            batch: {
-                video_plays: [
-                    {
-                        created_at: '2026-05-15T00:00:00.000Z',
-                        video_url: 'https://video.example.test'
-                    }
-                ]
-            },
-            rawRows: [
-                [
-                    'runtime-game-log',
-                    '2026-05-15T00:00:00.000Z',
-                    'video-play',
-                    'https://video.example.test',
-                    ''
-                ]
-            ]
+            attemptedRowCount: 1
         });
 
         expect(mocks.showSQLiteErrorDialog).not.toHaveBeenCalled();
