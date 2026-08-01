@@ -306,6 +306,7 @@ export function useUserDialogLocationPanel({
                 : activeLocation;
         const rowsById = new Map<string, InstanceRosterRow>();
         const knownUsersById = new Map<string, unknown>();
+        const visibleFriendIds = new Set<string>();
 
         function addKnownUser(userValue: unknown) {
             const user = record(userValue);
@@ -364,6 +365,10 @@ export function useUserDialogLocationPanel({
                 })
             ) {
                 continue;
+            }
+            const friendId = locationUserId(friend);
+            if (friendId) {
+                visibleFriendIds.add(friendId);
             }
             mergeLocationUser(rowsById, friend);
         }
@@ -576,21 +581,16 @@ export function useUserDialogLocationPanel({
                     const users = filterVisibleUserDialogLocationUsers({
                         currentUserId: normalizedCurrentUserId,
                         friendsById,
+                        location: activeLocation,
+                        memberUserIds: visibleFriendIds,
                         users: allUsers
                     });
-                    const friendCount = allUsers.filter((user) => {
+                    const friendCount = users.filter((user) => {
                         const userId = normalizeUserId(
                             user?.id || user?.userId
                         );
                         return Boolean(userId && friendsById[userId]);
                     }).length;
-                    const instanceFriendCount =
-                        Number(
-                            instance?.friendCount ||
-                                instance?.friendsCount ||
-                                instance?.n_friends ||
-                                friendCount
-                        ) || friendCount;
 
                     setLocationPanel({
                         location: activeLocation,
@@ -598,7 +598,7 @@ export function useUserDialogLocationPanel({
                         ownerUser,
                         ownerGroup,
                         users,
-                        friendCount: instanceFriendCount,
+                        friendCount,
                         playerCount:
                             firstNonNegativeLocationNumber(
                                 instance?.userCount,
@@ -644,6 +644,8 @@ export function useUserDialogLocationPanel({
                 const users = filterVisibleUserDialogLocationUsers({
                     currentUserId: normalizedCurrentUserId,
                     friendsById,
+                    location: activeLocation,
+                    memberUserIds: visibleFriendIds,
                     users: allUsers
                 });
                 setLocationPanel({

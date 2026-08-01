@@ -128,6 +128,58 @@ describe('buildUserDialogLocationUsers', () => {
         );
     });
 
+    it('does not restore an explicitly offline friend from a stale roster row', () => {
+        const result = buildUserDialogLocationUsers({
+            currentUserId: 'usr_self',
+            friendsById: {
+                usr_friend: {
+                    id: 'usr_friend',
+                    state: 'offline',
+                    stateBucket: 'offline',
+                    location: 'wrld_current:123'
+                }
+            },
+            locationInstance: {},
+            locationOwnerGroup: null,
+            locationOwnerUser: null,
+            profile: null,
+            sameInstanceUsers: [
+                { id: 'usr_friend', displayName: 'Departed Friend' }
+            ],
+            t,
+            visiblePresenceParsedLocation: parsedLocation
+        });
+
+        expect(result.locationInstanceUsers).toEqual([]);
+    });
+
+    it('does not keep a stale roster row after the friend moves elsewhere', () => {
+        const result = buildUserDialogLocationUsers({
+            currentUserId: 'usr_self',
+            friendsById: {
+                usr_friend: {
+                    id: 'usr_friend',
+                    state: 'online',
+                    location: 'wrld_elsewhere:456'
+                }
+            },
+            locationInstance: {},
+            locationOwnerGroup: null,
+            locationOwnerUser: null,
+            profile: null,
+            sameInstanceUsers: [
+                { id: 'usr_friend', displayName: 'Departed Friend' }
+            ],
+            t,
+            visiblePresenceParsedLocation: {
+                ...parsedLocation,
+                tag: 'wrld_current:123'
+            }
+        });
+
+        expect(result.locationInstanceUsers).toEqual([]);
+    });
+
     it('keeps the original private inactive friend guard outside the observed current roster', () => {
         const friend = {
             id: 'usr_friend',
@@ -170,4 +222,19 @@ describe('buildUserDialogLocationUsers', () => {
             ).toBe(true);
         }
     );
+
+    it('rejects an offline friend even when the stale observed roster still contains them', () => {
+        expect(
+            shouldIncludeUserDialogLocationFriend({
+                currentLocationMatches: true,
+                currentLocationPlayerIds: new Set(['usr_friend']),
+                friend: {
+                    id: 'usr_friend',
+                    state: 'offline',
+                    stateBucket: 'offline',
+                    location: 'wrld_current:123'
+                }
+            })
+        ).toBe(false);
+    });
 });

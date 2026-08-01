@@ -158,6 +158,14 @@ function isOnlineSameInstanceFriend(friend: unknown): boolean {
     );
 }
 
+function isExplicitlyOfflineFriend(friend: unknown): boolean {
+    const source = friendPresenceSource(friend);
+    return Boolean(
+        source?.pendingOffline ||
+        normalizeFriendState(source?.stateBucket || source?.state) === 'offline'
+    );
+}
+
 function resolveSameInstanceFriendLocation(
     friend: unknown,
     lastLocation: SameInstanceLastLocation | null | undefined
@@ -221,6 +229,7 @@ function buildSameInstanceFriendGroups<TFriend>(
 
 export {
     buildSameInstanceFriendGroups,
+    isExplicitlyOfflineFriend,
     isOnlineSameInstanceFriend,
     resolveObservedPlayerUserId,
     resolveObservedPlayerUserIds,
