@@ -13,10 +13,10 @@ use vrcx_0_application_core::{
     RuntimeVrchatAuthFailurePayload, TaskStopToken, TaskSupervisor, WebClient,
 };
 use vrcx_0_application_realtime::{
-    build_favorites_baseline, build_synced_friend_roster_baseline, RealtimeHostRuntime,
-    RealtimeStopRequest, RealtimeTransportLifecycleEvent, RealtimeTransportStartResult,
-    RealtimeTransportTermination, SocialBaselineDeps, SocialFavoritesBaselineInput,
-    SocialFavoritesBaselineOutput, SocialFriendRosterBaselineInput,
+    build_favorites_baseline_from_friend_records, build_synced_friend_roster_baseline,
+    RealtimeHostRuntime, RealtimeStopRequest, RealtimeTransportLifecycleEvent,
+    RealtimeTransportStartResult, RealtimeTransportTermination, SocialBaselineDeps,
+    SocialFavoritesBaselineOutput, SocialFavoritesBaselineRequest, SocialFriendRosterBaselineInput,
     SocialFriendRosterBaselineOutput,
 };
 use vrcx_0_core::friends::FriendRecord;
@@ -464,22 +464,20 @@ impl AuthenticatedRuntimeOrchestrator {
         stop_token: &TaskStopToken,
         friends_by_id: &HashMap<String, FriendRecord>,
     ) {
-        let friend_roster_by_id =
-            RawJson::from(serde_json::to_value(friends_by_id).unwrap_or_default());
         let mut attempt = 1;
         loop {
             if !self.is_active(run_id, scope, stop_token) {
                 return;
             }
             self.set_step_running(run_id, RuntimeStep::Favorites, attempt);
-            let result = build_favorites_baseline(
+            let result = build_favorites_baseline_from_friend_records(
                 self.social_baseline_deps(),
-                SocialFavoritesBaselineInput {
+                SocialFavoritesBaselineRequest {
                     user_id: session.user_id.clone(),
                     endpoint: session.endpoint.clone(),
                     current_user_snapshot: RawJson::from(session.current_user.clone()),
-                    friend_roster_by_id: friend_roster_by_id.clone(),
                 },
+                friends_by_id,
             )
             .await;
             if !self.is_active(run_id, scope, stop_token) {

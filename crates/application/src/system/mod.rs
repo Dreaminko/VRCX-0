@@ -14,9 +14,9 @@ mod translation;
 mod vrc_status;
 
 pub use app_update::{
-    AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
-    AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
-    AppUpdateTargetResolver,
+    AppUpdateBuildInfo, AppUpdateDownloadPhase, AppUpdateDownloadProgressPayload,
+    AppUpdateDownloadStatusSnapshot, AppUpdateInstalledPayload, AppUpdateReleaseSnapshot,
+    AppUpdateRuntime, AppUpdateStatusSnapshot, AppUpdateTargetResolver,
 };
 pub use background_image::{
     BackgroundImageConfigureInput, BackgroundImageCustomSource, BackgroundImageCustomSourceKind,

@@ -48,7 +48,7 @@ pub struct MutualGraphFetchCancelInput {
 pub struct MutualGraphFetchStatus {
     pub run_id: u64,
     pub revision: u64,
-    pub status: String,
+    pub status: MutualGraphFetchState,
     pub owner_user_id: String,
     pub total_friends: usize,
     pub processed_friends: usize,
@@ -61,6 +61,23 @@ pub struct MutualGraphFetchStatus {
     pub updated_at: String,
     pub finished_at: Option<String>,
     pub last_error: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum MutualGraphFetchState {
+    Idle,
+    Running,
+    Cancelling,
+    Completed,
+    Cancelled,
+    Error,
+}
+
+impl MutualGraphFetchState {
+    pub fn is_active(self) -> bool {
+        matches!(self, Self::Running | Self::Cancelling)
+    }
 }
 
 #[derive(Clone)]
@@ -149,7 +166,7 @@ impl MutualGraphFetchRuntime {
             let mut inner = self.inner.lock().map_err(|error| {
                 Error::Custom(format!("mutual graph fetch lock poisoned: {error}"))
             })?;
-            if is_active_status(&inner.status.status) {
+            if inner.status.status.is_active() {
                 if inner.status.owner_user_id == owner_user_id {
                     return Ok(inner.status.clone());
                 }
@@ -161,7 +178,7 @@ impl MutualGraphFetchRuntime {
             let status = MutualGraphFetchStatus {
                 run_id,
                 revision: 1,
-                status: "running".into(),
+                status: MutualGraphFetchState::Running,
                 owner_user_id: owner_user_id.clone(),
                 total_friends: friend_ids.len(),
                 processed_friends: 0,
@@ -207,7 +224,7 @@ impl MutualGraphFetchRuntime {
             let mut inner = self.inner.lock().map_err(|error| {
                 Error::Custom(format!("mutual graph fetch lock poisoned: {error}"))
             })?;
-            if !is_active_status(&inner.status.status) {
+            if !inner.status.status.is_active() {
                 return Ok(inner.status.clone());
             }
             if !owner_user_id.is_empty() && inner.status.owner_user_id != owner_user_id {
@@ -216,7 +233,7 @@ impl MutualGraphFetchRuntime {
             if let Some(cancel_flag) = &inner.cancel_flag {
                 cancel_flag.store(true, Ordering::Release);
             }
-            inner.status.status = "cancelling".into();
+            inner.status.status = MutualGraphFetchState::Cancelling;
             inner.status.cancel_requested = true;
             inner.status.updated_at = now_iso();
             inner.status.revision += 1;
@@ -264,7 +281,7 @@ impl MutualGraphFetchRuntime {
 
         for friend_id in friend_ids {
             if fetch_should_cancel(&cancel_flag, &auth_scope, &expected_scope) {
-                self.finish_run(run_id, "cancelled", None);
+                self.finish_run(run_id, MutualGraphFetchState::Cancelled, None);
                 return;
             }
 
@@ -291,7 +308,7 @@ impl MutualGraphFetchRuntime {
                     opted_out_friends += 1;
                 }
                 FriendFetchResult::Cancelled => {
-                    self.finish_run(run_id, "cancelled", None);
+                    self.finish_run(run_id, MutualGraphFetchState::Cancelled, None);
                     return;
                 }
                 FriendFetchResult::Failed(error) => {
@@ -313,14 +330,14 @@ impl MutualGraphFetchRuntime {
         }
 
         if fetch_should_cancel(&cancel_flag, &auth_scope, &expected_scope) {
-            self.finish_run(run_id, "cancelled", None);
+            self.finish_run(run_id, MutualGraphFetchState::Cancelled, None);
             return;
         }
 
         if failed_friends > 0 && fetched_friends + opted_out_friends == 0 {
             self.finish_run(
                 run_id,
-                "error",
+                MutualGraphFetchState::Error,
                 Some(last_error.unwrap_or_else(|| {
                     format!("{failed_friends} mutual graph friend fetches failed.")
                 })),
@@ -340,14 +357,18 @@ impl MutualGraphFetchRuntime {
                     cached,
                 ),
                 Err(error) => {
-                    self.finish_run(run_id, "error", Some(error.to_string()));
+                    self.finish_run(
+                        run_id,
+                        MutualGraphFetchState::Error,
+                        Some(error.to_string()),
+                    );
                     return;
                 }
             }
         }
 
         if fetch_should_cancel(&cancel_flag, &auth_scope, &expected_scope) {
-            self.finish_run(run_id, "cancelled", None);
+            self.finish_run(run_id, MutualGraphFetchState::Cancelled, None);
             return;
         }
 
@@ -358,10 +379,14 @@ impl MutualGraphFetchRuntime {
             meta_entries,
         ) {
             Ok(()) => {
-                self.finish_run(run_id, "completed", last_error);
+                self.finish_run(run_id, MutualGraphFetchState::Completed, last_error);
             }
             Err(error) => {
-                self.finish_run(run_id, "error", Some(error.to_string()));
+                self.finish_run(
+                    run_id,
+                    MutualGraphFetchState::Error,
+                    Some(error.to_string()),
+                );
             }
         }
     }
@@ -393,7 +418,7 @@ impl MutualGraphFetchRuntime {
     fn finish_run(
         &self,
         run_id: u64,
-        status_name: &str,
+        state: MutualGraphFetchState,
         last_error: Option<String>,
     ) -> MutualGraphFetchStatus {
         let now = now_iso();
@@ -401,7 +426,7 @@ impl MutualGraphFetchRuntime {
         let mut emitted = None;
         if let Ok(mut inner) = self.inner.lock() {
             if inner.status.run_id == run_id {
-                inner.status.status = status_name.to_string();
+                inner.status.status = state;
                 inner.status.cancel_requested = false;
                 inner.status.current_friend_id.clear();
                 inner.status.updated_at = now.clone();
@@ -622,10 +647,6 @@ fn normalize_id(value: &str) -> String {
     value.trim().to_string()
 }
 
-fn is_active_status(status: &str) -> bool {
-    matches!(status, "running" | "cancelling")
-}
-
 fn resolve_fetch_scope(
     input: &MutualGraphFetchStartInput,
     auth_scope: &RuntimeAuthScope,
@@ -695,7 +716,7 @@ fn idle_status() -> MutualGraphFetchStatus {
     MutualGraphFetchStatus {
         run_id: 0,
         revision: 0,
-        status: "idle".into(),
+        status: MutualGraphFetchState::Idle,
         owner_user_id: String::new(),
         total_friends: 0,
         processed_friends: 0,
@@ -898,7 +919,7 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(started.status, "running");
+        assert_eq!(started.status, MutualGraphFetchState::Running);
         assert_eq!(started.revision, 1);
         let events = event_bus.take_events_for_test();
         assert_eq!(events.len(), 1);
@@ -918,7 +939,7 @@ mod tests {
             inner.status = MutualGraphFetchStatus {
                 run_id: 7,
                 revision: 1,
-                status: "running".into(),
+                status: MutualGraphFetchState::Running,
                 owner_user_id: "usr_owner".into(),
                 total_friends: 2,
                 ..idle_status()
@@ -928,7 +949,7 @@ mod tests {
 
         let status = runtime.cancel_active().unwrap();
 
-        assert_eq!(status.status, "cancelling");
+        assert_eq!(status.status, MutualGraphFetchState::Cancelling);
         assert_eq!(status.revision, 2);
         assert!(status.cancel_requested);
         assert!(cancel_flag.load(Ordering::Acquire));
@@ -948,7 +969,7 @@ mod tests {
             inner.status = MutualGraphFetchStatus {
                 run_id: 7,
                 revision: 1,
-                status: "running".into(),
+                status: MutualGraphFetchState::Running,
                 owner_user_id: "usr_owner".into(),
                 total_friends: 2,
                 ..idle_status()
@@ -957,7 +978,7 @@ mod tests {
 
         runtime.update_current_friend(7, "usr_friend");
         runtime.update_progress(7, 1, 1, 0, 0, None);
-        runtime.finish_run(7, "completed", None);
+        runtime.finish_run(7, MutualGraphFetchState::Completed, None);
 
         let events = event_bus.take_events_for_test();
         assert_eq!(events.len(), 3);
@@ -985,7 +1006,7 @@ mod tests {
             inner.status = MutualGraphFetchStatus {
                 run_id: 7,
                 revision: 1,
-                status: "running".into(),
+                status: MutualGraphFetchState::Running,
                 owner_user_id: "usr_owner".into(),
                 total_friends: 1,
                 ..idle_status()
@@ -996,7 +1017,7 @@ mod tests {
         let cancelling_runtime = runtime.clone();
         let cancelling = std::thread::spawn(move || cancelling_runtime.cancel_active().unwrap());
         sink.wait_for_cancelling();
-        let cancelled = runtime.finish_run(7, "cancelled", None);
+        let cancelled = runtime.finish_run(7, MutualGraphFetchState::Cancelled, None);
         let cancelling = cancelling.join().unwrap();
 
         assert_eq!(cancelling.revision, 2);

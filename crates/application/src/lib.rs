@@ -153,7 +153,7 @@ pub use social::{
 };
 pub use social::{
     MutualGraphFetchCancelInput, MutualGraphFetchRuntime, MutualGraphFetchStartInput,
-    MutualGraphFetchStatus,
+    MutualGraphFetchState, MutualGraphFetchStatus,
 };
 pub use system::DatabaseUpgradeRuntime;
 pub use system::ProfileOperationGate;
@@ -197,9 +197,9 @@ pub use system::{
 };
 pub use system::{sync_notifications, NotificationSyncDeps, NotificationSyncOutcome};
 pub use system::{
-    AppUpdateBuildInfo, AppUpdateDownloadProgressPayload, AppUpdateDownloadStatusSnapshot,
-    AppUpdateInstalledPayload, AppUpdateReleaseSnapshot, AppUpdateRuntime, AppUpdateStatusSnapshot,
-    AppUpdateTargetResolver,
+    AppUpdateBuildInfo, AppUpdateDownloadPhase, AppUpdateDownloadProgressPayload,
+    AppUpdateDownloadStatusSnapshot, AppUpdateInstalledPayload, AppUpdateReleaseSnapshot,
+    AppUpdateRuntime, AppUpdateStatusSnapshot, AppUpdateTargetResolver,
 };
 pub use system::{
     BackgroundImageConfigureInput, BackgroundImageCustomSource, BackgroundImageCustomSourceKind,

@@ -1,4 +1,6 @@
-use super::*;
+use std::sync::Arc;
+
+use super::RuntimeHostState;
 
 impl RuntimeHostState {
     pub fn release_profile_lock(&self) {

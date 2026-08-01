@@ -96,7 +96,7 @@ impl ScopedFriendLogMutation {
                         user_id,
                         patch: record,
                         state_bucket,
-                        state_bucket_authority: Some(FriendStateBucketAuthority::Explicit),
+                        state_bucket_authority: FriendStateBucketAuthority::Explicit,
                     });
             }
         }

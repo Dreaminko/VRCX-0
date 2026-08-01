@@ -14,6 +14,12 @@ pub struct SocialFavoritesBaselineInput {
     pub friend_roster_by_id: RawJson,
 }
 
+pub struct SocialFavoritesBaselineRequest {
+    pub user_id: String,
+    pub endpoint: String,
+    pub current_user_snapshot: RawJson,
+}
+
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SocialFavoritesBaselineOutput {

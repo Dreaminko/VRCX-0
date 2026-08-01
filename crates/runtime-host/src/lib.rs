@@ -22,7 +22,7 @@ pub use composition::{
 };
 pub use context::RuntimeHostContext;
 pub use error::{Error, Result};
-pub use event_payloads::RuntimeGroupInstancesProjection;
+pub use event_payloads::{RuntimeGroupInstancesProjection, RuntimeGroupInstancesStatus};
 pub use event_sink::RuntimeHostEventSink;
 pub use group_order::{GroupOrderSource, UnavailableGroupOrderSource};
 pub use note_export::NoteExportRuntime;

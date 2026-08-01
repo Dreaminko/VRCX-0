@@ -28,7 +28,7 @@ import {
 
 function status(
     runId: number,
-    state: string,
+    state: MutualGraphFetchStatus['status'],
     revision: number,
     processedFriends = 0
 ): MutualGraphFetchStatus {

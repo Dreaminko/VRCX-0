@@ -181,7 +181,7 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
-    if (handleBackendRealtimeProjectionEvent(event.name, event.payload)) {
+    if (handleBackendRealtimeProjectionEvent(event)) {
         return;
     }
 

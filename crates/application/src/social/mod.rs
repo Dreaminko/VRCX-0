@@ -56,7 +56,7 @@ pub use moderation_sync::{
 };
 pub use mutual_graph_fetch::{
     MutualGraphFetchCancelInput, MutualGraphFetchRuntime, MutualGraphFetchStartInput,
-    MutualGraphFetchStatus,
+    MutualGraphFetchState, MutualGraphFetchStatus,
 };
 pub use note_export::{
     prepare_note_export, run_note_export, NoteExportActions, NoteExportItemInput,

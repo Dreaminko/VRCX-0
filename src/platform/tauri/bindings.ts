@@ -3076,15 +3076,21 @@ export type AppLauncherSnapshot = {
     testRuns: AppLauncherRun[];
 };
 export type AppLauncherStopPolicy = 'keepRunning' | 'closeByVrcx';
+export type AppUpdateDownloadPhase =
+    | 'idle'
+    | 'downloading'
+    | 'downloaded'
+    | 'installing'
+    | 'error';
 export type AppUpdateDownloadProgressPayload = {
     version: string;
-    phase: string;
+    phase: AppUpdateDownloadPhase;
     downloadedBytes: number;
     totalBytes: number;
     percent: number;
 };
 export type AppUpdateDownloadStatusSnapshot = {
-    phase: string;
+    phase: AppUpdateDownloadPhase;
     version: string | null;
     downloadedBytes: number;
     totalBytes: number;
@@ -3963,7 +3969,7 @@ export type FriendProjectionPatch = {
     userId: string;
     patch: FriendRecord;
     stateBucket: string;
-    stateBucketAuthority?: FriendStateBucketAuthority | null;
+    stateBucketAuthority: FriendStateBucketAuthority;
 };
 export type FriendRecord = Partial<{
     [key in string]:
@@ -4495,10 +4501,17 @@ export type MutualGraphFetchStartInput = {
     endpoint?: string;
     friendIds?: string[];
 };
+export type MutualGraphFetchState =
+    | 'idle'
+    | 'running'
+    | 'cancelling'
+    | 'completed'
+    | 'cancelled'
+    | 'error';
 export type MutualGraphFetchStatus = {
     runId: number;
     revision: number;
-    status: string;
+    status: MutualGraphFetchState;
     ownerUserId: string;
     totalFriends: number;
     processedFriends: number;
@@ -5220,7 +5233,7 @@ export type RuntimeGameLogEventPayload = {
     raw: string[];
 };
 export type RuntimeGroupInstancesProjection = {
-    status: string;
+    status: RuntimeGroupInstancesStatus;
     userId: string;
     endpoint: string;
     fetchedAt?: string | null;
@@ -5228,6 +5241,11 @@ export type RuntimeGroupInstancesProjection = {
     instances?: JsonValue[] | null;
     groupOrder?: string[] | null;
 };
+export type RuntimeGroupInstancesStatus =
+    | 'idle'
+    | 'running'
+    | 'ready'
+    | 'error';
 export type RuntimeJobRecordInput = {
     name: string;
     owner?: string;

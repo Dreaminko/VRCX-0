@@ -7,7 +7,9 @@ use std::sync::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use vrcx_0_application_core::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
-use vrcx_0_application_realtime::RealtimeHostRuntime;
+use vrcx_0_application_realtime::{
+    RealtimeHostRuntime, UserQueryCachePolicy, UserQueryKind, UserQueryOptions,
+};
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::friends::friend_display_names;
 use vrcx_0_persistence::game_log::{game_log_query, GameLogQueryInput};
@@ -145,12 +147,13 @@ pub async fn resolve_friend_log_names(
         ensure_scope_matches(deps.auth_scope, &expected_scope)?;
         let response = match deps
             .realtime
-            .get_user_via_cache(
+            .get_user_via_cache_with_options(
                 expected_scope.endpoint.clone(),
                 user_id.clone(),
-                false,
-                false,
-                None,
+                UserQueryOptions {
+                    kind: UserQueryKind::LiveNonFriend,
+                    cache_policy: UserQueryCachePolicy::UseCache,
+                },
             )
             .await
         {

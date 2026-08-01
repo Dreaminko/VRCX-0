@@ -16,7 +16,9 @@ use vrcx_0_vrchat_client::notifications::notification_accept_friend_request_inpu
 
 use crate::{Error, Result, RuntimeAuthScopeSnapshot};
 use vrcx_0_application_core::RuntimeVrchatAuthFailurePayload;
-use vrcx_0_application_realtime::SyntheticFriendEventOutcome;
+use vrcx_0_application_realtime::{
+    SyntheticFriendEventOutcome, UserQueryCachePolicy, UserQueryKind, UserQueryOptions,
+};
 
 use super::types::{
     SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendRequestAcceptInput,
@@ -346,12 +348,13 @@ async fn resolve_target_profile(
     };
     let Ok(response) = deps
         .realtime
-        .get_user_via_cache(
+        .get_user_via_cache_with_options(
             auth_scope.endpoint.clone(),
             target_user_id.to_string(),
-            false,
-            false,
-            Some(true),
+            UserQueryOptions {
+                kind: UserQueryKind::LiveFriend,
+                cache_policy: UserQueryCachePolicy::UseCache,
+            },
         )
         .await
     else {
