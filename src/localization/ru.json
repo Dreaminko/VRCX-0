@@ -3328,6 +3328,7 @@
             },
             "mutual_friends": {
                 "header": "Взаимные друзья",
+                "undisclosed_friend": "Неуказанный общий друг",
                 "sorting": {
                     "alphabetical": "Алфавитная",
                     "last_active": "Последний актив",

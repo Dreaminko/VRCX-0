@@ -3326,6 +3326,7 @@
             },
             "mutual_friends": {
                 "header": "Gemeinsame Freunde",
+                "undisclosed_friend": "Nicht offengelegter gemeinsamer Freund",
                 "sorting": {
                     "alphabetical": "Alphabetisch",
                     "last_active": "Zuletzt aktiv",

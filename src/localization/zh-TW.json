@@ -3326,6 +3326,7 @@
             },
             "mutual_friends": {
                 "header": "共同好友",
+                "undisclosed_friend": "未公開的共同好友",
                 "sorting": {
                     "alphabetical": "按字母排序",
                     "last_active": "最後上線",

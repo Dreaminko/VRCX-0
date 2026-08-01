@@ -3269,6 +3269,7 @@
             },
             "mutual_friends": {
                 "header": "상호 친구",
+                "undisclosed_friend": "비공개 상호 친구",
                 "sorting": {
                     "alphabetical": "알파벳순",
                     "last_active": "마지막 활성",

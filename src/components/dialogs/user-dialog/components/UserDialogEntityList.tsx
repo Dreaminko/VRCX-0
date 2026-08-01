@@ -13,6 +13,7 @@ import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
 
 import {
+    isUndisclosedMutualFriendRow,
     summarizeEntityRow,
     userIdForRow,
     userRowSubtitle,
@@ -72,10 +73,18 @@ export function EntityList({
                 }
 
                 const image = rowImage(row, kind);
-                const rawLabel =
-                    kind === 'user'
-                        ? row?.displayName || row?.username || ''
-                        : summarizeEntityRow(row);
+                const undisclosedMutualFriend =
+                    kind === 'user' && isUndisclosedMutualFriendRow(row);
+                let rawLabel;
+                if (undisclosedMutualFriend) {
+                    rawLabel = t(
+                        'dialog.user.mutual_friends.undisclosed_friend'
+                    );
+                } else if (kind === 'user') {
+                    rawLabel = row?.displayName || row?.username || '';
+                } else {
+                    rawLabel = summarizeEntityRow(row);
+                }
                 const label =
                     typeof rawLabel === 'string'
                         ? rawLabel
@@ -119,6 +128,7 @@ export function EntityList({
                             key={rowKey}
                             userId={userId}
                             seed={row}
+                            disabled={undisclosedMutualFriend}
                             className="active:not-aria-[haspopup]:translate-y-0"
                             imageUrl={image}
                             statusDotClassName={dotClassName}
@@ -141,7 +151,11 @@ export function EntityList({
                                     subtitle || undefined
                                 )
                             }
-                            onOpen={() => openRow(row, kind)}
+                            onOpen={
+                                undisclosedMutualFriend
+                                    ? undefined
+                                    : () => openRow(row, kind)
+                            }
                         />
                     );
                 }

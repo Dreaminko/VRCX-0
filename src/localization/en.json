@@ -3326,6 +3326,7 @@
             },
             "mutual_friends": {
                 "header": "Mutual Friends",
+                "undisclosed_friend": "Undisclosed Mutual Friend",
                 "sorting": {
                     "alphabetical": "Alphabetical",
                     "last_active": "Last Active",

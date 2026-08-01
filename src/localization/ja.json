@@ -3321,6 +3321,7 @@
             },
             "mutual_friends": {
                 "header": "共通のフレンド",
+                "undisclosed_friend": "非公開の共通フレンド",
                 "sorting": {
                     "alphabetical": "アルファベット順",
                     "last_active": "最終活動時間順",

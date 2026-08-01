@@ -3328,6 +3328,7 @@
             },
             "mutual_friends": {
                 "header": "Společní přátelé",
+                "undisclosed_friend": "Nezveřejněný společný přítel",
                 "sorting": {
                     "alphabetical": "Abecedně",
                     "last_active": "Naposledy aktivní",
