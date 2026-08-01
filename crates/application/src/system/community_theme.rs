@@ -662,7 +662,7 @@ fn load_persisted_state(db: &DatabaseService) -> Result<PersistedCommunityThemeS
         .flatten();
     let override_css = config_store::get_string(db, KEY_OVERRIDE_CSS, "")?;
     let override_css_enabled = !override_css.trim().is_empty()
-        && config_store::get_raw(db, KEY_OVERRIDE_ENABLED)?.map_or(true, |value| {
+        && config_store::get_raw(db, KEY_OVERRIDE_ENABLED)?.is_none_or(|value| {
             matches!(
                 value.trim().to_ascii_lowercase().as_str(),
                 "true" | "1" | "\"true\""
