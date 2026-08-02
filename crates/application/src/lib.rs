@@ -215,6 +215,10 @@ pub use system::{
     BatchMutationItemState, BatchMutationResult, GroupLeaveBatchInput, GroupVisibility,
     GroupVisibilityBatchInput, VrchatBatchMutationActions, BATCH_MUTATION_MAX_ITEMS,
 };
+pub use system::{
+    send_instance_invites_batch, InstanceInviteBatchInput, InstanceInviteBatchResult,
+    InstanceInviteItemResult, InstanceInviteItemState, VrchatInstanceInviteBatchActions,
+};
 pub use system::{sync_notifications, NotificationSyncDeps, NotificationSyncOutcome};
 pub use system::{
     AppUpdateBuildInfo, AppUpdateDownloadPhase, AppUpdateDownloadProgressPayload,

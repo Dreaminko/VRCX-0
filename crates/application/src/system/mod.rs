@@ -6,6 +6,7 @@ mod community_theme;
 mod data_dir_migration;
 mod database_upgrade;
 mod database_upgrade_runtime;
+mod instance_invite_batch;
 mod instance_launch;
 mod notification_actions;
 mod notification_chains;
@@ -51,6 +52,10 @@ pub use database_upgrade::{
     DatabaseUpgradeStage,
 };
 pub use database_upgrade_runtime::DatabaseUpgradeRuntime;
+pub use instance_invite_batch::{
+    send_instance_invites_batch, InstanceInviteBatchInput, InstanceInviteBatchResult,
+    InstanceInviteItemResult, InstanceInviteItemState, VrchatInstanceInviteBatchActions,
+};
 pub use instance_launch::{
     evaluate_instance_action_gates, join_instance_launch, InstanceActionGateTarget,
     InstanceActionGates, InstanceActionGatesBatchInput, InstanceActionGatesBatchOutput,

@@ -288,6 +288,11 @@ export const commands = {
             input
         });
     },
+    async appInstanceInviteBatch(
+        input: InstanceInviteBatchInput
+    ): Promise<InstanceInviteBatchResult> {
+        return await TAURI_INVOKE('app__instance_invite_batch', { input });
+    },
     async appNotificationSync(): Promise<NotificationSyncOutcome> {
         return await TAURI_INVOKE('app__notification_sync');
     },
@@ -4352,6 +4357,25 @@ export type InstanceActivityRowOutput = {
     userId: string;
     time: number;
 };
+export type InstanceInviteBatchInput = {
+    receiverUserIds?: string[];
+    location?: string;
+    shortName?: string;
+    worldName?: string;
+};
+export type InstanceInviteBatchResult = {
+    total: number;
+    succeeded: number;
+    failed: number;
+    items: InstanceInviteItemResult[];
+};
+export type InstanceInviteItemResult = {
+    receiverUserId: string;
+    state: InstanceInviteItemState;
+    attempts: number;
+    message: string;
+};
+export type InstanceInviteItemState = 'succeeded' | 'failed';
 export type InstanceLaunchInput = {
     location?: string;
     shortName?: string;

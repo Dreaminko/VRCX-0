@@ -1,3 +1,4 @@
+import { commands } from '@/platform/tauri/bindings';
 import notificationPersistenceRepository from '@/repositories/notificationPersistenceRepository';
 import type { QueryParams } from '@/repositories/vrchatRequest';
 import vrchatSearchRepository from '@/repositories/vrchatSearchRepository';
@@ -10,6 +11,13 @@ interface SendInviteToLocationInput {
     messageSlot?: unknown;
     imageData?: unknown;
     rsvp?: unknown;
+}
+
+interface SendInvitesToLocationInput {
+    receiverUserIds?: unknown[];
+    location?: unknown;
+    shortName?: unknown;
+    worldName?: unknown;
 }
 
 interface SendRequestInviteToUserInput {
@@ -28,6 +36,20 @@ function normalizeText(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
+}
+
+export async function sendInvitesToLocation({
+    receiverUserIds = [],
+    location,
+    shortName,
+    worldName
+}: SendInvitesToLocationInput = {}) {
+    return commands.appInstanceInviteBatch({
+        receiverUserIds: receiverUserIds.map(normalizeText).filter(Boolean),
+        location: normalizeText(location),
+        shortName: normalizeText(shortName),
+        worldName: normalizeText(worldName)
+    });
 }
 
 export async function sendInviteToLocation({

@@ -4,14 +4,15 @@ use tauri::State;
 use vrcx_0_application::{
     hydrate_favorite_details, mark_notifications_seen_batch, persist_favorite_cache_snapshot,
     run_avatar_content_tags_batch, run_group_leave_batch, run_group_moderation_batch,
-    run_group_visibility_batch, sync_notifications, AvatarContentTagsBatchInput,
-    BatchMutationResult, FavoriteCacheSnapshotInput, FavoriteDetailsHydrateDeps,
-    FavoriteDetailsHydrateInput, FavoriteDetailsHydrateOutput, FavoriteImportStartInput,
-    FavoriteImportStatus, GroupBanImportStartInput, GroupBanImportStatus, GroupLeaveBatchInput,
-    GroupModerationBatchInput, GroupModerationBatchResult, GroupVisibilityBatchInput,
+    run_group_visibility_batch, send_instance_invites_batch, sync_notifications,
+    AvatarContentTagsBatchInput, BatchMutationResult, FavoriteCacheSnapshotInput,
+    FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput, FavoriteDetailsHydrateOutput,
+    FavoriteImportStartInput, FavoriteImportStatus, GroupBanImportStartInput, GroupBanImportStatus,
+    GroupLeaveBatchInput, GroupModerationBatchInput, GroupModerationBatchResult,
+    GroupVisibilityBatchInput, InstanceInviteBatchInput, InstanceInviteBatchResult,
     NotificationMarkSeenBatchInput, NotificationMarkSeenBatchResult, NotificationSyncDeps,
     NotificationSyncOutcome, VrchatBatchMutationActions, VrchatGroupModerationBatchActions,
-    VrchatNotificationMarkSeenActions,
+    VrchatInstanceInviteBatchActions, VrchatNotificationMarkSeenActions,
 };
 use vrcx_0_application_core::RuntimeAuthScopeSnapshot;
 
@@ -164,6 +165,23 @@ pub async fn app__notification_mark_seen_batch(
         expected_scope,
     };
     Ok(mark_notifications_seen_batch(&actions, input).await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__instance_invite_batch(
+    state: State<'_, AppState>,
+    input: InstanceInviteBatchInput,
+) -> Result<InstanceInviteBatchResult, AppError> {
+    let expected_scope = active_scope(&state)?;
+    let actions = VrchatInstanceInviteBatchActions {
+        db: state.db.as_ref(),
+        web: state.web.as_ref(),
+        auth_scope: &state.runtime_context.auth_scope,
+        expected_scope,
+        remote_mutation_gate: &state.remote_mutations,
+    };
+    Ok(send_instance_invites_batch(&actions, input).await?)
 }
 
 #[tauri::command]

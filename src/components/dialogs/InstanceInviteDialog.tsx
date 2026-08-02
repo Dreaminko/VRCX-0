@@ -7,8 +7,7 @@ import { Location } from '@/components/Location';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { userImage } from '@/services/entityMediaService';
-import { sendInviteToLocation } from '@/services/inviteDeliveryService';
-import { selfInviteToInstance } from '@/services/launchService';
+import { sendInvitesToLocation } from '@/services/inviteDeliveryService';
 import { parseLocation } from '@/shared/utils/location';
 import { normalizeString as normalizeId } from '@/shared/utils/string';
 import { useFavoriteStore } from '@/state/favoriteStore';
@@ -274,37 +273,21 @@ export function InstanceInviteDialog({
 
         setSending(true);
         try {
-            const failedUserIds = new Set<string>();
-            const failures: string[] = [];
-            let successCount = 0;
-            for (const receiverUserId of normalizedUserIds) {
-                try {
-                    if (receiverUserId === currentUserId) {
-                        await selfInviteToInstance(
-                            parsedLocation.tag || location,
-                            launchToken || parsedLocation.shortName
-                        );
-                    } else {
-                        await sendInviteToLocation({
-                            receiverUserId,
-                            instanceId: parsedLocation.tag || location,
-                            worldId: parsedLocation.worldId,
-                            worldName:
-                                resolvedWorldName ||
-                                worldName ||
-                                parsedLocation.worldId
-                        });
-                    }
-                    successCount += 1;
-                } catch (error) {
-                    failedUserIds.add(receiverUserId);
-                    failures.push(
-                        error instanceof Error
-                            ? error.message
-                            : 'Failed to send invite.'
-                    );
-                }
-            }
+            const batch = await sendInvitesToLocation({
+                receiverUserIds: normalizedUserIds,
+                location: parsedLocation.tag || location,
+                shortName: launchToken || parsedLocation.shortName,
+                worldName:
+                    resolvedWorldName || worldName || parsedLocation.worldId
+            });
+            const failedItems = batch.items.filter(
+                (item) => item.state === 'failed'
+            );
+            const failedUserIds = new Set(
+                failedItems.map((item) => item.receiverUserId)
+            );
+            const failures = failedItems.map((item) => item.message);
+            const successCount = batch.succeeded;
 
             if (successCount) {
                 toast.success(
