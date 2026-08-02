@@ -6,6 +6,9 @@ import { resolveProfileDecorationMutation } from '@/features/tools/inventoryHelp
 import mediaRepository, {
     type InventoryItemRecord
 } from '@/repositories/mediaRepository';
+import userProfileRepository, {
+    type ProfileBackgroundUpdate
+} from '@/repositories/userProfileRepository';
 import { refreshCurrentUser } from '@/services/backgroundMaintenanceSessionService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -23,6 +26,16 @@ type ProfileDecorationsAuthTarget = {
     userId: string;
     websocket: string;
 };
+
+type ProfileDecorationMutation =
+    | {
+          action: 'equip' | 'unequip';
+          equipSlot: ProfileDecorationSlot;
+          inventoryId: string;
+      }
+    | { action: 'background'; params: ProfileBackgroundUpdate };
+
+export const UNEQUIP_PENDING_KEY = 'unequip';
 
 const EMPTY_ITEMS_BY_SLOT: ItemsBySlot = {
     iconFrame: [],
@@ -49,9 +62,11 @@ function isProfileDecorationSlot(
 }
 
 export function useUserDialogProfileDecorations({
-    enabled
+    enabled,
+    onProfileUpdated
 }: {
     enabled: boolean;
+    onProfileUpdated?: () => void;
 }) {
     const { t } = useTranslation();
     const tRef = useRef(t);
@@ -63,6 +78,8 @@ export function useUserDialogProfileDecorations({
     const currentUserWebsocket = useRuntimeStore(
         (state) => state.auth.currentUserWebsocket
     );
+    const onProfileUpdatedRef = useRef(onProfileUpdated);
+    onProfileUpdatedRef.current = onProfileUpdated;
 
     const authTargetRef = useRef<ProfileDecorationsAuthTarget>({
         endpoint: '',
@@ -80,7 +97,7 @@ export function useUserDialogProfileDecorations({
         useState<ItemsBySlot>(emptyItemsBySlot);
     const [loadedKey, setLoadedKey] = useState('');
     const [loading, setLoading] = useState(false);
-    const [pending, setPending] = useState(false);
+    const [pendingKey, setPendingKey] = useState('');
     const pendingRef = useRef(false);
 
     const refresh = useCallback(async () => {
@@ -136,33 +153,43 @@ export function useUserDialogProfileDecorations({
         refresh();
     }, [currentKey, enabled, refresh]);
 
-    async function runMutation({
-        action,
-        equipSlot,
-        inventoryId
-    }: {
-        action: 'equip' | 'unequip';
-        equipSlot: ProfileDecorationSlot;
-        inventoryId: string;
-    }) {
+    async function runMutation(
+        key: string,
+        mutation: ProfileDecorationMutation
+    ) {
         const target = authTargetRef.current;
         if (!target.userId || pendingRef.current) {
             return;
         }
         pendingRef.current = true;
-        setPending(true);
-        const isUnequip = action === 'unequip';
+        setPendingKey(key);
         try {
+            if (mutation.action === 'background') {
+                await userProfileRepository.updateCurrentUserProfile({
+                    expectedUserId: target.userId,
+                    params: mutation.params
+                });
+                toast.success(t('dialog.inventory.profile_background_updated'));
+                onProfileUpdatedRef.current?.();
+                await refreshCurrentUser({
+                    expectedUserId: target.userId,
+                    expectedEndpoint: target.endpoint,
+                    expectedWebsocket: target.websocket
+                }).catch(() => undefined);
+                return;
+            }
+
+            const isUnequip = mutation.action === 'unequip';
             if (isUnequip) {
                 await mediaRepository.unequipProfileDecoration({
                     expectedUserId: target.userId,
-                    equipSlot
+                    equipSlot: mutation.equipSlot
                 });
             } else {
                 await mediaRepository.equipProfileDecoration({
                     expectedUserId: target.userId,
-                    inventoryId,
-                    equipSlot
+                    inventoryId: mutation.inventoryId,
+                    equipSlot: mutation.equipSlot
                 });
             }
             toast.success(
@@ -184,11 +211,15 @@ export function useUserDialogProfileDecorations({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('dialog.inventory.failed_to_update_profile_decoration')
+                    : t(
+                          mutation.action === 'background'
+                              ? 'dialog.inventory.failed_to_update_profile_background'
+                              : 'dialog.inventory.failed_to_update_profile_decoration'
+                      )
             );
         } finally {
             pendingRef.current = false;
-            setPending(false);
+            setPendingKey('');
         }
     }
 
@@ -200,11 +231,19 @@ export function useUserDialogProfileDecorations({
         if (!mutation || mutation.action !== 'equip') {
             return;
         }
-        runMutation(mutation);
+        runMutation(item.id, mutation);
     }
 
     function unequipSlot(slot: ProfileDecorationSlot) {
-        runMutation({ action: 'unequip', equipSlot: slot, inventoryId: '' });
+        runMutation(UNEQUIP_PENDING_KEY, {
+            action: 'unequip',
+            equipSlot: slot,
+            inventoryId: ''
+        });
+    }
+
+    function updateBackground(key: string, params: ProfileBackgroundUpdate) {
+        runMutation(key, { action: 'background', params });
     }
 
     const isReady = loadedKey === currentKey;
@@ -212,9 +251,10 @@ export function useUserDialogProfileDecorations({
     return {
         itemsBySlot: enabled && isReady ? itemsBySlot : EMPTY_ITEMS_BY_SLOT,
         loading,
-        pending,
+        pendingKey,
         isReady,
         equipItem,
-        unequipSlot
+        unequipSlot,
+        updateBackground
     };
 }

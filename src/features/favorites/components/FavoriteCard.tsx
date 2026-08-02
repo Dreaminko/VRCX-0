@@ -20,6 +20,7 @@ import {
 } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
 import { UserStatusDot } from '@/components/UserStatusDot';
+import { TILE_SELECTED } from '@/lib/selectableTile';
 import { cn } from '@/lib/utils';
 import { registerWorldOpenShare } from '@/repositories/worldProfileRepository';
 import { copyTextToClipboard } from '@/services/clipboardService';
@@ -562,7 +563,7 @@ const FavoriteCard = memo(function FavoriteCard({
             <div
                 className={cn(
                     'group/fav-card hover:bg-muted flex h-full w-full min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border text-sm transition-colors',
-                    selected && 'border-primary ring-primary/50 ring-1'
+                    selected && TILE_SELECTED
                 )}
                 {...cardShellProps}
             >
@@ -681,7 +682,7 @@ const FavoriteCard = memo(function FavoriteCard({
         <div
             className={cn(
                 'group/fav-card hover:bg-muted relative flex h-full w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg border px-2.5 py-2 text-sm transition-colors',
-                selected && 'border-primary ring-primary/50 ring-1'
+                selected && TILE_SELECTED
             )}
             {...cardShellProps}
         >

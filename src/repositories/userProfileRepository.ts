@@ -96,6 +96,20 @@ interface CurrentUserUpdateInput extends UserEndpointInput {
     params?: UserRecord;
 }
 
+type ProfileBackgroundUpdate =
+    | { backgroundType: 'default' }
+    | {
+          backgroundType: 'gradient';
+          backgroundGradientBottom: string;
+          backgroundGradientTop: string;
+      }
+    | { backgroundType: 'texture'; backgroundTextureId: string };
+
+interface CurrentUserProfileUpdateInput {
+    expectedUserId?: unknown;
+    params: ProfileBackgroundUpdate;
+}
+
 interface CurrentUserBadgeInput extends UserEndpointInput {
     badgeId?: unknown;
     hidden?: boolean;
@@ -446,6 +460,30 @@ async function updateCurrentUser({
     return nextUser;
 }
 
+async function updateCurrentUserProfile({
+    expectedUserId,
+    params
+}: CurrentUserProfileUpdateInput) {
+    const normalizedUserId =
+        typeof expectedUserId === 'string'
+            ? expectedUserId.trim()
+            : String(expectedUserId ?? '').trim();
+    if (!normalizedUserId) {
+        throw new Error(
+            'UserProfileRepository.updateCurrentUserProfile requires a user id.'
+        );
+    }
+
+    const response = await commands.appVrchatCurrentUserProfileUpdate({
+        expectedUserId: normalizedUserId,
+        params
+    });
+    return unwrapVrchatUserResponse<UserProfileEntity>(
+        response,
+        `profile/${encodeURIComponent(normalizedUserId)}`
+    ).json;
+}
+
 async function updateCurrentUserBadge({
     userId,
     badgeId = '',
@@ -548,6 +586,7 @@ const userProfileRepository = Object.freeze({
     getMutualCounts,
     getMutualFriends,
     getAllMutualFriends,
+    updateCurrentUserProfile,
     updateCurrentUser,
     updateCurrentUserBadge,
     addCurrentUserTags,
@@ -563,10 +602,12 @@ export {
     getMutualCounts,
     getMutualFriends,
     getAllMutualFriends,
+    updateCurrentUserProfile,
     updateCurrentUser,
     updateCurrentUserBadge,
     addCurrentUserTags,
     removeCurrentUserTags
 };
 export type { UserProfileRecord } from '@/domain/entities/profileEntities';
+export type { ProfileBackgroundUpdate };
 export default userProfileRepository;

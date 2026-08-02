@@ -746,7 +746,10 @@ export function UserDialogTabbedView({
                     />
                 ) : activeSelfPanel === 'profile-decorations' ? (
                     <UserDialogProfileDecorationsPanel
+                        profile={profile}
+                        isVrcPlus={isLocalUserVrcPlusSupporter}
                         onBack={() => setSelfPanel('')}
+                        onProfileUpdated={onRefresh}
                     />
                 ) : (
                     <UserDialogTabsSection

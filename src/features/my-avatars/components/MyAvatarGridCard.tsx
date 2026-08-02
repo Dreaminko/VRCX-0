@@ -13,6 +13,7 @@ import type { CSSProperties, ElementType, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
+import { TILE_SELECTED } from '@/lib/selectableTile';
 import { cn } from '@/lib/utils';
 import { getAvailablePlatforms } from '@/shared/utils/avatarPlatform';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -209,7 +210,7 @@ export function MyAvatarGridCard({
                             className={cn(
                                 'h-auto min-w-0 flex-col items-stretch overflow-hidden p-0 text-left font-normal whitespace-normal',
                                 disabled && 'cursor-not-allowed opacity-60',
-                                isActive && 'ring-primary ring-2'
+                                isActive && TILE_SELECTED
                             )}
                             aria-disabled={!canWear}
                             tabIndex={disabled ? -1 : undefined}

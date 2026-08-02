@@ -13,6 +13,10 @@ const maintenanceMocks = vi.hoisted(() => ({
     refreshCurrentUser: vi.fn()
 }));
 
+const profileMocks = vi.hoisted(() => ({
+    updateCurrentUserProfile: vi.fn()
+}));
+
 const runtimeState = vi.hoisted(() => ({
     auth: {
         currentUserEndpoint: 'https://api.vrchat.cloud/api/1',
@@ -31,6 +35,9 @@ vi.mock('@/repositories/mediaRepository', () => ({
 }));
 vi.mock('@/services/backgroundMaintenanceSessionService', () => ({
     refreshCurrentUser: maintenanceMocks.refreshCurrentUser
+}));
+vi.mock('@/repositories/userProfileRepository', () => ({
+    default: profileMocks
 }));
 vi.mock('@/state/runtimeStore', () => ({
     useRuntimeStore: (selector: (state: typeof runtimeState) => unknown) =>
@@ -70,6 +77,10 @@ describe('useUserDialogProfileDecorations', () => {
             json: { ok: true }
         });
         mediaMocks.unequipProfileDecoration.mockResolvedValue({ json: 'OK' });
+        profileMocks.updateCurrentUserProfile.mockResolvedValue({
+            id: 'usr_self',
+            backgroundType: 'default'
+        });
         maintenanceMocks.refreshCurrentUser.mockResolvedValue({
             id: 'usr_self'
         });
@@ -176,5 +187,37 @@ describe('useUserDialogProfileDecorations', () => {
 
         expect(mediaMocks.equipProfileDecoration).not.toHaveBeenCalled();
         expect(mediaMocks.unequipProfileDecoration).not.toHaveBeenCalled();
+    });
+
+    it('updates the profile background and requests an appearance refresh', async () => {
+        const onProfileUpdated = vi.fn();
+        const { result } = renderHook(() =>
+            useUserDialogProfileDecorations({
+                enabled: true,
+                onProfileUpdated
+            })
+        );
+        await waitFor(() => expect(result.current.isReady).toBe(true));
+
+        act(() => {
+            result.current.updateBackground('grid', {
+                backgroundType: 'texture',
+                backgroundTextureId: 'grid'
+            });
+        });
+
+        await waitFor(() =>
+            expect(profileMocks.updateCurrentUserProfile).toHaveBeenCalledWith({
+                expectedUserId: 'usr_self',
+                params: {
+                    backgroundType: 'texture',
+                    backgroundTextureId: 'grid'
+                }
+            })
+        );
+        await waitFor(() => expect(onProfileUpdated).toHaveBeenCalledOnce());
+        expect(toastMocks.success).toHaveBeenCalledWith(
+            'dialog.inventory.profile_background_updated'
+        );
     });
 });

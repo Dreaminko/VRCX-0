@@ -105,8 +105,8 @@ pub mod users {
     pub use vrcx_0_vrchat_client::users::{
         current_user_badge_update_input, current_user_tags_add_input,
         current_user_tags_remove_input, current_user_update_input, profile_get_input,
-        user_groups_get_input, user_mutual_counts_get_input, user_mutual_friends_get_input,
-        user_represented_group_get_input,
+        profile_update_input, user_groups_get_input, user_mutual_counts_get_input,
+        user_mutual_friends_get_input, user_represented_group_get_input,
     };
 }
 

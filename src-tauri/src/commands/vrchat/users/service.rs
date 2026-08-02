@@ -3,7 +3,7 @@
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::users::{
     current_user_badge_update_input, current_user_tags_add_input, current_user_tags_remove_input,
-    current_user_update_input, profile_get_input, user_groups_get_input,
+    current_user_update_input, profile_get_input, profile_update_input, user_groups_get_input,
     user_mutual_counts_get_input, user_mutual_friends_get_input, user_represented_group_get_input,
 };
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
@@ -13,8 +13,9 @@ use crate::state::AppState;
 use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
 
 use super::types::{
-    VrchatCurrentUserBadgeInput, VrchatCurrentUserTagsInput, VrchatCurrentUserUpdateInput,
-    VrchatUserInput, VrchatUserMutualFriendsInput, VrchatUserProfileInput,
+    VrchatCurrentUserBadgeInput, VrchatCurrentUserProfileUpdateInput, VrchatCurrentUserTagsInput,
+    VrchatCurrentUserUpdateInput, VrchatUserInput, VrchatUserMutualFriendsInput,
+    VrchatUserProfileInput,
 };
 
 async fn execute_user_read_api(
@@ -71,6 +72,32 @@ pub async fn app__vrchat_user_profile_get(
         state,
         "app__vrchat_user_profile_get",
         format!("Getting profile for user {user_id}."),
+        request,
+    )
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__vrchat_current_user_profile_update(
+    state: State<'_, AppState>,
+    input: VrchatCurrentUserProfileUpdateInput,
+) -> Result<VrchatApiResponse, AppError> {
+    super::super::execute::require_auth_scope(
+        &state.runtime_context.auth_scope,
+        &input.expected_user_id,
+        "Profile mutation is stale for the current auth scope.",
+    )?;
+    let (user_id, request) = profile_update_input(
+        VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        input.expected_user_id,
+        input.params,
+    )?;
+    execute_current_user_api_then_invalidate(
+        state,
+        "app__vrchat_current_user_profile_update",
+        format!("Updating profile for current user {user_id}."),
+        user_id,
         request,
     )
     .await

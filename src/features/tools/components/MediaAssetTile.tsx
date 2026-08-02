@@ -1,6 +1,7 @@
 import { MoreHorizontalIcon, ImageIcon } from 'lucide-react';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
+import { TILE_MOTION, TILE_SELECTED } from '@/lib/selectableTile';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -115,7 +116,7 @@ export function MediaAssetTile({
             size="sm"
             className={cn(
                 'group/tile gap-0 overflow-hidden rounded-lg py-0 transition-colors data-[size=sm]:gap-0 data-[size=sm]:py-0',
-                isCurrent && 'ring-primary ring-2',
+                isCurrent && TILE_SELECTED,
                 className
             )}
         >
@@ -123,7 +124,10 @@ export function MediaAssetTile({
                 <Button
                     type="button"
                     variant="ghost"
-                    className="block h-auto w-full rounded-none p-0"
+                    className={cn(
+                        'block h-auto w-full rounded-none p-0',
+                        TILE_MOTION
+                    )}
                     onClick={
                         imageUrl || renderMedia ? handleMediaClick : undefined
                     }

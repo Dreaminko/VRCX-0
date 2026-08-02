@@ -42,6 +42,23 @@ pub fn profile_get_input(
     ))
 }
 
+pub fn profile_update_input(
+    endpoint: String,
+    user_id: String,
+    params: Option<Value>,
+) -> Result<(String, HttpApiRequestInput), HttpApiError> {
+    let user_id = require_text(user_id, "VrchatProfileUpdate requires userId.")?;
+    Ok((
+        user_id.clone(),
+        api_input(
+            endpoint,
+            "PUT",
+            format!("profile/{}", encode_path_segment(&user_id)),
+            Some(object_body(params)),
+        ),
+    ))
+}
+
 pub fn user_mutual_counts_get_input(
     endpoint: String,
     user_id: String,
@@ -288,6 +305,27 @@ mod tests {
 
     #[test]
     fn current_user_mutations_build_paths_and_json_bodies() {
+        let (_, profile) = profile_update_input(
+            "endpoint".into(),
+            " usr/1 ".into(),
+            Some(json!({
+                "backgroundType": "gradient",
+                "backgroundGradientTop": "5d3f86",
+                "backgroundGradientBottom": "21385B",
+            })),
+        )
+        .unwrap();
+        assert_eq!(profile.method.as_deref(), Some("PUT"));
+        assert_eq!(profile.path.as_deref(), Some("profile/usr%2F1"));
+        assert_eq!(
+            json_body(&profile),
+            &json!({
+                "backgroundType": "gradient",
+                "backgroundGradientTop": "5d3f86",
+                "backgroundGradientBottom": "21385B",
+            })
+        );
+
         let (_, update_default) =
             current_user_update_input("endpoint".into(), " usr/1 ".into(), None).unwrap();
         assert_eq!(update_default.method.as_deref(), Some("PUT"));
@@ -368,6 +406,7 @@ mod tests {
     fn user_requests_reject_blank_required_ids() {
         assert!(user_get_input("".into(), " ".into()).is_err());
         assert!(profile_get_input("".into(), " ".into(), false).is_err());
+        assert!(profile_update_input("".into(), " ".into(), None).is_err());
         assert!(user_mutual_counts_get_input("".into(), " ".into()).is_err());
         assert!(user_groups_get_input("".into(), " ".into()).is_err());
         assert!(user_represented_group_get_input("".into(), " ".into()).is_err());

@@ -13,6 +13,7 @@ import {
     PageToolbarRow
 } from '@/components/layout/PageScaffold';
 import { FadeInImage } from '@/components/media/FadeInImage';
+import { TILE_SELECTED } from '@/lib/selectableTile';
 import { cn } from '@/lib/utils';
 import mediaRepository from '@/repositories/mediaRepository';
 import { extractFileId } from '@/shared/utils/fileUtils';
@@ -120,7 +121,7 @@ function ProfileMediaThumbnail({
                 'relative min-w-0 overflow-hidden rounded-lg border p-0',
                 'shrink-0',
                 section.cardClass,
-                isCurrent && 'ring-primary ring-2'
+                isCurrent && TILE_SELECTED
             )}
             title={`${t(section.useKey)}: ${displayName || file.id}`}
             disabled={disabled || isMutating || isCurrent}

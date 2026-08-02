@@ -4,6 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
+import {
+    TILE_CHECK,
+    TILE_MOTION_STANDALONE,
+    TILE_SELECTED
+} from '@/lib/selectableTile';
 import { cn } from '@/lib/utils';
 import mediaRepository from '@/repositories/mediaRepository';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
@@ -93,18 +98,17 @@ function EmojiChoice({
             aria-pressed={selected}
             disabled={disabled}
             className={cn(
-                'focus-visible:border-ring focus-visible:ring-ring/50 relative flex min-w-0 flex-col items-center gap-2 rounded-xl border bg-clip-padding p-2.5 text-center outline-none select-none focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50',
-                'transition-transform duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none',
+                'focus-visible:border-ring focus-visible:ring-ring/50 relative flex min-w-0 flex-col items-center gap-2 rounded-lg border bg-clip-padding p-2.5 text-center outline-none select-none focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50',
+                TILE_MOTION_STANDALONE,
+                'border-border bg-card/40 pointer-fine:hover:bg-muted/60',
                 imageOnly && 'aspect-square justify-center p-3',
-                selected
-                    ? 'border-primary bg-primary/10 ring-primary/20 ring-2'
-                    : 'border-border bg-card/40 hover:bg-muted/60'
+                selected && TILE_SELECTED
             )}
             onClick={onClick}
         >
             {selected ? (
-                <span className="bg-primary text-primary-foreground absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full shadow-sm">
-                    <CheckIcon className="size-3.5" aria-hidden="true" />
+                <span className={TILE_CHECK}>
+                    <CheckIcon className="size-3" aria-hidden="true" />
                 </span>
             ) : null}
             <span

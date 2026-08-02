@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 const tauriMock = vi.hoisted(() => ({
     commands: {
+        appVrchatCurrentUserProfileUpdate: vi.fn(),
         appVrchatUserProfileGet: vi.fn(),
         appVrchatUserMutualFriendsGet: vi.fn()
     }
@@ -13,6 +14,9 @@ import userProfileRepository from './userProfileRepository';
 
 describe('UserProfileRepository', () => {
     beforeEach(() => {
+        vi.mocked(
+            tauriMock.commands.appVrchatCurrentUserProfileUpdate
+        ).mockReset();
         vi.mocked(tauriMock.commands.appVrchatUserProfileGet).mockReset();
         vi.mocked(tauriMock.commands.appVrchatUserMutualFriendsGet).mockReset();
     });
@@ -203,6 +207,50 @@ describe('UserProfileRepository', () => {
         );
         expect(
             tauriMock.commands.appVrchatUserProfileGet
+        ).not.toHaveBeenCalled();
+    });
+
+    it('updates the authenticated user profile background', async () => {
+        const responseProfile = {
+            id: 'usr_target',
+            backgroundType: 'texture',
+            backgroundTextureId: 'grid'
+        };
+        vi.mocked(
+            tauriMock.commands.appVrchatCurrentUserProfileUpdate
+        ).mockResolvedValueOnce({ status: 200, data: responseProfile });
+
+        await expect(
+            userProfileRepository.updateCurrentUserProfile({
+                expectedUserId: ' usr_target ',
+                params: {
+                    backgroundType: 'texture',
+                    backgroundTextureId: 'grid'
+                }
+            })
+        ).resolves.toBe(responseProfile);
+        expect(
+            tauriMock.commands.appVrchatCurrentUserProfileUpdate
+        ).toHaveBeenCalledWith({
+            expectedUserId: 'usr_target',
+            params: {
+                backgroundType: 'texture',
+                backgroundTextureId: 'grid'
+            }
+        });
+    });
+
+    it('rejects profile background updates without a user id', async () => {
+        await expect(
+            userProfileRepository.updateCurrentUserProfile({
+                expectedUserId: ' ',
+                params: { backgroundType: 'default' }
+            })
+        ).rejects.toThrow(
+            'UserProfileRepository.updateCurrentUserProfile requires a user id.'
+        );
+        expect(
+            tauriMock.commands.appVrchatCurrentUserProfileUpdate
         ).not.toHaveBeenCalled();
     });
 

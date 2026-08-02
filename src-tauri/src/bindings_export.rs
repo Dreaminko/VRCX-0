@@ -522,6 +522,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::vrchat::tools::service::app__vrchat_tools_user_note_save,
             commands::vrchat::tools::service::app__vrchat_tools_user_report,
             commands::vrchat::users::service::app__vrchat_current_user_badge_update,
+            commands::vrchat::users::service::app__vrchat_current_user_profile_update,
             commands::vrchat::users::service::app__vrchat_current_user_tags_add,
             commands::vrchat::users::service::app__vrchat_current_user_tags_remove,
             commands::vrchat::users::service::app__vrchat_current_user_update,

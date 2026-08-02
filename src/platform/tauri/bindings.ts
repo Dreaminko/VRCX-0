@@ -2278,6 +2278,13 @@ export const commands = {
             input
         });
     },
+    async appVrchatCurrentUserProfileUpdate(
+        input: VrchatCurrentUserProfileUpdateInput
+    ): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE('app__vrchat_current_user_profile_update', {
+            input
+        });
+    },
     async appVrchatCurrentUserTagsAdd(
         input: VrchatCurrentUserTagsInput
     ): Promise<HttpApiExecuteResponse> {
@@ -5738,6 +5745,10 @@ export type VrchatCurrentUserBadgeInput = {
     badgeId?: string;
     hidden?: boolean;
     showcased?: boolean;
+};
+export type VrchatCurrentUserProfileUpdateInput = {
+    expectedUserId?: string;
+    params: JsonValue | null;
 };
 export type VrchatCurrentUserTagsInput = { userId?: string; tags?: string[] };
 export type VrchatCurrentUserUpdateInput = {

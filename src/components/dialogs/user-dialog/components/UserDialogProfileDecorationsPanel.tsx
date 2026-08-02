@@ -1,5 +1,5 @@
-import { BanIcon, CheckIcon, ImageIcon, PackageIcon } from 'lucide-react';
-import { useState, type ComponentType } from 'react';
+import { BanIcon, PackageIcon } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -11,7 +11,7 @@ import {
     PageToolbar,
     PageToolbarRow
 } from '@/components/layout/PageScaffold';
-import { FadeInImage } from '@/components/media/FadeInImage';
+import { SelectableTile } from '@/components/tile/SelectableTile';
 import {
     isEquippedProfileDecoration,
     resolveInventoryName,
@@ -19,91 +19,60 @@ import {
     resolveProfileDecorationTypeLabelKey
 } from '@/features/tools/inventoryHelpers';
 import { cn } from '@/lib/utils';
-import { Button } from '@/ui/shadcn/button';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
 import {
     PROFILE_DECORATION_SLOTS,
     type ProfileDecorationSlot
 } from '../userDialogProfileAppearance';
-import { useUserDialogProfileDecorations } from '../useUserDialogProfileDecorations';
+import type { UserDialogProfileRecord } from '../userDialogProfileTypes';
+import {
+    UNEQUIP_PENDING_KEY,
+    useUserDialogProfileDecorations
+} from '../useUserDialogProfileDecorations';
+import { UserDialogProfileBackgroundPicker } from './UserDialogProfileBackgroundPicker';
 
-function DecorationTile({
-    label,
-    imageUrl,
-    icon: Icon,
-    isCurrent,
-    disabled,
-    aspectClassName = 'aspect-square',
-    contentClassName,
-    imageClassName = 'max-h-full max-w-full object-contain',
-    onClick
-}: {
-    label: string;
-    imageUrl?: string;
-    icon?: ComponentType<{ className?: string }>;
-    isCurrent: boolean;
-    disabled: boolean;
-    aspectClassName?: string;
-    contentClassName?: string;
-    imageClassName?: string;
-    onClick: () => void;
-}) {
+type ProfileDecorationPanel = ProfileDecorationSlot | 'background';
+
+function isProfileDecorationPanel(
+    value: string
+): value is ProfileDecorationPanel {
     return (
-        <Button
-            type="button"
-            variant="ghost"
-            disabled={disabled}
-            aria-pressed={isCurrent}
-            title={label}
-            onClick={onClick}
-            className={cn(
-                'pointer-fine:hover:border-foreground/25 relative h-auto w-full min-w-0 overflow-hidden rounded-lg border p-0 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]',
-                aspectClassName,
-                isCurrent && 'disabled:opacity-100'
-            )}
-        >
-            <div
-                className={cn(
-                    'bg-muted/30 text-muted-foreground pointer-fine:group-hover/button:bg-muted/50 flex size-full items-center justify-center overflow-hidden transition-colors duration-150',
-                    contentClassName
-                )}
-            >
-                {Icon ? (
-                    <Icon className="size-6" />
-                ) : imageUrl ? (
-                    <FadeInImage
-                        src={imageUrl}
-                        alt={label}
-                        loading="lazy"
-                        className={imageClassName}
-                        fallback={<ImageIcon className="size-6" />}
-                    />
-                ) : (
-                    <ImageIcon className="size-6" />
-                )}
-            </div>
-            {isCurrent ? (
-                <span className="bg-primary text-primary-foreground ring-background absolute end-1.5 top-1.5 flex size-5 items-center justify-center rounded-full shadow-sm ring-2">
-                    <CheckIcon className="size-3" />
-                </span>
-            ) : null}
-        </Button>
+        value === 'background' ||
+        PROFILE_DECORATION_SLOTS.some((slot) => slot === value)
     );
 }
 
 export function UserDialogProfileDecorationsPanel({
-    onBack
+    profile,
+    isVrcPlus,
+    onBack,
+    onProfileUpdated
 }: {
+    profile: UserDialogProfileRecord;
+    isVrcPlus: boolean;
     onBack: () => void;
+    onProfileUpdated: () => void;
 }) {
     const { t } = useTranslation();
     const [activeSlot, setActiveSlot] =
-        useState<ProfileDecorationSlot>('iconFrame');
-    const { itemsBySlot, pending, isReady, equipItem, unequipSlot } =
-        useUserDialogProfileDecorations({ enabled: true });
+        useState<ProfileDecorationPanel>('iconFrame');
+    const {
+        itemsBySlot,
+        pendingKey,
+        isReady,
+        equipItem,
+        unequipSlot,
+        updateBackground
+    } = useUserDialogProfileDecorations({
+        enabled: true,
+        onProfileUpdated
+    });
 
-    const items = itemsBySlot[activeSlot];
+    const pending = Boolean(pendingKey);
+    const isBackground = activeSlot === 'background';
+    const decorationSlot = isBackground ? null : activeSlot;
+    const items = decorationSlot ? itemsBySlot[decorationSlot] : [];
     const hasEquipped = items.some(isEquippedProfileDecoration);
     const isIconFrame = activeSlot === 'iconFrame';
     const isNameplate = activeSlot === 'nameplateEffect';
@@ -142,16 +111,20 @@ export function UserDialogProfileDecorationsPanel({
                 value={[activeSlot]}
                 onValueChange={(value) => {
                     const nextSlot = value[0];
-                    if (nextSlot) {
-                        setActiveSlot(nextSlot as ProfileDecorationSlot);
+                    if (nextSlot && isProfileDecorationPanel(nextSlot)) {
+                        setActiveSlot(nextSlot);
                     }
                 }}
                 className="flex flex-wrap justify-start"
             >
-                {PROFILE_DECORATION_SLOTS.map((slot) => {
-                    const label = t(
-                        resolveProfileDecorationTypeLabelKey(slot) ?? ''
-                    );
+                {[...PROFILE_DECORATION_SLOTS, 'background'].map((slot) => {
+                    const label =
+                        slot === 'background'
+                            ? t('dialog.inventory.background')
+                            : t(
+                                  resolveProfileDecorationTypeLabelKey(slot) ??
+                                      ''
+                              );
                     return (
                         <ToggleGroupItem
                             key={slot}
@@ -163,36 +136,49 @@ export function UserDialogProfileDecorationsPanel({
                     );
                 })}
             </ToggleGroup>
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                {!isReady ? (
+            <div className="min-h-0 flex-1 overflow-y-auto p-1">
+                {isBackground ? (
+                    <UserDialogProfileBackgroundPicker
+                        profile={profile}
+                        isVrcPlus={isVrcPlus || profile.hasVrcPlus === true}
+                        pendingKey={pendingKey}
+                        onUpdateBackground={updateBackground}
+                    />
+                ) : !isReady ? (
                     <LoadingState className="min-h-48" />
                 ) : (
                     <div className="flex flex-col gap-3">
                         <div className={cn('grid gap-2', gridClassName)}>
-                            <DecorationTile
+                            <SelectableTile
                                 label={t('dialog.gallery_select.none')}
                                 icon={BanIcon}
                                 isCurrent={!hasEquipped}
-                                disabled={pending || !hasEquipped}
+                                busy={pendingKey === UNEQUIP_PENDING_KEY}
+                                inert={pending || !hasEquipped}
                                 aspectClassName={tileAspectClassName}
-                                contentClassName={tileContentClassName}
+                                surfaceClassName={tileContentClassName}
                                 imageClassName={tileImageClassName}
-                                onClick={() => unequipSlot(activeSlot)}
+                                onClick={() => {
+                                    if (decorationSlot) {
+                                        unequipSlot(decorationSlot);
+                                    }
+                                }}
                             />
                             {items.map((item) => {
                                 const equipped =
                                     isEquippedProfileDecoration(item);
                                 return (
-                                    <DecorationTile
+                                    <SelectableTile
                                         key={item.id}
                                         label={resolveInventoryName(item)}
                                         imageUrl={resolveProfileDecorationPreviewUrl(
                                             item
                                         )}
                                         isCurrent={equipped}
-                                        disabled={pending || equipped}
+                                        busy={pendingKey === item.id}
+                                        inert={pending || equipped}
                                         aspectClassName={tileAspectClassName}
-                                        contentClassName={tileContentClassName}
+                                        surfaceClassName={tileContentClassName}
                                         imageClassName={tileImageClassName}
                                         onClick={() => equipItem(item)}
                                     />

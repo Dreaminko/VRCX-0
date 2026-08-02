@@ -50,12 +50,11 @@ fn require_profile_decoration_auth_scope(
     auth_scope: &RuntimeAuthScope,
     expected_user_id: &str,
 ) -> Result<(), AppError> {
-    if auth_scope.matches(expected_user_id, VRCHAT_API_DEFAULT_ENDPOINT) {
-        return Ok(());
-    }
-    Err(AppError::Custom(
-        "Inventory mutation is stale for the current auth scope.".into(),
-    ))
+    super::super::execute::require_auth_scope(
+        auth_scope,
+        expected_user_id,
+        "Inventory mutation is stale for the current auth scope.",
+    )
 }
 
 async fn execute_media_api(
