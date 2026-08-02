@@ -10,7 +10,7 @@
         "example_1": "这周我和谁玩得最多？",
         "example_2": "我正在和谁疏远？",
         "example_3": "什么时候最容易碰到我的好友在线？",
-        "not_configured": "Select an LLM Endpoint and model to start.",
+        "not_configured": "请先选择 LLM 端点和模型。",
         "entities_title": "提及",
         "entities_empty": "回答中提到的人和世界会显示在这里。",
         "untitled": "新对话",
@@ -507,9 +507,9 @@
             "add_vertical_row": "添加垂直行"
         },
         "widget": {
-            "feed": "动态小部件",
-            "game_log": "游戏日志小部件",
-            "instance": "房间小部件",
+            "feed": "动态小组件",
+            "game_log": "游戏日志小组件",
+            "instance": "房间小组件",
             "config": {
                 "detail": "详情",
                 "show_type": "显示类型"
@@ -2393,7 +2393,7 @@
                         "restore_default": "恢复默认位置",
                         "cache_header": "自动清理 VRChat 缓存",
                         "cache_description": "VRChat 关闭时清理旧的资源缓存数据。",
-                        "keep_avatar_data": "保留头像数据时长",
+                        "keep_avatar_data": "保留模型数据时长",
                         "avatar_cleanup_description": "VRCX-0 启动时每周检查一次。"
                     },
                     "troubleshooting": {
@@ -2424,7 +2424,7 @@
                         "description": "仅共享改进 VRCX-0 所需的匿名信息。"
                     },
                     "danger": {
-                        "avatar_history": "头像历史记录",
+                        "avatar_history": "模型历史记录",
                         "delete": "删除…"
                     }
                 },
@@ -2467,7 +2467,7 @@
                     "delete_all_screenshot_metadata": {
                         "button": "删除截图元数据",
                         "ask": "你确定要从 VRChat 图片文件夹中删除所有由 VRC 和 VRCX-0 添加的截图元数据吗？",
-                        "confirm": "删除截图元数据是一个非常破坏性的操作，无法撤销！这包括你的 VRChat 图片文件夹中的所有拍立得照片，如果这些照片的元数据信息对你很珍贵，请在继续操作之前进行备份。",
+                        "confirm": "此操作会永久删除 VRChat 图片文件夹内所有截图（含子文件夹和其他图片）的元数据，且无法撤销。如果这些元数据对你很重要，请先备份。",
                         "confirm_yes": "是，确认删除",
                         "confirm_no": "否，我再想想"
                     },
@@ -2498,7 +2498,7 @@
                     "screenshot_helper": {
                         "header": "截图助手",
                         "description": "在拍摄的照片的元数据中添加世界 ID/世界名称",
-                        "description_tooltip": "不幸的是，Windows 并不支持直接查看 PNG 元数据（很多东西都不支持查看这玩意），但你可以使用 exiftool 等命令行工具、png查看器或十六进制编辑器来查看它们。",
+                        "description_tooltip": "Windows 不支持直接查看 PNG 元数据，但可以用 exiftool 等命令行工具、PNG 信息查看器或十六进制编辑器查看。",
                         "enable": "启用",
                         "modify_filename": "同时修改文件名",
                         "modify_filename_tooltip": "除了文件元数据外，还将把世界ID添加到截图文件名中。",
@@ -4699,8 +4699,8 @@
             "import_bans_cancelled": "已取消,共封禁 {success}/{total} 名用户。",
             "export_logs": "导出 CSV",
             "export_logs_copied": "审核日志 CSV 已复制到剪贴板",
-            "inspector_empty": "Select a row to view details",
-            "view_full_profile": "View full profile",
+            "inspector_empty": "选择一行以查看详情",
+            "view_full_profile": "查看完整资料",
             "loaded_count": "已加载 {count} 项",
             "no_permission": "你没有该群组的管理权限。",
             "status": {
@@ -5022,7 +5022,7 @@
         },
         "table_entries_settings": {
             "header": "条目读取设置",
-            "description": "限制从数据库读取记录到界面接口的数量，较大的读取数量可能会影响内存用量和程序性能",
+            "description": "限制从数据库加载到界面的记录数量，数值过大可能影响内存占用和性能",
             "table_max_entries": "最大读取记录数",
             "table_max_entries_error": "请输入 {min} 到 {max} 之间的数字。",
             "table_max_entries_hint": "请输入 {min} 到 {max} 之间的数字。",
@@ -5591,7 +5591,7 @@
                 "rail_title": "你管理的群组",
                 "select_a_group_title": "选择群组",
                 "select_a_group_description": "从列表中选择一个群组,以管理成员、封禁、邀请与加入申请。",
-                "moderator_hint": "You have moderation access in this group",
+                "moderator_hint": "你在此群组拥有管理权限",
                 "member_online_count": "{members} 名成员 · 在线 {online}"
             }
         }
