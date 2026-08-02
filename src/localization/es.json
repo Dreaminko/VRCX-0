@@ -1060,7 +1060,7 @@
                 "show_avatar_grid": "Mostrar cuadrícula de avatares",
                 "show_avatar_table": "Mostrar tabla de avatares",
                 "refresh_avatar_inventory": "Actualizar inventario de avatares",
-                "change_avatar_image": "Cambiar imagen del avatar"
+                "change_avatar_image": "Editar imagen del avatar"
             },
             "empty": {
                 "this_avatar_has_no_local_tags_yet": "Este Avatar aún no tiene etiquetas locales",
@@ -3196,9 +3196,9 @@
                 "moderation_disable_avatar_interaction": "Deshabilitar Interacción con avatar",
                 "moderation_enable_chatbox": "Dejar de silenciar el chat",
                 "moderation_disable_chatbox": "Silenciar Chatbox",
-                "edit_status": "Estado Social",
-                "edit_profile_details": "Detalles del perfil",
-                "edit_profile_media": "Cambiar banner e icono",
+                "edit_status": "Editar Estado Social",
+                "edit_profile_details": "Editar detalles del perfil",
+                "edit_profile_media": "Editar banner e icono",
                 "report_hacking": "Reportar por Hacking",
                 "unfriend": "Eliminar amigo",
                 "edit_note_memo": "Editar nota y nota local"
@@ -3571,9 +3571,9 @@
                 "show_previous_instances": "Mostrar historial de instancias",
                 "edit_details": "Editar detalles",
                 "manage_world": "Gestionar mundo",
-                "change_warnings_settings_tags": "Cambiar advertencias de contenido, ajustes y etiquetas",
-                "change_image": "Cambiar imagen",
-                "change_allowed_video_player_domains": "Cambiar dominios permitidos del reproductor de vídeo",
+                "change_warnings_settings_tags": "Editar advertencias de contenido, ajustes y etiquetas",
+                "change_image": "Editar imagen",
+                "change_allowed_video_player_domains": "Editar dominios permitidos del reproductor de vídeo",
                 "download_package": "Descargar Paquete de Unity",
                 "publish": "Publicar",
                 "publish_to_labs": "Publicar en Laboratorios (una vez cada 7 días)",
@@ -3787,8 +3787,8 @@
                 "make_public": "Hacer Público",
                 "make_private": "Hacer Privado",
                 "edit_details": "Editar detalles",
-                "change_content_tags": "Cambiar Etiquetas de Contenido",
-                "change_image": "Cambiar imagen",
+                "change_content_tags": "Editar etiquetas de contenido",
+                "change_image": "Editar imagen",
                 "download_package": "Descargar Paquete de Unity",
                 "delete": "Eliminar",
                 "delete_impostor": "Eliminar impostor",
@@ -3856,7 +3856,7 @@
                 "none": "Ninguna"
             },
             "action": {
-                "change_avatar_image": "Cambiar imagen del avatar",
+                "change_avatar_image": "Editar imagen del avatar",
                 "apply_content_tags_to_this_avatar_or_selected_owned_avatars": "Aplicar etiquetas de contenido a este avatar o a los avatares propios seleccionados",
                 "select_style": "Seleccionar estilo"
             },
@@ -4295,8 +4295,8 @@
             "set_profile_photo": "Establecer banner",
             "set_profile_icon": "Establecer icono de perfil",
             "current": "Actual",
-            "edit_profile_media": "Cambiar banner e icono",
-            "edit_current_profile_media": "Cambiar el banner e icono actuales",
+            "edit_profile_media": "Editar banner e icono",
+            "edit_current_profile_media": "Editar el banner e icono actuales",
             "profile_icons_managed_link": "Los iconos de perfil se gestionan en Fotos",
             "emoji_animation_styles": "Estilos de Animación",
             "emoji_animation_type": "Emoji Animado",

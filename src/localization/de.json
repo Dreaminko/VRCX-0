@@ -1060,7 +1060,7 @@
                 "show_avatar_grid": "Avatar-Raster anzeigen",
                 "show_avatar_table": "Avatar-Tabelle anzeigen",
                 "refresh_avatar_inventory": "Avatar-Inventar aktualisieren",
-                "change_avatar_image": "Avatar-Bild ändern"
+                "change_avatar_image": "Avatar-Bild bearbeiten"
             },
             "empty": {
                 "this_avatar_has_no_local_tags_yet": "Dieser Avatar hat noch keine lokalen Tags",
@@ -3196,9 +3196,9 @@
                 "moderation_disable_avatar_interaction": "Avatar-Interaktion deaktivieren",
                 "moderation_enable_chatbox": "Chatbox-Stummschaltung aufheben",
                 "moderation_disable_chatbox": "Chatbox stummschalten",
-                "edit_status": "Sozialer Status",
-                "edit_profile_details": "Profildetails",
-                "edit_profile_media": "Banner und Icon ändern",
+                "edit_status": "Sozialen Status bearbeiten",
+                "edit_profile_details": "Profildetails bearbeiten",
+                "edit_profile_media": "Banner und Icon bearbeiten",
                 "report_hacking": "Wegen Hacking melden",
                 "unfriend": "Freundschaft beenden",
                 "edit_note_memo": "Notiz und lokale Notiz bearbeiten"
@@ -3571,9 +3571,9 @@
                 "show_previous_instances": "Instanzverlauf anzeigen",
                 "edit_details": "Details bearbeiten",
                 "manage_world": "Welt verwalten",
-                "change_warnings_settings_tags": "Inhaltswarnungen, Einstellungen und Tags ändern",
-                "change_image": "Bild ändern",
-                "change_allowed_video_player_domains": "Erlaubte Domains für Videoplayer ändern",
+                "change_warnings_settings_tags": "Inhaltswarnungen, Einstellungen und Tags bearbeiten",
+                "change_image": "Bild bearbeiten",
+                "change_allowed_video_player_domains": "Erlaubte Domains für Videoplayer bearbeiten",
                 "download_package": "Unity-Paket herunterladen",
                 "publish": "Veröffentlichen",
                 "publish_to_labs": "In Labs veröffentlichen (alle 7 Tage)",
@@ -3787,8 +3787,8 @@
                 "make_public": "Öffentlich machen",
                 "make_private": "Privat machen",
                 "edit_details": "Details bearbeiten",
-                "change_content_tags": "Inhalts-Tags ändern",
-                "change_image": "Bild ändern",
+                "change_content_tags": "Inhalts-Tags bearbeiten",
+                "change_image": "Bild bearbeiten",
                 "download_package": "Unity-Package herunterladen",
                 "delete": "Löschen",
                 "delete_impostor": "Impostor löschen",
@@ -3856,7 +3856,7 @@
                 "none": "Keine"
             },
             "action": {
-                "change_avatar_image": "Avatar-Bild ändern",
+                "change_avatar_image": "Avatar-Bild bearbeiten",
                 "apply_content_tags_to_this_avatar_or_selected_owned_avatars": "Inhalts-Tags auf diesen Avatar oder ausgewählte eigene Avatare anwenden",
                 "select_style": "Stil auswählen"
             },
@@ -4295,8 +4295,8 @@
             "set_profile_photo": "Banner festlegen",
             "set_profile_icon": "Profilsymbol festlegen",
             "current": "Aktuell",
-            "edit_profile_media": "Banner und Symbol ändern",
-            "edit_current_profile_media": "Aktuellen Banner und Symbol ändern",
+            "edit_profile_media": "Banner und Symbol bearbeiten",
+            "edit_current_profile_media": "Aktuellen Banner und Symbol bearbeiten",
             "profile_icons_managed_link": "Profilsymbole werden in der Galerie verwaltet",
             "emoji_animation_styles": "Animationsstile",
             "emoji_animation_type": "Animiertes Emoji",
