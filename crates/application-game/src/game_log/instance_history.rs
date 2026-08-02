@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use vrcx_0_application_core::Result;
-use vrcx_0_persistence::game_log::{
-    previous_instance_event_rows_query, PreviousInstanceEventRow,
-};
+use vrcx_0_persistence::game_log::{previous_instance_event_rows_query, PreviousInstanceEventRow};
 use vrcx_0_persistence::DatabaseService;
 
 const INSTANCE_HISTORY_GROUPING_TOLERANCE_MS: i64 = 3_600_000;
@@ -56,10 +54,9 @@ fn group_previous_instance_events(
     let mut previous_event_type = String::new();
 
     for row in rows {
-        let starts_new_group = groups.last().map_or(true, |current| {
+        let starts_new_group = groups.last().is_none_or(|current| {
             current.location != row.location
-                || (row.created_at_ts - current.last_ts
-                    > INSTANCE_HISTORY_GROUPING_TOLERANCE_MS
+                || (row.created_at_ts - current.last_ts > INSTANCE_HISTORY_GROUPING_TOLERANCE_MS
                     && !(previous_event_type == "OnPlayerJoined"
                         && row.event_type == "OnPlayerLeft"))
         });
