@@ -76,7 +76,7 @@ export function hydrateBackendRuntimeSnapshot(
     return backendRuntimeHydrationPromise;
 }
 
-export function handleBackendRuntimeTelemetrySnapshot(
+export function handleBackendRuntimeSyncSnapshot(
     snapshot: RuntimeSnapshotPayload,
     flushPendingProjectionEvents: () => void
 ): void {

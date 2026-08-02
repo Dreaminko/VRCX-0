@@ -62,7 +62,7 @@ fn ordinary_event_is_forwarded_unchanged_before_one_derived_telemetry_event() {
     sink.emit("realtimeWsStatus", payload.clone());
 
     let events = recording.events();
-    assert_eq!(events.len(), 2);
+    assert_eq!(events.len(), 3);
     assert_eq!(
         events[0],
         RecordedEvent {
@@ -70,10 +70,12 @@ fn ordinary_event_is_forwarded_unchanged_before_one_derived_telemetry_event() {
             payload,
         }
     );
-    assert_eq!(events[1].name, "backendRuntimeTelemetry");
-    assert_eq!(events[1].payload["kind"], "wsStatus");
-    assert_eq!(events[1].payload["detail"], "connected");
+    assert_eq!(events[1].name, "realtimeProjectionSync");
     assert_eq!(events[1].payload["snapshot"]["wsStatus"], "connected");
+    assert_eq!(events[2].name, "backendRuntimeTelemetry");
+    assert_eq!(events[2].payload["kind"], "wsStatus");
+    assert_eq!(events[2].payload["detail"], "connected");
+    assert_eq!(events[2].payload["snapshot"]["wsStatus"], "connected");
 }
 
 #[test]
@@ -90,12 +92,16 @@ fn typed_backend_runtime_telemetry_passes_through_without_observation() {
 
     sink.emit("backendRuntimeTelemetry", payload.clone());
 
+    let events = recording.events();
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0].name, "realtimeProjectionSync");
+    assert_eq!(events[0].payload["snapshot"], payload["snapshot"]);
     assert_eq!(
-        recording.events(),
-        vec![RecordedEvent {
+        events[1],
+        RecordedEvent {
             name: "backendRuntimeTelemetry".into(),
             payload,
-        }]
+        }
     );
 }
 
@@ -113,8 +119,10 @@ fn telemetry_with_invalid_snapshot_is_normalized_without_observation() {
     sink.emit("backendRuntimeTelemetry", payload);
 
     let events = recording.events();
-    assert_eq!(events.len(), 1);
-    let event = &events[0];
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0].name, "realtimeProjectionSync");
+    assert_eq!(events[0].payload["snapshot"]["wsMessageCounts"], json!({}));
+    let event = &events[1];
     assert_eq!(event.name, "backendRuntimeTelemetry");
     assert_eq!(event.payload["kind"], "wsMessage");
     assert_eq!(event.payload["detail"], "notification");
@@ -132,8 +140,10 @@ fn telemetry_without_snapshot_is_normalized_when_observer_has_no_output() {
     sink.emit("backendRuntimeTelemetry", payload);
 
     let events = recording.events();
-    assert_eq!(events.len(), 1);
-    let event = &events[0];
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0].name, "realtimeProjectionSync");
+    assert!(events[0].payload["snapshot"].is_object());
+    let event = &events[1];
     assert_eq!(event.name, "backendRuntimeTelemetry");
     assert_eq!(event.payload["kind"], "runtimeStarted");
     assert_eq!(event.payload["detail"], "ready");

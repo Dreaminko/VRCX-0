@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use vrcx_0_application_core::{BackendRuntime, BackendRuntimeTelemetry, RuntimeEventSink};
+use vrcx_0_application_core::{
+    BackendRuntime, BackendRuntimeSnapshot, BackendRuntimeTelemetry, RealtimeProjectionSync,
+    RuntimeEventPayload, RuntimeEventSink,
+};
 
 use crate::RuntimeHostProfileExtension;
 
@@ -28,6 +31,16 @@ impl<S> RuntimeHostEventSink<S>
 where
     S: RuntimeEventSink,
 {
+    fn emit_realtime_projection_sync(&self, snapshot: BackendRuntimeSnapshot) {
+        match serde_json::to_value(RealtimeProjectionSync { snapshot }) {
+            Ok(payload) => self.inner.emit(RealtimeProjectionSync::EVENT_NAME, payload),
+            Err(error) => tracing::warn!(
+                error = %error,
+                "failed to serialize realtime projection sync"
+            ),
+        }
+    }
+
     fn emit_fallback_backend_runtime_telemetry(&self, payload: serde_json::Value) {
         let kind = payload
             .get("kind")
@@ -50,13 +63,17 @@ where
                     .map(|count| count.to_string())
             })
             .unwrap_or_else(|| payload.to_string());
+        let snapshot = self.backend_runtime.snapshot();
         let telemetry = BackendRuntimeTelemetry {
             kind,
             detail,
-            snapshot: self.backend_runtime.snapshot(),
+            snapshot: snapshot.clone(),
         };
         match serde_json::to_value(telemetry) {
-            Ok(payload) => self.inner.emit("backendRuntimeTelemetry", payload),
+            Ok(payload) => {
+                self.emit_realtime_projection_sync(snapshot);
+                self.inner.emit("backendRuntimeTelemetry", payload);
+            }
             Err(error) => tracing::warn!(
                 error = %error,
                 "failed to serialize fallback backend runtime telemetry"
@@ -75,7 +92,10 @@ where
         }
 
         if event == "backendRuntimeTelemetry" {
-            if serde_json::from_value::<BackendRuntimeTelemetry>(payload.clone()).is_ok() {
+            if let Ok(telemetry) =
+                serde_json::from_value::<BackendRuntimeTelemetry>(payload.clone())
+            {
+                self.emit_realtime_projection_sync(telemetry.snapshot);
                 self.inner.emit(event, payload);
                 return;
             }
@@ -91,8 +111,12 @@ where
         }
 
         if let Some(telemetry) = telemetry {
+            let snapshot = telemetry.snapshot.clone();
             match serde_json::to_value(telemetry) {
-                Ok(payload) => self.inner.emit("backendRuntimeTelemetry", payload),
+                Ok(payload) => {
+                    self.emit_realtime_projection_sync(snapshot);
+                    self.inner.emit("backendRuntimeTelemetry", payload);
+                }
                 Err(error) => tracing::warn!(
                     error = %error,
                     "failed to serialize backend runtime telemetry"

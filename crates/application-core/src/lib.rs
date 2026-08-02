@@ -28,7 +28,7 @@ pub use async_runtime_policy::{
 pub use auth_scope::{auth_scope_matches, RuntimeAuthScope, RuntimeAuthScopeSnapshot};
 pub use backend_runtime::{
     BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
-    BackendRuntimeTelemetry,
+    BackendRuntimeTelemetry, RealtimeProjectionSync,
 };
 pub use background::{
     sleep_until_due_or_stopped, RuntimeBackgroundJobSnapshot, RuntimeBackgroundJobs,

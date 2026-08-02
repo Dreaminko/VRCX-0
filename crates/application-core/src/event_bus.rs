@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::backend_runtime::BackendRuntimeTelemetry;
+use crate::backend_runtime::{BackendRuntimeTelemetry, RealtimeProjectionSync};
 use crate::events::{
     FriendProfileLoadStatusPayload, FriendProjection, PrintAutoCleanupEvent,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
@@ -91,6 +91,7 @@ runtime_event_payload!(RuntimeVrchatAuthFailurePayload, "runtimeVrchatAuthFailur
 runtime_event_payload!(BackendRuntimeCountTelemetry, "backendRuntimeTelemetry");
 runtime_event_payload!(BackendRuntimeMessageTelemetry, "backendRuntimeTelemetry");
 runtime_event_payload!(BackendRuntimeTelemetry, "backendRuntimeTelemetry");
+runtime_event_payload!(RealtimeProjectionSync, "realtimeProjectionSync");
 runtime_event_payload!(RealtimeWsStatusPayload, "realtimeWsStatus");
 runtime_event_payload!(FriendProjection, "realtimeFriendProjection");
 runtime_event_payload!(RealtimeUserProjection, "realtimeUserProjection");

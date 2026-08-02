@@ -12,8 +12,8 @@ use vrcx_0_application_core::{
     BackendRuntimeTelemetry, FavoritesChangedPayload, FriendProfileLoadStatusPayload,
     FriendProjection, HostSessionProjection, ParsedLocation, PrintAutoCleanupEvent,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeUserProjection,
-    RuntimeVrchatAuthFailurePayload,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeProjectionSync,
+    RealtimeUserProjection, RuntimeVrchatAuthFailurePayload,
 };
 use vrcx_0_application_game::{
     AddGameLogEventPayload, GameClientEvent, GameLogPersistenceFallbackPayload, GameLogProjection,
@@ -73,6 +73,7 @@ struct BackendRuntimeEventPayloadMap {
     realtime_current_user_projection: RealtimeCurrentUserProjection,
     realtime_instance_closed_projection: RealtimeInstanceClosedProjection,
     realtime_instance_queue_projection: RealtimeInstanceQueueProjection,
+    realtime_projection_sync: RealtimeProjectionSync,
     update_is_game_running: HostSessionProjection,
 }
 

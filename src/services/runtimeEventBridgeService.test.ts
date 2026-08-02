@@ -610,7 +610,7 @@ describe('runtimeEventBridgeService', () => {
             'subscription failed'
         );
 
-        expect(unsubscribe).toHaveBeenCalledTimes(38);
+        expect(unsubscribe).toHaveBeenCalledTimes(39);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });
@@ -636,7 +636,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(39);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(40);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});
@@ -918,7 +918,7 @@ describe('runtimeEventBridgeService', () => {
         });
         useSessionStore.getState().setSessionPhase('ready');
 
-        handlers.get('backendRuntimeTelemetry')?.({
+        handlers.get('realtimeProjectionSync')?.({
             snapshot: runningSnapshot
         });
         await vi.waitFor(() => {
@@ -927,6 +927,49 @@ describe('runtimeEventBridgeService', () => {
                     (user) => user.id
                 )
             ).toEqual(['usr_latest']);
+        });
+    });
+
+    it('flushes queued backend projections from the projection sync event only', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        const runningSnapshot = setBackendRealtimeOwner({
+            authReady: false,
+            sessionReady: false
+        });
+
+        handlers.get('realtimeUserProjection')?.({
+            generation: 1,
+            users: [
+                {
+                    id: 'usr_queued',
+                    endpoint: 'api.vrchat.cloud',
+                    displayName: 'Queued User'
+                }
+            ]
+        });
+        useRuntimeStore.getState().setAuthBootstrap({
+            currentUserId: 'usr_owner'
+        });
+        useSessionStore.getState().setSessionPhase('ready');
+
+        handlers.get('backendRuntimeTelemetry')?.({
+            kind: 'wsMessage',
+            detail: 'friend-location',
+            snapshot: runningSnapshot
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(useUserFactsStore.getState().usersByKey).toEqual({});
+
+        handlers.get('realtimeProjectionSync')?.({
+            snapshot: runningSnapshot
+        });
+        await vi.waitFor(() => {
+            expect(
+                Object.values(useUserFactsStore.getState().usersByKey).map(
+                    (user) => user.id
+                )
+            ).toEqual(['usr_queued']);
         });
     });
 
@@ -948,7 +991,7 @@ describe('runtimeEventBridgeService', () => {
             ]
         });
 
-        handlers.get('backendRuntimeTelemetry')?.({
+        handlers.get('realtimeProjectionSync')?.({
             snapshot: {
                 ...oldUserSnapshot,
                 authUserId: 'usr_new_owner'
@@ -959,7 +1002,7 @@ describe('runtimeEventBridgeService', () => {
             currentUserId: 'usr_old_owner'
         });
         useSessionStore.getState().setSessionPhase('ready');
-        handlers.get('backendRuntimeTelemetry')?.({
+        handlers.get('realtimeProjectionSync')?.({
             snapshot: oldUserSnapshot
         });
         await Promise.resolve();
@@ -988,7 +1031,7 @@ describe('runtimeEventBridgeService', () => {
 
         const secondBinding = await bindCapturedRuntimeEvents();
         const runningSnapshot = setBackendRealtimeOwner();
-        secondBinding.handlers.get('backendRuntimeTelemetry')?.({
+        secondBinding.handlers.get('realtimeProjectionSync')?.({
             snapshot: runningSnapshot
         });
         await Promise.resolve();

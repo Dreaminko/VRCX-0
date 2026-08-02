@@ -3347,6 +3347,7 @@ export type BackendRuntimeEventPayloadMap = {
     realtimeCurrentUserProjection: RealtimeCurrentUserProjection;
     realtimeInstanceClosedProjection: RealtimeInstanceClosedProjection;
     realtimeInstanceQueueProjection: RealtimeInstanceQueueProjection;
+    realtimeProjectionSync: RealtimeProjectionSync;
     updateIsGameRunning: HostSessionProjection;
 };
 export type BackendRuntimeFrontendSessionSnapshot = {
@@ -5295,6 +5296,7 @@ export type RealtimeNotificationUpsert = {
     deliverRuntime: boolean;
     runAutomation: boolean;
 };
+export type RealtimeProjectionSync = { snapshot: BackendRuntimeSnapshot };
 export type RealtimeTransportStartResult = {
     generation: number;
     clientRunId: number;

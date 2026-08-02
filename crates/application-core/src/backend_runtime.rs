@@ -56,6 +56,12 @@ pub struct BackendRuntimeTelemetry {
     pub snapshot: BackendRuntimeSnapshot,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RealtimeProjectionSync {
+    pub snapshot: BackendRuntimeSnapshot,
+}
+
 #[derive(Clone, Debug)]
 struct BackendRuntimeState {
     mode: BackendRuntimeMode,

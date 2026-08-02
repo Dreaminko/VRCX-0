@@ -44,7 +44,7 @@ import {
     resetBackendRealtimeProjectionState
 } from './runtime-event-bridge/backendRealtimeProjection';
 import {
-    handleBackendRuntimeTelemetrySnapshot,
+    handleBackendRuntimeSyncSnapshot,
     hydrateBackendRuntimeSnapshot
 } from './runtime-event-bridge/backendRuntimeHydration';
 import {
@@ -187,21 +187,21 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
-    if (handleBackendRealtimeProjectionEvent(event)) {
-        return;
-    }
-
-    runtimeStore.recordRuntimeEvent(event.name, event.payload);
-
-    if (event.name === 'backendRuntimeTelemetry') {
+    if (event.name === 'realtimeProjectionSync') {
         const snapshot = event.payload.snapshot;
         prunePendingBackendRealtimeProjectionEvents(snapshot);
-        handleBackendRuntimeTelemetrySnapshot(
+        handleBackendRuntimeSyncSnapshot(
             snapshot,
             flushPendingBackendRealtimeProjectionEvents
         );
         return;
     }
+
+    if (handleBackendRealtimeProjectionEvent(event)) {
+        return;
+    }
+
+    runtimeStore.recordRuntimeEvent(event.name, event.payload);
 
     if (event.name === 'realtimeEntryCorrection') {
         handleRealtimeEntryCorrection(event.payload);
@@ -301,6 +301,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'realtimeCurrentUserProjection',
         'realtimeInstanceClosedProjection',
         'realtimeInstanceQueueProjection',
+        'realtimeProjectionSync',
         'updateIsGameRunning',
         'browserFocus'
     ];
