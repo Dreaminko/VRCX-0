@@ -2,8 +2,8 @@ import {
     BadgeCheckIcon,
     EyeIcon,
     EyeOffIcon,
+    PaletteIcon,
     ShieldCheckIcon,
-    StoreIcon,
     UserRoundCheckIcon
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
@@ -205,7 +205,7 @@ export function UserDialogHeaderAttributes({
             hint: t('dialog.user.label.economy_creator_hint'),
             node: (
                 <span className="inline-flex shrink-0 items-center gap-1">
-                    <StoreIcon
+                    <PaletteIcon
                         aria-hidden="true"
                         className="size-3.5 shrink-0"
                     />
