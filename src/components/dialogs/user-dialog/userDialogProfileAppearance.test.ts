@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
     mergeUserDialogProfileAppearance,
     normalizeProfileAppearanceColor,
+    preserveUserDialogProfileAppearance,
     resolveProfileDecorationAssetUrls,
     resolveUserDialogBannerUrl
 } from './userDialogProfileAppearance';
@@ -78,6 +79,56 @@ describe('mergeUserDialogProfileAppearance', () => {
                 'usr_target'
             )
         ).toBe(user);
+    });
+});
+
+describe('preserveUserDialogProfileAppearance', () => {
+    it('keeps profile-only background fields after an ordinary user update', () => {
+        expect(
+            preserveUserDialogProfileAppearance(
+                {
+                    id: 'usr_target',
+                    displayName: 'Updated user',
+                    bio: 'Updated bio'
+                },
+                {
+                    id: 'usr_target',
+                    displayName: 'Target',
+                    backgroundType: 'texture',
+                    backgroundTextureId: 'grid',
+                    bannerType: 'customImage',
+                    bannerCustomUrl: 'https://example.test/banner.png'
+                }
+            )
+        ).toEqual({
+            id: 'usr_target',
+            displayName: 'Updated user',
+            bio: 'Updated bio',
+            backgroundType: 'texture',
+            backgroundTextureId: 'grid',
+            bannerType: 'customImage',
+            bannerCustomUrl: 'https://example.test/banner.png'
+        });
+    });
+
+    it('keeps explicit appearance values from the update response', () => {
+        expect(
+            preserveUserDialogProfileAppearance(
+                {
+                    id: 'usr_target',
+                    userIcon: ''
+                },
+                {
+                    id: 'usr_target',
+                    userIcon: 'https://example.test/old-icon.png',
+                    profileEffect: 'invt_profile'
+                }
+            )
+        ).toEqual({
+            id: 'usr_target',
+            userIcon: '',
+            profileEffect: 'invt_profile'
+        });
     });
 });
 

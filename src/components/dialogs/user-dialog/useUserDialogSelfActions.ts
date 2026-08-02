@@ -21,6 +21,7 @@ import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { useCurrentUserSocialStatusDialog } from './useCurrentUserSocialStatusDialog';
+import { preserveUserDialogProfileAppearance } from './userDialogProfileAppearance';
 import {
     fallbackLanguageOptions,
     normalizeLanguageKey,
@@ -270,8 +271,8 @@ export function useUserDialogSelfActions({
     }, [currentEndpoint, languageOptions.length, profileDetailsDialogOpen]);
 
     function applyCurrentUserSnapshot(nextUser: UserDialogProfileRecord) {
-        const displayBaseUser = mergeCurrentUserPresenceFields(
-            nextUser,
+        const displayBaseUser = preserveUserDialogProfileAppearance(
+            mergeCurrentUserPresenceFields(nextUser, baseProfile),
             baseProfile
         );
         const storeUser = mergeCurrentUserPresenceFields(

@@ -83,6 +83,30 @@ export function mergeUserDialogProfileAppearance(
     return nextUser;
 }
 
+export function preserveUserDialogProfileAppearance(
+    user: UserDialogProfileSnapshot,
+    previousUser: UserDialogProfileSnapshot
+): UserDialogProfileSnapshot {
+    if (!user || !previousUser) {
+        return user;
+    }
+
+    let nextUser = user;
+    for (const field of PROFILE_APPEARANCE_FIELDS) {
+        if (
+            Object.prototype.hasOwnProperty.call(user, field) ||
+            !Object.prototype.hasOwnProperty.call(previousUser, field)
+        ) {
+            continue;
+        }
+        if (nextUser === user) {
+            nextUser = { ...user };
+        }
+        nextUser[field] = previousUser[field];
+    }
+    return nextUser;
+}
+
 export function normalizeProfileAppearanceColor(value: unknown): string {
     const color = normalizeText(value).replace(/^#/, '');
     return /^[\da-f]{6}$/i.test(color) ? `#${color.toLowerCase()}` : '';
