@@ -1,9 +1,12 @@
-import { commands } from '@/platform/tauri/bindings';
+import {
+    commands,
+    type InstanceHistoryEntryOutput
+} from '@/platform/tauri/bindings';
 import {
     DEFAULT_MAX_TABLE_SIZE,
     DEFAULT_SEARCH_LIMIT
 } from '@/shared/constants/settings';
-import { DAY_MS, HOUR_MS, MINUTE_MS } from '@/shared/constants/time';
+import { DAY_MS, MINUTE_MS } from '@/shared/constants/time';
 import {
     hasGroupIdPrefix,
     hasWorldIdPrefix
@@ -22,21 +25,12 @@ type GameLogUserIdentity = {
 type GameLogPreviousInstancesOptions = {
     dateFrom?: unknown;
     dateTo?: unknown;
+    limit?: unknown;
 };
 
 type GameLogWorldCacheEntry = {
     worldName: string;
     expiresAt: number;
-};
-
-type PreviousInstanceGroup = {
-    created_at: string;
-    location: string;
-    time: number;
-    worldName: string;
-    groupName: string;
-    events: number[];
-    last_ts: number;
 };
 
 type InstancePlayerAggregate = {
@@ -55,12 +49,6 @@ type GameLogPreviousInstanceGroupRow = {
     location: string;
     time: number;
     worldName: string;
-};
-
-type GameLogPreviousInstanceUserRow = GameLogPreviousInstanceGroupRow & {
-    createdAtTs: number;
-    eventId: number;
-    eventType: string;
 };
 
 type GameLogPlayerEventRow = {
@@ -107,7 +95,6 @@ type GameLogUserStatsQueryResult = {
 
 type GameLogQueryResultMap = {
     previousInstancesByGroupId: GameLogPreviousInstanceGroupRow[];
-    previousInstancesByUserIdRows: GameLogPreviousInstanceUserRow[];
     playersFromInstanceRows: GameLogPlayerEventRow[];
     playerDetailFromInstance: GameLogPlayerDetailRow[];
     joinLeaveRange: GameLogJoinLeaveRangeRow[];
@@ -435,74 +422,26 @@ const gameLog = {
     async getPreviousInstancesByUserId(
         input: GameLogUserIdentity,
         options: GameLogPreviousInstancesOptions = {}
-    ) {
+    ): Promise<InstanceHistoryEntryOutput[]> {
         const normalizedUserId = normalizeGameLogIdentifier(input?.id);
         const dateFrom = normalizeGameLogIdentifier(options.dateFrom);
         const dateTo = normalizeGameLogIdentifier(options.dateTo);
-        var groupingTimeTolerance = HOUR_MS;
-        var data = new Set<PreviousInstanceGroup>();
-        var currentGroup: PreviousInstanceGroup | undefined;
-        var prevEvent: unknown;
+        const requestedLimit = Number(options.limit);
+        const limit =
+            Number.isFinite(requestedLimit) && requestedLimit > 0
+                ? Math.floor(requestedLimit)
+                : 0;
 
         if (!normalizedUserId) {
-            return data;
+            return [];
         }
 
-        const queryParams: GameLogParams = {
-            userId: normalizedUserId
-        };
-        if (dateFrom) {
-            queryParams.dateFrom = dateFrom;
-        }
-        if (dateTo) {
-            queryParams.dateTo = dateTo;
-        }
-
-        const rows = await queryGameLogRows(
-            'previousInstancesByUserIdRows',
-            queryParams
-        );
-        for (const row of rows) {
-            const created_at_iso = row.created_at;
-            const created_at_ts = row.createdAtTs;
-            const location = row.location;
-            const time = row.time;
-            const worldName = row.worldName;
-            const groupName = row.groupName;
-            const eventId = row.eventId;
-            const eventType = row.eventType;
-
-            if (
-                !currentGroup ||
-                currentGroup.location !== location ||
-                (Number(created_at_ts) - currentGroup.last_ts >
-                    groupingTimeTolerance &&
-                    !(
-                        prevEvent === 'OnPlayerJoined' &&
-                        eventType === 'OnPlayerLeft'
-                    ))
-            ) {
-                currentGroup = {
-                    created_at: created_at_iso,
-                    location,
-                    time,
-                    worldName,
-                    groupName,
-                    events: [eventId],
-                    last_ts: Number(created_at_ts)
-                };
-
-                data.add(currentGroup);
-            } else {
-                currentGroup.time += time;
-                currentGroup.last_ts = Number(created_at_ts);
-                currentGroup.events.push(eventId);
-            }
-
-            prevEvent = eventType;
-        }
-
-        return data;
+        return commands.appInstanceHistoryQuery({
+            userId: normalizedUserId,
+            dateFrom,
+            dateTo,
+            limit
+        });
     },
 
     async getPreviousInstancesByWorldId(input: GameLogUserIdentity) {
@@ -665,44 +604,6 @@ const gameLog = {
 
     async getUserIdFromDisplayName(displayName: unknown) {
         return queryGameLog('userIdFromDisplayName', { displayName });
-    },
-
-    async getInstanceActivity(
-        startDate: unknown,
-        endDate: unknown,
-        currentUserId: unknown = ''
-    ) {
-        const normalizedCurrentUserId = normalizeCurrentUserId(currentUserId);
-        const currentUserData = [];
-        const detailData = new Map();
-        const rows = await queryGameLog('instanceActivityRows', {
-            startDate,
-            endDate
-        });
-        for (const rowData of Array.isArray(rows) ? rows : []) {
-            if (!rowData.location || rowData.location === 'traveling') {
-                continue;
-            }
-
-            if (rowData.user_id === normalizedCurrentUserId) {
-                currentUserData.push(rowData);
-            }
-            const instanceData = detailData.get(rowData.location);
-
-            detailData.set(rowData.location, [
-                ...(instanceData || []),
-                rowData
-            ]);
-        }
-
-        return { currentUserData, detailData };
-    },
-
-    async getDateOfInstanceActivity(currentUserId: unknown = '') {
-        const result = await queryGameLog('dateOfInstanceActivity', {
-            userId: normalizeCurrentUserId(currentUserId)
-        });
-        return Array.isArray(result) ? result : [];
     },
 
     async getInstanceJoinHistory(currentUserId: unknown = '') {

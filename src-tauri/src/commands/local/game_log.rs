@@ -6,7 +6,10 @@ use crate::error::AppError;
 use crate::state::AppState;
 
 use serde_json::Value;
-use vrcx_0_application_game::{GameLogSessionDto, GameLogSessionsQueryInput};
+use vrcx_0_application_game::{
+    GameLogSessionDto, GameLogSessionsQueryInput, InstanceHistoryEntryOutput,
+    InstanceHistoryQueryInput,
+};
 use vrcx_0_persistence::game_log::GameLogQueryInput;
 
 #[tauri::command]
@@ -99,5 +102,16 @@ pub fn app__game_log_sessions_query(
 ) -> Result<Vec<GameLogSessionDto>, AppError> {
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
     vrcx_0_application_game::game_log_sessions_query(state.db.as_ref(), &owner_user_id, input)
+        .map_err(AppError::from)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__instance_history_query(
+    state: State<'_, AppState>,
+    input: InstanceHistoryQueryInput,
+) -> Result<Vec<InstanceHistoryEntryOutput>, AppError> {
+    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
+    vrcx_0_application_game::instance_history_query(state.db.as_ref(), &owner_user_id, input)
         .map_err(AppError::from)
 }

@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use crate::database::DatabaseService;
-use crate::game_log::{game_log_query, get_game_log_events, get_game_log_locations};
+use crate::game_log::{
+    game_log_instance_delete, game_log_query, get_game_log_events, get_game_log_locations,
+    previous_instance_event_rows_query,
+};
 use crate::Error;
 use serde_json::json;
 use vrcx_0_core::json::RawJson;
@@ -522,24 +525,20 @@ fn previous_instances_by_user_id_uses_latest_location_metadata() -> Result<(), E
         },
     )?;
 
-    let result = game_log_query(
+    let rows = previous_instance_event_rows_query(
         db,
         "usr_test",
-        GameLogQueryInput {
-            kind: "previousInstancesByUserIdRows".into(),
-            params: RawJson::from(json!({
-                "userId": target_user_id
-            })),
-        },
+        target_user_id,
+        "",
+        "",
+        0,
     )?;
-
-    let rows = result.as_array().cloned().unwrap_or_default();
     assert_eq!(rows.len(), 1);
     let row = &rows[0];
-    assert_eq!(row.get("location"), Some(&json!(matched_location)));
-    assert_eq!(row.get("worldName"), Some(&json!("New World")));
-    assert_eq!(row.get("groupName"), Some(&json!("new-group")));
-    assert_eq!(row.get("eventType"), Some(&json!("OnPlayerJoined")));
+    assert_eq!(row.location, matched_location);
+    assert_eq!(row.world_name, "New World");
+    assert_eq!(row.group_name, "new-group");
+    assert_eq!(row.event_type, "OnPlayerJoined");
     Ok(())
 }
 
@@ -593,26 +592,132 @@ fn previous_instances_by_user_id_filters_by_date_range() -> Result<(), Error> {
         },
     )?;
 
-    let result = game_log_query(
+    let rows = previous_instance_event_rows_query(
         db,
         "usr_test",
-        GameLogQueryInput {
-            kind: "previousInstancesByUserIdRows".into(),
-            params: RawJson::from(json!({
-                "userId": target_user_id,
-                "dateFrom": "2026-05-14T00:00:00.000Z",
-                "dateTo": "2026-05-15T00:00:00.000Z"
-            })),
-        },
+        target_user_id,
+        "2026-05-14T00:00:00.000Z",
+        "2026-05-15T00:00:00.000Z",
+        0,
+    )?;
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].created_at, "2026-05-14T10:01:00.000Z");
+    assert_eq!(rows[0].location, matched_location);
+    Ok(())
+}
+
+#[test]
+fn previous_instances_limit_keeps_complete_recent_groups() -> Result<(), Error> {
+    let test_db = test_db("previous-instance-recent-groups")?;
+    let db = &test_db.db;
+    let target_user_id = "usr_target";
+
+    for (index, location) in ["wrld_a:1", "wrld_b:1", "wrld_c:1"]
+        .into_iter()
+        .enumerate()
+    {
+        insert_location(
+            db,
+            &GameLogLocationEntry {
+                created_at: format!("2026-05-14T1{index}:00:00.000Z"),
+                location: location.into(),
+                world_id: location.split(':').next().unwrap_or_default().into(),
+                world_name: format!("World {index}"),
+                time: 0,
+                group_name: String::new(),
+            },
+        )?;
+        for minute in 1..=(if index == 1 { 2 } else { 1 }) {
+            insert_join_leave(
+                db,
+                &GameLogJoinLeaveEntry {
+                    created_at: format!("2026-05-14T1{index}:0{minute}:00.000Z"),
+                    event_type: if minute == 1 {
+                        "OnPlayerJoined".into()
+                    } else {
+                        "OnPlayerLeft".into()
+                    },
+                    display_name: "Target".into(),
+                    location: location.into(),
+                    user_id: target_user_id.into(),
+                    world_name: format!("World {index}"),
+                    time: 0,
+                },
+            )?;
+        }
+    }
+
+    let rows = previous_instance_event_rows_query(
+        db,
+        "usr_test",
+        target_user_id,
+        "",
+        "",
+        2,
     )?;
 
-    let rows = result.as_array().cloned().unwrap_or_default();
-    assert_eq!(rows.len(), 1);
+    assert_eq!(rows.len(), 3);
     assert_eq!(
-        rows[0].get("created_at"),
-        Some(&json!("2026-05-14T10:01:00.000Z"))
+        rows.iter()
+            .map(|row| row.location.as_str())
+            .collect::<Vec<_>>(),
+        vec!["wrld_b:1", "wrld_b:1", "wrld_c:1"]
     );
-    assert_eq!(rows[0].get("location"), Some(&json!(matched_location)));
+    Ok(())
+}
+
+#[test]
+fn deleting_an_instance_row_is_scoped_by_owner_location_and_event_ids() -> Result<(), Error> {
+    let test_db = test_db("delete-instance-row-scope")?;
+    let db = &test_db.db;
+    for (owner, location, user) in [
+        ("usr_owner", "wrld_target:1", "usr_a"),
+        ("usr_owner", "wrld_other:1", "usr_b"),
+        ("usr_other_owner", "wrld_target:1", "usr_c"),
+    ] {
+        write_batch(
+            db,
+            owner,
+            &GameLogWriteBatch {
+                join_leave: vec![GameLogJoinLeaveEntry {
+                    created_at: "2026-05-14T10:00:00.000Z".into(),
+                    event_type: "OnPlayerJoined".into(),
+                    display_name: user.into(),
+                    location: location.into(),
+                    user_id: user.into(),
+                    world_name: "World".into(),
+                    time: 0,
+                }],
+                ..GameLogWriteBatch::default()
+            },
+        )?;
+    }
+
+    let rows = db.execute(
+        "SELECT id, owner_id, location FROM gamelog_join_leave ORDER BY id ASC",
+        &Default::default(),
+    )?;
+    let target_id = crate::common::row_i64(&rows[0], 0);
+    let other_location_id = crate::common::row_i64(&rows[1], 0);
+    let other_owner_id = crate::common::row_i64(&rows[2], 0);
+
+    assert_eq!(
+        game_log_instance_delete(
+            db,
+            "usr_owner",
+            "wrld_target:1".into(),
+            vec![target_id, other_location_id, other_owner_id],
+        )?,
+        1
+    );
+
+    let remaining = db.execute(
+        "SELECT id FROM gamelog_join_leave ORDER BY id ASC",
+        &Default::default(),
+    )?;
+    assert_eq!(remaining.len(), 2);
+    assert_eq!(crate::common::row_i64(&remaining[0], 0), other_location_id);
+    assert_eq!(crate::common::row_i64(&remaining[1], 0), other_owner_id);
     Ok(())
 }
 

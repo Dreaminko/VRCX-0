@@ -1,6 +1,8 @@
 use serde_json::json;
 
 use super::test_support::*;
+use crate::game_log::previous_instance_event_rows_query;
+use crate::player_list::{instance_activity_dates_get, instance_activity_rows_get};
 
 #[test]
 fn world_and_user_stat_queries_return_defaults_and_skip_current_matches() -> Result<(), crate::Error>
@@ -135,17 +137,16 @@ fn aggregate_and_lookup_queries_cover_group_world_player_and_dates() -> Result<(
         json!("2026-05-14T10:05:00Z")
     );
 
-    let previous_by_user = rows(query(
+    let previous_by_user = previous_instance_event_rows_query(
         &test_db.db,
-        "previousInstancesByUserIdRows",
-        json!({
-            "userId": "usr_vip",
-            "dateFrom": "2026-05-14T08:00:00Z",
-            "dateTo": "2026-05-14T08:10:00Z"
-        }),
-    )?);
+        "usr_test",
+        "usr_vip",
+        "2026-05-14T08:00:00Z",
+        "2026-05-14T08:10:00Z",
+        0,
+    )?;
     assert_eq!(previous_by_user.len(), 1);
-    assert_eq!(previous_by_user[0]["worldName"], "Alpha World");
+    assert_eq!(previous_by_user[0].world_name, "Alpha World");
 
     let world_rows = rows(query(
         &test_db.db,
@@ -248,23 +249,24 @@ fn activity_and_session_queries_cover_empty_and_cursor_edges() -> Result<(), cra
     let test_db = test_db("local-query-sessions")?;
     seed_fixture(&test_db.db)?;
 
-    let activity = rows(query(
+    let activity = instance_activity_rows_get(
         &test_db.db,
-        "instanceActivityRows",
-        json!({
-            "startDate": "2026-05-14T08:00:00Z",
-            "endDate": "2026-05-14T08:10:00Z"
-        }),
-    )?);
-    assert_eq!(activity[0]["display_name"], "Vip Friend");
+        "usr_test",
+        "2026-05-14T08:00:00Z".into(),
+        "2026-05-14T08:10:00Z".into(),
+    )?;
+    assert_eq!(activity[0].display_name, "Vip Friend");
 
     assert_eq!(
-        rows(query(
+        instance_activity_dates_get(
             &test_db.db,
-            "dateOfInstanceActivity",
-            json!({ "userId": "usr_vip" }),
-        )?),
-        vec![json!("2026-05-14T08:01:00Z"), json!("2026-05-14T08:30:00Z")]
+            "usr_test",
+            "usr_vip".into(),
+        )?,
+        vec![
+            "2026-05-14T08:30:00Z".to_string(),
+            "2026-05-14T08:01:00Z".to_string()
+        ]
     );
 
     let join_history = rows(query(

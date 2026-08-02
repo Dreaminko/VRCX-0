@@ -91,7 +91,10 @@ interface UserDialogTabbedViewProps {
         currentUserHasSharedConnectionsOptOut: boolean;
         currentUserBoopingEnabled: boolean;
         userStats?: SupplementalData['userStats'];
+        loadPreviousInstances?: SupplementalData['loadPreviousInstances'];
         previousInstances?: SupplementalData['previousInstances'];
+        previousInstancesError?: SupplementalData['previousInstancesError'];
+        previousInstancesStatus?: SupplementalData['previousInstancesStatus'];
         representedGroup?: SupplementalData['representedGroup'];
         representedGroupStatus?: string;
         hideUserNotes?: boolean;
@@ -204,7 +207,10 @@ export function UserDialogTabbedView({
         currentUserHasSharedConnectionsOptOut,
         currentUserBoopingEnabled,
         userStats = {},
+        loadPreviousInstances,
         previousInstances = [],
+        previousInstancesError = '',
+        previousInstancesStatus = 'idle',
         representedGroup = null,
         representedGroupStatus = 'idle',
         hideUserNotes = false,
@@ -341,6 +347,15 @@ export function UserDialogTabbedView({
         worldOrder,
         worldSort
     } = tabData;
+
+    useEffect(() => {
+        if (
+            activeTab === 'instance-history' &&
+            previousInstancesStatus === 'idle'
+        ) {
+            void loadPreviousInstances?.();
+        }
+    }, [activeTab, loadPreviousInstances, previousInstancesStatus]);
 
     const userUrl = profile.id ? vrchatUserUrl(profile.id) : '';
     const username =
@@ -700,7 +715,9 @@ export function UserDialogTabbedView({
             visibleProfileAvatars
         },
         history: {
-            previousInstances
+            previousInstances,
+            previousInstancesError,
+            previousInstancesStatus
         },
         json: {
             isFavorite,

@@ -567,66 +567,6 @@ pub fn game_log_query(
             dates.sort();
             Ok(Value::String(dates.pop().unwrap_or_default()))
         }
-        "previousInstancesByUserIdRows" => {
-            let user_id = query_param_string(&params, "userId");
-            let date_from = query_param_string(&params, "dateFrom");
-            let date_to = query_param_string(&params, "dateTo");
-            if user_id.is_empty() {
-                return Ok(Value::Array(Vec::new()));
-            }
-            let mut clauses = vec!["jl.owner_id IN (0, @owner_id)", "jl.user_id = @user_id"];
-            let mut db_params = scoped_params(owner_id).set("user_id", user_id);
-            if !date_from.is_empty() {
-                clauses.push("jl.created_at >= @date_from");
-                db_params = db_params.set("date_from", date_from);
-            }
-            if !date_to.is_empty() {
-                clauses.push("jl.created_at <= @date_to");
-                db_params = db_params.set("date_to", date_to);
-            }
-            let where_clause = clauses.join(" AND ");
-            Ok(Value::Array(
-                db.execute(
-                    &format!(
-                        "SELECT jl.created_at,
-                               strftime('%s', jl.created_at) * 1000 created_at_ts,
-                               jl.location,
-                               jl.time,
-                               gl.world_name,
-                               gl.group_name,
-                               jl.id,
-                               jl.type
-                        FROM gamelog_join_leave jl
-                        INNER JOIN gamelog_location gl ON gl.id = (
-                            SELECT gl2.id
-                            FROM gamelog_location gl2
-                            WHERE gl2.location = jl.location
-                              AND gl2.owner_id IN (0, @owner_id)
-                            ORDER BY gl2.id DESC
-                            LIMIT 1
-                        )
-                        AND gl.owner_id IN (0, @owner_id)
-                        WHERE {where_clause}
-                        ORDER BY jl.id ASC"
-                    ),
-                    &db_params.build(),
-                )?
-                .into_iter()
-                .map(|row| {
-                    json!({
-                        "created_at": row_json(&row, 0),
-                        "createdAtTs": row_json(&row, 1),
-                        "location": row_json(&row, 2),
-                        "time": row_json(&row, 3),
-                        "worldName": row_json(&row, 4),
-                        "groupName": row_json(&row, 5),
-                        "eventId": row_json(&row, 6),
-                        "eventType": row_json(&row, 7)
-                    })
-                })
-                .collect(),
-            ))
-        }
         "previousInstancesByWorldId" => {
             let world_id = query_param_string(&params, "worldId");
             Ok(Value::Array(
@@ -900,52 +840,6 @@ pub fn game_log_query(
                         })
                     })
                     .collect(),
-            ))
-        }
-        "instanceActivityRows" => {
-            let start_date = query_param_string(&params, "startDate");
-            let end_date = query_param_string(&params, "endDate");
-            Ok(Value::Array(
-                db
-                    .execute(
-                        "SELECT id, created_at, type, display_name, location, user_id, time
-                         FROM gamelog_join_leave
-                         WHERE owner_id IN (0, @owner_id)
-                           AND type = 'OnPlayerLeft'
-                           AND (
-                             strftime('%Y-%m-%dT%H:%M:%SZ', created_at, '-' || (time * 1.0 / 1000) || ' seconds') BETWEEN @utc_start_date AND @utc_end_date
-                             OR created_at BETWEEN @utc_start_date AND @utc_end_date
-                           )",
-                        &scoped_params(owner_id)
-                            .set("utc_start_date", start_date)
-                            .set("utc_end_date", end_date)
-                            .build(),
-                    )?
-                    .into_iter()
-                    .map(|row| {
-                        json!({
-                            "id": row_json(&row, 0),
-                            "created_at": row_json(&row, 1),
-                            "type": row_json(&row, 2),
-                            "display_name": row_json(&row, 3),
-                            "location": row_json(&row, 4),
-                            "user_id": row_json(&row, 5),
-                            "time": row_json(&row, 6)
-                        })
-                    })
-                    .collect(),
-            ))
-        }
-        "dateOfInstanceActivity" => {
-            let user_id = query_param_string(&params, "userId");
-            Ok(Value::Array(
-                db.execute(
-                    "SELECT created_at FROM gamelog_join_leave WHERE owner_id IN (0, @owner_id) AND user_id = @user_id",
-                    &scoped_params(owner_id).set("user_id", user_id).build(),
-                )?
-                .into_iter()
-                .map(|row| row_json(&row, 0))
-                .collect(),
             ))
         }
         "instanceJoinHistory" => {

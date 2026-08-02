@@ -910,6 +910,11 @@ export const commands = {
     ): Promise<GameLogSessionDto[]> {
         return await TAURI_INVOKE('app__game_log_sessions_query', { input });
     },
+    async appInstanceHistoryQuery(
+        input: InstanceHistoryQueryInput
+    ): Promise<InstanceHistoryEntryOutput[]> {
+        return await TAURI_INVOKE('app__instance_history_query', { input });
+    },
     async appPlayerListLocationGet(
         location: string
     ): Promise<PlayerLocationOutput | null> {
@@ -4361,6 +4366,21 @@ export type InstanceActivityRowOutput = {
     location: string;
     userId: string;
     time: number;
+};
+export type InstanceHistoryEntryOutput = {
+    createdAt: string;
+    location: string;
+    time: number;
+    worldName: string;
+    groupName: string;
+    events: number[];
+    lastTs: number;
+};
+export type InstanceHistoryQueryInput = {
+    userId: string;
+    dateFrom?: string;
+    dateTo?: string;
+    limit?: number;
 };
 export type InstanceInviteBatchInput = {
     receiverUserIds?: string[];

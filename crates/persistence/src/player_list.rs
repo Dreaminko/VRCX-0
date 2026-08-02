@@ -165,11 +165,8 @@ pub fn instance_activity_rows_get(
              FROM gamelog_join_leave
              WHERE owner_id IN (0, @owner_id)
                AND type = 'OnPlayerLeft'
-               AND (
-                 strftime('%Y-%m-%dT%H:%M:%SZ', created_at, '-' || (time * 1.0 / 1000) || ' seconds')
-                    BETWEEN @utc_start_date AND @utc_end_date
-                 OR created_at BETWEEN @utc_start_date AND @utc_end_date
-               )
+               AND julianday(created_at, '-' || (time * 1.0 / 1000) || ' seconds') <= julianday(@utc_end_date)
+               AND julianday(created_at) >= julianday(@utc_start_date)
              ORDER BY created_at ASC, id ASC",
             &ParamsBuilder::new()
                 .set("owner_id", owner_id)

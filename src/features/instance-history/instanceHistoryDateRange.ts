@@ -1,9 +1,13 @@
 import type { DateTimeRangeValue } from '@/components/date-time-range-picker/DateTimeRangePicker';
 import { DAY_MS } from '@/shared/constants/time';
 
-export const INSTANCE_HISTORY_SELF_DEFAULT_DAYS = 30;
+export const INSTANCE_HISTORY_DEFAULT_DAYS = 30;
 
-export type InstanceHistoryDateRangeSource = 'none' | 'defaultSelf' | 'user';
+export type InstanceHistoryDateRangeSource =
+    | 'none'
+    | 'default'
+    | 'unbounded'
+    | 'user';
 
 export type InstanceHistoryDateRangeState = {
     range: DateTimeRangeValue;
@@ -20,13 +24,13 @@ export function isEmptyInstanceHistoryDateRange(
     return !range.from && !range.to;
 }
 
-export function buildDefaultSelfInstanceHistoryDateRange(
+export function buildDefaultInstanceHistoryDateRange(
     now: Date = new Date()
 ): DateTimeRangeValue {
     const to = new Date(now);
     return {
         from: new Date(
-            to.getTime() - INSTANCE_HISTORY_SELF_DEFAULT_DAYS * DAY_MS
+            to.getTime() - INSTANCE_HISTORY_DEFAULT_DAYS * DAY_MS
         ),
         to
     };
@@ -79,10 +83,23 @@ export function resolveClearedInstanceHistoryDateRange({
     isDayMode: boolean;
     isSelfScope: boolean;
     now?: Date;
-}): DateTimeRangeValue {
-    return isSelfScope && !isDayMode
-        ? buildDefaultSelfInstanceHistoryDateRange(now)
-        : emptyInstanceHistoryDateRange();
+}): InstanceHistoryDateRangeState {
+    if (isDayMode) {
+        return {
+            range: emptyInstanceHistoryDateRange(),
+            source: 'none'
+        };
+    }
+    if (isSelfScope) {
+        return {
+            range: buildDefaultInstanceHistoryDateRange(now),
+            source: 'default'
+        };
+    }
+    return {
+        range: emptyInstanceHistoryDateRange(),
+        source: 'unbounded'
+    };
 }
 
 export function resolveScopedInstanceHistoryDateRange({
@@ -101,33 +118,32 @@ export function resolveScopedInstanceHistoryDateRange({
         return state;
     }
     if (
-        isSelfScope &&
         source === 'none' &&
         isEmptyInstanceHistoryDateRange(range)
     ) {
         return {
-            range: buildDefaultSelfInstanceHistoryDateRange(now),
-            source: 'defaultSelf'
+            range: buildDefaultInstanceHistoryDateRange(now),
+            source: 'default'
         };
     }
-    if (!isSelfScope && source === 'defaultSelf') {
+    if (isSelfScope && source === 'unbounded') {
         return {
-            range: emptyInstanceHistoryDateRange(),
-            source: 'none'
+            range: buildDefaultInstanceHistoryDateRange(now),
+            source: 'default'
         };
     }
     return state;
 }
 
-export function refreshDefaultSelfInstanceHistoryDateRange(
+export function refreshDefaultInstanceHistoryDateRange(
     state: InstanceHistoryDateRangeState,
     now: Date = new Date()
 ): InstanceHistoryDateRangeState {
-    if (state.source !== 'defaultSelf') {
+    if (state.source !== 'default') {
         return state;
     }
     return {
-        range: buildDefaultSelfInstanceHistoryDateRange(now),
-        source: 'defaultSelf'
+        range: buildDefaultInstanceHistoryDateRange(now),
+        source: 'default'
     };
 }

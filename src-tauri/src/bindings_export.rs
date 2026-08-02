@@ -288,6 +288,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::game_log::app__game_log_entry_delete,
             commands::local::game_log::app__game_log_query,
             commands::local::game_log::app__game_log_sessions_query,
+            commands::local::game_log::app__instance_history_query,
             commands::local::player_list::app__player_list_location_get,
             commands::local::player_list::app__player_list_latest_location_get,
             commands::local::player_list::app__player_list_join_leave_rows,

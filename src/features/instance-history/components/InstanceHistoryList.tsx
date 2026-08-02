@@ -6,7 +6,7 @@ import {
     Trash2Icon,
     XIcon
 } from 'lucide-react';
-import type { ChangeEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -66,7 +66,7 @@ type InstanceHistoryRowProps = {
     onDeleteRow: (row: PreviousInstanceRow) => void;
 };
 
-function InstanceHistoryRow({
+export function InstanceHistoryRow({
     row,
     selected,
     onOpenDetails,
@@ -77,71 +77,60 @@ function InstanceHistoryRow({
 
     return (
         <div
-            role="button"
-            tabIndex={0}
-            aria-pressed={selected}
-            onClick={() => onOpenDetails(row)}
-            onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onOpenDetails(row);
-                }
-            }}
             className={cn(
-                'group focus-visible:ring-ring relative flex min-h-9 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none focus-visible:ring-2',
+                'group relative flex min-h-9 items-center rounded-md',
                 selected ? 'bg-muted' : 'hover:bg-muted/60'
             )}
         >
             {selected ? (
                 <span className="bg-foreground absolute inset-y-1.5 left-0 w-0.5 rounded-full" />
             ) : null}
-            <span className="text-muted-foreground w-11 shrink-0 text-xs tabular-nums">
-                {formatClock(row?.created_at || row?.createdAt) || '—'}
-            </span>
-            <div className="min-w-0 flex-1 text-xs">
-                {location ? (
-                    <Location
-                        location={location}
-                        hint={row?.worldName || ''}
-                        link={false}
-                        disableTooltip
-                        asButton={false}
-                        className="max-w-full"
-                    />
-                ) : (
-                    '—'
-                )}
-            </div>
-            <div className="relative flex shrink-0 items-center">
-                <div
-                    className="bg-muted invisible absolute inset-y-0 right-full z-10 mr-1.5 flex items-center gap-1 rounded-md px-1 group-focus-within:visible group-hover:visible"
-                    onClick={(event: MouseEvent<HTMLDivElement>) =>
-                        event.stopPropagation()
-                    }
-                    role="presentation"
-                >
-                    <InstanceActionBar
-                        target={{
-                            location,
-                            worldName: row?.worldName || ''
-                        }}
-                        showRefresh={false}
-                        showInstanceInfo={false}
-                    />
-                    <Button
-                        type="button"
-                        size="icon-sm"
-                        variant="outline"
-                        disabled={!location}
-                        aria-label={t('common.actions.delete')}
-                        onClick={() => onDeleteRow(row)}
-                    >
-                        <Trash2Icon data-icon="icon" />
-                    </Button>
+            <button
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onOpenDetails(row)}
+                className="focus-visible:ring-ring flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none focus-visible:ring-2"
+            >
+                <span className="text-muted-foreground w-11 shrink-0 text-xs tabular-nums">
+                    {formatClock(row?.created_at || row?.createdAt) || '—'}
+                </span>
+                <div className="min-w-0 flex-1 text-xs">
+                    {location ? (
+                        <Location
+                            location={location}
+                            hint={row?.worldName || ''}
+                            link={false}
+                            disableTooltip
+                            asButton={false}
+                            className="max-w-full"
+                        />
+                    ) : (
+                        '—'
+                    )}
                 </div>
                 <span className="text-muted-foreground text-xs tabular-nums">
                     {rowDuration(row)}
                 </span>
+            </button>
+            <div className="bg-muted invisible absolute top-1/2 right-2 z-10 flex -translate-y-1/2 items-center gap-1 rounded-md px-1 group-focus-within:visible group-hover:visible">
+                <InstanceActionBar
+                    target={{
+                        location,
+                        worldName: row?.worldName || ''
+                    }}
+                    showRefresh={false}
+                    showInstanceInfo={false}
+                />
+                <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="outline"
+                    disabled={!location}
+                    aria-label={t('common.actions.delete')}
+                    onClick={() => onDeleteRow(row)}
+                >
+                    <Trash2Icon data-icon="icon" />
+                </Button>
             </div>
         </div>
     );

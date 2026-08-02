@@ -250,6 +250,14 @@ fn activity_includes_duration_start_across_range_and_filters_traveling() -> Resu
                     1_200_000,
                 ),
                 join_leave(
+                    "2026-07-01T10:20:00Z",
+                    "OnPlayerLeft",
+                    "Covering",
+                    "wrld_a:instance",
+                    "usr_covering",
+                    3_600_000,
+                ),
+                join_leave(
                     "2026-07-01T09:52:00Z",
                     "OnPlayerLeft",
                     "Traveling",
@@ -276,9 +284,10 @@ fn activity_includes_duration_start_across_range_and_filters_traveling() -> Resu
         "2026-07-01T09:49:00Z".into(),
         "2026-07-01T09:55:00Z".into(),
     )?;
-    assert_eq!(rows.len(), 1);
+    assert_eq!(rows.len(), 2);
     assert_eq!(rows[0].display_name, "Spanning");
     assert_eq!(rows[0].created_at, "2026-07-01T10:10:00Z");
+    assert_eq!(rows[1].display_name, "Covering");
     Ok(())
 }
 

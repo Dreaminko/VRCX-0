@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const tauriMock = vi.hoisted(() => ({
     commands: {
-        appGameLogQuery: vi.fn()
+        appGameLogQuery: vi.fn(),
+        appInstanceHistoryQuery: vi.fn()
     }
 }));
 
@@ -16,6 +17,8 @@ describe('gameLogPersistenceRepository', () => {
     beforeEach(() => {
         tauriMock.commands.appGameLogQuery.mockReset();
         tauriMock.commands.appGameLogQuery.mockResolvedValue([]);
+        tauriMock.commands.appInstanceHistoryQuery.mockReset();
+        tauriMock.commands.appInstanceHistoryQuery.mockResolvedValue([]);
     });
 
     it('keeps previous instance user queries unbounded by default', async () => {
@@ -23,12 +26,14 @@ describe('gameLogPersistenceRepository', () => {
             id: ' usr_target '
         });
 
-        expect(tauriMock.commands.appGameLogQuery).toHaveBeenCalledWith({
-            kind: 'previousInstancesByUserIdRows',
-            params: {
-                userId: 'usr_target'
+        expect(tauriMock.commands.appInstanceHistoryQuery).toHaveBeenCalledWith(
+            {
+                userId: 'usr_target',
+                dateFrom: '',
+                dateTo: '',
+                limit: 0
             }
-        });
+        );
     });
 
     it('passes optional previous instance date windows to persistence', async () => {
@@ -40,14 +45,30 @@ describe('gameLogPersistenceRepository', () => {
             }
         );
 
-        expect(tauriMock.commands.appGameLogQuery).toHaveBeenCalledWith({
-            kind: 'previousInstancesByUserIdRows',
-            params: {
+        expect(tauriMock.commands.appInstanceHistoryQuery).toHaveBeenCalledWith(
+            {
                 userId: 'usr_self',
                 dateFrom: '2026-06-03T12:00:00.000Z',
-                dateTo: '2026-07-03T12:00:00.000Z'
+                dateTo: '2026-07-03T12:00:00.000Z',
+                limit: 0
             }
-        });
+        );
+    });
+
+    it('passes a bounded recent-history limit to the typed query', async () => {
+        await gameLogRepository.getPreviousInstancesByUserId(
+            { id: 'usr_target' },
+            { limit: 50 }
+        );
+
+        expect(tauriMock.commands.appInstanceHistoryQuery).toHaveBeenCalledWith(
+            {
+                userId: 'usr_target',
+                dateFrom: '',
+                dateTo: '',
+                limit: 50
+            }
+        );
     });
 
     it('keeps the first join time and tracks the last leave time for instance players', async () => {

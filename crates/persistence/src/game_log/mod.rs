@@ -1,3 +1,4 @@
+mod instance_history;
 mod legacy_ownership;
 mod local_queries;
 mod query;
@@ -7,6 +8,7 @@ mod types;
 mod write;
 
 pub(crate) use legacy_ownership::claim_legacy_ownership;
+pub use instance_history::previous_instance_event_rows_query;
 pub use local_queries::{
     game_log_entries_add, game_log_entry_delete, game_log_instance_delete,
     game_log_instance_delete_by_location, game_log_query,
@@ -24,6 +26,6 @@ pub use types::{
     GameLogEventEntry, GameLogExternalEntry, GameLogJoinLeaveEntry, GameLogJoinLeaveSnapshot,
     GameLogLocationEntry, GameLogLocationTimeUpdate, GameLogPortalSpawnEntry, GameLogQueryInput,
     GameLogResourceLoadEntry, GameLogVideoPlayEntry, GameLogWriteBatch, SessionEventRow,
-    SessionLocationSegmentRow,
+    SessionLocationSegmentRow, PreviousInstanceEventRow,
 };
 pub use write::write_batch;

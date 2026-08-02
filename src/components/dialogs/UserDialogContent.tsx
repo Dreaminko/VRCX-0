@@ -248,7 +248,10 @@ export function UserDialogContent({
     });
 
     const {
+        loadPreviousInstances,
         previousInstances,
+        previousInstancesError,
+        previousInstancesStatus,
         representedGroup,
         representedGroupStatus,
         setPreviousInstances,
@@ -449,7 +452,10 @@ export function UserDialogContent({
                     currentUserBoopingEnabled:
                         currentUserSnapshot?.isBoopingEnabled !== false,
                     userStats,
+                    loadPreviousInstances,
                     previousInstances,
+                    previousInstancesError,
+                    previousInstancesStatus,
                     representedGroup,
                     representedGroupStatus,
                     hideUserNotes,

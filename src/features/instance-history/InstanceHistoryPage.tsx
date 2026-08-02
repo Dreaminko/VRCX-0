@@ -35,10 +35,7 @@ import { normalizeEndpoint, normalizeUserId } from '@/domain/users/userFacts';
 import type { UserFact } from '@/domain/users/userFacts';
 import { InstanceActivityDateControls } from '@/features/instance-history/components/InstanceActivityDateControls';
 import { InstanceActivitySettingsPopover } from '@/features/instance-history/components/InstanceActivitySettingsPopover';
-import {
-    InstanceHistoryList,
-    rowKey
-} from '@/features/instance-history/components/InstanceHistoryList';
+import { InstanceHistoryList } from '@/features/instance-history/components/InstanceHistoryList';
 import {
     buildChartRows,
     buildDetailGroups,
@@ -57,7 +54,7 @@ import {
     buildLocalDayInstanceHistoryDateRange,
     emptyInstanceHistoryDateRange,
     isEmptyInstanceHistoryDateRange,
-    refreshDefaultSelfInstanceHistoryDateRange,
+    refreshDefaultInstanceHistoryDateRange,
     resolveClearedInstanceHistoryDateRange,
     resolveScopedInstanceHistoryDateRange,
     type InstanceHistoryDateRangeState
@@ -105,20 +102,6 @@ type PreviousInstanceSortKey = 'date' | 'location' | 'duration';
 
 const CHART_LOADING_INDICATOR_DELAY_MS = 150;
 
-function rowsFromResult(result: unknown): PreviousInstanceRow[] {
-    if (result instanceof Set || result instanceof Map) {
-        return Array.from(result.values()).filter(
-            (row): row is PreviousInstanceRow =>
-                Boolean(row && typeof row === 'object')
-        );
-    }
-    return Array.isArray(result)
-        ? result.filter((row): row is PreviousInstanceRow =>
-              Boolean(row && typeof row === 'object')
-          )
-        : [];
-}
-
 function knownUserName(user: Partial<KnownUserOption> | null | undefined) {
     return user?.displayName || user?.username || user?.name || '';
 }
@@ -163,6 +146,7 @@ export function InstanceHistoryPage({
     const [targetPickerOpen, setTargetPickerOpen] = useState(false);
     const [targetSearch, setTargetSearch] = useState('');
     const [rows, setRows] = useState<PreviousInstanceRow[]>([]);
+    const [rowsQueryKey, setRowsQueryKey] = useState('');
     const [status, setStatus] = useState('idle');
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
@@ -185,6 +169,10 @@ export function InstanceHistoryPage({
     const paramUserId = normalizeUserId(searchParams.get('id'));
     const activeUserId = paramUserId || normalizeUserId(currentUserId);
     const isSelfScope = activeUserId === normalizeUserId(currentUserId);
+    const historyScopeKey = `${endpoint}\u0000${activeUserId}\u0000${mode}\u0000${reloadToken}`;
+    const scopedRows = rowsQueryKey.startsWith(`${historyScopeKey}\u0000`)
+        ? rows
+        : [];
     const dateRange = dateRangeState.range;
     const dateRangeSource = dateRangeState.source;
     const activityRuntime = useInstanceActivityRuntime(activeUserId);
@@ -272,8 +260,8 @@ export function InstanceHistoryPage({
     }, [currentUserId, knownUsers, targetSearch, t]);
 
     const fallbackAvailableDays = useMemo(
-        () => buildAvailableInstanceHistoryDays(rows),
-        [rows]
+        () => buildAvailableInstanceHistoryDays(scopedRows),
+        [scopedRows]
     );
     const availableDays = activityData.availableDates.length
         ? activityData.availableDates
@@ -281,10 +269,6 @@ export function InstanceHistoryPage({
     const resolvedSelectedDay = selectDefaultInstanceHistoryDay(
         selectedDay,
         availableDays
-    );
-    const rawDayRows = useMemo(
-        () => filterPreviousInstanceRowsForDay(rows, resolvedSelectedDay),
-        [resolvedSelectedDay, rows]
     );
     const historyQueryDateRange = useMemo(
         () =>
@@ -299,6 +283,32 @@ export function InstanceHistoryPage({
     );
     const historyDateFrom = historyQueryDateRange.from?.toISOString() || '';
     const historyDateTo = historyQueryDateRange.to?.toISOString() || '';
+    const historyQueryKey = `${historyScopeKey}\u0000${dateRangeSource}\u0000${historyDateFrom}\u0000${historyDateTo}`;
+    const isDateRangeNormalizationPending =
+        !isDayMode &&
+        ((dateRangeSource === 'none' && isSearchDateRangeEmpty) ||
+            (isSelfScope && dateRangeSource === 'unbounded'));
+    const historyQueryReady =
+        Boolean(activeUserId) &&
+        !isDateRangeNormalizationPending &&
+        !(isDayMode && isHistoryQueryDateRangeEmpty);
+    const queryMatchesRows = rowsQueryKey === historyQueryKey;
+    const visibleRows = queryMatchesRows ? rows : [];
+    const visibleStatus = !historyQueryReady
+        ? 'idle'
+        : queryMatchesRows
+          ? status
+          : 'running';
+    const visibleError = queryMatchesRows ? error : '';
+    const visibleDetailRow = queryMatchesRows ? detailRow : null;
+    const rawDayRows = useMemo(
+        () =>
+            filterPreviousInstanceRowsForDay(
+                visibleRows,
+                resolvedSelectedDay
+            ),
+        [resolvedSelectedDay, visibleRows]
+    );
     const rawChartRows = useMemo(
         () =>
             buildChartRows(
@@ -383,8 +393,8 @@ export function InstanceHistoryPage({
             setDisplayedOnlineTime(totalOnlineTime);
         }
     }, [activityData.dataStatus, totalOnlineTime]);
-    const selectedActivityKey = detailRow
-        ? findActivityRowForPreviousInstanceRow(detailRow, chartRows)
+    const selectedActivityKey = visibleDetailRow
+        ? findActivityRowForPreviousInstanceRow(visibleDetailRow, chartRows)
               ?.activityKey || ''
         : '';
 
@@ -426,24 +436,15 @@ export function InstanceHistoryPage({
     useEffect(() => {
         if (!activeUserId) {
             setRows([]);
+            setRowsQueryKey('');
             setStatus('idle');
             setError('');
             setDetailRow(null);
             return undefined;
         }
-        const isSelfDefaultPending =
-            !isDayMode &&
-            isSelfScope &&
-            dateRangeSource === 'none' &&
-            isSearchDateRangeEmpty;
-        const isSelfDefaultClearing =
-            !isDayMode && !isSelfScope && dateRangeSource === 'defaultSelf';
-        if (
-            isSelfDefaultPending ||
-            isSelfDefaultClearing ||
-            (isDayMode && isHistoryQueryDateRangeEmpty)
-        ) {
+        if (!historyQueryReady) {
             setRows([]);
+            setRowsQueryKey('');
             setStatus('idle');
             setError('');
             setDetailRow(null);
@@ -451,8 +452,11 @@ export function InstanceHistoryPage({
         }
 
         let active = true;
+        setRows([]);
+        setRowsQueryKey(historyQueryKey);
         setStatus('running');
         setError('');
+        setDetailRow(null);
 
         gameLogRepository
             .getPreviousInstancesByUserId(
@@ -462,24 +466,12 @@ export function InstanceHistoryPage({
                     dateTo: historyDateTo
                 }
             )
-            .then((result: unknown) => {
+            .then((nextRows) => {
                 if (!active) {
                     return;
                 }
-                const nextRows = rowsFromResult(result);
                 setRows(nextRows);
                 setStatus('ready');
-                setDetailRow((currentDetailRow) => {
-                    if (!currentDetailRow) {
-                        return null;
-                    }
-                    const currentKey = rowKey(currentDetailRow);
-                    return (
-                        nextRows.find(
-                            (candidate) => rowKey(candidate) === currentKey
-                        ) || null
-                    );
-                });
             })
             .catch((loadError: unknown) => {
                 if (!active) {
@@ -501,27 +493,30 @@ export function InstanceHistoryPage({
         };
     }, [
         activeUserId,
-        dateRangeSource,
         historyDateFrom,
         historyDateTo,
-        isHistoryQueryDateRangeEmpty,
-        isDayMode,
-        isSelfScope,
-        isSearchDateRangeEmpty,
-        reloadToken,
+        historyQueryKey,
+        historyQueryReady,
         t
     ]);
 
     const filteredRows = useMemo(() => {
         const query = search.trim();
-        const dateRows = rows.filter((row) =>
+        const dateRows = visibleRows.filter((row) =>
             dateRangeContains(row, dateRange.from, dateRange.to)
         );
         const nextRows = query
             ? dateRows.filter((row) => rowMatchesSearch(row, query))
             : dateRows;
         return sortPreviousInstanceRows(nextRows, sortKey, sortDesc);
-    }, [dateRange.from, dateRange.to, rows, search, sortDesc, sortKey]);
+    }, [
+        dateRange.from,
+        dateRange.to,
+        search,
+        sortDesc,
+        sortKey,
+        visibleRows
+    ]);
 
     function selectSort(nextKey: PreviousInstanceSortKey, nextDesc: boolean) {
         setSortKey(nextKey);
@@ -564,22 +559,18 @@ export function InstanceHistoryPage({
             return;
         }
         setDateRangeState((currentState) =>
-            refreshDefaultSelfInstanceHistoryDateRange(currentState)
+            refreshDefaultInstanceHistoryDateRange(currentState)
         );
         setReloadToken((value) => value + 1);
     }
 
     function clearDateRange() {
-        const nextRange = resolveClearedInstanceHistoryDateRange({
+        setDateRangeState(
+            resolveClearedInstanceHistoryDateRange({
             isDayMode,
             isSelfScope
-        });
-        setDateRangeState({
-            range: nextRange,
-            source: isEmptyInstanceHistoryDateRange(nextRange)
-                ? 'none'
-                : 'defaultSelf'
-        });
+            })
+        );
     }
 
     function handleDateRangeChange(nextRange: DateTimeRangeValue) {
@@ -699,7 +690,7 @@ export function InstanceHistoryPage({
     }
 
     const listVisibleRows = isDayMode ? rawDayRows : filteredRows;
-    const listTotalCount = isDayMode ? rawDayRows.length : rows.length;
+    const listTotalCount = isDayMode ? rawDayRows.length : visibleRows.length;
     const listFilteredCount = isDayMode
         ? rawDayRows.length
         : filteredRows.length;
@@ -710,7 +701,7 @@ export function InstanceHistoryPage({
         totalCount: listTotalCount,
         filteredCount: listFilteredCount,
         visibleRows: listVisibleRows,
-        selectedRow: detailRow,
+        selectedRow: visibleDetailRow,
         search,
         onSearchChange: handleSearchChange,
         sortKey,
@@ -837,10 +828,10 @@ export function InstanceHistoryPage({
                     <Button
                         type="button"
                         variant="outline"
-                        disabled={!activeUserId || status === 'running'}
+                        disabled={!activeUserId || visibleStatus === 'running'}
                         onClick={refresh}
                     >
-                        {status === 'running' ? (
+                        {visibleStatus === 'running' ? (
                             <Spinner className="size-4" />
                         ) : (
                             <RefreshCwIcon data-icon="inline-start" />
@@ -848,8 +839,10 @@ export function InstanceHistoryPage({
                         {t('common.actions.refresh')}
                     </Button>
                 </PageToolbarRow>
-                {status === 'error' ? (
-                    <div className="text-destructive text-sm">{error}</div>
+                {visibleStatus === 'error' ? (
+                    <div className="text-destructive text-sm">
+                        {visibleError}
+                    </div>
                 ) : null}
             </PageToolbar>
             <PageBody>
@@ -923,6 +916,14 @@ export function InstanceHistoryPage({
                                     </Button>
                                 </div>
                             </div>
+                            {activityData.availableDatesStatus === 'error' ? (
+                                <div className="text-destructive text-sm">
+                                    {activityData.availableDatesError ||
+                                        t(
+                                            'view.charts.error.instance_activity_failed_to_load'
+                                        )}
+                                </div>
+                            ) : null}
                             {activitySettings.isChartCollapsed ? null : dayStatus ===
                               'error' ? (
                                 <div className="text-destructive text-sm">
@@ -987,7 +988,7 @@ export function InstanceHistoryPage({
                             className="min-h-0 min-w-0 pl-3"
                         >
                             <PreviousInstanceDetailsPanel
-                                row={detailRow}
+                                row={visibleDetailRow}
                                 showTitle
                                 className="h-full min-h-0"
                             />

@@ -147,3 +147,15 @@ pub struct SessionEventRow {
     pub video_name: Option<String>,
     pub video_id: Option<String>,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PreviousInstanceEventRow {
+    pub created_at: String,
+    pub created_at_ts: i64,
+    pub location: String,
+    pub time: i64,
+    pub world_name: String,
+    pub group_name: String,
+    pub event_id: i64,
+    pub event_type: String,
+}

@@ -37,11 +37,12 @@ pub use game_event_bus::{
     RuntimeWorkerErrorPayload, ScreenshotProcessedPayload,
 };
 pub use game_log::{
-    duration_ms, game_log_sessions_query, parse_event_time_ms, player_key,
+    duration_ms, game_log_sessions_query, instance_history_query, parse_event_time_ms, player_key,
     player_list_current_snapshot, world_id_from_location, GameLogHostActions, GameLogIngestEngine,
     GameLogIngestOptions, GameLogIngestOutput, GameLogLocalGameContextSource, GameLogProcessEvent,
     GameLogProjection, GameLogRuntime, GameLogRuntimeDeps, GameLogRuntimeState, GameLogSessionDto,
     GameLogSessionEventDto, GameLogSessionMemberDto, GameLogSessionsQueryInput, GameLogSideEffect,
+    InstanceHistoryEntryOutput, InstanceHistoryQueryInput,
     NoopGameLogHostActions, PlayerListSnapshotContext, PlayerListSnapshotOutput,
     PlayerListSnapshotPlayer, PlayerState, RuntimeSnapshot, ScreenshotInput,
 };

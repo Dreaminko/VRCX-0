@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel';
+import { DialogErrorState } from '@/components/dialogs/previous-instances-table/PreviousInstancesViewParts';
 import type {
     UserDialogJson,
     UserModerationState,
@@ -15,6 +16,7 @@ import {
 } from '@/shared/constants/user';
 import { useDialogStore } from '@/state/dialogStore';
 import { Button } from '@/ui/shadcn/button';
+import { Spinner } from '@/ui/shadcn/spinner';
 import {
     Select,
     SelectContent,
@@ -425,11 +427,15 @@ export function UserDialogAvatarsTab({
 export function UserDialogInstanceHistoryTab({
     title,
     previousInstances,
+    previousInstancesError,
+    previousInstancesStatus,
     profile,
     onPreviousInstancesChange
 }: {
     title: string;
     previousInstances: SupplementalData['previousInstances'];
+    previousInstancesError: SupplementalData['previousInstancesError'];
+    previousInstancesStatus: SupplementalData['previousInstancesStatus'];
     profile: UserDialogProfileRecord;
     onPreviousInstancesChange: SupplementalData['setPreviousInstances'];
 }) {
@@ -454,33 +460,47 @@ export function UserDialogInstanceHistoryTab({
             value="instance-history"
             className="flex min-h-0 flex-col"
         >
-            <PreviousInstancesPanel
-                title={title}
-                instances={previousInstances}
-                variant="user"
-                targetRef={profile}
-                onRowsChange={onPreviousInstancesChange}
-                className="flex-1"
-                headerActions={
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon-sm"
-                                    disabled={!userId}
-                                    aria-label={openFullLabel}
-                                    onClick={openFullHistory}
-                                >
-                                    <Maximize2Icon className="size-4" />
-                                </Button>
-                            }
-                        />
-                        <TooltipContent>{openFullLabel}</TooltipContent>
-                    </Tooltip>
-                }
-            />
+            {previousInstancesStatus === 'running' ? (
+                <div className="text-muted-foreground flex min-h-52 flex-1 items-center justify-center gap-2 text-sm">
+                    <Spinner className="size-4" />
+                    {t('common.loading')}
+                </div>
+            ) : previousInstancesStatus === 'error' ? (
+                <DialogErrorState>
+                    {previousInstancesError ||
+                        t(
+                            'view.instance_history.toast.failed_to_load_instance_history'
+                        )}
+                </DialogErrorState>
+            ) : (
+                <PreviousInstancesPanel
+                    title={title}
+                    instances={previousInstances}
+                    variant="user"
+                    targetRef={profile}
+                    onRowsChange={onPreviousInstancesChange}
+                    className="flex-1"
+                    headerActions={
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon-sm"
+                                        disabled={!userId}
+                                        aria-label={openFullLabel}
+                                        onClick={openFullHistory}
+                                    >
+                                        <Maximize2Icon className="size-4" />
+                                    </Button>
+                                }
+                            />
+                            <TooltipContent>{openFullLabel}</TooltipContent>
+                        </Tooltip>
+                    }
+                />
+            )}
         </EntityDialogTabContent>
     );
 }

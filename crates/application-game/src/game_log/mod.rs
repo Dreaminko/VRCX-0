@@ -1,5 +1,6 @@
 mod host;
 mod ingest;
+mod instance_history;
 pub(crate) mod instance_media;
 pub(crate) mod lifecycle;
 mod local_game_context;
@@ -16,6 +17,9 @@ pub use host::{GameLogHostActions, NoopGameLogHostActions};
 pub use ingest::{
     GameLogIngestEngine, GameLogIngestOptions, GameLogIngestOutput, GameLogProcessEvent,
     GameLogSideEffect, ScreenshotInput,
+};
+pub use instance_history::{
+    instance_history_query, InstanceHistoryEntryOutput, InstanceHistoryQueryInput,
 };
 pub use local_game_context::GameLogLocalGameContextSource;
 pub use runtime::{GameLogRuntime, GameLogRuntimeDeps};

@@ -100,7 +100,12 @@ type UserDialogTabsSectionProps = {
             | 'profileAvatars'
             | 'visibleProfileAvatars'
         >;
-        history: Pick<HistoryTabProps, 'previousInstances'>;
+        history: Pick<
+            HistoryTabProps,
+            | 'previousInstances'
+            | 'previousInstancesError'
+            | 'previousInstancesStatus'
+        >;
         json: Pick<JsonTabProps, 'isFavorite' | 'isFriend' | 'moderationState'>;
     };
     tabsCommands: Pick<MutualTabProps, 'setMutualSort' | 'setSearch'> &
@@ -185,7 +190,11 @@ export function UserDialogTabsSection({
         profileAvatars,
         visibleProfileAvatars
     } = avatars;
-    const { previousInstances = [] } = history;
+    const {
+        previousInstances = [],
+        previousInstancesError = '',
+        previousInstancesStatus = 'idle'
+    } = history;
     const { isFavorite, isFriend, moderationState } = json;
     const {
         changeAvatarReleaseStatus,
@@ -380,6 +389,8 @@ export function UserDialogTabsSection({
             <UserDialogInstanceHistoryTab
                 title={t('dialog.previous_instances.header')}
                 previousInstances={previousInstances}
+                previousInstancesError={previousInstancesError}
+                previousInstancesStatus={previousInstancesStatus}
                 profile={profile}
                 onPreviousInstancesChange={onPreviousInstancesChange}
             />

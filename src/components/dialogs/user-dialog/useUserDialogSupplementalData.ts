@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type SetStateAction } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+    type SetStateAction
+} from 'react';
 
 import friendLogHistoryRepository from '@/repositories/friendLogHistoryRepository';
 import gameLogRepository from '@/repositories/gameLogRepository';
@@ -22,6 +28,8 @@ import type { UserDialogProfileRecord } from './useUserDialogProfileResource';
 
 type DialogRecord = Record<string, unknown>;
 type SupplementalStats = UserDialogStats & { mutualFriendCount?: number };
+
+const USER_DIALOG_INSTANCE_HISTORY_LIMIT = 50;
 
 function record(value: unknown): DialogRecord {
     return value && typeof value === 'object'
@@ -99,10 +107,13 @@ export function useUserDialogSupplementalData({
     reloadToken,
     targetKey
 }: UseUserDialogSupplementalDataInput) {
+    const previousInstancesRequestRef = useRef(0);
     const [previousInstancesState, setPreviousInstancesState] = useState(
         () => ({
             targetKey,
-            rows: readCachedPreviousInstances(targetKey)
+            rows: readCachedPreviousInstances(targetKey),
+            status: 'idle',
+            error: ''
         })
     );
     const [userStatsState, setUserStatsState] = useState<{
@@ -123,6 +134,14 @@ export function useUserDialogSupplementalData({
         previousInstancesState.targetKey === targetKey
             ? previousInstancesState.rows
             : [];
+    const visiblePreviousInstancesStatus =
+        previousInstancesState.targetKey === targetKey
+            ? previousInstancesState.status
+            : 'idle';
+    const visiblePreviousInstancesError =
+        previousInstancesState.targetKey === targetKey
+            ? previousInstancesState.error
+            : '';
     const visibleUserStats =
         userStatsState.targetKey === targetKey
             ? userStatsState.stats
@@ -154,7 +173,9 @@ export function useUserDialogSupplementalData({
                 cachePreviousInstances(targetKey, normalizedRows);
                 return {
                     targetKey,
-                    rows: normalizedRows
+                    rows: normalizedRows,
+                    status: 'ready',
+                    error: ''
                 };
             });
         },
@@ -249,46 +270,75 @@ export function useUserDialogSupplementalData({
     }, [currentEndpoint, normalizedUserId, reloadToken]);
 
     useEffect(() => {
-        let active = true;
+        previousInstancesRequestRef.current += 1;
         setPreviousInstancesState({
             targetKey,
-            rows: readCachedPreviousInstances(targetKey)
+            rows: readCachedPreviousInstances(targetKey),
+            status: 'idle',
+            error: ''
         });
+    }, [reloadToken, targetKey]);
 
-        if (!profile?.id) {
-            return () => {
-                active = false;
-            };
+    const loadPreviousInstances = useCallback(async () => {
+        const targetUserId = normalizeUserId(profile?.id);
+        if (!targetUserId) {
+            return;
         }
+        const targetEndpoint = currentEndpoint;
+        const requestId = previousInstancesRequestRef.current + 1;
+        previousInstancesRequestRef.current = requestId;
+        setPreviousInstancesState((currentState) => ({
+            targetKey,
+            rows:
+                currentState.targetKey === targetKey
+                    ? currentState.rows
+                    : readCachedPreviousInstances(targetKey),
+            status: 'running',
+            error: ''
+        }));
 
-        gameLogRepository
-            .getPreviousInstancesByUserId({
-                id: profile.id
-            })
-            .then((rows) => {
-                if (!active) {
-                    return;
-                }
-                const values =
-                    rows instanceof Set ? Array.from(rows.values()) : [];
-                const nextInstances = values.reverse();
-                cachePreviousInstances(targetKey, nextInstances);
-                setPreviousInstancesState({
-                    targetKey,
-                    rows: nextInstances
-                });
-            })
-            .catch(() => {});
-
-        return () => {
-            active = false;
-        };
+        try {
+            const rows = await gameLogRepository.getPreviousInstancesByUserId(
+                { id: targetUserId },
+                { limit: USER_DIALOG_INSTANCE_HISTORY_LIMIT }
+            );
+            if (
+                previousInstancesRequestRef.current !== requestId ||
+                activeUserTargetRef.current.userId !== targetUserId ||
+                activeUserTargetRef.current.endpoint !== targetEndpoint
+            ) {
+                return;
+            }
+            const nextInstances = [...rows].reverse();
+            cachePreviousInstances(targetKey, nextInstances);
+            setPreviousInstancesState({
+                targetKey,
+                rows: nextInstances,
+                status: 'ready',
+                error: ''
+            });
+        } catch (error) {
+            if (
+                previousInstancesRequestRef.current !== requestId ||
+                activeUserTargetRef.current.userId !== targetUserId ||
+                activeUserTargetRef.current.endpoint !== targetEndpoint
+            ) {
+                return;
+            }
+            setPreviousInstancesState({
+                targetKey,
+                rows: [],
+                status: 'error',
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : ''
+            });
+        }
     }, [
-        openNonce,
-        profile?.displayName,
+        activeUserTargetRef,
+        currentEndpoint,
         profile?.id,
-        profile?.username,
-        reloadToken,
         targetKey
     ]);
 
@@ -500,6 +550,9 @@ export function useUserDialogSupplementalData({
 
     return {
         previousInstances: visiblePreviousInstances,
+        previousInstancesError: visiblePreviousInstancesError,
+        previousInstancesStatus: visiblePreviousInstancesStatus,
+        loadPreviousInstances,
         representedGroup: visibleRepresentedGroup,
         representedGroupStatus: visibleRepresentedGroupStatus,
         setPreviousInstances,

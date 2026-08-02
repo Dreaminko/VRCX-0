@@ -18,6 +18,23 @@ type UseInstanceActivityDataOptions = {
     selectedDate: string;
 };
 
+type LoadStatus = 'idle' | 'running' | 'ready' | 'error';
+
+type AvailableDatesState = {
+    queryKey: string;
+    dates: string[];
+    status: LoadStatus;
+    error: string;
+};
+
+type ActivityDataState = {
+    queryKey: string;
+    rows: InstanceActivityRawRow[];
+    worldDetailsById: WorldDetailsById;
+    status: LoadStatus;
+    error: string;
+};
+
 function hasWorldName(world: unknown): world is { name: string } {
     if (!world || typeof world !== 'object') {
         return false;
@@ -68,23 +85,63 @@ export function useInstanceActivityData({
     reloadToken,
     selectedDate
 }: UseInstanceActivityDataOptions) {
-    const [availableDates, setAvailableDates] = useState<string[]>([]);
-    const [dataStatus, setDataStatus] = useState('idle');
-    const [dataDetail, setDataDetail] = useState('');
-    const [rawRows, setRawRows] = useState<InstanceActivityRawRow[]>([]);
-    const [worldDetailsById, setWorldDetailsById] = useState<WorldDetailsById>(
-        {}
-    );
+    const availableDatesQueryKey = currentUserId
+        ? `${currentEndpoint}\u0000${currentUserId}\u0000${reloadToken}`
+        : '';
+    const activityDataQueryKey =
+        currentUserId && selectedDate
+            ? `${availableDatesQueryKey}\u0000${selectedDate}`
+            : '';
+    const [availableDatesState, setAvailableDatesState] =
+        useState<AvailableDatesState>({
+            queryKey: '',
+            dates: [],
+            status: 'idle',
+            error: ''
+        });
+    const [activityDataState, setActivityDataState] =
+        useState<ActivityDataState>({
+            queryKey: '',
+            rows: [],
+            worldDetailsById: {},
+            status: 'idle',
+            error: ''
+        });
+    const visibleAvailableDatesState: AvailableDatesState =
+        availableDatesState.queryKey === availableDatesQueryKey
+            ? availableDatesState
+            : {
+                  queryKey: availableDatesQueryKey,
+                  dates: [],
+                  status: availableDatesQueryKey ? 'running' : 'idle',
+                  error: ''
+              };
+    const visibleActivityDataState: ActivityDataState =
+        activityDataState.queryKey === activityDataQueryKey
+            ? activityDataState
+            : {
+                  queryKey: activityDataQueryKey,
+                  rows: [],
+                  worldDetailsById: {},
+                  status: activityDataQueryKey ? 'running' : 'idle',
+                  error: ''
+              };
 
     useEffect(() => {
         let active = true;
 
         if (!currentUserId) {
-            setAvailableDates([]);
             return () => {
                 active = false;
             };
         }
+
+        setAvailableDatesState({
+            queryKey: availableDatesQueryKey,
+            dates: [],
+            status: 'running',
+            error: ''
+        });
 
         instanceActivityRepository
             .getAvailableDates(currentUserId)
@@ -102,40 +159,51 @@ export function useInstanceActivityData({
                             .filter(Boolean)
                     )
                 ).sort((left, right) => right.localeCompare(left));
-                setAvailableDates(uniqueDates);
+                setAvailableDatesState({
+                    queryKey: availableDatesQueryKey,
+                    dates: uniqueDates,
+                    status: 'ready',
+                    error: ''
+                });
             })
             .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }
 
-                setDataDetail(
-                    error instanceof Error
-                        ? error.message
-                        : 'Failed to load available instance activity dates.'
-                );
+                setAvailableDatesState({
+                    queryKey: availableDatesQueryKey,
+                    dates: [],
+                    status: 'error',
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : ''
+                });
             });
 
         return () => {
             active = false;
         };
-    }, [currentUserId, reloadToken]);
+    }, [availableDatesQueryKey, currentUserId]);
 
     useEffect(() => {
         let active = true;
 
         if (!currentUserId || !selectedDate) {
-            setDataStatus('idle');
-            setRawRows([]);
-            setWorldDetailsById({});
             return () => {
                 active = false;
             };
         }
 
         const { start, end } = getLocalDayBounds(selectedDate);
-        setDataStatus('running');
-        setDataDetail('');
+        setActivityDataState({
+            queryKey: activityDataQueryKey,
+            rows: [],
+            worldDetailsById: {},
+            status: 'running',
+            error: ''
+        });
 
         instanceActivityRepository
             .getInstanceActivityRows(start.toISOString(), end.toISOString())
@@ -164,35 +232,43 @@ export function useInstanceActivityData({
                     return;
                 }
 
-                setRawRows(rows);
-                setWorldDetailsById(resolvedWorldDetailsById);
-                setDataStatus('ready');
+                setActivityDataState({
+                    queryKey: activityDataQueryKey,
+                    rows,
+                    worldDetailsById: resolvedWorldDetailsById,
+                    status: 'ready',
+                    error: ''
+                });
             })
             .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }
 
-                setRawRows([]);
-                setWorldDetailsById({});
-                setDataStatus('error');
-                setDataDetail(
-                    error instanceof Error
-                        ? error.message
-                        : 'Failed to load instance activity for the selected day.'
-                );
+                setActivityDataState({
+                    queryKey: activityDataQueryKey,
+                    rows: [],
+                    worldDetailsById: {},
+                    status: 'error',
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : 'Failed to load instance activity for the selected day.'
+                });
             });
 
         return () => {
             active = false;
         };
-    }, [currentEndpoint, currentUserId, selectedDate, reloadToken]);
+    }, [activityDataQueryKey, currentUserId, selectedDate]);
 
     return {
-        availableDates,
-        dataDetail,
-        dataStatus,
-        rawRows,
-        worldDetailsById
+        availableDates: visibleAvailableDatesState.dates,
+        availableDatesError: visibleAvailableDatesState.error,
+        availableDatesStatus: visibleAvailableDatesState.status,
+        dataDetail: visibleActivityDataState.error,
+        dataStatus: visibleActivityDataState.status,
+        rawRows: visibleActivityDataState.rows,
+        worldDetailsById: visibleActivityDataState.worldDetailsById
     };
 }
