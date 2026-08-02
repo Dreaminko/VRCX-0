@@ -303,10 +303,7 @@ export function InstanceHistoryPage({
     const visibleDetailRow = queryMatchesRows ? detailRow : null;
     const rawDayRows = useMemo(
         () =>
-            filterPreviousInstanceRowsForDay(
-                visibleRows,
-                resolvedSelectedDay
-            ),
+            filterPreviousInstanceRowsForDay(visibleRows, resolvedSelectedDay),
         [resolvedSelectedDay, visibleRows]
     );
     const rawChartRows = useMemo(
@@ -509,14 +506,7 @@ export function InstanceHistoryPage({
             ? dateRows.filter((row) => rowMatchesSearch(row, query))
             : dateRows;
         return sortPreviousInstanceRows(nextRows, sortKey, sortDesc);
-    }, [
-        dateRange.from,
-        dateRange.to,
-        search,
-        sortDesc,
-        sortKey,
-        visibleRows
-    ]);
+    }, [dateRange.from, dateRange.to, search, sortDesc, sortKey, visibleRows]);
 
     function selectSort(nextKey: PreviousInstanceSortKey, nextDesc: boolean) {
         setSortKey(nextKey);
@@ -567,8 +557,8 @@ export function InstanceHistoryPage({
     function clearDateRange() {
         setDateRangeState(
             resolveClearedInstanceHistoryDateRange({
-            isDayMode,
-            isSelfScope
+                isDayMode,
+                isSelfScope
             })
         );
     }

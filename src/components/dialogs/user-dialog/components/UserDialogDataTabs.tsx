@@ -2,8 +2,8 @@ import { Maximize2Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
-import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel';
 import { DialogErrorState } from '@/components/dialogs/previous-instances-table/PreviousInstancesViewParts';
+import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel';
 import type {
     UserDialogJson,
     UserModerationState,
@@ -16,7 +16,6 @@ import {
 } from '@/shared/constants/user';
 import { useDialogStore } from '@/state/dialogStore';
 import { Button } from '@/ui/shadcn/button';
-import { Spinner } from '@/ui/shadcn/spinner';
 import {
     Select,
     SelectContent,
@@ -25,6 +24,7 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
+import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {

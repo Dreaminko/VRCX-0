@@ -175,10 +175,7 @@ export function useInstanceActivityData({
                     queryKey: availableDatesQueryKey,
                     dates: [],
                     status: 'error',
-                    error:
-                        error instanceof Error
-                            ? error.message
-                            : ''
+                    error: error instanceof Error ? error.message : ''
                 });
             });
 

@@ -329,18 +329,10 @@ export function useUserDialogSupplementalData({
                 targetKey,
                 rows: [],
                 status: 'error',
-                error:
-                    error instanceof Error
-                        ? error.message
-                        : ''
+                error: error instanceof Error ? error.message : ''
             });
         }
-    }, [
-        activeUserTargetRef,
-        currentEndpoint,
-        profile?.id,
-        targetKey
-    ]);
+    }, [activeUserTargetRef, currentEndpoint, profile?.id, targetKey]);
 
     useEffect(() => {
         let active = true;

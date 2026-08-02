@@ -29,9 +29,7 @@ export function buildDefaultInstanceHistoryDateRange(
 ): DateTimeRangeValue {
     const to = new Date(now);
     return {
-        from: new Date(
-            to.getTime() - INSTANCE_HISTORY_DEFAULT_DAYS * DAY_MS
-        ),
+        from: new Date(to.getTime() - INSTANCE_HISTORY_DEFAULT_DAYS * DAY_MS),
         to
     };
 }
@@ -117,10 +115,7 @@ export function resolveScopedInstanceHistoryDateRange({
     if (isDayMode) {
         return state;
     }
-    if (
-        source === 'none' &&
-        isEmptyInstanceHistoryDateRange(range)
-    ) {
+    if (source === 'none' && isEmptyInstanceHistoryDateRange(range)) {
         return {
             range: buildDefaultInstanceHistoryDateRange(now),
             source: 'default'
