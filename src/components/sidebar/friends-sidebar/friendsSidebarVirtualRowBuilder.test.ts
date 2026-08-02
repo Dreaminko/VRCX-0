@@ -104,9 +104,13 @@ describe('friendsSidebarVirtualRowBuilder', () => {
             type: 'friend',
             isCurrentUser: true
         });
+        expect(rows[2]).toMatchObject({
+            type: 'section',
+            count: 2
+        });
         expect(rows[3]).toMatchObject({
             type: 'instance-header',
-            count: 1,
+            count: 2,
             isCurrentInstance: true
         });
         expect(rows[4]).toMatchObject({
@@ -162,5 +166,8 @@ describe('friendsSidebarVirtualRowBuilder', () => {
         expect(rows.map((row) => row.key)).toContain(
             'friend:sameInstance:wrld_live:1:0:usr_same'
         );
+        expect(
+            rows.find((row) => row.type === 'instance-header')
+        ).toMatchObject({ count: 2 });
     });
 });

@@ -297,43 +297,52 @@ export function buildFriendsSidebarVirtualRows({
         if (!sameInstanceGroups.length) {
             return;
         }
+        const instanceEntries = sameInstanceGroups.map((group, index) => {
+            const sectionKey = `sameInstance:${group.location}:${index}`;
+            const currentUserRows =
+                group.isCurrentInstance &&
+                prefs.isShowCurrentUserInSameInstance !== false
+                    ? buildCurrentUserRows({
+                          currentUser,
+                          currentUserId,
+                          gameState,
+                          prefs,
+                          sectionKey: `${sectionKey}:currentUser`,
+                          isGroupByInstance: true,
+                          showSkeleton: false
+                      })
+                    : [];
+            return {
+                group,
+                sectionKey,
+                headerKey: `instance:${group.location}:${index}`,
+                currentUserRows,
+                count: group.rows.length + currentUserRows.length
+            };
+        });
         pushSection(nextRows, {
             id: 'sameInstance',
             title: t('side_panel.same_instance'),
-            count: sameInstanceGroups.length,
+            count: instanceEntries.reduce(
+                (total, entry) => total + entry.count,
+                0
+            ),
             open: openGroups.sameInstance
         });
         if (openGroups.sameInstance) {
-            sameInstanceGroups.forEach((group, index) => {
+            instanceEntries.forEach((entry) => {
                 nextRows.push({
                     type: 'instance-header',
-                    key: `instance:${group.location}:${index}`,
-                    location: group.location,
-                    count: group.rows.length,
-                    isCurrentInstance: group.isCurrentInstance
+                    key: entry.headerKey,
+                    location: entry.group.location,
+                    count: entry.count,
+                    isCurrentInstance: entry.group.isCurrentInstance
                 });
-                if (
-                    group.isCurrentInstance &&
-                    prefs.isShowCurrentUserInSameInstance !== false
-                ) {
-                    nextRows.push(
-                        ...buildCurrentUserRows({
-                            currentUser,
-                            currentUserId,
-                            gameState,
-                            prefs,
-                            sectionKey: `sameInstance:${group.location}:${index}:currentUser`,
-                            isGroupByInstance: true,
-                            showSkeleton: false
-                        })
-                    );
-                }
-                pushFriendRows(
-                    nextRows,
-                    `sameInstance:${group.location}:${index}`,
-                    group.rows,
-                    { currentUserId, isGroupByInstance: true }
-                );
+                nextRows.push(...entry.currentUserRows);
+                pushFriendRows(nextRows, entry.sectionKey, entry.group.rows, {
+                    currentUserId,
+                    isGroupByInstance: true
+                });
             });
         }
     };

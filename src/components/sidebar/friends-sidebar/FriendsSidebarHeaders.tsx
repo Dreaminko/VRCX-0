@@ -1,10 +1,11 @@
-import { ChevronDownIcon } from 'lucide-react';
+import { ChevronDownIcon, MapPinIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-import { CurrentInstanceBadge } from '@/components/instances/CurrentInstanceBadge';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Collapsible, CollapsibleTrigger } from '@/ui/shadcn/collapsible';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { StaticSidebarLocation } from './FriendsSidebarLocation';
 import type { SidebarVirtualRow } from './friendsSidebarVirtualRowBuilder';
@@ -110,8 +111,33 @@ export function InstanceHeaderRow({
     showInstanceIdInLocation?: boolean;
     ageGatedInstancesVisible?: boolean;
 }) {
+    const { t } = useTranslation();
+
     return (
-        <div className="mb-1 flex min-w-0 items-center px-1.5 text-xs">
+        <div
+            className={cn(
+                'mb-1 flex min-w-0 items-center px-1.5 text-xs',
+                isCurrentInstance
+                    ? 'text-foreground font-medium'
+                    : 'text-muted-foreground'
+            )}
+        >
+            {isCurrentInstance ? (
+                <Tooltip>
+                    <TooltipTrigger
+                        render={
+                            <MapPinIcon
+                                aria-label={t('side_panel.you_are_here')}
+                                role="img"
+                                className="mr-1 size-3.5 shrink-0"
+                            />
+                        }
+                    />
+                    <TooltipContent>
+                        {t('side_panel.you_are_here')}
+                    </TooltipContent>
+                </Tooltip>
+            ) : null}
             <StaticSidebarLocation
                 className="min-w-0 flex-1 text-xs"
                 location={location}
@@ -121,9 +147,6 @@ export function InstanceHeaderRow({
                 showInstanceIdInLocation={showInstanceIdInLocation}
                 ageGatedInstancesVisible={ageGatedInstancesVisible}
             />
-            {isCurrentInstance ? (
-                <CurrentInstanceBadge className="ml-1.5" />
-            ) : null}
             <Badge variant="outline" className="ml-1.5">
                 {count}
             </Badge>
