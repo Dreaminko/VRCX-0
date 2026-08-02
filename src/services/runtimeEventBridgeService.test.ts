@@ -597,7 +597,7 @@ describe('runtimeEventBridgeService', () => {
         );
     });
 
-    it('unsubscribes earlier runtime events when a later subscription fails', async () => {
+    it('unsubscribes every successful runtime event when one subscription fails', async () => {
         const unsubscribe = vi.fn();
         mocks.subscribe.mockImplementation(async (name) => {
             if (name === 'gameLogProjection') {
@@ -610,7 +610,7 @@ describe('runtimeEventBridgeService', () => {
             'subscription failed'
         );
 
-        expect(unsubscribe).toHaveBeenCalledTimes(9);
+        expect(unsubscribe).toHaveBeenCalledTimes(38);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });

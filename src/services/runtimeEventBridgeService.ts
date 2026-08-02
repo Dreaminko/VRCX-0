@@ -248,6 +248,17 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
     }
 }
 
+async function hydrateRuntimeState(
+    failureMessage: string,
+    hydrate: () => Promise<unknown>
+): Promise<void> {
+    try {
+        await hydrate();
+    } catch (error) {
+        console.warn(failureMessage, error);
+    }
+}
+
 export async function bindRuntimeEvents(): Promise<() => void> {
     resetBackendRealtimeProjectionState();
     resetAuthenticatedRuntimeMirror();
@@ -297,85 +308,88 @@ export async function bindRuntimeEvents(): Promise<() => void> {
     useSessionStore.getState().setTransportStatus('runtime-subscribing');
 
     try {
-        for (const name of events) {
-            const unsubscribe = await subscribeRuntimeEvent(name);
-            unsubscribers.push(unsubscribe);
-        }
-        try {
-            await refreshCommunityThemeProjection();
-        } catch (error) {
-            console.warn(
-                'Failed to hydrate community theme projection:',
-                error
-            );
-        }
-        try {
-            useProfileBackupStore
-                .getState()
-                .applyStatus(await getCurrentProfileBackupStatus());
-        } catch (error) {
-            console.warn('Failed to hydrate profile backup status:', error);
-        }
-        try {
-            useDataDirMigrationStore
-                .getState()
-                .applyStatus(await getCurrentDataDirMigrationStatus());
-        } catch (error) {
-            console.warn(
-                'Failed to hydrate data directory migration status:',
-                error
-            );
-        }
-        try {
-            await refreshMutualGraphFetchStatus();
-        } catch (error) {
-            console.warn('Failed to hydrate mutual graph fetch status:', error);
-        }
-        try {
-            await handleAppUpdateStatusEvent(
-                await commands.appAppUpdateStatusGet()
-            );
-        } catch (error) {
-            console.warn('Failed to hydrate app update status:', error);
-        }
-        try {
-            const debugLoggingOutcome =
-                await commands.appGameClientDebugLoggingStatus();
-            if (debugLoggingOutcome) {
-                handleDebugLoggingOutcome(debugLoggingOutcome);
+        const subscriptions = await Promise.allSettled(
+            events.map(subscribeRuntimeEvent)
+        );
+        const failure = subscriptions.find(
+            (subscription) => subscription.status === 'rejected'
+        );
+        for (const subscription of subscriptions) {
+            if (subscription.status === 'fulfilled') {
+                unsubscribers.push(subscription.value);
             }
-        } catch (error) {
-            console.warn('Failed to hydrate debug logging status:', error);
         }
-        try {
-            applyBackgroundImageProjectionEvent(
-                await commands.appBackgroundImageStateGet()
-            );
-        } catch (error) {
-            console.warn('Failed to hydrate background image state:', error);
+        if (failure) {
+            throw failure.reason;
         }
-        try {
-            await runForegroundUpdateRegistryBackupMaintenance();
-        } catch (error) {
-            console.warn(
+        await Promise.all([
+            hydrateRuntimeState(
+                'Failed to hydrate community theme projection:',
+                refreshCommunityThemeProjection
+            ),
+            hydrateRuntimeState(
+                'Failed to hydrate profile backup status:',
+                async () => {
+                    useProfileBackupStore
+                        .getState()
+                        .applyStatus(await getCurrentProfileBackupStatus());
+                }
+            ),
+            hydrateRuntimeState(
+                'Failed to hydrate data directory migration status:',
+                async () => {
+                    useDataDirMigrationStore
+                        .getState()
+                        .applyStatus(await getCurrentDataDirMigrationStatus());
+                }
+            ),
+            hydrateRuntimeState(
+                'Failed to hydrate mutual graph fetch status:',
+                refreshMutualGraphFetchStatus
+            ),
+            hydrateRuntimeState(
+                'Failed to hydrate app update status:',
+                async () => {
+                    await handleAppUpdateStatusEvent(
+                        await commands.appAppUpdateStatusGet()
+                    );
+                }
+            ),
+            hydrateRuntimeState(
+                'Failed to hydrate debug logging status:',
+                async () => {
+                    const debugLoggingOutcome =
+                        await commands.appGameClientDebugLoggingStatus();
+                    if (debugLoggingOutcome) {
+                        handleDebugLoggingOutcome(debugLoggingOutcome);
+                    }
+                }
+            ),
+            hydrateRuntimeState(
+                'Failed to hydrate background image state:',
+                async () => {
+                    applyBackgroundImageProjectionEvent(
+                        await commands.appBackgroundImageStateGet()
+                    );
+                }
+            ),
+            hydrateRuntimeState(
                 'Failed to run registry backup maintenance during hydration:',
-                error
-            );
-        }
-        try {
-            const downloadStatus =
-                await commands.appAppUpdateDownloadStatusGet();
-            useRuntimeStore.getState().setUpdateLoopState({
-                autoDownloadState: downloadStatus.phase,
-                downloadedVersion: downloadStatus.version,
-                downloadProgress: downloadStatus.percent
-            });
-        } catch (error) {
-            console.warn(
+                runForegroundUpdateRegistryBackupMaintenance
+            ),
+            hydrateRuntimeState(
                 'Failed to hydrate app update download status:',
-                error
-            );
-        }
+                async () => {
+                    const downloadStatus =
+                        await commands.appAppUpdateDownloadStatusGet();
+                    useRuntimeStore.getState().setUpdateLoopState({
+                        autoDownloadState: downloadStatus.phase,
+                        downloadedVersion: downloadStatus.version,
+                        downloadProgress: downloadStatus.percent
+                    });
+                }
+            )
+        ]);
     } catch (error) {
         resetBackendRealtimeProjectionState();
         resetAuthenticatedRuntimeMirror();
