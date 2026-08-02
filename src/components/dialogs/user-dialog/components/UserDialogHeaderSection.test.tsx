@@ -202,9 +202,7 @@ describe('UserDialogHeaderSection friend number', () => {
             />
         );
 
-        expect(
-            screen.getByText(/dialog\.user\.label\.friend/).textContent
-        ).toContain('42');
+        expect(screen.getByText('#42')).toBeTruthy();
     });
 
     it('hides the stored friend number for a former friend', () => {
@@ -220,6 +218,6 @@ describe('UserDialogHeaderSection friend number', () => {
             />
         );
 
-        expect(screen.queryByText(/dialog\.user\.label\.friend/)).toBeNull();
+        expect(screen.queryByText('#42')).toBeNull();
     });
 });

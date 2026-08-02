@@ -23,6 +23,7 @@ const PROFILE_APPEARANCE_FIELDS = [
     'iconFrame',
     'iconType',
     'iconUrl',
+    'isEconomyCreator',
     'nameplateEffect',
     'profileEffect',
     'themeId',
