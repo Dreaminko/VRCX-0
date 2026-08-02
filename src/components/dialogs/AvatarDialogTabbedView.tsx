@@ -37,6 +37,10 @@ import {
     EntityDialogTabContent,
     EntityDialogTabs,
     EntityDialogTwoColumnLayout,
+    EntityFactAction,
+    EntityFactList,
+    EntityFactRow,
+    EntityFactValue,
     EntityOverviewCard,
     EntityRawJson
 } from './EntityDialogScaffold';
@@ -81,29 +85,6 @@ function compactAvatarUrl(url: string): string {
     return `${displayUrl.slice(0, 20)}\u2026${displayUrl.slice(-4)}`;
 }
 
-function AvatarOverviewFactRow({
-    label,
-    value,
-    children
-}: {
-    label: ReactNode;
-    value?: string;
-    children?: ReactNode;
-}) {
-    return (
-        <div className="flex min-w-0 items-center justify-between gap-2">
-            <span className="text-muted-foreground min-w-0 truncate">
-                {label}
-            </span>
-            {children || (
-                <span className="text-muted-foreground/80 min-w-0 truncate text-right">
-                    {value || '\u2014'}
-                </span>
-            )}
-        </div>
-    );
-}
-
 function AvatarOverviewReferences({
     avatar,
     avatarUrl,
@@ -128,96 +109,42 @@ function AvatarOverviewReferences({
     }
 
     return (
-        <div className="text-muted-foreground/80 flex min-w-0 flex-col gap-1 text-xs">
+        <EntityFactList>
             {avatar.id ? (
-                <AvatarOverviewFactRow label={t('dialog.avatar.info.id')}>
-                    <span className="flex min-w-0 items-center justify-end gap-1">
-                        <span
-                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                            title={avatar.id}
-                        >
-                            {compactAvatarId(avatar.id)}
-                        </span>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        aria-label={t(
-                                            'dialog.avatar.info.copy_id'
-                                        )}
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        className="shrink-0"
-                                        onClick={onCopyAvatarId}
-                                    >
-                                        <CopyIcon data-icon="inline-start" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {t('dialog.avatar.info.copy_id')}
-                            </TooltipContent>
-                        </Tooltip>
-                    </span>
-                </AvatarOverviewFactRow>
+                <EntityFactRow label={t('dialog.avatar.info.id')}>
+                    <EntityFactValue
+                        display={compactAvatarId(avatar.id)}
+                        title={avatar.id}
+                    >
+                        <EntityFactAction
+                            label={t('dialog.avatar.info.copy_id')}
+                            icon={CopyIcon}
+                            onClick={onCopyAvatarId}
+                        />
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
             {avatarUrl ? (
-                <AvatarOverviewFactRow label={t('dialog.avatar.info.url')}>
-                    <span className="flex min-w-0 items-center justify-end gap-1">
-                        <span
-                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                            title={avatarUrl}
-                        >
-                            {compactAvatarUrl(avatarUrl)}
-                        </span>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        aria-label={t(
-                                            'common.actions.view_on_website'
-                                        )}
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        className="shrink-0"
-                                        onClick={onOpenAvatarUrl}
-                                    >
-                                        <ExternalLinkIcon data-icon="inline-start" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {t('common.actions.view_on_website')}
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        aria-label={t(
-                                            'dialog.avatar.info.copy_url'
-                                        )}
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        className="shrink-0"
-                                        onClick={onCopyAvatarUrl}
-                                    >
-                                        <CopyIcon data-icon="inline-start" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {t('dialog.avatar.info.copy_url')}
-                            </TooltipContent>
-                        </Tooltip>
-                    </span>
-                </AvatarOverviewFactRow>
+                <EntityFactRow label={t('dialog.avatar.info.url')}>
+                    <EntityFactValue
+                        display={compactAvatarUrl(avatarUrl)}
+                        title={avatarUrl}
+                    >
+                        <EntityFactAction
+                            label={t('common.actions.view_on_website')}
+                            icon={ExternalLinkIcon}
+                            onClick={onOpenAvatarUrl}
+                        />
+                        <EntityFactAction
+                            label={t('dialog.avatar.info.copy_url')}
+                            icon={CopyIcon}
+                            onClick={onCopyAvatarUrl}
+                        />
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
             {vrcxAvatarUrl ? (
-                <AvatarOverviewFactRow
+                <EntityFactRow
                     label={
                         <Tooltip>
                             <TooltipTrigger
@@ -236,38 +163,19 @@ function AvatarOverviewReferences({
                         </Tooltip>
                     }
                 >
-                    <span className="flex min-w-0 items-center justify-end gap-1">
-                        <span
-                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                            title={vrcxAvatarUrl}
-                        >
-                            {compactAvatarUrl(vrcxAvatarUrl)}
-                        </span>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        aria-label={t(
-                                            'dialog.avatar.info.copy_vrcx_url'
-                                        )}
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        className="shrink-0"
-                                        onClick={onCopyVrcxAvatarUrl}
-                                    >
-                                        <CopyIcon data-icon="inline-start" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {t('dialog.avatar.info.copy_vrcx_url')}
-                            </TooltipContent>
-                        </Tooltip>
-                    </span>
-                </AvatarOverviewFactRow>
+                    <EntityFactValue
+                        display={compactAvatarUrl(vrcxAvatarUrl)}
+                        title={vrcxAvatarUrl}
+                    >
+                        <EntityFactAction
+                            label={t('dialog.avatar.info.copy_vrcx_url')}
+                            icon={CopyIcon}
+                            onClick={onCopyVrcxAvatarUrl}
+                        />
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
-        </div>
+        </EntityFactList>
     );
 }
 

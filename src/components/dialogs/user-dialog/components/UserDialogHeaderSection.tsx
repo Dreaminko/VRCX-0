@@ -28,7 +28,13 @@ import { CardTitle } from '@/ui/shadcn/card';
 import { Separator } from '@/ui/shadcn/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import { EntityOverviewCard } from '../../EntityDialogScaffold';
+import {
+    EntityFactAction,
+    EntityFactList,
+    EntityFactRow,
+    EntityFactValue,
+    EntityOverviewCard
+} from '../../EntityDialogScaffold';
 import type {
     resolveFriendRequestState,
     resolvePlatformMeta
@@ -227,74 +233,6 @@ function HeaderMetaRow({
     );
 }
 
-function HeaderFactRow({
-    label,
-    value,
-    children
-}: {
-    label: ReactNode;
-    value?: ReactNode;
-    children?: ReactNode;
-}) {
-    return (
-        <div className="flex min-w-0 items-center justify-between gap-2">
-            <span className="text-muted-foreground min-w-0 truncate">
-                {label}
-            </span>
-            {children || (
-                <span className="text-muted-foreground/80 min-w-0 truncate text-right">
-                    {value || '\u2014'}
-                </span>
-            )}
-        </div>
-    );
-}
-
-function HeaderFactValue({
-    display,
-    title,
-    children
-}: {
-    display: ReactNode;
-    title?: string;
-    children?: ReactNode;
-}) {
-    return (
-        <span className="flex min-w-0 items-center justify-end gap-1">
-            <span
-                className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                title={title}
-            >
-                {display}
-            </span>
-            {children}
-        </span>
-    );
-}
-
-function HeaderFactIconButton({
-    label,
-    icon,
-    onClick
-}: {
-    label: string;
-    icon: ReactNode;
-    onClick?: () => void;
-}) {
-    return (
-        <Button
-            type="button"
-            aria-label={label}
-            title={label}
-            size="icon-xs"
-            variant="ghost"
-            onClick={onClick}
-        >
-            {icon}
-        </Button>
-    );
-}
-
 function HeaderPreferenceRow({
     checked,
     disabled,
@@ -310,11 +248,11 @@ function HeaderPreferenceRow({
     const value = preferenceLabel(checked, t);
 
     if (!onToggle) {
-        return <HeaderFactRow label={label} value={value} />;
+        return <EntityFactRow label={label} value={value} />;
     }
 
     return (
-        <HeaderFactRow label={label}>
+        <EntityFactRow label={label}>
             <Button
                 type="button"
                 variant="ghost"
@@ -326,7 +264,7 @@ function HeaderPreferenceRow({
             >
                 <span className="min-w-0 truncate text-right">{value}</span>
             </Button>
-        </HeaderFactRow>
+        </EntityFactRow>
     );
 }
 
@@ -395,7 +333,7 @@ function UserDialogHeaderFacts({
         typeof profile.discordId === 'string' ? profile.discordId : '';
 
     return (
-        <div className="text-muted-foreground/80 flex min-w-0 flex-col gap-1 border-t pt-3 text-xs">
+        <EntityFactList className="border-t pt-3">
             <HeaderPreferenceRow
                 label={t('dialog.user.info.avatar_cloning')}
                 checked={Boolean(profile.allowAvatarCopying)}
@@ -425,69 +363,66 @@ function UserDialogHeaderFacts({
                 </>
             ) : null}
             {username ? (
-                <HeaderFactRow label={t('dialog.user.info.username')}>
-                    <HeaderFactValue display={username} title={username}>
+                <EntityFactRow label={t('dialog.user.info.username')}>
+                    <EntityFactValue display={username} title={username}>
                         {onCopyUsername ? (
-                            <HeaderFactIconButton
+                            <EntityFactAction
                                 label={t('common.actions.copy')}
-                                icon={<CopyIcon data-icon="inline-start" />}
+                                icon={CopyIcon}
                                 onClick={onCopyUsername}
                             />
                         ) : null}
-                    </HeaderFactValue>
-                </HeaderFactRow>
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
             {profile.id ? (
-                <HeaderFactRow label={t('dialog.user.info.id')}>
-                    <HeaderFactValue
+                <EntityFactRow label={t('dialog.user.info.id')}>
+                    <EntityFactValue
                         display={compactUserId(profile.id)}
                         title={profile.id}
                     >
-                        <HeaderFactIconButton
+                        <EntityFactAction
                             label={t('dialog.user.info.copy_id')}
-                            icon={<CopyIcon data-icon="inline-start" />}
+                            icon={CopyIcon}
                             onClick={onCopyUserId}
                         />
-                    </HeaderFactValue>
-                </HeaderFactRow>
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
             {userUrl ? (
-                <HeaderFactRow label={t('dialog.user.info.url')}>
-                    <HeaderFactValue
+                <EntityFactRow label={t('dialog.user.info.url')}>
+                    <EntityFactValue
                         display={compactUrl(userUrl)}
                         title={userUrl}
                     >
-                        <HeaderFactIconButton
+                        <EntityFactAction
                             label={t('common.actions.open_link')}
-                            icon={<ExternalLinkIcon data-icon="inline-start" />}
+                            icon={ExternalLinkIcon}
                             onClick={onOpenUserUrl}
                         />
-                        <HeaderFactIconButton
+                        <EntityFactAction
                             label={t('dialog.user.info.copy_url')}
-                            icon={<CopyIcon data-icon="inline-start" />}
+                            icon={CopyIcon}
                             onClick={onCopyUserUrl}
                         />
-                    </HeaderFactValue>
-                </HeaderFactRow>
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
             {discordId ? (
-                <HeaderFactRow label="Discord">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        title={t('dialog.user.tags.open_in_discord')}
-                        onClick={() => onOpenDiscordProfile(discordId)}
-                        className="text-muted-foreground/80 hover:text-primary h-auto min-w-0 px-1 py-0 text-xs font-normal"
+                <EntityFactRow label="Discord">
+                    <EntityFactValue
+                        display={t('common.actions.open')}
+                        mono={false}
                     >
-                        <span className="min-w-0 truncate">
-                            {t('common.actions.open')}
-                        </span>
-                        <ExternalLinkIcon data-icon="inline-end" />
-                    </Button>
-                </HeaderFactRow>
+                        <EntityFactAction
+                            label={t('dialog.user.tags.open_in_discord')}
+                            icon={ExternalLinkIcon}
+                            onClick={() => onOpenDiscordProfile(discordId)}
+                        />
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
-        </div>
+        </EntityFactList>
     );
 }
 

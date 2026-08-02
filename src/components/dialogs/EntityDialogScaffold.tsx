@@ -40,6 +40,7 @@ import {
     TabsTrigger
 } from '@/ui/shadcn/tabs';
 import { Textarea } from '@/ui/shadcn/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 type ClassNameAndChildren = {
     className?: string;
@@ -578,6 +579,98 @@ function EntityBlank({ children = '—' }: { children?: ReactNode }) {
     return <div className="text-muted-foreground text-sm">{children}</div>;
 }
 
+function EntityFactList({ children, className }: ClassNameAndChildren) {
+    return (
+        <div
+            className={cn(
+                'text-muted-foreground/80 flex min-w-0 flex-col text-xs',
+                className
+            )}
+        >
+            {children}
+        </div>
+    );
+}
+
+function EntityFactRow({
+    label,
+    value,
+    children
+}: {
+    label: ReactNode;
+    value?: ReactNode;
+    children?: ReactNode;
+}) {
+    return (
+        <div className="flex min-h-6 min-w-0 items-center justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate">
+                {label}
+            </span>
+            {children || (
+                <span className="text-muted-foreground/80 min-w-0 truncate text-right">
+                    {value || '—'}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function EntityFactValue({
+    display,
+    title,
+    mono = true,
+    children
+}: {
+    display: ReactNode;
+    title?: string;
+    mono?: boolean;
+    children?: ReactNode;
+}) {
+    return (
+        <span className="-mr-1 flex min-w-0 items-center justify-end gap-1">
+            <span
+                className={cn(
+                    'text-muted-foreground/80 min-w-0 truncate',
+                    mono && 'font-mono text-[11px]'
+                )}
+                title={title}
+            >
+                {display}
+            </span>
+            {children}
+        </span>
+    );
+}
+
+function EntityFactAction({
+    label,
+    icon: Icon,
+    onClick
+}: {
+    label: string;
+    icon: ComponentType;
+    onClick?: () => void;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        aria-label={label}
+                        size="icon-xs"
+                        variant="ghost"
+                        onClick={onClick}
+                    >
+                        <Icon />
+                    </Button>
+                }
+            />
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
 function EntityInfoGrid({ children, className }: ClassNameAndChildren) {
     return (
         <div
@@ -654,6 +747,10 @@ export {
     EntityDialogTabContent,
     EntityDialogTabs,
     EntityDialogTwoColumnLayout,
+    EntityFactAction,
+    EntityFactList,
+    EntityFactRow,
+    EntityFactValue,
     EntityInfoBlock,
     EntityInfoGrid,
     EntityMemoTextarea,

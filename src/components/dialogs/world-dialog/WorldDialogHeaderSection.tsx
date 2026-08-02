@@ -37,6 +37,10 @@ import {
     EntityActionItem,
     EntityActionSeparator,
     EntityActionSub,
+    EntityFactAction,
+    EntityFactList,
+    EntityFactRow,
+    EntityFactValue,
     EntityOverviewCard
 } from '../EntityDialogScaffold';
 import type {
@@ -108,23 +112,6 @@ function compactUrl(url: string) {
     return `${displayUrl.slice(0, 12)}\u2026${displayUrl.slice(-4)}`;
 }
 
-function WorldOverviewFactRow({
-    children,
-    label
-}: {
-    children: ReactNode;
-    label: ReactNode;
-}) {
-    return (
-        <div className="flex min-w-0 items-center justify-between gap-2">
-            <span className="text-muted-foreground min-w-0 truncate">
-                {label}
-            </span>
-            {children}
-        </div>
-    );
-}
-
 function WorldOverviewFacts({
     onCopyVrcxWorldUrl,
     onCopyWorldId,
@@ -149,97 +136,46 @@ function WorldOverviewFacts({
     }
 
     return (
-        <div className="text-muted-foreground/80 flex min-w-0 flex-col gap-1 border-t pt-3 text-xs">
+        <EntityFactList className="border-t pt-3">
             {world.id ? (
-                <WorldOverviewFactRow label={t('dialog.world.info.id')}>
-                    <span className="flex min-w-0 items-center justify-end gap-1">
-                        <span
-                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                            title={world.id}
-                        >
-                            {compactWorldId(world.id)}
-                        </span>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        aria-label={t(
-                                            'dialog.world.info.copy_id'
-                                        )}
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        onClick={() => {
-                                            onCopyWorldId?.();
-                                        }}
-                                    >
-                                        <CopyIcon data-icon="inline-start" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {t('dialog.world.info.copy_id')}
-                            </TooltipContent>
-                        </Tooltip>
-                    </span>
-                </WorldOverviewFactRow>
+                <EntityFactRow label={t('dialog.world.info.id')}>
+                    <EntityFactValue
+                        display={compactWorldId(world.id)}
+                        title={world.id}
+                    >
+                        <EntityFactAction
+                            label={t('dialog.world.info.copy_id')}
+                            icon={CopyIcon}
+                            onClick={() => {
+                                onCopyWorldId?.();
+                            }}
+                        />
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
             {worldUrl ? (
-                <WorldOverviewFactRow label={t('dialog.world.info.url')}>
-                    <span className="flex min-w-0 items-center justify-end gap-1">
-                        <span
-                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                            title={worldUrl}
-                        >
-                            {compactUrl(worldUrl)}
-                        </span>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        aria-label={t(
-                                            'common.actions.view_on_website'
-                                        )}
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        onClick={onOpenWorldPage}
-                                    >
-                                        <ExternalLinkIcon data-icon="inline-start" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {t('common.actions.view_on_website')}
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        aria-label={t(
-                                            'dialog.world.info.copy_url'
-                                        )}
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        onClick={() => {
-                                            onCopyWorldUrl?.();
-                                        }}
-                                    >
-                                        <CopyIcon data-icon="inline-start" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {t('dialog.world.info.copy_url')}
-                            </TooltipContent>
-                        </Tooltip>
-                    </span>
-                </WorldOverviewFactRow>
+                <EntityFactRow label={t('dialog.world.info.url')}>
+                    <EntityFactValue
+                        display={compactUrl(worldUrl)}
+                        title={worldUrl}
+                    >
+                        <EntityFactAction
+                            label={t('common.actions.view_on_website')}
+                            icon={ExternalLinkIcon}
+                            onClick={onOpenWorldPage}
+                        />
+                        <EntityFactAction
+                            label={t('dialog.world.info.copy_url')}
+                            icon={CopyIcon}
+                            onClick={() => {
+                                onCopyWorldUrl?.();
+                            }}
+                        />
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
             {vrcxWorldUrl ? (
-                <WorldOverviewFactRow
+                <EntityFactRow
                     label={
                         <Tooltip>
                             <TooltipTrigger
@@ -258,37 +194,19 @@ function WorldOverviewFacts({
                         </Tooltip>
                     }
                 >
-                    <span className="flex min-w-0 items-center justify-end gap-1">
-                        <span
-                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
-                            title={vrcxWorldUrl}
-                        >
-                            {compactUrl(vrcxWorldUrl)}
-                        </span>
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        aria-label={t(
-                                            'dialog.world.info.copy_vrcx_url'
-                                        )}
-                                        size="icon-xs"
-                                        variant="ghost"
-                                        onClick={onCopyVrcxWorldUrl}
-                                    >
-                                        <CopyIcon data-icon="inline-start" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                {t('dialog.world.info.copy_vrcx_url')}
-                            </TooltipContent>
-                        </Tooltip>
-                    </span>
-                </WorldOverviewFactRow>
+                    <EntityFactValue
+                        display={compactUrl(vrcxWorldUrl)}
+                        title={vrcxWorldUrl}
+                    >
+                        <EntityFactAction
+                            label={t('dialog.world.info.copy_vrcx_url')}
+                            icon={CopyIcon}
+                            onClick={onCopyVrcxWorldUrl}
+                        />
+                    </EntityFactValue>
+                </EntityFactRow>
             ) : null}
-        </div>
+        </EntityFactList>
     );
 }
 
