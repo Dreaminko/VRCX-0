@@ -317,3 +317,6 @@ fn update(
     *first_run = false;
     saw_new_data
 }
+
+#[cfg(test)]
+mod tests;
