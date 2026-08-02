@@ -373,12 +373,27 @@ pub fn parse_youtube_video_id(video_url: &str) -> String {
         }
     }
 
-    let path = url.path();
-    if path.len() == 12 {
-        return path[1..12].to_string();
+    let host = url.host_str().unwrap_or_default();
+    if host.eq_ignore_ascii_case("youtu.be") {
+        return url
+            .path()
+            .strip_prefix('/')
+            .filter(|value| value.len() == 11)
+            .unwrap_or_default()
+            .to_string();
     }
-    if path.len() == 19 {
-        return path[8..19].to_string();
+    if !host.eq_ignore_ascii_case("youtube.com")
+        && !host.to_ascii_lowercase().ends_with(".youtube.com")
+    {
+        return String::new();
+    }
+
+    if let Some(video_id) = url
+        .path()
+        .strip_prefix("/shorts/")
+        .filter(|value| value.len() == 11)
+    {
+        return video_id.to_string();
     }
     url.query_pairs()
         .find(|(key, value)| key == "v" && value.len() == 11)
@@ -475,6 +490,26 @@ mod tests {
         assert_eq!(
             parse_youtube_video_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
             "dQw4w9WgXcQ"
+        );
+        assert_eq!(
+            parse_youtube_video_id("https://music.youtube.com/watch?v=dQw4w9WgXcQ"),
+            "dQw4w9WgXcQ"
+        );
+        assert_eq!(
+            parse_youtube_video_id("https://www.youtube.com/shorts/dQw4w9WgXcQ"),
+            "dQw4w9WgXcQ"
+        );
+    }
+
+    #[test]
+    fn does_not_treat_matching_paths_on_other_hosts_as_youtube() {
+        assert_eq!(
+            parse_youtube_video_id("https://example.com/dQw4w9WgXcQ"),
+            ""
+        );
+        assert_eq!(
+            parse_youtube_video_id("https://example.com/shorts/dQw4w9WgXcQ"),
+            ""
         );
     }
 
