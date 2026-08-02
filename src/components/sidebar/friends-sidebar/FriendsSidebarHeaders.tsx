@@ -1,11 +1,9 @@
-import { ChevronDownIcon, MapPinIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { ChevronDownIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Collapsible, CollapsibleTrigger } from '@/ui/shadcn/collapsible';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { StaticSidebarLocation } from './FriendsSidebarLocation';
 import type { SidebarVirtualRow } from './friendsSidebarVirtualRowBuilder';
@@ -111,8 +109,6 @@ export function InstanceHeaderRow({
     showInstanceIdInLocation?: boolean;
     ageGatedInstancesVisible?: boolean;
 }) {
-    const { t } = useTranslation();
-
     return (
         <div
             className={cn(
@@ -122,22 +118,6 @@ export function InstanceHeaderRow({
                     : 'text-muted-foreground'
             )}
         >
-            {isCurrentInstance ? (
-                <Tooltip>
-                    <TooltipTrigger
-                        render={
-                            <MapPinIcon
-                                aria-label={t('side_panel.you_are_here')}
-                                role="img"
-                                className="mr-1 size-3.5 shrink-0"
-                            />
-                        }
-                    />
-                    <TooltipContent>
-                        {t('side_panel.you_are_here')}
-                    </TooltipContent>
-                </Tooltip>
-            ) : null}
             <StaticSidebarLocation
                 className="min-w-0 flex-1 text-xs"
                 location={location}
