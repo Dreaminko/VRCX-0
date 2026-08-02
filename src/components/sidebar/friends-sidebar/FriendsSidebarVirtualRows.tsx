@@ -56,7 +56,7 @@ type StatusCommandsView = {
     statusPresets?: StatusPreset[];
     onChangeStatus?: (status: string) => unknown;
     onSetStatusDescription?: (statusDescription: string) => unknown;
-    onEditStatusDescription?: () => unknown;
+    onEditSocialStatus?: () => unknown;
     onApplyStatusPreset?: (preset: StatusPreset) => unknown;
 };
 
@@ -158,7 +158,7 @@ function FriendVirtualRow({
                 onBoop: friendCommands.onBoop,
                 onChangeStatus: statusCommands.onChangeStatus,
                 onSetStatusDescription: statusCommands.onSetStatusDescription,
-                onEditStatusDescription: statusCommands.onEditStatusDescription,
+                onEditSocialStatus: statusCommands.onEditSocialStatus,
                 onApplyStatusPreset: statusCommands.onApplyStatusPreset,
                 statusPresets: isCurrentUser ? statusCommands.statusPresets : []
             }}

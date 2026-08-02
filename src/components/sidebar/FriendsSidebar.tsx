@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { CurrentUserSocialStatusDialog } from '@/components/dialogs/user-dialog/UserSelfEditDialogs';
 import { useLocationMetadataBatch } from '@/components/location/useLocationMetadata';
 import { useVirtualSidebarRows } from '@/components/sidebar/useVirtualSidebarRows';
 import {
@@ -137,7 +138,6 @@ export function FriendsSidebar({
         localFriendFavorites
     } = useFriendsSidebarFavoriteState();
     const confirm = useModalStore((state) => state.confirm);
-    const prompt = useModalStore((state) => state.prompt);
     const {
         ageGatedInstancesVisible,
         randomUserColours,
@@ -186,21 +186,21 @@ export function FriendsSidebar({
     const {
         applyCurrentUserStatusPreset,
         changeCurrentUserStatus,
-        editCurrentUserStatusDescription,
+        editCurrentUserSocialStatus,
         launchFriendLocation,
         openFriend,
         requestFriendInvite,
         selfInviteToFriendLocation,
         sendFriendBoop,
         sendFriendInvite,
-        setCurrentUserStatusDescription
+        setCurrentUserStatusDescription,
+        socialStatusDialog
     } = useFriendsSidebarActions({
         canInviteFromCurrentLocation,
         confirm,
         currentInviteLocation,
         currentUser,
-        currentUserId,
-        prompt
+        currentUserId
     });
 
     useEffect(
@@ -728,40 +728,45 @@ export function FriendsSidebar({
         statusPresets,
         onChangeStatus: changeCurrentUserStatus,
         onSetStatusDescription: setCurrentUserStatusDescription,
-        onEditStatusDescription: editCurrentUserStatusDescription,
+        onEditSocialStatus: editCurrentUserSocialStatus,
         onApplyStatusPreset: applyCurrentUserStatusPreset
     };
 
     return (
-        <div
-            ref={viewportRef}
-            className="relative h-full overflow-auto overflow-x-hidden"
-        >
-            <div className="px-1.5 pb-2.5">
-                <div
-                    className="relative w-full"
-                    style={{ height: `${totalSize}px` }}
-                >
-                    {virtualItems.map((item) => (
-                        <div
-                            key={String(item.key)}
-                            ref={getRowRef(item.key)}
-                            className="absolute top-0 left-0 w-full"
-                            style={{ transform: `translateY(${item.start}px)` }}
-                        >
-                            <FriendsSidebarVirtualRow
-                                row={item.row}
-                                isFirstRow={item.index === 0}
-                                appearance={appearanceView}
-                                friendCommands={friendRowCommands}
-                                location={locationView}
-                                runtime={runtimeView}
-                                statusCommands={statusCommands}
-                            />
-                        </div>
-                    ))}
+        <>
+            <div
+                ref={viewportRef}
+                className="relative h-full overflow-auto overflow-x-hidden"
+            >
+                <div className="px-1.5 pb-2.5">
+                    <div
+                        className="relative w-full"
+                        style={{ height: `${totalSize}px` }}
+                    >
+                        {virtualItems.map((item) => (
+                            <div
+                                key={String(item.key)}
+                                ref={getRowRef(item.key)}
+                                className="absolute top-0 left-0 w-full"
+                                style={{
+                                    transform: `translateY(${item.start}px)`
+                                }}
+                            >
+                                <FriendsSidebarVirtualRow
+                                    row={item.row}
+                                    isFirstRow={item.index === 0}
+                                    appearance={appearanceView}
+                                    friendCommands={friendRowCommands}
+                                    location={locationView}
+                                    runtime={runtimeView}
+                                    statusCommands={statusCommands}
+                                />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
+            <CurrentUserSocialStatusDialog controller={socialStatusDialog} />
+        </>
     );
 }

@@ -4,7 +4,7 @@ export const selfStatusBaseOptions = [
     { value: 'join me', labelKey: 'dialog.user.status.join_me' },
     { value: 'active', labelKey: 'dialog.user.status.online' },
     { value: 'ask me', labelKey: 'dialog.user.status.ask_me' },
-    { value: 'busy', labelKey: 'view.friends_locations.busy' }
+    { value: 'busy', labelKey: 'dialog.user.status.busy' }
 ];
 
 const allowedSelfStatuses = new Set([

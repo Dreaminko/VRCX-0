@@ -1,8 +1,8 @@
 import { BoopEmojiDialog } from '../../BoopEmojiDialog';
 import { InviteMessageDialog } from '../../InviteMessageDialog';
 import {
-    UserProfileDetailsDialog,
-    UserSocialStatusDialog
+    CurrentUserSocialStatusDialog,
+    UserProfileDetailsDialog
 } from '../UserSelfEditDialogs';
 import type { useUserDialogActions } from '../useUserDialogActions';
 import type { useUserDialogMemoState } from '../useUserDialogMemoState';
@@ -79,20 +79,9 @@ export function UserDialogContentDialogs({
                 onCancel={noteMemoDialog.onCancel}
                 onSave={noteMemoDialog.onSave}
             />
-            <UserSocialStatusDialog
-                open={socialStatusDialog.open}
-                onOpenChange={socialStatusDialog.onOpenChange}
+            <CurrentUserSocialStatusDialog
+                controller={socialStatusDialog}
                 actionStatus={actionStatus}
-                draft={socialStatusDialog.draft}
-                setDraft={socialStatusDialog.setDraft}
-                statusHistoryRows={socialStatusDialog.statusHistoryRows}
-                statusOptions={socialStatusDialog.statusOptions}
-                statusPresets={socialStatusDialog.statusPresets}
-                statusLabelByValue={socialStatusDialog.statusLabelByValue}
-                onSavePreset={socialStatusDialog.onSavePreset}
-                onRemovePreset={socialStatusDialog.onRemovePreset}
-                onCancel={socialStatusDialog.onCancel}
-                onSave={socialStatusDialog.onSave}
             />
             <UserProfileDetailsDialog
                 open={profileDetailsDialog.open}

@@ -20,6 +20,10 @@ describe('userProfileFields', () => {
             'ask me',
             'busy'
         ]);
+        expect(
+            selfStatusBaseOptions.find((option) => option.value === 'busy')
+                ?.labelKey
+        ).toBe('dialog.user.status.busy');
         expect(normalizeSelfStatusInput('joinme')).toBe('join me');
         expect(normalizeSelfStatusInput('AskMe')).toBe('ask me');
         expect(normalizeSelfStatusInput(' BUSY ')).toBe('busy');

@@ -49,6 +49,7 @@ import { Separator } from '@/ui/shadcn/separator';
 import { Textarea } from '@/ui/shadcn/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
+import type { useCurrentUserSocialStatusDialog } from './useCurrentUserSocialStatusDialog';
 import {
     languageOptionLabel,
     normalizeLanguageKey,
@@ -59,6 +60,9 @@ import type { ProfileDetailsDraft } from './useUserDialogSelfActions';
 
 type LanguageOption = { key: string; value: string };
 type StatusOption = { value: string; label: string };
+type SocialStatusDialogController = ReturnType<
+    typeof useCurrentUserSocialStatusDialog
+>['dialog'];
 
 function record(value: unknown): Record<string, unknown> {
     return value && typeof value === 'object'
@@ -384,6 +388,32 @@ export function UserSocialStatusDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+    );
+}
+
+export function CurrentUserSocialStatusDialog({
+    controller,
+    actionStatus
+}: {
+    controller: SocialStatusDialogController;
+    actionStatus?: string;
+}) {
+    return (
+        <UserSocialStatusDialog
+            open={controller.open}
+            onOpenChange={controller.onOpenChange}
+            actionStatus={actionStatus ?? (controller.busy ? 'saving' : 'idle')}
+            draft={controller.draft}
+            setDraft={controller.setDraft}
+            statusHistoryRows={controller.statusHistoryRows}
+            statusOptions={controller.statusOptions}
+            statusPresets={controller.statusPresets}
+            statusLabelByValue={controller.statusLabelByValue}
+            onSavePreset={controller.onSavePreset}
+            onRemovePreset={controller.onRemovePreset}
+            onCancel={controller.onCancel}
+            onSave={controller.onSave}
+        />
     );
 }
 

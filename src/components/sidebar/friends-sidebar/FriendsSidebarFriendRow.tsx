@@ -55,7 +55,7 @@ type FriendRowCommands = {
     onBoop?: (friend: SidebarFriendRecord) => unknown;
     onChangeStatus?: (status: string) => unknown;
     onSetStatusDescription?: (statusDescription: string) => unknown;
-    onEditStatusDescription?: () => unknown;
+    onEditSocialStatus?: () => unknown;
     onApplyStatusPreset?: (preset: StatusPreset) => unknown;
     statusPresets?: StatusPreset[];
 };
@@ -103,7 +103,7 @@ export function FriendRow({
         onBoop,
         onChangeStatus,
         onSetStatusDescription,
-        onEditStatusDescription,
+        onEditSocialStatus,
         onApplyStatusPreset,
         statusPresets = []
     } = rowCommands || {};
@@ -236,7 +236,7 @@ export function FriendRow({
                         onOpen={onOpen}
                         onChangeStatus={onChangeStatus}
                         onSetStatusDescription={onSetStatusDescription}
-                        onEditStatusDescription={onEditStatusDescription}
+                        onEditSocialStatus={onEditSocialStatus}
                         onApplyStatusPreset={onApplyStatusPreset}
                         MenuItem={ContextMenuItem}
                         CheckboxItem={ContextMenuCheckboxItem}

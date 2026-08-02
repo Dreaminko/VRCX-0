@@ -53,12 +53,23 @@ function statusPresetLabel(
     return option ? t(option.labelKey) : String(preset?.status || '');
 }
 
+function StatusMenuIcon({ status }: { status: unknown }) {
+    return (
+        <span className="mr-2 flex size-4 shrink-0 items-center justify-center">
+            <i
+                aria-hidden="true"
+                className={userStatusIndicatorClassName(status)}
+            />
+        </span>
+    );
+}
+
 export function CurrentUserActionItems({
     friend,
     onOpen,
     onChangeStatus,
     onSetStatusDescription,
-    onEditStatusDescription,
+    onEditSocialStatus,
     onApplyStatusPreset,
     MenuItem,
     CheckboxItem,
@@ -73,7 +84,7 @@ export function CurrentUserActionItems({
     onOpen?: () => void;
     onChangeStatus?: (status: string) => void;
     onSetStatusDescription?: (statusDescription: string) => void;
-    onEditStatusDescription?: () => void;
+    onEditSocialStatus?: () => void;
     onApplyStatusPreset?: (preset: StatusPreset) => void;
     MenuItem: ContextMenuItemComponent;
     CheckboxItem: ContextMenuItemComponent;
@@ -104,28 +115,16 @@ export function CurrentUserActionItems({
                             onChangeStatus?.(option.value);
                         }}
                     >
-                        <i
-                            aria-hidden="true"
-                            className={userStatusIndicatorClassName(
-                                option.value,
-                                { className: 'mr-2' }
-                            )}
-                        />
+                        <StatusMenuIcon status={option.value} />
                         {t(option.labelKey)}
                     </CheckboxItem>
                 ))}
             </Group>
             <Separator />
             <Group>
-                <MenuItem
-                    onClick={() => {
-                        onEditStatusDescription?.();
-                    }}
-                >
+                <MenuItem onClick={onEditSocialStatus}>
                     <SquarePenIcon className="mr-2 opacity-70" />
-                    {t(
-                        'view.settings.general.automation.change_status_description'
-                    )}
+                    {t('dialog.user.action.edit_social_status')}
                 </MenuItem>
                 {friend?.statusDescription ? (
                     <MenuItem
@@ -174,11 +173,9 @@ export function CurrentUserActionItems({
                                         onApplyStatusPreset?.(preset);
                                     }}
                                 >
-                                    <i
-                                        aria-hidden="true"
-                                        className={userStatusIndicatorClassName(
-                                            String(preset?.status || 'active'),
-                                            { className: 'mr-2' }
+                                    <StatusMenuIcon
+                                        status={String(
+                                            preset?.status || 'active'
                                         )}
                                     />
                                     <span className="max-w-52 truncate">

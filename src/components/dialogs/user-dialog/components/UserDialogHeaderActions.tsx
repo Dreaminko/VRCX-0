@@ -204,7 +204,7 @@ export function UserDialogHeaderActions({
                             disabled={actionsDisabled}
                             onClick={onEditSelfStatus}
                         >
-                            {t('dialog.user.actions.edit_status')}
+                            {t('dialog.user.action.edit_social_status')}
                         </EntityActionItem>
                         <EntityActionItem
                             icon={PencilIcon}

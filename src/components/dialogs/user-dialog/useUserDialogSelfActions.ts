@@ -20,17 +20,13 @@ import { mergeCurrentUserPresenceFields } from '@/shared/utils/currentUserPresen
 import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+import { useCurrentUserSocialStatusDialog } from './useCurrentUserSocialStatusDialog';
 import {
     fallbackLanguageOptions,
     normalizeLanguageKey,
     normalizeLanguageOptionsFromConfig,
-    normalizeProfileLanguageRows,
-    normalizeSelfStatusInput,
-    normalizeStatusHistoryRows,
-    selfStatusBaseOptions
+    normalizeProfileLanguageRows
 } from './userProfileFields';
-import { useSelfStatusPresets } from './useSelfStatusPresets';
-import type { SocialStatusDraft } from './useSelfStatusPresets';
 import type { UserDialogProfileRecord } from './useUserDialogProfileResource';
 
 function setSelfActionStatus(
@@ -159,13 +155,6 @@ export function useUserDialogSelfActions({
     setActionStatus
 }: UseUserDialogSelfActionsProps) {
     const { t } = useTranslation();
-
-    const [socialStatusDialogOpen, setSocialStatusDialogOpen] = useState(false);
-    const [socialStatusDraft, setSocialStatusDraft] =
-        useState<SocialStatusDraft>({
-            status: 'active',
-            statusDescription: ''
-        });
     const [profileDetailsDialogOpen, setProfileDetailsDialogOpen] =
         useState(false);
     const [profileDetailsDraft, setProfileDetailsDraft] = useState(
@@ -176,21 +165,6 @@ export function useUserDialogSelfActions({
     >([]);
     const [languageOptionsStatus, setLanguageOptionsStatus] = useState('idle');
 
-    const selfStatusOptions = useMemo(() => {
-        const baseOptions = selfStatusBaseOptions.map((option) => ({
-            ...option,
-            label: t(option.labelKey)
-        }));
-        return profile?.$isModerator
-            ? [
-                  ...baseOptions,
-                  {
-                      value: 'offline',
-                      label: t('dialog.user.status.offline')
-                  }
-              ]
-            : baseOptions;
-    }, [profile?.$isModerator, t]);
     const languageOptionsMap = useMemo(
         () => new Map(languageOptions.map((option) => [option.key, option])),
         [languageOptions]
@@ -237,22 +211,19 @@ export function useUserDialogSelfActions({
             ),
         [languageOptions, profileDetailsLanguageKeySet]
     );
-    const statusHistoryRows = useMemo(
-        () => normalizeStatusHistoryRows(profile, currentUserSnapshot),
-        [currentUserSnapshot, profile]
-    );
-    const selfStatusLabelByValue = useMemo(
-        () =>
-            new Map(
-                selfStatusOptions.map((option) => [option.value, option.label])
-            ),
-        [selfStatusOptions]
-    );
-    const {
-        onRemovePreset: removeSelfStatusPreset,
-        onSavePreset: saveSelfStatusPreset,
-        statusPresets
-    } = useSelfStatusPresets({ socialStatusDraft, t });
+    const { dialog: socialStatusDialog, openDialog: editSelfStatus } =
+        useCurrentUserSocialStatusDialog({
+            profile: isCurrentUser ? profile : null,
+            currentUserSnapshot,
+            busy: actionStatusRef.current !== 'idle',
+            onSave: (patch) =>
+                saveCurrentUserPatch(patch, {
+                    successMessage: t('dialog.user.success.status_updated'),
+                    errorMessage: t(
+                        'dialog.user.toast.failed_to_update_social_status'
+                    )
+                })
+        });
 
     useEffect(() => {
         setLanguageOptions([]);
@@ -378,56 +349,6 @@ export function useUserDialogSelfActions({
             return null;
         } finally {
             setSelfActionStatus(actionStatusRef, setActionStatus, 'idle');
-        }
-    }
-
-    function openSelfSocialStatusDialog() {
-        if (!isCurrentUser || actionStatusRef.current !== 'idle' || !profile) {
-            return;
-        }
-
-        setSocialStatusDraft({
-            status: normalizeSelfStatusInput(profile.status) || 'active',
-            statusDescription: String(profile.statusDescription || '').slice(
-                0,
-                32
-            )
-        });
-        setSocialStatusDialogOpen(true);
-    }
-
-    function editSelfStatus() {
-        openSelfSocialStatusDialog();
-    }
-
-    async function saveSelfSocialStatus() {
-        const nextStatus = normalizeSelfStatusInput(socialStatusDraft.status);
-        if (
-            !nextStatus ||
-            (!profile?.$isModerator && nextStatus === 'offline')
-        ) {
-            toast.warning(
-                t('dialog.user.label.please_choose_a_valid_social_status')
-            );
-            return;
-        }
-
-        const saved = await saveCurrentUserPatch(
-            {
-                status: nextStatus,
-                statusDescription: String(
-                    socialStatusDraft.statusDescription || ''
-                ).slice(0, 32)
-            },
-            {
-                successMessage: t('dialog.user.success.status_updated'),
-                errorMessage: t(
-                    'dialog.user.toast.failed_to_update_social_status'
-                )
-            }
-        );
-        if (saved) {
-            setSocialStatusDialogOpen(false);
         }
     }
 
@@ -678,20 +599,10 @@ export function useUserDialogSelfActions({
         });
     }
 
-    function handleSocialStatusDialogOpenChange(nextOpen: boolean) {
-        if (nextOpen || actionStatusRef.current === 'idle') {
-            setSocialStatusDialogOpen(nextOpen);
-        }
-    }
-
     function handleProfileDetailsDialogOpenChange(nextOpen: boolean) {
         if (nextOpen || actionStatusRef.current === 'idle') {
             setProfileDetailsDialogOpen(nextOpen);
         }
-    }
-
-    function closeSocialStatusDialog() {
-        setSocialStatusDialogOpen(false);
     }
 
     function closeProfileDetailsDialog() {
@@ -699,20 +610,7 @@ export function useUserDialogSelfActions({
     }
 
     return {
-        socialStatusDialog: {
-            open: socialStatusDialogOpen,
-            onOpenChange: handleSocialStatusDialogOpenChange,
-            draft: socialStatusDraft,
-            setDraft: setSocialStatusDraft,
-            statusHistoryRows,
-            statusOptions: selfStatusOptions,
-            statusPresets,
-            statusLabelByValue: selfStatusLabelByValue,
-            onSavePreset: saveSelfStatusPreset,
-            onRemovePreset: removeSelfStatusPreset,
-            onCancel: closeSocialStatusDialog,
-            onSave: saveSelfSocialStatus
-        },
+        socialStatusDialog,
         profileDetailsDialog: {
             open: profileDetailsDialogOpen,
             onOpenChange: handleProfileDetailsDialogOpenChange,

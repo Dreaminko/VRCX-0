@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { useCurrentUserSocialStatusDialog } from '@/components/dialogs/user-dialog/useCurrentUserSocialStatusDialog';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import { openUserDialog } from '@/services/dialogService';
@@ -22,9 +23,7 @@ import type { StatusPreset } from './FriendsSidebarActionItems';
 import type { SidebarFriendRecord } from './friendsSidebarModel';
 
 type ModalStoreActions = ReturnType<typeof useModalStore.getState>;
-type CurrentUserRecord = Record<string, unknown> & {
-    statusDescription?: unknown;
-};
+type CurrentUserRecord = Record<string, unknown>;
 
 type FriendsSidebarActionsInput = {
     canInviteFromCurrentLocation?: boolean;
@@ -32,7 +31,6 @@ type FriendsSidebarActionsInput = {
     currentInviteLocation?: unknown;
     currentUser?: CurrentUserRecord | null;
     currentUserId?: string | null;
-    prompt: ModalStoreActions['prompt'];
 };
 
 type SaveCurrentUserPatchMessages = {
@@ -45,11 +43,26 @@ export function useFriendsSidebarActions({
     confirm,
     currentInviteLocation,
     currentUser,
-    currentUserId,
-    prompt
+    currentUserId
 }: FriendsSidebarActionsInput) {
     const { t } = useTranslation();
     const boopPrompt = useModalStore((state) => state.boopPrompt);
+    const {
+        dialog: socialStatusDialog,
+        openDialog: editCurrentUserSocialStatus
+    } = useCurrentUserSocialStatusDialog({
+        profile: currentUser ?? null,
+        currentUserSnapshot: currentUser ?? null,
+        onSave: (patch) =>
+            saveCurrentUserPatch(patch, {
+                successMessage: t(
+                    'component.friends_sidebar.success.social_status_updated'
+                ),
+                errorMessage: t(
+                    'component.friends_sidebar.toast.failed_to_update_social_status'
+                )
+            })
+    });
 
     function openFriend(friend: SidebarFriendRecord) {
         openUserDialog({
@@ -241,7 +254,7 @@ export function useFriendsSidebarActions({
                     'side_panel.error.cannot_update_profile_no_current_user_session_is_available'
                 )
             );
-            return;
+            return false;
         }
         try {
             const nextUser = await userProfileRepository.updateCurrentUser({
@@ -264,8 +277,10 @@ export function useFriendsSidebarActions({
                 });
             }
             toast.success(successMessage);
+            return true;
         } catch (error) {
             toast.error(userFacingErrorMessage(error, errorMessage));
+            return false;
         }
     }
 
@@ -297,20 +312,6 @@ export function useFriendsSidebarActions({
         );
     }
 
-    async function editCurrentUserStatusDescription() {
-        const result = await prompt({
-            title: t('component.friends_sidebar.modal.edit_status_description'),
-            inputValue: String(currentUser?.statusDescription || ''),
-            multiline: true,
-            confirmText: t('common.actions.save'),
-            cancelText: t('common.actions.cancel')
-        });
-        if (!result.ok) {
-            return;
-        }
-        await setCurrentUserStatusDescription(String(result.value || ''));
-    }
-
     async function applyCurrentUserStatusPreset(preset: StatusPreset) {
         if (!preset?.status) {
             return;
@@ -332,13 +333,14 @@ export function useFriendsSidebarActions({
     return {
         applyCurrentUserStatusPreset,
         changeCurrentUserStatus,
-        editCurrentUserStatusDescription,
+        editCurrentUserSocialStatus,
         launchFriendLocation,
         openFriend,
         requestFriendInvite,
         selfInviteToFriendLocation,
         sendFriendBoop,
         sendFriendInvite,
-        setCurrentUserStatusDescription
+        setCurrentUserStatusDescription,
+        socialStatusDialog
     };
 }
