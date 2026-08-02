@@ -2391,9 +2391,6 @@ export const commands = {
     async appGetFileBase64(path: string): Promise<string> {
         return await TAURI_INVOKE('app__get_file_base64', { path });
     },
-    async appGetFileBytes(path: string): Promise<number[]> {
-        return await TAURI_INVOKE('app__get_file_bytes', { path });
-    },
     async appReadConfigFile(): Promise<string> {
         return await TAURI_INVOKE('app__read_config_file');
     },

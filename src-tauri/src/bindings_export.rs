@@ -543,7 +543,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::shell::app__open_link,
             commands::host::shell::app__open_discord_profile,
             commands::host::shell::app__get_file_base64,
-            commands::host::shell::app__get_file_bytes,
             commands::host::shell::app__read_config_file,
             commands::host::shell::app__read_config_file_safe,
             commands::host::shell::app__vrchat_cache_location_would_change,

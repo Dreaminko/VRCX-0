@@ -49,10 +49,6 @@ pub fn file_base64(path: &str) -> Result<String, Error> {
     Ok(B64.encode(&bytes))
 }
 
-pub fn file_bytes(path: &str) -> Result<Vec<u8>, Error> {
-    Ok(std::fs::read(path)?)
-}
-
 pub fn read_config_file() -> Result<String, Error> {
     let path = vrchat_paths::vrchat_config_path();
     if !path.exists() {
