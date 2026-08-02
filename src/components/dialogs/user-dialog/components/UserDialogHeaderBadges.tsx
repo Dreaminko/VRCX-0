@@ -2,7 +2,9 @@ import {
     BadgeCheckIcon,
     EyeIcon,
     EyeOffIcon,
-    ShieldCheckIcon
+    ShieldCheckIcon,
+    StoreIcon,
+    UserRoundCheckIcon
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +18,7 @@ import { Button } from '@/ui/shadcn/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import { Separator } from '@/ui/shadcn/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { formatStatsDate } from '../userDialogRows';
 import type { UserDialogProfileRecord } from '../useUserDialogProfileResource';
@@ -163,18 +166,27 @@ export function UserDialogHeaderAttributes({
         typeof profile.$trustLevel === 'string'
             ? profile.$trustLevel
             : 'Visitor';
-    const items: { key: string; node: ReactNode }[] = [
+    const items: { key: string; hint: string; node: ReactNode }[] = [
         {
             key: 'trust',
-            node: <span className="min-w-0 truncate">{trustLevel}</span>
+            hint: t('dialog.user.label.trust_level'),
+            node: (
+                <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex size-4 shrink-0 items-center justify-center opacity-70 [&_svg]:size-3.5">
+                        <ShieldCheckIcon aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 truncate">{trustLevel}</span>
+                </span>
+            )
         }
     ];
 
     if (profile.ageVerified) {
         items.push({
             key: 'age-verified',
+            hint: t('dialog.user.label.age_verified'),
             node: (
-                <span className="text-foreground inline-flex shrink-0 items-center gap-1 font-medium">
+                <span className="inline-flex shrink-0 items-center gap-1">
                     <BadgeCheckIcon
                         aria-hidden="true"
                         className="size-3.5 shrink-0"
@@ -185,8 +197,25 @@ export function UserDialogHeaderAttributes({
         });
     }
 
+    if (profile.isEconomyCreator) {
+        items.push({
+            key: 'economy-creator',
+            hint: t('dialog.user.label.economy_creator_hint'),
+            node: (
+                <span className="inline-flex shrink-0 items-center gap-1">
+                    <StoreIcon
+                        aria-hidden="true"
+                        className="size-3.5 shrink-0"
+                    />
+                    {t('dialog.user.label.economy_creator')}
+                </span>
+            )
+        });
+    }
+
     items.push({
         key: 'platform',
+        hint: t('dialog.user.label.platform'),
         node: (
             <span className="inline-flex shrink-0 items-center gap-1 [&_svg]:size-3.5">
                 {PlatformIcon ? <PlatformIcon /> : null}
@@ -198,10 +227,14 @@ export function UserDialogHeaderAttributes({
     if (friendNumber) {
         items.push({
             key: 'friend-number',
+            hint: t('dialog.user.label.friend_number'),
             node: (
-                <span className="shrink-0">
-                    {t('dialog.user.label.friend')}
-                    {friendNumber}
+                <span className="inline-flex shrink-0 items-center gap-1">
+                    <UserRoundCheckIcon
+                        aria-hidden="true"
+                        className="size-3.5 shrink-0"
+                    />
+                    {`#${friendNumber}`}
                 </span>
             )
         });
@@ -214,7 +247,16 @@ export function UserDialogHeaderAttributes({
                     key={item.key}
                     className="inline-flex min-w-0 items-center"
                 >
-                    {item.node}
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <span className="inline-flex min-w-0 cursor-default items-center">
+                                    {item.node}
+                                </span>
+                            }
+                        />
+                        <TooltipContent>{item.hint}</TooltipContent>
+                    </Tooltip>
                     {index < items.length - 1 ? (
                         <span className="mx-1 opacity-50">·</span>
                     ) : null}

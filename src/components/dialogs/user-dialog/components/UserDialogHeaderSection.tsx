@@ -6,7 +6,6 @@ import {
     GemIcon,
     GlobeIcon,
     PencilIcon,
-    ShieldCheckIcon,
     UserRoundIcon
 } from 'lucide-react';
 import {
@@ -220,12 +219,12 @@ function HeaderMetaRow({
     icon,
     children
 }: {
-    icon: ReactNode;
+    icon?: ReactNode;
     children: ReactNode;
 }) {
     return (
         <div className="flex min-w-0 items-center gap-2">
-            <HeaderRowIcon icon={icon} />
+            {icon ? <HeaderRowIcon icon={icon} /> : null}
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5">
                 {children}
             </div>
@@ -726,7 +725,7 @@ export function UserDialogHeaderSection({
                             </span>
                         </HeaderMetaRow>
                     ) : null}
-                    <HeaderMetaRow icon={<ShieldCheckIcon />}>
+                    <HeaderMetaRow>
                         <UserDialogHeaderAttributes
                             profile={profile}
                             friendNumber={isFriend ? friendNumber : undefined}
@@ -735,13 +734,20 @@ export function UserDialogHeaderSection({
                         />
                     </HeaderMetaRow>
                     {hasIdentityMeta ? (
-                        <HeaderMetaRow icon={<UserRoundIcon />}>
+                        <HeaderMetaRow
+                            icon={pronounsText ? undefined : <UserRoundIcon />}
+                        >
                             {pronounsText ? (
                                 <Tooltip>
                                     <TooltipTrigger
                                         render={
-                                            <span className="min-w-0 cursor-default truncate">
-                                                {pronounsText}
+                                            <span className="flex min-w-0 cursor-default items-center gap-2">
+                                                <HeaderRowIcon
+                                                    icon={<UserRoundIcon />}
+                                                />
+                                                <span className="min-w-0 truncate">
+                                                    {pronounsText}
+                                                </span>
                                             </span>
                                         }
                                     />

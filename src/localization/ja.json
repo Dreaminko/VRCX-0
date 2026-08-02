@@ -3417,10 +3417,15 @@
                 "visibility_friends": "フレンド",
                 "visibility_hidden": "非表示",
                 "moderator": "モデレーター",
-                "friend": "フレンド #",
                 "muted": "ミュート中",
                 "order_by": "並び順",
-                "group_by": "グループ化"
+                "group_by": "グループ化",
+                "trust_level": "トラストランク",
+                "age_verified": "年齢確認済み",
+                "platform": "最後に使用したプラットフォーム",
+                "friend_number": "フレンド登録順の番号",
+                "economy_creator": "クリエイター",
+                "economy_creator_hint": "VRChat Marketplace で商品を販売しています"
             },
             "success": {
                 "status_preset_saved": "ステータスプリセットを保存しました",

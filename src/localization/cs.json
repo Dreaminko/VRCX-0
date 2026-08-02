@@ -3424,10 +3424,15 @@
                 "visibility_friends": "Přátelé",
                 "visibility_hidden": "Skryto",
                 "moderator": "Moderátor",
-                "friend": "Přítel č.",
                 "muted": "Ztlumeno",
                 "order_by": "Seřadit dle",
-                "group_by": "Seskupit dle"
+                "group_by": "Seskupit dle",
+                "trust_level": "Úroveň důvěry",
+                "age_verified": "Věk ověřen",
+                "platform": "Naposledy použitá platforma",
+                "friend_number": "Pořadové číslo přítele",
+                "economy_creator": "Tvůrce",
+                "economy_creator_hint": "Prodává obsah na VRChat Marketplace"
             },
             "success": {
                 "status_preset_saved": "Předvolba stavu uložena",

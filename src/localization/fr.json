@@ -3422,10 +3422,15 @@
                 "visibility_friends": "Amis",
                 "visibility_hidden": "Masqué",
                 "moderator": "Modérateur",
-                "friend": "Ami n°",
                 "muted": "Mis en sourdine",
                 "order_by": "Trier par",
-                "group_by": "Grouper par"
+                "group_by": "Grouper par",
+                "trust_level": "Niveau de confiance",
+                "age_verified": "Âge vérifié",
+                "platform": "Dernière plateforme utilisée",
+                "friend_number": "Numéro d'ordre d'ami",
+                "economy_creator": "Créateur",
+                "economy_creator_hint": "Vend du contenu sur le VRChat Marketplace"
             },
             "success": {
                 "status_preset_saved": "Préréglage de statut enregistré",

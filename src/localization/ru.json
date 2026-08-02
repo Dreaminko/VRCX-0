@@ -3424,10 +3424,15 @@
                 "visibility_friends": "Друзья",
                 "visibility_hidden": "Скрытая",
                 "moderator": "Координатор",
-                "friend": "Друг #",
                 "muted": "Выключено",
                 "order_by": "Заказ",
-                "group_by": "Группа"
+                "group_by": "Группа",
+                "trust_level": "Уровень доверия",
+                "age_verified": "Возраст подтверждён",
+                "platform": "Последняя использованная платформа",
+                "friend_number": "Порядковый номер друга",
+                "economy_creator": "Создатель",
+                "economy_creator_hint": "Продаёт контент в VRChat Marketplace"
             },
             "success": {
                 "status_preset_saved": "Пресет статуса сохранён",

@@ -3422,10 +3422,15 @@
                 "visibility_friends": "Friends",
                 "visibility_hidden": "Hidden",
                 "moderator": "Moderator",
-                "friend": "Friend #",
                 "muted": "Muted",
                 "order_by": "Order By",
-                "group_by": "Group By"
+                "group_by": "Group By",
+                "trust_level": "Trust level",
+                "age_verified": "Age verified",
+                "platform": "Last used platform",
+                "friend_number": "Friend order number",
+                "economy_creator": "Creator",
+                "economy_creator_hint": "Sells content in the VRChat Marketplace"
             },
             "success": {
                 "status_preset_saved": "Status preset saved",
