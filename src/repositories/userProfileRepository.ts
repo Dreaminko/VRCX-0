@@ -255,15 +255,30 @@ async function getUserAppearanceProfile({
         );
     }
 
-    const response = await commands.appVrchatUserProfileGet({
-        userId: normalizedUserId,
-        asSelf: asSelf === true
+    const requestProfile = async () => {
+        const response = await commands.appVrchatUserProfileGet({
+            userId: normalizedUserId,
+            asSelf: asSelf === true
+        });
+        const json = unwrapVrchatUserResponse<UserProfileEntity>(
+            response,
+            `profile/${encodeURIComponent(normalizedUserId)}`
+        ).json;
+        return isRecord(json) ? json : {};
+    };
+
+    if (asSelf === true) {
+        return requestProfile();
+    }
+
+    return fetchCachedData({
+        queryKey: queryKeys.userAppearanceProfile(
+            normalizedUserId,
+            DEFAULT_VRCHAT_API_ENDPOINT
+        ),
+        policy: entityQueryPolicies.userAppearanceProfile,
+        queryFn: requestProfile
     });
-    const json = unwrapVrchatUserResponse<UserProfileEntity>(
-        response,
-        `profile/${encodeURIComponent(normalizedUserId)}`
-    ).json;
-    return isRecord(json) ? json : {};
 }
 
 async function getMutualCounts({ userId }: UserEndpointInput) {

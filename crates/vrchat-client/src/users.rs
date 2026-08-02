@@ -28,11 +28,10 @@ pub fn profile_get_input(
     as_self: bool,
 ) -> Result<(String, HttpApiRequestInput), HttpApiError> {
     let user_id = require_text(user_id, "VrchatProfileGet requires userId.")?;
-    let params = if as_self {
-        HashMap::from([("asSelf".to_string(), json!(true))])
-    } else {
-        HashMap::new()
-    };
+    let params = HashMap::from([
+        ("asSelf".to_string(), json!(as_self)),
+        ("withGroupsAndWorlds".to_string(), json!(true)),
+    ]);
     Ok((
         user_id.clone(),
         get_input(
@@ -243,29 +242,21 @@ mod tests {
     }
 
     #[test]
-    fn profile_reads_encode_ids_and_only_add_the_self_query_when_requested() {
-        let (public_user_id, public_profile) =
-            profile_get_input("endpoint".into(), " usr/雪 ".into(), false).unwrap();
-        assert_eq!(public_user_id, "usr/雪");
-        assert_eq!(public_profile.method.as_deref(), Some("GET"));
-        assert_eq!(
-            public_profile.path.as_deref(),
-            Some("profile/usr%2F%E9%9B%AA")
-        );
-        assert_eq!(public_profile.query_params, Some(HashMap::new()));
-
-        let (self_user_id, self_profile) =
-            profile_get_input("endpoint".into(), " usr/雪 ".into(), true).unwrap();
-        assert_eq!(self_user_id, "usr/雪");
-        assert_eq!(self_profile.method.as_deref(), Some("GET"));
-        assert_eq!(
-            self_profile.path.as_deref(),
-            Some("profile/usr%2F%E9%9B%AA")
-        );
-        assert_eq!(
-            self_profile.query_params,
-            Some(HashMap::from([("asSelf".to_string(), json!(true))]))
-        );
+    fn profile_reads_encode_ids_and_always_send_the_self_and_expansion_queries() {
+        for as_self in [false, true] {
+            let (user_id, profile) =
+                profile_get_input("endpoint".into(), " usr/雪 ".into(), as_self).unwrap();
+            assert_eq!(user_id, "usr/雪");
+            assert_eq!(profile.method.as_deref(), Some("GET"));
+            assert_eq!(profile.path.as_deref(), Some("profile/usr%2F%E9%9B%AA"));
+            assert_eq!(
+                profile.query_params,
+                Some(HashMap::from([
+                    ("asSelf".to_string(), json!(as_self)),
+                    ("withGroupsAndWorlds".to_string(), json!(true)),
+                ]))
+            );
+        }
     }
 
     #[test]

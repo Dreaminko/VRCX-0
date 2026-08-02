@@ -165,6 +165,12 @@ export const entityQueryPolicies = Object.freeze({
         retry: 1,
         refetchOnWindowFocus: false
     }),
+    userAppearanceProfile: Object.freeze({
+        staleTime: 60 * SECOND_MS,
+        gcTime: 300 * SECOND_MS,
+        retry: 1,
+        refetchOnWindowFocus: false
+    }),
     userAvatarLookup: Object.freeze({
         staleTime: 30 * MINUTE_MS,
         gcTime: 120 * MINUTE_MS,
@@ -197,6 +203,8 @@ export const queryKeys = Object.freeze({
         withEndpoint(['user', userId], endpoint),
     mutualCounts: (userId: unknown, endpoint: unknown = '') =>
         withEndpoint(['user', userId, 'mutualCounts'], endpoint),
+    userAppearanceProfile: (userId: unknown, endpoint: unknown = '') =>
+        withEndpoint(['user', userId, 'appearanceProfile'], endpoint),
     userGroups: (userId: unknown, endpoint: unknown = '') =>
         withEndpoint(['user', userId, 'groups'], endpoint),
     userGroupsOverview: (userId: unknown, endpoint: unknown = '') =>
