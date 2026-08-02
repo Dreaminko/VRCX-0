@@ -88,7 +88,18 @@ impl VrcxMcpServer {
         Parameters(input): Parameters<CompanionsOfParams>,
     ) -> Result<CallToolResult, String> {
         let owner_user_id = require_current_user_id(&self.runtime)?;
-        let target = match resolve_target_or_result(&self.runtime, &input.user)? {
+        let Some(user) = input
+            .user
+            .as_deref()
+            .map(str::trim)
+            .filter(|user| !user.is_empty())
+        else {
+            return structured_result(MissingCompanionsTargetOutput {
+                needs_disambiguation: true,
+                summary: "Which person's regular companions should I analyze?",
+            });
+        };
+        let target = match resolve_target_or_result(&self.runtime, user)? {
             TargetResolutionOutcome::Resolved(target) => target,
             TargetResolutionOutcome::ToolResult(result) => return Ok(result),
         };
@@ -230,11 +241,20 @@ struct FriendCirclesParams {
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct CompanionsOfParams {
+    /// Display name or usr_ id to analyze. When omitted, the tool asks which
+    /// person the caller means.
     #[serde(alias = "userId", alias = "user_id")]
-    user: String,
+    user: Option<String>,
     #[serde(default)]
     time_window: TimeWindowParams,
     limit: Option<i64>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MissingCompanionsTargetOutput {
+    needs_disambiguation: bool,
+    summary: &'static str,
 }
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -115,6 +115,52 @@ async fn in_process_bridge_preserves_tool_errors_and_dispatch_failures() {
 }
 
 #[tokio::test]
+async fn in_process_bridge_tolerates_reported_assistant_argument_shapes() {
+    let (_dir, runtime) = test_runtime("in-process-assistant-args", "usr_owner").unwrap();
+    let tools = spawn_in_process_tools(runtime).await.unwrap();
+
+    let copresence = tools
+        .call_tool(
+            "get_copresence_summary",
+            Some(Map::from_iter([
+                ("friendsOnly".into(), json!("true")),
+                ("limit".into(), json!(10)),
+            ])),
+        )
+        .await
+        .unwrap();
+    assert!(!copresence.is_error, "{}", copresence.text);
+
+    let activity = tools
+        .call_tool(
+            "get_friend_activity_pattern",
+            Some(Map::from_iter([
+                ("bucket".into(), json!("weekday")),
+                ("user".into(), json!("Alice")),
+                ("utcOffsetMinutes".into(), json!(540)),
+            ])),
+        )
+        .await
+        .unwrap();
+    assert!(!activity.is_error, "{}", activity.text);
+
+    let companions = tools
+        .call_tool(
+            "get_companions_of",
+            Some(Map::from_iter([("limit".into(), json!(10))])),
+        )
+        .await
+        .unwrap();
+    assert!(!companions.is_error, "{}", companions.text);
+    let structured = companions.structured.expect("structured tool result");
+    assert_eq!(structured["needsDisambiguation"], true);
+    assert_eq!(
+        structured["summary"],
+        "Which person's regular companions should I analyze?"
+    );
+}
+
+#[tokio::test]
 async fn online_friends_tool_filters_sorts_and_projects_live_presence() {
     let (_dir, mut runtime) = test_runtime("in-process-online-friends", "usr_owner").unwrap();
     let mut friends = HashMap::new();

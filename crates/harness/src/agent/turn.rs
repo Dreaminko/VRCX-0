@@ -25,6 +25,9 @@ const FINAL_ANSWER_PROMPT: &str = "\
 Do not call any more tools. Write the final answer now, using only the tool results \
 above. If the data is incomplete, say so briefly and answer with the best supported \
 facts.";
+const DIRECT_ANSWER_RETRY_PROMPT: &str = "\
+Write the final answer now and answer the user's request directly. If the request needs \
+facts that are not available, say what information is missing.";
 const EMPTY_TOOL_FALLBACK_ANSWER: &str = "\
 I used the available tools, but they did not return enough detail to write a reliable \
 answer. Try narrowing the question or asking again.";
@@ -252,8 +255,8 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
         }
     }
 
-    if final_answer.trim().is_empty() && used_tools {
-        working.push(ChatMessage::user(FINAL_ANSWER_PROMPT));
+    if final_answer.trim().is_empty() {
+        working.push(ChatMessage::user(final_answer_retry_prompt(used_tools)));
         let turn = {
             let emitter = &ctx.emitter;
             let stream = ctx
@@ -307,7 +310,7 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
         return finish_error(
             &ctx,
             "no_answer",
-            "Stopped after using tools without composing a reply. Try rephrasing or narrowing your question.",
+            "The model returned no reply after a direct retry. Try rephrasing or checking the selected model.",
         );
     }
 
@@ -388,6 +391,14 @@ fn apply_empty_tool_answer_fallback(final_answer: &mut String, used_tools: bool)
     }
     *final_answer = EMPTY_TOOL_FALLBACK_ANSWER.to_string();
     true
+}
+
+fn final_answer_retry_prompt(used_tools: bool) -> &'static str {
+    if used_tools {
+        FINAL_ANSWER_PROMPT
+    } else {
+        DIRECT_ANSWER_RETRY_PROMPT
+    }
 }
 
 struct ResolvedTool {
@@ -720,6 +731,13 @@ mod tests {
 
         assert!(!apply_empty_tool_answer_fallback(&mut final_answer, false));
         assert!(final_answer.is_empty());
+    }
+
+    #[test]
+    fn empty_answer_retry_prompt_matches_available_context() {
+        assert_eq!(final_answer_retry_prompt(true), FINAL_ANSWER_PROMPT);
+        assert_eq!(final_answer_retry_prompt(false), DIRECT_ANSWER_RETRY_PROMPT);
+        assert!(!DIRECT_ANSWER_RETRY_PROMPT.contains("tool results"));
     }
 
     #[test]

@@ -7,6 +7,24 @@ use vrcx_0_persistence::social_aggregates;
 
 use crate::runtime::McpRuntime;
 
+pub(super) fn deserialize_optional_bool<'de, D>(deserializer: D) -> Result<Option<bool>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    match Value::deserialize(deserializer)? {
+        Value::Null => Ok(None),
+        Value::Bool(value) => Ok(Some(value)),
+        Value::String(value) => value
+            .trim()
+            .parse::<bool>()
+            .map(Some)
+            .map_err(serde::de::Error::custom),
+        _ => Err(serde::de::Error::custom(
+            "expected a boolean or a true/false string",
+        )),
+    }
+}
+
 #[derive(Clone, Debug, Default, schemars::JsonSchema)]
 pub(super) struct TimeWindowParams {
     pub(super) from: Option<String>,

@@ -13,7 +13,7 @@ use vrcx_0_persistence::{activity, social_aggregates};
 use crate::server::VrcxMcpServer;
 
 use super::common::{
-    map_persistence_error, ms_to_rfc3339_z, require_current_user_id,
+    deserialize_optional_bool, map_persistence_error, ms_to_rfc3339_z, require_current_user_id,
     resolve_optional_target_or_result, rfc3339_z, social_aggregates_result, structured_result,
     time_window_bounds_ms, TargetResolutionOutcome, TimeWindowParams, WithResolution,
 };
@@ -604,7 +604,7 @@ enum ActivityBucketParam {
     #[default]
     #[serde(alias = "hourOfDay")]
     HourOfDay,
-    #[serde(alias = "dayOfWeek")]
+    #[serde(alias = "dayOfWeek", alias = "weekday")]
     DayOfWeek,
 }
 
@@ -635,6 +635,7 @@ struct CopresenceSummaryParams {
     limit: Option<i64>,
     /// Restrict to current friends. Defaults to true; set false only to include
     /// strangers/acquaintances you are not friends with.
+    #[serde(default, deserialize_with = "deserialize_optional_bool")]
     friends_only: Option<bool>,
 }
 
@@ -864,6 +865,22 @@ mod activity_output_tests {
             serde_json::from_str::<ActivityBucketParam>(r#""dayOfWeek""#).unwrap(),
             ActivityBucketParam::DayOfWeek
         ));
+        assert!(matches!(
+            serde_json::from_str::<ActivityBucketParam>(r#""weekday""#).unwrap(),
+            ActivityBucketParam::DayOfWeek
+        ));
+    }
+
+    #[test]
+    fn copresence_friends_only_accepts_boolean_strings() {
+        for (value, expected) in [("true", true), ("false", false)] {
+            let input: CopresenceSummaryParams = serde_json::from_value(serde_json::json!({
+                "friendsOnly": value
+            }))
+            .unwrap();
+
+            assert_eq!(input.friends_only, Some(expected));
+        }
     }
 
     struct TestDir {
