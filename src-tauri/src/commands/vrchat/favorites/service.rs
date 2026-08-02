@@ -210,7 +210,7 @@ pub fn app__local_favorite_add(
     state: State<'_, AppState>,
     input: LocalFavoriteInput,
 ) -> Result<i64, AppError> {
-    let kind = require_text(input.kind, "LocalFavoriteAdd requires kind.")?;
+    let kind = input.kind;
     let entity_id = require_text(input.entity_id, "LocalFavoriteAdd requires entityId.")?;
     let group_name = require_text(input.group_name, "LocalFavoriteAdd requires groupName.")?;
     crate::commands::local::favorites::app__favorite_add(state, kind, entity_id, group_name)
@@ -222,7 +222,7 @@ pub fn app__local_favorite_remove(
     state: State<'_, AppState>,
     input: LocalFavoriteInput,
 ) -> Result<i64, AppError> {
-    let kind = require_text(input.kind, "LocalFavoriteRemove requires kind.")?;
+    let kind = input.kind;
     let entity_id = require_text(input.entity_id, "LocalFavoriteRemove requires entityId.")?;
     let group_name = require_text(input.group_name, "LocalFavoriteRemove requires groupName.")?;
     crate::commands::local::favorites::app__favorite_remove(state, kind, entity_id, group_name)
@@ -234,7 +234,7 @@ pub fn app__local_favorite_group_create(
     state: State<'_, AppState>,
     input: LocalFavoriteGroupInput,
 ) -> Result<vrcx_0_application::LocalFavoriteGroupWrite, AppError> {
-    let kind = require_text(input.kind, "LocalFavoriteGroupCreate requires kind.")?;
+    let kind = input.kind;
     let group_name = require_text(
         input.group_name,
         "LocalFavoriteGroupCreate requires groupName.",
@@ -243,13 +243,13 @@ pub fn app__local_favorite_group_create(
     let write = vrcx_0_application::create_local_favorite_group(
         state.db.as_ref(),
         &owner_user_id,
-        &kind,
+        kind,
         group_name,
     )
     .map_err(AppError::from)?;
     state
         .realtime_runtime
-        .notify_favorites_changed(&kind, true, false);
+        .notify_favorites_changed(kind.into(), true, false);
     Ok(write)
 }
 
@@ -259,7 +259,7 @@ pub fn app__local_favorite_group_rename(
     state: State<'_, AppState>,
     input: LocalFavoriteGroupRenameInput,
 ) -> Result<vrcx_0_application::LocalFavoriteGroupWrite, AppError> {
-    let kind = require_text(input.kind, "LocalFavoriteGroupRename requires kind.")?;
+    let kind = input.kind;
     let group_name = require_text(
         input.group_name,
         "LocalFavoriteGroupRename requires groupName.",
@@ -272,14 +272,14 @@ pub fn app__local_favorite_group_rename(
     let write = vrcx_0_application::rename_local_favorite_group(
         state.db.as_ref(),
         &owner_user_id,
-        &kind,
+        kind,
         group_name,
         new_group_name,
     )
     .map_err(AppError::from)?;
     state
         .realtime_runtime
-        .notify_favorites_changed(&kind, true, false);
+        .notify_favorites_changed(kind.into(), true, false);
     Ok(write)
 }
 
@@ -289,7 +289,7 @@ pub fn app__local_favorite_group_delete(
     state: State<'_, AppState>,
     input: LocalFavoriteGroupInput,
 ) -> Result<vrcx_0_application::LocalFavoriteGroupWrite, AppError> {
-    let kind = require_text(input.kind, "LocalFavoriteGroupDelete requires kind.")?;
+    let kind = input.kind;
     let group_name = require_text(
         input.group_name,
         "LocalFavoriteGroupDelete requires groupName.",
@@ -298,12 +298,12 @@ pub fn app__local_favorite_group_delete(
     let write = vrcx_0_application::delete_local_favorite_group(
         state.db.as_ref(),
         &owner_user_id,
-        &kind,
+        kind,
         group_name,
     )
     .map_err(AppError::from)?;
     state
         .realtime_runtime
-        .notify_favorites_changed(&kind, true, false);
+        .notify_favorites_changed(kind.into(), true, false);
     Ok(write)
 }

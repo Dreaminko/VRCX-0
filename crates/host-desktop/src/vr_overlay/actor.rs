@@ -16,7 +16,8 @@ use super::{
     noop::NoopOverlayBackend,
     status::{OverlayServicePhase, OverlayServiceStatus},
     types::{
-        BackendStartError, OverlayInputEvent, OverlayInputEventSink, OverlaySurfaceConfig,
+        BackendStartError, BackendStartErrorReason, OverlayInputEvent, OverlayInputEventSink,
+        OverlaySurfaceConfig,
         VrDeviceSnapshot,
     },
 };
@@ -376,10 +377,14 @@ where
                     Some(error.message.clone()),
                 );
                 backend.stop();
-                return Err(if error.permanent {
-                    OverlayCommandError::BackendUnsupported(error.message)
-                } else {
-                    OverlayCommandError::Backend(error.message)
+                return Err(match error.reason {
+                    BackendStartErrorReason::Other => OverlayCommandError::Backend(error.message),
+                    BackendStartErrorReason::RuntimeUnavailable => {
+                        OverlayCommandError::BackendUnavailable(error.message)
+                    }
+                    BackendStartErrorReason::Unsupported => {
+                        OverlayCommandError::BackendUnsupported(error.message)
+                    }
                 });
             }
             update_status(status, OverlayServicePhase::Running, None);

@@ -5,7 +5,7 @@ use vrcx_0_application::{
     AuthenticatedRuntimePhaseSnapshot, BackgroundImageProjection, CommunityThemeProjection,
     DataDirMigrationStatus, FavoriteImportStatus, GroupBanImportStatus,
     GroupModerationBatchProgress, MutualGraphFetchStatus, ProfileBackupStatus,
-    ProfileRestoreProgress, VrcStatusSnapshot,
+    ProfileRestoreProgress, SharedCollectionImportStatus, NoteExportStatus, VrcStatusSnapshot,
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
@@ -64,6 +64,8 @@ struct BackendRuntimeEventPayloadMap {
     group_moderation_batch_progress: GroupModerationBatchProgress,
     mutual_graph_fetch_status: MutualGraphFetchStatus,
     screenshot_library_scan_status: ScreenshotLibraryScanStatus,
+    shared_collection_import_status: SharedCollectionImportStatus,
+    note_export_status: NoteExportStatus,
     friend_profile_load_status: FriendProfileLoadStatusPayload,
     realtime_friend_projection: FriendProjection,
     realtime_user_projection: RealtimeUserProjection,

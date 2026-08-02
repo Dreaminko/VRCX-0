@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use vrcx_0_application_core::{ImageCache, WebClient};
+use vrcx_0_application_core::{
+    FriendProjection, FriendProjectionPatch, FriendStateBucketAuthority, ImageCache, WebClient,
+};
+use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_persistence::{storage::StorageService, DatabaseService};
 
 use super::*;
@@ -52,50 +55,35 @@ fn test_services(name: &str) -> (TestDir, DesktopRuntimeServices) {
     (dir, services)
 }
 
+fn friend_projection(state_bucket: &str, count: usize) -> FriendProjection {
+    let mut projection = FriendProjection::new(1, 1);
+    projection.patches = (0..count)
+        .map(|index| FriendProjectionPatch {
+            user_id: format!("usr_friend_{index}"),
+            patch: FriendRecord::default(),
+            state_bucket: state_bucket.into(),
+            state_bucket_authority: FriendStateBucketAuthority::Explicit,
+        })
+        .collect();
+    projection
+}
+
 #[test]
 fn prefetch_online_friend_avatars_is_a_no_op_without_active_session() {
     let (_dir, services) = test_services("prefetch-no-active-session");
 
-    services.observe_runtime_event(
-        "realtimeFriendProjection",
-        &json!({
-            "patches": [{
-                "userId": "usr_friend",
-                "stateBucket": "online",
-                "patch": {}
-            }]
-        }),
-    );
+    services.observe_runtime_event(&friend_projection("online", 1));
 }
 
 #[test]
 fn prefetch_online_friend_avatars_ignores_non_online_buckets() {
     let (_dir, services) = test_services("prefetch-non-online-bucket");
 
-    services.observe_runtime_event(
-        "realtimeFriendProjection",
-        &json!({
-            "patches": [{
-                "userId": "usr_friend",
-                "stateBucket": "active",
-                "patch": {}
-            }]
-        }),
-    );
+    services.observe_runtime_event(&friend_projection("active", 1));
 }
 
 #[test]
 fn prefetch_online_friend_avatars_skips_bulk_baseline_projections() {
     let (_dir, services) = test_services("prefetch-bulk-baseline");
-    let patches = (0..64)
-        .map(|index| {
-            json!({
-                "userId": format!("usr_friend_{index}"),
-                "stateBucket": "online",
-                "patch": {}
-            })
-        })
-        .collect::<Vec<_>>();
-
-    services.observe_runtime_event("realtimeFriendProjection", &json!({ "patches": patches }));
+    services.observe_runtime_event(&friend_projection("online", 64));
 }

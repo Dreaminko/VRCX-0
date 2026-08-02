@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -11,7 +12,11 @@ use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
 use vrcx_0_application_core::RuntimeEventSink;
 use vrcx_0_application_core::{format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputMode};
-use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase};
+use vrcx_0_application_core::{
+    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetry,
+    BackendRuntimeTelemetryKind, RuntimeVrchatAuthFailurePayload,
+};
+use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_application_core::{
     Error as ApplicationError, Result as ApplicationResult, UpdaterCheckRequest,
     UpdaterDownloadOutcome, UpdaterDownloadProgress, UpdaterInstallHandle, UpdaterMetadata,
@@ -27,7 +32,6 @@ use crate::state::AppState;
 use super::notification::{
     handle_runtime_auth_failure_notification, handle_runtime_auth_failure_recovery,
 };
-use super::shared::json_string_field;
 
 #[derive(Clone)]
 struct TauriRuntimeEventSink {
@@ -41,10 +45,17 @@ impl TauriRuntimeEventSink {
 }
 
 impl RuntimeEventSink for TauriRuntimeEventSink {
-    fn emit(&self, event: &str, payload: serde_json::Value) {
-        log_gui_background_runtime_info(&self.app_handle, event, &payload);
-        handle_runtime_auth_failure_recovery(&self.app_handle, event, &payload);
-        handle_runtime_auth_failure_notification(&self.app_handle, event, &payload);
+    fn emit(
+        &self,
+        event: &str,
+        payload: serde_json::Value,
+        typed_payload: &dyn std::any::Any,
+    ) {
+        log_gui_background_runtime_info(&self.app_handle, event, &payload, typed_payload);
+        if let Some(failure) = typed_payload.downcast_ref::<RuntimeVrchatAuthFailurePayload>() {
+            handle_runtime_auth_failure_recovery(&self.app_handle, failure);
+            handle_runtime_auth_failure_notification(&self.app_handle, failure);
+        }
         let frontend_event = match event {
             "runtimeGameLogEvent" => "addGameLogEvent",
             event => event,
@@ -129,8 +140,9 @@ fn log_gui_background_runtime_info(
     app_handle: &tauri::AppHandle,
     event: &str,
     payload: &serde_json::Value,
+    typed_payload: &dyn std::any::Any,
 ) {
-    if event == "realtimeWsStatus" {
+    if typed_payload.is::<RealtimeWsStatusPayload>() {
         let Some(state) = app_handle.try_state::<AppState>() else {
             return;
         };
@@ -144,14 +156,12 @@ fn log_gui_background_runtime_info(
         return;
     }
 
-    if event != "backendRuntimeTelemetry" {
+    let Some(telemetry) = typed_payload.downcast_ref::<BackendRuntimeTelemetry>() else {
         return;
-    }
+    };
 
-    let snapshot = payload.get("snapshot").unwrap_or(&serde_json::Value::Null);
-    let kind = json_string_field(payload, "kind");
-    if kind == "runtimeStopped" {
-        if json_string_field(snapshot, "mode") == "background" {
+    if telemetry.kind == BackendRuntimeTelemetryKind::RuntimeStopped {
+        if telemetry.snapshot.mode == BackendRuntimeMode::Background {
             log_runtime_output_event(RuntimeOutputMode::Background, event, payload);
         }
         return;
@@ -170,8 +180,8 @@ fn log_gui_background_runtime_info(
     {
         return;
     }
-    if json_string_field(snapshot, "mode") != "background"
-        || !is_background_runtime_info_phase(snapshot)
+    if telemetry.snapshot.mode != BackendRuntimeMode::Background
+        || !is_background_runtime_info_phase(telemetry.snapshot.phase)
     {
         return;
     }
@@ -179,10 +189,12 @@ fn log_gui_background_runtime_info(
     log_runtime_output_event(RuntimeOutputMode::Background, event, payload);
 }
 
-fn is_background_runtime_info_phase(snapshot: &serde_json::Value) -> bool {
+fn is_background_runtime_info_phase(phase: BackendRuntimePhase) -> bool {
     matches!(
-        json_string_field(snapshot, "phase").as_str(),
-        "starting" | "authenticating" | "running"
+        phase,
+        BackendRuntimePhase::Starting
+            | BackendRuntimePhase::Authenticating
+            | BackendRuntimePhase::Running
     )
 }
 
@@ -540,7 +552,7 @@ pub(super) fn start_mcp_server_if_enabled(app: &tauri::AppHandle) {
                 if matches!(status.state, vrcx_0_mcp::McpServerState::Running) {
                     state.runtime_context.sync.record(
                         "mcpServer",
-                        "running",
+                        RuntimeOperationStatus::Running,
                         format!(
                             "MCP server listening on port {}.",
                             status.port.unwrap_or_default()

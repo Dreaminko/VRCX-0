@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use vrcx_0_application_core::{
     vrchat_api::{self, VrchatApiRequest, VrchatApiResponse, VrchatScope},
-    RuntimeDiagnostics, RuntimeSyncEngine, WebClient,
+    FavoriteChangeScope, FavoriteEntityKind, RuntimeDiagnostics, RuntimeSyncEngine, WebClient,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_persistence::DatabaseService;
@@ -19,7 +19,7 @@ pub struct FavoriteRemoteMutationDeps<'a> {
 
 pub struct FavoriteRemoteAddInput {
     pub endpoint: String,
-    pub kind: String,
+    pub kind: FavoriteEntityKind,
     pub entity_id: String,
     pub tags: String,
 }
@@ -54,7 +54,7 @@ async fn execute_remote_favorite_mutation(
     command: &str,
     detail: String,
     request: VrchatApiRequest,
-    notification_kind: &str,
+    notification_scope: FavoriteChangeScope,
 ) -> Result<VrchatApiResponse> {
     let response = vrchat_api::execute_api_command(
         deps.web,
@@ -68,7 +68,7 @@ async fn execute_remote_favorite_mutation(
     .await?;
     if should_notify_favorite_change(response.status) {
         deps.realtime
-            .notify_favorites_changed(notification_kind, false, true);
+            .notify_favorites_changed(notification_scope, false, true);
     }
     Ok(response)
 }
@@ -77,9 +77,10 @@ pub async fn add_remote_favorite(
     deps: &FavoriteRemoteMutationDeps<'_>,
     input: FavoriteRemoteAddInput,
 ) -> Result<VrchatApiResponse> {
+    let notification_scope = input.kind.into();
     let (kind, entity_id, request) = vrchat_api::favorites::favorite_add_input(
         input.endpoint,
-        input.kind,
+        input.kind.as_str().to_string(),
         input.entity_id,
         input.tags,
     )?;
@@ -88,7 +89,7 @@ pub async fn add_remote_favorite(
         "favorite.remote.add",
         format!("Adding {kind} favorite {entity_id}."),
         request,
-        &kind,
+        notification_scope,
     )
     .await
 }
@@ -104,7 +105,7 @@ pub async fn delete_remote_favorite(
         "favorite.remote.delete",
         format!("Deleting favorite for {object_id}."),
         request,
-        "unknown",
+        FavoriteChangeScope::All,
     )
     .await
 }
@@ -113,7 +114,7 @@ pub async fn save_remote_favorite_group(
     deps: &FavoriteRemoteMutationDeps<'_>,
     input: FavoriteRemoteGroupSaveInput,
 ) -> Result<VrchatApiResponse> {
-    let kind = input.kind.clone();
+    let notification_scope = FavoriteChangeScope::from_remote_type(&input.kind);
     let (group, request) = vrchat_api::favorites::favorite_group_save_input(
         input.endpoint,
         input.owner_id,
@@ -127,7 +128,7 @@ pub async fn save_remote_favorite_group(
         "favorite.remote.group.save",
         format!("Saving favorite group {group}."),
         request,
-        &kind,
+        notification_scope,
     )
     .await
 }
@@ -136,7 +137,7 @@ pub async fn clear_remote_favorite_group(
     deps: &FavoriteRemoteMutationDeps<'_>,
     input: FavoriteRemoteGroupClearInput,
 ) -> Result<VrchatApiResponse> {
-    let kind = input.kind.clone();
+    let notification_scope = FavoriteChangeScope::from_remote_type(&input.kind);
     let (group, request) = vrchat_api::favorites::favorite_group_clear_input(
         input.endpoint,
         input.owner_id,
@@ -148,7 +149,7 @@ pub async fn clear_remote_favorite_group(
         "favorite.remote.group.clear",
         format!("Clearing favorite group {group}."),
         request,
-        &kind,
+        notification_scope,
     )
     .await
 }

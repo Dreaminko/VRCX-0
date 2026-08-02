@@ -1,5 +1,4 @@
 import { commands } from '@/platform/tauri/bindings';
-import { tauriClient } from '@/platform/tauri/client';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -56,6 +55,7 @@ import {
     handleRuntimeGameLogProjection,
     handleUpdateIsGameRunning
 } from './runtime-event-bridge/gameRuntimeEventHandlers';
+import { subscribeRuntimeEvent as subscribeTypedRuntimeEvent } from './runtime-event-bridge/subscription';
 import type {
     RuntimeEvent,
     RuntimeEventName,
@@ -459,10 +459,7 @@ function unsubscribeRuntimeEvents(
 function subscribeRuntimeEvent<Name extends RuntimeEventName>(
     name: Name
 ): Promise<RuntimeEventUnsubscribe> {
-    return tauriClient.events.subscribe<RuntimeEventPayloadMap[Name]>(
-        name,
-        (payload) => {
-            handleRuntimeEvent({ name, payload } as RuntimeEvent);
-        }
-    );
+    return subscribeTypedRuntimeEvent(name, (payload) => {
+        handleRuntimeEvent({ name, payload } as RuntimeEvent);
+    });
 }

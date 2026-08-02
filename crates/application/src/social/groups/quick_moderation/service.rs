@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::{HashMap, VecDeque};
 
 use futures_util::stream::{FuturesUnordered, StreamExt};
@@ -16,8 +17,8 @@ use vrcx_0_core::json::scalar_text as value_as_string;
 use super::super::permissions::{has_permission, parse_permission_map, permissions_for_group};
 use super::super::service::{execute_group_api_raw, GroupApiDeps};
 use super::types::{
-    GroupQuickModerationActionInput, GroupQuickModerationActionOutput, GroupQuickModerationGroup,
-    GroupQuickModerationInput, GroupQuickModerationOutput,
+    GroupQuickModerationAction, GroupQuickModerationActionInput, GroupQuickModerationActionOutput,
+    GroupQuickModerationGroup, GroupQuickModerationInput, GroupQuickModerationOutput,
 };
 
 const KICK_PERMISSION: &str = "group-members-remove";
@@ -37,6 +38,44 @@ struct MembershipProbe {
     failed: bool,
 }
 
+struct ValidatedUserId(String);
+
+impl ValidatedUserId {
+    fn new(value: impl AsRef<str>) -> Result<Self> {
+        Ok(Self(require_non_empty(
+            value,
+            "Group quick moderation requires a user id.",
+        )?))
+    }
+
+    fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    fn into_string(self) -> String {
+        self.0
+    }
+}
+
+struct ValidatedGroupId(String);
+
+impl ValidatedGroupId {
+    fn new(value: impl AsRef<str>) -> Result<Self> {
+        Ok(Self(require_non_empty(
+            value,
+            "Group quick moderation requires groupId.",
+        )?))
+    }
+
+    fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    fn into_string(self) -> String {
+        self.0
+    }
+}
+
 pub async fn get_group_quick_moderation(
     deps: GroupQuickModerationDeps,
     input: GroupQuickModerationInput,
@@ -44,14 +83,22 @@ pub async fn get_group_quick_moderation(
     let command = "app__user_group_quick_moderation_get";
     deps.groups.diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         "Group quick moderation snapshot started.",
     );
     let result = load_group_quick_moderation(deps.clone(), input).await;
     match &result {
         Ok(output) => {
-            let status = if output.stale { "stale" } else { "ok" };
-            let sync_status = if output.stale { "stale" } else { "ready" };
+            let status = if output.stale {
+                RuntimeOperationStatus::Stale
+            } else {
+                RuntimeOperationStatus::Ok
+            };
+            let sync_status = if output.stale {
+                RuntimeOperationStatus::Stale
+            } else {
+                RuntimeOperationStatus::Ready
+            };
             deps.groups.diagnostics.record_command(
                 command,
                 status,
@@ -83,7 +130,7 @@ pub async fn get_group_quick_moderation(
         Err(error) => {
             deps.groups
                 .diagnostics
-                .record_command(command, "error", error.to_string());
+                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
             deps.groups
                 .sync
                 .record_failure("groupModeration", error.to_string());
@@ -152,7 +199,7 @@ pub async fn run_group_quick_moderation_action(
     let command = "app__user_group_quick_moderation_action";
     deps.groups.diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         "Group quick moderation action started.",
     );
     let result = execute_group_quick_moderation_action(deps.clone(), input).await;
@@ -160,7 +207,7 @@ pub async fn run_group_quick_moderation_action(
         Ok(output) => {
             deps.groups.diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!(
                     "group={} target={} action={} status={}",
                     output.group_id, output.target_user_id, output.action, output.status
@@ -168,7 +215,7 @@ pub async fn run_group_quick_moderation_action(
             );
             deps.groups.sync.record(
                 "groupModeration",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "Group quick moderation {} completed for {}.",
                     output.action, output.target_user_id
@@ -179,7 +226,7 @@ pub async fn run_group_quick_moderation_action(
         Err(error) => {
             deps.groups
                 .diagnostics
-                .record_command(command, "error", error.to_string());
+                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
             deps.groups
                 .sync
                 .record_failure("groupModeration", error.to_string());
@@ -192,15 +239,19 @@ async fn execute_group_quick_moderation_action(
     deps: GroupQuickModerationDeps,
     input: GroupQuickModerationActionInput,
 ) -> Result<GroupQuickModerationActionOutput> {
-    let current_user_id = normalize_text(input.current_user_id);
-    let target_user_id = normalize_text(input.target_user_id);
-    ensure_user_ids(&current_user_id, &target_user_id)?;
-    let group_id = require_non_empty(input.group_id, "Group quick moderation requires groupId.")?;
+    let current_user_id = ValidatedUserId::new(input.current_user_id)?;
+    let target_user_id = ValidatedUserId::new(input.target_user_id)?;
+    if current_user_id.as_str() == target_user_id.as_str() {
+        return Err(Error::Custom(
+            "Group quick moderation cannot target the current user.".into(),
+        ));
+    }
+    let group_id = ValidatedGroupId::new(input.group_id)?;
     let endpoint = normalize_endpoint(&input.endpoint);
-    ensure_current_scope(&deps, &current_user_id, &endpoint)?;
-    let action = normalize_text(input.action);
+    ensure_current_scope(&deps, current_user_id.as_str(), &endpoint)?;
+    let action = input.action;
 
-    let request = quick_action_request(&endpoint, &group_id, &target_user_id, &action)?;
+    let request = quick_action_request(&endpoint, &group_id, &target_user_id, action)?;
     let response = execute_vrchat_api(&deps, request).await?;
     if response.is_failure() {
         return Err(Error::Custom(
@@ -209,8 +260,8 @@ async fn execute_group_quick_moderation_action(
     }
 
     Ok(GroupQuickModerationActionOutput {
-        group_id,
-        target_user_id,
+        group_id: group_id.into_string(),
+        target_user_id: target_user_id.into_string(),
         action,
         status: response.status,
     })
@@ -218,26 +269,23 @@ async fn execute_group_quick_moderation_action(
 
 fn quick_action_request(
     endpoint: &str,
-    group_id: &str,
-    target_user_id: &str,
-    action: &str,
+    group_id: &ValidatedGroupId,
+    target_user_id: &ValidatedUserId,
+    action: GroupQuickModerationAction,
 ) -> Result<VrchatApiRequest> {
     match action {
-        "kick" => Ok(member_kick_input(
+        GroupQuickModerationAction::Kick => Ok(member_kick_input(
             endpoint.to_string(),
-            group_id.to_string(),
-            target_user_id.to_string(),
+            group_id.as_str().to_string(),
+            target_user_id.as_str().to_string(),
         )?
         .2),
-        "ban" => Ok(member_ban_input(
+        GroupQuickModerationAction::Ban => Ok(member_ban_input(
             endpoint.to_string(),
-            group_id.to_string(),
-            target_user_id.to_string(),
+            group_id.as_str().to_string(),
+            target_user_id.as_str().to_string(),
         )?
         .2),
-        _ => Err(Error::Custom(
-            "Group quick moderation action must be kick or ban.".into(),
-        )),
     }
 }
 
@@ -554,15 +602,29 @@ mod tests {
 
     #[test]
     fn quick_action_request_uses_group_member_builders() {
-        let kick = quick_action_request(endpoint(), "grp 1", "usr 1", "kick").unwrap();
-        let ban = quick_action_request(endpoint(), "grp 1", "usr 1", "ban").unwrap();
+        let group_id = ValidatedGroupId::new("grp 1").unwrap();
+        let target_user_id = ValidatedUserId::new("usr 1").unwrap();
+        let kick = quick_action_request(
+            endpoint(),
+            &group_id,
+            &target_user_id,
+            GroupQuickModerationAction::Kick,
+        )
+        .unwrap();
+        let ban = quick_action_request(
+            endpoint(),
+            &group_id,
+            &target_user_id,
+            GroupQuickModerationAction::Ban,
+        )
+        .unwrap();
 
         assert_eq!(kick.method.as_deref(), Some("DELETE"));
         assert_eq!(kick.path.as_deref(), Some("groups/grp%201/members/usr%201"));
         assert_eq!(ban.method.as_deref(), Some("POST"));
         assert_eq!(ban.path.as_deref(), Some("groups/grp%201/bans"));
-        assert!(quick_action_request(endpoint(), "grp 1", "usr 1", "unban").is_err());
-        assert!(quick_action_request(endpoint(), "grp 1", "usr 1", "noop").is_err());
+        assert!(serde_json::from_value::<GroupQuickModerationAction>(json!("unban")).is_err());
+        assert!(serde_json::from_value::<GroupQuickModerationAction>(json!("noop")).is_err());
     }
 
     #[test]

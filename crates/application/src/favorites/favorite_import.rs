@@ -10,7 +10,9 @@ use std::{
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use vrcx_0_application_core::{read_config_string_array, FavoritesChangedPayload, TaskStopToken};
+use vrcx_0_application_core::{
+    read_config_string_array, FavoriteEntityKind, FavoritesChangedPayload, TaskStopToken,
+};
 use vrcx_0_core::json::RawJson;
 use vrcx_0_core::vrchat_ids::{is_avatar_id, is_user_id, is_world_id};
 use vrcx_0_persistence::{
@@ -38,13 +40,7 @@ const FAVORITE_IMPORT_CANCEL_POLL: Duration = Duration::from_millis(50);
 const FAVORITE_IMPORT_PAGE_SIZE: i64 = 300;
 const FAVORITE_IMPORT_MAX_PAGES: usize = 50;
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub enum FavoriteImportKind {
-    Avatar,
-    World,
-    Friend,
-}
+pub type FavoriteImportKind = FavoriteEntityKind;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -503,7 +499,7 @@ impl FavoriteImportRuntime {
         target: &FavoriteImportTarget,
     ) -> Result<()> {
         let groups =
-            read_config_string_array(self.db.as_ref(), local_group_config_key(kind_name(kind))?)?;
+            read_config_string_array(self.db.as_ref(), local_group_config_key(kind))?;
         if groups.iter().any(|group| group == &target.group) {
             Ok(())
         } else {
@@ -615,7 +611,7 @@ impl FavoriteImportRuntime {
             }
             self.event_bus
                 .emit_favorites_changed(FavoritesChangedPayload {
-                    kind: kind_name(status.kind).into(),
+                    kind: status.kind.into(),
                     local: location == Some(FavoriteImportLocation::Local),
                     remote: location == Some(FavoriteImportLocation::Remote),
                 });
@@ -755,11 +751,7 @@ fn hydration_cache(kind: FavoriteImportKind) -> FavoriteImportHydrationCache {
 }
 
 fn kind_name(kind: FavoriteImportKind) -> &'static str {
-    match kind {
-        FavoriteImportKind::Avatar => "avatar",
-        FavoriteImportKind::World => "world",
-        FavoriteImportKind::Friend => "friend",
-    }
+    kind.as_str()
 }
 
 fn kind_label(kind: FavoriteImportKind) -> &'static str {
@@ -771,11 +763,7 @@ fn kind_label(kind: FavoriteImportKind) -> &'static str {
 }
 
 fn favorite_type_matches_kind(kind: FavoriteImportKind, favorite_type: &str) -> bool {
-    match kind {
-        FavoriteImportKind::Avatar => favorite_type == "avatar",
-        FavoriteImportKind::World => matches!(favorite_type, "world" | "vrcPlusWorld"),
-        FavoriteImportKind::Friend => favorite_type == "friend",
-    }
+    kind.matches_remote_type(favorite_type)
 }
 
 fn is_entity_id(kind: FavoriteImportKind, value: &str) -> bool {

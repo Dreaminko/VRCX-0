@@ -1,8 +1,9 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use tokio::sync::{broadcast, watch};
-use vrcx_0_application_core::{Error, FavoritesChangedPayload, Result};
+use vrcx_0_application_core::{Error, FavoriteChangeScope, FavoritesChangedPayload, Result};
 use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
 use vrcx_0_persistence::realtime::{
     write_realtime_batch, NotificationExpiration, RealtimePersistenceBatch,
@@ -220,7 +221,7 @@ impl RealtimeHostRuntime {
         let runtime = Arc::clone(self);
         self.deps.sync.record(
             "realtime",
-            "running",
+            RuntimeOperationStatus::Running,
             format!("Realtime transport generation {generation} started."),
             0,
         );
@@ -347,9 +348,13 @@ impl RealtimeHostRuntime {
         self.world_cache.sync_favorites_from_db();
     }
 
-    pub fn notify_favorites_changed(&self, kind: &str, local_changed: bool, remote_changed: bool) {
-        let kind = normalize_favorites_changed_kind(kind);
-        if kind == "world" && local_changed {
+    pub fn notify_favorites_changed(
+        &self,
+        kind: FavoriteChangeScope,
+        local_changed: bool,
+        remote_changed: bool,
+    ) {
+        if kind == FavoriteChangeScope::World && local_changed {
             self.sync_world_cache_favorites_from_db();
         }
         self.deps
@@ -382,7 +387,7 @@ impl RealtimeHostRuntime {
             Ok(counts) => {
                 self.deps.sync.record(
                     "realtimeNotifications",
-                    "persisted",
+                    RuntimeOperationStatus::Persisted,
                     "Realtime notification expiration persisted by Rust.",
                     0,
                 );
@@ -505,14 +510,6 @@ impl RealtimeHostRuntime {
             });
         self.deps
             .sync
-            .record("realtime", "idle", "Realtime transport stopped.", 0);
+            .record("realtime", RuntimeOperationStatus::Idle, "Realtime transport stopped.", 0);
     }
-}
-
-fn normalize_favorites_changed_kind(kind: &str) -> String {
-    match kind.trim() {
-        "vrcPlusWorld" => "world",
-        other => other,
-    }
-    .to_string()
 }

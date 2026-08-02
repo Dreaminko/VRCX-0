@@ -1,11 +1,12 @@
 import { commands } from '@/platform/tauri/bindings';
 import type {
+    GroupQuickModerationAction,
     GroupQuickModerationActionOutput,
     GroupQuickModerationOutput
 } from '@/platform/tauri/bindings';
 import { createRequestError } from '@/repositories/vrchatRequest';
 
-export type GroupQuickModerationAction = 'kick' | 'ban';
+export type { GroupQuickModerationAction };
 
 interface GroupQuickModerationInput {
     currentUserId: string;

@@ -6,6 +6,7 @@ mod config;
 mod diagnostics;
 mod error;
 mod event_bus;
+mod favorite_kind;
 pub mod events;
 mod image_cache;
 mod interruptible_sleep;
@@ -13,6 +14,7 @@ pub mod ports;
 mod proxy;
 mod runtime_lifecycle;
 mod runtime_output;
+mod runtime_status;
 #[cfg(test)]
 mod session;
 mod sync;
@@ -27,8 +29,9 @@ pub use async_runtime_policy::{
 };
 pub use auth_scope::{auth_scope_matches, RuntimeAuthScope, RuntimeAuthScopeSnapshot};
 pub use backend_runtime::{
-    BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
-    BackendRuntimeTelemetry, RealtimeProjectionSync,
+    BackendRuntime, BackendRuntimeAuthStatus, BackendRuntimeGameLogStatus, BackendRuntimeMode,
+    BackendRuntimePhase, BackendRuntimeProcessStatus, BackendRuntimeSnapshot,
+    BackendRuntimeTelemetry, BackendRuntimeTelemetryKind, RealtimeProjectionSync,
 };
 pub use background::{
     sleep_until_due_or_stopped, RuntimeBackgroundJobSnapshot, RuntimeBackgroundJobs,
@@ -42,13 +45,14 @@ pub use event_bus::{
     FavoritesChangedPayload, RuntimeEventBus, RuntimeEventPayload, RuntimeEventSink,
     RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload, VrcStatusSnapshot,
 };
+pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind};
 pub use events::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, FriendProjection,
     FriendProjectionPatch, FriendStateBucketAuthority, PrintAutoCleanupEvent,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
     RealtimeEntryCorrectionStream, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeNotificationUpsert,
-    RealtimeUserProjection,
+    RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
+    RealtimeNotificationUpsert, RealtimeUserProjection,
 };
 pub use image_cache::{save_ugc_image_to_file, ImageCache};
 pub use interruptible_sleep::sleep_interruptibly;
@@ -66,6 +70,7 @@ pub use runtime_lifecycle::{RuntimeLifecycle, RuntimeLifecycleSnapshot};
 pub use runtime_output::{
     format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputLine, RuntimeOutputMode,
 };
+pub use runtime_status::RuntimeOperationStatus;
 pub use sync::{RuntimeSyncEngine, RuntimeSyncSnapshot};
 pub use task_supervisor::{
     RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,

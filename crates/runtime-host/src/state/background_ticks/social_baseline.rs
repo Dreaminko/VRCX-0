@@ -90,8 +90,8 @@ pub(in crate::state) async fn run_social_baseline_refresh_core(
             authenticated_runtime.update_favorites_baseline(favorites_output.clone());
             Ok(favorites_output.snapshot.map(|snapshot| {
                 let groups = favorite_group_membership_from_baseline(&snapshot);
+                authenticated_runtime.apply_favorites_snapshot(&snapshot);
                 let value = snapshot.into_value();
-                authenticated_runtime.apply_favorites_snapshot(&value);
                 SocialBaselineFavoritesRefresh {
                     snapshot: value,
                     groups,

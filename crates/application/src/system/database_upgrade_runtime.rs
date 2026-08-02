@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 #[cfg(panic = "unwind")]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
@@ -189,14 +190,14 @@ impl DatabaseUpgradeRuntime {
     fn record_running(&self) {
         self.diagnostics.record_command(
             COMMAND,
-            "running",
+            RuntimeOperationStatus::Running,
             "Running database upgrade orchestration.",
         );
         self.background_jobs.register_job(
             JOB,
             "rust-runtime",
             None,
-            "running",
+            RuntimeOperationStatus::Running,
             "Running database upgrade orchestration.",
         );
     }
@@ -206,7 +207,7 @@ impl DatabaseUpgradeRuntime {
             DatabaseUpgradeRunStatus::Current | DatabaseUpgradeRunStatus::Upgraded => {
                 self.diagnostics.record_command(
                     COMMAND,
-                    "ok",
+                    RuntimeOperationStatus::Ok,
                     format!(
                         "status={:?}, from={}, to={}",
                         result.status, result.from_version, result.to_version
@@ -225,7 +226,7 @@ impl DatabaseUpgradeRuntime {
                     format!("Database upgrade stopped with status {:?}.", result.status)
                 });
                 self.diagnostics
-                    .record_command(COMMAND, "error", detail.clone());
+                    .record_command(COMMAND, RuntimeOperationStatus::Error, detail.clone());
                 self.background_jobs.mark_failed(JOB, detail);
             }
         }
@@ -330,7 +331,10 @@ mod tests {
             .into_iter()
             .find(|job| job.name == JOB)
             .expect("database upgrade background job");
-        assert_eq!(job.status, "idle");
+        assert_eq!(
+            job.status,
+            RuntimeOperationStatus::Idle
+        );
         assert!(job.last_finished_at.is_some());
         assert!(job.last_detail.contains("Upgraded"));
     }

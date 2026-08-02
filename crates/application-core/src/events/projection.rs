@@ -119,11 +119,19 @@ pub struct RealtimeInstanceClosedProjection {
     pub feed_entry: Value,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, specta::Type)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum RealtimeInstanceQueueKind {
+    Update,
+    Ready,
+    Left,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RealtimeInstanceQueueProjection {
     pub generation: u64,
-    pub kind: String,
+    pub kind: RealtimeInstanceQueueKind,
     pub instance_location: String,
     pub world_id: String,
     pub world_name: String,

@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application_realtime::{
     build_favorites_baseline, build_synced_friend_roster_baseline, SocialBaselineDeps,
@@ -30,7 +31,7 @@ pub async fn app__social_baseline_refresh(
     let command = "app__social_baseline_refresh";
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
-    diagnostics.record_command(command, "running", "Social baseline refresh started.");
+    diagnostics.record_command(command, RuntimeOperationStatus::Running, "Social baseline refresh started.");
 
     let result = state
         .runtime
@@ -39,7 +40,11 @@ pub async fn app__social_baseline_refresh(
         .map_err(AppError::from);
     match &result {
         Ok(output) => {
-            let status = if output.stale { "stale" } else { "ok" };
+            let status = if output.stale {
+                RuntimeOperationStatus::Stale
+            } else {
+                RuntimeOperationStatus::Ok
+            };
             diagnostics.record_command(
                 command,
                 status,
@@ -50,7 +55,11 @@ pub async fn app__social_baseline_refresh(
             );
             sync.record(
                 "friends",
-                if output.stale { "stale" } else { "ready" },
+                if output.stale {
+                    RuntimeOperationStatus::Stale
+                } else {
+                    RuntimeOperationStatus::Ready
+                },
                 if output.stale {
                     "Social baseline refresh skipped a stale request.".to_string()
                 } else {
@@ -60,7 +69,7 @@ pub async fn app__social_baseline_refresh(
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("friends", error.to_string());
         }
     }
@@ -77,7 +86,7 @@ pub async fn app__social_favorites_baseline_get(
     let command = "app__social_favorites_baseline_get";
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
-    diagnostics.record_command(command, "running", "Favorites baseline started.");
+    diagnostics.record_command(command, RuntimeOperationStatus::Running, "Favorites baseline started.");
 
     let result = build_favorites_baseline(social_baseline_deps(&state), input)
         .await
@@ -87,8 +96,16 @@ pub async fn app__social_favorites_baseline_get(
             state
                 .authenticated_runtime
                 .update_favorites_baseline(output.clone());
-            let status = if output.stale { "stale" } else { "ok" };
-            let sync_status = if output.stale { "stale" } else { "ready" };
+            let status = if output.stale {
+                RuntimeOperationStatus::Stale
+            } else {
+                RuntimeOperationStatus::Ok
+            };
+            let sync_status = if output.stale {
+                RuntimeOperationStatus::Stale
+            } else {
+                RuntimeOperationStatus::Ready
+            };
             diagnostics.record_command(
                 command,
                 status,
@@ -112,7 +129,7 @@ pub async fn app__social_favorites_baseline_get(
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("favorites", error.to_string());
         }
     }
@@ -129,7 +146,7 @@ pub async fn app__social_friend_roster_baseline_get(
     let command = "app__social_friend_roster_baseline_get";
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
-    diagnostics.record_command(command, "running", "Friend roster baseline started.");
+    diagnostics.record_command(command, RuntimeOperationStatus::Running, "Friend roster baseline started.");
 
     let result = build_synced_friend_roster_baseline(
         social_baseline_deps(&state),
@@ -141,8 +158,16 @@ pub async fn app__social_friend_roster_baseline_get(
     .map_err(AppError::from);
     match &result {
         Ok(output) => {
-            let status = if output.stale { "stale" } else { "ok" };
-            let sync_status = if output.stale { "stale" } else { "ready" };
+            let status = if output.stale {
+                RuntimeOperationStatus::Stale
+            } else {
+                RuntimeOperationStatus::Ok
+            };
+            let sync_status = if output.stale {
+                RuntimeOperationStatus::Stale
+            } else {
+                RuntimeOperationStatus::Ready
+            };
             diagnostics.record_command(
                 command,
                 status,
@@ -166,7 +191,7 @@ pub async fn app__social_friend_roster_baseline_get(
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("friends", error.to_string());
         }
     }

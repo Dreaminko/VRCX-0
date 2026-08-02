@@ -14,10 +14,10 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 use vrcx_0_application_core::{
     format_runtime_output_event, recommended_tokio_max_blocking_threads,
-    recommended_tokio_worker_threads, BackendRuntimeMode, RuntimeEventSink, RuntimeOutputLevel,
-    RuntimeOutputLine, RuntimeOutputMode, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle,
+    recommended_tokio_worker_threads, BackendRuntimeMode, BackendRuntimeTelemetry,
+    BackendRuntimeTelemetryKind, RuntimeEventSink, RuntimeOutputLevel, RuntimeOutputLine,
+    RuntimeOutputMode, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle,
 };
-use vrcx_0_core::json::JsonExt;
 use vrcx_0_host::app_paths::resolve_app_data_dir;
 use vrcx_0_host::error_log::{
     append_headless_error_log, default_app_data_dir, ErrorLogWriter, HEADLESS_ERROR_LOG_FILE,
@@ -272,8 +272,8 @@ impl ConsoleRuntimeEventSink {
 }
 
 impl RuntimeEventSink for ConsoleRuntimeEventSink {
-    fn emit(&self, event: &str, payload: Value) {
-        let allow_during_shutdown = is_runtime_stopped_event(event, &payload);
+    fn emit(&self, event: &str, payload: Value, typed_payload: &dyn std::any::Any) {
+        let allow_during_shutdown = is_runtime_stopped_event(typed_payload);
         let _guard = self
             .output_lock
             .lock()
@@ -371,6 +371,8 @@ where
     }
 }
 
-fn is_runtime_stopped_event(event: &str, payload: &Value) -> bool {
-    event == "backendRuntimeTelemetry" && payload.trimmed_text("kind") == "runtimeStopped"
+fn is_runtime_stopped_event(payload: &dyn std::any::Any) -> bool {
+    payload
+        .downcast_ref::<BackendRuntimeTelemetry>()
+        .is_some_and(|telemetry| telemetry.kind == BackendRuntimeTelemetryKind::RuntimeStopped)
 }

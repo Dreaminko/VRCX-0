@@ -1,6 +1,6 @@
 import {
     commands,
-    type FavoriteImportKind,
+    type FavoriteEntityKind as FavoriteImportKind,
     type FavoriteImportOperation,
     type FavoriteImportStatus,
     type FavoriteImportTarget

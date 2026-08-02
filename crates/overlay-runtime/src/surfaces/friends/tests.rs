@@ -35,29 +35,26 @@ fn hidden_friends_panel_ignores_selected_category_config() {
 
 #[test]
 fn favorite_friend_groups_snapshot_preserves_remote_and_local_labels() {
-    let snapshot = serde_json::json!({
-        "favoriteFriendGroups": [
-            {
-                "key": "friend:group_0",
-                "name": "group_0",
-                "displayName": "VIP",
-                "count": 1
-            }
-        ],
-        "groupedFavoriteFriendIdsByGroupKey": {
-            "friend:group_0": ["usr_a"]
-        },
-        "localFriendFavoriteGroups": [
-            {
-                "key": "Best",
-                "displayName": "Best Local",
-                "count": 1
-            }
-        ],
-        "localFriendFavorites": {
-            "Best": ["usr_b"]
-        }
-    });
+    let snapshot = FavoriteBaselineSnapshot {
+        favorite_friend_groups: vec![vrcx_0_application_realtime::FavoriteGroupOutput {
+            key: "friend:group_0".into(),
+            name: "group_0".into(),
+            display_name: "VIP".into(),
+            count: 1,
+            ..Default::default()
+        }],
+        grouped_favorite_friend_ids_by_group_key: [(
+            "friend:group_0".into(),
+            vec!["usr_a".into()],
+        )]
+        .into_iter()
+        .collect(),
+        local_friend_favorites: [("Best".into(), vec!["usr_b".into()])]
+            .into_iter()
+            .collect(),
+        local_friend_favorite_groups: vec!["Best".into()],
+        ..Default::default()
+    };
 
     let groups = favorite_friend_groups_snapshot_from_baseline(&snapshot);
 
@@ -67,7 +64,7 @@ fn favorite_friend_groups_snapshot_preserves_remote_and_local_labels() {
     assert_eq!(groups.groups[0].label, "VIP");
     assert_eq!(groups.groups[0].user_ids, vec!["usr_a"]);
     assert_eq!(groups.groups[1].key, "local:Best");
-    assert_eq!(groups.groups[1].label, "Best Local");
+    assert_eq!(groups.groups[1].label, "Best");
     assert_eq!(groups.groups[1].user_ids, vec!["usr_b"]);
 }
 

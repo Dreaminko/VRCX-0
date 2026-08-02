@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use vrcx_0_application_core::FavoriteEntityKind;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::cache_entities::CacheEntityInput;
 use vrcx_0_persistence::DatabaseService;
@@ -72,8 +73,7 @@ pub struct FavoriteTransferItem {
 pub struct FavoriteTransferInput {
     #[serde(default)]
     pub endpoint: String,
-    #[serde(default)]
-    pub kind: String,
+    pub kind: FavoriteEntityKind,
     pub mode: FavoriteTransferMode,
     pub source: FavoriteTransferSource,
     pub target: FavoriteTransferTarget,
@@ -172,7 +172,7 @@ pub fn favorite_transfer_plan_for_item(
     input: &FavoriteTransferInput,
     item: &FavoriteTransferItem,
 ) -> Result<Vec<FavoriteTransferStage>> {
-    let kind = normalize_favorite_kind(&input.kind)?;
+    let kind = input.kind.as_str();
     let source_group = normalize_text(&input.source.group);
     let target_group = normalize_text(&input.target.group);
     let entity_id = normalize_text(&item.entity_id);
@@ -686,7 +686,7 @@ async fn add_remote_favorite_with_group(
     item: &FavoriteTransferItem,
     group: &str,
 ) -> Result<RawJson> {
-    let kind = normalize_favorite_kind(&input.kind)?;
+    let kind = input.kind.as_str();
     let favorite_type = remote_favorite_type(input, kind);
     let (_, _, request) = favorite_add_input(
         input.endpoint.clone(),
@@ -720,7 +720,7 @@ fn add_local_favorite(
     let affected = vrcx_0_persistence::favorites::favorite_add(
         deps.db,
         Some(deps.owner_user_id),
-        normalize_favorite_kind(&input.kind)?.to_string(),
+        input.kind.as_str().to_string(),
         normalize_text(&item.entity_id),
         normalize_text(&input.target.group),
     )?;
@@ -735,17 +735,16 @@ fn add_local_fallback_favorite(
     input: &FavoriteTransferInput,
     item: &FavoriteTransferItem,
 ) -> Result<i64> {
-    let kind = normalize_favorite_kind(&input.kind)?;
     super::local_favorites::create_local_favorite_group(
         deps.db,
         deps.owner_user_id,
-        kind,
+        input.kind,
         FAVORITE_RECOVERED_GROUP.to_string(),
     )?;
     let affected = vrcx_0_persistence::favorites::favorite_add(
         deps.db,
         Some(deps.owner_user_id),
-        kind.to_string(),
+        input.kind.as_str().to_string(),
         normalize_text(&item.entity_id),
         FAVORITE_RECOVERED_GROUP.to_string(),
     )?;
@@ -763,7 +762,7 @@ fn delete_local_favorite(
     Ok(vrcx_0_persistence::favorites::favorite_remove(
         deps.db,
         Some(deps.owner_user_id),
-        normalize_favorite_kind(&input.kind)?.to_string(),
+        input.kind.as_str().to_string(),
         normalize_text(&item.entity_id),
         normalize_text(&input.source.group),
     )?)
@@ -777,7 +776,7 @@ fn move_local_favorite(
     let result = vrcx_0_persistence::favorites::favorite_move(
         deps.db,
         Some(deps.owner_user_id),
-        normalize_favorite_kind(&input.kind)?.to_string(),
+        input.kind.as_str().to_string(),
         normalize_text(&item.entity_id),
         normalize_text(&input.source.group),
         normalize_text(&input.target.group),
@@ -914,7 +913,7 @@ async fn precheck_remote_target(
         return Ok(None);
     }
 
-    let kind = normalize_favorite_kind(&input.kind)?;
+    let kind = input.kind.as_str();
     let favorite_type = remote_favorite_type(input, kind);
     let target_group = normalize_text(&input.target.group);
 
@@ -1023,15 +1022,6 @@ fn remote_copy_unsupported_error() -> Error {
     )
 }
 
-fn normalize_favorite_kind(kind: &str) -> Result<&'static str> {
-    match kind.trim() {
-        "friend" => Ok("friend"),
-        "avatar" => Ok("avatar"),
-        "world" => Ok("world"),
-        _ => Err(Error::Custom("unsupported favorite kind".into())),
-    }
-}
-
 fn remote_favorite_type(input: &FavoriteTransferInput, kind: &str) -> String {
     let favorite_type = normalize_text(&input.target.favorite_type);
     if favorite_type.is_empty() {
@@ -1063,7 +1053,7 @@ fn cache_world_snapshot_if_safe(
     input: &FavoriteTransferInput,
     item: &FavoriteTransferItem,
 ) -> Result<()> {
-    if normalize_favorite_kind(&input.kind)? != "world" {
+    if input.kind != FavoriteEntityKind::World {
         return Ok(());
     }
     let Some(entity) = item.entity.as_ref().map(RawJson::as_value) else {
@@ -1111,7 +1101,7 @@ mod tests {
     ) -> FavoriteTransferInput {
         FavoriteTransferInput {
             endpoint: "https://api.vrchat.cloud/api/1".to_string(),
-            kind: "world".to_string(),
+            kind: FavoriteEntityKind::World,
             mode,
             source: FavoriteTransferSource {
                 location: source_location,

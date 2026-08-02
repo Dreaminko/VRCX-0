@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 use vrcx_0_application_core::{
-    FriendProjection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
-    RealtimeNotificationProjection,
+    FriendProjection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueKind,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
 };
 
 use super::content::nested_string;
@@ -42,7 +42,7 @@ impl OverlayActivityRuntime {
         &self,
         projection: &RealtimeInstanceQueueProjection,
     ) -> Vec<OverlayActivityEntry> {
-        if projection.kind != "ready" {
+        if projection.kind != RealtimeInstanceQueueKind::Ready {
             return Vec::new();
         }
         let candidate = OverlayActivityCandidate {

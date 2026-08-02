@@ -15,6 +15,7 @@ import { useWorldCollectionImportStore } from '@/state/worldCollectionImportStor
 
 import { openAvatarDialog, openWorldDialog } from './dialogService';
 import i18n from './i18nService';
+import { subscribeRuntimeEvent } from './runtime-event-bridge/subscription';
 
 const DEEP_LINK_ARRIVED_EVENT = 'deepLinkArrived';
 const SHARED_COLLECTION_IMPORT_STATUS_EVENT = 'sharedCollectionImportStatus';
@@ -35,7 +36,7 @@ export async function bindDeepLinkEvents(): Promise<DeepLinkEventUnsubscribe> {
             })
         );
         unsubscribes.push(
-            await tauriClient.events.subscribe<SharedCollectionImportStatus>(
+            await subscribeRuntimeEvent(
                 SHARED_COLLECTION_IMPORT_STATUS_EVENT,
                 handleSharedCollectionImportStatus
             )

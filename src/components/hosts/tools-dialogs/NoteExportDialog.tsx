@@ -14,9 +14,9 @@ import { FadeInImage } from '@/components/media/FadeInImage';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { commands, type NoteExportStatus } from '@/platform/tauri/bindings';
-import { tauriClient } from '@/platform/tauri/client';
 import { openUserDialog } from '@/services/dialogService';
 import { userImage } from '@/services/entityMediaService';
+import { subscribeRuntimeEvent } from '@/services/runtime-event-bridge/subscription';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useModalStore } from '@/state/modalStore';
 import { Alert, AlertAction, AlertDescription } from '@/ui/shadcn/alert';
@@ -216,7 +216,7 @@ export function NoteExportDialog({
         setErrors('');
         setSkippedIds(new Set());
         void (async () => {
-            unsubscribe = await tauriClient.events.subscribe<NoteExportStatus>(
+            unsubscribe = await subscribeRuntimeEvent(
                 'noteExportStatus',
                 (status) => {
                     if (!disposed) {

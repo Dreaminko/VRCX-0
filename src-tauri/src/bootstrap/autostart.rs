@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::time::Duration;
 
 use tauri::Manager;
@@ -42,7 +43,7 @@ pub(super) fn sync_autostart_from_db(app: &tauri::App, state: &AppState) {
         }
         state.runtime_context.runtime.record_phase(
             "autostart",
-            "completed",
+            RuntimeOperationStatus::Completed,
             "Autostart preference synchronized.",
         );
     }
@@ -52,7 +53,7 @@ pub(super) fn sync_autostart_from_db(app: &tauri::App, state: &AppState) {
         let _ = app;
         state.runtime_context.runtime.record_phase(
             "autostart",
-            "skipped",
+            RuntimeOperationStatus::Skipped,
             "Autostart synchronization is unavailable on this platform.",
         );
     }

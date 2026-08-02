@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::{HashMap, HashSet};
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -90,14 +91,14 @@ pub async fn load_group_calendar(
         ));
     }
     deps.diagnostics
-        .record_command(command, "running", format!("Loading calendar {date}."));
+        .record_command(command, RuntimeOperationStatus::Running, format!("Loading calendar {date}."));
 
     let result = load_group_calendar_inner(&deps, &scope, &date, input.include_featured).await;
     match &result {
         Ok(snapshot) => {
             deps.diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!(
                     "events={}, following={}, groups={}",
                     snapshot.events.len(),
@@ -107,14 +108,14 @@ pub async fn load_group_calendar(
             );
             deps.sync.record(
                 "groupCalendar",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 "Group calendar snapshot loaded.",
                 0,
             );
         }
         Err(error) => {
             deps.diagnostics
-                .record_command(command, "error", error.to_string());
+                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
             deps.sync.record_failure("groupCalendar", error.to_string());
         }
     }

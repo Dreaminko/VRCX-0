@@ -6,7 +6,10 @@ use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
     OverlayActivityDelivery, OverlayActivityEntry,
 };
-use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
+use vrcx_0_application_core::{
+    BackendRuntimeAuthStatus, BackendRuntimeGameLogStatus, BackendRuntimeMode,
+    BackendRuntimePhase, BackendRuntimeProcessStatus, BackendRuntimeSnapshot,
+};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_runtime_host::notification::{
@@ -137,19 +140,16 @@ fn auth_webhook_recovery_only_targets_authenticated_background_sessions() {
     assert!(auth_webhook_should_recover(&backend_snapshot(
         BackendRuntimeMode::Background,
         BackendRuntimePhase::Running,
-        "authenticated",
         "usr_1"
     )));
     assert!(!auth_webhook_should_recover(&backend_snapshot(
         BackendRuntimeMode::Foreground,
         BackendRuntimePhase::Running,
-        "authenticated",
         "usr_1"
     )));
     assert!(!auth_webhook_should_recover(&backend_snapshot(
         BackendRuntimeMode::Background,
         BackendRuntimePhase::Running,
-        "authenticated",
         ""
     )));
 }
@@ -157,18 +157,17 @@ fn auth_webhook_recovery_only_targets_authenticated_background_sessions() {
 fn backend_snapshot(
     mode: BackendRuntimeMode,
     phase: BackendRuntimePhase,
-    auth_status: &str,
     auth_user_id: &str,
 ) -> BackendRuntimeSnapshot {
     BackendRuntimeSnapshot {
         mode,
         phase,
-        auth_status: auth_status.into(),
+        auth_status: BackendRuntimeAuthStatus::Authenticated,
         auth_user_id: auth_user_id.into(),
         auth_display_name: "Pizza".into(),
         ws_status: "authFailure".into(),
-        game_log_status: "idle".into(),
-        process_status: "unknown".into(),
+        game_log_status: BackendRuntimeGameLogStatus::Idle,
+        process_status: BackendRuntimeProcessStatus::Unknown,
         ws_message_counts: Default::default(),
         ws_persisted_count: 0,
         game_log_persisted_count: 0,

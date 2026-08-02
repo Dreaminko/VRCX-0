@@ -3,6 +3,7 @@ use vrcx_0_application::{
     FavoriteTransferLocation, FavoriteTransferMode, FavoriteTransferSource, FavoriteTransferStage,
     FavoriteTransferTarget,
 };
+use vrcx_0_application_core::FavoriteEntityKind;
 
 fn transfer_input(
     source: FavoriteTransferLocation,
@@ -11,7 +12,7 @@ fn transfer_input(
 ) -> FavoriteTransferInput {
     FavoriteTransferInput {
         endpoint: "https://api.vrchat.cloud/api/1".to_string(),
-        kind: "world".to_string(),
+        kind: FavoriteEntityKind::World,
         mode,
         source: FavoriteTransferSource {
             location: source,

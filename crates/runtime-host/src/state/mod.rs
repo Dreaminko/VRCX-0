@@ -15,8 +15,8 @@ use vrcx_0_application::{
 };
 use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
-    BackendRuntimeTelemetry, BackgroundCapabilitySession, RuntimeBackgroundJobs, RuntimeEventSink,
-    RuntimeRealtimeTransportEpoch, WebClient,
+    BackendRuntimeTelemetry, BackendRuntimeTelemetryKind, BackgroundCapabilitySession,
+    RuntimeBackgroundJobs, RuntimeEventSink, RuntimeRealtimeTransportEpoch, WebClient,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_persistence::DatabaseService;

@@ -26,7 +26,7 @@ use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::auth::current_user_get_input;
 use vrcx_0_vrchat_client::http_api::ApiScope;
 
-use crate::{Error, Result, RuntimeHostSnapshotCallback};
+use crate::{Error, Result, RuntimeHostFavoritesCallback};
 
 const RETRY_DELAYS_SECONDS: [u64; 4] = [5, 15, 30, 60];
 const RETRY_SLEEP_POLL_INTERVAL: Duration = Duration::from_millis(250);
@@ -49,7 +49,7 @@ pub struct AuthenticatedRuntimeOrchestrator {
     auth_scope: RuntimeAuthScope,
     session: HostSessionRuntime,
     realtime_runtime: Arc<RealtimeHostRuntime>,
-    favorites_sink: Option<RuntimeHostSnapshotCallback>,
+    favorites_sink: Option<RuntimeHostFavoritesCallback>,
 }
 
 impl AuthenticatedRuntimeOrchestrator {
@@ -62,7 +62,7 @@ impl AuthenticatedRuntimeOrchestrator {
         auth_scope: RuntimeAuthScope,
         session: HostSessionRuntime,
         realtime_runtime: Arc<RealtimeHostRuntime>,
-        favorites_sink: Option<RuntimeHostSnapshotCallback>,
+        favorites_sink: Option<RuntimeHostFavoritesCallback>,
     ) -> Self {
         Self {
             snapshot: Arc::new(Mutex::new(AuthenticatedRuntimePhaseSnapshot::default())),
@@ -127,7 +127,7 @@ impl AuthenticatedRuntimeOrchestrator {
         snapshot.updated_at = now_iso();
     }
 
-    pub fn apply_favorites_snapshot(&self, snapshot: &Value) {
+    pub fn apply_favorites_snapshot(&self, snapshot: &FavoriteBaselineSnapshot) {
         if let Some(favorites_sink) = &self.favorites_sink {
             favorites_sink(snapshot);
         }
@@ -490,7 +490,7 @@ impl AuthenticatedRuntimeOrchestrator {
             {
                 Ok(output) => {
                     if let Some(snapshot) = output.snapshot.as_ref() {
-                        self.apply_favorites_snapshot(&snapshot.to_value());
+                        self.apply_favorites_snapshot(snapshot);
                     }
                     self.update_snapshot(run_id, |snapshot| {
                         snapshot.favorites =
@@ -991,30 +991,6 @@ fn friend_state_bucket(friend: &FriendRecord) -> &str {
     }
 }
 
-pub fn favorite_group_membership_from_snapshot(snapshot: &Value) -> HashMap<String, Vec<String>> {
-    let mut groups = HashMap::new();
-    append_favorite_group_membership(
-        &mut groups,
-        snapshot.get("groupedFavoriteFriendIdsByGroupKey"),
-        "",
-    );
-    append_favorite_group_membership(&mut groups, snapshot.get("localFriendFavorites"), "local:");
-    groups
-}
-
-pub fn favorite_world_group_membership_from_snapshot(
-    snapshot: &Value,
-) -> HashMap<String, Vec<String>> {
-    let mut groups = HashMap::new();
-    append_favorite_group_membership(
-        &mut groups,
-        snapshot.get("groupedFavoriteWorldIdsByGroupKey"),
-        "",
-    );
-    append_favorite_group_membership(&mut groups, snapshot.get("localWorldFavorites"), "local:");
-    groups
-}
-
 pub fn favorite_group_membership_from_baseline(
     snapshot: &FavoriteBaselineSnapshot,
 ) -> HashMap<String, Vec<String>> {
@@ -1055,30 +1031,6 @@ fn append_typed_favorite_group_membership(
             .collect::<Vec<_>>();
         if !entity_ids.is_empty() {
             groups.insert(format!("{key_prefix}{group_key}"), entity_ids);
-        }
-    }
-}
-
-fn append_favorite_group_membership(
-    groups: &mut HashMap<String, Vec<String>>,
-    value: Option<&Value>,
-    key_prefix: &str,
-) {
-    let Some(object) = value.and_then(Value::as_object) else {
-        return;
-    };
-    for (group_key, user_ids) in object {
-        let user_ids = user_ids
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter_map(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_string)
-            .collect::<Vec<_>>();
-        if !user_ids.is_empty() {
-            groups.insert(format!("{key_prefix}{group_key}"), user_ids);
         }
     }
 }

@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::sync::Arc;
 
 use super::state::FriendOwnerGuard;
@@ -90,7 +91,7 @@ impl RealtimeHostRuntime {
                 Ok(counts) => {
                     self.deps.sync.record(
                         "realtimeFriends",
-                        "persisted",
+                        RuntimeOperationStatus::Persisted,
                         "Realtime friend projection persisted by Rust.",
                         0,
                     );
@@ -227,7 +228,7 @@ impl RealtimeHostRuntime {
             Ok(counts) => {
                 self.deps.sync.record(
                     "realtimeNotifications",
-                    "persisted",
+                    RuntimeOperationStatus::Persisted,
                     "Realtime notification projection persisted by Rust.",
                     0,
                 );
@@ -288,7 +289,7 @@ impl RealtimeHostRuntime {
             Ok(counts) => {
                 self.deps.sync.record(
                     "realtimeCurrentUser",
-                    "persisted",
+                    RuntimeOperationStatus::Persisted,
                     "Realtime current-user projection persisted by Rust.",
                     0,
                 );
@@ -327,7 +328,7 @@ impl RealtimeHostRuntime {
             Ok(counts) => {
                 self.deps.sync.record(
                     "realtimeInstanceClosed",
-                    "persisted",
+                    RuntimeOperationStatus::Persisted,
                     "Realtime instance-closed projection persisted by Rust.",
                     0,
                 );

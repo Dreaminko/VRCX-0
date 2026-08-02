@@ -240,7 +240,7 @@ impl SharedCollectionImportRuntime {
             self.world_cache.sync_favorites_from_db();
             self.event_bus
                 .emit_favorites_changed(FavoritesChangedPayload {
-                    kind: "world".into(),
+                    kind: vrcx_0_application_core::FavoriteChangeScope::World,
                     local: true,
                     remote: false,
                 });

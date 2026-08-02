@@ -111,7 +111,7 @@ fn manager_retries_start_when_service_reports_not_running_after_failure() {
 #[test]
 fn manager_backs_off_after_start_error() {
     let service = RecordingOverlayService {
-        start_error: Some(OverlayServiceStartError::transient(
+        start_error: Some(OverlayServiceStartError::runtime_unavailable(
             "overlay backend error: OpenVR init failed: VRInitError_Init_NoServerForBackgroundApp",
         )),
         ..RecordingOverlayService::default()

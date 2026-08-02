@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -225,19 +226,19 @@ pub fn setup_app_with_data_dir(
         .remove(BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY);
     state.runtime_context.runtime.record_phase(
         "appState",
-        "completed",
+        RuntimeOperationStatus::Completed,
         "Backend AppState initialized.",
     );
     state.runtime_context.sync.record(
         "startup",
-        "running",
+        RuntimeOperationStatus::Running,
         "Tauri setup is wiring runtime services.",
         0,
     );
     create_main_window(app.handle(), state.web.proxy_url())?;
     state.runtime_context.runtime.record_phase(
         "mainWindow",
-        "completed",
+        RuntimeOperationStatus::Completed,
         "Main webview window created.",
     );
 
@@ -248,7 +249,7 @@ pub fn setup_app_with_data_dir(
     state
         .runtime_context
         .runtime
-        .record_phase("tray", "completed", "System tray configured.");
+        .record_phase("tray", RuntimeOperationStatus::Completed, "System tray configured.");
     #[cfg(target_os = "macos")]
     crate::macos_menu::configure_macos_app_menu(app.handle(), &language)?;
     #[cfg(not(target_os = "macos"))]
@@ -261,7 +262,7 @@ pub fn setup_app_with_data_dir(
     state
         .runtime_context
         .sync
-        .record("startup", "ready", "Backend host services are ready.", 0);
+        .record("startup", RuntimeOperationStatus::Ready, "Backend host services are ready.", 0);
 
     Ok(())
 }

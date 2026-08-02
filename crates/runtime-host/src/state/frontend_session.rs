@@ -15,7 +15,8 @@ impl RuntimeHostState {
     ) -> Option<BackendRuntimeFrontendSessionSnapshot> {
         let runtime = self.backend_runtime.snapshot();
         if runtime.phase != BackendRuntimePhase::Running
-            || runtime.auth_status != "authenticated"
+            || runtime.auth_status
+                != vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
             || runtime.auth_user_id.is_empty()
         {
             return None;

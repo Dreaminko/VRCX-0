@@ -13,13 +13,12 @@ mod state;
 pub mod telemetry;
 
 pub use authenticated_runtime::{
-    favorite_group_membership_from_baseline, favorite_group_membership_from_snapshot,
-    favorite_world_group_membership_from_baseline, favorite_world_group_membership_from_snapshot,
+    favorite_group_membership_from_baseline, favorite_world_group_membership_from_baseline,
     AuthenticatedRuntimeOrchestrator,
 };
 pub use composition::{
-    RuntimeHostCallback, RuntimeHostComposition, RuntimeHostProfileExtension,
-    RuntimeHostSnapshotCallback,
+    RuntimeHostCallback, RuntimeHostComposition, RuntimeHostFavoritesCallback,
+    RuntimeHostProfileExtension,
 };
 pub use context::RuntimeHostContext;
 pub use error::{Error, Result};

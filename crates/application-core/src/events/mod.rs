@@ -8,6 +8,6 @@ pub use projection::{
     FriendProjection, FriendProjectionPatch, FriendStateBucketAuthority,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
     RealtimeEntryCorrectionStream, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeNotificationUpsert,
-    RealtimeUserProjection,
+    RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
+    RealtimeNotificationUpsert, RealtimeUserProjection,
 };

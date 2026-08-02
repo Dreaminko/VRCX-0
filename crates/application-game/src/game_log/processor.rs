@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -279,7 +280,7 @@ impl GameLogProcessor {
             Ok(affected_count) => {
                 self.deps.sync.record(
                     "gameLog",
-                    "persisted",
+                    RuntimeOperationStatus::Persisted,
                     "GameLog batch persisted by Rust.",
                     0,
                 );

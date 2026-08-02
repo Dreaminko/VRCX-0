@@ -3,7 +3,7 @@ use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
 use crate::world_enrich::world_id_from_location_or_id;
 
-use super::RealtimeInstanceQueueProjection;
+use super::{RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection};
 use vrcx_0_core::json::trimmed_text_of as string_field;
 use vrcx_0_core::text::first_owned;
 
@@ -13,9 +13,9 @@ pub fn apply_instance_queue_ws_message(
 ) -> Option<RealtimeInstanceQueueProjection> {
     let message_type = payload.json.get("type").and_then(Value::as_str)?;
     let kind = match message_type {
-        "instance-queue-joined" | "instance-queue-position" => "update",
-        "instance-queue-ready" => "ready",
-        "instance-queue-left" => "left",
+        "instance-queue-joined" | "instance-queue-position" => RealtimeInstanceQueueKind::Update,
+        "instance-queue-ready" => RealtimeInstanceQueueKind::Ready,
+        "instance-queue-left" => RealtimeInstanceQueueKind::Left,
         _ => return None,
     };
     let content = payload.json.get("content").unwrap_or(&Value::Null);
@@ -29,7 +29,7 @@ pub fn apply_instance_queue_ws_message(
 
     Some(RealtimeInstanceQueueProjection {
         generation,
-        kind: kind.to_string(),
+        kind,
         world_id: world_id_from_location_or_id(&instance_location),
         instance_location,
         world_name: String::new(),

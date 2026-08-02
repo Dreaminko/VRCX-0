@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::users::{
     current_user_badge_update_input, current_user_tags_add_input, current_user_tags_remove_input,
@@ -112,7 +113,7 @@ pub async fn app__vrchat_user_get(
     let diagnostics = state.runtime_context.diagnostics.clone();
     diagnostics.record_command(
         "app__vrchat_user_get",
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Getting user {}.", input.user_id),
     );
     let result = state
@@ -128,11 +129,11 @@ pub async fn app__vrchat_user_get(
     match &result {
         Ok(response) => diagnostics.record_command(
             "app__vrchat_user_get",
-            "ok",
+            RuntimeOperationStatus::Ok,
             format!("status={}", response.status),
         ),
         Err(error) => {
-            diagnostics.record_command("app__vrchat_user_get", "error", error.to_string())
+            diagnostics.record_command("app__vrchat_user_get", RuntimeOperationStatus::Error, error.to_string())
         }
     }
     Ok(result?)

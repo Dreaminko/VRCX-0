@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -572,7 +573,10 @@ fn auto_delivery_failure_is_recorded_and_next_cycle_runs_a_fresh_backup() {
         .into_iter()
         .find(|job| job.name == AUTO_JOB)
         .unwrap();
-    assert_eq!(failed_job.status, "error");
+    assert_eq!(
+        failed_job.status,
+        RuntimeOperationStatus::Error
+    );
     assert_eq!(failed_job.failure_count, 1);
     assert_eq!(
         retryable.error.unwrap().code,

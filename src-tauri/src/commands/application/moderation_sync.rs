@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application::{
     self as moderation_sync, ModerationSyncDeps, ModerationSyncMutationInput,
@@ -27,14 +28,14 @@ pub async fn app__moderation_sync_refresh(
     let command = "app__moderation_sync_refresh";
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
-    diagnostics.record_command(command, "running", "Moderation snapshot refresh started.");
+    diagnostics.record_command(command, RuntimeOperationStatus::Running, "Moderation snapshot refresh started.");
 
     let result = moderation_sync::refresh_player_moderations(deps(&state), input).await;
     match &result {
         Ok(output) => {
             diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!(
                     "user={} remote={} local={}",
                     output.user_id, output.remote_count, output.local_count
@@ -42,7 +43,7 @@ pub async fn app__moderation_sync_refresh(
             );
             sync.record(
                 "moderation",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "Moderation snapshot refreshed for {} with {} local rows.",
                     output.user_id, output.local_count
@@ -51,7 +52,7 @@ pub async fn app__moderation_sync_refresh(
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("moderation", error.to_string());
         }
     }
@@ -68,14 +69,14 @@ pub async fn app__moderation_sync_update(
     let command = "app__moderation_sync_update";
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
-    diagnostics.record_command(command, "running", "Moderation mutation started.");
+    diagnostics.record_command(command, RuntimeOperationStatus::Running, "Moderation mutation started.");
 
     let result = moderation_sync::update_player_moderation(deps(&state), input).await;
     match &result {
         Ok(output) => {
             diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!(
                     "target={} type={} enabled={}",
                     output.target_user_id, output.r#type, output.enabled
@@ -83,7 +84,7 @@ pub async fn app__moderation_sync_update(
             );
             sync.record(
                 "moderation",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "Moderation {} {} for {}.",
                     output.r#type,
@@ -98,7 +99,7 @@ pub async fn app__moderation_sync_update(
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("moderation", error.to_string());
         }
     }

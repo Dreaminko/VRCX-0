@@ -4,6 +4,7 @@ use crate::surfaces::friends::FRIENDS_PANEL_CATEGORY_SAME_INSTANCE;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use vrcx_0_application_core::WebClient;
 use vrcx_0_application_game::{PlayerState, RuntimeSnapshot};
+use vrcx_0_application_realtime::{FavoriteBaselineSnapshot, FavoriteGroupOutput};
 use vrcx_0_host_desktop::vr_overlay::OverlayHand;
 use vrcx_0_vr_overlay::SlintPanelEvent;
 use vrcx_0_vr_overlay::UvPoint;
@@ -220,17 +221,24 @@ pub(crate) fn friends_panel_snapshot(record: FriendRecord) -> RealtimeFriendSnap
 }
 
 fn set_friends_panel_favorite(runtime: &VrOverlayRuntime, user_id: &str) {
-    runtime.update_friends_panel_favorite_groups_from_baseline(&serde_json::json!({
-        "favoriteFriendGroups": [
-            {
-                "key": "friend:group_0",
-                "displayName": "VIP"
-            }
-        ],
-        "groupedFavoriteFriendIdsByGroupKey": {
-            "friend:group_0": [user_id]
-        }
-    }));
+    runtime.update_friends_panel_favorite_groups_from_baseline(&favorite_baseline(user_id));
+}
+
+fn favorite_baseline(user_id: &str) -> FavoriteBaselineSnapshot {
+    FavoriteBaselineSnapshot {
+        favorite_friend_groups: vec![FavoriteGroupOutput {
+            key: "friend:group_0".into(),
+            display_name: "VIP".into(),
+            ..Default::default()
+        }],
+        grouped_favorite_friend_ids_by_group_key: [(
+            "friend:group_0".into(),
+            vec![user_id.into()],
+        )]
+        .into_iter()
+        .collect(),
+        ..Default::default()
+    }
 }
 
 fn visible_friends_panel_row(runtime: &VrOverlayRuntime, user_id: &str) -> FriendPanelRow {
@@ -1173,17 +1181,7 @@ fn deferred_forced_device_refresh_is_consumed_once() {
 #[test]
 fn friends_panel_session_clear_drops_cached_favorite_groups() {
     let runtime = VrOverlayRuntime::new_for_test();
-    let snapshot = serde_json::json!({
-        "favoriteFriendGroups": [
-            {
-                "key": "friend:group_0",
-                "displayName": "VIP"
-            }
-        ],
-        "groupedFavoriteFriendIdsByGroupKey": {
-            "friend:group_0": ["usr_a"]
-        }
-    });
+    let snapshot = favorite_baseline("usr_a");
     runtime.update_friends_panel_favorite_groups_from_baseline(&snapshot);
     assert!(!runtime
         .current_friends_panel_favorite_groups()

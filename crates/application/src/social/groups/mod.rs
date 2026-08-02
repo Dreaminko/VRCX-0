@@ -19,8 +19,8 @@ pub use moderation_batch::{
     GROUP_MODERATION_BATCH_MAX_TARGETS,
 };
 pub use quick_moderation::{
-    get_group_quick_moderation, run_group_quick_moderation_action, GroupQuickModerationActionInput,
-    GroupQuickModerationActionOutput, GroupQuickModerationDeps, GroupQuickModerationGroup,
+    get_group_quick_moderation, run_group_quick_moderation_action, GroupQuickModerationAction,
+    GroupQuickModerationActionInput, GroupQuickModerationActionOutput, GroupQuickModerationDeps, GroupQuickModerationGroup,
     GroupQuickModerationInput, GroupQuickModerationOutput,
 };
 pub use service::{

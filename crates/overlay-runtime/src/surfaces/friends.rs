@@ -7,7 +7,7 @@ use vrcx_0_application::{
     evaluate_instance_action_gates, InstanceActionGateTarget, InstanceActionGates,
     InstanceActionGatesBatchInput,
 };
-use vrcx_0_application_realtime::RealtimeFriendSnapshot;
+use vrcx_0_application_realtime::{FavoriteBaselineSnapshot, RealtimeFriendSnapshot};
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::{parse_location, world_id_from_location};
 use vrcx_0_persistence::favorites::favorite_list;
@@ -90,18 +90,16 @@ pub(crate) struct FriendsPanelModelInput {
 }
 
 pub(crate) fn favorite_friend_groups_snapshot_from_baseline(
-    snapshot: &serde_json::Value,
+    snapshot: &FavoriteBaselineSnapshot,
 ) -> FavoriteFriendGroupsSnapshot {
-    let remote_membership = object_string_vecs(snapshot.get("groupedFavoriteFriendIdsByGroupKey"));
-    let local_membership = object_string_vecs(snapshot.get("localFriendFavorites"));
-    let remote_labels = group_labels(snapshot.get("favoriteFriendGroups"), "");
-    let local_labels = group_labels(
-        snapshot.get("localFriendFavoriteGroups"),
-        LOCAL_FAVORITE_GROUP_PREFIX,
-    );
+    let remote_labels = snapshot
+        .favorite_friend_groups
+        .iter()
+        .map(|group| (group.key.clone(), group.display_name.clone()))
+        .collect::<HashMap<_, _>>();
     let mut groups = Vec::new();
 
-    for (key, user_ids) in remote_membership {
+    for (key, user_ids) in &snapshot.grouped_favorite_friend_ids_by_group_key {
         if user_ids.is_empty() {
             continue;
         }
@@ -110,24 +108,20 @@ pub(crate) fn favorite_friend_groups_snapshot_from_baseline(
             .cloned()
             .unwrap_or_else(|| fallback_group_label(&key));
         groups.push(FavoriteFriendGroupSnapshot {
-            key,
+            key: key.clone(),
             label,
-            user_ids,
+            user_ids: dedupe_preserve_order(user_ids.clone()),
         });
     }
-    for (raw_key, user_ids) in local_membership {
+    for (raw_key, user_ids) in &snapshot.local_friend_favorites {
         if user_ids.is_empty() {
             continue;
         }
         let key = format!("{LOCAL_FAVORITE_GROUP_PREFIX}{raw_key}");
-        let label = local_labels
-            .get(&key)
-            .cloned()
-            .unwrap_or_else(|| fallback_group_label(&raw_key));
         groups.push(FavoriteFriendGroupSnapshot {
             key,
-            label,
-            user_ids,
+            label: fallback_group_label(raw_key),
+            user_ids: dedupe_preserve_order(user_ids.clone()),
         });
     }
     FavoriteFriendGroupsSnapshot { groups }
@@ -697,62 +691,6 @@ pub(crate) fn friend_record_world_ids(record: &FriendRecord) -> Vec<String> {
     .filter(|value| !value.is_empty())
     .collect::<Vec<_>>();
     dedupe_preserve_order(ids)
-}
-
-fn object_string_vecs(value: Option<&serde_json::Value>) -> Vec<(String, Vec<String>)> {
-    let Some(object) = value.and_then(serde_json::Value::as_object) else {
-        return Vec::new();
-    };
-    let mut groups = object
-        .iter()
-        .filter_map(|(key, value)| {
-            let user_ids = value
-                .as_array()
-                .into_iter()
-                .flatten()
-                .filter_map(|value| value.as_str().map(str::trim).map(str::to_string))
-                .filter(|value| !value.is_empty())
-                .collect::<Vec<_>>();
-            if user_ids.is_empty() {
-                None
-            } else {
-                Some((key.clone(), dedupe_preserve_order(user_ids)))
-            }
-        })
-        .collect::<Vec<_>>();
-    groups.sort_by(|left, right| left.0.cmp(&right.0));
-    groups
-}
-
-fn group_labels(value: Option<&serde_json::Value>, key_prefix: &str) -> HashMap<String, String> {
-    value
-        .and_then(serde_json::Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(|group| {
-            let raw_key = json_string_field(group, "key")
-                .or_else(|| json_string_field(group, "name"))
-                .or_else(|| json_string_field(group, "displayName"))?;
-            let key = format!("{key_prefix}{raw_key}");
-            let label = json_string_field(group, "displayName")
-                .or_else(|| json_string_field(group, "name"))
-                .unwrap_or_else(|| fallback_group_label(&raw_key));
-            Some((key, label))
-        })
-        .collect()
-}
-
-fn json_string_field(value: &serde_json::Value, key: &str) -> Option<String> {
-    value
-        .as_object()
-        .and_then(|object| object.get(key))
-        .and_then(|value| match value {
-            serde_json::Value::String(value) => Some(value.trim().to_string()),
-            serde_json::Value::Number(value) => Some(value.to_string()),
-            serde_json::Value::Bool(value) => Some(value.to_string()),
-            _ => None,
-        })
-        .filter(|value| !value.is_empty())
 }
 
 fn fallback_group_label(key: &str) -> String {

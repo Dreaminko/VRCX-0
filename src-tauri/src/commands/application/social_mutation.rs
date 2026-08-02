@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application::{
     self as social_mutation, SocialFriendMutationInput, SocialFriendMutationOutcome,
@@ -30,7 +31,7 @@ fn record_outcome(
         Ok(outcome) => {
             diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!(
                     "target={} status={:?}",
                     outcome.target_user_id, outcome.status
@@ -38,13 +39,13 @@ fn record_outcome(
             );
             sync.record(
                 "socialMutation",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!("{command} completed for {}.", outcome.target_user_id),
                 0,
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("socialMutation", error.to_string());
         }
     }
@@ -59,7 +60,7 @@ fn record_batch_outcome(
         Ok(output) => {
             state.runtime_context.diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!(
                     "succeeded={}, failed={}, localFailed={}",
                     output.succeeded, output.failed, output.local_failed
@@ -67,7 +68,7 @@ fn record_batch_outcome(
             );
             state.runtime_context.sync.record(
                 "socialMutation",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "{command} completed for {} user(s); {} failed.",
                     output.succeeded, output.failed
@@ -79,7 +80,7 @@ fn record_batch_outcome(
             state
                 .runtime_context
                 .diagnostics
-                .record_command(command, "error", error.to_string());
+                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
             state
                 .runtime_context
                 .sync
@@ -97,7 +98,7 @@ pub async fn app__social_unfriend(
     let command = "app__social_unfriend";
     state.runtime_context.diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Unfriending {}.", input.target_user_id),
     );
 
@@ -117,7 +118,7 @@ pub async fn app__social_unfriend_batch(
     let target_count = input.targets.len();
     state.runtime_context.diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Unfriending {target_count} user(s)."),
     );
 
@@ -138,7 +139,7 @@ pub async fn app__social_unfriend_selection(
     let target_count = input.targets.len();
     state.runtime_context.diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Unfriending {target_count} user(s)."),
     );
 
@@ -158,7 +159,7 @@ pub async fn app__social_friend_request_send(
     let command = "app__social_friend_request_send";
     state.runtime_context.diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Sending friend request to {}.", input.target_user_id),
     );
 
@@ -177,7 +178,7 @@ pub async fn app__social_friend_request_cancel(
     let command = "app__social_friend_request_cancel";
     state.runtime_context.diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Canceling friend request to {}.", input.target_user_id),
     );
 
@@ -196,7 +197,7 @@ pub async fn app__social_friend_request_accept(
     let command = "app__social_friend_request_accept";
     state.runtime_context.diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Accepting friend request from {}.", input.target_user_id),
     );
 

@@ -1,12 +1,16 @@
+use std::any::Any;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use vrcx_0_core::json::JsonExt;
+use vrcx_0_core::realtime::RealtimeWsStatusPayload;
+use vrcx_0_core::time::now_iso;
 
 use crate::events::FriendProfileLoadStatusPayload;
-use vrcx_0_core::time::now_iso;
+use crate::event_bus::{
+    BackendRuntimeCountKind, BackendRuntimeCountTelemetry, BackendRuntimeMessageTelemetry,
+};
+use crate::ports::HostSessionProjection;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -29,17 +33,90 @@ pub enum BackendRuntimePhase {
     Error,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum BackendRuntimeAuthStatus {
+    #[default]
+    Unknown,
+    Authenticating,
+    Authenticated,
+    InteractionRequired,
+    Error,
+    SignedOut,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum BackendRuntimeGameLogStatus {
+    #[default]
+    Idle,
+    Running,
+    Persisted,
+    Unavailable,
+}
+
+impl BackendRuntimeGameLogStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Idle => "idle",
+            Self::Running => "running",
+            Self::Persisted => "persisted",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum BackendRuntimeProcessStatus {
+    #[default]
+    Unknown,
+    VrchatRunning,
+    VrchatStopped,
+}
+
+impl BackendRuntimeProcessStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::VrchatRunning => "vrchatRunning",
+            Self::VrchatStopped => "vrchatStopped",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum BackendRuntimeTelemetryKind {
+    WsStatus,
+    ProcessStatus,
+    WsMessage,
+    WsPersisted,
+    GameLogPersisted,
+    RuntimeStarted,
+    RuntimeStopped,
+    ModeChanged,
+    AuthCleared,
+    AuthSuccess,
+    AuthRecoveryStarted,
+    AuthRecoveryFailed,
+    GameLogWatcher,
+    BackgroundInfo,
+    BackgroundWarning,
+    BackgroundError,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct BackendRuntimeSnapshot {
     pub mode: BackendRuntimeMode,
     pub phase: BackendRuntimePhase,
-    pub auth_status: String,
+    pub auth_status: BackendRuntimeAuthStatus,
     pub auth_user_id: String,
     pub auth_display_name: String,
     pub ws_status: String,
-    pub game_log_status: String,
-    pub process_status: String,
+    pub game_log_status: BackendRuntimeGameLogStatus,
+    pub process_status: BackendRuntimeProcessStatus,
     pub ws_message_counts: BTreeMap<String, u64>,
     pub ws_persisted_count: u64,
     pub game_log_persisted_count: u64,
@@ -51,7 +128,7 @@ pub struct BackendRuntimeSnapshot {
 #[derive(Clone, Debug, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct BackendRuntimeTelemetry {
-    pub kind: String,
+    pub kind: BackendRuntimeTelemetryKind,
     pub detail: String,
     pub snapshot: BackendRuntimeSnapshot,
 }
@@ -66,12 +143,12 @@ pub struct RealtimeProjectionSync {
 struct BackendRuntimeState {
     mode: BackendRuntimeMode,
     phase: BackendRuntimePhase,
-    auth_status: String,
+    auth_status: BackendRuntimeAuthStatus,
     auth_user_id: String,
     auth_display_name: String,
     ws_status: String,
-    game_log_status: String,
-    process_status: String,
+    game_log_status: BackendRuntimeGameLogStatus,
+    process_status: BackendRuntimeProcessStatus,
     ws_message_counts: BTreeMap<String, u64>,
     ws_persisted_count: u64,
     game_log_persisted_count: u64,
@@ -85,12 +162,12 @@ impl Default for BackendRuntimeState {
         Self {
             mode: BackendRuntimeMode::Foreground,
             phase: BackendRuntimePhase::Idle,
-            auth_status: "unknown".into(),
+            auth_status: BackendRuntimeAuthStatus::Unknown,
             auth_user_id: String::new(),
             auth_display_name: String::new(),
             ws_status: "idle".into(),
-            game_log_status: "idle".into(),
-            process_status: "unknown".into(),
+            game_log_status: BackendRuntimeGameLogStatus::Idle,
+            process_status: BackendRuntimeProcessStatus::Unknown,
             ws_message_counts: BTreeMap::new(),
             ws_persisted_count: 0,
             game_log_persisted_count: 0,
@@ -137,7 +214,7 @@ impl BackendRuntime {
     pub fn set_authenticating(&self) -> BackendRuntimeSnapshot {
         self.update(|state| {
             state.phase = BackendRuntimePhase::Authenticating;
-            state.auth_status = "authenticating".into();
+            state.auth_status = BackendRuntimeAuthStatus::Authenticating;
             state.last_error = None;
         })
     }
@@ -148,7 +225,7 @@ impl BackendRuntime {
         display_name: impl Into<String>,
     ) -> BackendRuntimeSnapshot {
         self.update(|state| {
-            state.auth_status = "authenticated".into();
+            state.auth_status = BackendRuntimeAuthStatus::Authenticated;
             state.auth_user_id = user_id.into();
             state.auth_display_name = display_name.into();
             state.last_error = None;
@@ -162,7 +239,7 @@ impl BackendRuntime {
         let reason = reason.into();
         self.update(|state| {
             state.phase = BackendRuntimePhase::Error;
-            state.auth_status = "interactionRequired".into();
+            state.auth_status = BackendRuntimeAuthStatus::InteractionRequired;
             state.last_error = Some(reason);
         })
     }
@@ -171,7 +248,7 @@ impl BackendRuntime {
         let reason = reason.into();
         self.update(|state| {
             state.phase = BackendRuntimePhase::Error;
-            state.auth_status = "error".into();
+            state.auth_status = BackendRuntimeAuthStatus::Error;
             state.last_error = Some(reason);
         })
     }
@@ -179,7 +256,7 @@ impl BackendRuntime {
     pub fn clear_authentication(&self) -> BackendRuntimeSnapshot {
         self.update(|state| {
             state.phase = BackendRuntimePhase::Idle;
-            state.auth_status = "signedOut".into();
+            state.auth_status = BackendRuntimeAuthStatus::SignedOut;
             state.auth_user_id.clear();
             state.auth_display_name.clear();
             state.ws_status = "idle".into();
@@ -206,22 +283,28 @@ impl BackendRuntime {
         })
     }
 
-    pub fn set_game_log_status(&self, status: impl Into<String>) -> BackendRuntimeSnapshot {
+    pub fn set_game_log_status(
+        &self,
+        status: BackendRuntimeGameLogStatus,
+    ) -> BackendRuntimeSnapshot {
         self.update(|state| {
-            state.game_log_status = status.into();
+            state.game_log_status = status;
         })
     }
 
     pub fn add_game_log_persisted(&self, count: u64) -> BackendRuntimeSnapshot {
         self.update(|state| {
-            state.game_log_status = "persisted".into();
+            state.game_log_status = BackendRuntimeGameLogStatus::Persisted;
             state.game_log_persisted_count = state.game_log_persisted_count.saturating_add(count);
         })
     }
 
-    pub fn set_process_status(&self, status: impl Into<String>) -> BackendRuntimeSnapshot {
+    pub fn set_process_status(
+        &self,
+        status: BackendRuntimeProcessStatus,
+    ) -> BackendRuntimeSnapshot {
         self.update(|state| {
-            state.process_status = status.into();
+            state.process_status = status;
         })
     }
 
@@ -236,107 +319,62 @@ impl BackendRuntime {
 
     pub fn observe_runtime_event(
         &self,
-        event: &str,
-        payload: &Value,
+        payload: &dyn Any,
     ) -> Option<BackendRuntimeTelemetry> {
-        match event {
-            "realtimeWsStatus" => {
-                let status = payload
-                    .trimmed_string("status")
-                    .unwrap_or_else(|| "unknown".into());
-                let snapshot = self.set_ws_status(status.clone());
-                Some(BackendRuntimeTelemetry {
-                    kind: "wsStatus".into(),
-                    detail: status,
-                    snapshot,
-                })
-            }
-            "runtimeGameLogEvent" => None,
-            "friendProfileLoadStatus" => {
-                if let Ok(status) =
-                    serde_json::from_value::<FriendProfileLoadStatusPayload>(payload.clone())
-                {
-                    self.set_friend_profile_load_state(status);
-                }
-                None
-            }
-            "updateIsGameRunning" => {
-                let running = payload
-                    .get("isGameRunning")
-                    .and_then(Value::as_bool)
-                    .unwrap_or(false);
-                let status = if running {
-                    "vrchatRunning"
-                } else {
-                    "vrchatStopped"
-                };
-                let snapshot = self.set_process_status(status);
-                Some(BackendRuntimeTelemetry {
-                    kind: "processStatus".into(),
-                    detail: status.into(),
-                    snapshot,
-                })
-            }
-            "backendRuntimeTelemetry" => {
-                let kind = payload.trimmed_string("kind").unwrap_or_default();
-                match kind.as_str() {
-                    "wsMessage" => {
-                        let message_type = payload
-                            .trimmed_string("messageType")
-                            .unwrap_or_else(|| "unknown".into());
-                        let snapshot = self.record_ws_message(message_type.clone());
-                        Some(BackendRuntimeTelemetry {
-                            kind,
-                            detail: message_type,
-                            snapshot,
-                        })
-                    }
-                    "gameLogWatcher" => {
-                        let status = payload
-                            .trimmed_string("status")
-                            .unwrap_or_else(|| "unknown".into());
-                        let snapshot = self.set_game_log_status(status.clone());
-                        Some(BackendRuntimeTelemetry {
-                            kind,
-                            detail: status,
-                            snapshot,
-                        })
-                    }
-                    "gameLogPersisted" => {
-                        let count = u64_field(payload, "count")
-                            .or_else(|| {
-                                payload
-                                    .trimmed_string("detail")
-                                    .and_then(|value| value.parse::<u64>().ok())
-                            })
-                            .unwrap_or(0);
-                        let snapshot = self.add_game_log_persisted(count);
-                        Some(BackendRuntimeTelemetry {
-                            kind,
-                            detail: count.to_string(),
-                            snapshot,
-                        })
-                    }
-                    "wsPersisted" => {
-                        let count = u64_field(payload, "count")
-                            .or_else(|| {
-                                payload
-                                    .trimmed_string("detail")
-                                    .and_then(|value| value.parse::<u64>().ok())
-                            })
-                            .unwrap_or(0);
-                        let snapshot = self.add_ws_persisted(count);
-                        Some(BackendRuntimeTelemetry {
-                            kind,
-                            detail: count.to_string(),
-                            snapshot,
-                        })
-                    }
-                    _ => None,
-                }
-            }
-            _ => None,
+        if let Some(status) = payload.downcast_ref::<RealtimeWsStatusPayload>() {
+            let snapshot = self.set_ws_status(status.status.clone());
+            return Some(BackendRuntimeTelemetry {
+                kind: BackendRuntimeTelemetryKind::WsStatus,
+                detail: status.status.clone(),
+                snapshot,
+            });
         }
+        if let Some(status) = payload.downcast_ref::<FriendProfileLoadStatusPayload>() {
+            self.set_friend_profile_load_state(status.clone());
+            return None;
+        }
+        if let Some(projection) = payload.downcast_ref::<HostSessionProjection>() {
+            let status = if projection.is_game_running {
+                BackendRuntimeProcessStatus::VrchatRunning
+            } else {
+                BackendRuntimeProcessStatus::VrchatStopped
+            };
+            let snapshot = self.set_process_status(status);
+            return Some(BackendRuntimeTelemetry {
+                kind: BackendRuntimeTelemetryKind::ProcessStatus,
+                detail: status.as_str().into(),
+                snapshot,
+            });
+        }
+        if let Some(telemetry) = payload.downcast_ref::<BackendRuntimeMessageTelemetry>() {
+            let message_type = telemetry.message_type.clone();
+            let snapshot = self.record_ws_message(message_type.clone());
+            return Some(BackendRuntimeTelemetry {
+                kind: BackendRuntimeTelemetryKind::WsMessage,
+                detail: message_type,
+                snapshot,
+            });
+        }
+        if let Some(telemetry) = payload.downcast_ref::<BackendRuntimeCountTelemetry>() {
+            let (kind, snapshot) = match telemetry.kind {
+                BackendRuntimeCountKind::WsPersisted => {
+                    (
+                        BackendRuntimeTelemetryKind::WsPersisted,
+                        self.add_ws_persisted(telemetry.count),
+                    )
+                }
+                BackendRuntimeCountKind::GameLogPersisted => (
+                    BackendRuntimeTelemetryKind::GameLogPersisted,
+                    self.add_game_log_persisted(telemetry.count),
+                ),
+            };
+            return Some(BackendRuntimeTelemetry {
+                kind,
+                detail: telemetry.count.to_string(),
+                snapshot,
+            });
+        }
+        None
     }
 
     pub fn snapshot(&self) -> BackendRuntimeSnapshot {
@@ -354,12 +392,12 @@ impl BackendRuntime {
         BackendRuntimeSnapshot {
             mode: state.mode,
             phase: state.phase,
-            auth_status: state.auth_status.clone(),
+            auth_status: state.auth_status,
             auth_user_id: state.auth_user_id.clone(),
             auth_display_name: state.auth_display_name.clone(),
             ws_status: state.ws_status.clone(),
-            game_log_status: state.game_log_status.clone(),
-            process_status: state.process_status.clone(),
+            game_log_status: state.game_log_status,
+            process_status: state.process_status,
             ws_message_counts: state.ws_message_counts.clone(),
             ws_persisted_count: state.ws_persisted_count,
             game_log_persisted_count: state.game_log_persisted_count,
@@ -372,8 +410,4 @@ impl BackendRuntime {
     fn lock_state(&self) -> std::sync::MutexGuard<'_, BackendRuntimeState> {
         self.state.lock().unwrap_or_else(|error| error.into_inner())
     }
-}
-
-fn u64_field(payload: &Value, key: &str) -> Option<u64> {
-    payload.get(key).and_then(Value::as_u64)
 }

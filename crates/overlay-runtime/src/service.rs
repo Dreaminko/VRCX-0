@@ -15,22 +15,48 @@ const CONDEMNED_REPROBE_INTERVAL: Duration = Duration::from_secs(30);
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OverlayServiceStartError {
     pub message: String,
-    pub permanent: bool,
+    pub reason: OverlayServiceStartErrorReason,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OverlayServiceStartErrorReason {
+    Other,
+    RuntimeCooldown,
+    RuntimeUnavailable,
+    Unsupported,
 }
 
 impl OverlayServiceStartError {
     pub fn transient(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
-            permanent: false,
+            reason: OverlayServiceStartErrorReason::Other,
         }
     }
 
     pub fn permanent(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
-            permanent: true,
+            reason: OverlayServiceStartErrorReason::Unsupported,
         }
+    }
+
+    pub fn runtime_cooldown(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            reason: OverlayServiceStartErrorReason::RuntimeCooldown,
+        }
+    }
+
+    pub fn runtime_unavailable(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            reason: OverlayServiceStartErrorReason::RuntimeUnavailable,
+        }
+    }
+
+    pub fn is_permanent(&self) -> bool {
+        self.reason == OverlayServiceStartErrorReason::Unsupported
     }
 }
 
@@ -335,7 +361,7 @@ impl VrOverlayServiceControl for HostVrOverlayService {
             Instant::now(),
         ) {
             let elapsed = RUNTIME_QUIT_RESTART_COOLDOWN - remaining;
-            return Err(OverlayServiceStartError::transient(format!(
+            return Err(OverlayServiceStartError::runtime_cooldown(format!(
                 "VR runtime quit {}ms ago; cooling down",
                 elapsed.as_millis()
             )));
@@ -349,11 +375,15 @@ impl VrOverlayServiceControl for HostVrOverlayService {
         if let Err(error) = actor.send(OverlayServiceCommand::Start) {
             let message = error.to_string();
             let permanent = matches!(error, OverlayCommandError::BackendUnsupported(_));
+            let runtime_unavailable = matches!(error, OverlayCommandError::BackendUnavailable(_));
             if !is_timeout_error(&error) {
                 let _ = self.stop_active_actor();
             }
             if permanent {
                 return Err(OverlayServiceStartError::permanent(message));
+            }
+            if runtime_unavailable {
+                return Err(OverlayServiceStartError::runtime_unavailable(message));
             }
             return Err(OverlayServiceStartError::transient(message));
         }

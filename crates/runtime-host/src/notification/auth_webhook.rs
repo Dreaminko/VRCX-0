@@ -42,7 +42,8 @@ impl AuthWebhookEventKind {
 pub fn auth_webhook_should_recover(snapshot: &BackendRuntimeSnapshot) -> bool {
     snapshot.mode == BackendRuntimeMode::Background
         && snapshot.phase == BackendRuntimePhase::Running
-        && snapshot.auth_status == "authenticated"
+        && snapshot.auth_status
+            == vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
         && !snapshot.auth_user_id.trim().is_empty()
 }
 

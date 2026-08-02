@@ -5,7 +5,7 @@ use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
 use super::{
     eligibility::VrOverlayEligibility,
-    service::{OverlayBackendPreference, VrOverlayServiceControl},
+    service::{OverlayBackendPreference, OverlayServiceStartError, VrOverlayServiceControl},
 };
 
 const OVERLAY_START_RETRY_INITIAL_BACKOFF: Duration = Duration::from_secs(5);
@@ -52,7 +52,7 @@ where
                     Ok(()) => {
                         self.reset_retry_state();
                     }
-                    Err(error) if error.permanent => {
+                    Err(error) if error.is_permanent() => {
                         self.reset_retry_state();
                         self.unsupported_eligibility = Some(eligibility);
                         tracing::warn!(
@@ -65,7 +65,7 @@ where
                         self.next_start_attempt_at = Some(now + self.start_retry_backoff);
                         self.start_retry_backoff =
                             (self.start_retry_backoff * 2).min(OVERLAY_START_RETRY_MAX_BACKOFF);
-                        log_overlay_start_error(&error.message);
+                        log_overlay_start_error(&error);
                     }
                 }
             } else {
@@ -161,26 +161,21 @@ where
     }
 }
 
-fn log_overlay_start_error(error: &str) {
-    if !is_expected_overlay_start_wait(error) {
-        tracing::warn!(error = %error, "failed to start VR overlay service");
-        return;
-    }
-    if error.contains("cooling down") {
-        tracing::debug!(
-            error = %error,
+fn log_overlay_start_error(error: &OverlayServiceStartError) {
+    match error.reason {
+        crate::service::OverlayServiceStartErrorReason::RuntimeCooldown => tracing::debug!(
+            error = %error.message,
             "VR overlay start deferred by runtime quit cooldown"
-        );
-    } else {
-        tracing::debug!(
-            error = %error,
-            "VR overlay service is waiting for the OpenVR server"
-        );
+        ),
+        crate::service::OverlayServiceStartErrorReason::RuntimeUnavailable => tracing::debug!(
+            error = %error.message,
+            "VR overlay service is waiting for the VR runtime"
+        ),
+        crate::service::OverlayServiceStartErrorReason::Other
+        | crate::service::OverlayServiceStartErrorReason::Unsupported => {
+            tracing::warn!(error = %error.message, "failed to start VR overlay service");
+        }
     }
-}
-
-fn is_expected_overlay_start_wait(error: &str) -> bool {
-    error.contains("VRInitError_Init_NoServerForBackgroundApp") || error.contains("cooling down")
 }
 
 #[cfg(test)]
@@ -188,24 +183,11 @@ mod tests {
     use vrcx_0_host_desktop::vr_overlay::{OverlaySurfaceConfig, VrDeviceSnapshot};
     use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
-    use super::{is_expected_overlay_start_wait, VrOverlayManager};
+    use super::VrOverlayManager;
     use crate::{
         service::{OverlayBackendPreference, OverlayServiceStartError, VrOverlayServiceControl},
         VrOverlayEligibility,
     };
-
-    #[test]
-    fn expected_overlay_start_wait_matches_openvr_server_and_cooldown_errors() {
-        assert!(is_expected_overlay_start_wait(
-            "OpenVR init failed: VRInitError_Init_NoServerForBackgroundApp"
-        ));
-        assert!(is_expected_overlay_start_wait(
-            "VR runtime quit 120ms ago; cooling down"
-        ));
-        assert!(!is_expected_overlay_start_wait(
-            "OpenVR init failed: VRInitError_Init_InterfaceNotFound"
-        ));
-    }
 
     #[test]
     fn ineligible_reconcile_stops_service_that_needs_stop_without_running() {

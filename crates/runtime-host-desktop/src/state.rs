@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::{
@@ -6,19 +7,20 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
-use serde_json::{json, Value};
+use serde_json::json;
 use vrcx_0_application::{
     AppUpdateBuildInfo, AppUpdateRuntime, BackgroundImageService, CommunityThemeService,
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
-    BackendRuntimeMode, BackendRuntimePhase, GameProcessEvent, GameProcessEventSink,
-    SessionHostRuntime, TaskStopToken,
+    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetryKind, GameProcessEvent,
+    GameProcessEventSink, SessionHostRuntime, TaskStopToken,
 };
 use vrcx_0_application_game::{
     GameLogLocalGameContextSource, ProcessMonitor, RegistryBackupMaintenanceMode,
     RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
 };
+use vrcx_0_application_realtime::FavoriteBaselineSnapshot;
 use vrcx_0_host::app_paths::AppDataDirResolution;
 use vrcx_0_host_desktop::auto_launch::{
     deserialize_app_launcher_entries, normalize_app_launcher_entries, AppLauncherEntry,
@@ -34,7 +36,7 @@ use vrcx_0_persistence::screenshot_cache::MetadataCacheDb;
 use vrcx_0_runtime_host::telemetry::{TelemetryRuntime, TelemetryRuntimeDeps};
 use vrcx_0_runtime_host::{
     Result, RuntimeHostCallback, RuntimeHostComposition, RuntimeHostOptions, RuntimeHostProfile,
-    RuntimeHostProfileExtension, RuntimeHostSnapshotCallback, RuntimeHostState,
+    RuntimeHostFavoritesCallback, RuntimeHostProfileExtension, RuntimeHostState,
     RuntimeHostStateBuilder,
 };
 
@@ -289,9 +291,9 @@ impl DesktopRuntimeHostState {
                 vr_overlay_runtime.invalidate_friends_panel_note_memo_cache();
             })
         };
-        let favorites_sink: RuntimeHostSnapshotCallback = {
+        let favorites_sink: RuntimeHostFavoritesCallback = {
             let vr_overlay_runtime = Arc::clone(&desktop.vr_overlay_runtime);
-            Arc::new(move |snapshot: &Value| {
+            Arc::new(move |snapshot: &FavoriteBaselineSnapshot| {
                 vr_overlay_runtime.update_friends_panel_favorite_groups_from_baseline(snapshot);
             })
         };
@@ -486,8 +488,8 @@ impl Deref for DesktopRuntimeHostState {
 }
 
 impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
-    fn observe_runtime_event(&self, event: &str, payload: &Value) {
-        self.desktop.services.observe_runtime_event(event, payload);
+    fn observe_runtime_event(&self, payload: &dyn std::any::Any) {
+        self.desktop.services.observe_runtime_event(payload);
     }
 
     fn start_profile_services(&self, state: &RuntimeHostState) {
@@ -598,7 +600,7 @@ impl DesktopRuntimeProfileExtension {
                 "gameProcessMonitor",
                 "rust-host",
                 None,
-                "unavailable",
+                RuntimeOperationStatus::Unavailable,
                 "Game process monitor capability is unavailable.",
             );
         }
@@ -626,7 +628,10 @@ impl DesktopRuntimeProfileExtension {
                 .runtime_context
                 .background_jobs
                 .mark_running("gameLogWatcher", "Windows GameLog watcher is active.");
-            emit_game_log_watcher_status(state, "running");
+            emit_game_log_watcher_status(
+                state,
+                vrcx_0_application_core::BackendRuntimeGameLogStatus::Running,
+            );
         }
         #[cfg(target_os = "windows")]
         if !is_host_capability_available(HostCapability::GameLogWatcher) {
@@ -634,10 +639,13 @@ impl DesktopRuntimeProfileExtension {
                 "gameLogWatcher",
                 "rust-host",
                 None,
-                "unavailable",
+                RuntimeOperationStatus::Unavailable,
                 "GameLog watcher capability is unavailable.",
             );
-            emit_game_log_watcher_status(state, "unavailable");
+            emit_game_log_watcher_status(
+                state,
+                vrcx_0_application_core::BackendRuntimeGameLogStatus::Unavailable,
+            );
         }
         #[cfg(target_os = "linux")]
         if is_host_capability_available(HostCapability::GameLogWatcher) {
@@ -657,17 +665,23 @@ impl DesktopRuntimeProfileExtension {
                         .runtime_context
                         .background_jobs
                         .mark_running("gameLogWatcher", "Linux GameLog watcher is active.");
-                    emit_game_log_watcher_status(state, "running");
+                    emit_game_log_watcher_status(
+                        state,
+                        vrcx_0_application_core::BackendRuntimeGameLogStatus::Running,
+                    );
                 }
                 Err(reason) => {
                     state.runtime_context.background_jobs.register_job(
                         "gameLogWatcher",
                         "rust-host",
                         None,
-                        "unavailable",
+                        RuntimeOperationStatus::Unavailable,
                         reason,
                     );
-                    emit_game_log_watcher_status(state, "unavailable");
+                    emit_game_log_watcher_status(
+                        state,
+                        vrcx_0_application_core::BackendRuntimeGameLogStatus::Unavailable,
+                    );
                 }
             }
         }
@@ -677,14 +691,17 @@ impl DesktopRuntimeProfileExtension {
                 "gameLogWatcher",
                 "rust-host",
                 None,
-                "unavailable",
+                RuntimeOperationStatus::Unavailable,
                 _capabilities
                     .game_log_watcher
                     .reason
                     .clone()
                     .unwrap_or_else(|| "GameLog watcher capability is unavailable.".into()),
             );
-            emit_game_log_watcher_status(state, "unavailable");
+            emit_game_log_watcher_status(
+                state,
+                vrcx_0_application_core::BackendRuntimeGameLogStatus::Unavailable,
+            );
         }
         #[cfg(not(any(target_os = "windows", target_os = "linux")))]
         {
@@ -693,10 +710,13 @@ impl DesktopRuntimeProfileExtension {
                 "gameLogWatcher",
                 "rust-host",
                 None,
-                "unavailable",
+                RuntimeOperationStatus::Unavailable,
                 "GameLog watcher is unavailable on this platform.",
             );
-            emit_game_log_watcher_status(state, "unavailable");
+            emit_game_log_watcher_status(
+                state,
+                vrcx_0_application_core::BackendRuntimeGameLogStatus::Unavailable,
+            );
         }
     }
 
@@ -712,7 +732,7 @@ impl DesktopRuntimeProfileExtension {
                 REGISTRY_BACKUP_MAINTENANCE_JOB,
                 "rust-host",
                 Some(REGISTRY_BACKUP_MAINTENANCE_CADENCE_SECONDS),
-                "unavailable",
+                RuntimeOperationStatus::Unavailable,
                 "Registry backup maintenance is unavailable on this platform.",
             );
             return;
@@ -727,7 +747,7 @@ impl DesktopRuntimeProfileExtension {
             REGISTRY_BACKUP_MAINTENANCE_JOB,
             "rust-host",
             Some(REGISTRY_BACKUP_MAINTENANCE_CADENCE_SECONDS),
-            "scheduled",
+            RuntimeOperationStatus::Scheduled,
             "Registry backup maintenance is scheduled for background mode.",
         );
         let db = Arc::clone(&state.db);
@@ -853,7 +873,7 @@ impl DesktopRuntimeProfileExtension {
                 name,
                 "rust-host",
                 Some(cadence),
-                "scheduled",
+                RuntimeOperationStatus::Scheduled,
                 detail,
             );
         }
@@ -1027,14 +1047,17 @@ async fn wait_for_desktop_maintenance_tick(stop_token: &TaskStopToken) -> bool {
     }
 }
 
-fn emit_game_log_watcher_status(state: &RuntimeHostState, status: &str) {
+fn emit_game_log_watcher_status(
+    state: &RuntimeHostState,
+    status: vrcx_0_application_core::BackendRuntimeGameLogStatus,
+) {
     let snapshot = state.backend_runtime.set_game_log_status(status);
     state
         .runtime_context
         .event_bus
         .emit(vrcx_0_application_core::BackendRuntimeTelemetry {
-            kind: "gameLogWatcher".into(),
-            detail: status.into(),
+            kind: BackendRuntimeTelemetryKind::GameLogWatcher,
+            detail: status.as_str().into(),
             snapshot,
         });
 }
@@ -1116,7 +1139,8 @@ fn is_authenticated_maintenance_active_parts(
     let snapshot = runtime.snapshot();
     let auth_scope = runtime_context.auth_scope.snapshot();
     if snapshot.phase != BackendRuntimePhase::Running
-        || snapshot.auth_status != "authenticated"
+        || snapshot.auth_status
+            != vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
         || snapshot.auth_user_id.trim().is_empty()
         || !auth_scope.active
         || auth_scope.current_user_id != snapshot.auth_user_id
@@ -1159,7 +1183,12 @@ fn emit_profile_background_info(
     backend_runtime: &vrcx_0_application_core::BackendRuntime,
     detail: impl Into<String>,
 ) {
-    emit_profile_background_output(runtime_context, backend_runtime, "backgroundInfo", detail);
+    emit_profile_background_output(
+        runtime_context,
+        backend_runtime,
+        BackendRuntimeTelemetryKind::BackgroundInfo,
+        detail,
+    );
 }
 
 fn emit_profile_background_error(
@@ -1167,13 +1196,18 @@ fn emit_profile_background_error(
     backend_runtime: &vrcx_0_application_core::BackendRuntime,
     detail: impl Into<String>,
 ) {
-    emit_profile_background_output(runtime_context, backend_runtime, "backgroundError", detail);
+    emit_profile_background_output(
+        runtime_context,
+        backend_runtime,
+        BackendRuntimeTelemetryKind::BackgroundError,
+        detail,
+    );
 }
 
 fn emit_profile_background_output(
     runtime_context: &Arc<vrcx_0_runtime_host::RuntimeHostContext>,
     backend_runtime: &vrcx_0_application_core::BackendRuntime,
-    kind: &str,
+    kind: BackendRuntimeTelemetryKind,
     detail: impl Into<String>,
 ) {
     let snapshot = backend_runtime.snapshot();
@@ -1185,7 +1219,7 @@ fn emit_profile_background_output(
     runtime_context
         .event_bus
         .emit(vrcx_0_application_core::BackendRuntimeTelemetry {
-            kind: kind.into(),
+            kind,
             detail: detail.into(),
             snapshot,
         });

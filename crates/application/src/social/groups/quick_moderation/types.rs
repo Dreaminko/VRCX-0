@@ -1,5 +1,27 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum GroupQuickModerationAction {
+    Kick,
+    Ban,
+}
+
+impl GroupQuickModerationAction {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Kick => "kick",
+            Self::Ban => "ban",
+        }
+    }
+}
+
+impl std::fmt::Display for GroupQuickModerationAction {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupQuickModerationInput {
@@ -22,8 +44,7 @@ pub struct GroupQuickModerationActionInput {
     pub group_id: String,
     #[serde(default)]
     pub endpoint: String,
-    #[serde(default)]
-    pub action: String,
+    pub action: GroupQuickModerationAction,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq, specta::Type)]
@@ -54,6 +75,6 @@ pub struct GroupQuickModerationOutput {
 pub struct GroupQuickModerationActionOutput {
     pub group_id: String,
     pub target_user_id: String,
-    pub action: String,
+    pub action: GroupQuickModerationAction,
     pub status: i32,
 }

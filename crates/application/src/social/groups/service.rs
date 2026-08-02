@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::sync::Arc;
 
 use vrcx_0_persistence::DatabaseService;
@@ -52,17 +53,17 @@ async fn execute_group_api(
     input: VrchatApiRequest,
 ) -> Result<VrchatApiResponse> {
     deps.diagnostics
-        .record_command(command, "running", detail.into());
+        .record_command(command, RuntimeOperationStatus::Running, detail.into());
     let result = execute_group_api_raw(deps, input).await;
     match &result {
         Ok(response) => {
             deps.diagnostics
-                .record_command(command, "ok", format!("status={}", response.status));
+                .record_command(command, RuntimeOperationStatus::Ok, format!("status={}", response.status));
             let policy_class =
                 vrcx_0_vrchat_client::http_api::classify_api_response(response.status).class;
             deps.sync.record(
                 "api",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "{command} completed with status {}, class={policy_class}.",
                     response.status
@@ -72,7 +73,7 @@ async fn execute_group_api(
         }
         Err(error) => {
             deps.diagnostics
-                .record_command(command, "error", error.to_string());
+                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
             deps.sync.record_failure("api", error.to_string());
         }
     }

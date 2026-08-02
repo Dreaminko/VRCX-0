@@ -2,6 +2,7 @@ use std::{future::Future, pin::Pin, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use vrcx_0_application_core::FavoriteEntityKind;
 use vrcx_0_core::vrchat_ids::is_world_id;
 use vrcx_0_persistence::{favorites::favorite_add, DatabaseService};
 use vrcx_0_vrchat_client::{
@@ -91,7 +92,12 @@ pub struct VrchatSharedCollectionImportActions<'a> {
 
 impl SharedCollectionImportActions for VrchatSharedCollectionImportActions<'_> {
     fn create_group(&self, group_name: &str) -> Result<()> {
-        create_local_favorite_group(self.db, "", "world", group_name.to_string())?;
+        create_local_favorite_group(
+            self.db,
+            "",
+            FavoriteEntityKind::World,
+            group_name.to_string(),
+        )?;
         Ok(())
     }
 

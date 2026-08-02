@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 
 use crate::error::AppError;
@@ -67,14 +68,14 @@ pub fn app__database_maintenance_run(
     let job_name = format!("databaseMaintenance.{task}");
     state.runtime_context.diagnostics.record_command(
         "app__database_maintenance_run",
-        "running",
+        RuntimeOperationStatus::Running,
         format!("task={task}"),
     );
     state.runtime_context.background_jobs.register_job(
         &job_name,
         "rust-command",
         None,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Running maintenance task {task}."),
     );
     let result =
@@ -88,7 +89,7 @@ pub fn app__database_maintenance_run(
                 .mark_completed(&job_name, format!("Maintenance task {task} finished."));
             state.runtime_context.diagnostics.record_command(
                 "app__database_maintenance_run",
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!("task={task}"),
             );
         }
@@ -99,7 +100,7 @@ pub fn app__database_maintenance_run(
                 .mark_failed(&job_name, error.to_string());
             state.runtime_context.diagnostics.record_command(
                 "app__database_maintenance_run",
-                "error",
+                RuntimeOperationStatus::Error,
                 format!("task={task}: {error}"),
             );
         }

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetry,
-    BackgroundCapabilitySession, RuntimeBackgroundJobs,
+    BackendRuntimeTelemetryKind, BackgroundCapabilitySession, RuntimeBackgroundJobs,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_runtime_host::{
@@ -69,7 +69,12 @@ pub(in crate::state) fn emit_background_info(
     backend_runtime: &BackendRuntime,
     detail: impl Into<String>,
 ) {
-    emit_background_output(runtime_context, backend_runtime, "backgroundInfo", detail);
+    emit_background_output(
+        runtime_context,
+        backend_runtime,
+        BackendRuntimeTelemetryKind::BackgroundInfo,
+        detail,
+    );
 }
 
 pub(in crate::state) fn emit_background_error(
@@ -77,7 +82,12 @@ pub(in crate::state) fn emit_background_error(
     backend_runtime: &BackendRuntime,
     detail: impl Into<String>,
 ) {
-    emit_background_output(runtime_context, backend_runtime, "backgroundError", detail);
+    emit_background_output(
+        runtime_context,
+        backend_runtime,
+        BackendRuntimeTelemetryKind::BackgroundError,
+        detail,
+    );
 }
 
 pub(in crate::state) fn emit_background_warning(
@@ -88,7 +98,7 @@ pub(in crate::state) fn emit_background_warning(
     emit_background_output(
         runtime_context,
         backend_runtime,
-        "backgroundWarning",
+        BackendRuntimeTelemetryKind::BackgroundWarning,
         detail,
     );
 }
@@ -120,7 +130,7 @@ pub(in crate::state) fn remember_background_output_if_changed(
 fn emit_background_output(
     runtime_context: &Arc<RuntimeHostContext>,
     backend_runtime: &BackendRuntime,
-    kind: &str,
+    kind: BackendRuntimeTelemetryKind,
     detail: impl Into<String>,
 ) {
     let snapshot = backend_runtime.snapshot();
@@ -130,7 +140,7 @@ fn emit_background_output(
         return;
     }
     runtime_context.event_bus.emit(BackendRuntimeTelemetry {
-        kind: kind.into(),
+        kind,
         detail: detail.into(),
         snapshot,
     });

@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 
 use serde_json::Value;
@@ -29,13 +30,13 @@ pub async fn get_user_groups_overview(
     let command = "app__user_groups_overview_get";
     deps.groups
         .diagnostics
-        .record_command(command, "running", "User groups overview started.");
+        .record_command(command, RuntimeOperationStatus::Running, "User groups overview started.");
     let result = load_user_groups_overview(deps.clone(), input).await;
     match &result {
         Ok(output) => {
             deps.groups.diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!(
                     "user={} groups={} permissionsDegraded={}",
                     output.current_user_id,
@@ -45,7 +46,7 @@ pub async fn get_user_groups_overview(
             );
             deps.groups.sync.record(
                 "api",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "User groups overview loaded for {}.",
                     output.current_user_id
@@ -56,7 +57,7 @@ pub async fn get_user_groups_overview(
         Err(error) => {
             deps.groups
                 .diagnostics
-                .record_command(command, "error", error.to_string());
+                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
             deps.groups.sync.record_failure("api", error.to_string());
         }
     }

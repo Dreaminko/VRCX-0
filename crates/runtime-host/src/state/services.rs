@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::sync::Arc;
 
 use super::RuntimeHostState;
@@ -18,17 +19,17 @@ impl RuntimeHostState {
             "startupRecovery",
             "rust-host",
             None,
-            "checkpoint",
+            RuntimeOperationStatus::Checkpoint,
             "Rust runtime startup recovery checkpoint recorded; no durable recovery queue is configured.",
         );
         self.runtime_context.runtime.record_phase(
             "startupRecovery",
-            "checkpoint",
+            RuntimeOperationStatus::Checkpoint,
             "Rust runtime startup recovery checkpoint recorded; no durable recovery queue is configured.",
         );
         self.runtime_context.sync.record(
             "startupRecovery",
-            "observed",
+            RuntimeOperationStatus::Observed,
             "Rust runtime startup recovery checkpoint recorded; no durable recovery queue is configured.",
             0,
         );

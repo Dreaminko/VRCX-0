@@ -1,8 +1,10 @@
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Map, Value};
 use vrcx_0_application_activity::{OverlayActivityRuntime, OverlayActivitySink};
-use vrcx_0_application_game::RuntimeSnapshot;
+use vrcx_0_application_core::FriendProjection;
+use vrcx_0_application_game::{GameLogSideEffectEvent, RuntimeSnapshot};
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_host_desktop::tts::{SystemTtsEngine, TtsEngine};
 #[cfg(any(windows, target_os = "linux"))]
@@ -12,6 +14,7 @@ use vrcx_0_runtime_host::notification::{
     RealtimeUserImageResolverSlot,
 };
 use vrcx_0_runtime_host::RuntimeHostContext;
+use vrcx_0_core::friends::StateBucket;
 
 use crate::host_actions::RuntimeHost;
 use crate::notification::{
@@ -107,22 +110,19 @@ impl DesktopRuntimeServices {
         Arc::clone(&self.tts)
     }
 
-    pub fn observe_runtime_event(&self, event: &str, payload: &Value) {
-        match event {
-            "gameLogSideEffect" => self.observe_game_log_side_effect(payload),
-            "realtimeFriendProjection" => self.prefetch_online_friend_avatars(payload),
-            _ => {}
+    pub fn observe_runtime_event(&self, payload: &dyn Any) {
+        if let Some(event) = payload.downcast_ref::<GameLogSideEffectEvent>() {
+            self.observe_game_log_side_effect(event);
+        }
+        if let Some(projection) = payload.downcast_ref::<FriendProjection>() {
+            self.prefetch_online_friend_avatars(projection);
         }
     }
 
-    fn observe_game_log_side_effect(&self, payload: &Value) {
-        let kind = payload
-            .get("kind")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
-        match kind {
-            "nowPlaying" => {
-                let Some(patch) = payload.get("payload").and_then(Value::as_object) else {
+    fn observe_game_log_side_effect(&self, event: &GameLogSideEffectEvent) {
+        match event {
+            GameLogSideEffectEvent::NowPlaying(payload) => {
+                let Ok(Value::Object(patch)) = serde_json::to_value(payload) else {
                     return;
                 };
                 match self.now_playing.lock() {
@@ -132,7 +132,7 @@ impl DesktopRuntimeServices {
                             .cloned()
                             .unwrap_or_else(default_now_playing_map);
                         for (key, value) in patch {
-                            merged.insert(key.clone(), value.clone());
+                            merged.insert(key, value);
                         }
                         *current = Value::Object(merged);
                     }
@@ -141,7 +141,7 @@ impl DesktopRuntimeServices {
                     }
                 }
             }
-            "nowPlayingReset" => match self.now_playing.lock() {
+            GameLogSideEffectEvent::NowPlayingReset(_) => match self.now_playing.lock() {
                 Ok(mut current) => {
                     *current = default_now_playing_value();
                 }
@@ -149,15 +149,14 @@ impl DesktopRuntimeServices {
                     tracing::warn!("failed to lock now playing snapshot: {error}");
                 }
             },
-            _ => {}
+            GameLogSideEffectEvent::ScreenshotProcessed(_)
+            | GameLogSideEffectEvent::GameNoVr(_)
+            | GameLogSideEffectEvent::Notification(_) => {}
         }
     }
 
-    fn prefetch_online_friend_avatars(&self, payload: &Value) {
-        let Some(patches) = payload.get("patches").and_then(Value::as_array) else {
-            return;
-        };
-        if patches.len() > AVATAR_PREFETCH_MAX_PATCHES {
+    fn prefetch_online_friend_avatars(&self, projection: &FriendProjection) {
+        if projection.patches.len() > AVATAR_PREFETCH_MAX_PATCHES {
             return;
         }
         let Some(endpoint) = self
@@ -175,18 +174,11 @@ impl DesktopRuntimeServices {
             .config
             .get_bool("displayVRCPlusIconsAsAvatar", true)
             .unwrap_or(true);
-        for patch in patches {
-            let state_bucket = patch
-                .get("stateBucket")
-                .and_then(Value::as_str)
-                .unwrap_or_default();
-            if state_bucket != "online" {
+        for patch in &projection.patches {
+            if !StateBucket::Online.matches(&patch.state_bucket) {
                 continue;
             }
-            let user_id = patch
-                .get("userId")
-                .and_then(Value::as_str)
-                .unwrap_or_default();
+            let user_id = patch.user_id.as_str();
             if !user_id.starts_with("usr_") {
                 continue;
             }

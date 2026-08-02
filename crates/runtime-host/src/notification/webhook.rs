@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::time::Duration;
 
 use serde_json::Value;
@@ -28,7 +29,7 @@ pub async fn send_json_webhook_with_retry(
     let body = match serde_json::to_string(&payload) {
         Ok(body) => body,
         Err(error) => {
-            diagnostics.record_command(diagnostics_key, "error", error.to_string());
+            diagnostics.record_command(diagnostics_key, RuntimeOperationStatus::Error, error.to_string());
             return;
         }
     };
@@ -56,7 +57,7 @@ pub async fn send_json_webhook_with_retry(
     }
     diagnostics.record_command(
         diagnostics_key,
-        "error",
+        RuntimeOperationStatus::Error,
         format!("{event_label}: {last_error}"),
     );
     tracing::warn!(

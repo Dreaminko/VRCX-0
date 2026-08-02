@@ -9,21 +9,35 @@ const MAX_OVERLAY_INPUT_EVENTS: usize = 512;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BackendStartError {
     pub message: String,
-    pub permanent: bool,
+    pub reason: BackendStartErrorReason,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BackendStartErrorReason {
+    Other,
+    RuntimeUnavailable,
+    Unsupported,
 }
 
 impl BackendStartError {
     pub fn permanent(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
-            permanent: true,
+            reason: BackendStartErrorReason::Unsupported,
         }
     }
 
     pub fn transient(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
-            permanent: false,
+            reason: BackendStartErrorReason::Other,
+        }
+    }
+
+    pub fn runtime_unavailable(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            reason: BackendStartErrorReason::RuntimeUnavailable,
         }
     }
 }

@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
@@ -782,7 +783,7 @@ impl AppUpdateRuntime {
                 APP_UPDATE_CHECK_JOB,
                 "rust",
                 Some(APP_UPDATE_CHECK_INTERVAL_SECONDS),
-                "unavailable",
+                RuntimeOperationStatus::Unavailable,
                 "App update checks need a host task executor.",
             );
             return;
@@ -792,7 +793,7 @@ impl AppUpdateRuntime {
             APP_UPDATE_CHECK_JOB,
             "rust",
             Some(APP_UPDATE_CHECK_INTERVAL_SECONDS),
-            "scheduled",
+            RuntimeOperationStatus::Scheduled,
             "App update checks are scheduled and executed by the Rust runtime.",
         );
 

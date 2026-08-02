@@ -4,8 +4,8 @@ use std::time::{Duration, Instant};
 use super::{
     current_user_from_cookie, run_background_group_instance_refresh, AuthenticatedRuntimeSession,
     BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, BackendStartGuard,
-    BackgroundTickContext, CliLoginPrompt, NonInteractiveAuthError, PrintCleanupDeps,
-    PrintCleanupTrigger, Result, RuntimeHostProfile, RuntimeHostState,
+    BackendRuntimeTelemetryKind, BackgroundTickContext, CliLoginPrompt, NonInteractiveAuthError,
+    PrintCleanupDeps, PrintCleanupTrigger, Result, RuntimeHostProfile, RuntimeHostState,
 };
 
 impl RuntimeHostState {
@@ -29,10 +29,14 @@ impl RuntimeHostState {
             extension.stop_profile_services();
         }
         self.backend_runtime.set_ws_status("idle");
-        self.backend_runtime.set_game_log_status("idle");
-        self.backend_runtime.set_process_status("unknown");
+        self.backend_runtime.set_game_log_status(
+            vrcx_0_application_core::BackendRuntimeGameLogStatus::Idle,
+        );
+        self.backend_runtime.set_process_status(
+            vrcx_0_application_core::BackendRuntimeProcessStatus::Unknown,
+        );
         self.backend_runtime.set_phase(BackendRuntimePhase::Idle);
-        self.emit_backend_runtime_telemetry("runtimeStopped", reason);
+        self.emit_backend_runtime_telemetry(BackendRuntimeTelemetryKind::RuntimeStopped, reason);
         self.backend_runtime.snapshot()
     }
 
@@ -55,7 +59,11 @@ impl RuntimeHostState {
             BackendRuntimeMode::Background => "background",
             BackendRuntimeMode::Headless => "headless",
         };
-        self.emit_backend_runtime_telemetry_snapshot("modeChanged", detail, snapshot.clone());
+        self.emit_backend_runtime_telemetry_snapshot(
+            BackendRuntimeTelemetryKind::ModeChanged,
+            detail,
+            snapshot.clone(),
+        );
         snapshot
     }
 
@@ -86,7 +94,11 @@ impl RuntimeHostState {
         let _ = self.runtime_context.mutual_graph_fetch.cancel_active();
         self.clear_backend_frontend_session();
         let snapshot = self.backend_runtime.clear_authentication();
-        self.emit_backend_runtime_telemetry_snapshot("authCleared", reason, snapshot.clone());
+        self.emit_backend_runtime_telemetry_snapshot(
+            BackendRuntimeTelemetryKind::AuthCleared,
+            reason,
+            snapshot.clone(),
+        );
         snapshot
     }
 
@@ -227,7 +239,7 @@ impl RuntimeHostState {
             .backend_runtime
             .set_auth_success(session.user_id.clone(), session.display_name.clone());
         self.emit_backend_runtime_telemetry_snapshot(
-            "authSuccess",
+            BackendRuntimeTelemetryKind::AuthSuccess,
             session.display_name.clone(),
             snapshot,
         );

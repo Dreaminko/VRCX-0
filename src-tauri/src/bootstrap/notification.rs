@@ -4,7 +4,11 @@ use tauri::Manager;
 use tauri_plugin_notification::NotificationExt;
 #[cfg(test)]
 use vrcx_0_application_core::FriendProfileLoadStatusPayload;
-use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
+use vrcx_0_application_core::{
+    BackendRuntimeAuthStatus, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
+};
+#[cfg(test)]
+use vrcx_0_application_core::{BackendRuntimeGameLogStatus, BackendRuntimeProcessStatus};
 use vrcx_0_application_core::{RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload};
 use vrcx_0_application_realtime::RealtimeTransportStartResult;
 
@@ -19,19 +23,18 @@ const AUTH_FAILURE_NOTIFICATION_COOLDOWN: Duration = Duration::from_secs(5);
 
 pub(super) fn handle_runtime_auth_failure_notification(
     app_handle: &tauri::AppHandle,
-    event: &str,
-    payload: &serde_json::Value,
+    failure: &RuntimeVrchatAuthFailurePayload,
 ) {
-    let Some(failure) = runtime_auth_failure(event, payload) else {
+    if !is_actionable_runtime_auth_failure(failure) {
         return;
-    };
+    }
     let Some(state) = app_handle.try_state::<AppState>() else {
         return;
     };
-    if !runtime_auth_failure_matches_active_source(&state, &failure) {
+    if !runtime_auth_failure_matches_active_source(&state, failure) {
         return;
     }
-    let reason = failure.reason;
+    let reason = failure.reason.clone();
     let snapshot = state.snapshot_backend_runtime();
     if !should_show_runtime_auth_failure_notification(&snapshot, &reason) {
         return;
@@ -44,18 +47,18 @@ pub(super) fn handle_runtime_auth_failure_notification(
 
 pub(super) fn handle_runtime_auth_failure_recovery(
     app_handle: &tauri::AppHandle,
-    event: &str,
-    payload: &serde_json::Value,
+    failure: &RuntimeVrchatAuthFailurePayload,
 ) {
-    let Some(failure) = runtime_auth_failure(event, payload) else {
+    if !is_actionable_runtime_auth_failure(failure) {
         return;
-    };
+    }
     let Some(state) = app_handle.try_state::<AppState>() else {
         return;
     };
-    if !runtime_auth_failure_matches_active_source(&state, &failure) {
+    if !runtime_auth_failure_matches_active_source(&state, failure) {
         return;
     }
+    let failure = failure.clone();
     let app_handle = app_handle.clone();
     tauri::async_runtime::spawn(async move {
         let Some(state) = app_handle.try_state::<AppState>() else {
@@ -70,23 +73,9 @@ pub(super) fn handle_runtime_auth_failure_recovery(
     });
 }
 
-#[cfg(test)]
-fn runtime_auth_failure_reason(event: &str, payload: &serde_json::Value) -> Option<String> {
-    runtime_auth_failure(event, payload).map(|failure| failure.reason)
-}
-
-fn runtime_auth_failure(
-    event: &str,
-    payload: &serde_json::Value,
-) -> Option<RuntimeVrchatAuthFailurePayload> {
-    if event != "runtimeVrchatAuthFailure" {
-        return None;
-    }
-    let failure =
-        serde_json::from_value::<RuntimeVrchatAuthFailurePayload>(payload.clone()).ok()?;
-    (failure.status_code == 401
-        || (failure.status_code == 403 && failure.realtime_transport.is_some()))
-    .then_some(failure)
+fn is_actionable_runtime_auth_failure(failure: &RuntimeVrchatAuthFailurePayload) -> bool {
+    failure.status_code == 401
+        || (failure.status_code == 403 && failure.realtime_transport.is_some())
 }
 
 fn runtime_auth_failure_matches_scope(
@@ -134,7 +123,7 @@ fn should_show_runtime_auth_failure_notification(
     snapshot: &BackendRuntimeSnapshot,
     reason: &str,
 ) -> bool {
-    snapshot.auth_status == "interactionRequired"
+    snapshot.auth_status == BackendRuntimeAuthStatus::InteractionRequired
         && !auth_failure_reason_allows_automatic_recovery(reason)
 }
 
@@ -145,8 +134,9 @@ fn should_show_backend_start_auth_notification(
     if auth_failure_reason_allows_automatic_recovery(reason) {
         return false;
     }
-    snapshot.auth_status == "interactionRequired"
-        || (snapshot.phase == BackendRuntimePhase::Idle && snapshot.auth_status == "signedOut")
+    snapshot.auth_status == BackendRuntimeAuthStatus::InteractionRequired
+        || (snapshot.phase == BackendRuntimePhase::Idle
+            && snapshot.auth_status == BackendRuntimeAuthStatus::SignedOut)
 }
 
 fn auth_failure_reason_allows_automatic_recovery(reason: &str) -> bool {
@@ -247,25 +237,40 @@ mod tests {
 
     fn backend_snapshot(
         phase: BackendRuntimePhase,
-        auth_status: &str,
+        auth_status: BackendRuntimeAuthStatus,
         auth_user_id: &str,
         ws_status: &str,
     ) -> BackendRuntimeSnapshot {
         BackendRuntimeSnapshot {
             mode: BackendRuntimeMode::Background,
             phase,
-            auth_status: auth_status.into(),
+            auth_status,
             auth_user_id: auth_user_id.into(),
             auth_display_name: String::new(),
             ws_status: ws_status.into(),
-            game_log_status: "idle".into(),
-            process_status: "unknown".into(),
+            game_log_status: BackendRuntimeGameLogStatus::Idle,
+            process_status: BackendRuntimeProcessStatus::Unknown,
             ws_message_counts: BTreeMap::new(),
             ws_persisted_count: 0,
             game_log_persisted_count: 0,
             last_error: None,
             updated_at: String::new(),
             friend_profile_load: FriendProfileLoadStatusPayload::default(),
+        }
+    }
+
+    fn runtime_auth_failure(
+        status_code: i32,
+        realtime_transport: Option<RuntimeRealtimeTransportEpoch>,
+    ) -> RuntimeVrchatAuthFailurePayload {
+        RuntimeVrchatAuthFailurePayload {
+            owner_user_id: "usr_1".into(),
+            endpoint: "https://api.example.test/api/1".into(),
+            path: "runtime/social-baseline/friends".into(),
+            reason: "Missing Credentials (401)".into(),
+            status_code,
+            auth_scope_generation: 3,
+            realtime_transport,
         }
     }
 
@@ -289,7 +294,7 @@ mod tests {
     fn realtime_auth_failure_notification_skips_recoverable_websocket_401() {
         let snapshot = backend_snapshot(
             BackendRuntimePhase::Running,
-            "authenticated",
+            BackendRuntimeAuthStatus::Authenticated,
             "usr_1",
             "authFailure",
         );
@@ -300,55 +305,26 @@ mod tests {
     }
 
     #[test]
-    fn structured_http_401_is_recognized_as_runtime_auth_failure() {
-        let payload = serde_json::json!({
-            "ownerUserId": "usr_1",
-            "endpoint": "https://api.example.test/api/1",
-            "path": "runtime/social-baseline/friends",
-            "statusCode": 401,
-            "reason": "Missing Credentials (401)",
-            "authScopeGeneration": 3
-        });
-
-        assert_eq!(
-            runtime_auth_failure_reason("runtimeVrchatAuthFailure", &payload).as_deref(),
-            Some("Missing Credentials (401)")
-        );
-        assert!(runtime_auth_failure_reason(
-            "runtimeVrchatAuthFailure",
-            &serde_json::json!({
-                "ownerUserId": "usr_1",
-                "endpoint": "https://api.example.test/api/1",
-                "path": "runtime/social-baseline/friends",
-                "statusCode": 403,
-                "reason": "Forbidden",
-                "authScopeGeneration": 3
-            })
-        )
-        .is_none());
-        assert!(runtime_auth_failure_reason(
-            "realtimeWsStatus",
-            &serde_json::json!({ "status": "authFailure", "reason": "stale" })
-        )
-        .is_none());
+    fn typed_http_failure_policy_only_accepts_actionable_statuses() {
+        assert!(is_actionable_runtime_auth_failure(&runtime_auth_failure(
+            401, None
+        )));
+        assert!(!is_actionable_runtime_auth_failure(&runtime_auth_failure(
+            403, None
+        )));
     }
 
     #[test]
     fn realtime_403_requires_the_matching_transport_epoch() {
-        let payload = serde_json::json!({
-            "ownerUserId": "usr_1",
-            "endpoint": "https://api.example.test/api/1",
-            "path": "auth",
-            "statusCode": 403,
-            "reason": "Forbidden",
-            "authScopeGeneration": 3,
-            "realtimeTransport": {
-                "clientRunId": 5,
-                "generation": 7,
-                "sessionGeneration": 11
-            }
-        });
-        let failure = runtime_auth_failure("runtimeVrchatAuthFailure", &payload).unwrap();
+        let failure = runtime_auth_failure(
+            403,
+            Some(RuntimeRealtimeTransportEpoch {
+                client_run_id: 5,
+                generation: 7,
+                session_generation: 11,
+            }),
+        );
+        assert!(is_actionable_runtime_auth_failure(&failure));
         let active = RealtimeTransportStartResult {
             client_run_id: 5,
             generation: 7,
@@ -375,7 +351,12 @@ mod tests {
 
     #[test]
     fn backend_start_auth_notification_requires_manual_action() {
-        let recoverable = backend_snapshot(BackendRuntimePhase::Idle, "signedOut", "", "idle");
+        let recoverable = backend_snapshot(
+            BackendRuntimePhase::Idle,
+            BackendRuntimeAuthStatus::SignedOut,
+            "",
+            "idle",
+        );
         assert!(!should_show_backend_start_auth_notification(
             &recoverable,
             "Missing Credentials"
@@ -383,7 +364,7 @@ mod tests {
 
         let interaction_required = backend_snapshot(
             BackendRuntimePhase::Error,
-            "interactionRequired",
+            BackendRuntimeAuthStatus::InteractionRequired,
             "",
             "idle",
         );
@@ -392,7 +373,12 @@ mod tests {
             "Re-authentication in the GUI is required because this account requires 2FA/OTP."
         ));
 
-        let invalid_session = backend_snapshot(BackendRuntimePhase::Idle, "signedOut", "", "idle");
+        let invalid_session = backend_snapshot(
+            BackendRuntimePhase::Idle,
+            BackendRuntimeAuthStatus::SignedOut,
+            "",
+            "idle",
+        );
         assert!(should_show_backend_start_auth_notification(
             &invalid_session,
             "VRChat config request failed with HTTP 403."

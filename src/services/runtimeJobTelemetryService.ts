@@ -1,18 +1,13 @@
-import { commands } from '@/platform/tauri/bindings';
-
-type RuntimeJobStatus =
-    | 'frontend-owned'
-    | 'running'
-    | 'completed'
-    | 'idle'
-    | 'error'
-    | string;
+import {
+    commands,
+    type RuntimeOperationStatus
+} from '@/platform/tauri/bindings';
 
 type RuntimeJobTelemetryRecord = {
     name: string;
     owner?: string;
     cadenceSeconds?: number | null;
-    status: RuntimeJobStatus;
+    status: RuntimeOperationStatus;
     detail?: string;
 };
 

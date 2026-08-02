@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
@@ -58,7 +59,7 @@ impl ProfileBackupRuntime {
             AUTO_JOB,
             "rust",
             Some(AUTO_CADENCE.as_secs()),
-            "scheduled",
+            RuntimeOperationStatus::Scheduled,
             "Profile backup scheduler is waiting.",
         );
         let runtime = self.clone();

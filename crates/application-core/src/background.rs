@@ -8,6 +8,7 @@ use chrono::{Duration as ChronoDuration, Utc};
 use serde::Serialize;
 use vrcx_0_core::time::{iso_millis, now_iso};
 use vrcx_0_persistence::DatabaseService;
+use crate::RuntimeOperationStatus;
 
 const DATABASE_OPTIMIZE_JOB: &str = "databaseOptimize";
 const DATABASE_OPTIMIZE_INITIAL_DELAY_SECONDS: u64 = 3_600;
@@ -36,7 +37,7 @@ fn future_iso(seconds: u64) -> String {
 pub struct RuntimeBackgroundJobSnapshot {
     pub name: String,
     pub owner: String,
-    pub status: String,
+    pub status: RuntimeOperationStatus,
     pub cadence_seconds: Option<u64>,
     pub last_started_at: Option<String>,
     pub last_finished_at: Option<String>,
@@ -69,12 +70,11 @@ impl RuntimeBackgroundJobs {
         name: impl Into<String>,
         owner: impl Into<String>,
         cadence_seconds: Option<u64>,
-        status: impl Into<String>,
+        status: RuntimeOperationStatus,
         detail: impl Into<String>,
     ) {
         let name = name.into();
         let owner = owner.into();
-        let status = status.into();
         let detail = detail.into();
         match self.inner.lock() {
             Ok(mut jobs) => {
@@ -110,7 +110,7 @@ impl RuntimeBackgroundJobs {
             "startupMaintenance",
             "frontend",
             None,
-            "scheduled",
+            RuntimeOperationStatus::Scheduled,
             "Startup maintenance is initiated by the frontend bootstrap because it may open UI.",
         );
     }
@@ -118,7 +118,7 @@ impl RuntimeBackgroundJobs {
     pub fn mark_running(&self, name: &str, detail: impl Into<String>) {
         self.upsert_status(
             name,
-            "running",
+            RuntimeOperationStatus::Running,
             JobStatusTiming {
                 started_at: Some(now_iso()),
                 ..Default::default()
@@ -131,7 +131,7 @@ impl RuntimeBackgroundJobs {
     pub fn mark_completed(&self, name: &str, detail: impl Into<String>) {
         self.upsert_status(
             name,
-            "idle",
+            RuntimeOperationStatus::Idle,
             JobStatusTiming {
                 finished_at: Some(now_iso()),
                 ..Default::default()
@@ -144,7 +144,7 @@ impl RuntimeBackgroundJobs {
     pub fn mark_failed(&self, name: &str, detail: impl Into<String>) {
         self.upsert_status(
             name,
-            "error",
+            RuntimeOperationStatus::Error,
             JobStatusTiming {
                 finished_at: Some(now_iso()),
                 ..Default::default()
@@ -157,7 +157,7 @@ impl RuntimeBackgroundJobs {
     pub fn mark_scheduled(&self, name: &str, detail: impl Into<String>, delay_seconds: u64) {
         self.upsert_status(
             name,
-            "scheduled",
+            RuntimeOperationStatus::Scheduled,
             JobStatusTiming {
                 next_run_at: Some(future_iso(delay_seconds)),
                 ..Default::default()
@@ -183,7 +183,7 @@ impl RuntimeBackgroundJobs {
                 DATABASE_OPTIMIZE_JOB,
                 "rust",
                 Some(DATABASE_OPTIMIZE_INTERVAL_SECONDS),
-                "unavailable",
+                RuntimeOperationStatus::Unavailable,
                 "Scheduled PRAGMA optimize needs a host task executor.",
             );
             return;
@@ -194,7 +194,7 @@ impl RuntimeBackgroundJobs {
                 DATABASE_OPTIMIZE_JOB,
                 "rust",
                 Some(DATABASE_OPTIMIZE_INTERVAL_SECONDS),
-                "scheduled",
+                RuntimeOperationStatus::Scheduled,
                 "Scheduled PRAGMA optimize loop is already active.",
             );
             return;
@@ -204,7 +204,7 @@ impl RuntimeBackgroundJobs {
             DATABASE_OPTIMIZE_JOB,
             "rust",
             Some(DATABASE_OPTIMIZE_INTERVAL_SECONDS),
-            "scheduled",
+            RuntimeOperationStatus::Scheduled,
             "Scheduled PRAGMA optimize is owned by the Rust runtime.",
         );
 
@@ -281,7 +281,7 @@ impl RuntimeBackgroundJobs {
     fn upsert_status(
         &self,
         name: &str,
-        status: &str,
+        status: RuntimeOperationStatus,
         timing: JobStatusTiming,
         detail: impl Into<String>,
         failed: bool,
@@ -294,7 +294,7 @@ impl RuntimeBackgroundJobs {
                         .or_insert_with(|| RuntimeBackgroundJobSnapshot {
                             name: name.to_string(),
                             owner: "rust".into(),
-                            status: status.to_string(),
+                            status,
                             cadence_seconds: None,
                             last_started_at: None,
                             last_finished_at: None,
@@ -303,7 +303,7 @@ impl RuntimeBackgroundJobs {
                             last_error: None,
                             failure_count: 0,
                         });
-                job.status = status.to_string();
+                job.status = status;
                 if let Some(started_at) = timing.started_at {
                     job.last_started_at = Some(started_at);
                 }
@@ -312,18 +312,24 @@ impl RuntimeBackgroundJobs {
                 }
                 if let Some(next_run_at) = timing.next_run_at {
                     job.next_run_at = Some(next_run_at);
-                } else if status == "idle" || status == "error" {
+                } else if matches!(
+                    status,
+                    RuntimeOperationStatus::Idle | RuntimeOperationStatus::Error
+                ) {
                     if job.next_run_at.is_none() {
                         job.next_run_at = job.cadence_seconds.map(future_iso);
                     }
-                } else if status == "running" {
+                } else if status == RuntimeOperationStatus::Running {
                     job.next_run_at = None;
                 }
                 job.last_detail = detail;
                 if failed {
                     job.last_error = Some(job.last_detail.clone());
                     job.failure_count = job.failure_count.saturating_add(1);
-                } else if status == "running" || status == "idle" {
+                } else if matches!(
+                    status,
+                    RuntimeOperationStatus::Running | RuntimeOperationStatus::Idle
+                ) {
                     job.last_error = None;
                 }
             }
@@ -339,7 +345,13 @@ mod tests {
     #[test]
     fn background_job_failure_records_last_error_and_retry_state() {
         let jobs = RuntimeBackgroundJobs::new();
-        jobs.register_job("sync", "rust", Some(60), "scheduled", "waiting");
+        jobs.register_job(
+            "sync",
+            "rust",
+            Some(60),
+            RuntimeOperationStatus::Scheduled,
+            "waiting",
+        );
         jobs.mark_failed("sync", "network failed");
 
         let failed = jobs
@@ -347,7 +359,7 @@ mod tests {
             .into_iter()
             .find(|job| job.name == "sync")
             .unwrap();
-        assert_eq!(failed.status, "error");
+        assert_eq!(failed.status, RuntimeOperationStatus::Error);
         assert_eq!(failed.last_error.as_deref(), Some("network failed"));
         assert_eq!(failed.failure_count, 1);
         assert!(failed.next_run_at.is_some());
@@ -358,7 +370,7 @@ mod tests {
             .into_iter()
             .find(|job| job.name == "sync")
             .unwrap();
-        assert_eq!(retrying.status, "running");
+        assert_eq!(retrying.status, RuntimeOperationStatus::Running);
         assert!(retrying.last_error.is_none());
         assert!(retrying.next_run_at.is_none());
     }

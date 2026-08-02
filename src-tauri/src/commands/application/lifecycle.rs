@@ -9,6 +9,7 @@ use vrcx_0_application::{
     AuthenticatedRuntimePhaseSnapshot, AuthenticatedSessionMaintenanceOutcome,
 };
 use vrcx_0_application_game::DebugLoggingOutcome;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -18,7 +19,7 @@ pub struct RuntimeJobRecordInput {
     pub owner: String,
     #[serde(default)]
     pub cadence_seconds: Option<u64>,
-    pub status: String,
+    pub status: RuntimeOperationStatus,
     #[serde(default)]
     pub detail: String,
 }
@@ -82,19 +83,19 @@ pub fn app__runtime_background_job_record(
         name,
         input.owner.trim(),
         input.cadence_seconds,
-        input.status.trim(),
+        input.status,
         detail,
     );
-    match input.status.trim() {
-        "running" => state
+    match input.status {
+        RuntimeOperationStatus::Running => state
             .runtime_context
             .background_jobs
             .mark_running(name, detail),
-        "completed" | "idle" => state
+        RuntimeOperationStatus::Completed | RuntimeOperationStatus::Idle => state
             .runtime_context
             .background_jobs
             .mark_completed(name, detail),
-        "error" => state
+        RuntimeOperationStatus::Error => state
             .runtime_context
             .background_jobs
             .mark_failed(name, detail),

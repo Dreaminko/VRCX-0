@@ -36,12 +36,35 @@ fn parse_json_or_fail(
 }
 
 fn sort_two_factor_methods(methods: &mut [TwoFactorMethod]) {
-    methods.sort_by_key(|method| match method.as_str() {
-        "totp" => 0,
-        "emailOtp" => 1,
-        "otp" => 2,
-        _ => 3,
-    });
+    methods.sort_by_key(|method| TwoFactorMethodKind::from_wire(method).priority());
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TwoFactorMethodKind {
+    Totp,
+    EmailOtp,
+    Otp,
+    Unsupported,
+}
+
+impl TwoFactorMethodKind {
+    fn from_wire(method: &str) -> Self {
+        match method {
+            "totp" => Self::Totp,
+            "emailOtp" => Self::EmailOtp,
+            "otp" => Self::Otp,
+            _ => Self::Unsupported,
+        }
+    }
+
+    fn priority(self) -> u8 {
+        match self {
+            Self::Totp => 0,
+            Self::EmailOtp => 1,
+            Self::Otp => 2,
+            Self::Unsupported => 3,
+        }
+    }
 }
 
 fn classify_status_failure(response: &HttpApiExecuteResponse) -> LoginFailureKind {
@@ -239,10 +262,16 @@ pub(super) async fn respond_to_challenge(
     method: TwoFactorMethod,
     code: String,
 ) -> LoginSessionState {
-    let verify_request = match method.as_str() {
-        "emailOtp" => email_otp_verify_input(endpoint.to_string(), code),
-        "otp" => otp_verify_input(endpoint.to_string(), code),
-        _ => totp_verify_input(endpoint.to_string(), code),
+    let verify_request = match TwoFactorMethodKind::from_wire(&method) {
+        TwoFactorMethodKind::Totp => totp_verify_input(endpoint.to_string(), code),
+        TwoFactorMethodKind::EmailOtp => email_otp_verify_input(endpoint.to_string(), code),
+        TwoFactorMethodKind::Otp => otp_verify_input(endpoint.to_string(), code),
+        TwoFactorMethodKind::Unsupported => {
+            return LoginSessionState::failed(
+                format!("Unsupported 2FA method: {method}"),
+                LoginFailureKind::TwoFactorUnavailable,
+            );
+        }
     };
 
     let verify_response = match execute_or_fail(api, verify_request).await {
@@ -324,7 +353,18 @@ fn challenge_from_methods(
         );
     }
     sort_two_factor_methods(&mut methods);
-    let mode = methods[0].clone();
+    let Some(mode) = methods
+        .iter()
+        .find(|method| {
+            TwoFactorMethodKind::from_wire(method) != TwoFactorMethodKind::Unsupported
+        })
+        .cloned()
+    else {
+        return LoginSessionState::failed(
+            "2FA is required but no supported method was returned.",
+            LoginFailureKind::TwoFactorUnavailable,
+        );
+    };
     LoginSessionState::Challenge {
         attempt_id: String::new(),
         methods,

@@ -115,7 +115,7 @@ pub use social::{
     get_members, get_posts, get_user_groups, get_user_instances, join_group, kick_member,
     leave_group, remove_member_role, respond_join_request, run_group_quick_moderation_action,
     search_members, send_invite, set_member_props, set_representation, unban_member, unblock_group,
-    GroupApiDeps, GroupQuickModerationActionInput, GroupQuickModerationActionOutput,
+    GroupApiDeps, GroupQuickModerationAction, GroupQuickModerationActionInput, GroupQuickModerationActionOutput,
     GroupQuickModerationDeps, GroupQuickModerationGroup, GroupQuickModerationInput,
     GroupQuickModerationOutput, VrchatGroupGalleryInput, VrchatGroupIdInput,
     VrchatGroupJoinRequestRespondInput, VrchatGroupJoinRequestsInput, VrchatGroupLogsInput,
@@ -136,7 +136,10 @@ pub use social::{
 pub use social::{
     load_group_calendar, GroupCalendarDeps, GroupCalendarInput, GroupCalendarSnapshot,
 };
-pub use social::{load_quick_search_catalog, QuickSearchCatalogDeps, QuickSearchCatalogSnapshot};
+pub use social::{
+    load_quick_search_catalog, QuickSearchCatalogDeps, QuickSearchCatalogSnapshot,
+    QuickSearchCatalogStatus,
+};
 pub use social::{
     prepare_note_export, run_note_export, NoteExportActions, NoteExportItemInput,
     NoteExportItemState, NoteExportItemStatus, NoteExportProgress, NoteExportResult,
@@ -301,8 +304,9 @@ pub use vrcx_0_application_realtime::{
     RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
     RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
     RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
-    RealtimeNotificationUpsert, RealtimeSessionContext, RealtimeStopRequest,
+    RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection, RealtimeNotificationOutput,
+    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeSessionContext,
+    RealtimeStopRequest,
     RealtimeTransportStartResult, RealtimeWsMessagePayload, RealtimeWsStatusPayload,
     SyntheticFriendEventOutcome,
 };

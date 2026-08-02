@@ -218,6 +218,45 @@ async fn otp_recovery_code_is_dash_normalized_before_sending() {
 }
 
 #[tokio::test]
+async fn unsupported_two_factor_methods_fail_without_sending_a_verification_request() {
+    let api = Arc::new(FakeLoginApi::new(vec![(
+        200,
+        json!({ "requiresTwoFactorAuth": ["futureMethod"] }),
+    )]));
+
+    let state = start(api.as_ref(), "self@example.test", "secret").await;
+
+    assert!(matches!(
+        state,
+        LoginSessionState::Failed {
+            kind: LoginFailureKind::TwoFactorUnavailable,
+            ..
+        }
+    ));
+    assert_eq!(api.call_paths(), vec!["auth/user"]);
+}
+
+#[tokio::test]
+async fn unsupported_submitted_two_factor_method_is_not_treated_as_totp() {
+    let api = Arc::new(FakeLoginApi::new(vec![(
+        200,
+        json!({ "requiresTwoFactorAuth": ["totp"] }),
+    )]));
+    let state = start(api.as_ref(), "self@example.test", "secret").await;
+
+    let state = respond(api.as_ref(), state, "futureMethod", "123456").await;
+
+    assert!(matches!(
+        state,
+        LoginSessionState::Failed {
+            kind: LoginFailureKind::TwoFactorUnavailable,
+            ..
+        }
+    ));
+    assert_eq!(api.call_paths(), vec!["auth/user"]);
+}
+
+#[tokio::test]
 async fn a_wrong_code_keeps_the_same_challenge_open_for_a_retry() {
     let api = Arc::new(FakeLoginApi::new(vec![
         (200, json!({ "requiresTwoFactorAuth": ["totp", "otp"] })),

@@ -4,7 +4,8 @@ use serde_json::json;
 
 use super::*;
 use vrcx_0_application_core::{
-    FriendProjection, RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
+    FriendProjection, RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection,
+    RealtimeNotificationProjection,
     RealtimeNotificationUpsert,
 };
 use vrcx_0_i18n::{OverlayMessage, OverlayMessageKey};
@@ -505,7 +506,7 @@ fn notification_projection_without_ids_uses_stable_fallback_source_ids() {
 fn queue_projection_only_ingests_ready_events() {
     let runtime = OverlayActivityRuntime::new();
     runtime.ingest_instance_queue_projection(&RealtimeInstanceQueueProjection {
-        kind: "update".to_string(),
+        kind: RealtimeInstanceQueueKind::Update,
         instance_location: "wrld_1:123".to_string(),
         world_id: "wrld_1".to_string(),
         world_name: "Queue World".to_string(),
@@ -515,7 +516,7 @@ fn queue_projection_only_ingests_ready_events() {
         generation: 1,
     });
     runtime.ingest_instance_queue_projection(&RealtimeInstanceQueueProjection {
-        kind: "ready".to_string(),
+        kind: RealtimeInstanceQueueKind::Ready,
         instance_location: "wrld_1:123".to_string(),
         world_id: "wrld_1".to_string(),
         world_name: "Queue World".to_string(),

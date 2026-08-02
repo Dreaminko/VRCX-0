@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -31,8 +32,15 @@ pub struct QuickSearchCatalogDeps {
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub enum QuickSearchCatalogStatus {
+    Ready,
+    Partial,
+}
+
+#[derive(Clone, Debug, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct QuickSearchCatalogSnapshot {
-    pub status: String,
+    pub status: QuickSearchCatalogStatus,
     pub detail: String,
     pub own_avatars: Vec<Value>,
     pub favorite_avatars: Vec<Value>,
@@ -58,7 +66,7 @@ pub async fn load_quick_search_catalog(
     let command = "app__quick_search_catalog_get";
     let scope = require_active_scope(&deps.auth_scope)?;
     deps.diagnostics
-        .record_command(command, "running", "Loading quick search catalog.");
+        .record_command(command, RuntimeOperationStatus::Running, "Loading quick search catalog.");
 
     let remote = load_quick_search_remote_catalog(&deps, &scope).await;
 
@@ -81,7 +89,11 @@ pub async fn load_quick_search_catalog(
     };
     deps.diagnostics.record_command(
         command,
-        if partial { "partial" } else { "ok" },
+        if partial {
+            RuntimeOperationStatus::Partial
+        } else {
+            RuntimeOperationStatus::Ok
+        },
         if partial {
             detail.clone()
         } else {
@@ -90,7 +102,11 @@ pub async fn load_quick_search_catalog(
     );
     deps.sync.record(
         "quickSearch",
-        if partial { "partial" } else { "ready" },
+        if partial {
+            RuntimeOperationStatus::Partial
+        } else {
+            RuntimeOperationStatus::Ready
+        },
         if partial {
             detail.clone()
         } else {
@@ -100,7 +116,11 @@ pub async fn load_quick_search_catalog(
     );
 
     Ok(QuickSearchCatalogSnapshot {
-        status: if partial { "partial" } else { "ready" }.into(),
+        status: if partial {
+            QuickSearchCatalogStatus::Partial
+        } else {
+            QuickSearchCatalogStatus::Ready
+        },
         detail,
         own_avatars: remote.own_avatars,
         favorite_avatars: remote.favorite_avatars,

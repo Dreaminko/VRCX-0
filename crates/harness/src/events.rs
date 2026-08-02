@@ -175,7 +175,7 @@ mod tests {
     struct CapturingSink(Arc<Mutex<Vec<(String, Value)>>>);
 
     impl RuntimeEventSink for CapturingSink {
-        fn emit(&self, event: &str, payload: Value) {
+        fn emit(&self, event: &str, payload: Value, _typed_payload: &dyn std::any::Any) {
             self.0.lock().unwrap().push((event.to_string(), payload));
         }
     }

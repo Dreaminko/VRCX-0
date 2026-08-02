@@ -4,12 +4,13 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 
 use vrcx_0_core::time::now_iso;
+use crate::RuntimeOperationStatus;
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeSyncDomainSnapshot {
     pub domain: String,
-    pub status: String,
+    pub status: RuntimeOperationStatus,
     pub detail: String,
     pub updated_at: String,
     pub revision: u64,
@@ -36,7 +37,7 @@ impl RuntimeSyncEngine {
     pub fn record(
         &self,
         domain: impl Into<String>,
-        status: impl Into<String>,
+        status: RuntimeOperationStatus,
         detail: impl Into<String>,
         pending_count: u64,
     ) {
@@ -44,7 +45,7 @@ impl RuntimeSyncEngine {
     }
 
     pub fn record_failure(&self, domain: impl Into<String>, detail: impl Into<String>) {
-        self.upsert(domain, "error", detail, 0, true);
+        self.upsert(domain, RuntimeOperationStatus::Error, detail, 0, true);
     }
 
     pub fn snapshot(&self) -> RuntimeSyncSnapshot {
@@ -61,13 +62,12 @@ impl RuntimeSyncEngine {
     fn upsert(
         &self,
         domain: impl Into<String>,
-        status: impl Into<String>,
+        status: RuntimeOperationStatus,
         detail: impl Into<String>,
         pending_count: u64,
         failed: bool,
     ) {
         let domain = domain.into();
-        let status = status.into();
         let detail = detail.into();
         match self.inner.lock() {
             Ok(mut domains) => {
@@ -76,7 +76,7 @@ impl RuntimeSyncEngine {
                         .entry(domain.clone())
                         .or_insert_with(|| RuntimeSyncDomainSnapshot {
                             domain,
-                            status: String::new(),
+                            status: RuntimeOperationStatus::Pending,
                             detail: String::new(),
                             updated_at: String::new(),
                             revision: 0,

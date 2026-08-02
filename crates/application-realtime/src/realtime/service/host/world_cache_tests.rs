@@ -189,7 +189,11 @@ fn notify_favorites_changed_emits_event_and_normalizes_vrc_plus_world() -> Resul
 
     runtime
         .runtime()
-        .notify_favorites_changed("vrcPlusWorld", true, false);
+        .notify_favorites_changed(
+            vrcx_0_application_core::FavoriteChangeScope::World,
+            true,
+            false,
+        );
 
     let events = runtime.runtime().deps.event_bus.take_events_for_test();
     assert_eq!(events.len(), 1);

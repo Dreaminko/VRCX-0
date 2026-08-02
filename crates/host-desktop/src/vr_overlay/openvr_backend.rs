@@ -1202,6 +1202,9 @@ impl OpenVrOverlayBackend {
 
 fn init_start_error(context: &str, error: openvr::InitError) -> BackendStartError {
     let message = format!("{context}: {error:?}");
+    if error == openvr::InitError::Init_NoServerForBackgroundApp {
+        return BackendStartError::runtime_unavailable(message);
+    }
     let permanent = matches!(
         error,
         openvr::InitError::Init_InterfaceNotFound

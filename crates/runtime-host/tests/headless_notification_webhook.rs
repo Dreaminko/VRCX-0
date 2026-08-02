@@ -5,7 +5,7 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use serde_json::json;
-use vrcx_0_application_realtime::RealtimeWsMessagePayload;
+use vrcx_0_application_realtime::{FavoriteBaselineSnapshot, RealtimeWsMessagePayload};
 use vrcx_0_host::app_paths::{AppDataDirResolution, AppDataDirSource};
 use vrcx_0_runtime_host::{RuntimeHostOptions, RuntimeHostProfile, RuntimeHostState};
 
@@ -94,11 +94,14 @@ async fn headless_recent_notification_sends_one_webhook_and_deduplicates() {
     activity.set_delivery_armed(true);
     state
         .authenticated_runtime
-        .apply_favorites_snapshot(&json!({
-            "groupedFavoriteFriendIdsByGroupKey": {
-                "group-a": ["usr_sender"]
-            }
-        }));
+        .apply_favorites_snapshot(&FavoriteBaselineSnapshot {
+            grouped_favorite_friend_ids_by_group_key: [(
+                "group-a".to_string(),
+                vec!["usr_sender".to_string()],
+            )]
+            .into(),
+            ..Default::default()
+        });
     let notification = RealtimeWsMessagePayload {
         json: json!({
             "type": "notification",

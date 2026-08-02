@@ -2,6 +2,6 @@ pub use vrcx_0_application_core::{
     FriendProjection, FriendProjectionPatch, FriendStateBucketAuthority,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
     RealtimeEntryCorrectionStream, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeNotificationUpsert,
-    RealtimeUserProjection,
+    RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
+    RealtimeNotificationUpsert, RealtimeUserProjection,
 };

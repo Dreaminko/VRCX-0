@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -182,7 +183,7 @@ impl RealtimeHostRuntime {
             .await;
         self.deps.sync.record(
             "inviteAutomation",
-            "sent",
+            RuntimeOperationStatus::Sent,
             format!("Invite automation sent invite to {receiver_user_id}."),
             1,
         );
@@ -323,7 +324,7 @@ impl RealtimeHostRuntime {
     fn record_invite_automation_skip(&self, reason: InviteAutomationSkipReason) {
         self.deps.sync.record(
             "inviteAutomation",
-            "skipped",
+            RuntimeOperationStatus::Skipped,
             format!("Invite automation skipped: {}.", reason.as_str()),
             0,
         );

@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 
 use crate::error::AppError;
@@ -93,11 +94,11 @@ macro_rules! external_command {
         ) -> Result<ExternalApiExecuteResponse, AppError> {
             let diagnostics = state.runtime_context.diagnostics.clone();
             let sync = state.runtime_context.sync.clone();
-            diagnostics.record_command(stringify!($name), "running", $detail);
+            diagnostics.record_command(stringify!($name), RuntimeOperationStatus::Running, $detail);
             let request = match $builder(input) {
                 Ok(request) => request,
                 Err(error) => {
-                    diagnostics.record_command(stringify!($name), "error", error.to_string());
+                    diagnostics.record_command(stringify!($name), RuntimeOperationStatus::Error, error.to_string());
                     sync.record_failure("external-api", error.to_string());
                     return Err(error);
                 }
@@ -107,12 +108,12 @@ macro_rules! external_command {
                 Ok(response) => {
                     diagnostics.record_command(
                         stringify!($name),
-                        "ok",
+                        RuntimeOperationStatus::Ok,
                         format!("status={}", response.status),
                     );
                     sync.record(
                         "external-api",
-                        "ready",
+                        RuntimeOperationStatus::Ready,
                         format!(
                             "{} completed with status {}.",
                             stringify!($name),
@@ -122,7 +123,7 @@ macro_rules! external_command {
                     );
                 }
                 Err(error) => {
-                    diagnostics.record_command(stringify!($name), "error", error.to_string());
+                    diagnostics.record_command(stringify!($name), RuntimeOperationStatus::Error, error.to_string());
                     sync.record_failure("external-api", error.to_string());
                 }
             }

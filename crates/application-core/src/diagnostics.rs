@@ -6,12 +6,13 @@ use serde::Serialize;
 const MAX_COMMAND_OBSERVATIONS: usize = 100;
 
 use vrcx_0_core::time::now_iso;
+use crate::RuntimeOperationStatus;
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeCommandObservation {
     pub command: String,
-    pub status: String,
+    pub status: RuntimeOperationStatus,
     pub detail: String,
     pub observed_at: String,
 }
@@ -29,14 +30,14 @@ impl RuntimeDiagnostics {
     pub fn record_command(
         &self,
         command: impl Into<String>,
-        status: impl Into<String>,
+        status: RuntimeOperationStatus,
         detail: impl Into<String>,
     ) {
         match self.recent_commands.lock() {
             Ok(mut commands) => {
                 commands.push_back(RuntimeCommandObservation {
                     command: command.into(),
-                    status: status.into(),
+                    status,
                     detail: detail.into(),
                     observed_at: now_iso(),
                 });

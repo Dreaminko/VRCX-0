@@ -496,16 +496,18 @@ impl RuntimeHostStateBuilder {
         let favorites_sink = {
             let overlay_activity = self.runtime_context.overlay_activity();
             let profile_sink = favorites_sink;
-            Some(Arc::new(move |snapshot: &Value| {
-                overlay_activity.set_favorite_groups(
-                    vrcx_0_application_activity::OverlayFavoriteGroups::from_map(
-                        crate::favorite_group_membership_from_snapshot(snapshot),
-                    ),
-                );
-                if let Some(profile_sink) = &profile_sink {
-                    profile_sink(snapshot);
-                }
-            }) as crate::RuntimeHostSnapshotCallback)
+            Some(Arc::new(
+                move |snapshot: &vrcx_0_application_realtime::FavoriteBaselineSnapshot| {
+                    overlay_activity.set_favorite_groups(
+                        vrcx_0_application_activity::OverlayFavoriteGroups::from_map(
+                            crate::favorite_group_membership_from_baseline(snapshot),
+                        ),
+                    );
+                    if let Some(profile_sink) = &profile_sink {
+                        profile_sink(snapshot);
+                    }
+                },
+            ) as crate::RuntimeHostFavoritesCallback)
         };
         let authenticated_runtime = AuthenticatedRuntimeOrchestrator::new(
             Arc::clone(&self.db),

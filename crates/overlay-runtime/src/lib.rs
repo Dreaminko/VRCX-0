@@ -17,6 +17,7 @@ pub use runtime::{
 };
 pub use service::{
     HostVrOverlayService, OverlayBackendPreference, OverlayServiceStartError,
+    OverlayServiceStartErrorReason,
     VrOverlayServiceControl,
 };
 pub use services::VrOverlayRuntimeServices;

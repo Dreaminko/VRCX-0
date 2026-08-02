@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::sync::Arc;
 
 use vrcx_0_application_activity::{
@@ -132,7 +133,7 @@ impl OverlayActivitySink for NotificationWebhookSink {
             };
             self.diagnostics.record_command(
                 "notificationWebhook",
-                "error",
+                RuntimeOperationStatus::Error,
                 format!("{event_label}: {reason}"),
             );
             tracing::warn!(event = %event_label, reason, "webhook delivery dropped");

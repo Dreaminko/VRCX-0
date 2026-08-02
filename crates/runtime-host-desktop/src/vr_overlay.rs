@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use vrcx_0_application_core::GameProcessEvent;
 use vrcx_0_application_game::{GameLogEvent, GameLogEventSink};
-use vrcx_0_application_realtime::RealtimeFriendSnapshot;
+use vrcx_0_application_realtime::{FavoriteBaselineSnapshot, RealtimeFriendSnapshot};
 use vrcx_0_runtime_host::Result;
 
 use crate::DesktopRuntimeServices;
@@ -145,7 +145,10 @@ impl DesktopVrOverlayRuntime {
         self.runtime.invalidate_friends_panel_note_memo_cache();
     }
 
-    pub fn update_friends_panel_favorite_groups_from_baseline(&self, snapshot: &serde_json::Value) {
+    pub fn update_friends_panel_favorite_groups_from_baseline(
+        &self,
+        snapshot: &FavoriteBaselineSnapshot,
+    ) {
         #[cfg(any(windows, target_os = "linux"))]
         self.runtime
             .update_friends_panel_favorite_groups_from_baseline(snapshot);

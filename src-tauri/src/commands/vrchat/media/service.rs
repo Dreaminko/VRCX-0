@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::media::{
     asset_upload_input, avatar_gallery_image_upload_input, avatar_image_set_input,
@@ -86,7 +87,7 @@ async fn run_legacy_entity_image_upload(
     let diagnostics = state.runtime_context.diagnostics.clone();
     diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Uploading legacy {} image.", kind.label()),
     );
     let result = media_upload::upload_legacy_entity_image(
@@ -106,9 +107,9 @@ async fn run_legacy_entity_image_upload(
     .await;
     match &result {
         Ok(response) => {
-            diagnostics.record_command(command, "ok", format!("status={}", response.status));
+            diagnostics.record_command(command, RuntimeOperationStatus::Ok, format!("status={}", response.status));
         }
-        Err(error) => diagnostics.record_command(command, "error", error.to_string()),
+        Err(error) => diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string()),
     }
     Ok(result?)
 }

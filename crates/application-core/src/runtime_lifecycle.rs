@@ -4,12 +4,13 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 
 use vrcx_0_core::time::now_iso;
+use crate::RuntimeOperationStatus;
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimePhaseSnapshot {
     pub name: String,
-    pub status: String,
+    pub status: RuntimeOperationStatus,
     pub detail: String,
     pub updated_at: String,
 }
@@ -45,11 +46,10 @@ impl RuntimeLifecycle {
     pub fn record_phase(
         &self,
         name: impl Into<String>,
-        status: impl Into<String>,
+        status: RuntimeOperationStatus,
         detail: impl Into<String>,
     ) {
         let name = name.into();
-        let status = status.into();
         let detail = detail.into();
         match self.inner.lock() {
             Ok(mut state) => {
@@ -76,7 +76,11 @@ impl RuntimeLifecycle {
         }
         self.record_phase(
             "hostServices",
-            if started { "completed" } else { "pending" },
+            if started {
+                RuntimeOperationStatus::Completed
+            } else {
+                RuntimeOperationStatus::Pending
+            },
             detail,
         );
     }

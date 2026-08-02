@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::auth::{
     config_get_input, current_user_get_input, file_analysis_get_input, visits_get_input,
@@ -43,13 +44,13 @@ pub async fn app__vrchat_auth_session_start(
     let diagnostics = state.runtime_context.diagnostics.clone();
     diagnostics.record_command(
         "app__vrchat_auth_session_start",
-        "running",
+        RuntimeOperationStatus::Running,
         "Starting a VRChat login session.",
     );
     let result = state.start_login_session(input).await;
     diagnostics.record_command(
         "app__vrchat_auth_session_start",
-        "ok",
+        RuntimeOperationStatus::Ok,
         format!("status={result:?}"),
     );
     Ok(result)
@@ -64,20 +65,20 @@ pub async fn app__vrchat_auth_auto_login_start(
     let diagnostics = state.runtime_context.diagnostics.clone();
     diagnostics.record_command(
         "app__vrchat_auth_auto_login_start",
-        "running",
+        RuntimeOperationStatus::Running,
         "Starting an automatic VRChat login attempt.",
     );
     let result = state.start_auto_login(input).await.map_err(|error| {
         diagnostics.record_command(
             "app__vrchat_auth_auto_login_start",
-            "error",
+            RuntimeOperationStatus::Error,
             error.to_string(),
         );
         AppError::from(error)
     })?;
     diagnostics.record_command(
         "app__vrchat_auth_auto_login_start",
-        "ok",
+        RuntimeOperationStatus::Ok,
         format!("status={result:?}"),
     );
     Ok(result)

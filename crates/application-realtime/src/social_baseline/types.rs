@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use vrcx_0_core::json::RawJson;
 
-#[derive(Clone, Debug, Serialize, specta::Type)]
+#[derive(Clone, Debug, Default, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoriteGroupOutput {
     pub assign: bool,
@@ -18,7 +18,7 @@ pub struct FavoriteGroupOutput {
     pub visibility: String,
 }
 
-#[derive(Clone, Debug, Serialize, specta::Type)]
+#[derive(Clone, Debug, Default, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoriteBaselineSnapshot {
     pub current_user_id: String,

@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use vrcx_0_application_core::FavoriteEntityKind;
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -49,8 +50,8 @@ pub struct VrchatFavoriteGroupsInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatFavoriteAddInput {
-    #[serde(default, rename = "type")]
-    pub(crate) type_name: String,
+    #[serde(rename = "type")]
+    pub(crate) type_name: FavoriteEntityKind,
     #[serde(default)]
     pub(crate) favorite_id: String,
     #[serde(default)]
@@ -91,8 +92,7 @@ pub struct VrchatFavoriteGroupClearInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalFavoriteInput {
-    #[serde(default)]
-    pub(crate) kind: String,
+    pub(crate) kind: FavoriteEntityKind,
     #[serde(default)]
     pub(crate) entity_id: String,
     #[serde(default)]
@@ -102,8 +102,7 @@ pub struct LocalFavoriteInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalFavoriteGroupInput {
-    #[serde(default)]
-    pub(crate) kind: String,
+    pub(crate) kind: FavoriteEntityKind,
     #[serde(default)]
     pub(crate) group_name: String,
 }
@@ -111,8 +110,7 @@ pub struct LocalFavoriteGroupInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalFavoriteGroupRenameInput {
-    #[serde(default)]
-    pub(crate) kind: String,
+    pub(crate) kind: FavoriteEntityKind,
     #[serde(default)]
     pub(crate) group_name: String,
     #[serde(default)]

@@ -3,7 +3,7 @@ use vrcx_0_persistence::DatabaseService;
 use crate::diagnostics::RuntimeDiagnostics;
 use crate::sync::RuntimeSyncEngine;
 use crate::web_client::WebClient;
-use crate::Result;
+use crate::{Result, RuntimeOperationStatus};
 
 pub type VrchatApiRequest = vrcx_0_vrchat_client::http_api::HttpApiRequestInput;
 pub type VrchatApiResponse = vrcx_0_vrchat_client::http_api::HttpApiExecuteResponse;
@@ -130,7 +130,7 @@ pub async fn execute_api_command(
     scope: VrchatScope,
 ) -> Result<VrchatApiResponse> {
     let (command, detail) = command;
-    diagnostics.record_command(command, "running", detail);
+    diagnostics.record_command(command, RuntimeOperationStatus::Running, detail);
     let result = web.execute_api(input, scope, db).await;
     match &result {
         Ok(response) => {
@@ -138,18 +138,18 @@ pub async fn execute_api_command(
                 vrcx_0_vrchat_client::http_api::classify_api_response(response.status).class;
             diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!("status={}, class={policy_class}", response.status),
             );
             sync.record(
                 "api",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!("{command} completed with status {}.", response.status),
                 0,
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("api", error.to_string());
         }
     }

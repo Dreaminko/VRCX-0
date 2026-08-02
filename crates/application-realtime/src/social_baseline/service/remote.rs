@@ -33,6 +33,28 @@ struct PageFetch {
     rows: Vec<Value>,
 }
 
+#[derive(Debug)]
+enum RemoteFetchError {
+    RateLimited(Error),
+    Other(Error),
+}
+
+impl RemoteFetchError {
+    fn into_error(self) -> Error {
+        match self {
+            Self::RateLimited(error) | Self::Other(error) => error,
+        }
+    }
+}
+
+impl From<Error> for RemoteFetchError {
+    fn from(error: Error) -> Self {
+        Self::Other(error)
+    }
+}
+
+type RemoteFetchResult<T> = std::result::Result<T, RemoteFetchError>;
+
 pub(crate) async fn execute_vrchat_json_request(
     deps: &SocialBaselineDeps,
     request: HttpApiRequestInput,
@@ -69,12 +91,13 @@ where
         }
     })
     .await
+    .map_err(RemoteFetchError::into_error)
 }
 
 async fn execute_vrchat_json_page_request(
     deps: &SocialBaselineDeps,
     request: HttpApiRequestInput,
-) -> Result<Value> {
+) -> RemoteFetchResult<Value> {
     let response = deps
         .web
         .execute_api(request, ApiScope::Vrchat, deps.db.as_ref())
@@ -82,12 +105,14 @@ async fn execute_vrchat_json_page_request(
 
     let response = ApiJsonResponse::from(&response);
     if response.is_failure() {
-        let mut message =
+        let message =
             response.error_message_with_http_status("VRChat social baseline request failed");
-        if response.status == 429 && !message.contains("429") {
-            message = format!("429: {message}");
-        }
-        return Err(Error::Custom(message));
+        let error = Error::Custom(message);
+        return Err(if response.status == 429 {
+            RemoteFetchError::RateLimited(error)
+        } else {
+            RemoteFetchError::Other(error)
+        });
     }
 
     Ok(response.json)
@@ -97,10 +122,10 @@ async fn fetch_paged_array_with_page_fetcher<F, Fut>(
     page_size: i64,
     max_offset: Option<i64>,
     fetch_page: F,
-) -> Result<Vec<Value>>
+) -> RemoteFetchResult<Vec<Value>>
 where
     F: Fn(i64, i64) -> Fut + Clone,
-    Fut: Future<Output = Result<Vec<Value>>>,
+    Fut: Future<Output = RemoteFetchResult<Vec<Value>>>,
 {
     if page_size <= 0 {
         return Ok(Vec::new());
@@ -148,16 +173,16 @@ async fn fetch_page_with_backoff<F, Fut>(
     fetch_page: F,
     page_size: i64,
     offset: i64,
-) -> Result<PageFetch>
+) -> RemoteFetchResult<PageFetch>
 where
     F: Fn(i64, i64) -> Fut,
-    Fut: Future<Output = Result<Vec<Value>>>,
+    Fut: Future<Output = RemoteFetchResult<Vec<Value>>>,
 {
     let mut attempt = 0usize;
     loop {
         match fetch_page(page_size, offset).await {
             Ok(rows) => return Ok(PageFetch { offset, rows }),
-            Err(error) if is_rate_limit_error(&error) && attempt < PAGED_ARRAY_MAX_RETRIES => {
+            Err(RemoteFetchError::RateLimited(_)) if attempt < PAGED_ARRAY_MAX_RETRIES => {
                 sleep(backoff_delay(attempt)).await;
                 attempt += 1;
             }
@@ -175,11 +200,6 @@ fn offset_allowed(offset: i64, max_offset: Option<i64>) -> bool {
 
 fn backoff_delay(attempt: usize) -> Duration {
     Duration::from_millis(PAGED_ARRAY_RETRY_BASE_DELAY_MS * 2u64.saturating_pow(attempt as u32))
-}
-
-fn is_rate_limit_error(error: &Error) -> bool {
-    let message = error.to_string();
-    message.contains("429") || message.to_ascii_lowercase().contains("ratelimited")
 }
 
 pub(crate) async fn refetch_users_concurrent(
@@ -311,10 +331,9 @@ where
         let Some(request) = build_request(&user_id) else {
             return (user_id, None);
         };
-        // execute_vrchat_json_page_request tags 429s so is_rate_limit_error can detect them.
         match execute_vrchat_json_page_request(deps, request).await {
             Ok(value) => return (user_id, Some(value)),
-            Err(error) if is_rate_limit_error(&error) && attempt < PAGED_ARRAY_MAX_RETRIES => {
+            Err(RemoteFetchError::RateLimited(_)) if attempt < PAGED_ARRAY_MAX_RETRIES => {
                 sleep(backoff_delay(attempt)).await;
                 attempt += 1;
             }
@@ -397,7 +416,9 @@ mod tests {
                 let entry = attempts.entry(offset).or_default();
                 *entry += 1;
                 if offset == 50 && *entry == 1 {
-                    return Err(Error::Custom("429".into()));
+                    return Err(RemoteFetchError::RateLimited(Error::Custom(
+                        "rate limited".into(),
+                    )));
                 }
                 let count = if offset < 100 { 50 } else { 0 };
                 Ok((0..count)

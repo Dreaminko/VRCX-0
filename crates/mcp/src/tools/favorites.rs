@@ -4,7 +4,10 @@ use rmcp::{schemars, tool, tool_router};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use vrcx_0_application::{add_remote_favorite, FavoriteRemoteAddInput, FavoriteRemoteMutationDeps};
-use vrcx_0_application_core::vrchat_api::{self};
+use vrcx_0_application_core::{
+    vrchat_api::{self},
+    FavoriteChangeScope, FavoriteEntityKind,
+};
 use vrcx_0_persistence::{
     favorites::{self as persistence_favorites, FavoriteRow as PersistenceFavoriteRow},
     social_aggregates,
@@ -43,7 +46,11 @@ impl VrcxMcpServer {
             if let Ok(output) = &result {
                 self.runtime
                     .realtime_runtime
-                    .notify_favorites_changed(&output.kind, true, false);
+                    .notify_favorites_changed(
+                        FavoriteChangeScope::from_remote_type(&output.kind),
+                        true,
+                        false,
+                    );
             }
         }
         social_aggregates_result(result)
@@ -109,6 +116,8 @@ impl VrcxMcpServer {
             return Err("favorite_vrchat requires entityId".into());
         }
         validate_favorite_entity_id(&kind, &entity_id)?;
+        let entity_kind = FavoriteEntityKind::from_remote_type(&kind)
+            .ok_or("favorite kind must be world, friend, or avatar")?;
         if tags.is_empty() {
             return Err(
                 "favorite_vrchat requires tags such as worlds1, group_0, or avatars1".into(),
@@ -142,7 +151,7 @@ impl VrcxMcpServer {
             },
             FavoriteRemoteAddInput {
                 endpoint: self.runtime.current_endpoint(),
-                kind: kind.clone(),
+                kind: entity_kind,
                 entity_id: entity_id.clone(),
                 tags: tags.clone(),
             },

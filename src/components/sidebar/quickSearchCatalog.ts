@@ -6,10 +6,22 @@ import {
 } from '@/lib/entityQueryCache';
 import {
     commands,
-    type QuickSearchCatalogSnapshot
+    type QuickSearchCatalogSnapshot,
+    type QuickSearchCatalogStatus
 } from '@/platform/tauri/bindings';
 
-export type QuickSearchCatalog = QuickSearchCatalogSnapshot;
+type QuickSearchCatalogState =
+    | QuickSearchCatalogStatus
+    | 'idle'
+    | 'running'
+    | 'error';
+
+export type QuickSearchCatalog = Omit<
+    QuickSearchCatalogSnapshot,
+    'status'
+> & {
+    status: QuickSearchCatalogState;
+};
 
 export type QuickSearchEntityType = 'friend' | 'avatar' | 'world' | 'group';
 
@@ -32,7 +44,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function createEmptyCatalog(
-    status: string = 'idle',
+    status: QuickSearchCatalogState = 'idle',
     detail: string = ''
 ): QuickSearchCatalog {
     return {

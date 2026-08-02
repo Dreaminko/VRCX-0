@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 use std::sync::{atomic::Ordering, Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -7,8 +8,9 @@ use super::{
     run_background_moderation_refresh, run_background_print_cleanup,
     run_background_social_baseline_refresh, run_social_baseline_refresh_core, session_slot_matches,
     BackendRuntime, BackendRuntimeFrontendSessionSnapshot, BackendRuntimeMode, BackendRuntimePhase,
-    BackendRuntimeSnapshot, BackendRuntimeTelemetry, BackgroundCapabilitySession,
-    BackgroundTickContext, RuntimeHostContext, RuntimeHostState, SocialBaselineRefreshOutput,
+    BackendRuntimeSnapshot, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind,
+    BackgroundCapabilitySession, BackgroundTickContext, RuntimeHostContext, RuntimeHostState,
+    SocialBaselineRefreshOutput,
     BACKGROUND_CURRENT_USER_CADENCE_SECONDS, BACKGROUND_CURRENT_USER_REFRESH_JOB,
     BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS, BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
     BACKGROUND_MODERATION_CADENCE_SECONDS, BACKGROUND_MODERATION_REFRESH_JOB,
@@ -62,7 +64,7 @@ impl RuntimeHostState {
                 name,
                 "rust-host",
                 Some(cadence),
-                "scheduled",
+                RuntimeOperationStatus::Scheduled,
                 detail,
             );
         }
@@ -268,20 +270,24 @@ impl RuntimeHostState {
         }
     }
 
-    pub(super) fn emit_backend_runtime_telemetry(&self, kind: &str, detail: impl Into<String>) {
+    pub(super) fn emit_backend_runtime_telemetry(
+        &self,
+        kind: BackendRuntimeTelemetryKind,
+        detail: impl Into<String>,
+    ) {
         self.emit_backend_runtime_telemetry_snapshot(kind, detail, self.backend_runtime.snapshot());
     }
 
     pub(super) fn emit_backend_runtime_telemetry_snapshot(
         &self,
-        kind: &str,
+        kind: BackendRuntimeTelemetryKind,
         detail: impl Into<String>,
         snapshot: BackendRuntimeSnapshot,
     ) {
         self.runtime_context
             .event_bus
             .emit(BackendRuntimeTelemetry {
-                kind: kind.into(),
+                kind,
                 detail: detail.into(),
                 snapshot,
             });
@@ -307,7 +313,8 @@ pub(super) fn is_authenticated_maintenance_active_snapshot(
     auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
     snapshot.phase == BackendRuntimePhase::Running
-        && snapshot.auth_status == "authenticated"
+        && snapshot.auth_status
+            == vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
         && !snapshot.auth_user_id.trim().is_empty()
         && auth_scope.active
         && auth_scope.current_user_id == snapshot.auth_user_id
@@ -344,7 +351,12 @@ pub(super) fn emit_background_info(
     backend_runtime: &BackendRuntime,
     detail: impl Into<String>,
 ) {
-    emit_background_output(runtime_context, backend_runtime, "backgroundInfo", detail);
+    emit_background_output(
+        runtime_context,
+        backend_runtime,
+        BackendRuntimeTelemetryKind::BackgroundInfo,
+        detail,
+    );
 }
 
 pub(super) fn emit_background_warning(
@@ -355,7 +367,7 @@ pub(super) fn emit_background_warning(
     emit_background_output(
         runtime_context,
         backend_runtime,
-        "backgroundWarning",
+        BackendRuntimeTelemetryKind::BackgroundWarning,
         detail,
     );
 }
@@ -363,7 +375,7 @@ pub(super) fn emit_background_warning(
 fn emit_background_output(
     runtime_context: &Arc<RuntimeHostContext>,
     backend_runtime: &BackendRuntime,
-    kind: &str,
+    kind: BackendRuntimeTelemetryKind,
     detail: impl Into<String>,
 ) {
     let snapshot = backend_runtime.snapshot();
@@ -373,7 +385,7 @@ fn emit_background_output(
         return;
     }
     runtime_context.event_bus.emit(BackendRuntimeTelemetry {
-        kind: kind.into(),
+        kind,
         detail: detail.into(),
         snapshot,
     });

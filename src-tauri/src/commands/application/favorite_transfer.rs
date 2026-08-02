@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application::{
     remove_favorites_bulk, remove_favorites_selection, transfer_favorite_selection,
@@ -14,7 +15,7 @@ use crate::state::AppState;
 fn record_bulk_remove_outcome(
     state: &State<'_, AppState>,
     command: &str,
-    kind: &str,
+    kind: vrcx_0_application_core::FavoriteChangeScope,
     result: &vrcx_0_application_core::Result<FavoriteBulkRemoveResult>,
 ) {
     let diagnostics = &state.runtime_context.diagnostics;
@@ -23,12 +24,12 @@ fn record_bulk_remove_outcome(
         Ok(output) => {
             diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!("succeeded={}, failed={}", output.succeeded, output.failed),
             );
             sync.record(
                 "favorite",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "Removed {} favorite item(s); {} failed.",
                     output.succeeded, output.failed
@@ -42,7 +43,7 @@ fn record_bulk_remove_outcome(
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("favorite", error.to_string());
         }
     }
@@ -54,13 +55,13 @@ pub async fn app__favorites_transfer(
     state: State<'_, AppState>,
     input: FavoriteTransferInput,
 ) -> Result<FavoriteTransferResult, AppError> {
-    let kind = input.kind.clone();
+    let kind = input.kind.into();
     let command = "app__favorites_transfer";
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
     diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Transferring {} favorite item(s).", input.items.len()),
     );
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
@@ -81,12 +82,12 @@ pub async fn app__favorites_transfer(
         Ok(output) => {
             diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!("succeeded={}, failed={}", output.succeeded, output.failed),
             );
             sync.record(
                 "favorite",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "Transferred {} favorite item(s); {} failed.",
                     output.succeeded, output.failed
@@ -94,13 +95,13 @@ pub async fn app__favorites_transfer(
                 0,
             );
             state.realtime_runtime.notify_favorites_changed(
-                &kind,
+                kind,
                 output.local_changed,
                 output.remote_changed,
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("favorite", error.to_string());
         }
     }
@@ -123,13 +124,13 @@ pub async fn app__favorites_transfer_selection(
     let kind = input
         .batches
         .first()
-        .map(|batch| batch.kind.clone())
-        .unwrap_or_default();
+        .map(|batch| batch.kind.into())
+        .unwrap_or(vrcx_0_application_core::FavoriteChangeScope::All);
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
     diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Transferring {item_count} favorite item(s)."),
     );
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
@@ -149,12 +150,12 @@ pub async fn app__favorites_transfer_selection(
         Ok(output) => {
             diagnostics.record_command(
                 command,
-                "ok",
+                RuntimeOperationStatus::Ok,
                 format!("succeeded={}, failed={}", output.succeeded, output.failed),
             );
             sync.record(
                 "favorite",
-                "ready",
+                RuntimeOperationStatus::Ready,
                 format!(
                     "Transferred {} favorite item(s); {} failed.",
                     output.succeeded, output.failed
@@ -162,13 +163,13 @@ pub async fn app__favorites_transfer_selection(
                 0,
             );
             state.realtime_runtime.notify_favorites_changed(
-                &kind,
+                kind,
                 output.local_changed,
                 output.remote_changed,
             );
         }
         Err(error) => {
-            diagnostics.record_command(command, "error", error.to_string());
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
             sync.record_failure("favorite", error.to_string());
         }
     }
@@ -184,11 +185,11 @@ pub async fn app__favorites_bulk_remove(
 ) -> Result<FavoriteBulkRemoveResult, AppError> {
     let command = "app__favorites_bulk_remove";
     let target_count = input.items.len();
-    let kind = input.kind.clone();
+    let kind = input.kind.into();
     let diagnostics = state.runtime_context.diagnostics.clone();
     diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Removing {target_count} favorite item(s)."),
     );
     let expected_scope = super::scope::require_active_scope(&state, "Favorite bulk remove")?;
@@ -204,7 +205,7 @@ pub async fn app__favorites_bulk_remove(
     )
     .await;
 
-    record_bulk_remove_outcome(&state, command, &kind, &result);
+    record_bulk_remove_outcome(&state, command, kind, &result);
 
     Ok(result?)
 }
@@ -217,11 +218,11 @@ pub async fn app__favorites_remove_selection(
 ) -> Result<FavoriteBulkRemoveResult, AppError> {
     let command = "app__favorites_remove_selection";
     let target_count = input.items.len();
-    let kind = input.kind.clone();
+    let kind = input.kind.into();
     let diagnostics = state.runtime_context.diagnostics.clone();
     diagnostics.record_command(
         command,
-        "running",
+        RuntimeOperationStatus::Running,
         format!("Removing {target_count} favorite item(s)."),
     );
     let expected_scope = super::scope::require_active_scope(&state, "Favorite bulk remove")?;
@@ -237,7 +238,7 @@ pub async fn app__favorites_remove_selection(
     )
     .await;
 
-    record_bulk_remove_outcome(&state, command, &kind, &result);
+    record_bulk_remove_outcome(&state, command, kind, &result);
 
     Ok(result?)
 }

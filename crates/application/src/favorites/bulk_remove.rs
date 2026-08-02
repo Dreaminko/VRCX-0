@@ -2,6 +2,7 @@ use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use vrcx_0_application_core::FavoriteEntityKind;
 use vrcx_0_persistence::{favorites, DatabaseService};
 use vrcx_0_vrchat_client::{
     favorites::favorite_delete_input,
@@ -37,7 +38,7 @@ pub struct FavoriteBulkRemoveItem {
 pub struct FavoriteBulkRemoveInput {
     pub expected_owner_user_id: String,
     pub expected_endpoint: String,
-    pub kind: String,
+    pub kind: FavoriteEntityKind,
     #[serde(default)]
     pub items: Vec<FavoriteBulkRemoveItem>,
 }
@@ -65,7 +66,7 @@ pub struct FavoriteBulkRemoveItemResult {
 #[serde(rename_all = "camelCase")]
 pub struct FavoriteBulkRemoveResult {
     pub owner_user_id: String,
-    pub kind: String,
+    pub kind: FavoriteEntityKind,
     pub total: usize,
     pub succeeded: usize,
     pub failed: usize,
@@ -95,7 +96,11 @@ struct FavoriteBulkRemoveWorkItem {
 }
 
 trait FavoriteBulkRemoveActions: Send + Sync {
-    fn remove_local(&self, kind: &str, item: &FavoriteBulkRemoveItem) -> Result<i64>;
+    fn remove_local(
+        &self,
+        kind: FavoriteEntityKind,
+        item: &FavoriteBulkRemoveItem,
+    ) -> Result<i64>;
     fn remove_remote<'a>(
         &'a self,
         item: &'a FavoriteBulkRemoveItem,
@@ -157,12 +162,16 @@ impl VrchatFavoriteBulkRemoveActions<'_> {
 }
 
 impl FavoriteBulkRemoveActions for VrchatFavoriteBulkRemoveActions<'_> {
-    fn remove_local(&self, kind: &str, item: &FavoriteBulkRemoveItem) -> Result<i64> {
+    fn remove_local(
+        &self,
+        kind: FavoriteEntityKind,
+        item: &FavoriteBulkRemoveItem,
+    ) -> Result<i64> {
         self.ensure_scope()?;
         favorites::favorite_remove(
             self.deps.db,
             Some(&self.deps.expected_scope.current_user_id),
-            kind.to_string(),
+            kind.as_str().to_string(),
             item.entity_id.clone(),
             item.group_name.clone(),
         )
@@ -219,8 +228,8 @@ pub async fn remove_favorites_bulk(
         ));
     }
     let owner_user_id = deps.expected_scope.current_user_id.clone();
-    let kind = normalize_kind(&input.kind)?;
-    let items = normalize_items(&kind, input.items)?;
+    let kind = input.kind;
+    let items = normalize_items(kind, input.items)?;
     let actions = VrchatFavoriteBulkRemoveActions { deps };
     Ok(run_favorite_bulk_remove(&actions, owner_user_id, kind, items).await)
 }
@@ -277,7 +286,7 @@ pub async fn remove_favorites_selection(
 async fn run_favorite_bulk_remove(
     actions: &dyn FavoriteBulkRemoveActions,
     owner_user_id: String,
-    kind: String,
+    kind: FavoriteEntityKind,
     input_items: Vec<FavoriteBulkRemoveWorkItem>,
 ) -> FavoriteBulkRemoveResult {
     let mut items = input_items
@@ -308,7 +317,7 @@ async fn run_favorite_bulk_remove(
         }
         let outcome = match item.source {
             FavoriteBulkRemoveSource::Local => actions
-                .remove_local(&kind, item)
+                .remove_local(kind, item)
                 .map(|affected| (affected, false)),
             FavoriteBulkRemoveSource::Remote => {
                 actions.wait_for_remote_slot().await;
@@ -379,28 +388,14 @@ async fn run_favorite_bulk_remove(
     }
 }
 
-fn normalize_kind(kind: &str) -> Result<String> {
-    match kind.trim() {
-        "friend" | "world" | "avatar" => Ok(kind.trim().to_string()),
-        _ => Err(Error::Custom(
-            "Favorite bulk remove contains an unsupported favorite kind.".into(),
-        )),
-    }
-}
-
 fn normalize_items(
-    kind: &str,
+    kind: FavoriteEntityKind,
     input_items: Vec<FavoriteBulkRemoveItem>,
 ) -> Result<Vec<FavoriteBulkRemoveWorkItem>> {
     let expected_prefix = match kind {
-        "friend" => "usr_",
-        "world" => "wrld_",
-        "avatar" => "avtr_",
-        _ => {
-            return Err(Error::Custom(
-                "Favorite bulk remove contains an unsupported favorite kind.".into(),
-            ));
-        }
+        FavoriteEntityKind::Friend => "usr_",
+        FavoriteEntityKind::World => "wrld_",
+        FavoriteEntityKind::Avatar => "avtr_",
     };
     let mut seen = HashSet::new();
     let mut items = Vec::new();
@@ -490,7 +485,11 @@ mod tests {
     }
 
     impl FavoriteBulkRemoveActions for FakeActions {
-        fn remove_local(&self, _kind: &str, _item: &FavoriteBulkRemoveItem) -> Result<i64> {
+        fn remove_local(
+            &self,
+            _kind: FavoriteEntityKind,
+            _item: &FavoriteBulkRemoveItem,
+        ) -> Result<i64> {
             self.local_outcomes
                 .lock()
                 .unwrap()
@@ -545,7 +544,7 @@ mod tests {
         let result = run_favorite_bulk_remove(
             &actions,
             "usr_self".into(),
-            "world".into(),
+            FavoriteEntityKind::World,
             vec![
                 item("local", FavoriteBulkRemoveSource::Local),
                 item("remote_failed", FavoriteBulkRemoveSource::Remote),
@@ -583,7 +582,7 @@ mod tests {
         let result = run_favorite_bulk_remove(
             &actions,
             "usr_self".into(),
-            "world".into(),
+            FavoriteEntityKind::World,
             vec![
                 item("first", FavoriteBulkRemoveSource::Remote),
                 item("second", FavoriteBulkRemoveSource::Remote),
@@ -657,7 +656,7 @@ mod tests {
             FavoriteBulkRemoveInput {
                 expected_owner_user_id: "usr_self".into(),
                 expected_endpoint,
-                kind: "friend".into(),
+                kind: FavoriteEntityKind::Friend,
                 items: vec![FavoriteBulkRemoveItem {
                     key: "local:Friends:usr_target".into(),
                     source: FavoriteBulkRemoveSource::Local,
@@ -724,7 +723,7 @@ mod tests {
             FavoriteBulkRemoveInput {
                 expected_owner_user_id: "usr_self".into(),
                 expected_endpoint,
-                kind: "friend".into(),
+                kind: FavoriteEntityKind::Friend,
                 items,
             },
         )
@@ -749,7 +748,7 @@ mod tests {
             scope_current: AtomicBool::new(true),
         };
         let work_items = normalize_items(
-            "world",
+            FavoriteEntityKind::World,
             vec![
                 FavoriteBulkRemoveItem {
                     key: "dirty".into(),
@@ -768,7 +767,13 @@ mod tests {
         .unwrap();
 
         let result =
-            run_favorite_bulk_remove(&actions, "usr_self".into(), "world".into(), work_items).await;
+            run_favorite_bulk_remove(
+                &actions,
+                "usr_self".into(),
+                FavoriteEntityKind::World,
+                work_items,
+            )
+            .await;
 
         assert_eq!(result.items[0].state, FavoriteBulkRemoveItemState::Failed);
         assert_eq!(result.items[1].state, FavoriteBulkRemoveItemState::Removed);
@@ -787,6 +792,6 @@ mod tests {
             })
             .collect();
 
-        assert!(normalize_items("world", items).is_err());
+        assert!(normalize_items(FavoriteEntityKind::World, items).is_err());
     }
 }

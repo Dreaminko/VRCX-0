@@ -4,7 +4,8 @@ use crate::notification::{
 
 use super::{
     normalize_vrchat_api_endpoint, AtomicFlagGuard, AuthenticatedRuntimeSession,
-    BackendRuntimeMode, BackendRuntimeSnapshot, NonInteractiveAuthError, RuntimeHostState,
+    BackendRuntimeMode, BackendRuntimeSnapshot, BackendRuntimeTelemetryKind,
+    NonInteractiveAuthError, RuntimeHostState,
 };
 use vrcx_0_core::time::now_iso;
 
@@ -46,7 +47,7 @@ impl RuntimeHostState {
             reason.into(),
         );
         self.emit_backend_runtime_telemetry_snapshot(
-            "authRecoveryStarted",
+            BackendRuntimeTelemetryKind::AuthRecoveryStarted,
             context.reason.clone(),
             snapshot,
         );
@@ -63,7 +64,7 @@ impl RuntimeHostState {
                         .to_string();
                     let snapshot = self.backend_runtime.set_auth_error(reason.clone());
                     self.emit_backend_runtime_telemetry_snapshot(
-                        "authRecoveryFailed",
+                        BackendRuntimeTelemetryKind::AuthRecoveryFailed,
                         reason.clone(),
                         snapshot.clone(),
                     );
@@ -77,7 +78,7 @@ impl RuntimeHostState {
                         let reason = error.to_string();
                         let snapshot = self.backend_runtime.set_auth_error(reason.clone());
                         self.emit_backend_runtime_telemetry_snapshot(
-                            "authRecoveryFailed",
+                            BackendRuntimeTelemetryKind::AuthRecoveryFailed,
                             reason.clone(),
                             snapshot.clone(),
                         );
@@ -92,7 +93,7 @@ impl RuntimeHostState {
                     .backend_runtime
                     .set_auth_interaction_required(reason.clone());
                 self.emit_backend_runtime_telemetry_snapshot(
-                    "authRecoveryFailed",
+                    BackendRuntimeTelemetryKind::AuthRecoveryFailed,
                     reason.clone(),
                     snapshot.clone(),
                 );
@@ -103,7 +104,7 @@ impl RuntimeHostState {
             Err(NonInteractiveAuthError::SessionInvalidated { user_id, reason }) => {
                 let snapshot = self.clear_invalid_non_interactive_auth_session(&user_id, &reason);
                 self.emit_backend_runtime_telemetry_snapshot(
-                    "authRecoveryFailed",
+                    BackendRuntimeTelemetryKind::AuthRecoveryFailed,
                     reason.clone(),
                     snapshot.clone(),
                 );
@@ -114,7 +115,7 @@ impl RuntimeHostState {
             Err(NonInteractiveAuthError::Failed(reason)) => {
                 let snapshot = self.backend_runtime.set_auth_error(reason.clone());
                 self.emit_backend_runtime_telemetry_snapshot(
-                    "authRecoveryFailed",
+                    BackendRuntimeTelemetryKind::AuthRecoveryFailed,
                     reason.clone(),
                     snapshot.clone(),
                 );
@@ -217,12 +218,12 @@ mod tests {
         BackendRuntimeSnapshot {
             mode: BackendRuntimeMode::Background,
             phase: BackendRuntimePhase::Running,
-            auth_status: "authenticated".into(),
+            auth_status: vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated,
             auth_user_id: user_id.into(),
             auth_display_name: "Pizza".into(),
             ws_status: "authFailure".into(),
-            game_log_status: "idle".into(),
-            process_status: "unknown".into(),
+            game_log_status: vrcx_0_application_core::BackendRuntimeGameLogStatus::Idle,
+            process_status: vrcx_0_application_core::BackendRuntimeProcessStatus::Unknown,
             ws_message_counts: BTreeMap::new(),
             ws_persisted_count: 0,
             game_log_persisted_count: 0,

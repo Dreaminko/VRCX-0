@@ -705,7 +705,10 @@ impl VrOverlayRuntime {
 
 #[cfg(feature = "friends-panel")]
 impl VrOverlayRuntime {
-    pub fn update_friends_panel_favorite_groups_from_baseline(&self, snapshot: &serde_json::Value) {
+    pub fn update_friends_panel_favorite_groups_from_baseline(
+        &self,
+        snapshot: &vrcx_0_application_realtime::FavoriteBaselineSnapshot,
+    ) {
         let next = favorite_friend_groups_snapshot_from_baseline(snapshot);
         if let Ok(mut current) = self.friends_panel_favorite_groups.lock() {
             *current = next;
@@ -2067,7 +2070,7 @@ impl VrOverlayRuntime {
 impl VrOverlayRuntime {
     pub fn update_friends_panel_favorite_groups_from_baseline(
         &self,
-        _snapshot: &serde_json::Value,
+        _snapshot: &vrcx_0_application_realtime::FavoriteBaselineSnapshot,
     ) {
     }
 

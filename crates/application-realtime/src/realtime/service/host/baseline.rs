@@ -1,3 +1,4 @@
+use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -145,7 +146,7 @@ impl RealtimeHostRuntime {
             }) {
                 self.deps.sync.record(
                     "realtimeFriends",
-                    "ignored",
+                    RuntimeOperationStatus::Ignored,
                     "Friend baseline superseded by a local friend-log mutation.",
                     friend_count as u64,
                 );
@@ -164,7 +165,7 @@ impl RealtimeHostRuntime {
                 if causal_watermark.is_some_and(|watermark| watermark.generation.is_some()) {
                     self.deps.sync.record(
                         "realtimeFriends",
-                        "ignored",
+                        RuntimeOperationStatus::Ignored,
                         "Friend baseline from a stopped realtime generation was ignored.",
                         friend_count as u64,
                     );
@@ -196,7 +197,7 @@ impl RealtimeHostRuntime {
                 drop(state);
                 self.deps.sync.record(
                     "realtimeFriends",
-                    "pending",
+                    RuntimeOperationStatus::Pending,
                     "Friend baseline cached until realtime transport starts.",
                     friend_count as u64,
                 );
@@ -253,7 +254,7 @@ impl RealtimeHostRuntime {
             {
                 self.deps.sync.record(
                     "realtimeFriends",
-                    "ignored",
+                    RuntimeOperationStatus::Ignored,
                     "Stale friend baseline ignored by Rust realtime runtime.",
                     friend_count as u64,
                 );
@@ -282,7 +283,7 @@ impl RealtimeHostRuntime {
             }) {
                 self.deps.sync.record(
                     "realtimeFriends",
-                    "ignored",
+                    RuntimeOperationStatus::Ignored,
                     "Superseded friend baseline ignored by Rust realtime runtime.",
                     friend_count as u64,
                 );
@@ -402,7 +403,11 @@ impl RealtimeHostRuntime {
         };
         self.deps.sync.record(
             "realtimeFriends",
-            if result.accepted { "ready" } else { "ignored" },
+            if result.accepted {
+                RuntimeOperationStatus::Ready
+            } else {
+                RuntimeOperationStatus::Ignored
+            },
             format!(
                 "Friend baseline revision {} with {} friends.",
                 result.baseline_revision, result.friend_count

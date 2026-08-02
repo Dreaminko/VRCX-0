@@ -814,7 +814,7 @@ mod tests {
     }
 
     impl RuntimeEventSink for ReorderedDeliverySink {
-        fn emit(&self, event: &str, payload: Value) {
+        fn emit(&self, event: &str, payload: Value, _typed_payload: &dyn std::any::Any) {
             if event != "mutualGraphFetchStatus" {
                 return;
             }

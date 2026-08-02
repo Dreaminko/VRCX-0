@@ -1,9 +1,11 @@
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::backend_runtime::{BackendRuntimeTelemetry, RealtimeProjectionSync};
+use crate::FavoriteChangeScope;
 use crate::events::{
     FriendProfileLoadStatusPayload, FriendProjection, PrintAutoCleanupEvent,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
@@ -14,17 +16,17 @@ use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
 
 pub trait RuntimeEventSink: Send + Sync {
-    fn emit(&self, event: &str, payload: Value);
+    fn emit(&self, event: &str, payload: Value, typed_payload: &dyn Any);
 }
 
-pub trait RuntimeEventPayload: Serialize + specta::Type {
+pub trait RuntimeEventPayload: Serialize + specta::Type + Any {
     const EVENT_NAME: &'static str;
 }
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoritesChangedPayload {
-    pub kind: String,
+    pub kind: FavoriteChangeScope,
     pub local: bool,
     pub remote: bool,
 }
@@ -65,16 +67,29 @@ pub struct RuntimeVrchatAuthFailurePayload {
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-struct BackendRuntimeCountTelemetry {
-    kind: String,
-    count: u64,
+pub(crate) struct BackendRuntimeCountTelemetry {
+    pub(crate) kind: BackendRuntimeCountKind,
+    pub(crate) count: u64,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum BackendRuntimeCountKind {
+    WsPersisted,
+    GameLogPersisted,
 }
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-struct BackendRuntimeMessageTelemetry {
-    kind: String,
-    message_type: String,
+pub(crate) struct BackendRuntimeMessageTelemetry {
+    pub(crate) kind: BackendRuntimeMessageKind,
+    pub(crate) message_type: String,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum BackendRuntimeMessageKind {
+    WsMessage,
 }
 
 macro_rules! runtime_event_payload {
@@ -145,15 +160,15 @@ impl RuntimeEventBus {
 
     pub fn emit<T: RuntimeEventPayload>(&self, payload: T) {
         let event = T::EVENT_NAME;
-        match serde_json::to_value(payload) {
-            Ok(value) => self.emit_value(event, value),
+        match serde_json::to_value(&payload) {
+            Ok(value) => self.emit_value(event, value, &payload),
             Err(error) => {
                 tracing::warn!(event, error = %error, "failed to serialize runtime event payload");
             }
         }
     }
 
-    fn emit_value(&self, event: &str, payload: Value) {
+    fn emit_value(&self, event: &str, payload: Value, typed_payload: &dyn Any) {
         #[cfg(any(test, feature = "test-utils"))]
         {
             self.events.lock().unwrap().push(RuntimeEventForTest {
@@ -164,7 +179,7 @@ impl RuntimeEventBus {
 
         let sink = self.sink.lock().unwrap().clone();
         if let Some(sink) = sink {
-            sink.emit(event, payload);
+            sink.emit(event, payload, typed_payload);
         }
     }
 
@@ -175,21 +190,21 @@ impl RuntimeEventBus {
 
     pub fn emit_ws_persisted(&self, count: u64) {
         self.emit(BackendRuntimeCountTelemetry {
-            kind: "wsPersisted".into(),
+            kind: BackendRuntimeCountKind::WsPersisted,
             count,
         });
     }
 
     pub fn emit_game_log_persisted(&self, count: u64) {
         self.emit(BackendRuntimeCountTelemetry {
-            kind: "gameLogPersisted".into(),
+            kind: BackendRuntimeCountKind::GameLogPersisted,
             count,
         });
     }
 
     pub fn emit_ws_message_observed(&self, message_type: impl Into<String>) {
         self.emit(BackendRuntimeMessageTelemetry {
-            kind: "wsMessage".into(),
+            kind: BackendRuntimeMessageKind::WsMessage,
             message_type: message_type.into(),
         });
     }

@@ -1108,11 +1108,11 @@ export const commands = {
     async appWorldCacheRemove(worldId: string): Promise<null> {
         return await TAURI_INVOKE('app__world_cache_remove', { worldId });
     },
-    async appFavoriteList(kind: string): Promise<FavoriteRow[]> {
+    async appFavoriteList(kind: FavoriteEntityKind): Promise<FavoriteRow[]> {
         return await TAURI_INVOKE('app__favorite_list', { kind });
     },
     async appFavoriteAdd(
-        kind: string,
+        kind: FavoriteEntityKind,
         entityId: string,
         groupName: string
     ): Promise<number> {
@@ -1123,7 +1123,7 @@ export const commands = {
         });
     },
     async appFavoriteRemove(
-        kind: string,
+        kind: FavoriteEntityKind,
         entityId: string,
         groupName: string
     ): Promise<number> {
@@ -1134,7 +1134,7 @@ export const commands = {
         });
     },
     async appFavoriteGroupRename(
-        kind: string,
+        kind: FavoriteEntityKind,
         groupName: string,
         newGroupName: string
     ): Promise<number> {
@@ -1145,7 +1145,7 @@ export const commands = {
         });
     },
     async appFavoriteGroupDelete(
-        kind: string,
+        kind: FavoriteEntityKind,
         groupName: string
     ): Promise<number> {
         return await TAURI_INVOKE('app__favorite_group_delete', {
@@ -3318,6 +3318,13 @@ export type AvatarTagsPatchInput = {
     nextEntries?: AvatarTagInput[];
 };
 export type AvatarTimeSpentOutput = { avatarId: string; timeSpent: number };
+export type BackendRuntimeAuthStatus =
+    | 'unknown'
+    | 'authenticating'
+    | 'authenticated'
+    | 'interactionRequired'
+    | 'error'
+    | 'signedOut';
 export type BackendRuntimeEventPayloadMap = {
     addGameLogEvent: AddGameLogEventPayload;
     authenticatedRuntimePhase: AuthenticatedRuntimePhaseSnapshot;
@@ -3347,6 +3354,8 @@ export type BackendRuntimeEventPayloadMap = {
     groupModerationBatchProgress: GroupModerationBatchProgress;
     mutualGraphFetchStatus: MutualGraphFetchStatus;
     screenshotLibraryScanStatus: ScreenshotLibraryScanStatus;
+    sharedCollectionImportStatus: SharedCollectionImportStatus;
+    noteExportStatus: NoteExportStatus;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
     realtimeUserProjection: RealtimeUserProjection;
@@ -3367,6 +3376,11 @@ export type BackendRuntimeFrontendSessionSnapshot = {
     websocket: string;
     currentUserSnapshot: JsonValue;
 };
+export type BackendRuntimeGameLogStatus =
+    | 'idle'
+    | 'running'
+    | 'persisted'
+    | 'unavailable';
 export type BackendRuntimeMode = 'foreground' | 'background' | 'headless';
 export type BackendRuntimePhase =
     | 'idle'
@@ -3375,15 +3389,19 @@ export type BackendRuntimePhase =
     | 'running'
     | 'stopping'
     | 'error';
+export type BackendRuntimeProcessStatus =
+    | 'unknown'
+    | 'vrchatRunning'
+    | 'vrchatStopped';
 export type BackendRuntimeSnapshot = {
     mode: BackendRuntimeMode;
     phase: BackendRuntimePhase;
-    authStatus: string;
+    authStatus: BackendRuntimeAuthStatus;
     authUserId: string;
     authDisplayName: string;
     wsStatus: string;
-    gameLogStatus: string;
-    processStatus: string;
+    gameLogStatus: BackendRuntimeGameLogStatus;
+    processStatus: BackendRuntimeProcessStatus;
     wsMessageCounts: Partial<{ [key in string]: number }>;
     wsPersistedCount: number;
     gameLogPersistedCount: number;
@@ -3392,10 +3410,27 @@ export type BackendRuntimeSnapshot = {
     friendProfileLoad: FriendProfileLoadStatusPayload;
 };
 export type BackendRuntimeTelemetry = {
-    kind: string;
+    kind: BackendRuntimeTelemetryKind;
     detail: string;
     snapshot: BackendRuntimeSnapshot;
 };
+export type BackendRuntimeTelemetryKind =
+    | 'wsStatus'
+    | 'processStatus'
+    | 'wsMessage'
+    | 'wsPersisted'
+    | 'gameLogPersisted'
+    | 'runtimeStarted'
+    | 'runtimeStopped'
+    | 'modeChanged'
+    | 'authCleared'
+    | 'authSuccess'
+    | 'authRecoveryStarted'
+    | 'authRecoveryFailed'
+    | 'gameLogWatcher'
+    | 'backgroundInfo'
+    | 'backgroundWarning'
+    | 'backgroundError';
 export type BackgroundImageConfigureInput =
     | { kind: 'disable' }
     | { kind: 'enableDaily'; providerId: BackgroundImageProviderId | null }
@@ -3774,7 +3809,7 @@ export type FavoriteBaselineSnapshot = {
 export type FavoriteBulkRemoveInput = {
     expectedOwnerUserId: string;
     expectedEndpoint: string;
-    kind: string;
+    kind: FavoriteEntityKind;
     items?: FavoriteBulkRemoveItem[];
 };
 export type FavoriteBulkRemoveItem = {
@@ -3794,7 +3829,7 @@ export type FavoriteBulkRemoveItemResult = {
 export type FavoriteBulkRemoveItemState = 'removed' | 'failed' | 'notAttempted';
 export type FavoriteBulkRemoveResult = {
     ownerUserId: string;
-    kind: string;
+    kind: FavoriteEntityKind;
     total: number;
     succeeded: number;
     failed: number;
@@ -3810,6 +3845,7 @@ export type FavoriteCacheSnapshotInput = {
     entity: RawJson;
     fallbackEntityId?: string;
 };
+export type FavoriteChangeScope = 'avatar' | 'world' | 'friend' | 'unknown';
 export type FavoriteDetailsHydrateInput = {
     kind: FavoriteDetailsHydrateKind;
     favoriteIds?: string[];
@@ -3822,6 +3858,7 @@ export type FavoriteDetailsHydrateOutput = {
     cachedCount: number;
     fetchedAt: string;
 };
+export type FavoriteEntityKind = 'avatar' | 'world' | 'friend';
 export type FavoriteGroupOutput = {
     assign: boolean;
     key: string;
@@ -3839,11 +3876,10 @@ export type FavoriteImportItemResult = {
     entity: RawJson | null;
 };
 export type FavoriteImportItemState = 'succeeded' | 'failed';
-export type FavoriteImportKind = 'avatar' | 'world' | 'friend';
 export type FavoriteImportLocation = 'remote' | 'local';
 export type FavoriteImportOperation = 'hydrate' | 'import';
 export type FavoriteImportStartInput = {
-    kind: FavoriteImportKind;
+    kind: FavoriteEntityKind;
     operation: FavoriteImportOperation;
     ids?: string[];
     target: FavoriteImportTarget | null;
@@ -3859,7 +3895,7 @@ export type FavoriteImportStatus = {
     runId: string;
     status: FavoriteImportState;
     operation: FavoriteImportOperation;
-    kind: FavoriteImportKind;
+    kind: FavoriteEntityKind;
     authScopeGeneration: number;
     total: number;
     processed: number;
@@ -3885,7 +3921,7 @@ export type FavoriteRow = {
 };
 export type FavoriteTransferInput = {
     endpoint?: string;
-    kind?: string;
+    kind: FavoriteEntityKind;
     mode: FavoriteTransferMode;
     source: FavoriteTransferSource;
     target: FavoriteTransferTarget;
@@ -3954,7 +3990,7 @@ export type FavoriteTransferTarget = {
     favoriteType?: string;
 };
 export type FavoritesChangedPayload = {
-    kind: string;
+    kind: FavoriteChangeScope;
     local: boolean;
     remote: boolean;
 };
@@ -4286,17 +4322,18 @@ export type GroupModerationBatchResult = {
     lastError: string | null;
 };
 export type GroupModerationBatchTarget = { userId: string; roleIds?: string[] };
+export type GroupQuickModerationAction = 'kick' | 'ban';
 export type GroupQuickModerationActionInput = {
     currentUserId?: string;
     targetUserId?: string;
     groupId?: string;
     endpoint?: string;
-    action?: string;
+    action: GroupQuickModerationAction;
 };
 export type GroupQuickModerationActionOutput = {
     groupId: string;
     targetUserId: string;
-    action: string;
+    action: GroupQuickModerationAction;
     status: number;
 };
 export type GroupQuickModerationGroup = {
@@ -4467,9 +4504,12 @@ export type LlmTranslateInput = {
     prompt: string | null;
     reasoningEffort: string | null;
 };
-export type LocalFavoriteGroupInput = { kind?: string; groupName?: string };
+export type LocalFavoriteGroupInput = {
+    kind: FavoriteEntityKind;
+    groupName?: string;
+};
 export type LocalFavoriteGroupRenameInput = {
-    kind?: string;
+    kind: FavoriteEntityKind;
     groupName?: string;
     newGroupName?: string;
 };
@@ -4479,7 +4519,7 @@ export type LocalFavoriteGroupWrite = {
     affected: number;
 };
 export type LocalFavoriteInput = {
-    kind?: string;
+    kind: FavoriteEntityKind;
     entityId?: string;
     groupName?: string;
 };
@@ -5263,7 +5303,7 @@ export type ProxySettingsTestResult = {
     status: number;
 };
 export type QuickSearchCatalogSnapshot = {
-    status: string;
+    status: QuickSearchCatalogStatus;
     detail: string;
     ownAvatars: JsonValue[];
     favoriteAvatars: JsonValue[];
@@ -5273,6 +5313,7 @@ export type QuickSearchCatalogSnapshot = {
     userMemos: JsonValue[];
     userNotes: JsonValue[];
 };
+export type QuickSearchCatalogStatus = 'ready' | 'partial';
 export type RawJson = JsonValue;
 export type RealtimeCurrentUserProjection = {
     generation: number;
@@ -5296,9 +5337,10 @@ export type RealtimeInstanceClosedProjection = {
     notification: JsonValue;
     feedEntry: JsonValue;
 };
+export type RealtimeInstanceQueueKind = 'update' | 'ready' | 'left';
 export type RealtimeInstanceQueueProjection = {
     generation: number;
-    kind: string;
+    kind: RealtimeInstanceQueueKind;
     instanceLocation: string;
     worldId: string;
     worldName: string;
@@ -5389,7 +5431,7 @@ export type RuntimeJobRecordInput = {
     name: string;
     owner?: string;
     cadenceSeconds?: number | null;
-    status: string;
+    status: RuntimeOperationStatus;
     detail?: string;
 };
 export type RuntimeNotificationPayload = {
@@ -5397,6 +5439,24 @@ export type RuntimeNotificationPayload = {
     title: string;
     message: string;
 };
+export type RuntimeOperationStatus =
+    | 'pending'
+    | 'scheduled'
+    | 'running'
+    | 'ready'
+    | 'ok'
+    | 'idle'
+    | 'completed'
+    | 'error'
+    | 'unavailable'
+    | 'checkpoint'
+    | 'persisted'
+    | 'ignored'
+    | 'sent'
+    | 'skipped'
+    | 'observed'
+    | 'stale'
+    | 'partial';
 export type RuntimeRealtimeTransportEpoch = {
     clientRunId: number;
     generation: number;
@@ -5776,7 +5836,7 @@ export type VrchatCurrentUserUpdateInput = {
     params: JsonValue | null;
 };
 export type VrchatFavoriteAddInput = {
-    type?: string;
+    type: FavoriteEntityKind;
     favoriteId?: string;
     tags?: string;
 };
