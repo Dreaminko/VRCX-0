@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use openvr::{
@@ -50,9 +51,13 @@ const SUMMON_HOLD_DURATION: Duration = Duration::from_secs(2);
 const PANEL_SUMMON_HAND: OverlayHand = OverlayHand::Right;
 const PANEL_SUMMON_PANEL_ID: &str = FRIENDS_PANEL_ID;
 const FRIENDS_PANEL_INPUT_ENABLED: bool = false;
+const OPENVR_CONTEXT_IN_USE_MESSAGE: &str =
+    "OpenVR context is still owned by another overlay actor";
+static OPENVR_CONTEXT_OWNED: AtomicBool = AtomicBool::new(false);
 
 pub struct OpenVrOverlayBackend {
     context: Option<Context>,
+    context_lease: Option<OpenVrContextLease>,
     overlay: Option<Overlay>,
     system: Option<System>,
     surfaces: HashMap<OverlaySurfaceId, OpenVrSurface>,
@@ -67,6 +72,24 @@ pub struct OpenVrOverlayBackend {
     gpu_init_attempted: bool,
     #[cfg(windows)]
     gpu_retry_after_present_failure: bool,
+}
+
+#[derive(Debug)]
+struct OpenVrContextLease;
+
+impl OpenVrContextLease {
+    fn acquire() -> Result<Self, BackendStartError> {
+        OPENVR_CONTEXT_OWNED
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .map(|_| Self)
+            .map_err(|_| BackendStartError::transient(OPENVR_CONTEXT_IN_USE_MESSAGE))
+    }
+}
+
+impl Drop for OpenVrContextLease {
+    fn drop(&mut self) {
+        OPENVR_CONTEXT_OWNED.store(false, Ordering::Release);
+    }
 }
 
 struct OpenVrSurface {
@@ -169,6 +192,7 @@ impl OpenVrOverlayBackend {
     pub fn new() -> Self {
         Self {
             context: None,
+            context_lease: None,
             overlay: None,
             system: None,
             surfaces: HashMap::new(),
@@ -203,6 +227,7 @@ impl OverlayBackend for OpenVrOverlayBackend {
             return Ok(());
         }
 
+        let context_lease = OpenVrContextLease::acquire()?;
         let context = unsafe { openvr::init(ApplicationType::Background) }
             .map_err(|error| init_start_error("OpenVR init failed", error))?;
         let overlay = context
@@ -212,6 +237,7 @@ impl OverlayBackend for OpenVrOverlayBackend {
             .system()
             .map_err(|error| init_start_error("OpenVR system interface failed", error))?;
         self.context = Some(context);
+        self.context_lease = Some(context_lease);
         self.overlay = Some(overlay);
         self.system = Some(system);
         #[cfg(windows)]
@@ -462,6 +488,7 @@ impl OpenVrOverlayBackend {
         self.overlay = None;
         self.system = None;
         self.context = None;
+        self.context_lease = None;
     }
 
     fn update_button_visibility(&mut self) -> Result<(), String> {
@@ -1564,6 +1591,26 @@ fn reads_battery_properties(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn openvr_context_lease_blocks_concurrent_owners_until_release() {
+        let first = OpenVrContextLease::acquire().expect("acquire first OpenVR context lease");
+        let error = std::thread::spawn(OpenVrContextLease::acquire)
+            .join()
+            .expect("join competing lease thread")
+            .expect_err("reject a second OpenVR context owner");
+
+        assert_eq!(
+            error,
+            BackendStartError::transient(OPENVR_CONTEXT_IN_USE_MESSAGE)
+        );
+
+        drop(first);
+        std::thread::spawn(OpenVrContextLease::acquire)
+            .join()
+            .expect("join replacement lease thread")
+            .expect("acquire OpenVR context lease after release");
+    }
 
     #[test]
     fn panel_summon_uses_fixed_right_hand_friends_grip_hold() {
