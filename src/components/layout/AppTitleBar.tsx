@@ -74,7 +74,7 @@ export function AppTitleBar() {
             >
                 <div
                     data-tauri-drag-region
-                    className="flex h-full min-w-0 flex-1 items-center gap-2 px-3"
+                    className="flex h-full min-w-0 flex-1 items-center gap-2 pr-3"
                 >
                     {isSessionReady ? (
                         <div
@@ -121,7 +121,11 @@ export function AppTitleBar() {
                             runWindowAction(toggleMaximizeWindow);
                         }}
                     >
-                        <MaximizeIcon data-icon="inline-start" />
+                        {/* Smaller than the sibling icons for visual balance */}
+                        <MaximizeIcon
+                            data-icon="inline-start"
+                            className="size-3"
+                        />
                     </TitleBarWindowButton>
                     <TitleBarWindowButton
                         label={t('app_menu.action.close_window')}
