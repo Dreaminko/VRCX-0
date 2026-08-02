@@ -93,6 +93,10 @@ pub fn app_update_build_badge() -> String {
         .to_string()
 }
 
+pub fn app_update_check_disabled() -> bool {
+    option_env!("VRCX_0_DISABLE_UPDATE_CHECK") == Some("1")
+}
+
 pub fn apply_linux_webkit_workaround() {
     #[cfg(target_os = "linux")]
     {

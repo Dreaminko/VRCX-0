@@ -79,6 +79,7 @@ pub struct AppUpdateBuildInfo {
     pub app_version: String,
     pub build_label: String,
     pub build_badge: String,
+    pub update_check_disabled: bool,
 }
 
 pub type AppUpdateTargetResolver = Arc<dyn Fn() -> Option<String> + Send + Sync>;
@@ -815,6 +816,9 @@ impl AppUpdateRuntime {
     }
 
     async fn run_check_cycle(&self) -> AppUpdateStatusSnapshot {
+        if self.inner.build.update_check_disabled {
+            return self.snapshot();
+        }
         self.inner
             .background_jobs
             .mark_running(APP_UPDATE_CHECK_JOB, "Checking for VRCX-0 updates.");

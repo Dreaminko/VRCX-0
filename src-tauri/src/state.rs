@@ -63,6 +63,7 @@ impl AppState {
             app_version: env!("CARGO_PKG_VERSION").into(),
             app_update_build_label: crate::bootstrap::app_update_build_label(),
             app_update_build_badge: crate::bootstrap::app_update_build_badge(),
+            app_update_check_disabled: crate::bootstrap::app_update_check_disabled(),
             updater_port,
         })?;
         let database_upgrade = DatabaseUpgradeRuntime::new(

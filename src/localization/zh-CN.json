@@ -2100,6 +2100,9 @@
                     "background_mode_delay_button": "设置延迟（分钟）",
                     "auto_install_updates_on_startup": "启动时自动更新",
                     "auto_install_updates_on_startup_description": "打开后，VRCX-0 会在启动 app 时检查更新；如有可安装更新，将自动下载安装并重启完成更新。",
+                    "check_for_updates_and_update": "检查更新并安装",
+                    "update_check_disabled": "已禁用",
+                    "update_check_disabled_build_description": "这是已禁用更新检测的特殊版本。请通过软件包管理器或联系维护者更新 VRCX-0。",
                     "proxy": "代理服务器设置"
                 },
                 "favorites": {

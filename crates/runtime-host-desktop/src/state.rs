@@ -68,6 +68,7 @@ pub struct DesktopRuntimeHostOptions {
     pub app_version: String,
     pub app_update_build_label: String,
     pub app_update_build_badge: String,
+    pub app_update_check_disabled: bool,
     pub updater_port: Arc<dyn vrcx_0_application_core::UpdaterPort>,
 }
 
@@ -139,6 +140,7 @@ impl DesktopRuntimeHostState {
             app_version,
             app_update_build_label,
             app_update_build_badge,
+            app_update_check_disabled,
             updater_port,
         } = options;
         let builder = RuntimeHostStateBuilder::new(RuntimeHostOptions {
@@ -184,6 +186,7 @@ impl DesktopRuntimeHostState {
                 app_version: app_version.clone(),
                 build_label: app_update_build_label,
                 build_badge: app_update_build_badge,
+                update_check_disabled: app_update_check_disabled,
             },
             Arc::new(|| vrcx_0_host_desktop::updater_policy::expected_updater_target().ok()),
             updater_port,

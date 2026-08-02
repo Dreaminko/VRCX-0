@@ -22,6 +22,7 @@ type SettingsSystemTabProps = {
     proxyEnabled?: boolean;
     proxyServer?: string;
     showPostUpdateChangelogToast?: boolean;
+    updateCheckDisabled?: boolean;
     onAutoInstallUpdatesOnStartupChange: (checked: boolean) => unknown;
     onAutoLoginDelayEnabledChange: (checked: boolean) => unknown;
     onBackgroundModeEnabledChange: (checked: boolean) => unknown;
@@ -44,6 +45,7 @@ export function SettingsSystemTab({
     autoLoginDelayEnabled,
     autoLoginDelaySeconds,
     autoInstallUpdatesOnStartup,
+    updateCheckDisabled = false,
     showPostUpdateChangelogToast,
     backgroundModeEnabled,
     backgroundModeDelayEnabled,
@@ -171,19 +173,38 @@ export function SettingsSystemTab({
                         </div>
                     </Field>
                 ) : null}
-                <Field
-                    label={t(
-                        'view.settings.general.application.auto_install_updates_on_startup'
-                    )}
-                    description={t(
-                        'view.settings.general.application.auto_install_updates_on_startup_description'
-                    )}
-                >
-                    <Switch
-                        checked={autoInstallUpdatesOnStartup}
-                        onCheckedChange={onAutoInstallUpdatesOnStartupChange}
-                    />
-                </Field>
+                {updateCheckDisabled ? (
+                    <Field
+                        label={t(
+                            'view.settings.general.application.check_for_updates_and_update'
+                        )}
+                        description={t(
+                            'view.settings.general.application.update_check_disabled_build_description'
+                        )}
+                    >
+                        <Badge variant="secondary">
+                            {t(
+                                'view.settings.general.application.update_check_disabled'
+                            )}
+                        </Badge>
+                    </Field>
+                ) : (
+                    <Field
+                        label={t(
+                            'view.settings.general.application.auto_install_updates_on_startup'
+                        )}
+                        description={t(
+                            'view.settings.general.application.auto_install_updates_on_startup_description'
+                        )}
+                    >
+                        <Switch
+                            checked={autoInstallUpdatesOnStartup}
+                            onCheckedChange={
+                                onAutoInstallUpdatesOnStartupChange
+                            }
+                        />
+                    </Field>
+                )}
                 <Field
                     label={t(
                         'view.settings.notifications.notifications.post_update_changelog_prompt'

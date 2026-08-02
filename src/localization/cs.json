@@ -2102,6 +2102,9 @@
                     "background_mode_delay_button": "Nastavit zpoždění v minutách",
                     "auto_install_updates_on_startup": "Automatická aktualizace při spuštění",
                     "auto_install_updates_on_startup_description": "Když je zapnuto, VRCX-0 při spuštění aplikace zkontroluje aktualizace. Pokud je k dispozici instalovatelná aktualizace, automaticky se stáhne, nainstaluje a aplikace se restartuje.",
+                    "check_for_updates_and_update": "Vyhledat a nainstalovat aktualizace",
+                    "update_check_disabled": "Vypnuto",
+                    "update_check_disabled_build_description": "V této speciální verzi je kontrola aktualizací vypnutá. VRCX-0 aktualizujte pomocí správce balíčků nebo se obraťte na správce balíčku.",
                     "proxy": "Nastavení proxy"
                 },
                 "favorites": {

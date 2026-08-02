@@ -2100,6 +2100,9 @@
                     "background_mode_delay_button": "Définir le délai en minutes",
                     "auto_install_updates_on_startup": "Mise à jour automatique au démarrage",
                     "auto_install_updates_on_startup_description": "Une fois activé, VRCX-0 vérifie les mises à jour au démarrage de l'application. Si une mise à jour installable est disponible, elle sera téléchargée, installée et l'application redémarrera automatiquement.",
+                    "check_for_updates_and_update": "Rechercher et installer les mises à jour",
+                    "update_check_disabled": "Désactivé",
+                    "update_check_disabled_build_description": "La recherche de mises à jour est désactivée dans cette version spéciale. Utilisez votre gestionnaire de paquets ou contactez le responsable de la maintenance pour mettre à jour VRCX-0.",
                     "proxy": "Paramètres du proxy"
                 },
                 "favorites": {

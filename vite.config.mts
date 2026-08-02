@@ -107,6 +107,9 @@ export default defineConfig(({ mode }) => {
             VRCX_0_BUILD_BADGE: JSON.stringify(
                 process.env['VRCX_0_BUILD_BADGE'] || ''
             ),
+            VRCX_0_DISABLE_UPDATE_CHECK: JSON.stringify(
+                process.env['VRCX_0_DISABLE_UPDATE_CHECK'] === '1'
+            ),
             VRCX_0_MACOS_SYSTEM_FONTS_ENABLED: JSON.stringify(
                 macosSystemFontsEnabled
             )

@@ -2100,6 +2100,9 @@
                     "background_mode_delay_button": "Set Delay Minutes",
                     "auto_install_updates_on_startup": "Auto-Update on Startup",
                     "auto_install_updates_on_startup_description": "When enabled, VRCX-0 checks for updates when the app starts. If an installable update is available, it will download, install, and restart automatically.",
+                    "check_for_updates_and_update": "Check for Updates and Update",
+                    "update_check_disabled": "Disabled",
+                    "update_check_disabled_build_description": "This special build has update checks disabled. Use your package manager or contact the maintainer to update VRCX-0.",
                     "proxy": "Proxy Settings"
                 },
                 "favorites": {

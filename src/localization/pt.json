@@ -2100,6 +2100,9 @@
                     "background_mode_delay_button": "Definir Minutos de Atraso",
                     "auto_install_updates_on_startup": "Atualizar automaticamente na inicialização",
                     "auto_install_updates_on_startup_description": "Quando ativado, o VRCX-0 verifica atualizações ao iniciar o app. Se houver uma atualização instalável disponível, ela será baixada, instalada e o app reiniciará automaticamente.",
+                    "check_for_updates_and_update": "Verificar e instalar atualizações",
+                    "update_check_disabled": "Desativado",
+                    "update_check_disabled_build_description": "Esta versão especial está com a verificação de atualizações desativada. Use o gerenciador de pacotes ou entre em contato com o mantenedor para atualizar o VRCX-0.",
                     "proxy": "Configurações de Proxy"
                 },
                 "favorites": {

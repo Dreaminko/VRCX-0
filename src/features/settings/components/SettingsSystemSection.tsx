@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY } from '@/services/changelogService';
+import { isUpdateCheckDisabledBuild } from '@/shared/buildLabel';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import type { SettingsPageStateSections } from '../settingsPageStateSections';
@@ -41,6 +42,7 @@ export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
             autoLoginDelayEnabled={prefs.autoLoginDelayEnabled}
             autoLoginDelaySeconds={prefs.autoLoginDelaySeconds}
             autoInstallUpdatesOnStartup={prefs.autoInstallUpdatesOnStartup}
+            updateCheckDisabled={isUpdateCheckDisabledBuild()}
             showPostUpdateChangelogToast={prefs.showPostUpdateChangelogToast}
             backgroundModeEnabled={prefs.backgroundModeEnabled}
             backgroundModeDelayEnabled={prefs.backgroundModeDelayEnabled}

@@ -57,6 +57,7 @@ enum InstallOutcome {
 }
 
 struct MockUpdaterPort {
+    check_count: AtomicUsize,
     download_count: AtomicUsize,
     install_count: AtomicUsize,
     install_outcomes: Mutex<VecDeque<InstallOutcome>>,
@@ -65,6 +66,7 @@ struct MockUpdaterPort {
 impl MockUpdaterPort {
     fn new(install_outcomes: impl IntoIterator<Item = InstallOutcome>) -> Self {
         Self {
+            check_count: AtomicUsize::new(0),
             download_count: AtomicUsize::new(0),
             install_count: AtomicUsize::new(0),
             install_outcomes: Mutex::new(install_outcomes.into_iter().collect()),
@@ -78,6 +80,7 @@ impl UpdaterPort for MockUpdaterPort {
         &self,
         _request: UpdaterCheckRequest,
     ) -> vrcx_0_application_core::Result<Option<UpdaterMetadata>> {
+        self.check_count.fetch_add(1, AtomicOrdering::Relaxed);
         Ok(None)
     }
 
@@ -151,6 +154,14 @@ fn app_update_test_context(
     name: &str,
     install_outcomes: impl IntoIterator<Item = InstallOutcome>,
 ) -> AppUpdateTestContext {
+    app_update_test_context_with_update_check(name, install_outcomes, false)
+}
+
+fn app_update_test_context_with_update_check(
+    name: &str,
+    install_outcomes: impl IntoIterator<Item = InstallOutcome>,
+    update_check_disabled: bool,
+) -> AppUpdateTestContext {
     let dir = TestDir::new(name);
     let db = Arc::new(
         DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).expect("create test database"),
@@ -179,19 +190,22 @@ fn app_update_test_context(
             app_version: "2.14.0".into(),
             build_label: "stable".into(),
             build_badge: String::new(),
+            update_check_disabled,
         },
         Arc::new(|| Some("windows-x86_64-stable".into())),
         updater_port,
         TaskSupervisor::new(),
     );
-    *runtime.inner.status.lock().expect("lock update status") = AppUpdateStatusSnapshot {
-        has_available_update: true,
-        checked_at: "2026-07-18T00:00:00.000Z".into(),
-        detail: "Update available.".into(),
-        error: None,
-        release: Some(update_release_snapshot()),
-        should_notify: true,
-    };
+    if !update_check_disabled {
+        *runtime.inner.status.lock().expect("lock update status") = AppUpdateStatusSnapshot {
+            has_available_update: true,
+            checked_at: "2026-07-18T00:00:00.000Z".into(),
+            detail: "Update available.".into(),
+            error: None,
+            release: Some(update_release_snapshot()),
+            should_notify: true,
+        };
+    }
 
     AppUpdateTestContext {
         _dir: dir,
@@ -199,6 +213,17 @@ fn app_update_test_context(
         port,
         event_bus,
     }
+}
+
+#[tokio::test]
+async fn disabled_build_skips_update_check() {
+    let context = app_update_test_context_with_update_check("disabled-check", [], true);
+
+    let snapshot = context.runtime.check_now().await;
+
+    assert!(!snapshot.has_available_update);
+    assert_eq!(context.port.check_count.load(AtomicOrdering::Relaxed), 0);
+    assert_eq!(context.port.download_count.load(AtomicOrdering::Relaxed), 0);
 }
 
 fn error_progress_event_count(event_bus: &RuntimeEventBus) -> usize {

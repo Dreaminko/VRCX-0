@@ -13,8 +13,10 @@ import {
     toNormalizedReleaseFromSnapshot,
     type NormalizedRelease
 } from '@/services/updateService';
+import { isUpdateCheckDisabledBuild } from '@/shared/buildLabel';
 import { links } from '@/shared/constants/link';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -38,6 +40,7 @@ export function UpdaterDialog({ open, onOpenChange }: UpdaterDialogProps) {
     );
     const canInstallUpdates = canInstallUpdatesOnPlatform(hostPlatform);
     const isPreviewUpdateCheck = getPreviewStableReleaseUpdateMode().enabled;
+    const updateCheckDisabled = isUpdateCheckDisabledBuild();
 
     const [latestRelease, setLatestRelease] =
         useState<NormalizedRelease | null>(null);
@@ -77,7 +80,7 @@ export function UpdaterDialog({ open, onOpenChange }: UpdaterDialogProps) {
             : '');
 
     useEffect(() => {
-        if (!open) {
+        if (!open || updateCheckDisabled) {
             return undefined;
         }
 
@@ -142,7 +145,7 @@ export function UpdaterDialog({ open, onOpenChange }: UpdaterDialogProps) {
         return () => {
             active = false;
         };
-    }, [canInstallUpdates, isPreviewUpdateCheck, open, t]);
+    }, [canInstallUpdates, isPreviewUpdateCheck, open, t, updateCheckDisabled]);
 
     async function handleInstallUpdate() {
         if (
@@ -177,6 +180,39 @@ export function UpdaterDialog({ open, onOpenChange }: UpdaterDialogProps) {
 
     async function handleOpenReleasePage() {
         await openExternalLink(latestRelease?.htmlUrl || links.releases);
+    }
+
+    if (updateCheckDisabled) {
+        return (
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {t('dialog.system.label.vrcx_0_update')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {t(
+                                'view.settings.general.application.update_check_disabled_build_description'
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <FieldGroup>
+                        <div className="border-input bg-background flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm">
+                            <span className="text-foreground font-medium">
+                                {t(
+                                    'view.settings.general.application.check_for_updates_and_update'
+                                )}
+                            </span>
+                            <Badge variant="secondary">
+                                {t(
+                                    'view.settings.general.application.update_check_disabled'
+                                )}
+                            </Badge>
+                        </div>
+                    </FieldGroup>
+                </DialogContent>
+            </Dialog>
+        );
     }
 
     return (

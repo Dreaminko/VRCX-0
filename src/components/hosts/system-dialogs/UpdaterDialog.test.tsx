@@ -11,7 +11,8 @@ const mocks = vi.hoisted(() => ({
     getPreviewStableReleaseUpdateMode: vi.fn(),
     appAppUpdateCheckRun: vi.fn(),
     toNormalizedReleaseFromSnapshot: vi.fn(),
-    confirmInstall: vi.fn()
+    confirmInstall: vi.fn(),
+    updateCheckDisabled: false
 }));
 
 vi.mock('react-i18next', () => ({
@@ -27,6 +28,10 @@ vi.mock('@/services/updateService', () => ({
     confirmInstall: mocks.confirmInstall,
     formatReleaseDisplayVersion: (value: unknown) => String(value || ''),
     toNormalizedReleaseFromSnapshot: mocks.toNormalizedReleaseFromSnapshot
+}));
+
+vi.mock('@/shared/buildLabel', () => ({
+    isUpdateCheckDisabledBuild: () => mocks.updateCheckDisabled
 }));
 
 vi.mock('@/platform/tauri/bindings', () => ({
@@ -49,6 +54,15 @@ vi.mock('@/ui/shadcn/button', async () => {
     return {
         Button: ({ children, ...props }: React.ComponentProps<'button'>) =>
             React.createElement('button', props, children)
+    };
+});
+
+vi.mock('@/ui/shadcn/badge', async () => {
+    const React = await import('react');
+
+    return {
+        Badge: ({ children }: React.PropsWithChildren) =>
+            React.createElement('span', null, children)
     };
 });
 
@@ -91,6 +105,7 @@ describe('UpdaterDialog', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        mocks.updateCheckDisabled = false;
         vi.stubGlobal('VERSION', '2.6.0');
         useRuntimeStore.getState().resetRuntimeState();
         useRuntimeStore.getState().setHostCapabilities({
@@ -182,5 +197,29 @@ describe('UpdaterDialog', () => {
             });
         });
         expect(screen.queryByText('42%')).toBeNull();
+    });
+
+    it('shows the disabled build state without running an update check', async () => {
+        mocks.updateCheckDisabled = true;
+
+        render(<UpdaterDialog open onOpenChange={vi.fn()} />);
+
+        expect(
+            screen.getByText(
+                'view.settings.general.application.update_check_disabled_build_description'
+            )
+        ).toBeTruthy();
+        expect(
+            screen.getByText(
+                'view.settings.general.application.check_for_updates_and_update'
+            )
+        ).toBeTruthy();
+        expect(
+            screen.getByText(
+                'view.settings.general.application.update_check_disabled'
+            )
+        ).toBeTruthy();
+        expect(screen.queryByRole('button')).toBeNull();
+        expect(mocks.appAppUpdateCheckRun).not.toHaveBeenCalled();
     });
 });

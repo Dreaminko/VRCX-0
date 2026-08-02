@@ -19,6 +19,10 @@ export function isLocalDevBuild(): boolean {
     return import.meta.env.DEV;
 }
 
+export function isUpdateCheckDisabledBuild(): boolean {
+    return VRCX_0_DISABLE_UPDATE_CHECK;
+}
+
 export function isPreviewBuildLabel(label = getVrcxBuildLabel()): boolean {
     return PREVIEW_LABELS.has(label);
 }

@@ -2096,6 +2096,9 @@
                     "background_mode_delay_button": "待機時間を設定",
                     "auto_install_updates_on_startup": "起動時に自動更新",
                     "auto_install_updates_on_startup_description": "有効にすると、VRCX-0 はアプリ起動時に更新を確認します。インストール可能な更新がある場合は、自動的にダウンロードしてインストールし、再起動して更新を完了します。",
+                    "check_for_updates_and_update": "アップデートを確認してインストール",
+                    "update_check_disabled": "無効",
+                    "update_check_disabled_build_description": "この特別版では更新チェックが無効になっています。VRCX-0 の更新にはパッケージマネージャーを使用するか、メンテナーにお問い合わせください。",
                     "proxy": "プロキシ設定"
                 },
                 "favorites": {
