@@ -501,7 +501,7 @@ export function WorldDialogTabbedView({
                     return;
                 }
                 const screenshotList = Array.isArray(screenshots)
-                    ? screenshots
+                    ? (screenshots as WorldWorldScreenshots)
                     : [];
                 setWorldScreenshots(screenshotList);
                 if (scanError) {

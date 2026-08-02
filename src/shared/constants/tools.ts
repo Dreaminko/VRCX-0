@@ -7,6 +7,13 @@ type ToolCategoryKey =
     | 'debug'
     | 'other';
 
+export type ToolAppApiMethod =
+    | 'OpenVrcPhotosFolder'
+    | 'OpenVrcScreenshotsFolder'
+    | 'OpenVrcxAppDataFolder'
+    | 'OpenVrcAppDataFolder'
+    | 'OpenCrashVrcCrashDumps';
+
 type ToolAction =
     | {
           type: 'route';
@@ -19,7 +26,7 @@ type ToolAction =
       }
     | {
           type: 'app-api';
-          method: string;
+          method: ToolAppApiMethod;
           successMessageKey: string;
           errorMessageKey: string;
       }

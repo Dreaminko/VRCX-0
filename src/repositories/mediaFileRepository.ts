@@ -1,8 +1,6 @@
+import { commands } from '@/platform/tauri/bindings';
 import type { ScreenshotLibraryScanStatus } from '@/platform/tauri/bindings';
-import { invokeAppCommand } from '@/platform/tauri/dynamicCommand';
 import { safeJsonParse } from '@/repositories/baseRepository';
-
-type AppCommandName = string;
 
 export type ScreenshotLibraryStatus = ScreenshotLibraryScanStatus;
 
@@ -18,27 +16,20 @@ function parseResponseValue(data: unknown): unknown {
     return safeJsonParse(data, data);
 }
 
-async function invokeApp<TReturn = unknown>(
-    methodName: AppCommandName,
-    ...args: unknown[]
-): Promise<TReturn> {
-    return invokeAppCommand<TReturn>(methodName, ...args);
-}
-
 async function resizeImageToFitLimits(base64Body: string): Promise<string> {
-    return invokeApp<string>('ResizeImageToFitLimits', base64Body);
+    return commands.appResizeImageToFitLimits(base64Body);
 }
 
 async function getFileBase64(path: string): Promise<string> {
-    return invokeApp<string>('GetFileBase64', path);
+    return commands.appGetFileBase64(path);
 }
 
 async function getScreenshotMetadata(path: string) {
-    return parseResponseValue(await invokeApp('GetScreenshotMetadata', path));
+    return parseResponseValue(await commands.appGetScreenshotMetadata(path));
 }
 
 async function deleteScreenshotMetadata(path: string) {
-    return invokeApp('DeleteScreenshotMetadata', path);
+    return commands.appDeleteScreenshotMetadata(path);
 }
 
 async function addScreenshotMetadata(
@@ -47,8 +38,7 @@ async function addScreenshotMetadata(
     worldId: string,
     changeFilename = false
 ): Promise<string> {
-    return invokeApp<string>(
-        'AddScreenshotMetadata',
+    return commands.appAddScreenshotMetadata(
         path,
         metadataString,
         worldId,
@@ -58,7 +48,7 @@ async function addScreenshotMetadata(
 
 async function getExtraScreenshotData(path: string, carouselCache = false) {
     return parseResponseValue(
-        await invokeApp('GetExtraScreenshotData', path, carouselCache)
+        await commands.appGetExtraScreenshotData(path, carouselCache)
     );
 }
 
@@ -66,48 +56,45 @@ async function findScreenshotsBySearch(
     searchQuery: string,
     searchType: number
 ) {
-    return invokeApp('FindScreenshotsBySearch', searchQuery, searchType);
+    return commands.appFindScreenshotsBySearch(searchQuery, searchType);
 }
 
 async function startScreenshotLibraryScan(
     force = false
 ): Promise<ScreenshotLibraryStatus> {
-    return invokeApp<ScreenshotLibraryStatus>(
-        'StartScreenshotLibraryScan',
-        force
-    );
+    return commands.appStartScreenshotLibraryScan(force);
 }
 
 async function getScreenshotLibraryStatus(): Promise<ScreenshotLibraryStatus> {
-    return invokeApp<ScreenshotLibraryStatus>('GetScreenshotLibraryStatus');
+    return commands.appGetScreenshotLibraryStatus();
 }
 
 async function getScreenshotFolderTree() {
-    return invokeApp('GetScreenshotFolderTree');
+    return commands.appGetScreenshotFolderTree();
 }
 
 async function getScreenshotFolderImages(folderPath: string) {
-    return invokeApp('GetScreenshotFolderImages', folderPath);
+    return commands.appGetScreenshotFolderImages(folderPath);
 }
 
 async function getWorldScreenshots(worldId: string) {
-    return invokeApp('GetWorldScreenshots', worldId);
+    return commands.appGetWorldScreenshots(worldId);
 }
 
 async function ensureScreenshotThumbnail(path: string) {
-    return invokeApp('EnsureScreenshotThumbnail', path);
+    return commands.appEnsureScreenshotThumbnail(path);
 }
 
 async function getLastScreenshot() {
-    return invokeApp('GetLastScreenshot');
+    return commands.appGetLastScreenshot();
 }
 
 async function getVrchatPhotosLocation(): Promise<string> {
-    return invokeApp<string>('GetVrchatPhotosLocation');
+    return commands.appGetVrchatPhotosLocation();
 }
 
 async function getUgcPhotoLocation(path = '') {
-    return invokeApp<string>('GetUGCPhotoLocation', path);
+    return commands.appGetUgcPhotoLocation(path);
 }
 
 async function openFileSelectorDialog(
@@ -115,8 +102,7 @@ async function openFileSelectorDialog(
     defaultExt = '',
     defaultFilter = ''
 ) {
-    return invokeApp<string | null>(
-        'OpenFileSelectorDialog',
+    return commands.appOpenFileSelectorDialog(
         defaultPath,
         defaultExt,
         defaultFilter
@@ -124,18 +110,18 @@ async function openFileSelectorDialog(
 }
 
 async function openFolderAndSelectItem(path: string, isFolder = false) {
-    return invokeApp('OpenFolderAndSelectItem', path, isFolder);
+    return commands.appOpenFolderAndSelectItem(path, isFolder);
 }
 
 async function copyImageToClipboard(path: string) {
-    return invokeApp('CopyImageToClipboard', path);
+    return commands.appCopyImageToClipboard(path);
 }
 
 async function saveImageFile(
     defaultName: string,
     base64Data: string
 ): Promise<string> {
-    return invokeApp<string>('SaveImageFile', defaultName, base64Data);
+    return commands.appSaveImageFile(defaultName, base64Data);
 }
 
 async function savePrintToFile(
@@ -144,8 +130,7 @@ async function savePrintToFile(
     monthFolder: string,
     fileName: string
 ): Promise<string> {
-    return invokeApp<string>(
-        'SavePrintToFile',
+    return commands.appSavePrintToFile(
         url,
         ugcFolderPath,
         monthFolder,
@@ -159,8 +144,7 @@ async function saveStickerToFile(
     monthFolder: string,
     fileName: string
 ): Promise<string> {
-    return invokeApp<string>(
-        'SaveStickerToFile',
+    return commands.appSaveStickerToFile(
         url,
         ugcFolderPath,
         monthFolder,
@@ -174,8 +158,7 @@ async function saveEmojiToFile(
     monthFolder: string,
     fileName: string
 ): Promise<string> {
-    return invokeApp<string>(
-        'SaveEmojiToFile',
+    return commands.appSaveEmojiToFile(
         url,
         ugcFolderPath,
         monthFolder,
@@ -184,15 +167,14 @@ async function saveEmojiToFile(
 }
 
 async function cropPrintImage(path: string): Promise<boolean> {
-    return invokeApp<boolean>('CropPrintImage', path);
+    return commands.appCropPrintImage(path);
 }
 
 async function cropAllPrints(ugcFolderPath: string) {
-    return invokeApp('CropAllPrints', ugcFolderPath);
+    return commands.appCropAllPrints(ugcFolderPath);
 }
 
 const mediaFileRepository = Object.freeze({
-    invokeApp,
     resizeImageToFitLimits,
     getFileBase64,
     getScreenshotMetadata,
@@ -221,7 +203,6 @@ const mediaFileRepository = Object.freeze({
 });
 
 export {
-    invokeApp,
     resizeImageToFitLimits,
     getFileBase64,
     getScreenshotMetadata,

@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 
-import { invokeAppCommand } from '@/platform/tauri/dynamicCommand';
+import { commands } from '@/platform/tauri/bindings';
 import {
     getHostCapabilityUnavailableReason,
     isHostCapabilityAvailable,
@@ -9,6 +9,7 @@ import {
 import i18n from '@/services/i18nService';
 import {
     toolDefinitionMap,
+    type ToolAppApiMethod,
     type ToolDefinition
 } from '@/shared/constants/tools';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -54,6 +55,14 @@ const toolDialogHostMap: Record<string, ToolDialogHostKey> = {
     'edit-invite-messages': 'editInviteMessagesOpen',
     'llm-endpoints': 'llmEndpointsOpen',
     'profile-backup': 'profileBackupOpen'
+};
+
+const toolAppApiCommands: Record<ToolAppApiMethod, () => Promise<boolean>> = {
+    OpenVrcPhotosFolder: () => commands.appOpenVrcPhotosFolder(),
+    OpenVrcScreenshotsFolder: () => commands.appOpenVrcScreenshotsFolder(),
+    OpenVrcxAppDataFolder: () => commands.appOpenVrcxAppDataFolder(),
+    OpenVrcAppDataFolder: () => commands.appOpenVrcAppDataFolder(),
+    OpenCrashVrcCrashDumps: () => commands.appOpenCrashVrcCrashDumps()
 };
 
 const legacyToolAliases: Record<string, string> = {
@@ -118,7 +127,7 @@ export async function triggerToolByKey(
 
     if (action.type === 'app-api') {
         try {
-            const result = await invokeAppCommand(action.method);
+            const result = await toolAppApiCommands[action.method]();
             toast[result ? 'success' : 'error'](
                 t(result ? action.successMessageKey : action.errorMessageKey)
             );
