@@ -157,6 +157,7 @@ export function AppToaster(props: any) {
                 '--normal-text': 'var(--popover-foreground)',
                 '--normal-border': 'var(--border)',
                 '--border-radius': 'var(--radius)',
+                fontFamily: 'var(--vrcx-app-font-family, system-ui)',
                 zIndex: APP_TOASTER_Z_INDEX
             }}
             {...props}
