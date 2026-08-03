@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use vrcx_0_application_core::{
     vrchat_api::{self, VrchatApiRequest, VrchatApiResponse, VrchatScope},
-    FavoriteChangeScope, FavoriteEntityKind, RuntimeDiagnostics, RuntimeSyncEngine, WebClient,
+    FavoriteChangeScope, RuntimeDiagnostics, RuntimeSyncEngine, VrchatFavoriteType, WebClient,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_persistence::DatabaseService;
@@ -19,9 +19,22 @@ pub struct FavoriteRemoteMutationDeps<'a> {
 
 pub struct FavoriteRemoteAddInput {
     pub endpoint: String,
-    pub kind: FavoriteEntityKind,
+    pub kind: VrchatFavoriteType,
     pub entity_id: String,
     pub tags: String,
+}
+
+fn prepare_remote_favorite_add(
+    input: FavoriteRemoteAddInput,
+) -> Result<(FavoriteChangeScope, String, String, VrchatApiRequest)> {
+    let notification_scope = input.kind.into();
+    let (kind, entity_id, request) = vrchat_api::favorites::favorite_add_input(
+        input.endpoint,
+        input.kind.as_str().to_string(),
+        input.entity_id,
+        input.tags,
+    )?;
+    Ok((notification_scope, kind, entity_id, request))
 }
 
 pub struct FavoriteRemoteDeleteInput {
@@ -77,13 +90,7 @@ pub async fn add_remote_favorite(
     deps: &FavoriteRemoteMutationDeps<'_>,
     input: FavoriteRemoteAddInput,
 ) -> Result<VrchatApiResponse> {
-    let notification_scope = input.kind.into();
-    let (kind, entity_id, request) = vrchat_api::favorites::favorite_add_input(
-        input.endpoint,
-        input.kind.as_str().to_string(),
-        input.entity_id,
-        input.tags,
-    )?;
+    let (notification_scope, kind, entity_id, request) = prepare_remote_favorite_add(input)?;
     execute_remote_favorite_mutation(
         deps,
         "favorite.remote.add",
@@ -156,7 +163,13 @@ pub async fn clear_remote_favorite_group(
 
 #[cfg(test)]
 mod tests {
-    use super::should_notify_favorite_change;
+    use serde_json::json;
+    use vrcx_0_application_core::{FavoriteChangeScope, VrchatFavoriteType};
+
+    use super::{
+        prepare_remote_favorite_add, should_notify_favorite_change, FavoriteRemoteAddInput,
+    };
+
     #[test]
     fn only_successful_http_policies_are_favorite_changes() {
         for (status, expected) in [
@@ -173,5 +186,30 @@ mod tests {
                 "status {status}"
             );
         }
+    }
+
+    #[test]
+    fn vrc_plus_world_add_keeps_remote_type_and_notifies_world_scope() {
+        let (scope, kind, entity_id, request) =
+            prepare_remote_favorite_add(FavoriteRemoteAddInput {
+                endpoint: "endpoint".into(),
+                kind: VrchatFavoriteType::VrcPlusWorld,
+                entity_id: "wrld_1".into(),
+                tags: "worlds4".into(),
+            })
+            .unwrap();
+
+        assert_eq!(scope, FavoriteChangeScope::World);
+        assert_eq!(kind, "vrcPlusWorld");
+        assert_eq!(entity_id, "wrld_1");
+        assert_eq!(request.path.as_deref(), Some("favorites"));
+        assert_eq!(
+            request.body.as_json(),
+            Some(&json!({
+                "type": "vrcPlusWorld",
+                "favoriteId": "wrld_1",
+                "tags": "worlds4",
+            }))
+        );
     }
 }

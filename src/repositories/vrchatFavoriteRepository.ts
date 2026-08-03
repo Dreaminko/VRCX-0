@@ -1,7 +1,4 @@
-import {
-    commands,
-    type FavoriteEntityKind
-} from '@/platform/tauri/bindings';
+import { commands, type VrchatFavoriteType } from '@/platform/tauri/bindings';
 
 import { unwrapVrchatResponse } from './vrchatRequest';
 
@@ -51,8 +48,13 @@ interface FavoriteGroupMutationInput {
     visibility?: unknown;
 }
 
-function requireFavoriteEntityKind(value: unknown): FavoriteEntityKind {
-    if (value === 'friend' || value === 'world' || value === 'avatar') {
+function requireVrchatFavoriteType(value: unknown): VrchatFavoriteType {
+    if (
+        value === 'friend' ||
+        value === 'world' ||
+        value === 'vrcPlusWorld' ||
+        value === 'avatar'
+    ) {
         return value;
     }
     throw new Error(
@@ -74,7 +76,7 @@ async function addFavorite({
     tags
 }: FavoriteMutationInput = {}) {
     const response = await commands.appVrchatFavoriteAdd({
-        type: requireFavoriteEntityKind(type),
+        type: requireVrchatFavoriteType(type),
         favoriteId:
             typeof favoriteId === 'string'
                 ? favoriteId

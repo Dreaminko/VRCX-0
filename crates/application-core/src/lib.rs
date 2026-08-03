@@ -45,7 +45,7 @@ pub use event_bus::{
     FavoritesChangedPayload, RuntimeEventBus, RuntimeEventPayload, RuntimeEventSink,
     RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload, VrcStatusSnapshot,
 };
-pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind};
+pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind, VrchatFavoriteType};
 pub use events::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, FriendProjection,
     FriendProjectionPatch, FriendStateBucketAuthority, PrintAutoCleanupEvent,

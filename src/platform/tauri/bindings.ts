@@ -5836,7 +5836,7 @@ export type VrchatCurrentUserUpdateInput = {
     params: JsonValue | null;
 };
 export type VrchatFavoriteAddInput = {
-    type: FavoriteEntityKind;
+    type: VrchatFavoriteType;
     favoriteId?: string;
     tags?: string;
 };
@@ -5864,6 +5864,7 @@ export type VrchatFavoriteGroupsInput = {
     ownerId?: string;
 };
 export type VrchatFavoritePagedInput = { n?: number; offset?: number };
+export type VrchatFavoriteType = 'avatar' | 'world' | 'vrcPlusWorld' | 'friend';
 export type VrchatFavoriteWorldsInput = {
     n?: number;
     offset?: number;

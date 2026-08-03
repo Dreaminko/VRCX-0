@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    resolveFavoriteAddType,
     resolveFavoriteEntityLabel,
     resolveRemoteFavoriteGroupLabel
 } from './FavoriteActionMenu';
 
 describe('FavoriteActionMenu helpers', () => {
+    it('keeps the VRC+ world type selected by the remote group', () => {
+        expect(
+            resolveFavoriteAddType(
+                { type: 'vrcPlusWorld', name: 'worlds4' },
+                'world'
+            )
+        ).toBe('vrcPlusWorld');
+    });
+
     it('uses a fetched friend display name in the remove confirmation', () => {
         expect(
             resolveFavoriteEntityLabel(

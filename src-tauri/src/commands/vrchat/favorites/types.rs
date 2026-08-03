@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use vrcx_0_application_core::FavoriteEntityKind;
+use vrcx_0_application_core::{FavoriteEntityKind, VrchatFavoriteType};
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -51,7 +51,7 @@ pub struct VrchatFavoriteGroupsInput {
 #[serde(rename_all = "camelCase")]
 pub struct VrchatFavoriteAddInput {
     #[serde(rename = "type")]
-    pub(crate) type_name: FavoriteEntityKind,
+    pub(crate) type_name: VrchatFavoriteType,
     #[serde(default)]
     pub(crate) favorite_id: String,
     #[serde(default)]
@@ -115,4 +115,24 @@ pub struct LocalFavoriteGroupRenameInput {
     pub(crate) group_name: String,
     #[serde(default)]
     pub(crate) new_group_name: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use vrcx_0_application_core::VrchatFavoriteType;
+
+    use super::VrchatFavoriteAddInput;
+
+    #[test]
+    fn favorite_add_accepts_vrc_plus_world_from_ipc() {
+        let input: VrchatFavoriteAddInput = serde_json::from_value(json!({
+            "type": "vrcPlusWorld",
+            "favoriteId": "wrld_1",
+            "tags": "worlds4",
+        }))
+        .unwrap();
+
+        assert_eq!(input.type_name, VrchatFavoriteType::VrcPlusWorld);
+    }
 }

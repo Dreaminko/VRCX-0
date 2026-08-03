@@ -151,7 +151,7 @@ impl VrcxMcpServer {
             },
             FavoriteRemoteAddInput {
                 endpoint: self.runtime.current_endpoint(),
-                kind: entity_kind,
+                kind: entity_kind.into(),
                 entity_id: entity_id.clone(),
                 tags: tags.clone(),
             },

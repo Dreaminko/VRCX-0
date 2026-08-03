@@ -14,7 +14,8 @@ import type {
     FavoriteGroupMap,
     FavoriteKind,
     FavoriteRecord,
-    FavoriteStore
+    FavoriteStore,
+    RemoteFavoriteKind
 } from '@/state/favoriteStoreTypes';
 import { useModalStore } from '@/state/modalStore';
 import { Button } from '@/ui/shadcn/button';
@@ -118,6 +119,13 @@ function formatGroupLabel(group: FavoriteStoreGroup) {
 
 function groupDisplayLabel(group: FavoriteStoreGroup | undefined) {
     return String(group?.displayName || group?.name || group?.key || '');
+}
+
+export function resolveFavoriteAddType(
+    group: FavoriteStoreGroup,
+    fallbackKind: FavoriteKind
+): RemoteFavoriteKind {
+    return group.type || fallbackKind;
 }
 
 export function resolveRemoteFavoriteGroupLabel(
@@ -227,7 +235,7 @@ export function FavoriteActionMenu({
         setActionStatus('favorite');
         try {
             const response = await vrchatFavoriteRepository.addFavorite({
-                type: group.type || kind,
+                type: resolveFavoriteAddType(group, kind),
                 favoriteId: normalizedEntityId,
                 tags: group.name
             });
