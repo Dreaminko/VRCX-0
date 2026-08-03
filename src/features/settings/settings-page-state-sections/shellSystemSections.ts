@@ -20,6 +20,7 @@ export function buildSystemSection({
     setStartAtWindowsStartupPreference,
     setStartAsMinimizedPreference,
     setCloseToTrayPreference,
+    setSystemWindowFramePreference,
     promptAutoLoginDelaySeconds,
     promptBackgroundModeDelayMinutes
 }: BuildSettingsPageStateSectionsInput) {
@@ -31,6 +32,7 @@ export function buildSystemSection({
         setStartAtWindowsStartupPreference,
         setStartAsMinimizedPreference,
         setCloseToTrayPreference,
+        setSystemWindowFramePreference,
         promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes
     };

@@ -55,6 +55,10 @@ export class StorageRepository {
         return value !== null && value !== undefined && value !== 'undefined';
     }
 
+    async flush(): Promise<void> {
+        await commands.storageFlush();
+    }
+
     async clear(): Promise<void> {
         const entries = await commands.storageGetAll();
         const keys = Object.keys(entries || {}).filter((key) =>

@@ -126,6 +126,7 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     setShowNewDashboardButtonPreference: SettingsCallback<[boolean]>;
     setStartAsMinimizedPreference: SettingsCallback<[boolean]>;
     setStartAtWindowsStartupPreference: SettingsCallback<[boolean]>;
+    setSystemWindowFramePreference: SettingsCallback<[boolean]>;
     setTableDensityPreference: SettingsCallback<[unknown]>;
     setHmdNotificationsDialogOpen: SettingsCallback<[boolean]>;
     setTranslationApiEnabledPreference: SettingsCallback<[boolean]>;

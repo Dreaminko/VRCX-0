@@ -117,6 +117,7 @@ function createInput(
         setScreenshotHelperPreference: callback,
         setShowNewDashboardButtonPreference: callback,
         setStartAsMinimizedPreference: callback,
+        setSystemWindowFramePreference: callback,
         setStartAtWindowsStartupPreference: callback,
         setTableDensityPreference: callback,
         setTranslationApiEnabledPreference: callback,

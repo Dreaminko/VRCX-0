@@ -109,6 +109,7 @@ export function createDefaultSettingsPrefs() {
         isStartAtWindowsStartup: false,
         isStartAsMinimizedState: false,
         isCloseToTray: false,
+        systemWindowFrame: false,
         navIsCollapsed: false,
         proxyEnabled: false,
         proxyServer: '',

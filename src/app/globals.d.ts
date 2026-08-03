@@ -11,6 +11,7 @@ declare global {
         $debug?: AppDebug;
         __TAURI_INTERNALS__?: unknown;
         __VRCX_BACKGROUND_ROUTE_RESUME_PENDING__?: boolean;
+        __VRCX_SYSTEM_WINDOW_FRAME__?: boolean;
     }
 
     interface AppDebug {

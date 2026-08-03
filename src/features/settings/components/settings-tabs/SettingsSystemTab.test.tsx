@@ -61,7 +61,8 @@ const handlers = {
     onProxyEnabledChange: noop,
     onProxySettings: noop,
     onStartAsMinimizedChange: noop,
-    onStartAtWindowsStartupChange: noop
+    onStartAtWindowsStartupChange: noop,
+    onSystemWindowFrameChange: noop
 };
 
 describe('SettingsSystemTab updater policy', () => {

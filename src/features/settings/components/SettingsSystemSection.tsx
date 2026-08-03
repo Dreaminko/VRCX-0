@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY } from '@/services/changelogService';
+import { restartApplication } from '@/services/shellIntegrationService';
 import { isUpdateCheckDisabledBuild } from '@/shared/buildLabel';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -29,6 +30,7 @@ export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
         setStartAtWindowsStartupPreference,
         setStartAsMinimizedPreference,
         setCloseToTrayPreference,
+        setSystemWindowFramePreference,
         promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes
     } = system;
@@ -39,6 +41,7 @@ export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
             isStartAtWindowsStartup={prefs.isStartAtWindowsStartup}
             isStartAsMinimizedState={prefs.isStartAsMinimizedState}
             isCloseToTray={prefs.isCloseToTray}
+            systemWindowFrame={prefs.systemWindowFrame}
             autoLoginDelayEnabled={prefs.autoLoginDelayEnabled}
             autoLoginDelaySeconds={prefs.autoLoginDelaySeconds}
             autoInstallUpdatesOnStartup={prefs.autoInstallUpdatesOnStartup}
@@ -60,6 +63,31 @@ export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
                 savePreferenceValue('isStartAsMinimizedState', enabled, () =>
                     setStartAsMinimizedPreference(enabled)
                 );
+            }}
+            onSystemWindowFrameChange={async (checked: unknown) => {
+                const enabled = normalizeCheckedState(checked);
+                const saved = await savePreferenceValue(
+                    'systemWindowFrame',
+                    enabled,
+                    () => setSystemWindowFramePreference(enabled)
+                );
+                if (saved) {
+                    toast(
+                        t(
+                            'view.settings.general.application.system_window_frame_saved'
+                        ),
+                        {
+                            action: {
+                                label: t(
+                                    'view.settings.general.application.system_window_frame_restart_now'
+                                ),
+                                onClick: () => {
+                                    void restartApplication();
+                                }
+                            }
+                        }
+                    );
+                }
             }}
             onCloseToTrayChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);

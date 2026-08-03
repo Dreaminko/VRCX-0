@@ -297,6 +297,17 @@ export async function setCloseToTrayPreference(value: boolean) {
     publishPreferenceChanged('VRCX_CloseToTray', enabled);
 }
 
+export async function setSystemWindowFramePreference(value: boolean) {
+    const enabled = value;
+    await storageRepository.setString(
+        'VRCX_SystemWindowFrame',
+        String(enabled)
+    );
+    await storageRepository.flush();
+    patchPreferences({ systemWindowFrame: enabled });
+    publishPreferenceChanged('VRCX_SystemWindowFrame', enabled);
+}
+
 export async function setBoolConfigPreference(
     key: BoolConfigPreferenceInputKey,
     value: boolean

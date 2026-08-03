@@ -121,6 +121,8 @@ function AppRouterContent() {
     }, [isMacHost]);
 
     const isWindowsHost = hostPlatform === 'windows';
+    const hasCustomWindowFrame =
+        isWindowsHost && !window.__VRCX_SYSTEM_WINDOW_FRAME__;
 
     return (
         <>
@@ -128,7 +130,7 @@ function AppRouterContent() {
                 data-vrcx-0-surface="app-root"
                 className={cn(
                     'vrcx-0-app-root flex min-h-0 w-full flex-col overflow-hidden',
-                    isWindowsHost
+                    hasCustomWindowFrame
                         ? 'vrcx-0-custom-window-frame h-full'
                         : 'h-screen'
                 )}
@@ -182,7 +184,7 @@ function AppRouterContent() {
                 <GlobalHosts />
                 <MacNativeMenuActionHost />
             </div>
-            {isWindowsHost ? <WindowResizeHandles /> : null}
+            {hasCustomWindowFrame ? <WindowResizeHandles /> : null}
         </>
     );
 }

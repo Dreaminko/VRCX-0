@@ -219,9 +219,16 @@ pub(super) fn create_main_window(
         })?;
 
     let mut builder = WebviewWindowBuilder::from_config(app, window_config)?;
+    let state = app.state::<AppState>();
     #[cfg(target_os = "windows")]
     {
-        builder = builder.transparent(true).shadow(false);
+        let system_frame = state.storage.get("VRCX_SystemWindowFrame").as_deref() == Some("true");
+        if !system_frame {
+            builder = builder.transparent(true).shadow(false);
+        }
+        builder = builder.initialization_script(format!(
+            "window.__VRCX_SYSTEM_WINDOW_FRAME__ = {system_frame};"
+        ));
     }
     #[cfg(target_os = "macos")]
     {
@@ -231,7 +238,6 @@ pub(super) fn create_main_window(
             .hidden_title(true)
             .traffic_light_position(tauri::LogicalPosition::new(16.0, 16.0));
     }
-    let state = app.state::<AppState>();
     if let Some(route) = state.take_background_resume_route() {
         let route = serde_json::to_string(&route)?;
         builder = builder.initialization_script(format!(

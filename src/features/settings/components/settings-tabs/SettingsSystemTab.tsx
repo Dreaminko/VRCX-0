@@ -19,6 +19,7 @@ type SettingsSystemTabProps = {
     isCloseToTray?: boolean;
     isStartAsMinimizedState?: boolean;
     isStartAtWindowsStartup?: boolean;
+    systemWindowFrame?: boolean;
     proxyEnabled?: boolean;
     proxyServer?: string;
     showPostUpdateChangelogToast?: boolean;
@@ -35,6 +36,7 @@ type SettingsSystemTabProps = {
     onPostUpdateChangelogToastChange: (checked: boolean) => unknown;
     onStartAsMinimizedChange: (checked: boolean) => unknown;
     onStartAtWindowsStartupChange: (checked: boolean) => unknown;
+    onSystemWindowFrameChange: (checked: boolean) => unknown;
 };
 
 export function SettingsSystemTab({
@@ -42,6 +44,7 @@ export function SettingsSystemTab({
     isStartAtWindowsStartup,
     isStartAsMinimizedState,
     isCloseToTray,
+    systemWindowFrame,
     autoLoginDelayEnabled,
     autoLoginDelaySeconds,
     autoInstallUpdatesOnStartup,
@@ -55,6 +58,7 @@ export function SettingsSystemTab({
     onStartAtWindowsStartupChange,
     onStartAsMinimizedChange,
     onCloseToTrayChange,
+    onSystemWindowFrameChange,
     onAutoLoginDelayEnabledChange,
     onPromptAutoLoginDelaySeconds,
     onBackgroundModeEnabledChange,
@@ -147,6 +151,21 @@ export function SettingsSystemTab({
                         onCheckedChange={onBackgroundModeDelayEnabledChange}
                     />
                 </Field>
+                {isWindows ? (
+                    <Field
+                        label={t(
+                            'view.settings.general.application.system_window_frame'
+                        )}
+                        description={t(
+                            'view.settings.general.application.system_window_frame_description'
+                        )}
+                    >
+                        <Switch
+                            checked={systemWindowFrame}
+                            onCheckedChange={onSystemWindowFrameChange}
+                        />
+                    </Field>
+                ) : null}
                 {backgroundModeDelayEnabled ? (
                     <Field
                         label={t(
