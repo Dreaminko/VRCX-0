@@ -108,7 +108,7 @@ export function NotificationFeed({
                     {days.length > 0 ? (
                         days.map((day) => (
                             <div key={day.key}>
-                                <div className="bg-background/85 text-muted-foreground/70 sticky top-0 z-10 px-2 pt-5 pb-2 text-xs font-medium backdrop-blur-sm">
+                                <div className="bg-background/95 text-muted-foreground/70 sticky top-0 z-10 px-2 pt-5 pb-2 text-xs font-medium">
                                     {dayLabel(day)}
                                 </div>
                                 {day.rows.map((notification) => (
