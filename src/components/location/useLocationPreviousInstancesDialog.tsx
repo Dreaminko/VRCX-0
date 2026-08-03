@@ -1,17 +1,26 @@
+import type { TFunction } from 'i18next';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { PreviousInstancesTableDialog } from '@/components/dialogs/PreviousInstancesTableDialog';
 import gameLogRepository from '@/repositories/gameLogRepository';
+import type { GameLogPreviousInstanceWorldRow } from '@/repositories/gameLogRepository';
+import type { ParsedLocation } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
 
-type PreviousInstanceDialogRow = Record<string, unknown> & {
-    created_at?: string;
+type PreviousInstanceDialogRow = Partial<GameLogPreviousInstanceWorldRow> & {
     createdAt?: string;
-    groupName?: string;
-    location?: string;
     worldId?: string;
-    worldName?: string;
+};
+
+type UseLocationPreviousInstancesDialogInput = {
+    currentLocation: string;
+    groupName: string;
+    onShowPreviousInstances?: (row: PreviousInstanceDialogRow) => void;
+    parsedLocation: ParsedLocation;
+    t: TFunction;
+    worldName: string;
+    worldNameHint: string;
 };
 
 export function useLocationPreviousInstancesDialog({
@@ -22,7 +31,7 @@ export function useLocationPreviousInstancesDialog({
     t,
     worldName,
     worldNameHint
-}: any) {
+}: UseLocationPreviousInstancesDialogInput) {
     const [previousInstancesOpen, setPreviousInstancesOpen] = useState(false);
     const [previousInstancesRows, setPreviousInstancesRows] = useState<
         PreviousInstanceDialogRow[]
@@ -110,8 +119,8 @@ export function useLocationPreviousInstancesDialog({
                     }
                 }
                 return (
-                    Date.parse(right?.created_at || right?.createdAt || 0) -
-                    Date.parse(left?.created_at || left?.createdAt || 0)
+                    Date.parse(right?.created_at || '') -
+                    Date.parse(left?.created_at || '')
                 );
             });
 

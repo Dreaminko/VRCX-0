@@ -10,6 +10,7 @@ import type {
     GameLogSessionEventDto as GeneratedGameLogSessionEvent,
     GameLogSessionMemberDto as GeneratedGameLogSessionMember
 } from '@/platform/tauri/bindings';
+import type { GameLogPreviousInstanceWorldRow } from '@/repositories/gameLogRepository';
 
 export const GAME_LOG_SESSION_FILTER_TYPES = [
     'OnPlayerJoined',
@@ -61,7 +62,7 @@ export type GameLogDetailValue = {
     secondary?: unknown;
 };
 
-export type GameLogPreviousInstanceRow = Record<string, unknown>;
+export type GameLogPreviousInstanceRow = GameLogPreviousInstanceWorldRow;
 
 export type GameLogColumns = ColumnDef<GameLogRow>[];
 

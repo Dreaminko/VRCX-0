@@ -9,6 +9,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { UserFact } from '@/domain/users/userFacts';
 import type { FeedRowOutput } from '@/platform/tauri/bindings';
 import type { FeedFilterType } from '@/repositories/feedRepository';
+import type { GameLogPreviousInstanceWorldRow } from '@/repositories/gameLogRepository';
 
 export type FeedRow = FeedRowOutput;
 
@@ -30,7 +31,7 @@ export type FeedLocationActionPayload = {
     [key: string]: unknown;
 };
 
-export type FeedPreviousInstanceRow = Record<string, unknown>;
+export type FeedPreviousInstanceRow = GameLogPreviousInstanceWorldRow;
 
 export type FeedFriendActions = {
     canSendInviteFromFeed: boolean;

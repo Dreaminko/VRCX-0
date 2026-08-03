@@ -1,3 +1,5 @@
+import type { InstanceHistoryEntryOutput } from '@/platform/tauri/bindings';
+
 import { normalizeUserId } from './userProfileFields';
 
 export type UserDialogPreviousDisplayName = {
@@ -19,6 +21,8 @@ export type UserDialogStats = {
     previousDisplayNameSources?: UserDialogPreviousDisplayNameSources;
 };
 
+export type UserDialogPreviousInstance = InstanceHistoryEntryOutput;
+
 function record(value: unknown): Record<string, unknown> {
     return value && typeof value === 'object'
         ? Object.fromEntries(Object.entries(value))
@@ -35,7 +39,10 @@ export const DEFAULT_USER_STATS = Object.freeze({
 
 const userDialogCacheLimit = 128;
 const cachedUserStatsByTarget = new Map<string, UserDialogStats>();
-const cachedPreviousInstancesByTarget = new Map<string, unknown[]>();
+const cachedPreviousInstancesByTarget = new Map<
+    string,
+    UserDialogPreviousInstance[]
+>();
 
 export function dialogTargetKey(endpoint: unknown, userId: unknown) {
     const normalizedUserId = normalizeUserId(userId);
@@ -134,12 +141,11 @@ export function readCachedPreviousInstances(key: string) {
     return value ? [...value] : [];
 }
 
-export function cachePreviousInstances(key: string, rows: unknown) {
-    setCappedCacheEntry(
-        cachedPreviousInstancesByTarget,
-        key,
-        Array.isArray(rows) ? [...rows] : []
-    );
+export function cachePreviousInstances(
+    key: string,
+    rows: readonly UserDialogPreviousInstance[]
+) {
+    setCappedCacheEntry(cachedPreviousInstancesByTarget, key, [...rows]);
 }
 
 export function clearUserDialogCaches() {

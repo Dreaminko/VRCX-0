@@ -1,4 +1,5 @@
 import { Trash2Icon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
@@ -27,6 +28,9 @@ import {
 
 import {
     formatPreviousInstanceCount,
+    type PreviousInstanceRow,
+    type PreviousInstanceSortKey,
+    type PreviousInstanceVariant,
     rowDuration,
     rowLocation,
     rowLocationObject,
@@ -37,7 +41,44 @@ import {
     InstanceOwnerCell
 } from './PreviousInstancesViewParts';
 
-function renderLocationCell(row: any, { variant, currentUserId }: any) {
+type PreviousInstancesListTableProps<TRow extends PreviousInstanceRow> = {
+    className?: string;
+    currentEndpoint?: string;
+    currentPageIndex: number;
+    currentUserId?: string | null;
+    filteredRows: readonly TRow[];
+    headerActions?: ReactNode;
+    onClose?: (() => void) | null;
+    onDeleteRow: (row: TRow) => Promise<void> | void;
+    onNextPage: () => void;
+    onOpenDetails: (row: TRow) => void;
+    onPageSizeChange: (pageSize: number) => void;
+    onPreviousPage: () => void;
+    onSearchChange: (search: string) => void;
+    onSortChange?: ((sortKey: PreviousInstanceSortKey) => void) | null;
+    pageSize: number;
+    rows: readonly TRow[];
+    search: string;
+    searchActions?: ReactNode;
+    showHeader: boolean;
+    sortDesc: boolean;
+    sortKey?: PreviousInstanceSortKey;
+    title: string;
+    totalPages: number;
+    variant: PreviousInstanceVariant;
+    visibleRows: readonly TRow[];
+};
+
+function renderLocationCell(
+    row: PreviousInstanceRow,
+    {
+        variant,
+        currentUserId
+    }: {
+        variant: PreviousInstanceVariant;
+        currentUserId?: string | null;
+    }
+) {
     const location = rowLocation(row);
     if (variant === 'world') {
         const locationObject = rowLocationObject(row);
@@ -71,7 +112,7 @@ function renderLocationCell(row: any, { variant, currentUserId }: any) {
     );
 }
 
-export function PreviousInstancesListTable({
+export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
     title,
     rows,
     filteredRows,
@@ -97,18 +138,18 @@ export function PreviousInstancesListTable({
     onDeleteRow,
     headerActions = null,
     searchActions = null
-}: any) {
+}: PreviousInstancesListTableProps<TRow>) {
     const { t } = useTranslation();
     const filteredCountText = formatPreviousInstanceCount(filteredRows.length);
     const totalCountText = formatPreviousInstanceCount(rows.length);
     const showWorldGroupColumn = variant !== 'user';
     const showCreatorColumn = variant !== 'user';
 
-    function changeSort(nextKey: any) {
+    function changeSort(nextKey: PreviousInstanceSortKey) {
         onSortChange?.(nextKey);
     }
 
-    function sortableHeader(label: any, key: any) {
+    function sortableHeader(label: ReactNode, key: PreviousInstanceSortKey) {
         const active = sortKey === key;
         return (
             <DataTableSortButton
@@ -174,7 +215,7 @@ export function PreviousInstancesListTable({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                {[10, 25, 50, 100].map((size: any) => (
+                                {[10, 25, 50, 100].map((size) => (
                                     <SelectItem key={size} value={String(size)}>
                                         {size}
                                     </SelectItem>
@@ -231,7 +272,7 @@ export function PreviousInstancesListTable({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {visibleRows.map((row: any, index: any) => {
+                            {visibleRows.map((row, index) => {
                                 const location = rowLocation(row);
                                 return (
                                     <TableRow

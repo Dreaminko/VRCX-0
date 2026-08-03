@@ -1,3 +1,4 @@
+import type { InstanceHistoryEntryOutput } from '@/platform/tauri/bindings';
 import type { parseLocation } from '@/shared/utils/location';
 
 export type ActivityLocation = ReturnType<typeof parseLocation>;
@@ -10,13 +11,10 @@ export type WorldDetailsById = Record<
     }
 >;
 
-export type PreviousInstanceRow = object & {
+export type PreviousInstanceRow = Partial<InstanceHistoryEntryOutput> & {
     id?: string | number;
     created_at?: string | number | Date;
-    createdAt?: string | number | Date;
     last_ts?: string | number | Date;
-    lastTs?: string | number | Date;
-    time?: string | number;
     duration?: string | number;
     location?: string;
     worldId?: string;
@@ -24,7 +22,6 @@ export type PreviousInstanceRow = object & {
     groupName?: string;
     ownerDisplayName?: string;
     ownerName?: string;
-    events?: unknown[];
     $location?: Record<string, unknown> & {
         tag?: string;
         worldName?: string;

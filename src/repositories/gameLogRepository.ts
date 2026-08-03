@@ -191,15 +191,14 @@ async function getPreviousInstancesByWorldId({
 }: {
     worldId?: unknown;
 }) {
-    const rows =
-        await gameLogPersistenceRepository.getPreviousInstancesByWorldId({
-            id: worldId
-        });
-    if (rows instanceof Map) {
-        return Array.from(rows.values());
-    }
-    return Array.isArray(rows) ? rows : [];
+    return gameLogPersistenceRepository.getPreviousInstancesByWorldId({
+        id: worldId
+    });
 }
+
+export type GameLogPreviousInstanceWorldRow = Awaited<
+    ReturnType<typeof getPreviousInstancesByWorldId>
+>[number];
 
 async function getWorldNameByWorldId(worldId: unknown) {
     const normalizedWorldId = normalizeString(worldId);

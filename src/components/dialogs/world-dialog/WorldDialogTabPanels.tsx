@@ -490,8 +490,7 @@ export function WorldDialogTabPanels({
                     <EntityInfoBlock
                         label={t('dialog.world.info.last_visited')}
                         value={formatDateFilterOrFallback(
-                            lastVisitedInstance?.created_at ||
-                                lastVisitedInstance?.createdAt,
+                            lastVisitedInstance?.created_at,
                             'long',
                             WORLD_DATE_FALLBACKS
                         )}

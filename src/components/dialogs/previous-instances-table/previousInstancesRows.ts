@@ -1,4 +1,5 @@
 import { timeToText } from '@/lib/dateTime';
+import type { InstanceHistoryEntryOutput } from '@/platform/tauri/bindings';
 import { parseLocation } from '@/shared/utils/location';
 import { localeIncludes } from '@/shared/utils/string';
 
@@ -20,28 +21,32 @@ type PreviousInstanceLocation = Record<string, unknown> & {
     worldName?: unknown;
 };
 
-export type PreviousInstanceRow = Record<string, unknown> & {
+export type PreviousInstanceVariant = 'group' | 'user' | 'world';
+
+export type PreviousInstanceSortKey =
+    | ''
+    | 'creator'
+    | 'date'
+    | 'duration'
+    | 'location';
+
+export type PreviousInstanceRow = Partial<InstanceHistoryEntryOutput> & {
     $location?: PreviousInstanceLocation | null;
     count?: unknown;
     created_at?: unknown;
-    createdAt?: unknown;
     duration?: unknown;
-    groupName?: unknown;
     id?: unknown;
     left_at?: unknown;
     leftAt?: unknown;
-    location?: unknown;
     ownerDisplayName?: unknown;
     ownerId?: unknown;
     ownerName?: unknown;
     ownerUserId?: unknown;
     owner_id?: unknown;
     owner_user_id?: unknown;
-    time?: unknown;
     userId?: unknown;
     user_id?: unknown;
     worldId?: unknown;
-    worldName?: unknown;
 };
 
 type PreviousInstancePlayerRow = PreviousInstanceRow & {
@@ -254,16 +259,17 @@ export function rowMatchesSearch(
     );
 }
 
-export function sortPreviousInstanceRows(
-    rows: readonly PreviousInstanceRow[] | null | undefined,
-    sortKey = 'date',
+export function sortPreviousInstanceRows<T extends PreviousInstanceRow>(
+    rows: readonly T[] | null | undefined,
+    sortKey: PreviousInstanceSortKey = 'date',
     sortDesc = true
-) {
+): T[] {
+    const nextRows = [...(rows ?? [])];
     if (!sortKey) {
-        return [...(Array.isArray(rows) ? rows : [])];
+        return nextRows;
     }
     const direction = sortDesc ? -1 : 1;
-    return [...(Array.isArray(rows) ? rows : [])].sort((left, right) => {
+    return nextRows.sort((left, right) => {
         let result = 0;
         if (sortKey === 'duration') {
             result = rowDurationValue(left) - rowDurationValue(right);

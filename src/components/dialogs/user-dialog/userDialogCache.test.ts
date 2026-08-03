@@ -6,8 +6,21 @@ import {
     clearUserDialogCaches,
     dialogTargetKey,
     readCachedPreviousInstances,
-    readCachedUserStats
+    readCachedUserStats,
+    type UserDialogPreviousInstance
 } from './userDialogCache';
+
+function previousInstance(location: string): UserDialogPreviousInstance {
+    return {
+        createdAt: '',
+        events: [],
+        groupName: '',
+        lastTs: 0,
+        location,
+        time: 0,
+        worldName: ''
+    };
+}
 
 describe('userDialogCache', () => {
     beforeEach(() => {
@@ -43,8 +56,8 @@ describe('userDialogCache', () => {
             previousDisplayNames: [{ displayName: 'Old Name' }]
         });
         cachePreviousInstances(key, [
-            { id: 'row_1', location: 'wrld_one:1' },
-            { id: 'row_2', location: 'wrld_two:2' }
+            previousInstance('wrld_one:1'),
+            previousInstance('wrld_two:2')
         ]);
 
         expect(readCachedUserStats(key)).toEqual({
@@ -55,8 +68,8 @@ describe('userDialogCache', () => {
             previousDisplayNames: [{ displayName: 'Old Name' }]
         });
         expect(readCachedPreviousInstances(key)).toEqual([
-            { id: 'row_1', location: 'wrld_one:1' },
-            { id: 'row_2', location: 'wrld_two:2' }
+            previousInstance('wrld_one:1'),
+            previousInstance('wrld_two:2')
         ]);
     });
 
@@ -94,11 +107,13 @@ describe('userDialogCache', () => {
 
     it('shows the original previous instance list when a dialog-local list is edited then reopened', () => {
         const key = dialogTargetKey('https://api.example.test', 'usr_target');
-        cachePreviousInstances(key, [{ id: 'row_1' }]);
+        cachePreviousInstances(key, [previousInstance('wrld_one:1')]);
 
         const firstRead = readCachedPreviousInstances(key);
-        firstRead.push({ id: 'row_2' });
+        firstRead.push(previousInstance('wrld_two:2'));
 
-        expect(readCachedPreviousInstances(key)).toEqual([{ id: 'row_1' }]);
+        expect(readCachedPreviousInstances(key)).toEqual([
+            previousInstance('wrld_one:1')
+        ]);
     });
 });

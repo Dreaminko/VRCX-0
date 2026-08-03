@@ -52,12 +52,8 @@ export function useFeedPreviousInstancesDialog() {
                         }
                     }
                     return (
-                        Date.parse(
-                            String(right?.created_at || right?.createdAt || 0)
-                        ) -
-                        Date.parse(
-                            String(left?.created_at || left?.createdAt || 0)
-                        )
+                        Date.parse(right.created_at) -
+                        Date.parse(left.created_at)
                     );
                 });
                 setRows(sortedInstances);

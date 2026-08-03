@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -17,20 +19,54 @@ import { PreviousInstancesListTable } from './previous-instances-table/PreviousI
 import {
     formatPreviousInstanceCount,
     type PreviousInstanceRow,
+    type PreviousInstanceSortKey,
+    type PreviousInstanceVariant,
     rowLocation,
     rowMatchesSearch,
     sortPreviousInstanceRows
 } from './previous-instances-table/previousInstancesRows';
 import { PreviousInstanceDetailsPanel } from './previous-instances-table/PreviousInstancesViewParts';
 
-function instanceDialogDescription(row: any, t: any) {
+type PreviousInstanceTargetRef = {
+    id?: unknown;
+};
+
+type PreviousInstancesPanelProps<TRow extends PreviousInstanceRow> = {
+    className?: string;
+    detailsOnly?: boolean;
+    headerActions?: ReactNode;
+    initialDetailRow?: TRow | null;
+    instances?: TRow[];
+    onClose?: (() => void) | null;
+    onRowsChange?: ((rows: TRow[]) => void) | null;
+    showHeader?: boolean;
+    targetRef?: PreviousInstanceTargetRef | null;
+    title?: string;
+    variant?: PreviousInstanceVariant;
+};
+
+type PreviousInstancesTableDialogProps<TRow extends PreviousInstanceRow> = {
+    detailsOnly?: boolean;
+    instances?: TRow[];
+    onOpenChange: (open: boolean) => void;
+    onRowsChange?: ((rows: TRow[]) => void) | null;
+    open: boolean;
+    targetRef?: PreviousInstanceTargetRef | null;
+    title?: string;
+    variant?: PreviousInstanceVariant;
+};
+
+function instanceDialogDescription(
+    row: PreviousInstanceRow | null | undefined,
+    t: TFunction
+) {
     const parts = [row?.worldName, row?.groupName].filter(Boolean);
     return parts.length
         ? parts.join(' / ')
         : t('dialog.previous_instances.description.instance_details');
 }
 
-function PreviousInstancesPanel({
+function PreviousInstancesPanel<TRow extends PreviousInstanceRow>({
     title = 'Instance History',
     instances = [],
     variant = 'world',
@@ -42,7 +78,7 @@ function PreviousInstancesPanel({
     showHeader = true,
     headerActions = null,
     className = ''
-}: any) {
+}: PreviousInstancesPanelProps<TRow>) {
     const { t } = useTranslation();
 
     const confirm = useModalStore((state) => state.confirm);
@@ -50,17 +86,16 @@ function PreviousInstancesPanel({
         (state) => state.auth.currentUserEndpoint
     );
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const [rows, setRows] = useState<PreviousInstanceRow[]>([]);
+    const [rows, setRows] = useState<TRow[]>([]);
     const [search, setSearch] = useState('');
-    const [sortKey, setSortKey] = useState('date');
+    const [sortKey, setSortKey] = useState<PreviousInstanceSortKey>('date');
     const [sortDesc, setSortDesc] = useState(true);
     const [pageSize, setPageSize] = useState(10);
     const [pageIndex, setPageIndex] = useState(0);
     const [detailRow, setDetailRow] = useState(initialDetailRow);
 
     useEffect(() => {
-        const nextRows = Array.isArray(instances) ? instances : [];
-        setRows(nextRows);
+        setRows(instances);
         setPageIndex(0);
         setDetailRow(initialDetailRow || null);
     }, [initialDetailRow, instances]);
@@ -73,14 +108,14 @@ function PreviousInstancesPanel({
         return sortPreviousInstanceRows(nextRows, sortKey, sortDesc);
     }, [rows, search, sortDesc, sortKey]);
 
-    function changeSort(nextKey: any) {
+    function changeSort(nextKey: PreviousInstanceSortKey) {
         if (nextKey === sortKey) {
             if (!sortDesc) {
                 setSortKey('');
                 setSortDesc(true);
                 return;
             }
-            setSortDesc((value: any) => !value);
+            setSortDesc((value) => !value);
             return;
         }
         setSortKey(nextKey);
@@ -94,7 +129,7 @@ function PreviousInstancesPanel({
         currentPageIndex * pageSize + pageSize
     );
 
-    async function deleteRow(row: any) {
+    async function deleteRow(row: TRow) {
         const location = rowLocation(row);
         if (!location) {
             return;
@@ -132,12 +167,12 @@ function PreviousInstancesPanel({
                     location
                 });
             }
-            setRows((current: any) => {
-                const nextRows = current.filter((item: any) => item !== row);
+            setRows((current) => {
+                const nextRows = current.filter((item) => item !== row);
                 onRowsChange?.(nextRows);
                 return nextRows;
             });
-            setDetailRow((current: any) => (current === row ? null : current));
+            setDetailRow((current) => (current === row ? null : current));
             toast.success(
                 t('dialog.previous_instances.success.instance_record_deleted')
             );
@@ -173,12 +208,12 @@ function PreviousInstancesPanel({
             showHeader={showHeader}
             className={className}
             search={search}
-            onSearchChange={(value: any) => {
+            onSearchChange={(value) => {
                 setSearch(value);
                 setPageIndex(0);
             }}
             pageSize={pageSize}
-            onPageSizeChange={(value: any) => {
+            onPageSizeChange={(value) => {
                 setPageSize(value);
                 setPageIndex(0);
             }}
@@ -188,12 +223,10 @@ function PreviousInstancesPanel({
             currentPageIndex={currentPageIndex}
             totalPages={totalPages}
             onPreviousPage={() =>
-                setPageIndex((value: any) => Math.max(0, value - 1))
+                setPageIndex((value) => Math.max(0, value - 1))
             }
             onNextPage={() =>
-                setPageIndex((value: any) =>
-                    Math.min(totalPages - 1, value + 1)
-                )
+                setPageIndex((value) => Math.min(totalPages - 1, value + 1))
             }
             onClose={onClose}
             currentUserId={currentUserId}
@@ -205,7 +238,7 @@ function PreviousInstancesPanel({
     );
 }
 
-function PreviousInstancesTableDialog({
+function PreviousInstancesTableDialog<TRow extends PreviousInstanceRow>({
     open,
     onOpenChange,
     title = 'Instance History',
@@ -214,13 +247,10 @@ function PreviousInstancesTableDialog({
     targetRef = null,
     onRowsChange = null,
     detailsOnly = false
-}: any) {
+}: PreviousInstancesTableDialogProps<TRow>) {
     const { t } = useTranslation();
-    const initialDetailRow =
-        detailsOnly && Array.isArray(instances) ? instances[0] || null : null;
-    const instanceCountText = formatPreviousInstanceCount(
-        Array.isArray(instances) ? instances.length : 0
-    );
+    const initialDetailRow = detailsOnly ? instances[0] || null : null;
+    const instanceCountText = formatPreviousInstanceCount(instances.length);
     const dialogTitle = detailsOnly
         ? t('dialog.previous_instances.info')
         : title;
@@ -243,7 +273,7 @@ function PreviousInstancesTableDialog({
                     variant={variant}
                     targetRef={targetRef}
                     onRowsChange={onRowsChange}
-                    onClose={() => onOpenChange?.(false)}
+                    onClose={() => onOpenChange(false)}
                     initialDetailRow={initialDetailRow}
                     detailsOnly={detailsOnly}
                     showHeader={false}

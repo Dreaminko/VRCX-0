@@ -16,6 +16,7 @@ import {
     DEFAULT_USER_STATS,
     readCachedPreviousInstances,
     readCachedUserStats,
+    type UserDialogPreviousInstance,
     type UserDialogStats
 } from './userDialogCache';
 import {
@@ -159,7 +160,7 @@ export function useUserDialogSupplementalData({
           : 'idle';
 
     const setPreviousInstances = useCallback(
-        (nextValue: SetStateAction<unknown[]>) => {
+        (nextValue: SetStateAction<UserDialogPreviousInstance[]>) => {
             setPreviousInstancesState((currentState) => {
                 const currentRows =
                     currentState.targetKey === targetKey
