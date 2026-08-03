@@ -9,8 +9,8 @@ use vrcx_0_persistence::{config::ConfigRepository, DatabaseService};
 
 use super::{
     config_tts_name_mode, delivery_actor_image_user_id, generic_webhook_payload,
-    parse_webhook_fields, resolve_delivery_actor_image, RealtimeUserImageResolverSlot,
-    RenderedNotification, UserImageCache,
+    parse_webhook_fields, resolve_delivery_actor_image, NotificationTtsNameMode,
+    RealtimeUserImageResolverSlot, RenderedNotification, UserImageCache,
 };
 
 #[test]
@@ -58,12 +58,15 @@ fn notification_tts_name_mode_preserves_legacy_nickname_setting() {
     let config = ConfigRepository::new(Arc::new(db));
 
     config.set_bool("notificationTTSNickName", true).unwrap();
-    assert_eq!(config_tts_name_mode(&config), "note");
+    assert_eq!(config_tts_name_mode(&config), NotificationTtsNameMode::Note);
 
     config
         .set_string("notificationTTSNameMode", "usernameAndNote")
         .unwrap();
-    assert_eq!(config_tts_name_mode(&config), "usernameAndNote");
+    assert_eq!(
+        config_tts_name_mode(&config),
+        NotificationTtsNameMode::UsernameAndNote
+    );
 }
 
 #[test]

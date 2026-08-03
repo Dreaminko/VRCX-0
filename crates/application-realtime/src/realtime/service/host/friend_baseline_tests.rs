@@ -184,9 +184,9 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         &runtime.runtime().deps.db,
         vrcx_0_persistence::feed::FeedRowsQueryInput {
             user_id: active_session.user_id,
-            mode: "recent".into(),
+            mode: vrcx_0_persistence::feed::FeedQueryMode::Lookup,
             search: String::new(),
-            filters: vec!["Offline".into()],
+            filters: vec![vrcx_0_persistence::feed::FeedFilter::Offline],
             vip_list: Vec::new(),
             excluded_user_ids: Vec::new(),
             max_entries: 10,

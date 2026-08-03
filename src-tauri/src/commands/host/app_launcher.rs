@@ -6,7 +6,7 @@ use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 use vrcx_0_host_desktop::auto_launch::{
     picked_app_launcher_target, AppLauncherEntry, AppLauncherEntryKind, AppLauncherPickedTarget,
-    AppLauncherSnapshot,
+    AppLauncherSnapshot, AppLauncherTargetPickKind,
 };
 use vrcx_0_host_desktop::host_capabilities::{
     require_host_capability, require_host_capability_supported, HostCapability,
@@ -75,13 +75,10 @@ pub fn app__app_launcher_test_run_stop(
 pub async fn app__app_launcher_target_pick(
     state: State<'_, AppState>,
     app_handle: AppHandle,
-    kind: String,
+    kind: AppLauncherTargetPickKind,
 ) -> Result<Option<AppLauncherPickedTarget>, AppError> {
     require_app_launcher_supported()?;
-    if kind != "auto" && kind != "localApp" {
-        return Ok(None);
-    }
-
+    let _ = kind;
     let builder = app_handle.dialog().file();
     #[cfg(target_os = "windows")]
     let builder = builder.add_filter("Applications and shortcuts", &["exe", "lnk", "url"]);

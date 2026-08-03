@@ -16,6 +16,22 @@ use super::types::{
 };
 use crate::{Error, Result};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LocalPlayerModerationKind {
+    Block,
+    Mute,
+}
+
+impl LocalPlayerModerationKind {
+    fn from_remote_type(value: &str) -> Option<Self> {
+        match value {
+            "block" => Some(Self::Block),
+            "mute" => Some(Self::Mute),
+            _ => None,
+        }
+    }
+}
+
 pub async fn refresh_player_moderations(
     deps: ModerationSyncDeps<'_>,
     input: ModerationSyncRefreshInput,
@@ -79,14 +95,13 @@ pub async fn update_player_moderation(
     )
     .await?;
 
-    let local = if is_local_player_moderation_type(&r#type) {
+    let local = if let Some(kind) = LocalPlayerModerationKind::from_remote_type(&r#type) {
         let existing = local_moderation::local_moderation_get(
             deps.db,
             owner_user_id.clone(),
             target_user_id.clone(),
         )?;
-        let (block, mute) =
-            resolve_local_moderation_state(existing.as_ref(), &r#type, input.enabled);
+        let (block, mute) = resolve_local_moderation_state(existing.as_ref(), kind, input.enabled);
         let updated_at = now_iso();
         if block || mute {
             local_moderation::local_moderation_set(
@@ -224,10 +239,6 @@ async fn fetch_remote_moderations(
     Ok((remote_count, normalize_remote_moderation_rows(&json)))
 }
 
-fn is_local_player_moderation_type(r#type: &str) -> bool {
-    r#type == "block" || r#type == "mute"
-}
-
 fn rows_have_verified_owner(rows: &[RemoteModerationRow], user_id: &str) -> bool {
     !rows.is_empty()
         && rows
@@ -280,21 +291,13 @@ fn ensure_current_auth_scope(
 
 fn resolve_local_moderation_state(
     existing: Option<&LocalModerationOutput>,
-    r#type: &str,
+    r#type: LocalPlayerModerationKind,
     enabled: bool,
 ) -> (bool, bool) {
-    let block = if r#type == "block" {
-        enabled
-    } else {
-        existing.is_some_and(|entry| entry.block)
-    };
-    let mute = if r#type == "mute" {
-        enabled
-    } else {
-        existing.is_some_and(|entry| entry.mute)
-    };
-
-    (block, mute)
+    match r#type {
+        LocalPlayerModerationKind::Block => (enabled, existing.is_some_and(|entry| entry.mute)),
+        LocalPlayerModerationKind::Mute => (existing.is_some_and(|entry| entry.block), enabled),
+    }
 }
 
 #[cfg(test)]
@@ -366,15 +369,19 @@ mod tests {
         };
 
         assert_eq!(
-            resolve_local_moderation_state(Some(&existing), "block", false),
+            resolve_local_moderation_state(
+                Some(&existing),
+                LocalPlayerModerationKind::Block,
+                false,
+            ),
             (false, true)
         );
         assert_eq!(
-            resolve_local_moderation_state(Some(&existing), "mute", false),
+            resolve_local_moderation_state(Some(&existing), LocalPlayerModerationKind::Mute, false,),
             (true, false)
         );
         assert_eq!(
-            resolve_local_moderation_state(Some(&existing), "block", true),
+            resolve_local_moderation_state(Some(&existing), LocalPlayerModerationKind::Block, true,),
             (true, true)
         );
     }

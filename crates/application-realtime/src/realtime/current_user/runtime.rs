@@ -193,14 +193,14 @@ impl RealtimeCurrentUserRuntime {
         generation: u64,
         authority: RealtimeCurrentUserAuthority,
     ) -> Option<RealtimeCurrentUserOutput> {
-        if !authority.local_game_context_available {
+        if !authority.is_available() {
             return None;
         }
         let mut state = self.lock_state();
         if state.generation != generation || state.current_user_id.is_empty() {
             return None;
         }
-        if authority.is_game_running {
+        if authority.is_game_running() {
             state.pending_offline = None;
         }
         apply_current_user_patch(
@@ -210,8 +210,8 @@ impl RealtimeCurrentUserRuntime {
             &authority,
             CurrentUserPatchOptions {
                 applies_local_game_authority: true,
-                reconciles_remote_location: !authority.is_game_running,
-                records_current_avatar_history: authority.is_game_running,
+                reconciles_remote_location: !authority.is_game_running(),
+                records_current_avatar_history: authority.is_game_running(),
                 ..CurrentUserPatchOptions::default()
             },
         )
@@ -227,7 +227,7 @@ impl RealtimeCurrentUserRuntime {
         let mut state = self.lock_state();
         if state.generation != generation
             || state.current_user_id.is_empty()
-            || authority.is_game_running
+            || authority.is_game_running()
             || state.pending_offline.as_ref().map(|pending| pending.token) != Some(token)
         {
             return None;
@@ -267,7 +267,7 @@ impl RealtimeCurrentUserRuntime {
         authority: RealtimeCurrentUserAuthority,
         ends_remote_interval: bool,
     ) -> Option<RealtimeCurrentUserOutput> {
-        if !authority.local_game_context_available {
+        if !authority.is_available() {
             return None;
         }
         let mut state = self.lock_state();
@@ -276,11 +276,11 @@ impl RealtimeCurrentUserRuntime {
         }
         let previous = state.snapshot.clone();
         let now = EventTime::now();
+        let stopped_authority = authority.with_game_running(false);
         let (snapshot, mut persistence) = apply_avatar_wear_transition(
             previous.clone(),
             &previous,
-            authority.local_game_context_available,
-            false,
+            &stopped_authority,
             &now,
             false,
         );

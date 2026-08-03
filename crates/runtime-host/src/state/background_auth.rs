@@ -18,7 +18,7 @@ struct BackgroundAuthRecoveryContext {
     display_name: String,
     endpoint: String,
     reason: String,
-    mode: String,
+    mode: BackendRuntimeMode,
     timestamp: String,
 }
 
@@ -156,7 +156,7 @@ impl BackgroundAuthRecoveryContext {
             display_name: snapshot.auth_display_name.trim().to_string(),
             endpoint: normalize_vrchat_api_endpoint(Some(&endpoint)),
             reason: normalize_recovery_reason(reason),
-            mode: backend_mode_label(snapshot.mode).into(),
+            mode: snapshot.mode,
             timestamp: now_iso(),
         }
     }
@@ -172,7 +172,7 @@ impl BackgroundAuthRecoveryContext {
             user_id: self.user_id.clone(),
             display_name: self.display_name.clone(),
             reason: normalize_recovery_reason(reason),
-            mode: self.mode.clone(),
+            mode: self.mode,
             timestamp: self.timestamp.clone(),
         }
     }
@@ -184,14 +184,6 @@ fn normalize_recovery_reason(reason: String) -> String {
         "Background realtime auth failed.".into()
     } else {
         reason.into()
-    }
-}
-
-fn backend_mode_label(mode: BackendRuntimeMode) -> &'static str {
-    match mode {
-        BackendRuntimeMode::Foreground => "foreground",
-        BackendRuntimeMode::Background => "background",
-        BackendRuntimeMode::Headless => "headless",
     }
 }
 
@@ -221,7 +213,7 @@ mod tests {
             auth_status: vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated,
             auth_user_id: user_id.into(),
             auth_display_name: "Pizza".into(),
-            ws_status: "authFailure".into(),
+            ws_status: vrcx_0_core::realtime::RealtimeWsStatus::AuthFailure,
             game_log_status: vrcx_0_application_core::BackendRuntimeGameLogStatus::Idle,
             process_status: vrcx_0_application_core::BackendRuntimeProcessStatus::Unknown,
             ws_message_counts: BTreeMap::new(),

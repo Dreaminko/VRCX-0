@@ -3,13 +3,13 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
-use vrcx_0_core::realtime::RealtimeWsStatusPayload;
+use vrcx_0_core::realtime::{RealtimeWsStatus, RealtimeWsStatusPayload};
 use vrcx_0_core::time::now_iso;
 
-use crate::events::FriendProfileLoadStatusPayload;
 use crate::event_bus::{
     BackendRuntimeCountKind, BackendRuntimeCountTelemetry, BackendRuntimeMessageTelemetry,
 };
+use crate::events::FriendProfileLoadStatusPayload;
 use crate::ports::HostSessionProjection;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
@@ -114,7 +114,7 @@ pub struct BackendRuntimeSnapshot {
     pub auth_status: BackendRuntimeAuthStatus,
     pub auth_user_id: String,
     pub auth_display_name: String,
-    pub ws_status: String,
+    pub ws_status: RealtimeWsStatus,
     pub game_log_status: BackendRuntimeGameLogStatus,
     pub process_status: BackendRuntimeProcessStatus,
     pub ws_message_counts: BTreeMap<String, u64>,
@@ -146,7 +146,7 @@ struct BackendRuntimeState {
     auth_status: BackendRuntimeAuthStatus,
     auth_user_id: String,
     auth_display_name: String,
-    ws_status: String,
+    ws_status: RealtimeWsStatus,
     game_log_status: BackendRuntimeGameLogStatus,
     process_status: BackendRuntimeProcessStatus,
     ws_message_counts: BTreeMap<String, u64>,
@@ -165,7 +165,7 @@ impl Default for BackendRuntimeState {
             auth_status: BackendRuntimeAuthStatus::Unknown,
             auth_user_id: String::new(),
             auth_display_name: String::new(),
-            ws_status: "idle".into(),
+            ws_status: RealtimeWsStatus::Idle,
             game_log_status: BackendRuntimeGameLogStatus::Idle,
             process_status: BackendRuntimeProcessStatus::Unknown,
             ws_message_counts: BTreeMap::new(),
@@ -259,14 +259,14 @@ impl BackendRuntime {
             state.auth_status = BackendRuntimeAuthStatus::SignedOut;
             state.auth_user_id.clear();
             state.auth_display_name.clear();
-            state.ws_status = "idle".into();
+            state.ws_status = RealtimeWsStatus::Idle;
             state.last_error = None;
         })
     }
 
-    pub fn set_ws_status(&self, status: impl Into<String>) -> BackendRuntimeSnapshot {
+    pub fn set_ws_status(&self, status: RealtimeWsStatus) -> BackendRuntimeSnapshot {
         self.update(|state| {
-            state.ws_status = status.into();
+            state.ws_status = status;
         })
     }
 
@@ -317,15 +317,12 @@ impl BackendRuntime {
         })
     }
 
-    pub fn observe_runtime_event(
-        &self,
-        payload: &dyn Any,
-    ) -> Option<BackendRuntimeTelemetry> {
+    pub fn observe_runtime_event(&self, payload: &dyn Any) -> Option<BackendRuntimeTelemetry> {
         if let Some(status) = payload.downcast_ref::<RealtimeWsStatusPayload>() {
-            let snapshot = self.set_ws_status(status.status.clone());
+            let snapshot = self.set_ws_status(status.status);
             return Some(BackendRuntimeTelemetry {
                 kind: BackendRuntimeTelemetryKind::WsStatus,
-                detail: status.status.clone(),
+                detail: status.status.as_str().into(),
                 snapshot,
             });
         }
@@ -357,12 +354,10 @@ impl BackendRuntime {
         }
         if let Some(telemetry) = payload.downcast_ref::<BackendRuntimeCountTelemetry>() {
             let (kind, snapshot) = match telemetry.kind {
-                BackendRuntimeCountKind::WsPersisted => {
-                    (
-                        BackendRuntimeTelemetryKind::WsPersisted,
-                        self.add_ws_persisted(telemetry.count),
-                    )
-                }
+                BackendRuntimeCountKind::WsPersisted => (
+                    BackendRuntimeTelemetryKind::WsPersisted,
+                    self.add_ws_persisted(telemetry.count),
+                ),
                 BackendRuntimeCountKind::GameLogPersisted => (
                     BackendRuntimeTelemetryKind::GameLogPersisted,
                     self.add_game_log_persisted(telemetry.count),
@@ -395,7 +390,7 @@ impl BackendRuntime {
             auth_status: state.auth_status,
             auth_user_id: state.auth_user_id.clone(),
             auth_display_name: state.auth_display_name.clone(),
-            ws_status: state.ws_status.clone(),
+            ws_status: state.ws_status,
             game_log_status: state.game_log_status,
             process_status: state.process_status,
             ws_message_counts: state.ws_message_counts.clone(),

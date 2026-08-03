@@ -92,10 +92,12 @@ export function SettingsIntegrationsTab({
     }
 
     function sendTestWebhook() {
+        const webhookFormat =
+            prefs.webhookFormat === 'discord' ? 'discord' : 'generic';
         commands
             .appWebhookSendTest(
                 String(prefs.webhookUrl || ''),
-                String(prefs.webhookFormat || 'generic'),
+                webhookFormat,
                 String(prefs.webhookFields || '')
             )
             .then((status) => {

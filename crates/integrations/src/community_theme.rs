@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
-use crate::external_api::ExternalHttpRequestInput;
+use crate::external_api::{ExternalHttpMethod, ExternalHttpRequestInput};
 
 pub const COMMUNITY_THEME_REPOSITORY_URL: &str =
     "https://github.com/Map1en/VRCX-0-Community-Themes";
@@ -87,7 +87,7 @@ pub fn is_community_theme_id(value: &str) -> bool {
 }
 
 pub fn community_theme_catalog_input() -> ExternalHttpRequestInput {
-    external_request(COMMUNITY_THEME_CATALOG_URL, "GET")
+    external_request(COMMUNITY_THEME_CATALOG_URL, ExternalHttpMethod::Get)
 }
 
 pub fn community_theme_manifest_input(
@@ -95,7 +95,7 @@ pub fn community_theme_manifest_input(
 ) -> Result<ExternalHttpRequestInput, CommunityThemeProtocolError> {
     Ok(external_request(
         &community_theme_asset_url(theme_id, COMMUNITY_THEME_MANIFEST_FILE_NAME)?,
-        "GET",
+        ExternalHttpMethod::Get,
     ))
 }
 
@@ -104,14 +104,14 @@ pub fn community_theme_css_input(
 ) -> Result<ExternalHttpRequestInput, CommunityThemeProtocolError> {
     Ok(external_request(
         &community_theme_asset_url(theme_id, COMMUNITY_THEME_CSS_FILE_NAME)?,
-        "GET",
+        ExternalHttpMethod::Get,
     ))
 }
 
 pub fn community_theme_stats_input() -> ExternalHttpRequestInput {
     external_request(
         &format!("{COMMUNITY_THEME_STATS_API_URL}/v1/themes/stats"),
-        "GET",
+        ExternalHttpMethod::Get,
     )
 }
 
@@ -121,7 +121,7 @@ pub fn community_theme_install_report_input(
     require_theme_id(theme_id)?;
     Ok(external_request(
         &format!("{COMMUNITY_THEME_STATS_API_URL}/v1/themes/{theme_id}/install"),
-        "POST",
+        ExternalHttpMethod::Post,
     ))
 }
 
@@ -314,10 +314,10 @@ pub fn parse_community_theme_stats(
         .collect())
 }
 
-fn external_request(url: &str, method: &str) -> ExternalHttpRequestInput {
+fn external_request(url: &str, method: ExternalHttpMethod) -> ExternalHttpRequestInput {
     ExternalHttpRequestInput {
         url: Some(url.to_string()),
-        method: Some(method.to_string()),
+        method: Some(method),
         ..Default::default()
     }
 }

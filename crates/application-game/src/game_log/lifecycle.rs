@@ -8,7 +8,8 @@ use crate::Result;
 use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
 use crate::{
-    GameLogSideEffectEvent, GameNoVrPayload, NowPlayingPayload, RuntimeNotificationPayload,
+    GameLogSideEffectEvent, GameNoVrPayload, NowPlayingPayload, RuntimeNotificationLevel,
+    RuntimeNotificationPayload,
 };
 
 pub fn set_game_no_vr(
@@ -48,7 +49,7 @@ pub fn handle_vrc_quit(
     if killed > 0 {
         event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::Notification(
             RuntimeNotificationPayload {
-                level: "info".into(),
+                level: RuntimeNotificationLevel::Info,
                 title: "VRChat quit cleanup".into(),
                 message: format!("Closed {killed} lingering VRChat process(es)."),
             },

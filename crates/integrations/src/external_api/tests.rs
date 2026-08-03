@@ -8,7 +8,7 @@ fn avatar_search_contract_sets_expected_headers() {
         input.url.as_deref(),
         Some("https://avatars.example.test/search?q=robot")
     );
-    assert_eq!(input.method.as_deref(), Some("GET"));
+    assert_eq!(input.method, Some(ExternalHttpMethod::Get));
     let headers = input.headers.unwrap();
     assert!(!headers.contains_key("Referer"));
     assert_eq!(headers.get("VRCX-ID").map(String::as_str), Some("abc"));
@@ -24,7 +24,7 @@ fn translation_contract_preserves_raw_body_mode() {
     )
     .unwrap();
 
-    assert_eq!(input.method.as_deref(), Some("POST"));
+    assert_eq!(input.method, Some(ExternalHttpMethod::Post));
     assert_eq!(input.json_body, Some(false));
     assert_eq!(
         input.body,
@@ -252,7 +252,7 @@ fn translation_scope_allows_bearer_authorization_header() {
     let policy = ExternalApiPolicy::with_allowed_origins(["https://api.deepl.com"]);
     let request = ExternalHttpRequestInput {
         url: Some("https://api.deepl.com/v2/translate".into()),
-        method: Some("POST".into()),
+        method: Some(ExternalHttpMethod::Post),
         headers: Some(HashMap::from([(
             "Authorization".to_string(),
             "Bearer test-token".to_string(),
@@ -275,7 +275,7 @@ fn translation_scope_allows_bearer_authorization_header() {
 fn translation_scope_rejects_unlisted_origins() {
     let request = ExternalHttpRequestInput {
         url: Some("https://api.openai.com/v1/chat/completions".into()),
-        method: Some("POST".into()),
+        method: Some(ExternalHttpMethod::Post),
         body: Some(json!({ "messages": [] })),
         ..Default::default()
     };
@@ -293,7 +293,7 @@ fn translation_scope_allows_deepl_authorization_header() {
     let policy = ExternalApiPolicy::with_allowed_origins(["https://api-free.deepl.com"]);
     let request = ExternalHttpRequestInput {
         url: Some("https://api-free.deepl.com/v2/translate".into()),
-        method: Some("POST".into()),
+        method: Some(ExternalHttpMethod::Post),
         headers: Some(HashMap::from([(
             "Authorization".to_string(),
             "DeepL-Auth-Key test-token".to_string(),

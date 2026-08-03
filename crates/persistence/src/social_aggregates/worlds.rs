@@ -3,12 +3,13 @@ use crate::database::DatabaseService;
 use crate::favorites;
 use crate::ownership::owner_id_for_filter;
 use crate::Error;
+use vrcx_0_core::FavoriteEntityKind;
 
 use super::caveats::{favorite_local_caveats, worlds_visited_caveats};
 use super::helpers::{append_time_window_filter, millis_to_minutes};
 use super::types::{
-    FavoriteLocalInput, FavoriteOutput, SearchWorldsVisitedInput, SearchWorldsVisitedOutput,
-    VisitedWorldRow,
+    FavoriteAction, FavoriteLocalInput, FavoriteOutput, SearchWorldsVisitedInput,
+    SearchWorldsVisitedOutput, VisitedWorldRow,
 };
 
 pub fn search_worlds_visited(
@@ -72,24 +73,18 @@ pub fn favorite_local(
     owner_user_id: &str,
     input: FavoriteLocalInput,
 ) -> Result<FavoriteOutput, Error> {
-    let kind = input.kind.trim().to_ascii_lowercase();
+    let kind = input.kind;
     let entity_id = input.entity_id.trim().to_string();
     let group = input.group.trim().to_string();
-    let action = FavoriteAction::parse(&input.action)?;
-    if kind.is_empty() {
-        return Err(Error::InvalidData("favorite requires kind".into()));
-    }
-    let Some(expected_prefix) = favorite_entity_prefix(&kind) else {
-        return Err(Error::InvalidData(
-            "favorite kind must be world, friend, or avatar".into(),
-        ));
-    };
+    let action = input.action;
+    let expected_prefix = kind.entity_id_prefix();
     if entity_id.is_empty() {
         return Err(Error::InvalidData("favorite requires entity_id".into()));
     }
     if !entity_id.starts_with(expected_prefix) {
         return Err(Error::InvalidData(format!(
-            "favorite {kind} entity_id must start with {expected_prefix}"
+            "favorite {} entity_id must start with {expected_prefix}",
+            kind.as_str()
         )));
     }
     if group.is_empty() {
@@ -98,48 +93,25 @@ pub fn favorite_local(
     let affected_rows = if input.dry_run {
         0
     } else {
-        action.apply(db, owner_user_id, &kind, &entity_id, &group)?
+        action.apply(db, owner_user_id, kind, &entity_id, &group)?
     };
     Ok(FavoriteOutput {
         kind,
         entity_id,
         group,
-        action: action.as_str().into(),
+        action,
         dry_run: input.dry_run,
         affected_rows,
         caveats: favorite_local_caveats(),
     })
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum FavoriteAction {
-    Add,
-    Remove,
-}
-
 impl FavoriteAction {
-    fn parse(value: &str) -> Result<Self, Error> {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "add" => Ok(Self::Add),
-            "remove" => Ok(Self::Remove),
-            _ => Err(Error::InvalidData(
-                "favorite action must be add or remove".into(),
-            )),
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::Add => "add",
-            Self::Remove => "remove",
-        }
-    }
-
     fn apply(
         self,
         db: &DatabaseService,
         owner_user_id: &str,
-        kind: &str,
+        kind: FavoriteEntityKind,
         entity_id: &str,
         group: &str,
     ) -> Result<i64, Error> {
@@ -147,26 +119,17 @@ impl FavoriteAction {
             Self::Add => favorites::favorite_add(
                 db,
                 Some(owner_user_id),
-                kind.to_string(),
+                kind,
                 entity_id.to_string(),
                 group.to_string(),
             ),
             Self::Remove => favorites::favorite_remove(
                 db,
                 Some(owner_user_id),
-                kind.to_string(),
+                kind,
                 entity_id.to_string(),
                 group.to_string(),
             ),
         }
-    }
-}
-
-fn favorite_entity_prefix(kind: &str) -> Option<&'static str> {
-    match kind {
-        "world" => Some("wrld_"),
-        "friend" => Some("usr_"),
-        "avatar" => Some("avtr_"),
-        _ => None,
     }
 }

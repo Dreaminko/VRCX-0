@@ -8,7 +8,8 @@ use vrcx_0_application_activity::{
 use vrcx_0_i18n::OverlayMessage;
 use vrcx_0_persistence::{memos::memo_save_user, DatabaseService};
 use vrcx_0_runtime_host::notification::{
-    render_delivery, NotificationDeliveryPreferences, OverlayLocale, RenderedNotification,
+    render_delivery, NotificationDeliveryPreferences, NotificationTtsNameMode, OverlayLocale,
+    RenderedNotification,
 };
 
 use crate::notification::tts::notification_tts_text;
@@ -18,7 +19,7 @@ fn notification_tts_note_mode_replaces_only_first_title() {
     let (_dir, db) = test_db("tts-note-mode");
     memo_save_user(&db, "usr_traveler".into(), "Pilot\nsecond line".into()).unwrap();
     let preferences = NotificationDeliveryPreferences {
-        notification_tts_name_mode: "note".into(),
+        notification_tts_name_mode: NotificationTtsNameMode::Note,
         ..NotificationDeliveryPreferences::default()
     };
     let mut render = rendered();
@@ -35,7 +36,7 @@ fn notification_tts_username_and_note_mode_reads_both() {
     let (_dir, db) = test_db("tts-username-and-note-mode");
     memo_save_user(&db, "usr_traveler".into(), "Pilot".into()).unwrap();
     let preferences = NotificationDeliveryPreferences {
-        notification_tts_name_mode: "usernameAndNote".into(),
+        notification_tts_name_mode: NotificationTtsNameMode::UsernameAndNote,
         ..NotificationDeliveryPreferences::default()
     };
 

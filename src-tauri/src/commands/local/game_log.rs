@@ -11,14 +11,15 @@ use vrcx_0_application_game::{
     InstanceHistoryQueryInput,
 };
 use vrcx_0_persistence::game_log::{
-    GameLogPreviousInstanceGroupOutput, GameLogPreviousInstanceWorldOutput, GameLogQueryInput,
+    GameLogEntryDeleteKind, GameLogPreviousInstanceGroupOutput, GameLogPreviousInstanceWorldOutput,
+    GameLogQueryInput, GameLogWriteKind,
 };
 
 #[tauri::command]
 #[specta::specta]
 pub fn app__game_log_entries_add(
     state: State<'_, AppState>,
-    kind: String,
+    kind: GameLogWriteKind,
     entries: Vec<Value>,
 ) -> Result<(), AppError> {
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
@@ -40,7 +41,7 @@ pub fn app__game_log_entries_add(
 #[specta::specta]
 pub fn app__game_log_entry_delete(
     state: State<'_, AppState>,
-    kind: String,
+    kind: GameLogEntryDeleteKind,
     entry: Value,
 ) -> Result<i64, AppError> {
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;

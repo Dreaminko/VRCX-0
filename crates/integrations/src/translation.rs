@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use url::Url;
 
@@ -8,8 +9,10 @@ use crate::external_api::{translation_request_input, ExternalApiError, ExternalH
 const GOOGLE_TRANSLATE_URL: &str = "https://translation.googleapis.com/language/translate/v2";
 const DEEPL_FREE_TRANSLATE_URL: &str = "https://api-free.deepl.com/v2/translate";
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "lowercase")]
 pub enum TranslationProvider {
+    #[default]
     Google,
     DeepL,
     OpenAi,

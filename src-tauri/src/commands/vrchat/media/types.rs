@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 use serde_json::Value;
+use vrcx_0_application_core::vrchat_api::media::{FileUploadStageKind, MediaAssetKind};
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -48,8 +49,7 @@ pub struct VrchatMediaPrintUploadInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatMediaAssetUploadInput {
-    #[serde(default)]
-    pub(crate) asset_kind: String,
+    pub(crate) asset_kind: MediaAssetKind,
     #[serde(default)]
     pub(crate) image_data: String,
     #[serde(default)]
@@ -157,8 +157,7 @@ pub struct VrchatMediaFileUploadStageInput {
     pub(crate) file_id: String,
     #[serde(default)]
     pub(crate) version: i64,
-    #[serde(default)]
-    pub(crate) kind: String,
+    pub(crate) kind: FileUploadStageKind,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]

@@ -7,7 +7,7 @@ use crate::realtime::instance_queue::apply_instance_queue_ws_message;
 use crate::realtime::notifications::{
     apply_instance_closed_ws_message, apply_notification_ws_message,
 };
-use crate::realtime::{RealtimeSessionContext, RealtimeTransportLifecycleEvent};
+use crate::realtime::{RealtimeSessionContext, RealtimeTransportLifecycleEvent, RealtimeWsStatus};
 
 use super::state::RealtimeHostRuntimeMessageSink;
 
@@ -19,9 +19,9 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
         generation: u64,
         session_generation: u64,
         session: &RealtimeSessionContext,
-        status: &str,
+        status: RealtimeWsStatus,
     ) {
-        if status == "connected" {
+        if status == RealtimeWsStatus::Connected {
             if let Some(activity_sink) = &self.runtime.deps.activity_sink {
                 activity_sink.set_delivery_armed(true);
             }

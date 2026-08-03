@@ -23,24 +23,77 @@ pub enum ExternalApiError {
     Custom(String),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq, specta::Type)]
 pub enum ExternalApiScope {
+    #[serde(rename = "externalAvatarSearch")]
     AvatarSearch,
+    #[serde(rename = "externalTranslation")]
     Translation,
+    #[serde(rename = "externalYoutube")]
     Youtube,
+    #[serde(rename = "externalVrcStatus")]
     VrcStatus,
+    #[serde(rename = "externalUpdateRelease")]
     UpdateRelease,
+    #[serde(rename = "externalGithubContributors")]
     GithubContributors,
+    #[serde(rename = "externalImage")]
     Image,
+    #[serde(rename = "externalBackgroundImage")]
     BackgroundImage,
+    #[serde(rename = "externalCommunityTheme")]
     CommunityTheme,
+}
+
+impl ExternalApiScope {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::AvatarSearch => "externalAvatarSearch",
+            Self::Translation => "externalTranslation",
+            Self::Youtube => "externalYoutube",
+            Self::VrcStatus => "externalVrcStatus",
+            Self::UpdateRelease => "externalUpdateRelease",
+            Self::GithubContributors => "externalGithubContributors",
+            Self::Image => "externalImage",
+            Self::BackgroundImage => "externalBackgroundImage",
+            Self::CommunityTheme => "externalCommunityTheme",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum ExternalApiResponseClass {
+    Ok,
+    Auth,
+    RateLimited,
+    ClientError,
+    ServerError,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum ExternalHttpMethod {
+    #[default]
+    Get,
+    Post,
+}
+
+impl ExternalHttpMethod {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Get => "GET",
+            Self::Post => "POST",
+        }
+    }
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ExternalApiResponsePolicy {
-    pub class: String,
-    pub endpoint_scope: String,
+    pub class: ExternalApiResponseClass,
+    pub endpoint_scope: ExternalApiScope,
     pub retryable: bool,
     pub rate_limited: bool,
     pub session_recovery_required: bool,
@@ -51,7 +104,7 @@ pub struct ExternalApiResponsePolicy {
 pub struct ExternalHttpRequestInput {
     pub url: Option<String>,
     pub path: Option<String>,
-    pub method: Option<String>,
+    pub method: Option<ExternalHttpMethod>,
     pub params: Option<HashMap<String, Value>>,
     pub query_params: Option<HashMap<String, Value>>,
     pub headers: Option<HashMap<String, String>>,
@@ -108,7 +161,7 @@ impl ExternalWebExecuteRequest {
 fn external_get_input(url: String, headers: HashMap<String, String>) -> ExternalHttpRequestInput {
     ExternalHttpRequestInput {
         url: Some(url),
-        method: Some("GET".into()),
+        method: Some(ExternalHttpMethod::Get),
         headers: Some(headers),
         ..Default::default()
     }
@@ -121,7 +174,7 @@ pub fn avatar_search_get_input(url: &str, vrcx_id: &str) -> ExternalHttpRequestI
     )
 }
 
-pub fn normalize_translation_method(value: &str) -> Result<String, ExternalApiError> {
+pub fn normalize_translation_method(value: &str) -> Result<ExternalHttpMethod, ExternalApiError> {
     let method = value.trim().to_ascii_uppercase();
     let method = if method.is_empty() {
         "GET".to_string()
@@ -129,7 +182,8 @@ pub fn normalize_translation_method(value: &str) -> Result<String, ExternalApiEr
         method
     };
     match method.as_str() {
-        "GET" | "POST" => Ok(method),
+        "GET" => Ok(ExternalHttpMethod::Get),
+        "POST" => Ok(ExternalHttpMethod::Post),
         _ => Err(ExternalApiError::Custom(
             "ExternalApiTranslationRequest supports only GET or POST.".into(),
         )),
@@ -158,7 +212,7 @@ pub fn youtube_video_metadata_get_input(
 ) -> ExternalHttpRequestInput {
     let mut request = ExternalHttpRequestInput {
         url: Some("https://www.googleapis.com/youtube/v3/videos".into()),
-        method: Some("GET".into()),
+        method: Some(ExternalHttpMethod::Get),
         query_params: Some(HashMap::from([
             ("id".to_string(), Value::String(youtube_id.to_string())),
             (
@@ -217,19 +271,15 @@ pub fn build_web_execute_request_with_policy(
     scope: ExternalApiScope,
     policy: &ExternalApiPolicy,
 ) -> Result<ExternalWebExecuteRequest, ExternalApiError> {
-    let method = input
-        .method
-        .as_deref()
-        .unwrap_or("GET")
-        .to_ascii_uppercase();
+    let method = input.method.unwrap_or_default();
     let mut request =
-        ExternalWebExecuteRequest::new(build_request_url(&input, scope, policy)?, method.clone());
+        ExternalWebExecuteRequest::new(build_request_url(&input, scope, policy)?, method.as_str());
     request.follow_redirects = scope != ExternalApiScope::CommunityTheme;
 
     let headers = sanitize_headers(input.headers.as_ref(), scope)?;
     request.headers = headers.into_iter().collect();
 
-    if let Some(body) = request_body_text(&input, &method)? {
+    if let Some(body) = request_body_text(&input, method)? {
         request.body = Some(body);
     }
 
@@ -255,33 +305,19 @@ pub fn execute_response(
 
 fn classify_response(status: i32, scope: ExternalApiScope) -> ExternalApiResponsePolicy {
     let class = match status {
-        200..=399 => "ok",
-        401 | 403 => "auth",
-        429 => "rateLimited",
-        400..=499 => "clientError",
-        500..=599 => "serverError",
-        _ => "unknown",
+        200..=399 => ExternalApiResponseClass::Ok,
+        401 | 403 => ExternalApiResponseClass::Auth,
+        429 => ExternalApiResponseClass::RateLimited,
+        400..=499 => ExternalApiResponseClass::ClientError,
+        500..=599 => ExternalApiResponseClass::ServerError,
+        _ => ExternalApiResponseClass::Unknown,
     };
     ExternalApiResponsePolicy {
-        class: class.to_string(),
-        endpoint_scope: scope_name(scope).to_string(),
+        class,
+        endpoint_scope: scope,
         retryable: matches!(status, 408 | 409 | 425 | 429 | 500..=599),
         rate_limited: status == 429,
         session_recovery_required: false,
-    }
-}
-
-fn scope_name(scope: ExternalApiScope) -> &'static str {
-    match scope {
-        ExternalApiScope::AvatarSearch => "externalAvatarSearch",
-        ExternalApiScope::Translation => "externalTranslation",
-        ExternalApiScope::Youtube => "externalYoutube",
-        ExternalApiScope::VrcStatus => "externalVrcStatus",
-        ExternalApiScope::UpdateRelease => "externalUpdateRelease",
-        ExternalApiScope::GithubContributors => "externalGithubContributors",
-        ExternalApiScope::Image => "externalImage",
-        ExternalApiScope::BackgroundImage => "externalBackgroundImage",
-        ExternalApiScope::CommunityTheme => "externalCommunityTheme",
     }
 }
 
@@ -449,9 +485,9 @@ fn valid_translation_authorization(value: &str) -> bool {
 
 fn request_body_text(
     input: &ExternalHttpRequestInput,
-    method: &str,
+    method: ExternalHttpMethod,
 ) -> Result<Option<String>, ExternalApiError> {
-    if method == "GET" {
+    if method == ExternalHttpMethod::Get {
         return Ok(None);
     }
 

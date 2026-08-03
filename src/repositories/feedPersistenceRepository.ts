@@ -1,7 +1,9 @@
 import type { FeedLiveEntry } from '@/domain/feed/feedLiveTypes';
 import {
     commands,
+    type FeedFilter,
     type FeedLiveRowsMergeInput,
+    type FeedQueryMode,
     type FeedReadModelQueryInput,
     type FeedRowOutput,
     type FeedRowsQueryInput
@@ -16,7 +18,6 @@ import { normalizeUserTablePrefix } from './userSessionRepository';
 
 type FeedRowValue = Record<string, unknown>;
 
-type FeedMode = 'search' | 'lookup' | 'instance' | string;
 export type FeedCursor = {
     createdAt: string;
     sourceRank: number;
@@ -25,9 +26,9 @@ export type FeedCursor = {
 
 interface FeedRowsQueryOptions {
     userId: unknown;
-    mode: FeedMode;
+    mode: FeedQueryMode;
     search?: string;
-    filters?: string[];
+    filters?: FeedFilter[];
     vipList?: string[];
     excludedUserIds?: string[];
     maxEntries?: number;
@@ -48,7 +49,7 @@ interface FeedReadModelQueryOptions extends FeedRowsQueryOptions {
 interface FeedLiveRowsMergeOptions {
     rows?: FeedRowValue[];
     currentUserId?: string;
-    filters?: string[];
+    filters?: FeedFilter[];
     search?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -64,6 +65,21 @@ function normalizeStringList(value: unknown): string[] {
     return Array.isArray(value)
         ? value.map(normalizeString).filter(Boolean)
         : [];
+}
+
+const FEED_FILTER_SET: ReadonlySet<string> = new Set<FeedFilter>([
+    'GPS',
+    'Status',
+    'Bio',
+    'Avatar',
+    'Online',
+    'Offline'
+]);
+
+function normalizeFeedFilters(value: unknown): FeedFilter[] {
+    return normalizeStringList(value).filter((filter): filter is FeedFilter =>
+        FEED_FILTER_SET.has(filter)
+    );
 }
 
 function getUserPrefix(userId: unknown) {
@@ -127,7 +143,7 @@ async function queryFeedRows({
         userId: normalizeString(userId),
         mode,
         search,
-        filters: normalizeStringList(filters),
+        filters: normalizeFeedFilters(filters),
         vipList: normalizeStringList(vipList),
         excludedUserIds: normalizeStringList(excludedUserIds),
         maxEntries,
@@ -201,7 +217,7 @@ const feed = {
 
     async searchFeedDatabase(
         search: string,
-        filters: string[],
+        filters: FeedFilter[],
         vipList: string[],
         maxEntries: number = DEFAULT_SEARCH_LIMIT,
         dateFrom: string = '',
@@ -244,7 +260,7 @@ const feed = {
             userId: normalizeString(userId),
             mode,
             search,
-            filters: normalizeStringList(filters),
+            filters: normalizeFeedFilters(filters),
             vipList: normalizeStringList(vipList),
             maxEntries,
             dateFrom,
@@ -279,7 +295,7 @@ const feed = {
         const query = {
             rows: Array.isArray(rows) ? rows : [],
             currentUserId: normalizeString(currentUserId),
-            filters: normalizeStringList(filters),
+            filters: normalizeFeedFilters(filters),
             search,
             dateFrom,
             dateTo,
@@ -297,7 +313,7 @@ const feed = {
 
     async lookupFeedDatabase(
         userId: unknown,
-        filters: string[],
+        filters: FeedFilter[],
         vipList: string[],
         maxEntries: number = DEFAULT_MAX_TABLE_SIZE,
         cursor: FeedCursor | null = null,
@@ -317,7 +333,7 @@ const feed = {
     async getFeedByInstanceId(
         userId: unknown,
         instanceId: string,
-        filters: string[],
+        filters: FeedFilter[],
         vipList: string[],
         maxEntries: number = DEFAULT_SEARCH_LIMIT
     ) {

@@ -90,7 +90,7 @@ pub use profile_backup::{
 };
 pub use translation::{
     resolved_openai_translation_endpoint_id, translate_text, OpenAiTranslationRequest,
-    TranslationDispatch, TranslationOverrides, TranslationResult, TranslationTranslateInput,
-    DEFAULT_TRANSLATION_MODEL,
+    TranslationDispatch, TranslationOverrides, TranslationProvider, TranslationResult,
+    TranslationTranslateInput, DEFAULT_TRANSLATION_MODEL,
 };
 pub use vrc_status::VrcStatusService;

@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 
-use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application::{
     remove_favorites_bulk, remove_favorites_selection, transfer_favorite_selection,
@@ -8,6 +7,7 @@ use vrcx_0_application::{
     FavoriteTransferDeps, FavoriteTransferInput, FavoriteTransferResult,
     FavoriteTransferSelectionInput, FavoriteTransferSelectionResult,
 };
+use vrcx_0_application_core::{FavoritesChangedPayload, RuntimeOperationStatus};
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -36,11 +36,13 @@ fn record_bulk_remove_outcome(
                 ),
                 0,
             );
-            state.realtime_runtime.notify_favorites_changed(
-                kind,
-                output.local_changed,
-                output.remote_changed,
-            );
+            state
+                .realtime_runtime
+                .notify_favorites_changed(FavoritesChangedPayload {
+                    kind,
+                    local: output.local_changed,
+                    remote: output.remote_changed,
+                });
         }
         Err(error) => {
             diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
@@ -94,11 +96,13 @@ pub async fn app__favorites_transfer(
                 ),
                 0,
             );
-            state.realtime_runtime.notify_favorites_changed(
-                kind,
-                output.local_changed,
-                output.remote_changed,
-            );
+            state
+                .realtime_runtime
+                .notify_favorites_changed(FavoritesChangedPayload {
+                    kind,
+                    local: output.local_changed,
+                    remote: output.remote_changed,
+                });
         }
         Err(error) => {
             diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
@@ -162,11 +166,13 @@ pub async fn app__favorites_transfer_selection(
                 ),
                 0,
             );
-            state.realtime_runtime.notify_favorites_changed(
-                kind,
-                output.local_changed,
-                output.remote_changed,
-            );
+            state
+                .realtime_runtime
+                .notify_favorites_changed(FavoritesChangedPayload {
+                    kind,
+                    local: output.local_changed,
+                    remote: output.remote_changed,
+                });
         }
         Err(error) => {
             diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());

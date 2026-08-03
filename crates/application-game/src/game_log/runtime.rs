@@ -93,9 +93,11 @@ impl GameLogRuntime {
         });
         self.worker
             .push_batch([GameLogWorkerJob::Process(GameLogProcessEvent {
-                is_game_running: snapshot.is_game_running,
-                is_steamvr_running: snapshot.is_steamvr_running,
-                game_changed: event.game_changed,
+                process: GameProcessEvent {
+                    is_game_running: snapshot.is_game_running,
+                    is_steamvr_running: snapshot.is_steamvr_running,
+                    game_changed: event.game_changed,
+                },
                 changed_at,
             })])?;
         Ok(())

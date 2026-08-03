@@ -418,7 +418,7 @@ impl FavoriteImportRuntime {
                 let affected = favorite_add(
                     self.db.as_ref(),
                     Some(&scope.current_user_id),
-                    kind_name(kind).into(),
+                    kind,
                     id.to_string(),
                     target.group.clone(),
                 )?;
@@ -498,8 +498,7 @@ impl FavoriteImportRuntime {
         kind: FavoriteImportKind,
         target: &FavoriteImportTarget,
     ) -> Result<()> {
-        let groups =
-            read_config_string_array(self.db.as_ref(), local_group_config_key(kind))?;
+        let groups = read_config_string_array(self.db.as_ref(), local_group_config_key(kind))?;
         if groups.iter().any(|group| group == &target.group) {
             Ok(())
         } else {
@@ -750,6 +749,7 @@ fn hydration_cache(kind: FavoriteImportKind) -> FavoriteImportHydrationCache {
     }
 }
 
+#[cfg(test)]
 fn kind_name(kind: FavoriteImportKind) -> &'static str {
     kind.as_str()
 }

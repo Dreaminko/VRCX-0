@@ -1,3 +1,4 @@
+use vrcx_0_core::game_process::GameProcessEvent;
 use vrcx_0_core::log_watcher::{GameLogEvent, GameLogEventKind};
 use vrcx_0_persistence::game_log::{
     GameLogEventEntry, GameLogExternalEntry, GameLogJoinLeaveEntry, GameLogJoinLeaveSnapshot,
@@ -18,9 +19,7 @@ pub struct GameLogIngestOptions {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GameLogProcessEvent {
-    pub is_game_running: bool,
-    pub is_steamvr_running: bool,
-    pub game_changed: bool,
+    pub process: GameProcessEvent,
     pub changed_at: String,
 }
 
@@ -271,13 +270,14 @@ impl GameLogIngestEngine {
 
     pub fn handle_process_event(&mut self, event: GameLogProcessEvent) -> GameLogIngestOutput {
         let mut output = GameLogIngestOutput::default();
-        let should_restore_seeded_state = !self.has_seen_process_event && event.is_game_running;
+        let should_restore_seeded_state =
+            !self.has_seen_process_event && event.process.is_game_running;
         self.has_seen_process_event = true;
-        self.state.is_game_running = event.is_game_running;
-        self.state.is_steamvr_running = event.is_steamvr_running;
+        self.state.is_game_running = event.process.is_game_running;
+        self.state.is_steamvr_running = event.process.is_steamvr_running;
         if should_restore_seeded_state {
             output.projection = Some(self.state.projection(&event.changed_at, "game-started"));
-        } else if event.game_changed && !event.is_game_running {
+        } else if event.process.game_changed && !event.process.is_game_running {
             self.finalize_location_session(&mut output.batch, &event.changed_at);
             self.state.current_location.clear();
             self.state.current_world_name.clear();

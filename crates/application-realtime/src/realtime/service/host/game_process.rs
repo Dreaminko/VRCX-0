@@ -3,12 +3,8 @@ use vrcx_0_application_core::{Error, GameProcessEvent, GameProcessEventSink, Res
 use super::RealtimeHostRuntime;
 
 impl RealtimeHostRuntime {
-    pub fn apply_game_process_event(
-        &self,
-        game_changed: bool,
-        is_game_running: bool,
-    ) -> Result<()> {
-        if !game_changed {
+    pub fn apply_game_process_event(&self, event: GameProcessEvent) -> Result<()> {
+        if !event.game_changed {
             return Ok(());
         }
         let active = {
@@ -21,13 +17,13 @@ impl RealtimeHostRuntime {
         let Some(active) = active else {
             return Ok(());
         };
-        self.sync_current_user_game_running_state(active.generation, is_game_running);
+        self.sync_current_user_game_running_state(active.generation, event.is_game_running);
         Ok(())
     }
 }
 
 impl GameProcessEventSink for RealtimeHostRuntime {
     fn on_game_process_event(&self, event: GameProcessEvent) -> Result<()> {
-        self.apply_game_process_event(event.game_changed, event.is_game_running)
+        self.apply_game_process_event(event)
     }
 }

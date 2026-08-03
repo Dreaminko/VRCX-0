@@ -20,13 +20,13 @@ fn post_data(request: &HttpApiRequestInput) -> Value {
 fn gallery_and_icon_assets_use_expected_tags_and_matching_modes() {
     let (kind, gallery) = asset_upload_input(
         ENDPOINT.into(),
-        " gallery ".into(),
+        MediaAssetKind::Gallery,
         "gallery-image".into(),
         true,
         HashMap::new(),
     )
     .unwrap();
-    assert_eq!(kind, "gallery");
+    assert_eq!(kind, MediaAssetKind::Gallery);
     assert_eq!(gallery.path.as_deref(), Some("file/image"));
     assert!(matches!(
         gallery.body.as_upload(),
@@ -39,7 +39,7 @@ fn gallery_and_icon_assets_use_expected_tags_and_matching_modes() {
 
     let (_, icons) = asset_upload_input(
         ENDPOINT.into(),
-        "icons".into(),
+        MediaAssetKind::Icons,
         "icon-image".into(),
         false,
         HashMap::new(),
@@ -60,7 +60,7 @@ fn gallery_and_icon_assets_use_expected_tags_and_matching_modes() {
 fn emoji_and_sticker_assets_use_expected_params_and_mask() {
     let (_, emojis) = asset_upload_input(
         ENDPOINT.into(),
-        "emojis".into(),
+        MediaAssetKind::Emojis,
         "emoji-image".into(),
         false,
         HashMap::from([
@@ -84,7 +84,7 @@ fn emoji_and_sticker_assets_use_expected_params_and_mask() {
 
     let (_, stickers) = asset_upload_input(
         ENDPOINT.into(),
-        "stickers".into(),
+        MediaAssetKind::Stickers,
         "sticker-image".into(),
         false,
         HashMap::new(),
@@ -108,7 +108,7 @@ fn emoji_and_sticker_assets_use_expected_params_and_mask() {
 fn print_assets_use_print_route_and_crop_flag() {
     let (_, request) = asset_upload_input(
         ENDPOINT.into(),
-        "prints".into(),
+        MediaAssetKind::Prints,
         "print-image".into(),
         true,
         HashMap::from([("note".into(), json!("caption"))]),
@@ -128,15 +128,8 @@ fn print_assets_use_print_route_and_crop_flag() {
 }
 
 #[test]
-fn asset_upload_rejects_unknown_kind() {
-    assert!(asset_upload_input(
-        ENDPOINT.into(),
-        "videos".into(),
-        "data".into(),
-        false,
-        HashMap::new(),
-    )
-    .is_err());
+fn asset_upload_kind_rejects_unknown_wire_value() {
+    assert!(serde_json::from_str::<MediaAssetKind>(r#""videos""#).is_err());
 }
 
 #[test]
@@ -185,14 +178,14 @@ fn inventory_slot_unequip_uses_the_encoded_slot_path_without_a_body() {
 #[test]
 fn file_upload_stage_accepts_only_file_and_signature_with_encoded_id() {
     assert_eq!(
-        file_upload_stage_path(" file_1/unsafe ".into(), 4, " file ".into()).unwrap(),
+        file_upload_stage_path(" file_1/unsafe ".into(), 4, FileUploadStageKind::File).unwrap(),
         "file/file%5F1%2Funsafe/4/file"
     );
     assert_eq!(
-        file_upload_stage_path("file_1/unsafe".into(), 4, "signature".into()).unwrap(),
+        file_upload_stage_path("file_1/unsafe".into(), 4, FileUploadStageKind::Signature,).unwrap(),
         "file/file%5F1%2Funsafe/4/signature"
     );
-    assert!(file_upload_stage_path("file_1".into(), 4, "manifest".into()).is_err());
+    assert!(serde_json::from_str::<FileUploadStageKind>(r#""manifest""#).is_err());
 }
 
 #[test]
@@ -260,7 +253,7 @@ fn media_id_requests_reject_empty_text() {
         1,
     )
     .is_err());
-    assert!(file_upload_stage_path(" ".into(), 1, "file".into()).is_err());
+    assert!(file_upload_stage_path(" ".into(), 1, FileUploadStageKind::File).is_err());
     assert!(avatar_image_set_input(ENDPOINT.into(), " ".into(), "url".into()).is_err());
     assert!(world_image_set_input(ENDPOINT.into(), " ".into(), "url".into()).is_err());
 }

@@ -1,5 +1,8 @@
-use serde_json::Value;
-use vrcx_0_core::json::JsonExt;
+use std::any::Any;
+
+use vrcx_0_core::realtime::{RealtimeWsStatus, RealtimeWsStatusPayload};
+
+use crate::{BackendRuntimeProcessStatus, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeOutputMode {
@@ -23,32 +26,28 @@ pub struct RuntimeOutputLine {
 
 pub fn format_runtime_output_event(
     mode: RuntimeOutputMode,
-    event: &str,
-    payload: &Value,
+    payload: &dyn Any,
 ) -> Option<RuntimeOutputLine> {
-    match event {
-        "realtimeWsStatus" => format_realtime_ws_status(mode, payload),
-        "backendRuntimeTelemetry" => format_backend_runtime_telemetry(mode, payload),
-        _ => None,
+    if let Some(status) = payload.downcast_ref::<RealtimeWsStatusPayload>() {
+        return format_realtime_ws_status(mode, status);
     }
+    payload
+        .downcast_ref::<BackendRuntimeTelemetry>()
+        .and_then(|telemetry| format_backend_runtime_telemetry(mode, telemetry))
 }
 
 fn format_realtime_ws_status(
     mode: RuntimeOutputMode,
-    payload: &Value,
+    payload: &RealtimeWsStatusPayload,
 ) -> Option<RuntimeOutputLine> {
-    let status = payload.trimmed_text("status");
-    if status.is_empty() {
-        return None;
-    }
-
-    let reason = payload.trimmed_text("reason");
+    let status = payload.status.as_str();
+    let reason = payload.reason.as_deref().unwrap_or_default().trim();
     let detail = if reason.is_empty() {
         format!("ws status: {status}")
     } else {
         format!("ws status: {status} ({reason})")
     };
-    let is_auth_failure = status == "authFailure";
+    let is_auth_failure = payload.status == RealtimeWsStatus::AuthFailure;
     Some(RuntimeOutputLine {
         level: if is_auth_failure {
             RuntimeOutputLevel::Error
@@ -60,7 +59,7 @@ fn format_realtime_ws_status(
             if reason.is_empty() {
                 "websocket auth failure".into()
             } else {
-                reason
+                reason.to_string()
             }
         }),
     })
@@ -68,60 +67,53 @@ fn format_realtime_ws_status(
 
 fn format_backend_runtime_telemetry(
     mode: RuntimeOutputMode,
-    payload: &Value,
+    payload: &BackendRuntimeTelemetry,
 ) -> Option<RuntimeOutputLine> {
-    let kind = payload.trimmed_text("kind");
-    let detail = payload.trimmed_text("detail");
-    let snapshot = payload.get("snapshot").unwrap_or(&Value::Null);
-    match kind.as_str() {
-        "authSuccess" => {
-            let name = snapshot.trimmed_text("authDisplayName");
-            let user_id = snapshot.trimmed_text("authUserId");
-            info(
-                mode,
-                format!(
-                    "login success: {} ({})",
-                    empty_fallback(&name, "unknown user"),
-                    empty_fallback(&user_id, "unknown id")
-                ),
-            )
-        }
-        "wsStatus" => None,
-        "wsMessage" => {
+    let detail = payload.detail.as_str();
+    let snapshot = &payload.snapshot;
+    match payload.kind {
+        BackendRuntimeTelemetryKind::AuthSuccess => info(
+            mode,
+            format!(
+                "login success: {} ({})",
+                empty_fallback(&snapshot.auth_display_name, "unknown user"),
+                empty_fallback(&snapshot.auth_user_id, "unknown id")
+            ),
+        ),
+        BackendRuntimeTelemetryKind::WsStatus => None,
+        BackendRuntimeTelemetryKind::WsMessage => {
             let total = snapshot
-                .get("wsMessageCounts")
-                .and_then(|counts| counts.get(&detail))
-                .and_then(Value::as_u64)
-                .unwrap_or(0);
+                .ws_message_counts
+                .get(detail)
+                .copied()
+                .unwrap_or_default();
             info(mode, format!("ws message: type={detail}, count={total}"))
         }
-        "wsPersisted" => {
-            let total = snapshot
-                .get("wsPersistedCount")
-                .and_then(Value::as_u64)
-                .unwrap_or(0);
+        BackendRuntimeTelemetryKind::WsPersisted => {
+            let total = snapshot.ws_persisted_count;
             info(
                 mode,
                 format!("ws persisted to db: count={detail}, total={total}"),
             )
         }
-        "processStatus" => match detail.as_str() {
-            "vrchatRunning" => info(mode, "vrchat started"),
-            "vrchatStopped" => info(mode, "vrchat stopped"),
-            _ => info(mode, format!("vrchat process status: {detail}")),
+        BackendRuntimeTelemetryKind::ProcessStatus => match snapshot.process_status {
+            BackendRuntimeProcessStatus::VrchatRunning => info(mode, "vrchat started"),
+            BackendRuntimeProcessStatus::VrchatStopped => info(mode, "vrchat stopped"),
+            BackendRuntimeProcessStatus::Unknown => {
+                info(mode, format!("vrchat process status: {detail}"))
+            }
         },
-        "gameLogPersisted" => {
-            let total = snapshot
-                .get("gameLogPersistedCount")
-                .and_then(Value::as_u64)
-                .unwrap_or(0);
+        BackendRuntimeTelemetryKind::GameLogPersisted => {
+            let total = snapshot.game_log_persisted_count;
             info(
                 mode,
                 format!("gamelog persisted to db: count={detail}, total={total}"),
             )
         }
-        "gameLogWatcher" => info(mode, format!("gamelog watcher: {detail}")),
-        "runtimeStopped" => Some(RuntimeOutputLine {
+        BackendRuntimeTelemetryKind::GameLogWatcher => {
+            info(mode, format!("gamelog watcher: {detail}"))
+        }
+        BackendRuntimeTelemetryKind::RuntimeStopped => Some(RuntimeOutputLine {
             level: RuntimeOutputLevel::Info,
             message: match mode {
                 RuntimeOutputMode::Background => format!("background mode exited: {detail}"),
@@ -129,10 +121,18 @@ fn format_backend_runtime_telemetry(
             },
             fatal_reason: None,
         }),
-        "backgroundInfo" => info(mode, detail),
-        "backgroundWarning" => output(mode, RuntimeOutputLevel::Warn, detail),
-        "backgroundError" => output(mode, RuntimeOutputLevel::Error, detail),
-        _ => None,
+        BackendRuntimeTelemetryKind::BackgroundInfo => info(mode, detail),
+        BackendRuntimeTelemetryKind::BackgroundWarning => {
+            output(mode, RuntimeOutputLevel::Warn, detail)
+        }
+        BackendRuntimeTelemetryKind::BackgroundError => {
+            output(mode, RuntimeOutputLevel::Error, detail)
+        }
+        BackendRuntimeTelemetryKind::RuntimeStarted
+        | BackendRuntimeTelemetryKind::ModeChanged
+        | BackendRuntimeTelemetryKind::AuthCleared
+        | BackendRuntimeTelemetryKind::AuthRecoveryStarted
+        | BackendRuntimeTelemetryKind::AuthRecoveryFailed => None,
     }
 }
 
@@ -171,57 +171,44 @@ fn empty_fallback<'a>(value: &'a str, fallback: &'a str) -> &'a str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+
+    fn telemetry(
+        kind: BackendRuntimeTelemetryKind,
+        detail: impl Into<String>,
+    ) -> BackendRuntimeTelemetry {
+        BackendRuntimeTelemetry {
+            kind,
+            detail: detail.into(),
+            snapshot: crate::BackendRuntime::new().snapshot(),
+        }
+    }
 
     #[test]
     fn formats_shared_runtime_info_for_background_and_headless() {
-        let payload = json!({
-            "kind": "authSuccess",
-            "detail": "Example",
-            "snapshot": {
-                "authDisplayName": "Example",
-                "authUserId": "usr_test"
-            }
-        });
+        let mut payload = telemetry(BackendRuntimeTelemetryKind::AuthSuccess, "Example");
+        payload.snapshot.auth_display_name = "Example".into();
+        payload.snapshot.auth_user_id = "usr_test".into();
 
-        let background = format_runtime_output_event(
-            RuntimeOutputMode::Background,
-            "backendRuntimeTelemetry",
-            &payload,
-        )
-        .unwrap();
+        let background =
+            format_runtime_output_event(RuntimeOutputMode::Background, &payload).unwrap();
         assert_eq!(background.level, RuntimeOutputLevel::Info);
         assert_eq!(
             background.message,
             "background mode login success: Example (usr_test)"
         );
 
-        let headless = format_runtime_output_event(
-            RuntimeOutputMode::Headless,
-            "backendRuntimeTelemetry",
-            &payload,
-        )
-        .unwrap();
+        let headless = format_runtime_output_event(RuntimeOutputMode::Headless, &payload).unwrap();
         assert_eq!(headless.message, "login success: Example (usr_test)");
     }
 
     #[test]
     fn formats_background_error_as_error_output() {
-        let payload = json!({
-            "kind": "backgroundError",
-            "detail": "Discord SetAssets failed: pipe closed.",
-            "snapshot": {
-                "mode": "background",
-                "phase": "running"
-            }
-        });
+        let payload = telemetry(
+            BackendRuntimeTelemetryKind::BackgroundError,
+            "Discord SetAssets failed: pipe closed.",
+        );
 
-        let output = format_runtime_output_event(
-            RuntimeOutputMode::Background,
-            "backendRuntimeTelemetry",
-            &payload,
-        )
-        .unwrap();
+        let output = format_runtime_output_event(RuntimeOutputMode::Background, &payload).unwrap();
         assert_eq!(output.level, RuntimeOutputLevel::Error);
         assert_eq!(
             output.message,
@@ -232,21 +219,12 @@ mod tests {
 
     #[test]
     fn formats_background_warning_as_warning_output() {
-        let payload = json!({
-            "kind": "backgroundWarning",
-            "detail": "Discord SetAssets failed: pipe closed.",
-            "snapshot": {
-                "mode": "background",
-                "phase": "running"
-            }
-        });
+        let payload = telemetry(
+            BackendRuntimeTelemetryKind::BackgroundWarning,
+            "Discord SetAssets failed: pipe closed.",
+        );
 
-        let output = format_runtime_output_event(
-            RuntimeOutputMode::Background,
-            "backendRuntimeTelemetry",
-            &payload,
-        )
-        .unwrap();
+        let output = format_runtime_output_event(RuntimeOutputMode::Background, &payload).unwrap();
         assert_eq!(output.level, RuntimeOutputLevel::Warn);
         assert_eq!(
             output.message,
@@ -257,14 +235,18 @@ mod tests {
 
     #[test]
     fn websocket_auth_failure_is_error_and_fatal() {
-        let payload = json!({
-            "status": "authFailure",
-            "reason": "token expired"
-        });
+        let payload = RealtimeWsStatusPayload {
+            status: RealtimeWsStatus::AuthFailure,
+            websocket_domain: String::new(),
+            at: String::new(),
+            client_run_id: None,
+            generation: None,
+            session_generation: None,
+            reason: Some("token expired".into()),
+            status_code: None,
+        };
 
-        let output =
-            format_runtime_output_event(RuntimeOutputMode::Headless, "realtimeWsStatus", &payload)
-                .unwrap();
+        let output = format_runtime_output_event(RuntimeOutputMode::Headless, &payload).unwrap();
         assert_eq!(output.level, RuntimeOutputLevel::Error);
         assert_eq!(output.message, "ws status: authFailure (token expired)");
         assert_eq!(output.fatal_reason.as_deref(), Some("token expired"));

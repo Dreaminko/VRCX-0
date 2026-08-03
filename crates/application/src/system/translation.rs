@@ -8,6 +8,8 @@ use vrcx_0_persistence::{config as config_store, DatabaseService};
 
 use crate::{Error, Result};
 
+pub use vrcx_0_integrations::translation::TranslationProvider;
+
 const KEY_ENABLED: &str = "translationAPI";
 const KEY_BIO_LANGUAGE: &str = "bioLanguage";
 const KEY_API_TYPE: &str = "translationAPIType";
@@ -23,7 +25,7 @@ pub const DEFAULT_TRANSLATION_MODEL: &str = "gpt-4o-mini";
 #[serde(rename_all = "camelCase")]
 pub struct TranslationOverrides {
     pub enabled: Option<bool>,
-    pub api_type: Option<String>,
+    pub api_type: Option<TranslationProvider>,
     pub key: Option<String>,
     pub endpoint_id: Option<String>,
     pub model: Option<String>,
@@ -44,7 +46,7 @@ pub struct TranslationTranslateInput {
 pub struct TranslationResult {
     pub text: String,
     pub detected_source_language: Option<String>,
-    pub provider: String,
+    pub provider: TranslationProvider,
 }
 
 #[derive(Clone, Debug)]
@@ -104,12 +106,14 @@ pub async fn translate_text(
     } else {
         target_language
     };
-    let provider = protocol::parse_translation_provider(&override_or_config(
-        db,
-        overrides.api_type.as_ref(),
-        KEY_API_TYPE,
-        "google",
-    )?);
+    let provider = match overrides.api_type {
+        Some(provider) => provider,
+        None => protocol::parse_translation_provider(&config_store::get_string(
+            db,
+            KEY_API_TYPE,
+            "google",
+        )?),
+    };
 
     match provider {
         protocol::TranslationProvider::OpenAi => {
@@ -153,17 +157,18 @@ pub async fn translate_text(
                 return Err(Error::Custom("No Translation API key configured.".into()));
             }
 
-            let (request, provider_name) = match provider {
-                protocol::TranslationProvider::Google => (
+            let request = match provider {
+                protocol::TranslationProvider::Google => {
                     protocol::google_translate_request(&key, &input.text, &target_language)
-                        .map_err(|error| Error::Custom(error.to_string()))?,
-                    "google",
-                ),
-                _ => (
+                        .map_err(|error| Error::Custom(error.to_string()))?
+                }
+                protocol::TranslationProvider::DeepL => {
                     protocol::deepl_translate_request(&key, &input.text, &target_language)
-                        .map_err(|error| Error::Custom(error.to_string()))?,
-                    "deepl",
-                ),
+                        .map_err(|error| Error::Custom(error.to_string()))?
+                }
+                protocol::TranslationProvider::OpenAi => {
+                    unreachable!("OpenAI translation is dispatched before HTTP translation")
+                }
             };
             let response = web
                 .execute_external_api(request, ExternalApiScope::Translation)
@@ -186,7 +191,7 @@ pub async fn translate_text(
             Ok(TranslationDispatch::Completed(TranslationResult {
                 text: outcome.text,
                 detected_source_language: outcome.detected_source_language,
-                provider: provider_name.into(),
+                provider,
             }))
         }
     }

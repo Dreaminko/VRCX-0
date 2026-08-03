@@ -20,8 +20,8 @@ use super::release::{
     parse_release_version, GitHubRelease, GitHubReleaseAsset, TOKYO_UTC_OFFSET_SECONDS,
 };
 use super::{
-    AppUpdateBuildInfo, AppUpdateDownloadPhase, AppUpdateReleaseSnapshot, AppUpdateRuntime,
-    AppUpdateStatusSnapshot, DownloadState,
+    AppUpdateBuildInfo, AppUpdateDeliveryKind, AppUpdateDownloadPhase, AppUpdateReleaseSnapshot,
+    AppUpdateRuntime, AppUpdateStatusSnapshot, DownloadState,
 };
 
 const TEST_UPDATE_VERSION: &str = "2.15.0";
@@ -146,7 +146,7 @@ fn update_release_snapshot() -> AppUpdateReleaseSnapshot {
         display_version: TEST_UPDATE_VERSION.into(),
         manifest_url: "https://example.test/latest.json".into(),
         target: "windows-x86_64-stable".into(),
-        updater_type: "tauri".into(),
+        updater_type: AppUpdateDeliveryKind::Tauri,
     }
 }
 
@@ -353,14 +353,14 @@ fn normalize_release_requires_matching_installer_asset_when_required() {
 
     let normalized = normalize_release(&release, Some("windows-x86_64-stable"), true)
         .expect("release with matching asset normalizes");
-    assert_eq!(normalized.updater_type, "tauri");
+    assert_eq!(normalized.updater_type, AppUpdateDeliveryKind::Tauri);
     assert_eq!(normalized.target, "windows-x86_64-stable");
     assert!(!normalized.manifest_url.is_empty());
 
     assert!(normalize_release(&release, Some("macos-aarch64-stable"), true).is_none());
     let notify_only = normalize_release(&release, Some("macos-aarch64-stable"), false)
         .expect("notify-only normalize succeeds without a matching asset");
-    assert_eq!(notify_only.updater_type, "manual");
+    assert_eq!(notify_only.updater_type, AppUpdateDeliveryKind::Manual);
     assert!(notify_only.manifest_url.is_empty());
 }
 

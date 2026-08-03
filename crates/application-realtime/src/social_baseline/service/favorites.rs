@@ -582,14 +582,20 @@ async fn build_favorites_baseline_inner(
         })
         .await?;
 
-    let local_world_favorite_rows =
-        vrcx_0_persistence::favorites::favorite_list(deps.db.as_ref(), None, "world".into())?;
-    let local_avatar_favorite_rows =
-        vrcx_0_persistence::favorites::favorite_list(deps.db.as_ref(), None, "avatar".into())?;
+    let local_world_favorite_rows = vrcx_0_persistence::favorites::favorite_list(
+        deps.db.as_ref(),
+        None,
+        vrcx_0_core::FavoriteEntityKind::World,
+    )?;
+    let local_avatar_favorite_rows = vrcx_0_persistence::favorites::favorite_list(
+        deps.db.as_ref(),
+        None,
+        vrcx_0_core::FavoriteEntityKind::Avatar,
+    )?;
     let local_friend_favorite_rows = vrcx_0_persistence::favorites::favorite_list(
         deps.db.as_ref(),
         Some(&user_id),
-        "friend".into(),
+        vrcx_0_core::FavoriteEntityKind::Friend,
     )?;
     let local_world_cache_rows = serde_json::to_value(
         vrcx_0_persistence::worlds::world_cache_list(deps.db.as_ref())?,

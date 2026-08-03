@@ -2,10 +2,18 @@ use vrcx_0_application_core::RuntimeEventPayload;
 
 use crate::{DebugLoggingOutcome, GameLogProjection, RuntimeEventBus};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum RuntimeNotificationLevel {
+    Info,
+    Warning,
+    Error,
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeNotificationPayload {
-    pub level: String,
+    pub level: RuntimeNotificationLevel,
     pub title: String,
     pub message: String,
 }

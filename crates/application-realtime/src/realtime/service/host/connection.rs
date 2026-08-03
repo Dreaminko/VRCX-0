@@ -1,6 +1,6 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use tokio::sync::{broadcast, watch};
 use vrcx_0_application_core::{Error, FavoriteChangeScope, FavoritesChangedPayload, Result};
@@ -21,7 +21,7 @@ use crate::realtime::user_query_cache::UserQueryCache;
 use crate::realtime::{
     FriendProjection, RealtimeFriendOutput, RealtimeSessionContext,
     RealtimeTransportLifecycleEvent, RealtimeTransportStartResult, RealtimeTransportTermination,
-    RealtimeWsStatusPayload,
+    RealtimeWsStatus, RealtimeWsStatusPayload,
 };
 
 use super::state::{
@@ -305,9 +305,9 @@ impl RealtimeHostRuntime {
                 RealtimeTransportTermination::AuthExpired {
                     reason,
                     status_code,
-                } => Some(("error", reason.clone(), *status_code)),
+                } => Some((RealtimeWsStatus::Error, reason.clone(), *status_code)),
                 RealtimeTransportTermination::UnexpectedExit { reason, .. } => {
-                    Some(("error", reason.clone(), None))
+                    Some((RealtimeWsStatus::Error, reason.clone(), None))
                 }
                 RealtimeTransportTermination::Stopped => None,
             };
@@ -316,7 +316,7 @@ impl RealtimeHostRuntime {
                 self.deps
                     .event_bus
                     .emit_realtime_ws_status(RealtimeWsStatusPayload {
-                        status: status.into(),
+                        status,
                         websocket_domain: normalize_websocket_domain(&active.session.websocket),
                         at: chrono::Utc::now().to_rfc3339(),
                         client_run_id: Some(active.client_run_id),
@@ -348,22 +348,11 @@ impl RealtimeHostRuntime {
         self.world_cache.sync_favorites_from_db();
     }
 
-    pub fn notify_favorites_changed(
-        &self,
-        kind: FavoriteChangeScope,
-        local_changed: bool,
-        remote_changed: bool,
-    ) {
-        if kind == FavoriteChangeScope::World && local_changed {
+    pub fn notify_favorites_changed(&self, payload: FavoritesChangedPayload) {
+        if payload.kind == FavoriteChangeScope::World && payload.local {
             self.sync_world_cache_favorites_from_db();
         }
-        self.deps
-            .event_bus
-            .emit_favorites_changed(FavoritesChangedPayload {
-                kind,
-                local: local_changed,
-                remote: remote_changed,
-            });
+        self.deps.event_bus.emit_favorites_changed(payload);
     }
 
     pub fn expire_notification(&self, user_id: String, notification_id: String) -> Result<()> {
@@ -499,7 +488,7 @@ impl RealtimeHostRuntime {
         self.deps
             .event_bus
             .emit_realtime_ws_status(RealtimeWsStatusPayload {
-                status: "disconnected".into(),
+                status: RealtimeWsStatus::Disconnected,
                 websocket_domain,
                 at: chrono::Utc::now().to_rfc3339(),
                 client_run_id: Some(client_run_id),
@@ -508,8 +497,11 @@ impl RealtimeHostRuntime {
                 reason: None,
                 status_code: None,
             });
-        self.deps
-            .sync
-            .record("realtime", RuntimeOperationStatus::Idle, "Realtime transport stopped.", 0);
+        self.deps.sync.record(
+            "realtime",
+            RuntimeOperationStatus::Idle,
+            "Realtime transport stopped.",
+            0,
+        );
     }
 }

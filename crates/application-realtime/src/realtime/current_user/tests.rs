@@ -2,7 +2,9 @@ use serde_json::json;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use vrcx_0_persistence::game_log::{GameLogLocationEntry, GameLogLocationTimeUpdate};
 
-use crate::realtime::{PendingOfflineTimerAction, RealtimeCurrentUserAuthority};
+use crate::realtime::{
+    PendingOfflineTimerAction, RealtimeCurrentUserAuthority, RealtimeCurrentUserGameLogContext,
+};
 
 use super::runtime::RealtimeCurrentUserRuntime;
 use super::state::{
@@ -11,11 +13,20 @@ use super::state::{
 };
 
 fn remote_authority(game_log_enabled: bool) -> RealtimeCurrentUserAuthority {
-    RealtimeCurrentUserAuthority {
-        local_game_context_available: true,
+    RealtimeCurrentUserAuthority::Available {
         is_game_running: false,
-        game_log_enabled,
-        ..RealtimeCurrentUserAuthority::default()
+        game_log: game_log_enabled.then(RealtimeCurrentUserGameLogContext::default),
+    }
+}
+
+fn local_authority(location: &str, world_name: &str) -> RealtimeCurrentUserAuthority {
+    RealtimeCurrentUserAuthority::Available {
+        is_game_running: true,
+        game_log: Some(RealtimeCurrentUserGameLogContext {
+            location: location.into(),
+            destination: String::new(),
+            world_name: world_name.into(),
+        }),
     }
 }
 
@@ -135,13 +146,7 @@ fn refreshed_current_user_snapshot_preserves_local_authority_fields() {
                 "bio": "fresh bio"
             }),
             json!({}),
-            RealtimeCurrentUserAuthority {
-                is_game_running: true,
-                game_log_enabled: true,
-                game_log_location: "wrld_auth:123".into(),
-                game_log_world_name: "Authoritative World".into(),
-                ..RealtimeCurrentUserAuthority::default()
-            },
+            local_authority("wrld_auth:123", "Authoritative World"),
         )
         .expect("refreshed snapshot should update profile fields");
 
@@ -303,10 +308,7 @@ fn unavailable_local_game_context_skips_game_dependent_side_effects() {
             "$previousAvatarSwapTime": 1_000
         }),
     );
-    let authority = RealtimeCurrentUserAuthority {
-        local_game_context_available: false,
-        ..RealtimeCurrentUserAuthority::default()
-    };
+    let authority = RealtimeCurrentUserAuthority::Unavailable;
 
     let output = runtime
         .apply_ws_message(
@@ -370,13 +372,7 @@ fn running_local_game_keeps_authoritative_location_above_remote_ws_location() {
                 raw: String::new(),
                 received_at: "2026-05-15T00:00:00Z".into(),
             },
-            RealtimeCurrentUserAuthority {
-                is_game_running: true,
-                game_log_enabled: true,
-                game_log_location: "wrld_local:123".into(),
-                game_log_world_name: "Local World".into(),
-                ..RealtimeCurrentUserAuthority::default()
-            },
+            local_authority("wrld_local:123", "Local World"),
         )
         .expect("current user location output");
 
@@ -592,14 +588,7 @@ fn local_game_start_invalidates_remote_offline_timer_and_keeps_local_authority()
     let PendingOfflineTimerAction::Schedule { token, .. } = pending.timer_action else {
         panic!("remote offline should schedule pending timer");
     };
-    let local_authority = RealtimeCurrentUserAuthority {
-        local_game_context_available: true,
-        is_game_running: true,
-        game_log_enabled: true,
-        game_log_location: "wrld_local:123".into(),
-        game_log_world_name: "Local World".into(),
-        ..RealtimeCurrentUserAuthority::default()
-    };
+    let local_authority = local_authority("wrld_local:123", "Local World");
 
     let local = runtime
         .apply_game_running_state(7, local_authority.clone())

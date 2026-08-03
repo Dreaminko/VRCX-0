@@ -1,11 +1,63 @@
 use std::collections::HashMap;
+use std::fmt;
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::http_api::{
-    api_input, encode_path_segment, get_input, normalize_text, normalize_vrchat_api_endpoint,
-    require_text, HttpApiError, HttpApiRequestBody, HttpApiRequestInput, HttpApiUpload,
+    api_input, encode_path_segment, get_input, normalize_vrchat_api_endpoint, require_text,
+    HttpApiError, HttpApiRequestBody, HttpApiRequestInput, HttpApiUpload,
 };
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum MediaAssetKind {
+    Gallery,
+    Icons,
+    Emojis,
+    Stickers,
+    Prints,
+}
+
+impl MediaAssetKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Gallery => "gallery",
+            Self::Icons => "icons",
+            Self::Emojis => "emojis",
+            Self::Stickers => "stickers",
+            Self::Prints => "prints",
+        }
+    }
+}
+
+impl fmt::Display for MediaAssetKind {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum FileUploadStageKind {
+    File,
+    Signature,
+}
+
+impl FileUploadStageKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::File => "file",
+            Self::Signature => "signature",
+        }
+    }
+}
+
+impl fmt::Display for FileUploadStageKind {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
 
 pub fn normalize_media_endpoint(endpoint: &str) -> String {
     normalize_vrchat_api_endpoint(Some(endpoint))
@@ -119,22 +171,22 @@ pub fn print_upload_input(
 
 pub fn asset_upload_input(
     endpoint: String,
-    asset_kind: String,
+    asset_kind: MediaAssetKind,
     image_data: String,
     crop_white_border: bool,
     params: HashMap<String, Value>,
-) -> Result<(String, HttpApiRequestInput), HttpApiError> {
-    let asset_kind = normalize_text(asset_kind);
-    let request = match asset_kind.as_str() {
-        "gallery" => tagged_image_upload_input(endpoint, image_data, "gallery", false)?,
-        "icons" => tagged_image_upload_input(endpoint, image_data, "icon", true)?,
-        "emojis" => image_upload_input(endpoint, "file/image", image_data, params, true)?,
-        "stickers" => sticker_upload_input(endpoint, image_data)?,
-        "prints" => print_upload_input(endpoint, image_data, crop_white_border, params)?,
-        _ => {
-            return Err(HttpApiError::Custom(format!(
-                "unsupported media asset upload kind: {asset_kind}"
-            )))
+) -> Result<(MediaAssetKind, HttpApiRequestInput), HttpApiError> {
+    let request = match asset_kind {
+        MediaAssetKind::Gallery => {
+            tagged_image_upload_input(endpoint, image_data, "gallery", false)?
+        }
+        MediaAssetKind::Icons => tagged_image_upload_input(endpoint, image_data, "icon", true)?,
+        MediaAssetKind::Emojis => {
+            image_upload_input(endpoint, "file/image", image_data, params, true)?
+        }
+        MediaAssetKind::Stickers => sticker_upload_input(endpoint, image_data)?,
+        MediaAssetKind::Prints => {
+            print_upload_input(endpoint, image_data, crop_white_border, params)?
         }
     };
     Ok((asset_kind, request))
@@ -332,23 +384,14 @@ pub fn file_version_create_input(
 pub fn file_upload_stage_path(
     file_id: String,
     version: i64,
-    kind: String,
+    kind: FileUploadStageKind,
 ) -> Result<String, HttpApiError> {
     let file_id = require_text(file_id, "VrchatMediaFileUploadStage requires fileId.")?;
-    let kind = match normalize_text(kind).as_str() {
-        "file" => "file".to_string(),
-        "signature" => "signature".to_string(),
-        _ => {
-            return Err(HttpApiError::Custom(
-                "unsupported file upload stage kind".into(),
-            ))
-        }
-    };
     Ok(format!(
         "file/{}/{}/{}",
         encode_path_segment(&file_id),
         version,
-        kind
+        kind.as_str()
     ))
 }
 

@@ -24,10 +24,11 @@ pub use query::{
 };
 pub use tables::ensure_game_log_tables;
 pub use types::{
-    GameLogEventEntry, GameLogExternalEntry, GameLogJoinLeaveEntry, GameLogJoinLeaveSnapshot,
-    GameLogLocationEntry, GameLogLocationTimeUpdate, GameLogPortalSpawnEntry,
-    GameLogPreviousInstanceGroupOutput, GameLogPreviousInstanceWorldOutput, GameLogQueryInput,
-    GameLogResourceLoadEntry, GameLogVideoPlayEntry, GameLogWriteBatch, PreviousInstanceEventRow,
+    GameLogEntryDeleteKind, GameLogEventEntry, GameLogExternalEntry, GameLogJoinLeaveEntry,
+    GameLogJoinLeaveSnapshot, GameLogLocationEntry, GameLogLocationTimeUpdate,
+    GameLogPortalSpawnEntry, GameLogPreviousInstanceGroupOutput,
+    GameLogPreviousInstanceWorldOutput, GameLogQueryInput, GameLogResourceLoadEntry,
+    GameLogVideoPlayEntry, GameLogWriteBatch, GameLogWriteKind, PreviousInstanceEventRow,
     SessionEventRow, SessionLocationSegmentRow,
 };
 pub use write::write_batch;

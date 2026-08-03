@@ -5,7 +5,7 @@ use vrcx_0_application_core::{
 use vrcx_0_persistence::config::ConfigRepository;
 
 use super::webhook::discord_webhook_url_with_wait;
-use super::{send_json_webhook_with_retry, webhook_local_time_string};
+use super::{send_json_webhook_with_retry, webhook_local_time_string, NotificationWebhookFormat};
 
 const AUTH_WEBHOOK_ENABLED_CONFIG_KEY: &str = "webhookAuthEventsEnabled";
 const AUTH_WEBHOOK_DIAGNOSTICS_KEY: &str = "authWebhook";
@@ -21,7 +21,7 @@ pub struct AuthWebhookEvent {
     pub user_id: String,
     pub display_name: String,
     pub reason: String,
-    pub mode: String,
+    pub mode: BackendRuntimeMode,
     pub timestamp: String,
 }
 
@@ -42,8 +42,7 @@ impl AuthWebhookEventKind {
 pub fn auth_webhook_should_recover(snapshot: &BackendRuntimeSnapshot) -> bool {
     snapshot.mode == BackendRuntimeMode::Background
         && snapshot.phase == BackendRuntimePhase::Running
-        && snapshot.auth_status
-            == vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
+        && snapshot.auth_status == vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
         && !snapshot.auth_user_id.trim().is_empty()
 }
 
@@ -68,16 +67,19 @@ pub async fn send_auth_webhook(
         return;
     }
     let url = config.get_string("webhookUrl", "").unwrap_or_default();
-    let format = config
-        .get_string("webhookFormat", "generic")
-        .unwrap_or_else(|_| "generic".into());
-    let (url, payload) = if format == "discord" {
-        (
+    let format = NotificationWebhookFormat::from_config(
+        &config
+            .get_string("webhookFormat", "generic")
+            .unwrap_or_else(|_| "generic".into()),
+    );
+    let (url, payload) = match format {
+        NotificationWebhookFormat::Discord => (
             discord_webhook_url_with_wait(&url),
             auth_webhook_discord_payload(event),
-        )
-    } else {
-        (url.trim().to_string(), auth_webhook_generic_payload(event))
+        ),
+        NotificationWebhookFormat::Generic => {
+            (url.trim().to_string(), auth_webhook_generic_payload(event))
+        }
     };
     send_json_webhook_with_retry(
         web,
@@ -221,7 +223,7 @@ mod tests {
             user_id: "usr_123".into(),
             display_name: "Pizza".into(),
             reason: "expired token".into(),
-            mode: "background".into(),
+            mode: BackendRuntimeMode::Background,
             timestamp: "2026-07-03T08:30:00.000Z".into(),
         }
     }

@@ -148,7 +148,11 @@ export async function respondGroupJoinRequest({
     const normalizedGroupId = normalizeEntityId(groupId);
     const normalizedUserId = normalizeEntityId(userId);
     const normalizedAction = normalizeString(action);
-    if (!normalizedGroupId || !normalizedUserId || !normalizedAction) {
+    if (
+        !normalizedGroupId ||
+        !normalizedUserId ||
+        (normalizedAction !== 'accept' && normalizedAction !== 'reject')
+    ) {
         throw new Error(
             'GroupProfileRepository.respondGroupJoinRequest requires group id, user id, and action.'
         );

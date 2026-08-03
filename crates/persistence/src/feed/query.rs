@@ -62,10 +62,10 @@ fn query_feed_rows(
     };
     let user_scope_query = format!("{vip_query} {excluded_query}");
 
-    let mode = normalize_text(&query.mode);
     let search = normalize_text(&query.search);
-    let instance_mode = mode == "instance"
-        || (mode == "search" && (search.starts_with("wrld_") || search.starts_with("grp_")));
+    let instance_mode = query.mode == FeedQueryMode::Instance
+        || (query.mode == FeedQueryMode::Search
+            && (search.starts_with("wrld_") || search.starts_with("grp_")));
     let recent_order_sql = "created_at DESC, id DESC";
     let flags = feed_filter_flags(&query.filters, !instance_mode);
     let mut selects = Vec::new();
@@ -105,7 +105,7 @@ fn query_feed_rows(
                 recent_order_sql,
             );
         }
-    } else if mode == "lookup" {
+    } else if query.mode == FeedQueryMode::Lookup {
         if flags.gps {
             push_feed_select(
                 &mut selects,
@@ -305,7 +305,7 @@ fn query_feed_read_model(
 ) -> Result<FeedReadModelOutput, Error> {
     let rows_query = FeedRowsQueryInput {
         user_id: query.user_id.clone(),
-        mode: query.mode.clone(),
+        mode: query.mode,
         search: query.search.clone(),
         filters: query.filters.clone(),
         vip_list: query.vip_list.clone(),
@@ -560,7 +560,7 @@ struct FeedFilterFlags {
     pub(crate) offline: bool,
 }
 
-fn feed_filter_flags(filters: &[String], include_profile: bool) -> FeedFilterFlags {
+fn feed_filter_flags(filters: &[FeedFilter], include_profile: bool) -> FeedFilterFlags {
     let mut flags = FeedFilterFlags {
         gps: true,
         status: include_profile,
@@ -569,25 +569,20 @@ fn feed_filter_flags(filters: &[String], include_profile: bool) -> FeedFilterFla
         online: true,
         offline: true,
     };
-    let filters = filters
-        .iter()
-        .map(normalize_text)
-        .filter(|value| !value.is_empty())
-        .collect::<Vec<_>>();
     if filters.is_empty() {
         return flags;
     }
 
     flags = FeedFilterFlags::default();
     for filter in filters {
-        match filter.as_str() {
-            "GPS" => flags.gps = true,
-            "Status" if include_profile => flags.status = true,
-            "Bio" if include_profile => flags.bio = true,
-            "Avatar" if include_profile => flags.avatar = true,
-            "Online" => flags.online = true,
-            "Offline" => flags.offline = true,
-            _ => {}
+        match filter {
+            FeedFilter::Gps => flags.gps = true,
+            FeedFilter::Status if include_profile => flags.status = true,
+            FeedFilter::Bio if include_profile => flags.bio = true,
+            FeedFilter::Avatar if include_profile => flags.avatar = true,
+            FeedFilter::Online => flags.online = true,
+            FeedFilter::Offline => flags.offline = true,
+            FeedFilter::Status | FeedFilter::Bio | FeedFilter::Avatar => {}
         }
     }
     flags
@@ -691,25 +686,16 @@ fn feed_live_entry_matches(
     }
 
     let entry_type = feed_entry_string(row, &["type"]);
-    if !matches!(
-        entry_type.as_str(),
-        "GPS" | "Online" | "Offline" | "Status" | "Avatar" | "Bio"
-    ) {
+    let Some(entry_filter) = FeedFilter::from_event_type(&entry_type) else {
         return false;
-    }
+    };
 
     let owner_user_id = feed_entry_string(row, &["ownerUserId", "owner_user_id"]);
     if !owner_user_id.is_empty() && owner_user_id != context.current_user_id {
         return false;
     }
 
-    let active_filters = context
-        .filters
-        .iter()
-        .map(normalize_text)
-        .filter(|value| !value.is_empty())
-        .collect::<HashSet<_>>();
-    if !active_filters.is_empty() && !active_filters.contains(&entry_type) {
+    if !context.filters.is_empty() && !context.filters.contains(&entry_filter) {
         return false;
     }
 
@@ -743,7 +729,7 @@ fn feed_live_entry_matches(
 
 pub(crate) struct FeedLiveRowsMergeContext<'a> {
     pub(crate) current_user_id: &'a str,
-    pub(crate) filters: &'a [String],
+    pub(crate) filters: &'a [FeedFilter],
     pub(crate) search: &'a str,
     pub(crate) date_from: &'a str,
     pub(crate) date_to: &'a str,
@@ -857,8 +843,8 @@ mod tests {
 
     use super::super::write::feed_add_entry;
     use super::{
-        feed_live_rows_merge, feed_rows_query, FeedCursorInput, FeedLiveEntryInput,
-        FeedLiveRowsMergeInput, FeedRowsQueryInput,
+        feed_live_rows_merge, feed_rows_query, FeedCursorInput, FeedFilter, FeedLiveEntryInput,
+        FeedLiveRowsMergeInput, FeedQueryMode, FeedRowsQueryInput,
     };
 
     struct TestDir {
@@ -1049,9 +1035,9 @@ mod tests {
             &db,
             FeedRowsQueryInput {
                 user_id: "usr_self".into(),
-                mode: "lookup".into(),
+                mode: FeedQueryMode::Lookup,
                 search: String::new(),
-                filters: vec!["GPS".into()],
+                filters: vec![FeedFilter::Gps],
                 vip_list: Vec::new(),
                 excluded_user_ids: Vec::new(),
                 max_entries: 1,
@@ -1068,9 +1054,9 @@ mod tests {
             &db,
             FeedRowsQueryInput {
                 user_id: "usr_self".into(),
-                mode: "lookup".into(),
+                mode: FeedQueryMode::Lookup,
                 search: String::new(),
-                filters: vec!["GPS".into()],
+                filters: vec![FeedFilter::Gps],
                 vip_list: Vec::new(),
                 excluded_user_ids: Vec::new(),
                 max_entries: 1,

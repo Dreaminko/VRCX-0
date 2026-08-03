@@ -72,7 +72,7 @@ pub mod media {
         inventory_items_get_input, inventory_slot_unequip_input, inventory_template_get_input,
         print_delete_input, print_get_input, print_upload_input, prints_get_input,
         reward_redeem_input, sticker_upload_input, tagged_image_upload_input,
-        user_inventory_item_get_input, world_image_set_input,
+        user_inventory_item_get_input, world_image_set_input, FileUploadStageKind, MediaAssetKind,
     };
 }
 
@@ -118,7 +118,9 @@ pub mod worlds {
     };
 }
 
-pub use vrcx_0_vrchat_client::http_api::{classify_api_response, normalize_text, require_text};
+pub use vrcx_0_vrchat_client::http_api::{
+    classify_api_response, normalize_text, require_text, ApiResponseClass,
+};
 
 pub async fn execute_api_command(
     web: &WebClient,

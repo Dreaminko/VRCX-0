@@ -15,10 +15,10 @@ use crate::Error;
 
 use super::{
     ensure_game_log_tables, get_previous_instances_by_group_id, get_previous_instances_by_world_id,
-    write_batch as write_game_log_batch, GameLogEventEntry, GameLogExternalEntry,
-    GameLogJoinLeaveEntry, GameLogLocationEntry, GameLogLocationTimeUpdate,
+    write_batch as write_game_log_batch, GameLogEntryDeleteKind, GameLogEventEntry,
+    GameLogExternalEntry, GameLogJoinLeaveEntry, GameLogLocationEntry, GameLogLocationTimeUpdate,
     GameLogPortalSpawnEntry, GameLogQueryInput, GameLogResourceLoadEntry, GameLogVideoPlayEntry,
-    GameLogWriteBatch,
+    GameLogWriteBatch, GameLogWriteKind,
 };
 
 mod mutations;

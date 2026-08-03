@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use chrono::{DateTime, FixedOffset, NaiveDate, TimeZone};
 use serde::Deserialize;
 
-use super::AppUpdateReleaseSnapshot;
+use super::{AppUpdateDeliveryKind, AppUpdateReleaseSnapshot};
 
 const PREVIEW_LABELS: [&str; 2] = ["preview", "test"];
 pub(super) const TOKYO_UTC_OFFSET_SECONDS: i32 = 9 * 3600;
@@ -203,8 +203,8 @@ pub(super) fn normalize_release(
         return None;
     }
     let (manifest_url, resolved_target, updater_type) = match manifest {
-        Some((url, target)) => (url, target, "tauri"),
-        None => (String::new(), String::new(), "manual"),
+        Some((url, target)) => (url, target, AppUpdateDeliveryKind::Tauri),
+        None => (String::new(), String::new(), AppUpdateDeliveryKind::Manual),
     };
     let display_name = release
         .name
@@ -222,7 +222,7 @@ pub(super) fn normalize_release(
         display_version: parsed.canonical_version,
         manifest_url,
         target: resolved_target,
-        updater_type: updater_type.to_string(),
+        updater_type,
     })
 }
 

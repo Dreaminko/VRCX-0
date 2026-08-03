@@ -72,7 +72,7 @@ pub(super) fn apply_user_location(
         content.get("travelingToLocation"),
         content.get("worldId"),
     );
-    if authority.is_game_running {
+    if authority.is_game_running() {
         state.pending_offline = None;
         return apply_current_user_patch(
             state,
@@ -140,7 +140,7 @@ pub(super) fn apply_current_user_patch(
     state.remote_snapshot =
         RealtimeCurrentUserStateSnapshot::from_map(remote_merged, &state.current_user_id);
 
-    let mut merged = if authority.is_game_running {
+    let mut merged = if authority.is_game_running() {
         let mut local_merged = previous.to_map();
         for (key, value) in &patch {
             local_merged.insert(key.clone(), value.clone());
@@ -149,7 +149,7 @@ pub(super) fn apply_current_user_patch(
     } else {
         state.remote_snapshot.to_map()
     };
-    if options.applies_local_game_authority && authority.is_game_running {
+    if options.applies_local_game_authority && authority.is_game_running() {
         if let Some(authority_patch) = game_log_authority_patch(authority) {
             for (key, value) in &authority_patch {
                 merged.insert(key.clone(), value.clone());
@@ -160,7 +160,7 @@ pub(super) fn apply_current_user_patch(
     merged.insert("id".into(), Value::String(state.current_user_id.clone()));
     normalize_current_user_presence(
         &mut merged,
-        authority.is_game_running
+        authority.is_game_running()
             || state.pending_offline.is_some()
             || has_remote_current_user_presence(&state.remote_snapshot),
     );
@@ -168,8 +168,7 @@ pub(super) fn apply_current_user_patch(
     let (snapshot, mut persistence) = apply_avatar_wear_transition(
         RealtimeCurrentUserStateSnapshot::from_map(merged, &state.current_user_id),
         &previous,
-        authority.local_game_context_available,
-        authority.is_game_running,
+        authority,
         now,
         options.records_current_avatar_history,
     );
@@ -178,25 +177,25 @@ pub(super) fn apply_current_user_patch(
         "stateBucket".into(),
         Value::String(snapshot.state_bucket.clone()),
     );
-    if !authority.is_game_running && options.reconciles_remote_location {
+    if !authority.is_game_running() && options.reconciles_remote_location {
         copy_current_user_presence_patch(&snapshot, &mut projection_patch);
     }
 
-    if authority.is_game_running {
+    if authority.is_game_running() {
         close_remote_game_log_interval(state, now, &mut persistence);
     } else if options.reconciles_remote_location {
         reconcile_remote_game_log_interval(
             state,
             &snapshot,
             now,
-            authority.game_log_enabled,
+            authority.game_log().is_some(),
             &mut persistence,
         );
     }
 
-    let writes_location_game_state = authority.local_game_context_available
+    let writes_location_game_state = authority.is_available()
         && options.reconciles_remote_location
-        && !authority.is_game_running;
+        && !authority.is_game_running();
     let game_state_patch = if writes_location_game_state {
         Some(location_game_state_patch(&snapshot, now))
     } else {

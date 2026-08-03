@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use vrcx_0_core::FavoriteEntityKind;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -519,11 +520,11 @@ pub struct RecallEncounterRow {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoriteLocalInput {
-    pub kind: String,
+    pub kind: FavoriteEntityKind,
     pub entity_id: String,
     pub group: String,
-    #[serde(default = "default_add_action")]
-    pub action: String,
+    #[serde(default)]
+    pub action: FavoriteAction,
     #[serde(default = "default_true")]
     pub dry_run: bool,
 }
@@ -531,10 +532,10 @@ pub struct FavoriteLocalInput {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoriteOutput {
-    pub kind: String,
+    pub kind: FavoriteEntityKind,
     pub entity_id: String,
     pub group: String,
-    pub action: String,
+    pub action: FavoriteAction,
     pub dry_run: bool,
     pub affected_rows: i64,
     pub caveats: Vec<String>,
@@ -544,6 +545,10 @@ fn default_true() -> bool {
     true
 }
 
-fn default_add_action() -> String {
-    "add".into()
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum FavoriteAction {
+    #[default]
+    Add,
+    Remove,
 }

@@ -1,22 +1,22 @@
 import type { FeedLiveEntry } from '@/domain/feed/feedLiveTypes';
 import type { FeedReadModelResult } from '@/domain/feed/feedReadModelTypes';
-import type { FeedRowOutput } from '@/platform/tauri/bindings';
+import type { FeedFilter, FeedRowOutput } from '@/platform/tauri/bindings';
 
 import configRepository from './configRepository';
 import feedPersistenceRepository from './feedPersistenceRepository';
 import type { FeedCursor } from './feedPersistenceRepository';
 import userSessionRepository from './userSessionRepository';
 
-export const FEED_FILTER_TYPES = Object.freeze([
+export const FEED_FILTER_TYPES: readonly FeedFilter[] = Object.freeze([
     'GPS',
     'Online',
     'Offline',
     'Status',
     'Avatar',
     'Bio'
-] as const);
+]);
 
-export type FeedFilterType = (typeof FEED_FILTER_TYPES)[number];
+export type FeedFilterType = FeedFilter;
 export type FeedEntry = Record<string, unknown>;
 const FEED_FILTER_TYPE_SET: ReadonlySet<string> = new Set(FEED_FILTER_TYPES);
 

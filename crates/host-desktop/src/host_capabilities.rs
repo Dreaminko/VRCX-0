@@ -1,6 +1,9 @@
 use serde::Serialize;
 
-pub use vrcx_0_host::host_capabilities::{current_arch, current_platform};
+pub use vrcx_0_host::host_capabilities::{
+    current_arch, current_host_architecture, current_host_platform, current_platform,
+    HostArchitecture, HostPlatform,
+};
 use vrcx_0_host::Error;
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
@@ -13,12 +16,22 @@ pub struct CapabilityStatus {
     pub reason: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum LinuxPackageKind {
+    #[default]
+    Unknown,
+    Appimage,
+    Deb,
+    Rpm,
+}
+
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct HostCapabilities {
-    pub platform: String,
-    pub arch: String,
-    pub linux_package_kind: String,
+    pub platform: HostPlatform,
+    pub arch: HostArchitecture,
+    pub linux_package_kind: LinuxPackageKind,
     pub local_database: CapabilityStatus,
     pub websocket_runtime: CapabilityStatus,
     pub game_log_watcher: CapabilityStatus,
@@ -67,7 +80,7 @@ impl CapabilityStatus {
         }
     }
 
-    fn unsupported(label: &str, platform: &str) -> Self {
+    fn unsupported(label: &str, platform: impl std::fmt::Display) -> Self {
         Self {
             supported: false,
             enabled: false,
@@ -120,33 +133,33 @@ fn command_succeeds(program: &str, args: &[&str], stdout_match: Option<&str>) ->
 }
 
 #[cfg(target_os = "linux")]
-fn current_linux_package_kind() -> &'static str {
+fn current_linux_package_kind() -> LinuxPackageKind {
     if std::env::var_os("APPIMAGE").is_some() {
-        return "appimage";
+        return LinuxPackageKind::Appimage;
     }
     if command_succeeds(
         "dpkg-query",
         &["-W", "-f=${Status}", "vrcx-0"],
         Some("install ok installed"),
     ) {
-        return "deb";
+        return LinuxPackageKind::Deb;
     }
     if command_succeeds("rpm", &["-q", "vrcx-0"], None) {
-        return "rpm";
+        return LinuxPackageKind::Rpm;
     }
-    "unknown"
+    LinuxPackageKind::Unknown
 }
 
 pub fn current_host_capabilities() -> HostCapabilities {
-    let platform = current_platform();
-    let arch = current_arch();
+    let platform = current_host_platform();
+    let arch = current_host_architecture();
     let available = CapabilityStatus::available();
 
     match platform {
-        "windows" => HostCapabilities {
-            platform: platform.to_string(),
-            arch: arch.to_string(),
-            linux_package_kind: "unknown".to_string(),
+        HostPlatform::Windows => HostCapabilities {
+            platform,
+            arch,
+            linux_package_kind: LinuxPackageKind::Unknown,
             local_database: available.clone(),
             websocket_runtime: available.clone(),
             game_log_watcher: available.clone(),
@@ -164,11 +177,11 @@ pub fn current_host_capabilities() -> HostCapabilities {
             screenshot_cache: available,
         },
         #[cfg(target_os = "linux")]
-        "linux" => linux_host_capabilities(platform, &available),
-        "macos" => HostCapabilities {
-            platform: platform.to_string(),
-            arch: arch.to_string(),
-            linux_package_kind: "unknown".to_string(),
+        HostPlatform::Linux => linux_host_capabilities(platform, arch, &available),
+        HostPlatform::Macos => HostCapabilities {
+            platform,
+            arch,
+            linux_package_kind: LinuxPackageKind::Unknown,
             local_database: available.clone(),
             websocket_runtime: available.clone(),
             game_log_watcher: CapabilityStatus::unsupported("GameLog watcher", "macOS"),
@@ -201,9 +214,9 @@ pub fn current_host_capabilities() -> HostCapabilities {
             screenshot_cache: CapabilityStatus::unsupported("Screenshot cache", "macOS"),
         },
         _ => HostCapabilities {
-            platform: platform.to_string(),
-            arch: arch.to_string(),
-            linux_package_kind: "unknown".to_string(),
+            platform,
+            arch,
+            linux_package_kind: LinuxPackageKind::Unknown,
             local_database: available.clone(),
             websocket_runtime: available.clone(),
             game_log_watcher: CapabilityStatus::unsupported("GameLog watcher", platform),
@@ -239,7 +252,11 @@ pub fn current_host_capabilities() -> HostCapabilities {
 }
 
 #[cfg(target_os = "linux")]
-fn linux_host_capabilities(platform: &str, available: &CapabilityStatus) -> HostCapabilities {
+fn linux_host_capabilities(
+    platform: HostPlatform,
+    arch: HostArchitecture,
+    available: &CapabilityStatus,
+) -> HostCapabilities {
     let steam_library_discovery = match crate::vrchat_paths::discover_linux_steam_libraries() {
         Ok(_) => available.clone(),
         Err(reason) => CapabilityStatus::unavailable(&reason),
@@ -281,9 +298,9 @@ fn linux_host_capabilities(platform: &str, available: &CapabilityStatus) -> Host
     };
 
     HostCapabilities {
-        platform: platform.to_string(),
-        arch: current_arch().to_string(),
-        linux_package_kind: current_linux_package_kind().to_string(),
+        platform,
+        arch,
+        linux_package_kind: current_linux_package_kind(),
         local_database: available.clone(),
         websocket_runtime: available.clone(),
         game_log_watcher: game_log_watcher.clone(),

@@ -6,11 +6,11 @@ use serde_json::Value;
 use vrcx_0_application::{add_remote_favorite, FavoriteRemoteAddInput, FavoriteRemoteMutationDeps};
 use vrcx_0_application_core::{
     vrchat_api::{self},
-    FavoriteChangeScope, FavoriteEntityKind,
+    FavoriteEntityKind, FavoritesChangedPayload,
 };
 use vrcx_0_persistence::{
     favorites::{self as persistence_favorites, FavoriteRow as PersistenceFavoriteRow},
-    social_aggregates,
+    social_aggregates::{self, FavoriteAction},
 };
 
 use crate::config::MCP_ALLOW_VRCHAT_WRITES_CONFIG_KEY;
@@ -35,10 +35,10 @@ impl VrcxMcpServer {
             self.runtime.db.as_ref(),
             &owner_user_id,
             social_aggregates::FavoriteLocalInput {
-                kind: input.kind,
+                kind: normalize_favorite_kind(&input.kind)?,
                 entity_id: input.entity_id,
                 group: input.group,
-                action: input.action.unwrap_or_else(|| "add".into()),
+                action: parse_favorite_action(input.action.as_deref())?,
                 dry_run,
             },
         );
@@ -46,11 +46,11 @@ impl VrcxMcpServer {
             if let Ok(output) = &result {
                 self.runtime
                     .realtime_runtime
-                    .notify_favorites_changed(
-                        FavoriteChangeScope::from_remote_type(&output.kind),
-                        true,
-                        false,
-                    );
+                    .notify_favorites_changed(FavoritesChangedPayload {
+                        kind: output.kind.into(),
+                        local: true,
+                        remote: false,
+                    });
             }
         }
         social_aggregates_result(result)
@@ -86,13 +86,13 @@ impl VrcxMcpServer {
             let values = persistence_favorites::favorite_list(
                 self.runtime.db.as_ref(),
                 Some(&owner_user_id),
-                (*kind).into(),
+                *kind,
             )
             .map_err(map_persistence_error)?;
             rows.extend(
                 values
                     .iter()
-                    .filter_map(|row| favorite_row_from_value(kind, row)),
+                    .filter_map(|row| favorite_row_from_value(*kind, row)),
             );
         }
         let summary = favorites_summary(requested_kind, rows.len());
@@ -115,9 +115,7 @@ impl VrcxMcpServer {
         if entity_id.is_empty() {
             return Err("favorite_vrchat requires entityId".into());
         }
-        validate_favorite_entity_id(&kind, &entity_id)?;
-        let entity_kind = FavoriteEntityKind::from_remote_type(&kind)
-            .ok_or("favorite kind must be world, friend, or avatar")?;
+        validate_favorite_entity_id(kind, &entity_id)?;
         if tags.is_empty() {
             return Err(
                 "favorite_vrchat requires tags such as worlds1, group_0, or avatars1".into(),
@@ -151,7 +149,7 @@ impl VrcxMcpServer {
             },
             FavoriteRemoteAddInput {
                 endpoint: self.runtime.current_endpoint(),
-                kind: entity_kind.into(),
+                kind: kind.into(),
                 entity_id: entity_id.clone(),
                 tags: tags.clone(),
             },
@@ -165,7 +163,7 @@ impl VrcxMcpServer {
 }
 
 fn finish_remote_favorite_write(
-    kind: String,
+    kind: FavoriteEntityKind,
     entity_id: String,
     tags: String,
     response: vrchat_api::VrchatApiResponse,
@@ -225,12 +223,16 @@ enum FavoriteListKind {
 }
 
 impl FavoriteListKind {
-    fn canonical_kinds(self) -> &'static [&'static str] {
+    fn canonical_kinds(self) -> &'static [FavoriteEntityKind] {
         match self {
-            Self::All => &["world", "friend", "avatar"],
-            Self::World => &["world"],
-            Self::Friend => &["friend"],
-            Self::Avatar => &["avatar"],
+            Self::All => &[
+                FavoriteEntityKind::World,
+                FavoriteEntityKind::Friend,
+                FavoriteEntityKind::Avatar,
+            ],
+            Self::World => &[FavoriteEntityKind::World],
+            Self::Friend => &[FavoriteEntityKind::Friend],
+            Self::Avatar => &[FavoriteEntityKind::Avatar],
         }
     }
 
@@ -264,7 +266,7 @@ struct FavoriteRow {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct FavoriteVrchatOutput {
-    kind: String,
+    kind: FavoriteEntityKind,
     entity_id: String,
     tags: String,
     dry_run: bool,
@@ -272,18 +274,26 @@ struct FavoriteVrchatOutput {
     response: Option<Value>,
     caveats: Vec<String>,
 }
-fn normalize_favorite_kind(kind: &str) -> Result<String, String> {
+fn normalize_favorite_kind(kind: &str) -> Result<FavoriteEntityKind, String> {
     // The tool description lists "worlds, friends, or avatars", so models often
     // pass the plural (and sometimes "user(s)" for friends). Accept those and
     // map them to the canonical singular form.
     let lowered = kind.trim().to_ascii_lowercase();
     let canonical = match lowered.strip_suffix('s').unwrap_or(&lowered) {
-        "world" => "world",
-        "friend" | "user" => "friend",
-        "avatar" => "avatar",
+        "world" => FavoriteEntityKind::World,
+        "friend" | "user" => FavoriteEntityKind::Friend,
+        "avatar" => FavoriteEntityKind::Avatar,
         _ => return Err("favorite kind must be world, friend, or avatar".into()),
     };
-    Ok(canonical.to_string())
+    Ok(canonical)
+}
+
+fn parse_favorite_action(action: Option<&str>) -> Result<FavoriteAction, String> {
+    match action.unwrap_or("add").trim().to_ascii_lowercase().as_str() {
+        "add" => Ok(FavoriteAction::Add),
+        "remove" => Ok(FavoriteAction::Remove),
+        _ => Err("favorite action must be add or remove".into()),
+    }
 }
 
 fn parse_favorite_list_kind(kind: Option<&str>) -> Result<FavoriteListKind, String> {
@@ -297,35 +307,35 @@ fn parse_favorite_list_kind(kind: Option<&str>) -> Result<FavoriteListKind, Stri
     let canonical = normalize_favorite_kind(&lowered).map_err(|_| {
         "invalid argument `kind`: expected all, world, friend, or avatar".to_string()
     })?;
-    Ok(match canonical.as_str() {
-        "world" => FavoriteListKind::World,
-        "friend" => FavoriteListKind::Friend,
-        "avatar" => FavoriteListKind::Avatar,
-        _ => unreachable!("normalize_favorite_kind returns a canonical favorite kind"),
+    Ok(match canonical {
+        FavoriteEntityKind::World => FavoriteListKind::World,
+        FavoriteEntityKind::Friend => FavoriteListKind::Friend,
+        FavoriteEntityKind::Avatar => FavoriteListKind::Avatar,
     })
 }
 
-fn validate_favorite_entity_id(kind: &str, entity_id: &str) -> Result<(), String> {
-    let metadata =
-        favorite_kind_metadata(kind).ok_or("favorite kind must be world, friend, or avatar")?;
-    if entity_id.starts_with(metadata.entity_id_prefix) {
+fn validate_favorite_entity_id(kind: FavoriteEntityKind, entity_id: &str) -> Result<(), String> {
+    if entity_id.starts_with(kind.entity_id_prefix()) {
         Ok(())
     } else {
         Err(format!(
-            "favorite_vrchat {kind} entityId must start with {}",
-            metadata.entity_id_prefix
+            "favorite_vrchat {} entityId must start with {}",
+            kind.as_str(),
+            kind.entity_id_prefix()
         ))
     }
 }
 
-fn favorite_row_from_value(kind: &str, row: &PersistenceFavoriteRow) -> Option<FavoriteRow> {
-    favorite_kind_metadata(kind)?;
+fn favorite_row_from_value(
+    kind: FavoriteEntityKind,
+    row: &PersistenceFavoriteRow,
+) -> Option<FavoriteRow> {
     let entity_id = row.entity_id().to_string();
     if entity_id.is_empty() {
         return None;
     }
     Some(FavoriteRow {
-        kind: kind.to_string(),
+        kind: kind.as_str().to_string(),
         entity_id,
         group: row.group_name.clone(),
         created_at: row.created_at.clone(),
@@ -337,24 +347,6 @@ fn favorites_summary(kind: FavoriteListKind, count: usize) -> String {
     format!("Found {count} VRCX-0 local {noun}{}.", kind.summary_scope())
 }
 
-struct FavoriteKindMetadata {
-    entity_id_prefix: &'static str,
-}
-
-fn favorite_kind_metadata(kind: &str) -> Option<FavoriteKindMetadata> {
-    match kind {
-        "world" => Some(FavoriteKindMetadata {
-            entity_id_prefix: "wrld_",
-        }),
-        "friend" => Some(FavoriteKindMetadata {
-            entity_id_prefix: "usr_",
-        }),
-        "avatar" => Some(FavoriteKindMetadata {
-            entity_id_prefix: "avtr_",
-        }),
-        _ => None,
-    }
-}
 fn vrchat_favorite_caveats(blocked_by_setting: bool) -> Vec<String> {
     let mut caveats = vec![
         "This writes to the signed-in VRChat account only when dry_run is false.".into(),
@@ -375,13 +367,22 @@ mod favorite_kind_tests {
     #[test]
     fn accepts_singular_plural_and_user_synonym() {
         for input in ["world", "worlds", "World"] {
-            assert_eq!(normalize_favorite_kind(input).unwrap(), "world");
+            assert_eq!(
+                normalize_favorite_kind(input).unwrap(),
+                FavoriteEntityKind::World
+            );
         }
         for input in ["friend", "friends", "user", "users"] {
-            assert_eq!(normalize_favorite_kind(input).unwrap(), "friend");
+            assert_eq!(
+                normalize_favorite_kind(input).unwrap(),
+                FavoriteEntityKind::Friend
+            );
         }
         for input in ["avatar", "avatars"] {
-            assert_eq!(normalize_favorite_kind(input).unwrap(), "avatar");
+            assert_eq!(
+                normalize_favorite_kind(input).unwrap(),
+                FavoriteEntityKind::Avatar
+            );
         }
     }
 
@@ -398,7 +399,11 @@ mod favorite_kind_tests {
         assert!(matches!(missing_kind, FavoriteListKind::All));
         assert_eq!(
             missing_kind.canonical_kinds(),
-            &["world", "friend", "avatar"]
+            &[
+                FavoriteEntityKind::World,
+                FavoriteEntityKind::Friend,
+                FavoriteEntityKind::Avatar,
+            ]
         );
 
         for (input, expected) in [
@@ -445,7 +450,7 @@ mod favorite_kind_tests {
             (500, false),
         ] {
             let output = finish_remote_favorite_write(
-                "world".into(),
+                FavoriteEntityKind::World,
                 "wrld_test".into(),
                 "worlds1".into(),
                 vrchat_api::VrchatApiResponse {

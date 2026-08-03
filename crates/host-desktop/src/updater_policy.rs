@@ -1,22 +1,25 @@
-use crate::host_capabilities::{current_arch, current_host_capabilities, current_platform};
+use crate::host_capabilities::{
+    current_host_architecture, current_host_capabilities, current_host_platform, HostArchitecture,
+    HostPlatform, LinuxPackageKind,
+};
 use vrcx_0_host::Error;
 
 pub fn expected_updater_target() -> Result<String, Error> {
-    let platform = current_platform();
-    let arch = current_arch();
-    let target = match platform {
-        "windows" if arch == "x86_64" => "windows-x86_64-stable".to_string(),
-        "macos" if arch == "aarch64" => "macos-aarch64-stable".to_string(),
-        "macos" if arch == "x86_64" => "macos-x86_64-stable".to_string(),
-        "linux" if arch == "x86_64" => {
-            let kind = current_host_capabilities().linux_package_kind;
-            let kind = match kind.as_str() {
-                "deb" | "rpm" => kind,
-                _ => "appimage".to_string(),
+    let platform = current_host_platform();
+    let arch = current_host_architecture();
+    let target = match (platform, arch) {
+        (HostPlatform::Windows, HostArchitecture::X86_64) => "windows-x86_64-stable".to_string(),
+        (HostPlatform::Macos, HostArchitecture::Aarch64) => "macos-aarch64-stable".to_string(),
+        (HostPlatform::Macos, HostArchitecture::X86_64) => "macos-x86_64-stable".to_string(),
+        (HostPlatform::Linux, HostArchitecture::X86_64) => {
+            let kind = match current_host_capabilities().linux_package_kind {
+                LinuxPackageKind::Deb => "deb",
+                LinuxPackageKind::Rpm => "rpm",
+                LinuxPackageKind::Unknown | LinuxPackageKind::Appimage => "appimage",
             };
             format!("linux-x86_64-{kind}-stable")
         }
-        _ => {
+        (platform, arch) => {
             return Err(Error::Custom(format!(
                 "Updates are not installable on {platform}/{arch}."
             )))

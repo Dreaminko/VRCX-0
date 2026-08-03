@@ -7,23 +7,23 @@ use vrcx_0_application_activity::{
     OverlayActivityDelivery, OverlayActivityEntry,
 };
 use vrcx_0_application_core::{
-    BackendRuntimeAuthStatus, BackendRuntimeGameLogStatus, BackendRuntimeMode,
-    BackendRuntimePhase, BackendRuntimeProcessStatus, BackendRuntimeSnapshot,
+    BackendRuntimeAuthStatus, BackendRuntimeGameLogStatus, BackendRuntimeMode, BackendRuntimePhase,
+    BackendRuntimeProcessStatus, BackendRuntimeSnapshot,
 };
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_runtime_host::notification::{
     auth_webhook_generic_payload, auth_webhook_is_enabled, auth_webhook_should_recover,
     decide_notification_plan, AuthWebhookEvent, AuthWebhookEventKind,
-    NotificationDeliveryGameState, NotificationDeliveryPreferences,
+    NotificationDeliveryCondition, NotificationDeliveryGameState, NotificationDeliveryPreferences,
 };
 use vrcx_0_runtime_host_desktop::notification::{DesktopNotifier, DesktopNotifierSlot};
 
 #[test]
 fn webhook_delivery_ignores_game_state_conditions() {
     let preferences = NotificationDeliveryPreferences {
-        desktop_toast: "Game Running".into(),
-        notification_tts: "Game Running".into(),
+        desktop_toast: NotificationDeliveryCondition::GameRunning,
+        notification_tts: NotificationDeliveryCondition::GameRunning,
         webhook_enabled: true,
         webhook_url: "https://example.com/webhook".into(),
         ..NotificationDeliveryPreferences::default()
@@ -121,7 +121,7 @@ fn auth_webhook_payload_uses_fixed_safe_fields() {
         user_id: "usr_123".into(),
         display_name: "Pizza".into(),
         reason: "expired token secret_cookie=abc".into(),
-        mode: "background".into(),
+        mode: BackendRuntimeMode::Background,
         timestamp: "2026-07-03T08:30:00.000Z".into(),
     });
 
@@ -165,7 +165,7 @@ fn backend_snapshot(
         auth_status: BackendRuntimeAuthStatus::Authenticated,
         auth_user_id: auth_user_id.into(),
         auth_display_name: "Pizza".into(),
-        ws_status: "authFailure".into(),
+        ws_status: vrcx_0_core::realtime::RealtimeWsStatus::AuthFailure,
         game_log_status: BackendRuntimeGameLogStatus::Idle,
         process_status: BackendRuntimeProcessStatus::Unknown,
         ws_message_counts: Default::default(),
@@ -180,7 +180,7 @@ fn backend_snapshot(
 #[test]
 fn tts_delivery_uses_independent_filter_surface() {
     let preferences = NotificationDeliveryPreferences {
-        notification_tts: "Always".into(),
+        notification_tts: NotificationDeliveryCondition::Always,
         ..NotificationDeliveryPreferences::default()
     };
     let game = NotificationDeliveryGameState {

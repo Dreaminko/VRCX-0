@@ -869,7 +869,7 @@ export const commands = {
         return await TAURI_INVOKE('app__feed_rows_query', { query });
     },
     async appGameLogEntriesAdd(
-        kind: string,
+        kind: GameLogWriteKind,
         entries: JsonValue[]
     ): Promise<null> {
         return await TAURI_INVOKE('app__game_log_entries_add', {
@@ -894,7 +894,7 @@ export const commands = {
         });
     },
     async appGameLogEntryDelete(
-        kind: string,
+        kind: GameLogEntryDeleteKind,
         entry: JsonValue
     ): Promise<number> {
         return await TAURI_INVOKE('app__game_log_entry_delete', {
@@ -2717,7 +2717,7 @@ export const commands = {
     },
     async appWebhookSendTest(
         url: string,
-        format: string,
+        format: NotificationWebhookFormat,
         fields: string
     ): Promise<number> {
         return await TAURI_INVOKE('app__webhook_send_test', {
@@ -2787,7 +2787,7 @@ export const commands = {
         return await TAURI_INVOKE('app__app_launcher_test_run_stop', { runId });
     },
     async appAppLauncherTargetPick(
-        kind: string
+        kind: AppLauncherTargetPickKind
     ): Promise<AppLauncherPickedTarget | null> {
         return await TAURI_INVOKE('app__app_launcher_target_pick', { kind });
     },
@@ -2956,7 +2956,7 @@ export type ActivityBucketCacheInput = {
     ownerUserId: string;
     targetUserId?: string;
     rangeDays: JsonValue;
-    viewKind: string;
+    viewKind: ActivityViewKind;
     excludeKey?: string;
     bucketVersion?: JsonValue;
     builtFromCursor?: string;
@@ -2969,7 +2969,7 @@ export type ActivityBucketCacheOutput = {
     ownerUserId: string;
     targetUserId: string;
     rangeDays: number;
-    viewKind: string;
+    viewKind: ActivityViewKind;
     excludeKey: string;
     bucketVersion: number;
     builtFromCursor: string;
@@ -2982,7 +2982,7 @@ export type ActivityBucketCacheQueryInput = {
     ownerUserId: string;
     targetUserId?: string;
     rangeDays: JsonValue;
-    viewKind: string;
+    viewKind: ActivityViewKind;
     excludeKey?: string;
 };
 export type ActivityOverlapViewBuildInput = {
@@ -3007,9 +3007,10 @@ export type ActivityOverlapViewOutput = {
     builtFromCursor: string;
     builtAt: string;
 };
+export type ActivityRefreshMode = 'full' | 'incremental' | 'expand';
 export type ActivitySelfSessionsRefreshInput = {
     userId: string;
-    mode: string;
+    mode: ActivityRefreshMode;
     rangeDays?: JsonValue;
     nowMs?: number | null;
 };
@@ -3060,6 +3061,7 @@ export type ActivityViewBuildInput = {
     nowMs: number;
     forceRefresh: boolean;
 };
+export type ActivityViewKind = 'activity' | 'overlap';
 export type ActivityViewOutput = {
     rawBuckets: number[];
     normalizedBuckets: number[];
@@ -3147,6 +3149,8 @@ export type AppLauncherSnapshot = {
 };
 export type AppLauncherSnapshotEvent = { snapshot: AppLauncherSnapshot };
 export type AppLauncherStopPolicy = 'keepRunning' | 'closeByVrcx';
+export type AppLauncherTargetPickKind = 'auto' | 'localApp';
+export type AppUpdateDeliveryKind = 'tauri' | 'manual';
 export type AppUpdateDownloadPhase =
     | 'idle'
     | 'downloading'
@@ -3182,7 +3186,7 @@ export type AppUpdateReleaseSnapshot = {
     displayVersion: string;
     manifestUrl: string;
     target: string;
-    updaterType: string;
+    updaterType: AppUpdateDeliveryKind;
 };
 export type AppUpdateStatusSnapshot = {
     hasAvailableUpdate: boolean;
@@ -3415,7 +3419,7 @@ export type BackendRuntimeSnapshot = {
     authStatus: BackendRuntimeAuthStatus;
     authUserId: string;
     authDisplayName: string;
-    wsStatus: string;
+    wsStatus: RealtimeWsStatus;
     gameLogStatus: BackendRuntimeGameLogStatus;
     processStatus: BackendRuntimeProcessStatus;
     wsMessageCounts: Partial<{ [key in string]: number }>;
@@ -4015,11 +4019,18 @@ export type FeedCursorInput = {
     sourceRank: number;
     rowId: number;
 };
+export type FeedFilter =
+    | 'GPS'
+    | 'Status'
+    | 'Bio'
+    | 'Avatar'
+    | 'Online'
+    | 'Offline';
 export type FeedLiveEntryInput = { sequence: number; entry?: RawJson };
 export type FeedLiveRowsMergeInput = {
     rows?: RawJson[];
     currentUserId?: string;
-    filters?: string[];
+    filters?: FeedFilter[];
     search?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -4030,15 +4041,16 @@ export type FeedLiveRowsMergeInput = {
     minLiveSequence?: number;
     maxRows?: number;
 };
+export type FeedQueryMode = 'search' | 'lookup' | 'instance';
 export type FeedReadModelOutput = {
     rows: FeedRowOutput[];
     maxSequence: number;
 };
 export type FeedReadModelQueryInput = {
     userId: string;
-    mode: string;
+    mode: FeedQueryMode;
     search?: string;
-    filters?: string[];
+    filters?: FeedFilter[];
     vipList?: string[];
     maxEntries?: number;
     dateFrom?: string;
@@ -4083,9 +4095,9 @@ export type FeedRowOutput = {
 };
 export type FeedRowsQueryInput = {
     userId: string;
-    mode: string;
+    mode: FeedQueryMode;
     search?: string;
-    filters?: string[];
+    filters?: FeedFilter[];
     vipList?: string[];
     excludedUserIds?: string[];
     maxEntries: number;
@@ -4093,6 +4105,7 @@ export type FeedRowsQueryInput = {
     dateTo?: string;
     cursor?: FeedCursorInput | null;
 };
+export type FileUploadStageKind = 'file' | 'signature';
 export type FriendLogCurrentOutput = {
     userId: string;
     displayName: string;
@@ -4192,6 +4205,13 @@ export type GameClientEvent =
     | { kind: 'crashRelaunchDecision'; payload: CrashRelaunchDecisionPayload }
     | { kind: 'debugLoggingOutcome'; payload: DebugLoggingOutcome }
     | { kind: 'notification'; payload: RuntimeNotificationPayload };
+export type GameLogEntryDeleteKind =
+    | 'VideoPlay'
+    | 'ResourceLoad'
+    | 'StringLoad'
+    | 'ImageLoad'
+    | 'Event'
+    | 'External';
 export type GameLogPersistenceFallbackPayload = {
     attemptedRowCount: number;
     error: string;
@@ -4270,6 +4290,17 @@ export type GameLogSideEffectEvent =
     | { kind: 'screenshotProcessed'; payload: ScreenshotProcessedPayload }
     | { kind: 'gameNoVR'; payload: GameNoVrPayload }
     | { kind: 'notification'; payload: RuntimeNotificationPayload };
+export type GameLogWriteKind =
+    | 'Location'
+    | 'LocationTime'
+    | 'JoinLeave'
+    | 'PortalSpawn'
+    | 'VideoPlay'
+    | 'ResourceLoad'
+    | 'StringLoad'
+    | 'ImageLoad'
+    | 'Event'
+    | 'External';
 export type GameNoVrPayload = { isGameNoVR: boolean };
 export type GroupBanImportItemResult = {
     userId: string;
@@ -4305,6 +4336,7 @@ export type GroupCalendarSnapshot = {
     groupNames: Partial<{ [key in string]: string }>;
     groupProfiles: Partial<{ [key in string]: JsonValue }>;
 };
+export type GroupJoinRequestAction = 'accept' | 'reject';
 export type GroupLeaveBatchInput = { groupIds?: string[] };
 export type GroupModerationBatchAction =
     | { type: 'kick' }
@@ -4394,10 +4426,11 @@ export type GroupVisibilityBatchInput = {
     groupIds?: string[];
     visibility: GroupVisibility;
 };
+export type HostArchitecture = 'x86_64' | 'aarch64' | 'unknown';
 export type HostCapabilities = {
-    platform: string;
-    arch: string;
-    linuxPackageKind: string;
+    platform: HostPlatform;
+    arch: HostArchitecture;
+    linuxPackageKind: LinuxPackageKind;
     localDatabase: CapabilityStatus;
     websocketRuntime: CapabilityStatus;
     gameLogWatcher: CapabilityStatus;
@@ -4414,6 +4447,7 @@ export type HostCapabilities = {
     vrchatLaunchPipe: CapabilityStatus;
     screenshotCache: CapabilityStatus;
 };
+export type HostPlatform = 'windows' | 'linux' | 'macos' | 'unknown';
 export type HostSessionProjection = {
     isGameRunning: boolean;
     isSteamVRRunning: boolean;
@@ -4495,6 +4529,7 @@ export type LegacyVrcxMigrationStatus = {
     configPath?: string | null;
     reason?: string | null;
 };
+export type LinuxPackageKind = 'unknown' | 'appimage' | 'deb' | 'rpm';
 export type LlmEndpointDetectModelsInput = {
     id: string | null;
     baseUrl: string | null;
@@ -4643,6 +4678,12 @@ export type McpServerStatus = {
     lastError: string | null;
     clientConfig: ClientConfigSnippets | null;
 };
+export type MediaAssetKind =
+    | 'gallery'
+    | 'icons'
+    | 'emojis'
+    | 'stickers'
+    | 'prints';
 export type MemoSaveResult = {
     entityId: string;
     editedAt: string;
@@ -4940,6 +4981,7 @@ export type NotificationV2RowOutput = {
     responses: string;
     details: string;
 };
+export type NotificationWebhookFormat = 'generic' | 'discord';
 export type NowPlayingPayload = {
     url?: string | null;
     name?: string | null;
@@ -5401,8 +5443,15 @@ export type RealtimeTransportStartResult = {
     sessionGeneration: number;
 };
 export type RealtimeUserProjection = { users: JsonValue[] };
+export type RealtimeWsStatus =
+    | 'idle'
+    | 'connecting'
+    | 'connected'
+    | 'disconnected'
+    | 'error'
+    | 'authFailure';
 export type RealtimeWsStatusPayload = {
-    status: string;
+    status: RealtimeWsStatus;
     websocketDomain: string;
     at: string;
     clientRunId?: number | null;
@@ -5466,8 +5515,9 @@ export type RuntimeJobRecordInput = {
     status: RuntimeOperationStatus;
     detail?: string;
 };
+export type RuntimeNotificationLevel = 'info' | 'warning' | 'error';
 export type RuntimeNotificationPayload = {
-    level: string;
+    level: RuntimeNotificationLevel;
     title: string;
     message: string;
 };
@@ -5756,17 +5806,18 @@ export type TelemetryClientEvent =
     | { type: 'assistantTurnError'; code: string; summary: string | null };
 export type TranslationOverrides = {
     enabled: boolean | null;
-    apiType: string | null;
+    apiType: TranslationProvider | null;
     key: string | null;
     endpointId: string | null;
     model: string | null;
     prompt: string | null;
     reasoningEffort: string | null;
 };
+export type TranslationProvider = 'google' | 'deepl' | 'openai';
 export type TranslationResult = {
     text: string;
     detectedSourceLanguage: string | null;
-    provider: string;
+    provider: TranslationProvider;
 };
 export type TranslationTranslateInput = {
     text: string;
@@ -5920,7 +5971,7 @@ export type VrchatGroupIdInput = { groupId?: string };
 export type VrchatGroupJoinRequestRespondInput = {
     groupId?: string;
     userId?: string;
-    action?: string;
+    action: GroupJoinRequestAction;
     block?: boolean;
 };
 export type VrchatGroupJoinRequestsInput = {
@@ -6055,7 +6106,7 @@ export type VrchatLogTailReadInput = {
     categories: string[] | null;
 };
 export type VrchatMediaAssetUploadInput = {
-    assetKind?: string;
+    assetKind: MediaAssetKind;
     imageData?: string;
     cropWhiteBorder?: boolean;
     params?: Partial<{ [key in string]: JsonValue }>;
@@ -6078,7 +6129,7 @@ export type VrchatMediaFilePutInput = {
 export type VrchatMediaFileUploadStageInput = {
     fileId?: string;
     version?: number;
-    kind?: string;
+    kind: FileUploadStageKind;
 };
 export type VrchatMediaFileVersionCreateInput = {
     fileId?: string;

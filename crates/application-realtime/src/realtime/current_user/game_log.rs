@@ -62,14 +62,12 @@ pub(super) fn close_remote_game_log_interval(
 pub(super) fn game_log_authority_patch(
     authority: &RealtimeCurrentUserAuthority,
 ) -> Option<Map<String, Value>> {
-    if !authority.local_game_context_available
-        || !authority.is_game_running
-        || !authority.game_log_enabled
-    {
+    if !authority.is_game_running() {
         return None;
     }
-    let game_log_location = authority.game_log_location.trim();
-    let game_log_destination = authority.game_log_destination.trim();
+    let game_log = authority.game_log()?;
+    let game_log_location = game_log.location.trim();
+    let game_log_destination = game_log.destination.trim();
     let (location, traveling_to_location) = if game_log_location.eq_ignore_ascii_case("traveling")
         && is_real_instance(game_log_destination)
     {
@@ -106,7 +104,7 @@ pub(super) fn game_log_authority_patch(
         "$travelingToLocation".into(),
         parsed_traveling.to_frontend_value(traveling_to_location),
     );
-    let world_name = authority.game_log_world_name.trim();
+    let world_name = game_log.world_name.trim();
     if !world_name.is_empty() {
         patch.insert("worldName".into(), Value::String(world_name.to_string()));
     }

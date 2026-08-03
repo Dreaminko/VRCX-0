@@ -1,5 +1,6 @@
 import { commands } from '@/platform/tauri/bindings';
 import type {
+    ModerationSyncMutationInput as ModerationSyncUpdateInput,
     ModerationSyncMutationOutput as ModerationSyncUpdateResult,
     ModerationSyncRefreshOutput as ModerationSyncRefreshResult
 } from '@/platform/tauri/bindings';
@@ -8,15 +9,6 @@ import { createRequestError } from '@/repositories/vrchatRequest';
 interface ModerationSyncRefreshInput {
     userId: string;
     endpoint?: string;
-}
-
-interface ModerationSyncUpdateInput {
-    ownerUserId?: string;
-    endpoint?: string;
-    targetUserId: string;
-    targetDisplayName?: string;
-    type: string;
-    enabled: boolean;
 }
 
 export interface ModerationSyncChange {

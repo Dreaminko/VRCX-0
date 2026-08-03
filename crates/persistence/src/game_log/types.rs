@@ -1,6 +1,30 @@
 use serde::{Deserialize, Serialize};
 use vrcx_0_core::json::RawJson;
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+pub enum GameLogWriteKind {
+    Location,
+    LocationTime,
+    JoinLeave,
+    PortalSpawn,
+    VideoPlay,
+    ResourceLoad,
+    StringLoad,
+    ImageLoad,
+    Event,
+    External,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+pub enum GameLogEntryDeleteKind {
+    VideoPlay,
+    ResourceLoad,
+    StringLoad,
+    ImageLoad,
+    Event,
+    External,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 pub struct GameLogLocationEntry {
     pub created_at: String,

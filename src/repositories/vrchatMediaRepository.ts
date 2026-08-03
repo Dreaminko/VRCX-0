@@ -4,7 +4,10 @@ import {
     queryKeys
 } from '@/lib/entityQueryCache';
 import { commands } from '@/platform/tauri/bindings';
-import type { PrintFavoriteState } from '@/platform/tauri/bindings';
+import type {
+    MediaAssetKind,
+    PrintFavoriteState
+} from '@/platform/tauri/bindings';
 import { normalizeString } from '@/shared/utils/string';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
@@ -158,7 +161,7 @@ interface LegacyImageUploadOptions {
 }
 
 interface MediaAssetUploadOptions {
-    assetKind: string;
+    assetKind: MediaAssetKind;
     cropWhiteBorder?: boolean;
     params?: MediaApiParams;
 }

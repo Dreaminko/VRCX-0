@@ -113,12 +113,12 @@ pub(crate) fn game_log_filter_flags(filters: &[String], include_extra: bool) -> 
 }
 
 pub(crate) fn game_log_batch_for_kind(
-    kind: &str,
+    kind: GameLogWriteKind,
     entries: Vec<Value>,
-) -> Result<GameLogWriteBatch, Error> {
+) -> GameLogWriteBatch {
     let mut batch = GameLogWriteBatch::default();
     match kind {
-        "Location" => {
+        GameLogWriteKind::Location => {
             batch.locations = entries
                 .into_iter()
                 .map(|entry| GameLogLocationEntry {
@@ -131,7 +131,7 @@ pub(crate) fn game_log_batch_for_kind(
                 })
                 .collect();
         }
-        "LocationTime" => {
+        GameLogWriteKind::LocationTime => {
             batch.location_time_updates = entries
                 .into_iter()
                 .map(|entry| GameLogLocationTimeUpdate {
@@ -140,7 +140,7 @@ pub(crate) fn game_log_batch_for_kind(
                 })
                 .collect();
         }
-        "JoinLeave" => {
+        GameLogWriteKind::JoinLeave => {
             batch.join_leave = entries
                 .into_iter()
                 .map(|entry| GameLogJoinLeaveEntry {
@@ -154,7 +154,7 @@ pub(crate) fn game_log_batch_for_kind(
                 })
                 .collect();
         }
-        "PortalSpawn" => {
+        GameLogWriteKind::PortalSpawn => {
             batch.portal_spawns = entries
                 .into_iter()
                 .map(|entry| GameLogPortalSpawnEntry {
@@ -167,7 +167,7 @@ pub(crate) fn game_log_batch_for_kind(
                 })
                 .collect();
         }
-        "VideoPlay" => {
+        GameLogWriteKind::VideoPlay => {
             batch.video_plays = entries
                 .into_iter()
                 .map(|entry| GameLogVideoPlayEntry {
@@ -181,7 +181,9 @@ pub(crate) fn game_log_batch_for_kind(
                 })
                 .collect();
         }
-        "ResourceLoad" | "StringLoad" | "ImageLoad" => {
+        GameLogWriteKind::ResourceLoad
+        | GameLogWriteKind::StringLoad
+        | GameLogWriteKind::ImageLoad => {
             batch.resource_loads = entries
                 .into_iter()
                 .map(|entry| GameLogResourceLoadEntry {
@@ -195,7 +197,7 @@ pub(crate) fn game_log_batch_for_kind(
                 })
                 .collect();
         }
-        "Event" => {
+        GameLogWriteKind::Event => {
             batch.events = entries
                 .into_iter()
                 .map(|entry| GameLogEventEntry {
@@ -204,7 +206,7 @@ pub(crate) fn game_log_batch_for_kind(
                 })
                 .collect();
         }
-        "External" => {
+        GameLogWriteKind::External => {
             batch.externals = entries
                 .into_iter()
                 .map(|entry| GameLogExternalEntry {
@@ -216,11 +218,6 @@ pub(crate) fn game_log_batch_for_kind(
                 })
                 .collect();
         }
-        _ => {
-            return Err(Error::InvalidData(format!(
-                "Unknown game log entry kind: {kind}"
-            )));
-        }
     }
-    Ok(batch)
+    batch
 }

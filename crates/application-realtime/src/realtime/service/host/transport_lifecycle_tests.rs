@@ -89,7 +89,7 @@ fn auth_expiry_keeps_snapshots_for_the_reconnect_attempt() -> Result<()> {
         expected.generation,
         expected.session_generation,
         &active_session,
-        "connected",
+        crate::realtime::RealtimeWsStatus::Connected,
     );
     assert_eq!(
         lifecycle.try_recv().unwrap(),

@@ -11,6 +11,8 @@ use vrcx_0_application_core::{
 use vrcx_0_application_core::{BackendRuntimeGameLogStatus, BackendRuntimeProcessStatus};
 use vrcx_0_application_core::{RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload};
 use vrcx_0_application_realtime::RealtimeTransportStartResult;
+#[cfg(test)]
+use vrcx_0_core::realtime::RealtimeWsStatus;
 
 use crate::localization::shell_locale::{
     self, AuthFailureNotificationLabels, BackgroundModeNotificationLabels, TrayLabels,
@@ -239,7 +241,7 @@ mod tests {
         phase: BackendRuntimePhase,
         auth_status: BackendRuntimeAuthStatus,
         auth_user_id: &str,
-        ws_status: &str,
+        ws_status: RealtimeWsStatus,
     ) -> BackendRuntimeSnapshot {
         BackendRuntimeSnapshot {
             mode: BackendRuntimeMode::Background,
@@ -247,7 +249,7 @@ mod tests {
             auth_status,
             auth_user_id: auth_user_id.into(),
             auth_display_name: String::new(),
-            ws_status: ws_status.into(),
+            ws_status,
             game_log_status: BackendRuntimeGameLogStatus::Idle,
             process_status: BackendRuntimeProcessStatus::Unknown,
             ws_message_counts: BTreeMap::new(),
@@ -296,7 +298,7 @@ mod tests {
             BackendRuntimePhase::Running,
             BackendRuntimeAuthStatus::Authenticated,
             "usr_1",
-            "authFailure",
+            RealtimeWsStatus::AuthFailure,
         );
         assert!(!should_show_runtime_auth_failure_notification(
             &snapshot,
@@ -355,7 +357,7 @@ mod tests {
             BackendRuntimePhase::Idle,
             BackendRuntimeAuthStatus::SignedOut,
             "",
-            "idle",
+            RealtimeWsStatus::Idle,
         );
         assert!(!should_show_backend_start_auth_notification(
             &recoverable,
@@ -366,7 +368,7 @@ mod tests {
             BackendRuntimePhase::Error,
             BackendRuntimeAuthStatus::InteractionRequired,
             "",
-            "idle",
+            RealtimeWsStatus::Idle,
         );
         assert!(should_show_backend_start_auth_notification(
             &interaction_required,
@@ -377,7 +379,7 @@ mod tests {
             BackendRuntimePhase::Idle,
             BackendRuntimeAuthStatus::SignedOut,
             "",
-            "idle",
+            RealtimeWsStatus::Idle,
         );
         assert!(should_show_backend_start_auth_notification(
             &invalid_session,

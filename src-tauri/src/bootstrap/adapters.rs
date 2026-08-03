@@ -1,8 +1,8 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use async_trait::async_trait;
 use serde::Serialize;
@@ -13,16 +13,16 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 use vrcx_0_application_core::RuntimeEventSink;
 use vrcx_0_application_core::{format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputMode};
 use vrcx_0_application_core::{
-    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetry,
-    BackendRuntimeTelemetryKind, RuntimeVrchatAuthFailurePayload,
+    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind,
+    RuntimeVrchatAuthFailurePayload,
 };
-use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_application_core::{
     Error as ApplicationError, Result as ApplicationResult, UpdaterCheckRequest,
     UpdaterDownloadOutcome, UpdaterDownloadProgress, UpdaterInstallHandle, UpdaterMetadata,
     UpdaterPort, UpdaterProgressCallback,
 };
 use vrcx_0_application_core::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
+use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_host_desktop::host_capabilities::{is_host_capability_available, HostCapability};
 use vrcx_0_runtime_host_desktop::notification::DesktopNotifier;
 use vrcx_0_runtime_host_desktop::RuntimeHostActions;
@@ -45,13 +45,8 @@ impl TauriRuntimeEventSink {
 }
 
 impl RuntimeEventSink for TauriRuntimeEventSink {
-    fn emit(
-        &self,
-        event: &str,
-        payload: serde_json::Value,
-        typed_payload: &dyn std::any::Any,
-    ) {
-        log_gui_background_runtime_info(&self.app_handle, event, &payload, typed_payload);
+    fn emit(&self, event: &str, payload: serde_json::Value, typed_payload: &dyn std::any::Any) {
+        log_gui_background_runtime_info(&self.app_handle, typed_payload);
         if let Some(failure) = typed_payload.downcast_ref::<RuntimeVrchatAuthFailurePayload>() {
             handle_runtime_auth_failure_recovery(&self.app_handle, failure);
             handle_runtime_auth_failure_notification(&self.app_handle, failure);
@@ -138,8 +133,6 @@ fn is_gui_background_runtime_hidden(app_handle: &tauri::AppHandle) -> bool {
 
 fn log_gui_background_runtime_info(
     app_handle: &tauri::AppHandle,
-    event: &str,
-    payload: &serde_json::Value,
     typed_payload: &dyn std::any::Any,
 ) {
     if typed_payload.is::<RealtimeWsStatusPayload>() {
@@ -152,7 +145,7 @@ fn log_gui_background_runtime_info(
         {
             return;
         }
-        log_runtime_output_event(RuntimeOutputMode::Background, event, payload);
+        log_runtime_output_event(RuntimeOutputMode::Background, typed_payload);
         return;
     }
 
@@ -162,7 +155,7 @@ fn log_gui_background_runtime_info(
 
     if telemetry.kind == BackendRuntimeTelemetryKind::RuntimeStopped {
         if telemetry.snapshot.mode == BackendRuntimeMode::Background {
-            log_runtime_output_event(RuntimeOutputMode::Background, event, payload);
+            log_runtime_output_event(RuntimeOutputMode::Background, typed_payload);
         }
         return;
     }
@@ -186,7 +179,7 @@ fn log_gui_background_runtime_info(
         return;
     }
 
-    log_runtime_output_event(RuntimeOutputMode::Background, event, payload);
+    log_runtime_output_event(RuntimeOutputMode::Background, typed_payload);
 }
 
 fn is_background_runtime_info_phase(phase: BackendRuntimePhase) -> bool {
@@ -198,8 +191,8 @@ fn is_background_runtime_info_phase(phase: BackendRuntimePhase) -> bool {
     )
 }
 
-fn log_runtime_output_event(mode: RuntimeOutputMode, event: &str, payload: &serde_json::Value) {
-    let Some(line) = format_runtime_output_event(mode, event, payload) else {
+fn log_runtime_output_event(mode: RuntimeOutputMode, payload: &dyn std::any::Any) {
+    let Some(line) = format_runtime_output_event(mode, payload) else {
         return;
     };
     match line.level {

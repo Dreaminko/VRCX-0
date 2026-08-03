@@ -3,8 +3,8 @@ use std::time::{Duration, Instant};
 
 use super::{
     current_user_from_cookie, run_background_group_instance_refresh, AuthenticatedRuntimeSession,
-    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, BackendStartGuard,
-    BackendRuntimeTelemetryKind, BackgroundTickContext, CliLoginPrompt, NonInteractiveAuthError,
+    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, BackendRuntimeTelemetryKind,
+    BackendStartGuard, BackgroundTickContext, CliLoginPrompt, NonInteractiveAuthError,
     PrintCleanupDeps, PrintCleanupTrigger, Result, RuntimeHostProfile, RuntimeHostState,
 };
 
@@ -28,13 +28,12 @@ impl RuntimeHostState {
         if let Some(extension) = &self.profile_extension {
             extension.stop_profile_services();
         }
-        self.backend_runtime.set_ws_status("idle");
-        self.backend_runtime.set_game_log_status(
-            vrcx_0_application_core::BackendRuntimeGameLogStatus::Idle,
-        );
-        self.backend_runtime.set_process_status(
-            vrcx_0_application_core::BackendRuntimeProcessStatus::Unknown,
-        );
+        self.backend_runtime
+            .set_ws_status(vrcx_0_core::realtime::RealtimeWsStatus::Idle);
+        self.backend_runtime
+            .set_game_log_status(vrcx_0_application_core::BackendRuntimeGameLogStatus::Idle);
+        self.backend_runtime
+            .set_process_status(vrcx_0_application_core::BackendRuntimeProcessStatus::Unknown);
         self.backend_runtime.set_phase(BackendRuntimePhase::Idle);
         self.emit_backend_runtime_telemetry(BackendRuntimeTelemetryKind::RuntimeStopped, reason);
         self.backend_runtime.snapshot()

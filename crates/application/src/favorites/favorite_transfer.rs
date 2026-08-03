@@ -720,7 +720,7 @@ fn add_local_favorite(
     let affected = vrcx_0_persistence::favorites::favorite_add(
         deps.db,
         Some(deps.owner_user_id),
-        input.kind.as_str().to_string(),
+        input.kind,
         normalize_text(&item.entity_id),
         normalize_text(&input.target.group),
     )?;
@@ -744,7 +744,7 @@ fn add_local_fallback_favorite(
     let affected = vrcx_0_persistence::favorites::favorite_add(
         deps.db,
         Some(deps.owner_user_id),
-        input.kind.as_str().to_string(),
+        input.kind,
         normalize_text(&item.entity_id),
         FAVORITE_RECOVERED_GROUP.to_string(),
     )?;
@@ -762,7 +762,7 @@ fn delete_local_favorite(
     Ok(vrcx_0_persistence::favorites::favorite_remove(
         deps.db,
         Some(deps.owner_user_id),
-        input.kind.as_str().to_string(),
+        input.kind,
         normalize_text(&item.entity_id),
         normalize_text(&input.source.group),
     )?)
@@ -776,7 +776,7 @@ fn move_local_favorite(
     let result = vrcx_0_persistence::favorites::favorite_move(
         deps.db,
         Some(deps.owner_user_id),
-        input.kind.as_str().to_string(),
+        input.kind,
         normalize_text(&item.entity_id),
         normalize_text(&input.source.group),
         normalize_text(&input.target.group),

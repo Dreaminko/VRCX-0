@@ -131,7 +131,11 @@ pub(crate) fn local_favorite_friend_groups_from_db(
     db: &vrcx_0_persistence::DatabaseService,
     owner_user_id: &str,
 ) -> std::result::Result<FavoriteFriendGroupsSnapshot, vrcx_0_persistence::Error> {
-    let rows = favorite_list(db, Some(owner_user_id), "friend".to_string())?;
+    let rows = favorite_list(
+        db,
+        Some(owner_user_id),
+        vrcx_0_core::FavoriteEntityKind::Friend,
+    )?;
     let mut groups_by_key: HashMap<String, Vec<String>> = HashMap::new();
     for row in rows {
         let user_id = row.user_id.unwrap_or_default();

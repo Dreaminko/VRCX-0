@@ -28,8 +28,9 @@ pub use auth_webhook::{
     send_auth_webhook, AuthWebhookEvent, AuthWebhookEventKind,
 };
 pub use delivery::{
-    decide_notification_plan, NotificationDeliveryGameState, NotificationDeliveryPlan,
-    NotificationDeliveryPreferences,
+    decide_notification_plan, NotificationDeliveryCondition, NotificationDeliveryGameState,
+    NotificationDeliveryPlan, NotificationDeliveryPreferences, NotificationTtsNameMode,
+    NotificationWebhookFormat,
 };
 pub use enrichment::{
     delivery_actor_image_user_id, resolve_delivery_actor_image, resolve_delivery_world_name,

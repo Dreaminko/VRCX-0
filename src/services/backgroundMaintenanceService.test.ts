@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { AppUpdateDeliveryKind } from '@/platform/tauri/bindings';
+
 const mocks = vi.hoisted(() => ({
     getConfigString: vi.fn(),
     setConfigString: vi.fn(),
@@ -70,7 +72,7 @@ type ReleaseSnapshotFixture = {
     displayVersion: string;
     manifestUrl: string;
     target: string;
-    updaterType: string;
+    updaterType: AppUpdateDeliveryKind;
 };
 
 const TAURI_RELEASE_SNAPSHOT: ReleaseSnapshotFixture = {

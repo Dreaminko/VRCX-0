@@ -10,7 +10,7 @@ use vrcx_0_persistence::activity::{
     activity_self_sessions_warmup, activity_sessions_replace, activity_sync_state_get,
     activity_sync_state_upsert, activity_view_build, ActivityBucketCacheInput,
     ActivityBucketCacheQueryInput, ActivityOverlapViewBuildInput, ActivitySessionInput,
-    ActivitySyncStateInput, ActivityViewBuildInput, ActivityViewOutput,
+    ActivitySyncStateInput, ActivityViewBuildInput, ActivityViewKind, ActivityViewOutput,
 };
 use vrcx_0_persistence::feed::feed_add_entry;
 use vrcx_0_persistence::game_log::{write_batch, GameLogLocationEntry, GameLogWriteBatch};
@@ -148,7 +148,7 @@ fn self_activity_warmup_prepares_a_year_without_bucket_cache() {
             owner_user_id: owner.to_string(),
             target_user_id: String::new(),
             range_days: json!(365),
-            view_kind: "activity".to_string(),
+            view_kind: ActivityViewKind::Activity,
             exclude_key: String::new(),
         },
     )
@@ -231,7 +231,7 @@ fn activity_view_build_returns_matching_cached_self_view() {
             owner_user_id: owner.to_string(),
             target_user_id: String::new(),
             range_days: json!(7),
-            view_kind: "activity".to_string(),
+            view_kind: ActivityViewKind::Activity,
             exclude_key: String::new(),
             bucket_version: json!(1),
             built_from_cursor: "self-cursor".to_string(),
@@ -364,7 +364,7 @@ fn activity_view_build_friend_rebuilds_legacy_cache_without_has_any_data() {
             owner_user_id: owner.to_string(),
             target_user_id: friend.to_string(),
             range_days: json!(7),
-            view_kind: "activity".to_string(),
+            view_kind: ActivityViewKind::Activity,
             exclude_key: String::new(),
             bucket_version: json!(1),
             built_from_cursor: "2025-01-05T02:00:00Z".to_string(),
@@ -394,7 +394,7 @@ fn activity_view_build_friend_rebuilds_legacy_cache_without_has_any_data() {
             owner_user_id: owner.to_string(),
             target_user_id: friend.to_string(),
             range_days: json!(7),
-            view_kind: "activity".to_string(),
+            view_kind: ActivityViewKind::Activity,
             exclude_key: String::new(),
         },
     )
@@ -457,7 +457,7 @@ fn activity_view_build_computes_friend_presence_and_writes_cache() {
             owner_user_id: owner.to_string(),
             target_user_id: friend.to_string(),
             range_days: json!(7),
-            view_kind: "activity".to_string(),
+            view_kind: ActivityViewKind::Activity,
             exclude_key: String::new(),
         },
     )
@@ -508,7 +508,7 @@ fn activity_overlap_view_build_uses_pair_cursor_and_exclude_key() {
             owner_user_id: owner.to_string(),
             target_user_id: friend.to_string(),
             range_days: json!(7),
-            view_kind: "overlap".to_string(),
+            view_kind: ActivityViewKind::Overlap,
             exclude_key: "22-2".to_string(),
         },
     )
@@ -549,7 +549,7 @@ fn activity_view_build_all_range_resolves_friend_span_and_uses_sentinel_cache() 
             owner_user_id: owner.to_string(),
             target_user_id: friend.to_string(),
             range_days: json!(0),
-            view_kind: "activity".to_string(),
+            view_kind: ActivityViewKind::Activity,
             exclude_key: String::new(),
         },
     )
@@ -601,7 +601,7 @@ fn activity_view_build_all_range_backfills_old_self_gamelog() {
             owner_user_id: owner.to_string(),
             target_user_id: String::new(),
             range_days: json!(0),
-            view_kind: "activity".to_string(),
+            view_kind: ActivityViewKind::Activity,
             exclude_key: String::new(),
         },
     )

@@ -18,7 +18,7 @@ use vrcx_0_persistence::DatabaseService;
 
 use crate::realtime::{
     RealtimeSessionContext, RealtimeTransportTermination, RealtimeWsMessagePayload,
-    RealtimeWsStatusPayload,
+    RealtimeWsStatus, RealtimeWsStatusPayload,
 };
 use vrcx_0_application_core::Error;
 use vrcx_0_application_core::RuntimeEventBus;
@@ -58,7 +58,7 @@ struct RealtimeStatusEvent<'a> {
     client_run_id: u64,
     generation: u64,
     session_generation: u64,
-    status: &'a str,
+    status: RealtimeWsStatus,
     websocket_domain: &'a str,
 }
 
@@ -68,7 +68,7 @@ pub trait RealtimeMessageSink: Send + Sync {
         _generation: u64,
         _session_generation: u64,
         _session: &RealtimeSessionContext,
-        _status: &str,
+        _status: RealtimeWsStatus,
     ) {
     }
 
@@ -201,7 +201,7 @@ async fn run_realtime_transport_inner(
         generation,
         session_generation,
         &session,
-        "connecting",
+        RealtimeWsStatus::Connecting,
     );
     emit_status(
         &event_bus,
@@ -209,7 +209,7 @@ async fn run_realtime_transport_inner(
             client_run_id,
             generation,
             session_generation,
-            status: "connecting",
+            status: RealtimeWsStatus::Connecting,
             websocket_domain: &websocket_domain,
         },
     );
@@ -333,7 +333,7 @@ fn stopped_transport(
             client_run_id,
             generation,
             session_generation,
-            status: "disconnected",
+            status: RealtimeWsStatus::Disconnected,
             websocket_domain,
         },
     );
@@ -399,7 +399,7 @@ async fn connect_once(
         attempt.generation,
         attempt.session_generation,
         attempt.session,
-        "connected",
+        RealtimeWsStatus::Connected,
     );
     emit_status(
         attempt.event_bus,
@@ -407,7 +407,7 @@ async fn connect_once(
             client_run_id: attempt.client_run_id,
             generation: attempt.generation,
             session_generation: attempt.session_generation,
-            status: "connected",
+            status: RealtimeWsStatus::Connected,
             websocket_domain: &websocket_domain,
         },
     );
@@ -564,7 +564,7 @@ fn is_cancelled(cancel_rx: &watch::Receiver<u64>, generation: u64) -> bool {
 
 fn emit_status(event_bus: &RuntimeEventBus, event: RealtimeStatusEvent<'_>) {
     event_bus.emit_realtime_ws_status(RealtimeWsStatusPayload {
-        status: event.status.to_string(),
+        status: event.status,
         websocket_domain: event.websocket_domain.to_string(),
         at: Utc::now().to_rfc3339(),
         client_run_id: Some(event.client_run_id),

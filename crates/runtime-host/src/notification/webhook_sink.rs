@@ -1,5 +1,5 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::sync::Arc;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use vrcx_0_application_activity::{
     OverlayActivityDelivery, OverlayActivitySink, OverlayActivitySnapshot,
@@ -15,18 +15,12 @@ use super::preferences::{load_webhook_preferences, NotificationWebhookPreference
 use super::webhook::discord_webhook_url_with_wait;
 use super::{
     config_bool, load_notification_locale, render_delivery, resolve_delivery_world_name,
-    send_json_webhook_with_retry, UserImageCache,
+    send_json_webhook_with_retry, NotificationWebhookFormat, UserImageCache,
 };
 
 const NOTIFICATION_WEBHOOK_QUEUE_CAPACITY: usize = 64;
 const NOTIFICATION_WEBHOOK_STOP_POLL_INTERVAL: std::time::Duration =
     std::time::Duration::from_millis(50);
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum NotificationWebhookFormat {
-    Generic,
-    Discord,
-}
 
 fn select_notification_webhook_format(
     preferences: &NotificationWebhookPreferences,
@@ -34,11 +28,7 @@ fn select_notification_webhook_format(
     if !preferences.enabled || preferences.url.trim().is_empty() {
         return None;
     }
-    Some(if preferences.format == "discord" {
-        NotificationWebhookFormat::Discord
-    } else {
-        NotificationWebhookFormat::Generic
-    })
+    Some(preferences.format)
 }
 
 pub(crate) struct NotificationWebhookSink {
@@ -239,7 +229,7 @@ mod tests {
             Some(NotificationWebhookFormat::Generic)
         );
 
-        preferences.format = "discord".into();
+        preferences.format = NotificationWebhookFormat::Discord;
         assert_eq!(
             select_notification_webhook_format(&preferences),
             Some(NotificationWebhookFormat::Discord)
@@ -261,7 +251,7 @@ mod tests {
         NotificationWebhookPreferences {
             enabled: true,
             url: "https://example.com/webhook".into(),
-            format: "generic".into(),
+            format: NotificationWebhookFormat::Generic,
             fields: Vec::new(),
             show_instance_id_in_location: false,
         }

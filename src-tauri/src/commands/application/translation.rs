@@ -3,7 +3,7 @@
 use tauri::State;
 use vrcx_0_application::{
     resolved_openai_translation_endpoint_id, translate_text, OpenAiTranslationRequest,
-    TranslationDispatch, TranslationResult, TranslationTranslateInput,
+    TranslationDispatch, TranslationProvider, TranslationResult, TranslationTranslateInput,
 };
 use vrcx_0_harness::LlmTranslateInput;
 
@@ -61,6 +61,6 @@ async fn translate_via_openai(
     Ok(TranslationResult {
         text: translated,
         detected_source_language: None,
-        provider: "openai".into(),
+        provider: TranslationProvider::OpenAi,
     })
 }

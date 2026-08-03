@@ -4,7 +4,7 @@ use vrcx_0_application_activity::OverlayActivityDelivery;
 use vrcx_0_host_desktop::tts::TtsEngine;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_runtime_host::notification::{
-    notification_tts_name_mode, render_delivery, NotificationDeliveryPreferences, OverlayLocale,
+    render_delivery, NotificationDeliveryPreferences, NotificationTtsNameMode, OverlayLocale,
     RenderedNotification,
 };
 
@@ -34,8 +34,8 @@ pub(super) fn notification_tts_text(
     } else {
         Cow::Borrowed(render)
     };
-    let name_mode = notification_tts_name_mode(&preferences.notification_tts_name_mode);
-    if name_mode == "username" {
+    let name_mode = preferences.notification_tts_name_mode;
+    if name_mode == NotificationTtsNameMode::Username {
         return render.text.clone();
     }
     let title = render.title.trim();
@@ -47,9 +47,9 @@ pub(super) fn notification_tts_text(
         return render.text.clone();
     };
     let replacement = match name_mode {
-        "note" => memo_first_line,
-        "usernameAndNote" => format!("{title}, {memo_first_line}"),
-        _ => return render.text.clone(),
+        NotificationTtsNameMode::Note => memo_first_line,
+        NotificationTtsNameMode::UsernameAndNote => format!("{title}, {memo_first_line}"),
+        NotificationTtsNameMode::Username => return render.text.clone(),
     };
     render.text.replacen(title, &replacement, 1)
 }

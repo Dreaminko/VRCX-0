@@ -1,6 +1,6 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashSet;
 use std::sync::Arc;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use serde_json::{json, Value};
 use vrcx_0_application_core::{Error, LocalGameContextSnapshot, Result};
@@ -140,7 +140,7 @@ impl RealtimeHostRuntime {
         };
 
         let latest_location = self.current_invite_location_facts(&session);
-        if latest_location.current_location != instance_id || !latest_location.is_game_running {
+        if latest_location.current_location() != instance_id || !latest_location.is_game_running() {
             self.record_invite_automation_skip(
                 InviteAutomationSkipReason::MissingCurrentSessionOrLocation,
             );
@@ -211,20 +211,13 @@ impl RealtimeHostRuntime {
             .lock()
             .map(|state| state.automation.invite.closed_locations())
             .unwrap_or_default();
-        let (local_game_context_available, is_game_running, current_location) =
-            match local_game_context {
-                LocalGameContextSnapshot::Unavailable => (false, false, String::new()),
-                LocalGameContextSnapshot::Available {
-                    is_game_running,
-                    location,
-                    ..
-                } => (true, is_game_running, location.trim().to_string()),
-            };
+        let current_location = match &local_game_context {
+            LocalGameContextSnapshot::Unavailable => String::new(),
+            LocalGameContextSnapshot::Available { location, .. } => location.trim().to_string(),
+        };
         InviteLocationFacts {
-            local_game_context_available,
-            is_game_running,
+            local_game_context,
             last_location: current_location.clone(),
-            current_location,
             current_user_id: session.user_id.clone(),
             closed_locations,
         }

@@ -2,9 +2,11 @@ pub mod activity_buckets;
 pub mod activity_heatmap;
 pub mod activity_sessions;
 pub mod avatar;
+pub mod favorite_kind;
 pub mod friends;
 pub mod game_log_sessions;
 pub mod game_process;
+pub mod group;
 pub mod image_sniff;
 pub mod json;
 pub mod location;
@@ -20,3 +22,6 @@ pub mod vrchat_endpoints;
 pub mod vrchat_ids;
 pub mod vrchat_log_reader;
 pub mod vrchat_registry_policy;
+
+pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind};
+pub use group::GroupJoinRequestAction;

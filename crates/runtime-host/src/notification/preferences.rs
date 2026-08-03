@@ -1,12 +1,15 @@
 use vrcx_0_persistence::config::ConfigRepository;
 
 use super::generic_webhook::{default_webhook_fields, is_default_webhook_field};
-use super::NotificationDeliveryPreferences;
+use super::{
+    NotificationDeliveryCondition, NotificationDeliveryPreferences, NotificationTtsNameMode,
+    NotificationWebhookFormat,
+};
 
 pub(super) struct NotificationWebhookPreferences {
     pub enabled: bool,
     pub url: String,
-    pub format: String,
+    pub format: NotificationWebhookFormat,
     pub fields: Vec<String>,
     pub show_instance_id_in_location: bool,
 }
@@ -17,7 +20,11 @@ pub(super) fn load_webhook_preferences(
     NotificationWebhookPreferences {
         enabled: config_bool(config, "webhookEnabled", false),
         url: config_string(config, "webhookUrl", ""),
-        format: normalize_webhook_format(&config_string(config, "webhookFormat", "generic")),
+        format: NotificationWebhookFormat::from_config(&config_string(
+            config,
+            "webhookFormat",
+            "generic",
+        )),
         fields: parse_webhook_fields(&config_string(config, "webhookFields", "")),
         show_instance_id_in_location: config_bool(config, "VRCX_showInstanceIdInLocation", false),
     }
@@ -25,9 +32,17 @@ pub(super) fn load_webhook_preferences(
 
 pub fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPreferences {
     NotificationDeliveryPreferences {
-        desktop_toast: config_string(config, "desktopToast", "Never"),
+        desktop_toast: NotificationDeliveryCondition::from_config(&config_string(
+            config,
+            "desktopToast",
+            "Never",
+        )),
         desktop_notification_sound: config_bool(config, "desktopNotificationSound", false),
-        notification_tts: config_string(config, "notificationTTS", "Never"),
+        notification_tts: NotificationDeliveryCondition::from_config(&config_string(
+            config,
+            "notificationTTS",
+            "Never",
+        )),
         notification_tts_name_mode: config_tts_name_mode(config),
         notification_tts_voice_native: config_string(config, "notificationTTSVoiceNative", ""),
         xs_notifications: config_bool_with_legacy(config, "xsNotifications", false),
@@ -38,7 +53,7 @@ pub fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPrefer
         notification_opacity_percent: config_int_with_legacy(config, "notificationOpacity", 100),
         webhook_enabled: config_bool(config, "webhookEnabled", false),
         webhook_url: config_string(config, "webhookUrl", ""),
-        webhook_format: normalize_webhook_format(&config_string(
+        webhook_format: NotificationWebhookFormat::from_config(&config_string(
             config,
             "webhookFormat",
             "generic",
@@ -48,17 +63,16 @@ pub fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPrefer
     }
 }
 
-pub fn config_tts_name_mode(config: &ConfigRepository) -> String {
+pub fn config_tts_name_mode(config: &ConfigRepository) -> NotificationTtsNameMode {
     let configured = config_string(config, "notificationTTSNameMode", "");
     if !configured.trim().is_empty() {
-        return notification_tts_name_mode(&configured).into();
+        return notification_tts_name_mode(&configured);
     }
     if config_bool(config, "notificationTTSNickName", false) {
-        "note"
+        NotificationTtsNameMode::Note
     } else {
-        "username"
+        NotificationTtsNameMode::Username
     }
-    .into()
 }
 
 fn config_string(config: &ConfigRepository, key: &str, default_value: &str) -> String {
@@ -129,14 +143,6 @@ fn legacy_overlay_notification_key(key: &str) -> Option<&'static str> {
     }
 }
 
-fn normalize_webhook_format(value: &str) -> String {
-    if value == "discord" {
-        "discord".into()
-    } else {
-        "generic".into()
-    }
-}
-
 pub fn parse_webhook_fields(value: &str) -> Vec<String> {
     let fields = value.trim();
     if fields.is_empty() {
@@ -161,11 +167,11 @@ pub fn parse_webhook_fields(value: &str) -> Vec<String> {
     }
 }
 
-pub fn notification_tts_name_mode(value: &str) -> &'static str {
+pub fn notification_tts_name_mode(value: &str) -> NotificationTtsNameMode {
     match value {
-        "note" => "note",
-        "usernameAndNote" => "usernameAndNote",
-        _ => "username",
+        "note" => NotificationTtsNameMode::Note,
+        "usernameAndNote" => NotificationTtsNameMode::UsernameAndNote,
+        _ => NotificationTtsNameMode::Username,
     }
 }
 

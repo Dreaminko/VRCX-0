@@ -272,7 +272,7 @@ impl ConsoleRuntimeEventSink {
 }
 
 impl RuntimeEventSink for ConsoleRuntimeEventSink {
-    fn emit(&self, event: &str, payload: Value, typed_payload: &dyn std::any::Any) {
+    fn emit(&self, _event: &str, _payload: Value, typed_payload: &dyn std::any::Any) {
         let allow_during_shutdown = is_runtime_stopped_event(typed_payload);
         let _guard = self
             .output_lock
@@ -282,8 +282,7 @@ impl RuntimeEventSink for ConsoleRuntimeEventSink {
             return;
         }
 
-        let Some(output) =
-            format_runtime_output_event(RuntimeOutputMode::Headless, event, &payload)
+        let Some(output) = format_runtime_output_event(RuntimeOutputMode::Headless, typed_payload)
         else {
             return;
         };

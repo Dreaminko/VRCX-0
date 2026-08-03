@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use serde_json::Value;
+use vrcx_0_core::GroupJoinRequestAction;
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -156,8 +157,7 @@ pub struct VrchatGroupJoinRequestRespondInput {
     pub(super) group_id: String,
     #[serde(default)]
     pub(super) user_id: String,
-    #[serde(default)]
-    pub(super) action: String,
+    pub(super) action: GroupJoinRequestAction,
     #[serde(default)]
     pub(super) block: bool,
 }

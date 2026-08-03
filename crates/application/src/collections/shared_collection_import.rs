@@ -143,7 +143,7 @@ impl SharedCollectionImportActions for VrchatSharedCollectionImportActions<'_> {
         favorite_add(
             self.db,
             None,
-            "world".into(),
+            FavoriteEntityKind::World,
             world_id.to_string(),
             group_name.to_string(),
         )?;

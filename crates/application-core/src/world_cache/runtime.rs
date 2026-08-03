@@ -326,7 +326,7 @@ impl WorldCache {
     }
 
     fn load_favorite_ids(&self) -> HashSet<String> {
-        match favorite_list(self.db.as_ref(), None, "world".into()) {
+        match favorite_list(self.db.as_ref(), None, crate::FavoriteEntityKind::World) {
             Ok(rows) => rows
                 .into_iter()
                 .filter_map(|row| row.world_id.map(|id| normalize_id(&id)))
@@ -628,7 +628,7 @@ mod tests {
         favorite_add(
             db.as_ref(),
             None,
-            "world".into(),
+            crate::FavoriteEntityKind::World,
             "wrld_unknown".into(),
             "Favorites".into(),
         )

@@ -19,11 +19,10 @@ use super::repository::{
 use super::types::{
     ActivityBucketCacheInput, ActivityBucketCacheOutput, ActivityBucketCacheQueryInput,
     ActivityFriendPresenceSliceInput, ActivityOverlapViewBuildInput, ActivityOverlapViewOutput,
-    ActivitySelfSessionsRefreshOutput, ActivityViewBuildInput, ActivityViewOutput,
+    ActivitySelfSessionsRefreshOutput, ActivityViewBuildInput, ActivityViewKind,
+    ActivityViewOutput,
 };
 
-const ACTIVITY_VIEW_KIND: &str = "activity";
-const OVERLAP_VIEW_KIND: &str = "overlap";
 const BUCKET_COUNT: usize = 168;
 const DEFAULT_MAX_SESSION_MS: i64 = 8 * 60 * 60 * 1000;
 const DAY_MS: i64 = 86_400_000;
@@ -322,7 +321,7 @@ fn cached_activity_output(
         owner_user_id,
         target_user_id,
         range_days,
-        ACTIVITY_VIEW_KIND,
+        ActivityViewKind::Activity,
         "",
         cursor,
     )?
@@ -365,7 +364,7 @@ fn cached_overlap_output(
         owner_user_id,
         target_user_id,
         range_days,
-        OVERLAP_VIEW_KIND,
+        ActivityViewKind::Overlap,
         exclude_key,
         cursor,
     )?
@@ -409,7 +408,7 @@ fn upsert_activity_output_cache(
             owner_user_id: owner_user_id.to_string(),
             target_user_id: target_user_id.to_string(),
             range_days: json!(range_days),
-            view_kind: ACTIVITY_VIEW_KIND.to_string(),
+            view_kind: ActivityViewKind::Activity,
             exclude_key: String::new(),
             bucket_version: json!(1),
             built_from_cursor: output.built_from_cursor.clone(),
@@ -441,7 +440,7 @@ fn upsert_overlap_output_cache(
             owner_user_id: owner_user_id.to_string(),
             target_user_id: target_user_id.to_string(),
             range_days: json!(range_days),
-            view_kind: OVERLAP_VIEW_KIND.to_string(),
+            view_kind: ActivityViewKind::Overlap,
             exclude_key: exclude_key.to_string(),
             bucket_version: json!(1),
             built_from_cursor: output.built_from_cursor.clone(),
@@ -491,7 +490,7 @@ fn matching_cached_bucket(
     owner_user_id: &str,
     target_user_id: &str,
     range_days: i64,
-    view_kind: &str,
+    view_kind: ActivityViewKind,
     exclude_key: &str,
     cursor: &str,
 ) -> Result<Option<ActivityBucketCacheOutput>, Error> {
@@ -501,7 +500,7 @@ fn matching_cached_bucket(
             owner_user_id: owner_user_id.to_string(),
             target_user_id: target_user_id.to_string(),
             range_days: json!(range_days),
-            view_kind: view_kind.to_string(),
+            view_kind,
             exclude_key: exclude_key.to_string(),
         },
     )?;

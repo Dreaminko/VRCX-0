@@ -12,7 +12,7 @@ use crate::RuntimeEventBus;
 use crate::RuntimeGameEventBusExt;
 use crate::{
     CrashRelaunchDecisionPayload, GameClientEvent, RuntimeGameLogEventPayload,
-    RuntimeNotificationPayload,
+    RuntimeNotificationLevel, RuntimeNotificationPayload,
 };
 use crate::{Error, Result};
 use crate::{HostSessionRuntime, RuntimeAuthScope, TaskSupervisor};
@@ -256,7 +256,7 @@ impl GameClientProcessor {
         self.deps
             .event_bus
             .emit_game_client_event(GameClientEvent::Notification(RuntimeNotificationPayload {
-                level: "info".into(),
+                level: RuntimeNotificationLevel::Info,
                 title: "VRChat cache swept".into(),
                 message: if removed_count > 0 {
                     format!("Removed {removed_count} cache entries.")
@@ -293,7 +293,7 @@ impl GameClientProcessor {
                 .event_bus
                 .emit_game_client_event(GameClientEvent::Notification(
                 RuntimeNotificationPayload {
-                    level: "error".into(),
+                    level: RuntimeNotificationLevel::Error,
                     title: "VRChat relaunch failed".into(),
                     message:
                         "Failed to find VRChat. Configure a custom launch path in launch options."
@@ -369,7 +369,7 @@ impl GameClientProcessor {
         self.deps
             .event_bus
             .emit_game_client_event(GameClientEvent::Notification(RuntimeNotificationPayload {
-                level: "warning".into(),
+                level: RuntimeNotificationLevel::Warning,
                 title: "VRChat crash detected".into(),
                 message: CRASH_RELAUNCH_MESSAGE.into(),
             }));

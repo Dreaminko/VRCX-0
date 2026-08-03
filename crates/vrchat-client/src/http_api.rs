@@ -26,7 +26,37 @@ pub enum ApiScope {
 #[derive(Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiResponsePolicy {
-    pub class: &'static str,
+    pub class: ApiResponseClass,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ApiResponseClass {
+    Ok,
+    Auth,
+    RateLimited,
+    ClientError,
+    ServerError,
+    Unknown,
+}
+
+impl ApiResponseClass {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Auth => "auth",
+            Self::RateLimited => "rateLimited",
+            Self::ClientError => "clientError",
+            Self::ServerError => "serverError",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
+impl std::fmt::Display for ApiResponseClass {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.as_str())
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -171,12 +201,12 @@ fn api_message_text(value: Option<&Value>) -> Option<String> {
 
 pub fn classify_api_response(status: i32) -> ApiResponsePolicy {
     let class = match status {
-        200..=299 => "ok",
-        401 => "auth",
-        429 => "rateLimited",
-        400..=499 => "clientError",
-        500..=599 => "serverError",
-        _ => "unknown",
+        200..=299 => ApiResponseClass::Ok,
+        401 => ApiResponseClass::Auth,
+        429 => ApiResponseClass::RateLimited,
+        400..=499 => ApiResponseClass::ClientError,
+        500..=599 => ApiResponseClass::ServerError,
+        _ => ApiResponseClass::Unknown,
     };
     ApiResponsePolicy { class }
 }
@@ -708,20 +738,23 @@ mod tests {
     #[test]
     fn classifies_success_redirect_auth_and_rate_limit_statuses_for_http_policy() {
         for status in [200, 204, 299] {
-            assert_eq!(classify_api_response(status).class, "ok");
+            assert_eq!(classify_api_response(status).class, ApiResponseClass::Ok);
         }
         for status in [300, 302, 399] {
-            assert_eq!(classify_api_response(status).class, "unknown");
+            assert_eq!(
+                classify_api_response(status).class,
+                ApiResponseClass::Unknown
+            );
         }
 
         let auth = classify_api_response(401);
-        assert_eq!(auth.class, "auth");
+        assert_eq!(auth.class, ApiResponseClass::Auth);
 
         let forbidden = classify_api_response(403);
-        assert_eq!(forbidden.class, "clientError");
+        assert_eq!(forbidden.class, ApiResponseClass::ClientError);
 
         let classified = classify_api_response(429);
-        assert_eq!(classified.class, "rateLimited");
+        assert_eq!(classified.class, ApiResponseClass::RateLimited);
         assert_eq!(
             serde_json::to_value(classified).unwrap(),
             json!({ "class": "rateLimited" })

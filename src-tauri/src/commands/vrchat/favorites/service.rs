@@ -247,9 +247,13 @@ pub fn app__local_favorite_group_create(
         group_name,
     )
     .map_err(AppError::from)?;
-    state
-        .realtime_runtime
-        .notify_favorites_changed(kind.into(), true, false);
+    state.realtime_runtime.notify_favorites_changed(
+        vrcx_0_application_core::FavoritesChangedPayload {
+            kind: kind.into(),
+            local: true,
+            remote: false,
+        },
+    );
     Ok(write)
 }
 
@@ -277,9 +281,13 @@ pub fn app__local_favorite_group_rename(
         new_group_name,
     )
     .map_err(AppError::from)?;
-    state
-        .realtime_runtime
-        .notify_favorites_changed(kind.into(), true, false);
+    state.realtime_runtime.notify_favorites_changed(
+        vrcx_0_application_core::FavoritesChangedPayload {
+            kind: kind.into(),
+            local: true,
+            remote: false,
+        },
+    );
     Ok(write)
 }
 
@@ -302,8 +310,12 @@ pub fn app__local_favorite_group_delete(
         group_name,
     )
     .map_err(AppError::from)?;
-    state
-        .realtime_runtime
-        .notify_favorites_changed(kind.into(), true, false);
+    state.realtime_runtime.notify_favorites_changed(
+        vrcx_0_application_core::FavoritesChangedPayload {
+            kind: kind.into(),
+            local: true,
+            remote: false,
+        },
+    );
     Ok(write)
 }

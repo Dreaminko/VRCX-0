@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use vrcx_0_application_core::{
     vrchat_api::{self, VrchatApiRequest, VrchatApiResponse, VrchatScope},
-    FavoriteChangeScope, RuntimeDiagnostics, RuntimeSyncEngine, VrchatFavoriteType, WebClient,
+    FavoriteChangeScope, FavoritesChangedPayload, RuntimeDiagnostics, RuntimeSyncEngine,
+    VrchatFavoriteType, WebClient,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_persistence::DatabaseService;
@@ -59,7 +60,7 @@ pub struct FavoriteRemoteGroupClearInput {
 }
 
 fn should_notify_favorite_change(status: i32) -> bool {
-    vrchat_api::classify_api_response(status).class == "ok"
+    vrchat_api::classify_api_response(status).class == vrchat_api::ApiResponseClass::Ok
 }
 
 async fn execute_remote_favorite_mutation(
@@ -81,7 +82,11 @@ async fn execute_remote_favorite_mutation(
     .await?;
     if should_notify_favorite_change(response.status) {
         deps.realtime
-            .notify_favorites_changed(notification_scope, false, true);
+            .notify_favorites_changed(FavoritesChangedPayload {
+                kind: notification_scope,
+                local: false,
+                remote: true,
+            });
     }
     Ok(response)
 }

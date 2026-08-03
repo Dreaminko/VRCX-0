@@ -1,5 +1,6 @@
 import {
     commands,
+    type GameLogWriteKind,
     type InstanceHistoryEntryOutput
 } from '@/platform/tauri/bindings';
 import {
@@ -12,7 +13,7 @@ import {
     hasWorldIdPrefix
 } from '@/shared/constants/vrchatIds';
 
-type GameLogKind = 'Event' | 'External';
+type GameLogKind = Extract<GameLogWriteKind, 'Event' | 'External'>;
 
 type GameLogParams = Record<string, unknown>;
 type GameLogEntry = Record<string, unknown>;
@@ -659,10 +660,11 @@ const gameLog = {
     },
 
     async deleteGameLogResourceLoad(input: GameLogEntry) {
-        await commands.appGameLogEntryDelete(
-            normalizeGameLogIdentifier(input.type) || 'ResourceLoad',
-            input
-        );
+        const kind =
+            input.type === 'StringLoad' || input.type === 'ImageLoad'
+                ? input.type
+                : 'ResourceLoad';
+        await commands.appGameLogEntryDelete(kind, input);
     }
 };
 

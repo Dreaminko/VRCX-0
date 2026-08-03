@@ -520,7 +520,7 @@ impl VrcxMcpServer {
         let mut groups = persistence_favorites::favorite_list(
             self.runtime.db.as_ref(),
             Some(&owner_user_id),
-            "friend".into(),
+            vrcx_0_application_core::FavoriteEntityKind::Friend,
         )
         .map_err(map_persistence_error)?
         .into_iter()

@@ -1,6 +1,30 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum ActivityRefreshMode {
+    Full,
+    Incremental,
+    Expand,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum ActivityViewKind {
+    Activity,
+    Overlap,
+}
+
+impl ActivityViewKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Activity => "activity",
+            Self::Overlap => "overlap",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivityFriendPresenceSliceInput {
@@ -51,7 +75,7 @@ pub struct ActivitySessionOutput {
 #[serde(rename_all = "camelCase")]
 pub struct ActivitySelfSessionsRefreshInput {
     pub user_id: String,
-    pub mode: String,
+    pub mode: ActivityRefreshMode,
     #[serde(default)]
     pub range_days: Value,
     #[serde(default)]
@@ -73,7 +97,7 @@ pub struct ActivityBucketCacheQueryInput {
     #[serde(default)]
     pub target_user_id: String,
     pub range_days: Value,
-    pub view_kind: String,
+    pub view_kind: ActivityViewKind,
     #[serde(default)]
     pub exclude_key: String,
 }
@@ -84,7 +108,7 @@ pub struct ActivityBucketCacheOutput {
     pub owner_user_id: String,
     pub target_user_id: String,
     pub range_days: i64,
-    pub view_kind: String,
+    pub view_kind: ActivityViewKind,
     pub exclude_key: String,
     pub bucket_version: i64,
     pub built_from_cursor: String,
@@ -131,7 +155,7 @@ pub struct ActivityBucketCacheInput {
     #[serde(default)]
     pub target_user_id: String,
     pub range_days: Value,
-    pub view_kind: String,
+    pub view_kind: ActivityViewKind,
     #[serde(default)]
     pub exclude_key: String,
     #[serde(default)]

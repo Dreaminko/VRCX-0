@@ -5,7 +5,7 @@ use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind, RuntimeEventBus,
     RuntimeEventPayload, RuntimeEventSink,
 };
-use vrcx_0_core::realtime::RealtimeWsStatusPayload;
+use vrcx_0_core::realtime::{RealtimeWsStatus, RealtimeWsStatusPayload};
 
 use super::*;
 
@@ -69,7 +69,7 @@ fn ordinary_event_is_forwarded_unchanged_before_one_derived_telemetry_event() {
     let recording = RecordingSink::default();
     let sink = RuntimeHostEventSink::new(backend_runtime, None, recording.clone());
     let typed_payload = RealtimeWsStatusPayload {
-        status: "connected".into(),
+        status: RealtimeWsStatus::Connected,
         websocket_domain: "pipeline.vrchat.cloud".into(),
         at: "2026-01-01T00:00:00Z".into(),
         client_run_id: None,
@@ -165,7 +165,11 @@ fn event_is_observed_by_context_and_forwarded() {
     };
     let payload = serde_json::to_value(&typed_payload).unwrap();
 
-    sink.emit(ProfileTestEvent::EVENT_NAME, payload.clone(), &typed_payload);
+    sink.emit(
+        ProfileTestEvent::EVENT_NAME,
+        payload.clone(),
+        &typed_payload,
+    );
 
     assert_eq!(context.now_playing()["name"], "Test Track");
     assert_eq!(context.now_playing()["position"], 42);

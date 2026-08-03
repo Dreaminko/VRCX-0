@@ -5,7 +5,7 @@ use vrcx_0_vrchat_client::http_api::{
 use vrcx_0_vrchat_client::media::{
     avatar_image_set_input, file_put_input, file_upload_finish_input, file_upload_stage_path,
     file_upload_start_input, file_version_create_input, normalize_media_endpoint,
-    world_image_set_input,
+    world_image_set_input, FileUploadStageKind,
 };
 
 use crate::{Error, Result};
@@ -97,20 +97,19 @@ pub async fn upload_legacy_entity_image(
 
     for (kind, file_data, file_mime, file_md5) in [
         (
-            "file",
+            FileUploadStageKind::File,
             input.base64_file.as_str(),
             "image/png",
             file_md5.as_str(),
         ),
         (
-            "signature",
+            FileUploadStageKind::Signature,
             signature_file.as_str(),
             "application/x-rsync-signature",
             signature_md5.as_str(),
         ),
     ] {
-        let stage_path =
-            file_upload_stage_path(uploaded_file_id.clone(), file_version, kind.to_string())?;
+        let stage_path = file_upload_stage_path(uploaded_file_id.clone(), file_version, kind)?;
         let start = execute_media_json(
             &deps,
             file_upload_start_input(endpoint.clone(), stage_path.clone()),

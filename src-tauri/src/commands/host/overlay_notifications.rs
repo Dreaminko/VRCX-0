@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use tauri::State;
 use vrcx_0_runtime_host::notification::{
     filter_generic_webhook_payload, parse_webhook_fields, webhook_local_time_string,
+    NotificationWebhookFormat,
 };
 use vrcx_0_vrchat_client::web_client::WebExecuteRequest;
 
@@ -19,14 +20,14 @@ const WEBHOOK_TEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub async fn app__webhook_send_test(
     state: State<'_, AppState>,
     url: String,
-    format: String,
+    format: NotificationWebhookFormat,
     fields: String,
 ) -> Result<i32, AppError> {
     let url = url.trim();
     if url.is_empty() {
         return Err(AppError::Custom("Webhook URL is required.".into()));
     }
-    let payload = webhook_test_payload(&format, &fields);
+    let payload = webhook_test_payload(format, &fields);
     let mut request = WebExecuteRequest::new(url.to_string(), "POST".into());
     request
         .headers
@@ -42,9 +43,9 @@ pub async fn app__webhook_send_test(
     Ok(status)
 }
 
-fn webhook_test_payload(format: &str, fields: &str) -> Value {
+fn webhook_test_payload(format: NotificationWebhookFormat, fields: &str) -> Value {
     let timestamp = chrono::Utc::now().to_rfc3339();
-    if format.trim() == "discord" {
+    if format == NotificationWebhookFormat::Discord {
         json!({
             "content": null,
             "embeds": [{
@@ -77,11 +78,14 @@ fn webhook_test_payload(format: &str, fields: &str) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use super::webhook_test_payload;
+    use super::{webhook_test_payload, NotificationWebhookFormat};
 
     #[test]
     fn generic_webhook_test_payload_honors_selected_fields() {
-        let payload = webhook_test_payload("generic", r#"["locationId","localTime"]"#);
+        let payload = webhook_test_payload(
+            NotificationWebhookFormat::Generic,
+            r#"["locationId","localTime"]"#,
+        );
 
         assert_eq!(
             payload.get("locationId").and_then(|value| value.as_str()),
@@ -94,7 +98,10 @@ mod tests {
 
     #[test]
     fn generic_webhook_test_payload_ignores_localized_field_names() {
-        let payload = webhook_test_payload("generic", r#"["locationId","位置","タイトル"]"#);
+        let payload = webhook_test_payload(
+            NotificationWebhookFormat::Generic,
+            r#"["locationId","位置","タイトル"]"#,
+        );
 
         assert_eq!(payload.as_object().unwrap().len(), 1);
         assert_eq!(
@@ -107,7 +114,7 @@ mod tests {
 
     #[test]
     fn discord_webhook_test_payload_ignores_selected_fields() {
-        let payload = webhook_test_payload("discord", r#"["locationId"]"#);
+        let payload = webhook_test_payload(NotificationWebhookFormat::Discord, r#"["locationId"]"#);
 
         assert!(payload.get("locationId").is_none());
         assert!(payload.get("embeds").is_some());

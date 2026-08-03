@@ -611,20 +611,20 @@ pub(super) fn activity_self_sessions_refresh_auto(
                 .as_ref()
                 .is_none_or(|sync| sync.source_last_created_at.is_empty())
         {
-            "full"
+            ActivityRefreshMode::Full
         } else if sync_state
             .as_ref()
             .is_some_and(|sync| sync.cached_range_days < range_days)
         {
-            "expand"
+            ActivityRefreshMode::Expand
         } else {
-            "incremental"
+            ActivityRefreshMode::Incremental
         };
         activity_self_sessions_refresh_inner(
             db,
             ActivitySelfSessionsRefreshInput {
                 user_id: user_id.clone(),
-                mode: mode.to_string(),
+                mode,
                 range_days: json!(range_days),
                 now_ms,
             },
@@ -644,13 +644,12 @@ fn activity_self_sessions_refresh_inner(
 
     let now_ms = activity_now_ms(input.now_ms);
     let now_iso = activity_iso_from_ms(now_ms);
-    let mode = normalize_text(input.mode).to_ascii_lowercase();
     let mut sync = read_activity_sync_state(db, &user_prefix, &user_id)?
         .unwrap_or_else(|| default_activity_sync_state(&user_id));
     let mut sessions = read_activity_sessions_data(db, &user_prefix, &user_id)?;
 
-    match mode.as_str() {
-        "full" => {
+    match input.mode {
+        ActivityRefreshMode::Full => {
             let range_days =
                 clamp_activity_range_days(&input.range_days, ACTIVITY_INITIAL_RANGE_DAYS);
             let from_date = activity_iso_from_ms(now_ms - range_days * ACTIVITY_DAY_MS);
@@ -671,7 +670,7 @@ fn activity_self_sessions_refresh_inner(
             write_activity_snapshot(db, &user_prefix, &user_id, &sync, &sessions, None)?;
             Ok(activity_refresh_output(sync, sessions, rows.len()))
         }
-        "incremental" => {
+        ActivityRefreshMode::Incremental => {
             if sync.source_last_created_at.is_empty() {
                 return Ok(activity_refresh_output(sync, sessions, 0));
             }
@@ -711,7 +710,7 @@ fn activity_self_sessions_refresh_inner(
             )?;
             Ok(activity_refresh_output(sync, sessions, rows.len()))
         }
-        "expand" => {
+        ActivityRefreshMode::Expand => {
             let range_days = clamp_activity_range_days(
                 &input.range_days,
                 (sync.cached_range_days + ACTIVITY_FULL_CACHE_BATCH_DAYS)
@@ -738,9 +737,6 @@ fn activity_self_sessions_refresh_inner(
             write_activity_snapshot(db, &user_prefix, &user_id, &sync, &sessions, None)?;
             Ok(activity_refresh_output(sync, sessions, rows.len()))
         }
-        _ => Err(Error::Custom(format!(
-            "Unsupported ActivitySelfSessionsRefresh mode: {mode}"
-        ))),
     }
 }
 
@@ -802,7 +798,7 @@ pub fn activity_bucket_cache_get(
     ensure_user_store_tables(db, &user_prefix)?;
     let target_user_id = normalize_text(query.target_user_id);
     let range_days = value_as_i64(&query.range_days);
-    let view_kind = normalize_text(query.view_kind);
+    let view_kind = query.view_kind;
     let exclude_key = normalize_text(query.exclude_key);
     Ok(db
         .execute(
@@ -811,7 +807,7 @@ pub fn activity_bucket_cache_get(
                 .set("owner_user_id", owner_user_id)
                 .set("target_user_id", target_user_id)
                 .set("range_days", range_days)
-                .set("view_kind", view_kind)
+                .set("view_kind", view_kind.as_str())
                 .set("exclude_key", exclude_key)
                 .build(),
         )?
@@ -820,7 +816,7 @@ pub fn activity_bucket_cache_get(
             owner_user_id: row_string(row, 0),
             target_user_id: row_string(row, 1),
             range_days: row_i64(row, 2),
-            view_kind: row_string(row, 3),
+            view_kind,
             exclude_key: row_string(row, 4),
             bucket_version: row_i64(row, 5),
             built_from_cursor: row_string(row, 6),
@@ -930,7 +926,7 @@ pub fn activity_bucket_cache_upsert(
             .set("owner_user_id", owner_user_id)
             .set("target_user_id", normalize_text(entry.target_user_id))
             .set("range_days", value_as_i64(&entry.range_days))
-            .set("view_kind", normalize_text(entry.view_kind))
+            .set("view_kind", entry.view_kind.as_str())
             .set("exclude_key", normalize_text(entry.exclude_key))
             .set("bucket_version", value_as_i64(&entry.bucket_version))
             .set("built_from_cursor", entry.built_from_cursor)

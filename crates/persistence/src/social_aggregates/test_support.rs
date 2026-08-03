@@ -68,12 +68,12 @@ pub(super) fn create_game_log_tables(db: &DatabaseService) {
     .unwrap();
 }
 
-pub(super) fn favorite_friend_input(action: &str, dry_run: bool) -> FavoriteLocalInput {
+pub(super) fn favorite_friend_input(action: FavoriteAction, dry_run: bool) -> FavoriteLocalInput {
     FavoriteLocalInput {
-        kind: "friend".into(),
+        kind: vrcx_0_core::FavoriteEntityKind::Friend,
         entity_id: "usr_alice".into(),
         group: "AI Picks".into(),
-        action: action.into(),
+        action,
         dry_run,
     }
 }

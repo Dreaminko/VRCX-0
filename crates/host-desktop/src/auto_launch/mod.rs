@@ -39,6 +39,6 @@ pub use model::{
     split_command_line_args, steam_launch_url, AppLauncherEntry, AppLauncherEntryKind,
     AppLauncherPickedTarget, AppLauncherRun, AppLauncherRunPolicy, AppLauncherRunStatus,
     AppLauncherScope, AppLauncherSession, AppLauncherSnapshot, AppLauncherStopPolicy,
-    APP_LAUNCHER_ENABLED_CONFIG_KEY, APP_LAUNCHER_ENTRIES_CONFIG_KEY,
+    AppLauncherTargetPickKind, APP_LAUNCHER_ENABLED_CONFIG_KEY, APP_LAUNCHER_ENTRIES_CONFIG_KEY,
 };
 pub use picker::{picked_app_launcher_target, picked_local_target};

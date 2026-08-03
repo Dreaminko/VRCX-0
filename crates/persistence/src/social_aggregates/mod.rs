@@ -31,7 +31,7 @@ pub use types::{
     ActivityBucket, BestTimeBucketRow, BestTimeFriend, BestTimeToPlayInput, BestTimeToPlayOutput,
     CompanionOfRow, CompanionWorldRow, CompanionsOfInput, CompanionsOfOutput, CopresenceGroupBy,
     CopresenceSummaryInput, CopresenceSummaryOutput, CopresenceSummaryRow, FadingFriendRow,
-    FadingFriendsInput, FadingFriendsOutput, FavoriteLocalInput, FavoriteOutput,
+    FadingFriendsInput, FadingFriendsOutput, FavoriteAction, FavoriteLocalInput, FavoriteOutput,
     FriendActivityPatternInput, FriendActivityPatternOutput, FriendActivityPatternRow,
     FriendChangeEvent, FriendChangeKind, FriendChangeRow, FriendChangesInput, FriendChangesOutput,
     FriendCirclePair, FriendCircleRow, FriendCirclesInput, FriendCirclesOutput, FriendLogInput,

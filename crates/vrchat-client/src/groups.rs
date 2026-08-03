@@ -541,12 +541,11 @@ pub fn unblock_input(
 pub fn join_request_respond_input(
     group_id: String,
     user_id: String,
-    action: String,
+    action: vrcx_0_core::GroupJoinRequestAction,
     block: bool,
 ) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
     let group_id = require_text(group_id, "VrchatGroupJoinRequestRespond requires groupId.")?;
     let user_id = require_text(user_id, "VrchatGroupJoinRequestRespond requires userId.")?;
-    let action = require_text(action, "VrchatGroupJoinRequestRespond requires action.")?;
     let mut body = serde_json::json!({ "action": action });
     if block {
         body["block"] = Value::Bool(true);

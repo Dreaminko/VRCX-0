@@ -33,8 +33,8 @@ pub use game_client::{
 pub use game_event_bus::{
     AddGameLogEventPayload, CrashRelaunchDecisionPayload, EmptyEventPayload, GameClientEvent,
     GameLogPersistenceFallbackPayload, GameLogSideEffectEvent, GameNoVrPayload, NowPlayingPayload,
-    RuntimeGameEventBusExt, RuntimeGameLogEventPayload, RuntimeNotificationPayload,
-    RuntimeWorkerErrorPayload, ScreenshotProcessedPayload,
+    RuntimeGameEventBusExt, RuntimeGameLogEventPayload, RuntimeNotificationLevel,
+    RuntimeNotificationPayload, RuntimeWorkerErrorPayload, ScreenshotProcessedPayload,
 };
 pub use game_log::{
     duration_ms, game_log_sessions_query, instance_history_query, parse_event_time_ms, player_key,

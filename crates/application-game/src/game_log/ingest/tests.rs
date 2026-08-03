@@ -1,3 +1,4 @@
+use vrcx_0_core::game_process::GameProcessEvent;
 use vrcx_0_core::log_watcher::{GameLogEvent, GameLogEventKind};
 
 use super::{
@@ -257,9 +258,11 @@ fn game_start_projects_seeded_location_and_roster() {
     ]);
 
     let output = engine.handle_process_event(GameLogProcessEvent {
-        is_game_running: true,
-        is_steamvr_running: false,
-        game_changed: true,
+        process: GameProcessEvent {
+            is_game_running: true,
+            is_steamvr_running: false,
+            game_changed: true,
+        },
         changed_at: "2026-05-14T10:05:00.000Z".into(),
     });
     let projection = output.projection.expect("game start projection");
@@ -288,15 +291,19 @@ fn later_game_start_does_not_restore_a_stale_seeded_location() {
     );
 
     let initial_stopped = engine.handle_process_event(GameLogProcessEvent {
-        is_game_running: false,
-        is_steamvr_running: false,
-        game_changed: false,
+        process: GameProcessEvent {
+            is_game_running: false,
+            is_steamvr_running: false,
+            game_changed: false,
+        },
         changed_at: "2026-05-14T10:05:00.000Z".into(),
     });
     let later_start = engine.handle_process_event(GameLogProcessEvent {
-        is_game_running: true,
-        is_steamvr_running: false,
-        game_changed: true,
+        process: GameProcessEvent {
+            is_game_running: true,
+            is_steamvr_running: false,
+            game_changed: true,
+        },
         changed_at: "2026-05-14T11:00:00.000Z".into(),
     });
 

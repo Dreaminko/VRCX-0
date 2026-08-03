@@ -11,9 +11,10 @@ pub use repository::{
 };
 pub use types::{
     ActivityBucketCacheInput, ActivityBucketCacheOutput, ActivityBucketCacheQueryInput,
-    ActivityOverlapViewBuildInput, ActivityOverlapViewOutput, ActivitySelfSessionsRefreshInput,
-    ActivitySelfSessionsRefreshOutput, ActivitySelfSourceBoundsOutput, ActivitySessionInput,
-    ActivitySessionOutput, ActivitySyncStateInput, ActivitySyncStateOutput, ActivityViewBuildInput,
+    ActivityOverlapViewBuildInput, ActivityOverlapViewOutput, ActivityRefreshMode,
+    ActivitySelfSessionsRefreshInput, ActivitySelfSessionsRefreshOutput,
+    ActivitySelfSourceBoundsOutput, ActivitySessionInput, ActivitySessionOutput,
+    ActivitySyncStateInput, ActivitySyncStateOutput, ActivityViewBuildInput, ActivityViewKind,
     ActivityViewOutput,
 };
 pub use view::{activity_overlap_view_build, activity_self_sessions_warmup, activity_view_build};

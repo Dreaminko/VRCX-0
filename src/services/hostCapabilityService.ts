@@ -46,6 +46,18 @@ const LINUX_PACKAGE_KINDS = new Set<unknown>([
     'unknown'
 ]);
 
+function isHostPlatform(value: unknown): value is HostPlatform {
+    return HOST_PLATFORMS.has(value);
+}
+
+function isHostArchitecture(value: unknown): value is HostArchitecture {
+    return HOST_ARCHITECTURES.has(value);
+}
+
+function isLinuxPackageKind(value: unknown): value is LinuxPackageKind {
+    return LINUX_PACKAGE_KINDS.has(value);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
@@ -98,14 +110,12 @@ function createUnavailableCapabilities(reason: unknown): HostCapabilities {
 
 function normalizeHostCapabilities(payload: unknown): HostCapabilities {
     const record = isRecord(payload) ? payload : {};
-    const platform = HOST_PLATFORMS.has(record.platform)
-        ? String(record.platform)
+    const platform = isHostPlatform(record.platform)
+        ? record.platform
         : 'unknown';
-    const arch = HOST_ARCHITECTURES.has(record.arch)
-        ? String(record.arch)
-        : 'unknown';
-    const linuxPackageKind = LINUX_PACKAGE_KINDS.has(record.linuxPackageKind)
-        ? String(record.linuxPackageKind)
+    const arch = isHostArchitecture(record.arch) ? record.arch : 'unknown';
+    const linuxPackageKind = isLinuxPackageKind(record.linuxPackageKind)
+        ? record.linuxPackageKind
         : 'unknown';
     const capabilities = createCapabilitiesBase(
         platform,

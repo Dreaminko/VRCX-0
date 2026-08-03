@@ -163,7 +163,7 @@ impl FavoriteBulkRemoveActions for VrchatFavoriteBulkRemoveActions<'_> {
         favorites::favorite_remove(
             self.deps.db,
             Some(&self.deps.expected_scope.current_user_id),
-            kind.as_str().to_string(),
+            kind,
             item.entity_id.clone(),
             item.group_name.clone(),
         )
@@ -631,7 +631,7 @@ mod tests {
         favorites::favorite_add(
             &db,
             Some("usr_self"),
-            "friend".into(),
+            FavoriteEntityKind::Friend,
             "usr_target".into(),
             "Friends".into(),
         )
@@ -662,7 +662,7 @@ mod tests {
 
         assert_eq!(result.succeeded, 1);
         assert!(
-            favorites::favorite_list(&db, Some("usr_self"), "friend".into(),)
+            favorites::favorite_list(&db, Some("usr_self"), FavoriteEntityKind::Friend,)
                 .unwrap()
                 .is_empty()
         );
@@ -690,7 +690,7 @@ mod tests {
                 favorites::favorite_add(
                     &db,
                     Some("usr_self"),
-                    "friend".into(),
+                    FavoriteEntityKind::Friend,
                     entity_id.clone(),
                     "Friends".into(),
                 )
@@ -726,7 +726,7 @@ mod tests {
         assert_eq!(result.succeeded, FAVORITE_BULK_REMOVE_MAX_ITEMS + 1);
         assert_eq!(result.failed, 0);
         assert!(
-            favorites::favorite_list(&db, Some("usr_self"), "friend".into(),)
+            favorites::favorite_list(&db, Some("usr_self"), FavoriteEntityKind::Friend,)
                 .unwrap()
                 .is_empty()
         );

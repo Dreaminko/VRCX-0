@@ -1,6 +1,39 @@
 use serde::{Deserialize, Serialize};
 use vrcx_0_core::json::RawJson;
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum FeedQueryMode {
+    Search,
+    Lookup,
+    Instance,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+pub enum FeedFilter {
+    #[serde(rename = "GPS")]
+    Gps,
+    Status,
+    Bio,
+    Avatar,
+    Online,
+    Offline,
+}
+
+impl FeedFilter {
+    pub(crate) fn from_event_type(value: &str) -> Option<Self> {
+        match value {
+            "GPS" => Some(Self::Gps),
+            "Status" => Some(Self::Status),
+            "Bio" => Some(Self::Bio),
+            "Avatar" => Some(Self::Avatar),
+            "Online" => Some(Self::Online),
+            "Offline" => Some(Self::Offline),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedCursorInput {
@@ -13,11 +46,11 @@ pub struct FeedCursorInput {
 #[serde(rename_all = "camelCase")]
 pub struct FeedRowsQueryInput {
     pub user_id: String,
-    pub mode: String,
+    pub mode: FeedQueryMode,
     #[serde(default)]
     pub search: String,
     #[serde(default)]
-    pub filters: Vec<String>,
+    pub filters: Vec<FeedFilter>,
     #[serde(default)]
     pub vip_list: Vec<String>,
     #[serde(default)]
@@ -43,11 +76,11 @@ pub struct FeedLiveEntryInput {
 #[serde(rename_all = "camelCase")]
 pub struct FeedReadModelQueryInput {
     pub user_id: String,
-    pub mode: String,
+    pub mode: FeedQueryMode,
     #[serde(default)]
     pub search: String,
     #[serde(default)]
-    pub filters: Vec<String>,
+    pub filters: Vec<FeedFilter>,
     #[serde(default)]
     pub vip_list: Vec<String>,
     #[serde(default)]
@@ -80,7 +113,7 @@ pub struct FeedLiveRowsMergeInput {
     #[serde(default)]
     pub current_user_id: String,
     #[serde(default)]
-    pub filters: Vec<String>,
+    pub filters: Vec<FeedFilter>,
     #[serde(default)]
     pub search: String,
     #[serde(default)]

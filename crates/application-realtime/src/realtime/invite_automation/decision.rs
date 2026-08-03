@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use vrcx_0_application_core::LocalGameContextSnapshot;
 use vrcx_0_core::location::parse_location;
 
 pub const INVITE_AUTOMATION_COOLDOWN_MS: i64 = 10 * 60 * 1000;
@@ -33,12 +34,29 @@ pub struct SenderAllowlist {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InviteLocationFacts {
-    pub local_game_context_available: bool,
-    pub is_game_running: bool,
-    pub current_location: String,
+    pub local_game_context: LocalGameContextSnapshot,
     pub last_location: String,
     pub current_user_id: String,
     pub closed_locations: HashSet<String>,
+}
+
+impl InviteLocationFacts {
+    pub(crate) fn current_location(&self) -> &str {
+        match &self.local_game_context {
+            LocalGameContextSnapshot::Available { location, .. } => location,
+            LocalGameContextSnapshot::Unavailable => "",
+        }
+    }
+
+    pub(crate) fn is_game_running(&self) -> bool {
+        matches!(
+            self.local_game_context,
+            LocalGameContextSnapshot::Available {
+                is_game_running: true,
+                ..
+            }
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -116,15 +134,19 @@ pub fn context_gates(
     if config.mode == InviteAutomationMode::Off {
         return Err(InviteAutomationSkipReason::Disabled);
     }
-    if !location.local_game_context_available {
+    let LocalGameContextSnapshot::Available {
+        is_game_running, ..
+    } = &location.local_game_context
+    else {
         return Err(InviteAutomationSkipReason::LocalGameContextUnavailable);
-    }
-    if !location.is_game_running {
+    };
+    if !is_game_running {
         return Err(InviteAutomationSkipReason::GameNotRunning);
     }
+    let current_location = location.current_location();
     if location.current_user_id.trim().is_empty()
-        || location.current_location.trim().is_empty()
-        || location.current_location.trim() == "traveling"
+        || current_location.trim().is_empty()
+        || current_location.trim() == "traveling"
     {
         return Err(InviteAutomationSkipReason::MissingCurrentSessionOrLocation);
     }
@@ -166,14 +188,15 @@ pub fn evaluate_invite_automation(input: &InviteAutomationInput) -> InviteDecisi
         return skip(reason);
     }
 
-    let parsed = parse_location(&input.location.current_location);
+    let current_location = input.location.current_location();
+    let parsed = parse_location(current_location);
     if !can_invite_from_location(&input.location, &parsed) {
         return skip(InviteAutomationSkipReason::CurrentLocationNotInvitable);
     }
 
     InviteDecision::Send {
         receiver_user_id: input.notification.sender_user_id.trim().to_string(),
-        instance_id: input.location.current_location.trim().to_string(),
+        instance_id: current_location.trim().to_string(),
         world_id: parsed.world_id,
     }
 }
@@ -199,7 +222,7 @@ fn can_invite_from_location(
     facts: &InviteLocationFacts,
     parsed: &vrcx_0_core::location::ParsedLocation,
 ) -> bool {
-    let location = facts.current_location.trim();
+    let location = facts.current_location().trim();
     if location.is_empty()
         || !parsed.is_real_instance
         || parsed.world_id.is_empty()
@@ -236,6 +259,20 @@ fn location_cache_key(parsed: &vrcx_0_core::location::ParsedLocation) -> String 
 mod tests {
     use super::*;
 
+    fn local_game_context(is_game_running: bool, location: &str) -> LocalGameContextSnapshot {
+        LocalGameContextSnapshot::Available {
+            is_game_running,
+            location: location.into(),
+            destination: String::new(),
+            world_name: String::new(),
+            player_user_ids: Vec::new(),
+        }
+    }
+
+    fn set_current_location(input: &mut InviteAutomationInput, location: &str) {
+        input.location.local_game_context = local_game_context(true, location);
+    }
+
     fn base_input() -> InviteAutomationInput {
         InviteAutomationInput {
             notification: InviteNotificationFacts {
@@ -253,9 +290,10 @@ mod tests {
                 group_keys_of_sender: HashSet::from(["friend:group_0".into()]),
             },
             location: InviteLocationFacts {
-                local_game_context_available: true,
-                is_game_running: true,
-                current_location: "wrld_private:12345~private(usr_self)".into(),
+                local_game_context: local_game_context(
+                    true,
+                    "wrld_private:12345~private(usr_self)",
+                ),
                 last_location: "wrld_private:12345~private(usr_self)".into(),
                 current_user_id: "usr_self".into(),
                 closed_locations: HashSet::new(),
@@ -299,7 +337,8 @@ mod tests {
     #[test]
     fn skips_when_game_is_not_running() {
         let mut input = base_input();
-        input.location.is_game_running = false;
+        input.location.local_game_context =
+            local_game_context(false, "wrld_private:12345~private(usr_self)");
 
         assert_eq!(
             evaluate_invite_automation(&input),
@@ -312,7 +351,7 @@ mod tests {
     #[test]
     fn skips_when_local_game_context_is_unavailable() {
         let mut input = base_input();
-        input.location.local_game_context_available = false;
+        input.location.local_game_context = LocalGameContextSnapshot::Unavailable;
 
         assert_eq!(
             evaluate_invite_automation(&input),
@@ -329,7 +368,7 @@ mod tests {
             "wrld_public:12345",
         ] {
             let mut input = base_input();
-            input.location.current_location = location.into();
+            set_current_location(&mut input, location);
             input.location.last_location = location.into();
 
             assert!(matches!(
@@ -342,7 +381,7 @@ mod tests {
     #[test]
     fn rejects_closed_and_inaccessible_locations_but_allows_last_location_fallback() {
         let mut closed = base_input();
-        closed.location.current_location = "wrld_public:closed".into();
+        set_current_location(&mut closed, "wrld_public:closed");
         closed.location.last_location = "wrld_public:closed".into();
         closed
             .location
@@ -356,7 +395,7 @@ mod tests {
         );
 
         let mut friends_plus = base_input();
-        friends_plus.location.current_location = "wrld_hidden:12345~hidden(usr_owner)".into();
+        set_current_location(&mut friends_plus, "wrld_hidden:12345~hidden(usr_owner)");
         friends_plus.location.last_location.clear();
         assert_eq!(
             evaluate_invite_automation(&friends_plus),
@@ -365,7 +404,7 @@ mod tests {
             }
         );
 
-        friends_plus.location.last_location = friends_plus.location.current_location.clone();
+        friends_plus.location.last_location = friends_plus.location.current_location().into();
         assert!(matches!(
             evaluate_invite_automation(&friends_plus),
             InviteDecision::Send { .. }

@@ -26,10 +26,35 @@ pub struct RealtimeWsMessagePayload {
     pub received_at: String,
 }
 
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum RealtimeWsStatus {
+    #[default]
+    Idle,
+    Connecting,
+    Connected,
+    Disconnected,
+    Error,
+    AuthFailure,
+}
+
+impl RealtimeWsStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Idle => "idle",
+            Self::Connecting => "connecting",
+            Self::Connected => "connected",
+            Self::Disconnected => "disconnected",
+            Self::Error => "error",
+            Self::AuthFailure => "authFailure",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RealtimeWsStatusPayload {
-    pub status: String,
+    pub status: RealtimeWsStatus,
     pub websocket_domain: String,
     pub at: String,
     #[serde(skip_serializing_if = "Option::is_none")]

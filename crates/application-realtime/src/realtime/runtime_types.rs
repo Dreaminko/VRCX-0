@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::Serialize;
 use vrcx_0_core::friends::FriendRecord;
 pub use vrcx_0_core::realtime::{
-    RealtimeSessionContext, RealtimeWsMessagePayload, RealtimeWsStatusPayload,
+    RealtimeSessionContext, RealtimeWsMessagePayload, RealtimeWsStatus, RealtimeWsStatusPayload,
 };
 
 use super::output::RealtimeFriendOutput;
@@ -104,26 +104,61 @@ pub enum RealtimeTransportLifecycleEvent {
     },
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RealtimeCurrentUserGameLogContext {
+    pub location: String,
+    pub destination: String,
+    pub world_name: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RealtimeCurrentUserAuthority {
-    pub local_game_context_available: bool,
-    pub is_game_running: bool,
-    pub game_log_enabled: bool,
-    pub game_log_location: String,
-    pub game_log_destination: String,
-    pub game_log_world_name: String,
+pub enum RealtimeCurrentUserAuthority {
+    Unavailable,
+    Available {
+        is_game_running: bool,
+        game_log: Option<RealtimeCurrentUserGameLogContext>,
+    },
 }
 
 impl Default for RealtimeCurrentUserAuthority {
     fn default() -> Self {
-        Self {
-            local_game_context_available: true,
+        Self::Available {
             is_game_running: false,
-            game_log_enabled: false,
-            game_log_location: String::new(),
-            game_log_destination: String::new(),
-            game_log_world_name: String::new(),
+            game_log: None,
         }
+    }
+}
+
+impl RealtimeCurrentUserAuthority {
+    pub const fn is_available(&self) -> bool {
+        matches!(self, Self::Available { .. })
+    }
+
+    pub const fn is_game_running(&self) -> bool {
+        matches!(
+            self,
+            Self::Available {
+                is_game_running: true,
+                ..
+            }
+        )
+    }
+
+    pub fn game_log(&self) -> Option<&RealtimeCurrentUserGameLogContext> {
+        match self {
+            Self::Available { game_log, .. } => game_log.as_ref(),
+            Self::Unavailable => None,
+        }
+    }
+
+    pub fn with_game_running(mut self, value: bool) -> Self {
+        if let Self::Available {
+            is_game_running, ..
+        } = &mut self
+        {
+            *is_game_running = value;
+        }
+        self
     }
 }
 

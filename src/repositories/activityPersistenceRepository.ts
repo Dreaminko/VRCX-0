@@ -4,13 +4,14 @@ import type {
     ActivityBucketCacheQueryInput as IpcActivityBucketCacheQueryInput,
     ActivitySelfSourceBoundsOutput as IpcActivitySelfSourceBoundsOutput,
     ActivitySelfSessionsRefreshInput as IpcActivitySelfSessionsRefreshInput,
+    ActivityRefreshMode as IpcActivityRefreshMode,
     ActivitySessionOutput as IpcActivitySessionOutput,
     ActivitySyncStateInput as IpcActivitySyncStateInput,
-    ActivitySyncStateOutput as IpcActivitySyncStateOutput
+    ActivitySyncStateOutput as IpcActivitySyncStateOutput,
+    ActivityViewKind as IpcActivityViewKind
 } from '@/platform/tauri/bindings';
 
-export type ActivityViewKind =
-    (typeof ACTIVITY_VIEW_KIND)[keyof typeof ACTIVITY_VIEW_KIND];
+export type ActivityViewKind = IpcActivityViewKind;
 type ActivitySyncStateRow = IpcActivitySyncStateOutput;
 type ActivitySessionRow = IpcActivitySessionOutput;
 
@@ -40,7 +41,7 @@ interface ActivityBucketCacheQuery {
     ownerUserId: string;
     targetUserId?: string;
     rangeDays: number;
-    viewKind: ActivityViewKind | string;
+    viewKind: ActivityViewKind;
     excludeKey?: string;
 }
 
@@ -55,7 +56,7 @@ interface ActivityBucketCacheEntry extends ActivityBucketCacheQuery {
 
 interface ActivitySelfSessionsRefreshRequest {
     userId?: unknown;
-    mode: 'full' | 'incremental' | 'expand';
+    mode: IpcActivityRefreshMode;
     rangeDays?: string | number;
     nowMs?: number;
 }
@@ -100,7 +101,7 @@ export type ActivityBucketCache = {
     ownerUserId: string;
     targetUserId: string;
     rangeDays: number;
-    viewKind: ActivityViewKind | string;
+    viewKind: ActivityViewKind;
     excludeKey: string;
     bucketVersion: number;
     builtFromCursor: string;
@@ -400,7 +401,7 @@ async function getActivityBucketCache({
         ownerUserId: normalizeText(row.ownerUserId),
         targetUserId: normalizeText(row.targetUserId),
         rangeDays: normalizeInteger(row.rangeDays),
-        viewKind: normalizeText(row.viewKind),
+        viewKind: row.viewKind,
         excludeKey: normalizeText(row.excludeKey),
         bucketVersion: normalizeInteger(row.bucketVersion),
         builtFromCursor: normalizeText(row.builtFromCursor),

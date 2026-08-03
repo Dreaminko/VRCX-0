@@ -1,8 +1,8 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -36,6 +36,13 @@ const APP_UPDATE_CHECK_JOB: &str = "appUpdateCheck";
 const APP_UPDATE_CHECK_INTERVAL_SECONDS: u64 = 10_800;
 const CONFIG_AUTO_INSTALL_ON_STARTUP: &str = "autoInstallUpdatesOnStartup";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum AppUpdateDeliveryKind {
+    Tauri,
+    Manual,
+}
+
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppUpdateReleaseSnapshot {
@@ -48,7 +55,7 @@ pub struct AppUpdateReleaseSnapshot {
     pub display_version: String,
     pub manifest_url: String,
     pub target: String,
-    pub updater_type: String,
+    pub updater_type: AppUpdateDeliveryKind,
 }
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
@@ -504,7 +511,8 @@ impl AppUpdateRuntime {
     fn release_for_version(&self, version: &str) -> Result<AppUpdateReleaseSnapshot> {
         match self.snapshot().release {
             Some(release)
-                if release.canonical_version == version && release.updater_type == "tauri" =>
+                if release.canonical_version == version
+                    && release.updater_type == AppUpdateDeliveryKind::Tauri =>
             {
                 Ok(release)
             }
@@ -728,7 +736,7 @@ impl AppUpdateRuntime {
             return None;
         }
         let release = snapshot.release.as_ref()?;
-        if release.updater_type != "tauri" {
+        if release.updater_type != AppUpdateDeliveryKind::Tauri {
             return None;
         }
         let auto_install =
@@ -762,7 +770,7 @@ impl AppUpdateRuntime {
         let Some(release) = snapshot.release.clone() else {
             return;
         };
-        if release.updater_type != "tauri" {
+        if release.updater_type != AppUpdateDeliveryKind::Tauri {
             return;
         }
         let runtime = self.clone();

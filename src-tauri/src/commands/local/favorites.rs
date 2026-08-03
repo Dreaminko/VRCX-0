@@ -6,7 +6,7 @@ use crate::error::AppError;
 use crate::state::AppState;
 
 use vrcx_0_application::FavoriteRow;
-use vrcx_0_application_core::FavoriteEntityKind;
+use vrcx_0_application_core::{FavoriteEntityKind, FavoritesChangedPayload};
 
 #[tauri::command]
 #[specta::specta]
@@ -27,7 +27,11 @@ pub fn app__favorite_add(
     .map_err(AppError::from)?;
     state
         .realtime_runtime
-        .notify_favorites_changed(kind.into(), true, false);
+        .notify_favorites_changed(FavoritesChangedPayload {
+            kind: kind.into(),
+            local: true,
+            remote: false,
+        });
     Ok(affected)
 }
 
@@ -48,7 +52,11 @@ pub fn app__favorite_group_delete(
     .map_err(AppError::from)?;
     state
         .realtime_runtime
-        .notify_favorites_changed(kind.into(), true, false);
+        .notify_favorites_changed(FavoritesChangedPayload {
+            kind: kind.into(),
+            local: true,
+            remote: false,
+        });
     Ok(affected)
 }
 
@@ -71,7 +79,11 @@ pub fn app__favorite_group_rename(
     .map_err(AppError::from)?;
     state
         .realtime_runtime
-        .notify_favorites_changed(kind.into(), true, false);
+        .notify_favorites_changed(FavoritesChangedPayload {
+            kind: kind.into(),
+            local: true,
+            remote: false,
+        });
     Ok(affected)
 }
 
@@ -82,11 +94,7 @@ pub fn app__favorite_list(
     kind: FavoriteEntityKind,
 ) -> Result<Vec<FavoriteRow>, AppError> {
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    vrcx_0_application::list_local_favorites(
-        state.db.as_ref(),
-        &owner_user_id,
-        kind,
-    )
+    vrcx_0_application::list_local_favorites(state.db.as_ref(), &owner_user_id, kind)
         .map_err(AppError::from)
 }
 
@@ -109,6 +117,10 @@ pub fn app__favorite_remove(
     .map_err(AppError::from)?;
     state
         .realtime_runtime
-        .notify_favorites_changed(kind.into(), true, false);
+        .notify_favorites_changed(FavoritesChangedPayload {
+            kind: kind.into(),
+            local: true,
+            remote: false,
+        });
     Ok(affected)
 }

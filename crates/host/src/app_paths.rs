@@ -38,6 +38,13 @@ pub enum AppDataDirSource {
     Default,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum AppDataDirWarningKind {
+    Empty,
+    MissingProfileFiles,
+}
+
 #[derive(Clone, Debug, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppDataDirState {
@@ -57,7 +64,7 @@ pub struct AppDataDirValidation {
     pub is_empty: bool,
     pub has_database: bool,
     pub has_config: bool,
-    pub warning_kind: Option<String>,
+    pub warning_kind: Option<AppDataDirWarningKind>,
     pub warning: Option<String>,
 }
 
@@ -390,12 +397,12 @@ fn validate_app_data_dir_for_mode(
     let has_config = resolved_path.join(PROFILE_CONFIG_FILE).is_file();
     let (warning_kind, warning) = if is_empty {
         (
-            Some("empty".to_string()),
+            Some(AppDataDirWarningKind::Empty),
             Some("Data directory is empty and will start as a new profile unless data is copied manually.".to_string()),
         )
     } else if !has_database || !has_config {
         (
-            Some("missingProfileFiles".to_string()),
+            Some(AppDataDirWarningKind::MissingProfileFiles),
             Some("Data directory does not contain a complete VRCX-0 profile.".to_string()),
         )
     } else {
@@ -516,8 +523,8 @@ mod tests {
         assert!(validation.has_database);
         assert!(!validation.has_config);
         assert_eq!(
-            validation.warning_kind.as_deref(),
-            Some("missingProfileFiles")
+            validation.warning_kind,
+            Some(AppDataDirWarningKind::MissingProfileFiles)
         );
 
         let _ = std::fs::remove_dir_all(&dir);

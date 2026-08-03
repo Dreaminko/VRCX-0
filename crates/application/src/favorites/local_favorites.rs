@@ -21,8 +21,7 @@ pub fn list_local_favorites(
     owner_user_id: &str,
     kind: FavoriteEntityKind,
 ) -> Result<Vec<FavoriteRow>> {
-    favorites::favorite_list(db, Some(owner_user_id), kind.as_str().to_string())
-        .map_err(Error::from)
+    favorites::favorite_list(db, Some(owner_user_id), kind).map_err(Error::from)
 }
 
 pub fn add_local_favorite(
@@ -32,14 +31,8 @@ pub fn add_local_favorite(
     entity_id: String,
     group_name: String,
 ) -> Result<i64> {
-    favorites::favorite_add(
-        db,
-        Some(owner_user_id),
-        kind.as_str().to_string(),
-        entity_id,
-        group_name,
-    )
-    .map_err(Error::from)
+    favorites::favorite_add(db, Some(owner_user_id), kind, entity_id, group_name)
+        .map_err(Error::from)
 }
 
 pub fn remove_local_favorite(
@@ -49,14 +42,8 @@ pub fn remove_local_favorite(
     entity_id: String,
     group_name: String,
 ) -> Result<i64> {
-    favorites::favorite_remove(
-        db,
-        Some(owner_user_id),
-        kind.as_str().to_string(),
-        entity_id,
-        group_name,
-    )
-    .map_err(Error::from)
+    favorites::favorite_remove(db, Some(owner_user_id), kind, entity_id, group_name)
+        .map_err(Error::from)
 }
 
 pub fn rename_local_favorite_entries(
@@ -66,14 +53,8 @@ pub fn rename_local_favorite_entries(
     group_name: String,
     new_group_name: String,
 ) -> Result<i64> {
-    favorites::favorite_group_rename(
-        db,
-        Some(owner_user_id),
-        kind.as_str().to_string(),
-        group_name,
-        new_group_name,
-    )
-    .map_err(Error::from)
+    favorites::favorite_group_rename(db, Some(owner_user_id), kind, group_name, new_group_name)
+        .map_err(Error::from)
 }
 
 pub fn delete_local_favorite_entries(
@@ -82,13 +63,7 @@ pub fn delete_local_favorite_entries(
     kind: FavoriteEntityKind,
     group_name: String,
 ) -> Result<i64> {
-    favorites::favorite_group_delete(
-        db,
-        Some(owner_user_id),
-        kind.as_str().to_string(),
-        group_name,
-    )
-    .map_err(Error::from)
+    favorites::favorite_group_delete(db, Some(owner_user_id), kind, group_name).map_err(Error::from)
 }
 
 pub(super) const fn local_group_config_key(kind: FavoriteEntityKind) -> &'static str {
@@ -141,7 +116,7 @@ pub fn rename_local_favorite_group(
     let affected = favorites::favorite_group_rename_with_config(
         db,
         Some(owner_user_id),
-        kind.as_str(),
+        kind,
         &key,
         &group_name,
         &new_group_name,
@@ -169,7 +144,7 @@ pub fn delete_local_favorite_group(
     let affected = favorites::favorite_group_delete_with_config(
         db,
         Some(owner_user_id),
-        kind.as_str(),
+        kind,
         &key,
         &group_name,
         &groups,
@@ -246,15 +221,9 @@ mod tests {
         let dir = TestDir::new("group-realms");
         let db = DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap();
 
-        create_local_favorite_group(
-            &db,
-            "usr_a",
-            FavoriteEntityKind::Friend,
-            "account".into(),
-        )
-        .unwrap();
-        create_local_favorite_group(&db, "", FavoriteEntityKind::Friend, "legacy".into())
+        create_local_favorite_group(&db, "usr_a", FavoriteEntityKind::Friend, "account".into())
             .unwrap();
+        create_local_favorite_group(&db, "", FavoriteEntityKind::Friend, "legacy".into()).unwrap();
         assert_eq!(
             read_config_string_array(&db, "localFavoriteFriendGroups:usr_a").unwrap(),
             vec!["account"]
@@ -267,7 +236,7 @@ mod tests {
         favorite_add(
             &db,
             Some("usr_a"),
-            "friend".into(),
+            FavoriteEntityKind::Friend,
             "usr_account_friend".into(),
             "account".into(),
         )
@@ -275,7 +244,7 @@ mod tests {
         favorite_add(
             &db,
             None,
-            "friend".into(),
+            FavoriteEntityKind::Friend,
             "usr_legacy_friend".into(),
             "legacy".into(),
         )
@@ -289,15 +258,10 @@ mod tests {
             "renamed".into(),
         )
         .unwrap();
-        delete_local_favorite_group(
-            &db,
-            "usr_a",
-            FavoriteEntityKind::Friend,
-            "legacy".into(),
-        )
-        .unwrap();
+        delete_local_favorite_group(&db, "usr_a", FavoriteEntityKind::Friend, "legacy".into())
+            .unwrap();
 
-        let groups = favorite_list(&db, Some("usr_a"), "friend".into())
+        let groups = favorite_list(&db, Some("usr_a"), FavoriteEntityKind::Friend)
             .unwrap()
             .into_iter()
             .map(|row| row.group_name)
@@ -322,7 +286,7 @@ mod tests {
         favorite_add(
             &db,
             None,
-            "friend".into(),
+            FavoriteEntityKind::Friend,
             "usr_shared".into(),
             "same".into(),
         )
@@ -330,7 +294,7 @@ mod tests {
         favorite_add(
             &db,
             Some("usr_a"),
-            "friend".into(),
+            FavoriteEntityKind::Friend,
             "usr_account".into(),
             "same".into(),
         )
@@ -345,7 +309,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut rows = favorite_list(&db, Some("usr_a"), "friend".into())
+        let mut rows = favorite_list(&db, Some("usr_a"), FavoriteEntityKind::Friend)
             .unwrap()
             .into_iter()
             .map(|row| (row.user_id.unwrap_or_default(), row.group_name))
