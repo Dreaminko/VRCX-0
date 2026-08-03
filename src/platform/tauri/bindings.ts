@@ -905,6 +905,22 @@ export const commands = {
     async appGameLogQuery(query: GameLogQueryInput): Promise<JsonValue> {
         return await TAURI_INVOKE('app__game_log_query', { query });
     },
+    async appGameLogPreviousInstancesByGroupId(
+        groupId: string
+    ): Promise<GameLogPreviousInstanceGroupOutput[]> {
+        return await TAURI_INVOKE(
+            'app__game_log_previous_instances_by_group_id',
+            { groupId }
+        );
+    },
+    async appGameLogPreviousInstancesByWorldId(
+        worldId: string
+    ): Promise<GameLogPreviousInstanceWorldOutput[]> {
+        return await TAURI_INVOKE(
+            'app__game_log_previous_instances_by_world_id',
+            { worldId }
+        );
+    },
     async appGameLogSessionsQuery(
         input: GameLogSessionsQueryInput
     ): Promise<GameLogSessionDto[]> {
@@ -4179,6 +4195,21 @@ export type GameClientEvent =
 export type GameLogPersistenceFallbackPayload = {
     attemptedRowCount: number;
     error: string;
+};
+export type GameLogPreviousInstanceGroupOutput = {
+    created_at: string;
+    groupName: string;
+    location: string;
+    time: number;
+    worldName: string;
+};
+export type GameLogPreviousInstanceWorldOutput = {
+    created_at: string;
+    groupName: string;
+    id: number;
+    location: string;
+    time: number;
+    worldName: string;
 };
 export type GameLogProjection = {
     currentLocation: string;

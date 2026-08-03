@@ -43,23 +43,6 @@ type InstancePlayerAggregate = {
     count: number;
 };
 
-type GameLogPreviousInstanceGroupRow = {
-    created_at: string;
-    groupName: string;
-    location: string;
-    time: number;
-    worldName: string;
-};
-
-type GameLogPreviousInstanceWorldRow = {
-    created_at: string;
-    groupName: string;
-    id: number;
-    location: string;
-    time: number;
-    worldName: string;
-};
-
 type GameLogPlayerEventRow = {
     created_at: string;
     displayName: string;
@@ -103,8 +86,6 @@ type GameLogUserStatsQueryResult = {
 };
 
 type GameLogQueryResultMap = {
-    previousInstancesByGroupId: GameLogPreviousInstanceGroupRow[];
-    previousInstancesByWorldId: GameLogPreviousInstanceWorldRow[];
     playersFromInstanceRows: GameLogPlayerEventRow[];
     playerDetailFromInstance: GameLogPlayerDetailRow[];
     joinLeaveRange: GameLogJoinLeaveRangeRow[];
@@ -289,10 +270,10 @@ const gameLog = {
     },
 
     async getPreviousInstancesByGroupId(groupId: unknown) {
-        const data = new Map<string, GameLogPreviousInstanceGroupRow>();
-        const rows = await queryGameLogRows('previousInstancesByGroupId', {
-            groupId
-        });
+        const rows = await commands.appGameLogPreviousInstancesByGroupId(
+            normalizeGameLogIdentifier(groupId)
+        );
+        const data = new Map<string, (typeof rows)[number]>();
         for (const row of rows) {
             data.set(row.location, row);
         }
@@ -454,10 +435,10 @@ const gameLog = {
         });
     },
 
-    async getPreviousInstancesByWorldId(input: GameLogUserIdentity) {
-        return queryGameLogRows('previousInstancesByWorldId', {
-            worldId: input.id
-        });
+    getPreviousInstancesByWorldId(input: GameLogUserIdentity) {
+        return commands.appGameLogPreviousInstancesByWorldId(
+            normalizeGameLogIdentifier(input.id)
+        );
     },
 
     async getPlayersFromInstance(location: unknown) {

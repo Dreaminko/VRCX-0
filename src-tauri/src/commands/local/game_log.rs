@@ -10,7 +10,9 @@ use vrcx_0_application_game::{
     GameLogSessionDto, GameLogSessionsQueryInput, InstanceHistoryEntryOutput,
     InstanceHistoryQueryInput,
 };
-use vrcx_0_persistence::game_log::GameLogQueryInput;
+use vrcx_0_persistence::game_log::{
+    GameLogPreviousInstanceGroupOutput, GameLogPreviousInstanceWorldOutput, GameLogQueryInput,
+};
 
 #[tauri::command]
 #[specta::specta]
@@ -92,6 +94,36 @@ pub fn app__game_log_query(
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
     vrcx_0_persistence::game_log::game_log_query(state.db.as_ref(), &owner_user_id, query)
         .map_err(AppError::from)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__game_log_previous_instances_by_group_id(
+    state: State<'_, AppState>,
+    group_id: String,
+) -> Result<Vec<GameLogPreviousInstanceGroupOutput>, AppError> {
+    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
+    vrcx_0_persistence::game_log::get_previous_instances_by_group_id(
+        state.db.as_ref(),
+        &owner_user_id,
+        &group_id,
+    )
+    .map_err(AppError::from)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__game_log_previous_instances_by_world_id(
+    state: State<'_, AppState>,
+    world_id: String,
+) -> Result<Vec<GameLogPreviousInstanceWorldOutput>, AppError> {
+    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
+    vrcx_0_persistence::game_log::get_previous_instances_by_world_id(
+        state.db.as_ref(),
+        &owner_user_id,
+        &world_id,
+    )
+    .map_err(AppError::from)
 }
 
 #[tauri::command]

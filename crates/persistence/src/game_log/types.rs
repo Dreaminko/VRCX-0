@@ -72,6 +72,29 @@ pub struct GameLogLocationTimeUpdate {
     pub time: i64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct GameLogPreviousInstanceGroupOutput {
+    #[serde(rename = "created_at")]
+    pub created_at: String,
+    pub group_name: String,
+    pub location: String,
+    pub time: i64,
+    pub world_name: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct GameLogPreviousInstanceWorldOutput {
+    #[serde(rename = "created_at")]
+    pub created_at: String,
+    pub group_name: String,
+    pub id: i64,
+    pub location: String,
+    pub time: i64,
+    pub world_name: String,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, specta::Type)]
 pub struct GameLogWriteBatch {
     pub locations: Vec<GameLogLocationEntry>,

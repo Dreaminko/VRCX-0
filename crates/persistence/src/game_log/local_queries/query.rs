@@ -13,10 +13,29 @@ pub fn game_log_query(
     owner_user_id: &str,
     query: GameLogQueryInput,
 ) -> Result<Value, Error> {
-    ensure_game_log_tables(db)?;
-    let owner_id = owner_id_for_filter(db, owner_user_id)?;
     let params = query.params.into_value();
     let kind = normalize_text(&query.kind);
+    if kind == "previousInstancesByGroupId" {
+        let group_id = query_param_string(&params, "groupId");
+        return serde_json::to_value(get_previous_instances_by_group_id(
+            db,
+            owner_user_id,
+            &group_id,
+        )?)
+        .map_err(Error::from);
+    }
+    if kind == "previousInstancesByWorldId" {
+        let world_id = query_param_string(&params, "worldId");
+        return serde_json::to_value(get_previous_instances_by_world_id(
+            db,
+            owner_user_id,
+            &world_id,
+        )?)
+        .map_err(Error::from);
+    }
+
+    ensure_game_log_tables(db)?;
+    let owner_id = owner_id_for_filter(db, owner_user_id)?;
     match kind.as_str() {
         "recentDatabase" => {
             let date_offset = query_param_string(&params, "dateOffset");
@@ -315,48 +334,6 @@ pub fn game_log_query(
                 .unwrap_or_default();
             Ok(json!({ "created_at": created_at }))
         }
-        "previousInstancesByGroupId" => {
-            let group_id = query_param_string(&params, "groupId");
-            let mut by_location = HashMap::<String, Value>::new();
-            let mut location_order = Vec::<String>::new();
-            for row in db.execute(
-                "SELECT created_at, location, time, world_name, group_name
-                 FROM gamelog_location
-                 WHERE owner_id IN (0, @owner_id)
-                   AND location LIKE @group_id
-                 ORDER BY id DESC",
-                &scoped_params(owner_id)
-                    .set("group_id", format!("%{group_id}%"))
-                    .build(),
-            )? {
-                let location = row_string(&row, 1);
-                if !by_location.contains_key(&location) {
-                    location_order.push(location.clone());
-                }
-                let time = row_i64(&row, 2)
-                    + by_location
-                        .get(&location)
-                        .and_then(|value| value.get("time"))
-                        .map(value_as_i64)
-                        .unwrap_or(0);
-                by_location.insert(
-                    location.clone(),
-                    json!({
-                        "created_at": row_json(&row, 0),
-                        "location": location,
-                        "time": time,
-                        "worldName": row_json(&row, 3),
-                        "groupName": row_json(&row, 4)
-                    }),
-                );
-            }
-            Ok(Value::Array(
-                location_order
-                    .into_iter()
-                    .filter_map(|location| by_location.remove(&location))
-                    .collect(),
-            ))
-        }
         "lastSeen" => {
             let user_id = query_param_string(&params, "userId");
             let display_name = query_param_string(&params, "displayName");
@@ -566,31 +543,6 @@ pub fn game_log_query(
             }
             dates.sort();
             Ok(Value::String(dates.pop().unwrap_or_default()))
-        }
-        "previousInstancesByWorldId" => {
-            let world_id = query_param_string(&params, "worldId");
-            Ok(Value::Array(
-                db.execute(
-                    "SELECT id, created_at, location, time, world_name, group_name
-                         FROM gamelog_location
-                         WHERE owner_id IN (0, @owner_id)
-                           AND world_id = @world_id
-                         ORDER BY id DESC",
-                    &scoped_params(owner_id).set("world_id", world_id).build(),
-                )?
-                .into_iter()
-                .map(|row| {
-                    json!({
-                        "id": row_json(&row, 0),
-                        "created_at": row_json(&row, 1),
-                        "location": row_json(&row, 2),
-                        "time": row_i64(&row, 3),
-                        "worldName": row_json(&row, 4),
-                        "groupName": row_json(&row, 5)
-                    })
-                })
-                .collect(),
-            ))
         }
         "playersFromInstanceRows" => {
             let location = query_param_string(&params, "location");

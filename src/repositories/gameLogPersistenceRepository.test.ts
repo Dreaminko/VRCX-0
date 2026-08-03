@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const tauriMock = vi.hoisted(() => ({
     commands: {
         appGameLogQuery: vi.fn(),
+        appGameLogPreviousInstancesByGroupId: vi.fn(),
+        appGameLogPreviousInstancesByWorldId: vi.fn(),
         appInstanceHistoryQuery: vi.fn()
     }
 }));
@@ -17,6 +19,14 @@ describe('gameLogPersistenceRepository', () => {
     beforeEach(() => {
         tauriMock.commands.appGameLogQuery.mockReset();
         tauriMock.commands.appGameLogQuery.mockResolvedValue([]);
+        tauriMock.commands.appGameLogPreviousInstancesByGroupId.mockReset();
+        tauriMock.commands.appGameLogPreviousInstancesByGroupId.mockResolvedValue(
+            []
+        );
+        tauriMock.commands.appGameLogPreviousInstancesByWorldId.mockReset();
+        tauriMock.commands.appGameLogPreviousInstancesByWorldId.mockResolvedValue(
+            []
+        );
         tauriMock.commands.appInstanceHistoryQuery.mockReset();
         tauriMock.commands.appInstanceHistoryQuery.mockResolvedValue([]);
     });
@@ -69,6 +79,55 @@ describe('gameLogPersistenceRepository', () => {
                 limit: 50
             }
         );
+    });
+
+    it('uses the typed previous-instance commands for group and world history', async () => {
+        tauriMock.commands.appGameLogPreviousInstancesByGroupId.mockResolvedValueOnce(
+            [
+                {
+                    created_at: '2026-07-01T00:00:00Z',
+                    groupName: 'Group',
+                    location: 'wrld_group:1~group(grp_target)',
+                    time: 60_000,
+                    worldName: 'Group World'
+                }
+            ]
+        );
+        tauriMock.commands.appGameLogPreviousInstancesByWorldId.mockResolvedValueOnce(
+            [
+                {
+                    created_at: '2026-07-02T00:00:00Z',
+                    groupName: '',
+                    id: 2,
+                    location: 'wrld_target:2',
+                    time: 120_000,
+                    worldName: 'Target World'
+                }
+            ]
+        );
+
+        const groupRows =
+            await gameLogRepository.getPreviousInstancesByGroupId(
+                ' grp_target '
+            );
+        const worldRows = await gameLogRepository.getPreviousInstancesByWorldId(
+            { id: ' wrld_target ' }
+        );
+
+        expect(
+            tauriMock.commands.appGameLogPreviousInstancesByGroupId
+        ).toHaveBeenCalledWith('grp_target');
+        expect(
+            tauriMock.commands.appGameLogPreviousInstancesByWorldId
+        ).toHaveBeenCalledWith('wrld_target');
+        expect(Array.from(groupRows.values())).toEqual([
+            expect.objectContaining({
+                location: 'wrld_group:1~group(grp_target)'
+            })
+        ]);
+        expect(worldRows).toEqual([
+            expect.objectContaining({ location: 'wrld_target:2' })
+        ]);
     });
 
     it('keeps the first join time and tracks the last leave time for instance players', async () => {

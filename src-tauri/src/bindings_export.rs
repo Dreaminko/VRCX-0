@@ -4,8 +4,8 @@ use vrcx_0_application::{
     AppUpdateDownloadProgressPayload, AppUpdateInstalledPayload, AppUpdateStatusSnapshot,
     AuthenticatedRuntimePhaseSnapshot, BackgroundImageProjection, CommunityThemeProjection,
     DataDirMigrationStatus, FavoriteImportStatus, GroupBanImportStatus,
-    GroupModerationBatchProgress, MutualGraphFetchStatus, ProfileBackupStatus,
-    ProfileRestoreProgress, SharedCollectionImportStatus, NoteExportStatus, VrcStatusSnapshot,
+    GroupModerationBatchProgress, MutualGraphFetchStatus, NoteExportStatus, ProfileBackupStatus,
+    ProfileRestoreProgress, SharedCollectionImportStatus, VrcStatusSnapshot,
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
@@ -289,6 +289,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::game_log::app__game_log_instance_delete,
             commands::local::game_log::app__game_log_entry_delete,
             commands::local::game_log::app__game_log_query,
+            commands::local::game_log::app__game_log_previous_instances_by_group_id,
+            commands::local::game_log::app__game_log_previous_instances_by_world_id,
             commands::local::game_log::app__game_log_sessions_query,
             commands::local::game_log::app__instance_history_query,
             commands::local::player_list::app__player_list_location_get,

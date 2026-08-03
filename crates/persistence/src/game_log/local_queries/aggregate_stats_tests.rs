@@ -1,7 +1,10 @@
 use serde_json::json;
 
 use super::test_support::*;
-use crate::game_log::previous_instance_event_rows_query;
+use crate::game_log::{
+    get_previous_instances_by_group_id, get_previous_instances_by_world_id,
+    previous_instance_event_rows_query, write_batch, GameLogLocationEntry, GameLogWriteBatch,
+};
 use crate::player_list::{instance_activity_dates_get, instance_activity_rows_get};
 
 #[test]
@@ -111,15 +114,18 @@ fn aggregate_and_lookup_queries_cover_group_world_player_and_dates() -> Result<(
     let test_db = test_db("local-query-aggregates")?;
     seed_fixture(&test_db.db)?;
 
-    let group_rows = rows(query(
-        &test_db.db,
-        "previousInstancesByGroupId",
-        json!({ "groupId": "grp_alpha" }),
-    )?);
+    let group_rows = get_previous_instances_by_group_id(&test_db.db, "usr_test", "grp_alpha")?;
     assert_eq!(group_rows.len(), 2);
+    assert_eq!(group_rows[0].location, "wrld_alpha:inst-c~group(grp_alpha)");
+    assert_eq!(group_rows[0].created_at, "2026-05-14T10:00:00Z");
+    assert_eq!(group_rows[0].time, 90_000);
     assert_eq!(
-        group_rows[0]["location"],
-        "wrld_alpha:inst-c~group(grp_alpha)"
+        serde_json::to_value(&group_rows)?,
+        query(
+            &test_db.db,
+            "previousInstancesByGroupId",
+            json!({ "groupId": "grp_alpha" }),
+        )?
     );
 
     let all_stats = rows(query(
@@ -148,12 +154,18 @@ fn aggregate_and_lookup_queries_cover_group_world_player_and_dates() -> Result<(
     assert_eq!(previous_by_user.len(), 1);
     assert_eq!(previous_by_user[0].world_name, "Alpha World");
 
-    let world_rows = rows(query(
-        &test_db.db,
-        "previousInstancesByWorldId",
-        json!({ "worldId": "wrld_alpha" }),
-    )?);
+    let world_rows = get_previous_instances_by_world_id(&test_db.db, "usr_test", "wrld_alpha")?;
     assert_eq!(world_rows.len(), 2);
+    assert_eq!(world_rows[0].created_at, "2026-05-14T10:00:00Z");
+    assert_eq!(world_rows[0].time, 90_000);
+    assert_eq!(
+        serde_json::to_value(&world_rows)?,
+        query(
+            &test_db.db,
+            "previousInstancesByWorldId",
+            json!({ "worldId": "wrld_alpha" }),
+        )?
+    );
 
     let players = rows(query(
         &test_db.db,
@@ -245,6 +257,55 @@ fn aggregate_and_lookup_queries_cover_group_world_player_and_dates() -> Result<(
 }
 
 #[test]
+fn typed_group_previous_instances_preserve_legacy_location_aggregation() -> Result<(), crate::Error>
+{
+    let test_db = test_db("typed-group-previous-instances")?;
+    let location = "wrld_alpha:inst-a~group(grp_alpha)";
+    write_batch(
+        &test_db.db,
+        "usr_test",
+        &GameLogWriteBatch {
+            locations: vec![
+                GameLogLocationEntry {
+                    created_at: "2026-05-14T08:00:00Z".into(),
+                    location: location.into(),
+                    world_id: "wrld_alpha".into(),
+                    world_name: "Alpha World".into(),
+                    time: 60_000,
+                    group_name: "Group Alpha".into(),
+                },
+                GameLogLocationEntry {
+                    created_at: "2026-05-14T09:00:00Z".into(),
+                    location: location.into(),
+                    world_id: "wrld_alpha".into(),
+                    world_name: "Alpha World Updated".into(),
+                    time: 30_000,
+                    group_name: "Group Alpha Updated".into(),
+                },
+            ],
+            ..Default::default()
+        },
+    )?;
+
+    let rows = get_previous_instances_by_group_id(&test_db.db, "usr_test", "grp_alpha")?;
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].created_at, "2026-05-14T08:00:00Z");
+    assert_eq!(rows[0].world_name, "Alpha World");
+    assert_eq!(rows[0].group_name, "Group Alpha");
+    assert_eq!(rows[0].time, 90_000);
+    assert_eq!(
+        serde_json::to_value(&rows)?,
+        query(
+            &test_db.db,
+            "previousInstancesByGroupId",
+            json!({ "groupId": "grp_alpha" }),
+        )?
+    );
+
+    Ok(())
+}
+
+#[test]
 fn activity_and_session_queries_cover_empty_and_cursor_edges() -> Result<(), crate::Error> {
     let test_db = test_db("local-query-sessions")?;
     seed_fixture(&test_db.db)?;
@@ -258,11 +319,7 @@ fn activity_and_session_queries_cover_empty_and_cursor_edges() -> Result<(), cra
     assert_eq!(activity[0].display_name, "Vip Friend");
 
     assert_eq!(
-        instance_activity_dates_get(
-            &test_db.db,
-            "usr_test",
-            "usr_vip".into(),
-        )?,
+        instance_activity_dates_get(&test_db.db, "usr_test", "usr_vip".into(),)?,
         vec![
             "2026-05-14T08:30:00Z".to_string(),
             "2026-05-14T08:01:00Z".to_string()

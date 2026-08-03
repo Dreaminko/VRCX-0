@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::Utc;
 use sea_query::{Expr, ExprTrait, Order, Query, SqliteQueryBuilder};
 
@@ -10,7 +12,8 @@ use super::schema::*;
 use super::tables::ensure_game_log_tables;
 use super::types::{
     GameLogEventEntry, GameLogExternalEntry, GameLogJoinLeaveEntry, GameLogJoinLeaveSnapshot,
-    GameLogLocationEntry, GameLogLocationSnapshot, SessionEventRow, SessionLocationSegmentRow,
+    GameLogLocationEntry, GameLogLocationSnapshot, GameLogPreviousInstanceGroupOutput,
+    GameLogPreviousInstanceWorldOutput, SessionEventRow, SessionLocationSegmentRow,
 };
 
 fn latest_join_leave_lookup_sql() -> String {
@@ -40,6 +43,22 @@ fn location_before_or_at_sql() -> String {
         .order_by(ident(COL_CREATED_AT), Order::Desc)
         .limit(1)
         .to_string(SqliteQueryBuilder)
+}
+
+fn previous_instances_by_group_id_sql() -> &'static str {
+    "SELECT created_at, location, time, world_name, group_name
+     FROM gamelog_location
+     WHERE owner_id IN (0, @ownerId)
+       AND location LIKE @groupId
+     ORDER BY id DESC"
+}
+
+fn previous_instances_by_world_id_sql() -> &'static str {
+    "SELECT id, created_at, location, time, world_name, group_name
+     FROM gamelog_location
+     WHERE owner_id IN (0, @ownerId)
+       AND world_id = @worldId
+     ORDER BY id DESC"
 }
 
 fn last_location_sql() -> String {
@@ -289,6 +308,69 @@ pub fn get_location_before_or_at(
             world_name: row_string(row, 3),
             group_name: row_string(row, 4),
         }))
+}
+
+pub fn get_previous_instances_by_group_id(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    group_id: &str,
+) -> Result<Vec<GameLogPreviousInstanceGroupOutput>, Error> {
+    ensure_game_log_tables(db)?;
+    let args = owner_params(db, owner_user_id)?
+        .set("groupId", format!("%{}%", group_id.trim()))
+        .build();
+    let mut by_location = HashMap::<String, GameLogPreviousInstanceGroupOutput>::new();
+    let mut location_order = Vec::<String>::new();
+
+    for row in db.execute(previous_instances_by_group_id_sql(), &args)? {
+        let location = row_string(&row, 1);
+        if !by_location.contains_key(&location) {
+            location_order.push(location.clone());
+        }
+        let time = row_i64(&row, 2)
+            + by_location
+                .get(&location)
+                .map(|output| output.time)
+                .unwrap_or_default();
+        by_location.insert(
+            location.clone(),
+            GameLogPreviousInstanceGroupOutput {
+                created_at: row_string(&row, 0),
+                group_name: row_string(&row, 4),
+                location,
+                time,
+                world_name: row_string(&row, 3),
+            },
+        );
+    }
+
+    Ok(location_order
+        .into_iter()
+        .filter_map(|location| by_location.remove(&location))
+        .collect())
+}
+
+pub fn get_previous_instances_by_world_id(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    world_id: &str,
+) -> Result<Vec<GameLogPreviousInstanceWorldOutput>, Error> {
+    ensure_game_log_tables(db)?;
+    let args = owner_params(db, owner_user_id)?
+        .set("worldId", world_id.trim())
+        .build();
+    Ok(db
+        .execute(previous_instances_by_world_id_sql(), &args)?
+        .into_iter()
+        .map(|row| GameLogPreviousInstanceWorldOutput {
+            created_at: row_string(&row, 1),
+            group_name: row_string(&row, 5),
+            id: row_i64(&row, 0),
+            location: row_string(&row, 2),
+            time: row_i64(&row, 3),
+            world_name: row_string(&row, 4),
+        })
+        .collect())
 }
 
 pub fn get_join_leave_entries_for_location_range(
