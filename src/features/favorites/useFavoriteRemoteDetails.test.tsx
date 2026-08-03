@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -145,6 +146,47 @@ describe('useFavoriteRemoteDetails', () => {
             expect(result.current.status).toBe('ready');
         });
 
+        expect(mocks.appFavoriteDetailsHydrate).toHaveBeenCalledTimes(1);
+    });
+
+    it('reattaches to an in-flight hydrate after a StrictMode effect cleanup', async () => {
+        let resolveHydrate: (() => void) | undefined;
+        mocks.appFavoriteDetailsHydrate.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveHydrate = () =>
+                        resolve({
+                            detailsById: {
+                                wrld_1: {
+                                    id: 'wrld_1',
+                                    name: 'World One'
+                                }
+                            },
+                            availabilityById: {},
+                            cachedCount: 1,
+                            fetchedAt: '2026-08-03T00:00:00.000Z'
+                        });
+                })
+        );
+
+        const { result } = renderHook(
+            () =>
+                useFavoriteRemoteDetails({
+                    type: 'world',
+                    favoriteIds: ['wrld_1']
+                }),
+            { wrapper: StrictMode }
+        );
+
+        await waitFor(() => {
+            expect(resolveHydrate).toBeTypeOf('function');
+        });
+        act(() => resolveHydrate?.());
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ready');
+        });
+        expect(result.current.data.wrld_1?.name).toBe('World One');
         expect(mocks.appFavoriteDetailsHydrate).toHaveBeenCalledTimes(1);
     });
 

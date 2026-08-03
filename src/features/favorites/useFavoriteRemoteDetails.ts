@@ -226,7 +226,6 @@ export function useFavoriteRemoteDetails({
     ].join('::');
     const hasIds = normalizedIds.length > 0;
     const [state, setState] = useState(() => buildInitialState());
-    const loadedKeyRef = useRef<string | null>(null);
     const requestParamsRef = useRef({
         ids: normalizedIds,
         tags: normalizedTags
@@ -235,16 +234,11 @@ export function useFavoriteRemoteDetails({
 
     useEffect(() => {
         if (!enabled || !hasIds) {
-            loadedKeyRef.current = null;
             setState(buildInitialState('ready'));
-            return;
-        }
-        if (loadedKeyRef.current === requestKey) {
             return;
         }
 
         let active = true;
-        loadedKeyRef.current = requestKey;
         setState(
             buildInitialState(
                 'running',
@@ -280,7 +274,6 @@ export function useFavoriteRemoteDetails({
                 if (!active) {
                     return;
                 }
-                loadedKeyRef.current = null;
                 setState({
                     status: 'error',
                     detail:
