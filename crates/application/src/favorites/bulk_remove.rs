@@ -96,11 +96,7 @@ struct FavoriteBulkRemoveWorkItem {
 }
 
 trait FavoriteBulkRemoveActions: Send + Sync {
-    fn remove_local(
-        &self,
-        kind: FavoriteEntityKind,
-        item: &FavoriteBulkRemoveItem,
-    ) -> Result<i64>;
+    fn remove_local(&self, kind: FavoriteEntityKind, item: &FavoriteBulkRemoveItem) -> Result<i64>;
     fn remove_remote<'a>(
         &'a self,
         item: &'a FavoriteBulkRemoveItem,
@@ -162,11 +158,7 @@ impl VrchatFavoriteBulkRemoveActions<'_> {
 }
 
 impl FavoriteBulkRemoveActions for VrchatFavoriteBulkRemoveActions<'_> {
-    fn remove_local(
-        &self,
-        kind: FavoriteEntityKind,
-        item: &FavoriteBulkRemoveItem,
-    ) -> Result<i64> {
+    fn remove_local(&self, kind: FavoriteEntityKind, item: &FavoriteBulkRemoveItem) -> Result<i64> {
         self.ensure_scope()?;
         favorites::favorite_remove(
             self.deps.db,
@@ -243,7 +235,7 @@ pub async fn remove_favorites_selection(
     }
     let mut result = FavoriteBulkRemoveResult {
         owner_user_id: input.expected_owner_user_id.clone(),
-        kind: input.kind.clone(),
+        kind: input.kind,
         total: 0,
         succeeded: 0,
         failed: 0,
@@ -258,7 +250,7 @@ pub async fn remove_favorites_selection(
             FavoriteBulkRemoveInput {
                 expected_owner_user_id: input.expected_owner_user_id.clone(),
                 expected_endpoint: input.expected_endpoint.clone(),
-                kind: input.kind.clone(),
+                kind: input.kind,
                 items: items.to_vec(),
             },
         )
@@ -766,14 +758,13 @@ mod tests {
         )
         .unwrap();
 
-        let result =
-            run_favorite_bulk_remove(
-                &actions,
-                "usr_self".into(),
-                FavoriteEntityKind::World,
-                work_items,
-            )
-            .await;
+        let result = run_favorite_bulk_remove(
+            &actions,
+            "usr_self".into(),
+            FavoriteEntityKind::World,
+            work_items,
+        )
+        .await;
 
         assert_eq!(result.items[0].state, FavoriteBulkRemoveItemState::Failed);
         assert_eq!(result.items[1].state, FavoriteBulkRemoveItemState::Removed);

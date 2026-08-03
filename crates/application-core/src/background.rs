@@ -4,11 +4,11 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::task_supervisor::{TaskStopToken, TaskSupervisor};
+use crate::RuntimeOperationStatus;
 use chrono::{Duration as ChronoDuration, Utc};
 use serde::Serialize;
 use vrcx_0_core::time::{iso_millis, now_iso};
 use vrcx_0_persistence::DatabaseService;
-use crate::RuntimeOperationStatus;
 
 const DATABASE_OPTIMIZE_JOB: &str = "databaseOptimize";
 const DATABASE_OPTIMIZE_INITIAL_DELAY_SECONDS: u64 = 3_600;
@@ -82,7 +82,7 @@ impl RuntimeBackgroundJobs {
                     .and_modify(|job| {
                         job.owner = owner.clone();
                         job.cadence_seconds = cadence_seconds;
-                        job.status = status.clone();
+                        job.status = status;
                         job.last_detail = detail.clone();
                         if job.next_run_at.is_none() {
                             job.next_run_at = cadence_seconds.map(future_iso);
