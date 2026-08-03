@@ -355,9 +355,7 @@ fn challenge_from_methods(
     sort_two_factor_methods(&mut methods);
     let Some(mode) = methods
         .iter()
-        .find(|method| {
-            TwoFactorMethodKind::from_wire(method) != TwoFactorMethodKind::Unsupported
-        })
+        .find(|method| TwoFactorMethodKind::from_wire(method) != TwoFactorMethodKind::Unsupported)
         .cloned()
     else {
         return LoginSessionState::failed(

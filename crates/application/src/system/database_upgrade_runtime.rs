@@ -1,7 +1,7 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 #[cfg(panic = "unwind")]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use vrcx_0_persistence::{DatabaseService, VRCX0_SCHEMA_VERSION};
 
@@ -225,8 +225,11 @@ impl DatabaseUpgradeRuntime {
                 let detail = result.error.clone().unwrap_or_else(|| {
                     format!("Database upgrade stopped with status {:?}.", result.status)
                 });
-                self.diagnostics
-                    .record_command(COMMAND, RuntimeOperationStatus::Error, detail.clone());
+                self.diagnostics.record_command(
+                    COMMAND,
+                    RuntimeOperationStatus::Error,
+                    detail.clone(),
+                );
                 self.background_jobs.mark_failed(JOB, detail);
             }
         }
@@ -331,10 +334,7 @@ mod tests {
             .into_iter()
             .find(|job| job.name == JOB)
             .expect("database upgrade background job");
-        assert_eq!(
-            job.status,
-            RuntimeOperationStatus::Idle
-        );
+        assert_eq!(job.status, RuntimeOperationStatus::Idle);
         assert!(job.last_finished_at.is_some());
         assert!(job.last_detail.contains("Upgraded"));
     }

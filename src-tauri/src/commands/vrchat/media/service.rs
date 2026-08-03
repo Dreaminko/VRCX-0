@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 
-use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::media::{
     asset_upload_input, avatar_gallery_image_upload_input, avatar_image_set_input,
@@ -12,6 +11,7 @@ use vrcx_0_application_core::vrchat_api::media::{
     sticker_upload_input, tagged_image_upload_input, user_inventory_item_get_input,
     world_image_set_input,
 };
+use vrcx_0_application_core::RuntimeOperationStatus;
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
 use crate::error::AppError;
@@ -107,9 +107,15 @@ async fn run_legacy_entity_image_upload(
     .await;
     match &result {
         Ok(response) => {
-            diagnostics.record_command(command, RuntimeOperationStatus::Ok, format!("status={}", response.status));
+            diagnostics.record_command(
+                command,
+                RuntimeOperationStatus::Ok,
+                format!("status={}", response.status),
+            );
         }
-        Err(error) => diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string()),
+        Err(error) => {
+            diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string())
+        }
     }
     Ok(result?)
 }

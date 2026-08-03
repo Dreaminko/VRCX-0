@@ -1,12 +1,12 @@
 #![allow(non_snake_case)]
 
-use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::users::{
     current_user_badge_update_input, current_user_tags_add_input, current_user_tags_remove_input,
     current_user_update_input, profile_get_input, profile_update_input, user_groups_get_input,
     user_mutual_counts_get_input, user_mutual_friends_get_input, user_represented_group_get_input,
 };
+use vrcx_0_application_core::RuntimeOperationStatus;
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
 use crate::error::AppError;
@@ -132,9 +132,11 @@ pub async fn app__vrchat_user_get(
             RuntimeOperationStatus::Ok,
             format!("status={}", response.status),
         ),
-        Err(error) => {
-            diagnostics.record_command("app__vrchat_user_get", RuntimeOperationStatus::Error, error.to_string())
-        }
+        Err(error) => diagnostics.record_command(
+            "app__vrchat_user_get",
+            RuntimeOperationStatus::Error,
+            error.to_string(),
+        ),
     }
     Ok(result?)
 }

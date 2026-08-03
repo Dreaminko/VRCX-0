@@ -1,5 +1,5 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::sync::Arc;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -65,8 +65,11 @@ pub async fn load_quick_search_catalog(
 ) -> Result<QuickSearchCatalogSnapshot> {
     let command = "app__quick_search_catalog_get";
     let scope = require_active_scope(&deps.auth_scope)?;
-    deps.diagnostics
-        .record_command(command, RuntimeOperationStatus::Running, "Loading quick search catalog.");
+    deps.diagnostics.record_command(
+        command,
+        RuntimeOperationStatus::Running,
+        "Loading quick search catalog.",
+    );
 
     let remote = load_quick_search_remote_catalog(&deps, &scope).await;
 

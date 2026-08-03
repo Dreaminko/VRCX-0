@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
-use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::auth::{
     config_get_input, current_user_get_input, file_analysis_get_input, visits_get_input,
 };
+use vrcx_0_application_core::RuntimeOperationStatus;
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
 use crate::error::AppError;

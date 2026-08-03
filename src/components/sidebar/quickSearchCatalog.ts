@@ -16,10 +16,7 @@ type QuickSearchCatalogState =
     | 'running'
     | 'error';
 
-export type QuickSearchCatalog = Omit<
-    QuickSearchCatalogSnapshot,
-    'status'
-> & {
+export type QuickSearchCatalog = Omit<QuickSearchCatalogSnapshot, 'status'> & {
     status: QuickSearchCatalogState;
 };
 

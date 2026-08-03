@@ -1,12 +1,12 @@
 #![allow(non_snake_case)]
 
-use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application::{
     self as social_mutation, SocialFriendMutationInput, SocialFriendMutationOutcome,
     SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
     SocialUnfriendBatchInput, SocialUnfriendBatchResult,
 };
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -77,10 +77,11 @@ fn record_batch_outcome(
             );
         }
         Err(error) => {
-            state
-                .runtime_context
-                .diagnostics
-                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
+            state.runtime_context.diagnostics.record_command(
+                command,
+                RuntimeOperationStatus::Error,
+                error.to_string(),
+            );
             state
                 .runtime_context
                 .sync

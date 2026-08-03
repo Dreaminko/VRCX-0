@@ -231,12 +231,9 @@ fn favorite_baseline(user_id: &str) -> FavoriteBaselineSnapshot {
             display_name: "VIP".into(),
             ..Default::default()
         }],
-        grouped_favorite_friend_ids_by_group_key: [(
-            "friend:group_0".into(),
-            vec![user_id.into()],
-        )]
-        .into_iter()
-        .collect(),
+        grouped_favorite_friend_ids_by_group_key: [("friend:group_0".into(), vec![user_id.into()])]
+            .into_iter()
+            .collect(),
         ..Default::default()
     }
 }

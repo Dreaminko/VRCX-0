@@ -20,8 +20,8 @@ pub use moderation_batch::{
 };
 pub use quick_moderation::{
     get_group_quick_moderation, run_group_quick_moderation_action, GroupQuickModerationAction,
-    GroupQuickModerationActionInput, GroupQuickModerationActionOutput, GroupQuickModerationDeps, GroupQuickModerationGroup,
-    GroupQuickModerationInput, GroupQuickModerationOutput,
+    GroupQuickModerationActionInput, GroupQuickModerationActionOutput, GroupQuickModerationDeps,
+    GroupQuickModerationGroup, GroupQuickModerationInput, GroupQuickModerationOutput,
 };
 pub use service::{
     add_member_role, ban_member, block_group, cancel_request, create_post, delete_invite,

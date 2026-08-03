@@ -1,5 +1,5 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use serde_json::Value;
 use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiJsonResponse};
@@ -28,9 +28,11 @@ pub async fn get_user_groups_overview(
     input: UserGroupsOverviewInput,
 ) -> Result<UserGroupsOverviewOutput> {
     let command = "app__user_groups_overview_get";
-    deps.groups
-        .diagnostics
-        .record_command(command, RuntimeOperationStatus::Running, "User groups overview started.");
+    deps.groups.diagnostics.record_command(
+        command,
+        RuntimeOperationStatus::Running,
+        "User groups overview started.",
+    );
     let result = load_user_groups_overview(deps.clone(), input).await;
     match &result {
         Ok(output) => {
@@ -55,9 +57,11 @@ pub async fn get_user_groups_overview(
             );
         }
         Err(error) => {
-            deps.groups
-                .diagnostics
-                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
+            deps.groups.diagnostics.record_command(
+                command,
+                RuntimeOperationStatus::Error,
+                error.to_string(),
+            );
             deps.groups.sync.record_failure("api", error.to_string());
         }
     }

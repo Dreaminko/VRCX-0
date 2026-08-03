@@ -43,12 +43,9 @@ fn favorite_friend_groups_snapshot_preserves_remote_and_local_labels() {
             count: 1,
             ..Default::default()
         }],
-        grouped_favorite_friend_ids_by_group_key: [(
-            "friend:group_0".into(),
-            vec!["usr_a".into()],
-        )]
-        .into_iter()
-        .collect(),
+        grouped_favorite_friend_ids_by_group_key: [("friend:group_0".into(), vec!["usr_a".into()])]
+            .into_iter()
+            .collect(),
         local_friend_favorites: [("Best".into(), vec!["usr_b".into()])]
             .into_iter()
             .collect(),

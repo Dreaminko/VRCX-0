@@ -6,8 +6,8 @@ mod config;
 mod diagnostics;
 mod error;
 mod event_bus;
-mod favorite_kind;
 pub mod events;
+mod favorite_kind;
 mod image_cache;
 mod interruptible_sleep;
 pub mod ports;
@@ -45,15 +45,15 @@ pub use event_bus::{
     FavoritesChangedPayload, RuntimeEventBus, RuntimeEventPayload, RuntimeEventSink,
     RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload, VrcStatusSnapshot,
 };
-pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind, VrchatFavoriteType};
 pub use events::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, FriendProjection,
     FriendProjectionPatch, FriendStateBucketAuthority, PrintAutoCleanupEvent,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeEntryCorrectionFields,
-    RealtimeEntryCorrectionStream, RealtimeInstanceClosedProjection,
-    RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
-    RealtimeNotificationUpsert, RealtimeUserProjection,
+    RealtimeEntryCorrectionStream, RealtimeInstanceClosedProjection, RealtimeInstanceQueueKind,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeNotificationUpsert,
+    RealtimeUserProjection,
 };
+pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind, VrchatFavoriteType};
 pub use image_cache::{save_ugc_image_to_file, ImageCache};
 pub use interruptible_sleep::sleep_interruptibly;
 pub use ports::{

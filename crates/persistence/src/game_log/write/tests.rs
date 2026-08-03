@@ -525,14 +525,7 @@ fn previous_instances_by_user_id_uses_latest_location_metadata() -> Result<(), E
         },
     )?;
 
-    let rows = previous_instance_event_rows_query(
-        db,
-        "usr_test",
-        target_user_id,
-        "",
-        "",
-        0,
-    )?;
+    let rows = previous_instance_event_rows_query(db, "usr_test", target_user_id, "", "", 0)?;
     assert_eq!(rows.len(), 1);
     let row = &rows[0];
     assert_eq!(row.location, matched_location);
@@ -612,10 +605,7 @@ fn previous_instances_limit_keeps_complete_recent_groups() -> Result<(), Error> 
     let db = &test_db.db;
     let target_user_id = "usr_target";
 
-    for (index, location) in ["wrld_a:1", "wrld_b:1", "wrld_c:1"]
-        .into_iter()
-        .enumerate()
-    {
+    for (index, location) in ["wrld_a:1", "wrld_b:1", "wrld_c:1"].into_iter().enumerate() {
         insert_location(
             db,
             &GameLogLocationEntry {
@@ -647,14 +637,7 @@ fn previous_instances_limit_keeps_complete_recent_groups() -> Result<(), Error> 
         }
     }
 
-    let rows = previous_instance_event_rows_query(
-        db,
-        "usr_test",
-        target_user_id,
-        "",
-        "",
-        2,
-    )?;
+    let rows = previous_instance_event_rows_query(db, "usr_test", target_user_id, "", "", 2)?;
 
     assert_eq!(rows.len(), 3);
     assert_eq!(

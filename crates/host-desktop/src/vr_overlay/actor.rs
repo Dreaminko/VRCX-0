@@ -17,8 +17,7 @@ use super::{
     status::{OverlayServicePhase, OverlayServiceStatus},
     types::{
         BackendStartError, BackendStartErrorReason, OverlayInputEvent, OverlayInputEventSink,
-        OverlaySurfaceConfig,
-        VrDeviceSnapshot,
+        OverlaySurfaceConfig, VrDeviceSnapshot,
     },
 };
 

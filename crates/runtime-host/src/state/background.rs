@@ -1,7 +1,7 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::HashMap;
 use std::sync::{atomic::Ordering, Arc, Mutex};
 use std::time::{Duration, Instant};
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use super::{
     run_background_current_user_refresh, run_background_group_instance_refresh,
@@ -10,12 +10,12 @@ use super::{
     BackendRuntime, BackendRuntimeFrontendSessionSnapshot, BackendRuntimeMode, BackendRuntimePhase,
     BackendRuntimeSnapshot, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind,
     BackgroundCapabilitySession, BackgroundTickContext, RuntimeHostContext, RuntimeHostState,
-    SocialBaselineRefreshOutput,
-    BACKGROUND_CURRENT_USER_CADENCE_SECONDS, BACKGROUND_CURRENT_USER_REFRESH_JOB,
-    BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS, BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
-    BACKGROUND_MODERATION_CADENCE_SECONDS, BACKGROUND_MODERATION_REFRESH_JOB,
-    BACKGROUND_PRINT_CLEANUP_CADENCE_SECONDS, BACKGROUND_PRINT_CLEANUP_JOB,
-    BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS, BACKGROUND_SOCIAL_BASELINE_REFRESH_JOB,
+    SocialBaselineRefreshOutput, BACKGROUND_CURRENT_USER_CADENCE_SECONDS,
+    BACKGROUND_CURRENT_USER_REFRESH_JOB, BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
+    BACKGROUND_GROUP_INSTANCE_REFRESH_JOB, BACKGROUND_MODERATION_CADENCE_SECONDS,
+    BACKGROUND_MODERATION_REFRESH_JOB, BACKGROUND_PRINT_CLEANUP_CADENCE_SECONDS,
+    BACKGROUND_PRINT_CLEANUP_JOB, BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS,
+    BACKGROUND_SOCIAL_BASELINE_REFRESH_JOB,
 };
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
@@ -313,8 +313,7 @@ pub(super) fn is_authenticated_maintenance_active_snapshot(
     auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
     snapshot.phase == BackendRuntimePhase::Running
-        && snapshot.auth_status
-            == vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
+        && snapshot.auth_status == vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
         && !snapshot.auth_user_id.trim().is_empty()
         && auth_scope.active
         && auth_scope.current_user_id == snapshot.auth_user_id

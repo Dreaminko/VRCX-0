@@ -1,6 +1,6 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::path::PathBuf;
 use std::sync::Arc;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use tauri::{Emitter, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
@@ -246,10 +246,11 @@ pub fn setup_app_with_data_dir(
 
     let state = app.state::<AppState>();
     configure_tray(app, &state)?;
-    state
-        .runtime_context
-        .runtime
-        .record_phase("tray", RuntimeOperationStatus::Completed, "System tray configured.");
+    state.runtime_context.runtime.record_phase(
+        "tray",
+        RuntimeOperationStatus::Completed,
+        "System tray configured.",
+    );
     #[cfg(target_os = "macos")]
     crate::macos_menu::configure_macos_app_menu(app.handle(), &language)?;
     #[cfg(not(target_os = "macos"))]
@@ -259,10 +260,12 @@ pub fn setup_app_with_data_dir(
     start_host_services(app.handle(), &state);
     start_mcp_server_if_enabled(app.handle());
     wire_deep_links(app.handle());
-    state
-        .runtime_context
-        .sync
-        .record("startup", RuntimeOperationStatus::Ready, "Backend host services are ready.", 0);
+    state.runtime_context.sync.record(
+        "startup",
+        RuntimeOperationStatus::Ready,
+        "Backend host services are ready.",
+        0,
+    );
 
     Ok(())
 }

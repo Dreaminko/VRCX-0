@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
-use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -98,7 +98,11 @@ macro_rules! external_command {
             let request = match $builder(input) {
                 Ok(request) => request,
                 Err(error) => {
-                    diagnostics.record_command(stringify!($name), RuntimeOperationStatus::Error, error.to_string());
+                    diagnostics.record_command(
+                        stringify!($name),
+                        RuntimeOperationStatus::Error,
+                        error.to_string(),
+                    );
                     sync.record_failure("external-api", error.to_string());
                     return Err(error);
                 }
@@ -123,7 +127,11 @@ macro_rules! external_command {
                     );
                 }
                 Err(error) => {
-                    diagnostics.record_command(stringify!($name), RuntimeOperationStatus::Error, error.to_string());
+                    diagnostics.record_command(
+                        stringify!($name),
+                        RuntimeOperationStatus::Error,
+                        error.to_string(),
+                    );
                     sync.record_failure("external-api", error.to_string());
                 }
             }

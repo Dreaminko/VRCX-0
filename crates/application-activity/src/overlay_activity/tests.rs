@@ -5,8 +5,7 @@ use serde_json::json;
 use super::*;
 use vrcx_0_application_core::{
     FriendProjection, RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection,
-    RealtimeNotificationProjection,
-    RealtimeNotificationUpsert,
+    RealtimeNotificationProjection, RealtimeNotificationUpsert,
 };
 use vrcx_0_i18n::{OverlayMessage, OverlayMessageKey};
 

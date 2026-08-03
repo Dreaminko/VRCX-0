@@ -1,5 +1,5 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::time::Duration;
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use tauri::Manager;
 use tauri_plugin_autostart::ManagerExt as _;

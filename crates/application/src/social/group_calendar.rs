@@ -1,10 +1,10 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::{HashMap, HashSet};
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc, Mutex, OnceLock,
 };
 use std::time::{Duration, Instant};
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use futures_util::{
     future::{BoxFuture, FutureExt, Shared},
@@ -90,8 +90,11 @@ pub async fn load_group_calendar(
             "Group calendar snapshot requires a date.".into(),
         ));
     }
-    deps.diagnostics
-        .record_command(command, RuntimeOperationStatus::Running, format!("Loading calendar {date}."));
+    deps.diagnostics.record_command(
+        command,
+        RuntimeOperationStatus::Running,
+        format!("Loading calendar {date}."),
+    );
 
     let result = load_group_calendar_inner(&deps, &scope, &date, input.include_featured).await;
     match &result {
@@ -114,8 +117,11 @@ pub async fn load_group_calendar(
             );
         }
         Err(error) => {
-            deps.diagnostics
-                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
+            deps.diagnostics.record_command(
+                command,
+                RuntimeOperationStatus::Error,
+                error.to_string(),
+            );
             deps.sync.record_failure("groupCalendar", error.to_string());
         }
     }

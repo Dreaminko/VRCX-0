@@ -35,11 +35,10 @@ where
     fn emit_realtime_projection_sync(&self, snapshot: BackendRuntimeSnapshot) {
         let projection = RealtimeProjectionSync { snapshot };
         match serde_json::to_value(&projection) {
-            Ok(payload) => self.inner.emit(
-                RealtimeProjectionSync::EVENT_NAME,
-                payload,
-                &projection,
-            ),
+            Ok(payload) => {
+                self.inner
+                    .emit(RealtimeProjectionSync::EVENT_NAME, payload, &projection)
+            }
             Err(error) => tracing::warn!(
                 error = %error,
                 "failed to serialize realtime projection sync"
@@ -52,11 +51,8 @@ where
         match serde_json::to_value(&telemetry) {
             Ok(payload) => {
                 self.emit_realtime_projection_sync(snapshot);
-                self.inner.emit(
-                    BackendRuntimeTelemetry::EVENT_NAME,
-                    payload,
-                    &telemetry,
-                );
+                self.inner
+                    .emit(BackendRuntimeTelemetry::EVENT_NAME, payload, &telemetry);
             }
             Err(error) => tracing::warn!(
                 error = %error,
@@ -89,7 +85,10 @@ where
         if let Some(telemetry) = telemetry {
             self.emit_backend_runtime_telemetry(telemetry);
         } else if event == BackendRuntimeTelemetry::EVENT_NAME {
-            tracing::warn!(event, "unrecognized typed backend runtime telemetry payload");
+            tracing::warn!(
+                event,
+                "unrecognized typed backend runtime telemetry payload"
+            );
         }
     }
 }

@@ -1,5 +1,5 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::collections::{HashMap, VecDeque};
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use serde_json::Value;
@@ -128,9 +128,11 @@ pub async fn get_group_quick_moderation(
             );
         }
         Err(error) => {
-            deps.groups
-                .diagnostics
-                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
+            deps.groups.diagnostics.record_command(
+                command,
+                RuntimeOperationStatus::Error,
+                error.to_string(),
+            );
             deps.groups
                 .sync
                 .record_failure("groupModeration", error.to_string());
@@ -224,9 +226,11 @@ pub async fn run_group_quick_moderation_action(
             );
         }
         Err(error) => {
-            deps.groups
-                .diagnostics
-                .record_command(command, RuntimeOperationStatus::Error, error.to_string());
+            deps.groups.diagnostics.record_command(
+                command,
+                RuntimeOperationStatus::Error,
+                error.to_string(),
+            );
             deps.groups
                 .sync
                 .record_failure("groupModeration", error.to_string());

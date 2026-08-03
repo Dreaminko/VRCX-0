@@ -1,4 +1,3 @@
-use vrcx_0_application_core::RuntimeOperationStatus;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::{
@@ -6,6 +5,7 @@ use std::sync::{
     Arc, Mutex, MutexGuard,
 };
 use std::time::{Duration, Instant};
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use serde_json::json;
 use vrcx_0_application::{
@@ -35,8 +35,8 @@ use vrcx_0_persistence::legacy_migration::cleanup_legacy_updater_files;
 use vrcx_0_persistence::screenshot_cache::MetadataCacheDb;
 use vrcx_0_runtime_host::telemetry::{TelemetryRuntime, TelemetryRuntimeDeps};
 use vrcx_0_runtime_host::{
-    Result, RuntimeHostCallback, RuntimeHostComposition, RuntimeHostOptions, RuntimeHostProfile,
-    RuntimeHostFavoritesCallback, RuntimeHostProfileExtension, RuntimeHostState,
+    Result, RuntimeHostCallback, RuntimeHostComposition, RuntimeHostFavoritesCallback,
+    RuntimeHostOptions, RuntimeHostProfile, RuntimeHostProfileExtension, RuntimeHostState,
     RuntimeHostStateBuilder,
 };
 
@@ -1139,8 +1139,7 @@ fn is_authenticated_maintenance_active_parts(
     let snapshot = runtime.snapshot();
     let auth_scope = runtime_context.auth_scope.snapshot();
     if snapshot.phase != BackendRuntimePhase::Running
-        || snapshot.auth_status
-            != vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
+        || snapshot.auth_status != vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
         || snapshot.auth_user_id.trim().is_empty()
         || !auth_scope.active
         || auth_scope.current_user_id != snapshot.auth_user_id

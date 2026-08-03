@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::backend_runtime::{BackendRuntimeTelemetry, RealtimeProjectionSync};
-use crate::FavoriteChangeScope;
 use crate::events::{
     FriendProfileLoadStatusPayload, FriendProjection, PrintAutoCleanupEvent,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
     RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeUserProjection,
 };
 use crate::ports::HostSessionProjection;
+use crate::FavoriteChangeScope;
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
 

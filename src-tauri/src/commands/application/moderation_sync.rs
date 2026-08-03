@@ -1,11 +1,11 @@
 #![allow(non_snake_case)]
 
-use vrcx_0_application_core::RuntimeOperationStatus;
 use tauri::State;
 use vrcx_0_application::{
     self as moderation_sync, ModerationSyncDeps, ModerationSyncMutationInput,
     ModerationSyncMutationOutput, ModerationSyncRefreshInput, ModerationSyncRefreshOutput,
 };
+use vrcx_0_application_core::RuntimeOperationStatus;
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -28,7 +28,11 @@ pub async fn app__moderation_sync_refresh(
     let command = "app__moderation_sync_refresh";
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
-    diagnostics.record_command(command, RuntimeOperationStatus::Running, "Moderation snapshot refresh started.");
+    diagnostics.record_command(
+        command,
+        RuntimeOperationStatus::Running,
+        "Moderation snapshot refresh started.",
+    );
 
     let result = moderation_sync::refresh_player_moderations(deps(&state), input).await;
     match &result {
@@ -69,7 +73,11 @@ pub async fn app__moderation_sync_update(
     let command = "app__moderation_sync_update";
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
-    diagnostics.record_command(command, RuntimeOperationStatus::Running, "Moderation mutation started.");
+    diagnostics.record_command(
+        command,
+        RuntimeOperationStatus::Running,
+        "Moderation mutation started.",
+    );
 
     let result = moderation_sync::update_player_moderation(deps(&state), input).await;
     match &result {
