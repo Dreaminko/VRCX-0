@@ -2,7 +2,6 @@ import {
     resolveRuntimeCurrentInstanceRoster,
     type CurrentInstanceRosterContext,
     type CurrentInstanceRosterSnapshot,
-    type CurrentInstanceRosterSource,
     type CurrentInstanceRuntimeRoster
 } from '@/domain/instances/currentInstanceRoster';
 import playerListPersistenceRepository, {
@@ -17,20 +16,12 @@ interface LoadCurrentInstanceRosterInput {
     runtime?: CurrentInstanceRuntimeRoster;
 }
 
-function normalizeSource(value: string): CurrentInstanceRosterSource {
-    if (value === 'database' || value === 'runtime') {
-        return value;
-    }
-    return 'none';
-}
-
 function normalizeContext(
     context: PersistenceRosterContext
 ): CurrentInstanceRosterContext {
     return {
         ...context,
-        playerCount: context.playerCount ?? 0,
-        source: normalizeSource(context.source)
+        playerCount: context.playerCount ?? 0
     };
 }
 

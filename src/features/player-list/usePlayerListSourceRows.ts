@@ -3,7 +3,8 @@ import { useMemo } from 'react';
 import { buildPlayerSourceRows } from './playerListRows';
 import type {
     PlayerListContext,
-    PlayerListProfileRecord,
+    PlayerListCurrentUserSnapshot,
+    PlayerListRosterRow,
     PlayerListSourceRow
 } from './playerListTypes';
 
@@ -19,14 +20,14 @@ export function usePlayerListSourceRows({
     runtimePlayerRows
 }: {
     context: PlayerListContext;
-    currentLocationStartedAt?: unknown;
-    currentUserId?: unknown;
-    currentUserLocation?: unknown;
-    currentUserSnapshot?: PlayerListProfileRecord | null;
+    currentLocationStartedAt?: string | null;
+    currentUserId?: string | null;
+    currentUserLocation?: string | null;
+    currentUserSnapshot?: PlayerListCurrentUserSnapshot | null;
     isGameRunning: boolean;
-    playerRows?: unknown;
+    playerRows?: readonly PlayerListRosterRow[];
     runtimeRosterAvailable?: boolean;
-    runtimePlayerRows?: unknown;
+    runtimePlayerRows?: readonly PlayerListRosterRow[];
 }): PlayerListSourceRow[] {
     return useMemo(() => {
         return buildPlayerSourceRows({

@@ -33,5 +33,5 @@ pub use sessions_view::{
 };
 pub use snapshot::{
     player_list_current_snapshot, PlayerListSnapshotContext, PlayerListSnapshotOutput,
-    PlayerListSnapshotPlayer,
+    PlayerListSnapshotPlayer, PlayerListSnapshotSource,
 };

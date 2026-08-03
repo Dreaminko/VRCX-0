@@ -320,7 +320,7 @@ export function toQueryOptions(
     };
 }
 
-export async function fetchWithEntityPolicy<TData = any>({
+export async function fetchWithEntityPolicy<TData = unknown>({
     queryKey,
     policy,
     queryFn,

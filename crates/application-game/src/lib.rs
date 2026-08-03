@@ -42,9 +42,9 @@ pub use game_log::{
     GameLogIngestOptions, GameLogIngestOutput, GameLogLocalGameContextSource, GameLogProcessEvent,
     GameLogProjection, GameLogRuntime, GameLogRuntimeDeps, GameLogRuntimeState, GameLogSessionDto,
     GameLogSessionEventDto, GameLogSessionMemberDto, GameLogSessionsQueryInput, GameLogSideEffect,
-    InstanceHistoryEntryOutput, InstanceHistoryQueryInput,
-    NoopGameLogHostActions, PlayerListSnapshotContext, PlayerListSnapshotOutput,
-    PlayerListSnapshotPlayer, PlayerState, RuntimeSnapshot, ScreenshotInput,
+    InstanceHistoryEntryOutput, InstanceHistoryQueryInput, NoopGameLogHostActions,
+    PlayerListSnapshotContext, PlayerListSnapshotOutput, PlayerListSnapshotPlayer,
+    PlayerListSnapshotSource, PlayerState, RuntimeSnapshot, ScreenshotInput,
 };
 pub use log_watcher::{
     GameLogEvent, GameLogEventSink, LogLocationSnapshot, LogLocationSnapshotScanner, LogWatcher,

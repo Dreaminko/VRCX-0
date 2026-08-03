@@ -1,8 +1,12 @@
 import type { LucideIcon } from 'lucide-react';
 
-import type { CurrentInstanceRosterContext } from '@/domain/instances/currentInstanceRoster';
+import type {
+    CurrentInstanceRosterContext,
+    CurrentInstanceRosterPlayer
+} from '@/domain/instances/currentInstanceRoster';
 
 export type PlayerListRecord = Record<string, unknown>;
+export type PlayerListRosterRow = Partial<CurrentInstanceRosterPlayer>;
 
 export type PlayerListLanguageRow = {
     key: string;
@@ -62,27 +66,27 @@ export type PlayerListProfileRecord = PlayerListRecord & {
     worldId?: unknown;
 };
 
-export type PlayerListSourceRow = PlayerListRecord & {
-    id?: unknown;
-    rowId?: unknown;
-    userId?: unknown;
-    user_id?: unknown;
-    displayName?: unknown;
-    username?: unknown;
-    joinedAt?: unknown;
-    joinedAtMs?: unknown;
-    lastDurationMs?: unknown;
-    inVRMode?: unknown;
-    isMaster?: unknown;
-    isModerator?: unknown;
-    isBlocked?: unknown;
-    isMuted?: unknown;
-    isChatBoxMuted?: unknown;
-    ageVerified?: unknown;
-    ageVerificationStatus?: unknown;
-    timeoutTime?: unknown;
-    ref?: PlayerListProfileRecord | null;
+export type PlayerListCurrentUserSnapshot = PlayerListProfileRecord & {
+    displayName?: string;
+    username?: string;
 };
+
+export type PlayerListSourceRow = PlayerListRecord &
+    PlayerListRosterRow & {
+        rowId?: unknown;
+        user_id?: unknown;
+        username?: unknown;
+        inVRMode?: unknown;
+        isMaster?: unknown;
+        isModerator?: unknown;
+        isBlocked?: unknown;
+        isMuted?: unknown;
+        isChatBoxMuted?: unknown;
+        ageVerified?: unknown;
+        ageVerificationStatus?: unknown;
+        timeoutTime?: unknown;
+        ref?: PlayerListProfileRecord | null;
+    };
 
 export type PlayerListContext = Partial<CurrentInstanceRosterContext>;
 

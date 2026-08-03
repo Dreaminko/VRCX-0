@@ -1,6 +1,7 @@
 import { commands } from '@/platform/tauri/bindings';
 import type {
     PlayerListSnapshotContext,
+    PlayerListSnapshotOutput,
     PlayerListSnapshotPlayer
 } from '@/platform/tauri/bindings';
 import { normalizeString } from '@/shared/utils/string';
@@ -30,10 +31,7 @@ async function getCurrentInstanceSnapshot({
     currentUserId = '',
     currentLocation = '',
     currentLocationStartedAt = ''
-}: CurrentInstanceSnapshotInput = {}): Promise<{
-    context: PlayerListContext;
-    players: PlayerListPlayer[];
-}> {
+}: CurrentInstanceSnapshotInput = {}): Promise<PlayerListSnapshotOutput> {
     const snapshot = await commands.appPlayerListCurrentSnapshot(
         normalizeString(currentUserId),
         normalizeString(currentLocation),

@@ -4,17 +4,15 @@ import { normalizeString } from '@/shared/utils/string';
 
 import type {
     PlayerListContext,
+    PlayerListCurrentUserSnapshot,
     PlayerListProfileRecord,
     PlayerListRecord,
+    PlayerListRosterRow,
     PlayerListSourceRow
 } from './playerListTypes';
 
 function isRecord(value: unknown): value is PlayerListRecord {
     return Boolean(value && typeof value === 'object');
-}
-
-function toSourceRow(value: unknown): PlayerListSourceRow {
-    return value as PlayerListSourceRow;
 }
 
 export function normalizePlayerUserId(value: unknown) {
@@ -131,14 +129,14 @@ export function buildPlayerSourceRows({
     currentLocationStartedAt,
     runtimeRosterAvailable = false
 }: {
-    playerRows?: unknown;
-    runtimePlayerRows?: unknown;
-    currentUserId?: unknown;
-    currentUserSnapshot?: PlayerListProfileRecord | null;
+    playerRows?: readonly PlayerListRosterRow[];
+    runtimePlayerRows?: readonly PlayerListRosterRow[];
+    currentUserId?: string | null;
+    currentUserSnapshot?: PlayerListCurrentUserSnapshot | null;
     isGameRunning?: boolean;
     context: PlayerListContext;
-    currentUserLocation?: unknown;
-    currentLocationStartedAt?: unknown;
+    currentUserLocation?: string | null;
+    currentLocationStartedAt?: string | null;
     runtimeRosterAvailable?: boolean;
 }): PlayerListSourceRow[] {
     const rows: PlayerListSourceRow[] = [];
@@ -183,7 +181,7 @@ export function buildPlayerSourceRows({
                 ? runtimePlayerRows
                 : playerRows;
         for (const row of Array.isArray(sourceRows) ? sourceRows : []) {
-            addRow(toSourceRow(row));
+            addRow(row);
         }
     }
 

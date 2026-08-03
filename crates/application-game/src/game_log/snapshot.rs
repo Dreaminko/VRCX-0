@@ -12,6 +12,14 @@ use crate::Result;
 
 const ROSTER_RANGE_END: &str = "9999-12-31T23:59:59Z";
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum PlayerListSnapshotSource {
+    Database,
+    None,
+    Runtime,
+}
+
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerListSnapshotContext {
@@ -21,7 +29,7 @@ pub struct PlayerListSnapshotContext {
     pub world_name: String,
     pub time: i64,
     pub group_name: String,
-    pub source: String,
+    pub source: PlayerListSnapshotSource,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub player_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -64,7 +72,7 @@ fn is_live_location(location: &str) -> bool {
         && normalized != "traveling"
 }
 
-fn context_from_row(row: PlayerLocationOutput, source: &str) -> PlayerListSnapshotContext {
+fn context_from_row(row: PlayerLocationOutput) -> PlayerListSnapshotContext {
     PlayerListSnapshotContext {
         created_at: row.created_at,
         location: row.location,
@@ -72,14 +80,14 @@ fn context_from_row(row: PlayerLocationOutput, source: &str) -> PlayerListSnapsh
         world_name: row.world_name,
         time: row.time,
         group_name: row.group_name,
-        source: source.to_string(),
+        source: PlayerListSnapshotSource::Database,
         player_count: None,
         observed_player_event_count: None,
         player_facts_known: None,
     }
 }
 
-fn empty_context(location: String, source: &str) -> PlayerListSnapshotContext {
+fn empty_context(location: String, source: PlayerListSnapshotSource) -> PlayerListSnapshotContext {
     PlayerListSnapshotContext {
         created_at: String::new(),
         location,
@@ -87,7 +95,7 @@ fn empty_context(location: String, source: &str) -> PlayerListSnapshotContext {
         world_name: String::new(),
         time: 0,
         group_name: String::new(),
-        source: source.to_string(),
+        source,
         player_count: None,
         observed_player_event_count: None,
         player_facts_known: None,
@@ -103,7 +111,7 @@ fn resolve_location_context(
 
     if is_live_location(&normalized) {
         if let Some(row) = player_list_location_get(db, owner_user_id, normalized.clone())? {
-            return Ok(context_from_row(row, "database"));
+            return Ok(context_from_row(row));
         }
         let world_id = world_id_from_location(&normalized);
         let world_name = if world_id.is_empty() {
@@ -111,21 +119,21 @@ fn resolve_location_context(
         } else {
             world_id.clone()
         };
-        let mut context = empty_context(normalized, "runtime");
+        let mut context = empty_context(normalized, PlayerListSnapshotSource::Runtime);
         context.world_id = world_id;
         context.world_name = world_name;
         return Ok(context);
     }
 
     if !normalized.is_empty() {
-        return Ok(empty_context(normalized, "runtime"));
+        return Ok(empty_context(normalized, PlayerListSnapshotSource::Runtime));
     }
 
     if let Some(row) = player_list_latest_location_get(db, owner_user_id)? {
-        return Ok(context_from_row(row, "database"));
+        return Ok(context_from_row(row));
     }
 
-    Ok(empty_context(String::new(), "none"))
+    Ok(empty_context(String::new(), PlayerListSnapshotSource::None))
 }
 
 fn rebuild_roster(
@@ -529,7 +537,7 @@ mod tests {
     fn non_live_location_returns_context_without_roster() {
         let (_dir, db) = test_db("snapshot-non-live");
         let snapshot = player_list_current_snapshot(&db, "", "", "private", "").unwrap();
-        assert_eq!(snapshot.context.source, "runtime");
+        assert_eq!(snapshot.context.source, PlayerListSnapshotSource::Runtime);
         assert_eq!(snapshot.context.location, "private");
         assert!(snapshot.players.is_empty());
         assert_eq!(snapshot.context.player_count, None);

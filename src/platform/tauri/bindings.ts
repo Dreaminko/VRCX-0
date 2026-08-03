@@ -5125,7 +5125,7 @@ export type PlayerListSnapshotContext = {
     worldName: string;
     time: number;
     groupName: string;
-    source: string;
+    source: PlayerListSnapshotSource;
     playerCount?: number | null;
     observedPlayerEventCount?: number | null;
     playerFactsKnown?: boolean | null;
@@ -5141,6 +5141,7 @@ export type PlayerListSnapshotPlayer = {
     joinedAt: string;
     joinedAtMs: number;
 };
+export type PlayerListSnapshotSource = 'database' | 'none' | 'runtime';
 export type PlayerLocationOutput = {
     createdAt: string;
     location: string;
