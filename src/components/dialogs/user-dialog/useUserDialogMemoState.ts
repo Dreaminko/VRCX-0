@@ -119,72 +119,106 @@ export function useUserDialogMemoState({
 
         const nextNote = String(dialog.note || '').slice(0, 256);
         const nextMemoInput = String(dialog.memo || '');
-        const nextProfileNote = nextNote;
-
+        const noteChanged = nextNote !== dialog.originalNote;
         memoRevisionRef.current += 1;
         setMemoDialog((current: MemoDialogState) => ({
             ...current,
             saving: true
         }));
-        try {
-            if (nextNote !== dialog.originalNote) {
-                await vrchatToolsRepository.saveUserNote({
-                    targetUserId,
-                    note: nextNote
-                });
-            }
-            const nextEntry = await memoPersistenceRepository.saveUserMemo({
+        const noteSave = noteChanged
+            ? vrchatToolsRepository.saveUserNote({
+                  targetUserId,
+                  note: nextNote
+              })
+            : Promise.resolve();
+        const [noteResult, memoResult] = await Promise.allSettled([
+            noteSave,
+            memoPersistenceRepository.saveUserMemo({
                 userId: targetUserId,
                 memo: nextMemoInput
-            });
+            })
+        ]);
+        const nextMemo =
+            memoResult.status === 'fulfilled'
+                ? String(memoResult.value.memo || '')
+                : memo;
+        const savedFields = {
+            ...(noteChanged && noteResult.status === 'fulfilled'
+                ? { note: nextNote }
+                : {}),
+            ...(memoResult.status === 'fulfilled'
+                ? { memo: nextMemo, $nickName: nextMemo }
+                : {})
+        };
+        const saveSucceeded =
+            noteResult.status === 'fulfilled' &&
+            memoResult.status === 'fulfilled';
+
+        if (saveSucceeded) {
             setMemoDialog(createMemoDialogState());
-            if (
-                activeUserTargetRef.current.userId !== targetUserId ||
-                activeUserTargetRef.current.endpoint !== targetEndpoint
-            ) {
-                return;
-            }
-            const nextMemo = String(nextEntry.memo || '');
-            const rosterUserId = targetUserId;
-            setMemo(nextMemo);
-            setBaseProfile((currentProfile) =>
-                normalizeUserId(currentProfile?.id) === targetUserId
-                    ? {
-                          ...currentProfile,
-                          note: nextProfileNote,
-                          memo: nextMemo,
-                          $nickName: nextMemo
-                      }
-                    : currentProfile
-            );
-            if (rosterUserId && friendsById[rosterUserId]) {
-                applyFriendPatch({
-                    userId: rosterUserId,
-                    patch: {
-                        note: nextProfileNote,
-                        memo: nextMemo,
-                        $nickName: nextMemo
-                    },
-                    stateBucket:
-                        friendsById[rosterUserId]?.stateBucket ||
-                        friendsById[rosterUserId]?.state
-                });
-            }
-            toast.success(
-                nextMemo
-                    ? t('dialog.user.toast.memo_saved')
-                    : t('dialog.user.toast.memo_cleared')
-            );
-        } catch (error) {
+        } else {
+            setMemoDialog((current: MemoDialogState) => ({
+                ...current,
+                originalNote:
+                    noteResult.status === 'fulfilled'
+                        ? nextNote
+                        : current.originalNote,
+                memo:
+                    memoResult.status === 'fulfilled' ? nextMemo : current.memo,
+                saving: false
+            }));
+        }
+
+        let error: unknown = null;
+        if (noteResult.status === 'rejected') {
+            error = noteResult.reason;
+        } else if (memoResult.status === 'rejected') {
+            error = memoResult.reason;
+        }
+        if (!saveSucceeded) {
             toast.error(
                 error instanceof Error
                     ? error.message
                     : t('dialog.user.toast.failed_to_save_memo')
             );
-            setMemoDialog((current: MemoDialogState) => ({
-                ...current,
-                saving: false
-            }));
+        }
+
+        if (
+            activeUserTargetRef.current.userId !== targetUserId ||
+            activeUserTargetRef.current.endpoint !== targetEndpoint
+        ) {
+            return;
+        }
+        if (memoResult.status === 'fulfilled') {
+            setMemo(nextMemo);
+        }
+        if (Object.keys(savedFields).length > 0) {
+            setBaseProfile((currentProfile) =>
+                normalizeUserId(currentProfile?.id) === targetUserId
+                    ? {
+                          ...currentProfile,
+                          ...savedFields
+                      }
+                    : currentProfile
+            );
+            if (friendsById[targetUserId]) {
+                applyFriendPatch({
+                    userId: targetUserId,
+                    patch: savedFields,
+                    stateBucket:
+                        friendsById[targetUserId]?.stateBucket ||
+                        friendsById[targetUserId]?.state
+                });
+            }
+        }
+
+        if (saveSucceeded) {
+            toast.success(
+                nextMemo
+                    ? t('dialog.user.toast.memo_saved')
+                    : t('dialog.user.toast.memo_cleared')
+            );
+            return;
         }
     }
 

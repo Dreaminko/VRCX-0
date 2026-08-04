@@ -50,6 +50,28 @@ function HookHarness({
 describe('useUserDialogMemoState', () => {
     let current: HookValue | null;
 
+    function createProps(): HookProps {
+        return {
+            activeUserTargetRef: {
+                current: {
+                    userId: 'usr_self',
+                    endpoint: 'https://api.vrchat.cloud/api/1'
+                }
+            },
+            applyFriendPatch: vi.fn(),
+            currentEndpoint: 'https://api.vrchat.cloud/api/1',
+            friendsById: {},
+            normalizedUserId: 'usr_self',
+            profile: {
+                id: 'usr_self',
+                displayName: 'Current User',
+                note: 'Existing VRChat note'
+            },
+            setBaseProfile: vi.fn(),
+            t: ((key: string) => key) as HookProps['t']
+        };
+    }
+
     beforeEach(() => {
         vi.clearAllMocks();
         current = null;
@@ -75,40 +97,22 @@ describe('useUserDialogMemoState', () => {
         return current;
     }
 
-    it('saves an updated VRChat note when editing the current user', async () => {
-        const props: HookProps = {
-            activeUserTargetRef: {
-                current: {
-                    userId: 'usr_self',
-                    endpoint: 'https://api.vrchat.cloud/api/1'
-                }
-            },
-            applyFriendPatch: vi.fn(),
-            currentEndpoint: 'https://api.vrchat.cloud/api/1',
-            friendsById: {},
-            normalizedUserId: 'usr_self',
-            profile: {
-                id: 'usr_self',
-                displayName: 'Current User',
-                note: 'Existing VRChat note'
-            },
-            setBaseProfile: vi.fn(),
-            t: ((key: string) => key) as HookProps['t']
-        };
-
+    async function renderMemoState() {
         render(
             <HookHarness
                 onValue={(nextValue) => {
                     current = nextValue;
                 }}
-                props={props}
+                props={createProps()}
             />
         );
 
         await waitFor(() => {
             expect(value().memo).toBe('Existing local note');
         });
+    }
 
+    function editBothNotes() {
         act(() => {
             value().editMemo();
         });
@@ -116,9 +120,18 @@ describe('useUserDialogMemoState', () => {
             value().memoDialog.onNoteChange('Updated VRChat note');
             value().memoDialog.onMemoChange('Updated local note');
         });
+    }
+
+    async function saveNotes() {
         await act(async () => {
             await value().memoDialog.onSave();
         });
+    }
+
+    it('saves an updated VRChat note when editing the current user', async () => {
+        await renderMemoState();
+        editBothNotes();
+        await saveNotes();
 
         expect(mocks.saveUserNote).toHaveBeenCalledWith({
             targetUserId: 'usr_self',
@@ -128,5 +141,44 @@ describe('useUserDialogMemoState', () => {
             userId: 'usr_self',
             memo: 'Updated local note'
         });
+    });
+
+    it('saves the local memo when the VRChat note save fails', async () => {
+        mocks.saveUserNote.mockRejectedValueOnce(
+            new Error('VRChat note save failed')
+        );
+        await renderMemoState();
+        editBothNotes();
+        await saveNotes();
+
+        expect(mocks.saveUserMemo).toHaveBeenCalledWith({
+            userId: 'usr_self',
+            memo: 'Updated local note'
+        });
+        expect(value().memo).toBe('Updated local note');
+        expect(value().memoDialog.open).toBe(true);
+        expect(value().memoDialog.saving).toBe(false);
+        expect(mocks.toastError).toHaveBeenCalledWith(
+            'VRChat note save failed'
+        );
+    });
+
+    it('does not repeat a successful VRChat note save when the local memo is retried', async () => {
+        mocks.saveUserMemo.mockRejectedValueOnce(
+            new Error('Local memo save failed')
+        );
+        await renderMemoState();
+        editBothNotes();
+        await saveNotes();
+
+        expect(value().memoDialog.open).toBe(true);
+        expect(value().memoDialog.saving).toBe(false);
+        expect(mocks.toastError).toHaveBeenCalledWith('Local memo save failed');
+
+        await saveNotes();
+
+        expect(mocks.saveUserNote).toHaveBeenCalledTimes(1);
+        expect(mocks.saveUserMemo).toHaveBeenCalledTimes(2);
+        expect(value().memoDialog.open).toBe(false);
     });
 });
