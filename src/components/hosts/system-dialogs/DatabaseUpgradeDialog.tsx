@@ -167,7 +167,7 @@ export function DatabaseUpgradeDialog({ open }: { open: boolean }) {
                             <div className="text-muted-foreground">
                                 {t('message.database.failure_record_hint')}
                             </div>
-                            <code className="bg-muted block select-all overflow-x-auto rounded px-2 py-1.5 text-xs">
+                            <code className="bg-muted block overflow-x-auto rounded px-2 py-1.5 text-xs select-all">
                                 {databaseUpgrade.failureLogPath ||
                                     'error-log.txt'}
                             </code>
@@ -201,7 +201,7 @@ export function DatabaseUpgradeDialog({ open }: { open: boolean }) {
                                         'message.database.preserved_work_database'
                                     )}
                                 </div>
-                                <code className="bg-muted block select-all overflow-x-auto rounded px-2 py-1.5 text-xs">
+                                <code className="bg-muted block overflow-x-auto rounded px-2 py-1.5 text-xs select-all">
                                     {databaseUpgrade.failedWorkDbPath}
                                 </code>
                                 <div className="text-muted-foreground text-xs">
@@ -244,9 +244,7 @@ export function DatabaseUpgradeDialog({ open }: { open: boolean }) {
                                         void startFreshDatabaseAfterUpgradeFailure();
                                     }}
                                 >
-                                    {t(
-                                        'message.database.use_new_database'
-                                    )}
+                                    {t('message.database.use_new_database')}
                                 </Button>
                             ) : null}
                             {databaseUpgrade.retryable ? (

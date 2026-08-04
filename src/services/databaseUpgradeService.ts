@@ -33,9 +33,7 @@ function setUpgradeState(patch: DatabaseUpgradePatch): void {
     useRuntimeStore.getState().setDatabaseUpgradeState(patch);
 }
 
-function applyDatabaseUpgradeProgress(
-    progress: DatabaseUpgradeProgress
-): void {
+function applyDatabaseUpgradeProgress(progress: DatabaseUpgradeProgress): void {
     setUpgradeState({
         stage: progress.stage,
         progressCompleted: progress.completedUnits ?? 0,
@@ -135,8 +133,7 @@ async function blockOnFailedUpgrade(
         retryable,
         freshStartAvailable,
         failureLogPath: logPath,
-        failedWorkDbPath:
-            failedUpgrade?.workDbPath || current.failedWorkDbPath
+        failedWorkDbPath: failedUpgrade?.workDbPath || current.failedWorkDbPath
     });
     useSessionStore.getState().setSessionState({ databaseReady: false });
     return false;
@@ -251,7 +248,7 @@ async function handleDatabaseUpgradeResult(
         result.error ||
             i18n.t(
                 'service.database_upgrade_service.error.apply_upgrade_failed'
-        ),
+            ),
         result,
         {
             retryable: result.status !== 'newerSchema',
@@ -327,9 +324,7 @@ export async function startFreshDatabaseAfterUpgradeFailure(): Promise<boolean> 
     }
     const confirmation = await useModalStore.getState().confirm({
         title: i18n.t('message.database.fresh_start_confirm_title'),
-        description: i18n.t(
-            'message.database.fresh_start_confirm_description'
-        ),
+        description: i18n.t('message.database.fresh_start_confirm_description'),
         confirmText: i18n.t('message.database.use_new_database'),
         cancelText: i18n.t('common.actions.cancel'),
         destructive: true

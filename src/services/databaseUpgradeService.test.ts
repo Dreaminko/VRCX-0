@@ -425,8 +425,7 @@ describe('databaseUpgradeService', () => {
             toVersion: 18,
             retryable: false,
             freshStartAvailable: true,
-            detail:
-                'service.database_upgrade_service.error.newer_schema_requires_newer_app:{"value":19,"value2":18}'
+            detail: 'service.database_upgrade_service.error.newer_schema_requires_newer_app:{"value":19,"value2":18}'
         });
     });
 
@@ -452,9 +451,9 @@ describe('databaseUpgradeService', () => {
             retryable: true
         });
 
-        await expect(
-            startFreshDatabaseAfterUpgradeFailure()
-        ).resolves.toBe(true);
+        await expect(startFreshDatabaseAfterUpgradeFailure()).resolves.toBe(
+            true
+        );
 
         expect(mocks.confirm).toHaveBeenCalledWith(
             expect.objectContaining({ destructive: true })
@@ -490,8 +489,7 @@ describe('databaseUpgradeService', () => {
             open: true,
             phase: 'confirm-legacy-migration',
             failureLogPath: 'C:/VRCX-0/error-log.txt',
-            detail:
-                'service.database_upgrade_service.error.legacy_migration_restart_failed snapshot copy failed'
+            detail: 'service.database_upgrade_service.error.legacy_migration_restart_failed snapshot copy failed'
         });
     });
 

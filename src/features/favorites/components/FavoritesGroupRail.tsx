@@ -94,9 +94,7 @@ function GroupCapacityMeter({
                 <div
                     className={cn(
                         'h-full rounded-full transition-[width,background-color] ease-out motion-reduce:transition-[background-color]',
-                        isFull
-                            ? 'bg-destructive'
-                            : 'bg-primary'
+                        isFull ? 'bg-destructive' : 'bg-primary'
                     )}
                     style={{ width: `${percent}%` }}
                 />
@@ -104,9 +102,7 @@ function GroupCapacityMeter({
             <span
                 className={cn(
                     'shrink-0 text-xs tabular-nums',
-                    isFull
-                        ? 'text-destructive'
-                        : 'text-muted-foreground'
+                    isFull ? 'text-destructive' : 'text-muted-foreground'
                 )}
             >
                 {count}/{capacity}

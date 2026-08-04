@@ -479,7 +479,9 @@ export function FavoritesContentPanel({
                                                     favoriteCommands.removingFavoriteKey ===
                                                     item.key
                                                 }
-                                                onToggleSelect={handleToggleSelect}
+                                                onToggleSelect={
+                                                    handleToggleSelect
+                                                }
                                                 onRemoveLocal={
                                                     handleCardRemoveLocalFavorite
                                                 }
@@ -498,7 +500,9 @@ export function FavoritesContentPanel({
                                                 onFriendRequestInvite={
                                                     handleCardFriendRequestInvite
                                                 }
-                                                onFriendBoop={handleCardFriendBoop}
+                                                onFriendBoop={
+                                                    handleCardFriendBoop
+                                                }
                                                 onWorldNewInstance={
                                                     handleCardWorldNewInstance
                                                 }

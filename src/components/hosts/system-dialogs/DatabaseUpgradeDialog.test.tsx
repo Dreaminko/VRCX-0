@@ -41,15 +41,17 @@ vi.mock('@/ui/shadcn/dialog', () => ({
     DialogHeader: ({ children }: React.PropsWithChildren) => (
         <header>{children}</header>
     ),
-    DialogTitle: ({ children }: React.PropsWithChildren) => (
-        <h1>{children}</h1>
-    )
+    DialogTitle: ({ children }: React.PropsWithChildren) => <h1>{children}</h1>
 }));
 
 vi.mock('@/ui/shadcn/progress', () => ({
-    Progress: ({ value, ...props }: { value: number; 'aria-label'?: string }) => (
-        <div role="progressbar" aria-valuenow={value} {...props} />
-    )
+    Progress: ({
+        value,
+        ...props
+    }: {
+        value: number;
+        'aria-label'?: string;
+    }) => <div role="progressbar" aria-valuenow={value} {...props} />
 }));
 
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -134,11 +136,13 @@ describe('DatabaseUpgradeDialog', () => {
         fireEvent.click(
             screen.getByText('message.database.open_failure_log_folder')
         );
-        fireEvent.click(screen.getByText('message.database.create_github_issue'));
+        fireEvent.click(
+            screen.getByText('message.database.create_github_issue')
+        );
 
-        expect(
-            mocks.openDatabaseUpgradeFailureLogFolder
-        ).toHaveBeenCalledTimes(1);
+        expect(mocks.openDatabaseUpgradeFailureLogFolder).toHaveBeenCalledTimes(
+            1
+        );
         expect(mocks.createDatabaseUpgradeGitHubIssue).toHaveBeenCalledTimes(1);
     });
 });
