@@ -272,7 +272,18 @@
 
 @layer components {
     body:has(.vrcx-0-custom-window-frame) {
+        --vrcx-0-overlay-gutter: 0.375rem;
+        --vrcx-0-overlay-bottom-radius: 1rem;
         background: transparent;
+    }
+
+    .vrcx-0-app-overlay {
+        inset-inline: var(--vrcx-0-overlay-gutter, 0);
+        top: calc(2rem + var(--vrcx-0-overlay-gutter, 0rem));
+        bottom: var(--vrcx-0-overlay-gutter, 0);
+        border-end-start-radius: var(--vrcx-0-overlay-bottom-radius, 0);
+        border-end-end-radius: var(--vrcx-0-overlay-bottom-radius, 0);
+        corner-shape: superellipse(2);
     }
 
     #root:has(.vrcx-0-custom-window-frame) {
@@ -344,6 +355,11 @@
 
     #root:has(.vrcx-0-custom-window-frame [data-window-docked]) {
         padding: 0;
+    }
+
+    body:has(.vrcx-0-custom-window-frame [data-window-docked]) {
+        --vrcx-0-overlay-gutter: 0;
+        --vrcx-0-overlay-bottom-radius: 0;
     }
 
     .dark .vrcx-0-custom-window-frame:has([data-window-docked]),
