@@ -8,6 +8,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { Location } from '@/components/Location';
+import { FriendInstanceTimer } from '@/components/sidebar/friends-sidebar/FriendsSidebarLocation';
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
 import { UserStatusDot } from '@/components/UserStatusDot';
 import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
@@ -320,6 +321,7 @@ export function FriendLocationCard({
     displayInstanceInfo = true,
     isTraveling = false,
     travelingLocation = '',
+    instanceEpoch = 0,
     canUseFriendLocation = false,
     canSendInvite = false,
     canRequestInvite = false,
@@ -342,6 +344,7 @@ export function FriendLocationCard({
     displayInstanceInfo?: boolean;
     isTraveling?: boolean;
     travelingLocation?: unknown;
+    instanceEpoch?: unknown;
     canUseFriendLocation?: boolean;
     canSendInvite?: boolean;
     canRequestInvite?: boolean;
@@ -454,16 +457,26 @@ export function FriendLocationCard({
         locationLabel
     );
     const titleNode = (
-        <UserHoverCard userId={hoverUserId} seed={source}>
-            <CardTitle
-                className={cn(
-                    'w-fit max-w-full truncate text-[length:var(--friend-card-title-font-size)]',
-                    isDense && 'leading-5'
-                )}
-            >
-                {friend?.displayName || ''}
-            </CardTitle>
-        </UserHoverCard>
+        <div className="flex min-w-0 items-center gap-2">
+            <UserHoverCard userId={hoverUserId} seed={source}>
+                <CardTitle
+                    className={cn(
+                        'min-w-0 flex-1 truncate text-[length:var(--friend-card-title-font-size)]',
+                        isDense && 'leading-5'
+                    )}
+                >
+                    {friend?.displayName || ''}
+                </CardTitle>
+            </UserHoverCard>
+            {instanceEpoch ? (
+                <span className="text-muted-foreground shrink-0 text-xs font-normal">
+                    <FriendInstanceTimer
+                        epoch={instanceEpoch}
+                        traveling={isCardTraveling}
+                    />
+                </span>
+            ) : null}
+        </div>
     );
     const statusDescriptionNode = showStatusDescription ? (
         <CardDescription className="text-muted-foreground/70 flex min-w-0 items-start gap-2">

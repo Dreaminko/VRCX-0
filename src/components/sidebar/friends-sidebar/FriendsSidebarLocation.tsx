@@ -48,6 +48,8 @@ type SidebarLocationMetadata = Record<string, unknown> & {
     worldNameHint?: unknown;
 };
 
+const FRIEND_INSTANCE_TIMER_STEP_MS = 30_000;
+
 function recordValue(value: unknown): Record<string, unknown> | null {
     return value && typeof value === 'object'
         ? (value as Record<string, unknown>)
@@ -65,16 +67,25 @@ export function FriendInstanceTimer({
     const [now, setNow] = useState(() => Date.now());
     const normalizedEpoch = timestampMsFromValue(epoch);
     const elapsedMs = normalizedEpoch ? Math.max(0, now - normalizedEpoch) : 0;
-    const text = normalizedEpoch
-        ? timeToText(elapsedMs, false, timeUnitLabels)
-        : '-';
+    const nextStepMs =
+        (Math.floor(elapsedMs / FRIEND_INSTANCE_TIMER_STEP_MS) + 1) *
+        FRIEND_INSTANCE_TIMER_STEP_MS;
+    let text = '-';
+    if (normalizedEpoch) {
+        text =
+            elapsedMs < FRIEND_INSTANCE_TIMER_STEP_MS
+                ? `<${timeToText(FRIEND_INSTANCE_TIMER_STEP_MS, true, timeUnitLabels)}`
+                : timeToText(
+                      nextStepMs,
+                      nextStepMs % 60_000 !== 0,
+                      timeUnitLabels
+                  );
+    }
 
     useEffect(() => {
         if (!normalizedEpoch) {
             return;
         }
-        const stepMs = elapsedMs < 60_000 ? 15_000 : 60_000;
-        const nextStepMs = (Math.floor(elapsedMs / stepMs) + 1) * stepMs;
         const timeoutId = window.setTimeout(
             () => {
                 setNow(Date.now());

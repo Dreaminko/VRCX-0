@@ -10,6 +10,7 @@ import { FriendLocationCard } from '@/components/friends/FriendLocationCard';
 import { CurrentInstanceBadge } from '@/components/instances/CurrentInstanceBadge';
 import { EmptyState } from '@/components/layout/PageScaffold';
 import { Location } from '@/components/Location';
+import { readFriendInstanceEpoch } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
 import { isSameInstanceLocation } from '@/domain/instances/instanceRoster';
 import { cn } from '@/lib/utils';
@@ -38,9 +39,14 @@ type FriendsLocationsFriend = FriendRecord & {
 };
 
 type FriendLocationSource = {
+    $location_at?: unknown;
     $travelingToLocation?: unknown;
+    $travelingToTime?: unknown;
     location?: unknown;
+    pendingOffline?: unknown;
     travelingToLocation?: unknown;
+    travelingToTime?: unknown;
+    traveling_to_time?: unknown;
 };
 
 type FriendsLocationsEmptyStateProps = {
@@ -219,6 +225,19 @@ export function FriendsLocationCardItem({
         normalizeId(currentUserId);
     const friendIsOnline = isOnlineFriend(friend);
     const friendLocationAvailable = canUseFriendLocation(rawLocation);
+    const instanceEpoch =
+        friendIsOnline &&
+        !friend.pendingOffline &&
+        !source.pendingOffline &&
+        (target.parsed.isRealInstance || isTravelingLocation)
+            ? readFriendInstanceEpoch(
+                  {
+                      ...source,
+                      $location_at: friend.$location_at || source.$location_at
+                  },
+                  isTravelingLocation
+              )
+            : 0;
 
     return (
         <FriendLocationCard
@@ -228,6 +247,7 @@ export function FriendsLocationCardItem({
             rawLocation={rawLocation}
             isTraveling={isTravelingLocation}
             travelingLocation={travelingLocation}
+            instanceEpoch={instanceEpoch}
             densityConfig={densityConfig}
             contentMode={section.cardContentMode}
             displayInstanceInfo={section.displayInstanceInfo !== false}

@@ -22,21 +22,19 @@ describe('FriendInstanceTimer', () => {
         vi.useRealTimers();
     });
 
-    it('updates every 15 seconds during the first minute, then every minute', async () => {
+    it('shows elapsed time in 30-second buckets', async () => {
         render(<FriendInstanceTimer epoch={1_700_000_000_000} />);
 
-        expect(screen.getByText('0s')).toBeDefined();
-        await act(() => vi.advanceTimersByTimeAsync(15_000));
-        expect(screen.getByText('15s')).toBeDefined();
-        await act(() => vi.advanceTimersByTimeAsync(15_000));
-        expect(screen.getByText('30s')).toBeDefined();
-        await act(() => vi.advanceTimersByTimeAsync(15_000));
-        expect(screen.getByText('45s')).toBeDefined();
-        await act(() => vi.advanceTimersByTimeAsync(15_000));
+        expect(screen.getByText('<30s')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(29_999));
+        expect(screen.getByText('<30s')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(1));
         expect(screen.getByText('1m')).toBeDefined();
-        await act(() => vi.advanceTimersByTimeAsync(59_999));
+        await act(() => vi.advanceTimersByTimeAsync(29_999));
         expect(screen.getByText('1m')).toBeDefined();
         await act(() => vi.advanceTimersByTimeAsync(1));
+        expect(screen.getByText('1m 30s')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(30_000));
         expect(screen.getByText('2m')).toBeDefined();
     });
 });

@@ -69,6 +69,15 @@ export type SidebarPreferences = {
 
 export type LastLocationSnapshot = SameInstanceLastLocation;
 
+type FriendInstanceEpochSource = {
+    $location_at?: unknown;
+    $travelingToTime?: unknown;
+    locationAt?: unknown;
+    location_at?: unknown;
+    travelingToTime?: unknown;
+    traveling_to_time?: unknown;
+};
+
 type SidebarStatusOptions = {
     hideNonFriend?: boolean;
     isGameRunning?: boolean | null;
@@ -459,7 +468,7 @@ export function sameInstanceLocationTag(
 }
 
 export function readFriendInstanceEpoch(
-    source: SidebarFriendRecord | null | undefined,
+    source: FriendInstanceEpochSource | null | undefined,
     isTraveling: boolean
 ) {
     const locationEpoch =
