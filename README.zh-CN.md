@@ -20,6 +20,8 @@
 
 Windows · macOS · Linux
 
+![VRCX-0](images/screenshot-user-dialog.webp)
+
 </div>
 
 VRCX-0 是 VRCX 的完全重写版本，由 VRCX 前维护者之一开发，底层采用原生 Rust 核心（Tauri + React）。重写带来最直接的好处就是快：多年积累的数据也能保持流畅，内存和安装体积都比原版小得多。

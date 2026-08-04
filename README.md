@@ -20,6 +20,8 @@ English | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-Hant.md) | 
 
 Windows · macOS · Linux
 
+![VRCX-0](images/screenshot-user-dialog.webp)
+
 </div>
 
 VRCX-0 is a ground-up rewrite of VRCX by one of its former maintainers, rebuilt on a native Rust core (Tauri + React). The most direct payoff of the rewrite is performance: years of accumulated history stay smooth, and both memory usage and install size are far below the original.

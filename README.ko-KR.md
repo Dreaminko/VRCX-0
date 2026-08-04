@@ -20,6 +20,8 @@
 
 Windows · macOS · Linux
 
+![VRCX-0](images/screenshot-user-dialog.webp)
+
 </div>
 
 VRCX-0는 VRCX의 이전 유지보수 담당자 중 한 명이 처음부터 다시 만든 버전으로, 네이티브 Rust 코어(Tauri + React) 위에 재작성되었습니다. 재작성의 효과가 가장 잘 드러나는 부분은 성능입니다. 몇 년치 기록이 쌓여도 여전히 가볍게 동작하며, 메모리 사용량과 설치 용량 모두 기존 VRCX보다 크게 낮습니다.

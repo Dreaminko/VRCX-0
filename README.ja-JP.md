@@ -20,6 +20,8 @@
 
 Windows · macOS · Linux
 
+![VRCX-0](images/screenshot-user-dialog.webp)
+
 </div>
 
 VRCX-0 は、以前 VRCX のメンテナーを務めていたメンバーの一人が、VRCX を一から書き直したバージョンです。土台はネイティブな Rust コア（Tauri + React）に一新されており、その効果を最も実感できるのはパフォーマンスです。何年分の記録が積み重なっても、動作は軽いまま。メモリ使用量もインストールサイズも、VRCX を大きく下回ります。
