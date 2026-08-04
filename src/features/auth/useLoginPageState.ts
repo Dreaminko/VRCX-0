@@ -65,6 +65,7 @@ export function useLoginPageState() {
     const locale = useShellStore((state) => state.locale);
     const proxyEnabled = usePreferencesStore((state) => state.proxyEnabled);
     const proxyServer = usePreferencesStore((state) => state.proxyServer);
+    const alert = useModalStore((state) => state.alert);
     const confirm = useModalStore((state) => state.confirm);
     const preferencesHydrated = usePreferencesStore(
         (state) => state.preferencesHydrated
@@ -183,7 +184,7 @@ export function useLoginPageState() {
 
     async function migrateLegacyVrcxData() {
         cancelPendingAutoLogin();
-        await promptLegacyVrcxForceMigration({ confirm, t, toast });
+        await promptLegacyVrcxForceMigration({ alert, confirm, t, toast });
     }
 
     async function restoreProfileBackup() {

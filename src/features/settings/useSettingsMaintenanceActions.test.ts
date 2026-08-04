@@ -38,6 +38,7 @@ function createMaintenanceActions({
     toastWarning?: (message: string) => void;
 }) {
     return useSettingsMaintenanceActions({
+        alert: async () => ({ ok: true, reason: 'ok' }),
         avatarFeedHistoryRepository: {
             cleanupAvatarFeedHistory
         },

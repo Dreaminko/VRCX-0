@@ -11,12 +11,6 @@ use crate::Error;
 const PAGES_PER_STEP: i32 = 256;
 const PAUSE_BETWEEN_STEPS: Duration = Duration::from_millis(5);
 const MAX_STALL_DURATION: Duration = Duration::from_secs(30);
-const MAX_BACKUP_RESTARTS: u32 = 8;
-
-fn backup_progress_regressed(previous: (u64, u64), current: (u64, u64)) -> bool {
-    u128::from(current.0) * u128::from(previous.1)
-        < u128::from(previous.0) * u128::from(current.1)
-}
 
 pub(crate) fn backup_connection_to_path(
     source: &Connection,
@@ -24,13 +18,18 @@ pub(crate) fn backup_connection_to_path(
     mut on_progress: impl FnMut(u64, u64),
 ) -> Result<(), Error> {
     let result = (|| {
+        let source_snapshot = source
+            .unchecked_transaction()
+            .map_err(|error| Error::Database(error.to_string()))?;
+        source_snapshot
+            .query_row("SELECT COUNT(*) FROM sqlite_schema", [], |_| Ok(()))
+            .map_err(|error| Error::Database(error.to_string()))?;
         let mut destination = Connection::open(destination_path)
             .map_err(|error| Error::Database(error.to_string()))?;
-        let backup = Backup::new(source, &mut destination)
+        let backup = Backup::new(&source_snapshot, &mut destination)
             .map_err(|error| Error::Database(error.to_string()))?;
         let mut last_progress = None;
         let mut last_progress_at = Instant::now();
-        let mut backup_restart_count = 0;
 
         loop {
             let step = backup
@@ -41,16 +40,6 @@ pub(crate) fn backup_connection_to_path(
             let remaining_pages = progress.remaining.max(0) as u64;
             let completed_pages = total_pages.saturating_sub(remaining_pages);
             let current_progress = (completed_pages, total_pages);
-            if last_progress
-                .is_some_and(|previous| backup_progress_regressed(previous, current_progress))
-            {
-                backup_restart_count += 1;
-                if backup_restart_count > MAX_BACKUP_RESTARTS {
-                    return Err(Error::Database(format!(
-                        "SQLite online backup restarted more than {MAX_BACKUP_RESTARTS} times because the source database kept changing."
-                    )));
-                }
-            }
             if last_progress != Some(current_progress) {
                 last_progress = Some(current_progress);
                 last_progress_at = Instant::now();
@@ -68,6 +57,7 @@ pub(crate) fn backup_connection_to_path(
         }
 
         drop(backup);
+        drop(source_snapshot);
         drop(destination);
         OpenOptions::new()
             .write(true)
@@ -118,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn repeated_external_writes_abort_a_restarting_backup() {
+    fn wal_writes_do_not_restart_or_change_the_pinned_snapshot() {
         let dir = TestDir::new();
         let source_path = dir.path.join("source.sqlite3");
         let destination_path = dir.path.join("destination.sqlite3");
@@ -135,25 +125,30 @@ mod tests {
         let writer = Connection::open(&source_path).unwrap();
         let mut external_writes = 0_u32;
 
-        let error = backup_connection_to_path(&source, &destination_path, |_, _| {
-            external_writes += 1;
-            assert!(
-                external_writes <= MAX_BACKUP_RESTARTS + 1,
-                "backup did not abort after repeated source restarts"
-            );
-            writer
-                .execute(
-                    "INSERT INTO backup_growth VALUES (zeroblob(1048576))",
-                    [],
-                )
-                .unwrap();
+        backup_connection_to_path(&source, &destination_path, |_, _| {
+            if external_writes < 12 {
+                external_writes += 1;
+                writer
+                    .execute("INSERT INTO backup_growth VALUES (zeroblob(1048576))", [])
+                    .unwrap();
+            }
         })
-        .unwrap_err();
+        .unwrap();
 
-        assert!(error
-            .to_string()
-            .contains("source database kept changing"));
-        assert_eq!(external_writes, MAX_BACKUP_RESTARTS + 1);
-        assert!(!destination_path.exists());
+        let destination = Connection::open(&destination_path).unwrap();
+        let destination_rows = destination
+            .query_row("SELECT COUNT(*) FROM backup_growth", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap();
+        let source_rows = source
+            .query_row("SELECT COUNT(*) FROM backup_growth", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap();
+
+        assert_eq!(external_writes, 12);
+        assert_eq!(destination_rows, 1);
+        assert_eq!(source_rows, 13);
     }
 }

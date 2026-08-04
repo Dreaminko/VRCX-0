@@ -10,6 +10,7 @@ import {
 } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import i18n from '@/services/i18nService';
+import { confirmLegacyVrcxProcessState } from '@/services/legacyVrcxMigrationService';
 import { openExternalLink } from '@/services/shellIntegrationService';
 import { links } from '@/shared/constants/link';
 import { useModalStore } from '@/state/modalStore';
@@ -452,6 +453,22 @@ export async function confirmLegacyDatabaseMigration(): Promise<void> {
     let failureDetail = i18n.t(
         'service.database_upgrade_service.error.legacy_migration_restart_failed'
     );
+    let allowRunningLegacyVrcx: boolean;
+    try {
+        allowRunningLegacyVrcx = await confirmLegacyVrcxProcessState({
+            alert: useModalStore.getState().alert,
+            t: i18n.t.bind(i18n)
+        });
+    } catch (error) {
+        console.error('Legacy VRCX process check failed:', error);
+        failureDetail = `${failureDetail} ${errorMessage(error)}`;
+        setUpgradeState({
+            open: true,
+            phase: 'confirm-legacy-migration',
+            detail: failureDetail
+        });
+        return;
+    }
     setUpgradeState({
         open: true,
         phase: 'running',
@@ -469,7 +486,9 @@ export async function confirmLegacyDatabaseMigration(): Promise<void> {
 
     const stopProgressPolling = startDatabaseUpgradeProgressPolling();
     try {
-        const willRestart = await commands.appRequestLegacyMigration();
+        const willRestart = await commands.appRequestLegacyMigration(
+            allowRunningLegacyVrcx
+        );
         if (willRestart) {
             setUpgradeState({
                 phase: 'restarting',

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const commandMocks = vi.hoisted(() => ({
     appGetLegacyVrcxForceMigrationStatus: vi.fn(),
+    appIsLegacyVrcxRunning: vi.fn(),
     appRequestLegacyVrcxForceMigration: vi.fn()
 }));
 
@@ -13,6 +14,7 @@ import { promptLegacyVrcxForceMigration } from './legacyVrcxMigrationService';
 
 function createPromptOptions() {
     return {
+        alert: vi.fn(),
         confirm: vi.fn(),
         t: vi.fn((key: string, params?: Record<string, unknown>) =>
             params?.error
@@ -35,6 +37,7 @@ describe('legacyVrcxMigrationService', () => {
             available: true,
             dbPath: 'C:/Users/about/AppData/Roaming/VRCX/VRCX.sqlite3'
         });
+        commandMocks.appIsLegacyVrcxRunning.mockResolvedValue(false);
         commandMocks.appRequestLegacyVrcxForceMigration.mockResolvedValue(true);
     });
 
@@ -102,7 +105,7 @@ describe('legacyVrcxMigrationService', () => {
 
         expect(
             commandMocks.appRequestLegacyVrcxForceMigration
-        ).toHaveBeenCalledTimes(1);
+        ).toHaveBeenCalledWith(false);
         expect(options.toast.warning).toHaveBeenCalledWith(
             'view.settings.advanced.advanced.database_cleanup.legacy_migration_restart_manually'
         );
@@ -122,5 +125,62 @@ describe('legacyVrcxMigrationService', () => {
         expect(options.toast.error).toHaveBeenCalledWith(
             'view.settings.advanced.advanced.database_cleanup.legacy_migration_failed:request failed'
         );
+    });
+
+    it('retries the process check after the user closes original VRCX', async () => {
+        const options = createPromptOptions();
+        options.confirm.mockResolvedValueOnce({ ok: true });
+        options.alert.mockResolvedValueOnce({
+            ok: true,
+            reason: 'alternative'
+        });
+        commandMocks.appIsLegacyVrcxRunning
+            .mockResolvedValueOnce(true)
+            .mockResolvedValueOnce(false);
+
+        await promptLegacyVrcxForceMigration(options);
+
+        expect(options.alert).toHaveBeenCalledWith({
+            title: 'message.database.legacy_vrcx_running_title',
+            description: 'message.database.legacy_vrcx_running_description',
+            confirmText: 'message.database.legacy_vrcx_force_migration',
+            alternativeText: 'message.database.legacy_vrcx_check_again',
+            dismissible: false,
+            destructive: true
+        });
+        expect(commandMocks.appIsLegacyVrcxRunning).toHaveBeenCalledTimes(2);
+        expect(
+            commandMocks.appRequestLegacyVrcxForceMigration
+        ).toHaveBeenCalledWith(false);
+    });
+
+    it('allows force migration while original VRCX is still running', async () => {
+        const options = createPromptOptions();
+        options.confirm.mockResolvedValueOnce({ ok: true });
+        options.alert.mockResolvedValueOnce({ ok: true, reason: 'ok' });
+        commandMocks.appIsLegacyVrcxRunning.mockResolvedValueOnce(true);
+
+        await promptLegacyVrcxForceMigration(options);
+
+        expect(commandMocks.appIsLegacyVrcxRunning).toHaveBeenCalledOnce();
+        expect(
+            commandMocks.appRequestLegacyVrcxForceMigration
+        ).toHaveBeenCalledWith(true);
+    });
+
+    it('does not authorize force migration when the process alert is replaced', async () => {
+        const options = createPromptOptions();
+        options.confirm.mockResolvedValueOnce({ ok: true });
+        options.alert.mockResolvedValueOnce({
+            ok: false,
+            reason: 'replaced'
+        });
+        commandMocks.appIsLegacyVrcxRunning.mockResolvedValueOnce(true);
+
+        await promptLegacyVrcxForceMigration(options);
+
+        expect(
+            commandMocks.appRequestLegacyVrcxForceMigration
+        ).toHaveBeenCalledWith(false);
     });
 });

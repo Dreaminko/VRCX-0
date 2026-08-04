@@ -97,6 +97,7 @@ type SettingsActionsDeps = Pick<
 
 export function useSettingsActions(deps: SettingsActionsDeps) {
     const { t, i18n } = useTranslation();
+    const alert = useModalStore((state) => state.alert);
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
@@ -150,6 +151,7 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
         applyAppFontPreferences,
         auth,
         avatarFeedHistoryRepository,
+        alert,
         configRepository,
         confirm,
         databaseMaintenanceRepository,

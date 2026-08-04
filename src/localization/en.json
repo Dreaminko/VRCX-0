@@ -5080,6 +5080,10 @@
         "database": {
             "migration_found_title": "Existing VRCX database detected",
             "migration_found_description": "An existing VRCX database was found on this computer. Would you like to migrate it to VRCX-0? The original VRCX data will not be modified",
+            "legacy_vrcx_running_title": "VRCX is running",
+            "legacy_vrcx_running_description": "VRCX-0 detected that VRCX is still running. Close it, then select Retry. Force migration may fail.",
+            "legacy_vrcx_check_again": "Retry",
+            "legacy_vrcx_force_migration": "Force Migration",
             "migration_skip": "Skip",
             "migration_restarting_title": "Migrating data",
             "migration_restarting": "VRCX-0 will restart to complete the migration...",

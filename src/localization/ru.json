@@ -5084,6 +5084,10 @@
         "database": {
             "migration_found_title": "Обнаружена существующая база данных VRCX",
             "migration_found_description": "На этом компьютере обнаружена существующая база данных VRCX. Перенести её в VRCX-0? Исходные данные VRCX не будут изменены",
+            "legacy_vrcx_running_title": "VRCX всё ещё запущен",
+            "legacy_vrcx_running_description": "VRCX-0 обнаружил, что VRCX всё ещё запущен. Закройте его и выберите «Повторить». Принудительная миграция может завершиться ошибкой.",
+            "legacy_vrcx_check_again": "Повторить",
+            "legacy_vrcx_force_migration": "Мигрировать принудительно",
             "migration_skip": "Пропустить",
             "migration_restarting_title": "Миграция данных",
             "migration_restarting": "VRCX-0 перезапустится для завершения миграции...",

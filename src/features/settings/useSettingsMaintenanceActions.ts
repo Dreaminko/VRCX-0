@@ -36,13 +36,16 @@ type StateSetter<Value> = {
 }['bivarianceHack'];
 type SettingsDialogResult = {
     ok: boolean;
+    reason?: string;
     value?: unknown;
 };
 type SettingsConfirmOptions = {
     title: string;
     description: string;
     confirmText?: string;
+    alternativeText?: string;
     cancelText?: string;
+    dismissible?: boolean;
     destructive?: boolean;
 };
 type SettingsPromptOptions = SettingsConfirmOptions & {
@@ -57,6 +60,7 @@ type SettingsToast = {
     warning(message: string, options?: { duration?: number }): unknown;
 };
 type SettingsMaintenanceActionsDeps = {
+    alert: (options: SettingsConfirmOptions) => Promise<SettingsDialogResult>;
     commit: (
         action: PreferenceAction,
         optimistic?: () => PreferenceRollback
@@ -98,6 +102,7 @@ type SettingsMaintenanceActionsDeps = {
 };
 
 export function useSettingsMaintenanceActions({
+    alert,
     commit,
     confirm,
     avatarFeedHistoryRepository,
@@ -390,7 +395,7 @@ export function useSettingsMaintenanceActions({
         }
     }
     async function migrateLegacyVrcxData() {
-        await promptLegacyVrcxForceMigration({ confirm, t, toast });
+        await promptLegacyVrcxForceMigration({ alert, confirm, t, toast });
     }
     async function openUgcFolderSelector() {
         const selectedPath = await openFolderSelectorDialog(

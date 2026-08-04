@@ -5073,6 +5073,10 @@
         "database": {
             "migration_found_title": "既存の VRCX データベースが検出されました",
             "migration_found_description": "このコンピューターで既存の VRCX データベースが見つかりました。VRCX-0 に移行しますか？元の VRCX データは変更されません。",
+            "legacy_vrcx_running_title": "VRCX が実行中です",
+            "legacy_vrcx_running_description": "VRCX が実行中であることを VRCX-0 が検出しました。終了してから「再試行」を選択してください。強制的に移行すると失敗する可能性があります。",
+            "legacy_vrcx_check_again": "再試行",
+            "legacy_vrcx_force_migration": "強制的に移行",
             "migration_skip": "スキップ",
             "migration_restarting_title": "データを移行中",
             "migration_restarting": "VRCX-0 を再起動して移行を完了します...",

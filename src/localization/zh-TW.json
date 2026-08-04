@@ -5080,6 +5080,10 @@
         "database": {
             "migration_found_title": "偵測到現有的 VRCX 資料庫",
             "migration_found_description": "在這台電腦上偵測到現有的 VRCX 資料庫。要將它移轉至 VRCX-0 嗎？原始的 VRCX 資料將不會被修改。",
+            "legacy_vrcx_running_title": "偵測到 VRCX 正在執行",
+            "legacy_vrcx_running_description": "VRCX-0 偵測到 VRCX 仍在執行。請先將其關閉，然後按一下「重試」。強制遷移可能會失敗。",
+            "legacy_vrcx_check_again": "重試",
+            "legacy_vrcx_force_migration": "強制遷移",
             "migration_skip": "略過",
             "migration_restarting_title": "正在移轉資料",
             "migration_restarting": "VRCX-0 將重新啟動以完成移轉...",

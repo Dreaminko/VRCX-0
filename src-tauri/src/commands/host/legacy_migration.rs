@@ -25,6 +25,12 @@ pub fn app__get_legacy_vrcx_migration_status(
 
 #[tauri::command]
 #[specta::specta]
+pub fn app__is_legacy_vrcx_running() -> bool {
+    vrcx_0_host_desktop::process_status::detect_legacy_vrcx_running()
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn app__get_legacy_vrcx_force_migration_status(
 ) -> Result<LegacyVrcxMigrationStatus, AppError> {
     Ok(discover_legacy_vrcx_source().await?.status)
@@ -43,6 +49,18 @@ fn legacy_migration_unavailable_reason(status: &LegacyVrcxMigrationStatus) -> St
         .reason
         .clone()
         .unwrap_or_else(|| "Legacy VRCX migration is unavailable.".to_string())
+}
+
+fn ensure_legacy_vrcx_process_allows_migration(
+    allow_running_legacy_vrcx: bool,
+) -> Result<(), AppError> {
+    if !allow_running_legacy_vrcx && app__is_legacy_vrcx_running() {
+        return Err(AppError::Custom(
+            "VRCX is still running. Close it before migrating or explicitly allow migration while it is running."
+                .into(),
+        ));
+    }
+    Ok(())
 }
 
 async fn stage_legacy_migration(
@@ -73,7 +91,9 @@ async fn stage_legacy_migration(
 pub async fn app__request_legacy_migration(
     app_handle: AppHandle,
     state: State<'_, AppState>,
+    allow_running_legacy_vrcx: bool,
 ) -> Result<bool, AppError> {
+    ensure_legacy_vrcx_process_allows_migration(allow_running_legacy_vrcx)?;
     let Some(source) = state.legacy_vrcx_source.clone() else {
         return Err(AppError::Custom(legacy_migration_unavailable_reason(
             &state.legacy_vrcx_migration_status,
@@ -101,7 +121,9 @@ pub async fn app__request_legacy_migration(
 pub async fn app__request_legacy_vrcx_force_migration(
     app_handle: AppHandle,
     state: State<'_, AppState>,
+    allow_running_legacy_vrcx: bool,
 ) -> Result<bool, AppError> {
+    ensure_legacy_vrcx_process_allows_migration(allow_running_legacy_vrcx)?;
     let discovery = discover_legacy_vrcx_source().await?;
     let Some(source) = discovery.importable_source else {
         return Err(AppError::Custom(legacy_migration_unavailable_reason(

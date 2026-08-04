@@ -5080,6 +5080,10 @@
         "database": {
             "migration_found_title": "检测到现存的 VRCX 数据库",
             "migration_found_description": "在此计算机上发现了现存的 VRCX 数据库。是否要将其迁移到 VRCX-0？原始 VRCX 数据库的数据不会被修改。",
+            "legacy_vrcx_running_title": "检测到 VRCX 正在运行",
+            "legacy_vrcx_running_description": "VRCX-0 检测到 VRCX 仍在运行。请先将其关闭，然后点击“重试”。强行迁移可能失败。",
+            "legacy_vrcx_check_again": "重试",
+            "legacy_vrcx_force_migration": "强行迁移",
             "migration_skip": "跳过",
             "migration_restarting_title": "正在迁移数据",
             "migration_restarting": "VRCX-0 将重新启动以完成迁移工作",

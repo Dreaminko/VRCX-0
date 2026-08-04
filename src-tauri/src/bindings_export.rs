@@ -19,12 +19,12 @@ use vrcx_0_application_game::{
     AddGameLogEventPayload, GameClientEvent, GameLogPersistenceFallbackPayload, GameLogProjection,
     GameLogSideEffectEvent, RuntimeWorkerErrorPayload,
 };
-use vrcx_0_core::realtime::RealtimeWsStatusPayload;
-use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
 use vrcx_0_assistant::{
     AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,
     AssistantToolResultEvent, AssistantTurnEntitiesEvent,
 };
+use vrcx_0_core::realtime::RealtimeWsStatusPayload;
+use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
 use vrcx_0_host_desktop::tts::TtsVoice;
 use vrcx_0_mcp::McpServerStatus;
 use vrcx_0_runtime_host::RuntimeGroupInstancesProjection;
@@ -607,6 +607,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::legacy_migration::app__check_legacy_vrcx_available,
             commands::host::legacy_migration::app__get_legacy_vrcx_force_migration_status,
             commands::host::legacy_migration::app__get_legacy_vrcx_migration_status,
+            commands::host::legacy_migration::app__is_legacy_vrcx_running,
             commands::host::legacy_migration::app__request_legacy_migration,
             commands::host::legacy_migration::app__request_legacy_vrcx_force_migration,
             commands::host::clipboard::app__get_clipboard,

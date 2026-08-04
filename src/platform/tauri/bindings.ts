@@ -2663,11 +2663,22 @@ export const commands = {
     async appGetLegacyVrcxMigrationStatus(): Promise<LegacyVrcxMigrationStatus> {
         return await TAURI_INVOKE('app__get_legacy_vrcx_migration_status');
     },
-    async appRequestLegacyMigration(): Promise<boolean> {
-        return await TAURI_INVOKE('app__request_legacy_migration');
+    async appIsLegacyVrcxRunning(): Promise<boolean> {
+        return await TAURI_INVOKE('app__is_legacy_vrcx_running');
     },
-    async appRequestLegacyVrcxForceMigration(): Promise<boolean> {
-        return await TAURI_INVOKE('app__request_legacy_vrcx_force_migration');
+    async appRequestLegacyMigration(
+        allowRunningLegacyVrcx: boolean
+    ): Promise<boolean> {
+        return await TAURI_INVOKE('app__request_legacy_migration', {
+            allowRunningLegacyVrcx
+        });
+    },
+    async appRequestLegacyVrcxForceMigration(
+        allowRunningLegacyVrcx: boolean
+    ): Promise<boolean> {
+        return await TAURI_INVOKE('app__request_legacy_vrcx_force_migration', {
+            allowRunningLegacyVrcx
+        });
     },
     async appGetClipboard(): Promise<string> {
         return await TAURI_INVOKE('app__get_clipboard');

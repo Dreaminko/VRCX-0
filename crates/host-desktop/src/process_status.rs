@@ -44,10 +44,22 @@ pub fn detect_steamvr_running() -> bool {
     detect_process_status().is_steamvr_running
 }
 
+pub fn detect_legacy_vrcx_running() -> bool {
+    let mut sys = System::new();
+    sys.refresh_processes(ProcessesToUpdate::All, true);
+    sys.processes()
+        .values()
+        .any(|process| is_legacy_vrcx_process_name(&process.name().to_string_lossy()))
+}
+
 pub fn is_process_running(pid: u32) -> bool {
     let mut sys = System::new();
     sys.refresh_processes(ProcessesToUpdate::All, true);
     sys.process(Pid::from_u32(pid)).is_some()
+}
+
+fn is_legacy_vrcx_process_name(name: &str) -> bool {
+    name.eq_ignore_ascii_case("VRCX.exe") || name.eq_ignore_ascii_case("VRCX")
 }
 
 fn detect_process_status_from_names<I, S>(names: I) -> VrcProcessStatus
@@ -98,7 +110,8 @@ fn is_steamvr_process_name(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        detect_process_status_from_names, is_steamvr_process_name, is_vrchat_process_name,
+        detect_process_status_from_names, is_legacy_vrcx_process_name, is_steamvr_process_name,
+        is_vrchat_process_name,
     };
 
     #[cfg(target_os = "linux")]
@@ -142,5 +155,12 @@ mod tests {
         let status = detect_process_status_from_names(["VRChat.exe", STEAMVR_PROCESS_FIXTURE]);
         assert!(status.is_game_running);
         assert!(status.is_steamvr_running);
+    }
+
+    #[test]
+    fn legacy_vrcx_process_name_does_not_match_vrcx_zero() {
+        assert!(is_legacy_vrcx_process_name("VRCX.exe"));
+        assert!(is_legacy_vrcx_process_name("vrcx"));
+        assert!(!is_legacy_vrcx_process_name("VRCX-0.exe"));
     }
 }

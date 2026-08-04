@@ -5084,6 +5084,10 @@
         "database": {
             "migration_found_title": "Zjištěna existující databáze VRCX",
             "migration_found_description": "V tomto počítači byla nalezena existující databáze VRCX. Chcete ji migrovat do VRCX-0? Původní data VRCX nebudou změněna",
+            "legacy_vrcx_running_title": "VRCX je stále spuštěný",
+            "legacy_vrcx_running_description": "VRCX-0 zjistil, že VRCX je stále spuštěný. Ukončete jej a potom vyberte „Zkusit znovu“. Vynucená migrace může selhat.",
+            "legacy_vrcx_check_again": "Zkusit znovu",
+            "legacy_vrcx_force_migration": "Vynutit migraci",
             "migration_skip": "Přeskočit",
             "migration_restarting_title": "Migrace dat",
             "migration_restarting": "VRCX-0 se restartuje, aby dokončil migraci...",

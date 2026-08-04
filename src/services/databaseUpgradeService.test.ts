@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     appCheckLegacyVrcxAvailable: vi.fn(),
     appRequestLegacyMigration: vi.fn(),
     configReload: vi.fn(),
+    confirmLegacyVrcxProcessState: vi.fn(),
     confirm: vi.fn(),
     openExternalLink: vi.fn(),
     t: vi.fn(),
@@ -45,9 +46,14 @@ vi.mock('@/services/shellIntegrationService', () => ({
     openExternalLink: mocks.openExternalLink
 }));
 
+vi.mock('@/services/legacyVrcxMigrationService', () => ({
+    confirmLegacyVrcxProcessState: mocks.confirmLegacyVrcxProcessState
+}));
+
 vi.mock('@/state/modalStore', () => ({
     useModalStore: {
         getState: () => ({
+            alert: vi.fn(),
             confirm: mocks.confirm
         })
     }
@@ -140,6 +146,7 @@ describe('databaseUpgradeService', () => {
         );
         mocks.appCheckLegacyVrcxAvailable.mockResolvedValue(false);
         mocks.appRequestLegacyMigration.mockResolvedValue(false);
+        mocks.confirmLegacyVrcxProcessState.mockResolvedValue(false);
         mocks.configReload.mockResolvedValue(undefined);
         mocks.confirm.mockResolvedValue({ ok: true, reason: 'confirmed' });
         mocks.openExternalLink.mockResolvedValue(undefined);
@@ -470,12 +477,20 @@ describe('databaseUpgradeService', () => {
     it('restores the confirm state when a legacy migration request does not restart', async () => {
         await confirmLegacyDatabaseMigration();
 
-        expect(mocks.appRequestLegacyMigration).toHaveBeenCalledTimes(1);
+        expect(mocks.appRequestLegacyMigration).toHaveBeenCalledWith(false);
         expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
             open: true,
             phase: 'confirm-legacy-migration',
             detail: 'service.database_upgrade_service.error.legacy_migration_restart_failed'
         });
+    });
+
+    it('passes the force choice to the guarded migration request', async () => {
+        mocks.confirmLegacyVrcxProcessState.mockResolvedValueOnce(true);
+
+        await confirmLegacyDatabaseMigration();
+
+        expect(mocks.appRequestLegacyMigration).toHaveBeenCalledWith(true);
     });
 
     it('keeps migration recovery actions and exposes the failure log when snapshot preparation fails', async () => {
