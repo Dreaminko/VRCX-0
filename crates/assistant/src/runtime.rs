@@ -21,7 +21,7 @@ use crate::endpoints::{
 /// injection in attacker-controlled data (e.g. a friend's bio) cannot drive an
 /// autonomous write.
 const WRITE_TOOLS: &[&str] = &["favorite_local", "favorite_vrchat", "set_friend_note"];
-use crate::error::HarnessError;
+use crate::error::AssistantError;
 use crate::events::AssistantEmitter;
 use crate::session::{
     random_hex, ActiveTurn, Role, Session, SessionStore, SessionSummary, TurnStatus,
@@ -46,7 +46,7 @@ pub struct SendResult {
 }
 
 impl AssistantController {
-    pub async fn from_host(state: &RuntimeHostState) -> Result<Self, HarnessError> {
+    pub async fn from_host(state: &RuntimeHostState) -> Result<Self, AssistantError> {
         let config = state.runtime_context.config.clone();
         let endpoints =
             EndpointStore::new(config.clone(), state.web.proxy_url().map(str::to_string));
@@ -66,45 +66,45 @@ impl AssistantController {
         })
     }
 
-    pub fn endpoint_list(&self) -> Result<Vec<LlmEndpointDto>, HarnessError> {
+    pub fn endpoint_list(&self) -> Result<Vec<LlmEndpointDto>, AssistantError> {
         self.endpoints.list()
     }
 
     pub fn endpoint_upsert(
         &self,
         input: LlmEndpointUpsertInput,
-    ) -> Result<LlmEndpointDto, HarnessError> {
+    ) -> Result<LlmEndpointDto, AssistantError> {
         self.endpoints.upsert(input)
     }
 
-    pub fn endpoint_delete(&self, id: &str) -> Result<(), HarnessError> {
+    pub fn endpoint_delete(&self, id: &str) -> Result<(), AssistantError> {
         self.endpoints.delete(id)
     }
 
     pub async fn endpoint_detect_models(
         &self,
         input: LlmEndpointDetectModelsInput,
-    ) -> Result<LlmEndpointDetectModelsResult, HarnessError> {
+    ) -> Result<LlmEndpointDetectModelsResult, AssistantError> {
         self.endpoints.detect_models(input).await
     }
 
-    pub fn runtime_status(&self) -> Result<AssistantRuntimeStatus, HarnessError> {
+    pub fn runtime_status(&self) -> Result<AssistantRuntimeStatus, AssistantError> {
         self.endpoints.runtime_status()
     }
 
-    pub fn set_follow_custom_proxy(&self, enabled: bool) -> Result<bool, HarnessError> {
+    pub fn set_follow_custom_proxy(&self, enabled: bool) -> Result<bool, AssistantError> {
         self.endpoints.set_follow_custom_proxy(enabled)
     }
 
-    pub fn follow_custom_proxy(&self) -> Result<bool, HarnessError> {
+    pub fn follow_custom_proxy(&self) -> Result<bool, AssistantError> {
         self.endpoints.follow_custom_proxy()
     }
 
-    pub fn assistant_reasoning_effort(&self) -> Result<String, HarnessError> {
+    pub fn assistant_reasoning_effort(&self) -> Result<String, AssistantError> {
         self.endpoints.assistant_reasoning_effort()
     }
 
-    pub fn set_assistant_reasoning_effort(&self, effort: &str) -> Result<String, HarnessError> {
+    pub fn set_assistant_reasoning_effort(&self, effort: &str) -> Result<String, AssistantError> {
         self.endpoints.set_assistant_reasoning_effort(effort)
     }
 
@@ -115,12 +115,12 @@ impl AssistantController {
         model: Option<String>,
         allow_writes: bool,
         playbook_mode: PlaybookMode,
-    ) -> Result<Session, HarnessError> {
+    ) -> Result<Session, AssistantError> {
         let selection =
             self.set_default_runtime(endpoint_id, model, allow_writes, playbook_mode)?;
         self.sessions
             .set_runtime(&self.owner_user_id(), session_id, selection)
-            .ok_or(HarnessError::SessionNotFound)
+            .ok_or(AssistantError::SessionNotFound)
     }
 
     pub fn set_default_runtime(
@@ -129,7 +129,7 @@ impl AssistantController {
         model: Option<String>,
         allow_writes: bool,
         playbook_mode: PlaybookMode,
-    ) -> Result<AssistantRuntimeSelection, HarnessError> {
+    ) -> Result<AssistantRuntimeSelection, AssistantError> {
         let selection = AssistantRuntimeSelection {
             endpoint_id,
             model,
@@ -140,7 +140,7 @@ impl AssistantController {
         Ok(selection)
     }
 
-    pub async fn translate(&self, input: LlmTranslateInput) -> Result<String, HarnessError> {
+    pub async fn translate(&self, input: LlmTranslateInput) -> Result<String, AssistantError> {
         self.endpoints.translate(input).await
     }
 
@@ -195,23 +195,23 @@ impl AssistantController {
         session_id: Option<String>,
         text: String,
         locale: Option<String>,
-    ) -> Result<SendResult, HarnessError> {
+    ) -> Result<SendResult, AssistantError> {
         let runtime = self.endpoints.last_selection()?;
         let owner_user_id = self.owner_user_id();
         let session = self
             .sessions
             .ensure_session_with_runtime(&owner_user_id, session_id, runtime)
-            .ok_or(HarnessError::SessionNotFound)?;
+            .ok_or(AssistantError::SessionNotFound)?;
         let endpoint_id = session
             .endpoint_id
             .as_deref()
             .filter(|value| !value.trim().is_empty())
-            .ok_or(HarnessError::NotConfigured)?;
+            .ok_or(AssistantError::NotConfigured)?;
         let model = session
             .model
             .as_deref()
             .filter(|value| !value.trim().is_empty())
-            .ok_or(HarnessError::NotConfigured)?;
+            .ok_or(AssistantError::NotConfigured)?;
         let endpoint = self.endpoints.resolve(endpoint_id)?;
         let client = self
             .endpoints
@@ -311,7 +311,7 @@ fn visible_tool_defs(
     )
 }
 
-async fn load_tool_defs(tools: &InProcessMcpTools) -> Result<Vec<ToolDefinition>, HarnessError> {
+async fn load_tool_defs(tools: &InProcessMcpTools) -> Result<Vec<ToolDefinition>, AssistantError> {
     Ok(tools
         .list_tools()
         .await?

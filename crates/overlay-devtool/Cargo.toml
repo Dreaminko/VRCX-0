@@ -2,6 +2,7 @@
 name = "vrcx-0-overlay-devtool"
 version = "0.1.0"
 edition = "2021"
+description = "Overlay development tool"
 
 [[bin]]
 name = "vrcx-0-overlay-devtool"

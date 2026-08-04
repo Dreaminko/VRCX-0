@@ -97,11 +97,11 @@ impl From<vrcx_0_mcp::McpError> for AppError {
     }
 }
 
-impl From<vrcx_0_harness::HarnessError> for AppError {
-    fn from(value: vrcx_0_harness::HarnessError) -> Self {
+impl From<vrcx_0_assistant::AssistantError> for AppError {
+    fn from(value: vrcx_0_assistant::AssistantError) -> Self {
         match value {
-            vrcx_0_harness::HarnessError::Persistence(error) => AppError::from(error),
-            vrcx_0_harness::HarnessError::Mcp(error) => AppError::from(error),
+            vrcx_0_assistant::AssistantError::Persistence(error) => AppError::from(error),
+            vrcx_0_assistant::AssistantError::Mcp(error) => AppError::from(error),
             other => AppError::Custom(other.to_string()),
         }
     }

@@ -2,6 +2,7 @@
 name = "vrcx-0-i18n"
 version = "0.1.0"
 edition = "2021"
+description = "Native localization catalog"
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }

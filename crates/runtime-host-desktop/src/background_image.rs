@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use vrcx_0_application::{
     BackgroundImageCustomSource, BackgroundImageCustomSourceKind, BackgroundImageFileResolver,
 };
+use vrcx_0_application_core::Error;
 
 use crate::HostFileAccess;
 
@@ -22,18 +23,16 @@ fn is_background_image_file(path: &Path) -> bool {
         .any(|allowed| extension.eq_ignore_ascii_case(allowed))
 }
 
-fn background_image_files_in_folder(
-    folder: &Path,
-) -> Result<Vec<String>, vrcx_0_application::Error> {
+fn background_image_files_in_folder(folder: &Path) -> Result<Vec<String>, Error> {
     if !folder.is_dir() {
-        return Err(vrcx_0_application::Error::Custom(
+        return Err(Error::Custom(
             "Background image folder is not available.".into(),
         ));
     }
 
     let mut files = Vec::new();
-    for entry in fs::read_dir(folder).map_err(vrcx_0_application::Error::from)? {
-        let entry = entry.map_err(vrcx_0_application::Error::from)?;
+    for entry in fs::read_dir(folder).map_err(Error::from)? {
+        let entry = entry.map_err(Error::from)?;
         let path = entry.path();
         if is_background_image_file(&path) {
             files.push(path.to_string_lossy().to_string());
@@ -69,7 +68,7 @@ impl BackgroundImageFileResolver for HostBackgroundImageFileResolver {
     fn resolve_files(
         &self,
         source: &BackgroundImageCustomSource,
-    ) -> Result<Vec<String>, vrcx_0_application::Error> {
+    ) -> Result<Vec<String>, Error> {
         let files = match source.kind {
             BackgroundImageCustomSourceKind::Folder => {
                 let folder = PathBuf::from(&source.folder_path);

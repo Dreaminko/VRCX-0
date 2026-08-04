@@ -19,7 +19,7 @@ pub use endpoints::{
     LlmEndpointDetectModelsInput, LlmEndpointDto, LlmEndpointUpsertInput, LlmTranslateInput,
 };
 pub use entities::Entity;
-pub use error::HarnessError;
+pub use error::AssistantError;
 pub use events::{
     AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,
     AssistantToolResultEvent, AssistantTurnEntitiesEvent,

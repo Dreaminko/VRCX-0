@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_harness::{
+use vrcx_0_assistant::{
     LlmEndpointDetectModelsInput, LlmEndpointDetectModelsResult, LlmEndpointDto,
     LlmEndpointUpsertInput, LlmTranslateInput,
 };

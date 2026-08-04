@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_harness::{
+use vrcx_0_assistant::{
     AssistantRuntimeSelection, AssistantRuntimeStatus, PlaybookMode, Session, SessionSummary,
 };
 
@@ -15,7 +15,7 @@ pub async fn app__assistant_send_message(
     sessionId: Option<String>,
     text: String,
     locale: Option<String>,
-) -> Result<vrcx_0_harness::SendResult, AppError> {
+) -> Result<vrcx_0_assistant::SendResult, AppError> {
     state
         .assistant()
         .await?

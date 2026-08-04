@@ -2,6 +2,7 @@
 name = "vrcx-0-headless"
 version = "0.1.0"
 edition = "2021"
+description = "Headless data runtime"
 
 [[bin]]
 name = "vrcx-0-headless"

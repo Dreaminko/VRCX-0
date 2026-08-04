@@ -152,3 +152,46 @@ pub(super) fn reads_battery_properties(
 ) -> bool {
     matches!(class, TrackedDeviceClass::HMD) || provides_battery_status == Some(true)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn battery_reading_ignores_one_zero_before_accepting_a_confirmed_zero() {
+        let mut reading = BatteryReadingState::default();
+
+        assert_eq!(reading.update(Some(64)), Some(64));
+        assert_eq!(reading.update(Some(0)), Some(64));
+        assert_eq!(reading.update(Some(63)), Some(63));
+        assert_eq!(reading.update(Some(0)), Some(63));
+        assert_eq!(reading.update(Some(0)), Some(0));
+        assert_eq!(reading.update(Some(41)), Some(41));
+    }
+
+    #[test]
+    fn battery_reading_does_not_invent_a_value_when_the_source_is_unknown() {
+        let mut reading = BatteryReadingState::default();
+
+        assert_eq!(reading.update(None), None);
+        assert_eq!(reading.update(Some(0)), Some(0));
+        assert_eq!(reading.update(None), None);
+    }
+
+    #[test]
+    fn battery_properties_follow_driver_support_except_for_hmds() {
+        assert!(reads_battery_properties(TrackedDeviceClass::HMD, None));
+        assert!(reads_battery_properties(
+            TrackedDeviceClass::Controller,
+            Some(true)
+        ));
+        assert!(!reads_battery_properties(
+            TrackedDeviceClass::Controller,
+            Some(false)
+        ));
+        assert!(!reads_battery_properties(
+            TrackedDeviceClass::GenericTracker,
+            None
+        ));
+    }
+}

@@ -5,7 +5,7 @@ use vrcx_0_application::{
     AuthenticatedRuntimePhaseSnapshot, BackgroundImageProjection, CommunityThemeProjection,
     DataDirMigrationStatus, FavoriteImportStatus, GroupBanImportStatus,
     GroupModerationBatchProgress, MutualGraphFetchStatus, NoteExportStatus, ProfileBackupStatus,
-    ProfileRestoreProgress, SharedCollectionImportStatus, VrcStatusSnapshot,
+    ProfileRestoreProgress, SharedCollectionImportStatus,
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
@@ -13,7 +13,7 @@ use vrcx_0_application_core::{
     FriendProjection, HostSessionProjection, ParsedLocation, PrintAutoCleanupEvent,
     RealtimeCurrentUserProjection, RealtimeEntryCorrection, RealtimeInstanceClosedProjection,
     RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeProjectionSync,
-    RealtimeUserProjection, RuntimeVrchatAuthFailurePayload,
+    RealtimeUserProjection, RuntimeVrchatAuthFailurePayload, VrcStatusSnapshot,
 };
 use vrcx_0_application_game::{
     AddGameLogEventPayload, GameClientEvent, GameLogPersistenceFallbackPayload, GameLogProjection,
@@ -21,7 +21,7 @@ use vrcx_0_application_game::{
 };
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
-use vrcx_0_harness::{
+use vrcx_0_assistant::{
     AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,
     AssistantToolResultEvent, AssistantTurnEntitiesEvent,
 };

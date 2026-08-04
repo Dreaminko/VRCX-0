@@ -2,6 +2,7 @@
 name = "vrcx-0-vrchat-client"
 version = "0.1.0"
 edition = "2021"
+description = "VRChat API client"
 
 [dependencies]
 base64 = { workspace = true }

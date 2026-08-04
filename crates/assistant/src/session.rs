@@ -561,7 +561,7 @@ mod tests {
     const TEST_OWNER: &str = "usr_test";
 
     fn test_db() -> Arc<DatabaseService> {
-        Arc::new(DatabaseService::new(&unique_test_database_path("vrcx-0-harness")).unwrap())
+        Arc::new(DatabaseService::new(&unique_test_database_path("vrcx-0-assistant")).unwrap())
     }
 
     fn create_test_session(store: &SessionStore) -> Session {

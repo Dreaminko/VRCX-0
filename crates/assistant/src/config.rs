@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use vrcx_0_integrations::llm::LlmClient;
 use vrcx_0_persistence::config::ConfigRepository;
 
-use crate::error::HarnessError;
+use crate::error::AssistantError;
 
 pub const ASSISTANT_BASE_URL_CONFIG_KEY: &str = "assistant.baseUrl";
 pub const ASSISTANT_API_KEY_CONFIG_KEY: &str = "assistant.apiKey";
@@ -49,7 +49,7 @@ pub struct AssistantConfig {
 }
 
 impl AssistantConfig {
-    pub fn load(config: &ConfigRepository) -> Result<Self, HarnessError> {
+    pub fn load(config: &ConfigRepository) -> Result<Self, AssistantError> {
         let base_url = config.get_string(ASSISTANT_BASE_URL_CONFIG_KEY, DEFAULT_BASE_URL)?;
         let api_key = config.get_string(ASSISTANT_API_KEY_CONFIG_KEY, "")?;
         let model = config.get_string(ASSISTANT_MODEL_CONFIG_KEY, "")?;
@@ -79,11 +79,11 @@ impl AssistantConfig {
         should_apply_playbook(self.playbook_mode, &self.base_url)
     }
 
-    pub fn build_client(&self) -> Result<LlmClient, HarnessError> {
+    pub fn build_client(&self) -> Result<LlmClient, AssistantError> {
         if !self.is_configured() {
-            return Err(HarnessError::NotConfigured);
+            return Err(AssistantError::NotConfigured);
         }
-        LlmClient::new(&self.base_url, &self.api_key, &self.model, None).map_err(HarnessError::from)
+        LlmClient::new(&self.base_url, &self.api_key, &self.model, None).map_err(AssistantError::from)
     }
 }
 

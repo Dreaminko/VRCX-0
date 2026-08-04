@@ -2,6 +2,7 @@
 name = "vrcx-0-persistence"
 version = "0.1.0"
 edition = "2021"
+description = "SQLite persistence layer"
 
 [dependencies]
 base64 = { workspace = true }

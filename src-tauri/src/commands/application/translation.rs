@@ -5,7 +5,7 @@ use vrcx_0_application::{
     resolved_openai_translation_endpoint_id, translate_text, OpenAiTranslationRequest,
     TranslationDispatch, TranslationProvider, TranslationResult, TranslationTranslateInput,
 };
-use vrcx_0_harness::LlmTranslateInput;
+use vrcx_0_assistant::LlmTranslateInput;
 
 use crate::error::AppError;
 use crate::state::AppState;

@@ -11,7 +11,7 @@ use vrcx_0_application::{
     RemoteMutationGate,
 };
 use vrcx_0_application_core::UpdaterPort;
-use vrcx_0_harness::AssistantController;
+use vrcx_0_assistant::AssistantController;
 use vrcx_0_host::app_paths::AppDataDirResolution;
 use vrcx_0_mcp::{McpRuntime, McpServerController};
 use vrcx_0_runtime_host_desktop::{DesktopRuntimeHostOptions, DesktopRuntimeHostState};

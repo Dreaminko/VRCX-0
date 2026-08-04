@@ -11,7 +11,7 @@ use vrcx_0_integrations::llm::{
 use vrcx_0_persistence::config::ConfigRepository;
 
 use crate::config::{deobfuscate_api_key, normalize_llm_base_url, obfuscate_api_key, PlaybookMode};
-use crate::error::HarnessError;
+use crate::error::AssistantError;
 use crate::session::random_hex;
 
 mod migration;
@@ -150,18 +150,18 @@ impl EndpointStore {
         }
     }
 
-    pub fn list(&self) -> Result<Vec<LlmEndpointDto>, HarnessError> {
+    pub fn list(&self) -> Result<Vec<LlmEndpointDto>, AssistantError> {
         self.ensure_migrated()?;
         Ok(self.load_endpoints()?.into_iter().map(to_dto).collect())
     }
 
-    pub fn upsert(&self, input: LlmEndpointUpsertInput) -> Result<LlmEndpointDto, HarnessError> {
+    pub fn upsert(&self, input: LlmEndpointUpsertInput) -> Result<LlmEndpointDto, AssistantError> {
         self.ensure_migrated()?;
         let _guard = self.write_lock.lock().unwrap();
         let mut endpoints = self.load_endpoints()?;
         let base_url = normalize_llm_base_url(&input.base_url);
         if base_url.is_empty() {
-            return Err(HarnessError::InvalidEndpoint(
+            return Err(AssistantError::InvalidEndpoint(
                 "LLM endpoint base URL is required.".into(),
             ));
         }
@@ -220,7 +220,7 @@ impl EndpointStore {
         Ok(to_dto(endpoint))
     }
 
-    pub fn delete(&self, id: &str) -> Result<(), HarnessError> {
+    pub fn delete(&self, id: &str) -> Result<(), AssistantError> {
         self.ensure_migrated()?;
         let _guard = self.write_lock.lock().unwrap();
         let mut endpoints = self.load_endpoints()?;
@@ -253,7 +253,7 @@ impl EndpointStore {
     pub async fn detect_models(
         &self,
         input: LlmEndpointDetectModelsInput,
-    ) -> Result<LlmEndpointDetectModelsResult, HarnessError> {
+    ) -> Result<LlmEndpointDetectModelsResult, AssistantError> {
         self.ensure_migrated()?;
         let resolved = self.resolve_detect_target(&input)?;
         let client = self.llm_client(&resolved.base_url, &resolved.api_key, "")?;
@@ -285,7 +285,7 @@ impl EndpointStore {
         })
     }
 
-    pub fn resolve(&self, id: &str) -> Result<ResolvedLlmEndpoint, HarnessError> {
+    pub fn resolve(&self, id: &str) -> Result<ResolvedLlmEndpoint, AssistantError> {
         self.ensure_migrated()?;
         let value = self
             .config
@@ -294,11 +294,11 @@ impl EndpointStore {
         let endpoint = endpoints
             .into_iter()
             .find(|endpoint| endpoint.id == id)
-            .ok_or_else(|| HarnessError::EndpointRemoved(id.to_string()))?;
+            .ok_or_else(|| AssistantError::EndpointRemoved(id.to_string()))?;
         Ok(resolve_endpoint(endpoint))
     }
 
-    pub fn runtime_status(&self) -> Result<AssistantRuntimeStatus, HarnessError> {
+    pub fn runtime_status(&self) -> Result<AssistantRuntimeStatus, AssistantError> {
         let endpoints = self.list()?;
         Ok(AssistantRuntimeStatus {
             has_any_endpoint: !endpoints.is_empty(),
@@ -306,18 +306,18 @@ impl EndpointStore {
         })
     }
 
-    pub fn set_follow_custom_proxy(&self, enabled: bool) -> Result<bool, HarnessError> {
+    pub fn set_follow_custom_proxy(&self, enabled: bool) -> Result<bool, AssistantError> {
         self.config
             .set_bool(LLM_FOLLOW_CUSTOM_PROXY_CONFIG_KEY, enabled)?;
         Ok(enabled)
     }
 
-    pub fn last_selection(&self) -> Result<AssistantRuntimeSelection, HarnessError> {
+    pub fn last_selection(&self) -> Result<AssistantRuntimeSelection, AssistantError> {
         self.ensure_migrated()?;
         self.read_last_selection_raw()
     }
 
-    fn read_last_selection_raw(&self) -> Result<AssistantRuntimeSelection, HarnessError> {
+    fn read_last_selection_raw(&self) -> Result<AssistantRuntimeSelection, AssistantError> {
         let value = self
             .config
             .get_json(ASSISTANT_LAST_SELECTION_CONFIG_KEY, Value::Null)?;
@@ -327,20 +327,20 @@ impl EndpointStore {
     pub fn set_last_selection(
         &self,
         selection: &AssistantRuntimeSelection,
-    ) -> Result<(), HarnessError> {
+    ) -> Result<(), AssistantError> {
         let value = serde_json::to_value(selection).map_err(|error| {
-            HarnessError::Custom(format!("failed to serialize assistant selection: {error}"))
+            AssistantError::Custom(format!("failed to serialize assistant selection: {error}"))
         })?;
         self.config
             .set_json(ASSISTANT_LAST_SELECTION_CONFIG_KEY, &value)?;
         Ok(())
     }
 
-    pub async fn translate(&self, input: LlmTranslateInput) -> Result<String, HarnessError> {
+    pub async fn translate(&self, input: LlmTranslateInput) -> Result<String, AssistantError> {
         let endpoint = self.resolve(&input.endpoint_id)?;
         let model = input.model.trim();
         if model.is_empty() {
-            return Err(HarnessError::NotConfigured);
+            return Err(AssistantError::NotConfigured);
         }
         let prompt = translation_system_prompt(input.prompt.as_deref(), &input.target_lang);
         let client = self.llm_client(&endpoint.base_url, &endpoint.api_key, model)?;
@@ -365,31 +365,31 @@ impl EndpointStore {
         base_url: &str,
         api_key: &str,
         model: &str,
-    ) -> Result<LlmClient, HarnessError> {
+    ) -> Result<LlmClient, AssistantError> {
         LlmClient::new(base_url, api_key, model, self.explicit_proxy_url()?)
-            .map_err(HarnessError::from)
+            .map_err(AssistantError::from)
     }
 
-    pub fn follow_custom_proxy(&self) -> Result<bool, HarnessError> {
+    pub fn follow_custom_proxy(&self) -> Result<bool, AssistantError> {
         self.config
             .get_bool(LLM_FOLLOW_CUSTOM_PROXY_CONFIG_KEY, true)
-            .map_err(HarnessError::from)
+            .map_err(AssistantError::from)
     }
 
-    pub fn assistant_reasoning_effort(&self) -> Result<String, HarnessError> {
+    pub fn assistant_reasoning_effort(&self) -> Result<String, AssistantError> {
         self.config
             .get_string(ASSISTANT_REASONING_EFFORT_CONFIG_KEY, "")
-            .map_err(HarnessError::from)
+            .map_err(AssistantError::from)
     }
 
-    pub fn set_assistant_reasoning_effort(&self, effort: &str) -> Result<String, HarnessError> {
+    pub fn set_assistant_reasoning_effort(&self, effort: &str) -> Result<String, AssistantError> {
         let value = effort.to_string();
         self.config
             .set_string(ASSISTANT_REASONING_EFFORT_CONFIG_KEY, &value)?;
         Ok(value)
     }
 
-    fn explicit_proxy_url(&self) -> Result<Option<&str>, HarnessError> {
+    fn explicit_proxy_url(&self) -> Result<Option<&str>, AssistantError> {
         if self.follow_custom_proxy()? {
             return Ok(self.custom_proxy_url.as_deref());
         }
@@ -399,7 +399,7 @@ impl EndpointStore {
     fn resolve_detect_target(
         &self,
         input: &LlmEndpointDetectModelsInput,
-    ) -> Result<ResolvedLlmEndpoint, HarnessError> {
+    ) -> Result<ResolvedLlmEndpoint, AssistantError> {
         if let Some(id) = input
             .id
             .as_deref()
@@ -419,7 +419,7 @@ impl EndpointStore {
             .map(normalize_llm_base_url)
             .unwrap_or_default();
         if base_url.is_empty() {
-            return Err(HarnessError::NotConfigured);
+            return Err(AssistantError::NotConfigured);
         }
         Ok(ResolvedLlmEndpoint {
             base_url,
@@ -433,7 +433,7 @@ impl EndpointStore {
         })
     }
 
-    fn load_endpoints(&self) -> Result<Vec<StoredLlmEndpoint>, HarnessError> {
+    fn load_endpoints(&self) -> Result<Vec<StoredLlmEndpoint>, AssistantError> {
         let value = self
             .config
             .get_json(LLM_ENDPOINTS_CONFIG_KEY, Value::Null)?;
@@ -446,9 +446,9 @@ impl EndpointStore {
         Ok(endpoints)
     }
 
-    fn save_endpoints(&self, endpoints: &[StoredLlmEndpoint]) -> Result<(), HarnessError> {
+    fn save_endpoints(&self, endpoints: &[StoredLlmEndpoint]) -> Result<(), AssistantError> {
         let value = serde_json::to_value(endpoints).map_err(|error| {
-            HarnessError::Custom(format!("failed to serialize LLM endpoints: {error}"))
+            AssistantError::Custom(format!("failed to serialize LLM endpoints: {error}"))
         })?;
         self.config.set_json(LLM_ENDPOINTS_CONFIG_KEY, &value)?;
         Ok(())

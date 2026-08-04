@@ -2,6 +2,7 @@
 name = "vrcx-0-application"
 version = "0.1.0"
 edition = "2021"
+description = "Application business services"
 
 [features]
 test-utils = [

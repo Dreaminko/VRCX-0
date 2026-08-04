@@ -11,7 +11,6 @@ use crate::server::VrcxMcpServer;
 
 const DUPLEX_BUFFER_BYTES: usize = 1024 * 1024;
 
-/// Plain tool description handed to the harness (no rmcp types leak out).
 #[derive(Debug, Clone)]
 pub struct ToolDescriptor {
     pub name: String,
@@ -19,7 +18,6 @@ pub struct ToolDescriptor {
     pub parameters: Value,
 }
 
-/// Plain tool-call outcome handed to the harness.
 #[derive(Debug, Clone)]
 pub struct ToolCallOutcome {
     pub is_error: bool,

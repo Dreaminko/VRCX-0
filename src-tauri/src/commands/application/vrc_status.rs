@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_application::VrcStatusSnapshot;
+use vrcx_0_application_core::VrcStatusSnapshot;
 
 use crate::{error::AppError, state::AppState};
 

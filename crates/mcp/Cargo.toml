@@ -2,6 +2,7 @@
 name = "vrcx-0-mcp"
 version = "0.1.0"
 edition = "2021"
+description = "Local MCP server"
 
 [dependencies]
 axum = "0.8"

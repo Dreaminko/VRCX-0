@@ -5,7 +5,7 @@ use crate::config::{
     ASSISTANT_API_KEY_CONFIG_KEY, ASSISTANT_BASE_URL_CONFIG_KEY, ASSISTANT_MODEL_CONFIG_KEY,
     ASSISTANT_PLAYBOOK_MODE_CONFIG_KEY,
 };
-use crate::error::HarnessError;
+use crate::error::AssistantError;
 
 use super::{
     ensure_endpoint, AssistantRuntimeSelection, EndpointStore, LegacyAssistantSeed,
@@ -15,7 +15,7 @@ use super::{
 };
 
 impl EndpointStore {
-    pub(super) fn ensure_migrated(&self) -> Result<(), HarnessError> {
+    pub(super) fn ensure_migrated(&self) -> Result<(), AssistantError> {
         if self.migrated.load(Ordering::Relaxed) {
             return Ok(());
         }
@@ -30,7 +30,7 @@ impl EndpointStore {
         Ok(())
     }
 
-    fn migrate_legacy_configs(&self) -> Result<(), HarnessError> {
+    fn migrate_legacy_configs(&self) -> Result<(), AssistantError> {
         let mut endpoints = self.load_endpoints()?;
         let mut changed = false;
 
@@ -68,7 +68,7 @@ impl EndpointStore {
     fn migrate_legacy_assistant_endpoint(
         &self,
         endpoints: &mut Vec<StoredLlmEndpoint>,
-    ) -> Result<Option<LegacyAssistantSeed>, HarnessError> {
+    ) -> Result<Option<LegacyAssistantSeed>, AssistantError> {
         let base_url =
             normalize_llm_base_url(&self.config.get_string(ASSISTANT_BASE_URL_CONFIG_KEY, "")?);
         let model = self
@@ -102,7 +102,7 @@ impl EndpointStore {
     fn migrate_legacy_translation_endpoint(
         &self,
         endpoints: &mut Vec<StoredLlmEndpoint>,
-    ) -> Result<Option<String>, HarnessError> {
+    ) -> Result<Option<String>, AssistantError> {
         if self
             .config
             .get_string(TRANSLATION_ENDPOINT_ID_CONFIG_KEY, "")?

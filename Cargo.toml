@@ -21,7 +21,7 @@ members = [
     "crates/overlay-devtool",
     "crates/headless",
     "crates/mcp",
-    "crates/harness"
+    "crates/assistant"
 ]
 default-members = [
     "src-tauri",
@@ -44,7 +44,7 @@ default-members = [
     "crates/overlay-runtime",
     "crates/headless",
     "crates/mcp",
-    "crates/harness"
+    "crates/assistant"
 ]
 resolver = "2"
 

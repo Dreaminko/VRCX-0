@@ -1,7 +1,7 @@
 use vrcx_0_integrations::llm::LlmError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum HarnessError {
+pub enum AssistantError {
     #[error("assistant is not configured")]
     NotConfigured,
     #[error("assistant endpoint was removed: {0}")]

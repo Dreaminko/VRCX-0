@@ -2,6 +2,7 @@
 name = "vrcx-0-application-realtime"
 version = "0.1.0"
 edition = "2021"
+description = "Realtime state runtime"
 
 [features]
 test-utils = ["vrcx-0-application-core/test-utils"]
