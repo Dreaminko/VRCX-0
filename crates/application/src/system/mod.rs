@@ -48,8 +48,8 @@ pub use data_dir_migration::{
 };
 pub use database_upgrade::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
-    DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
-    DatabaseUpgradeStage,
+    DatabaseUpgradePreflightStatus, DatabaseUpgradeProgress, DatabaseUpgradeRunResult,
+    DatabaseUpgradeRunStatus, DatabaseUpgradeStage,
 };
 pub use database_upgrade_runtime::DatabaseUpgradeRuntime;
 pub use instance_invite_batch::{

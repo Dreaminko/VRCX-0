@@ -3,14 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     toastWarning: vi.fn(),
     appDatabaseUpgradePreflight: vi.fn(),
+    appDatabaseUpgradeProgress: vi.fn(),
     appDatabaseUpgradeRun: vi.fn(),
+    appDatabaseUpgradeRetry: vi.fn(),
+    appDatabaseUpgradeFailureLogPath: vi.fn(),
+    appDatabaseUpgradeStartFresh: vi.fn(),
+    appOpenVrcxAppDataFolder: vi.fn(),
     appGetLegacyVrcxMigrationStatus: vi.fn(),
     appCheckLegacyVrcxAvailable: vi.fn(),
     appRequestLegacyMigration: vi.fn(),
     configReload: vi.fn(),
+    confirm: vi.fn(),
+    openExternalLink: vi.fn(),
     t: vi.fn(),
-    showSQLiteErrorDialog: vi.fn(),
-    alert: vi.fn()
+    showSQLiteErrorDialog: vi.fn()
 }));
 
 vi.mock('sonner', () => ({
@@ -22,10 +28,28 @@ vi.mock('sonner', () => ({
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appDatabaseUpgradePreflight: mocks.appDatabaseUpgradePreflight,
+        appDatabaseUpgradeProgress: mocks.appDatabaseUpgradeProgress,
         appDatabaseUpgradeRun: mocks.appDatabaseUpgradeRun,
+        appDatabaseUpgradeRetry: mocks.appDatabaseUpgradeRetry,
+        appDatabaseUpgradeFailureLogPath:
+            mocks.appDatabaseUpgradeFailureLogPath,
+        appDatabaseUpgradeStartFresh: mocks.appDatabaseUpgradeStartFresh,
+        appOpenVrcxAppDataFolder: mocks.appOpenVrcxAppDataFolder,
         appGetLegacyVrcxMigrationStatus: mocks.appGetLegacyVrcxMigrationStatus,
         appCheckLegacyVrcxAvailable: mocks.appCheckLegacyVrcxAvailable,
         appRequestLegacyMigration: mocks.appRequestLegacyMigration
+    }
+}));
+
+vi.mock('@/services/shellIntegrationService', () => ({
+    openExternalLink: mocks.openExternalLink
+}));
+
+vi.mock('@/state/modalStore', () => ({
+    useModalStore: {
+        getState: () => ({
+            confirm: mocks.confirm
+        })
     }
 }));
 
@@ -45,13 +69,16 @@ vi.mock('./sqliteErrorDialogService', () => ({
     showSQLiteErrorDialog: mocks.showSQLiteErrorDialog
 }));
 
-import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
 import {
     confirmLegacyDatabaseMigration,
+    createDatabaseUpgradeGitHubIssue,
     initializeDatabaseUpgradeFlow,
+    openDatabaseUpgradeFailureLogFolder,
+    retryDatabaseUpgrade,
+    startFreshDatabaseAfterUpgradeFailure,
     skipLegacyDatabaseMigration
 } from './databaseUpgradeService';
 
@@ -85,34 +112,42 @@ describe('databaseUpgradeService', () => {
         vi.resetAllMocks();
         useRuntimeStore.getState().resetRuntimeState();
         useSessionStore.getState().resetSessionState();
-        useModalStore.getState().resetModalState();
-        useModalStore.setState({
-            alert: mocks.alert
-        });
-
         mocks.appDatabaseUpgradePreflight.mockResolvedValue(
             preflight('current')
         );
+        mocks.appDatabaseUpgradeProgress.mockResolvedValue({
+            stage: 'preflight'
+        });
         mocks.appDatabaseUpgradeRun.mockResolvedValue({
             status: 'current',
             fromVersion: 18,
             toVersion: 18
         });
+        mocks.appDatabaseUpgradeRetry.mockResolvedValue({
+            status: 'current',
+            fromVersion: 18,
+            toVersion: 18
+        });
+        mocks.appDatabaseUpgradeFailureLogPath.mockResolvedValue(
+            'C:/VRCX-0/error-log.txt'
+        );
+        mocks.appDatabaseUpgradeStartFresh.mockResolvedValue(
+            'C:/VRCX-0/database-upgrade-recovery/backup'
+        );
+        mocks.appOpenVrcxAppDataFolder.mockResolvedValue(true);
         mocks.appGetLegacyVrcxMigrationStatus.mockResolvedValue(
             unavailableLegacyStatus()
         );
         mocks.appCheckLegacyVrcxAvailable.mockResolvedValue(false);
         mocks.appRequestLegacyMigration.mockResolvedValue(false);
         mocks.configReload.mockResolvedValue(undefined);
+        mocks.confirm.mockResolvedValue({ ok: true, reason: 'confirmed' });
+        mocks.openExternalLink.mockResolvedValue(undefined);
         mocks.t.mockImplementation(
             (key: string, params?: Record<string, unknown>) =>
                 params ? `${key}:${JSON.stringify(params)}` : key
         );
         mocks.showSQLiteErrorDialog.mockResolvedValue(false);
-        mocks.alert.mockResolvedValue({
-            ok: true,
-            reason: 'ok'
-        });
     });
 
     it('blocks startup on a preserved failed upgrade before checking legacy migration', async () => {
@@ -129,17 +164,16 @@ describe('databaseUpgradeService', () => {
         await expect(initializeDatabaseUpgradeFlow()).resolves.toBe(false);
 
         expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
+            open: true,
             phase: 'error',
             fromVersion: 16,
             toVersion: 18,
-            legacyMigrationAvailable: false
+            legacyMigrationAvailable: false,
+            retryable: true,
+            freshStartAvailable: true,
+            failureLogPath: 'C:/VRCX-0/error-log.txt',
+            failedWorkDbPath: 'C:/Temp/work.sqlite3'
         });
-        expect(mocks.alert).toHaveBeenCalledWith(
-            expect.objectContaining({
-                title: 'message.database.upgrade_failed_title',
-                dismissible: false
-            })
-        );
         expect(useSessionStore.getState().databaseReady).toBe(false);
         expect(mocks.appGetLegacyVrcxMigrationStatus).not.toHaveBeenCalled();
         expect(mocks.appDatabaseUpgradeRun).not.toHaveBeenCalled();
@@ -179,6 +213,35 @@ describe('databaseUpgradeService', () => {
             toVersion: 18
         });
         expect(useSessionStore.getState().databaseReady).toBe(true);
+    });
+
+    it('shows progress while initializing a new empty database', async () => {
+        mocks.appDatabaseUpgradePreflight.mockResolvedValueOnce(
+            preflight('upgradeRequired', 0, 18)
+        );
+        let finishUpgrade: ((value: unknown) => void) | undefined;
+        mocks.appDatabaseUpgradeRun.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishUpgrade = resolve;
+            })
+        );
+
+        const upgrade = initializeDatabaseUpgradeFlow();
+        await vi.waitFor(() => {
+            expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
+                open: true,
+                phase: 'running',
+                fromVersion: 0,
+                toVersion: 18
+            });
+        });
+        finishUpgrade?.({
+            status: 'upgraded',
+            fromVersion: 0,
+            toVersion: 18
+        });
+
+        await expect(upgrade).resolves.toBe(true);
     });
 
     it('joins an upgrade already running after the frontend is rebuilt', async () => {
@@ -222,7 +285,6 @@ describe('databaseUpgradeService', () => {
 
         await expect(initializeDatabaseUpgradeFlow()).rejects.toBe(error);
 
-        expect(mocks.alert).not.toHaveBeenCalled();
         expect(mocks.showSQLiteErrorDialog).not.toHaveBeenCalled();
         expect(mocks.appGetLegacyVrcxMigrationStatus).not.toHaveBeenCalled();
         expect(mocks.appDatabaseUpgradeRun).not.toHaveBeenCalled();
@@ -250,6 +312,40 @@ describe('databaseUpgradeService', () => {
         expect(useSessionStore.getState().databaseReady).toBe(true);
     });
 
+    it('publishes determinate work-copy progress while the backend command is running', async () => {
+        mocks.appDatabaseUpgradePreflight.mockResolvedValueOnce(
+            preflight('upgradeRequired', 16, 18)
+        );
+        mocks.appDatabaseUpgradeProgress.mockResolvedValue({
+            stage: 'createWorkCopy',
+            completedUnits: 25,
+            totalUnits: 100
+        });
+        let finishUpgrade: ((value: unknown) => void) | undefined;
+        mocks.appDatabaseUpgradeRun.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishUpgrade = resolve;
+            })
+        );
+
+        const upgrade = initializeDatabaseUpgradeFlow();
+        await vi.waitFor(() => {
+            expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
+                phase: 'running',
+                stage: 'createWorkCopy',
+                progressCompleted: 25,
+                progressTotal: 100
+            });
+        });
+        finishUpgrade?.({
+            status: 'upgraded',
+            fromVersion: 16,
+            toVersion: 18
+        });
+
+        await expect(upgrade).resolves.toBe(true);
+    });
+
     it('shows the preserved work-copy details returned by a failed backend run', async () => {
         mocks.appDatabaseUpgradePreflight.mockResolvedValueOnce(
             preflight('upgradeRequired', 17, 18)
@@ -258,7 +354,7 @@ describe('databaseUpgradeService', () => {
             status: 'failed',
             fromVersion: 17,
             toVersion: 18,
-            failedStage: 'performanceIndexes',
+            failedStage: 'globalPerformanceIndexes',
             error: 'index failed',
             failedUpgrade: {
                 workDbPath: 'C:/Temp/work.sqlite3',
@@ -276,17 +372,42 @@ describe('databaseUpgradeService', () => {
             })
         );
         expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
+            open: true,
             phase: 'error',
+            fromVersion: 17,
+            toVersion: 18,
+            retryable: true,
+            freshStartAvailable: true,
+            failureLogPath: 'C:/VRCX-0/error-log.txt',
+            failedWorkDbPath: 'C:/Temp/work.sqlite3'
+        });
+        expect(useSessionStore.getState().databaseReady).toBe(false);
+    });
+
+    it('retries a failed upgrade without rebuilding the frontend or process', async () => {
+        useRuntimeStore.getState().setDatabaseUpgradeState({
+            open: true,
+            phase: 'error',
+            fromVersion: 17,
+            toVersion: 18,
+            retryable: true
+        });
+        mocks.appDatabaseUpgradeRetry.mockResolvedValueOnce({
+            status: 'upgraded',
             fromVersion: 17,
             toVersion: 18
         });
-        expect(mocks.alert).toHaveBeenCalledWith(
-            expect.objectContaining({
-                title: 'message.database.upgrade_failed_title',
-                dismissible: false
-            })
-        );
-        expect(useSessionStore.getState().databaseReady).toBe(false);
+
+        await expect(retryDatabaseUpgrade()).resolves.toBe(true);
+
+        expect(mocks.appDatabaseUpgradeRetry).toHaveBeenCalledTimes(1);
+        expect(mocks.configReload).toHaveBeenCalledTimes(1);
+        expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
+            open: false,
+            phase: 'completed',
+            retryable: false
+        });
+        expect(useSessionStore.getState().databaseReady).toBe(true);
     });
 
     it('blocks a database created by a newer application before mutation', async () => {
@@ -298,16 +419,53 @@ describe('databaseUpgradeService', () => {
 
         expect(mocks.appDatabaseUpgradeRun).not.toHaveBeenCalled();
         expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
+            open: true,
             phase: 'error',
             fromVersion: 19,
-            toVersion: 18
+            toVersion: 18,
+            retryable: false,
+            freshStartAvailable: true,
+            detail:
+                'service.database_upgrade_service.error.newer_schema_requires_newer_app:{"value":19,"value2":18}'
         });
-        expect(mocks.alert).toHaveBeenCalledWith(
-            expect.objectContaining({
-                description:
-                    'service.database_upgrade_service.error.newer_schema_requires_newer_app:{"value":19,"value2":18}'
-            })
+    });
+
+    it('opens the error-log folder and links to the new GitHub issue page', async () => {
+        useRuntimeStore.getState().setDatabaseUpgradeState({
+            failureLogPath: 'C:/VRCX-0/error-log.txt'
+        });
+
+        await openDatabaseUpgradeFailureLogFolder();
+        await createDatabaseUpgradeGitHubIssue();
+
+        expect(mocks.appOpenVrcxAppDataFolder).toHaveBeenCalledTimes(1);
+        expect(mocks.openExternalLink).toHaveBeenCalledWith(
+            'https://github.com/Map1en/VRCX-0/issues/new?template=bug_report.yml'
         );
+    });
+
+    it('archives a failed database and requests a fresh-start restart after confirmation', async () => {
+        useRuntimeStore.getState().setDatabaseUpgradeState({
+            open: true,
+            phase: 'error',
+            freshStartAvailable: true,
+            retryable: true
+        });
+
+        await expect(
+            startFreshDatabaseAfterUpgradeFailure()
+        ).resolves.toBe(true);
+
+        expect(mocks.confirm).toHaveBeenCalledWith(
+            expect.objectContaining({ destructive: true })
+        );
+        expect(mocks.appDatabaseUpgradeStartFresh).toHaveBeenCalledTimes(1);
+        expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
+            open: true,
+            phase: 'restarting',
+            freshStartAvailable: false,
+            retryable: false
+        });
     });
 
     it('restores the confirm state when a legacy migration request does not restart', async () => {
@@ -318,6 +476,22 @@ describe('databaseUpgradeService', () => {
             open: true,
             phase: 'confirm-legacy-migration',
             detail: 'service.database_upgrade_service.error.legacy_migration_restart_failed'
+        });
+    });
+
+    it('keeps migration recovery actions and exposes the failure log when snapshot preparation fails', async () => {
+        mocks.appRequestLegacyMigration.mockRejectedValueOnce(
+            new Error('snapshot copy failed')
+        );
+
+        await confirmLegacyDatabaseMigration();
+
+        expect(useRuntimeStore.getState().databaseUpgrade).toMatchObject({
+            open: true,
+            phase: 'confirm-legacy-migration',
+            failureLogPath: 'C:/VRCX-0/error-log.txt',
+            detail:
+                'service.database_upgrade_service.error.legacy_migration_restart_failed snapshot copy failed'
         });
     });
 

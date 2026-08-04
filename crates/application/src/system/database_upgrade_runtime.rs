@@ -1,14 +1,19 @@
 #[cfg(panic = "unwind")]
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use vrcx_0_application_core::RuntimeOperationStatus;
 
+use vrcx_0_persistence::legacy_migration::{
+    prepare_legacy_migration, LegacyMigrationPaths, LegacyMigrationProgress,
+};
+use vrcx_0_persistence::legacy_vrcx::LegacyVrcxSource;
 use vrcx_0_persistence::{DatabaseService, VRCX0_SCHEMA_VERSION};
 
 use super::database_upgrade::{
     database_upgrade_preflight, run_database_upgrade_with_progress, DatabaseUpgradePreflight,
-    DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
-    DatabaseUpgradeStage,
+    DatabaseUpgradePreflightStatus, DatabaseUpgradeProgress, DatabaseUpgradeRunResult,
+    DatabaseUpgradeRunStatus, DatabaseUpgradeStage,
 };
 use crate::{Error, RuntimeBackgroundJobs, RuntimeDiagnostics};
 
@@ -25,16 +30,14 @@ pub struct DatabaseUpgradeRuntime {
 
 struct DatabaseUpgradeRuntimeShared {
     state: Mutex<DatabaseUpgradeRuntimeState>,
+    progress: Mutex<DatabaseUpgradeProgress>,
+    legacy_prepare: Mutex<()>,
     changed: Condvar,
 }
 
 enum DatabaseUpgradeRuntimeState {
     Idle,
-    Running {
-        from_version: i64,
-        to_version: i64,
-        stage: DatabaseUpgradeStage,
-    },
+    Running { from_version: i64, to_version: i64 },
     Finished(DatabaseUpgradeRunResult),
 }
 
@@ -48,6 +51,10 @@ impl DatabaseUpgradeRuntime {
             db,
             shared: Arc::new(DatabaseUpgradeRuntimeShared {
                 state: Mutex::new(DatabaseUpgradeRuntimeState::Idle),
+                progress: Mutex::new(DatabaseUpgradeProgress::indeterminate(
+                    DatabaseUpgradeStage::Preflight,
+                )),
+                legacy_prepare: Mutex::new(()),
                 changed: Condvar::new(),
             }),
             diagnostics,
@@ -62,12 +69,11 @@ impl DatabaseUpgradeRuntime {
             DatabaseUpgradeRuntimeState::Running {
                 from_version,
                 to_version,
-                stage,
             } => Ok(DatabaseUpgradePreflight {
                 status: DatabaseUpgradePreflightStatus::Running,
                 from_version: *from_version,
                 to_version: *to_version,
-                stage: Some(*stage),
+                stage: Some(self.progress().stage),
                 result: None,
                 failed_upgrade: None,
             }),
@@ -83,14 +89,116 @@ impl DatabaseUpgradeRuntime {
     }
 
     pub fn run(&self) -> DatabaseUpgradeRunResult {
-        self.run_with(|db, on_stage| run_database_upgrade_with_progress(db, on_stage))
+        self.run_with(|db, on_progress| run_database_upgrade_with_progress(db, on_progress))
+    }
+
+    pub fn progress(&self) -> DatabaseUpgradeProgress {
+        self.shared
+            .progress
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+
+    pub fn prepare_legacy_migration(
+        &self,
+        paths: &LegacyMigrationPaths,
+        source: &LegacyVrcxSource,
+    ) -> Result<(), Error> {
+        let _prepare_guard = self
+            .shared
+            .legacy_prepare
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        self.set_progress(DatabaseUpgradeProgress::indeterminate(
+            DatabaseUpgradeStage::PrepareLegacySnapshot,
+        ));
+        prepare_legacy_migration(paths, source, |progress| {
+            let progress = match progress {
+                LegacyMigrationProgress::DatabaseCopy {
+                    completed_pages,
+                    total_pages,
+                } => DatabaseUpgradeProgress::determinate(
+                    DatabaseUpgradeStage::PrepareLegacySnapshot,
+                    completed_pages,
+                    total_pages,
+                ),
+                LegacyMigrationProgress::Configuration => DatabaseUpgradeProgress::indeterminate(
+                    DatabaseUpgradeStage::PrepareLegacyConfiguration,
+                ),
+                LegacyMigrationProgress::Finalizing => DatabaseUpgradeProgress::indeterminate(
+                    DatabaseUpgradeStage::FinalizeLegacyMigration,
+                ),
+            };
+            self.set_progress(progress);
+        })?;
+        Ok(())
+    }
+
+    pub fn retry(&self) -> Result<DatabaseUpgradeRunResult, Error> {
+        {
+            let mut state = self.lock_state();
+            match &*state {
+                DatabaseUpgradeRuntimeState::Running { .. } => {
+                    drop(state);
+                    return Ok(self.run());
+                }
+                DatabaseUpgradeRuntimeState::Finished(result)
+                    if matches!(
+                        result.status,
+                        DatabaseUpgradeRunStatus::Current
+                            | DatabaseUpgradeRunStatus::Upgraded
+                            | DatabaseUpgradeRunStatus::NewerSchema
+                    ) =>
+                {
+                    return Ok(result.clone());
+                }
+                DatabaseUpgradeRuntimeState::Idle | DatabaseUpgradeRuntimeState::Finished(_) => {}
+            }
+
+            self.db.discard_failed_upgrade()?;
+            *state = DatabaseUpgradeRuntimeState::Idle;
+        }
+
+        Ok(self.run())
+    }
+
+    fn fresh_database_available(&self, state: &DatabaseUpgradeRuntimeState) -> Result<bool, Error> {
+        match state {
+            DatabaseUpgradeRuntimeState::Idle => Ok(matches!(
+                database_upgrade_preflight(&self.db)?.status,
+                DatabaseUpgradePreflightStatus::Blocked
+                    | DatabaseUpgradePreflightStatus::NewerSchema
+            )),
+            DatabaseUpgradeRuntimeState::Running { .. } => Ok(false),
+            DatabaseUpgradeRuntimeState::Finished(result) => Ok(matches!(
+                result.status,
+                DatabaseUpgradeRunStatus::Blocked
+                    | DatabaseUpgradeRunStatus::NewerSchema
+                    | DatabaseUpgradeRunStatus::Failed
+            )),
+        }
+    }
+
+    pub fn start_fresh_database(&self) -> Result<PathBuf, Error> {
+        let mut state = self.lock_state();
+        if !self.fresh_database_available(&state)? {
+            return Err(Error::Custom(
+                "A fresh database is only available after an upgrade failure or for an unsupported newer schema."
+                    .into(),
+            ));
+        }
+
+        let recovery_dir = self.db.archive_main_database_and_create_fresh_database()?;
+        *state = DatabaseUpgradeRuntimeState::Idle;
+        Ok(recovery_dir)
     }
 
     fn run_with(
         &self,
         execute: impl FnOnce(
             &DatabaseService,
-            &mut dyn FnMut(DatabaseUpgradeStage),
+            &mut dyn FnMut(DatabaseUpgradeProgress),
         ) -> DatabaseUpgradeRunResult,
     ) -> DatabaseUpgradeRunResult {
         let (from_version, to_version) = loop {
@@ -103,8 +211,10 @@ impl DatabaseUpgradeRuntime {
                     *state = DatabaseUpgradeRuntimeState::Running {
                         from_version,
                         to_version,
-                        stage: DatabaseUpgradeStage::Preflight,
                     };
+                    self.set_progress(DatabaseUpgradeProgress::indeterminate(
+                        DatabaseUpgradeStage::Preflight,
+                    ));
                     break (from_version, to_version);
                 }
                 DatabaseUpgradeRuntimeState::Running { .. } => {
@@ -124,20 +234,20 @@ impl DatabaseUpgradeRuntime {
         let _ = (from_version, to_version);
         #[cfg(panic = "unwind")]
         let mut current_stage = DatabaseUpgradeStage::Preflight;
-        let mut on_stage = |next_stage| {
+        let mut on_progress = |progress: DatabaseUpgradeProgress| {
             #[cfg(panic = "unwind")]
             {
-                current_stage = next_stage;
+                current_stage = progress.stage;
             }
-            self.set_stage(next_stage);
+            self.set_progress(progress);
         };
         #[cfg(panic = "unwind")]
-        let result = match catch_unwind(AssertUnwindSafe(|| execute(&self.db, &mut on_stage))) {
+        let result = match catch_unwind(AssertUnwindSafe(|| execute(&self.db, &mut on_progress))) {
             Ok(result) => result,
             Err(_) => self.recover_unwind(from_version, to_version, current_stage),
         };
         #[cfg(panic = "abort")]
-        let result = execute(&self.db, &mut on_stage);
+        let result = execute(&self.db, &mut on_progress);
 
         let mut state = self.lock_state();
         *state = DatabaseUpgradeRuntimeState::Finished(result.clone());
@@ -147,15 +257,12 @@ impl DatabaseUpgradeRuntime {
         result
     }
 
-    fn set_stage(&self, stage: DatabaseUpgradeStage) {
-        let mut state = self.lock_state();
-        if let DatabaseUpgradeRuntimeState::Running {
-            stage: current_stage,
-            ..
-        } = &mut *state
-        {
-            *current_stage = stage;
-        }
+    fn set_progress(&self, progress: DatabaseUpgradeProgress) {
+        *self
+            .shared
+            .progress
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = progress;
     }
 
     #[cfg(panic = "unwind")]
@@ -203,6 +310,15 @@ impl DatabaseUpgradeRuntime {
     }
 
     fn record_result(&self, result: &DatabaseUpgradeRunResult) {
+        if result.status == DatabaseUpgradeRunStatus::Failed {
+            tracing::error!(
+                from_version = result.from_version,
+                to_version = result.to_version,
+                failed_stage = ?result.failed_stage,
+                error = %result.error.as_deref().unwrap_or("unknown database upgrade failure"),
+                "database upgrade failed"
+            );
+        }
         match result.status {
             DatabaseUpgradeRunStatus::Current | DatabaseUpgradeRunStatus::Upgraded => {
                 self.diagnostics.record_command(
@@ -298,8 +414,10 @@ mod tests {
         let (started_tx, started_rx) = mpsc::channel();
         let (release_tx, release_rx) = mpsc::channel();
         let leader = std::thread::spawn(move || {
-            leader_runtime.run_with(|_, on_stage| {
-                on_stage(DatabaseUpgradeStage::Optimize);
+            leader_runtime.run_with(|_, on_progress| {
+                on_progress(DatabaseUpgradeProgress::indeterminate(
+                    DatabaseUpgradeStage::Optimize,
+                ));
                 started_tx.send(()).unwrap();
                 release_rx.recv().unwrap();
                 success_result()
@@ -337,5 +455,62 @@ mod tests {
         assert_eq!(job.status, RuntimeOperationStatus::Idle);
         assert!(job.last_finished_at.is_some());
         assert!(job.last_detail.contains("Upgraded"));
+    }
+
+    #[test]
+    fn failed_run_can_be_explicitly_retried_in_the_same_process() {
+        let dir = TestDir::new();
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap());
+        let runtime = DatabaseUpgradeRuntime::new(
+            db,
+            RuntimeDiagnostics::new(),
+            RuntimeBackgroundJobs::new(),
+        );
+        let failed = DatabaseUpgradeRunResult {
+            status: DatabaseUpgradeRunStatus::Failed,
+            from_version: 0,
+            to_version: VRCX0_SCHEMA_VERSION,
+            failed_stage: Some(DatabaseUpgradeStage::Optimize),
+            error: Some("injected failure".into()),
+            failed_upgrade: None,
+            repair_warning: None,
+        };
+        *runtime.lock_state() = DatabaseUpgradeRuntimeState::Finished(failed);
+
+        let retried = runtime.retry().unwrap();
+
+        assert_eq!(retried.status, DatabaseUpgradeRunStatus::Upgraded);
+        assert_eq!(
+            runtime.preflight().unwrap().result.unwrap().status,
+            DatabaseUpgradeRunStatus::Upgraded
+        );
+    }
+
+    #[test]
+    fn failed_run_can_archive_the_old_database_and_reset_runtime_state() {
+        let dir = TestDir::new();
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap());
+        let runtime = DatabaseUpgradeRuntime::new(
+            db,
+            RuntimeDiagnostics::new(),
+            RuntimeBackgroundJobs::new(),
+        );
+        *runtime.lock_state() = DatabaseUpgradeRuntimeState::Finished(DatabaseUpgradeRunResult {
+            status: DatabaseUpgradeRunStatus::Failed,
+            from_version: 17,
+            to_version: VRCX0_SCHEMA_VERSION,
+            failed_stage: Some(DatabaseUpgradeStage::Optimize),
+            error: Some("injected failure".into()),
+            failed_upgrade: None,
+            repair_warning: None,
+        });
+
+        let recovery_dir = runtime.start_fresh_database().unwrap();
+
+        assert!(recovery_dir.join("VRCX-0.sqlite3").is_file());
+        assert_eq!(
+            runtime.preflight().unwrap().status,
+            DatabaseUpgradePreflightStatus::UpgradeRequired
+        );
     }
 }

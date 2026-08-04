@@ -193,8 +193,8 @@ pub use system::{
 pub use system::{cleanup_avatar_feed_history, AvatarFeedCleanupOutcome, AvatarFeedCleanupStatus};
 pub use system::{
     database_upgrade_preflight, run_database_upgrade, DatabaseUpgradePreflight,
-    DatabaseUpgradePreflightStatus, DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus,
-    DatabaseUpgradeStage,
+    DatabaseUpgradePreflightStatus, DatabaseUpgradeProgress, DatabaseUpgradeRunResult,
+    DatabaseUpgradeRunStatus, DatabaseUpgradeStage,
 };
 pub use system::{
     evaluate_instance_action_gates, join_instance_launch, InstanceActionGateTarget,

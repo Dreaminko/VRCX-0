@@ -341,6 +341,137 @@ fn failed_upgraded_database_reopen_restores_original_and_preserves_work_copy() -
 }
 
 #[test]
+fn discarding_failed_upgrade_preserves_main_database_and_allows_retry() -> Result<(), Error> {
+    let dir = TestDir::new("database-upgrade-discard-failed");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let empty = HashMap::new();
+    db.execute_non_query("CREATE TABLE recovery_items (value TEXT NOT NULL)", &empty)?;
+    db.execute_non_query(
+        "INSERT INTO recovery_items (value) VALUES ('original')",
+        &empty,
+    )?;
+    db.begin_upgrade(17, 18)?;
+    db.execute_non_query("UPDATE recovery_items SET value = 'upgraded'", &empty)?;
+    db.fail_upgrade("injected failure".into())?;
+
+    let failed = db.get_failed_upgrade()?.expect("failed upgrade status");
+    assert!(Path::new(&failed.work_db_path).exists());
+
+    db.discard_failed_upgrade()?;
+
+    assert!(db.get_failed_upgrade()?.is_none());
+    assert!(!dir.path.join("db-upgrade").exists());
+    assert_eq!(
+        db.execute("SELECT value FROM recovery_items", &empty)?,
+        vec![vec![serde_json::json!("original")]]
+    );
+
+    db.begin_upgrade(17, 18)?;
+    db.fail_upgrade("test cleanup".into())?;
+    Ok(())
+}
+
+#[test]
+fn fresh_database_archives_the_main_database_and_failed_work_copy() -> Result<(), Error> {
+    let dir = TestDir::new("database-upgrade-fresh-start");
+    let db_path = dir.path.join("VRCX-0.sqlite3");
+    let db = DatabaseService::new(&db_path)?;
+    let empty = HashMap::new();
+    db.execute_non_query("CREATE TABLE recovery_items (value TEXT NOT NULL)", &empty)?;
+    db.execute_non_query(
+        "INSERT INTO recovery_items (value) VALUES ('original')",
+        &empty,
+    )?;
+    db.begin_upgrade(17, 18)?;
+    db.fail_upgrade("injected failure".into())?;
+
+    let recovery_dir = db.archive_main_database_and_create_fresh_database()?;
+
+    assert!(db.is_main_mode());
+    assert!(db_path.is_file());
+    assert!(recovery_dir.join("VRCX-0.sqlite3").is_file());
+    assert!(recovery_dir.join("db-upgrade").is_dir());
+    assert!(db.get_failed_upgrade()?.is_none());
+    let tables = db.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'recovery_items'",
+        &empty,
+    )?;
+    assert!(tables.is_empty());
+    let archived = Connection::open_with_flags(
+        recovery_dir.join("VRCX-0.sqlite3"),
+        OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .map_err(|error| Error::Database(error.to_string()))?;
+    let value: String = archived
+        .query_row("SELECT value FROM recovery_items", [], |row| row.get(0))
+        .map_err(|error| Error::Database(error.to_string()))?;
+    assert_eq!(value, "original");
+    Ok(())
+}
+
+#[test]
+fn fresh_database_open_failure_restores_the_original_database() -> Result<(), Error> {
+    let dir = TestDir::new("database-upgrade-fresh-start-rollback");
+    let db_path = dir.path.join("VRCX-0.sqlite3");
+    let db = DatabaseService::new(&db_path)?;
+    let empty = HashMap::new();
+    db.execute_non_query("CREATE TABLE recovery_items (value TEXT NOT NULL)", &empty)?;
+    db.execute_non_query(
+        "INSERT INTO recovery_items (value) VALUES ('original')",
+        &empty,
+    )?;
+    db.begin_upgrade(17, 18)?;
+    db.fail_upgrade("injected failure".into())?;
+    let mut open_attempts = 0;
+
+    let result = db.archive_main_database_with_open(|path| {
+        open_attempts += 1;
+        if open_attempts == 1 {
+            Err(Error::Database("injected fresh database open failure".into()))
+        } else {
+            open_main_database(path)
+        }
+    });
+
+    assert!(result.is_err());
+    assert_eq!(open_attempts, 2);
+    assert!(db.is_main_mode());
+    assert!(db.get_failed_upgrade()?.is_some());
+    assert_eq!(
+        db.execute("SELECT value FROM recovery_items", &empty)?,
+        vec![vec![serde_json::json!("original")]]
+    );
+    assert!(!dir.path.join("database-upgrade-recovery").exists());
+    Ok(())
+}
+
+#[test]
+fn fresh_database_can_recover_while_the_database_service_is_closed() -> Result<(), Error> {
+    let dir = TestDir::new("database-upgrade-fresh-start-closed");
+    let db_path = dir.path.join("VRCX-0.sqlite3");
+    let db = DatabaseService::new(&db_path)?;
+    let empty = HashMap::new();
+    db.execute_non_query("CREATE TABLE recovery_items (value TEXT NOT NULL)", &empty)?;
+    db.execute_non_query(
+        "INSERT INTO recovery_items (value) VALUES ('original')",
+        &empty,
+    )?;
+    db.freeze_for_migration()?;
+
+    let recovery_dir = db.archive_main_database_and_create_fresh_database()?;
+
+    assert!(db.is_main_mode());
+    assert!(recovery_dir.join("VRCX-0.sqlite3").is_file());
+    assert!(db
+        .execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'recovery_items'",
+            &empty,
+        )?
+        .is_empty());
+    Ok(())
+}
+
+#[test]
 fn failed_status_write_keeps_active_journal_for_recovery() -> Result<(), Error> {
     let dir = TestDir::new("database-upgrade-failed-status-write");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;

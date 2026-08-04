@@ -33,43 +33,29 @@ pub(crate) fn ensure_global_store_tables(db: &DatabaseService) -> Result<(), Err
     Ok(())
 }
 
-const FAVORITE_UNIQUE_INDEX_TABLES: [(&str, &str); 2] = [
-    ("favorite_world", "world_id"),
-    ("favorite_avatar", "avatar_id"),
+const FAVORITE_UNIQUE_INDEX_TABLES: [(&str, &str, &str); 2] = [
+    (
+        "favorite_world",
+        "world_id",
+        "favorite_world_world_id_group",
+    ),
+    (
+        "favorite_avatar",
+        "avatar_id",
+        "favorite_avatar_avatar_id_group",
+    ),
 ];
 
 fn ensure_favorite_unique_indexes(db: &DatabaseService) -> Result<(), Error> {
-    for (table, column) in FAVORITE_UNIQUE_INDEX_TABLES {
-        let index_name = format!("{table}_{column}_group_idx");
-        if favorite_unique_index_exists(db, &index_name)? {
-            continue;
-        }
-        db.execute_non_query(
-            &format!(
-                "DELETE FROM {table} WHERE id NOT IN (SELECT MIN(id) FROM {table} GROUP BY {column}, group_name)"
-            ),
-            &Default::default(),
-        )?;
-        db.execute_non_query(
-            &format!(
-                "CREATE UNIQUE INDEX IF NOT EXISTS {index_name} ON {table} ({column}, group_name)"
-            ),
-            &Default::default(),
-        )?;
+    for (table, column, index_stem) in FAVORITE_UNIQUE_INDEX_TABLES {
+        ensure_favorite_index(db, table, &format!("{column}, group_name"), index_stem)?;
     }
-    let friend_index_name = "favorite_friend_owner_user_id_group_idx";
-    if !favorite_unique_index_exists(db, friend_index_name)? {
-        db.execute_non_query(
-            "DELETE FROM favorite_friend WHERE id NOT IN (SELECT MIN(id) FROM favorite_friend GROUP BY owner_id, user_id, group_name)",
-            &Default::default(),
-        )?;
-        db.execute_non_query(
-            &format!(
-                "CREATE UNIQUE INDEX IF NOT EXISTS {friend_index_name} ON favorite_friend (owner_id, user_id, group_name)"
-            ),
-            &Default::default(),
-        )?;
-    }
+    ensure_favorite_index(
+        db,
+        "favorite_friend",
+        "owner_id, user_id, group_name",
+        "favorite_friend_owner_user_id_group",
+    )?;
     db.execute_non_query(
         "DROP INDEX IF EXISTS favorite_friend_user_id_group_idx",
         &Default::default(),
@@ -77,7 +63,73 @@ fn ensure_favorite_unique_indexes(db: &DatabaseService) -> Result<(), Error> {
     Ok(())
 }
 
-fn favorite_unique_index_exists(db: &DatabaseService, index_name: &str) -> Result<bool, Error> {
+fn ensure_favorite_index(
+    db: &DatabaseService,
+    table: &str,
+    columns: &str,
+    index_stem: &str,
+) -> Result<(), Error> {
+    let unique_index = format!("{index_stem}_idx");
+    let lookup_index = format!("{index_stem}_lookup_idx");
+    if favorite_index_exists(db, &unique_index)? {
+        return Ok(());
+    }
+    if favorite_index_exists(db, &lookup_index)? {
+        if favorite_duplicates_exist(db, table, columns)? {
+            return Ok(());
+        }
+        db.execute_non_query(
+            &format!("CREATE UNIQUE INDEX IF NOT EXISTS {unique_index} ON {table} ({columns})"),
+            &Default::default(),
+        )?;
+        db.execute_non_query(
+            &format!("DROP INDEX IF EXISTS {lookup_index}"),
+            &Default::default(),
+        )?;
+        return Ok(());
+    }
+
+    if favorite_duplicates_exist(db, table, columns)? {
+        tracing::warn!(
+            table,
+            index = unique_index,
+            "preserving duplicate legacy favorite rows and creating a non-unique lookup index"
+        );
+        db.execute_non_query(
+            &format!("CREATE INDEX IF NOT EXISTS {lookup_index} ON {table} ({columns})"),
+            &Default::default(),
+        )?;
+    } else {
+        db.execute_non_query(
+            &format!("CREATE UNIQUE INDEX IF NOT EXISTS {unique_index} ON {table} ({columns})"),
+            &Default::default(),
+        )?;
+    }
+    Ok(())
+}
+
+fn favorite_duplicates_exist(
+    db: &DatabaseService,
+    table: &str,
+    columns: &str,
+) -> Result<bool, Error> {
+    let non_null_columns = columns
+        .split(',')
+        .map(str::trim)
+        .map(|column| format!("{column} IS NOT NULL"))
+        .collect::<Vec<_>>()
+        .join(" AND ");
+    Ok(!db
+        .execute(
+            &format!(
+                "SELECT 1 FROM {table} WHERE {non_null_columns} GROUP BY {columns} HAVING COUNT(*) > 1 LIMIT 1"
+            ),
+            &Default::default(),
+        )?
+        .is_empty())
+}
+
+fn favorite_index_exists(db: &DatabaseService, index_name: &str) -> Result<bool, Error> {
     Ok(!db
         .execute(
             "SELECT name FROM sqlite_master WHERE type = 'index' AND name = @name",

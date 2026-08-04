@@ -107,7 +107,10 @@ pub fn favorite_add(
         value_sql: owner_value,
     } = owner_insert_parts(kind);
     db.execute_non_query(
-        &format!("INSERT OR IGNORE INTO {table} ({column}, group_name, created_at{owner_column}) VALUES ({entity_param}, @group_name, @created_at{owner_value})"),
+        &format!(
+            "INSERT OR IGNORE INTO {table} ({column}, group_name, created_at{owner_column}) SELECT {entity_param}, @group_name, @created_at{owner_value} WHERE NOT EXISTS (SELECT 1 FROM {table} WHERE {column} = {entity_param} AND group_name = @group_name {})",
+            visible_owner_and(kind)
+        ),
         &ParamsBuilder::new()
             .set(entity_param, normalize_text(entity_id))
             .set("group_name", normalize_text(group_name))
@@ -182,7 +185,10 @@ pub fn favorite_move(
             ));
         }
         let added = tx.execute_non_query(
-            &format!("INSERT OR IGNORE INTO {table} ({column}, group_name, created_at{owner_column}) VALUES ({entity_param}, @group_name, @created_at{owner_value})"),
+            &format!(
+                "INSERT OR IGNORE INTO {table} ({column}, group_name, created_at{owner_column}) SELECT {entity_param}, @group_name, @created_at{owner_value} WHERE NOT EXISTS (SELECT 1 FROM {table} WHERE {column} = {entity_param} AND group_name = @group_name {})",
+                visible_owner_and(kind)
+            ),
             &ParamsBuilder::new()
                 .set(entity_param, normalized_entity_id)
                 .set("group_name", normalized_target_group_name)
@@ -797,8 +803,9 @@ mod tests {
     }
 
     #[test]
-    fn ensure_global_store_tables_dedupes_duplicate_favorite_rows_before_indexing() {
-        let (_dir, db) = test_db("favorite-unique-index-dedupe");
+    fn ensure_global_store_tables_preserves_dirty_duplicates_and_promotes_unique_index_once_clean()
+    {
+        let (_dir, db) = test_db("favorite-dirty-duplicate-index");
         db.execute_non_query(
             "CREATE TABLE IF NOT EXISTS favorite_world (id INTEGER PRIMARY KEY, created_at TEXT, world_id TEXT, group_name TEXT)",
             &Default::default(),
@@ -821,13 +828,54 @@ mod tests {
             favorite_list(&db, None, FavoriteEntityKind::World)
                 .unwrap()
                 .len(),
-            1
+            2
         );
 
-        let duplicate_insert = db.execute_non_query(
-            "INSERT INTO favorite_world (created_at, world_id, group_name) VALUES ('2026-01-03T00:00:00.000Z', 'wrld_1', 'group')",
-            &Default::default(),
+        assert_eq!(
+            favorite_add(
+                &db,
+                None,
+                FavoriteEntityKind::World,
+                "wrld_1".into(),
+                "group".into(),
+            )
+            .unwrap(),
+            0
         );
-        assert!(duplicate_insert.is_err());
+        assert_eq!(
+            favorite_list(&db, None, FavoriteEntityKind::World)
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(!db
+            .execute(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'favorite_world_world_id_group_lookup_idx'",
+                &Default::default(),
+            )
+            .unwrap()
+            .is_empty());
+
+        db.execute_non_query(
+            "DELETE FROM favorite_world WHERE created_at = '2026-01-02T00:00:00.000Z'",
+            &Default::default(),
+        )
+        .unwrap();
+        ensure_global_store_tables(&db).unwrap();
+
+        assert!(db
+            .execute(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'favorite_world_world_id_group_lookup_idx'",
+                &Default::default(),
+            )
+            .unwrap()
+            .is_empty());
+        assert!(!db
+            .execute(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'favorite_world_world_id_group_idx'",
+                &Default::default(),
+            )
+            .unwrap()
+            .is_empty());
     }
 }

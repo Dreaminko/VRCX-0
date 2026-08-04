@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { CurrentInstanceRosterPlayer } from '@/domain/instances/currentInstanceRoster';
+import type { DatabaseUpgradeStage } from '@/platform/tauri/bindings';
 import { MINUTE_MS } from '@/shared/constants/time';
 
 type TaskState = {
@@ -221,8 +222,15 @@ type RuntimeStore = {
         phase: string;
         fromVersion: number;
         toVersion: number;
+        stage: DatabaseUpgradeStage | '';
+        progressCompleted: number;
+        progressTotal: number;
         detail: string;
         legacyMigrationAvailable: boolean;
+        retryable: boolean;
+        freshStartAvailable: boolean;
+        failureLogPath: string;
+        failedWorkDbPath: string;
     };
     runtimeEvents: Record<string, RuntimeEventState>;
     backendRuntime: Record<string, unknown>;
@@ -528,8 +536,15 @@ const initialState: RuntimeStoreState = {
         phase: 'idle',
         fromVersion: 0,
         toVersion: 0,
+        stage: '',
+        progressCompleted: 0,
+        progressTotal: 0,
         detail: '',
-        legacyMigrationAvailable: false
+        legacyMigrationAvailable: false,
+        retryable: false,
+        freshStartAvailable: false,
+        failureLogPath: '',
+        failedWorkDbPath: ''
     },
     backendRuntime: {},
     shell: {

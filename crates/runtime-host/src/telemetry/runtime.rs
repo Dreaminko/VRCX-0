@@ -114,9 +114,10 @@ impl TelemetryRuntime {
     #[cfg(test)]
     fn new_with_test_post(deps: TelemetryRuntimeDeps, test_post: TestPost) -> Self {
         let mut runtime = Self::new(deps);
-        Arc::get_mut(&mut runtime.inner)
-            .expect("new telemetry runtime should have one owner")
-            .test_post = Some(test_post);
+        let inner =
+            Arc::get_mut(&mut runtime.inner).expect("new telemetry runtime should have one owner");
+        inner.client = TelemetryClient::new("http://test.invalid".into());
+        inner.test_post = Some(test_post);
         runtime
     }
 
@@ -157,6 +158,18 @@ impl TelemetryRuntime {
         {
             self.inner.shutdown_flushed.store(false, Ordering::Release);
         }
+    }
+
+    pub async fn flush_pending_rust_errors(&self) {
+        if !self.inner.client.is_enabled() || !self.usage_enabled() {
+            return;
+        }
+        let Some(session) = self.ensure_session() else {
+            return;
+        };
+        let _flush_guard = self.inner.flush_lock.lock().await;
+        self.drain_rust_errors();
+        self.flush_client_errors_locked(&session).await;
     }
 
     async fn run_loop(&self, stop_token: TaskStopToken) {
@@ -347,17 +360,13 @@ impl TelemetryRuntime {
     }
 
     async fn flush_collectors_locked(&self, session: &TelemetrySession) {
-        let (routes, assistant_health, client_errors) = {
+        let (routes, assistant_health) = {
             let Ok(state) = self.inner.state.lock() else {
                 return;
             };
             (
                 state.acc.route_snapshot(),
                 state.acc.assistant_health_snapshot(),
-                state
-                    .acc
-                    .client_error_snapshot()
-                    .map(|snapshot| (snapshot, state.pending_error_cursor.clone())),
             )
         };
         let context = self.context(session, None);
@@ -397,7 +406,21 @@ impl TelemetryRuntime {
                 }
             }
         }
+        self.flush_client_errors_locked(session).await;
+    }
+
+    async fn flush_client_errors_locked(&self, session: &TelemetrySession) {
+        let client_errors = {
+            let Ok(state) = self.inner.state.lock() else {
+                return;
+            };
+            state
+                .acc
+                .client_error_snapshot()
+                .map(|snapshot| (snapshot, state.pending_error_cursor.clone()))
+        };
         if let Some((client_errors, error_cursor)) = client_errors {
+            let context = self.context(session, None);
             for chunk in client_errors.entries.chunks(MAX_DETAILS_PER_PAYLOAD) {
                 let payload = ClientErrorPayload {
                     context: context.clone(),
@@ -596,7 +619,10 @@ impl TelemetryRuntime {
     }
 
     fn usage_enabled(&self) -> bool {
-        self.config_bool(ANONYMOUS_USAGE_TELEMETRY_CONFIG_KEY, true)
+        self.inner
+            .config
+            .get_bool(ANONYMOUS_USAGE_TELEMETRY_CONFIG_KEY, true)
+            .unwrap_or(false)
     }
 
     fn should_report_basic_session_start(&self, session: &TelemetrySession) -> bool {
@@ -933,5 +959,92 @@ mod tests {
             .unwrap()
             .pending_error_cursor
             .is_none());
+    }
+
+    #[tokio::test]
+    async fn immediate_rust_error_flush_only_sends_sanitized_client_errors() {
+        let dir = TestDir::new("immediate-rust-error");
+        std::fs::write(
+            dir.0.join("error-log.txt"),
+            "[2026-07-01 00:00:00.000 +00:00] [2026-07-01T00:00:00.000Z] [v2.2.0] [rust:tracing]\ndatabase upgrade failed: C:\\Users\\alice\\AppData\\secret.sqlite3\n\n",
+        )
+        .unwrap();
+        let db = Arc::new(DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap());
+        let config = ConfigRepository::new(db);
+        let payloads = Arc::new(Mutex::new(Vec::new()));
+        let runtime = TelemetryRuntime::new_with_test_post(
+            TelemetryRuntimeDeps {
+                config: config.clone(),
+                tasks: TaskSupervisor::new(),
+                backend_runtime: BackendRuntime::new(),
+                app_version: "2.2.0".into(),
+                app_data: dir.0.clone(),
+                system_theme_category: Arc::new(|| "dark".into()),
+            },
+            {
+                let payloads = payloads.clone();
+                Arc::new(move |path, payload| {
+                    let payloads = payloads.clone();
+                    Box::pin(async move {
+                        assert_eq!(path, "/api/v1/telemetry/client-error");
+                        payloads.lock().unwrap().push(payload);
+                        true
+                    })
+                })
+            },
+        );
+
+        runtime.flush_pending_rust_errors().await;
+
+        let payloads = payloads.lock().unwrap();
+        assert_eq!(payloads.len(), 1);
+        let encoded = payloads[0].to_string();
+        assert!(encoded.contains("database upgrade failed"));
+        assert!(!encoded.contains("alice"));
+        assert!(!encoded.contains("secret.sqlite3"));
+        assert_eq!(
+            config
+                .get_string(TELEMETRY_CLIENT_ERROR_CURSOR_CONFIG_KEY, "")
+                .unwrap(),
+            "2026-07-01T00:00:00.000Z"
+        );
+    }
+
+    #[tokio::test]
+    async fn immediate_rust_error_flush_fails_closed_when_consent_is_unavailable() {
+        let dir = TestDir::new("unavailable-consent");
+        std::fs::write(
+            dir.0.join("error-log.txt"),
+            "[2026-07-01 00:00:00.000 +00:00] [2026-07-01T00:00:00.000Z] [v2.2.0] [rust:tracing]\ndatabase upgrade failed\n\n",
+        )
+        .unwrap();
+        let db = Arc::new(DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap());
+        let config = ConfigRepository::new(db.clone());
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let runtime = TelemetryRuntime::new_with_test_post(
+            TelemetryRuntimeDeps {
+                config,
+                tasks: TaskSupervisor::new(),
+                backend_runtime: BackendRuntime::new(),
+                app_version: "2.2.0".into(),
+                app_data: dir.0.clone(),
+                system_theme_category: Arc::new(|| "dark".into()),
+            },
+            {
+                let attempts = attempts.clone();
+                Arc::new(move |_, _| {
+                    let attempts = attempts.clone();
+                    Box::pin(async move {
+                        attempts.fetch_add(1, Ordering::SeqCst);
+                        true
+                    })
+                })
+            },
+        );
+        db.freeze_for_migration().unwrap();
+
+        runtime.flush_pending_rust_errors().await;
+
+        assert_eq!(attempts.load(Ordering::SeqCst), 0);
     }
 }

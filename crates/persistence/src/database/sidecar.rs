@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::Error;
 
-pub(super) fn remove_sidecars(db_path: &Path) -> Result<(), Error> {
+pub(crate) fn remove_sidecars(db_path: &Path) -> Result<(), Error> {
     for suffix in ["shm", "wal"] {
         let path = sidecar_path(db_path, suffix);
         if path.exists() {

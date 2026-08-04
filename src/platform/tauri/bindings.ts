@@ -24,6 +24,18 @@ export const commands = {
     async appDatabaseUpgradeRun(): Promise<DatabaseUpgradeRunResult> {
         return await TAURI_INVOKE('app__database_upgrade_run');
     },
+    async appDatabaseUpgradeProgress(): Promise<DatabaseUpgradeProgress> {
+        return await TAURI_INVOKE('app__database_upgrade_progress');
+    },
+    async appDatabaseUpgradeRetry(): Promise<DatabaseUpgradeRunResult> {
+        return await TAURI_INVOKE('app__database_upgrade_retry');
+    },
+    async appDatabaseUpgradeFailureLogPath(): Promise<string> {
+        return await TAURI_INVOKE('app__database_upgrade_failure_log_path');
+    },
+    async appDatabaseUpgradeStartFresh(): Promise<string> {
+        return await TAURI_INVOKE('app__database_upgrade_start_fresh');
+    },
     async appAppendErrorLog(entry: string): Promise<null> {
         return await TAURI_INVOKE('app__append_error_log', { entry });
     },
@@ -3727,6 +3739,11 @@ export type DatabaseUpgradePreflightStatus =
     | 'finished'
     | 'blocked'
     | 'newerSchema';
+export type DatabaseUpgradeProgress = {
+    stage: DatabaseUpgradeStage;
+    completedUnits?: number | null;
+    totalUnits?: number | null;
+};
 export type DatabaseUpgradeRunResult = {
     status: DatabaseUpgradeRunStatus;
     fromVersion: number;
@@ -3744,11 +3761,15 @@ export type DatabaseUpgradeRunStatus =
     | 'failed';
 export type DatabaseUpgradeStage =
     | 'preflight'
+    | 'prepareLegacySnapshot'
+    | 'prepareLegacyConfiguration'
+    | 'finalizeLegacyMigration'
     | 'initializeSchema'
     | 'createWorkCopy'
-    | 'legacyDataCleanup'
     | 'legacySchemaMigration'
-    | 'performanceIndexes'
+    | 'legacyPerformanceIndexes'
+    | 'globalPerformanceIndexes'
+    | 'notificationPerformanceIndexes'
     | 'optimize'
     | 'writeVersion'
     | 'commit';

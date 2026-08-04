@@ -172,16 +172,20 @@ pub fn database_maintenance_run(
     run_database_maintenance_task(db, task)
 }
 
+pub fn ensure_required_database_schema(db: &DatabaseService) -> Result<(), Error> {
+    ensure_game_log_tables(db)?;
+    ensure_global_store_tables(db)?;
+    backfill_vrcx0_schema_version(db)
+}
+
 fn run_database_maintenance_task(
     db: &DatabaseService,
     task: DatabaseMaintenanceTask,
 ) -> Result<(), Error> {
     match task {
         DatabaseMaintenanceTask::InitGlobalTables => {
-            ensure_game_log_tables(db)?;
-            ensure_global_store_tables(db)?;
+            ensure_required_database_schema(db)?;
             add_legacy_indexes(db)?;
-            backfill_vrcx0_schema_version(db)?;
             if read_vrcx0_schema_version(db)? >= VRCX0_SCHEMA_VERSION {
                 add_v17_global_indexes(db)?;
             }

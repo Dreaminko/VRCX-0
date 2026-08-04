@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use chrono::Utc;
-use rusqlite::MAIN_DB;
 
-use crate::database::sidecar::remove_sidecars;
+use crate::database::online_backup::backup_connection_to_path;
+use crate::database::sidecar::{remove_sidecars, sidecar_path};
 use crate::Error;
 
 use super::{
@@ -17,6 +17,15 @@ use super::{
 
 impl DatabaseService {
     pub fn begin_upgrade(&self, from_version: i64, to_version: i64) -> Result<(), Error> {
+        self.begin_upgrade_with_progress(from_version, to_version, |_, _| {})
+    }
+
+    pub fn begin_upgrade_with_progress(
+        &self,
+        from_version: i64,
+        to_version: i64,
+        mut on_progress: impl FnMut(u64, u64),
+    ) -> Result<(), Error> {
         let mut inner = self
             .inner
             .write()
@@ -67,9 +76,7 @@ impl DatabaseService {
                 .writer
                 .lock()
                 .map_err(|e| Error::Database(e.to_string()))?;
-            writer
-                .backup(MAIN_DB, &work_db_path, None)
-                .map_err(|e| Error::Database(e.to_string()))?;
+            backup_connection_to_path(&writer, &work_db_path, &mut on_progress)?;
         }
 
         let conn = open_configured_connection(&work_db_path)?;
@@ -276,6 +283,154 @@ impl DatabaseService {
         }
 
         Ok(None)
+    }
+
+    pub fn discard_failed_upgrade(&self) -> Result<(), Error> {
+        let inner = self
+            .inner
+            .write()
+            .map_err(|error| Error::Database(error.to_string()))?;
+        if !matches!(&*inner, DatabaseMode::Main(_)) {
+            return Err(Error::Database(
+                "A failed database upgrade can only be discarded while the main database is open."
+                    .into(),
+            ));
+        }
+
+        self.remove_upgrade_dir()
+    }
+
+    pub fn archive_main_database_and_create_fresh_database(&self) -> Result<PathBuf, Error> {
+        self.archive_main_database_with_open(open_main_database)
+    }
+
+    pub(super) fn archive_main_database_with_open(
+        &self,
+        mut open: impl FnMut(&Path) -> Result<MainDatabase, Error>,
+    ) -> Result<PathBuf, Error> {
+        let mut inner = self
+            .inner
+            .write()
+            .map_err(|error| Error::Database(error.to_string()))?;
+        if matches!(&*inner, DatabaseMode::Upgrade(_)) {
+            return Err(Error::Database(
+                "A fresh database cannot be created while an upgrade is running.".into(),
+            ));
+        }
+
+        let recovery_dir = self.create_upgrade_recovery_dir()?;
+        let database_file_name = self
+            .db_path
+            .file_name()
+            .ok_or_else(|| Error::Database("Database path has no file name.".into()))?;
+        let archived_db_path = recovery_dir.join(database_file_name);
+        let archived_upgrade_dir = recovery_dir.join("db-upgrade");
+        let database_files = [
+            (self.db_path.clone(), archived_db_path.clone()),
+            (
+                sidecar_path(&self.db_path, "wal"),
+                sidecar_path(&archived_db_path, "wal"),
+            ),
+            (
+                sidecar_path(&self.db_path, "shm"),
+                sidecar_path(&archived_db_path, "shm"),
+            ),
+        ];
+
+        let previous = std::mem::replace(&mut *inner, DatabaseMode::Closed);
+        drop(previous);
+        let mut moved_files = Vec::new();
+        let mut moved_upgrade_dir = false;
+        let archive_result = (|| -> Result<MainDatabase, Error> {
+            for (source, destination) in &database_files {
+                if source.exists() {
+                    fs::rename(source, destination)?;
+                    moved_files.push((source.clone(), destination.clone()));
+                }
+            }
+            if self.upgrade_dir.exists() {
+                fs::rename(&self.upgrade_dir, &archived_upgrade_dir)?;
+                moved_upgrade_dir = true;
+            }
+            open(&self.db_path)
+        })();
+
+        match archive_result {
+            Ok(main) => {
+                *inner = DatabaseMode::Main(main);
+                Ok(recovery_dir)
+            }
+            Err(error) => {
+                let rollback = self.restore_archived_upgrade(
+                    &mut open,
+                    &recovery_dir,
+                    &archived_upgrade_dir,
+                    moved_upgrade_dir,
+                    &moved_files,
+                );
+                match rollback {
+                    Ok(main) => {
+                        *inner = DatabaseMode::Main(main);
+                        Err(error)
+                    }
+                    Err(rollback_error) => Err(Error::Database(format!(
+                        "{error} Restoring the original database after the fresh-start failure also failed: {rollback_error}"
+                    ))),
+                }
+            }
+        }
+    }
+
+    fn create_upgrade_recovery_dir(&self) -> Result<PathBuf, Error> {
+        let app_data = self
+            .db_path
+            .parent()
+            .ok_or_else(|| Error::Database("Database path has no parent directory.".into()))?;
+        let root = app_data.join("database-upgrade-recovery");
+        fs::create_dir_all(&root)?;
+        let timestamp = Utc::now().format("%Y%m%d-%H%M%S");
+        for suffix in 0..1000 {
+            let name = if suffix == 0 {
+                timestamp.to_string()
+            } else {
+                format!("{timestamp}-{suffix}")
+            };
+            let candidate = root.join(name);
+            match fs::create_dir(&candidate) {
+                Ok(()) => return Ok(candidate),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => return Err(error.into()),
+            }
+        }
+        Err(Error::Database(
+            "Could not allocate a database upgrade recovery directory.".into(),
+        ))
+    }
+
+    fn restore_archived_upgrade(
+        &self,
+        open: &mut impl FnMut(&Path) -> Result<MainDatabase, Error>,
+        recovery_dir: &Path,
+        archived_upgrade_dir: &Path,
+        moved_upgrade_dir: bool,
+        moved_files: &[(PathBuf, PathBuf)],
+    ) -> Result<MainDatabase, Error> {
+        self.remove_file_if_exists(&self.db_path)?;
+        remove_sidecars(&self.db_path)?;
+        if moved_upgrade_dir {
+            fs::rename(archived_upgrade_dir, &self.upgrade_dir)?;
+        }
+        for (source, destination) in moved_files.iter().rev() {
+            if destination.exists() {
+                fs::rename(destination, source)?;
+            }
+        }
+        let main = open(&self.db_path)?;
+        let _ = fs::remove_dir(recovery_dir);
+        if let Some(root) = recovery_dir.parent() {
+            let _ = fs::remove_dir(root);
+        }
+        Ok(main)
     }
 
     fn work_db_path(&self, from_version: i64, to_version: i64) -> PathBuf {
