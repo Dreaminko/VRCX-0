@@ -325,7 +325,7 @@ jobs:
                           schemaVersion: 1,
                           label: 'coverage',
                           message: `TS ${tsLines.pct.toFixed(1)}% · Rust ${rustLines.percent.toFixed(1)}%`,
-                          color: 'blue'
+                          color: 'brightgreen'
                       }) + '\n'
                   );
                   NODE
