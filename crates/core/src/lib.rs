@@ -11,6 +11,7 @@ pub mod image_sniff;
 pub mod json;
 pub mod location;
 pub mod log_watcher;
+pub mod proxy;
 pub mod realtime;
 pub mod screenshots;
 pub mod social_circles;

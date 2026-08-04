@@ -5,6 +5,7 @@ use reqwest::{Client, Proxy};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
+use vrcx_0_core::proxy::with_remote_dns;
 
 #[derive(Debug, thiserror::Error)]
 pub enum LlmError {
@@ -256,7 +257,7 @@ impl LlmClient {
     ) -> Result<Self, LlmError> {
         let mut builder = Client::builder().timeout(Duration::from_secs(180));
         if let Some(proxy_url) = proxy_url {
-            builder = builder.proxy(Proxy::all(proxy_url)?);
+            builder = builder.proxy(Proxy::all(with_remote_dns(proxy_url).as_ref())?);
         }
         let http = builder.build()?;
         let base_url = base_url.into();
@@ -668,6 +669,50 @@ mod tests {
 
     use super::*;
 
+    async fn serve_socks5_models() -> (String, tokio::task::JoinHandle<String>) {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let proxy_url = format!("socks5://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut greeting = [0_u8; 3];
+            stream.read_exact(&mut greeting).await.unwrap();
+            assert_eq!(greeting, [5, 1, 0]);
+            stream.write_all(&[5, 0]).await.unwrap();
+
+            let mut request = [0_u8; 4];
+            stream.read_exact(&mut request).await.unwrap();
+            assert_eq!(request, [5, 1, 0, 3]);
+            let domain_length = stream.read_u8().await.unwrap() as usize;
+            let mut domain = vec![0_u8; domain_length];
+            stream.read_exact(&mut domain).await.unwrap();
+            let mut port = [0_u8; 2];
+            stream.read_exact(&mut port).await.unwrap();
+            assert_eq!(u16::from_be_bytes(port), 80);
+            stream
+                .write_all(&[5, 0, 0, 1, 127, 0, 0, 1, 0, 0])
+                .await
+                .unwrap();
+
+            let mut request = Vec::new();
+            let mut chunk = [0_u8; 1024];
+            loop {
+                let read = stream.read(&mut chunk).await.unwrap();
+                request.extend_from_slice(&chunk[..read]);
+                if read == 0 || request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+            let body = r#"{"data":[{"id":"remote-dns-model"}]}"#;
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            stream.write_all(response.as_bytes()).await.unwrap();
+            String::from_utf8(domain).unwrap()
+        });
+        (proxy_url, server)
+    }
+
     #[tokio::test]
     async fn list_models_uses_explicit_http_proxy() {
         let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
@@ -1011,15 +1056,16 @@ mod tests {
             .is_none());
     }
 
-    #[test]
-    fn accepts_socks5_proxy_url() {
-        assert!(LlmClient::new(
-            "https://example.com/v1",
-            "",
-            "model",
-            Some("socks5://127.0.0.1:1080")
-        )
-        .is_ok());
+    #[tokio::test]
+    async fn socks5_proxy_resolves_llm_destination_remotely() {
+        let (proxy_url, server) = serve_socks5_models().await;
+        let client =
+            LlmClient::new("http://llm.test.invalid/v1", "", "", Some(&proxy_url)).unwrap();
+
+        let result = client.list_models().await.unwrap();
+
+        assert_eq!(result.models, vec!["remote-dns-model"]);
+        assert_eq!(server.await.unwrap(), "llm.test.invalid");
     }
 
     #[test]

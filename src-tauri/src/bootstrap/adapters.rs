@@ -22,7 +22,7 @@ use vrcx_0_application_core::{
     UpdaterPort, UpdaterProgressCallback,
 };
 use vrcx_0_application_core::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
-use vrcx_0_core::realtime::RealtimeWsStatusPayload;
+use vrcx_0_core::{proxy::with_remote_dns, realtime::RealtimeWsStatusPayload};
 use vrcx_0_host_desktop::host_capabilities::{is_host_capability_available, HostCapability};
 use vrcx_0_runtime_host_desktop::notification::DesktopNotifier;
 use vrcx_0_runtime_host_desktop::RuntimeHostActions;
@@ -436,7 +436,7 @@ async fn find_update(
         .as_deref()
         .filter(|value| !value.trim().is_empty())
     {
-        let proxy: Url = proxy_url.parse().map_err(|error| {
+        let proxy: Url = with_remote_dns(proxy_url).parse().map_err(|error| {
             ApplicationError::Custom(format!("Invalid update proxy URL: {error}"))
         })?;
         builder = builder.proxy(proxy);

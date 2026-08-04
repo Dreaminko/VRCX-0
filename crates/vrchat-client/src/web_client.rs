@@ -8,8 +8,8 @@ use reqwest::header::{HeaderName, HeaderValue, CONTENT_TYPE, REFERER};
 use reqwest::multipart::{Form, Part};
 use reqwest::redirect::Policy;
 use reqwest::{Client, Method, Proxy};
-use vrcx_0_core::image_sniff::sniff_image_mime;
 use vrcx_0_core::vrchat_endpoints::{VRCHAT_CLOUD_ROOT_HOST, VRCHAT_SITE_HOST};
+use vrcx_0_core::{image_sniff::sniff_image_mime, proxy::with_remote_dns};
 
 pub type Result<T> = std::result::Result<T, WebClientError>;
 pub(crate) const BASE_USER_AGENT: &str = "VRCX-0";
@@ -252,9 +252,10 @@ fn build_http_client_with_redirects(
     }
 
     if let Some(url) = proxy_url {
-        builder = builder
-            .no_proxy()
-            .proxy(Proxy::all(url).map_err(|e| Error::Custom(format!("bad proxy: {e}")))?);
+        builder = builder.no_proxy().proxy(
+            Proxy::all(with_remote_dns(url).as_ref())
+                .map_err(|e| Error::Custom(format!("bad proxy: {e}")))?,
+        );
     }
 
     builder
@@ -759,6 +760,53 @@ impl WebClient {
 mod tests {
     use super::*;
 
+    async fn serve_socks5_response() -> (String, tokio::task::JoinHandle<String>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let proxy_url = format!("socks5://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut greeting = [0_u8; 3];
+            stream.read_exact(&mut greeting).await.unwrap();
+            assert_eq!(greeting, [5, 1, 0]);
+            stream.write_all(&[5, 0]).await.unwrap();
+
+            let mut request = [0_u8; 4];
+            stream.read_exact(&mut request).await.unwrap();
+            assert_eq!(request, [5, 1, 0, 3]);
+            let domain_length = stream.read_u8().await.unwrap() as usize;
+            let mut domain = vec![0_u8; domain_length];
+            stream.read_exact(&mut domain).await.unwrap();
+            let mut port = [0_u8; 2];
+            stream.read_exact(&mut port).await.unwrap();
+            assert_eq!(u16::from_be_bytes(port), 80);
+            stream
+                .write_all(&[5, 0, 0, 1, 127, 0, 0, 1, 0, 0])
+                .await
+                .unwrap();
+
+            let mut request = Vec::new();
+            let mut chunk = [0_u8; 1024];
+            loop {
+                let read = stream.read(&mut chunk).await.unwrap();
+                request.extend_from_slice(&chunk[..read]);
+                if read == 0 || request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+                )
+                .await
+                .unwrap();
+            String::from_utf8(domain).unwrap()
+        });
+        (proxy_url, server)
+    }
+
     async fn serve_response(
         content_type: &str,
         body: &[u8],
@@ -796,6 +844,23 @@ mod tests {
 
     fn legacy_cookie_payload(value: serde_json::Value) -> String {
         B64.encode(serde_json::to_vec(&value).unwrap())
+    }
+
+    #[tokio::test]
+    async fn socks5_proxy_resolves_default_web_destination_remotely() -> Result<()> {
+        let (proxy_url, server) = serve_socks5_response().await;
+        let web = WebClient::new(Some(proxy_url), None, env!("CARGO_PKG_VERSION"))?;
+
+        let result = web
+            .execute(WebExecuteRequest::new(
+                "http://api.test.invalid/status".into(),
+                "GET".into(),
+            ))
+            .await?;
+
+        assert_eq!(result, (200, "ok".into()));
+        assert_eq!(server.await.unwrap(), "api.test.invalid");
+        Ok(())
     }
 
     #[test]

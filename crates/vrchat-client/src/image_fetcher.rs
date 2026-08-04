@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use crate::cookies::CookieJar;
 use crate::web_client::build_vrcx_user_agent;
 use reqwest::Client;
+use vrcx_0_core::proxy::with_remote_dns;
 use vrcx_0_core::vrchat_endpoints::{
     VRCHAT_API_HOST, VRCHAT_ASSETS_HOST, VRCHAT_FILES_HOST, VRCHAT_LEGACY_CLOUDFRONT_HOST,
 };
@@ -37,7 +38,7 @@ impl ImageFetcher {
 
         if let Some(proxy) = proxy_url {
             builder = builder.proxy(
-                reqwest::Proxy::all(proxy)
+                reqwest::Proxy::all(with_remote_dns(proxy).as_ref())
                     .map_err(|e| ImageFetchError::Custom(format!("image cache proxy: {e}")))?,
             );
         }

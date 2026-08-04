@@ -9009,6 +9009,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "vrcx-0-core",
 ]
 
 [[package]]
