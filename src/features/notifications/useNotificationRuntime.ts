@@ -31,6 +31,9 @@ export function useNotificationRuntime() {
     const currentDestination = useRuntimeStore(
         (state) => state.gameState.currentDestination
     );
+    const isGameRunning = useRuntimeStore(
+        (state) => state.gameState.isGameRunning
+    );
     const groupInstancesEndpoint = useRuntimeStore(
         (state) => state.groupInstances.endpoint
     );
@@ -49,9 +52,10 @@ export function useNotificationRuntime() {
     const gameState = useMemo(
         () => ({
             currentDestination,
-            currentLocation
+            currentLocation,
+            isGameRunning
         }),
-        [currentDestination, currentLocation]
+        [currentDestination, currentLocation, isGameRunning]
     );
     const currentUserSnapshot = useMemo(
         () => ({

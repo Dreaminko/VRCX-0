@@ -100,6 +100,7 @@ describe('friends locations row helpers', () => {
         expect(
             resolveFriendsLocationsCurrentInviteLocation(
                 {
+                    isGameRunning: true,
                     currentLocation: 'traveling',
                     currentDestination: 'wrld_dest:123'
                 },
@@ -108,7 +109,7 @@ describe('friends locations row helpers', () => {
         ).toBe('wrld_dest:123');
         expect(
             resolveFriendsLocationsCurrentInviteLocation(
-                {},
+                { isGameRunning: true },
                 { $locationTag: 'wrld_profile:456' }
             )
         ).toBe('wrld_profile:456');

@@ -82,6 +82,7 @@ describe('feed row helpers', () => {
         expect(
             resolveFeedCurrentInviteLocation(
                 {
+                    isGameRunning: true,
                     currentLocation: 'traveling',
                     currentDestination: 'wrld_dest:123'
                 },
@@ -90,7 +91,7 @@ describe('feed row helpers', () => {
         ).toBe('wrld_dest:123');
         expect(
             resolveFeedCurrentInviteLocation(
-                {},
+                { isGameRunning: true },
                 { $locationTag: 'wrld_profile:456' }
             )
         ).toBe('wrld_profile:456');

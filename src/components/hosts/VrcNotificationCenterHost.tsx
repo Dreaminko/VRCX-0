@@ -84,6 +84,9 @@ export function VrcNotificationCenterHost() {
     const currentDestination = useRuntimeStore(
         (state) => state.gameState.currentDestination
     );
+    const isGameRunning = useRuntimeStore(
+        (state) => state.gameState.isGameRunning
+    );
     const groupInstancesEndpoint = useRuntimeStore(
         (state) => state.groupInstances.endpoint
     );
@@ -120,9 +123,10 @@ export function VrcNotificationCenterHost() {
     const gameState = useMemo(
         () => ({
             currentLocation,
-            currentDestination
+            currentDestination,
+            isGameRunning
         }),
-        [currentDestination, currentLocation]
+        [currentDestination, currentLocation, isGameRunning]
     );
     const currentUserSnapshot = useMemo(
         () => ({
