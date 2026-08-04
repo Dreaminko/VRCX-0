@@ -501,14 +501,6 @@ mod tests {
             })
             .unwrap();
         assert_eq!(running.status, GroupBanImportState::Running);
-        assert!(runtime
-            .start(GroupBanImportStartInput {
-                group_id: GROUP_ID.into(),
-                user_ids: vec![USER_1.into()],
-            })
-            .unwrap_err()
-            .to_string()
-            .contains("already active"));
 
         let terminal = wait_terminal(&runtime);
         assert_eq!(terminal.status, GroupBanImportState::Completed);
@@ -521,6 +513,38 @@ mod tests {
         assert_eq!(terminal.items[1].state, GroupBanImportItemState::Failed);
         assert_eq!(terminal.items[1].message, "ban failed");
         assert_eq!(terminal.last_error.as_deref(), Some("ban failed"));
+        tasks.stop_all();
+    }
+
+    #[test]
+    fn rejects_start_while_an_import_is_active() {
+        let gate = Arc::new(tokio::sync::Notify::new());
+        let (runtime, tasks, _auth_scope) = runtime_with(FakeActions {
+            attempts: Arc::new(Mutex::new(Vec::new())),
+            fail_user_id: None,
+            gate: Some(Arc::clone(&gate)),
+        });
+
+        runtime
+            .start(GroupBanImportStartInput {
+                group_id: GROUP_ID.into(),
+                user_ids: vec![USER_1.into()],
+            })
+            .unwrap();
+        assert!(runtime
+            .start(GroupBanImportStartInput {
+                group_id: GROUP_ID.into(),
+                user_ids: vec![USER_2.into()],
+            })
+            .unwrap_err()
+            .to_string()
+            .contains("already active"));
+
+        gate.notify_one();
+        assert_eq!(
+            wait_terminal(&runtime).status,
+            GroupBanImportState::Completed
+        );
         tasks.stop_all();
     }
 
