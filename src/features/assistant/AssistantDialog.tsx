@@ -152,8 +152,7 @@ export function AssistantDialog() {
         (endpoint) => endpoint.id === runtimeSelection.endpointId
     );
     const modelOptions = selectedEndpoint?.models ?? [];
-    const hasRuntime =
-        Boolean(runtimeSelection.endpointId) && Boolean(runtimeSelection.model);
+    const hasRuntime = Boolean(selectedEndpoint && runtimeSelection.model);
     const showReasoningEffort = shouldShowReasoningEffortSelector(
         selectedEndpoint ?? null,
         runtimeSelection.model ?? null

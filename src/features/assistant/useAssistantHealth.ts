@@ -41,5 +41,5 @@ export function useAssistantHealth(endpointId: string | null): AssistantHealth {
         };
     }, [open, endpointId]);
 
-    return health;
+    return endpointId ? health : 'unconfigured';
 }
