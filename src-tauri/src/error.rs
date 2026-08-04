@@ -1,5 +1,32 @@
 use serde::Serialize;
 
+#[derive(Clone, Copy, Debug, Serialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+enum AppErrorCode {
+    Database,
+    Io,
+    Json,
+    Custom,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+enum SqliteErrorCategory {
+    Malformed,
+    DiskFull,
+    Locked,
+    IoError,
+}
+
+#[derive(Debug, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+struct AppErrorPayload {
+    code: AppErrorCode,
+    message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sqlite_category: Option<SqliteErrorCategory>,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -17,7 +44,12 @@ pub enum AppError {
 
 impl Serialize for AppError {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&self.to_string())
+        AppErrorPayload {
+            code: self.code(),
+            message: self.to_string(),
+            sqlite_category: self.sqlite_category(),
+        }
+        .serialize(serializer)
     }
 }
 
@@ -26,7 +58,47 @@ impl specta::Type for AppError {
         type_map: &mut specta::TypeCollection,
         generics: specta::Generics,
     ) -> specta::DataType {
-        String::inline(type_map, generics)
+        AppErrorPayload::inline(type_map, generics)
+    }
+
+    fn reference(
+        type_map: &mut specta::TypeCollection,
+        generics: &[specta::DataType],
+    ) -> specta::datatype::reference::Reference {
+        AppErrorPayload::reference(type_map, generics)
+    }
+}
+
+impl AppError {
+    fn code(&self) -> AppErrorCode {
+        match self {
+            Self::Database(_) => AppErrorCode::Database,
+            Self::Io(_) => AppErrorCode::Io,
+            Self::Json(_) => AppErrorCode::Json,
+            Self::Custom(_) => AppErrorCode::Custom,
+        }
+    }
+
+    fn sqlite_category(&self) -> Option<SqliteErrorCategory> {
+        let Self::Database(message) = self else {
+            return None;
+        };
+        let message = message.to_ascii_lowercase();
+        if message.contains("database disk image is malformed")
+            || message.contains("not a database")
+        {
+            Some(SqliteErrorCategory::Malformed)
+        } else if message.contains("database or disk is full") {
+            Some(SqliteErrorCategory::DiskFull)
+        } else if message.contains("database is locked")
+            || message.contains("attempt to write a readonly database")
+        {
+            Some(SqliteErrorCategory::Locked)
+        } else if message.contains("disk i/o error") {
+            Some(SqliteErrorCategory::IoError)
+        } else {
+            None
+        }
     }
 }
 
@@ -122,5 +194,43 @@ impl From<vrcx_0_vrchat_client::HttpApiError> for AppError {
         match value {
             vrcx_0_vrchat_client::HttpApiError::Custom(message) => AppError::Custom(message),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serializes_structured_database_error_with_sqlite_category() {
+        let payload = serde_json::to_value(AppError::Database(
+            "database or disk is full".to_string(),
+        ))
+        .unwrap();
+
+        assert_eq!(
+            payload,
+            serde_json::json!({
+                "code": "database",
+                "message": "Database error: database or disk is full",
+                "sqliteCategory": "disk_full"
+            })
+        );
+    }
+
+    #[test]
+    fn omits_sqlite_category_for_unrelated_errors() {
+        let payload = serde_json::to_value(AppError::Custom(
+            "database or disk is full".to_string(),
+        ))
+        .unwrap();
+
+        assert_eq!(
+            payload,
+            serde_json::json!({
+                "code": "custom",
+                "message": "database or disk is full"
+            })
+        );
     }
 }

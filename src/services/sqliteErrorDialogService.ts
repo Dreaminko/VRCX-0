@@ -1,8 +1,8 @@
+import type { SqliteErrorCategory } from '@/platform/tauri/bindings';
 import i18n from '@/services/i18nService';
 import { subscribeSQLiteError } from '@/shared/sqliteErrorEvents';
 import { useModalStore } from '@/state/modalStore';
 
-type SQLiteErrorCategory = 'malformed' | 'disk_full' | 'locked' | 'io_error';
 type SQLiteDialogDefinition = {
     method: 'alert' | 'confirm';
     descriptionKey: string;
@@ -20,7 +20,7 @@ const SQLITE_ERROR_PATTERNS = [
         matches: ['database is locked', 'attempt to write a readonly database']
     },
     { category: 'io_error', matches: ['disk i/o error'] }
-] satisfies Array<{ category: SQLiteErrorCategory; matches: string[] }>;
+] satisfies Array<{ category: SqliteErrorCategory; matches: string[] }>;
 
 const SQLITE_ERROR_DIALOGS = {
     malformed: {
@@ -48,20 +48,20 @@ const SQLITE_ERROR_DIALOGS = {
             'repository.sqlite_repository.modal.disk_io_error_description',
         titleKey: 'repository.sqlite_repository.modal.disk_io_error_title'
     }
-} satisfies Record<SQLiteErrorCategory, SQLiteDialogDefinition>;
+} satisfies Record<SqliteErrorCategory, SQLiteDialogDefinition>;
 
 const SQLITE_DIALOG_COOLDOWN_MS = 60_000;
 
 let cleanupSQLiteErrorListener: (() => void) | null = null;
-const lastShownAtByCategory = new Map<SQLiteErrorCategory, number>();
+const lastShownAtByCategory = new Map<SqliteErrorCategory, number>();
 
 function isSQLiteErrorCategory(
     category: unknown
-): category is SQLiteErrorCategory {
+): category is SqliteErrorCategory {
     return SQLITE_ERROR_PATTERNS.some((entry) => entry.category === category);
 }
 
-function getSQLiteErrorCategory(error: Error): SQLiteErrorCategory | null {
+function getSQLiteErrorCategory(error: Error): SqliteErrorCategory | null {
     const category =
         'sqliteCategory' in error ? error.sqliteCategory : undefined;
     if (isSQLiteErrorCategory(category)) {
@@ -130,7 +130,7 @@ export function bindSQLiteErrorDialogService(): () => void {
         return cleanupSQLiteErrorListener;
     }
 
-    const unsubscribe = subscribeSQLiteError((error: unknown) => {
+    const unsubscribe = subscribeSQLiteError((error) => {
         void showSQLiteErrorDialog(error);
     });
 

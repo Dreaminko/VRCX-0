@@ -1,19 +1,15 @@
-type SQLiteErrorListener = (error: unknown) => void;
+type SQLiteErrorListener = (error: Error) => void;
 
 const sqliteErrorListeners = new Set<SQLiteErrorListener>();
 
-export function subscribeSQLiteError(listener: unknown): () => void {
-    if (typeof listener !== 'function') {
-        return () => {};
-    }
-    const sqliteErrorListener = listener as SQLiteErrorListener;
-    sqliteErrorListeners.add(sqliteErrorListener);
+export function subscribeSQLiteError(listener: SQLiteErrorListener): () => void {
+    sqliteErrorListeners.add(listener);
     return () => {
-        sqliteErrorListeners.delete(sqliteErrorListener);
+        sqliteErrorListeners.delete(listener);
     };
 }
 
-export function notifySQLiteError(error: unknown): void {
+export function notifySQLiteError(error: Error): void {
     for (const listener of sqliteErrorListeners) {
         try {
             listener(error);

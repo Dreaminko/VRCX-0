@@ -1,3 +1,9 @@
+import type {
+    AppErrorCode,
+    AppErrorPayload,
+    SqliteErrorCategory
+} from './bindings';
+
 export class PlatformUnavailableError extends Error {
     constructor(
         message = 'Tauri platform APIs are unavailable in this runtime'
@@ -7,11 +13,97 @@ export class PlatformUnavailableError extends Error {
     }
 }
 
+export class PlatformCommandError extends Error {
+    readonly code: AppErrorCode;
+    readonly sqliteCategory?: SqliteErrorCategory;
+
+    constructor(payload: AppErrorPayload, cause?: unknown) {
+        super(payload.message);
+        this.name = 'PlatformCommandError';
+        this.code = payload.code;
+        this.sqliteCategory = payload.sqliteCategory ?? undefined;
+        this.cause = cause;
+    }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+}
+
+function appErrorCode(value: unknown): AppErrorCode | null {
+    switch (value) {
+        case 'database':
+        case 'io':
+        case 'json':
+        case 'custom':
+            return value;
+        default:
+            return null;
+    }
+}
+
+function sqliteErrorCategory(value: unknown): SqliteErrorCategory | undefined {
+    switch (value) {
+        case 'malformed':
+        case 'disk_full':
+        case 'locked':
+        case 'io_error':
+            return value;
+        default:
+            return undefined;
+    }
+}
+
+function structuredPlatformError(error: unknown): AppErrorPayload | null {
+    if (!isRecord(error)) {
+        return null;
+    }
+    const code = appErrorCode(error.code);
+    if (!code || typeof error.message !== 'string') {
+        return null;
+    }
+    return {
+        code,
+        message: error.message,
+        sqliteCategory: sqliteErrorCategory(error.sqliteCategory)
+    };
+}
+
+function withFallback(message: string, fallbackMessage?: string): string {
+    if (!message) {
+        return fallbackMessage || 'Platform command failed';
+    }
+    if (
+        !fallbackMessage ||
+        message === fallbackMessage ||
+        message.startsWith(`${fallbackMessage}:`)
+    ) {
+        return message;
+    }
+    return `${fallbackMessage}: ${message}`;
+}
+
 export function normalizePlatformError(
     error: unknown,
     fallbackMessage?: string
 ): Error {
+    if (error instanceof PlatformCommandError && !fallbackMessage) {
+        return error;
+    }
     const fallback = fallbackMessage || 'Platform command failed';
+    const structuredError = structuredPlatformError(error);
+    if (structuredError) {
+        return new PlatformCommandError(
+            {
+                ...structuredError,
+                message: withFallback(
+                    structuredError.message,
+                    fallbackMessage
+                )
+            },
+            error
+        );
+    }
     if (error instanceof Error) {
         const details = error.message || String(error);
         if (
@@ -22,9 +114,7 @@ export function normalizePlatformError(
             return error;
         }
 
-        const normalizedError = new Error(
-            details ? `${fallback}: ${details}` : fallback
-        );
+        const normalizedError = new Error(withFallback(details, fallback));
         normalizedError.name = error.name;
         normalizedError.cause = error;
         return normalizedError;

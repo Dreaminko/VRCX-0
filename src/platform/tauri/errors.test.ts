@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { PlatformUnavailableError, normalizePlatformError } from './errors';
+import type { AppErrorPayload } from './bindings';
+import {
+    PlatformCommandError,
+    PlatformUnavailableError,
+    normalizePlatformError
+} from './errors';
 
 describe('tauri errors', () => {
     it('keeps Error instances when no extra fallback context is needed', () => {
@@ -37,6 +42,30 @@ describe('tauri errors', () => {
             normalizePlatformError({ code: 'E_FAIL' }, 'Tauri command failed')
                 .message
         ).toBe('Tauri command failed: {"code":"E_FAIL"}');
+    });
+
+    it('preserves structured IPC error fields with fallback context', () => {
+        const rawError = {
+            code: 'database',
+            message: 'Database error: database or disk is full',
+            sqliteCategory: 'disk_full'
+        } satisfies AppErrorPayload;
+
+        const normalized = normalizePlatformError(
+            rawError,
+            'Tauri command failed: app__example'
+        );
+
+        expect(normalized).toBeInstanceOf(PlatformCommandError);
+        expect(normalized.message).toBe(
+            'Tauri command failed: app__example: Database error: database or disk is full'
+        );
+        expect(normalized).toMatchObject({
+            code: 'database',
+            sqliteCategory: 'disk_full',
+            cause: rawError
+        });
+        expect(normalizePlatformError(normalized)).toBe(normalized);
     });
 
     it('uses a specific name for unavailable platform APIs', () => {

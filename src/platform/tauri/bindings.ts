@@ -3098,6 +3098,12 @@ export type AppDataDirState = {
     cleanupPending: DataDirCleanupPending | null;
     migrationStatus: DataDirMigrationStatus;
 };
+export type AppErrorCode = 'database' | 'io' | 'json' | 'custom';
+export type AppErrorPayload = {
+    code: AppErrorCode;
+    message: string;
+    sqliteCategory?: SqliteErrorCategory | null;
+};
 export type AppLauncherEntry = {
     id: string;
     enabled: boolean;
@@ -5810,6 +5816,11 @@ export type SocialUnfriendBatchTarget = {
     userId: string;
     displayName?: string;
 };
+export type SqliteErrorCategory =
+    | 'malformed'
+    | 'disk_full'
+    | 'locked'
+    | 'io_error';
 export type TelemetryClientEvent =
     | { type: 'pageVisit'; route: string }
     | {
