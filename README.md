@@ -58,23 +58,18 @@ You only need to do this once — VRCX-0 updates itself from then on.
 Beyond that:
 
 - **Social AI** — a built-in assistant that helps you make sense of your VRChat
-  social life: ask who you play with most, who you're drifting away from, or the
-  best time to catch friends online. Powered by your own OpenAI-compatible
-  endpoint, with local LLMs supported
-- **MCP server** — expose your local VRCX-0 social data to MCP-compatible AI
-  clients (Claude and others) through a localhost, token-protected server, so you
-  can work with it from the tools you already use
-- **Per-account local history** — game logs and other account-specific history
-  are stored separately for each account, so new activity no longer gets mixed
-  into a single timeline when you use multiple accounts. Existing history
-  remains available after upgrading
-- **Backup & restore** — create a single compressed backup file with one click,
-  schedule automatic backups, and keep multiple previous versions. Restore from
-  any backup whenever you need to
-- **Shareable world collections** — turn your favorite worlds into a collection
-  page you can share. Recipients can browse it in their browser, open individual
-  worlds on the VRChat website, or import the collection into VRCX-0. You can
-  also generate VRCX-0 share links for individual worlds and avatars
+  life: ask who you play with most, who you're drifting away from, or the best
+  time to catch friends online. Connect your own AI service to get started
+- **MCP server** — let external AI tools access your local social data directly,
+  far more flexible than the built-in assistant; recommended for advanced users
+- **Per-account local history** — game logs and account-specific history are
+  stored separately, so activity no longer gets mixed into a single timeline
+  when you use multiple accounts
+- **Backup & restore** — one-click compressed backup with scheduled automatic
+  backups and multiple versions; restore from any backup at any time
+- **Shareable world collections** — turn your favorite worlds into a shareable
+  page others can browse, open, or import; also supports share links for
+  individual worlds and avatars
 - **Social Automation** — auto-switch your status and bio based on time of day,
   instance type, or who you're with; auto-accept invite requests; restores your
   previous state when rules expire
@@ -82,10 +77,9 @@ Beyond that:
   OpenVR (SteamVR) and **OpenXR (Linux / WiVRn / Monado)**
 - **Community Themes** — browse and install themes from a catalog, set a custom
   background image, and layer your own CSS on top
-- **Four notification channels** — desktop notifications, text-to-speech, VR
-  overlay alerts, and webhooks, each independently configured per event type
-- **Webhook notifications** — forward events to any webhook URL with a
-  Discord-compatible payload; choose exactly which fields to send
+- **Notifications** — desktop, text-to-speech, VR overlay, and webhooks — four
+  channels independently configured per event type; webhooks use a
+  Discord-compatible format
 - Full keyboard navigation
 - Headless mode for advanced setups — see `crates/headless`
 
