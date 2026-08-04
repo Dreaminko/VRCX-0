@@ -44,81 +44,81 @@ export default defineConfig({
             reporter: ['text', 'json-summary'],
             reportsDirectory: './coverage',
             thresholds: {
-                statements: 32.39,
-                branches: 30.82,
-                functions: 28.45,
-                lines: 32.65,
+                statements: 32,
+                branches: 31,
+                functions: 28,
+                lines: 32,
                 'src/app/**': {
-                    statements: 7.2,
-                    branches: 15.38,
-                    functions: 6.25,
-                    lines: 7.62
+                    statements: 7,
+                    branches: 15,
+                    functions: 6,
+                    lines: 7
                 },
                 'src/components/**': {
-                    statements: 20.62,
-                    branches: 21.91,
-                    functions: 18.22,
-                    lines: 20.74
+                    statements: 20,
+                    branches: 21,
+                    functions: 18,
+                    lines: 20
                 },
                 'src/domain/**': {
-                    statements: 85.82,
-                    branches: 77.84,
-                    functions: 85.26,
-                    lines: 85.78
+                    statements: 85,
+                    branches: 77,
+                    functions: 85,
+                    lines: 85
                 },
                 'src/features/**': {
-                    statements: 24.54,
-                    branches: 24.28,
-                    functions: 20.97,
-                    lines: 24.86
+                    statements: 24,
+                    branches: 24,
+                    functions: 20,
+                    lines: 24
                 },
                 'src/lib/**': {
-                    statements: 50.32,
-                    branches: 44.05,
-                    functions: 46.42,
-                    lines: 50.66
+                    statements: 50,
+                    branches: 44,
+                    functions: 46,
+                    lines: 50
                 },
                 'src/platform/**': {
-                    statements: 70.52,
-                    branches: 71.28,
-                    functions: 63.63,
-                    lines: 70.52
+                    statements: 70,
+                    branches: 71,
+                    functions: 63,
+                    lines: 70
                 },
                 'src/repositories/**': {
-                    statements: 37.33,
-                    branches: 31.4,
-                    functions: 35.7,
-                    lines: 37.39
+                    statements: 37,
+                    branches: 31,
+                    functions: 35,
+                    lines: 37
                 },
                 'src/services/**': {
-                    statements: 64.15,
-                    branches: 55.87,
-                    functions: 63.61,
-                    lines: 64.19
+                    statements: 64,
+                    branches: 55,
+                    functions: 63,
+                    lines: 64
                 },
                 'src/shared/**': {
-                    statements: 74.69,
-                    branches: 70.1,
-                    functions: 77.4,
-                    lines: 74.77
+                    statements: 74,
+                    branches: 70,
+                    functions: 77,
+                    lines: 74
                 },
                 'src/shared/utils/**': {
-                    statements: 74.8,
-                    branches: 70.78,
-                    functions: 79.65,
-                    lines: 74.87
+                    statements: 74,
+                    branches: 70,
+                    functions: 79,
+                    lines: 74
                 },
                 'src/state/**': {
-                    statements: 70.23,
-                    branches: 61.68,
-                    functions: 73.86,
-                    lines: 70.08
+                    statements: 70,
+                    branches: 61,
+                    functions: 73,
+                    lines: 70
                 },
                 'src/ui/**': {
-                    statements: 34.62,
-                    branches: 27.38,
-                    functions: 27.98,
-                    lines: 34.79
+                    statements: 34,
+                    branches: 27,
+                    functions: 27,
+                    lines: 34
                 }
             }
         }

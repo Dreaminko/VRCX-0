@@ -5,6 +5,8 @@ import {
     CameraIcon
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { ComponentProps } from 'react';
+import type { AuthorDetail } from '@/platform/tauri/bindings';
 
 import { EmptyState as AppEmptyState } from '@/components/layout/PageScaffold';
 import userProfileRepository from '@/repositories/userProfileRepository';
@@ -12,8 +14,15 @@ import { openUserDialog } from '@/services/dialogService';
 import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
+import type { ScreenshotSearchSort } from '../screenshotMetadataValues';
 
-export function EmptyState({ title, description, loading = false }: any) {
+export function EmptyState({
+    title,
+    description,
+    loading = false
+}: Pick<ComponentProps<typeof AppEmptyState>, 'title' | 'description'> & {
+    loading?: boolean;
+}) {
     return (
         <AppEmptyState
             className="min-h-72"
@@ -24,7 +33,17 @@ export function EmptyState({ title, description, loading = false }: any) {
     );
 }
 
-export function SearchSortHead({ label, sortKey, sort, onToggle }: any) {
+export function SearchSortHead({
+    label,
+    sortKey,
+    sort,
+    onToggle
+}: {
+    label: string;
+    sortKey: string;
+    sort: ScreenshotSearchSort;
+    onToggle: (key: string) => void;
+}) {
     const active = sort?.key === sortKey;
     const Icon = active
         ? sort.asc
@@ -46,7 +65,7 @@ export function SearchSortHead({ label, sortKey, sort, onToggle }: any) {
     );
 }
 
-export function MetadataAuthorLink({ author }: any) {
+export function MetadataAuthorLink({ author }: { author: AuthorDetail }) {
     const userId = String(author?.id || '').trim();
     const hint = String(author?.displayName || '').trim();
     const [displayName, setDisplayName] = useState(hint || userId);
@@ -62,7 +81,7 @@ export function MetadataAuthorLink({ author }: any) {
 
         userProfileRepository
             .getUserProfile({ userId })
-            .then((profile: any) => {
+            .then((profile) => {
                 if (active) {
                     setDisplayName(
                         profile?.displayName || profile?.username || userId

@@ -12,7 +12,7 @@ export function applyTrustColorClasses(value: unknown) {
     style.id = TRUST_COLOR_STYLE_ID;
     style.textContent = Object.entries(trustColors)
         .map(
-            ([key, color]: any) =>
+            ([key, color]) =>
                 `.x-tag-${key} { color: ${color} !important; border-color: ${color} !important; }`
         )
         .join(' ');

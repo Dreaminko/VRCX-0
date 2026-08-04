@@ -59,7 +59,14 @@ export function InstanceInviteDialog({
     worldName = '',
     endpoint = '',
     onOpenChange
-}: any) {
+}: {
+    open: boolean;
+    location?: string;
+    launchToken?: string;
+    worldName?: string;
+    endpoint?: string;
+    onOpenChange(open: boolean): void;
+}) {
     const { t } = useTranslation();
 
     const currentUser = useRuntimeStore(
@@ -119,7 +126,7 @@ export function InstanceInviteDialog({
             .getWorldProfile({
                 worldId: parsedLocation.worldId
             })
-            .then((world: any) => {
+            .then((world) => {
                 if (active) {
                     setResolvedWorldName(normalizeId(world?.name));
                 }
@@ -394,7 +401,7 @@ export function InstanceInviteDialog({
                             <DropdownMenuContent align="start" className="w-56">
                                 <DropdownMenuGroup>
                                     {favoriteGroupItems.remote.map(
-                                        (group: any) => (
+                                        (group) => (
                                             <DropdownMenuItem
                                                 key={group.key}
                                                 onClick={() =>
@@ -412,7 +419,7 @@ export function InstanceInviteDialog({
                                 ) : null}
                                 <DropdownMenuGroup>
                                     {favoriteGroupItems.local.map(
-                                        (group: any) => (
+                                        (group) => (
                                             <DropdownMenuItem
                                                 key={group.key}
                                                 onClick={() =>
@@ -437,7 +444,7 @@ export function InstanceInviteDialog({
                     />
                     <div className="max-h-72 overflow-auto rounded-md border">
                         {sortedFilteredUserIds.length ? (
-                            sortedFilteredUserIds.map((userId: any) => {
+                            sortedFilteredUserIds.map((userId) => {
                                 const friend = friendsById[userId];
                                 const displayName = displayNameForUser(
                                     userId,
@@ -493,7 +500,7 @@ export function InstanceInviteDialog({
                                             {favoriteGroupLabels.length ? (
                                                 <span className="ml-auto flex max-w-[45%] shrink-0 flex-wrap justify-end gap-1">
                                                     {favoriteGroupLabels.map(
-                                                        (label: any) => (
+                                                        (label) => (
                                                             <Badge
                                                                 key={label}
                                                                 variant="outline"

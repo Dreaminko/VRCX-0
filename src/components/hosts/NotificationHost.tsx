@@ -25,7 +25,7 @@ export function NotificationHost() {
         (state) => state.dismissNotification
     );
     const markAllRead = useNotificationStore((state) => state.markAllRead);
-    const unreadCount = items.filter((item: any) => !item.read).length;
+    const unreadCount = items.filter((item) => !item.read).length;
 
     return (
         <Sheet
@@ -73,7 +73,7 @@ export function NotificationHost() {
                 <Separator className="my-4" />
                 <div className="mt-4 flex flex-col gap-3">
                     {items.length > 0 ? (
-                        items.map((item: any) => (
+                        items.map((item) => (
                             <div
                                 key={item.id}
                                 className="rounded-md border p-3 shadow-sm"

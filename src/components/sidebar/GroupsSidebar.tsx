@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { Location } from '@/components/Location';
+import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { useVirtualSidebarRows } from '@/components/sidebar/useVirtualSidebarRows';
 import { cn } from '@/lib/utils';
@@ -32,9 +33,37 @@ const GROUP_HEADER_ROW_SIZE = 38;
 const GROUP_INSTANCE_ROW_SIZE = 49;
 const GROUP_MESSAGE_ROW_SIZE = 64;
 const GROUP_FOOTER_ROW_SIZE = 16;
-const EMPTY_GROUP_ORDER: any[] = [];
+const EMPTY_GROUP_ORDER: string[] = [];
 
-function estimateGroupSidebarRowSize(row: any) {
+type GroupHeaderSidebarRow = {
+    type: 'group-header';
+    key: string;
+    groupId: string;
+    name: string;
+    count: number;
+    isCollapsed: boolean;
+    first: boolean;
+};
+type GroupInstanceSidebarRow = {
+    type: 'group-instance';
+    key: string;
+    instance: GroupInstanceRecord;
+};
+type GroupMessageSidebarRow = {
+    type: 'message';
+    key: string;
+    text: string;
+};
+type GroupSkeletonSidebarRow = { type: 'skeleton'; key: string };
+type GroupFooterSidebarRow = { type: 'footer'; key: string };
+type GroupSidebarRow =
+    | GroupHeaderSidebarRow
+    | GroupInstanceSidebarRow
+    | GroupMessageSidebarRow
+    | GroupSkeletonSidebarRow
+    | GroupFooterSidebarRow;
+
+function estimateGroupSidebarRowSize(row: GroupSidebarRow) {
     switch (row?.type) {
         case 'group-header':
             return GROUP_HEADER_ROW_SIZE;
@@ -48,7 +77,13 @@ function estimateGroupSidebarRowSize(row: any) {
     }
 }
 
-function GroupHeaderRow({ row, onToggleGroup }: any) {
+function GroupHeaderRow({
+    row,
+    onToggleGroup
+}: {
+    row: GroupHeaderSidebarRow;
+    onToggleGroup(groupId: string): void;
+}) {
     const isOpen = !row.isCollapsed;
 
     return (
@@ -85,7 +120,7 @@ function GroupHeaderRow({ row, onToggleGroup }: any) {
     );
 }
 
-function firstGroupId(...values: any[]) {
+function firstGroupId(...values: unknown[]) {
     for (const value of values) {
         const text =
             typeof value === 'string'
@@ -98,7 +133,7 @@ function firstGroupId(...values: any[]) {
     return '';
 }
 
-function normalizeGroupId(instance: any) {
+function normalizeGroupId(instance: GroupInstanceRecord) {
     const location = resolveLocation(instance);
     const parsedLocation = parseLocation(location);
     return firstGroupId(
@@ -118,7 +153,7 @@ function normalizeGroupId(instance: any) {
     );
 }
 
-function resolveGroupName(instance: any, groupId: any) {
+function resolveGroupName(instance: GroupInstanceRecord, groupId: string) {
     return (
         instance?.group?.name ||
         instance?.instance?.group?.name ||
@@ -129,7 +164,7 @@ function resolveGroupName(instance: any, groupId: any) {
     );
 }
 
-function resolveLocation(instance: any) {
+function resolveLocation(instance: GroupInstanceRecord) {
     return (
         instance?.location ||
         instance?.instance?.location ||
@@ -138,7 +173,7 @@ function resolveLocation(instance: any) {
     );
 }
 
-function resolveGroupIconUrl(instance: any) {
+function resolveGroupIconUrl(instance: GroupInstanceRecord) {
     const group = instance?.group || instance?.instance?.group || {};
     const candidates = [
         group.iconUrl,
@@ -169,12 +204,13 @@ function resolveGroupIconUrl(instance: any) {
     ];
     return (
         candidates.find(
-            (value: any) => typeof value === 'string' && value.trim()
+            (value): value is string =>
+                typeof value === 'string' && Boolean(value.trim())
         ) || ''
     );
 }
 
-function isAgeGatedInstance(instance: any) {
+function isAgeGatedInstance(instance: GroupInstanceRecord) {
     return Boolean(
         instance?.ageGate ||
         instance?.instance?.ageGate ||
@@ -184,9 +220,12 @@ function isAgeGatedInstance(instance: any) {
     );
 }
 
-function groupInstances(instances: any, groupOrder: any[] = []) {
-    const groups = new Map();
-    for (const instance of instances || []) {
+function groupInstances(
+    instances: GroupInstanceRecord[],
+    groupOrder: string[] = []
+) {
+    const groups = new Map<string, GroupInstanceRecord[]>();
+    for (const instance of instances) {
         const groupId = normalizeGroupId(instance);
         if (!groupId) {
             continue;
@@ -194,9 +233,9 @@ function groupInstances(instances: any, groupOrder: any[] = []) {
         if (!groups.has(groupId)) {
             groups.set(groupId, []);
         }
-        groups.get(groupId).push(instance);
+        groups.get(groupId)?.push(instance);
     }
-    return Array.from(groups.entries()).sort((left: any, right: any) => {
+    return Array.from(groups.entries()).sort((left, right) => {
         const leftOrder = groupOrder.indexOf(left[0]);
         const rightOrder = groupOrder.indexOf(right[0]);
         if (leftOrder >= 0 && rightOrder >= 0) {
@@ -216,7 +255,15 @@ function groupInstances(instances: any, groupOrder: any[] = []) {
     });
 }
 
-function GroupInstanceRow({ instance, currentUserId, friendsMap }: any) {
+function GroupInstanceRow({
+    instance,
+    currentUserId,
+    friendsMap
+}: {
+    instance: GroupInstanceRecord;
+    currentUserId: string | null;
+    friendsMap: Map<string, ReturnType<typeof useFriendRosterStore.getState>['friendsById'][string]>;
+}) {
     const { t } = useTranslation();
     const groupId = normalizeGroupId(instance);
     const name = resolveGroupName(instance, groupId);
@@ -240,7 +287,7 @@ function GroupInstanceRow({ instance, currentUserId, friendsMap }: any) {
         parsedLocation.instanceId &&
         !instanceRef?.closedAt &&
         checkCanInviteSelf(location, {
-            currentUserId,
+            currentUserId: currentUserId || '',
             cachedInstances: new Map([[location, instanceRef]]),
             friends: friendsMap
         })
@@ -405,7 +452,9 @@ export function GroupsSidebar() {
         groupInstancesState.endpoint === currentEndpoint
             ? groupInstancesState.instances
             : [];
-    const [collapsedGroups, setCollapsedGroups] = useState(() => new Set());
+    const [collapsedGroups, setCollapsedGroups] = useState(
+        () => new Set<string>()
+    );
     const preferencesHydrated = usePreferencesStore(
         (state) => state.preferencesHydrated
     );
@@ -423,7 +472,7 @@ export function GroupsSidebar() {
             showAgeGatedInstances
                 ? instances
                 : (instances || []).filter(
-                      (instance: any) => !isAgeGatedInstance(instance)
+                      (instance) => !isAgeGatedInstance(instance)
                   ),
         [instances, showAgeGatedInstances]
     );
@@ -432,8 +481,8 @@ export function GroupsSidebar() {
         [groupOrder, visibleInstances]
     );
 
-    function toggleGroup(groupId: any) {
-        setCollapsedGroups((current: any) => {
+    function toggleGroup(groupId: string) {
+        setCollapsedGroups((current) => {
             const next = new Set(current);
             if (next.has(groupId)) {
                 next.delete(groupId);
@@ -445,9 +494,9 @@ export function GroupsSidebar() {
     }
 
     const virtualRows = useMemo(() => {
-        const nextRows = [];
+        const nextRows: GroupSidebarRow[] = [];
 
-        groups.forEach(([groupId, groupRows]: any, index: any) => {
+        groups.forEach(([groupId, groupRows], index) => {
             const name = resolveGroupName(groupRows[0], groupId);
             const isCollapsed = collapsedGroups.has(groupId);
             nextRows.push({
@@ -460,7 +509,7 @@ export function GroupsSidebar() {
                 first: index === 0
             });
             if (!isCollapsed) {
-                groupRows.forEach((instance: any, instanceIndex: any) => {
+                groupRows.forEach((instance, instanceIndex) => {
                     nextRows.push({
                         type: 'group-instance',
                         key: `group:${groupId}:${resolveLocation(instance)}:${instanceIndex}`,
@@ -500,7 +549,7 @@ export function GroupsSidebar() {
     const { getRowRef, viewportRef, virtualItems, totalSize } =
         useVirtualSidebarRows(virtualRows, estimateGroupSidebarRowSize);
 
-    function renderVirtualRow(row: any) {
+    function renderVirtualRow(row: GroupSidebarRow) {
         switch (row?.type) {
             case 'group-header':
                 return <GroupHeaderRow row={row} onToggleGroup={toggleGroup} />;
@@ -523,7 +572,6 @@ export function GroupsSidebar() {
             case 'footer':
                 return <div className="h-4" />;
             case 'group-instance':
-            default:
                 return (
                     <GroupInstanceRow
                         instance={row.instance}
@@ -544,7 +592,7 @@ export function GroupsSidebar() {
                     className="relative w-full"
                     style={{ height: `${totalSize}px` }}
                 >
-                    {virtualItems.map((item: any) => (
+                    {virtualItems.map((item) => (
                         <div
                             key={item.key}
                             ref={getRowRef(item.key)}

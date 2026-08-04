@@ -2,10 +2,44 @@ import type {
     BackendRuntimeEventPayloadMap,
     BackendRuntimeSnapshot
 } from '@/platform/tauri/bindings';
+import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
 
-export type RuntimeEventPayloadMap = BackendRuntimeEventPayloadMap & {
-    browserFocus: unknown;
+import type {
+    RealtimeCurrentUserProjectionPayload,
+    RealtimeEntryCorrectionPayload,
+    RealtimeFriendProjectionPayload,
+    RealtimeInstanceClosedProjectionPayload,
+    RealtimeNotificationProjectionPayload,
+    RealtimeUserProjectionPayload
+} from './realtimeProjectionTypes';
+
+type RealtimePayloadOverrides = {
+    realtimeCurrentUserProjection: RealtimeCurrentUserProjectionPayload;
+    realtimeEntryCorrection: RealtimeEntryCorrectionPayload;
+    realtimeFriendProjection: RealtimeFriendProjectionPayload;
+    realtimeInstanceClosedProjection: RealtimeInstanceClosedProjectionPayload;
+    realtimeNotificationProjection: RealtimeNotificationProjectionPayload;
+    realtimeUserProjection: RealtimeUserProjectionPayload;
 };
+
+type RuntimeGroupInstancesProjectionPayload = Omit<
+    BackendRuntimeEventPayloadMap['runtimeGroupInstancesProjection'],
+    'instances'
+> & {
+    instances?: GroupInstanceRecord[] | null;
+};
+
+type RuntimePayloadOverrides = RealtimePayloadOverrides & {
+    runtimeGroupInstancesProjection: RuntimeGroupInstancesProjectionPayload;
+};
+
+export type RuntimeEventPayloadMap = Omit<
+    BackendRuntimeEventPayloadMap,
+    keyof RuntimePayloadOverrides
+> &
+    RuntimePayloadOverrides & {
+        browserFocus: unknown;
+    };
 
 export type RuntimeEventName = keyof RuntimeEventPayloadMap;
 

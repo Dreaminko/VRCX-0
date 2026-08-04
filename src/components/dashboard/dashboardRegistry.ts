@@ -10,7 +10,7 @@ export type DashboardPanelDefinition = {
     defaultConfig?: Record<string, unknown>;
 };
 
-type DashboardColumnDefinition = {
+export type DashboardColumnDefinition = {
     key: string;
     labelKey: string;
     required?: boolean;

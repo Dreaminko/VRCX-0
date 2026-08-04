@@ -15,20 +15,108 @@ import { YoutubeApiDialog } from './settings-dialogs/YoutubeApiDialog';
 import { TablePageSizesDialog } from './SettingsViewParts';
 
 export function SettingsDialogs({
-    customFont,
-    youtubeApi,
-    translationApi,
-    tablePageSizes,
-    tableLimits,
-    avatarProvider,
-    purge,
-    wristFeedNotifications,
-    vrNotifications,
-    hmdNotifications,
-    desktopNotifications,
-    webhookNotifications,
-    ttsNotifications
-}: any) {
+    dialogs
+}: {
+    dialogs: SettingsPageStateSections['dialogs'];
+}) {
+    const customFont = {
+        open: dialogs.customFontDialogOpen,
+        setOpen: dialogs.setCustomFontDialogOpen,
+        draft: dialogs.customFontDraft,
+        setDraft: dialogs.setCustomFontDraft,
+        options: dialogs.customFontOptions,
+        loading: dialogs.customFontOptionsLoading,
+        onSave: dialogs.saveCustomFontFamily
+    };
+    const youtubeApi = {
+        open: dialogs.youtubeApiDialogOpen,
+        setOpen: dialogs.setYoutubeApiDialogOpen,
+        draft: dialogs.youtubeApiKeyDraft,
+        setDraft: dialogs.setYoutubeApiKeyDraft,
+        integrationStatus: dialogs.integrationStatus,
+        onSave: dialogs.saveYoutubeApiKey
+    };
+    const translationApi = {
+        open: dialogs.translationApiDialogOpen,
+        setOpen: dialogs.setTranslationApiDialogOpen,
+        draft: dialogs.translationDraft,
+        setDraftValue: dialogs.setTranslationDraftValue,
+        providerOptions: dialogs.translationProviderOptions,
+        llmEndpoints: dialogs.llmEndpoints,
+        integrationStatus: dialogs.integrationStatus,
+        onFetchModels: dialogs.fetchTranslationModels,
+        onTest: dialogs.testTranslationApiConfig,
+        onSave: dialogs.saveTranslationApiConfig
+    };
+    const tablePageSizes = {
+        open: dialogs.tablePageSizesDialogOpen,
+        setOpen: dialogs.setTablePageSizesDialogOpen,
+        onSaved: (tablePageSizes: unknown) =>
+            dialogs.setPrefs((current) => ({ ...current, tablePageSizes }))
+    };
+    const tableLimits = {
+        open: dialogs.tableLimitsDialogOpen,
+        setOpen: dialogs.setTableLimitsDialogOpen,
+        draft: dialogs.tableLimitsDraft,
+        setDraft: dialogs.setTableLimitsDraft,
+        tableMaxSizeError: dialogs.tableMaxSizeError,
+        searchLimitError: dialogs.searchLimitError,
+        saveDisabled: dialogs.tableLimitsSaveDisabled,
+        onSave: dialogs.saveTableLimitsDialog
+    };
+    const avatarProvider = {
+        open: dialogs.avatarProviderDialogOpen,
+        setOpen: dialogs.setAvatarProviderDialogOpen,
+        config: dialogs.avatarProviderConfig,
+        onUpdate: dialogs.updateAvatarProvider,
+        onSaveField: dialogs.saveAvatarProviderField,
+        onRemove: dialogs.removeAvatarProvider,
+        onAdd: dialogs.addAvatarProvider
+    };
+    const purge = {
+        open: dialogs.purgeDialogOpen,
+        setOpen: dialogs.setPurgeDialogOpen,
+        period: dialogs.purgePeriod,
+        setPeriod: dialogs.setPurgePeriod,
+        inProgress: dialogs.purgeInProgress,
+        onConfirm: dialogs.purgeAvatarFeedData
+    };
+    const wristFeedNotifications = {
+        open: dialogs.wristFeedNotificationsDialogOpen,
+        setOpen: dialogs.setWristFeedNotificationsDialogOpen,
+        value: dialogs.overlayActivityFilters,
+        onSave: dialogs.saveOverlayActivityFilters
+    };
+    const vrNotifications = {
+        open: dialogs.vrNotificationsDialogOpen,
+        setOpen: dialogs.setVrNotificationsDialogOpen,
+        value: dialogs.vrNotificationActivityFilters,
+        onSave: dialogs.saveVrNotificationActivityFilters
+    };
+    const hmdNotifications = {
+        open: dialogs.hmdNotificationsDialogOpen,
+        setOpen: dialogs.setHmdNotificationsDialogOpen,
+        value: dialogs.hmdNotificationActivityFilters,
+        onSave: dialogs.saveHmdNotificationActivityFilters
+    };
+    const desktopNotifications = {
+        open: dialogs.desktopNotificationsDialogOpen,
+        setOpen: dialogs.setDesktopNotificationsDialogOpen,
+        value: dialogs.desktopNotificationActivityFilters,
+        onSave: dialogs.saveDesktopNotificationActivityFilters
+    };
+    const webhookNotifications = {
+        open: dialogs.webhookNotificationsDialogOpen,
+        setOpen: dialogs.setWebhookNotificationsDialogOpen,
+        value: dialogs.webhookActivityFilters,
+        onSave: dialogs.saveWebhookActivityFilters
+    };
+    const ttsNotifications = {
+        open: dialogs.ttsNotificationsDialogOpen,
+        setOpen: dialogs.setTtsNotificationsDialogOpen,
+        value: dialogs.ttsNotificationActivityFilters,
+        onSave: dialogs.saveTtsNotificationActivityFilters
+    };
     return (
         <>
             <CustomFontDialog
@@ -131,3 +219,4 @@ export function SettingsDialogs({
         </>
     );
 }
+import type { SettingsPageStateSections } from '../settingsPageStateSections';

@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import type { KeyboardEvent, SyntheticEvent } from 'react';
 
 import { LocationContextMenu } from '@/components/location/LocationContextMenu';
 import { LocationDisplay } from '@/components/location/LocationDisplay';
@@ -12,6 +13,44 @@ import { vrchatWorldUrl } from '@/shared/constants/vrchatWebUrls';
 import { normalizeString } from '@/shared/utils/string';
 import { useLaunchStore } from '@/state/launchStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
+
+export type LocationNewInstanceTarget = {
+    location?: unknown;
+    worldId?: unknown;
+    worldName?: unknown;
+    groupName?: unknown;
+    selfInvite?: boolean;
+    [key: string]: unknown;
+};
+
+type PreviousInstancesCallback = NonNullable<
+    Parameters<
+        typeof useLocationPreviousInstancesDialog
+    >[0]['onShowPreviousInstances']
+>;
+
+export type LocationProps = {
+    location?: unknown;
+    traveling?: unknown;
+    hint?: unknown;
+    grouphint?: unknown;
+    groupHint?: unknown;
+    link?: boolean;
+    disableTooltip?: boolean;
+    isOpenPreviousInstanceInfoDialog?: boolean;
+    enableContextMenu?: boolean;
+    showInstanceIdInLocation?: boolean;
+    showLaunchActions?: boolean;
+    endpoint?: unknown;
+    onShowPreviousInstances?: PreviousInstancesCallback;
+    onNewInstance?: (target: LocationNewInstanceTarget) => void;
+    previousInstancesDisabled?: boolean;
+    stopPropagation?: boolean;
+    asButton?: boolean;
+    showGroupLink?: boolean;
+    className?: string;
+    worldNameClassName?: string;
+};
 
 export function Location({
     location = '',
@@ -34,7 +73,7 @@ export function Location({
     showGroupLink = true,
     className = '',
     worldNameClassName = ''
-}: any) {
+}: LocationProps) {
     const showLaunchDialog = useLaunchStore((state) => state.showLaunchDialog);
     const isGameRunning = useRuntimeStore((state) =>
         Boolean(state.gameState.isGameRunning)
@@ -98,7 +137,7 @@ export function Location({
         worldNameHint
     });
 
-    function openWorld(event: any) {
+    function openWorld(event: SyntheticEvent<HTMLElement>) {
         if (stopPropagation) {
             event?.stopPropagation?.();
         }
@@ -123,7 +162,7 @@ export function Location({
         });
     }
 
-    function openGroup(event: any) {
+    function openGroup(event: SyntheticEvent<HTMLElement>) {
         event?.stopPropagation?.();
         const groupId = normalizeString(parsedLocation.groupId);
         if (!groupId) {
@@ -169,7 +208,7 @@ export function Location({
         }
     }
 
-    function newInstance(selfInvite: any = false) {
+    function newInstance(selfInvite = false) {
         if (!parsedLocation.worldId) {
             return;
         }
@@ -196,7 +235,7 @@ export function Location({
         });
     }
 
-    function openWorldFromKeyboard(event: any) {
+    function openWorldFromKeyboard(event: KeyboardEvent<HTMLElement>) {
         if (asButton || (event.key !== 'Enter' && event.key !== ' ')) {
             return;
         }

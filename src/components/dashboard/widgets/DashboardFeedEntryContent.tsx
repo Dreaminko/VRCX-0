@@ -1,5 +1,6 @@
 import { MapPinIcon, PencilIcon, PersonStandingIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { FriendRecordInput } from '@/domain/friends/friendRosterTypes';
 
 import { Location } from '@/components/Location';
 import { cn } from '@/lib/utils';
@@ -9,7 +10,30 @@ import { Button } from '@/ui/shadcn/button';
 
 const UNKNOWN_FEED_USER_DISPLAY_NAME = 'Unknown';
 
-function resolveFeedUserDisplayName(row: any, friend: any) {
+type DashboardFeedRow = Record<string, unknown> & {
+    id?: string | number | null;
+    rowId?: string | number | null;
+    type?: string | null;
+    created_at?: string | null;
+    createdAt?: string | null;
+    userId?: string | null;
+    senderUserId?: string | null;
+    displayName?: string | null;
+    details?: Record<string, unknown> | null;
+    location?: string | null;
+    worldName?: string | null;
+    groupName?: string | null;
+    message?: string | null;
+    status?: string | null;
+    statusDescription?: string | null;
+    avatarName?: string | null;
+    bio?: string | null;
+};
+
+function resolveFeedUserDisplayName(
+    row: DashboardFeedRow,
+    friend: FriendRecordInput | null | undefined
+) {
     const userId = normalizeString(row?.userId);
     const rowDisplayName = normalizeString(row?.displayName);
     const friendDisplayName = normalizeString(
@@ -24,7 +48,10 @@ function resolveFeedUserDisplayName(row: any, friend: any) {
     return userId || UNKNOWN_FEED_USER_DISPLAY_NAME;
 }
 
-function openFeedUser(row: any, friend: any) {
+function openFeedUser(
+    row: DashboardFeedRow,
+    friend: FriendRecordInput | null | undefined
+) {
     const userId = normalizeString(row?.userId);
     if (!userId) {
         return;
@@ -36,7 +63,7 @@ function openFeedUser(row: any, friend: any) {
     });
 }
 
-export function getFeedRowId(row: any) {
+export function getFeedRowId(row: DashboardFeedRow) {
     if (row?.id != null) {
         return `id:${row.id}`;
     }
@@ -51,7 +78,7 @@ export function getFeedRowId(row: any) {
     return `${type}:${createdAt}:${userId}:${location}:${message}`;
 }
 
-export function getFeedRowKey(row: any) {
+export function getFeedRowKey(row: DashboardFeedRow) {
     return [
         getFeedRowId(row),
         row?.type ?? '',
@@ -65,7 +92,15 @@ export function getFeedRowKey(row: any) {
     ].join(':');
 }
 
-function FeedUserName({ row, friend, className = '' }: any) {
+function FeedUserName({
+    row,
+    friend,
+    className = ''
+}: {
+    row: DashboardFeedRow;
+    friend?: FriendRecordInput | null;
+    className?: string;
+}) {
     const displayName = resolveFeedUserDisplayName(row, friend);
     const userId = normalizeString(row?.userId);
     if (!userId) {
@@ -90,7 +125,10 @@ function FeedUserName({ row, friend, className = '' }: any) {
 function FeedLocation({
     row,
     className = 'text-foreground [&_button:hover]:text-foreground'
-}: any) {
+}: {
+    row: DashboardFeedRow;
+    className?: string;
+}) {
     if (!row?.location) {
         return null;
     }
@@ -108,7 +146,7 @@ function FeedLocation({
     );
 }
 
-function FeedStatusDot({ status = '' }: any) {
+function FeedStatusDot({ status = '' }: { status?: string | null }) {
     const normalizedStatus = String(status || '').toLowerCase();
     const className =
         normalizedStatus === 'active'
@@ -133,7 +171,13 @@ function FeedStatusDot({ status = '' }: any) {
     ) : null;
 }
 
-export function FeedEntryContent({ row, friend }: any) {
+export function FeedEntryContent({
+    row,
+    friend
+}: {
+    row: DashboardFeedRow;
+    friend?: FriendRecordInput | null;
+}) {
     const { t } = useTranslation();
 
     switch (row?.type) {

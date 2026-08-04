@@ -1,8 +1,17 @@
 import { cn } from '@/lib/utils';
+import type { MouseEventHandler, ReactNode } from 'react';
 import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-export function StatusDot({ active, warn = false, className }: any) {
+export function StatusDot({
+    active,
+    warn = false,
+    className
+}: {
+    active: boolean;
+    warn?: boolean;
+    className?: string;
+}) {
     const color = warn
         ? 'bg-[var(--status-active)]'
         : active
@@ -33,7 +42,21 @@ export function StatusSegment({
     onClick,
     tooltip,
     valueClassName
-}: any) {
+}: {
+    visible?: boolean;
+    active?: boolean;
+    warn?: boolean;
+    showDot?: boolean;
+    label: ReactNode;
+    value?: ReactNode;
+    children?: ReactNode;
+    className?: string;
+    dotClassName?: string;
+    labelClassName?: string;
+    onClick?: MouseEventHandler<HTMLButtonElement>;
+    tooltip?: ReactNode;
+    valueClassName?: string;
+}) {
     if (!visible) {
         return null;
     }

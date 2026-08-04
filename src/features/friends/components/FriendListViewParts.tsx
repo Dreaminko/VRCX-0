@@ -1,4 +1,5 @@
 import { ChevronDownIcon } from 'lucide-react';
+import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
@@ -16,13 +17,22 @@ import { FRIEND_LIST_SEARCH_FILTERS as SEARCH_FILTERS } from '../friendListState
 
 export { DataTableSortButton as SortButton };
 
-export function FriendListEmptyState({ title, description }: any) {
+export function FriendListEmptyState({
+    title,
+    description
+}: ComponentProps<typeof EmptyState>) {
     return <EmptyState title={title} description={description} />;
 }
 
-export function FriendListSearchFilterDropdown({ value, onChange }: any) {
+export function FriendListSearchFilterDropdown({
+    value,
+    onChange
+}: {
+    value: Set<string>;
+    onChange: (value: Set<string>) => void;
+}) {
     const { t } = useTranslation();
-    const activeFilters = value instanceof Set ? value : new Set();
+    const activeFilters = value;
     const label = activeFilters.size
         ? `${activeFilters.size}/${SEARCH_FILTERS.length}`
         : t('view.friend_list.filter_placeholder');
@@ -46,7 +56,7 @@ export function FriendListSearchFilterDropdown({ value, onChange }: any) {
             />
             <DropdownMenuContent align="start" className="w-48">
                 <DropdownMenuGroup>
-                    {SEARCH_FILTERS.map((filter: any) => (
+                    {SEARCH_FILTERS.map((filter) => (
                         <DropdownMenuCheckboxItem
                             key={filter.id}
                             checked={activeFilters.has(filter.id)}

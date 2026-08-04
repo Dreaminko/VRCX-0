@@ -162,6 +162,9 @@ describe('inventory helpers', () => {
         const archived = CATEGORY_DEFINITIONS.cosmetics.tabs.find(
             (tab: { key: string }) => tab.key === 'archived'
         );
+        if (!archived) {
+            throw new Error('Expected archived cosmetics tab');
+        }
 
         expect(profileDecorations).toEqual({
             key: 'profile-decorations',

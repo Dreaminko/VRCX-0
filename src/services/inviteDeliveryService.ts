@@ -75,7 +75,7 @@ export async function sendInviteToLocation({
     const normalizedWorldName = normalizeText(worldName);
     const worldResponse = normalizedWorldName
         ? null
-        : await vrchatSearchRepository.getWorlds({}, normalizedWorldId);
+        : await vrchatSearchRepository.getWorldById(normalizedWorldId);
     const params: QueryParams = {
         instanceId: normalizedInstanceId,
         worldId: normalizedWorldId,

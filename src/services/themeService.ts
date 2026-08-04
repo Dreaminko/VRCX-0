@@ -218,7 +218,7 @@ export function getResolvedThemeMode(themeMode: unknown): ResolvedThemeMode {
 
 export function normalizeZoomLevel(
     value: unknown,
-    fallback: any = DEFAULT_ZOOM_LEVEL
+    fallback: number = DEFAULT_ZOOM_LEVEL
 ): number {
     if (value === null || value === undefined || value === '') {
         return fallback;
@@ -240,7 +240,7 @@ export function formatZoomPercentage(value: unknown): string {
 }
 
 function clearThemeColorProperties(root: HTMLElement): void {
-    Object.values(THEME_COLOR_STYLE_PROPERTIES).forEach((propertyName: any) => {
+    Object.values(THEME_COLOR_STYLE_PROPERTIES).forEach((propertyName) => {
         root.style.removeProperty(propertyName);
     });
 }
@@ -291,7 +291,7 @@ function ensureDynamicStyle(
 
     document
         .querySelectorAll(`style[${attrName}]`)
-        .forEach((styleElement: any) => {
+        .forEach((styleElement) => {
             if (styleElement.getAttribute(attrName) !== styleKey) {
                 styleElement.remove();
             }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import type { NormalizedScreenshotMetadata } from './screenshotMetadataValues';
 
 export function useScreenshotMetadataNavigation({
     loadScreenshot,
@@ -7,7 +8,17 @@ export function useScreenshotMetadataNavigation({
     searchNavigationPaths,
     selectedPath,
     setSelectedPath
-}: any) {
+}: {
+    loadScreenshot: (path: string, withCarousel: boolean) => Promise<void>;
+    metadata: Pick<
+        NormalizedScreenshotMetadata,
+        'nextFilePath' | 'previousFilePath'
+    > | null;
+    onPathChange?: (path: string) => void;
+    searchNavigationPaths: string[];
+    selectedPath: string;
+    setSelectedPath: (path: string) => void;
+}) {
     const loadScreenshotRef = useRef(loadScreenshot);
 
     useEffect(() => {
@@ -83,7 +94,7 @@ export function useScreenshotMetadataNavigation({
     ]);
 
     useEffect(() => {
-        function handleKeyDown(event: any) {
+        function handleKeyDown(event: KeyboardEvent) {
             if (!event.altKey) {
                 return;
             }

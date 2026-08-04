@@ -18,19 +18,24 @@ export function buildFriendsLocationsSegmentOptions(
     }));
 }
 
-export function safeJsonParse(value: any, fallback: any) {
+export function safeJsonParse<T>(value: unknown, fallback: T): unknown | T {
     if (!value) {
         return fallback;
     }
 
     try {
-        return JSON.parse(value);
+        return JSON.parse(String(value));
     } catch {
         return fallback;
     }
 }
 
-export function parseConfigArray(value: any) {
+export function parseConfigArray(value: unknown): string[] {
     const parsed = Array.isArray(value) ? value : safeJsonParse(value, []);
-    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    return Array.isArray(parsed)
+        ? parsed.filter(
+              (entry): entry is string =>
+                  typeof entry === 'string' && entry.length > 0
+          )
+        : [];
 }

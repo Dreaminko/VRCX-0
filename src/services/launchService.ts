@@ -21,7 +21,7 @@ type InstanceShortNameResponse = {
     };
 };
 
-type LaunchDialogDetails = {
+export type LaunchDialogDetails = {
     tag: string;
     location: string;
     url: string;

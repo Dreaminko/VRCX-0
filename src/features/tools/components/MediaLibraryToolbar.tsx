@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export function MediaLibraryToolbar({
@@ -7,7 +8,14 @@ export function MediaLibraryToolbar({
     actions,
     children,
     className
-}: any) {
+}: {
+    title?: ReactNode;
+    description?: ReactNode;
+    leading?: ReactNode;
+    actions?: ReactNode;
+    children?: ReactNode;
+    className?: string;
+}) {
     const hasTitle = Boolean(title || description);
 
     return (

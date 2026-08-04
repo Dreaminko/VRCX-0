@@ -4,12 +4,18 @@ import { THEME_COLORS } from '@/shared/constants/themes';
 import { Button } from '@/ui/shadcn/button';
 
 import { themeColorLabel } from '../themeHelpers';
+import type { useThemesController } from '../useThemesController';
+
+type AccentColorPickerProps = Pick<
+    ReturnType<typeof useThemesController>,
+    'accentControlled' | 'themeColor' | 'updateThemeColor'
+>;
 
 export function AccentColorPicker({
     accentControlled,
     themeColor,
     updateThemeColor
-}: any) {
+}: AccentColorPickerProps) {
     const { t } = useTranslation();
 
     return (
@@ -25,7 +31,7 @@ export function AccentColorPicker({
                 ) : null}
             </div>
             <div className="flex flex-wrap gap-1.5">
-                {THEME_COLORS.map((color: any) => (
+                {THEME_COLORS.map((color) => (
                     <Button
                         key={color.key}
                         type="button"

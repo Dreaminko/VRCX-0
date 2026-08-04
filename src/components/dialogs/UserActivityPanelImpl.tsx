@@ -34,6 +34,13 @@ import {
     USER_ACTIVITY_HOUR_LABELS
 } from './user-dialog/userActivityPanelModel';
 import { useUserActivityPanelController } from './user-dialog/useUserActivityPanelController';
+import type { UserDialogProfileRecord } from './user-dialog/useUserDialogProfileResource';
+
+export type UserActivityPanelProps = {
+    profile: UserDialogProfileRecord;
+    isCurrentUser: boolean;
+    active?: boolean;
+};
 
 export {
     getDisplayDayLabels,
@@ -44,7 +51,7 @@ export function UserActivityPanel({
     profile,
     isCurrentUser,
     active = false
-}: any) {
+}: UserActivityPanelProps) {
     const { t } = useTranslation();
     const locale = useShellStore((state) => state.locale);
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);

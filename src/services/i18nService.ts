@@ -11,7 +11,7 @@ type TranslationParams = Record<string, unknown>;
 
 const allLocalizedStrings = getAllLocalizedStrings() as LocalizedStringMap;
 const i18nResources = Object.fromEntries(
-    Object.entries(allLocalizedStrings).map(([locale, messages]: any) => [
+    Object.entries(allLocalizedStrings).map(([locale, messages]) => [
         locale,
         { translation: messages || {} }
     ])
@@ -45,7 +45,7 @@ function resolveMessage(messages: unknown, key: string): unknown {
     return key
         .split('.')
         .reduce(
-            (current: any, part: any) =>
+            (current: unknown, part) =>
                 isRecord(current) ? current[part] : undefined,
             messages
         );

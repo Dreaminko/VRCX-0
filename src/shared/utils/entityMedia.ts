@@ -100,9 +100,9 @@ export function getNameColour(userId: unknown, isDarkMode: boolean) {
 
 export function userImage(
     user: ImageUser | null | undefined,
-    isIcon: any = false,
+    isIcon = false,
     resolution: string | number = '128',
-    isUserDialogIcon: any = false,
+    isUserDialogIcon = false,
     displayVRCPlusIconsAsAvatar = false,
     endpointDomain: string | null = null
 ) {

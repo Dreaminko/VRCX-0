@@ -1,7 +1,9 @@
 import { useState } from 'react';
 
+import type { SearchActiveTab } from './searchTypes';
+
 export function useSearchFilters() {
-    const [activeTab, setActiveTab] = useState('user');
+    const [activeTab, setActiveTab] = useState<SearchActiveTab>('user');
     const [searchText, setSearchText] = useState('');
     const [searchUserByBio, setSearchUserByBio] = useState(false);
     const [searchUserSortByLastLoggedIn, setSearchUserSortByLastLoggedIn] =

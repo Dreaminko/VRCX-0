@@ -2,7 +2,7 @@ import { replaceBioSymbols } from '@/shared/utils/string';
 
 export const SEARCH_PAGE_SIZE = 10;
 
-type WorldSearchCategory = {
+export type WorldSearchCategory = {
     index?: unknown;
     sortHeading?: string;
     sortOrder?: string;
@@ -16,7 +16,10 @@ export function buildWorldSearchRequest(
     includeCommunityLabs: boolean,
     offset = 0
 ) {
-    const params: Record<string, string | number> = {
+    const params: Record<string, string | number> & {
+        n: number;
+        offset: number;
+    } = {
         n: SEARCH_PAGE_SIZE,
         offset: Math.max(0, offset)
     };
@@ -101,7 +104,7 @@ export function buildGroupSearchRequest(searchText: unknown, offset = 0) {
 
 export function buildAvatarSearchRequest(
     searchText: unknown,
-    provider: unknown,
+    provider: string,
     offset = 0
 ) {
     return {

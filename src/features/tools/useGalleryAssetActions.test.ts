@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { useGalleryAssetActions } from './useGalleryAssetActions';
+import type { GalleryUploadTarget } from './galleryConstants';
 
 function createActions(overrides: Record<string, unknown> = {}) {
     const uploadAssetImage = vi.fn().mockResolvedValue({ json: null });
@@ -20,7 +21,15 @@ function createActions(overrides: Record<string, unknown> = {}) {
         confirm: vi.fn(),
         cropRequest: {
             tab: 'prints',
-            settings: {},
+            file: new File(['image'], 'print.png', { type: 'image/png' }),
+            aspectRatio: 16 / 9,
+            settings: {
+                isAnimated: false,
+                animationStyle: 'Stop',
+                fps: 15,
+                frames: 4,
+                loopPingPong: false
+            },
             authTarget: {
                 userId: 'usr_self',
                 endpoint: 'https://api.vrchat.cloud'
@@ -37,7 +46,11 @@ function createActions(overrides: Record<string, unknown> = {}) {
         isRuntimeAuthTarget: () => true,
         isVrcPlusSupporter: true,
         mediaRepository: {
-            uploadAssetImage
+            uploadAssetImage,
+            collectInventoryItems: vi.fn(),
+            deleteFile: vi.fn(),
+            getFileList: vi.fn(),
+            getPrints: vi.fn()
         },
         parseEmojiUploadSettings: vi.fn(),
         readFileAsBase64: vi.fn().mockResolvedValue('base64-body'),
@@ -61,7 +74,7 @@ function createActions(overrides: Record<string, unknown> = {}) {
             current: null
         },
         validateImageFile: vi.fn(),
-        withUploadTimeout: (promise: Promise<unknown>) => promise,
+        withUploadTimeout: <T,>(promise: Promise<T>) => promise,
         ...overrides
     });
 
@@ -105,7 +118,7 @@ describe('useGalleryAssetActions', () => {
         expect(toast.error).not.toHaveBeenCalled();
     });
 
-    it.each(['prints', 'emojis', 'stickers'])(
+    it.each<GalleryUploadTarget>(['prints', 'emojis', 'stickers'])(
         'keeps %s uploads restricted to VRC+ users',
         (tab) => {
             const { actions, toast, uploadInputRef } = createActions({

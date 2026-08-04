@@ -1,4 +1,5 @@
 import type { AppDataDirState, TtsVoice } from '@/platform/tauri/bindings';
+import type { Dispatch, SetStateAction } from 'react';
 
 import { buildDialogsSection } from './settings-page-state-sections/dialogsSection';
 import { buildIntegrationsSection } from './settings-page-state-sections/integrationsSection';
@@ -17,10 +18,14 @@ import { buildSocialSection } from './settings-page-state-sections/socialSection
 import type { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import type { FavoriteFriendGroupOption } from './settingsFavoriteGroupOptions';
 import type { AvatarProviderConfig } from './useAvatarProviderConfig';
+import type { useAvatarProviderConfig } from './useAvatarProviderConfig';
+import type { useSettingsActions } from './useSettingsActions';
 import type {
     SettingsDiscordPrefs,
-    SettingsIntegrationPrefs
+    SettingsIntegrationPrefs,
+    useSettingsIntegrations
 } from './useSettingsIntegrations';
+import type { CustomFontDraft } from './settingsValues';
 
 export type SettingsPagePrefs = ReturnType<typeof createDefaultSettingsPrefs> &
     Record<string, unknown>;
@@ -36,7 +41,71 @@ type SetSettingsPrefs = SettingsCallback<
     ]
 >;
 
-export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
+type SettingsIntegrationsState = ReturnType<typeof useSettingsIntegrations>;
+type SettingsActionsState = ReturnType<typeof useSettingsActions>;
+type AvatarProviderState = ReturnType<typeof useAvatarProviderConfig>;
+type DialogSectionInput = Pick<
+    SettingsIntegrationsState,
+    | 'fetchTranslationModels'
+    | 'integrationStatus'
+    | 'llmEndpoints'
+    | 'saveTranslationApiConfig'
+    | 'saveYoutubeApiKey'
+    | 'setTranslationApiDialogOpen'
+    | 'setTranslationDraftValue'
+    | 'setYoutubeApiDialogOpen'
+    | 'setYoutubeApiKeyDraft'
+    | 'testTranslationApiConfig'
+    | 'translationApiDialogOpen'
+    | 'translationDraft'
+    | 'youtubeApiDialogOpen'
+    | 'youtubeApiKeyDraft'
+> &
+    Pick<
+        SettingsActionsState,
+        | 'purgeAvatarFeedData'
+        | 'saveCustomFontFamily'
+        | 'saveDesktopNotificationActivityFilters'
+        | 'saveHmdNotificationActivityFilters'
+        | 'saveOverlayActivityFilters'
+        | 'saveTableLimitsDialog'
+        | 'saveTtsNotificationActivityFilters'
+        | 'saveVrNotificationActivityFilters'
+        | 'saveWebhookActivityFilters'
+        | 'searchLimitError'
+        | 'tableLimitsSaveDisabled'
+        | 'tableMaxSizeError'
+    > &
+    Pick<
+        AvatarProviderState,
+        | 'addAvatarProvider'
+        | 'removeAvatarProvider'
+        | 'saveAvatarProviderField'
+        | 'updateAvatarProvider'
+    > & {
+        avatarProviderDialogOpen: boolean;
+        customFontDialogOpen: boolean;
+        customFontDraft: CustomFontDraft;
+        customFontOptions: string[];
+        customFontOptionsLoading: boolean;
+        purgeDialogOpen: boolean;
+        purgeInProgress: boolean;
+        purgePeriod: string;
+        setCustomFontDialogOpen: Dispatch<SetStateAction<boolean>>;
+        setCustomFontDraft: Dispatch<SetStateAction<CustomFontDraft>>;
+        setPurgePeriod: Dispatch<SetStateAction<string>>;
+        setTableLimitsDialogOpen: Dispatch<SetStateAction<boolean>>;
+        setTableLimitsDraft: Dispatch<
+            SetStateAction<{ maxTableSize: string; searchLimit: string }>
+        >;
+        setTablePageSizesDialogOpen: Dispatch<SetStateAction<boolean>>;
+        tableLimitsDialogOpen: boolean;
+        tableLimitsDraft: { maxTableSize: string; searchLimit: string };
+        tablePageSizesDialogOpen: boolean;
+    };
+
+export type BuildSettingsPageStateSectionsInput = Record<string, unknown> &
+    DialogSectionInput & {
     activeSettingsTab: string;
     appDataDirState?: AppDataDirState | null;
     avatarProviderConfig: AvatarProviderConfig;
@@ -88,14 +157,6 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
     saveTrustColor: SettingsCallback<[string, string]>;
     saveNotificationTtsMode: SettingsCallback<[string]>;
     saveNotificationTtsVoice: SettingsCallback<[string]>;
-    saveOverlayActivityFilters: SettingsCallback<[unknown, unknown?]>;
-    saveVrNotificationActivityFilters: SettingsCallback<[unknown, unknown?]>;
-    saveHmdNotificationActivityFilters: SettingsCallback<[unknown, unknown?]>;
-    saveDesktopNotificationActivityFilters: SettingsCallback<
-        [unknown, unknown?]
-    >;
-    saveWebhookActivityFilters: SettingsCallback<[unknown, unknown?]>;
-    saveTtsNotificationActivityFilters: SettingsCallback<[unknown, unknown?]>;
     saveWristOverlayEnabled: SettingsCallback<[boolean]>;
     selectCjkFontPack: SettingsCallback<[string]>;
     setAccessibleStatusIndicatorsPreference: SettingsCallback<[boolean]>;

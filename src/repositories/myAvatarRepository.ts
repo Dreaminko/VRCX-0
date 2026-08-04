@@ -44,7 +44,9 @@ interface AvatarTagEntry {
     color?: string | null;
 }
 
-type MyAvatarRecord = AvatarRecord & {
+export type MyAvatarRecord = AvatarRecord & {
+    id: string;
+    name?: string;
     $tags: AvatarTagEntry[];
     $timeSpent: number;
 };

@@ -140,7 +140,7 @@ export async function tryOpenLaunchLocation(
 async function verifyShortName(location: unknown, shortName: string) {
     const response =
         await vrchatSearchRepository.getInstanceFromShortName(shortName);
-    const json = isRecord(response.json) ? response.json : {};
+    const json = response.json;
     const nextLocation = json?.location || location;
     if (!nextLocation) {
         return false;

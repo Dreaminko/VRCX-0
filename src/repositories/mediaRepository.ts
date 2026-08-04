@@ -54,7 +54,9 @@ export type {
     InventoryAsset,
     InventoryItemMetadata,
     InventoryItemRecord,
-    InventoryItemsResponse
+    InventoryItemsResponse,
+    MediaFileRecord,
+    MediaPrintRecord
 } from './vrchatMediaRepository';
 
 type MediaRepository = typeof vrchatMediaRepository &

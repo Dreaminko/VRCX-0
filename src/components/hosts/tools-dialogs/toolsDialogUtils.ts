@@ -19,7 +19,9 @@ export const instanceTypes = [
     'groupOnly'
 ];
 
-export function getAuthSnapshot(): any {
+export function getAuthSnapshot(): ReturnType<
+    typeof useRuntimeStore.getState
+>['auth'] {
     return useRuntimeStore.getState().auth || {};
 }
 
@@ -32,7 +34,7 @@ export function getEndpoint() {
     return getAuthSnapshot().currentUserEndpoint || '';
 }
 
-export function getFriendIds(orderedFriendIds: any) {
+export function getFriendIds(orderedFriendIds: string[]) {
     const directFriends = getAuthSnapshot().currentUserSnapshot?.friends;
     if (Array.isArray(directFriends) && directFriends.length) {
         return directFriends;
@@ -40,27 +42,33 @@ export function getFriendIds(orderedFriendIds: any) {
     return Array.isArray(orderedFriendIds) ? orderedFriendIds : [];
 }
 
-export function csvEscape(value: any) {
+export function csvEscape(value: unknown) {
     return formatCsvField(value);
 }
 
-export function parseJsonArray(value: any) {
+export function parseJsonArray(value: unknown): string[] {
     if (Array.isArray(value)) {
-        return value;
+        return value.filter((entry): entry is string => typeof entry === 'string');
     }
     if (typeof value !== 'string' || !value.trim()) {
         return [];
     }
     try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
+        return Array.isArray(parsed)
+            ? parsed.filter((entry): entry is string => typeof entry === 'string')
+            : [];
     } catch {
         return [];
     }
 }
 
-export function updateArrayValue(values: any, value: any, checked: any) {
-    const next = new Set(Array.isArray(values) ? values : []);
+export function updateArrayValue<T>(
+    values: readonly T[],
+    value: T,
+    checked: boolean
+): T[] {
+    const next = new Set(values);
     if (checked) {
         next.add(value);
     } else {
@@ -75,16 +83,16 @@ export async function getUserMemoMap() {
         .catch((): never[] => []);
     return new Map(
         (Array.isArray(rows) ? rows : [])
-            .filter((row: any) => typeof row?.userId === 'string' && row.userId)
-            .map((row: any) => [row.userId, row.memo || ''])
+            .filter((row) => typeof row?.userId === 'string' && row.userId)
+            .map((row) => [row.userId, row.memo || ''] as const)
     );
 }
 
-export function delay(ms: any) {
+export function delay(ms: number) {
     return windowDelay(Number(ms) || 0);
 }
 
-export function normalizeAutoAcceptValue(value: any) {
+export function normalizeAutoAcceptValue(value: unknown) {
     if (value === true || value === 'true' || value === 'All Favorites') {
         return 'All Favorites';
     }
@@ -94,17 +102,17 @@ export function normalizeAutoAcceptValue(value: any) {
     return 'Off';
 }
 
-export function normalizeAutoAcceptMode(value: any) {
+export function normalizeAutoAcceptMode(value: unknown) {
     return value === 'Selected Favorites'
         ? 'Selected Favorites'
         : 'All Favorites';
 }
 
-export function normalizeExportMemo(value: any) {
+export function normalizeExportMemo(value: unknown) {
     return String(value ?? '').replace(/[\r\n]/g, ' ');
 }
 
-export function truncateExportMemo(value: any) {
+export function truncateExportMemo(value: unknown) {
     return normalizeExportMemo(value).slice(0, 256);
 }
 
@@ -116,6 +124,6 @@ export function getEventId(event: GroupCalendarEventRecord | null) {
     return event?.id || event?.eventId || '';
 }
 
-export function selectedDateKey(value: any) {
+export function selectedDateKey(value?: Date | number | string | null) {
     return format(value || new Date(), 'yyyy-MM-dd');
 }

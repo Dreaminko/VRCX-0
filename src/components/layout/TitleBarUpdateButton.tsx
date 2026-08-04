@@ -9,11 +9,11 @@ import {
     HoverCardTrigger
 } from '@/ui/shadcn/hover-card';
 
-function formatUpdateReleaseDate(value: any) {
+function formatUpdateReleaseDate(value: unknown) {
     if (!value) {
         return '-';
     }
-    const timestamp = Date.parse(value);
+    const timestamp = Date.parse(String(value));
     if (!Number.isFinite(timestamp)) {
         return String(value);
     }

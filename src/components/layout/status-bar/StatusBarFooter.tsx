@@ -131,8 +131,9 @@ function formatMutualGraphTooltip(
 ) {
     const status = String(mutualGraph?.status || 'idle');
     if (status === 'error') {
+        const lastError = String(mutualGraph?.lastError || '').trim();
         return (
-            mutualGraph?.lastError ||
+            lastError ||
             t('view.charts.toast.failed_to_fetch_mutual_friends_graph')
         );
     }

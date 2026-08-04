@@ -256,7 +256,7 @@ export function formatRelativeTimeWithPreferences(
 
 export function timeToTextWithLabels(
     sec: unknown,
-    isNeedSeconds: any = false,
+    isNeedSeconds = false,
     unitLabels: Partial<TimeUnitLabels> | undefined = undefined
 ) {
     let n = Number(sec);

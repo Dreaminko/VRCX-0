@@ -10,7 +10,13 @@ const regionCodeLabels: Record<string, string> = {
     jp: 'JP'
 };
 
-export function RegionCodeBadge({ region, className }: any) {
+export function RegionCodeBadge({
+    region,
+    className
+}: {
+    region?: string;
+    className?: string;
+}) {
     const { t } = useTranslation();
 
     const normalizedRegion = String(region || '')

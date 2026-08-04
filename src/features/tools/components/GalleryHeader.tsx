@@ -1,4 +1,5 @@
 import { RefreshCwIcon, SettingsIcon } from 'lucide-react';
+import type { ChangeEvent, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -22,7 +23,13 @@ import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
 import { GALLERY_GRID_DENSITY_OPTIONS } from '../galleryDensity';
 
-function GalleryGridSettingsMenu({ gridDensity, onGridDensityChange }: any) {
+function GalleryGridSettingsMenu({
+    gridDensity,
+    onGridDensityChange
+}: {
+    gridDensity: string;
+    onGridDensityChange: (value: string) => void;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -57,7 +64,7 @@ function GalleryGridSettingsMenu({ gridDensity, onGridDensityChange }: any) {
                             }}
                             className="grid w-full grid-cols-3"
                         >
-                            {GALLERY_GRID_DENSITY_OPTIONS.map((option: any) => (
+                            {GALLERY_GRID_DENSITY_OPTIONS.map((option) => (
                                 <ToggleGroupItem
                                     key={option.value}
                                     value={option.value}
@@ -85,7 +92,15 @@ export function GalleryHeader({
     onGridDensityChange,
     onBack,
     onRefreshAll
-}: any) {
+}: {
+    uploadInputRef: RefObject<HTMLInputElement | null>;
+    uploadingTab: string;
+    onUploadChange: (event: ChangeEvent<HTMLInputElement>) => void;
+    gridDensity: string;
+    onGridDensityChange: (value: string) => void;
+    onBack: () => void;
+    onRefreshAll: () => void;
+}) {
     const { t } = useTranslation();
 
     return (

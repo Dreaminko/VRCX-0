@@ -30,6 +30,7 @@ import type {
 } from '../feedTypes';
 import { FeedColumnItem } from './FeedColumnItem';
 import { useFeedColumnRows } from './useFeedColumnRows';
+import type { useSortable } from '@dnd-kit/sortable';
 
 const OVERSCAN = 8;
 const NEW_ROW_FEEDBACK_MS = 180;
@@ -40,8 +41,8 @@ type FeedColumnPaneProps = {
     column: FeedColumnConfig;
     densityConfig: FeedColumnDensityConfig;
     dragHandleProps?: {
-        attributes?: any;
-        listeners?: any;
+        attributes?: ReturnType<typeof useSortable>['attributes'];
+        listeners?: NonNullable<ReturnType<typeof useSortable>['listeners']>;
     };
     loadingPreviousInstancesKey: string;
     nowMs: number;

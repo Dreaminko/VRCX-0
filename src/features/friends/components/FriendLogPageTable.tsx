@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { PaginationState, Table as TableModel } from '@tanstack/react-table';
 
 import {
     DataTableColumnDndProvider,
@@ -13,6 +14,7 @@ import {
 import { ResizableTableCell } from '@/components/data-table/ResizableTableParts';
 import { PageFooter } from '@/components/layout/PageScaffold';
 import { Table, TableBody, TableRow } from '@/ui/shadcn/table';
+import type { FriendLogRow } from '../friendLogRows';
 
 export function FriendLogPageTable({
     table,
@@ -20,7 +22,13 @@ export function FriendLogPageTable({
     pagination,
     pageSizes,
     onPageSizeChange
-}: any) {
+}: {
+    table: TableModel<FriendLogRow>;
+    orderedRowsLength: number;
+    pagination: PaginationState;
+    pageSizes: number[];
+    onPageSizeChange: (value: unknown) => void;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -35,7 +43,7 @@ export function FriendLogPageTable({
                             <DataTableColumnSizeColGroup table={table} />
                             <DataTableHeader table={table} />
                             <TableBody>
-                                {table.getRowModel().rows.map((row: any) => (
+                                {table.getRowModel().rows.map((row) => (
                                     <TableRow
                                         key={row.original?.rowId || row.id}
                                     >
@@ -44,7 +52,7 @@ export function FriendLogPageTable({
                                         >
                                             {row
                                                 .getVisibleCells()
-                                                .map((cell: any) => (
+                                                .map((cell) => (
                                                     <ResizableTableCell
                                                         key={cell.id}
                                                         cell={cell}

@@ -2,9 +2,18 @@ import { useTranslation } from 'react-i18next';
 
 import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
-import { FILE_TABS, TAB_ORDER, type GalleryTab } from '../galleryConstants';
+import {
+    FILE_TABS,
+    TAB_ORDER,
+    type FileAssetTab,
+    type GalleryTab
+} from '../galleryConstants';
+import type { GalleryFileTabState } from '../galleryTypes';
 import { GalleryFileTab } from './GalleryFileTab';
-import { GalleryPrintsTab } from './GalleryPrintsTab';
+import {
+    GalleryPrintsTab,
+    type GalleryPrintsTabState
+} from './GalleryPrintsTab';
 
 export function GalleryTabs({
     activeTab,
@@ -12,7 +21,13 @@ export function GalleryTabs({
     tabCounts,
     fileTab,
     printsTab
-}: any) {
+}: {
+    activeTab: GalleryTab;
+    onActiveTabChange: (value: unknown) => void;
+    tabCounts: Record<GalleryTab, string>;
+    fileTab: GalleryFileTabState;
+    printsTab: GalleryPrintsTabState;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -44,11 +59,11 @@ export function GalleryTabs({
                 })}
             </TabsList>
 
-            {Object.entries(FILE_TABS).map(([tab, definition]) => (
+            {(['gallery', 'icons'] satisfies FileAssetTab[]).map((tab) => (
                 <GalleryFileTab
                     key={tab}
                     tab={tab}
-                    definition={definition}
+                    definition={FILE_TABS[tab]}
                     fileTab={fileTab}
                 />
             ))}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import type { Dashboard } from '@/repositories/dashboardRepository';
 
 import {
     setNavbarCollapsedPreference,
@@ -34,6 +35,7 @@ import {
     AppNavMenuContent
 } from './AppNavMenuSections';
 import { CustomNavDialog } from './CustomNavDialog';
+import type { CustomNavLayout } from './custom-nav-dialog/customNavLayout';
 import {
     getPathForNavEntry,
     loadNavMenuModel,
@@ -46,6 +48,14 @@ import {
     type NavMenuItem,
     type NavMenuModel
 } from './navMenuModel';
+
+type Translate = ReturnType<typeof useTranslation>['t'];
+type Navigation = ReturnType<typeof useNavigate>;
+type RouteLocation = ReturnType<typeof useLocation>;
+type SaveAndApplyNavLayout = (
+    layout: unknown,
+    hiddenKeys: unknown
+) => Promise<NavMenuModel>;
 
 function resolveActiveIndex(menuItems: NavMenuItem[], pathname: string) {
     for (const item of menuItems) {
@@ -70,7 +80,12 @@ function useAppNavModel({
     notificationLayout,
     preferencesHydrated,
     t
-}: any) {
+}: {
+    dashboards: Dashboard[];
+    notificationLayout: string;
+    preferencesHydrated: boolean;
+    t: Translate;
+}) {
     const [menuItems, setMenuItems] = useState<NavMenuItem[]>([]);
     const [navLayout, setNavLayout] = useState<NavLayoutEntry[]>([]);
     const [navHiddenKeys, setNavHiddenKeys] = useState<string[]>([]);
@@ -159,7 +174,12 @@ function useAppNavNotifications({
     currentUserId,
     sessionPhase,
     t
-}: any) {
+}: {
+    activeIndex: string;
+    currentUserId: string | null;
+    sessionPhase: string;
+    t: Translate;
+}) {
     const notifiedMenus = useShellStore((state) => state.notifiedMenus);
     const removeNavNotification = useShellStore((state) => state.removeNotify);
     const vrcUnseenNotificationCount = useVrcNotificationStore(
@@ -217,7 +237,15 @@ function useAppNavNotifications({
     };
 }
 
-function useAppNavDashboardActions({ location, navigate, t }: any) {
+function useAppNavDashboardActions({
+    location,
+    navigate,
+    t
+}: {
+    location: RouteLocation;
+    navigate: Navigation;
+    t: Translate;
+}) {
     const createDashboard = useDashboardStore((state) => state.createDashboard);
     const deleteDashboard = useDashboardStore((state) => state.deleteDashboard);
     const setEditingDashboardId = useDashboardStore(
@@ -247,7 +275,7 @@ function useAppNavDashboardActions({ location, navigate, t }: any) {
         }
     }
 
-    async function editDashboard(entry: any) {
+    async function editDashboard(entry: NavMenuItem) {
         if (!isDashboardEntry(entry)) {
             return;
         }
@@ -264,7 +292,7 @@ function useAppNavDashboardActions({ location, navigate, t }: any) {
         }
     }
 
-    async function deleteDashboardFromNav(entry: any) {
+    async function deleteDashboardFromNav(entry: NavMenuItem) {
         if (!isDashboardEntry(entry)) {
             return;
         }
@@ -313,13 +341,18 @@ function useAppNavToolActions({
     navLayout,
     saveAndApplyNavLayout,
     t
-}: any) {
-    async function unpinToolEntry(entry: any) {
+}: {
+    navHiddenKeys: string[];
+    navLayout: NavLayoutEntry[];
+    saveAndApplyNavLayout: SaveAndApplyNavLayout;
+    t: Translate;
+}) {
+    async function unpinToolEntry(entry: NavMenuItem) {
         if (!isToolEntry(entry)) {
             return;
         }
         try {
-            const navKey = entry.index || entry.key;
+            const navKey = entry.index;
             await saveAndApplyNavLayout(
                 removeNavKeyFromLayout(navLayout, navKey),
                 navHiddenKeys
@@ -339,7 +372,7 @@ function useAppNavToolActions({
     return { unpinToolEntry };
 }
 
-export function AppNavMenu({ isCollapsed }: any) {
+export function AppNavMenu({ isCollapsed }: { isCollapsed: boolean }) {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
@@ -437,7 +470,7 @@ export function AppNavMenu({ isCollapsed }: any) {
     const customThemeAppearanceControlled =
         communityThemeAppearanceControlled || backgroundImageEnabled;
 
-    async function handleSelectEntry(entry: any) {
+    async function handleSelectEntry(entry: NavMenuItem) {
         if (!entry) {
             return;
         }
@@ -451,7 +484,10 @@ export function AppNavMenu({ isCollapsed }: any) {
         }
     }
 
-    async function handleCustomNavSave(nextLayout: any, nextHiddenKeys: any) {
+    async function handleCustomNavSave(
+        nextLayout: CustomNavLayout,
+        nextHiddenKeys: unknown[]
+    ) {
         try {
             await saveAndApplyNavLayout(nextLayout, nextHiddenKeys);
             setCustomNavDialogOpen(false);
@@ -468,9 +504,9 @@ export function AppNavMenu({ isCollapsed }: any) {
     }
 
     async function handleDashboardCreatedFromCustomNav(
-        dashboardId: any,
-        nextLayout: any,
-        nextHiddenKeys: any
+        dashboardId: string,
+        nextLayout: CustomNavLayout,
+        nextHiddenKeys: unknown[]
     ) {
         try {
             await saveAndApplyNavLayout(nextLayout, nextHiddenKeys);

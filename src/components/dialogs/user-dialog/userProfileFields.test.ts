@@ -136,6 +136,11 @@ describe('userProfileFields', () => {
         expect(rows).toEqual([{ key: 'zho', value: 'Cached Chinese' }]);
     });
 
+    it('treats non-object profile language payloads as empty', () => {
+        expect(normalizeProfileLanguageRows(null)).toEqual([]);
+        expect(normalizeProfileLanguageRows(['language_eng'])).toEqual([]);
+    });
+
     it('suggests recent statuses as readable unique entries with profile history first', () => {
         const profileHistory = [
             'At the mirror',

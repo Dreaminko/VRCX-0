@@ -1,8 +1,29 @@
 import { useMemo } from 'react';
 
 import { SEARCH_PAGE_SIZE as PAGE_SIZE } from './searchRequests';
+import type { SearchPaginationState } from './searchTypes';
 
-export function useSearchPagination({
+type PagedSearchRequest = {
+    option?: string;
+    params: {
+        n: number;
+        offset: number;
+        [key: string]: unknown;
+    };
+};
+
+type AvatarPaginationRequest = {
+    offset: number;
+    provider: string;
+    query: string;
+};
+
+export function useSearchPagination<
+    TAvatarRequest extends AvatarPaginationRequest,
+    TGroupRequest extends PagedSearchRequest,
+    TUserRequest extends PagedSearchRequest,
+    TWorldRequest extends PagedSearchRequest
+>({
     activeTab,
     avatarRequest,
     avatarResults,
@@ -20,7 +41,25 @@ export function useSearchPagination({
     userResults,
     worldRequest,
     worldResults
-}: any) {
+}: {
+    activeTab: string;
+    avatarRequest: TAvatarRequest | null;
+    avatarResults: readonly unknown[];
+    groupRequest: TGroupRequest | null;
+    groupResults: readonly unknown[];
+    isAvatarLoading: boolean;
+    isGroupLoading: boolean;
+    isUserLoading: boolean;
+    isWorldLoading: boolean;
+    runGroupSearch: (request: TGroupRequest) => void;
+    runUserSearch: (request: TUserRequest) => void;
+    runWorldSearch: (request: TWorldRequest) => void;
+    setAvatarRequest: (request: TAvatarRequest) => void;
+    userRequest: TUserRequest | null;
+    userResults: readonly unknown[];
+    worldRequest: TWorldRequest | null;
+    worldResults: readonly unknown[];
+}): SearchPaginationState {
     return useMemo(() => {
         if (activeTab === 'user') {
             return {

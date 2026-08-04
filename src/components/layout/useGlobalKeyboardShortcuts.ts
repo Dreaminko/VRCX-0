@@ -6,8 +6,8 @@ import { useSessionStore } from '@/state/sessionStore';
 
 import { useRightSidePanelVisibility } from './useRightSidePanelVisibility';
 
-export function isEditableTarget(target: any) {
-    if (!target || typeof target.tagName !== 'string') {
+export function isEditableTarget(target: EventTarget | null) {
+    if (!(target instanceof HTMLElement)) {
         return false;
     }
     const tag = target.tagName.toLowerCase();

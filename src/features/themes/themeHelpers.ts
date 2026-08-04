@@ -1,4 +1,5 @@
 import { links } from '@/shared/constants/link';
+import type { THEME_COLORS } from '@/shared/constants/themes';
 
 import type { CommunityThemeManifest } from './communityThemeTypes';
 
@@ -11,7 +12,10 @@ export function themeModeLabel(themeMode: string, t: (key: string) => string) {
     return t(`view.settings.appearance.appearance.theme_mode_${themeMode}`);
 }
 
-export function themeColorLabel(themeColor: any, t: (key: string) => string) {
+export function themeColorLabel(
+    themeColor: (typeof THEME_COLORS)[number],
+    t: (key: string) => string
+) {
     return t(`view.settings.appearance.theme_color.${themeColor.key}`);
 }
 

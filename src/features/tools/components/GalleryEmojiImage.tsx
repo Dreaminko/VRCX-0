@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';
+import type { MediaFileRecord } from '@/repositories/mediaRepository';
 import {
     buildEmojiKeyframes,
     getEmojiAnimationName,
     getEmojiFrameLayout
 } from '@/shared/utils/gallery';
 
-function ensureEmojiKeyframes(frameCount: any) {
+function ensureEmojiKeyframes(frameCount: number) {
     if (typeof document === 'undefined') {
         return;
     }
@@ -23,7 +24,20 @@ function ensureEmojiKeyframes(frameCount: any) {
     document.head.appendChild(style);
 }
 
-export function GalleryEmojiImage({ file, imageUrl, alt, className }: any) {
+export function GalleryEmojiImage({
+    file,
+    imageUrl,
+    alt,
+    className
+}: {
+    file: Pick<
+        MediaFileRecord,
+        'frames' | 'framesOverTime' | 'loopStyle'
+    > | null;
+    imageUrl: string;
+    alt: string;
+    className?: string;
+}) {
     const frameCount = Number(file?.frames);
     const isAnimated =
         imageUrl && Number.isFinite(frameCount) && frameCount > 1;

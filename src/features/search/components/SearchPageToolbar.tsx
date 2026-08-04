@@ -1,5 +1,6 @@
 import { Trash2Icon, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { SearchActiveTab } from '../searchTypes';
 
 import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,13 @@ export function SearchPageToolbar({
     onSearchTextChange,
     onSearch,
     onClearSearch
-}: any) {
+}: {
+    activeTab: SearchActiveTab;
+    searchText: string;
+    onSearchTextChange: (value: string) => void;
+    onSearch: () => void;
+    onClearSearch: () => void;
+}) {
     const { t } = useTranslation();
     const searchPlaceholder =
         activeTab === 'avatar'

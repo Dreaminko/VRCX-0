@@ -16,7 +16,7 @@ export function useDashboardStoreState() {
     const consumeEditingDashboardId = useDashboardStore(
         (state) => state.consumeEditingDashboardId
     );
-    const dashboard = dashboards.find((entry: any) => entry.id === id) || null;
+    const dashboard = dashboards.find((entry) => entry.id === id) || null;
 
     useEffect(() => {
         ensureLoaded().catch(() => {});

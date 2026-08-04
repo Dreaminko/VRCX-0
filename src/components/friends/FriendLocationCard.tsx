@@ -10,10 +10,14 @@ import { useTranslation } from 'react-i18next';
 import { Location } from '@/components/Location';
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
 import { UserStatusDot } from '@/components/UserStatusDot';
+import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
+import type { FriendsLocationsCardContentMode } from '@/features/friends/friendsLocationsDensity';
+import type { getFriendsLocationsDensityConfig } from '@/features/friends/friendsLocationsDensity';
 import { cn } from '@/lib/utils';
 import { userImage } from '@/services/entityMediaService';
 import { normalizeLocationValue, parseLocation } from '@/shared/utils/location';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import type { CurrentUserSnapshotState } from '@/state/runtimeStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -40,7 +44,41 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 
-function normalizeStatusText(value: any) {
+type FriendLocationCardSource = Record<string, unknown> & {
+    id?: unknown;
+    userId?: unknown;
+    location?: unknown;
+    state?: unknown;
+    stateBucket?: unknown;
+    status?: unknown;
+    pendingOffline?: unknown;
+    travelingToLocation?: unknown;
+    $travelingToLocation?: unknown;
+};
+
+type FriendLocationCardFriend = FriendRecord & {
+    ref?: FriendLocationCardSource | null;
+    pendingOffline?: unknown;
+    travelingToLocation?: unknown;
+    $travelingToLocation?: unknown;
+};
+
+type FriendLocationCardDensity = Pick<
+    ReturnType<typeof getFriendsLocationsDensityConfig>,
+    | 'value'
+    | 'layout'
+    | 'avatarSize'
+    | 'dotSize'
+    | 'titleFontSize'
+    | 'cardPadding'
+    | 'cardGap'
+    | 'cardInnerGap'
+    | 'locationLineClamp'
+    | 'statusLineClamp'
+    | 'showStatusDescription'
+>;
+
+function normalizeStatusText(value: unknown) {
     const status =
         typeof value === 'string'
             ? value.trim().toLowerCase()
@@ -65,27 +103,33 @@ function normalizeStatusText(value: any) {
     return status;
 }
 
-function readFriendRef(friend: any) {
+function readFriendRef(friend: FriendLocationCardFriend) {
     return friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
 }
 
-function hasFriendRef(friend: any) {
+function hasFriendRef(friend: FriendLocationCardFriend) {
     return Boolean(friend?.ref && typeof friend.ref === 'object');
 }
 
-function isLiveBucketState(value: any) {
+function isLiveBucketState(value: unknown) {
     const state = normalizeStatusText(value);
     return state === 'online' || state === 'active';
 }
 
-function isStaleOfflineLocationForLiveState(location: any, state: any) {
+function isStaleOfflineLocationForLiveState(
+    location: unknown,
+    state: unknown
+) {
     return (
         isLiveBucketState(state) &&
         normalizeLocationStatus(location) === 'offline'
     );
 }
 
-function resolveRawCardLocation(rawLocation: any, friend: any) {
+function resolveRawCardLocation(
+    rawLocation: unknown,
+    friend: FriendLocationCardFriend
+) {
     const source = readFriendRef(friend);
     return (
         normalizeLocationValue(source?.location) ||
@@ -94,7 +138,10 @@ function resolveRawCardLocation(rawLocation: any, friend: any) {
     );
 }
 
-function resolveCardLocation(rawLocation: any, friend: any) {
+function resolveCardLocation(
+    rawLocation: unknown,
+    friend: FriendLocationCardFriend
+) {
     const source = readFriendRef(friend);
     const state = normalizeStatusText(source?.stateBucket || source?.state);
     const explicitLocation = resolveRawCardLocation(rawLocation, friend);
@@ -117,7 +164,7 @@ function resolveCardLocation(rawLocation: any, friend: any) {
     return '';
 }
 
-function normalizeLocationStatus(value: any) {
+function normalizeLocationStatus(value: unknown) {
     const parsedLocation = parseLocation(value);
     if (parsedLocation.isOffline) {
         return 'offline';
@@ -131,7 +178,10 @@ function normalizeLocationStatus(value: any) {
     return normalizeStatusText(value);
 }
 
-function resolveFriendLocationStatus(friend: any, currentUser: any) {
+function resolveFriendLocationStatus(
+    friend: FriendLocationCardFriend,
+    currentUser: CurrentUserSnapshotState | null
+) {
     const source = readFriendRef(friend);
     if (!source) {
         return '';
@@ -190,7 +240,10 @@ function resolveFriendLocationStatus(friend: any, currentUser: any) {
     return '';
 }
 
-function resolveStatusTone(friend: any, currentUser: any) {
+function resolveStatusTone(
+    friend: FriendLocationCardFriend,
+    currentUser: CurrentUserSnapshotState | null
+) {
     const status = resolveFriendLocationStatus(friend, currentUser);
 
     if (status === 'join me') {
@@ -242,7 +295,7 @@ function resolveStatusTone(friend: any, currentUser: any) {
     };
 }
 
-const DEFAULT_CARD_DENSITY_CONFIG: any = {
+const DEFAULT_CARD_DENSITY_CONFIG: FriendLocationCardDensity = {
     value: 'compact',
     layout: 'card',
     avatarSize: 36,
@@ -256,7 +309,7 @@ const DEFAULT_CARD_DENSITY_CONFIG: any = {
     showStatusDescription: true
 };
 
-function resolveLineClampClass(lineClamp: any) {
+function resolveLineClampClass(lineClamp: number) {
     return lineClamp > 1 ? 'line-clamp-2' : 'line-clamp-1';
 }
 
@@ -282,7 +335,29 @@ export function FriendLocationCard({
     onRequestInvite,
     onSendBoop,
     worldActionLabel
-}: any) {
+}: {
+    friend: FriendLocationCardFriend;
+    locationLabel?: string;
+    groupHint?: string;
+    rawLocation?: unknown;
+    densityConfig?: FriendLocationCardDensity;
+    contentMode?: FriendsLocationsCardContentMode;
+    displayInstanceInfo?: boolean;
+    isTraveling?: boolean;
+    travelingLocation?: unknown;
+    canUseFriendLocation?: boolean;
+    canSendInvite?: boolean;
+    canRequestInvite?: boolean;
+    canBoop?: boolean;
+    onOpenUser?: () => void;
+    onOpenWorld?: () => void;
+    onLaunchLocation?: () => void;
+    onSelfInviteLocation?: () => void;
+    onSendInvite?: () => void;
+    onRequestInvite?: () => void;
+    onSendBoop?: () => void;
+    worldActionLabel?: string;
+}) {
     const { t } = useTranslation();
 
     const currentUserSnapshot = useRuntimeStore(

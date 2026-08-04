@@ -31,6 +31,9 @@ type GroupCalendarEventIdentity = GroupCalendarIdentity & {
 export type GroupCalendarGroupRecord = Record<string, unknown> & {
     id?: string;
     name?: string;
+    displayName?: string;
+    bannerUrl?: string;
+    iconUrl?: string;
 };
 export type GroupCalendarEventRecord = Record<string, unknown> & {
     accessType?: string;

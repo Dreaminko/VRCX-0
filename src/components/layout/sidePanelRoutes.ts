@@ -5,16 +5,16 @@ const sidePanelHiddenPaths = [
     '/charts/mutual'
 ];
 
-function matchesPath(pathname: any, path: any) {
+function matchesPath(pathname: string, path: string) {
     return pathname === path || pathname.startsWith(`${path}/`);
 }
 
-export function getDefaultHiddenSidePanelPath(pathname: any) {
-    return sidePanelHiddenPaths.find((path: any) =>
+export function getDefaultHiddenSidePanelPath(pathname: string) {
+    return sidePanelHiddenPaths.find((path) =>
         matchesPath(pathname, path)
     );
 }
 
-export function isSidePanelDefaultHidden(pathname: any) {
+export function isSidePanelDefaultHidden(pathname: string) {
     return Boolean(getDefaultHiddenSidePanelPath(pathname));
 }

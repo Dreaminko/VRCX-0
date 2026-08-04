@@ -1,6 +1,13 @@
 import { GalleryTabs } from './GalleryTabs';
+import type { GalleryCommands, GalleryModel } from '../galleryTypes';
 
-export function GalleryTabsSection({ galleryCommands, galleryModel }: any) {
+export function GalleryTabsSection({
+    galleryCommands,
+    galleryModel
+}: {
+    galleryCommands: GalleryCommands;
+    galleryModel: GalleryModel;
+}) {
     const {
         activeTab,
         assets,

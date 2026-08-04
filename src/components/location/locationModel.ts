@@ -1,12 +1,62 @@
 import { parseLocation, normalizeLocationValue } from '@/shared/utils/location';
 
-export function normalizeLocationText(value: any) {
+export type LocationObjectRecord = Record<string, unknown> & {
+    tag?: unknown;
+    location?: unknown;
+    worldId?: unknown;
+    world_id?: unknown;
+    instanceId?: unknown;
+    instance_id?: unknown;
+    id?: unknown;
+    isOffline?: unknown;
+    isPrivate?: unknown;
+    isTraveling?: unknown;
+    isRealInstance?: unknown;
+    accessTypeName?: unknown;
+    instanceName?: unknown;
+    region?: unknown;
+    regionName?: unknown;
+    region_name?: unknown;
+    shortName?: unknown;
+    launchToken?: unknown;
+    secureOrShortName?: unknown;
+    secureName?: unknown;
+    strict?: unknown;
+    groupId?: unknown;
+    userId?: unknown;
+    worldName?: unknown;
+    world_name?: unknown;
+    groupName?: unknown;
+    groupDisplayName?: unknown;
+    playerCount?: unknown;
+    userCount?: unknown;
+    occupants?: unknown;
+    n_users?: unknown;
+    capacity?: unknown;
+    users?: unknown[];
+    world?: LocationObjectRecord;
+    group?: LocationObjectRecord;
+    ref?: LocationObjectRecord;
+    $location?: LocationObjectRecord;
+    $worldName?: unknown;
+};
+
+export type NormalizedLocationObject = LocationObjectRecord &
+    ReturnType<typeof parseLocation> & { launchToken?: string };
+
+function recordFromUnknown(value: unknown): LocationObjectRecord {
+    return value && typeof value === 'object'
+        ? (value as LocationObjectRecord)
+        : {};
+}
+
+export function normalizeLocationText(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-export function finiteLocationNumber(value: any) {
+export function finiteLocationNumber(value: unknown) {
     if (value === null || typeof value === 'undefined' || value === '') {
         return null;
     }
@@ -34,7 +84,7 @@ export function firstFiniteLocationNumber(...values: unknown[]) {
     return null;
 }
 
-export function resolveLocationTarget(location: any, traveling: any) {
+export function resolveLocationTarget(location: unknown, traveling: unknown) {
     const normalizedLocation = normalizeLocationValue(location);
     if (
         typeof traveling !== 'undefined' &&
@@ -45,26 +95,26 @@ export function resolveLocationTarget(location: any, traveling: any) {
     return normalizedLocation;
 }
 
-export function normalizeLocationObject(locationObject: any) {
+export function normalizeLocationObject(
+    locationObject: unknown
+): NormalizedLocationObject {
     if (typeof locationObject === 'string') {
         return parseLocation(locationObject);
     }
     if (locationObject && typeof locationObject === 'object') {
+        const source = recordFromUnknown(locationObject);
+        const nestedLocation = recordFromUnknown(source.$location);
         const rawTag = normalizeLocationText(
-            locationObject.tag ||
-                locationObject.location ||
-                locationObject.$location?.tag
+            source.tag || source.location || nestedLocation.tag
         );
         const rawWorldId = normalizeLocationText(
-            locationObject.worldId ||
-                locationObject.world_id ||
-                locationObject.$location?.worldId
+            source.worldId || source.world_id || nestedLocation.worldId
         );
         const rawInstanceId = normalizeLocationText(
-            locationObject.instanceId ||
-                locationObject.instance_id ||
-                locationObject.id ||
-                locationObject.$location?.instanceId
+            source.instanceId ||
+                source.instance_id ||
+                source.id ||
+                nestedLocation.instanceId
         );
         const synthesizedTag = rawInstanceId.includes(':')
             ? rawInstanceId
@@ -80,42 +130,45 @@ export function normalizeLocationObject(locationObject: any) {
 
         return {
             ...parsed,
-            ...locationObject,
+            ...source,
             tag: tag || parsed.tag,
-            isOffline: Boolean(locationObject.isOffline ?? parsed.isOffline),
-            isPrivate: Boolean(locationObject.isPrivate ?? parsed.isPrivate),
+            isOffline: Boolean(source.isOffline ?? parsed.isOffline),
+            isPrivate: Boolean(source.isPrivate ?? parsed.isPrivate),
             isTraveling: Boolean(
-                locationObject.isTraveling ?? parsed.isTraveling
+                source.isTraveling ?? parsed.isTraveling
             ),
             isRealInstance: Boolean(
-                locationObject.isRealInstance ?? parsed.isRealInstance
+                source.isRealInstance ?? parsed.isRealInstance
             ),
             worldId: rawWorldId || parsed.worldId,
             instanceId,
             accessTypeName:
-                locationObject.accessTypeName || parsed.accessTypeName,
-            instanceName: locationObject.instanceName || parsed.instanceName,
+                normalizeLocationText(source.accessTypeName) ||
+                parsed.accessTypeName,
+            instanceName:
+                normalizeLocationText(source.instanceName) ||
+                parsed.instanceName,
             region:
-                locationObject.region ||
-                locationObject.regionName ||
-                locationObject.region_name ||
+                normalizeLocationText(source.region) ||
+                normalizeLocationText(source.regionName) ||
+                normalizeLocationText(source.region_name) ||
                 parsed.region,
-            shortName: locationObject.shortName || parsed.shortName,
+            shortName: normalizeLocationText(source.shortName) || parsed.shortName,
             launchToken:
-                locationObject.launchToken ||
-                locationObject.secureOrShortName ||
-                locationObject.secureName ||
-                locationObject.shortName ||
+                normalizeLocationText(source.launchToken) ||
+                normalizeLocationText(source.secureOrShortName) ||
+                normalizeLocationText(source.secureName) ||
+                normalizeLocationText(source.shortName) ||
                 parsed.shortName,
-            strict: Boolean(locationObject.strict ?? parsed.strict),
-            groupId: locationObject.groupId || parsed.groupId,
-            userId: locationObject.userId || parsed.userId
-        };
+            strict: Boolean(source.strict ?? parsed.strict),
+            groupId: normalizeLocationText(source.groupId) || parsed.groupId,
+            userId: normalizeLocationText(source.userId) || parsed.userId
+        } as NormalizedLocationObject;
     }
     return parseLocation('');
 }
 
-export function locationObjectWorldName(locObj: any) {
+export function locationObjectWorldName(locObj: LocationObjectRecord) {
     return normalizeLocationText(
         locObj?.worldName ||
             locObj?.world_name ||
@@ -130,7 +183,7 @@ export function locationObjectWorldName(locObj: any) {
     );
 }
 
-export function locationObjectGroupName(locObj: any) {
+export function locationObjectGroupName(locObj: LocationObjectRecord) {
     return normalizeLocationText(
         locObj?.groupName ||
             locObj?.group?.name ||
@@ -147,14 +200,14 @@ export function locationObjectGroupName(locObj: any) {
     );
 }
 
-export function worldDialogTarget(locObj: any) {
+export function worldDialogTarget(locObj: NormalizedLocationObject) {
     return (
         normalizeLocationText(locObj.worldId) ||
         normalizeLocationText(locObj.tag)
     );
 }
 
-export function launchTagForLocationObject(locObj: any) {
+export function launchTagForLocationObject(locObj: NormalizedLocationObject) {
     const tag = normalizeLocationText(locObj.tag);
     if (tag) {
         return tag;
@@ -164,7 +217,9 @@ export function launchTagForLocationObject(locObj: any) {
     return worldId && instanceId ? `${worldId}:${instanceId}` : '';
 }
 
-export function isUsableInstanceLocation(parsedLocation: any) {
+export function isUsableInstanceLocation(
+    parsedLocation: ReturnType<typeof parseLocation>
+) {
     return Boolean(
         parsedLocation?.isRealInstance &&
         parsedLocation.worldId &&
@@ -180,8 +235,16 @@ export function buildInstanceActionTarget({
     instanceLocation = '',
     shortName = '',
     worldName = ''
-}: any = {}) {
-    const source = target && typeof target === 'object' ? target : {};
+}: {
+    target?: LocationObjectRecord | null;
+    location?: unknown;
+    launchLocation?: unknown;
+    inviteLocation?: unknown;
+    instanceLocation?: unknown;
+    shortName?: unknown;
+    worldName?: unknown;
+} = {}) {
+    const source = target || {};
     const baseLocation = normalizeLocationText(
         source.location || source.tag || location
     );

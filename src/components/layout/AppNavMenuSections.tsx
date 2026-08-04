@@ -6,6 +6,8 @@ import {
     SunIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { NavMenuItem } from './navMenuModel';
+import type { NavMenuActionHandlers } from './app-nav-menu/types';
 
 import {
     SidebarContent,
@@ -28,7 +30,11 @@ function AppNavCreateDashboardHeader({
     visible,
     disabled,
     onCreateDashboard
-}: any) {
+}: {
+    visible: boolean;
+    disabled: boolean;
+    onCreateDashboard: () => void | Promise<void>;
+}) {
     const { t } = useTranslation();
 
     if (!visible) {
@@ -71,7 +77,15 @@ function AppNavMenuContent({
     onDeleteDashboard,
     onUnpinTool,
     onOpenCustomNav
-}: any) {
+}: NavMenuActionHandlers & {
+    menuItems: NavMenuItem[];
+    isCollapsed: boolean;
+    activeIndex: string;
+    pathname: string;
+    notifiedKeys: ReadonlySet<string>;
+    hasNotifications: boolean;
+    onCreateDashboard: () => void | Promise<void>;
+}) {
     return (
         <NavItemContextMenu
             hasNotifications={hasNotifications}
@@ -87,7 +101,7 @@ function AppNavMenuContent({
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {menuItems.map((item: any) =>
+                            {menuItems.map((item) =>
                                 item.children?.length ? (
                                     <NavMenuFolderItem
                                         key={item.index}
@@ -135,7 +149,14 @@ function AppNavFooter({
     onNavigateSettings,
     onToggleSidebar,
     onToggleTheme
-}: any) {
+}: {
+    sidebarOpen: boolean;
+    themeMode: string;
+    showThemeToggle?: boolean;
+    onNavigateSettings: () => void;
+    onToggleSidebar: () => void;
+    onToggleTheme: () => void;
+}) {
     const { t } = useTranslation();
 
     return (

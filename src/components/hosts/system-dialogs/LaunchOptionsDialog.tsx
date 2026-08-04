@@ -28,7 +28,13 @@ import {
 } from '@/ui/shadcn/input-group';
 import { Textarea } from '@/ui/shadcn/textarea';
 
-export function LaunchOptionsDialog({ open, onOpenChange }: any) {
+export function LaunchOptionsDialog({
+    open,
+    onOpenChange
+}: {
+    open: boolean;
+    onOpenChange(open: boolean): void;
+}) {
     const { t } = useTranslation();
     const [launchArguments, setLaunchArguments] = useState('');
     const [vrcLaunchPathOverride, setVrcLaunchPathOverride] = useState('');
@@ -45,7 +51,7 @@ export function LaunchOptionsDialog({ open, onOpenChange }: any) {
             configRepository.getString('launchArguments', ''),
             configRepository.getString('vrcLaunchPathOverride', '')
         ])
-            .then(([nextLaunchArguments, nextLaunchPath]: any) => {
+            .then(([nextLaunchArguments, nextLaunchPath]) => {
                 if (!active) {
                     return;
                 }

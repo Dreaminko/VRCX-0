@@ -1,4 +1,5 @@
 import type { DashboardPanelDefinition } from '@/components/dashboard/dashboardRegistry';
+import type { DashboardPanel } from '@/repositories/dashboardRepository';
 import {
     getDashboardPanelDefinition,
     resolveDashboardPanelKey
@@ -31,9 +32,9 @@ export function createDashboardPanelPreviewProps({
     pageMetrics,
     onPanelChange
 }: {
-    panel: unknown;
+    panel: DashboardPanel | null;
     pageMetrics: DashboardPageMetrics;
-    onPanelChange?: (nextPanel: unknown) => void;
+    onPanelChange?: (nextPanel: DashboardPanel | null) => void;
 }): DashboardPanelPreviewProps {
     const panelKey = resolveDashboardPanelKey(panel);
     const definition = getDashboardPanelDefinition(panelKey);

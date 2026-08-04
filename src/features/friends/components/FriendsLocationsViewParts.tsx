@@ -24,6 +24,7 @@ import {
     resolveLocationTarget
 } from '../friendsLocationsRows';
 import type { FriendsLocationsSection } from '../useFriendsLocationsPageDerivedState';
+import type { getFriendsLocationsDensityConfig } from '../friendsLocationsDensity';
 
 type BivariantCallback<Args extends unknown[]> = {
     bivarianceHack(...args: Args): void;
@@ -63,7 +64,7 @@ type FriendsLocationCardItemProps = {
     section: FriendsLocationsSection;
     friend: FriendsLocationsFriend;
     currentUserId?: string | null;
-    densityConfig: unknown;
+    densityConfig: ReturnType<typeof getFriendsLocationsDensityConfig>;
     canUseFriendLocation: (location: string) => boolean;
     canSendInvite: boolean;
     canBoop: boolean;

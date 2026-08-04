@@ -63,48 +63,14 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-
-function getResolutionKey(row: any) {
-    const width = Number(row?.width);
-    const height = Number(row?.height);
-    return width > 0 && height > 0 ? `${width}x${height}` : '__default__';
-}
-
-function applyResolution(config: any, keyPrefix: any, value: any) {
-    if (value === '__default__') {
-        return {
-            ...config,
-            [`${keyPrefix}_width`]: '',
-            [`${keyPrefix}_height`]: ''
-        };
-    }
-
-    const [width, height] = value.split('x');
-    return {
-        ...config,
-        [`${keyPrefix}_width`]: Number(width) || '',
-        [`${keyPrefix}_height`]: Number(height) || ''
-    };
-}
-
-function normalizeVrchatConfigForSave(config: any) {
-    const output: any = { ...config };
-    for (const key of Object.keys(output)) {
-        if (key === 'picture_output_split_by_date') {
-            if (output[key]) {
-                delete output[key];
-            }
-        } else if (output[key] === '' || output[key] === false) {
-            delete output[key];
-        } else if (typeof output[key] === 'string') {
-            const parsed = Number.parseInt(output[key], 10);
-            if (!Number.isNaN(parsed)) {
-                output[key] = parsed;
-            }
-        }
-    }
-    return output;
-}
+import {
+    applyResolution,
+    getConfigFieldValue,
+    getResolutionKey,
+    normalizeVrchatConfigForSave,
+    parseVrchatConfig,
+    type VrchatConfig
+} from './vrchatConfigModel';
 
 function ResolutionSelect({
     label,
@@ -133,7 +99,7 @@ function ResolutionSelect({
                 </SelectTrigger>
                 <SelectContent>
                     <SelectGroup>
-                        {rows.map((row: any) => (
+                        {rows.map((row) => (
                             <SelectItem
                                 key={row.name}
                                 value={getResolutionKey(row)}
@@ -148,14 +114,20 @@ function ResolutionSelect({
     );
 }
 
-export function VRChatConfigDialog({ open, onOpenChange }: any) {
+export function VRChatConfigDialog({
+    open,
+    onOpenChange
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
     const isGameRunning = useRuntimeStore((state) =>
         Boolean(state.gameState.isGameRunning)
     );
     const loadRequestRef = useRef(0);
-    const [config, setConfig] = useState<Record<string, any>>({
+    const [config, setConfig] = useState<VrchatConfig>({
         picture_output_split_by_date: true
     });
     const [cacheSize, setCacheSize] = useState('');
@@ -210,7 +182,7 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
             if (requestId !== loadRequestRef.current) {
                 return;
             }
-            const parsed = configJson ? JSON.parse(configJson) : {};
+            const parsed = parseVrchatConfig(configJson);
             setConfig({
                 picture_output_split_by_date: true,
                 ...parsed
@@ -249,9 +221,9 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
         }
     }, [open]);
 
-    async function openFolderBrowser(key: any) {
+    async function openFolderBrowser(key: string) {
         const selected = await openFolderSelectorDialog(
-            config[key] || ''
+            String(getConfigFieldValue(config, key))
         ).catch((error: unknown) => {
             toast.error(
                 userFacingErrorMessage(
@@ -262,7 +234,7 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
             return '';
         });
         if (selected) {
-            setConfig((current: any) => ({ ...current, [key]: selected }));
+            setConfig((current) => ({ ...current, [key]: selected }));
         }
     }
 
@@ -419,7 +391,7 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                         <FieldGroup>
                             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                 {configFields.map(
-                                    ([key, label, placeholder, type]: any) => {
+                                    ([key, label, placeholder, type]) => {
                                         const isPathField =
                                             key.endsWith('_directory') ||
                                             key.endsWith('_folder');
@@ -443,19 +415,17 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                                                             id={`config-json-${key}`}
                                                             type={type}
                                                             value={
-                                                                config[key] ??
-                                                                ''
+                                                                getConfigFieldValue(
+                                                                    config,
+                                                                    key
+                                                                )
                                                             }
                                                             placeholder={
                                                                 placeholder
                                                             }
-                                                            onChange={(
-                                                                event: any
-                                                            ) =>
+                                                            onChange={(event) =>
                                                                 setConfig(
-                                                                    (
-                                                                        current: any
-                                                                    ) => ({
+                                                                    (current) => ({
                                                                         ...current,
                                                                         [key]: event
                                                                             .target
@@ -485,18 +455,17 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                                                         id={`config-json-${key}`}
                                                         type={type}
                                                         value={
-                                                            config[key] ?? ''
+                                                            getConfigFieldValue(
+                                                                config,
+                                                                key
+                                                            )
                                                         }
                                                         placeholder={
                                                             placeholder
                                                         }
-                                                        onChange={(
-                                                            event: any
-                                                        ) =>
+                                                        onChange={(event) =>
                                                             setConfig(
-                                                                (
-                                                                    current: any
-                                                                ) => ({
+                                                                (current) => ({
                                                                     ...current,
                                                                     [key]: event
                                                                         .target
@@ -522,8 +491,8 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                                         height: config.camera_res_height
                                     })}
                                     rows={VRChatCameraResolutions}
-                                    onValueChange={(value: any) =>
-                                        setConfig((current: any) =>
+                                    onValueChange={(value) =>
+                                        setConfig((current) =>
                                             applyResolution(
                                                 current,
                                                 'camera_res',
@@ -541,8 +510,8 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                                         height: config.camera_spout_res_height
                                     })}
                                     rows={VRChatScreenshotResolutions}
-                                    onValueChange={(value: any) =>
-                                        setConfig((current: any) =>
+                                    onValueChange={(value) =>
+                                        setConfig((current) =>
                                             applyResolution(
                                                 current,
                                                 'camera_spout_res',
@@ -560,8 +529,8 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                                         height: config.screenshot_res_height
                                     })}
                                     rows={VRChatScreenshotResolutions}
-                                    onValueChange={(value: any) =>
-                                        setConfig((current: any) =>
+                                    onValueChange={(value) =>
+                                        setConfig((current) =>
                                             applyResolution(
                                                 current,
                                                 'screenshot_res',
@@ -580,7 +549,7 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                                             config.picture_output_split_by_date
                                         )}
                                         onCheckedChange={(checked) =>
-                                            setConfig((current: any) => ({
+                                            setConfig((current) => ({
                                                 ...current,
                                                 picture_output_split_by_date:
                                                     Boolean(checked)
@@ -600,7 +569,7 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
                                             config.disableRichPresence
                                         )}
                                         onCheckedChange={(checked) =>
-                                            setConfig((current: any) => ({
+                                            setConfig((current) => ({
                                                 ...current,
                                                 disableRichPresence:
                                                     Boolean(checked)

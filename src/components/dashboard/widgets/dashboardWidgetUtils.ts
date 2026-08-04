@@ -1,13 +1,14 @@
 import { formatDateFilter } from '@/lib/dateTime';
 import { normalizeString } from '@/shared/utils/string';
+import type { DashboardConfig } from '@/features/dashboard/dashboardConfig';
 
 export const MAX_WIDGET_ROWS = 50;
 
 export function buildFavoriteIdSet(
-    remoteFavoriteIds: any,
-    localFriendFavorites: any
-) {
-    const ids = new Set();
+    remoteFavoriteIds: readonly unknown[] | null | undefined,
+    localFriendFavorites: unknown
+): Set<string> {
+    const ids = new Set<string>();
 
     for (const id of remoteFavoriteIds ?? []) {
         const normalized = normalizeString(id);
@@ -16,7 +17,13 @@ export function buildFavoriteIdSet(
         }
     }
 
-    for (const values of Object.values(localFriendFavorites ?? {})) {
+    const localGroups =
+        localFriendFavorites &&
+        typeof localFriendFavorites === 'object' &&
+        !Array.isArray(localFriendFavorites)
+            ? localFriendFavorites
+            : {};
+    for (const values of Object.values(localGroups)) {
         if (!Array.isArray(values)) {
             continue;
         }
@@ -32,7 +39,7 @@ export function buildFavoriteIdSet(
     return ids;
 }
 
-export function formatWidgetTime(value: any) {
+export function formatWidgetTime(value: unknown) {
     if (!value) {
         return '--';
     }
@@ -44,7 +51,7 @@ export function formatWidgetTime(value: any) {
     }
 }
 
-export function formatWidgetExactTime(value: any) {
+export function formatWidgetExactTime(value: unknown) {
     if (!value) {
         return '';
     }
@@ -60,23 +67,30 @@ export function joinCompactParts(values: unknown[] = []) {
     return values.filter(Boolean).join(' • ');
 }
 
-export function isDashboardWidgetFilterActive(config: any, filterType: any) {
+export function isDashboardWidgetFilterActive(
+    config: DashboardConfig,
+    filterType: string
+) {
     const filters = Array.isArray(config?.filters) ? config.filters : [];
     return filters.length === 0 || filters.includes(filterType);
 }
 
 export function getNextDashboardWidgetFilterConfig(
-    config: any,
-    filterType: any,
-    filterTypes: any
+    config: DashboardConfig,
+    filterType: string,
+    filterTypes: readonly string[]
 ) {
-    const currentFilters = Array.isArray(config?.filters) ? config.filters : [];
-    let filters;
+    const currentFilters = Array.isArray(config.filters)
+        ? config.filters.filter(
+              (entry): entry is string => typeof entry === 'string'
+          )
+        : [];
+    let filters: string[];
 
     if (currentFilters.length === 0) {
-        filters = filterTypes.filter((entry: any) => entry !== filterType);
+        filters = filterTypes.filter((entry) => entry !== filterType);
     } else if (currentFilters.includes(filterType)) {
-        filters = currentFilters.filter((entry: any) => entry !== filterType);
+        filters = currentFilters.filter((entry) => entry !== filterType);
         if (filters.length === 0) {
             filters = [];
         }

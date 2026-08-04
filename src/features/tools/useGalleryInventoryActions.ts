@@ -1,7 +1,19 @@
-import { mergeCurrentUserPresenceFields } from '@/shared/utils/currentUserPresence';
+import {
+    mergeCurrentUserPresenceFields,
+    type CurrentUserPresenceRecord
+} from '@/shared/utils/currentUserPresence';
 import { usePrintFavoriteStore } from '@/state/printFavoriteStore';
+import { normalizeString } from '@/shared/utils/string';
 
-function mergeCurrentUserMediaUpdate(nextUser: any, previousUser: any) {
+import type {
+    GalleryInventoryActionDeps,
+    GalleryProfileField
+} from './galleryTypes';
+
+function mergeCurrentUserMediaUpdate(
+    nextUser: CurrentUserPresenceRecord,
+    previousUser: CurrentUserPresenceRecord | null
+) {
     const mergedUser = mergeCurrentUserPresenceFields(nextUser, previousUser);
     if (
         Array.isArray(previousUser?.badges) &&
@@ -33,8 +45,8 @@ export function useGalleryInventoryActions({
     toast,
     useRuntimeStore,
     userProfileRepository
-}: any) {
-    async function deletePrint(printId: any) {
+}: GalleryInventoryActionDeps) {
+    async function deletePrint(printId: unknown) {
         const normalizedPrintId =
             typeof printId === 'string'
                 ? printId.trim()
@@ -60,10 +72,10 @@ export function useGalleryInventoryActions({
         try {
             await mediaRepository.deletePrint(normalizedPrintId);
             if (isRuntimeAuthTarget(authTarget)) {
-                setAssets((current: any) => ({
+                setAssets((current) => ({
                     ...current,
                     prints: current.prints.filter(
-                        (print: any) => print.id !== normalizedPrintId
+                        (print) => print.id !== normalizedPrintId
                     )
                 }));
                 try {
@@ -94,12 +106,15 @@ export function useGalleryInventoryActions({
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === `prints:${normalizedPrintId}` ? '' : current
             );
         }
     }
-    async function setProfileField(fieldName: any, fileId: any) {
+    async function setProfileField(
+        fieldName: GalleryProfileField,
+        fileId: unknown
+    ) {
         if (!currentUserId) {
             toast.error(t('view.tools.empty.no_current_user_is_available'));
             return;
@@ -130,16 +145,16 @@ export function useGalleryInventoryActions({
             if (!isRuntimeAuthTarget(authTarget)) {
                 return;
             }
-            const mergedUser: any = mergeCurrentUserMediaUpdate(
+            const mergedUser = mergeCurrentUserMediaUpdate(
                 nextUser,
                 useRuntimeStore.getState().auth.currentUserSnapshot
             );
             useRuntimeStore.getState().setAuthBootstrap({
                 currentUserSnapshot: mergedUser,
                 currentUserDisplayName:
-                    mergedUser.displayName ||
-                    mergedUser.username ||
-                    mergedUser.id ||
+                    normalizeString(mergedUser.displayName) ||
+                    normalizeString(mergedUser.username) ||
+                    normalizeString(mergedUser.id) ||
                     currentUserId
             });
             toast.success(
@@ -156,14 +171,14 @@ export function useGalleryInventoryActions({
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === `${fieldName}:${normalizedFileId || 'clear'}`
                     ? ''
                     : current
             );
         }
     }
-    async function consumeInventoryBundle(inventoryId: any) {
+    async function consumeInventoryBundle(inventoryId: unknown) {
         const normalizedInventoryId =
             typeof inventoryId === 'string'
                 ? inventoryId.trim()
@@ -179,10 +194,10 @@ export function useGalleryInventoryActions({
         try {
             await mediaRepository.consumeInventoryBundle(normalizedInventoryId);
             if (isRuntimeAuthTarget(authTarget)) {
-                setAssets((current: any) => ({
+                setAssets((current) => ({
                     ...current,
                     inventory: current.inventory.filter(
-                        (item: any) => item.id !== normalizedInventoryId
+                        (item) => item.id !== normalizedInventoryId
                     )
                 }));
                 await refreshInventory();
@@ -199,7 +214,7 @@ export function useGalleryInventoryActions({
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === `inventory:${normalizedInventoryId}` ? '' : current
             );
         }
@@ -234,7 +249,7 @@ export function useGalleryInventoryActions({
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === 'inventory:redeem' ? '' : current
             );
         }

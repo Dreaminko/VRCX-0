@@ -5,16 +5,21 @@ import {
     SCREENSHOT_METADATA_SEARCH_TYPES,
     sortScreenshotSearchRows,
     type ScreenshotSearchRow,
-    type ScreenshotSearchSort
+    type ScreenshotSearchSort,
+    type ScreenshotMetadataSearchType
 } from './screenshotMetadataValues';
 
 export function useScreenshotMetadataSearch() {
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchType, setSearchType] = useState(
+    const [searchType, setSearchType] = useState<
+        ScreenshotMetadataSearchType['value']
+    >(
         SCREENSHOT_METADATA_SEARCH_TYPES[0].value
     );
     const [searchRows, setSearchRows] = useState<ScreenshotSearchRow[]>([]);
-    const [searchViewMode, setSearchViewMode] = useState('detail');
+    const [searchViewMode, setSearchViewMode] = useState<'detail' | 'table'>(
+        'detail'
+    );
     const [searchSort, setSearchSort] = useState(
         DEFAULT_SCREENSHOT_SEARCH_SORT
     );

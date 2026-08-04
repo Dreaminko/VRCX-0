@@ -2,14 +2,22 @@ import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { DashboardDirection } from '@/repositories/dashboardRepository';
 import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-export function DashboardAddRowControl({ onAddRow }: any) {
+export function DashboardAddRowControl({
+    onAddRow
+}: {
+    onAddRow: (panelCount: number, direction: DashboardDirection) => void;
+}) {
     const { t } = useTranslation();
     const [showOptions, setShowOptions] = useState(false);
 
-    function addRow(panelCount: any, direction: any = 'horizontal') {
+    function addRow(
+        panelCount: number,
+        direction: DashboardDirection = 'horizontal'
+    ) {
         onAddRow(panelCount, direction);
         setShowOptions(false);
     }

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { ReactNode } from 'react';
 
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
@@ -24,7 +25,13 @@ import { Textarea } from '@/ui/shadcn/textarea';
 
 import { statusOptions, updateArrayValue } from './toolsDialogUtils';
 
-export function ToolTextarea({ value, rows = 15 }: any) {
+export function ToolTextarea({
+    value,
+    rows = 15
+}: {
+    value: string;
+    rows?: number;
+}) {
     return (
         <Textarea
             readOnly
@@ -43,7 +50,14 @@ export function CheckRow({
     checked,
     disabled,
     onCheckedChange
-}: any) {
+}: {
+    id: string;
+    label: ReactNode;
+    description?: ReactNode;
+    checked: boolean;
+    disabled?: boolean;
+    onCheckedChange(checked: boolean): void;
+}) {
     return (
         <Field
             orientation="horizontal"
@@ -72,20 +86,26 @@ export function MultiCheckList({
     options,
     disabled,
     onChange
-}: any) {
+}: {
+    idPrefix: string;
+    values: string[];
+    options: Array<{ value: string; label: ReactNode }>;
+    disabled?: boolean;
+    onChange(values: string[]): void;
+}) {
     return (
         <FieldGroup
             data-slot="checkbox-group"
             className="grid gap-2 sm:grid-cols-2"
         >
-            {options.map((option: any) => (
+            {options.map((option) => (
                 <CheckRow
                     key={option.value}
                     id={`${idPrefix}-${option.value}`}
                     label={option.label}
                     checked={values.includes(option.value)}
                     disabled={disabled}
-                    onCheckedChange={(checked: any) =>
+                    onCheckedChange={(checked) =>
                         onChange(
                             updateArrayValue(values, option.value, checked)
                         )
@@ -106,7 +126,17 @@ export function StatusEditor({
     onStatusChange,
     onDescEnabledChange,
     onDescChange
-}: any) {
+}: {
+    id: string;
+    label: string;
+    disabled?: boolean;
+    status: string;
+    descEnabled: boolean;
+    desc: string;
+    onStatusChange(value: string | null): void;
+    onDescEnabledChange(checked: boolean): void;
+    onDescChange(value: string): void;
+}) {
     const { t } = useTranslation();
     const descEnabledId = `${id}-description-enabled`;
 
@@ -131,7 +161,7 @@ export function StatusEditor({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                {statusOptions.map((statusOption: any) => (
+                                {statusOptions.map((statusOption) => (
                                     <SelectItem
                                         key={statusOption}
                                         value={statusOption}

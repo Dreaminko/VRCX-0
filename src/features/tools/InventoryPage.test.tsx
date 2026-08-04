@@ -2,6 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { InventoryItemRecord } from '@/repositories/mediaRepository';
 
 vi.mock('react-i18next', async (importOriginal) => {
     const actual = await importOriginal<typeof import('react-i18next')>();
@@ -53,7 +54,7 @@ function renderCard({
 }: {
     item?: typeof baseItem;
     profileDecorationMutationPending?: boolean;
-    onSetProfileDecorationEquipped?: ReturnType<typeof vi.fn>;
+    onSetProfileDecorationEquipped?: (item: InventoryItemRecord) => void;
 } = {}) {
     render(
         <InventoryItemCard

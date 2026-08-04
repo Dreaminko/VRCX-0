@@ -1,18 +1,12 @@
 import { languageKeys } from '@/shared/constants/language';
 
-type LanguageOption = {
+export type LanguageOption = {
     key?: unknown;
     id?: unknown;
     value?: unknown;
     label?: unknown;
     name?: unknown;
 };
-type ProfileLanguageSource = {
-    $languages?: unknown[];
-    languages?: unknown[];
-    tags?: unknown[];
-};
-
 const fallbackLanguageDisplayNames: Readonly<Record<string, string>> =
     Object.freeze({
         afr: 'Afrikaans',
@@ -153,9 +147,10 @@ export function normalizeLanguageOptionsFromConfig(
 }
 
 export function normalizeProfileLanguageRows(
-    profile: ProfileLanguageSource | null | undefined,
+    profile: unknown,
     languageOptionMap: ReadonlyMap<string, LanguageOption> = new Map()
 ): Array<{ key: string; value: string }> {
+    const profileRecord = isRecord(profile) ? profile : {};
     const rows: Array<{ key: string; value: string }> = [];
     const seen = new Set<string>();
     const addRow = (entry: unknown) => {
@@ -186,14 +181,14 @@ export function normalizeProfileLanguageRows(
         seen.add(key);
     };
 
-    if (Array.isArray(profile?.$languages)) {
-        profile.$languages.forEach(addRow);
+    if (Array.isArray(profileRecord.$languages)) {
+        profileRecord.$languages.forEach(addRow);
     }
-    if (Array.isArray(profile?.languages)) {
-        profile.languages.forEach(addRow);
+    if (Array.isArray(profileRecord.languages)) {
+        profileRecord.languages.forEach(addRow);
     }
-    if (Array.isArray(profile?.tags)) {
-        profile.tags.forEach((tag) => {
+    if (Array.isArray(profileRecord.tags)) {
+        profileRecord.tags.forEach((tag) => {
             const normalizedTag = normalizeLanguageText(tag).toLowerCase();
             if (normalizedTag.startsWith('language_')) {
                 addRow(normalizedTag);

@@ -1,5 +1,6 @@
 import { ChevronDownIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 import {
@@ -17,9 +18,21 @@ import { Input } from '@/ui/shadcn/input';
 import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SettingsGroup } from '../SettingsField';
+import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+
+type InterfaceState = SettingsPageStateSections['interface'];
+type SettingsInterfaceUserColorsCardProps = Pick<
+    InterfaceState,
+    | 'prefs'
+    | 'onRandomUserColoursChange'
+    | 'onResetTrustColors'
+    | 'onSaveTrustColor'
+    | 'onTrustColorDraftChange'
+>;
+type SettingsPrefs = InterfaceState['prefs'];
 
 function getTrustColorInputValue(
-    prefs: any,
+    prefs: SettingsPrefs,
     key: keyof typeof TRUST_COLOR_DEFAULTS
 ) {
     const value = prefs.trustColor?.[key];
@@ -27,7 +40,7 @@ function getTrustColorInputValue(
 }
 
 function getTrustColorDraftValue(
-    prefs: any,
+    prefs: SettingsPrefs,
     key: keyof typeof TRUST_COLOR_DEFAULTS
 ) {
     return prefs.trustColor?.[key] || TRUST_COLOR_DEFAULTS[key];
@@ -39,7 +52,7 @@ export function SettingsInterfaceUserColorsCard({
     onResetTrustColors,
     onSaveTrustColor,
     onTrustColorDraftChange
-}: any) {
+}: SettingsInterfaceUserColorsCardProps) {
     const { t } = useTranslation();
     const [trustColorsOpen, setTrustColorsOpen] = useState(false);
 
@@ -76,7 +89,7 @@ export function SettingsInterfaceUserColorsCard({
                             )}
                         </div>
                         <div className="mt-1 flex flex-wrap gap-1.5">
-                            {TRUST_COLOR_ENTRIES.map((entry: any) => {
+                            {TRUST_COLOR_ENTRIES.map((entry) => {
                                 const color = getTrustColorInputValue(
                                     prefs,
                                     entry.key
@@ -128,7 +141,7 @@ export function SettingsInterfaceUserColorsCard({
                             </Button>
                         </div>
                         <div className="flex flex-col gap-2">
-                            {TRUST_COLOR_ENTRIES.map((entry: any) => (
+                            {TRUST_COLOR_ENTRIES.map((entry) => (
                                 <div
                                     key={entry.key}
                                     className="grid gap-2 rounded-md border p-2.5 md:grid-cols-[minmax(7rem,1fr)_minmax(5rem,auto)_minmax(0,240px)] md:items-center"
@@ -154,7 +167,7 @@ export function SettingsInterfaceUserColorsCard({
                                         </span>
                                     </div>
                                     <div className="flex flex-wrap gap-1">
-                                        {entry.presets.map((preset: any) => (
+                                        {entry.presets.map((preset) => (
                                             <Button
                                                 key={preset}
                                                 type="button"
@@ -218,4 +231,3 @@ export function SettingsInterfaceUserColorsCard({
         </SettingsGroup>
     );
 }
-import { useTranslation } from 'react-i18next';

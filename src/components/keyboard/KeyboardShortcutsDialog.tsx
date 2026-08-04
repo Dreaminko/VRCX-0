@@ -26,9 +26,15 @@ const SHORTCUT_GROUPS = [
             { labelKey: 'app_menu.hide_friends_sidebar', keys: ['Shift', 'B'] }
         ]
     }
-];
+] as const;
 
-export function KeyboardShortcutsDialog({ open, onOpenChange }: any) {
+export function KeyboardShortcutsDialog({
+    open,
+    onOpenChange
+}: {
+    open: boolean;
+    onOpenChange(open: boolean): void;
+}) {
     const { t } = useTranslation();
     const isMacHost = useRuntimeStore(
         (state) => state.hostCapabilities.platform === 'macos'
@@ -42,13 +48,13 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: any) {
                     <DialogTitle>{t('shortcuts.title')}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-5">
-                    {SHORTCUT_GROUPS.map((group: any) => (
+                    {SHORTCUT_GROUPS.map((group) => (
                         <section key={group.titleKey}>
                             <h3 className="text-muted-foreground mb-2 text-xs font-medium uppercase">
                                 {t(group.titleKey)}
                             </h3>
                             <ul className="divide-border divide-y">
-                                {group.items.map((item: any) => (
+                                {group.items.map((item) => (
                                     <li
                                         key={item.labelKey}
                                         className="flex items-center justify-between gap-4 py-2 text-sm"

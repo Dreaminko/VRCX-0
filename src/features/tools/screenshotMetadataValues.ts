@@ -6,6 +6,14 @@ import {
 } from '@/shared/utils/dateTimeFormatters';
 import { parseVrchatScreenshotDateFromFileName } from '@/shared/utils/screenshot';
 import { useShellStore } from '@/state/shellStore';
+import type {
+    AuthorDetail,
+    PlayerDetail,
+    ScreenshotFolderInfo,
+    ScreenshotMetadata,
+    ScreenshotSearchResult,
+    WorldDetail
+} from '@/platform/tauri/bindings';
 
 export const SCREENSHOT_METADATA_SEARCH_TYPES = [
     {
@@ -28,7 +36,10 @@ export const SCREENSHOT_METADATA_SEARCH_TYPES = [
         index: 3,
         labelKey: 'dialog.screenshot_metadata.search_types.world_id'
     }
-];
+] as const;
+
+export type ScreenshotMetadataSearchType =
+    (typeof SCREENSHOT_METADATA_SEARCH_TYPES)[number];
 
 export type ScreenshotSearchSort = {
     asc: boolean;
@@ -39,7 +50,54 @@ export type ScreenshotSearchRow = Record<string, unknown> & {
     filePath: string;
     dateTime: Date | null;
     playerCount: number;
+    dateLabel?: string;
+    world: string;
+    author?: string;
+    resolution?: string;
+    match?: string;
 };
+
+export type NormalizedScreenshotMetadata = {
+    filePath: string;
+    fileName: string;
+    previousFilePath: string;
+    nextFilePath: string;
+    resolution: string;
+    fileSizeBytes: number;
+    dateTime: Date | null;
+    world: WorldDetail;
+    author: AuthorDetail;
+    players: PlayerDetail[];
+    note: string;
+    application: string;
+};
+
+type ScreenshotExtraData = Record<string, unknown> & {
+    filePath?: unknown;
+    fileName?: unknown;
+    previousFilePath?: unknown;
+    nextFilePath?: unknown;
+    resolution?: unknown;
+    fileSizeBytes?: unknown;
+    creationDate?: unknown;
+};
+
+export type ScreenshotFolderTreeInput = {
+    rootPath?: string;
+    folders?: Array<
+        Partial<ScreenshotFolderInfo> & {
+            path: string;
+        }
+    >;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function stringValue(value: unknown): string {
+    return typeof value === 'string' ? value : String(value ?? '');
+}
 
 export const DEFAULT_SCREENSHOT_SEARCH_SORT: ScreenshotSearchSort = {
     key: 'dateTime',
@@ -103,37 +161,42 @@ export function serializeGalleryScrollPositions(
     return result;
 }
 
-export function getGalleryFolderPathSet(folderTree: any) {
+export function getGalleryFolderPathSet(
+    folderTree: ScreenshotFolderTreeInput | null | undefined
+) {
     return new Set(
-        (Array.isArray(folderTree?.folders) ? folderTree.folders : [])
-            .map((folder: any) => folder?.path)
+        (folderTree?.folders ?? [])
+            .map((folder) => folder.path)
             .filter(Boolean)
     );
 }
 
-export function getFolderLatestModifiedAt(folder: any) {
+export function getFolderLatestModifiedAt(
+    folder: Partial<ScreenshotFolderInfo>
+) {
     return Number(folder?.latestModifiedAt) || 0;
 }
 
-export function resolveGalleryFolder(folderTree: any, preferredFolders: any) {
-    const folders = Array.isArray(folderTree?.folders)
-        ? folderTree.folders
-        : [];
+export function resolveGalleryFolder(
+    folderTree: ScreenshotFolderTreeInput | null | undefined,
+    preferredFolders: unknown
+) {
+    const folders = folderTree?.folders ?? [];
     const preferredList = Array.isArray(preferredFolders)
         ? preferredFolders
         : [preferredFolders];
     for (const preferredFolder of preferredList) {
         if (
             preferredFolder &&
-            folders.some((folder: any) => folder.path === preferredFolder)
+            folders.some((folder) => folder.path === preferredFolder)
         ) {
             return preferredFolder;
         }
     }
     const latestFolder = folders
-        .filter((folder: any) => Number(folder.imageCount) > 0)
+        .filter((folder) => Number(folder.imageCount) > 0)
         .sort(
-            (left: any, right: any) =>
+            (left, right) =>
                 getFolderLatestModifiedAt(right) -
                     getFolderLatestModifiedAt(left) ||
                 String(right.path || '').localeCompare(String(left.path || ''))
@@ -141,7 +204,7 @@ export function resolveGalleryFolder(folderTree: any, preferredFolders: any) {
     return latestFolder?.path || folderTree?.rootPath || folders[0]?.path || '';
 }
 
-export function normalizeDroppedFilePath(value: any) {
+export function normalizeDroppedFilePath(value: unknown) {
     const text = String(value || '')
         .split(/\r?\n/)
         .map((line) => line.trim())
@@ -166,7 +229,12 @@ export function normalizeDroppedFilePath(value: any) {
     return text;
 }
 
-export function getDroppedScreenshotPath(event: any) {
+export function getDroppedScreenshotPath(event: {
+    dataTransfer?: {
+        files?: ArrayLike<{ path?: string; webkitRelativePath?: string }>;
+        getData?: (format: string) => string;
+    } | null;
+}) {
     const file = event.dataTransfer?.files?.[0] || null;
     const filePath = file?.path || file?.webkitRelativePath || '';
     if (filePath) {
@@ -174,8 +242,8 @@ export function getDroppedScreenshotPath(event: any) {
     }
 
     return normalizeDroppedFilePath(
-        event.dataTransfer?.getData('text/uri-list') ||
-            event.dataTransfer?.getData('text/plain') ||
+        event.dataTransfer?.getData?.('text/uri-list') ||
+            event.dataTransfer?.getData?.('text/plain') ||
             ''
     );
 }
@@ -233,12 +301,22 @@ export function formatScreenshotBytes(bytes: unknown): string {
     return `${size.toFixed(precision)} ${units[unitIndex]}`;
 }
 
-export function formatScreenshotDateTime(value: any, locale: any = undefined) {
+export function formatScreenshotDateTime(
+    value: unknown,
+    locale: unknown = undefined
+) {
     if (!value) {
         return '—';
     }
 
-    const date = value instanceof Date ? value : new Date(value);
+    const date =
+        value instanceof Date
+            ? value
+            : new Date(
+                  typeof value === 'string' || typeof value === 'number'
+                      ? value
+                      : String(value)
+              );
     if (Number.isNaN(date.getTime())) {
         return '—';
     }
@@ -267,7 +345,7 @@ export function formatScreenshotDateTime(value: any, locale: any = undefined) {
     );
 }
 
-export function getFileNameFromPath(path: any) {
+export function getFileNameFromPath(path: unknown) {
     return (
         String(path || '')
             .split(/[\\/]/)
@@ -277,9 +355,9 @@ export function getFileNameFromPath(path: any) {
 }
 
 export function resolveScreenshotMetadataDate(
-    metadata: any,
-    extra: any,
-    fileName: any
+    metadata: Partial<ScreenshotMetadata>,
+    extra: ScreenshotExtraData,
+    fileName: unknown
 ) {
     if (metadata?.timestamp) {
         const parsed = Date.parse(metadata.timestamp);
@@ -294,7 +372,7 @@ export function resolveScreenshotMetadataDate(
     }
 
     if (extra?.creationDate) {
-        const parsed = Date.parse(extra.creationDate);
+        const parsed = Date.parse(stringValue(extra.creationDate));
         if (Number.isFinite(parsed)) {
             return new Date(parsed);
         }
@@ -303,29 +381,76 @@ export function resolveScreenshotMetadataDate(
     return null;
 }
 
-export function normalizeScreenshotMetadata(metadata: any, extra: any) {
+export function normalizeScreenshotMetadata(
+    metadata: unknown,
+    extra: unknown = {}
+): NormalizedScreenshotMetadata {
+    const source = isRecord(metadata) ? metadata : {};
+    const extraData: ScreenshotExtraData = isRecord(extra) ? extra : {};
     const fileName =
-        extra?.fileName ||
-        getFileNameFromPath(extra?.filePath || metadata?.sourceFile);
-    const dateTime = resolveScreenshotMetadataDate(metadata, extra, fileName);
+        stringValue(extraData.fileName) ||
+        getFileNameFromPath(extraData.filePath || source.sourceFile);
+    const typedMetadata: Partial<ScreenshotMetadata> = {
+        timestamp:
+            typeof source.timestamp === 'string' ? source.timestamp : null,
+        sourceFile:
+            typeof source.sourceFile === 'string' ? source.sourceFile : null
+    };
+    const dateTime = resolveScreenshotMetadataDate(
+        typedMetadata,
+        extraData,
+        fileName
+    );
+    const world = isRecord(source.world)
+        ? {
+              id: stringValue(source.world.id) || undefined,
+              name: stringValue(source.world.name) || undefined,
+              instanceId: stringValue(source.world.instanceId) || undefined
+          }
+        : {};
+    const author = isRecord(source.author)
+        ? {
+              id: stringValue(source.author.id) || undefined,
+              displayName:
+                  stringValue(source.author.displayName) || undefined
+          }
+        : {};
+    const players = Array.isArray(source.players)
+        ? source.players.flatMap((player): PlayerDetail[] => {
+              if (!isRecord(player)) {
+                  return [];
+              }
+              return [
+                  {
+                      id: stringValue(player.id) || undefined,
+                      displayName:
+                          stringValue(player.displayName) || undefined
+                  }
+              ];
+          })
+        : [];
 
     return {
-        filePath: extra?.filePath || metadata?.sourceFile || '',
+        filePath: stringValue(extraData.filePath || source.sourceFile),
         fileName,
-        previousFilePath: extra?.previousFilePath || '',
-        nextFilePath: extra?.nextFilePath || '',
-        resolution: extra?.resolution || '',
-        fileSizeBytes: extra?.fileSizeBytes ?? 0,
+        previousFilePath: stringValue(extraData.previousFilePath),
+        nextFilePath: stringValue(extraData.nextFilePath),
+        resolution: stringValue(extraData.resolution),
+        fileSizeBytes: Number(extraData.fileSizeBytes) || 0,
         dateTime,
-        world: metadata?.world ?? {},
-        author: metadata?.author ?? {},
-        players: Array.isArray(metadata?.players) ? metadata.players : [],
-        note: metadata?.note || '',
-        application: metadata?.application || ''
+        world,
+        author,
+        players,
+        note: stringValue(source.note),
+        application: stringValue(source.application)
     };
 }
 
-export function normalizeScreenshotSearchResult(result: any) {
+export function normalizeScreenshotSearchResult(
+    result: Omit<ScreenshotSearchResult, 'metadata'> & {
+        metadata: ScreenshotMetadata | null;
+    }
+) {
     const width = Number(result?.width) || 0;
     const height = Number(result?.height) || 0;
     return normalizeScreenshotMetadata(result?.metadata ?? {}, {
@@ -338,25 +463,25 @@ export function normalizeScreenshotSearchResult(result: any) {
 }
 
 export function buildScreenshotSearchRow(
-    normalized: any,
-    selectedSearchType: any,
-    query: any,
-    locale: any = undefined
+    normalized: NormalizedScreenshotMetadata,
+    selectedSearchType: ScreenshotMetadataSearchType,
+    query: unknown,
+    locale: unknown = undefined
 ): ScreenshotSearchRow {
     let match = '';
     if (selectedSearchType?.index === 0) {
         const normalizedQuery = String(query || '').toLowerCase();
         const hits = normalized.players
-            .filter((player: any) =>
+            .filter((player) =>
                 String(player.displayName || '')
                     .toLowerCase()
                     .includes(normalizedQuery)
             )
-            .map((player: any) => player.displayName);
+            .map((player) => player.displayName || '');
         match = hits.join(', ');
     } else if (selectedSearchType?.index === 1) {
         match =
-            normalized.players.find((player: any) => player.id === query)
+            normalized.players.find((player) => player.id === query)
                 ?.displayName || '';
     }
 

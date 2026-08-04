@@ -12,7 +12,7 @@ export function useDirectAccessAction() {
     const busyRef = useRef(false);
 
     const tryOpenDirectAccess = useCallback(
-        async (input: any) => {
+        async (input: unknown) => {
             const toastId = toast.loading(
                 t('prompt.direct_access_omni.message.opening')
             );
@@ -30,15 +30,15 @@ export function useDirectAccessAction() {
 
     const openPrompt = useCallback(
         async (
-            inputValue: any = '',
-            description: any = t('prompt.direct_access_omni.description')
+            inputValue: unknown = '',
+            description: string = t('prompt.direct_access_omni.description')
         ) => {
             const result = await prompt({
                 title: t('prompt.direct_access_omni.header'),
                 description,
                 confirmText: t('prompt.direct_access_omni.ok'),
                 cancelText: t('prompt.direct_access_omni.cancel'),
-                inputValue,
+                inputValue: String(inputValue ?? ''),
                 pattern: /\S+/
             });
 

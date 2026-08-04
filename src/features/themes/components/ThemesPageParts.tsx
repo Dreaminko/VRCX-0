@@ -1,4 +1,5 @@
 import { BadgeCheckIcon, DownloadIcon, ExternalLinkIcon } from 'lucide-react';
+import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
 
 import { openExternalLink } from '@/services/entityMediaService';
@@ -13,7 +14,7 @@ import { resolveThemeAuthorUrl } from '../themeHelpers';
 export function ThemeTags({ tags }: { tags: string[] }) {
     return (
         <div className="flex min-w-0 flex-wrap gap-1.5">
-            {tags.map((tag: any) => (
+            {tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="font-normal">
                     {tag}
                 </Badge>
@@ -62,7 +63,7 @@ export function ThemeCatalogCard({
     downloads: number;
     loading: boolean;
     onInstall: () => void;
-    t: (key: string, options?: any) => string;
+    t: TFunction;
 }) {
     const authorUrl = resolveThemeAuthorUrl(theme);
 

@@ -3,7 +3,11 @@ import {
     LoadingState as AppLoadingState
 } from '@/components/layout/PageScaffold';
 
-export function EmptyState({ title, description, children }: any) {
+export function EmptyState({
+    title,
+    description,
+    children
+}: ComponentProps<typeof AppEmptyState>) {
     return (
         <AppEmptyState
             className="min-h-72"
@@ -18,3 +22,4 @@ export function EmptyState({ title, description, children }: any) {
 export function LoadingState() {
     return <AppLoadingState className="min-h-72" />;
 }
+import type { ComponentProps } from 'react';

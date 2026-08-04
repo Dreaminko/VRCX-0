@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
     appNotificationBoopDismiss: vi.fn(),
     appNotificationBoopReply: vi.fn(),
     appNotificationRespondAndExpire: vi.fn(),
-    getWorlds: vi.fn()
+    getWorldById: vi.fn()
 }));
 
 vi.mock('@/platform/tauri/bindings', () => ({
@@ -38,7 +38,7 @@ vi.mock('@/repositories/notificationPersistenceRepository', () => ({
 
 vi.mock('@/repositories/vrchatSearchRepository', () => ({
     default: {
-        getWorlds: mocks.getWorlds
+        getWorldById: mocks.getWorldById
     }
 }));
 
@@ -87,7 +87,9 @@ describe('notificationActionService', () => {
         mocks.appNotificationBoopDismiss.mockResolvedValue(outcome());
         mocks.appNotificationBoopReply.mockResolvedValue(outcome());
         mocks.appNotificationRespondAndExpire.mockResolvedValue(outcome());
-        mocks.getWorlds.mockResolvedValue({ json: { name: 'World Name' } });
+        mocks.getWorldById.mockResolvedValue({
+            json: { name: 'World Name' }
+        });
     });
 
     it('sends a boop reply through the single backend chain command', async () => {
@@ -238,7 +240,7 @@ describe('notificationActionService', () => {
             worldId: 'wrld_1'
         });
 
-        expect(mocks.getWorlds).toHaveBeenCalledWith({}, 'wrld_1');
+        expect(mocks.getWorldById).toHaveBeenCalledWith('wrld_1');
         expect(mocks.appNotificationRequestInviteAccept).toHaveBeenCalledWith({
             ownerUserId: 'usr_self',
             target: {
@@ -264,7 +266,7 @@ describe('notificationActionService', () => {
             worldId: 'wrld_1'
         });
 
-        expect(mocks.getWorlds).not.toHaveBeenCalled();
+        expect(mocks.getWorldById).not.toHaveBeenCalled();
         expect(mocks.appNotificationRequestInviteAccept).toHaveBeenCalledWith(
             expect.objectContaining({ instanceId: '', worldName: '' })
         );

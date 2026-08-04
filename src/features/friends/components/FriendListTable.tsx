@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { PaginationState, Table as TableModel } from '@tanstack/react-table';
 
 import {
     DataTableColumnDndProvider,
@@ -19,6 +20,7 @@ import {
 import { Table, TableBody, TableRow } from '@/ui/shadcn/table';
 
 import { FriendListEmptyState } from './FriendListViewParts';
+import type { FriendListRow } from '../friendListRows';
 
 export function FriendListTable({
     table,
@@ -34,7 +36,21 @@ export function FriendListTable({
     onResetTableLayout,
     onPageSizeChange,
     onOpenUser
-}: any) {
+}: {
+    table: TableModel<FriendListRow>;
+    pageCount: number;
+    pageSizes: number[];
+    pagination: PaginationState;
+    filteredRowsLength: number;
+    friendDetail: string;
+    favoritesOnly: boolean;
+    isLoading: boolean;
+    isError: boolean;
+    hasRows: boolean;
+    onResetTableLayout: () => void;
+    onPageSizeChange: (value: unknown) => void;
+    onOpenUser: (friend: FriendListRow) => void;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -76,7 +92,7 @@ export function FriendListTable({
                                     <TableBody>
                                         {table
                                             .getRowModel()
-                                            .rows.map((row: any) => (
+                                            .rows.map((row) => (
                                                 <TableRow
                                                     key={row.id}
                                                     className="cursor-pointer"
@@ -117,7 +133,7 @@ export function FriendListTable({
                                                         {row
                                                             .getVisibleCells()
                                                             .map(
-                                                                (cell: any) => (
+                                                                (cell) => (
                                                                     <ResizableTableCell
                                                                         key={
                                                                             cell.id

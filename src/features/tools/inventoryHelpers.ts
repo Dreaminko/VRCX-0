@@ -1,6 +1,9 @@
 import { toast } from 'sonner';
 
-import type { InventoryItemRecord } from '@/repositories/mediaRepository';
+import type {
+    InventoryItemRecord,
+    MediaFileRecord
+} from '@/repositories/mediaRepository';
 import { emojiAnimationStyleList } from '@/shared/constants/emoji';
 import {
     MAX_IMAGE_UPLOAD_BYTES,
@@ -16,7 +19,27 @@ export { MAX_IMAGE_UPLOAD_BYTES };
 
 export const INVENTORY_GRID_DENSITY_STORAGE_KEY = 'VRCX_InventoryGridDensity';
 
-export const CATEGORY_ORDER = ['emojis', 'stickers', 'items', 'cosmetics'];
+export const CATEGORY_ORDER = [
+    'emojis',
+    'stickers',
+    'items',
+    'cosmetics'
+] as const;
+export type InventoryCategory = (typeof CATEGORY_ORDER)[number];
+export type InventorySource = 'file' | 'inventory' | 'empty';
+export type InventoryUploadTarget = 'emojis' | 'stickers';
+export type InventoryTabDefinition = {
+    key: string;
+    labelKey: string;
+    source: InventorySource;
+    fileTags?: string[];
+    uploadTarget?: InventoryUploadTarget;
+    params: Record<string, string | boolean>;
+};
+export type InventoryCategoryDefinition = {
+    labelKey: string;
+    tabs: InventoryTabDefinition[];
+};
 export const INITIAL_INVENTORY_SUB_TABS = Object.freeze({
     emojis: 'custom',
     stickers: 'custom',
@@ -61,7 +84,10 @@ function isProfileDecorationItemType(
     );
 }
 
-export const CATEGORY_DEFINITIONS: any = {
+export const CATEGORY_DEFINITIONS: Record<
+    InventoryCategory,
+    InventoryCategoryDefinition
+> = {
     emojis: {
         labelKey: 'dialog.inventory.emojis',
         tabs: [
@@ -70,7 +96,8 @@ export const CATEGORY_DEFINITIONS: any = {
                 labelKey: 'dialog.inventory.custom',
                 source: 'file',
                 fileTags: ['emoji', 'emojianimated'],
-                uploadTarget: 'emojis'
+                uploadTarget: 'emojis',
+                params: {}
             },
             {
                 key: 'exclusive',
@@ -101,7 +128,8 @@ export const CATEGORY_DEFINITIONS: any = {
                 labelKey: 'dialog.inventory.custom',
                 source: 'file',
                 fileTags: ['sticker'],
-                uploadTarget: 'stickers'
+                uploadTarget: 'stickers',
+                params: {}
             },
             {
                 key: 'exclusive',
@@ -194,7 +222,8 @@ export const CATEGORY_DEFINITIONS: any = {
             {
                 key: 'loading-screens',
                 labelKey: 'dialog.inventory.loading_screens',
-                source: 'empty'
+                source: 'empty',
+                params: {}
             },
             {
                 key: 'archived',
@@ -209,7 +238,7 @@ export const CATEGORY_DEFINITIONS: any = {
     }
 };
 
-export function scopeKey(category: any, tab: any) {
+export function scopeKey(category: string, tab: string) {
     return `${category}:${tab}`;
 }
 
@@ -226,7 +255,7 @@ export function readGridDensityPreference() {
     }
 }
 
-export function writeGridDensityPreference(value: any) {
+export function writeGridDensityPreference(value: string) {
     if (typeof window === 'undefined') {
         return;
     }
@@ -237,20 +266,22 @@ export function writeGridDensityPreference(value: any) {
     }
 }
 
-export function getInventoryGridDensityConfig(gridDensity: any) {
+export function getInventoryGridDensityConfig(gridDensity: unknown) {
     return getGalleryGridDensityConfig(gridDensity);
 }
 
-export function sanitizeInventoryGridDensity(nextValue: any) {
+export function sanitizeInventoryGridDensity(nextValue: unknown) {
     return sanitizeGalleryGridDensity(nextValue);
 }
 
-export function getLatestFileUrl(file: any) {
+export function getLatestFileUrl(file: Pick<MediaFileRecord, 'versions'>) {
     const versions = Array.isArray(file?.versions) ? file.versions : [];
     return versions.at(-1)?.file?.url ?? '';
 }
 
-export function getUsefulDisplayName(file: any) {
+export function getUsefulDisplayName(
+    file: Partial<Pick<MediaFileRecord, 'displayName' | 'name' | 'id'>>
+) {
     const displayName = String(file?.displayName || '').trim();
     const name = String(file?.name || '').trim();
     const id = String(file?.id || '').trim();
@@ -267,8 +298,24 @@ export function getUsefulDisplayName(file: any) {
     return visibleName;
 }
 
-export function resolveInventoryImageUrl(item: any) {
-    return (
+type InventoryDisplayRecord = Record<string, unknown> & {
+    id?: string;
+    imageUrl?: string;
+    thumbnailUrl?: string;
+    name?: string;
+    description?: string;
+    displayName?: string;
+    itemType?: string;
+    type?: string;
+    isArchived?: boolean;
+    archived?: boolean;
+    item?: InventoryDisplayRecord | null;
+    template?: InventoryDisplayRecord | null;
+    metadata?: (Record<string, unknown> & { imageUrl?: string }) | null;
+};
+
+export function resolveInventoryImageUrl(item: InventoryDisplayRecord) {
+    return String(
         item?.imageUrl ||
         item?.thumbnailUrl ||
         item?.item?.imageUrl ||
@@ -280,8 +327,8 @@ export function resolveInventoryImageUrl(item: any) {
     );
 }
 
-export function resolveInventoryName(item: any) {
-    return (
+export function resolveInventoryName(item: InventoryDisplayRecord) {
+    return String(
         item?.name ||
         item?.item?.name ||
         item?.template?.name ||
@@ -291,8 +338,8 @@ export function resolveInventoryName(item: any) {
     );
 }
 
-export function resolveInventoryDescription(item: any) {
-    return (
+export function resolveInventoryDescription(item: InventoryDisplayRecord) {
+    return String(
         item?.description ||
         item?.item?.description ||
         item?.template?.description ||
@@ -300,8 +347,8 @@ export function resolveInventoryDescription(item: any) {
     );
 }
 
-export function resolveInventoryType(item: any) {
-    return item?.itemType || item?.type || item?.item?.type || '';
+export function resolveInventoryType(item: InventoryDisplayRecord) {
+    return String(item?.itemType || item?.type || item?.item?.type || '');
 }
 
 export function resolveProfileDecorationTypeLabelKey(
@@ -370,23 +417,31 @@ export function resolveProfileDecorationPreviewUrl(
     return resolveInventoryImageUrl(item);
 }
 
-export function isArchivedInventoryItem(item: any) {
+export function isArchivedInventoryItem(item: InventoryDisplayRecord) {
     return Boolean(item?.isArchived || item?.archived);
 }
 
-export function resolveEmojiStyleName(rawValue: any) {
+export function resolveEmojiStyleName(rawValue: unknown) {
     const normalizedValue = String(rawValue || '').toLowerCase();
     const match = Object.keys(emojiAnimationStyleList).find(
-        (styleName: any) => styleName.toLowerCase() === normalizedValue
+        (styleName) => styleName.toLowerCase() === normalizedValue
     );
     return match || 'Stop';
 }
 
+export type EmojiUploadSettings = {
+    isAnimated: boolean;
+    animationStyle: string;
+    fps: number;
+    frames: number;
+    loopPingPong: boolean;
+};
+
 export function parseEmojiUploadSettings(
-    fileName: any,
-    currentSettings: any = {}
-) {
-    const next: any = {
+    fileName: unknown,
+    currentSettings: Partial<EmojiUploadSettings> = {}
+): EmojiUploadSettings {
+    const next: EmojiUploadSettings = {
         isAnimated: Boolean(currentSettings.isAnimated),
         animationStyle: currentSettings.animationStyle || 'Stop',
         fps: Number(currentSettings.fps) || 15,
@@ -420,7 +475,10 @@ export function parseEmojiUploadSettings(
     return next;
 }
 
-export function validateImageFile(file: any, t: any) {
+export function validateImageFile(
+    file: Blob,
+    t: (key: string) => string
+) {
     const validation = validateImageUploadFile(file, {
         maxSize: MAX_IMAGE_UPLOAD_BYTES
     });

@@ -16,6 +16,20 @@ import {
 } from '@/ui/shadcn/collapsible';
 import { Textarea } from '@/ui/shadcn/textarea';
 
+import type { useThemesController } from '../useThemesController';
+
+type CustomCssSectionProps = Pick<
+    ReturnType<typeof useThemesController>,
+    | 'customCssOpen'
+    | 'setCustomCssOpen'
+    | 'overrideCssLength'
+    | 'overrideDraft'
+    | 'setOverrideDraft'
+    | 'saveOverride'
+    | 'disableOverride'
+    | 'clearOverride'
+>;
+
 export function CustomCssSection({
     customCssOpen,
     setCustomCssOpen,
@@ -25,7 +39,7 @@ export function CustomCssSection({
     saveOverride,
     disableOverride,
     clearOverride
-}: any) {
+}: CustomCssSectionProps) {
     const { t } = useTranslation();
 
     return (

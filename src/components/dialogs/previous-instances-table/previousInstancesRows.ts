@@ -49,12 +49,12 @@ export type PreviousInstanceRow = Partial<InstanceHistoryEntryOutput> & {
     worldId?: unknown;
 };
 
-type PreviousInstancePlayerRow = PreviousInstanceRow & {
+export type PreviousInstancePlayerRow = PreviousInstanceRow & {
     displayName?: unknown;
     display_name?: unknown;
 };
 
-type PreviousInstanceKnownUser = {
+export type PreviousInstanceKnownUser = {
     [key: string]: unknown;
     displayName?: unknown;
     username?: unknown;

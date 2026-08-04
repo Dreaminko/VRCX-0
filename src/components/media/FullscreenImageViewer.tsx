@@ -36,7 +36,14 @@ export function FullscreenImageViewer({
     fileName,
     sourcePath,
     onClose
-}: any) {
+}: {
+    open: boolean;
+    url?: string | null;
+    title?: string | null;
+    fileName?: string | null;
+    sourcePath?: string | null;
+    onClose(): void;
+}) {
     const { t } = useTranslation();
     const [imageLoading, setImageLoading] = useState(false);
     const [imageLoadError, setImageLoadError] = useState(false);
@@ -115,7 +122,7 @@ export function FullscreenImageViewer({
 
         try {
             const base64Data = await getDownloadImageBase64({
-                sourcePath,
+                sourcePath: sourcePath ?? undefined,
                 url: fullSizeUrl
             });
             const savedPath = await mediaRepository.saveImageFile(
@@ -139,7 +146,7 @@ export function FullscreenImageViewer({
             return undefined;
         }
 
-        function handleKeyDown(event: any) {
+        function handleKeyDown(event: KeyboardEvent) {
             if (event.key === 'Escape') {
                 event.preventDefault();
                 onClose();

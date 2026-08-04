@@ -199,7 +199,7 @@ export async function fetchChangelogRelease(version?: unknown) {
         requireInstallerAsset: false
     });
     return (
-        releases.find((release: any) => {
+        releases.find((release) => {
             const canonicalVersion = normalizeReleaseLookupVersion(
                 release?.canonicalVersion
             );

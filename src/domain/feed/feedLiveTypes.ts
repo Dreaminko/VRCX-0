@@ -1,35 +1,35 @@
 export type FeedLiveEntryPayload = Record<string, unknown> & {
-    id?: unknown;
-    rowId?: unknown;
-    row_id?: unknown;
-    sourceRank?: unknown;
-    source_rank?: unknown;
-    type?: unknown;
-    created_at?: unknown;
-    createdAt?: unknown;
-    userId?: unknown;
-    senderUserId?: unknown;
-    ownerUserId?: unknown;
-    displayName?: unknown;
-    details?: unknown;
-    location?: unknown;
-    message?: unknown;
-    groupName?: unknown;
-    previousLocation?: unknown;
-    time?: unknown;
-    worldId?: unknown;
-    worldName?: unknown;
-    displayLocation?: unknown;
-    avatarName?: unknown;
-    currentAvatarImageUrl?: unknown;
-    currentAvatarTags?: unknown;
-    currentAvatarThumbnailImageUrl?: unknown;
-    ownerId?: unknown;
-    previousAvatarName?: unknown;
-    previousCurrentAvatarImageUrl?: unknown;
-    previousCurrentAvatarTags?: unknown;
-    previousCurrentAvatarThumbnailImageUrl?: unknown;
-    previousOwnerId?: unknown;
+    id?: string | number;
+    rowId?: string | number;
+    row_id?: string | number;
+    sourceRank?: string | number;
+    source_rank?: string | number;
+    type?: string;
+    created_at?: string;
+    createdAt?: string;
+    userId?: string;
+    senderUserId?: string;
+    ownerUserId?: string;
+    displayName?: string;
+    details?: Record<string, unknown>;
+    location?: string;
+    message?: string;
+    groupName?: string;
+    previousLocation?: string;
+    time?: string | number;
+    worldId?: string;
+    worldName?: string;
+    displayLocation?: string;
+    avatarName?: string;
+    currentAvatarImageUrl?: string;
+    currentAvatarTags?: string[];
+    currentAvatarThumbnailImageUrl?: string;
+    ownerId?: string;
+    previousAvatarName?: string;
+    previousCurrentAvatarImageUrl?: string;
+    previousCurrentAvatarTags?: string[];
+    previousCurrentAvatarThumbnailImageUrl?: string;
+    previousOwnerId?: string;
 };
 
 export type FeedLiveAvatarEntryPayload = FeedLiveEntryPayload & {
@@ -70,9 +70,9 @@ export type FeedLiveEntry = {
 };
 
 export type FeedEntryPatchInput = Record<string, unknown> & {
-    displayName?: unknown;
-    worldName?: unknown;
-    displayLocation?: unknown;
+    displayName?: string;
+    worldName?: string;
+    displayLocation?: string;
 };
 
 export type FeedEntryPatch = Partial<{

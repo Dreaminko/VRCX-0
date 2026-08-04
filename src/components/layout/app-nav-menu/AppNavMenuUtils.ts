@@ -1,9 +1,19 @@
 import { DASHBOARD_NAV_KEY_PREFIX } from '@/shared/constants/dashboard';
 import { isToolNavKey } from '@/shared/constants/tools';
 
-import { getPathForNavEntry } from '../navMenuModel';
+import {
+    getPathForNavEntry,
+    type NavFolderItem,
+    type NavLayoutEntry,
+    type NavMenuItem
+} from '../navMenuModel';
 
-function labelForEntry(entry: any, t: any) {
+type Translate = (key: string) => string;
+
+function labelForEntry(
+    entry: NavMenuItem | null | undefined,
+    t: Translate
+) {
     if (!entry) {
         return '';
     }
@@ -27,12 +37,15 @@ function labelForEntry(entry: any, t: any) {
     );
 }
 
-function themeModeLabel(themeMode: any, t: any) {
+function themeModeLabel(themeMode: string, t: Translate) {
     return t(`view.settings.appearance.appearance.theme_mode_${themeMode}`);
 }
 
-function isEntryActive(entry: any, pathname: any) {
-    const path = getPathForNavEntry(entry);
+function isEntryActive(
+    entry: NavMenuItem | null | undefined,
+    pathname: string
+) {
+    const path = getPathForNavEntry(entry ?? null);
     if (!path) {
         return false;
     }
@@ -42,52 +55,63 @@ function isEntryActive(entry: any, pathname: any) {
     return pathname === path || pathname.startsWith(`${path}/`);
 }
 
-function isDashboardEntry(entry: any) {
+function isDashboardEntry(entry: NavMenuItem | null | undefined) {
     return String(entry?.index || '').startsWith(DASHBOARD_NAV_KEY_PREFIX);
 }
 
-function isToolEntry(entry: any) {
+function isToolEntry(entry: NavMenuItem | null | undefined) {
     return isToolNavKey(entry?.index || entry?.key);
 }
 
-function isEntryNotified(entry: any, notifiedKeys: any) {
+function isEntryNotified(
+    entry: NavMenuItem | null | undefined,
+    notifiedKeys: ReadonlySet<string>
+) {
     if (!entry || !notifiedKeys?.size) {
         return false;
     }
-    const targets = [entry.index, entry.key, entry.routeName].filter(Boolean);
+    const targets = [entry.index, entry.key, entry.routeName].filter(
+        (key): key is string => typeof key === 'string' && Boolean(key)
+    );
     if (entry.path) {
         const lastSegment = String(entry.path).split('/').filter(Boolean).pop();
         if (lastSegment) {
             targets.push(lastSegment);
         }
     }
-    return targets.some((key: any) => notifiedKeys.has(key));
+    return targets.some((key) => notifiedKeys.has(key));
 }
 
-function isNavItemNotified(entry: any, notifiedKeys: any) {
+function isNavItemNotified(
+    entry: NavMenuItem,
+    notifiedKeys: ReadonlySet<string>
+) {
     if (isEntryNotified(entry, notifiedKeys)) {
         return true;
     }
     return Boolean(
-        entry?.children?.some((child: any) =>
+        entry.children?.some((child) =>
             isEntryNotified(child, notifiedKeys)
         )
     );
 }
 
-function getFolderItemKey(item: any) {
+function getFolderItemKey(item: NavFolderItem) {
     return typeof item === 'string' ? item : item?.key;
 }
 
-function removeNavKeyFromLayout(layout: any, navKey: any) {
-    return (layout || [])
-        .map((entry: any) => {
+function removeNavKeyFromLayout(
+    layout: NavLayoutEntry[],
+    navKey: string
+): NavLayoutEntry[] {
+    return layout
+        .map((entry): NavLayoutEntry | null => {
             if (entry.type === 'item') {
                 return entry.key === navKey ? null : entry;
             }
             if (entry.type === 'folder') {
                 const nextItems = (entry.items || []).filter(
-                    (item: any) => getFolderItemKey(item) !== navKey
+                    (item) => getFolderItemKey(item) !== navKey
                 );
                 return nextItems.length
                     ? {
@@ -98,7 +122,7 @@ function removeNavKeyFromLayout(layout: any, navKey: any) {
             }
             return entry;
         })
-        .filter(Boolean);
+        .filter((entry): entry is NavLayoutEntry => entry !== null);
 }
 
 export {

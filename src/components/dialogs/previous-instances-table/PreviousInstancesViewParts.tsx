@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import { AffinityBadge } from '@/components/affinity/AffinityBadge';
@@ -57,6 +59,11 @@ import {
     rowOwnerUserId,
     rowWorldId
 } from './previousInstancesRows';
+import type {
+    PreviousInstanceKnownUser,
+    PreviousInstancePlayerRow,
+    PreviousInstanceRow
+} from './previousInstancesRows';
 
 const DETAILS_LOADING_INDICATOR_DELAY_MS = 150;
 
@@ -80,7 +87,12 @@ export function DialogEmptyState({
     description,
     action,
     className = ''
-}: any) {
+}: {
+    title: ReactNode;
+    description?: ReactNode;
+    action?: ReactNode;
+    className?: string;
+}) {
     return (
         <Empty
             className={['min-h-52 border', className].filter(Boolean).join(' ')}
@@ -96,7 +108,7 @@ export function DialogEmptyState({
     );
 }
 
-export function DialogErrorState({ children }: any) {
+export function DialogErrorState({ children }: { children: ReactNode }) {
     return (
         <Alert variant="destructive">
             <AlertDescription>{children}</AlertDescription>
@@ -104,7 +116,10 @@ export function DialogErrorState({ children }: any) {
     );
 }
 
-function instanceDetailsSummary(row: any, t: any) {
+function instanceDetailsSummary(
+    row: PreviousInstanceRow | null,
+    t: TFunction
+) {
     const parts = [row?.worldName, row?.groupName].filter(Boolean);
     if (parts.length) {
         return parts.join(' / ');
@@ -122,13 +137,18 @@ export function InstanceOwnerCell({
     userId,
     location = '',
     endpoint = ''
-}: any) {
+}: {
+    userId: string;
+    location?: string;
+    endpoint?: string;
+}) {
     const knownUser = useKnownUserFact(userId, { endpoint });
-    const displayName =
+    const displayName = String(
         knownUser?.displayName ||
-        knownUser?.username ||
-        knownUser?.name ||
-        userId;
+            knownUser?.username ||
+            knownUser?.name ||
+            userId
+    );
 
     useEffect(() => {
         if (!userId || displayName !== userId) {
@@ -181,7 +201,11 @@ function PreviousInstancePlayerNameButton({
     player,
     displayName,
     knownUser = null
-}: any) {
+}: {
+    player: PreviousInstancePlayerRow;
+    displayName: string;
+    knownUser?: PreviousInstanceKnownUser | null;
+}) {
     const { t } = useTranslation();
     const userId = playerUserId(player);
     const canOpenUser = Boolean(userId || displayName);
@@ -211,14 +235,18 @@ function PreviousInstancePlayerNameButton({
         >
             <span className="truncate">{displayName || userId}</span>
             <AffinityBadge
-                isFriend={knownUser?.isFriend}
+                isFriend={Boolean(knownUser?.isFriend)}
                 isFavorite={isFavorite}
             />
         </Button>
     );
 }
 
-function InstanceWorldCell({ row }: any) {
+function InstanceWorldCell({
+    row
+}: {
+    row: PreviousInstanceRow | null;
+}) {
     const worldId = rowWorldId(row);
     const worldName = row?.worldName || '';
 
@@ -252,14 +280,24 @@ export function PreviousInstanceDetailsPanel({
     onBack = null,
     showTitle = true,
     className = ''
-}: any) {
+}: {
+    row: PreviousInstanceRow | null;
+    onBack?: (() => void) | null;
+    showTitle?: boolean;
+    className?: string;
+}) {
     const { t } = useTranslation();
 
     const currentEndpoint = useRuntimeStore(
         (state) => state.auth.currentUserEndpoint
     );
     const [detailsViewMode, setDetailsViewMode] = useState('players');
-    const [infoData, setInfoData] = useState<any>({
+    const [infoData, setInfoData] = useState<{
+        status: 'idle' | 'running' | 'ready' | 'error';
+        error: string;
+        players: PreviousInstancePlayerRow[];
+        details: PreviousInstancePlayerRow[];
+    }>({
         status: 'idle',
         error: '',
         players: [],
@@ -288,7 +326,7 @@ export function PreviousInstanceDetailsPanel({
                 continue;
             }
             const row = [...infoData.players, ...infoData.details].find(
-                (player: any) => playerUserId(player) === userId
+                (player) => playerUserId(player) === userId
             );
             const displayName = playerDisplayName(row);
             if (
@@ -330,7 +368,7 @@ export function PreviousInstanceDetailsPanel({
         }
 
         let active = true;
-        setInfoData((current: any) => ({
+        setInfoData((current) => ({
             ...current,
             status: 'running',
             error: ''
@@ -340,7 +378,7 @@ export function PreviousInstanceDetailsPanel({
             gameLogRepository.getPlayersFromInstance(location),
             gameLogRepository.getPlayerDetailFromInstance(location)
         ])
-            .then(([players, details]: any) => {
+            .then(([players, details]) => {
                 if (!active) {
                     return;
                 }
@@ -394,7 +432,7 @@ export function PreviousInstanceDetailsPanel({
         }
 
         Promise.allSettled(
-            missingPlayerProfileIds.slice(0, 50).map((userId: any) =>
+            missingPlayerProfileIds.slice(0, 50).map((userId) =>
                 userProfileRepository.getUserProfile({
                     userId
                 })
@@ -402,7 +440,7 @@ export function PreviousInstanceDetailsPanel({
         ).catch(() => {});
     }, [currentEndpoint, missingPlayerProfileIds]);
 
-    function resolvePlayerDisplayName(player: any) {
+    function resolvePlayerDisplayName(player: PreviousInstancePlayerRow) {
         const userId = playerUserId(player);
         const displayName = playerDisplayName(player);
         if (
@@ -629,10 +667,7 @@ export function PreviousInstanceDetailsPanel({
                                             <TableBody>
                                                 {infoData.players.length ? (
                                                     infoData.players.map(
-                                                        (
-                                                            player: any,
-                                                            index: any
-                                                        ) => (
+                                                        (player, index) => (
                                                             <TableRow
                                                                 key={`${playerDisplayName(player)}:${playerUserId(player)}:${index}`}
                                                             >
@@ -654,8 +689,10 @@ export function PreviousInstanceDetailsPanel({
                                                                     />
                                                                 </TableCell>
                                                                 <TableCell className="align-top text-xs tabular-nums">
-                                                                    {player?.count ||
-                                                                        '-'}
+                                                                    {String(
+                                                                        player?.count ||
+                                                                            '-'
+                                                                    )}
                                                                 </TableCell>
                                                                 <TableCell className="text-muted-foreground align-top text-xs tabular-nums">
                                                                     {playerJoinClock(

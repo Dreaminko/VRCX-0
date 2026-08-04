@@ -7,12 +7,16 @@ import {
     ShieldIcon,
     UserIcon
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { LocationWorld } from '@/components/LocationWorld';
 import { timeToText } from '@/lib/dateTime';
 import { useCurrentInstanceRoster } from '@/lib/useCurrentInstanceRoster';
+import type { CurrentInstanceRosterPlayer } from '@/domain/instances/currentInstanceRoster';
+import type { FriendRecordInput } from '@/domain/friends/friendRosterTypes';
+import type { DashboardConfig } from '@/features/dashboard/dashboardConfig';
 import { cn } from '@/lib/utils';
 import { parseLocation } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
@@ -43,11 +47,15 @@ import { DashboardWidgetHeader } from './DashboardWidgetHeader';
 import { buildFavoriteIdSet, joinCompactParts } from './dashboardWidgetUtils';
 
 const ALL_COLUMNS = DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS.map(
-    (column: any) => column.key
+    (column) => column.key
 );
 const DEFAULT_COLUMNS = DASHBOARD_INSTANCE_WIDGET_DEFAULT_COLUMNS;
 
-function resolvePlatformMeta(platform: any) {
+function resolvePlatformMeta(platform: unknown): {
+    label: string;
+    icon: LucideIcon | null;
+    className: string;
+} {
     const normalized = normalizeString(platform).toLowerCase();
 
     if (
@@ -85,20 +93,20 @@ function resolvePlatformMeta(platform: any) {
     };
 }
 
-function languageCodeLabel(languageKey: any) {
+function languageCodeLabel(languageKey: unknown) {
     const key = normalizeString(languageKey)
         .toLowerCase()
         .replace(/^language_/, '');
     return key ? key.toUpperCase() : '';
 }
 
-function getActiveColumns(config: any) {
+function getActiveColumns(config: DashboardConfig): string[] {
     if (!Array.isArray(config?.columns) || config.columns.length === 0) {
-        return DEFAULT_COLUMNS;
+        return [...DEFAULT_COLUMNS];
     }
 
     const normalized = config.columns.filter(
-        (column: any, index: any, source: any) =>
+        (column, index, source): column is string =>
             typeof column === 'string' &&
             ALL_COLUMNS.includes(column) &&
             source.indexOf(column) === index
@@ -108,10 +116,22 @@ function getActiveColumns(config: any) {
         normalized.unshift('displayName');
     }
 
-    return normalized.length ? normalized : DEFAULT_COLUMNS;
+    return normalized.length ? normalized : [...DEFAULT_COLUMNS];
 }
 
-function resolveLanguageEntries(friend: any) {
+type DashboardLanguageEntry = {
+    key: string;
+    value: string;
+    code: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function resolveLanguageEntries(
+    friend: FriendRecordInput | null | undefined
+): DashboardLanguageEntry[] {
     const profileRows = normalizeProfileLanguageRows(friend);
     const fallbackSource = profileRows.length ? [] : friend?.language || [];
     const values = Array.isArray(fallbackSource)
@@ -120,40 +140,45 @@ function resolveLanguageEntries(friend: any) {
 
     return [
         ...profileRows,
-        ...values.map((entry: any) => {
+        ...values.map((entry) => {
+            const record = isRecord(entry) ? entry : {};
             const key =
                 typeof entry === 'string'
                     ? entry
-                    : entry?.key ||
-                      entry?.id ||
-                      entry?.name ||
-                      entry?.label ||
+                    : record.key ||
+                      record.id ||
+                      record.name ||
+                      record.label ||
                       '';
             const value =
                 typeof entry === 'string'
                     ? languageCodeLabel(entry)
-                    : entry?.value ||
-                      entry?.name ||
-                      entry?.label ||
+                    : record.value ||
+                      record.name ||
+                      record.label ||
                       languageCodeLabel(key);
             return { key, value };
         })
     ]
-        .map((entry: any) => ({
+        .map((entry) => ({
             key: normalizeString(entry.key),
             value: normalizeString(entry.value),
             code: languageCodeLabel(entry.key)
         }))
-        .filter((entry: any) => entry.key);
+        .filter((entry) => entry.key);
 }
 
-function getNextColumnConfig(config: any, activeColumns: any, columnKey: any) {
+function getNextColumnConfig(
+    config: DashboardConfig,
+    activeColumns: string[],
+    columnKey: string
+): DashboardConfig {
     if (columnKey === 'displayName') {
         return config;
     }
 
     const columns = activeColumns.includes(columnKey)
-        ? activeColumns.filter((column: any) => column !== columnKey)
+        ? activeColumns.filter((column) => column !== columnKey)
         : [...activeColumns, columnKey];
 
     if (!columns.includes('displayName')) {
@@ -167,7 +192,11 @@ function DashboardInstanceSettingsMenu({
     config,
     configUpdater,
     activeColumns
-}: any) {
+}: {
+    config: DashboardConfig;
+    configUpdater: ((config: DashboardConfig) => void) | null;
+    activeColumns: string[];
+}) {
     const { t } = useTranslation();
 
     if (!configUpdater) {
@@ -191,7 +220,7 @@ function DashboardInstanceSettingsMenu({
             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuGroup>
                     {DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS.map(
-                        (column: any) => (
+                        (column) => (
                             <DropdownMenuCheckboxItem
                                 key={column.key}
                                 checked={activeColumns.includes(column.key)}
@@ -220,7 +249,13 @@ function DashboardInstanceSettingsMenu({
     );
 }
 
-function DashboardInstanceWidgetShell({ children, settingsMenu }: any) {
+function DashboardInstanceWidgetShell({
+    children,
+    settingsMenu
+}: {
+    children: ReactNode;
+    settingsMenu: ReactNode;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -247,7 +282,17 @@ function DashboardInstanceSummary({
     instanceSource,
     instanceWorldName,
     parsedLocation
-}: any) {
+}: {
+    currentUserId: string | null;
+    enrichedRows: DashboardInstancePlayerRow[];
+    instanceCreatedAt: string;
+    instanceGroupName: string;
+    instanceLocation: string;
+    instancePlayerCount: number;
+    instanceSource: string;
+    instanceWorldName: string;
+    parsedLocation: ReturnType<typeof parseLocation>;
+}) {
     const { t } = useTranslation();
     const sourceText = joinCompactParts([
         instanceSource === 'database' ? 'Local game log' : 'Runtime fallback',
@@ -287,12 +332,30 @@ function DashboardInstanceSummary({
     );
 }
 
-function DashboardInstancePlayersTable({ activeColumns, rows }: any) {
+type DashboardInstancePlayerRow = CurrentInstanceRosterPlayer & {
+    isFriend: boolean;
+    isFavorite: boolean;
+    trustLevel: string;
+    platformLabel: string;
+    platformIcon: LucideIcon | null;
+    platformClassName: string;
+    languageEntries: DashboardLanguageEntry[];
+    statusValue: string;
+    timerMs: number;
+};
+
+function DashboardInstancePlayersTable({
+    activeColumns,
+    rows
+}: {
+    activeColumns: string[];
+    rows: DashboardInstancePlayerRow[];
+}) {
     return (
         <div className="min-h-0 flex-1 overflow-auto">
             <Table className="app-data-table table-fixed">
                 <TableBody>
-                    {rows.map((row: any) => (
+                    {rows.map((row) => (
                         <TableRow key={row.id}>
                             {activeColumns.includes('icon') ? (
                                 <TableCell className="w-20 align-top">
@@ -382,7 +445,7 @@ function DashboardInstancePlayersTable({ activeColumns, rows }: any) {
                                     <span className="inline-flex items-center gap-1">
                                         {row.languageEntries
                                             .slice(0, 2)
-                                            .map((entry: any) => (
+                                            .map((entry) => (
                                                 <Tooltip
                                                     key={`${row.id}:${entry.key}`}
                                                 >
@@ -413,7 +476,10 @@ function DashboardInstancePlayersTable({ activeColumns, rows }: any) {
 export function DashboardInstanceWidget({
     config = {},
     configUpdater = null
-}: any) {
+}: {
+    config?: DashboardConfig;
+    configUpdater?: ((config: DashboardConfig) => void) | null;
+}) {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const currentUserEndpoint = useRuntimeStore(

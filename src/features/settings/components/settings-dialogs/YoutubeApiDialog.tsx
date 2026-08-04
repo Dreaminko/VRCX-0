@@ -13,6 +13,17 @@ import {
 import { Textarea } from '@/ui/shadcn/textarea';
 
 import { Field, FieldGroup } from '../SettingsField';
+import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+
+type DialogState = SettingsPageStateSections['dialogs'];
+type YoutubeApiDialogProps = {
+    open: DialogState['youtubeApiDialogOpen'];
+    onOpenChange: DialogState['setYoutubeApiDialogOpen'];
+    draft: DialogState['youtubeApiKeyDraft'];
+    onDraftChange: DialogState['setYoutubeApiKeyDraft'];
+    integrationStatus: DialogState['integrationStatus'];
+    onSave: DialogState['saveYoutubeApiKey'];
+};
 
 export function YoutubeApiDialog({
     open: youtubeApiDialogOpen,
@@ -21,7 +32,7 @@ export function YoutubeApiDialog({
     onDraftChange: setYoutubeApiKeyDraft,
     integrationStatus,
     onSave: saveYoutubeApiKey
-}: any) {
+}: YoutubeApiDialogProps) {
     const { t } = useTranslation();
 
     return (

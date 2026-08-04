@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Spinner } from '@/ui/shadcn/spinner';
 
 const MutualFriendsPageImpl = lazy(() =>
-    import('./MutualFriendsPageImpl').then((module: any) => ({
+    import('./MutualFriendsPageImpl').then((module) => ({
         default: module.MutualFriendsPage
     }))
 );
@@ -20,10 +20,10 @@ function ChartPageFallback() {
     );
 }
 
-export function MutualFriendsPage(props: any) {
+export function MutualFriendsPage() {
     return (
         <Suspense fallback={<ChartPageFallback />}>
-            <MutualFriendsPageImpl {...props} />
+            <MutualFriendsPageImpl />
         </Suspense>
     );
 }

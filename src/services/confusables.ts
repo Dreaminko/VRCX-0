@@ -157,7 +157,7 @@ for (const [char_, confusables] of charToConfusables) {
 }
 
 const nonConfusables = /^[!-~]*$/;
-const removeConfusables = function (a: any) {
+const removeConfusables = function (a: string) {
     if (nonConfusables.test(a)) {
         return a;
     }
@@ -174,7 +174,7 @@ const removeConfusables = function (a: any) {
     return ret;
 };
 
-const removeWhitespace = function (a: any) {
+const removeWhitespace = function (a: string) {
     return a.replace(/\s/g, '');
 };
 

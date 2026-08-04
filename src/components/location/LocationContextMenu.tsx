@@ -6,6 +6,7 @@ import {
     Share2Icon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { ReactNode, SyntheticEvent } from 'react';
 
 import {
     ContextMenu,
@@ -35,7 +36,26 @@ export function LocationContextMenu({
     shareUrl,
     showLaunchActions,
     worldId
-}: any) {
+}: {
+    canOpenWorld: boolean;
+    canOpenInstanceInGame: boolean;
+    canUseCurrentInstance: boolean;
+    children?: ReactNode;
+    isOpenPreviousInstanceInfoDialog: boolean;
+    onCopyShareLink(): void;
+    onLaunchCurrentInstance(): void;
+    onNewInstance(selfInvite?: boolean): void;
+    onOpenWorld(event: SyntheticEvent<HTMLElement>): void;
+    onSelfInviteCurrentInstance(): void;
+    onShowExactPreviousInstanceInfo(): void;
+    onShowPreviousInstances(): void;
+    previousInstancesDialog: ReactNode;
+    previousInstancesDisabled: boolean;
+    previousInstancesLoading: boolean;
+    shareUrl: string;
+    showLaunchActions: boolean;
+    worldId: string;
+}) {
     const { t } = useTranslation();
     const newInstanceFollowUpLabelKey = canOpenInstanceInGame
         ? 'dialog.world.actions.new_instance_and_open_ingame'

@@ -4,9 +4,9 @@ const MAX_ACTIVE_THUMBNAIL_REQUESTS = 2;
 
 interface ThumbnailTask {
     path: string;
-    resolve: ((value: unknown) => void) | null;
+    resolve: ((value: string | PromiseLike<string>) => void) | null;
     reject: ((reason?: unknown) => void) | null;
-    promise: Promise<unknown> | null;
+    promise: Promise<string> | null;
     subscribers: number;
     started: boolean;
     cancelled: boolean;
@@ -45,7 +45,7 @@ function runNextThumbnailRequest() {
     }
 }
 
-export function requestScreenshotThumbnail(path: any) {
+export function requestScreenshotThumbnail(path: unknown) {
     const filePath = String(path || '');
     if (!filePath) {
         return {
@@ -73,11 +73,11 @@ export function requestScreenshotThumbnail(path: any) {
         cancelled: false,
         sequence: (requestSequence += 1)
     };
-    const promise = new Promise((resolve: any, reject: any) => {
+    const promise = new Promise<string>((resolve, reject) => {
         task.resolve = resolve;
         task.reject = reject;
         queue.push(task);
-        queue.sort((left: any, right: any) => left.sequence - right.sequence);
+        queue.sort((left, right) => left.sequence - right.sequence);
         runNextThumbnailRequest();
     });
     task.promise = promise;
@@ -88,7 +88,7 @@ export function requestScreenshotThumbnail(path: any) {
     };
 }
 
-function cancelThumbnailRequest(task: any) {
+function cancelThumbnailRequest(task: ThumbnailTask) {
     if (!task || task.cancelled) {
         return;
     }

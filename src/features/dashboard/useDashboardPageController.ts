@@ -25,7 +25,7 @@ export function useDashboardPageController() {
                 ? store.dashboard.rows
                 : []
             ).map(
-                (row: any) =>
+                (row) =>
                     `dashboard-${store.id}-row-panel-${getDashboardRowKey(row)}`
             ),
         [store.dashboard?.rows, store.id]

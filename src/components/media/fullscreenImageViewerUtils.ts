@@ -1,11 +1,11 @@
 import { extractFileId } from '@/shared/utils/fileUtils';
-function sanitizeFileName(value: any) {
+function sanitizeFileName(value?: string | null) {
     return String(value || '')
         .replace(/[<>:"/\\|?*]+/g, '_')
         .trim();
 }
 
-function ensureImageExtension(fileName: any) {
+function ensureImageExtension(fileName?: string | null) {
     if (!fileName) {
         return '';
     }
@@ -13,7 +13,7 @@ function ensureImageExtension(fileName: any) {
     return /\.[0-9A-Za-z]+$/.test(fileName) ? fileName : `${fileName}.png`;
 }
 
-function getUrlFileName(url: any) {
+function getUrlFileName(url?: string | null) {
     if (!url || String(url).startsWith('data:')) {
         return '';
     }
@@ -26,26 +26,34 @@ function getUrlFileName(url: any) {
     }
 }
 
-export function toFullSizeImageUrl(url: any) {
+export function toFullSizeImageUrl(url?: string | null) {
     return String(url || '').replace(
         /\/image\/(file_[^/?#]+)\/(\d+)\/\d+\/?(?=([?#]|$))/,
         '/file/$1/$2/file'
     );
 }
 
-function getPathFileName(path: any) {
+function getPathFileName(path?: string | null) {
     return String(path || '')
         .split(/[/\\]/)
         .pop();
 }
 
-export function deriveImageFileName({ fileName, url, sourcePath }: any) {
+export function deriveImageFileName({
+    fileName,
+    url,
+    sourcePath
+}: {
+    fileName?: string | null;
+    url?: string | null;
+    sourcePath?: string | null;
+}) {
     const explicitName = ensureImageExtension(sanitizeFileName(fileName));
     if (explicitName) {
         return explicitName;
     }
 
-    const fileId = extractFileId(url);
+    const fileId = extractFileId(url || '');
     if (fileId) {
         return `${fileId}.png`;
     }

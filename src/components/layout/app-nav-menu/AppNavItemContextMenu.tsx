@@ -5,6 +5,9 @@ import {
     Trash2Icon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { ReactElement } from 'react';
+import type { NavMenuItem } from '../navMenuModel';
+import type { NavEntryHandler } from './types';
 
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -33,7 +36,13 @@ function DashboardEntryAction({
     onDeleteDashboard,
     onUnpinTool,
     compact = false
-}: any) {
+}: {
+    entry: NavMenuItem;
+    onEditDashboard: NavEntryHandler;
+    onDeleteDashboard: NavEntryHandler;
+    onUnpinTool: NavEntryHandler;
+    compact?: boolean;
+}) {
     const { t } = useTranslation();
     const isDashboard = isDashboardEntry(entry);
     const isTool = isToolEntry(entry);
@@ -76,7 +85,9 @@ function DashboardEntryAction({
                         <DropdownMenuGroup>
                             <DropdownMenuItem
                                 onClick={() => {
-                                    onEditDashboard(entry);
+                                    if (entry) {
+                                        onEditDashboard(entry);
+                                    }
                                 }}
                             >
                                 <PencilIcon />
@@ -88,7 +99,9 @@ function DashboardEntryAction({
                             <DropdownMenuItem
                                 variant="destructive"
                                 onClick={() => {
-                                    onDeleteDashboard(entry);
+                                    if (entry) {
+                                        onDeleteDashboard(entry);
+                                    }
                                 }}
                             >
                                 <Trash2Icon />
@@ -101,7 +114,9 @@ function DashboardEntryAction({
                     <DropdownMenuGroup>
                         <DropdownMenuItem
                             onClick={() => {
-                                onUnpinTool(entry);
+                                if (entry) {
+                                    onUnpinTool(entry);
+                                }
                             }}
                         >
                             <PinOffIcon />
@@ -125,7 +140,18 @@ function NavItemContextMenu({
     onDeleteDashboard,
     onUnpinTool,
     onOpenCustomNav
-}: any) {
+}: {
+    children: ReactElement;
+    entry?: NavMenuItem;
+    hasNotifications: boolean;
+    showCreateDashboard?: boolean;
+    onMarkAllRead: () => void | Promise<void>;
+    onCreateDashboard?: () => void | Promise<void>;
+    onEditDashboard: NavEntryHandler;
+    onDeleteDashboard: NavEntryHandler;
+    onUnpinTool: NavEntryHandler;
+    onOpenCustomNav: () => void;
+}) {
     const { t } = useTranslation();
     const isDashboard = isDashboardEntry(entry);
     const isTool = isToolEntry(entry);
@@ -150,7 +176,7 @@ function NavItemContextMenu({
                     <ContextMenuGroup>
                         <ContextMenuItem
                             onClick={() => {
-                                onCreateDashboard();
+                                onCreateDashboard?.();
                             }}
                         >
                             {t('dashboard.new_dashboard')}
@@ -162,7 +188,9 @@ function NavItemContextMenu({
                         <ContextMenuGroup>
                             <ContextMenuItem
                                 onClick={() => {
-                                    onEditDashboard(entry);
+                                    if (entry) {
+                                        onEditDashboard(entry);
+                                    }
                                 }}
                             >
                                 {t('nav_menu.edit_dashboard')}
@@ -173,7 +201,9 @@ function NavItemContextMenu({
                             <ContextMenuItem
                                 variant="destructive"
                                 onClick={() => {
-                                    onDeleteDashboard(entry);
+                                    if (entry) {
+                                        onDeleteDashboard(entry);
+                                    }
                                 }}
                             >
                                 {t('nav_menu.delete_dashboard')}
@@ -186,7 +216,9 @@ function NavItemContextMenu({
                     <ContextMenuGroup>
                         <ContextMenuItem
                             onClick={() => {
-                                onUnpinTool(entry);
+                                if (entry) {
+                                    onUnpinTool(entry);
+                                }
                             }}
                         >
                             {t('nav_menu.custom_nav.unpin_from_nav')}

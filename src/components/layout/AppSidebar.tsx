@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import {
     setNavWidthPreference,
@@ -15,7 +16,7 @@ import {
     useSidebarInstantTransition
 } from './navMenuCollapse';
 
-export function AppSidebar({ children }: any) {
+export function AppSidebar({ children }: { children: ReactNode }) {
     const sidebarOpen = useShellStore((state) => state.sidebarOpen);
     const navWidth = useShellStore((state) => state.navWidth);
     const reducedMotionAndBlur = usePreferencesStore(
@@ -77,7 +78,7 @@ export function AppSidebar({ children }: any) {
         void setNavbarCollapsedPreference(sidebarOpen);
     }
 
-    function startNavResize(event: any) {
+    function startNavResize(event: React.PointerEvent<HTMLDivElement>) {
         if (!sidebarOpen) {
             return;
         }
@@ -100,19 +101,19 @@ export function AppSidebar({ children }: any) {
 
         const transitionTargets = wrapperElement
             ? Array.from(
-                  wrapperElement.querySelectorAll(
+                  wrapperElement.querySelectorAll<HTMLElement>(
                       '[data-slot="sidebar-gap"],[data-slot="sidebar-container"]'
                   )
               )
             : [];
         const previousTransitions = transitionTargets.map(
-            (element: any) => element.style.transition
+            (element) => element.style.transition
         );
-        transitionTargets.forEach((element: any) => {
+        transitionTargets.forEach((element) => {
             element.style.transition = 'none';
         });
 
-        const applyWidth = (clientX: any) => {
+        const applyWidth = (clientX: number) => {
             latestWidth = normalizeNavWidth(clientX);
             wrapperElement?.style.setProperty(
                 '--sidebar-width',
@@ -120,7 +121,7 @@ export function AppSidebar({ children }: any) {
             );
         };
 
-        const handleMove = (moveEvent: any) => {
+        const handleMove = (moveEvent: PointerEvent) => {
             applyWidth(moveEvent.clientX);
         };
 
@@ -135,7 +136,7 @@ export function AppSidebar({ children }: any) {
             window.removeEventListener('pointerup', cleanup);
             window.removeEventListener('pointercancel', cleanup);
             window.removeEventListener('blur', cleanup);
-            transitionTargets.forEach((element: any, index: number) => {
+            transitionTargets.forEach((element, index) => {
                 element.style.transition = previousTransitions[index];
             });
             try {

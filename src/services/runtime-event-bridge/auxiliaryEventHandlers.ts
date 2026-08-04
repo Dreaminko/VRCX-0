@@ -126,7 +126,7 @@ export function handleRuntimeGroupInstancesProjection(
     const groupOrder = Array.isArray(record.groupOrder)
         ? record.groupOrder
         : undefined;
-    const patch: Record<string, unknown> = {
+    const patch: Partial<ReturnType<typeof createGroupInstancesState>> = {
         status,
         userId: currentUserId,
         endpoint: currentEndpoint,

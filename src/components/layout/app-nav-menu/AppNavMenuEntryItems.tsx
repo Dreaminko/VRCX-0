@@ -29,6 +29,8 @@ import {
 } from '@/ui/shadcn/sidebar';
 
 import { getPathForNavEntry } from '../navMenuModel';
+import type { NavMenuItem } from '../navMenuModel';
+import type { NavEntryHandler, NavMenuActionHandlers } from './types';
 import {
     DashboardEntryAction,
     NavItemContextMenu
@@ -50,7 +52,14 @@ function CollapsedFolderDropdownEntry({
     onEditDashboard,
     onDeleteDashboard,
     onUnpinTool
-}: any) {
+}: {
+    entry: NavMenuItem;
+    isNotified: boolean;
+    onSelect: NavEntryHandler;
+    onEditDashboard: NavEntryHandler;
+    onDeleteDashboard: NavEntryHandler;
+    onUnpinTool: NavEntryHandler;
+}) {
     const { t } = useTranslation();
     const isDashboard = isDashboardEntry(entry);
     const isTool = isToolEntry(entry);
@@ -141,14 +150,22 @@ function NavMenuFolderItem({
     onDeleteDashboard,
     onUnpinTool,
     onOpenCustomNav
-}: any) {
+}: NavMenuActionHandlers & {
+    item: NavMenuItem;
+    isCollapsed: boolean;
+    activeIndex: string;
+    pathname: string;
+    notifiedKeys: ReadonlySet<string>;
+    hasNotifications: boolean;
+}) {
     const { t } = useTranslation();
+    const children = item.children ?? [];
     const [open, setOpen] = useState(() =>
-        item.children?.some((entry: any) => isEntryActive(entry, pathname))
+        children.some((entry) => isEntryActive(entry, pathname))
     );
     const label = labelForEntry(item, t);
-    const isActive = item.children?.some(
-        (entry: any) =>
+    const isActive = children.some(
+        (entry) =>
             entry.index === activeIndex || isEntryActive(entry, pathname)
     );
     const isNotified = isNavItemNotified(item, notifiedKeys);
@@ -191,7 +208,7 @@ function NavMenuFolderItem({
                             align="start"
                             className="w-56"
                         >
-                            {item.children.map((entry: any) => (
+                            {children.map((entry) => (
                                 <CollapsedFolderDropdownEntry
                                     key={entry.index}
                                     entry={entry}
@@ -227,7 +244,7 @@ function NavMenuFolderItem({
                     type="button"
                     isActive={Boolean(isActive)}
                     tooltip={label}
-                    onClick={() => setOpen((current: any) => !current)}
+                    onClick={() => setOpen((current) => !current)}
                 >
                     <NotifiedNavIcon entry={item} isNotified={isNotified} />
                     <span>{label}</span>
@@ -240,7 +257,7 @@ function NavMenuFolderItem({
                 </SidebarMenuButton>
                 {open ? (
                     <SidebarMenuSub>
-                        {item.children.map((entry: any) => (
+                        {children.map((entry) => (
                             <NavItemContextMenu
                                 key={entry.index}
                                 entry={entry}
@@ -306,7 +323,12 @@ function NavMenuEntryItem({
     onDeleteDashboard,
     onUnpinTool,
     onOpenCustomNav
-}: any) {
+}: NavMenuActionHandlers & {
+    item: NavMenuItem;
+    activeIndex: string;
+    notifiedKeys: ReadonlySet<string>;
+    hasNotifications: boolean;
+}) {
     const { t } = useTranslation();
     const itemPath = getPathForNavEntry(item);
 

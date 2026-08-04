@@ -311,7 +311,7 @@ export function FavoriteActionMenu({
         }
     }
 
-    async function addLocalFavoriteToGroup(groupName: any) {
+    async function addLocalFavoriteToGroup(groupName: string) {
         if (!normalizedEntityId || actionStatusRef.current !== 'idle') {
             return;
         }
@@ -350,7 +350,7 @@ export function FavoriteActionMenu({
         }
     }
 
-    async function removeLocalFavoriteFromGroup(groupName: any) {
+    async function removeLocalFavoriteFromGroup(groupName: string) {
         if (!normalizedEntityId || actionStatusRef.current !== 'idle') {
             return;
         }

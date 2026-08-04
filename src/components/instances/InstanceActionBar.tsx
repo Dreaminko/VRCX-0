@@ -8,6 +8,8 @@ import {
     XCircleIcon
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactElement } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -18,6 +20,7 @@ import {
     firstNonNegativeLocationNumber,
     normalizeLocationText
 } from '@/components/location/locationModel';
+import type { LocationObjectRecord } from '@/components/location/locationModel';
 import { instanceLocationKey } from '@/domain/presence/instancePresence';
 import { formatDateFilter, timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
@@ -35,6 +38,30 @@ import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
+type GroupPermissionRecord = Record<string, unknown> & {
+    myMember?: { permissions?: string[]; roleIds?: string[] };
+    roles?: Array<{ id?: string; permissions?: string[] }>;
+};
+type InstanceActionRecord = Record<string, unknown> & {
+    userCount?: unknown;
+    occupants?: unknown;
+    n_users?: unknown;
+    users?: unknown[];
+    ref?: Partial<InstanceActionRecord>;
+    $disabledContentSettings?: string[];
+    group?: GroupPermissionRecord;
+    owner?: GroupPermissionRecord;
+    capacity?: unknown;
+    world?: { capacity?: unknown };
+    platforms?: Record<string, unknown>;
+    ownerId?: unknown;
+    closedAt?: unknown;
+    gameServerVersion?: unknown;
+    queueEnabled?: unknown;
+    queueSize?: unknown;
+    ageGate?: unknown;
+};
+
 function ActionButton({
     label,
     disabled = false,
@@ -42,7 +69,14 @@ function ActionButton({
     loading = false,
     icon: Icon,
     onClick
-}: any) {
+}: {
+    label: string;
+    disabled?: boolean;
+    disableTooltip?: boolean;
+    loading?: boolean;
+    icon: LucideIcon;
+    onClick?: () => void;
+}) {
     const button = (
         <Button
             type="button"
@@ -72,7 +106,7 @@ function ActionButton({
     );
 }
 
-function instanceUserCount(instance: any) {
+function instanceUserCount(instance: InstanceActionRecord | null) {
     if (!instance) {
         return null;
     }
@@ -84,7 +118,7 @@ function instanceUserCount(instance: any) {
     );
 }
 
-function instanceCapacity(instance: any) {
+function instanceCapacity(instance: InstanceActionRecord | null) {
     if (!instance) {
         return null;
     }
@@ -94,28 +128,37 @@ function instanceCapacity(instance: any) {
     );
 }
 
-function resolveInstanceSource(instance: any) {
+function resolveInstanceSource(
+    instance: unknown
+): InstanceActionRecord | null {
     if (!instance || typeof instance !== 'object') {
-        return instance;
+        return null;
     }
-    const ref = instance.ref;
+    const source = instance as InstanceActionRecord;
+    const ref = source.ref;
     if (!ref || typeof ref !== 'object') {
-        return instance;
+        return source;
     }
-    return { ...ref, ...instance };
+    return { ...ref, ...source };
 }
 
-function platformCount(instance: any, platform: any) {
+function platformCount(
+    instance: InstanceActionRecord | null,
+    platform: string
+) {
     return Number(instance?.platforms?.[platform] ?? 0);
 }
 
-function disabledContentSettings(instance: any) {
+function disabledContentSettings(instance: InstanceActionRecord | null) {
     return Array.isArray(instance?.$disabledContentSettings)
         ? instance.$disabledContentSettings.filter(Boolean).join(', ')
         : '';
 }
 
-function hasGroupPermission(group: any, permission: any) {
+function hasGroupPermission(
+    group: GroupPermissionRecord | undefined,
+    permission: string
+) {
     const direct = Array.isArray(group?.myMember?.permissions)
         ? group.myMember.permissions
         : [];
@@ -126,16 +169,19 @@ function hasGroupPermission(group: any, permission: any) {
         ? group.myMember.roleIds
         : [];
     return (Array.isArray(group?.roles) ? group.roles : [])
-        .filter((role: any) => roleIds.includes(role?.id))
+        .filter((role) => Boolean(role.id && roleIds.includes(role.id)))
         .some(
-            (role: any) =>
+            (role) =>
                 Array.isArray(role.permissions) &&
                 (role.permissions.includes('*') ||
                     role.permissions.includes(permission))
         );
 }
 
-function canCloseInstance(instance: any, currentUserId: any) {
+function canCloseInstance(
+    instance: InstanceActionRecord | null,
+    currentUserId: string | null
+) {
     const ownerId = normalizeLocationText(instance?.ownerId);
     if (!ownerId || !currentUserId) {
         return false;
@@ -169,7 +215,13 @@ function InstanceInfoTooltip({
     disableTooltip = false,
     joinedAtMs = 0,
     children
-}: any) {
+}: {
+    instance: InstanceActionRecord | null;
+    disableTooltip?: boolean;
+    joinedAtMs?: number;
+    children: ReactElement;
+    location?: string;
+}) {
     const { t } = useTranslation();
 
     const disabledContent = disabledContentSettings(instance);
@@ -206,7 +258,7 @@ function InstanceInfoTooltip({
                     {instance?.gameServerVersion ? (
                         <div>
                             {t('dialog.instance.label.game_version')}{' '}
-                            {instance.gameServerVersion}
+                            {String(instance.gameServerVersion)}
                         </div>
                     ) : null}
                     {instance?.queueEnabled ? (
@@ -255,7 +307,34 @@ export function InstanceActionBar({
     historyTooltip = 'Previous instance history',
     onRefresh,
     onHistory
-}: any) {
+}: {
+    className?: string;
+    target?: LocationObjectRecord | null;
+    location?: unknown;
+    launchLocation?: unknown;
+    inviteLocation?: unknown;
+    instanceLocation?: unknown;
+    shortName?: unknown;
+    worldName?: unknown;
+    instance?: unknown;
+    friendCount?: number;
+    playerCount?: unknown;
+    capacity?: unknown;
+    showLaunch?: boolean;
+    showInvite?: boolean;
+    showRefresh?: boolean;
+    showHistory?: boolean;
+    showInstanceInfo?: boolean;
+    instanceInfoPlacement?: 'start' | 'end';
+    instanceCountAlign?: 'left' | 'right';
+    instanceSummaryOrder?: 'count-first' | 'markers-first';
+    disableTooltip?: boolean;
+    disableInstanceInfoTooltip?: boolean;
+    refreshTooltip?: string;
+    historyTooltip?: string;
+    onRefresh?: (location: string) => unknown | Promise<unknown>;
+    onHistory?: () => void;
+}) {
     const { t } = useTranslation();
 
     const endpoint = useRuntimeStore((state) => state.auth.currentUserEndpoint);
@@ -310,7 +389,10 @@ export function InstanceActionBar({
         instanceInfo,
         currentUserId
     );
-    const activeContextRef = useRef<any>({
+    const activeContextRef = useRef<{
+        endpoint: string;
+        location: string;
+    }>({
         endpoint,
         location: actionTarget.instanceLocation
     });
@@ -423,10 +505,11 @@ export function InstanceActionBar({
                 return;
             }
             if (override) {
-                setInstanceInfo(override);
+                const normalizedOverride = resolveInstanceSource(override);
+                setInstanceInfo(normalizedOverride);
                 recordLocationHintsFromInstances({
                     endpoint: requestEndpoint,
-                    instances: [override]
+                    instances: [normalizedOverride]
                 });
             } else {
                 const response = await vrchatInstanceRepository.getInstance({
@@ -439,7 +522,7 @@ export function InstanceActionBar({
                 ) {
                     return;
                 }
-                setInstanceInfo(response.json);
+                setInstanceInfo(resolveInstanceSource(response.json));
                 recordLocationHintsFromInstances({
                     endpoint: requestEndpoint,
                     instances: [response.json]
@@ -487,7 +570,7 @@ export function InstanceActionBar({
                 return;
             }
             if (response.json) {
-                setInstanceInfo(response.json);
+                setInstanceInfo(resolveInstanceSource(response.json));
                 recordLocationHintsFromInstances({
                     endpoint: requestEndpoint,
                     instances: [response.json]

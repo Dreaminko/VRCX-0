@@ -1,6 +1,11 @@
 import { PackageIcon } from 'lucide-react';
 
 import { MediaAssetTile } from './MediaAssetTile';
+import type {
+    MediaAssetAction,
+    MediaAssetBadge,
+    MediaPreviewOptions
+} from './MediaAssetTile';
 
 export function InventoryItemTile({
     title,
@@ -15,8 +20,21 @@ export function InventoryItemTile({
     primaryAction,
     menuActions,
     menuLabel
-}: any) {
-    const meta = [];
+}: {
+    title: string;
+    description?: string;
+    timestamp?: string;
+    badges?: Array<MediaAssetBadge | null>;
+    imageUrl?: string;
+    alt?: string;
+    isCurrent?: boolean;
+    currentLabel?: string;
+    onPreview?: (options?: MediaPreviewOptions) => void;
+    primaryAction?: MediaAssetAction | null;
+    menuActions?: Array<MediaAssetAction | null>;
+    menuLabel?: string;
+}) {
+    const meta: Array<{ key: string; label: string; title: string }> = [];
     if (description) {
         meta.push({
             key: 'description',

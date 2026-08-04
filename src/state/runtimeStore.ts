@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { CurrentInstanceRosterPlayer } from '@/domain/instances/currentInstanceRoster';
+import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
 import type { DatabaseUpgradeStage } from '@/platform/tauri/bindings';
 import { MINUTE_MS } from '@/shared/constants/time';
 
@@ -84,7 +85,7 @@ export type VrcStatusState = Record<string, unknown> & {
     error: string;
 };
 
-type CapabilityStatus = {
+export type CapabilityStatus = {
     supported: boolean;
     enabled: boolean;
     available: boolean;
@@ -124,6 +125,8 @@ export type CurrentUserSnapshotState = Record<string, unknown> & {
     currentAvatarImageUrl?: string;
     currentAvatarThumbnailImageUrl?: string;
     currentAvatarName?: string;
+    profilePicOverride?: string;
+    userIcon?: string;
     homeLocation?: string | null;
     location?: string;
     $locationTag?: string;
@@ -135,6 +138,8 @@ export type CurrentUserSnapshotState = Record<string, unknown> & {
     presence?: Record<string, unknown> & {
         platform?: string;
     };
+    onlineFriends?: string[];
+    activeFriends?: string[];
 };
 
 type UpdateLoopRelease = Record<string, unknown> & {
@@ -149,8 +154,8 @@ type GroupInstancesState = Record<string, unknown> & {
     status: string;
     userId: string;
     endpoint: string;
-    instances: unknown[];
-    groupOrder: unknown[];
+    instances: GroupInstanceRecord[];
+    groupOrder: string[];
     fetchedAt: string | null;
     lastLoadedAt: string | null;
     error: string;

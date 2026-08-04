@@ -26,7 +26,7 @@ import { Textarea } from '@/ui/shadcn/textarea';
 const OTP_CODE_LENGTH = 6;
 const RECOVERY_CODE_LENGTH = 8;
 
-function matchesPromptPattern(pattern: any, value: any) {
+function matchesPromptPattern(pattern: RegExp | null, value: string) {
     if (!(pattern instanceof RegExp)) {
         return true;
     }
@@ -35,13 +35,16 @@ function matchesPromptPattern(pattern: any, value: any) {
     return new RegExp(pattern.source, flags).test(value ?? '');
 }
 
-function normalizeRecoveryCode(value: any) {
-    return (value ?? '')
+function normalizeRecoveryCode(value: string) {
+    return value
         .replace(/[^a-z0-9]/gi, '')
         .slice(0, RECOVERY_CODE_LENGTH);
 }
 
-function getOtpInputValue(value: any, mode: any) {
+function getOtpInputValue(
+    value: string,
+    mode: ReturnType<typeof useModalStore.getState>['otpDialog']['mode']
+) {
     if (mode === 'otp') {
         return normalizeRecoveryCode(value);
     }
@@ -49,8 +52,8 @@ function getOtpInputValue(value: any, mode: any) {
     return value ?? '';
 }
 
-function renderOtpSlots(count: any, offset: any = 0) {
-    return Array.from({ length: count }, (_: any, index: any) => (
+function renderOtpSlots(count: number, offset = 0) {
+    return Array.from({ length: count }, (_, index) => (
         <InputOTPSlot key={offset + index} index={offset + index} />
     ));
 }
@@ -218,7 +221,7 @@ export function ModalHost() {
                 open={boopDialog.open}
                 isLocalUserVrcPlusSupporter={isLocalUserVrcPlusSupporter}
                 targetLabel={boopDialog.targetLabel}
-                onOpenChange={(open: any) => {
+                onOpenChange={(open) => {
                     if (!open) {
                         handleBoopDismiss('');
                     }

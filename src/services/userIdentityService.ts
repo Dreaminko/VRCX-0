@@ -55,7 +55,7 @@ function displayNameOf(user: unknown): string {
     return text(record?.displayName || record?.username || record?.name);
 }
 
-function titleForUser(user: unknown, fallback: any = ''): string {
+function titleForUser(user: unknown, fallback: unknown = ''): string {
     const record = asUserRecord(user);
     return (
         displayNameOf(user) ||
@@ -78,7 +78,7 @@ function resolvedEndpoint(endpoint: unknown): string {
 function resolvedUser(
     user: unknown,
     source: ResolvedUserSource,
-    fallbackTitle: any = ''
+    fallbackTitle: unknown = ''
 ) {
     const record = asUserRecord(user);
     const userId = normalizeUserId(record?.id || record?.userId);
@@ -126,7 +126,7 @@ function findFriendByDisplayName(
 
     const { friendsById } = useFriendRosterStore.getState();
     return (
-        (Object.values(friendsById || {}).find((friend: any) =>
+        (Object.values(friendsById || {}).find((friend) =>
             displayNameMatches(friend, targetDisplayName)
         ) as UserIdentityRecord | undefined) || null
     );
@@ -224,9 +224,9 @@ async function resolveUserByDisplayName(
     );
     const rows = Array.isArray(response?.json) ? response.json : [];
     const match =
-        rows.find((user: any) => displayNameMatches(user, targetDisplayName)) ||
+        rows.find((user) => displayNameMatches(user, targetDisplayName)) ||
         rows.find(
-            (user: any) =>
+            (user) =>
                 normalizeUserId(asUserRecord(user)?.id) ===
                 normalizedDisplayName
         );

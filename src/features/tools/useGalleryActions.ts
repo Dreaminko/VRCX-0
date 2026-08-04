@@ -3,11 +3,8 @@ import { toast } from 'sonner';
 
 import mediaRepository from '@/repositories/mediaRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
-import { emojiAnimationStyleList } from '@/shared/constants/emoji';
 import {
-    MAX_IMAGE_UPLOAD_BYTES,
     readFileAsBase64,
-    validateImageUploadFile,
     withUploadTimeout
 } from '@/shared/utils/imageUpload';
 import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint';
@@ -17,8 +14,17 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 import { FILE_TABS, UPLOAD_ASPECT_RATIOS } from './galleryConstants';
 import { useGalleryAssetActions } from './useGalleryAssetActions';
 import { useGalleryInventoryActions } from './useGalleryInventoryActions';
+import {
+    parseEmojiUploadSettings,
+    validateImageFile
+} from './inventoryHelpers';
+import type {
+    GalleryActionDeps,
+    GalleryAuthTarget,
+    GalleryControllerDeps
+} from './galleryTypes';
 
-function buildProfilePicOverride(endpoint: any, fileId: any) {
+function buildProfilePicOverride(endpoint: unknown, fileId: unknown) {
     if (!fileId) {
         return '';
     }
@@ -40,7 +46,7 @@ function getRuntimeAuthTarget() {
     };
 }
 
-function isRuntimeAuthTarget(authTarget: any) {
+function isRuntimeAuthTarget(authTarget: GalleryAuthTarget) {
     const runtimeAuth = getRuntimeAuthTarget();
     return (
         runtimeAuth.userId === authTarget.userId &&
@@ -48,65 +54,7 @@ function isRuntimeAuthTarget(authTarget: any) {
     );
 }
 
-function resolveEmojiStyleName(rawValue: any) {
-    const normalizedValue = String(rawValue || '').toLowerCase();
-    const match = Object.keys(emojiAnimationStyleList).find(
-        (styleName: any) => styleName.toLowerCase() === normalizedValue
-    );
-    return match || 'Stop';
-}
-
-function parseEmojiUploadSettings(fileName: any, currentSettings: any = {}) {
-    const next: any = {
-        isAnimated: Boolean(currentSettings.isAnimated),
-        animationStyle: currentSettings.animationStyle || 'Stop',
-        fps: Number(currentSettings.fps) || 15,
-        frames: Number(currentSettings.frames) || 4,
-        loopPingPong: Boolean(currentSettings.loopPingPong)
-    };
-    for (const value of String(fileName || '')
-        .replace(/\.[^/.]+$/, '')
-        .split('_')) {
-        if (value.endsWith('animationStyle')) {
-            next.isAnimated = false;
-            next.animationStyle = resolveEmojiStyleName(
-                value.replace('animationStyle', '')
-            );
-        } else if (value.endsWith('frames')) {
-            const frames = Number.parseInt(value.replace('frames', ''), 10);
-            if (Number.isFinite(frames)) {
-                next.isAnimated = true;
-                next.frames = Math.min(64, Math.max(2, frames));
-            }
-        } else if (value.endsWith('fps')) {
-            const fps = Number.parseInt(value.replace('fps', ''), 10);
-            if (Number.isFinite(fps)) {
-                next.fps = Math.min(64, Math.max(1, fps));
-            }
-        } else if (value.endsWith('loopStyle')) {
-            next.loopPingPong =
-                value.replace('loopStyle', '').toLowerCase() === 'pingpong';
-        }
-    }
-    return next;
-}
-
-function validateImageFile(file: any, t: any) {
-    const validation = validateImageUploadFile(file, {
-        maxSize: MAX_IMAGE_UPLOAD_BYTES
-    });
-    if (!validation.ok) {
-        toast.error(
-            validation.reason === 'too_large'
-                ? t('message.file.too_large')
-                : t('message.file.not_image')
-        );
-        return false;
-    }
-    return true;
-}
-
-export function useGalleryActions(deps: any) {
+export function useGalleryActions(deps: GalleryControllerDeps) {
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
@@ -128,7 +76,7 @@ export function useGalleryActions(deps: any) {
         userProfileRepository,
         validateImageFile,
         withUploadTimeout
-    };
+    } satisfies GalleryActionDeps;
     const assetActions = useGalleryAssetActions(actionDeps);
     const inventoryActions = useGalleryInventoryActions({
         ...actionDeps,

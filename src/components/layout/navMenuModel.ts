@@ -30,6 +30,7 @@ export type NavDefinition = {
     routeName?: string | null;
     routeParams?: Record<string, string>;
     path?: string;
+    action?: { type: 'tool'; toolKey: string } | null;
 };
 
 export type NavLayoutItem = {

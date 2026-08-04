@@ -30,7 +30,21 @@ export function GalleryEmojiUploadSettings({
     onCreateAnimatedEmoji,
     compact = false,
     className
-}: any) {
+}: {
+    emojiAnimType: boolean;
+    emojiAnimationStyle: string;
+    emojiAnimFps: number;
+    emojiAnimFrameCount: number;
+    emojiAnimLoopPingPong: boolean;
+    onEmojiAnimTypeChange: (value: boolean) => void;
+    onEmojiAnimationStyleChange: (value: string) => void;
+    onEmojiAnimFpsChange: (value: number) => void;
+    onEmojiAnimFrameCountChange: (value: number) => void;
+    onEmojiAnimLoopPingPongChange: (value: boolean) => void;
+    onCreateAnimatedEmoji: () => void;
+    compact?: boolean;
+    className?: string;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -54,7 +68,11 @@ export function GalleryEmojiUploadSettings({
                             label: styleName
                         })
                     )}
-                    onValueChange={onEmojiAnimationStyleChange}
+                    onValueChange={(value) => {
+                        if (value) {
+                            onEmojiAnimationStyleChange(value);
+                        }
+                    }}
                 >
                     <SelectTrigger className="w-full">
                         <SelectValue />
@@ -62,7 +80,7 @@ export function GalleryEmojiUploadSettings({
                     <SelectContent>
                         <SelectGroup>
                             {Object.keys(emojiAnimationStyleList).map(
-                                (styleName: any) => (
+                                (styleName) => (
                                     <SelectItem
                                         key={styleName}
                                         value={styleName}
@@ -100,7 +118,7 @@ export function GalleryEmojiUploadSettings({
                             max={64}
                             value={emojiAnimFps}
                             onChange={(event) =>
-                                onEmojiAnimFpsChange(event.target.value)
+                                onEmojiAnimFpsChange(Number(event.target.value))
                             }
                         />
                     </Field>
@@ -117,7 +135,9 @@ export function GalleryEmojiUploadSettings({
                             max={64}
                             value={emojiAnimFrameCount}
                             onChange={(event) =>
-                                onEmojiAnimFrameCountChange(event.target.value)
+                                onEmojiAnimFrameCountChange(
+                                    Number(event.target.value)
+                                )
                             }
                         />
                     </Field>

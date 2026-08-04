@@ -5,6 +5,7 @@ import {
     ImagesIcon,
     RefreshCwIcon
 } from 'lucide-react';
+import type { TFunction } from 'i18next';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -82,7 +83,7 @@ function CurrentBackgroundImageSummary({
     customSource: BackgroundImageCustomSource | null;
     snapshot: BackgroundImageSnapshot | null;
     onRefresh: () => void;
-    t: (key: string, options?: any) => string;
+    t: TFunction;
 }) {
     const [imageFailed, setImageFailed] = useState(false);
 

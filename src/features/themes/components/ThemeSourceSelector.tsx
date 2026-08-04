@@ -4,7 +4,19 @@ import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 
 import { THEME_MODE_OPTIONS, themeModeLabel } from '../themeHelpers';
+import type { useThemesController } from '../useThemesController';
 import { ThemeSourceButton } from './ThemesPageParts';
+
+type ThemeSourceSelectorProps = Pick<
+    ReturnType<typeof useThemesController>,
+    | 'customCssBadge'
+    | 'visibleSource'
+    | 'selectBuiltInSource'
+    | 'selectBackgroundSource'
+    | 'selectCommunitySource'
+    | 'themeMode'
+    | 'updateThemeMode'
+>;
 
 export function ThemeSourceSelector({
     customCssBadge,
@@ -14,7 +26,7 @@ export function ThemeSourceSelector({
     selectCommunitySource,
     themeMode,
     updateThemeMode
-}: any) {
+}: ThemeSourceSelectorProps) {
     const { t } = useTranslation();
 
     return (

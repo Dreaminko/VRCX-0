@@ -1,4 +1,5 @@
 import { RefreshCwIcon, SearchIcon } from 'lucide-react';
+import type { Table } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
@@ -13,6 +14,7 @@ import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { FriendLogTypeFilterDropdown } from './FriendLogViewParts';
+import type { FriendLogRow } from '../friendLogRows';
 
 export function FriendLogPageToolbar({
     selectedTypes,
@@ -24,7 +26,17 @@ export function FriendLogPageToolbar({
     loadStatus,
     onRefresh,
     table
-}: any) {
+}: {
+    selectedTypes: string[];
+    onSelectedTypesChange: (value: string[]) => void;
+    searchQuery: string;
+    onSearchQueryChange: (value: string) => void;
+    detail: string;
+    currentUserId: string;
+    loadStatus: string;
+    onRefresh: () => void;
+    table: Table<FriendLogRow>;
+}) {
     const { t } = useTranslation();
 
     return (

@@ -42,7 +42,7 @@ import { Textarea } from '@/ui/shadcn/textarea';
 
 const noneValue = '__none__';
 
-function hasOwn(object: any, key: any) {
+function hasOwn(object: unknown, key: PropertyKey) {
     return Object.prototype.hasOwnProperty.call(object, key);
 }
 

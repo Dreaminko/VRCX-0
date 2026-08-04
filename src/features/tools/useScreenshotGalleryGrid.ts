@@ -5,6 +5,7 @@ import {
     positionKnownSizeRows
 } from '@/lib/knownSizeVirtualRows';
 import { useScrollViewportMetrics } from '@/lib/useScrollViewportMetrics';
+import type { ScreenshotLibraryImage } from '@/platform/tauri/bindings';
 
 const GALLERY_GRID_HORIZONTAL_INSET = 8;
 const GALLERY_GRID_OVERSCAN_MIN = 520;
@@ -15,25 +16,35 @@ const COMPACT_CARD_MIN_WIDTH = 150;
 const COMPACT_CARD_HEIGHT = 156;
 const COMPACT_GRID_GAP = 8;
 
+type ScreenshotGalleryGridRow = Record<string, unknown> & {
+    key: string;
+    height: number;
+    items: ScreenshotLibraryImage[];
+};
+
 function buildGalleryGridRows({
     cardHeight,
     gridColumnCount,
     gridGap,
     items
-}: any) {
-    const safeItems = Array.isArray(items) ? items : [];
-    const rows = [];
+}: {
+    cardHeight: number;
+    gridColumnCount: number;
+    gridGap: number;
+    items: readonly ScreenshotLibraryImage[];
+}) {
+    const rows: ScreenshotGalleryGridRow[] = [];
 
-    for (let index = 0; index < safeItems.length; index += gridColumnCount) {
-        const isLastRow = index + gridColumnCount >= safeItems.length;
+    for (let index = 0; index < items.length; index += gridColumnCount) {
+        const isLastRow = index + gridColumnCount >= items.length;
         rows.push({
             key: `screenshot-gallery-row:${index}`,
             height: cardHeight + (isLastRow ? 0 : gridGap),
-            items: safeItems.slice(index, index + gridColumnCount)
+            items: items.slice(index, index + gridColumnCount)
         });
     }
 
-    return positionKnownSizeRows(rows);
+    return positionKnownSizeRows<ScreenshotGalleryGridRow>(rows);
 }
 
 export function useScreenshotGalleryGrid({
@@ -41,7 +52,12 @@ export function useScreenshotGalleryGrid({
     initialScrollTop = 0,
     items,
     resetKey
-}: any) {
+}: {
+    compact?: boolean;
+    initialScrollTop?: number;
+    items: readonly ScreenshotLibraryImage[];
+    resetKey: string;
+}) {
     const { setScrollTop, viewportMetrics, viewportRef } =
         useScrollViewportMetrics();
     const cardHeight = compact ? COMPACT_CARD_HEIGHT : GALLERY_CARD_HEIGHT;

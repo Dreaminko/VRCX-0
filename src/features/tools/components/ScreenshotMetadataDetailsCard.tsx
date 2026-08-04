@@ -12,13 +12,19 @@ import {
     formatScreenshotDateTime
 } from '../screenshotMetadataValues';
 import { EmptyState, MetadataAuthorLink } from './ScreenshotMetadataParts';
+import type { NormalizedScreenshotMetadata } from '../screenshotMetadataValues';
 
 export function ScreenshotMetadataDetailsCard({
     metadata,
     metadataError,
     searchRowsCount,
     onBackToResults
-}: any) {
+}: {
+    metadata: NormalizedScreenshotMetadata | null;
+    metadataError: string;
+    searchRowsCount: number;
+    onBackToResults: () => void;
+}) {
     const { i18n, t } = useTranslation();
     const dateLocale = i18n.resolvedLanguage || i18n.language;
 
@@ -79,7 +85,7 @@ export function ScreenshotMetadataDetailsCard({
                             </div>
                             {metadata.players.length ? (
                                 <div className="flex flex-wrap gap-2">
-                                    {metadata.players.map((player: any) => {
+                                    {metadata.players.map((player) => {
                                         const playerLabel =
                                             player.displayName ||
                                             player.id ||

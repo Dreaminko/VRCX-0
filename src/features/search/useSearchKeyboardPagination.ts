@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
+import type { SearchPaginationState } from './searchTypes';
 
-export function useSearchKeyboardPagination({ pagination }: any) {
+export function useSearchKeyboardPagination({
+    pagination
+}: {
+    pagination: SearchPaginationState;
+}) {
     useEffect(() => {
         function handleKeyDown(event: KeyboardEvent) {
             if (!event.altKey) {

@@ -10,7 +10,13 @@ const sidePanelRouteOpenStateStorageKey =
 const sidePanelRouteOpenStateEvent =
     'vrcx-main-layout-right-sidebar-route-open-state-change';
 
-function readSidePanelRouteOpenState() {
+type SidePanelRouteOpenState = Record<string, boolean>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function readSidePanelRouteOpenState(): SidePanelRouteOpenState {
     if (typeof window === 'undefined') {
         return {};
     }
@@ -22,18 +28,22 @@ function readSidePanelRouteOpenState() {
         if (!value || typeof value !== 'object' || Array.isArray(value)) {
             return {};
         }
-        return value;
+        return Object.fromEntries(
+            Object.entries(value).filter((entry): entry is [string, boolean] =>
+                typeof entry[1] === 'boolean'
+            )
+        );
     } catch {
         return {};
     }
 }
 
-function writeSidePanelRouteOpenState(routeKey: any, open: any) {
+function writeSidePanelRouteOpenState(routeKey: string, open: boolean) {
     if (typeof window === 'undefined') {
         return;
     }
 
-    const nextState: any = {
+    const nextState: SidePanelRouteOpenState = {
         ...readSidePanelRouteOpenState(),
         [routeKey]: Boolean(open)
     };
@@ -54,7 +64,7 @@ function writeSidePanelRouteOpenState(routeKey: any, open: any) {
     );
 }
 
-export function useRightSidePanelVisibility(pathname: any) {
+export function useRightSidePanelVisibility(pathname: string) {
     const routeKey = getDefaultHiddenSidePanelPath(pathname);
     const rightSidebarOpen = useShellStore((state) => state.rightSidebarOpen);
     const [routeOpenState, setRouteOpenState] = useState(
@@ -69,18 +79,22 @@ export function useRightSidePanelVisibility(pathname: any) {
             return undefined;
         }
 
-        const handleRouteStateChange = (event: any) => {
-            const detail = event.detail;
-            if (detail?.routeKey) {
-                setRouteOpenState((currentState: any) => ({
+        const handleRouteStateChange = (event: Event) => {
+            const detail =
+                event instanceof CustomEvent && isRecord(event.detail)
+                    ? event.detail
+                    : null;
+            if (detail && typeof detail.routeKey === 'string') {
+                const routeKey = detail.routeKey;
+                setRouteOpenState((currentState) => ({
                     ...currentState,
-                    [detail.routeKey]: detail.open === true
+                    [routeKey]: detail.open === true
                 }));
                 return;
             }
             setRouteOpenState(readSidePanelRouteOpenState());
         };
-        const handleStorage = (event: any) => {
+        const handleStorage = (event: StorageEvent) => {
             if (
                 event.key === sidePanelRouteOpenStateStorageKey ||
                 event.key === null
@@ -104,7 +118,7 @@ export function useRightSidePanelVisibility(pathname: any) {
     }, []);
 
     const setSidePanelOpen = useCallback(
-        (open: any) => {
+        (open: boolean) => {
             if (routeKey) {
                 writeSidePanelRouteOpenState(routeKey, open);
                 return;

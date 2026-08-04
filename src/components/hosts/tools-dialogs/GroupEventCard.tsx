@@ -6,6 +6,8 @@ import {
     StarIcon
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -13,6 +15,10 @@ import { FadeInImage } from '@/components/media/FadeInImage';
 import { formatDateFilter, formatDateTime } from '@/lib/dateTime';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import vrchatToolsRepository from '@/repositories/vrchatToolsRepository';
+import type {
+    GroupCalendarEventRecord,
+    GroupCalendarGroupRecord
+} from '@/repositories/vrchatToolsRepository';
 import { copyTextToClipboard } from '@/services/clipboardService';
 import { openGroupDialog } from '@/services/dialogService';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
@@ -27,7 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 
 import { getEventGroupId, getEventId } from './toolsDialogUtils';
 
-async function getCalendarIcs(event: any, t: any) {
+async function getCalendarIcs(event: GroupCalendarEventRecord, t: TFunction) {
     const groupId = getEventGroupId(event);
     const eventId = getEventId(event);
     if (!groupId || !eventId) {
@@ -61,14 +67,20 @@ async function getCalendarIcs(event: any, t: any) {
     }
 }
 
-async function openCalendarEvent(event: any, t: any) {
+async function openCalendarEvent(
+    event: GroupCalendarEventRecord,
+    t: TFunction
+) {
     const content = await getCalendarIcs(event, t);
     if (content) {
         await openCalendarFile(content);
     }
 }
 
-async function downloadEventIcs(event: any, t: any) {
+async function downloadEventIcs(
+    event: GroupCalendarEventRecord,
+    t: TFunction
+) {
     const content = await getCalendarIcs(event, t);
     if (!content) {
         return;
@@ -87,7 +99,10 @@ async function downloadEventIcs(event: any, t: any) {
     }
 }
 
-async function copyEventLink(event: any, t: any) {
+async function copyEventLink(
+    event: GroupCalendarEventRecord,
+    t: TFunction
+) {
     const groupId = getEventGroupId(event);
     const eventId = getEventId(event);
     if (!groupId || !eventId) {
@@ -103,7 +118,10 @@ async function copyEventLink(event: any, t: any) {
     });
 }
 
-function getEventBannerUrl(event: any, groupProfile: any) {
+function getEventBannerUrl(
+    event: GroupCalendarEventRecord,
+    groupProfile?: GroupCalendarGroupRecord | null
+) {
     return convertFileUrlToImageUrl(
         event?.imageUrl ||
             event?.thumbnailImageUrl ||
@@ -114,7 +132,10 @@ function getEventBannerUrl(event: any, groupProfile: any) {
     );
 }
 
-function formatEventTimeRange(event: any, mode: any = 'timeline') {
+function formatEventTimeRange(
+    event: GroupCalendarEventRecord,
+    mode: 'timeline' | 'grid' = 'timeline'
+) {
     if (!event?.startsAt) {
         return '';
     }
@@ -138,7 +159,7 @@ function formatEventTimeRange(event: any, mode: any = 'timeline') {
     return end ? `${start} - ${end}` : start;
 }
 
-function capitalizeFirst(value: any) {
+function capitalizeFirst(value: unknown) {
     const text = String(value || '');
     return text ? text.charAt(0).toUpperCase() + text.slice(1) : '\u2014';
 }
@@ -150,7 +171,14 @@ export function GroupEventCard({
     groupProfile,
     isFollowing,
     onToggleFollow
-}: any) {
+}: {
+    event: GroupCalendarEventRecord;
+    mode?: 'timeline' | 'grid';
+    groupName?: string;
+    groupProfile?: GroupCalendarGroupRecord | null;
+    isFollowing: boolean;
+    onToggleFollow?: () => void;
+}) {
     const { t } = useTranslation();
     const openImagePreview = useModalStore((state) => state.openImagePreview);
     const groupId = getEventGroupId(event);
@@ -191,8 +219,8 @@ export function GroupEventCard({
         []
     );
 
-    function stopAndRun(callback: any) {
-        return (clickEvent: any) => {
+    function stopAndRun(callback: () => void) {
+        return (clickEvent: MouseEvent<HTMLElement>) => {
             clickEvent.preventDefault();
             clickEvent.stopPropagation();
             callback();

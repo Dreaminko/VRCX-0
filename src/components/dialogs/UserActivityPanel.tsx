@@ -2,9 +2,10 @@ import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Spinner } from '@/ui/shadcn/spinner';
+import type { UserActivityPanelProps } from './UserActivityPanelImpl';
 
 const UserActivityPanelImpl = lazy(() =>
-    import('./UserActivityPanelImpl').then((module: any) => ({
+    import('./UserActivityPanelImpl').then((module) => ({
         default: module.UserActivityPanel
     }))
 );
@@ -20,7 +21,7 @@ function UserActivityPanelFallback() {
     );
 }
 
-export function UserActivityPanel(props: any) {
+export function UserActivityPanel(props: UserActivityPanelProps) {
     return (
         <Suspense fallback={<UserActivityPanelFallback />}>
             <UserActivityPanelImpl {...props} />

@@ -2,6 +2,7 @@ import { LocationDisplay } from '@/components/location/LocationDisplay';
 import { useResolvedLocation } from '@/components/location/useResolvedLocation';
 import { openGroupDialog } from '@/services/dialogService';
 import { normalizeString } from '@/shared/utils/string';
+import type { SyntheticEvent } from 'react';
 
 type StaticLocationProps = {
     location?: unknown;
@@ -53,7 +54,7 @@ export function StaticLocation({
         showInstanceIdInLocation
     });
 
-    function openGroup(event: any) {
+    function openGroup(event: SyntheticEvent<HTMLElement>) {
         event?.stopPropagation?.();
         const groupId = normalizeString(parsedLocation.groupId);
         if (!groupId) {

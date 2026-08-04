@@ -1,6 +1,6 @@
 function escapeTag(tag: unknown): string {
     const s = String(tag);
-    return s.replace(/["&'<>]/g, (c: any) => `&#${c.charCodeAt(0)};`);
+    return s.replace(/["&'<>]/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 function escapeTagRecursive<T>(obj: T): T {
@@ -19,7 +19,7 @@ function textToHex(text: unknown): string {
     const s = String(text);
     return s
         .split('')
-        .map((c: any) => c.charCodeAt(0).toString(16).toUpperCase())
+        .map((c) => c.charCodeAt(0).toString(16).toUpperCase())
         .join(' ');
 }
 

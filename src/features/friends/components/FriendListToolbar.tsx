@@ -1,4 +1,5 @@
 import { StarIcon } from 'lucide-react';
+import type { Table } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
@@ -11,6 +12,7 @@ import { Switch } from '@/ui/shadcn/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { FriendListSearchFilterDropdown } from './FriendListViewParts';
+import type { FriendListRow } from '../friendListRows';
 
 export function FriendListToolbar({
     bulkModel,
@@ -18,7 +20,38 @@ export function FriendListToolbar({
     loadModel,
     table,
     toolbarCommands
-}: any) {
+}: {
+    bulkModel: {
+        bulkUnfriendMode: boolean;
+        isBulkDeleting: boolean;
+        selectedFriendCount: number;
+    };
+    filterModel: {
+        activeSearchFilterIds: Set<string>;
+        favoritesOnly: boolean;
+        isFavoritesLoaded: boolean;
+        searchQuery: string;
+    };
+    loadModel: {
+        currentUserId: string | null;
+        isLoadingUserDetails: boolean;
+        isMutualFetching: boolean;
+        isMutualOptOut: boolean;
+        mutualProgress: { current: number; total: number };
+        statusDetail: string;
+    };
+    table: Table<FriendListRow>;
+    toolbarCommands: {
+        onBulkUnfriend: () => void;
+        onBulkUnfriendModeChange: (value: boolean) => void;
+        onLoadFriendUserDetails: () => void;
+        onLoadMutualFriends: () => void;
+        onResetTableLayout: () => void;
+        onSearchChange: (value: string) => void;
+        onSearchFilterChange: (value: Set<string>) => void;
+        onToggleFavoritesOnly: () => void;
+    };
+}) {
     const { t } = useTranslation();
     const {
         activeSearchFilterIds,

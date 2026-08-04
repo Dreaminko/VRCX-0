@@ -19,6 +19,18 @@ import {
 } from '@/ui/shadcn/input-group';
 
 import { Field, FieldGroup } from '../SettingsField';
+import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+
+type DialogState = SettingsPageStateSections['dialogs'];
+type AvatarProviderDialogProps = {
+    open: DialogState['avatarProviderDialogOpen'];
+    onOpenChange: DialogState['setAvatarProviderDialogOpen'];
+    config: DialogState['avatarProviderConfig'];
+    onUpdate: DialogState['updateAvatarProvider'];
+    onSaveField: DialogState['saveAvatarProviderField'];
+    onRemove: DialogState['removeAvatarProvider'];
+    onAdd: DialogState['addAvatarProvider'];
+};
 
 export function AvatarProviderDialog({
     open: avatarProviderDialogOpen,
@@ -28,7 +40,7 @@ export function AvatarProviderDialog({
     onSaveField: saveAvatarProviderField,
     onRemove: removeAvatarProvider,
     onAdd: addAvatarProvider
-}: any) {
+}: AvatarProviderDialogProps) {
     const { t } = useTranslation();
 
     return (
@@ -48,7 +60,7 @@ export function AvatarProviderDialog({
                 <FieldGroup>
                     {avatarProviderConfig.providerList.length > 0 ? (
                         avatarProviderConfig.providerList.map(
-                            (provider: any, index: any) => (
+                            (provider, index) => (
                                 <Field
                                     key={`avatar-provider-dialog-${index}`}
                                     label={t(

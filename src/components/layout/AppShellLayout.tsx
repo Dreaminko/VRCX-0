@@ -9,8 +9,8 @@ import { useRightSidePanelVisibility } from './useRightSidePanelVisibility';
 
 const sidePanelStorageKey = 'vrcx-main-layout-right-sidebar-width';
 
-function clampSidePanelWidth(value: any) {
-    const width = Number.parseInt(value, 10);
+function clampSidePanelWidth(value: unknown) {
+    const width = Number.parseInt(String(value ?? ''), 10);
     if (!Number.isFinite(width)) {
         return 320;
     }
@@ -66,7 +66,7 @@ export function AppShellLayout() {
         }
     }, [sidePanelVisible]);
 
-    function applySidePanelWidth(width: any) {
+    function applySidePanelWidth(width: unknown) {
         const nextWidth = clampSidePanelWidth(width);
         sidePanelWidthRef.current = nextWidth;
         if (sidePanelElementRef.current) {
@@ -75,7 +75,7 @@ export function AppShellLayout() {
         return nextWidth;
     }
 
-    function startSidePanelResize(event: any) {
+    function startSidePanelResize(event: React.PointerEvent<HTMLDivElement>) {
         event.preventDefault();
         const target = event.currentTarget;
         const pointerId = event.pointerId;
@@ -90,11 +90,11 @@ export function AppShellLayout() {
         document.body.style.cursor = 'col-resize';
         let cleanedUp = false;
 
-        const handleMove = (moveEvent: any) => {
+        const handleMove = (moveEvent: PointerEvent) => {
             applySidePanelWidth(window.innerWidth - moveEvent.clientX);
         };
 
-        const cleanup = (commit: any = true) => {
+        const cleanup = (commit = true) => {
             if (cleanedUp) {
                 return;
             }
@@ -102,9 +102,9 @@ export function AppShellLayout() {
             document.body.style.userSelect = previousUserSelect;
             document.body.style.cursor = previousCursor;
             window.removeEventListener('pointermove', handleMove);
-            window.removeEventListener('pointerup', cleanup);
-            window.removeEventListener('pointercancel', cleanup);
-            window.removeEventListener('blur', cleanup);
+            window.removeEventListener('pointerup', handleEnd);
+            window.removeEventListener('pointercancel', handleEnd);
+            window.removeEventListener('blur', handleEnd);
             try {
                 target.releasePointerCapture?.(pointerId);
             } catch {
@@ -113,19 +113,20 @@ export function AppShellLayout() {
             resizeCleanupRef.current = null;
             if (commit) {
                 const nextWidth = sidePanelWidthRef.current;
-                setSidePanelWidth((currentWidth: any) =>
+                setSidePanelWidth((currentWidth) =>
                     currentWidth === nextWidth ? currentWidth : nextWidth
                 );
             }
         };
+        const handleEnd = () => cleanup();
 
         resizeCleanupRef.current?.();
         window.addEventListener('pointermove', handleMove);
-        window.addEventListener('pointerup', cleanup);
-        window.addEventListener('pointercancel', cleanup);
-        window.addEventListener('blur', cleanup);
+        window.addEventListener('pointerup', handleEnd);
+        window.addEventListener('pointercancel', handleEnd);
+        window.addEventListener('blur', handleEnd);
         resizeCleanupRef.current = cleanup;
-        handleMove(event);
+        applySidePanelWidth(window.innerWidth - event.clientX);
     }
 
     return (

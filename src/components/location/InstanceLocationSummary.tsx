@@ -1,5 +1,6 @@
 import { AlertTriangleIcon, LockIcon, UnlockIcon } from 'lucide-react';
 import { useMemo } from 'react';
+import type { SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -22,6 +23,26 @@ import { useLaunchStore } from '@/state/launchStore';
 import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
+export type InstanceLocationSummaryProps = {
+    locationObject?: unknown;
+    currentUserId?: unknown;
+    worldDialogShortName?: unknown;
+    groupHint?: unknown;
+    grouphint?: unknown;
+    instanceOwner?: unknown;
+    instanceOwnerName?: unknown;
+    playerCount?: unknown;
+    capacity?: unknown;
+    endpoint?: unknown;
+    hint?: unknown;
+    interactive?: boolean;
+    disableTooltip?: boolean;
+    instanceClickAction?: 'launch' | 'world';
+    showGroupName?: boolean;
+    showPlayerSummary?: boolean;
+    className?: string;
+};
+
 export function InstanceLocationSummary({
     locationObject,
     currentUserId = '',
@@ -40,7 +61,7 @@ export function InstanceLocationSummary({
     showGroupName = true,
     showPlayerSummary = true,
     className = ''
-}: any) {
+}: InstanceLocationSummaryProps) {
     const { t } = useTranslation();
     const showLaunchDialog = useLaunchStore((state) => state.showLaunchDialog);
     const locObj = useMemo(
@@ -104,7 +125,7 @@ export function InstanceLocationSummary({
             .filter(Boolean)
             .join(' · ') || '—';
 
-    function openLocationGroupDialog(event: any) {
+    function openLocationGroupDialog(event: SyntheticEvent<HTMLElement>) {
         if (!interactive) {
             return;
         }
@@ -116,7 +137,7 @@ export function InstanceLocationSummary({
         openGroupDialog({ groupId, title: groupName || undefined });
     }
 
-    function openLocationWorldDialog(event: any) {
+    function openLocationWorldDialog(event: SyntheticEvent<HTMLElement>) {
         if (!interactive) {
             return;
         }

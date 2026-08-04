@@ -181,22 +181,19 @@ export function DashboardPage() {
                 {editor.isEditing ? (
                     <>
                         {editor.editRows.length ? (
-                            editor.editRows.map((row: any, rowIndex: any) => (
+                            editor.editRows.map((row, rowIndex) => (
                                 <DashboardEditorRow
                                     key={`edit-row-${rowIndex}`}
                                     row={row}
                                     rowIndex={rowIndex}
-                                    onPanelChange={(
-                                        panelIndex: any,
-                                        nextPanel: any
-                                    ) =>
+                                    onPanelChange={(panelIndex, nextPanel) =>
                                         editor.handleUpdatePanel(
                                             rowIndex,
                                             panelIndex,
                                             nextPanel
                                         )
                                     }
-                                    onPanelRemove={(panelIndex: any) =>
+                                    onPanelRemove={(panelIndex) =>
                                         editor.handleRemovePanel(
                                             rowIndex,
                                             panelIndex
@@ -205,7 +202,7 @@ export function DashboardPage() {
                                     onRowRemove={() =>
                                         editor.handleRemoveRow(rowIndex)
                                     }
-                                    onDirectionChange={(direction: any) =>
+                                    onDirectionChange={(direction) =>
                                         editor.handleDirectionChange(
                                             rowIndex,
                                             direction
@@ -233,7 +230,7 @@ export function DashboardPage() {
                         defaultLayout={dashboardLayout.defaultLayout}
                         onLayoutChanged={dashboardLayout.onLayoutChanged}
                     >
-                        {dashboard.rows.map((row: any, rowIndex: any) => {
+                        {dashboard.rows.map((row, rowIndex) => {
                             const rowKey = getDashboardRowKey(row);
                             return (
                                 <Fragment key={`row-${rowKey}`}>
@@ -246,8 +243,8 @@ export function DashboardPage() {
                                             row={row}
                                             dashboardId={id}
                                             onPanelChange={(
-                                                panelIndex: any,
-                                                nextPanel: any
+                                                panelIndex,
+                                                nextPanel
                                             ) => {
                                                 actions.updateLivePanel(
                                                     rowIndex,

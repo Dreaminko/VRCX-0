@@ -1,13 +1,22 @@
 import { useTranslation } from 'react-i18next';
 
 import { ImageCropDialog } from '@/components/media/ImageCropDialog';
+import type {
+    GalleryCropRequest,
+    GalleryUploadOptions
+} from '../galleryTypes';
 
 export function GalleryDialogs({
     cropRequest,
     onClearCropRequest,
     onConfirmCrop,
     onResetUploadAuthTarget
-}: any) {
+}: {
+    cropRequest: GalleryCropRequest | null;
+    onClearCropRequest: () => void;
+    onConfirmCrop: (blob: Blob, options?: GalleryUploadOptions) => void;
+    onResetUploadAuthTarget: () => void;
+}) {
     const { t } = useTranslation();
     const printNoteField =
         cropRequest?.tab === 'prints'
@@ -34,7 +43,7 @@ export function GalleryDialogs({
                 title={t('dialog.change_content_image.upload')}
                 noteField={printNoteField}
                 cropWhiteBorderField={printCropWhiteBorderField}
-                onOpenChange={(open: any) => {
+                onOpenChange={(open) => {
                     if (!open) {
                         onClearCropRequest();
                         onResetUploadAuthTarget();

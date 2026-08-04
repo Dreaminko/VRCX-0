@@ -28,11 +28,18 @@ import {
     type LucideIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type {
+    ComponentProps,
+    CSSProperties,
+    ReactNode,
+    Ref
+} from 'react';
 
 import { getNavIconComponent } from '@/components/layout/navIconRegistry';
 import { PageScaffold } from '@/components/layout/PageScaffold';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
+import type { ToolDefinition } from '@/shared/constants/tools';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -49,6 +56,16 @@ import {
     quickAccessDropId,
     toolCatalogDropId
 } from '../toolsPageHelpers';
+import type { useToolsPageState } from '../useToolsPageState';
+
+type ToolsPageContentProps = ReturnType<typeof useToolsPageState>;
+type EditQuickAccessAction = 'add' | 'remove';
+type DragRenderProps = {
+    itemRef: Ref<HTMLDivElement>;
+    itemStyle: CSSProperties;
+    isDragging: boolean;
+    dragProps: ComponentProps<typeof Button>;
+};
 
 const categoryIconByKey: Record<string, LucideIcon> = {
     image: ImageIcon,
@@ -63,7 +80,7 @@ const categoryIconByKey: Record<string, LucideIcon> = {
 function useToolsLabel() {
     const { t, i18n } = useTranslation();
 
-    return (key: any) => {
+    return (key: string) => {
         const localized = t(key);
         if (localized !== key) {
             return localized;
@@ -99,7 +116,30 @@ function ToolItem({
     onUnpin,
     onAddQuickAccess,
     onRemoveQuickAccess
-}: any) {
+}: {
+    icon: LucideIcon;
+    title: string;
+    description: string;
+    actionsLabel: string;
+    pinLabel: string;
+    unpinLabel: string;
+    addQuickAccessLabel: string;
+    removeQuickAccessLabel: string;
+    navEligible: boolean;
+    isPinned: boolean;
+    isQuickAccess: boolean;
+    editMode: boolean;
+    editQuickAccessAction: EditQuickAccessAction;
+    itemRef?: Ref<HTMLDivElement>;
+    itemStyle?: CSSProperties;
+    isDragging?: boolean;
+    dragProps?: ComponentProps<typeof Button>;
+    onClick: () => void;
+    onPin: () => void;
+    onUnpin: () => void;
+    onAddQuickAccess: () => void;
+    onRemoveQuickAccess: () => void;
+}) {
     const PinStateIcon = isPinned ? PinOffIcon : PinIcon;
     const QuickAccessIcon = isQuickAccess ? MinusIcon : PlusIcon;
     const isEditRemoveAction = editQuickAccessAction === 'remove';
@@ -223,7 +263,15 @@ function ToolItem({
     );
 }
 
-function SortableQuickAccessTool({ toolKey, disabled, children }: any) {
+function SortableQuickAccessTool({
+    toolKey,
+    disabled,
+    children
+}: {
+    toolKey: string;
+    disabled: boolean;
+    children: (props: DragRenderProps) => ReactNode;
+}) {
     const {
         attributes,
         listeners,
@@ -239,11 +287,11 @@ function SortableQuickAccessTool({ toolKey, disabled, children }: any) {
             toolKey
         }
     });
-    const itemStyle: any = {
+    const itemStyle: CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition
     };
-    const cardDragProps: any = {
+    const cardDragProps: ComponentProps<typeof Button> = {
         ...attributes,
         ...listeners
     };
@@ -256,7 +304,15 @@ function SortableQuickAccessTool({ toolKey, disabled, children }: any) {
     });
 }
 
-function DraggableCatalogTool({ toolKey, disabled, children }: any) {
+function DraggableCatalogTool({
+    toolKey,
+    disabled,
+    children
+}: {
+    toolKey: string;
+    disabled: boolean;
+    children: (props: DragRenderProps) => ReactNode;
+}) {
     const { attributes, listeners, setNodeRef, transform, isDragging } =
         useDraggable({
             id: getCatalogDragId(toolKey),
@@ -266,10 +322,10 @@ function DraggableCatalogTool({ toolKey, disabled, children }: any) {
                 toolKey
             }
         });
-    const itemStyle: any = {
+    const itemStyle: CSSProperties = {
         transform: CSS.Translate.toString(transform)
     };
-    const cardDragProps: any = {
+    const cardDragProps: ComponentProps<typeof Button> = {
         ...attributes,
         ...listeners
     };
@@ -289,7 +345,14 @@ function QuickAccessDropZone({
     title,
     emptyDescription,
     children
-}: any) {
+}: {
+    editMode: boolean;
+    isEmpty: boolean;
+    isHidden: boolean;
+    title: string;
+    emptyDescription: string;
+    children: ReactNode;
+}) {
     const { isOver, setNodeRef } = useDroppable({
         id: quickAccessDropId,
         disabled: !editMode,
@@ -332,7 +395,13 @@ function QuickAccessDropZone({
     );
 }
 
-function ToolCatalogDropZone({ editMode, children }: any) {
+function ToolCatalogDropZone({
+    editMode,
+    children
+}: {
+    editMode: boolean;
+    children: ReactNode;
+}) {
     const { isOver, setNodeRef } = useDroppable({
         id: toolCatalogDropId,
         disabled: !editMode,
@@ -373,13 +442,13 @@ export function ToolsPageContent({
     toggleCategoryCollapsed,
     triggerTool,
     unpinToolFromNav
-}: any) {
+}: ToolsPageContentProps) {
     const label = useToolsLabel();
 
     function renderToolItem(
-        tool: any,
-        dragProps: any = {},
-        editQuickAccessAction: any = 'add'
+        tool: ToolDefinition,
+        dragProps: Partial<DragRenderProps> = {},
+        editQuickAccessAction: EditQuickAccessAction = 'add'
     ) {
         const normalizedToolKey = normalizePinnedToolKey(tool.key);
         return (
@@ -429,7 +498,7 @@ export function ToolsPageContent({
                         variant={isQuickAccessEditing ? 'secondary' : 'outline'}
                         size="sm"
                         onClick={() =>
-                            setIsQuickAccessEditing((current: any) => !current)
+                            setIsQuickAccessEditing((current) => !current)
                         }
                     >
                         {isQuickAccessEditing
@@ -454,19 +523,19 @@ export function ToolsPageContent({
                             )}
                         >
                             <SortableContext
-                                items={quickAccessTools.map((tool: any) =>
+                                items={quickAccessTools.map((tool) =>
                                     getQuickAccessDragId(tool.key)
                                 )}
                                 strategy={rectSortingStrategy}
                             >
                                 <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2 xl:grid-cols-3">
-                                    {quickAccessTools.map((tool: any) => (
+                                    {quickAccessTools.map((tool) => (
                                         <SortableQuickAccessTool
                                             key={tool.key}
                                             toolKey={tool.key}
                                             disabled={!isQuickAccessEditing}
                                         >
-                                            {(dragProps: any) =>
+                                            {(dragProps) =>
                                                 renderToolItem(
                                                     tool,
                                                     dragProps,
@@ -481,7 +550,7 @@ export function ToolsPageContent({
                     </div>
 
                     <ToolCatalogDropZone editMode={isQuickAccessEditing}>
-                        {categories.map((category: any) => (
+                        {categories.map((category) => (
                             <div key={category.key} className="mb-4">
                                 {(() => {
                                     const CategoryIcon =
@@ -521,13 +590,13 @@ export function ToolsPageContent({
 
                                 {!collapsed[category.key] ? (
                                     <div className="grid grid-cols-1 gap-2.5 pl-4 lg:grid-cols-2 xl:grid-cols-3">
-                                        {category.tools.map((tool: any) => (
+                                        {category.tools.map((tool) => (
                                             <DraggableCatalogTool
                                                 key={tool.key}
                                                 toolKey={tool.key}
                                                 disabled={!isQuickAccessEditing}
                                             >
-                                                {(dragProps: any) =>
+                                                {(dragProps) =>
                                                     renderToolItem(
                                                         tool,
                                                         dragProps,

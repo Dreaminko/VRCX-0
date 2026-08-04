@@ -1,0 +1,219 @@
+import type {
+    ChangeEvent,
+    Dispatch,
+    MutableRefObject,
+    SetStateAction
+} from 'react';
+
+import type { CurrentUserSnapshotState } from '@/state/runtimeStore';
+
+import type {
+    FileAssetTab,
+    GalleryAssets,
+    GalleryTab,
+    GalleryUploadTarget
+} from './galleryConstants';
+import type { EmojiUploadSettings } from './inventoryHelpers';
+
+export type GalleryAuthTarget = {
+    endpoint: string;
+    userId: string;
+};
+
+export type GalleryCropRequest = {
+    aspectRatio: number;
+    authTarget: GalleryAuthTarget;
+    file: File;
+    settings: EmojiUploadSettings;
+    tab: GalleryUploadTarget;
+};
+
+export type GalleryUploadOptions = {
+    cropWhiteBorder?: boolean;
+    note?: string;
+};
+
+type DialogResult = {
+    ok: boolean;
+    value?: unknown;
+};
+
+type DialogRequest = {
+    title: string;
+    description: string;
+    confirmText: string;
+    cancelText: string;
+    destructive?: boolean;
+};
+
+type Translation = (
+    key: string,
+    options?: Record<string, unknown>
+) => string;
+
+type ToastApi = {
+    error(message: string): unknown;
+    success(message: string): unknown;
+};
+
+export type GalleryControllerDeps = {
+    activeTab: GalleryTab;
+    cropRequest: GalleryCropRequest | null;
+    currentEndpoint: string;
+    currentUserId: string | null;
+    currentUserSnapshot: CurrentUserSnapshotState | null;
+    emojiAnimFps: number;
+    emojiAnimFrameCount: number;
+    emojiAnimLoopPingPong: boolean;
+    emojiAnimType: boolean;
+    emojiAnimationStyle: string;
+    isVrcPlusSupporter: boolean;
+    setAssets: Dispatch<SetStateAction<GalleryAssets>>;
+    setCropRequest: Dispatch<SetStateAction<GalleryCropRequest | null>>;
+    setEmojiAnimFps: Dispatch<SetStateAction<number>>;
+    setEmojiAnimFrameCount: Dispatch<SetStateAction<number>>;
+    setEmojiAnimLoopPingPong: Dispatch<SetStateAction<boolean>>;
+    setEmojiAnimType: Dispatch<SetStateAction<boolean>>;
+    setEmojiAnimationStyle: Dispatch<SetStateAction<string>>;
+    setLoadingByTab: Dispatch<SetStateAction<Record<string, boolean>>>;
+    setMutatingKey: Dispatch<SetStateAction<string>>;
+    setUploadingTab: Dispatch<SetStateAction<string>>;
+    uploadAuthTargetRef: MutableRefObject<GalleryAuthTarget | null>;
+    uploadInputRef: MutableRefObject<{ click(): void } | null>;
+    uploadTargetRef: MutableRefObject<GalleryUploadTarget | null>;
+};
+
+export type GalleryActionDeps = GalleryControllerDeps & {
+    FILE_TABS: Partial<typeof import('./galleryConstants').FILE_TABS>;
+    UPLOAD_ASPECT_RATIOS: Partial<Record<GalleryUploadTarget, number>>;
+    buildProfilePicOverride(endpoint: unknown, fileId: unknown): string;
+    confirm(request: DialogRequest): Promise<DialogResult>;
+    getLocalTimestampString(): string;
+    isRuntimeAuthTarget(authTarget: GalleryAuthTarget): boolean;
+    mediaRepository: typeof import('@/repositories/mediaRepository').default;
+    parseEmojiUploadSettings(
+        fileName: unknown,
+        settings?: Partial<EmojiUploadSettings>
+    ): EmojiUploadSettings;
+    prompt(request: DialogRequest): Promise<DialogResult>;
+    readFileAsBase64(file: Blob): Promise<string>;
+    t: Translation;
+    toast: ToastApi;
+    useRuntimeStore: typeof import('@/state/runtimeStore').useRuntimeStore;
+    userProfileRepository: typeof import('@/repositories/userProfileRepository').default;
+    validateImageFile(file: Blob, t: Translation): boolean;
+    withUploadTimeout<T>(promise: Promise<T>): Promise<T>;
+};
+
+export type GalleryAssetActionDeps = Omit<
+    GalleryActionDeps,
+    | 'buildProfilePicOverride'
+    | 'currentUserSnapshot'
+    | 'mediaRepository'
+    | 'prompt'
+    | 'useRuntimeStore'
+    | 'userProfileRepository'
+> & {
+    mediaRepository: Pick<
+        GalleryActionDeps['mediaRepository'],
+        | 'collectInventoryItems'
+        | 'deleteFile'
+        | 'getFileList'
+        | 'getPrints'
+        | 'uploadAssetImage'
+    >;
+};
+
+export type GalleryInventoryActionDeps = Pick<
+    GalleryActionDeps,
+    | 'buildProfilePicOverride'
+    | 'confirm'
+    | 'currentEndpoint'
+    | 'currentUserId'
+    | 'currentUserSnapshot'
+    | 'isRuntimeAuthTarget'
+    | 'prompt'
+    | 'setAssets'
+    | 'setMutatingKey'
+    | 't'
+    | 'toast'
+> & {
+    getAuthTarget(): GalleryAuthTarget;
+    mediaRepository: Pick<
+        GalleryActionDeps['mediaRepository'],
+        | 'consumeInventoryBundle'
+        | 'deletePrint'
+        | 'redeemReward'
+        | 'setPrintFavorite'
+    >;
+    refreshInventory(): Promise<void>;
+    useRuntimeStore: {
+        getState(): {
+            auth: {
+                currentUserSnapshot: CurrentUserSnapshotState | null;
+            };
+            setAuthBootstrap(input: {
+                currentUserSnapshot: CurrentUserSnapshotState;
+                currentUserDisplayName: string;
+            }): void;
+        };
+    };
+    userProfileRepository: Pick<
+        GalleryActionDeps['userProfileRepository'],
+        'updateCurrentUser'
+    >;
+};
+
+export type GalleryProfileField = 'profilePicOverride' | 'userIcon';
+
+export type GalleryCommands = {
+    onActiveTabChange(value: unknown): void;
+    onBeginUpload(tab: GalleryUploadTarget): void;
+    onClearProfileField(fieldName: GalleryProfileField, fileId: string): void;
+    onDeleteFile(tab: FileAssetTab, fileId: string): void;
+    onDeletePrint(printId: string): void;
+    onPreview(options: { id?: string; title: string; url: string }): void;
+    onRefresh(tab: GalleryTab): void;
+    onSetProfileField(fieldName: GalleryProfileField, fileId: string): void;
+};
+
+export type GalleryModel = {
+    activeTab: GalleryTab;
+    assets: GalleryAssets;
+    currentUserId: string | null;
+    gridDensityConfig: ReturnType<
+        typeof import('./galleryDensity').getGalleryGridDensityConfig
+    >;
+    isVrcPlusSupporter: boolean;
+    loadingByTab: Record<string, boolean>;
+    mutatingKey: string;
+    profilePicOverride: string;
+    tabCounts: Record<GalleryTab, string>;
+    uploadingTab: string;
+    userIcon: string;
+};
+
+export type GalleryFileTabState = Pick<
+    GalleryModel,
+    | 'assets'
+    | 'currentUserId'
+    | 'gridDensityConfig'
+    | 'loadingByTab'
+    | 'mutatingKey'
+    | 'profilePicOverride'
+    | 'uploadingTab'
+    | 'userIcon'
+> &
+    Pick<
+        GalleryCommands,
+        | 'onBeginUpload'
+        | 'onClearProfileField'
+        | 'onDeleteFile'
+        | 'onPreview'
+        | 'onRefresh'
+        | 'onSetProfileField'
+    >;
+
+export type GalleryUploadChangeHandler = (
+    event: ChangeEvent<HTMLInputElement>
+) => void;

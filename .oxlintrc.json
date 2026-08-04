@@ -14,14 +14,7 @@
     },
     "overrides": [
         {
-            "files": [
-                "src/features/favorites/**/*.{ts,tsx}",
-                "src/repositories/favoritePersistenceRepository.ts",
-                "src/services/favorite*CacheService.{ts,tsx}",
-                "src/services/favoriteLocalRefreshService.ts",
-                "src/services/favoriteRevisionReconciliationService.ts",
-                "src/state/favorite*Store.{ts,tsx}"
-            ],
+            "files": ["**/*.{ts,tsx}"],
             "rules": {
                 "typescript/no-explicit-any": "error"
             }

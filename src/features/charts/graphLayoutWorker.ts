@@ -2,30 +2,49 @@ import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
 
-function clampNumber(value: any, min: any, max: any) {
+import type {
+    GraphLayoutNodeAttributes,
+    GraphLayoutPositions,
+    GraphLayoutRequest,
+    GraphLayoutResponse
+} from './graphLayoutTypes';
+
+type LayoutGraph = Graph<
+    GraphLayoutNodeAttributes,
+    Record<string, unknown>,
+    Record<string, unknown>
+>;
+
+function clampNumber(value: number, min: number, max: number) {
     const normalized = Number.isFinite(value) ? value : min;
     return Math.min(max, Math.max(min, normalized));
 }
 
-function lerp(a: any, b: any, t: any) {
+function lerp(a: number, b: number, t: number) {
     return a + (b - a) * t;
 }
 
-function jitterPositions(graph: any, magnitude: any) {
-    graph.forEachNode((node: any, attrs: any) => {
-        if (!Number.isFinite(attrs.x) || !Number.isFinite(attrs.y)) {
+function jitterPositions(graph: LayoutGraph, magnitude: number) {
+    graph.forEachNode((node, attrs) => {
+        const { x, y } = attrs;
+        if (
+            typeof x !== 'number' ||
+            typeof y !== 'number' ||
+            !Number.isFinite(x) ||
+            !Number.isFinite(y)
+        ) {
             return;
         }
         graph.mergeNodeAttributes(node, {
-            x: attrs.x + (Math.random() - 0.5) * magnitude,
-            y: attrs.y + (Math.random() - 0.5) * magnitude
+            x: x + (Math.random() - 0.5) * magnitude,
+            y: y + (Math.random() - 0.5) * magnitude
         });
     });
 }
 
-function initPositions(graph: any) {
+function initPositions(graph: LayoutGraph) {
     const radius = Math.max(50, Math.sqrt(graph.order) * 30);
-    graph.forEachNode((node: any) => {
+    graph.forEachNode((node) => {
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.sqrt(Math.random()) * radius;
         graph.mergeNodeAttributes(node, {
@@ -40,9 +59,9 @@ const LAYOUT_SPACING_MAX = 240;
 const LAYOUT_ITERATIONS_MIN = 300;
 const LAYOUT_ITERATIONS_MAX = 1500;
 
-function runLayout(data: any) {
+function runLayout(data: GraphLayoutRequest): GraphLayoutPositions {
     const { nodes, edges, settings } = data;
-    const graph = new Graph({
+    const graph: LayoutGraph = new Graph({
         type: 'undirected',
         multi: false,
         allowSelfLoops: false
@@ -114,21 +133,29 @@ function runLayout(data: any) {
         }
     });
 
-    const positions: any = {};
-    graph.forEachNode((node: any, attrs: any) => {
+    const positions: GraphLayoutPositions = {};
+    graph.forEachNode((node, attrs) => {
+        if (typeof attrs.x !== 'number' || typeof attrs.y !== 'number') {
+            throw new Error(`Graph layout did not position node ${node}.`);
+        }
         positions[node] = { x: attrs.x, y: attrs.y };
     });
     return positions;
 }
 
-self.addEventListener('message', (event: any) => {
+self.addEventListener('message', (event: MessageEvent<GraphLayoutRequest>) => {
     const { requestId } = event.data;
     try {
-        self.postMessage({ requestId, positions: runLayout(event.data) });
+        const response: GraphLayoutResponse = {
+            requestId,
+            positions: runLayout(event.data)
+        };
+        self.postMessage(response);
     } catch (error) {
-        self.postMessage({
+        const response: GraphLayoutResponse = {
             requestId,
             error: error instanceof Error ? error.message : String(error)
-        });
+        };
+        self.postMessage(response);
     }
 });

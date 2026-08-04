@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, type Location } from 'react-router';
 
 import storageRepository from '@/repositories/storageRepository';
 import {
@@ -9,7 +9,7 @@ import {
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
-function currentRoute(location: any): string {
+function currentRoute(location: Location): string {
     return `${location.pathname}${location.search}${location.hash}`;
 }
 
@@ -44,7 +44,7 @@ export function BackgroundRouteResumeHost(): null {
         let cancelled = false;
         storageRepository
             .getString(BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY, '')
-            .then((storedRoute: any) => {
+            .then((storedRoute) => {
                 if (cancelled) {
                     return;
                 }

@@ -2,7 +2,7 @@ import { formatClock as formatAppClock, timeToText } from '@/lib/dateTime';
 
 export const INFO_CHART_BAR_WIDTH = 12;
 
-interface InfoChartRow {
+export interface InfoChartRow {
     userId: string;
     displayName?: string;
     joinMs: number;
@@ -12,6 +12,10 @@ interface InfoChartRow {
     isFriend?: boolean;
 }
 
+type InfoChartTooltipRow = Omit<InfoChartRow, 'userId'> & {
+    userId?: string;
+};
+
 interface GroupedEntry {
     offset: number;
     durationMs: number;
@@ -19,16 +23,16 @@ interface GroupedEntry {
     entry: InfoChartRow;
 }
 
-function formatClock(value: any, hour12: any, includeSeconds: any = false) {
+function formatClock(value: number, hour12: boolean, includeSeconds = false) {
     return formatAppClock(value, { hour12, includeSeconds });
 }
 
-function truncateLabel(value: any, maxLength: any = 20) {
+function truncateLabel(value: unknown, maxLength = 20) {
     const text = String(value || '');
     return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
 }
 
-function markerForEntry(entry: any) {
+function markerForEntry(entry: InfoChartTooltipRow) {
     if (entry?.isFavorite) {
         return '\u2b50 ';
     }
@@ -38,7 +42,10 @@ function markerForEntry(entry: any) {
     return '';
 }
 
-export function buildInfoChartTooltipParts(detailEntry: any, hour12: any) {
+export function buildInfoChartTooltipParts(
+    detailEntry: InfoChartTooltipRow,
+    hour12: boolean
+) {
     return {
         title: `${detailEntry.displayName || ''} ${markerForEntry(detailEntry).trim()}`.trim(),
         timeRange: `${formatClock(detailEntry.joinMs, hour12, true)} - ${formatClock(detailEntry.leaveMs, hour12, true)}`,
@@ -50,13 +57,22 @@ export function buildInfoChartOption({
     rows,
     hour12,
     tooltipFormatter = null
-}: any) {
+}: {
+    rows: InfoChartRow[];
+    hour12: boolean;
+    tooltipFormatter?:
+        | ((
+              entry: InfoChartRow,
+              hour12: boolean
+          ) => string | HTMLElement)
+        | null;
+}) {
     if (!rows.length) {
         return null;
     }
 
-    const startMs = Math.min(...rows.map((entry: any) => entry.joinMs));
-    const endMs = Math.max(...rows.map((entry: any) => entry.leaveMs));
+    const startMs = Math.min(...rows.map((entry) => entry.joinMs));
+    const endMs = Math.max(...rows.map((entry) => entry.leaveMs));
     if (
         !Number.isFinite(startMs) ||
         !Number.isFinite(endMs) ||
@@ -67,7 +83,7 @@ export function buildInfoChartOption({
 
     const groupedByUser = new Map<string, GroupedEntry[]>();
     const firstEntries: InfoChartRow[] = [];
-    const sortedRows = [...rows].sort((left: any, right: any) => {
+    const sortedRows = [...rows].sort((left, right) => {
         const joinDiff = Math.abs(left.joinMs - right.joinMs);
         return joinDiff < 3000
             ? left.leaveMs - right.leaveMs
@@ -101,7 +117,7 @@ export function buildInfoChartOption({
 
     const maxEntryCount = Math.max(
         ...Array.from(groupedByUser.values()).map(
-            (entries: any) => entries.length
+            (entries) => entries.length
         )
     );
     const series = [];
@@ -120,7 +136,7 @@ export function buildInfoChartOption({
                     color: 'transparent'
                 }
             },
-            data: firstEntries.map((entry: any) => {
+            data: firstEntries.map((entry) => {
                 const element = groupedByUser.get(entry.userId)?.[entryIndex];
                 return element ? element.offset : 0;
             })
@@ -140,7 +156,7 @@ export function buildInfoChartOption({
                 shadowOffsetX: 0.7,
                 shadowOffsetY: 0.5
             },
-            data: firstEntries.map((entry: any) => {
+            data: firstEntries.map((entry) => {
                 const element = groupedByUser.get(entry.userId)?.[entryIndex];
                 return element ? element.durationMs : 0;
             })
@@ -154,7 +170,7 @@ export function buildInfoChartOption({
                 axisPointer: {
                     type: 'shadow'
                 },
-                formatter(params: any) {
+                formatter(params: { seriesIndex: number; dataIndex: number }) {
                     if (params.seriesIndex % 2 === 0) {
                         return '';
                     }
@@ -189,12 +205,12 @@ export function buildInfoChartOption({
                 triggerEvent: true,
                 axisLabel: {
                     interval: 0,
-                    formatter(value: any, index: any) {
+                    formatter(value: unknown, index: number) {
                         const entry = firstEntries[index];
                         return `${markerForEntry(entry)}${truncateLabel(value, 20)}`;
                     }
                 },
-                data: firstEntries.map((entry: any) => entry.displayName)
+                data: firstEntries.map((entry) => entry.displayName)
             },
             xAxis: {
                 type: 'value',
@@ -202,7 +218,7 @@ export function buildInfoChartOption({
                 max: endMs - startMs,
                 axisLine: { show: true },
                 axisLabel: {
-                    formatter(value: any) {
+                    formatter(value: number) {
                         return formatClock(startMs + value, hour12, false);
                     }
                 },

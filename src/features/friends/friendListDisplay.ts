@@ -1,10 +1,11 @@
 import { normalizeProfileLanguageRows } from '@/shared/utils/userLanguage';
+import type { LanguageOption } from '@/shared/utils/userLanguage';
 import {
     userStatusIndicatorClassName,
     userStatusSortRank
 } from '@/shared/utils/userStatus';
 
-export function languageCodeLabel(languageKey: any) {
+export function languageCodeLabel(languageKey: unknown) {
     const key = String(languageKey ?? '')
         .trim()
         .toLowerCase()
@@ -12,22 +13,26 @@ export function languageCodeLabel(languageKey: any) {
     return key ? key.toUpperCase() : '';
 }
 
-export function languageTooltipLabel(entry: any, code: any) {
+export function languageTooltipLabel(entry: LanguageOption, code: string) {
     const value = String(
         entry?.value || entry?.label || entry?.name || ''
     ).trim();
     return value || code;
 }
 
-export function resolveFriendLanguageRows(friend: any) {
+export function resolveFriendLanguageRows(friend: unknown) {
     return normalizeProfileLanguageRows(friend);
 }
 
-function resolveFriendStatusLabel(friend: any) {
-    return String(friend?.statusDescription ?? '').trim();
+function resolveFriendStatusLabel(friend: unknown) {
+    if (!friend || typeof friend !== 'object') {
+        return '';
+    }
+    const record = Object.fromEntries(Object.entries(friend));
+    return String(record.statusDescription ?? '').trim();
 }
 
-export function resolveFriendStatusMeta(friend: any) {
+export function resolveFriendStatusMeta(friend: unknown) {
     const statusForIndicator = friend || {};
     const indicatorClassName = userStatusIndicatorClassName(
         statusForIndicator,

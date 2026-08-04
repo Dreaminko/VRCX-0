@@ -26,11 +26,21 @@ describe('useGalleryInventoryActions', () => {
             currentEndpoint: 'https://api.vrchat.cloud/api/1',
             currentUserId: 'usr_self',
             currentUserSnapshot,
+            confirm: vi.fn(),
             getAuthTarget: () => ({
                 userId: 'usr_self',
                 endpoint: 'https://api.vrchat.cloud/api/1'
             }),
             isRuntimeAuthTarget: () => true,
+            mediaRepository: {
+                consumeInventoryBundle: vi.fn(),
+                deletePrint: vi.fn(),
+                redeemReward: vi.fn(),
+                setPrintFavorite: vi.fn()
+            },
+            prompt: vi.fn(),
+            refreshInventory: vi.fn(),
+            setAssets: vi.fn(),
             setMutatingKey: vi.fn(),
             t: (key: string) => key,
             toast,

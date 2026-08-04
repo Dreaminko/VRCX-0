@@ -1,6 +1,12 @@
 import { ChevronRightIcon, FolderIcon, RefreshCwIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type {
+    ScreenshotFolderInfo,
+    ScreenshotFolderTree,
+    ScreenshotLibraryImage,
+    ScreenshotLibraryScanStatus
+} from '@/platform/tauri/bindings';
 
 import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
@@ -19,12 +25,14 @@ import {
     useScreenshotThumbnailTitleMap
 } from './ScreenshotThumbnailGrid';
 
-function buildFolderTree(folderTree: any) {
-    const folders = Array.isArray(folderTree?.folders)
-        ? folderTree.folders
-        : [];
+type FolderTreeNodeModel = ScreenshotFolderInfo & {
+    children: FolderTreeNodeModel[];
+};
+
+function buildFolderTree(folderTree: ScreenshotFolderTree | null) {
+    const folders = folderTree?.folders ?? [];
     const rootPath = folderTree?.rootPath || folders[0]?.path || '';
-    const nodesByPath = new Map();
+    const nodesByPath = new Map<string, FolderTreeNodeModel>();
 
     for (const folder of folders) {
         nodesByPath.set(folder.path, {
@@ -57,7 +65,7 @@ function buildFolderTree(folderTree: any) {
     }
 
     for (const node of nodesByPath.values()) {
-        node.children.sort((left: any, right: any) =>
+        node.children.sort((left, right) =>
             String(left.name || '').localeCompare(String(right.name || ''))
         );
     }
@@ -65,19 +73,30 @@ function buildFolderTree(folderTree: any) {
     return root;
 }
 
-function folderContainsSelected(node: any, selectedFolder: any) {
+function folderContainsSelected(
+    node: FolderTreeNodeModel | null,
+    selectedFolder: string
+): boolean {
     if (!node || !selectedFolder) {
         return false;
     }
     if (node.path === selectedFolder) {
         return true;
     }
-    return node.children?.some((child: any) =>
+    return node.children.some((child) =>
         folderContainsSelected(child, selectedFolder)
     );
 }
 
-function FolderTreeNode({ node, selectedFolder, onSelectFolder }: any) {
+function FolderTreeNode({
+    node,
+    selectedFolder,
+    onSelectFolder
+}: {
+    node: FolderTreeNodeModel;
+    selectedFolder: string;
+    onSelectFolder: (folder: string) => void;
+}) {
     const containsSelected = folderContainsSelected(node, selectedFolder);
     const [open, setOpen] = useState(() => containsSelected);
     const selected = node.path === selectedFolder;
@@ -134,7 +153,7 @@ function FolderTreeNode({ node, selectedFolder, onSelectFolder }: any) {
             </div>
             <CollapsibleContent>
                 <div className="ml-5 flex flex-col gap-1 py-1">
-                    {node.children.map((child: any) => (
+                    {node.children.map((child) => (
                         <FolderTreeNode
                             key={child.path}
                             node={child}
@@ -156,7 +175,15 @@ function ScreenshotGalleryGrid({
     selectedFolder,
     onOpen,
     onScrollPositionChange
-}: any) {
+}: {
+    error: string;
+    initialScrollTop: number;
+    images: ScreenshotLibraryImage[];
+    isLoading: boolean;
+    selectedFolder: string;
+    onOpen: (path: string) => void;
+    onScrollPositionChange: (folder: string, scrollTop: number) => void;
+}) {
     const { t } = useTranslation();
     const {
         gridColumnCount,
@@ -171,7 +198,7 @@ function ScreenshotGalleryGrid({
         resetKey: selectedFolder
     });
     const visibleItems = useMemo(
-        () => visibleRows.flatMap((row: any) => row.items),
+        () => visibleRows.flatMap((row) => row.items),
         [visibleRows]
     );
     const titleMap = useScreenshotThumbnailTitleMap(visibleItems);
@@ -222,7 +249,7 @@ function ScreenshotGalleryGrid({
             }}
         >
             <div className="relative" style={{ height: totalHeight }}>
-                {visibleRows.map((row: any) => (
+                {visibleRows.map((row) => (
                     <div
                         key={row.key}
                         className="absolute right-0 left-0 grid"
@@ -232,7 +259,7 @@ function ScreenshotGalleryGrid({
                             gap: gridGap
                         }}
                     >
-                        {row.items.map((item: any) => (
+                        {row.items.map((item: ScreenshotLibraryImage) => (
                             <ScreenshotThumbnailCard
                                 key={item.path}
                                 item={item}
@@ -260,7 +287,20 @@ export function ScreenshotGalleryView({
     onSelectFolder,
     onScrollPositionChange,
     restoreScrollTop
-}: any) {
+}: {
+    folderTree: ScreenshotFolderTree | null;
+    images: ScreenshotLibraryImage[];
+    isImagesLoading: boolean;
+    isTreeLoading: boolean;
+    error: string;
+    scanStatus: ScreenshotLibraryScanStatus | null;
+    selectedFolder: string;
+    onOpenImage: (path: string) => void;
+    onRefresh: () => void;
+    onSelectFolder: (folder: string) => void;
+    onScrollPositionChange: (folder: string, scrollTop: number) => void;
+    restoreScrollTop: number;
+}) {
     const { t } = useTranslation();
     const root = useMemo(() => buildFolderTree(folderTree), [folderTree]);
 

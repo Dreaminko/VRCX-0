@@ -26,6 +26,30 @@ import {
 } from '@/ui/shadcn/select';
 
 import { fileLabel, LOG_LEVELS } from '../vrchatLogHelpers';
+import type { useVrchatLogController } from '../useVrchatLogController';
+
+type VrchatLogController = ReturnType<typeof useVrchatLogController>;
+type VrchatLogToolbarProps = Pick<
+    VrchatLogController,
+    | 'selectedFileName'
+    | 'setSelectedFileName'
+    | 'files'
+    | 'isFilesLoading'
+    | 'selectedFile'
+    | 'isEntriesLoading'
+    | 'refresh'
+    | 'followLatest'
+    | 'setFollowLatest'
+    | 'searchQuery'
+    | 'setSearchQuery'
+    | 'levels'
+    | 'toggleLevel'
+    | 'categoryButtonLabel'
+    | 'categoryOptions'
+    | 'selectedCategories'
+    | 'setSelectedCategories'
+    | 'toggleCategory'
+>;
 
 export function VrchatLogToolbar({
     selectedFileName,
@@ -46,7 +70,7 @@ export function VrchatLogToolbar({
     selectedCategories,
     setSelectedCategories,
     toggleCategory
-}: any) {
+}: VrchatLogToolbarProps) {
     const { t } = useTranslation();
 
     return (
@@ -76,7 +100,7 @@ export function VrchatLogToolbar({
                         </SelectTrigger>
                         <SelectContent align="start">
                             <SelectGroup>
-                                {files.map((file: any) => (
+                                {files.map((file) => (
                                     <SelectItem
                                         key={file.fileName}
                                         value={file.fileName}
@@ -130,7 +154,7 @@ export function VrchatLogToolbar({
                         size="sm"
                         className="h-9"
                         disabled={!selectedFileName}
-                        onClick={() => setFollowLatest((value: any) => !value)}
+                        onClick={() => setFollowLatest((value) => !value)}
                     >
                         <RefreshCcwIcon
                             data-icon="inline-start"
@@ -212,7 +236,7 @@ export function VrchatLogToolbar({
                             <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuGroup>
-                                    {categoryOptions.map((option: any) => (
+                                    {categoryOptions.map((option) => (
                                         <DropdownMenuCheckboxItem
                                             key={option}
                                             checked={selectedCategories.includes(

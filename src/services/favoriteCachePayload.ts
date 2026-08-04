@@ -1,8 +1,16 @@
-import type { JsonValue } from '@/platform/tauri/bindings';
+type FavoriteCacheJsonValue =
+    | null
+    | boolean
+    | number
+    | string
+    | FavoriteCacheJsonValue[]
+    | { [key: string]: FavoriteCacheJsonValue };
 
-export type FavoriteCachePayload = { [key: string]: JsonValue };
+export type FavoriteCachePayload = {
+    [key: string]: FavoriteCacheJsonValue;
+};
 
-function isJsonValue(value: unknown): value is JsonValue {
+function isJsonValue(value: unknown): value is FavoriteCacheJsonValue {
     if (
         value === null ||
         typeof value === 'string' ||
@@ -21,12 +29,21 @@ function isJsonValue(value: unknown): value is JsonValue {
     );
 }
 
+function isFavoriteCachePayload(
+    value: unknown
+): value is FavoriteCachePayload {
+    return (
+        isJsonValue(value) &&
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value)
+    );
+}
+
 export function favoriteCachePayload(
     value: unknown
 ): FavoriteCachePayload | null {
-    return isJsonValue(value) && value !== null && !Array.isArray(value)
-        ? value
-        : null;
+    return isFavoriteCachePayload(value) ? value : null;
 }
 
 export function normalizeFavoriteCacheEntityId(value: unknown): string {

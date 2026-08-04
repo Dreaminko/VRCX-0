@@ -15,6 +15,7 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 import { TabsContent } from '@/ui/shadcn/tabs';
+import type { LanguageOption } from '@/shared/utils/userLanguage';
 
 import {
     AvatarCard,
@@ -24,11 +25,14 @@ import {
     UserRow,
     WorldCard
 } from './SearchResultParts';
-
-type WorldCategoryOption = {
-    index: number;
-    name: string;
-};
+import type {
+    SearchAvatarResult,
+    SearchGroupResult,
+    SearchPaginationState,
+    SearchUserResult,
+    SearchWorldCategory,
+    SearchWorldResult
+} from '../searchTypes';
 
 export function SearchUserTabPanel({
     searchUserByBio,
@@ -39,7 +43,16 @@ export function SearchUserTabPanel({
     results,
     languageOptionsMap,
     pagination
-}: any) {
+}: {
+    searchUserByBio: boolean;
+    onSearchUserByBioChange: (value: boolean) => void;
+    searchUserSortByLastLoggedIn: boolean;
+    onSearchUserSortByLastLoggedInChange: (value: boolean) => void;
+    isLoading: boolean;
+    results: SearchUserResult[];
+    languageOptionsMap: ReadonlyMap<string, LanguageOption>;
+    pagination: SearchPaginationState;
+}) {
     const { t } = useTranslation();
     const randomUserColours = usePreferencesStore(
         (state) => state.randomUserColours
@@ -92,7 +105,7 @@ export function SearchUserTabPanel({
                         <SearchLoadingState />
                     ) : results.length > 0 ? (
                         <div className="grid [grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-3">
-                            {results.map((user: any) => (
+                            {results.map((user) => (
                                 <UserRow
                                     key={user.id}
                                     user={user}
@@ -127,7 +140,16 @@ export function SearchWorldTabPanel({
     isLoading,
     results,
     pagination
-}: any) {
+}: {
+    includeCommunityLabs: boolean;
+    onIncludeCommunityLabsChange: (value: boolean) => void;
+    selectedWorldCategory: string;
+    onWorldCategoryChange: (value: string | null) => void;
+    worldCategories: SearchWorldCategory[];
+    isLoading: boolean;
+    results: SearchWorldResult[];
+    pagination: SearchPaginationState;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -153,9 +175,9 @@ export function SearchWorldTabPanel({
                     <Select
                         value={selectedWorldCategory}
                         items={worldCategories.map(
-                            (row: WorldCategoryOption) => ({
+                            (row) => ({
                                 value: String(row.index),
-                                label: row.name
+                                label: row.name || String(row.index)
                             })
                         )}
                         onValueChange={onWorldCategoryChange}
@@ -167,12 +189,12 @@ export function SearchWorldTabPanel({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                {worldCategories.map((row: any) => (
+                                {worldCategories.map((row) => (
                                     <SelectItem
                                         key={row.index}
                                         value={String(row.index)}
                                     >
-                                        {row.name}
+                                        {row.name || String(row.index)}
                                     </SelectItem>
                                 ))}
                             </SelectGroup>
@@ -185,7 +207,7 @@ export function SearchWorldTabPanel({
                         <SearchLoadingState />
                     ) : results.length > 0 ? (
                         <div className="grid [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))] gap-4">
-                            {results.map((world: any) => (
+                            {results.map((world) => (
                                 <WorldCard key={world.id} world={world} />
                             ))}
                         </div>
@@ -213,7 +235,15 @@ export function SearchAvatarTabPanel({
     isLoading,
     results,
     pagination
-}: any) {
+}: {
+    avatarProviderList: string[];
+    selectedAvatarProvider: string;
+    onAvatarProviderChange: (value: string | null) => void;
+    onOpenAvatarProviderSettings: () => void;
+    isLoading: boolean;
+    results: SearchAvatarResult[];
+    pagination: SearchPaginationState;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -246,7 +276,7 @@ export function SearchAvatarTabPanel({
                                 <SelectGroup>
                                     {avatarProviderList
                                         .filter(Boolean)
-                                        .map((provider: any) => (
+                                        .map((provider) => (
                                             <SelectItem
                                                 key={provider}
                                                 value={provider}
@@ -278,7 +308,7 @@ export function SearchAvatarTabPanel({
                         <SearchLoadingState />
                     ) : results.length > 0 ? (
                         <div className="grid [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))] gap-4">
-                            {results.map((avatar: any) => (
+                            {results.map((avatar) => (
                                 <AvatarCard key={avatar.id} avatar={avatar} />
                             ))}
                         </div>
@@ -298,7 +328,15 @@ export function SearchAvatarTabPanel({
     );
 }
 
-export function SearchGroupTabPanel({ isLoading, results, pagination }: any) {
+export function SearchGroupTabPanel({
+    isLoading,
+    results,
+    pagination
+}: {
+    isLoading: boolean;
+    results: SearchGroupResult[];
+    pagination: SearchPaginationState;
+}) {
     return (
         <TabsContent
             value="group"
@@ -310,7 +348,7 @@ export function SearchGroupTabPanel({ isLoading, results, pagination }: any) {
                     <SearchLoadingState />
                 ) : results.length > 0 ? (
                     <div className="grid [grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-3">
-                        {results.map((group: any) => (
+                        {results.map((group) => (
                             <GroupRow key={group.id} group={group} />
                         ))}
                     </div>

@@ -1,10 +1,21 @@
 import { ExternalLinkIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 
-export function DashboardWidgetHeader({ title, icon, path, children }: any) {
+export function DashboardWidgetHeader({
+    title,
+    icon,
+    path,
+    children
+}: {
+    title: ReactNode;
+    icon?: string;
+    path?: string;
+    children?: ReactNode;
+}) {
     const navigate = useNavigate();
     const canNavigate = Boolean(path);
 
@@ -17,7 +28,7 @@ export function DashboardWidgetHeader({ title, icon, path, children }: any) {
                 disabled={!canNavigate}
                 className="text-muted-foreground hover:text-foreground disabled:hover:text-muted-foreground h-auto min-w-0 justify-start px-0 py-0 text-xs font-semibold disabled:cursor-default"
                 onClick={() => {
-                    if (canNavigate) {
+                    if (path) {
                         navigate(path);
                     }
                 }}

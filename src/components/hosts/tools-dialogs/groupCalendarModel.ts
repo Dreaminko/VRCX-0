@@ -11,23 +11,27 @@ import { ja } from 'react-day-picker/locale/ja';
 import { zhCN } from 'react-day-picker/locale/zh-CN';
 
 import { getTimeZoneDateParts } from '@/shared/utils/dateTimeFormatters';
+import type { GroupCalendarEventRecord } from '@/repositories/vrchatToolsRepository';
 
 import { getEventId } from './toolsDialogUtils';
 
 export const DATE_KEY_FORMAT = 'yyyy-MM-dd';
 
-export function dateKeyToLocalDate(dateKey: any) {
+export function dateKeyToLocalDate(dateKey: unknown) {
     const value = String(dateKey || '');
     const parsed = parse(value, DATE_KEY_FORMAT, new Date());
     const valid = isValid(parsed) && format(parsed, DATE_KEY_FORMAT) === value;
     return startOfDay(valid ? parsed : new Date());
 }
 
-export function monthDateFromKey(dateKey: any) {
+export function monthDateFromKey(dateKey: unknown) {
     return startOfMonth(dateKeyToLocalDate(dateKey));
 }
 
-export function calendarDateKey(value: any, timeZone: any) {
+export function calendarDateKey(
+    value: Date | number | string | null | undefined,
+    timeZone: string
+) {
     const sourceValue = value || new Date();
     const dateParts = getTimeZoneDateParts(sourceValue, timeZone);
     if (dateParts) {
@@ -36,11 +40,11 @@ export function calendarDateKey(value: any, timeZone: any) {
     return format(sourceValue, DATE_KEY_FORMAT);
 }
 
-export function formatCalendarRequestDate(value: any) {
+export function formatCalendarRequestDate(value: Date | number | string) {
     return format(value, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 }
 
-export function calendarLocaleForLanguage(language: any) {
+export function calendarLocaleForLanguage(language: unknown) {
     const normalized = String(language || '')
         .replace('_', '-')
         .toLowerCase();
@@ -53,33 +57,39 @@ export function calendarLocaleForLanguage(language: any) {
     return enUS;
 }
 
-export function buildEventsByDate(events: any, timeZone: any) {
-    const result: any = {};
-    for (const event of Array.isArray(events) ? events : []) {
+export function buildEventsByDate(
+    events: GroupCalendarEventRecord[],
+    timeZone: string
+) {
+    const result: Record<string, GroupCalendarEventRecord[]> = {};
+    for (const event of events) {
         const dateKey = calendarDateKey(event.startsAt, timeZone);
         if (!Array.isArray(result[dateKey])) {
             result[dateKey] = [];
         }
         result[dateKey].push(event);
     }
-    for (const rows of Object.values(result).filter(Array.isArray)) {
-        rows.sort((left: any, right: any) =>
-            compareAsc(new Date(left.startsAt), new Date(right.startsAt))
+    for (const rows of Object.values(result)) {
+        rows.sort((left, right) =>
+            compareAsc(
+                new Date(left.startsAt || 0),
+                new Date(right.startsAt || 0)
+            )
         );
     }
     return result;
 }
 
 export function buildFollowedCountByDate(
-    events: any,
-    followingIds: any,
-    timeZone: any
+    events: GroupCalendarEventRecord[],
+    followingIds: string[],
+    timeZone: string
 ) {
     const followedSet = new Set(
-        Array.isArray(followingIds) ? followingIds : []
+        followingIds
     );
-    const result: any = {};
-    for (const event of Array.isArray(events) ? events : []) {
+    const result: Record<string, number> = {};
+    for (const event of events) {
         const eventId = getEventId(event);
         if (!eventId || !followedSet.has(eventId)) {
             continue;

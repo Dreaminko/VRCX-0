@@ -1,5 +1,6 @@
 import type { EChartsType } from 'echarts/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useKnownUserFacts } from '@/lib/useKnownUser';
@@ -20,11 +21,18 @@ import {
 import {
     INFO_CHART_BAR_WIDTH,
     buildInfoChartOption,
-    buildInfoChartTooltipParts
+    buildInfoChartTooltipParts,
+    type InfoChartRow
 } from './previousInstancesChart';
 import { normalizeInfoChartRows, playerUserId } from './previousInstancesRows';
 
-function InfoChartEmptyState({ title, description }: any) {
+function InfoChartEmptyState({
+    title,
+    description
+}: {
+    title: ReactNode;
+    description?: ReactNode;
+}) {
     return (
         <Empty className="min-h-32 border">
             <EmptyHeader>
@@ -36,7 +44,10 @@ function InfoChartEmptyState({ title, description }: any) {
         </Empty>
     );
 }
-function createInfoChartTooltipElement(detailEntry: any, hour12: any) {
+function createInfoChartTooltipElement(
+    detailEntry: InfoChartRow,
+    hour12: boolean
+) {
     const parts = buildInfoChartTooltipParts(detailEntry, hour12);
     const container = document.createElement('div');
     container.className = 'min-w-44';
@@ -58,7 +69,11 @@ function createInfoChartTooltipElement(detailEntry: any, hour12: any) {
     return container;
 }
 
-export function PreviousInstanceInfoChart({ rows }: any) {
+export function PreviousInstanceInfoChart({
+    rows
+}: {
+    rows: NonNullable<Parameters<typeof normalizeInfoChartRows>[0]>;
+}) {
     const { t } = useTranslation();
 
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
@@ -132,7 +147,7 @@ export function PreviousInstanceInfoChart({ rows }: any) {
         [chartRows, hour12]
     );
 
-    const setInfoChartElementRef = useCallback((node: any) => {
+    const setInfoChartElementRef = useCallback((node: HTMLDivElement | null) => {
         if (chartElementRef.current && chartElementRef.current !== node) {
             resizeObserverRef.current?.disconnect();
             chartInstanceRef.current?.dispose();
@@ -220,11 +235,11 @@ export function PreviousInstanceInfoChart({ rows }: any) {
 
             chart.clear();
             chart.setOption(chartPayload.option, { notMerge: true });
-            chart.on('click', (params: any) => {
+            chart.on('click', (params: { componentType?: string; dataIndex?: number }) => {
                 if (params.componentType !== 'yAxis') {
                     return;
                 }
-                const entry = chartPayload.firstEntries[params.dataIndex];
+                const entry = chartPayload.firstEntries[params.dataIndex ?? -1];
                 if (entry?.userId) {
                     openUserDialog({
                         userId: entry.userId,

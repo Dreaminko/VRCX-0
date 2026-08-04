@@ -685,7 +685,6 @@ pub fn export_bindings() -> Result<(), String> {
 // Post-process the tauri-specta output to fit this app's frontend bridge:
 // - route the generated invoke through the repo error-logging wrapper,
 // - drop the placeholder `TAURI_CHANNEL` type and an unused Channel import,
-// - keep `serde_json::Value` compatible with the app's dynamic storage/API paths,
 // - remove `any` from the generated event helper.
 fn patch_bindings(raw: &str) -> String {
     let mut out: Vec<String> = Vec::new();
@@ -693,7 +692,7 @@ fn patch_bindings(raw: &str) -> String {
     for line in raw.lines() {
         let trimmed = line.trim();
         if trimmed.starts_with("export type JsonValue =") {
-            out.push("export type JsonValue = any;".to_string());
+            out.push("export type JsonValue = unknown;".to_string());
             continue;
         }
         if trimmed == "function __makeEvents__<T extends Record<string, any>>(" {

@@ -206,10 +206,8 @@ export async function acceptRequestInviteNotification({
         normalizedInstanceId &&
         normalizedWorldId
     ) {
-        const worldResponse = await vrchatSearchRepository.getWorlds(
-            {},
-            normalizedWorldId
-        );
+        const worldResponse =
+            await vrchatSearchRepository.getWorldById(normalizedWorldId);
         worldName = normalizeText(worldResponse?.json?.name);
     }
     const outcome = await commands.appNotificationRequestInviteAccept({

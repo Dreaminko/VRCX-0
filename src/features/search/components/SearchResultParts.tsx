@@ -4,11 +4,18 @@ import {
     UserIcon,
     UsersIcon
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EmptyState, LoadingState } from '@/components/layout/PageScaffold';
 import { FadeInImage } from '@/components/media/FadeInImage';
-import type { WorldProfileRecord } from '@/domain/entities/profileEntities';
+import type {
+    AvatarProfileRecord,
+    UserProfileRecord,
+    WorldProfileRecord
+} from '@/domain/entities/profileEntities';
+import type { SearchGroupJson } from '@/repositories/vrchatSearchRepository';
 import { cn } from '@/lib/utils';
 import {
     openAvatarDialog,
@@ -23,6 +30,7 @@ import {
 } from '@/services/entityMediaService';
 import {
     languageOptionLabel,
+    type LanguageOption,
     normalizeProfileLanguageRows
 } from '@/shared/utils/userLanguage';
 import { useWorldFactsStore } from '@/state/worldFactsStore';
@@ -43,7 +51,7 @@ export function SearchLoadingState() {
     return <LoadingState variant="panel" label={t('common.loading')} />;
 }
 
-const searchMediaTextStyle: any = {
+const searchMediaTextStyle: CSSProperties = {
     textShadow: '0 1px 2px rgb(0 0 0 / 0.9), 0 0 10px rgb(0 0 0 / 0.65)'
 };
 
@@ -54,7 +62,14 @@ function SearchMediaCard({
     subtitle,
     FallbackIcon,
     onClick
-}: any) {
+}: {
+    imageUrl?: string | null;
+    imageAlt: string;
+    title?: ReactNode;
+    subtitle?: ReactNode;
+    FallbackIcon: LucideIcon;
+    onClick: () => void;
+}) {
     return (
         <Button
             type="button"
@@ -110,7 +125,18 @@ function SearchEntityCard({
     meta,
     description,
     onClick
-}: any) {
+}: {
+    imageUrl?: string | null;
+    imageAlt: string;
+    imageShape?: 'group' | 'user';
+    FallbackIcon: LucideIcon;
+    title?: ReactNode;
+    titleStyle?: CSSProperties;
+    titleMeta?: ReactNode;
+    meta?: ReactNode;
+    description?: ReactNode;
+    onClick: () => void;
+}) {
     const imageClassName =
         imageShape === 'group' ? 'rounded-lg' : 'rounded-full';
     const frameClassName =
@@ -163,7 +189,15 @@ function SearchEntityCard({
     );
 }
 
-function TruncatedBadge({ children, tooltip, className }: any) {
+function TruncatedBadge({
+    children,
+    tooltip,
+    className
+}: {
+    children: ReactNode;
+    tooltip?: ReactNode;
+    className?: string;
+}) {
     return (
         <Tooltip>
             <TooltipTrigger
@@ -186,14 +220,20 @@ function TruncatedBadge({ children, tooltip, className }: any) {
     );
 }
 
-function UserLanguageBadges({ user, languages }: any) {
+function UserLanguageBadges({
+    user,
+    languages
+}: {
+    user: UserProfileRecord;
+    languages: LanguageOption[];
+}) {
     const visibleLanguages = languages.slice(0, 2);
     const hiddenLanguages = languages.slice(visibleLanguages.length);
     const hiddenLabel = hiddenLanguages.map(languageOptionLabel).join(', ');
 
     return (
         <>
-            {visibleLanguages.map((language: any) => {
+            {visibleLanguages.map((language) => {
                 const label = languageOptionLabel(language);
                 return (
                     <TruncatedBadge
@@ -216,7 +256,7 @@ function UserLanguageBadges({ user, languages }: any) {
     );
 }
 
-export function AvatarCard({ avatar }: any) {
+export function AvatarCard({ avatar }: { avatar: AvatarProfileRecord }) {
     const imageUrl = avatar.thumbnailImageUrl || avatar.imageUrl;
 
     return (
@@ -269,7 +309,12 @@ export function UserRow({
     randomUserColours,
     isDarkMode,
     languageOptionsMap
-}: any) {
+}: {
+    user: UserProfileRecord;
+    randomUserColours: boolean;
+    isDarkMode: boolean;
+    languageOptionsMap: ReadonlyMap<string, LanguageOption>;
+}) {
     const imageUrl = userImage(user, true);
     const languages = normalizeProfileLanguageRows(user, languageOptionsMap);
     const trustStyle =
@@ -316,7 +361,7 @@ export function UserRow({
     );
 }
 
-export function GroupRow({ group }: any) {
+export function GroupRow({ group }: { group: SearchGroupJson }) {
     const imageUrl = convertFileUrlToImageUrl(group.iconUrl);
     const groupCode =
         group.shortCode && group.discriminator

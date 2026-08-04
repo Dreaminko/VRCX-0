@@ -1,5 +1,10 @@
 import { ArrowLeftIcon } from 'lucide-react';
-import type { ComponentType, ReactNode } from 'react';
+import type {
+    ComponentPropsWithoutRef,
+    ComponentType,
+    HTMLAttributes,
+    ReactNode
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
@@ -31,7 +36,11 @@ export function PageScaffold({
     embeddedClassName = '',
     children,
     ...divProps
-}: any) {
+}: HTMLAttributes<HTMLDivElement> & {
+    embedded?: boolean;
+    flushBottom?: boolean;
+    embeddedClassName?: string;
+}) {
     return (
         <div
             {...divProps}
@@ -48,7 +57,10 @@ export function PageScaffold({
     );
 }
 
-export function PageToolbar({ className = '', children }: any) {
+export function PageToolbar({
+    className = '',
+    children
+}: HTMLAttributes<HTMLDivElement>) {
     return (
         <div
             className={cn(
@@ -61,7 +73,10 @@ export function PageToolbar({ className = '', children }: any) {
     );
 }
 
-export function PageHeader({ className = '', children }: any) {
+export function PageHeader({
+    className = '',
+    children
+}: HTMLAttributes<HTMLDivElement>) {
     return (
         <div className={cn('flex shrink-0 flex-col gap-1 p-1.5', className)}>
             {children}
@@ -69,7 +84,10 @@ export function PageHeader({ className = '', children }: any) {
     );
 }
 
-export function PageTitle({ className = '', children }: any) {
+export function PageTitle({
+    className = '',
+    children
+}: ComponentPropsWithoutRef<'h1'>) {
     return (
         <h1
             className={cn(
@@ -82,7 +100,10 @@ export function PageTitle({ className = '', children }: any) {
     );
 }
 
-export function PageDescription({ className = '', children }: any) {
+export function PageDescription({
+    className = '',
+    children
+}: ComponentPropsWithoutRef<'p'>) {
     return (
         <p className={cn('text-muted-foreground text-sm', className)}>
             {children}
@@ -90,7 +111,10 @@ export function PageDescription({ className = '', children }: any) {
     );
 }
 
-export function PageToolbarRow({ className = '', children }: any) {
+export function PageToolbarRow({
+    className = '',
+    children
+}: HTMLAttributes<HTMLDivElement>) {
     return (
         <div
             className={cn(
@@ -103,7 +127,15 @@ export function PageToolbarRow({ className = '', children }: any) {
     );
 }
 
-export function PageBackButton({ label, onClick, className = '' }: any) {
+export function PageBackButton({
+    label,
+    onClick,
+    className = ''
+}: {
+    label: ReactNode;
+    onClick: () => void;
+    className?: string;
+}) {
     return (
         <Button
             type="button"
@@ -121,7 +153,10 @@ export function PageBackButton({ label, onClick, className = '' }: any) {
     );
 }
 
-export function PageBody({ className = '', children }: any) {
+export function PageBody({
+    className = '',
+    children
+}: HTMLAttributes<HTMLDivElement>) {
     return (
         <div
             className={cn(
@@ -134,7 +169,10 @@ export function PageBody({ className = '', children }: any) {
     );
 }
 
-export function PageFooter({ className = '', children }: any) {
+export function PageFooter({
+    className = '',
+    children
+}: HTMLAttributes<HTMLDivElement>) {
     return (
         <div
             className={cn(

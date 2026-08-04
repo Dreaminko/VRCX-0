@@ -17,7 +17,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 import { ToolTextarea } from './ToolsDialogControls';
 import { csvEscape, getFriendIds, getUserMemoMap } from './toolsDialogUtils';
 
-export function ExportDiscordNamesDialog({ open, onOpenChange }: any) {
+type ExportDialogProps = {
+    open: boolean;
+    onOpenChange(open: boolean): void;
+};
+
+export function ExportDiscordNamesDialog({
+    open,
+    onOpenChange
+}: ExportDialogProps) {
     const { t } = useTranslation();
     const friendsById = useFriendRosterStore((state) => state.friendsById);
     const orderedFriendIds = useFriendRosterStore(
@@ -62,7 +70,10 @@ export function ExportDiscordNamesDialog({ open, onOpenChange }: any) {
     );
 }
 
-export function ExportFriendsListDialog({ open, onOpenChange }: any) {
+export function ExportFriendsListDialog({
+    open,
+    onOpenChange
+}: ExportDialogProps) {
     const { t } = useTranslation();
     const friendsById = useFriendRosterStore((state) => state.friendsById);
     const orderedFriendIds = useFriendRosterStore(
@@ -78,7 +89,7 @@ export function ExportFriendsListDialog({ open, onOpenChange }: any) {
         }
         let active = true;
         getUserMemoMap()
-            .then((memosById: any) => {
+            .then((memosById) => {
                 if (!active) {
                     return;
                 }
@@ -144,7 +155,10 @@ export function ExportFriendsListDialog({ open, onOpenChange }: any) {
     );
 }
 
-export function ExportAvatarsListDialog({ open, onOpenChange }: any) {
+export function ExportAvatarsListDialog({
+    open,
+    onOpenChange
+}: ExportDialogProps) {
     const { t } = useTranslation();
     const [content, setContent] = useState('');
     const [loading, setLoading] = useState(false);
@@ -157,7 +171,7 @@ export function ExportAvatarsListDialog({ open, onOpenChange }: any) {
         setLoading(true);
         myAvatarRepository
             .getMyAvatars()
-            .then((avatars: any) => {
+            .then((avatars) => {
                 if (!active) {
                     return;
                 }

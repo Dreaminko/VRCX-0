@@ -1,4 +1,5 @@
 import { AlertTriangleIcon, LockIcon } from 'lucide-react';
+import type { ReactElement, ReactNode, SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { RegionCodeBadge } from '@/components/location/RegionCodeBadge';
@@ -6,7 +7,15 @@ import { cn } from '@/lib/utils';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-function LocationTooltip({ disabled, content, children }: any) {
+function LocationTooltip({
+    disabled,
+    content,
+    children
+}: {
+    disabled: boolean;
+    content: ReactNode;
+    children: ReactElement;
+}) {
     if (disabled || !content) {
         return children;
     }
@@ -40,7 +49,28 @@ export function LocationDisplay({
     tooltipContent = '',
     worldName = '',
     worldNameClassName = ''
-}: any) {
+}: {
+    asButton?: boolean;
+    className?: string;
+    disableTooltip?: boolean;
+    groupName?: string;
+    instanceName?: string;
+    isAgeRestricted?: boolean;
+    isClosed?: boolean;
+    isLocationLink?: boolean;
+    isTraveling?: boolean;
+    onOpenGroup?: (event: SyntheticEvent<HTMLElement>) => void;
+    onOpenLocation?: (event: SyntheticEvent<HTMLElement>) => void;
+    onOpenLocationKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void;
+    region?: string;
+    shouldShowInstanceId?: boolean;
+    showGroupLink?: boolean;
+    strict?: boolean;
+    text?: string;
+    tooltipContent?: ReactNode;
+    worldName?: string;
+    worldNameClassName?: string;
+}) {
     const canHighlightWorldName = Boolean(
         worldNameClassName && worldName && text.startsWith(worldName)
     );

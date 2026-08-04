@@ -4,12 +4,24 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/ui/shadcn/button';
 import { TabsContent } from '@/ui/shadcn/tabs';
 
-import { GalleryEmojiUploadSettings } from './GalleryEmojiUploadSettings';
 import { GalleryFileCard } from './GalleryFileCard';
 import { EmptyState, LoadingState } from './GalleryViewParts';
 import { MediaLibraryToolbar } from './MediaLibraryToolbar';
+import type {
+    FileAssetTab,
+    FileTabDefinition
+} from '../galleryConstants';
+import type { GalleryFileTabState } from '../galleryTypes';
 
-export function GalleryFileTab({ tab, definition, fileTab }: any) {
+export function GalleryFileTab({
+    tab,
+    definition,
+    fileTab
+}: {
+    tab: FileAssetTab;
+    definition: FileTabDefinition;
+    fileTab: GalleryFileTabState;
+}) {
     const {
         assets,
         loadingByTab,
@@ -18,21 +30,10 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
         currentUserId,
         profilePicOverride,
         userIcon,
-        emojiAnimType,
-        emojiAnimationStyle,
-        emojiAnimFps,
-        emojiAnimFrameCount,
-        emojiAnimLoopPingPong,
         gridDensityConfig,
         onRefresh,
         onBeginUpload,
         onClearProfileField,
-        onEmojiAnimTypeChange,
-        onEmojiAnimationStyleChange,
-        onEmojiAnimFpsChange,
-        onEmojiAnimFrameCountChange,
-        onEmojiAnimLoopPingPongChange,
-        onCreateAnimatedEmoji,
         onPreview,
         onSetProfileField,
         onDeleteFile
@@ -103,29 +104,7 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
                             ) : null}
                         </>
                     }
-                >
-                    {tab === 'emojis' ? (
-                        <GalleryEmojiUploadSettings
-                            emojiAnimType={emojiAnimType}
-                            emojiAnimationStyle={emojiAnimationStyle}
-                            emojiAnimFps={emojiAnimFps}
-                            emojiAnimFrameCount={emojiAnimFrameCount}
-                            emojiAnimLoopPingPong={emojiAnimLoopPingPong}
-                            onEmojiAnimTypeChange={onEmojiAnimTypeChange}
-                            onEmojiAnimationStyleChange={
-                                onEmojiAnimationStyleChange
-                            }
-                            onEmojiAnimFpsChange={onEmojiAnimFpsChange}
-                            onEmojiAnimFrameCountChange={
-                                onEmojiAnimFrameCountChange
-                            }
-                            onEmojiAnimLoopPingPongChange={
-                                onEmojiAnimLoopPingPongChange
-                            }
-                            onCreateAnimatedEmoji={onCreateAnimatedEmoji}
-                        />
-                    ) : null}
-                </MediaLibraryToolbar>
+                />
                 <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                     {loading ? (
                         <LoadingState />
@@ -133,7 +112,7 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
                         <div
                             className={`${gridDensityConfig.fileGridClass} p-1`}
                         >
-                            {files.map((file: any) => (
+                            {files.map((file) => (
                                 <GalleryFileCard
                                     key={file.id}
                                     tab={tab}
@@ -143,7 +122,6 @@ export function GalleryFileTab({ tab, definition, fileTab }: any) {
                                     userIcon={userIcon}
                                     mutatingKey={mutatingKey}
                                     currentUserId={currentUserId}
-                                    densityConfig={gridDensityConfig}
                                     onPreview={onPreview}
                                     onSetProfileField={onSetProfileField}
                                     onDeleteFile={onDeleteFile}

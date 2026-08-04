@@ -4,9 +4,12 @@ import {
     sanitizeTableColumnSizing,
     writePersistedTableState
 } from '@/components/data-table/dataTablePersistence';
+import type { SortingState } from '@tanstack/react-table';
 
 export const FRIEND_LIST_DEFAULT_PAGE_SIZES = [10, 15, 20, 25, 50, 100];
-export const FRIEND_LIST_DEFAULT_SORTING = [{ id: 'friendNumber', desc: true }];
+export const FRIEND_LIST_DEFAULT_SORTING: SortingState = [
+    { id: 'friendNumber', desc: true }
+];
 export const FRIEND_LIST_SEARCH_FILTERS = [
     {
         id: 'displayName',
@@ -59,21 +62,25 @@ export function writePersistedFriendListState(patch: Record<string, unknown>) {
     writePersistedTableState(STORAGE_KEY, patch);
 }
 
-export function sanitizeFriendListSorting(value: any) {
+export function sanitizeFriendListSorting(value: unknown): SortingState {
     if (!Array.isArray(value)) {
         return FRIEND_LIST_DEFAULT_SORTING;
     }
 
-    const filtered = value.filter(
-        (entry: any) =>
-            entry &&
-            typeof entry.id === 'string' &&
-            FRIEND_LIST_SORTING_COLUMN_IDS.includes(entry.id)
-    );
+    const filtered = value.filter((entry): entry is SortingState[number] => {
+        if (!entry || typeof entry !== 'object') {
+            return false;
+        }
+        const candidate = Object.fromEntries(Object.entries(entry));
+        return (
+            typeof candidate.id === 'string' &&
+            FRIEND_LIST_SORTING_COLUMN_IDS.includes(candidate.id)
+        );
+    });
     return filtered.length ? filtered : FRIEND_LIST_DEFAULT_SORTING;
 }
 
-export function sanitizeFriendListPageSizes(value: any) {
+export function sanitizeFriendListPageSizes(value: unknown): number[] {
     if (!Array.isArray(value)) {
         return FRIEND_LIST_DEFAULT_PAGE_SIZES;
     }
@@ -81,73 +88,78 @@ export function sanitizeFriendListPageSizes(value: any) {
     const normalized = Array.from(
         new Set(
             value
-                .map((entry: any) => Number.parseInt(entry, 10))
+                .map((entry) => Number.parseInt(String(entry), 10))
                 .filter(
-                    (entry: any) =>
+                    (entry) =>
                         Number.isFinite(entry) && entry > 0 && entry <= 1000
                 )
         )
-    ).sort((left: any, right: any) => left - right);
+    ).sort((left, right) => left - right);
 
     return normalized.length ? normalized : FRIEND_LIST_DEFAULT_PAGE_SIZES;
 }
 
-export function sanitizeFriendListColumnVisibility(value: any) {
+export function sanitizeFriendListColumnVisibility(value: unknown) {
     const visibility: Record<string, boolean> = {};
     if (value && typeof value === 'object') {
+        const source = Object.fromEntries(Object.entries(value));
         for (const columnId of FRIEND_LIST_COLUMN_IDS) {
             if (columnId === 'friendNumber') {
                 continue;
             }
-            if (typeof value[columnId] === 'boolean') {
-                visibility[columnId] = value[columnId];
+            if (typeof source[columnId] === 'boolean') {
+                visibility[columnId] = source[columnId];
             }
         }
     }
     return visibility;
 }
 
-export function sanitizeFriendListColumnOrder(value: any) {
+export function sanitizeFriendListColumnOrder(value: unknown): string[] {
     if (!Array.isArray(value)) {
         return [...FRIEND_LIST_COLUMN_IDS];
     }
 
     const orderedColumns = value.filter(
-        (columnId: any, index: any, source: any) =>
+        (columnId, index, source): columnId is string =>
+            typeof columnId === 'string' &&
             FRIEND_LIST_COLUMN_IDS.includes(columnId) &&
             source.indexOf(columnId) === index
     );
     const missingColumns = FRIEND_LIST_COLUMN_IDS.filter(
-        (columnId: any) => !orderedColumns.includes(columnId)
+        (columnId) => !orderedColumns.includes(columnId)
     );
 
     return [...orderedColumns, ...missingColumns];
 }
 
-export function sanitizeFriendListColumnSizing(value: any) {
+export function sanitizeFriendListColumnSizing(value: unknown) {
     return sanitizeTableColumnSizing(value, FRIEND_LIST_COLUMN_IDS);
 }
 
 export function resolveFriendListPageSize(
-    candidate: any,
-    allowed: any,
-    fallback: any = FRIEND_LIST_DEFAULT_PAGE_SIZES[1]
+    candidate: unknown,
+    allowed: unknown,
+    fallback: number = FRIEND_LIST_DEFAULT_PAGE_SIZES[1]
 ) {
     const pageSizes = Array.isArray(allowed)
-        ? allowed.filter((size: any) => Number.isFinite(size) && size > 0)
+        ? allowed.filter(
+              (size): size is number =>
+                  typeof size === 'number' && Number.isFinite(size) && size > 0
+          )
         : FRIEND_LIST_DEFAULT_PAGE_SIZES;
     const fallbackPageSize = pageSizes.length
         ? pageSizes[0]
         : FRIEND_LIST_DEFAULT_PAGE_SIZES[0];
-    const nearestPageSize = (value: any) =>
+    const nearestPageSize = (value: number) =>
         pageSizes.length
-            ? pageSizes.reduce((previous: any, size: any) =>
+            ? pageSizes.reduce((previous, size) =>
                   Math.abs(size - value) < Math.abs(previous - value)
                       ? size
                       : previous
               )
             : fallbackPageSize;
-    const parsed = Number.parseInt(candidate, 10);
+    const parsed = Number.parseInt(String(candidate ?? ''), 10);
     if (Number.isFinite(parsed) && parsed > 0) {
         return pageSizes.includes(parsed) ? parsed : nearestPageSize(parsed);
     }

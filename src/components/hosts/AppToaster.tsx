@@ -5,8 +5,9 @@ import {
     TriangleAlertIcon
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { toast } from 'sonner';
+import { toast, type ToasterProps } from 'sonner';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import i18n from '@/services/i18nService';
@@ -15,7 +16,9 @@ import { useShellStore } from '@/state/shellStore';
 import { Toaster } from '@/ui/shadcn/sonner';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-const TITLE_BAR_TOAST_OFFSET: any = { top: 'calc(2rem + 32px)' };
+const TITLE_BAR_TOAST_OFFSET: ToasterProps['offset'] = {
+    top: 'calc(2rem + 32px)'
+};
 const APP_TOASTER_PORTAL_ID = 'vrcx-0-toast-root';
 const APP_TOASTER_Z_INDEX = 70;
 const VRCHAT_API_UNAVAILABLE_TOAST_DURATION_MS = 12000;
@@ -50,7 +53,13 @@ function isVrchatApiUnavailableMessage(message: unknown) {
     );
 }
 
-function applyErrorToastDefaults(message: unknown, options: any) {
+type ErrorToastMessage = Parameters<typeof toast.error>[0];
+type ErrorToastOptions = Parameters<typeof toast.error>[1];
+
+function applyErrorToastDefaults(
+    message: unknown,
+    options: ErrorToastOptions
+): ErrorToastOptions {
     if (
         !isVrchatApiUnavailableMessage(message) ||
         (options && typeof options === 'object' && options.duration != null)
@@ -72,7 +81,7 @@ function patchSonnerErrorToast() {
 
     const originalErrorToast = toast.error.bind(toast);
     try {
-        toast.error = (message: any, options: any) => {
+        toast.error = (message: ErrorToastMessage, options?: ErrorToastOptions) => {
             const nextMessage =
                 typeof message === 'string' || message instanceof Error
                     ? userFacingErrorMessage(
@@ -92,7 +101,7 @@ function patchSonnerErrorToast() {
 
 patchSonnerErrorToast();
 
-function resolveSonnerTheme(themeMode: any) {
+function resolveSonnerTheme(themeMode: unknown): ToasterProps['theme'] {
     if (themeMode === 'dark') {
         return 'dark';
     }
@@ -129,7 +138,7 @@ function getAppToasterPortalContainer() {
     return container;
 }
 
-export function AppToaster(props: any) {
+export function AppToaster(props: ToasterProps) {
     const themeMode = useShellStore((state) => state.themeMode);
     const theme = resolveSonnerTheme(themeMode);
     const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
@@ -159,7 +168,7 @@ export function AppToaster(props: any) {
                 '--border-radius': 'var(--radius)',
                 fontFamily: 'var(--vrcx-app-font-family, system-ui)',
                 zIndex: APP_TOASTER_Z_INDEX
-            }}
+            } as CSSProperties}
             {...props}
         />
     );

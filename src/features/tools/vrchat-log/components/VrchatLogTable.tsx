@@ -21,6 +21,21 @@ import {
     LOG_ROW_HEIGHT,
     LOG_TABLE_GRID_CLASS
 } from '../vrchatLogHelpers';
+import type { useVrchatLogController } from '../useVrchatLogController';
+
+type VrchatLogController = ReturnType<typeof useVrchatLogController>;
+type VrchatLogTableProps = Pick<
+    VrchatLogController,
+    | 'setLogScrollNode'
+    | 'logVirtualHeight'
+    | 'visibleLogRows'
+    | 'selectedLineNumbers'
+    | 'toggleEntrySelected'
+    | 'copyText'
+    | 'copySelectedEntries'
+    | 'selectedCount'
+    | 'isCopying'
+>;
 
 export function VrchatLogTable({
     setLogScrollNode,
@@ -32,7 +47,7 @@ export function VrchatLogTable({
     copySelectedEntries,
     selectedCount,
     isCopying
-}: any) {
+}: VrchatLogTableProps) {
     const { t } = useTranslation();
 
     return (
@@ -53,7 +68,7 @@ export function VrchatLogTable({
                     <div>{t('view.tools.vrchat_log.column_category')}</div>
                     <div>{t('view.tools.vrchat_log.column_message')}</div>
                 </div>
-                {visibleLogRows.map((row: any) => {
+                {visibleLogRows.map((row) => {
                     const { entry } = row;
                     const categoryLabel =
                         entry.category ||

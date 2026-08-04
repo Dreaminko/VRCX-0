@@ -23,17 +23,22 @@ import {
 type MediaApiRecord = Record<string, unknown>;
 type MediaApiParams = QueryParams;
 
-type MediaFileVersion = Record<string, unknown> & {
+export type MediaFileVersion = Record<string, unknown> & {
     created_at?: string;
+    file?: { url?: string } | null;
     status?: string;
     version?: number;
 };
 
-type MediaFileRecord = MediaApiRecord & {
+export type MediaFileRecord = MediaApiRecord & {
     animationStyle?: string;
+    displayName?: string;
     extension?: string;
+    frames?: number;
+    framesOverTime?: number;
     id: string;
     maskTag?: string;
+    loopStyle?: string;
     mimeType?: string;
     modifiedThumbnailFileName?: string;
     name?: string;
@@ -47,7 +52,7 @@ type MediaPrintFiles = MediaApiRecord & {
     image?: string;
 };
 
-type MediaPrintRecord = MediaApiRecord & {
+export type MediaPrintRecord = MediaApiRecord & {
     authorId?: string;
     authorName?: string;
     createdAt?: string;
@@ -87,6 +92,7 @@ export type InventoryItemMetadata = MediaApiRecord & {
     assets?: InventoryAsset[];
     gradientEnd?: string;
     gradientStart?: string;
+    imageUrl?: string;
 };
 
 export type InventoryItemRecord = MediaApiRecord & {
@@ -94,6 +100,7 @@ export type InventoryItemRecord = MediaApiRecord & {
     attribution?: InventoryAttribution | null;
     collections?: unknown[];
     created_at?: string;
+    createdAt?: string;
     defaultAttributes?: Record<string, InventoryAttribute>;
     description?: string;
     equipSlot?: string;
@@ -103,14 +110,19 @@ export type InventoryItemRecord = MediaApiRecord & {
     holderId?: string;
     id: string;
     imageUrl?: string;
+    thumbnailUrl?: string;
     isArchived?: boolean;
+    archived?: boolean;
     isSeen?: boolean;
     itemType?: string;
+    type?: string;
     itemTypeLabel?: string;
     last_equipped?: Record<string, string> | null;
     metadata?: InventoryItemMetadata;
     name?: string;
     templateId?: string;
+    item?: InventoryItemRecord | null;
+    template?: InventoryItemRecord | null;
 };
 
 export type InventoryItemsResponse = {
@@ -526,8 +538,19 @@ async function collectInventoryItems(
         const result = await commands.appVrchatMediaInventoryItemsCollect({
             params: normalizedParams
         });
+        const items = (result.items ?? []).flatMap((value) => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) {
+                return [];
+            }
+            const record: Record<string, unknown> = Object.fromEntries(
+                Object.entries(value)
+            );
+            return typeof record.id === 'string'
+                ? [{ ...record, id: record.id }]
+                : [];
+        });
         return {
-            items: (result.items ?? []) as InventoryItemRecord[],
+            items,
             truncated: Boolean(result.truncated)
         };
     } catch (error) {

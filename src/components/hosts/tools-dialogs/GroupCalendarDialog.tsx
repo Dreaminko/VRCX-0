@@ -9,6 +9,7 @@ import {
 } from 'date-fns';
 import { ChevronDownIcon, RefreshCwIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -22,7 +23,8 @@ import { cn } from '@/lib/utils';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import vrchatToolsRepository, {
-    type GroupCalendarEventRecord
+    type GroupCalendarEventRecord,
+    type GroupCalendarGroupRecord
 } from '@/repositories/vrchatToolsRepository';
 import { replaceBioSymbols } from '@/shared/utils/string';
 import { usePreferencesStore } from '@/state/preferencesStore';
@@ -61,6 +63,17 @@ import {
 } from './toolsDialogUtils';
 
 type GroupCalendarEvent = GroupCalendarEventRecord;
+type GroupCalendarDayButtonProps = ComponentProps<
+    typeof CalendarDayButton
+> & {
+    eventsByDate: Record<string, GroupCalendarEvent[]>;
+    followedCountByDate: Record<string, number>;
+    timeZone: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
 
 function getLocalTimeZone() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -75,7 +88,7 @@ function GroupCalendarDayButton({
     followedCountByDate,
     timeZone,
     ...props
-}: any) {
+}: GroupCalendarDayButtonProps) {
     const { t } = useTranslation();
     const dateKey = calendarDateKey(day.date, timeZone);
     const eventCount = eventsByDate[dateKey]?.length ?? 0;
@@ -130,7 +143,13 @@ function GroupCalendarDayButton({
     );
 }
 
-export function GroupCalendarDialog({ open, onOpenChange }: any) {
+export function GroupCalendarDialog({
+    open,
+    onOpenChange
+}: {
+    open: boolean;
+    onOpenChange(open: boolean): void;
+}) {
     const { t, i18n } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const currentEndpoint = useRuntimeStore(
@@ -149,13 +168,17 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
         monthDateFromKey(selectedDateKey(new Date()))
     );
     const [showFeaturedEvents, setShowFeaturedEvents] = useState(false);
-    const [viewMode, setViewMode] = useState('timeline');
+    const [viewMode, setViewMode] = useState<'timeline' | 'grid'>('timeline');
     const [search, setSearch] = useState('');
     const [events, setEvents] = useState<GroupCalendarEvent[]>([]);
     const [followingIds, setFollowingIds] = useState<string[]>([]);
-    const [groupNames, setGroupNames] = useState<any>({});
-    const [groupProfiles, setGroupProfiles] = useState<any>({});
-    const [collapsedGroups, setCollapsedGroups] = useState<any>({});
+    const [groupNames, setGroupNames] = useState<Record<string, string>>({});
+    const [groupProfiles, setGroupProfiles] = useState<
+        Record<string, GroupCalendarGroupRecord>
+    >({});
+    const [collapsedGroups, setCollapsedGroups] = useState<
+        Record<string, boolean>
+    >({});
     const [loading, setLoading] = useState(false);
     const loadRequestRef = useRef(0);
 
@@ -183,7 +206,7 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
     );
     const eventsByGroup = useMemo(() => {
         const query = search.trim().toLowerCase();
-        const groups = new Map();
+        const groups = new Map<string, GroupCalendarEvent[]>();
         for (const event of events) {
             const groupId = getEventGroupId(event);
             if (!groupId) {
@@ -205,20 +228,20 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
             if (!groups.has(groupId)) {
                 groups.set(groupId, []);
             }
-            groups.get(groupId).push(event);
+            groups.get(groupId)?.push(event);
         }
         return Array.from(groups.entries())
-            .map(([groupId, groupEvents]: any) => ({
+            .map(([groupId, groupEvents]) => ({
                 groupId,
                 groupName: groupNames[groupId] || groupId,
-                events: groupEvents.sort((left: any, right: any) =>
+                events: groupEvents.sort((left, right) =>
                     compareAsc(
-                        new Date(left.startsAt),
-                        new Date(right.startsAt)
+                        new Date(left.startsAt || 0),
+                        new Date(right.startsAt || 0)
                     )
                 )
             }))
-            .sort((left: any, right: any) =>
+            .sort((left, right) =>
                 left.groupName.localeCompare(right.groupName)
             );
     }, [events, groupNames, search]);
@@ -241,13 +264,30 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                 ),
                 policy: entityQueryPolicies.groupCollection,
                 force,
-                queryFn: () =>
-                    commands.appGroupCalendarSnapshotGet({
+                queryFn: async () => {
+                    const snapshot = await commands.appGroupCalendarSnapshotGet({
                         date,
                         includeFeatured: showFeaturedEvents
-                    })
+                    });
+                    return {
+                        ...snapshot,
+                        events: snapshot.events.filter(isRecord),
+                        groupNames: Object.fromEntries(
+                            Object.entries(snapshot.groupNames).filter(
+                                (entry): entry is [string, string] =>
+                                    typeof entry[1] === 'string'
+                            )
+                        ),
+                        groupProfiles: Object.fromEntries(
+                            Object.entries(snapshot.groupProfiles).filter(
+                                (entry): entry is [string, GroupCalendarGroupRecord] =>
+                                    isRecord(entry[1])
+                            )
+                        )
+                    };
+                }
             });
-            const normalizedRows = snapshot.events.map((event: any) => ({
+            const normalizedRows = snapshot.events.map((event) => ({
                 ...event,
                 title: replaceBioSymbols(event.title || ''),
                 description: replaceBioSymbols(event.description || '')
@@ -257,11 +297,11 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
             }
             setEvents(normalizedRows);
             setFollowingIds(snapshot.followingEventIds);
-            setGroupNames((current: any) => ({
+            setGroupNames((current) => ({
                 ...current,
                 ...snapshot.groupNames
             }));
-            setGroupProfiles((current: any) => ({
+            setGroupProfiles((current) => ({
                 ...current,
                 ...snapshot.groupProfiles
             }));
@@ -309,14 +349,14 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
         showFeaturedEvents
     ]);
 
-    async function toggleFeatured(nextValue: any) {
+    async function toggleFeatured(nextValue: boolean) {
         setShowFeaturedEvents(nextValue);
         await configRepository
             .setBool('groupCalendarShowFeaturedEvents', nextValue)
             .catch(() => {});
     }
 
-    async function toggleFollow(event: any) {
+    async function toggleFollow(event: GroupCalendarEvent) {
         const groupId = getEventGroupId(event);
         const eventId = getEventId(event);
         if (!groupId || !eventId) {
@@ -329,7 +369,7 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                 eventId,
                 isFollowing: nextFollowing
             });
-            setFollowingIds((current: any) =>
+            setFollowingIds((current) =>
                 updateArrayValue(current, eventId, nextFollowing)
             );
         } catch (error) {
@@ -344,9 +384,9 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
         }
     }
 
-    function selectDateKey(nextDateKey: any) {
+    function selectDateKey(nextDateKey: string) {
         setSelectedDate(nextDateKey);
-        setVisibleMonthDate((current: any) => {
+        setVisibleMonthDate((current) => {
             const nextMonthDate = monthDateFromKey(nextDateKey);
             return isSameMonth(current, nextMonthDate)
                 ? current
@@ -354,17 +394,17 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
         });
     }
 
-    function handleCalendarSelect(nextDate: any) {
+    function handleCalendarSelect(nextDate: Date | undefined) {
         if (!nextDate) {
             return;
         }
         selectDateKey(calendarDateKey(nextDate, calendarTimeZone));
     }
 
-    function handleCalendarMonthChange(nextMonth: any) {
+    function handleCalendarMonthChange(nextMonth: Date) {
         const nextDateKey = calendarDateKey(nextMonth, calendarTimeZone);
         setVisibleMonthDate(monthDateFromKey(nextDateKey));
-        setSelectedDate((current: any) =>
+        setSelectedDate((current) =>
             isSameMonth(
                 dateKeyToLocalDate(current),
                 monthDateFromKey(nextDateKey)
@@ -428,7 +468,12 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                         value={viewMode ? [viewMode] : []}
                         onValueChange={(nextValue) => {
                             if (nextValue[0]) {
-                                setViewMode(nextValue[0]);
+                                if (
+                                    nextValue[0] === 'timeline' ||
+                                    nextValue[0] === 'grid'
+                                ) {
+                                    setViewMode(nextValue[0]);
+                                }
                             }
                         }}
                     >
@@ -444,7 +489,7 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_32rem]">
                         <ScrollArea className="h-[52vh] rounded-md border p-4">
                             {selectedDayEvents.length ? (
-                                selectedDayEvents.map((event: any) => (
+                                selectedDayEvents.map((event) => (
                                     <GroupEventCard
                                         key={getEventId(event)}
                                         event={event}
@@ -507,7 +552,7 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                                 today: 'rounded-(--cell-radius) bg-accent/30 text-foreground data-[selected=true]:bg-transparent'
                             }}
                             components={{
-                                DayButton: (props: any) => (
+                                DayButton: (props) => (
                                     <GroupCalendarDayButton
                                         {...props}
                                         eventsByDate={eventsByDate}
@@ -532,7 +577,7 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                         />
                         <ScrollArea className="h-[55vh] rounded-md border p-4">
                             {eventsByGroup.length ? (
-                                eventsByGroup.map((group: any) => (
+                                eventsByGroup.map((group) => (
                                     <div
                                         key={group.groupId}
                                         className="mb-4 flex flex-col gap-2"
@@ -543,7 +588,7 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                                             className="justify-start px-0"
                                             onClick={() =>
                                                 setCollapsedGroups(
-                                                    (current: any) => ({
+                                                    (current) => ({
                                                         ...current,
                                                         [group.groupId]:
                                                             !current[
@@ -567,7 +612,7 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                                         {!collapsedGroups[group.groupId] ? (
                                             <div className="grid gap-3 md:grid-cols-2">
                                                 {group.events.map(
-                                                    (event: any) => (
+                                                    (event) => (
                                                         <GroupEventCard
                                                             key={getEventId(
                                                                 event

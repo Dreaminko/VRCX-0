@@ -1,4 +1,10 @@
-import { type ComponentProps, useEffect, useMemo, useState } from 'react';
+import {
+    type ComponentProps,
+    type ReactNode,
+    useEffect,
+    useMemo,
+    useState
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -77,7 +83,7 @@ function MenuItem({
     );
 }
 
-function MenuGroupLabel({ children }: any) {
+function MenuGroupLabel({ children }: { children: ReactNode }) {
     return (
         <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] font-medium uppercase">
             {children}
@@ -100,11 +106,19 @@ function ToolMenuItem({ tool }: { tool: ToolDefinition }) {
     );
 }
 
+interface AppMenuBarProps {
+    rightSidebarOpen: boolean;
+    onOpenQuickSearch?: () => void;
+    onOpenDirectAccess?: () => void;
+    onOpenNotificationCenter?: () => void;
+    onToggleRightSidebar: () => void;
+}
+
 export function AppMenuBar({
     rightSidebarOpen,
     onOpenNotificationCenter,
     onToggleRightSidebar
-}: any) {
+}: AppMenuBarProps) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [aboutOpen, setAboutOpen] = useState(false);
@@ -157,7 +171,7 @@ export function AppMenuBar({
         const loadQuickAccessTools = () => {
             configRepository
                 .getString(quickAccessConfigKey, '[]')
-                .then((value: any) => {
+                .then((value) => {
                     if (active) {
                         setQuickAccessKeys(parseQuickAccessToolKeys(value));
                     }
@@ -183,7 +197,7 @@ export function AppMenuBar({
         };
     }, []);
 
-    async function applyZoomLevel(nextZoom: any) {
+    async function applyZoomLevel(nextZoom: number) {
         try {
             await setZoomLevelPreference(nextZoom);
         } catch (error) {
@@ -243,7 +257,7 @@ export function AppMenuBar({
         }
     }
 
-    function openLink(url: any) {
+    function openLink(url: string) {
         openExternalLink(url);
     }
 
@@ -410,7 +424,7 @@ export function AppMenuBar({
                                     <MenuGroupLabel>
                                         {t('view.tools.quick_access.header')}
                                     </MenuGroupLabel>
-                                    {quickAccessTools.map((tool: any) => (
+                                    {quickAccessTools.map((tool) => (
                                         <ToolMenuItem
                                             key={tool.key}
                                             tool={tool}
@@ -422,13 +436,13 @@ export function AppMenuBar({
                         {availableToolCategories.length > 0 ? (
                             <MenubarSeparator />
                         ) : null}
-                        {availableToolCategories.map((category: any) => (
+                        {availableToolCategories.map((category) => (
                             <MenubarSub key={category.key}>
                                 <MenubarSubTrigger className="min-h-7 min-w-48 text-xs">
                                     {t(category.labelKey)}
                                 </MenubarSubTrigger>
                                 <MenubarSubContent className="w-56">
-                                    {category.tools.map((tool: any) => (
+                                    {category.tools.map((tool) => (
                                         <ToolMenuItem
                                             key={tool.key}
                                             tool={tool}

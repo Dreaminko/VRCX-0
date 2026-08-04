@@ -1,4 +1,9 @@
-import { MoreHorizontalIcon, ImageIcon } from 'lucide-react';
+import {
+    MoreHorizontalIcon,
+    ImageIcon,
+    type LucideIcon
+} from 'lucide-react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { TILE_MOTION, TILE_SELECTED } from '@/lib/selectableTile';
@@ -14,7 +19,36 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 
-export function shortAssetId(value: any) {
+export type MediaAssetBadge = {
+    key?: string;
+    label: string;
+    variant?: ComponentProps<typeof Badge>['variant'];
+};
+
+export type MediaAssetAction = {
+    key?: string;
+    label: string;
+    icon?: LucideIcon;
+    destructive?: boolean;
+    disabled?: boolean;
+    variant?: ComponentProps<typeof Button>['variant'];
+    onClick?: () => void;
+    onSelect?: () => void;
+};
+
+export type MediaAssetMeta = {
+    key?: string;
+    label: string;
+    title?: string;
+};
+
+export type MediaPreviewOptions = {
+    id?: string;
+    url: string;
+    title: string;
+};
+
+export function shortAssetId(value: unknown) {
     const text = String(value || '').trim();
     if (!text) {
         return '';
@@ -25,12 +59,20 @@ export function shortAssetId(value: any) {
     return `${text.slice(0, 10)}...${text.slice(-6)}`;
 }
 
-function renderIcon(Icon: any) {
+function renderIcon(Icon?: LucideIcon) {
     return Icon ? <Icon data-icon="inline-start" /> : null;
 }
 
-function TileActionsMenu({ actions, label }: any) {
-    const visibleActions = (actions || []).filter(Boolean);
+function TileActionsMenu({
+    actions = [],
+    label
+}: {
+    actions?: Array<MediaAssetAction | null>;
+    label?: string;
+}) {
+    const visibleActions = actions.filter(
+        (action): action is MediaAssetAction => Boolean(action)
+    );
     if (!visibleActions.length) {
         return null;
     }
@@ -52,7 +94,7 @@ function TileActionsMenu({ actions, label }: any) {
             />
             <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuGroup>
-                    {visibleActions.map((action: any) => (
+                    {visibleActions.map((action) => (
                         <DropdownMenuItem
                             key={action.key || action.label}
                             variant={
@@ -98,12 +140,39 @@ export function MediaAssetTile({
     className,
     contentClassName,
     hideContent = false
-}: any) {
+}: {
+    title?: unknown;
+    subtitle?: unknown;
+    meta?: MediaAssetMeta | MediaAssetMeta[];
+    badges?: Array<MediaAssetBadge | null>;
+    imageUrl?: string;
+    alt?: string;
+    aspectClass?: string;
+    imageFit?: 'cover' | 'contain';
+    imagePosition?: 'center' | 'top';
+    isCurrent?: boolean;
+    currentLabel?: string;
+    menuLabel?: string;
+    placeholderIcon?: LucideIcon;
+    renderMedia?: ((options: { className: string }) => ReactNode) | null;
+    onPreview?: () => void;
+    onMediaClick?: () => void;
+    mediaHoverLabel?: string;
+    primaryAction?: MediaAssetAction | null;
+    menuActions?: Array<MediaAssetAction | null>;
+    className?: string;
+    contentClassName?: string;
+    hideContent?: boolean;
+}) {
     const safeTitle = String(title || '').trim();
     const safeSubtitle = String(subtitle || '').trim();
-    const safeMeta = (Array.isArray(meta) ? meta : [meta]).filter(Boolean);
-    const safeBadges = (badges || []).filter(Boolean);
-    const hasPrimaryAction = Boolean(primaryAction?.label);
+    const safeMeta = (Array.isArray(meta) ? meta : meta ? [meta] : []);
+    const safeBadges = (badges || []).filter(
+        (badge): badge is MediaAssetBadge => Boolean(badge)
+    );
+    const resolvedPrimaryAction = primaryAction?.label
+        ? primaryAction
+        : null;
     const handleMediaClick = onMediaClick || onPreview;
     const imageClassName = cn(
         'size-full',
@@ -163,7 +232,7 @@ export function MediaAssetTile({
                             {currentLabel}
                         </Badge>
                     ) : null}
-                    {safeBadges.map((badge: any) => (
+                    {safeBadges.map((badge) => (
                         <Badge
                             key={badge.key || badge.label}
                             variant={badge.variant || 'outline'}
@@ -206,27 +275,27 @@ export function MediaAssetTile({
                                 {safeSubtitle}
                             </div>
                         ) : null}
-                        {safeMeta.map((item: any) => (
+                        {safeMeta.map((item) => (
                             <div
-                                key={item.key || item.label || item}
+                                key={item.key || item.label}
                                 className="text-muted-foreground truncate text-xs"
-                                title={item.title || item.label || item}
+                                title={item.title || item.label}
                             >
-                                {item.label || item}
+                                {item.label}
                             </div>
                         ))}
                     </div>
-                    {hasPrimaryAction ? (
+                    {resolvedPrimaryAction ? (
                         <Button
                             type="button"
-                            variant={primaryAction.variant || 'outline'}
+                            variant={resolvedPrimaryAction.variant || 'outline'}
                             size="sm"
                             className="shrink-0"
-                            disabled={primaryAction.disabled}
-                            onClick={primaryAction.onClick}
+                            disabled={resolvedPrimaryAction.disabled}
+                            onClick={resolvedPrimaryAction.onClick}
                         >
-                            {renderIcon(primaryAction.icon)}
-                            {primaryAction.label}
+                            {renderIcon(resolvedPrimaryAction.icon)}
+                            {resolvedPrimaryAction.label}
                         </Button>
                     ) : null}
                 </CardContent>

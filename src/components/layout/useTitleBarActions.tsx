@@ -8,7 +8,13 @@ import {
     SearchIcon,
     SparklesIcon
 } from 'lucide-react';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import {
+    type ComponentProps,
+    useCallback,
+    useEffect,
+    useState,
+    type ReactNode
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { toast } from 'sonner';
@@ -47,7 +53,12 @@ export function TitleBarButton({
     onClick,
     size = 'icon-sm',
     ...props
-}: any) {
+}: Omit<
+    ComponentProps<typeof Button>,
+    'aria-label' | 'type' | 'variant'
+> & {
+    label: string;
+}) {
     return (
         <Tooltip>
             <TooltipTrigger
@@ -93,14 +104,14 @@ export function TitleBarBuildBadge() {
 const SHORTCUT_KBD_CLASS =
     'bg-background/45 h-3.5 min-w-3.5 rounded-[3px] px-1 text-[9px] leading-3.5 shadow-none';
 
-function getTitleBarShortcutLabel(isMacHost: any, actionKey: any) {
+function getTitleBarShortcutLabel(isMacHost: boolean, actionKey: string) {
     const modifierKey = isMacHost ? '⌘' : 'Ctrl';
     return isMacHost
         ? `${modifierKey}${actionKey}`
         : `${modifierKey}+${actionKey}`;
 }
 
-function formatTitleBarShortcutLabel(value: any, shortcutLabel: any) {
+function formatTitleBarShortcutLabel(value: string, shortcutLabel: string) {
     return `${value} ${shortcutLabel}`;
 }
 
@@ -179,7 +190,7 @@ export function useTitleBarActions(
             return undefined;
         }
 
-        const handleKeyDown = (event: any) => {
+        const handleKeyDown = (event: KeyboardEvent) => {
             const hasModifier = isMacHost
                 ? event.metaKey
                 : event.ctrlKey || event.metaKey;
@@ -236,7 +247,7 @@ export function useTitleBarActions(
             onContextMenu={
                 vrcUnseenNotificationCount > 0
                     ? undefined
-                    : (event: any) => {
+                    : (event: React.MouseEvent) => {
                           event.preventDefault();
                           toast.info(
                               t(

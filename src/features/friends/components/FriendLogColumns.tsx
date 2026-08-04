@@ -2,6 +2,7 @@ import { Trash2Icon, XIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ColumnDef } from '@tanstack/react-table';
 
 import { formatDateFilter } from '@/lib/dateTime';
 import { Button } from '@/ui/shadcn/button';
@@ -9,6 +10,7 @@ import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { getFriendLogRowKey, normalizeUserId } from '../friendLogRows';
+import type { FriendLogRow } from '../friendLogRows';
 import {
     FriendLogTypeIndicator,
     SortButton,
@@ -22,10 +24,20 @@ export function useFriendLogColumns({
     loadStatus,
     rowsOwnerUserId,
     shiftHeld
-}: any) {
+}: {
+    currentUserId: string;
+    deletingRowKey: string;
+    handleDeleteRow: (
+        row: FriendLogRow,
+        options?: { skipConfirm?: boolean }
+    ) => Promise<void>;
+    loadStatus: string;
+    rowsOwnerUserId: string;
+    shiftHeld: boolean;
+}) {
     const { t } = useTranslation();
 
-    return useMemo(
+    return useMemo<ColumnDef<FriendLogRow>[]>(
         () => [
             {
                 id: 'spacer',
@@ -40,14 +52,14 @@ export function useFriendLogColumns({
             {
                 id: 'created_at',
                 size: 120,
-                accessorFn: (row: any) => row?.created_at || '',
-                header: ({ column }: any) => (
+                accessorFn: (row) => row?.created_at || '',
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.friendLog.date')}
                     />
                 ),
-                sortingFn: (rowA: any, rowB: any) => {
+                sortingFn: (rowA, rowB) => {
                     const leftTs = Date.parse(rowA.original?.created_at ?? '');
                     const rightTs = Date.parse(rowB.original?.created_at ?? '');
                     if (
@@ -59,11 +71,11 @@ export function useFriendLogColumns({
                     }
 
                     return (
-                        (Number.parseInt(rowA.original?.rowId ?? 0, 10) || 0) -
-                        (Number.parseInt(rowB.original?.rowId ?? 0, 10) || 0)
+                        (Number(rowA.original?.rowId ?? 0) || 0) -
+                        (Number(rowB.original?.rowId ?? 0) || 0)
                     );
                 },
-                cell: ({ row }: any) => {
+                cell: ({ row }) => {
                     const createdAt = row.original?.created_at || '';
                     return (
                         <Tooltip>
@@ -84,14 +96,14 @@ export function useFriendLogColumns({
             {
                 id: 'type',
                 size: 160,
-                accessorFn: (row: any) => row?.type || '',
-                header: ({ column }: any) => (
+                accessorFn: (row) => row?.type || '',
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.friendLog.type')}
                     />
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <FriendLogTypeIndicator type={row.original?.type} />
                 )
             },
@@ -99,24 +111,24 @@ export function useFriendLogColumns({
                 id: 'displayName',
                 size: 260,
                 minSize: 80,
-                accessorFn: (row: any) =>
+                accessorFn: (row) =>
                     row?.resolvedDisplayName ||
                     row?.displayName ||
                     row?.userId ||
                     '',
                 enableSorting: false,
                 header: () => t('table.friendLog.user'),
-                cell: ({ row }: any) => renderUserCell(row.original)
+                cell: ({ row }) => renderUserCell(row.original)
             },
             {
                 id: 'action',
                 size: 64,
                 maxSize: 64,
                 enableSorting: false,
-                accessorFn: (row: any) =>
+                accessorFn: (row) =>
                     getFriendLogRowKey(row, rowsOwnerUserId),
                 header: () => t('table.friendLog.action'),
-                cell: ({ row }: any) => {
+                cell: ({ row }) => {
                     const rowKey = getFriendLogRowKey(
                         row.original,
                         rowsOwnerUserId

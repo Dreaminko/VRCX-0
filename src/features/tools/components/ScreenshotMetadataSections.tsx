@@ -9,6 +9,7 @@ import {
     UsersIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { DragEvent } from 'react';
 
 import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut';
 import {
@@ -50,7 +51,13 @@ import {
     TableRow
 } from '@/ui/shadcn/table';
 
-import { SCREENSHOT_METADATA_SEARCH_TYPES } from '../screenshotMetadataValues';
+import {
+    SCREENSHOT_METADATA_SEARCH_TYPES,
+    type NormalizedScreenshotMetadata,
+    type ScreenshotMetadataSearchType,
+    type ScreenshotSearchRow,
+    type ScreenshotSearchSort
+} from '../screenshotMetadataValues';
 import { EmptyState, SearchSortHead } from './ScreenshotMetadataParts';
 
 export { ScreenshotMetadataDetailsCard } from './ScreenshotMetadataDetailsCard';
@@ -63,7 +70,15 @@ export function ScreenshotMetadataHeader({
     deletingLabel,
     uploadingLabel,
     onBack
-}: any) {
+}: {
+    backLabel: string;
+    title: string;
+    deleting: boolean;
+    uploading: boolean;
+    deletingLabel: string;
+    uploadingLabel: string;
+    onBack: () => void;
+}) {
     return (
         <PageToolbar>
             <PageToolbarRow className="items-center">
@@ -100,7 +115,25 @@ export function ScreenshotMetadataToolbar({
     onCopyImage,
     onUpload,
     onDelete
-}: any) {
+}: {
+    metadata: NormalizedScreenshotMetadata | null;
+    isVrcPlusSupporter: boolean;
+    isUploadingScreenshot: boolean;
+    isDeletingMetadata: boolean;
+    searchQuery: string;
+    searchType: ScreenshotMetadataSearchType['value'];
+    searchViewMode: 'detail' | 'table';
+    searchRowsCount: number;
+    searchNavigationCount: number;
+    selectedPathIndex: number;
+    onSearchQueryChange: (value: string) => void;
+    onSearchTypeChange: (value: string | null) => void;
+    onSearch: () => void;
+    onOpenFolder: () => void;
+    onCopyImage: () => void;
+    onUpload: () => void;
+    onDelete: () => void;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -190,7 +223,7 @@ export function ScreenshotMetadataToolbar({
                     <SelectContent>
                         <SelectGroup>
                             {SCREENSHOT_METADATA_SEARCH_TYPES.map(
-                                (type: any) => (
+                                (type) => (
                                     <SelectItem
                                         key={type.value}
                                         value={type.value}
@@ -227,7 +260,15 @@ export function ScreenshotMetadataResultsTable({
     selectedPath,
     onToggleSearchSort,
     onOpenResult
-}: any) {
+}: {
+    isSearchLoading: boolean;
+    currentSearchType: ScreenshotMetadataSearchType;
+    searchSort: ScreenshotSearchSort;
+    sortedSearchRows: ScreenshotSearchRow[];
+    selectedPath: string;
+    onToggleSearchSort: (key: string) => void;
+    onOpenResult: (row: ScreenshotSearchRow) => void;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -303,7 +344,7 @@ export function ScreenshotMetadataResultsTable({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {sortedSearchRows.map((row: any) => (
+                        {sortedSearchRows.map((row) => (
                             <TableRow
                                 key={row.filePath}
                                 data-state={
@@ -354,7 +395,16 @@ export function ScreenshotMetadataPreviewCard({
     onImagePreview,
     onDragOver,
     onDrop
-}: any) {
+}: {
+    metadata: NormalizedScreenshotMetadata | null;
+    imageUrl: string;
+    isMetadataLoading: boolean;
+    onNavigatePrev: () => void;
+    onNavigateNext: () => void;
+    onImagePreview: () => void;
+    onDragOver: (event: DragEvent<HTMLDivElement>) => void;
+    onDrop: (event: DragEvent<HTMLDivElement>) => void;
+}) {
     const { t } = useTranslation();
 
     return (

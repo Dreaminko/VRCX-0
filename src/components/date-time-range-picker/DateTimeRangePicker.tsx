@@ -4,7 +4,8 @@ import {
     useMemo,
     useState,
     type ReactElement,
-    type ReactNode
+    type ReactNode,
+    type ComponentProps
 } from 'react';
 import type { DateRange } from 'react-day-picker';
 
@@ -46,7 +47,7 @@ interface DateTimeRangePickerProps {
     numberOfMonths?: number;
     maxDays?: number;
     minuteStep?: number;
-    disabled?: any;
+    disabled?: ComponentProps<typeof Calendar>['disabled'];
     align?: 'start' | 'center' | 'end';
     triggerClassName?: string;
     renderTrigger?: (state: { active: boolean; label: string }) => ReactNode;

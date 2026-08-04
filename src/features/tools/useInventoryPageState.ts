@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import mediaRepository, {
-    type InventoryItemRecord
+    type InventoryItemRecord,
+    type MediaFileRecord
 } from '@/repositories/mediaRepository';
 import { VRCHAT_API_DEFAULT_PAGE_SIZE } from '@/repositories/paginationConstants';
 import { refreshCurrentUser } from '@/services/backgroundMaintenanceSessionService';
@@ -26,7 +27,10 @@ import {
     sanitizeInventoryGridDensity,
     scopeKey,
     validateImageFile,
-    writeGridDensityPreference
+    writeGridDensityPreference,
+    type InventoryCategory,
+    type InventoryTabDefinition,
+    type InventoryUploadTarget
 } from './inventoryHelpers';
 
 export { IMAGE_UPLOAD_ACCEPT };
@@ -37,9 +41,7 @@ type InventoryAuthTarget = {
     websocket: string;
 };
 
-type InventoryRow = Record<string, unknown> & {
-    id?: unknown;
-};
+export type InventoryRow = MediaFileRecord & Partial<InventoryItemRecord>;
 
 const EMPTY_ROWS_BY_SCOPE: Record<string, InventoryRow[]> = Object.freeze({});
 const EMPTY_LOADING_BY_SCOPE: Record<string, boolean> = Object.freeze({});
@@ -57,7 +59,7 @@ type InventoryCropRequest = {
     authTarget: InventoryAuthTarget;
     file: File;
     settings: InventoryUploadSettings;
-    target: string | null;
+    target: InventoryUploadTarget;
 };
 
 function inventoryAuthTargetKey(authTarget: InventoryAuthTarget) {
@@ -69,7 +71,7 @@ function inventoryAuthTargetKey(authTarget: InventoryAuthTarget) {
 export function useInventoryPageState() {
     const { t } = useTranslation();
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
-    const uploadTargetRef = useRef<string | null>(null);
+    const uploadTargetRef = useRef<InventoryUploadTarget | null>(null);
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const currentEndpoint = useRuntimeStore(
         (state) => state.auth.currentUserEndpoint
@@ -83,10 +85,11 @@ export function useInventoryPageState() {
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
     const openImagePreview = useModalStore((state) => state.openImagePreview);
-    const [activeCategory, setActiveCategory] = useState('emojis');
-    const [activeSubTabs, setActiveSubTabs] = useState<Record<string, string>>({
-        ...INITIAL_INVENTORY_SUB_TABS
-    });
+    const [activeCategory, setActiveCategory] =
+        useState<InventoryCategory>('emojis');
+    const [activeSubTabs, setActiveSubTabs] = useState<
+        Record<InventoryCategory, string>
+    >({ ...INITIAL_INVENTORY_SUB_TABS });
     const [rowsByScope, setRowsByScope] = useState<
         Record<string, InventoryRow[]>
     >({});
@@ -147,7 +150,7 @@ export function useInventoryPageState() {
         );
     }
 
-    function changeGridDensity(nextValue: any) {
+    function changeGridDensity(nextValue: unknown) {
         const nextDensity = sanitizeInventoryGridDensity(nextValue);
         setGridDensity(nextDensity);
         writeGridDensityPreference(nextDensity);
@@ -160,14 +163,17 @@ export function useInventoryPageState() {
         }));
     }
 
-    function setScopeRows(key: string, rows: unknown) {
+    function setScopeRows(key: string, rows: InventoryRow[]) {
         setRowsByScope((current) => ({
             ...current,
-            [key]: Array.isArray(rows) ? rows : []
+            [key]: rows
         }));
     }
 
-    async function loadFileRows(definition: any, authTarget: any) {
+    async function loadFileRows(
+        definition: InventoryTabDefinition,
+        authTarget: InventoryAuthTarget
+    ) {
         const nextRows: InventoryRow[] = [];
         for (const tag of definition.fileTags || []) {
             const { json } = await mediaRepository.getFileList({
@@ -178,7 +184,7 @@ export function useInventoryPageState() {
                 nextRows.push(...json);
             }
         }
-        const seen = new Set();
+        const seen = new Set<string>();
         return nextRows
             .filter((row) => {
                 if (!row?.id || seen.has(row.id)) {
@@ -191,7 +197,7 @@ export function useInventoryPageState() {
             .filter(() => isCurrentAuthTarget(authTarget));
     }
 
-    async function loadInventoryRows(definition: any) {
+    async function loadInventoryRows(definition: InventoryTabDefinition) {
         if (definition.source === 'empty') {
             return [];
         }
@@ -207,11 +213,11 @@ export function useInventoryPageState() {
     }
 
     async function refreshScope(
-        category: any = activeCategory,
-        tab: any = activeSubTab
+        category: InventoryCategory = activeCategory,
+        tab: string = activeSubTab
     ) {
         const definition = CATEGORY_DEFINITIONS[category].tabs.find(
-            (entry: any) => entry.key === tab
+            (entry) => entry.key === tab
         );
         if (!definition) {
             return;
@@ -263,7 +269,7 @@ export function useInventoryPageState() {
         activeSubTab
     ]);
 
-    function beginUpload(target: any) {
+    function beginUpload(target: InventoryUploadTarget) {
         if (!isVrcPlusSupporter) {
             toast.error(t('message.vrcplus.required'));
             return;
@@ -327,6 +333,9 @@ export function useInventoryPageState() {
             return;
         }
         const target = uploadTargetRef.current;
+        if (!target) {
+            return;
+        }
         const authTarget = getAuthTarget();
         const settings =
             target === 'emojis'
@@ -379,13 +388,17 @@ export function useInventoryPageState() {
                 return;
             }
             const key = scopeKey(target, 'custom');
-            if (args?.json) {
-                setRowsByScope((current: any) => ({
+            if (args?.json && typeof args.json.id === 'string') {
+                const uploadedFile: MediaFileRecord = {
+                    ...args.json,
+                    id: args.json.id
+                };
+                setRowsByScope((current) => ({
                     ...current,
                     [key]: [
-                        args.json,
+                        uploadedFile,
                         ...(current[key] || []).filter(
-                            (item: any) => item.id !== args.json.id
+                            (item) => item.id !== uploadedFile.id
                         )
                     ]
                 }));
@@ -408,7 +421,7 @@ export function useInventoryPageState() {
         }
     }
 
-    async function deleteFileAsset(fileId: any) {
+    async function deleteFileAsset(fileId: unknown) {
         const normalizedFileId =
             typeof fileId === 'string'
                 ? fileId.trim()
@@ -433,10 +446,10 @@ export function useInventoryPageState() {
         try {
             await mediaRepository.deleteFile(normalizedFileId);
             if (isCurrentAuthTarget(authTarget)) {
-                setRowsByScope((current: any) => ({
+                setRowsByScope((current) => ({
                     ...current,
                     [activeScopeKey]: (current[activeScopeKey] || []).filter(
-                        (file: any) => file.id !== normalizedFileId
+                        (file) => file.id !== normalizedFileId
                     )
                 }));
                 toast.success(t('view.tools.success.media_item_deleted'));
@@ -450,13 +463,16 @@ export function useInventoryPageState() {
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === `file:${normalizedFileId}` ? '' : current
             );
         }
     }
 
-    async function archiveInventoryItem(inventoryId: any, archived: any) {
+    async function archiveInventoryItem(
+        inventoryId: unknown,
+        archived: boolean
+    ) {
         const normalizedInventoryId =
             typeof inventoryId === 'string'
                 ? inventoryId.trim()
@@ -487,13 +503,13 @@ export function useInventoryPageState() {
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === `inventory:${normalizedInventoryId}` ? '' : current
             );
         }
     }
 
-    async function consumeInventoryBundle(inventoryId: any) {
+    async function consumeInventoryBundle(inventoryId: unknown) {
         const normalizedInventoryId =
             typeof inventoryId === 'string'
                 ? inventoryId.trim()
@@ -520,7 +536,7 @@ export function useInventoryPageState() {
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === `inventory:${normalizedInventoryId}` ? '' : current
             );
         }
@@ -633,7 +649,7 @@ export function useInventoryPageState() {
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === 'inventory:redeem' ? '' : current
             );
         }

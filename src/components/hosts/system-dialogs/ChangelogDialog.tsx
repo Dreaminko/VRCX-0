@@ -1,7 +1,12 @@
 import { HeartIcon, StarIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+    type ComponentPropsWithoutRef,
+    useEffect,
+    useMemo,
+    useState
+} from 'react';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
@@ -12,6 +17,7 @@ import {
     type LocalizedChangelogEntry
 } from '@/services/changelogService';
 import { openExternalLink } from '@/services/entityMediaService';
+import type { NormalizedRelease } from '@/services/updateService';
 import { links } from '@/shared/constants/link';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -26,7 +32,11 @@ import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
-function MarkdownLink({ href, children, ...props }: any) {
+function MarkdownLink({
+    href,
+    children,
+    ...props
+}: ComponentPropsWithoutRef<'a'>) {
     return (
         <a
             {...props}
@@ -44,46 +54,49 @@ function MarkdownLink({ href, children, ...props }: any) {
 
 const markdownComponents = {
     a: MarkdownLink,
-    h1: ({ children }: any) => (
+    h1: ({ children }: ComponentPropsWithoutRef<'h1'>) => (
         <h1 className="mt-4 mb-2 text-xl font-semibold first:mt-0">
             {children}
         </h1>
     ),
-    h2: ({ children }: any) => (
+    h2: ({ children }: ComponentPropsWithoutRef<'h2'>) => (
         <h2 className="mt-4 mb-2 text-lg font-semibold first:mt-0">
             {children}
         </h2>
     ),
-    h3: ({ children }: any) => (
+    h3: ({ children }: ComponentPropsWithoutRef<'h3'>) => (
         <h3 className="mt-3 mb-2 text-base font-semibold first:mt-0">
             {children}
         </h3>
     ),
-    h4: ({ children }: any) => (
+    h4: ({ children }: ComponentPropsWithoutRef<'h4'>) => (
         <h4 className="mt-3 mb-2 text-sm font-semibold first:mt-0">
             {children}
         </h4>
     ),
-    p: ({ children }: any) => (
+    p: ({ children }: ComponentPropsWithoutRef<'p'>) => (
         <p className="text-foreground/90 my-2 leading-relaxed first:mt-0 last:mb-0">
             {children}
         </p>
     ),
-    ul: ({ children }: any) => (
+    ul: ({ children }: ComponentPropsWithoutRef<'ul'>) => (
         <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>
     ),
-    ol: ({ children }: any) => (
+    ol: ({ children }: ComponentPropsWithoutRef<'ol'>) => (
         <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>
     ),
-    li: ({ children }: any) => (
+    li: ({ children }: ComponentPropsWithoutRef<'li'>) => (
         <li className="text-foreground/90 leading-relaxed">{children}</li>
     ),
-    blockquote: ({ children }: any) => (
+    blockquote: ({ children }: ComponentPropsWithoutRef<'blockquote'>) => (
         <blockquote className="border-border text-muted-foreground my-2 border-l-2 pl-3">
             {children}
         </blockquote>
     ),
-    code: ({ inline, children }: any) =>
+    code: ({
+        inline,
+        children
+    }: ComponentPropsWithoutRef<'code'> & { inline?: boolean }) =>
         inline ? (
             <code className="bg-muted rounded px-1 py-0.5 font-mono text-[0.85em]">
                 {children}
@@ -93,22 +106,24 @@ const markdownComponents = {
                 {children}
             </code>
         ),
-    pre: ({ children }: any) => (
+    pre: ({ children }: ComponentPropsWithoutRef<'pre'>) => (
         <pre className="bg-muted my-2 overflow-x-auto rounded-md p-3">
             {children}
         </pre>
     )
-};
+} satisfies Components;
 
-type ChangelogRelease = {
-    displayName?: string;
-    tagName?: string;
-    body?: string;
-} & Record<string, unknown>;
-
-export function ChangelogDialog({ open, onOpenChange, targetVersion }: any) {
+export function ChangelogDialog({
+    open,
+    onOpenChange,
+    targetVersion
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    targetVersion?: string;
+}) {
     const { i18n, t } = useTranslation();
-    const [latestRelease, setLatestRelease] = useState<ChangelogRelease | null>(
+    const [latestRelease, setLatestRelease] = useState<NormalizedRelease | null>(
         null
     );
     const [entries, setEntries] = useState<LocalizedChangelogEntry[]>([]);
@@ -131,7 +146,7 @@ export function ChangelogDialog({ open, onOpenChange, targetVersion }: any) {
         setActiveLanguage('');
 
         fetchChangelogRelease(targetVersion)
-            .then((release: any) => {
+            .then((release) => {
                 if (!active) {
                     return;
                 }
@@ -148,7 +163,7 @@ export function ChangelogDialog({ open, onOpenChange, targetVersion }: any) {
                     )
                 );
             })
-            .catch((nextError: any) => {
+            .catch((nextError: unknown) => {
                 if (active) {
                     setError(
                         userFacingErrorMessage(

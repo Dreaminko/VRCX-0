@@ -33,6 +33,7 @@ export { AvatarDetailsDialog } from './AvatarDetailsDialog';
 type OwnAvatar = Awaited<
     ReturnType<typeof avatarProfileRepository.getAllAvatarsByUser>
 >[number];
+type EditableAvatar = Partial<OwnAvatar> & { id?: string };
 
 const contentTagOptions = [
     { value: 'content_horror', label: 'Horror' },
@@ -42,7 +43,7 @@ const contentTagOptions = [
     { value: 'content_sex', label: 'Sex' }
 ];
 
-function normalizeTagName(value: any, prefix: any) {
+function normalizeTagName(value: unknown, prefix: string) {
     const normalized = String(value || '')
         .trim()
         .toLowerCase()
@@ -50,27 +51,27 @@ function normalizeTagName(value: any, prefix: any) {
     return normalized ? `${prefix}${normalized}` : '';
 }
 
-function contentTagsFromCsv(value: any) {
+function contentTagsFromCsv(value: unknown) {
     return Array.from(
         new Set(
             String(value || '')
                 .split(',')
-                .map((entry: any) => normalizeTagName(entry, 'content_'))
+                .map((entry) => normalizeTagName(entry, 'content_'))
                 .filter(Boolean)
         )
     );
 }
 
-function contentTagsCsv(tags: any) {
+function contentTagsCsv(tags: string[]) {
     return tags
-        .filter((tag: any) => tag.startsWith('content_'))
-        .map((tag: any) => tag.replace(/^content_/, ''))
+        .filter((tag) => tag.startsWith('content_'))
+        .map((tag) => tag.replace(/^content_/, ''))
         .join(',');
 }
 
-function mergeAvatars(currentAvatar: any, rows: any) {
-    const avatars = [];
-    const seen = new Set();
+function mergeAvatars(currentAvatar: EditableAvatar, rows: OwnAvatar[]) {
+    const avatars: EditableAvatar[] = [];
+    const seen = new Set<string>();
     for (const row of [currentAvatar, ...rows]) {
         if (!row?.id || seen.has(row.id)) {
             continue;
@@ -81,7 +82,15 @@ function mergeAvatars(currentAvatar: any, rows: any) {
     return avatars;
 }
 
-function AvatarOwnerRow({ avatar, selected, onToggle }: any) {
+function AvatarOwnerRow({
+    avatar,
+    selected,
+    onToggle
+}: {
+    avatar: EditableAvatar;
+    selected: boolean;
+    onToggle(): void;
+}) {
     const { t } = useTranslation();
     const imageUrl = convertFileUrlToImageUrl(
         avatar.thumbnailImageUrl || avatar.imageUrl,
@@ -150,13 +159,20 @@ export function AvatarContentTagsDialog({
     endpoint,
     onOpenChange,
     onSavedCurrentAvatar
-}: any) {
+}: {
+    open: boolean;
+    avatar: EditableAvatar | null;
+    currentUserId: string | null;
+    endpoint?: string | null;
+    onOpenChange(open: boolean): void;
+    onSavedCurrentAvatar(avatar: OwnAvatar): void;
+}) {
     const { t } = useTranslation();
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [ownAvatars, setOwnAvatars] = useState<OwnAvatar[]>([]);
-    const [selectedAvatarIds, setSelectedAvatarIds] = useState<any[]>([]);
+    const [ownAvatars, setOwnAvatars] = useState<EditableAvatar[]>([]);
+    const [selectedAvatarIds, setSelectedAvatarIds] = useState<string[]>([]);
     const [selectedTagsCsv, setSelectedTagsCsv] = useState('');
     const selectedTags = contentTagsFromCsv(selectedTagsCsv);
     const selectedTagsSet = new Set(selectedTags);
@@ -180,7 +196,7 @@ export function AvatarContentTagsDialog({
                 user: 'me',
                 releaseStatus: 'all'
             })
-            .then((rows: any) => {
+            .then((rows) => {
                 if (active) {
                     setOwnAvatars(mergeAvatars(avatar, rows));
                 }
@@ -208,7 +224,7 @@ export function AvatarContentTagsDialog({
         };
     }, [avatar, currentUserId, endpoint, open]);
 
-    function toggleBuiltInTag(tag: any) {
+    function toggleBuiltInTag(tag: string) {
         const nextTags = new Set(selectedTags);
         if (nextTags.has(tag)) {
             nextTags.delete(tag);
@@ -218,24 +234,26 @@ export function AvatarContentTagsDialog({
         setSelectedTagsCsv(contentTagsCsv(Array.from(nextTags)));
     }
 
-    function toggleAvatar(avatarId: any) {
-        setSelectedAvatarIds((current: any) =>
+    function toggleAvatar(avatarId: string) {
+        setSelectedAvatarIds((current) =>
             current.includes(avatarId)
-                ? current.filter((id: any) => id !== avatarId)
+                ? current.filter((id) => id !== avatarId)
                 : [...current, avatarId]
         );
     }
 
     function toggleAllAvatars() {
-        setSelectedAvatarIds((current: any) =>
+        setSelectedAvatarIds((current) =>
             current.length === ownAvatars.length
                 ? []
-                : ownAvatars.map((entry: any) => entry.id)
+                : ownAvatars.flatMap((entry) =>
+                      entry.id ? [entry.id] : []
+                  )
         );
     }
 
     async function save() {
-        if (saving || loading || !selectedAvatarIds.length) {
+        if (saving || loading || !selectedAvatarIds.length || !avatar?.id) {
             return;
         }
 
@@ -255,7 +273,9 @@ export function AvatarContentTagsDialog({
                 currentAvatarResult?.entity &&
                 typeof currentAvatarResult.entity === 'object'
             ) {
-                onSavedCurrentAvatar?.(currentAvatarResult.entity);
+                onSavedCurrentAvatar(
+                    currentAvatarResult.entity as OwnAvatar
+                );
             }
             if (result.failed) {
                 const baseMessage =
@@ -326,7 +346,7 @@ export function AvatarContentTagsDialog({
                             data-slot="checkbox-group"
                             className="grid gap-2 sm:grid-cols-2"
                         >
-                            {contentTagOptions.map((option: any) => (
+                            {contentTagOptions.map((option) => (
                                 <Field
                                     key={option.value}
                                     orientation="horizontal"
@@ -386,14 +406,21 @@ export function AvatarContentTagsDialog({
                         ) : null}
                     </div>
                     <div className="flex max-h-72 min-h-16 flex-wrap items-start overflow-auto">
-                        {ownAvatars.map((entry: any) => (
+                        {ownAvatars
+                            .filter(
+                                (
+                                    entry
+                                ): entry is EditableAvatar & { id: string } =>
+                                    Boolean(entry.id)
+                            )
+                            .map((entry) => (
                             <AvatarOwnerRow
                                 key={entry.id}
                                 avatar={entry}
                                 selected={selectedAvatarIds.includes(entry.id)}
                                 onToggle={() => toggleAvatar(entry.id)}
                             />
-                        ))}
+                            ))}
                     </div>
                 </FieldGroup>
                 <DialogFooter>

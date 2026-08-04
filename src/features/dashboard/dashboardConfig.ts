@@ -16,16 +16,16 @@ const DASHBOARD_INSTANCE_WIDGET_COLUMN_KEYS = new Set(
     DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS.map((column) => column.key)
 );
 
-type DashboardWidgetPanel = Exclude<DashboardPanel, string>;
+export type DashboardWidgetPanel = Exclude<DashboardPanel, string>;
 
-type DashboardConfig = DashboardWidgetPanel['config'];
+export type DashboardConfig = DashboardWidgetPanel['config'];
 
 type DashboardTranslate = (
     key: string,
     options?: Record<string, unknown>
 ) => string;
 
-type DashboardPanelSelectOption = {
+export type DashboardPanelSelectOption = {
     value: string;
     label: string;
 };

@@ -2,6 +2,7 @@ import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import type { AvatarSearchProviderConfig } from '@/repositories/avatarSearchProviderRepository';
 
 import avatarSearchProviderRepository from '@/repositories/avatarSearchProviderRepository';
 import { Button } from '@/ui/shadcn/button';
@@ -20,10 +21,10 @@ import {
     InputGroupInput
 } from '@/ui/shadcn/input-group';
 
-function providerListKey(providerList: any) {
+function providerListKey(providerList: unknown) {
     return JSON.stringify(
         (Array.isArray(providerList) ? providerList : [])
-            .map((provider: any) => String(provider ?? '').trim())
+            .map((provider) => String(provider ?? '').trim())
             .filter(Boolean)
     );
 }
@@ -33,7 +34,12 @@ export function AvatarProviderSettingsDialog({
     onOpenChange,
     providerList = [],
     onConfigSaved
-}: any) {
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    providerList?: string[];
+    onConfigSaved: (config: AvatarSearchProviderConfig) => void;
+}) {
     const { t } = useTranslation();
     const [draftProviderList, setDraftProviderList] = useState(providerList);
     const [isSaving, setIsSaving] = useState(false);
@@ -47,7 +53,9 @@ export function AvatarProviderSettingsDialog({
         }
     }, [open, providerList]);
 
-    async function saveProviderList(nextProviderList: any = draftProviderList) {
+    async function saveProviderList(
+        nextProviderList: string[] = draftProviderList
+    ) {
         const nextProviderListKey = providerListKey(nextProviderList);
         if (
             nextProviderListKey === lastSavedProviderListKeyRef.current ||
@@ -85,27 +93,27 @@ export function AvatarProviderSettingsDialog({
         }
     }
 
-    function updateProvider(index: any, value: any) {
-        setDraftProviderList((current: any) =>
-            current.map((provider: any, providerIndex: any) =>
+    function updateProvider(index: number, value: string) {
+        setDraftProviderList((current) =>
+            current.map((provider, providerIndex) =>
                 providerIndex === index ? value : provider
             )
         );
     }
 
     function addProvider() {
-        setDraftProviderList((current: any) => [...current, '']);
+        setDraftProviderList((current) => [...current, '']);
     }
 
-    function removeProvider(index: any) {
+    function removeProvider(index: number) {
         const nextProviderList = draftProviderList.filter(
-            (_: any, providerIndex: any) => providerIndex !== index
+            (_, providerIndex) => providerIndex !== index
         );
         setDraftProviderList(nextProviderList);
         saveProviderList(nextProviderList);
     }
 
-    function handleOpenChange(nextOpen: any) {
+    function handleOpenChange(nextOpen: boolean) {
         if (!nextOpen) {
             saveProviderList();
         }
@@ -124,7 +132,7 @@ export function AvatarProviderSettingsDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <FieldGroup className="gap-2">
-                    {draftProviderList.map((provider: any, index: any) => (
+                    {draftProviderList.map((provider, index) => (
                         <Field
                             key={`avatar-provider-${index}`}
                             data-disabled={isSaving}

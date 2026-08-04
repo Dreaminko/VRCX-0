@@ -1,4 +1,5 @@
 import { Trash2Icon, XIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDefaultLayout } from 'react-resizable-panels';
@@ -20,6 +21,11 @@ import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useNotificationStore } from '@/state/notificationStore';
+import type {
+    DashboardDirection,
+    DashboardPanel,
+    DashboardRow
+} from '@/repositories/dashboardRepository';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -45,6 +51,7 @@ import { Switch } from '@/ui/shadcn/switch';
 import {
     createDashboardPanelSelectOptions,
     createDashboardWidgetPanelValue,
+    type DashboardConfig,
     getDashboardFilterList,
     getDashboardPanelConfig,
     getDashboardRowKey,
@@ -63,7 +70,12 @@ export function DashboardFilterConfig({
     filterTypes,
     config,
     onConfigChange
-}: any) {
+}: {
+    title: string;
+    filterTypes: readonly string[];
+    config: DashboardConfig;
+    onConfigChange: (config: DashboardConfig) => void;
+}) {
     const { t } = useTranslation();
 
     const filters = getDashboardFilterList(config);
@@ -82,7 +94,7 @@ export function DashboardFilterConfig({
                 >
                     {t('view.dashboard.label.all')}
                 </Button>
-                {filterTypes.map((filterType: any) => (
+                {filterTypes.map((filterType) => (
                     <Button
                         key={filterType}
                         type="button"
@@ -115,7 +127,12 @@ export function DashboardSwitchConfig({
     description,
     checked,
     onCheckedChange
-}: any) {
+}: {
+    label: ReactNode;
+    description?: ReactNode;
+    checked: boolean;
+    onCheckedChange: (checked: boolean) => void;
+}) {
     return (
         <div className="bg-muted/10 flex items-center justify-between gap-3 rounded-md border px-3 py-2">
             <div className="min-w-0">
@@ -131,7 +148,13 @@ export function DashboardSwitchConfig({
     );
 }
 
-export function DashboardInstanceColumnConfig({ config, onConfigChange }: any) {
+export function DashboardInstanceColumnConfig({
+    config,
+    onConfigChange
+}: {
+    config: DashboardConfig;
+    onConfigChange: (config: DashboardConfig) => void;
+}) {
     const { t } = useTranslation();
 
     const activeColumns = getKnownDashboardInstanceWidgetColumns(config);
@@ -143,7 +166,7 @@ export function DashboardInstanceColumnConfig({ config, onConfigChange }: any) {
             </div>
             <div className="flex flex-wrap gap-2">
                 {DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS.map(
-                    (column: any) => (
+                    (column) => (
                         <Button
                             key={column.key}
                             type="button"
@@ -176,7 +199,11 @@ export function DashboardWidgetConfigEditor({
     panelKey,
     config,
     onConfigChange
-}: any) {
+}: {
+    panelKey: string;
+    config: DashboardConfig;
+    onConfigChange: (config: DashboardConfig) => void;
+}) {
     const { t } = useTranslation();
 
     if (panelKey === 'widget:feed') {
@@ -194,7 +221,7 @@ export function DashboardWidgetConfigEditor({
                         'view.dashboard.description.matches_the_stored_feed_widget_config'
                     )}
                     checked={Boolean(config.showType)}
-                    onCheckedChange={(checked: any) =>
+                    onCheckedChange={(checked) =>
                         onConfigChange({
                             ...config,
                             showType: Boolean(checked)
@@ -220,7 +247,7 @@ export function DashboardWidgetConfigEditor({
                         'view.dashboard.description.expands_the_compact_game_log_description'
                     )}
                     checked={Boolean(config.showDetail)}
-                    onCheckedChange={(checked: any) =>
+                    onCheckedChange={(checked) =>
                         onConfigChange({
                             ...config,
                             showDetail: Boolean(checked)
@@ -248,7 +275,12 @@ export function DashboardPanelSelectorDialog({
     currentPanelKey,
     onOpenChange,
     onSelect
-}: any) {
+}: {
+    open: boolean;
+    currentPanelKey: string;
+    onOpenChange: (open: boolean) => void;
+    onSelect: (value: string) => void;
+}) {
     const { t } = useTranslation();
 
     const options = createDashboardPanelSelectOptions(currentPanelKey, t);
@@ -271,7 +303,7 @@ export function DashboardPanelSelectorDialog({
                         >
                             {t('view.dashboard.label.not_configured')}
                         </Button>
-                        {options.map((option: any) => {
+                        {options.map((option) => {
                             const definition = getDashboardPanelDefinition(
                                 option.value
                             );
@@ -311,7 +343,12 @@ export function DashboardEditorPanel({
     onChange,
     onRemove,
     showRemove = true
-}: any) {
+}: {
+    panel: DashboardPanel | null;
+    onChange: (panel: DashboardPanel | null) => void;
+    onRemove?: () => void;
+    showRemove?: boolean;
+}) {
     const { t } = useTranslation();
 
     const [selectorOpen, setSelectorOpen] = useState(false);
@@ -320,7 +357,7 @@ export function DashboardEditorPanel({
     const panelConfig = getDashboardPanelConfig(panel);
     const canConfigure = Boolean(panelDefinition?.category === 'widget');
 
-    function updatePanelConfig(nextConfig: any) {
+    function updatePanelConfig(nextConfig: DashboardConfig) {
         if (!canConfigure || panelKey === '__none__') {
             return;
         }
@@ -398,7 +435,7 @@ export function DashboardEditorPanel({
                 open={selectorOpen}
                 currentPanelKey={panelKey}
                 onOpenChange={setSelectorOpen}
-                onSelect={(value: any) => {
+                onSelect={(value) => {
                     onChange(createDashboardPanelValue(value));
                     setSelectorOpen(false);
                 }}
@@ -414,7 +451,17 @@ export function DashboardEditorRow({
     onPanelRemove,
     onRowRemove,
     onDirectionChange
-}: any) {
+}: {
+    row: DashboardRow;
+    rowIndex: number;
+    onPanelChange: (
+        panelIndex: number,
+        panel: DashboardPanel | null
+    ) => void;
+    onPanelRemove: (panelIndex: number) => void;
+    onRowRemove: () => void;
+    onDirectionChange: (direction: DashboardDirection) => void;
+}) {
     const { t } = useTranslation();
 
     const direction = row?.direction === 'vertical' ? 'vertical' : 'horizontal';
@@ -446,7 +493,15 @@ export function DashboardEditorRow({
                                     label: t('view.dashboard.label.vertical')
                                 }
                             ]}
-                            onValueChange={onDirectionChange}
+                            onValueChange={(value) => {
+                                if (value) {
+                                    onDirectionChange(
+                                        value === 'vertical'
+                                            ? 'vertical'
+                                            : 'horizontal'
+                                    );
+                                }
+                            }}
                         >
                             <SelectTrigger size="sm" className="h-7 w-32">
                                 <SelectValue />
@@ -480,14 +535,14 @@ export function DashboardEditorRow({
                     direction === 'vertical' ? 'flex-col' : 'flex-row'
                 )}
             >
-                {panels.map((panel: any, panelIndex: any) => (
+                {panels.map((panel, panelIndex) => (
                     <div
                         key={`${rowIndex}-${panelIndex}`}
                         className={panelEditClass}
                     >
                         <DashboardEditorPanel
                             panel={panel}
-                            onChange={(nextPanel: any) =>
+                            onChange={(nextPanel) =>
                                 onPanelChange(panelIndex, nextPanel)
                             }
                             onRemove={() => onPanelRemove(panelIndex)}
@@ -528,7 +583,13 @@ function useDashboardPagePreviewMetrics(): DashboardPageMetrics {
     };
 }
 
-function DashboardPanelPreviewForPanel({ panel, onPanelChange }: any) {
+function DashboardPanelPreviewForPanel({
+    panel,
+    onPanelChange
+}: {
+    panel: DashboardPanel | null;
+    onPanelChange?: (panel: DashboardPanel | null) => void;
+}) {
     const pageMetrics = useDashboardPagePreviewMetrics();
     const previewProps = createDashboardPanelPreviewProps({
         panel,
@@ -539,7 +600,18 @@ function DashboardPanelPreviewForPanel({ panel, onPanelChange }: any) {
     return <DashboardPanelPreview {...previewProps} />;
 }
 
-export function DashboardReadRow({ row, dashboardId, onPanelChange }: any) {
+export function DashboardReadRow({
+    row,
+    dashboardId,
+    onPanelChange
+}: {
+    row: DashboardRow;
+    dashboardId: string;
+    onPanelChange?: (
+        panelIndex: number,
+        panel: DashboardPanel | null
+    ) => void;
+}) {
     const direction = row?.direction === 'vertical' ? 'vertical' : 'horizontal';
     const panels = Array.isArray(row?.panels) ? row.panels.slice(0, 2) : [];
     const rowKey = getDashboardRowKey(row);
@@ -568,7 +640,7 @@ export function DashboardReadRow({ row, dashboardId, onPanelChange }: any) {
                         <div className="h-full min-h-[180px] min-w-0">
                             <DashboardPanelPreviewForPanel
                                 panel={panels[0]}
-                                onPanelChange={(nextPanel: any) =>
+                                onPanelChange={(nextPanel) =>
                                     onPanelChange?.(0, nextPanel)
                                 }
                             />
@@ -583,7 +655,7 @@ export function DashboardReadRow({ row, dashboardId, onPanelChange }: any) {
                         <div className="h-full min-h-[180px] min-w-0">
                             <DashboardPanelPreviewForPanel
                                 panel={panels[1]}
-                                onPanelChange={(nextPanel: any) =>
+                                onPanelChange={(nextPanel) =>
                                     onPanelChange?.(1, nextPanel)
                                 }
                             />
@@ -598,7 +670,7 @@ export function DashboardReadRow({ row, dashboardId, onPanelChange }: any) {
         <div className="relative h-full min-h-[180px]">
             <DashboardPanelPreviewForPanel
                 panel={panels[0]}
-                onPanelChange={(nextPanel: any) =>
+                onPanelChange={(nextPanel) =>
                     onPanelChange?.(0, nextPanel)
                 }
             />

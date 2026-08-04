@@ -4547,7 +4547,7 @@ export type InventoryItemsCollectOutput = {
     items: RawJson[];
     truncated: boolean;
 };
-export type JsonValue = any;
+export type JsonValue = unknown;
 export type LegacyVrcxMigrationStatus = {
     detected: boolean;
     available: boolean;

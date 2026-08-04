@@ -6,8 +6,43 @@ import {
     unwrapVrchatResponse
 } from './vrchatRequest';
 
-type SearchWorldJson = Record<string, unknown> & {
+export type SearchConfigJson = Record<string, unknown> & {
+    dynamicWorldRows?: unknown;
+};
+
+export type SearchEntityJson = Record<string, unknown> & {
+    id: string;
+};
+
+export type SearchWorldJson = SearchEntityJson & {
     name?: string;
+};
+
+export type SearchUserJson = SearchEntityJson;
+export type SearchGroupJson = SearchEntityJson & {
+    bannerId: string | null;
+    bannerUrl?: string;
+    createdAt?: string;
+    description?: string;
+    discriminator?: string;
+    galleries?: unknown[];
+    iconId?: string;
+    iconUrl?: string;
+    isSearchable?: boolean;
+    memberCount?: number;
+    membershipStatus?: string;
+    name?: string;
+    ownerId?: string;
+    rules?: string;
+    shortCode?: string;
+    tags?: unknown[];
+};
+
+export type SearchInstanceJson = Record<string, unknown> & {
+    location?: unknown;
+    shortName?: unknown;
+    world?: unknown;
+    worldName?: unknown;
 };
 
 function normalizeParams(params: QueryParams = {}): QueryParams {
@@ -41,7 +76,11 @@ async function getConfig(params: QueryParams = {}) {
     const response = await commands.appVrchatSearchConfigGet({
         params: normalizedParams
     });
-    return unwrapVrchatSearchResponse(response, 'config', normalizedParams);
+    return unwrapVrchatSearchResponse<SearchConfigJson>(
+        response,
+        'config',
+        normalizedParams
+    );
 }
 
 async function getWorlds(params: QueryParams = {}, option?: unknown) {
@@ -55,7 +94,7 @@ async function getWorlds(params: QueryParams = {}, option?: unknown) {
     const path = normalizedOption
         ? `worlds/${encodeURIComponent(normalizedOption)}`
         : 'worlds';
-    return unwrapVrchatSearchResponse<SearchWorldJson>(
+    return unwrapVrchatSearchResponse<SearchWorldJson[]>(
         response,
         path,
         normalizedParams,
@@ -65,12 +104,30 @@ async function getWorlds(params: QueryParams = {}, option?: unknown) {
     );
 }
 
+async function getWorldById(worldId: unknown) {
+    const normalizedWorldId = String(worldId || '').trim();
+    const response = await commands.appVrchatSearchWorldsGet({
+        params: {},
+        option: normalizedWorldId
+    });
+    return unwrapVrchatSearchResponse<SearchWorldJson>(
+        response,
+        `worlds/${encodeURIComponent(normalizedWorldId)}`,
+        {},
+        { option: normalizedWorldId }
+    );
+}
+
 async function getUsers(params: QueryParams = {}) {
     const normalizedParams = normalizeParams(params);
     const response = await commands.appVrchatSearchUsersGet({
         params: normalizedParams
     });
-    return unwrapVrchatSearchResponse(response, 'users', normalizedParams);
+    return unwrapVrchatSearchResponse<SearchUserJson[]>(
+        response,
+        'users',
+        normalizedParams
+    );
 }
 
 async function getGroups(params: QueryParams = {}) {
@@ -78,7 +135,11 @@ async function getGroups(params: QueryParams = {}) {
     const response = await commands.appVrchatSearchGroupsGet({
         params: normalizedParams
     });
-    return unwrapVrchatSearchResponse(response, 'groups', normalizedParams);
+    return unwrapVrchatSearchResponse<SearchGroupJson[]>(
+        response,
+        'groups',
+        normalizedParams
+    );
 }
 
 async function getGroupsStrictSearch(params: QueryParams = {}) {
@@ -86,7 +147,7 @@ async function getGroupsStrictSearch(params: QueryParams = {}) {
     const response = await commands.appVrchatSearchGroupsStrictGet({
         params: normalizedParams
     });
-    return unwrapVrchatSearchResponse(
+    return unwrapVrchatSearchResponse<SearchGroupJson[]>(
         response,
         'groups/strictsearch',
         normalizedParams
@@ -98,7 +159,7 @@ async function getInstanceFromShortName(shortName: unknown) {
     const response = await commands.appVrchatSearchInstanceShortNameGet({
         shortName: normalizedShortName
     });
-    return unwrapVrchatSearchResponse(
+    return unwrapVrchatSearchResponse<SearchInstanceJson>(
         response,
         `instances/s/${encodeURIComponent(normalizedShortName)}`,
         {}
@@ -108,6 +169,7 @@ async function getInstanceFromShortName(shortName: unknown) {
 const vrchatSearchRepository = Object.freeze({
     getConfig,
     getWorlds,
+    getWorldById,
     getUsers,
     getGroups,
     getGroupsStrictSearch,
@@ -117,6 +179,7 @@ const vrchatSearchRepository = Object.freeze({
 export {
     getConfig,
     getWorlds,
+    getWorldById,
     getUsers,
     getGroups,
     getGroupsStrictSearch,

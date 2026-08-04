@@ -12,13 +12,18 @@ import {
 } from '@/ui/shadcn/alert-dialog';
 
 import { getLoginUserDisplayName as getUserDisplayName } from '../loginDisplay';
+import type { useLoginPageController } from '../useLoginPageController';
+
+type DeleteSavedAccountDialogProps = ReturnType<
+    typeof useLoginPageController
+>['deleteDialog'];
 
 export function DeleteSavedAccountDialog({
     deleteTarget,
     isDeleting,
     onOpenChange,
     onConfirm
-}: any) {
+}: DeleteSavedAccountDialogProps) {
     const { t } = useTranslation();
     const deleteTargetName = deleteTarget?.user
         ? getUserDisplayName(deleteTarget.user)

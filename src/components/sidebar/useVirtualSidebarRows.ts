@@ -3,8 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 const DEFAULT_ROW_SIZE = 48;
 const DEFAULT_OVERSCAN = 8;
 
+type VirtualRowKey = string | number;
+
 type VirtualSidebarRow = {
-    key?: unknown;
+    key?: VirtualRowKey;
 };
 
 type VirtualSidebarViewport = {
@@ -20,7 +22,7 @@ type RowRefCallback = (element: HTMLElement | null) => void;
 
 export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
     rows: T[],
-    estimateSize: (row: T, index: number) => unknown,
+    estimateSize: (row: T, index: number) => number,
     options: VirtualSidebarOptions = {}
 ) {
     const viewportElementRef = useRef<HTMLDivElement | null>(null);
@@ -30,9 +32,9 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
         viewportElementRef.current = node;
         setViewportElement(node);
     }, []);
-    const measuredSizesRef = useRef(new Map<unknown, number>());
-    const rowObserversRef = useRef(new Map<unknown, ResizeObserver>());
-    const rowRefCallbacksRef = useRef(new Map<unknown, RowRefCallback>());
+    const measuredSizesRef = useRef(new Map<VirtualRowKey, number>());
+    const rowObserversRef = useRef(new Map<VirtualRowKey, ResizeObserver>());
+    const rowRefCallbacksRef = useRef(new Map<VirtualRowKey, RowRefCallback>());
     const [viewport, setViewport] = useState<VirtualSidebarViewport>({
         scrollTop: 0,
         height: 0
@@ -68,7 +70,7 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
     }, [estimateSize, measureVersion, rows]);
 
     const measureElement = useCallback(
-        (key: unknown, element: HTMLElement | null) => {
+        (key: VirtualRowKey, element: HTMLElement | null) => {
             const previousObserver = rowObserversRef.current.get(key);
             if (previousObserver) {
                 previousObserver.disconnect();
@@ -105,7 +107,7 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
     );
 
     const getRowRef = useCallback(
-        (key: unknown) => {
+        (key: VirtualRowKey) => {
             const cache = rowRefCallbacksRef.current;
             let callback = cache.get(key);
             if (!callback) {
@@ -118,7 +120,7 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
     );
 
     useEffect(() => {
-        const liveKeys = new Set<unknown>(
+        const liveKeys = new Set<VirtualRowKey>(
             rows.map((row, index) => row?.key ?? index)
         );
         let changed = false;
@@ -263,7 +265,7 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
     }, [overscan, rowMetrics, rows, visibleWindow]);
 
     const scrollKeyToView = useCallback(
-        (key: unknown, topInset = 0) => {
+        (key: VirtualRowKey, topInset = 0) => {
             const element = viewportElementRef.current;
             if (!element) {
                 return;

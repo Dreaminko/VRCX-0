@@ -14,6 +14,23 @@ import {
     CollapsibleTrigger
 } from '@/ui/shadcn/collapsible';
 
+import type { useThemesController } from '../useThemesController';
+
+type DeveloperThemesSectionProps = Pick<
+    ReturnType<typeof useThemesController>,
+    | 'devSectionOpen'
+    | 'setDevSectionOpen'
+    | 'localPreview'
+    | 'devFolderPath'
+    | 'devLoading'
+    | 'devWatchEnabled'
+    | 'devError'
+    | 'pickLocalThemeFolder'
+    | 'loadLocalPreview'
+    | 'toggleLocalPreviewWatch'
+    | 'stopLocalPreview'
+>;
+
 export function DeveloperThemesSection({
     devSectionOpen,
     setDevSectionOpen,
@@ -26,7 +43,7 @@ export function DeveloperThemesSection({
     loadLocalPreview,
     toggleLocalPreviewWatch,
     stopLocalPreview
-}: any) {
+}: DeveloperThemesSectionProps) {
     const { t } = useTranslation();
 
     return (

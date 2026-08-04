@@ -66,9 +66,9 @@ type FeedColumnsModeProps = {
 
 type SortableFeedColumnProps = {
     children(props: {
-        attributes: any;
+        attributes: ReturnType<typeof useSortable>['attributes'];
         isDragging: boolean;
-        listeners: any;
+        listeners: NonNullable<ReturnType<typeof useSortable>['listeners']>;
         setNodeRef(node: HTMLElement | null): void;
         style: CSSProperties;
     }): ReactNode;

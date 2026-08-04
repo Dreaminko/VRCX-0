@@ -61,7 +61,7 @@ export const TRUST_COLOR_ENTRIES = Object.freeze([
         labelKey: 'view.settings.appearance.user_colors.trust_levels.nuisance',
         presets: Object.freeze(['#782f2f'])
     }
-]);
+] as const);
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 

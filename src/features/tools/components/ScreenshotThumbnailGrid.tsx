@@ -8,6 +8,7 @@ import {
 } from '@/components/location/useLocationMetadata';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { convertFileSrc } from '@/platform/tauri/assets';
+import type { ScreenshotLibraryImage } from '@/platform/tauri/bindings';
 import { parseLocation } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
 import { Badge } from '@/ui/shadcn/badge';
@@ -22,18 +23,7 @@ function firstText(...values: unknown[]) {
     return values.map((value) => String(value || '').trim()).find(Boolean);
 }
 
-type ScreenshotThumbnailItem = Record<string, unknown> & {
-    capturedAt?: unknown;
-    fileName: string;
-    metadata?: {
-        world?: Record<string, unknown>;
-    };
-    modifiedAt?: unknown;
-    path: string;
-    sizeBytes?: unknown;
-    worldId?: unknown;
-    worldName?: unknown;
-};
+type ScreenshotThumbnailItem = ScreenshotLibraryImage;
 
 function isScreenshotThumbnailItem(
     value: unknown

@@ -16,7 +16,7 @@ function EmbeddedPageFallback() {
     );
 }
 
-export function DashboardEmbeddedPagePanel({ panelKey }: any) {
+export function DashboardEmbeddedPagePanel({ panelKey }: { panelKey: string }) {
     const PanelComponent = getDashboardPagePanelComponent(panelKey);
 
     if (!PanelComponent) {

@@ -1,6 +1,14 @@
+import type {
+    InventoryItemRecord,
+    MediaFileRecord,
+    MediaPrintRecord
+} from '@/repositories/mediaRepository';
+
 export type GalleryTab = 'gallery' | 'icons' | 'prints';
-type FileAssetTab = Exclude<GalleryTab, 'prints'>;
-type FileTabDefinition = {
+export type GalleryAssetTab = GalleryTab | 'inventory';
+export type GalleryUploadTarget = GalleryTab | 'emojis' | 'stickers';
+export type FileAssetTab = Exclude<GalleryTab, 'prints'>;
+export type FileTabDefinition = {
     tag: string;
     titleKey: string;
     aspectClass: string;
@@ -25,10 +33,18 @@ export const FILE_TABS: Record<FileAssetTab, FileTabDefinition> = {
 export const TAB_ORDER: GalleryTab[] = ['gallery', 'icons', 'prints'];
 export const DEFAULT_GALLERY_TAB = 'gallery';
 
-export const EMPTY_ASSETS: Record<GalleryTab, unknown[]> = {
+export type GalleryAssets = {
+    gallery: MediaFileRecord[];
+    icons: MediaFileRecord[];
+    prints: MediaPrintRecord[];
+    inventory: InventoryItemRecord[];
+};
+
+export const EMPTY_ASSETS: GalleryAssets = {
     gallery: [],
     icons: [],
-    prints: []
+    prints: [],
+    inventory: []
 };
 
 export const UPLOAD_ASPECT_RATIOS: Record<GalleryTab, number> = {

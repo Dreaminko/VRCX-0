@@ -6,10 +6,17 @@ import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { TabsContent } from '@/ui/shadcn/tabs';
+import type { InventoryItemRecord } from '@/repositories/mediaRepository';
+import type { GalleryAssetTab } from '../galleryConstants';
+import type { getGalleryGridDensityConfig } from '../galleryDensity';
+import type { MediaPreviewOptions } from './MediaAssetTile';
 
 import { EmptyState, LoadingState } from './GalleryViewParts';
 
-function getInventoryTypeLabel(item: any, t: any) {
+function getInventoryTypeLabel(
+    item: InventoryItemRecord,
+    t: (key: string) => string
+) {
     if (item.itemType === 'prop') {
         return t('dialog.gallery_icons.item');
     }
@@ -35,7 +42,17 @@ export function GalleryInventoryTab({
     onRedeem,
     onPreview,
     onConsumeBundle
-}: any) {
+}: {
+    t: (key: string) => string;
+    items: InventoryItemRecord[];
+    loading: boolean;
+    mutatingKey: string;
+    gridDensityConfig: ReturnType<typeof getGalleryGridDensityConfig>;
+    onRefresh: (tab: GalleryAssetTab) => void;
+    onRedeem: () => void;
+    onPreview: (options: MediaPreviewOptions) => void;
+    onConsumeBundle: (inventoryId: string) => void;
+}) {
     return (
         <TabsContent
             value="inventory"
@@ -77,7 +94,7 @@ export function GalleryInventoryTab({
                         <div
                             className={`${gridDensityConfig.inventoryGridClass} p-1`}
                         >
-                            {items.map((item: any) => {
+                            {items.map((item) => {
                                 const isMutating =
                                     mutatingKey === `inventory:${item.id}`;
                                 return (
@@ -93,7 +110,8 @@ export function GalleryInventoryTab({
                                                 onClick={() =>
                                                     onPreview({
                                                         id: item.id,
-                                                        url: item.imageUrl,
+                                                        url:
+                                                            item.imageUrl || '',
                                                         title:
                                                             item.name || item.id
                                                     })

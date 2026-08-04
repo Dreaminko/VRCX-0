@@ -1,4 +1,5 @@
 import { CopyIcon, MinusIcon, SquareIcon, XIcon } from 'lucide-react';
+import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -20,7 +21,16 @@ async function runWindowAction(action: () => Promise<unknown>) {
     }
 }
 
-function TitleBarWindowButton({ className, onAction, ...props }: any) {
+function TitleBarWindowButton({
+    className,
+    onAction,
+    ...props
+}: Omit<
+    ComponentProps<typeof TitleBarButton>,
+    'onClick' | 'onPointerDown'
+> & {
+    onAction: () => void;
+}) {
     return (
         <TitleBarButton
             className={cn(

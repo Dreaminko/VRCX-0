@@ -1,14 +1,13 @@
-import type { FriendRecordInput } from '@/domain/friends/friendRosterTypes';
-import type {
-    FriendProjection,
-    RealtimeCurrentUserProjection,
-    RealtimeEntryCorrection,
-    RealtimeInstanceClosedProjection,
-    RealtimeNotificationProjection,
-    RealtimeUserProjection
-} from '@/platform/tauri/bindings';
+import type { FeedLiveEntryPayload } from '@/domain/feed/feedLiveTypes';
 import configRepository from '@/repositories/configRepository';
-import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
+import type {
+    RealtimeCurrentUserProjectionPayload,
+    RealtimeEntryCorrectionPayload,
+    RealtimeFriendProjectionPayload,
+    RealtimeInstanceClosedProjectionPayload,
+    RealtimeNotificationProjectionPayload,
+    RealtimeUserProjectionPayload
+} from '@/services/runtime-event-bridge/realtimeProjectionTypes';
 import { useFeedLiveStore } from '@/state/feedLiveStore';
 import { useFriendLogStore } from '@/state/friendLogStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
@@ -33,10 +32,6 @@ const CURRENT_USER_FRIEND_ARRAY_FIELDS = [
 
 function isRecord(value: unknown): value is ProjectionRecord {
     return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
-
-function asRecord(value: unknown): ProjectionRecord {
-    return isRecord(value) ? value : {};
 }
 
 function hasOwn(record: ProjectionRecord, key: string): boolean {
@@ -82,14 +77,13 @@ function hasCompleteCurrentUserFriendBucketSnapshot(source: ProjectionRecord) {
 }
 
 function getCurrentUserProjectionFriendBucketSource(
-    payload: RealtimeCurrentUserProjection
+    payload: RealtimeCurrentUserProjectionPayload
 ) {
-    const projection = payload ?? {};
-    const patch = asRecord(projection.patch);
+    const patch = payload.patch;
     if (hasCompleteCurrentUserFriendBucketSnapshot(patch)) {
         return patch;
     }
-    const snapshot = asRecord(projection.snapshot);
+    const snapshot = payload.snapshot;
     if (
         Object.keys(patch).length === 0 &&
         hasCompleteCurrentUserFriendBucketSnapshot(snapshot)
@@ -101,17 +95,14 @@ function getCurrentUserProjectionFriendBucketSource(
 
 function mergeCurrentUserProjectionSnapshot(
     runtimeState: RuntimeState,
-    payload: RealtimeCurrentUserProjection
+    payload: RealtimeCurrentUserProjectionPayload
 ) {
-    const projection = payload ?? {};
     const currentSnapshot = getCurrentUserSnapshot(runtimeState);
-    const patch = asRecord(projection.patch);
-    const snapshotSource = isRecord(projection.snapshot)
-        ? projection.snapshot
-        : {};
-    const source = Object.keys(patch).length ? patch : snapshotSource;
+    const source = Object.keys(payload.patch).length
+        ? payload.patch
+        : payload.snapshot;
     const completeFriendBucketSource =
-        getCurrentUserProjectionFriendBucketSource(projection);
+        getCurrentUserProjectionFriendBucketSource(payload);
     const nextSnapshot: ProjectionRecord = {
         ...(currentSnapshot || {}),
         ...source
@@ -137,10 +128,10 @@ function mergeCurrentUserProjectionSnapshot(
     return nextSnapshot;
 }
 
-function pushProjectionFeedEntries(entries: unknown[]) {
-    const feedEntries = entries
-        .map((entry) => asRecord(entry))
-        .filter((entry) => Object.keys(entry).length > 0);
+function pushProjectionFeedEntries(entries: FeedLiveEntryPayload[]) {
+    const feedEntries = entries.filter(
+        (entry) => Object.keys(entry).length > 0
+    );
     useFeedLiveStore.getState().pushEntries(feedEntries, {
         ownerUserId: useRuntimeStore.getState().auth.currentUserId ?? undefined
     });
@@ -198,9 +189,10 @@ async function shouldNotifyInstanceClosed(): Promise<boolean> {
     }
 }
 
-function handleRealtimeFriendProjection(payload: FriendProjection) {
-    const projection = payload;
-    for (const userId of projection.removals ?? []) {
+function handleRealtimeFriendProjection(
+    payload: RealtimeFriendProjectionPayload
+) {
+    for (const userId of payload.removals ?? []) {
         const normalizedUserId = normalizeUserId(userId);
         if (!normalizedUserId) {
             continue;
@@ -208,8 +200,8 @@ function handleRealtimeFriendProjection(payload: FriendProjection) {
         useFriendRosterStore.getState().removeFriend(normalizedUserId);
     }
 
-    const patchEntries = (projection.patches ?? []).map((patchEntry) => {
-        const patch: FriendRecordInput = patchEntry.patch;
+    const patchEntries = (payload.patches ?? []).map((patchEntry) => {
+        const patch = patchEntry.patch;
         return {
             userId: normalizeUserId(
                 patchEntry.userId || patch.id || patch.userId
@@ -227,46 +219,46 @@ function handleRealtimeFriendProjection(payload: FriendProjection) {
         useFriendRosterStore.getState().applyFriendPatches(patchEntries);
     }
 
-    pushProjectionFeedEntries(projection.feedEntries ?? []);
+    pushProjectionFeedEntries(payload.feedEntries ?? []);
 
-    if (projection.friendLogChanged) {
+    if (payload.friendLogChanged) {
         useShellStore.getState().notifyMenu('friend-log');
         useFriendLogStore.getState().bumpRevision();
     }
 }
 
 export function handleRealtimeUserCacheProjection(
-    payload: RealtimeUserProjection
+    payload: RealtimeUserProjectionPayload
 ) {
-    const projection = payload;
-    const users = Array.isArray(projection.users) ? projection.users : [];
-    useUserFactsStore.getState().replaceUserFacts(users);
+    useUserFactsStore.getState().replaceUserFacts(payload.users);
 }
 
 async function handleRealtimeNotificationProjection(
-    payload: RealtimeNotificationProjection
+    payload: RealtimeNotificationProjectionPayload
 ) {
-    const projection = payload;
     const store = useVrcNotificationStore.getState();
 
-    if (Array.isArray(projection.expiredIds) && projection.expiredIds.length) {
-        store.expireNotifications(projection.expiredIds);
+    if (payload.expiredIds?.length) {
+        store.expireNotifications(payload.expiredIds);
     }
-    if (Array.isArray(projection.seenIds) && projection.seenIds.length) {
-        store.markNotificationsSeen(projection.seenIds);
+    if (payload.seenIds?.length) {
+        store.markNotificationsSeen(payload.seenIds);
     }
 
-    for (const upsert of projection.upserts ?? []) {
-        const item = asRecord(upsert);
-        let notification: NotificationRow = asRecord(item.notification);
+    for (const upsert of payload.upserts ?? []) {
+        let notification = upsert.notification;
         if (!notification.id) {
             continue;
         }
         const existingNotification = store.rows.find(
             (row) => row.id === notification.id
         );
-        const insertDefaults: NotificationRow = asRecord(item.insertDefaults);
-        if (!existingNotification && Object.keys(insertDefaults).length) {
+        const insertDefaults = upsert.insertDefaults;
+        if (
+            !existingNotification &&
+            insertDefaults &&
+            Object.keys(insertDefaults).length
+        ) {
             notification = {
                 ...insertDefaults,
                 ...notification
@@ -277,37 +269,39 @@ async function handleRealtimeNotificationProjection(
             useVrcNotificationStore
                 .getState()
                 .rows.find((row) => row.id === notification.id) || notification;
-        if (item.notifyMenu) {
+        if (upsert.notifyMenu) {
             notifyNotificationMenu(mergedNotification);
         }
     }
 
-    if (projection.clearMenuIfNoUnseen) {
+    if (payload.clearMenuIfNoUnseen) {
         clearNotificationMenuIfNoUnseen();
     }
 }
 
-function handleRealtimeEntryCorrection(payload: RealtimeEntryCorrection) {
-    const fields = asRecord(payload.fields);
+function handleRealtimeEntryCorrection(
+    payload: RealtimeEntryCorrectionPayload
+) {
     const id = trimCorrectionId(payload.id);
-    if (!id || !Object.keys(fields).length) {
+    if (!id || !Object.keys(payload.fields).length) {
         return;
     }
     if (payload.stream === 'feed') {
-        useFeedLiveStore.getState().patchEntry(id, fields);
+        useFeedLiveStore.getState().patchEntry(id, payload.fields);
     } else if (payload.stream === 'notification') {
-        useVrcNotificationStore.getState().patchNotification(id, fields);
+        useVrcNotificationStore
+            .getState()
+            .patchNotification(id, payload.fields);
     }
 }
 
 function handleRealtimeCurrentUserProjection(
-    payload: RealtimeCurrentUserProjection
+    payload: RealtimeCurrentUserProjectionPayload
 ) {
-    const projection = payload;
     const runtimeStore = useRuntimeStore.getState();
     const mergedSnapshot = mergeCurrentUserProjectionSnapshot(
         runtimeStore,
-        projection
+        payload
     );
     const { snapshot: stampedSnapshot } = buildAvatarWearSnapshotUpdate({
         previousSnapshot: runtimeStore.auth.currentUserSnapshot,
@@ -324,7 +318,7 @@ function handleRealtimeCurrentUserProjection(
             runtimeStore.auth.currentUserDisplayName
         )
     });
-    const patch = asRecord(projection.patch);
+    const patch = payload.patch;
     if (hasOwn(patch, 'queuedInstance')) {
         const queuedInstance = normalizeUserId(patch.queuedInstance);
         if (queuedInstance) {
@@ -336,8 +330,8 @@ function handleRealtimeCurrentUserProjection(
             useRuntimeStore.getState().clearInstanceQueueState();
         }
     }
-    if (isRecord(projection.gameStatePatch)) {
-        runtimeStore.setGameState(projection.gameStatePatch);
+    if (payload.gameStatePatch) {
+        runtimeStore.setGameState(payload.gameStatePatch);
     }
     recordCurrentUserSnapshot(snapshot, {
         endpoint: runtimeStore.auth.currentUserEndpoint,
@@ -346,10 +340,9 @@ function handleRealtimeCurrentUserProjection(
 }
 
 async function handleRealtimeInstanceClosedProjection(
-    payload: RealtimeInstanceClosedProjection
+    payload: RealtimeInstanceClosedProjectionPayload
 ) {
-    const projection = payload;
-    const notification: NotificationRow = asRecord(projection.notification);
+    const notification = payload.notification;
     if (!notification.id) {
         return;
     }
@@ -357,7 +350,7 @@ async function handleRealtimeInstanceClosedProjection(
     if (await shouldNotifyInstanceClosed()) {
         useShellStore.getState().notifyMenu('notification');
     }
-    useFeedLiveStore.getState().pushEntry(asRecord(projection.feedEntry), {
+    useFeedLiveStore.getState().pushEntry(payload.feedEntry, {
         ownerUserId: useRuntimeStore.getState().auth.currentUserId ?? undefined
     });
     pushSharedFeedNotification(notification).catch((error: unknown) => {

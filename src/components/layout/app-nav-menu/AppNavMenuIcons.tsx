@@ -7,8 +7,15 @@ import {
     DEFAULT_FOLDER_ICON,
     DEFAULT_NAV_ICON_KEY
 } from '@/shared/constants/navIcons';
+import type { NavMenuItem } from '../navMenuModel';
 
-function NavIcon({ entry, className = undefined }: any) {
+function NavIcon({
+    entry,
+    className
+}: {
+    entry: NavMenuItem;
+    className?: string;
+}) {
     const fallback = String(entry?.index || '').startsWith(
         DASHBOARD_NAV_KEY_PREFIX
     )
@@ -20,7 +27,15 @@ function NavIcon({ entry, className = undefined }: any) {
     return <Icon className={className} />;
 }
 
-function NotifiedNavIcon({ entry, isNotified, className = undefined }: any) {
+function NotifiedNavIcon({
+    entry,
+    isNotified,
+    className
+}: {
+    entry: NavMenuItem;
+    isNotified: boolean;
+    className?: string;
+}) {
     return (
         <span className="relative inline-flex size-4 shrink-0 items-center justify-center">
             <NavIcon entry={entry} className={className} />

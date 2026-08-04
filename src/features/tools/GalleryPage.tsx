@@ -1,9 +1,18 @@
 import { PageBody, PageScaffold } from '@/components/layout/PageScaffold';
+import type { ChangeEvent } from 'react';
 
 import { GalleryDialogs } from './components/GalleryDialogs';
 import { GalleryHeader } from './components/GalleryHeader';
 import { GalleryTabsSection } from './components/GalleryTabsSection';
 import { useGalleryPageController } from './useGalleryPageController';
+import type {
+    GalleryProfileField,
+    GalleryUploadOptions
+} from './galleryTypes';
+import type {
+    FileAssetTab,
+    GalleryTab
+} from './galleryConstants';
 
 export function GalleryPage() {
     const pageState = useGalleryPageController();
@@ -13,7 +22,7 @@ export function GalleryPage() {
             <GalleryHeader
                 uploadInputRef={pageState.uploadInputRef}
                 uploadingTab={pageState.uploadingTab}
-                onUploadChange={(event: any) => {
+                onUploadChange={(event: ChangeEvent<HTMLInputElement>) => {
                     pageState.uploadSelectedFile(event);
                 }}
                 gridDensity={pageState.gridDensity}
@@ -42,20 +51,26 @@ export function GalleryPage() {
                     galleryCommands={{
                         onActiveTabChange: pageState.setActiveTab,
                         onBeginUpload: pageState.beginUpload,
-                        onClearProfileField: (fieldName: any, fileId: any) => {
+                        onClearProfileField: (
+                            fieldName: GalleryProfileField,
+                            fileId: string
+                        ) => {
                             pageState.setProfileField(fieldName, fileId);
                         },
-                        onDeleteFile: (tab: any, fileId: any) => {
+                        onDeleteFile: (tab: FileAssetTab, fileId: string) => {
                             pageState.deleteFileAsset(tab, fileId);
                         },
-                        onDeletePrint: (printId: any) => {
+                        onDeletePrint: (printId: string) => {
                             pageState.deletePrint(printId);
                         },
                         onPreview: pageState.openImagePreview,
-                        onRefresh: (tab: any) => {
+                        onRefresh: (tab: GalleryTab) => {
                             pageState.refreshTab(tab);
                         },
-                        onSetProfileField: (fieldName: any, fileId: any) => {
+                        onSetProfileField: (
+                            fieldName: GalleryProfileField,
+                            fileId: string
+                        ) => {
                             pageState.setProfileField(fieldName, fileId);
                         }
                     }}
@@ -65,9 +80,10 @@ export function GalleryPage() {
             <GalleryDialogs
                 cropRequest={pageState.cropRequest}
                 onClearCropRequest={() => pageState.setCropRequest(null)}
-                onConfirmCrop={(blob: any, uploadOptions: any) =>
-                    pageState.confirmCroppedUpload(blob, uploadOptions)
-                }
+                onConfirmCrop={(
+                    blob: Blob,
+                    uploadOptions: GalleryUploadOptions = {}
+                ) => pageState.confirmCroppedUpload(blob, uploadOptions)}
                 onResetUploadAuthTarget={() => {
                     pageState.uploadAuthTargetRef.current = null;
                 }}

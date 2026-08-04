@@ -37,7 +37,7 @@ type GridDensityConfig = {
     printsGridClass: string;
 };
 
-type GalleryPrintsTabState = {
+export type GalleryPrintsTabState = {
     gridDensityConfig: GridDensityConfig;
     isVrcPlusSupporter: boolean;
     loading: boolean;

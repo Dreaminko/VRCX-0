@@ -2,12 +2,22 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
+import type {
+    Dashboard,
+    DashboardPanel
+} from '@/repositories/dashboardRepository';
 import { useDashboardStore } from '@/state/dashboardStore';
 import { useModalStore } from '@/state/modalStore';
 
 import { cloneDashboardRows } from './dashboardConfig';
 
-export function useDashboardActions({ dashboard, dashboards }: any) {
+export function useDashboardActions({
+    dashboard,
+    dashboards
+}: {
+    dashboard: Dashboard | null;
+    dashboards: Dashboard[];
+}) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const confirm = useModalStore((state) => state.confirm);
@@ -18,14 +28,17 @@ export function useDashboardActions({ dashboard, dashboards }: any) {
         (state) => state.setEditingDashboardId
     );
 
-    async function saveDashboard(dashboardId: any, nextDashboard: any) {
+    async function saveDashboard(
+        dashboardId: string,
+        nextDashboard: Pick<Dashboard, 'name' | 'rows'>
+    ) {
         await updateDashboard(dashboardId, nextDashboard);
     }
 
     async function updateLivePanel(
-        rowIndex: any,
-        panelIndex: any,
-        nextPanel: any
+        rowIndex: number,
+        panelIndex: number,
+        nextPanel: DashboardPanel | null
     ) {
         if (!dashboard?.rows?.[rowIndex]?.panels) {
             return;
@@ -66,7 +79,7 @@ export function useDashboardActions({ dashboard, dashboards }: any) {
         try {
             await deleteDashboard(dashboard.id);
             const fallback =
-                dashboards.find((entry: any) => entry.id !== dashboard.id) ||
+                dashboards.find((entry) => entry.id !== dashboard.id) ||
                 null;
             if (fallback) {
                 navigate(`/dashboard/${fallback.id}`, { replace: true });

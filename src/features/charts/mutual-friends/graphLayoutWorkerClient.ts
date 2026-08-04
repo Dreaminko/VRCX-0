@@ -1,29 +1,11 @@
 import GraphLayoutWorker from '../graphLayoutWorker.js?worker&inline';
+import type {
+    GraphLayoutPositions,
+    GraphLayoutRequest,
+    GraphLayoutResponse
+} from '../graphLayoutTypes';
 
-export type GraphLayoutRequest = {
-    requestId: string;
-    nodes: Array<{ id: string; attributes: Record<string, unknown> }>;
-    edges: Array<{
-        key: string;
-        source: string;
-        target: string;
-        attributes: Record<string, unknown>;
-    }>;
-    settings: {
-        layoutIterations: number;
-        layoutSpacing: number;
-        deltaSpacing: number;
-        reinitialize: boolean;
-    };
-};
-
-export type GraphLayoutPositions = Record<string, { x: number; y: number }>;
-
-type GraphLayoutResponse = {
-    requestId: string;
-    error?: string;
-    positions?: GraphLayoutPositions;
-};
+export type { GraphLayoutPositions, GraphLayoutRequest };
 
 export type GraphLayoutWorkerPort = {
     onMessage: (listener: (response: GraphLayoutResponse) => void) => void;

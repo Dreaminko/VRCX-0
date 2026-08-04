@@ -15,7 +15,13 @@ export function SearchPagination({
     nextDisabled = true,
     onPrev,
     onNext
-}: any) {
+}: {
+    show?: boolean;
+    prevDisabled?: boolean;
+    nextDisabled?: boolean;
+    onPrev: () => void;
+    onNext: () => void;
+}) {
     const { t } = useTranslation();
 
     if (!show) {

@@ -28,6 +28,10 @@ import {
 } from '@/components/layout/PageScaffold';
 import { ImageCropDialog } from '@/components/media/ImageCropDialog';
 import { formatDateFilter } from '@/lib/dateTime';
+import type {
+    InventoryItemRecord,
+    MediaFileRecord
+} from '@/repositories/mediaRepository';
 import { openExternalLink } from '@/services/entityMediaService';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -68,14 +72,30 @@ import {
     resolveProfileDecorationPreviewUrl,
     resolveProfileDecorationMutation,
     resolveProfileDecorationTypeLabelKey,
-    scopeKey
+    scopeKey,
+    type InventoryCategory,
+    type InventorySource
 } from './inventoryHelpers';
 import {
     IMAGE_UPLOAD_ACCEPT,
     useInventoryPageController
 } from './useInventoryPageController';
+import type { InventoryRow } from './useInventoryPageState';
+import type { getGalleryGridDensityConfig } from './galleryDensity';
+import type {
+    MediaAssetBadge,
+    MediaPreviewOptions
+} from './components/MediaAssetTile';
 
-function GridSettingsMenu({ gridDensity, onGridDensityChange }: any) {
+type PreviewHandler = (options: MediaPreviewOptions) => void;
+
+function GridSettingsMenu({
+    gridDensity,
+    onGridDensityChange
+}: {
+    gridDensity: string;
+    onGridDensityChange: (value: string) => void;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -110,7 +130,7 @@ function GridSettingsMenu({ gridDensity, onGridDensityChange }: any) {
                             }}
                             className="grid w-full grid-cols-3"
                         >
-                            {GALLERY_GRID_DENSITY_OPTIONS.map((option: any) => (
+                            {GALLERY_GRID_DENSITY_OPTIONS.map((option) => (
                                 <ToggleGroupItem
                                     key={option.value}
                                     value={option.value}
@@ -136,7 +156,13 @@ function InventoryFileCard({
     mutatingKey,
     onPreview,
     onDelete
-}: any) {
+}: {
+    category: InventoryCategory;
+    file: MediaFileRecord;
+    mutatingKey: string;
+    onPreview: PreviewHandler;
+    onDelete: (fileId: string) => void;
+}) {
     const { t } = useTranslation();
     const imageUrl = getLatestFileUrl(file);
     const displayName = getUsefulDisplayName(file);
@@ -178,7 +204,7 @@ function InventoryFileCard({
             placeholderIcon={ImageIcon}
             renderMedia={
                 category === 'emojis' && imageUrl
-                    ? ({ className }: any) => (
+                    ? ({ className }: { className: string }) => (
                           <GalleryEmojiImage
                               file={category === 'emojis' ? file : null}
                               imageUrl={imageUrl}
@@ -219,7 +245,16 @@ export function InventoryItemCard({
     onArchive,
     onConsumeBundle,
     onSetProfileDecorationEquipped
-}: any) {
+}: {
+    item: InventoryItemRecord;
+    currentUserId: string | null;
+    mutatingKey: string;
+    profileDecorationMutationPending: boolean;
+    onPreview: PreviewHandler;
+    onArchive: (inventoryId: string, archived: boolean) => void;
+    onConsumeBundle: (inventoryId: string) => void;
+    onSetProfileDecorationEquipped: (item: InventoryItemRecord) => void;
+}) {
     const { t } = useTranslation();
     const imageUrl = resolveInventoryImageUrl(item);
     const name = resolveInventoryName(item);
@@ -262,29 +297,30 @@ export function InventoryItemCard({
                   onClick: () => onConsumeBundle(item.id)
               }
             : profileDecorationAction;
+    const badges: Array<MediaAssetBadge | null> = [
+        itemType
+            ? {
+                  key: 'type',
+                  label: profileDecorationTypeLabelKey
+                      ? t(profileDecorationTypeLabelKey)
+                      : itemType
+              }
+            : null,
+        archived
+            ? {
+                  key: 'archived',
+                  label: t('dialog.inventory.archived'),
+                  variant: 'secondary'
+              }
+            : null
+    ];
 
     return (
         <InventoryItemTile
             title={name || shortAssetId(item.id)}
             description={description}
             timestamp={timestamp}
-            badges={[
-                itemType
-                    ? {
-                          key: 'type',
-                          label: profileDecorationTypeLabelKey
-                              ? t(profileDecorationTypeLabelKey)
-                              : itemType
-                      }
-                    : null,
-                archived
-                    ? {
-                          key: 'archived',
-                          label: t('dialog.inventory.archived'),
-                          variant: 'secondary'
-                      }
-                    : null
-            ].filter(Boolean)}
+            badges={badges}
             imageUrl={imageUrl}
             alt={name || item.id}
             isCurrent={isEquippedProfileDecoration(item)}
@@ -327,7 +363,21 @@ function InventoryRows({
     onArchive,
     onConsumeBundle,
     onSetProfileDecorationEquipped
-}: any) {
+}: {
+    category: InventoryCategory;
+    rows: InventoryRow[];
+    source?: InventorySource;
+    loading?: boolean;
+    densityConfig: ReturnType<typeof getGalleryGridDensityConfig>;
+    currentUserId: string | null;
+    mutatingKey: string;
+    profileDecorationMutationPending: boolean;
+    onPreview: PreviewHandler;
+    onDeleteFile: (fileId: string) => void;
+    onArchive: (inventoryId: string, archived: boolean) => void;
+    onConsumeBundle: (inventoryId: string) => void;
+    onSetProfileDecorationEquipped: (item: InventoryItemRecord) => void;
+}) {
     const { t } = useTranslation();
 
     if (loading) {
@@ -347,7 +397,7 @@ function InventoryRows({
 
     return (
         <div className={`${densityConfig.inventoryGridClass} p-1`}>
-            {rows.map((row: any) =>
+            {rows.map((row) =>
                 source === 'file' ? (
                     <InventoryFileCard
                         key={row.id}
@@ -452,7 +502,7 @@ export function InventoryPage() {
                         variant="line"
                         className="flex h-auto w-full flex-wrap justify-start"
                     >
-                        {CATEGORY_ORDER.map((category: any) => (
+                        {CATEGORY_ORDER.map((category) => (
                             <TabsTrigger
                                 key={category}
                                 value={category}
@@ -462,12 +512,12 @@ export function InventoryPage() {
                             </TabsTrigger>
                         ))}
                     </TabsList>
-                    {CATEGORY_ORDER.map((category: any) => {
+                    {CATEGORY_ORDER.map((category) => {
                         const definition = CATEGORY_DEFINITIONS[category];
                         const categorySubTab =
                             inventory.activeSubTabs[category];
                         const selectedTab = definition.tabs.find(
-                            (entry: any) => entry.key === categorySubTab
+                            (entry) => entry.key === categorySubTab
                         );
                         const selectedScopeKey = scopeKey(
                             category,
@@ -477,9 +527,9 @@ export function InventoryPage() {
                             inventory.rowsByScope[selectedScopeKey] || [];
                         const loading =
                             inventory.loadingByScope[selectedScopeKey];
-                        const selectedCanUpload = Boolean(
-                            selectedTab?.uploadTarget
-                        );
+                        const selectedUploadTarget =
+                            selectedTab?.uploadTarget;
+                        const selectedCanUpload = Boolean(selectedUploadTarget);
                         const showEmojiUploadOptions =
                             category === 'emojis' &&
                             categorySubTab === 'custom';
@@ -506,7 +556,7 @@ export function InventoryPage() {
                                                         return;
                                                     }
                                                     inventory.setActiveSubTabs(
-                                                        (current: any) => ({
+                                                        (current) => ({
                                                             ...current,
                                                             [category]:
                                                                 nextValue[0]
@@ -516,7 +566,7 @@ export function InventoryPage() {
                                                 className="flex flex-wrap justify-start"
                                             >
                                                 {definition.tabs.map(
-                                                    (tab: any) => (
+                                                    (tab) => (
                                                         <ToggleGroupItem
                                                             key={tab.key}
                                                             value={tab.key}
@@ -609,11 +659,13 @@ export function InventoryPage() {
                                                                 inventory.uploadingTarget
                                                             )
                                                         }
-                                                        onClick={() =>
-                                                            inventory.beginUpload(
-                                                                selectedTab.uploadTarget
-                                                            )
-                                                        }
+                                                        onClick={() => {
+                                                            if (selectedUploadTarget) {
+                                                                inventory.beginUpload(
+                                                                    selectedUploadTarget
+                                                                );
+                                                            }
+                                                        }}
                                                     >
                                                         <UploadIcon data-icon="inline-start" />
                                                         {t(
@@ -658,14 +710,14 @@ export function InventoryPage() {
                                             onPreview={
                                                 inventory.openImagePreview
                                             }
-                                            onDeleteFile={(fileId: any) => {
+                                            onDeleteFile={(fileId) => {
                                                 inventory.deleteFileAsset(
                                                     fileId
                                                 );
                                             }}
                                             onArchive={(
-                                                inventoryId: any,
-                                                archived: any
+                                                inventoryId,
+                                                archived
                                             ) => {
                                                 inventory.archiveInventoryItem(
                                                     inventoryId,
@@ -673,7 +725,7 @@ export function InventoryPage() {
                                                 );
                                             }}
                                             onConsumeBundle={(
-                                                inventoryId: any
+                                                inventoryId
                                             ) => {
                                                 inventory.consumeInventoryBundle(
                                                     inventoryId
@@ -695,7 +747,7 @@ export function InventoryPage() {
                 file={inventory.cropRequest?.file || null}
                 aspectRatio={inventory.cropRequest?.aspectRatio || 1}
                 title={t('dialog.change_content_image.upload')}
-                onOpenChange={(open: any) => {
+                onOpenChange={(open) => {
                     if (!open) {
                         inventory.closeCropRequest();
                     }

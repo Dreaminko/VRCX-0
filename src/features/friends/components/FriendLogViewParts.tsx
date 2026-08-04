@@ -30,6 +30,8 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 
+import type { FriendLogRow } from '../friendLogRows';
+
 export const FRIEND_LOG_TYPES = [
     'Friend',
     'Unfriend',
@@ -39,7 +41,7 @@ export const FRIEND_LOG_TYPES = [
     'TrustLevel'
 ] as const;
 
-type FriendLogType = (typeof FRIEND_LOG_TYPES)[number];
+export type FriendLogType = (typeof FRIEND_LOG_TYPES)[number];
 
 const FRIEND_LOG_TYPE_GROUPS = [
     {
@@ -79,7 +81,13 @@ const FRIEND_LOG_TYPE_META: Record<
 
 export { DataTableSortButton as SortButton };
 
-export function FriendLogEmptyState({ title, description }: any) {
+export function FriendLogEmptyState({
+    title,
+    description
+}: {
+    title: string;
+    description: string;
+}) {
     return <EmptyState title={title} description={description} />;
 }
 
@@ -200,7 +208,7 @@ export function FriendLogTypeFilterDropdown({
     );
 }
 
-export function renderUserCell(row: any) {
+export function renderUserCell(row: FriendLogRow) {
     const displayName =
         row?.resolvedDisplayName || row?.displayName || row?.userId || '';
     const userLabel = row?.userId ? (

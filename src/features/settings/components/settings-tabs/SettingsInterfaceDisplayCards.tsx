@@ -12,6 +12,27 @@ import {
 import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SegmentedPreference, SettingsGroup } from '../SettingsField';
+import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+
+type InterfaceState = SettingsPageStateSections['interface'];
+type SettingsInterfaceDisplayCardsProps = Pick<
+    InterfaceState,
+    | 'prefs'
+    | 'onShowInstanceIdInLocationChange'
+    | 'onAgeGatedInstancesVisibleChange'
+    | 'onHideNicknamesChange'
+    | 'onDisplayVrcPlusIconsAsAvatarChange'
+    | 'onShowUserDialogProfileDecorationsChange'
+    | 'onShowNewDashboardButtonChange'
+    | 'onOpenTablePageSizes'
+    | 'onOpenTableLimits'
+    | 'onHour12Change'
+    | 'onIsoFormatChange'
+    | 'onWeekStartsOnChange'
+    | 'onFeedTimeDisplayModeChange'
+    | 'onHideUserNotesChange'
+    | 'onHideUserMemosChange'
+>;
 
 const timeFormatOptions = [
     ['12', 'view.settings.appearance.timedate.time_format_12'],
@@ -40,7 +61,7 @@ export function SettingsInterfaceDisplayCards({
     onFeedTimeDisplayModeChange,
     onHideUserNotesChange,
     onHideUserMemosChange
-}: any) {
+}: SettingsInterfaceDisplayCardsProps) {
     const { t } = useTranslation();
 
     return (
@@ -163,7 +184,11 @@ export function SettingsInterfaceDisplayCards({
                             value,
                             label: t(labelKey)
                         }))}
-                        onValueChange={onHour12Change}
+                        onValueChange={(value) => {
+                            if (value !== null) {
+                                onHour12Change(value);
+                            }
+                        }}
                     >
                         <SelectTrigger
                             id="settings-time-format"
@@ -209,7 +234,11 @@ export function SettingsInterfaceDisplayCards({
                             value,
                             label: t(labelKey)
                         }))}
-                        onValueChange={onWeekStartsOnChange}
+                        onValueChange={(value) => {
+                            if (value !== null) {
+                                onWeekStartsOnChange(value);
+                            }
+                        }}
                     >
                         <SelectTrigger
                             id="settings-week-starts-on"

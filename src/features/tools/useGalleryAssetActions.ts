@@ -2,6 +2,18 @@ import {
     buildPrintUploadParams,
     resolvePrintCropWhiteBorder
 } from './galleryUploadParams';
+import type { ChangeEvent } from 'react';
+import type { QueryParams } from '@/repositories/vrchatRequest';
+import type {
+    GalleryAssets,
+    GalleryAssetTab,
+    GalleryUploadTarget
+} from './galleryConstants';
+import type {
+    GalleryAssetActionDeps,
+    GalleryUploadOptions
+} from './galleryTypes';
+import type { EmojiUploadSettings } from './inventoryHelpers';
 
 export function useGalleryAssetActions({
     FILE_TABS,
@@ -39,27 +51,30 @@ export function useGalleryAssetActions({
     uploadTargetRef,
     validateImageFile,
     withUploadTimeout
-}: any) {
+}: GalleryAssetActionDeps) {
     function getAuthTarget() {
         return {
             userId: currentUserId || '',
             endpoint: currentEndpoint || ''
         };
     }
-    function setTabLoading(tab: any, value: any) {
-        setLoadingByTab((current: any) => ({
+    function setTabLoading(tab: GalleryAssetTab, value: boolean) {
+        setLoadingByTab((current) => ({
             ...current,
             [tab]: Boolean(value)
         }));
     }
-    function updateAssets(tab: any, rows: any) {
-        setAssets((current: any) => ({
-            ...current,
-            [tab]: Array.isArray(rows) ? rows : []
-        }));
+    function updateAssets<TTab extends GalleryAssetTab>(
+        tab: TTab,
+        rows: GalleryAssets[TTab]
+    ) {
+        setAssets((current) => ({ ...current, [tab]: rows }));
     }
-    async function refreshFileTab(tab: any) {
+    async function refreshFileTab(tab: keyof typeof FILE_TABS) {
         const definition = FILE_TABS[tab];
+        if (!definition) {
+            return;
+        }
         const authTarget = getAuthTarget();
         setTabLoading(tab, true);
         try {
@@ -99,7 +114,7 @@ export function useGalleryAssetActions({
             });
             const rows = Array.isArray(json) ? [...json] : [];
             rows.sort(
-                (left: any, right: any) =>
+                (left, right) =>
                     new Date(
                         right?.timestamp || right?.createdAt || 0
                     ).getTime() -
@@ -150,8 +165,8 @@ export function useGalleryAssetActions({
             }
         }
     }
-    async function refreshTab(tab: any = activeTab) {
-        if (FILE_TABS[tab]) {
+    async function refreshTab(tab: GalleryAssetTab = activeTab) {
+        if (tab === 'gallery' || tab === 'icons') {
             await refreshFileTab(tab);
         } else if (tab === 'prints') {
             await refreshPrints();
@@ -161,11 +176,13 @@ export function useGalleryAssetActions({
     }
     async function refreshAll() {
         await Promise.allSettled([
-            ...Object.keys(FILE_TABS).map((tab: any) => refreshFileTab(tab)),
+            ...Object.keys(FILE_TABS).map((tab) =>
+                refreshFileTab(tab === 'icons' ? 'icons' : 'gallery')
+            ),
             refreshPrints()
         ]);
     }
-    function beginUpload(tab: any) {
+    function beginUpload(tab: GalleryUploadTarget) {
         if (tab !== 'gallery' && tab !== 'icons' && !isVrcPlusSupporter) {
             toast.error(t('message.vrcplus.required'));
             return;
@@ -174,8 +191,8 @@ export function useGalleryAssetActions({
         uploadAuthTargetRef.current = getAuthTarget();
         uploadInputRef.current?.click();
     }
-    function getEmojiUploadParams(settings: any) {
-        const params: any = {
+    function getEmojiUploadParams(settings: EmojiUploadSettings) {
+        const params: QueryParams = {
             tag: settings.isAnimated ? 'emojianimated' : 'emoji',
             animationStyle: String(
                 settings.animationStyle || 'Stop'
@@ -198,10 +215,10 @@ export function useGalleryAssetActions({
         return params;
     }
     function uploadAsset(
-        tab: any,
-        base64Body: any,
-        settings: any,
-        uploadOptions: any = {}
+        tab: GalleryUploadTarget,
+        base64Body: string,
+        settings: EmojiUploadSettings,
+        uploadOptions: GalleryUploadOptions = {}
     ) {
         if (tab === 'emojis') {
             return mediaRepository.uploadAssetImage(base64Body, {
@@ -228,7 +245,7 @@ export function useGalleryAssetActions({
         }
         throw new Error(`Unsupported upload target: ${tab}`);
     }
-    async function uploadSelectedFile(event: any) {
+    async function uploadSelectedFile(event: ChangeEvent<HTMLInputElement>) {
         const file = event.target.files?.[0] || null;
         event.target.value = '';
         if (!file) {
@@ -277,7 +294,10 @@ export function useGalleryAssetActions({
             aspectRatio: UPLOAD_ASPECT_RATIOS[tab] || 1
         });
     }
-    async function confirmCroppedUpload(blob: any, uploadOptions: any = {}) {
+    async function confirmCroppedUpload(
+        blob: Blob,
+        uploadOptions: GalleryUploadOptions = {}
+    ) {
         const request = cropRequest;
         if (!request || !blob || !isRuntimeAuthTarget(request.authTarget)) {
             return;
@@ -299,18 +319,41 @@ export function useGalleryAssetActions({
             if (!isRuntimeAuthTarget(authTarget)) {
                 return;
             }
-            if (args?.json) {
-                setAssets((current: any) => ({
-                    ...current,
-                    [tab]: [
-                        args.json,
-                        ...(current[tab] || []).filter(
-                            (item: any) => item.id !== args.json.id
-                        )
-                    ]
-                }));
+            if (
+                args?.json &&
+                typeof args.json.id === 'string' &&
+                (tab === 'gallery' || tab === 'icons' || tab === 'prints')
+            ) {
+                const uploaded = { ...args.json, id: args.json.id };
+                if (tab === 'prints') {
+                    setAssets((current) => ({
+                        ...current,
+                        prints: [
+                            uploaded,
+                            ...current.prints.filter(
+                                (item) => item.id !== uploaded.id
+                            )
+                        ]
+                    }));
+                } else {
+                    setAssets((current) => ({
+                        ...current,
+                        [tab]: [
+                            uploaded,
+                            ...current[tab].filter(
+                                (item) => item.id !== uploaded.id
+                            )
+                        ]
+                    }));
+                }
             } else {
-                await refreshTab(tab);
+                if (
+                    tab === 'gallery' ||
+                    tab === 'icons' ||
+                    tab === 'prints'
+                ) {
+                    await refreshTab(tab);
+                }
             }
             toast.success(t('message.upload.success'));
         } catch (error) {
@@ -327,7 +370,10 @@ export function useGalleryAssetActions({
             setCropRequest(null);
         }
     }
-    async function deleteFileAsset(tab: any, fileId: any) {
+    async function deleteFileAsset(
+        tab: keyof typeof FILE_TABS,
+        fileId: unknown
+    ) {
         const normalizedFileId =
             typeof fileId === 'string'
                 ? fileId.trim()
@@ -357,10 +403,10 @@ export function useGalleryAssetActions({
             if (!isRuntimeAuthTarget(authTarget)) {
                 return;
             }
-            setAssets((current: any) => ({
+            setAssets((current) => ({
                 ...current,
                 [tab]: (current[tab] || []).filter(
-                    (file: any) => file.id !== normalizedFileId
+                    (file) => file.id !== normalizedFileId
                 )
             }));
             toast.success(t('view.tools.success.media_item_deleted'));
@@ -373,7 +419,7 @@ export function useGalleryAssetActions({
                 );
             }
         } finally {
-            setMutatingKey((current: any) =>
+            setMutatingKey((current) =>
                 current === `${tab}:${normalizedFileId}` ? '' : current
             );
         }

@@ -2,17 +2,26 @@ import { publishPreferenceChanged } from '@/shared/events/preferenceEvents';
 import { isAvatarSearchQueryLongEnough } from '@/shared/utils/avatarSearchQuery';
 
 import avatarProfileRepository from './avatarProfileRepository';
+import type { AvatarProfileRecord } from './avatarProfileRepository';
 import { safeJsonParse } from './baseRepository';
 import configRepository from './configRepository';
 import externalApiRepository from './externalApiRepository';
 
-type ProviderConfig = {
+export type AvatarSearchProviderConfig = {
     enabled: boolean;
     providerList: string[];
     selectedProvider: string;
 };
 
 type ProviderItem = Record<string, unknown>;
+
+export type AvatarSearchProviderResult = {
+    avatars: AvatarProfileRecord[];
+    provider: string;
+    query: string;
+    status: number;
+    raw: unknown;
+};
 
 interface SaveConfigInput {
     enabled: boolean;
@@ -100,13 +109,15 @@ function parseResponse(data: unknown): unknown {
     return data;
 }
 
-function publishAvatarSearchProviderConfig(config: ProviderConfig): void {
+function publishAvatarSearchProviderConfig(
+    config: AvatarSearchProviderConfig
+): void {
     publishPreferenceChanged('VRCX_avatarRemoteDatabaseProviderList', config);
 }
 
 function normalizeAvatarProviderItem(
     avatar: ProviderItem
-): Record<string, unknown> {
+): AvatarProfileRecord {
     const normalized = avatarProfileRepository.normalize({
         ...avatar,
         id: pick(avatar, 'id', 'Id', '_id', 'avatarId', 'AvatarId'),
@@ -136,7 +147,7 @@ function normalizeAvatarProviderItem(
     };
 }
 
-async function getConfig(): Promise<ProviderConfig> {
+async function getConfig(): Promise<AvatarSearchProviderConfig> {
     const [
         enabled,
         providerListValue,
@@ -197,7 +208,7 @@ async function saveConfig({
     enabled,
     providerList,
     selectedProvider = ''
-}: SaveConfigInput): Promise<ProviderConfig> {
+}: SaveConfigInput): Promise<AvatarSearchProviderConfig> {
     const normalizedProviderList = normalizeProviderList(providerList);
     const persistedSelectedProvider =
         normalizeString(selectedProvider) ||
@@ -226,7 +237,7 @@ async function saveConfig({
         ['VRCX_avatarRemoteDatabaseProvider', resolvedSelectedProvider]
     ]);
 
-    const savedConfig: ProviderConfig = {
+    const savedConfig: AvatarSearchProviderConfig = {
         enabled: Boolean(enabled) && normalizedProviderList.length > 0,
         providerList: normalizedProviderList,
         selectedProvider: resolvedSelectedProvider
@@ -262,7 +273,10 @@ async function getVrcxId(): Promise<string> {
     return id;
 }
 
-async function search({ provider, query }: SearchInput) {
+async function search({
+    provider,
+    query
+}: SearchInput): Promise<AvatarSearchProviderResult> {
     const normalizedProvider = normalizeString(provider);
     const normalizedQuery = normalizeString(query);
     if (!normalizedProvider) {
@@ -294,7 +308,7 @@ async function search({ provider, query }: SearchInput) {
         throw new Error('Avatar provider returned an unsupported response.');
     }
 
-    const avatars = new Map();
+    const avatars = new Map<string, AvatarProfileRecord>();
     for (const item of json) {
         const avatar = normalizeAvatarProviderItem(isRecord(item) ? item : {});
         if (avatar.id && !avatars.has(avatar.id)) {

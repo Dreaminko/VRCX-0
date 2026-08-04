@@ -2,31 +2,22 @@ import { CheckIcon, EyeIcon, ImageIcon, Trash2Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { extractFileId } from '@/shared/utils/fileUtils';
+import type { MediaFileRecord } from '@/repositories/mediaRepository';
 
 import { GalleryEmojiImage } from './GalleryEmojiImage';
 import { MediaAssetTile } from './MediaAssetTile';
-
-function getLatestFileUrl(file: any) {
-    const versions = Array.isArray(file?.versions) ? file.versions : [];
-    return versions.at(-1)?.file?.url ?? '';
-}
-
-function getUsefulDisplayName(file: any) {
-    const displayName = String(file?.displayName || '').trim();
-    const name = String(file?.name || '').trim();
-    const id = String(file?.id || '').trim();
-    const visibleName = displayName || name;
-
-    if (
-        !visibleName ||
-        visibleName === id ||
-        /^file_[\w-]+_blob$/i.test(visibleName)
-    ) {
-        return '';
-    }
-
-    return visibleName;
-}
+import {
+    getLatestFileUrl,
+    getUsefulDisplayName
+} from '../inventoryHelpers';
+import type {
+    FileAssetTab,
+    FileTabDefinition
+} from '../galleryConstants';
+import type {
+    GalleryProfileField
+} from '../galleryTypes';
+import type { MediaPreviewOptions } from './MediaAssetTile';
 
 export function GalleryFileCard({
     tab,
@@ -39,7 +30,21 @@ export function GalleryFileCard({
     onPreview,
     onSetProfileField,
     onDeleteFile
-}: any) {
+}: {
+    tab: FileAssetTab;
+    definition: FileTabDefinition;
+    file: MediaFileRecord;
+    profilePicOverride: string;
+    userIcon: string;
+    mutatingKey: string;
+    currentUserId: string | null;
+    onPreview: (options: MediaPreviewOptions) => void;
+    onSetProfileField: (
+        fieldName: GalleryProfileField,
+        fileId: string
+    ) => void;
+    onDeleteFile: (tab: FileAssetTab, fileId: string) => void;
+}) {
     const { t } = useTranslation();
 
     const imageUrl = getLatestFileUrl(file);
@@ -49,12 +54,10 @@ export function GalleryFileCard({
             ? extractFileId(profilePicOverride)
             : extractFileId(userIcon);
     // VRChat's web UI calls profilePicOverride the Banner; keep the API field unchanged.
-    const profileField =
+    const profileField: GalleryProfileField =
         tab === 'gallery'
             ? 'profilePicOverride'
-            : tab === 'icons'
-              ? 'userIcon'
-              : '';
+            : 'userIcon';
     const isCurrent = activeFileId === file.id;
     const isFileMutating = mutatingKey === `${tab}:${file.id}`;
     const isProfileMutating = profileField
@@ -62,29 +65,6 @@ export function GalleryFileCard({
           mutatingKey === `${profileField}:clear`
         : false;
     const isMutating = isFileMutating || isProfileMutating;
-    const badges =
-        tab === 'emojis'
-            ? [
-                  file.loopStyle
-                      ? { key: 'loopStyle', label: file.loopStyle }
-                      : null,
-                  file.animationStyle
-                      ? { key: 'animationStyle', label: file.animationStyle }
-                      : null,
-                  file.framesOverTime
-                      ? {
-                            key: 'fps',
-                            label: `${file.framesOverTime}${t('view.tools.label.fps')}`
-                        }
-                      : null,
-                  file.frames
-                      ? {
-                            key: 'frames',
-                            label: `${file.frames}${t('view.tools.label.frames')}`
-                        }
-                      : null
-              ].filter(Boolean)
-            : [];
     const primaryAction =
         profileField && !isCurrent
             ? {
@@ -107,7 +87,6 @@ export function GalleryFileCard({
 
     return (
         <MediaAssetTile
-            badges={badges}
             imageUrl={imageUrl}
             alt={file.displayName || file.name || file.id}
             aspectClass={definition.aspectClass}
@@ -119,9 +98,9 @@ export function GalleryFileCard({
             hideContent
             renderMedia={
                 imageUrl
-                    ? ({ className }: any) => (
+                    ? ({ className }: { className: string }) => (
                           <GalleryEmojiImage
-                              file={tab === 'emojis' ? file : null}
+                              file={null}
                               imageUrl={imageUrl}
                               alt={file.displayName || file.name || file.id}
                               className={className}

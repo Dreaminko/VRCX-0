@@ -5,7 +5,7 @@ import {
     EMPTY_ASSETS,
     sanitizeGalleryTab,
     TAB_ORDER,
-    type GalleryTab
+    type GalleryUploadTarget
 } from './galleryConstants';
 import {
     getGalleryGridDensityConfig,
@@ -13,31 +13,13 @@ import {
 } from './galleryDensity';
 import { useGalleryActions } from './useGalleryActions';
 import { useGalleryRuntimeState } from './useGalleryRuntimeState';
+import type {
+    GalleryAuthTarget,
+    GalleryControllerDeps,
+    GalleryCropRequest
+} from './galleryTypes';
 
 const GALLERY_GRID_DENSITY_STORAGE_KEY = 'VRCX_GalleryGridDensity';
-
-type GalleryAuthTarget = {
-    endpoint: string;
-    userId: string;
-};
-
-type GalleryUploadSettings = {
-    animationStyle: string;
-    fps: number;
-    frames: number;
-    isAnimated: boolean;
-    loopPingPong: boolean;
-};
-
-type GalleryUploadTarget = GalleryTab | 'emojis' | 'stickers';
-
-type GalleryCropRequest = {
-    aspectRatio: number;
-    authTarget: GalleryAuthTarget;
-    file: File;
-    settings: GalleryUploadSettings;
-    tab: GalleryUploadTarget;
-};
 
 function readGalleryGridDensityPreference() {
     if (typeof window === 'undefined') {
@@ -53,7 +35,7 @@ function readGalleryGridDensityPreference() {
     }
 }
 
-function writeGalleryGridDensityPreference(value: any) {
+function writeGalleryGridDensityPreference(value: string) {
     if (typeof window === 'undefined') {
         return;
     }
@@ -163,7 +145,7 @@ export function useGalleryPageController() {
         uploadAuthTargetRef,
         uploadInputRef,
         uploadTargetRef
-    });
+    } satisfies GalleryControllerDeps);
     function changeGridDensity(nextValue: unknown) {
         const nextDensity = sanitizeGalleryGridDensity(nextValue);
         setGridDensity(nextDensity);

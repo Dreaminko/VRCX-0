@@ -17,7 +17,25 @@ import {
     COMMUNITY_THEMES_REPOSITORY_URL,
     isSameThemeVersion
 } from '../themeHelpers';
+import type { useThemesController } from '../useThemesController';
 import { ThemeCatalogCard } from './ThemesPageParts';
+
+type CommunityThemesSectionProps = Pick<
+    ReturnType<typeof useThemesController>,
+    | 'error'
+    | 'catalog'
+    | 'installedThemeById'
+    | 'enabled'
+    | 'installedTheme'
+    | 'themeStatsById'
+    | 'loading'
+    | 'enableTheme'
+    | 'installTheme'
+    | 'installedThemes'
+    | 'disableTheme'
+    | 'deleteTheme'
+    | 'accentControlled'
+>;
 
 export function CommunityThemesSection({
     error,
@@ -33,7 +51,7 @@ export function CommunityThemesSection({
     disableTheme,
     deleteTheme,
     accentControlled
-}: any) {
+}: CommunityThemesSectionProps) {
     const { t } = useTranslation();
 
     return (
@@ -79,7 +97,7 @@ export function CommunityThemesSection({
                 ) : null}
                 {catalog.length ? (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,16rem))] justify-start gap-2">
-                        {catalog.map((theme: any) => {
+                        {catalog.map((theme) => {
                             const installedEntry = installedThemeById.get(
                                 theme.id
                             );

@@ -1,5 +1,6 @@
 import { CopyIcon, InfoIcon, MoreHorizontalIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -10,6 +11,7 @@ import {
     attachRunningVrchat,
     launchVrchat,
     resolveLaunchDialogDetails,
+    type LaunchDialogDetails,
     selfInviteToInstance
 } from '@/services/launchService';
 import { checkCanInvite } from '@/shared/utils/invite';
@@ -38,7 +40,7 @@ import {
 import { Field, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 
-const emptyDetails: any = {
+const emptyDetails: LaunchDialogDetails = {
     tag: '',
     location: '',
     url: '',
@@ -47,16 +49,47 @@ const emptyDetails: any = {
     launchToken: '',
     shortUrl: '',
     secureOrShortName: '',
-    worldName: ''
+    worldName: '',
+    parsed: parseLocation('')
 };
-const closeAfterAction = new Set([
+type LaunchActionKey =
+    | 'attach'
+    | 'launch'
+    | 'launch-vr'
+    | 'launch-desktop'
+    | 'open'
+    | 'invite'
+    | 'self-invite';
+const closeAfterAction = new Set<LaunchActionKey>([
     'attach',
     'launch',
     'launch-vr',
     'launch-desktop'
 ]);
 
-function normalizeInstanceLocation(instance: any) {
+type CreatedInstanceRecord = Record<string, unknown> & {
+    location?: unknown;
+    tag?: unknown;
+    launchToken?: unknown;
+    secureOrShortName?: unknown;
+    shortName?: unknown;
+    closedAt?: unknown;
+    accessType?: unknown;
+    ownerId?: unknown;
+    creatorId?: unknown;
+    owner?: { id?: unknown };
+    instance?: CreatedInstanceRecord;
+    $location?: { tag?: unknown };
+};
+
+function createdInstanceRecord(value: unknown): CreatedInstanceRecord | null {
+    return value && typeof value === 'object'
+        ? (value as CreatedInstanceRecord)
+        : null;
+}
+
+function normalizeInstanceLocation(value: unknown) {
+    const instance = createdInstanceRecord(value);
     return String(
         instance?.location ||
             instance?.instance?.location ||
@@ -66,7 +99,8 @@ function normalizeInstanceLocation(instance: any) {
     ).trim();
 }
 
-function normalizeInstanceLaunchToken(instance: any) {
+function normalizeInstanceLaunchToken(value: unknown) {
+    const instance = createdInstanceRecord(value);
     return normalizeString(
         instance?.launchToken ||
             instance?.instance?.launchToken ||
@@ -77,7 +111,11 @@ function normalizeInstanceLaunchToken(instance: any) {
     );
 }
 
-function canInviteCreatedInstance(instance: any, currentUserId: any) {
+function canInviteCreatedInstance(
+    value: unknown,
+    currentUserId: string | null
+) {
+    const instance = createdInstanceRecord(value);
     const location = normalizeInstanceLocation(instance);
     if (!location || instance?.closedAt || instance?.instance?.closedAt) {
         return false;
@@ -105,9 +143,13 @@ function canInviteCreatedInstance(instance: any, currentUserId: any) {
     return Boolean(ownerId && currentUserId && ownerId === currentUserId);
 }
 
-function buildCachedInstanceMap(instances: any) {
-    const map = new Map();
-    for (const instance of Array.isArray(instances) ? instances : []) {
+function buildCachedInstanceMap(instances: unknown[]) {
+    const map = new Map<string, CreatedInstanceRecord>();
+    for (const value of instances) {
+        const instance = createdInstanceRecord(value);
+        if (!instance) {
+            continue;
+        }
         const location = normalizeInstanceLocation(instance);
         if (location) {
             map.set(location, instance?.instance || instance);
@@ -116,7 +158,17 @@ function buildCachedInstanceMap(instances: any) {
     return map;
 }
 
-function LaunchField({ label, value, notice = '', onCopy }: any) {
+function LaunchField({
+    label,
+    value,
+    notice = '',
+    onCopy
+}: {
+    label: ReactNode;
+    value: string;
+    notice?: string;
+    onCopy(): void;
+}) {
     const { t } = useTranslation();
     return (
         <Field>
@@ -261,7 +313,10 @@ export function LaunchDialogHost() {
         });
     }
 
-    async function runAction(key: any, action: any) {
+    async function runAction(
+        key: LaunchActionKey,
+        action: () => unknown | Promise<unknown>
+    ) {
         if (busy || loading) {
             return;
         }
@@ -282,7 +337,7 @@ export function LaunchDialogHost() {
         }
     }
 
-    async function launchWithMode(nextDesktopMode: any) {
+    async function launchWithMode(nextDesktopMode: boolean) {
         if (isGameRunning) {
             const result = await confirm({
                 title: t('host.launch_dialog.modal.launch_vrchat'),

@@ -17,61 +17,19 @@ import {
     SEARCH_PAGE_SIZE as PAGE_SIZE
 } from './searchRequests';
 import { dedupeById } from './searchResults';
+import type {
+    AvatarSearchRequest,
+    GroupSearchRequest,
+    SearchActiveTab,
+    SearchAvatarResult,
+    SearchGroupResult,
+    SearchUserResult,
+    SearchWorldCategory,
+    SearchWorldResult,
+    UserSearchRequest,
+    WorldSearchRequest
+} from './searchTypes';
 import { useSearchPagination } from './useSearchPagination';
-
-type SearchUserResult = Awaited<
-    ReturnType<typeof userProfileRepository.normalize>
->;
-type SearchWorldResult = Awaited<
-    ReturnType<typeof worldProfileRepository.normalize>
->;
-type SearchGroupResult = {
-    bannerId: string | null;
-    bannerUrl?: string;
-    createdAt?: string;
-    description?: string;
-    discriminator?: string;
-    galleries?: unknown[];
-    iconId?: string;
-    iconUrl?: string;
-    id: string;
-    isSearchable?: boolean;
-    memberCount?: number;
-    membershipStatus?: string;
-    name?: string;
-    ownerId?: string;
-    rules?: string;
-    shortCode?: string;
-    tags?: unknown[];
-    [key: string]: unknown;
-};
-type SearchAvatarResult = {
-    id: string;
-    name?: string;
-    authorName?: string;
-    authorId?: string;
-    imageUrl?: string;
-    performance?: {
-        pc_rating?: string;
-        android_rating?: string | null;
-        ios_rating?: string | null;
-        has_impostor?: boolean;
-        [key: string]: unknown;
-    };
-    description?: string;
-    thumbnailImageUrl?: string;
-    created_at?: string;
-    updated_at?: string;
-    releaseStatus?: string;
-    version?: number;
-    tags?: unknown[];
-    unityPackages?: unknown[];
-    $tags?: unknown[];
-    $timeSpent?: number;
-    $memo?: string;
-    $isCached?: boolean;
-    [key: string]: unknown;
-};
 
 export function useSearchResults({
     activeTab,
@@ -85,18 +43,35 @@ export function useSearchResults({
     setSearchText,
     setSelectedWorldCategory,
     worldCategories
-}: any) {
+}: {
+    activeTab: SearchActiveTab;
+    avatarProviderEnabled: boolean;
+    includeCommunityLabs: boolean;
+    searchText: string;
+    searchUserByBio: boolean;
+    searchUserSortByLastLoggedIn: boolean;
+    selectedAvatarProvider: string;
+    selectedWorldCategory: string;
+    setSearchText: (value: string) => void;
+    setSelectedWorldCategory: (value: string) => void;
+    worldCategories: SearchWorldCategory[];
+}) {
     const { t } = useTranslation();
-    const searchSequenceRef = useRef<any>({
+    const searchSequenceRef = useRef<Record<SearchActiveTab, number>>({
         avatar: 0,
         group: 0,
         user: 0,
         world: 0
     });
-    const [userRequest, setUserRequest] = useState(null);
-    const [worldRequest, setWorldRequest] = useState(null);
-    const [groupRequest, setGroupRequest] = useState(null);
-    const [avatarRequest, setAvatarRequest] = useState<any>(null);
+    const [userRequest, setUserRequest] = useState<UserSearchRequest | null>(
+        null
+    );
+    const [worldRequest, setWorldRequest] =
+        useState<WorldSearchRequest | null>(null);
+    const [groupRequest, setGroupRequest] =
+        useState<GroupSearchRequest | null>(null);
+    const [avatarRequest, setAvatarRequest] =
+        useState<AvatarSearchRequest | null>(null);
     const [userResults, setUserResults] = useState<SearchUserResult[]>([]);
     const [worldResults, setWorldResults] = useState<SearchWorldResult[]>([]);
     const [groupResults, setGroupResults] = useState<SearchGroupResult[]>([]);
@@ -109,7 +84,7 @@ export function useSearchResults({
     const [isAvatarLoading, setIsAvatarLoading] = useState(false);
 
     const runUserSearch = useCallback(
-        async (nextRequest: any) => {
+        async (nextRequest: UserSearchRequest) => {
             const sequence = searchSequenceRef.current.user + 1;
             searchSequenceRef.current.user = sequence;
             setIsUserLoading(true);
@@ -123,7 +98,7 @@ export function useSearchResults({
                     return;
                 }
                 setUserResults(
-                    dedupeById(response.json).map((user: any) =>
+                    dedupeById(response.json).map((user) =>
                         userProfileRepository.normalize(user)
                     )
                 );
@@ -145,7 +120,7 @@ export function useSearchResults({
     );
 
     const runWorldSearch = useCallback(
-        async (nextRequest: any) => {
+        async (nextRequest: WorldSearchRequest) => {
             const sequence = searchSequenceRef.current.world + 1;
             searchSequenceRef.current.world = sequence;
             setIsWorldLoading(true);
@@ -160,7 +135,7 @@ export function useSearchResults({
                     return;
                 }
                 setWorldResults(
-                    dedupeById(response.json).map((world: any) =>
+                    dedupeById(response.json).map((world) =>
                         worldProfileRepository.normalize(world)
                     )
                 );
@@ -182,7 +157,7 @@ export function useSearchResults({
     );
 
     const runGroupSearch = useCallback(
-        async (nextRequest: any) => {
+        async (nextRequest: GroupSearchRequest) => {
             const sequence = searchSequenceRef.current.group + 1;
             searchSequenceRef.current.group = sequence;
             setIsGroupLoading(true);
@@ -214,7 +189,7 @@ export function useSearchResults({
     );
 
     const runAvatarSearch = useCallback(
-        async (nextRequest: any) => {
+        async (nextRequest: AvatarSearchRequest) => {
             const sequence = searchSequenceRef.current.avatar + 1;
             searchSequenceRef.current.avatar = sequence;
             setIsAvatarLoading(true);
@@ -264,7 +239,7 @@ export function useSearchResults({
         if (activeTab === 'world') {
             const category =
                 worldCategories.find(
-                    (row: any) => String(row.index) === selectedWorldCategory
+                    (row) => String(row.index) === selectedWorldCategory
                 ) ?? null;
             runWorldSearch(
                 buildWorldSearchRequest(
@@ -332,11 +307,12 @@ export function useSearchResults({
     }, [setSearchText]);
 
     const handleWorldCategoryChange = useCallback(
-        (value: any) => {
-            setSelectedWorldCategory(value);
+        (value: string | null) => {
+            const nextValue = value ?? '';
+            setSelectedWorldCategory(nextValue);
             const category =
                 worldCategories.find(
-                    (row: any) => String(row.index) === value
+                    (row) => String(row.index) === nextValue
                 ) ?? null;
             runWorldSearch(
                 buildWorldSearchRequest(

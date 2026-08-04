@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -24,19 +25,38 @@ import {
     normalizeScreenshotMetadata,
     normalizeScreenshotSearchResult,
     SCREENSHOT_METADATA_SEARCH_TYPES,
-    sortScreenshotRowsByNewest
+    sortScreenshotRowsByNewest,
+    type ScreenshotMetadataSearchType,
+    type ScreenshotSearchRow
 } from './screenshotMetadataValues';
 import { useScreenshotGalleryController } from './useScreenshotGalleryController';
 import { useScreenshotMetadataNavigation } from './useScreenshotMetadataNavigation';
 import { useScreenshotMetadataSearch } from './useScreenshotMetadataSearch';
 
 function openSearchResult(
-    row: any,
-    { openDetailPath, setSelectedPath, setSearchViewMode }: any
+    row: ScreenshotSearchRow,
+    {
+        openDetailPath,
+        setSelectedPath,
+        setSearchViewMode
+    }: {
+        openDetailPath: (
+            path: string,
+            options?: { clearPreview?: boolean }
+        ) => void;
+        setSelectedPath: (path: string) => void;
+        setSearchViewMode: (mode: 'detail' | 'table') => void;
+    }
 ) {
     setSelectedPath(row.filePath);
     setSearchViewMode('detail');
     openDetailPath(row.filePath);
+}
+
+function recordFromUnknown(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.entries(value))
+        : {};
 }
 
 export function ScreenshotMetadataPage() {
@@ -115,7 +135,7 @@ export function ScreenshotMetadataPage() {
     });
 
     const updateRoutePath = useCallback(
-        (path: any) => {
+        (path: string) => {
             const nextParams = new URLSearchParams();
             nextParams.set('path', path);
             const folder = selectedGalleryFolder || routeFolder;
@@ -128,7 +148,10 @@ export function ScreenshotMetadataPage() {
     );
 
     const openDetailPath = useCallback(
-        (path: any, { clearPreview = true }: any = {}) => {
+        (
+            path: string,
+            { clearPreview = true }: { clearPreview?: boolean } = {}
+        ) => {
             if (path) {
                 if (clearPreview) {
                     metadataRequestRef.current += 1;
@@ -145,7 +168,7 @@ export function ScreenshotMetadataPage() {
     function resetSearchContext({
         clearQuery = false,
         clearPreview = false
-    }: any = {}) {
+    }: { clearQuery?: boolean; clearPreview?: boolean } = {}) {
         resetSearchTable({ clearQuery });
 
         if (clearPreview) {
@@ -155,7 +178,7 @@ export function ScreenshotMetadataPage() {
         }
     }
 
-    async function loadScreenshot(path: any, withCarousel: any = true) {
+    async function loadScreenshot(path: string, withCarousel = true) {
         if (!path) {
             return;
         }
@@ -166,14 +189,19 @@ export function ScreenshotMetadataPage() {
         setMetadataError('');
 
         try {
-            const rawMetadata: any =
-                await mediaRepository.getScreenshotMetadata(path);
+            const rawMetadata = recordFromUnknown(
+                await mediaRepository.getScreenshotMetadata(path)
+            );
 
             if (metadataRequestRef.current !== requestId) {
                 return;
             }
 
-            if (!rawMetadata?.sourceFile) {
+            const sourceFile =
+                typeof rawMetadata.sourceFile === 'string'
+                    ? rawMetadata.sourceFile
+                    : '';
+            if (!sourceFile) {
                 const message = t('dialog.screenshot_metadata.invalid_file');
                 setMetadata(null);
                 setImageUrl('');
@@ -183,7 +211,7 @@ export function ScreenshotMetadataPage() {
             }
 
             const extra = await mediaRepository.getExtraScreenshotData(
-                rawMetadata.sourceFile,
+                sourceFile,
                 withCarousel
             );
 
@@ -353,13 +381,13 @@ export function ScreenshotMetadataPage() {
     }
 
     async function runSearch(
-        nextSearchType: any = searchType,
-        nextSearchQuery: any = searchQuery
+        nextSearchType: ScreenshotMetadataSearchType['value'] = searchType,
+        nextSearchQuery: string = searchQuery
     ) {
         const query = nextSearchQuery.trim();
         const selectedSearchType =
             SCREENSHOT_METADATA_SEARCH_TYPES.find(
-                (type: any) => type.value === nextSearchType
+                (type) => type.value === nextSearchType
             ) ?? SCREENSHOT_METADATA_SEARCH_TYPES[0];
 
         if (!query) {
@@ -393,7 +421,7 @@ export function ScreenshotMetadataPage() {
                 return;
             }
 
-            const rows = results.map((result: any) =>
+            const rows = results.map((result) =>
                 buildScreenshotSearchRow(
                     normalizeScreenshotSearchResult(result),
                     selectedSearchType,
@@ -424,16 +452,22 @@ export function ScreenshotMetadataPage() {
         }
     }
 
-    function handleSearchTypeChange(value: any) {
-        setSearchType(value);
+    function handleSearchTypeChange(value: string | null) {
+        const nextType = SCREENSHOT_METADATA_SEARCH_TYPES.find(
+            (type) => type.value === value
+        )?.value;
+        if (!nextType) {
+            return;
+        }
+        setSearchType(nextType);
         if (searchQuery.trim()) {
             setSearchRows([]);
             setSelectedPath('');
         }
-        runSearch(value);
+        runSearch(nextType);
     }
 
-    async function handleScreenshotDrop(event: any) {
+    async function handleScreenshotDrop(event: DragEvent<HTMLDivElement>) {
         event.preventDefault();
         const filePath = getDroppedScreenshotPath(event);
         if (!filePath) {
@@ -446,7 +480,7 @@ export function ScreenshotMetadataPage() {
         openDetailPath(filePath);
     }
 
-    function handleScreenshotDragOver(event: any) {
+    function handleScreenshotDragOver(event: DragEvent<HTMLDivElement>) {
         event.preventDefault();
         if (event.dataTransfer) {
             event.dataTransfer.dropEffect = 'copy';
@@ -550,7 +584,7 @@ export function ScreenshotMetadataPage() {
                             sortedSearchRows={sortedSearchRows}
                             selectedPath={selectedPath}
                             onToggleSearchSort={toggleSearchSort}
-                            onOpenResult={(row: any) =>
+                            onOpenResult={(row) =>
                                 openSearchResult(row, {
                                     openDetailPath,
                                     setSelectedPath,
@@ -581,7 +615,7 @@ export function ScreenshotMetadataPage() {
                                     })
                                 }
                                 onDragOver={handleScreenshotDragOver}
-                                onDrop={(event: any) => {
+                                onDrop={(event) => {
                                     handleScreenshotDrop(event);
                                 }}
                             />

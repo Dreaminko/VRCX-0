@@ -59,6 +59,32 @@ describe('realtimePresenceService projection boundary', () => {
         useVrcNotificationStore.getState().resetVrcNotificationState();
     });
 
+    it('replaces cached user facts from the typed runtime projection', async () => {
+        const { useUserFactsStore } = await import('@/state/userFactsStore');
+        const { handleRealtimeUserCacheProjection } =
+            await import('./realtimePresenceService');
+        useUserFactsStore.getState().resetUserFacts();
+
+        handleRealtimeUserCacheProjection({
+            users: [
+                {
+                    id: 'usr_friend',
+                    endpoint: 'https://api.example.test',
+                    displayName: 'Friend'
+                }
+            ]
+        });
+
+        expect(
+            useUserFactsStore.getState().usersByKey[
+                'https://api.example.test::usr_friend'
+            ]
+        ).toMatchObject({
+            id: 'usr_friend',
+            displayName: 'Friend'
+        });
+    });
+
     it('applies runtime friend projection without frontend persistence writes', async () => {
         const { useFeedLiveStore } = await import('@/state/feedLiveStore');
         const { useFriendRosterStore } =

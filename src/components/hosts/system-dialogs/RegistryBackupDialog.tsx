@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import { formatDateFilter } from '@/lib/dateTime';
@@ -37,19 +38,25 @@ type RegistryBackup = Awaited<
     ReturnType<typeof listVrcRegistryBackups>
 >[number];
 
-function formatBackupLabel(backup: any, t: any) {
+function formatBackupLabel(backup: RegistryBackup, t: TFunction) {
     const dateLabel = backup.date
         ? formatDateFilter(backup.date, 'long')
         : t('common.no_data');
     return `${backup.name || t('dialog.registry_backup.backup')} - ${dateLabel}`;
 }
 
-function registryRestoreError(error: any, t: any) {
+function registryRestoreError(error: unknown, t: TFunction) {
     const message = userFacingErrorMessage(error, '');
     return t('message.registry.restore_failed', { error: message });
 }
 
-export function RegistryBackupDialog({ open, onOpenChange }: any) {
+export function RegistryBackupDialog({
+    open,
+    onOpenChange
+}: {
+    open: boolean;
+    onOpenChange(open: boolean): void;
+}) {
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
@@ -61,7 +68,7 @@ export function RegistryBackupDialog({ open, onOpenChange }: any) {
     const [autoBackup, setAutoBackup] = useState(false);
     const [askRestore, setAskRestore] = useState(false);
     const selectedBackup =
-        backups.find((backup: any) => backup.key === selectedKey) || null;
+        backups.find((backup) => backup.key === selectedKey) || null;
 
     async function refreshBackups() {
         const requestId = refreshRequestRef.current + 1;
@@ -81,8 +88,8 @@ export function RegistryBackupDialog({ open, onOpenChange }: any) {
             setBackups(nextBackups);
             setAutoBackup(Boolean(nextAutoBackup));
             setAskRestore(Boolean(nextAskRestore));
-            setSelectedKey((current: any) =>
-                nextBackups.some((backup: any) => backup.key === current)
+            setSelectedKey((current) =>
+                nextBackups.some((backup) => backup.key === current)
                     ? current
                     : nextBackups[0]?.key || ''
             );
@@ -101,7 +108,7 @@ export function RegistryBackupDialog({ open, onOpenChange }: any) {
         }
     }
 
-    async function handleAutoBackupChange(value: any) {
+    async function handleAutoBackupChange(value: boolean) {
         const nextValue = Boolean(value);
         setAutoBackup(nextValue);
         try {
@@ -112,7 +119,7 @@ export function RegistryBackupDialog({ open, onOpenChange }: any) {
         }
     }
 
-    async function handleAskRestoreChange(value: any) {
+    async function handleAskRestoreChange(value: boolean) {
         const nextValue = Boolean(value);
         setAskRestore(nextValue);
         try {
@@ -329,7 +336,7 @@ export function RegistryBackupDialog({ open, onOpenChange }: any) {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                {backups.map((backup: any) => (
+                                {backups.map((backup) => (
                                     <SelectItem
                                         key={backup.key}
                                         value={backup.key}

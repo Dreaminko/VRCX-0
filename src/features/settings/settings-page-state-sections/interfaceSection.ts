@@ -1,4 +1,5 @@
 import { normalizeFeedTimeDisplayMode } from '@/state/preferencesStore';
+import type { TrustColorKey } from '@/shared/utils/trustColors';
 
 import { notificationLayoutOptions } from '../settingsOptions';
 import type { BuildSettingsPageStateSectionsInput } from '../settingsPageStateSections';
@@ -236,10 +237,10 @@ export function buildInterfaceSection({
         onResetTrustColors: () => {
             resetTrustColors();
         },
-        onSaveTrustColor: (key: string, value: string) => {
+        onSaveTrustColor: (key: TrustColorKey, value: string) => {
             saveTrustColor(key, value);
         },
-        onTrustColorDraftChange: (key: string, value: string) => {
+        onTrustColorDraftChange: (key: TrustColorKey, value: string) => {
             setPrefs((current) => ({
                 ...current,
                 trustColor: {

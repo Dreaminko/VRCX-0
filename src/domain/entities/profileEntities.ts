@@ -316,9 +316,26 @@ export type GroupInstanceRecord = EntityRecord & {
     full?: boolean;
     gameServerVersion?: number;
     groupAccessType?: string;
+    group?: EntityRecord & {
+        groupId?: string;
+        id?: string;
+        name?: string;
+        iconUrl?: string;
+        icon?: string;
+        thumbnailUrl?: string;
+        thumbnailImageUrl?: string;
+        imageUrl?: string;
+        image_url?: string;
+        bannerUrl?: string;
+        bannerImageUrl?: string;
+    };
+    groupId?: string;
+    group_id?: string;
+    groupName?: string;
     hardClose?: boolean | null;
     id?: string;
     instanceId?: string;
+    instance?: GroupInstanceRecord;
     instancePersistenceEnabled?: boolean | null;
     languageRatio?: Record<string, number>;
     location?: string;
@@ -326,6 +343,7 @@ export type GroupInstanceRecord = EntityRecord & {
     n_users?: number;
     name?: string;
     ownerId?: string;
+    owner_id?: string;
     permanent?: boolean;
     photonRegion?: string;
     platforms?: Record<string, number>;
@@ -343,6 +361,16 @@ export type GroupInstanceRecord = EntityRecord & {
     userCount?: number;
     world?: EntityRecord;
     worldId?: string;
+    worldName?: string;
+    groupIconUrl?: string;
+    groupIcon?: string;
+    groupThumbnailUrl?: string;
+    groupThumbnailImageUrl?: string;
+    iconUrl?: string;
+    icon?: string;
+    thumbnailUrl?: string;
+    thumbnailImageUrl?: string;
+    imageUrl?: string;
 };
 
 export type GroupDialogInstanceRow = GroupInstanceRecord & {
