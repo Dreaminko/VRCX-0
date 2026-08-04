@@ -24,11 +24,11 @@ Windows · macOS · Linux
 
 </div>
 
-VRCX-0 is a ground-up rewrite of VRCX by one of its former maintainers, rebuilt on a native Rust core (Tauri + React). The most direct payoff of the rewrite is performance: years of accumulated history stay smooth, and both memory usage and install size are far below the original.
+VRCX-0 is a ground-up rewrite of VRCX by one of its former maintainers, rebuilt on a native Rust core (Tauri + React) with significantly improved performance: years of accumulated history stay smooth, and both memory usage and install size are far below the original.
 
 On first launch it automatically imports your existing VRCX data and settings. The original data is never modified — you can switch back at any time.
 
-As the upstream VRCX project has shifted toward maintenance, VRCX-0 is where new features are being built.
+The upstream VRCX project has shifted toward maintenance; VRCX-0 is where new features are being built.
 
 ## Install
 
@@ -82,12 +82,6 @@ Beyond that:
   Discord-compatible format
 - Full keyboard navigation
 - Headless mode for advanced setups — see `crates/headless`
-
-## Data Migration
-
-On first launch, VRCX-0 can automatically import your existing VRCX database and settings. Your original data is never modified — existing users can pick up right where they left off without any manual setup.
-
-Need to move your data later? Choose a new location and VRCX-0 will migrate it for you.
 
 ## License
 
