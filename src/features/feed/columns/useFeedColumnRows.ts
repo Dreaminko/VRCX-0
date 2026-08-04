@@ -212,6 +212,7 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
                 liveEntries: [],
                 minLiveSequence: liveFeedSequenceAtRequestStart,
                 favoritesOnly: column.friendScope.kind === 'favorites',
+                maxEntries: FEED_COLUMN_PAGE_SIZE,
                 maxRows: FEED_COLUMN_PAGE_SIZE
             })
             .then(async (readModel) => {

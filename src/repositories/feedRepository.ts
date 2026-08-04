@@ -171,6 +171,7 @@ class FeedRepository {
         minLiveSequence = 0,
         favoritesOnly = false,
         cursor = null,
+        maxEntries: requestedMaxEntries,
         maxRows
     }: FeedReadModelQueryOptions): Promise<FeedReadModelResult<FeedRowOutput>> {
         const { normalizedUserId, maxTableSize, searchLimit } =
@@ -195,7 +196,8 @@ class FeedRepository {
         );
         const normalizedSearch = String(search || '').trim();
         const isSearchMode = Boolean(normalizedSearch || dateFrom || dateTo);
-        const maxEntries = isSearchMode ? searchLimit : maxTableSize;
+        const maxEntries =
+            requestedMaxEntries ?? (isSearchMode ? searchLimit : maxTableSize);
 
         return feedPersistenceRepository.queryFeedReadModel({
             userId: normalizedUserId,

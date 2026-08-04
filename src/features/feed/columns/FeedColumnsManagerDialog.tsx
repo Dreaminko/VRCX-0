@@ -52,6 +52,7 @@ import {
     copyFeedColumnExclusion,
     createFeedColumnsPresetConfig,
     createFeedColumnConfig,
+    MAX_FEED_COLUMNS,
     type FeedColumnConfig,
     type FeedColumnFavoriteGroupSelection,
     type FeedColumnFriendScope
@@ -191,6 +192,9 @@ export function FeedColumnsManagerDialog({
         );
     };
     const addColumn = () => {
+        if (draftColumns.length >= MAX_FEED_COLUMNS) {
+            return;
+        }
         const nextColumn = createFeedColumnConfig({
             title: t('view.feed.columns.new_column')
         });
@@ -244,6 +248,9 @@ export function FeedColumnsManagerDialog({
                                 variant="outline"
                                 size="icon-sm"
                                 aria-label={t('view.feed.columns.add')}
+                                disabled={
+                                    draftColumns.length >= MAX_FEED_COLUMNS
+                                }
                                 onClick={addColumn}
                             >
                                 <PlusIcon data-icon="icon" />

@@ -114,6 +114,17 @@ describe('useFeedColumnRows', () => {
         vi.useRealTimers();
     });
 
+    it('bounds the initial persistence read to one column page', () => {
+        renderColumnRows(createColumn('first'));
+
+        expect(mocks.queryFeedReadModel).toHaveBeenCalledWith(
+            expect.objectContaining({
+                maxEntries: 80,
+                maxRows: 80
+            })
+        );
+    });
+
     it('discards a full query result once the column changed', async () => {
         const staleQuery = createDeferred<FeedReadModelResult<FeedRow>>();
         const freshQuery = createDeferred<FeedReadModelResult<FeedRow>>();

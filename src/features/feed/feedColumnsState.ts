@@ -30,6 +30,7 @@ export type FeedColumnConfig = {
 const MIN_COLUMN_WIDTH = 280;
 const MAX_COLUMN_WIDTH = 420;
 const DEFAULT_COLUMN_WIDTH = 320;
+export const MAX_FEED_COLUMNS = 8;
 
 const ALL_FEED_TYPES = [...FEED_FILTER_TYPES];
 const FAVORITE_EXCLUDED_PRESET_IDS = new Set([
@@ -224,7 +225,8 @@ function applyPresetScopeDefaults(column: FeedColumnConfig): FeedColumnConfig {
 export function sanitizeFeedColumnsConfig(value: unknown): FeedColumnConfig[] {
     const columns = (Array.isArray(value) ? value : [])
         .map(sanitizeFeedColumnConfig)
-        .filter(Boolean) as FeedColumnConfig[];
+        .filter((column): column is FeedColumnConfig => column !== null)
+        .slice(0, MAX_FEED_COLUMNS);
     return columns.length ? columns : createFeedColumnsPresetConfig();
 }
 

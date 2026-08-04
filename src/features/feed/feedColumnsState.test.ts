@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
     FEED_COLUMNS_DEFAULT_CONFIG,
+    MAX_FEED_COLUMNS,
     copyFeedColumnExclusion,
     sanitizeFeedColumnConfig,
     sanitizeFeedColumnsConfig,
@@ -183,5 +184,22 @@ describe('feed columns state helpers', () => {
         expect(
             sanitizeFeedColumnsConfig([{ title: '', feedTypes: [] }])
         ).toEqual(FEED_COLUMNS_DEFAULT_CONFIG);
+    });
+
+    it('caps persisted columns before they can fan out feed queries', () => {
+        const columns = Array.from(
+            { length: MAX_FEED_COLUMNS + 2 },
+            (_, index) => ({
+                id: `column-${index}`,
+                title: `Column ${index}`,
+                width: 320,
+                friendScope: { kind: 'all' },
+                feedTypes: ['GPS']
+            })
+        );
+
+        expect(sanitizeFeedColumnsConfig(columns)).toHaveLength(
+            MAX_FEED_COLUMNS
+        );
     });
 });
