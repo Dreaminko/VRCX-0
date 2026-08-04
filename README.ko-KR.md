@@ -1,19 +1,24 @@
 <div align="center">
 
-# <img src="images\VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
+# <img src="images/VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
+
+### 더 빠르고, 더 가벼운 VRCX.
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-Hant.md) | [日本語](README.ja-JP.md) | 한국어
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Map1en/VRCX-0/ci.yml?branch=master&label=CI&style=flat)](https://github.com/Map1en/VRCX-0/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/coverage.json&style=flat&color=brightgreen)](https://github.com/Map1en/VRCX-0/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/version.json&style=flat)](https://github.com/Map1en/VRCX-0/releases/latest)
-[![Downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/downloads.json&style=flat)](https://github.com/Map1en/VRCX-0/releases)
-[![Windows](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/windows-installer-size.json&style=flat)](https://github.com/Map1en/VRCX-0/releases/latest)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat)](LICENSE)
-[![Discord](https://img.shields.io/discord/1494343220467994644?logo=discord&logoColor=white&label=discord&style=flat)](https://discord.gg/fehKP3SVPN)
+[![Release](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/version.json&style=flat&color=4340a2&labelColor=1f2328&logo=github&logoColor=white)](https://github.com/Map1en/VRCX-0/releases/latest)
+[![Downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/downloads.json&style=flat&color=4340a2&labelColor=1f2328)](https://github.com/Map1en/VRCX-0/releases)
+[![Installer](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/windows-installer-size.json&style=flat&label=installer&color=4340a2&labelColor=1f2328&logo=windows&logoColor=white)](https://github.com/Map1en/VRCX-0/releases/latest)
+[![Discord](https://img.shields.io/discord/1494343220467994644?style=flat&logo=discord&logoColor=white&label=discord&color=5865f2&labelColor=1f2328)](https://discord.gg/fehKP3SVPN)
+<br>
+[![CI](https://img.shields.io/github/actions/workflow/status/Map1en/VRCX-0/ci.yml?branch=master&label=CI&style=flat&labelColor=1f2328&logo=githubactions&logoColor=white)](https://github.com/Map1en/VRCX-0/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/coverage.json&style=flat&color=brightgreen&labelColor=1f2328)](https://github.com/Map1en/VRCX-0/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-GPL--3.0%20%2B%20MIT-4c566a?style=flat&labelColor=1f2328)](LICENSE)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0?ref=badge_shield)
 
-### 더 빠르고, 더 가벼운 VRCX.
+[![Download](https://img.shields.io/badge/Download-latest%20release-4340a2?style=for-the-badge&labelColor=2b2a6b)](https://github.com/Map1en/VRCX-0/releases/latest)
+
+Windows · macOS · Linux
 
 </div>
 
@@ -22,6 +27,19 @@ VRCX-0는 VRCX의 이전 유지보수 담당자 중 한 명이 처음부터 다�
 첫 실행 시 기존 VRCX 데이터와 설정을 자동으로 가져오며, 원본 데이터는 수정되지 않아 언제든 되돌아갈 수 있습니다.
 
 원본 VRCX가 유지보수 중심으로 전환된 이후, 새로운 기능 개발은 VRCX-0에서 이어집니다.
+
+## 설치
+
+[최신 릴리스](https://github.com/Map1en/VRCX-0/releases/latest)에서 사용 중인 플랫폼에 맞는 파일을 받으세요:
+
+| 플랫폼                | 파일                                     |
+| --------------------- | ---------------------------------------- |
+| Windows               | `VRCX-0_<버전>_windows_x86_64_setup.exe` |
+| macOS (Apple Silicon) | `VRCX-0_<버전>_macos_aarch64.dmg`        |
+| macOS (Intel)         | `VRCX-0_<버전>_macos_x86_64.dmg`         |
+| Linux                 | `.AppImage`, `.deb`, `.rpm`              |
+
+한 번만 받으면 됩니다 — 이후에는 VRCX-0가 알아서 업데이트합니다.
 
 ## 주요 특징
 
@@ -59,7 +77,9 @@ VRCX-0는 VRCX의 이전 유지보수 담당자 중 한 명이 처음부터 다�
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0?ref=badge_large)
 
-## 개발
+## 소스에서 빌드
+
+개발에 참여할 때만 필요합니다 — [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
 
 필요 사항: Node.js ≥ 24.10, npm ≥ 11.5, rustup을 통해 설치한 안정 버전 Rust 툴체인.
 Windows에서는 **Visual Studio Build Tools**를 설치하고 **"C++를 사용한 데스크톱 개발"** 워크로드를 선택해야 합니다.

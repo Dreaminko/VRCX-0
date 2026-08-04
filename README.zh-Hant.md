@@ -1,19 +1,24 @@
 <div align="center">
 
-# <img src="images\VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
+# <img src="images/VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
+
+### 更快、更輕的 VRCX。
 
 [English](README.md) | [简体中文](README.zh-CN.md) | 繁體中文 | [日本語](README.ja-JP.md) | [한국어](README.ko-KR.md)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Map1en/VRCX-0/ci.yml?branch=master&label=CI&style=flat)](https://github.com/Map1en/VRCX-0/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/coverage.json&style=flat&color=brightgreen)](https://github.com/Map1en/VRCX-0/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/version.json&style=flat)](https://github.com/Map1en/VRCX-0/releases/latest)
-[![Downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/downloads.json&style=flat)](https://github.com/Map1en/VRCX-0/releases)
-[![Windows](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/windows-installer-size.json&style=flat)](https://github.com/Map1en/VRCX-0/releases/latest)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat)](LICENSE)
-[![Discord](https://img.shields.io/discord/1494343220467994644?logo=discord&logoColor=white&label=discord&style=flat)](https://discord.gg/fehKP3SVPN)
+[![Release](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/version.json&style=flat&color=4340a2&labelColor=1f2328&logo=github&logoColor=white)](https://github.com/Map1en/VRCX-0/releases/latest)
+[![Downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/downloads.json&style=flat&color=4340a2&labelColor=1f2328)](https://github.com/Map1en/VRCX-0/releases)
+[![Installer](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/windows-installer-size.json&style=flat&label=installer&color=4340a2&labelColor=1f2328&logo=windows&logoColor=white)](https://github.com/Map1en/VRCX-0/releases/latest)
+[![Discord](https://img.shields.io/discord/1494343220467994644?style=flat&logo=discord&logoColor=white&label=discord&color=5865f2&labelColor=1f2328)](https://discord.gg/fehKP3SVPN)
+<br>
+[![CI](https://img.shields.io/github/actions/workflow/status/Map1en/VRCX-0/ci.yml?branch=master&label=CI&style=flat&labelColor=1f2328&logo=githubactions&logoColor=white)](https://github.com/Map1en/VRCX-0/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Map1en/VRCX-0/badge-data/coverage.json&style=flat&color=brightgreen&labelColor=1f2328)](https://github.com/Map1en/VRCX-0/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-GPL--3.0%20%2B%20MIT-4c566a?style=flat&labelColor=1f2328)](LICENSE)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0?ref=badge_shield)
 
-### 更快、更輕的 VRCX。
+[![Download](https://img.shields.io/badge/Download-latest%20release-4340a2?style=for-the-badge&labelColor=2b2a6b)](https://github.com/Map1en/VRCX-0/releases/latest)
+
+Windows · macOS · Linux
 
 </div>
 
@@ -22,6 +27,19 @@ VRCX-0 是 VRCX 的完全重寫版本，由 VRCX 前任維護者之一開發，�
 首次啟動會自動匯入你現有的 VRCX 資料與設定，原始資料不會被更動，隨時可以換回去。
 
 原版 VRCX 已轉向以維護為主，新功能都在 VRCX-0 開發。
+
+## 安裝
+
+在 [最新 Release](https://github.com/Map1en/VRCX-0/releases/latest) 下載對應平台的檔案：
+
+| 平台                | 檔案                                       |
+| ------------------- | ------------------------------------------ |
+| Windows             | `VRCX-0_<版本號>_windows_x86_64_setup.exe` |
+| macOS（Apple 晶片） | `VRCX-0_<版本號>_macos_aarch64.dmg`        |
+| macOS（Intel）      | `VRCX-0_<版本號>_macos_x86_64.dmg`         |
+| Linux               | `.AppImage`、`.deb` 或 `.rpm`              |
+
+只需下載這一次 — 之後 VRCX-0 會自動更新。
 
 ## 主要特點
 
@@ -59,7 +77,9 @@ fork 後新增、修改、重寫及新建的所有程式碼，均依 GNU General
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FMap1en%2FVRCX-0?ref=badge_large)
 
-## 開發
+## 從原始碼建置
+
+僅在你想參與開發時才需要 — 詳見 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 依賴：Node.js ≥ 24.10、npm ≥ 11.5，以及透過 rustup 安裝的穩定版 Rust 工具鏈。
 Windows 使用者還需安裝 **Visual Studio Build Tools**，並勾選 **「使用 C++ 的桌面開發」** 工作負載。
