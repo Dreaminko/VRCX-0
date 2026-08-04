@@ -5,7 +5,6 @@ import { normalizeString } from '@/shared/utils/string';
 import type {
     PlayerListContext,
     PlayerListCurrentUserSnapshot,
-    PlayerListProfileRecord,
     PlayerListRecord,
     PlayerListRosterRow,
     PlayerListSourceRow

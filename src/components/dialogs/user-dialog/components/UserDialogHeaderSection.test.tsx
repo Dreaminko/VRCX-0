@@ -221,3 +221,34 @@ describe('UserDialogHeaderSection friend number', () => {
         expect(screen.queryByText('#42')).toBeNull();
     });
 });
+
+describe('UserDialogHeaderSection creator badge', () => {
+    it('shows the economy creator fact when the profile provides it', () => {
+        const headerModel = createHeaderModel();
+        headerModel.profile.isEconomyCreator = true;
+
+        render(
+            <UserDialogHeaderSection
+                headerModel={headerModel}
+                headerCommands={createHeaderCommands()}
+            />
+        );
+
+        expect(
+            screen.getByText('dialog.user.label.economy_creator')
+        ).toBeTruthy();
+    });
+
+    it('hides the economy creator fact when the profile omits it', () => {
+        render(
+            <UserDialogHeaderSection
+                headerModel={createHeaderModel()}
+                headerCommands={createHeaderCommands()}
+            />
+        );
+
+        expect(
+            screen.queryByText('dialog.user.label.economy_creator')
+        ).toBeNull();
+    });
+});

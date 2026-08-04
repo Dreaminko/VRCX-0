@@ -197,8 +197,6 @@ export function UserDialogHeaderAttributes({
         });
     }
 
-    console.log(profile);
-
     if (profile.isEconomyCreator) {
         items.push({
             key: 'economy-creator',
