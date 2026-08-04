@@ -96,10 +96,7 @@ export function normalizePlatformError(
         return new PlatformCommandError(
             {
                 ...structuredError,
-                message: withFallback(
-                    structuredError.message,
-                    fallbackMessage
-                )
+                message: withFallback(structuredError.message, fallbackMessage)
             },
             error
         );

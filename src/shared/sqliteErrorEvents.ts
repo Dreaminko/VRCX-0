@@ -2,7 +2,9 @@ type SQLiteErrorListener = (error: Error) => void;
 
 const sqliteErrorListeners = new Set<SQLiteErrorListener>();
 
-export function subscribeSQLiteError(listener: SQLiteErrorListener): () => void {
+export function subscribeSQLiteError(
+    listener: SQLiteErrorListener
+): () => void {
     sqliteErrorListeners.add(listener);
     return () => {
         sqliteErrorListeners.delete(listener);
