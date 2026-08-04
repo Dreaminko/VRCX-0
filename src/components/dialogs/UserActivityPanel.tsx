@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Spinner } from '@/ui/shadcn/spinner';
+
 import type { UserActivityPanelProps } from './UserActivityPanelImpl';
 
 const UserActivityPanelImpl = lazy(() =>

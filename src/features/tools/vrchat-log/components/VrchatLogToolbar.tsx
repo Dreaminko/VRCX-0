@@ -25,8 +25,8 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 
-import { fileLabel, LOG_LEVELS } from '../vrchatLogHelpers';
 import type { useVrchatLogController } from '../useVrchatLogController';
+import { fileLabel, LOG_LEVELS } from '../vrchatLogHelpers';
 
 type VrchatLogController = ReturnType<typeof useVrchatLogController>;
 type VrchatLogToolbarProps = Pick<

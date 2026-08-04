@@ -1,5 +1,6 @@
-import { cn } from '@/lib/utils';
 import type { MouseEventHandler, ReactNode } from 'react';
+
+import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 

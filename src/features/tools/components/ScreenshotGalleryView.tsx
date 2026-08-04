@@ -1,14 +1,14 @@
 import { ChevronRightIcon, FolderIcon, RefreshCwIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { cn } from '@/lib/utils';
 import type {
     ScreenshotFolderInfo,
     ScreenshotFolderTree,
     ScreenshotLibraryImage,
     ScreenshotLibraryScanStatus
 } from '@/platform/tauri/bindings';
-
-import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {

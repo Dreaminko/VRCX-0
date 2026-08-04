@@ -1,5 +1,5 @@
-import { RefreshCwIcon, SearchIcon } from 'lucide-react';
 import type { Table } from '@tanstack/react-table';
+import { RefreshCwIcon, SearchIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
@@ -13,8 +13,8 @@ import {
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import { FriendLogTypeFilterDropdown } from './FriendLogViewParts';
 import type { FriendLogRow } from '../friendLogRows';
+import { FriendLogTypeFilterDropdown } from './FriendLogViewParts';
 
 export function FriendLogPageToolbar({
     selectedTypes,

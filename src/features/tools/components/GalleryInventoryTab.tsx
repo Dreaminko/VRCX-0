@@ -2,16 +2,16 @@ import { GiftIcon, ImageIcon, RefreshCwIcon } from 'lucide-react';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { formatDateFilter } from '@/lib/dateTime';
+import type { InventoryItemRecord } from '@/repositories/mediaRepository';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { TabsContent } from '@/ui/shadcn/tabs';
-import type { InventoryItemRecord } from '@/repositories/mediaRepository';
+
 import type { GalleryAssetTab } from '../galleryConstants';
 import type { getGalleryGridDensityConfig } from '../galleryDensity';
-import type { MediaPreviewOptions } from './MediaAssetTile';
-
 import { EmptyState, LoadingState } from './GalleryViewParts';
+import type { MediaPreviewOptions } from './MediaAssetTile';
 
 function getInventoryTypeLabel(
     item: InventoryItemRecord,

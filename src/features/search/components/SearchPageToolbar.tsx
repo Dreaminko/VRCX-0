@@ -1,6 +1,5 @@
 import { Trash2Icon, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { SearchActiveTab } from '../searchTypes';
 
 import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut';
 import { cn } from '@/lib/utils';
@@ -8,6 +7,8 @@ import { Button } from '@/ui/shadcn/button';
 import { Input } from '@/ui/shadcn/input';
 import { TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
+
+import type { SearchActiveTab } from '../searchTypes';
 
 export function SearchPageToolbar({
     activeTab,

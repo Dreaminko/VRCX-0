@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import type { Dashboard } from '@/repositories/dashboardRepository';
 
+import type { Dashboard } from '@/repositories/dashboardRepository';
 import {
     setNavbarCollapsedPreference,
     setThemeModePreference
@@ -34,8 +34,8 @@ import {
     AppNavFooter,
     AppNavMenuContent
 } from './AppNavMenuSections';
-import { CustomNavDialog } from './CustomNavDialog';
 import type { CustomNavLayout } from './custom-nav-dialog/customNavLayout';
+import { CustomNavDialog } from './CustomNavDialog';
 import {
     getPathForNavEntry,
     loadNavMenuModel,

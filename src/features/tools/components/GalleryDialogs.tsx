@@ -1,10 +1,8 @@
 import { useTranslation } from 'react-i18next';
 
 import { ImageCropDialog } from '@/components/media/ImageCropDialog';
-import type {
-    GalleryCropRequest,
-    GalleryUploadOptions
-} from '../galleryTypes';
+
+import type { GalleryCropRequest, GalleryUploadOptions } from '../galleryTypes';
 
 export function GalleryDialogs({
     cropRequest,

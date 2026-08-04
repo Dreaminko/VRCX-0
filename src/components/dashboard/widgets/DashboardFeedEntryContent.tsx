@@ -1,8 +1,8 @@
 import { MapPinIcon, PencilIcon, PersonStandingIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { FriendRecordInput } from '@/domain/friends/friendRosterTypes';
 
 import { Location } from '@/components/Location';
+import type { FriendRecordInput } from '@/domain/friends/friendRosterTypes';
 import { cn } from '@/lib/utils';
 import { openUserDialog } from '@/services/dialogService';
 import { normalizeString } from '@/shared/utils/string';

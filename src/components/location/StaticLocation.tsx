@@ -1,8 +1,9 @@
+import type { SyntheticEvent } from 'react';
+
 import { LocationDisplay } from '@/components/location/LocationDisplay';
 import { useResolvedLocation } from '@/components/location/useResolvedLocation';
 import { openGroupDialog } from '@/services/dialogService';
 import { normalizeString } from '@/shared/utils/string';
-import type { SyntheticEvent } from 'react';
 
 type StaticLocationProps = {
     location?: unknown;

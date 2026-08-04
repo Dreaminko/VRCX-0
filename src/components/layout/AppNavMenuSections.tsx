@@ -6,8 +6,6 @@ import {
     SunIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { NavMenuItem } from './navMenuModel';
-import type { NavMenuActionHandlers } from './app-nav-menu/types';
 
 import {
     SidebarContent,
@@ -20,11 +18,13 @@ import {
     SidebarMenuItem
 } from '@/ui/shadcn/sidebar';
 
+import type { NavMenuActionHandlers } from './app-nav-menu/types';
 import {
     NavItemContextMenu,
     NavMenuEntryItem,
     NavMenuFolderItem
 } from './AppNavMenuParts';
+import type { NavMenuItem } from './navMenuModel';
 
 function AppNavCreateDashboardHeader({
     visible,

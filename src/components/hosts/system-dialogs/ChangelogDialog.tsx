@@ -123,9 +123,8 @@ export function ChangelogDialog({
     targetVersion?: string;
 }) {
     const { i18n, t } = useTranslation();
-    const [latestRelease, setLatestRelease] = useState<NormalizedRelease | null>(
-        null
-    );
+    const [latestRelease, setLatestRelease] =
+        useState<NormalizedRelease | null>(null);
     const [entries, setEntries] = useState<LocalizedChangelogEntry[]>([]);
     const [note, setNote] = useState('');
     const [activeLanguage, setActiveLanguage] = useState('');

@@ -10,10 +10,7 @@ import {
 
 type Translate = (key: string) => string;
 
-function labelForEntry(
-    entry: NavMenuItem | null | undefined,
-    t: Translate
-) {
+function labelForEntry(entry: NavMenuItem | null | undefined, t: Translate) {
     if (!entry) {
         return '';
     }
@@ -90,9 +87,7 @@ function isNavItemNotified(
         return true;
     }
     return Boolean(
-        entry.children?.some((child) =>
-            isEntryNotified(child, notifiedKeys)
-        )
+        entry.children?.some((child) => isEntryNotified(child, notifiedKeys))
     );
 }
 

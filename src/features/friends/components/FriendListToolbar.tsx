@@ -1,5 +1,5 @@
-import { StarIcon } from 'lucide-react';
 import type { Table } from '@tanstack/react-table';
+import { StarIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
@@ -11,8 +11,8 @@ import { Spinner } from '@/ui/shadcn/spinner';
 import { Switch } from '@/ui/shadcn/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import { FriendListSearchFilterDropdown } from './FriendListViewParts';
 import type { FriendListRow } from '../friendListRows';
+import { FriendListSearchFilterDropdown } from './FriendListViewParts';
 
 export function FriendListToolbar({
     bulkModel,

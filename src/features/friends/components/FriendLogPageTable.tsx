@@ -1,5 +1,8 @@
+import type {
+    PaginationState,
+    Table as TableModel
+} from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
-import type { PaginationState, Table as TableModel } from '@tanstack/react-table';
 
 import {
     DataTableColumnDndProvider,
@@ -14,6 +17,7 @@ import {
 import { ResizableTableCell } from '@/components/data-table/ResizableTableParts';
 import { PageFooter } from '@/components/layout/PageScaffold';
 import { Table, TableBody, TableRow } from '@/ui/shadcn/table';
+
 import type { FriendLogRow } from '../friendLogRows';
 
 export function FriendLogPageTable({

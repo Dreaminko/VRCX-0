@@ -289,13 +289,11 @@ function ensureDynamicStyle(
         return;
     }
 
-    document
-        .querySelectorAll(`style[${attrName}]`)
-        .forEach((styleElement) => {
-            if (styleElement.getAttribute(attrName) !== styleKey) {
-                styleElement.remove();
-            }
-        });
+    document.querySelectorAll(`style[${attrName}]`).forEach((styleElement) => {
+        if (styleElement.getAttribute(attrName) !== styleKey) {
+            styleElement.remove();
+        }
+    });
 
     if (
         !cssText ||

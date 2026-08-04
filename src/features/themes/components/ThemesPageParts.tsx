@@ -1,5 +1,5 @@
-import { BadgeCheckIcon, DownloadIcon, ExternalLinkIcon } from 'lucide-react';
 import type { TFunction } from 'i18next';
+import { BadgeCheckIcon, DownloadIcon, ExternalLinkIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { openExternalLink } from '@/services/entityMediaService';

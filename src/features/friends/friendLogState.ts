@@ -1,3 +1,5 @@
+import type { SortingState } from '@tanstack/react-table';
+
 import {
     getDataTableStorageKey,
     readPersistedTableState,
@@ -5,7 +7,6 @@ import {
     sanitizeTableColumnSizing,
     writePersistedTableState
 } from '@/components/data-table/dataTablePersistence';
-import type { SortingState } from '@tanstack/react-table';
 
 import {
     FRIEND_LOG_TYPES,

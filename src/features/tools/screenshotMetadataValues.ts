@@ -1,11 +1,3 @@
-import { SCREENSHOT_GALLERY_CONFIG_KEYS } from '@/repositories/configKeys';
-import {
-    formatDateTimeValue,
-    formatIsoDateTime,
-    normalizeDateLocale
-} from '@/shared/utils/dateTimeFormatters';
-import { parseVrchatScreenshotDateFromFileName } from '@/shared/utils/screenshot';
-import { useShellStore } from '@/state/shellStore';
 import type {
     AuthorDetail,
     PlayerDetail,
@@ -14,6 +6,14 @@ import type {
     ScreenshotSearchResult,
     WorldDetail
 } from '@/platform/tauri/bindings';
+import { SCREENSHOT_GALLERY_CONFIG_KEYS } from '@/repositories/configKeys';
+import {
+    formatDateTimeValue,
+    formatIsoDateTime,
+    normalizeDateLocale
+} from '@/shared/utils/dateTimeFormatters';
+import { parseVrchatScreenshotDateFromFileName } from '@/shared/utils/screenshot';
+import { useShellStore } from '@/state/shellStore';
 
 export const SCREENSHOT_METADATA_SEARCH_TYPES = [
     {
@@ -165,9 +165,7 @@ export function getGalleryFolderPathSet(
     folderTree: ScreenshotFolderTreeInput | null | undefined
 ) {
     return new Set(
-        (folderTree?.folders ?? [])
-            .map((folder) => folder.path)
-            .filter(Boolean)
+        (folderTree?.folders ?? []).map((folder) => folder.path).filter(Boolean)
     );
 }
 
@@ -411,8 +409,7 @@ export function normalizeScreenshotMetadata(
     const author = isRecord(source.author)
         ? {
               id: stringValue(source.author.id) || undefined,
-              displayName:
-                  stringValue(source.author.displayName) || undefined
+              displayName: stringValue(source.author.displayName) || undefined
           }
         : {};
     const players = Array.isArray(source.players)
@@ -423,8 +420,7 @@ export function normalizeScreenshotMetadata(
               return [
                   {
                       id: stringValue(player.id) || undefined,
-                      displayName:
-                          stringValue(player.displayName) || undefined
+                      displayName: stringValue(player.displayName) || undefined
                   }
               ];
           })

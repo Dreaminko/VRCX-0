@@ -81,7 +81,10 @@ function patchSonnerErrorToast() {
 
     const originalErrorToast = toast.error.bind(toast);
     try {
-        toast.error = (message: ErrorToastMessage, options?: ErrorToastOptions) => {
+        toast.error = (
+            message: ErrorToastMessage,
+            options?: ErrorToastOptions
+        ) => {
             const nextMessage =
                 typeof message === 'string' || message instanceof Error
                     ? userFacingErrorMessage(
@@ -161,14 +164,16 @@ export function AppToaster(props: ToasterProps) {
                 error: <OctagonXIcon className="size-4" />,
                 loading: <Spinner />
             }}
-            style={{
-                '--normal-bg': 'var(--popover)',
-                '--normal-text': 'var(--popover-foreground)',
-                '--normal-border': 'var(--border)',
-                '--border-radius': 'var(--radius)',
-                fontFamily: 'var(--vrcx-app-font-family, system-ui)',
-                zIndex: APP_TOASTER_Z_INDEX
-            } as CSSProperties}
+            style={
+                {
+                    '--normal-bg': 'var(--popover)',
+                    '--normal-text': 'var(--popover-foreground)',
+                    '--normal-border': 'var(--border)',
+                    '--border-radius': 'var(--radius)',
+                    fontFamily: 'var(--vrcx-app-font-family, system-ui)',
+                    zIndex: APP_TOASTER_Z_INDEX
+                } as CSSProperties
+            }
             {...props}
         />
     );

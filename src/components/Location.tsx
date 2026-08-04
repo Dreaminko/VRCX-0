@@ -1,5 +1,5 @@
-import { toast } from 'sonner';
 import type { KeyboardEvent, SyntheticEvent } from 'react';
+import { toast } from 'sonner';
 
 import { LocationContextMenu } from '@/components/location/LocationContextMenu';
 import { LocationDisplay } from '@/components/location/LocationDisplay';

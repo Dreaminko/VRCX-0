@@ -11,8 +11,8 @@ import {
     formatScreenshotBytes,
     formatScreenshotDateTime
 } from '../screenshotMetadataValues';
-import { EmptyState, MetadataAuthorLink } from './ScreenshotMetadataParts';
 import type { NormalizedScreenshotMetadata } from '../screenshotMetadataValues';
+import { EmptyState, MetadataAuthorLink } from './ScreenshotMetadataParts';
 
 export function ScreenshotMetadataDetailsCard({
     metadata,

@@ -66,10 +66,12 @@ export function useSearchResults({
     const [userRequest, setUserRequest] = useState<UserSearchRequest | null>(
         null
     );
-    const [worldRequest, setWorldRequest] =
-        useState<WorldSearchRequest | null>(null);
-    const [groupRequest, setGroupRequest] =
-        useState<GroupSearchRequest | null>(null);
+    const [worldRequest, setWorldRequest] = useState<WorldSearchRequest | null>(
+        null
+    );
+    const [groupRequest, setGroupRequest] = useState<GroupSearchRequest | null>(
+        null
+    );
     const [avatarRequest, setAvatarRequest] =
         useState<AvatarSearchRequest | null>(null);
     const [userResults, setUserResults] = useState<SearchUserResult[]>([]);

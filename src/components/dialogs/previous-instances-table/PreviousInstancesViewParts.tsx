@@ -1,6 +1,6 @@
+import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import { AffinityBadge } from '@/components/affinity/AffinityBadge';
@@ -116,10 +116,7 @@ export function DialogErrorState({ children }: { children: ReactNode }) {
     );
 }
 
-function instanceDetailsSummary(
-    row: PreviousInstanceRow | null,
-    t: TFunction
-) {
+function instanceDetailsSummary(row: PreviousInstanceRow | null, t: TFunction) {
     const parts = [row?.worldName, row?.groupName].filter(Boolean);
     if (parts.length) {
         return parts.join(' / ');
@@ -242,11 +239,7 @@ function PreviousInstancePlayerNameButton({
     );
 }
 
-function InstanceWorldCell({
-    row
-}: {
-    row: PreviousInstanceRow | null;
-}) {
+function InstanceWorldCell({ row }: { row: PreviousInstanceRow | null }) {
     const worldId = rowWorldId(row);
     const worldName = row?.worldName || '';
 

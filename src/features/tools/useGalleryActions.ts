@@ -12,17 +12,17 @@ import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { FILE_TABS, UPLOAD_ASPECT_RATIOS } from './galleryConstants';
-import { useGalleryAssetActions } from './useGalleryAssetActions';
-import { useGalleryInventoryActions } from './useGalleryInventoryActions';
-import {
-    parseEmojiUploadSettings,
-    validateImageFile
-} from './inventoryHelpers';
 import type {
     GalleryActionDeps,
     GalleryAuthTarget,
     GalleryControllerDeps
 } from './galleryTypes';
+import {
+    parseEmojiUploadSettings,
+    validateImageFile
+} from './inventoryHelpers';
+import { useGalleryAssetActions } from './useGalleryAssetActions';
+import { useGalleryInventoryActions } from './useGalleryInventoryActions';
 
 function buildProfilePicOverride(endpoint: unknown, fileId: unknown) {
     if (!fileId) {

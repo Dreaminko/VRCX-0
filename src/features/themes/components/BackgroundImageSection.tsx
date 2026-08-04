@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import {
     FolderOpenIcon,
     ImageIcon,
@@ -5,7 +6,6 @@ import {
     ImagesIcon,
     RefreshCwIcon
 } from 'lucide-react';
-import type { TFunction } from 'i18next';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';

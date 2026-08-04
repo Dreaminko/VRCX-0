@@ -11,13 +11,13 @@ import {
     getGalleryGridDensityConfig,
     sanitizeGalleryGridDensity
 } from './galleryDensity';
-import { useGalleryActions } from './useGalleryActions';
-import { useGalleryRuntimeState } from './useGalleryRuntimeState';
 import type {
     GalleryAuthTarget,
     GalleryControllerDeps,
     GalleryCropRequest
 } from './galleryTypes';
+import { useGalleryActions } from './useGalleryActions';
+import { useGalleryRuntimeState } from './useGalleryRuntimeState';
 
 const GALLERY_GRID_DENSITY_STORAGE_KEY = 'VRCX_GalleryGridDensity';
 

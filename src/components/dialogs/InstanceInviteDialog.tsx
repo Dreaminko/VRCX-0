@@ -400,36 +400,32 @@ export function InstanceInviteDialog({
                             />
                             <DropdownMenuContent align="start" className="w-56">
                                 <DropdownMenuGroup>
-                                    {favoriteGroupItems.remote.map(
-                                        (group) => (
-                                            <DropdownMenuItem
-                                                key={group.key}
-                                                onClick={() =>
-                                                    addUserIds(group.userIds)
-                                                }
-                                            >
-                                                {group.label}
-                                            </DropdownMenuItem>
-                                        )
-                                    )}
+                                    {favoriteGroupItems.remote.map((group) => (
+                                        <DropdownMenuItem
+                                            key={group.key}
+                                            onClick={() =>
+                                                addUserIds(group.userIds)
+                                            }
+                                        >
+                                            {group.label}
+                                        </DropdownMenuItem>
+                                    ))}
                                 </DropdownMenuGroup>
                                 {favoriteGroupItems.remote.length &&
                                 favoriteGroupItems.local.length ? (
                                     <DropdownMenuSeparator />
                                 ) : null}
                                 <DropdownMenuGroup>
-                                    {favoriteGroupItems.local.map(
-                                        (group) => (
-                                            <DropdownMenuItem
-                                                key={group.key}
-                                                onClick={() =>
-                                                    addUserIds(group.userIds)
-                                                }
-                                            >
-                                                {group.label}
-                                            </DropdownMenuItem>
-                                        )
-                                    )}
+                                    {favoriteGroupItems.local.map((group) => (
+                                        <DropdownMenuItem
+                                            key={group.key}
+                                            onClick={() =>
+                                                addUserIds(group.userIds)
+                                            }
+                                        >
+                                            {group.label}
+                                        </DropdownMenuItem>
+                                    ))}
                                 </DropdownMenuGroup>
                             </DropdownMenuContent>
                         </DropdownMenu>

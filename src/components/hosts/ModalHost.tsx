@@ -36,9 +36,7 @@ function matchesPromptPattern(pattern: RegExp | null, value: string) {
 }
 
 function normalizeRecoveryCode(value: string) {
-    return value
-        .replace(/[^a-z0-9]/gi, '')
-        .slice(0, RECOVERY_CODE_LENGTH);
+    return value.replace(/[^a-z0-9]/gi, '').slice(0, RECOVERY_CODE_LENGTH);
 }
 
 function getOtpInputValue(

@@ -63,9 +63,7 @@ import {
 } from './toolsDialogUtils';
 
 type GroupCalendarEvent = GroupCalendarEventRecord;
-type GroupCalendarDayButtonProps = ComponentProps<
-    typeof CalendarDayButton
-> & {
+type GroupCalendarDayButtonProps = ComponentProps<typeof CalendarDayButton> & {
     eventsByDate: Record<string, GroupCalendarEvent[]>;
     followedCountByDate: Record<string, number>;
     timeZone: string;
@@ -265,10 +263,12 @@ export function GroupCalendarDialog({
                 policy: entityQueryPolicies.groupCollection,
                 force,
                 queryFn: async () => {
-                    const snapshot = await commands.appGroupCalendarSnapshotGet({
-                        date,
-                        includeFeatured: showFeaturedEvents
-                    });
+                    const snapshot = await commands.appGroupCalendarSnapshotGet(
+                        {
+                            date,
+                            includeFeatured: showFeaturedEvents
+                        }
+                    );
                     return {
                         ...snapshot,
                         events: snapshot.events.filter(isRecord),
@@ -280,8 +280,12 @@ export function GroupCalendarDialog({
                         ),
                         groupProfiles: Object.fromEntries(
                             Object.entries(snapshot.groupProfiles).filter(
-                                (entry): entry is [string, GroupCalendarGroupRecord] =>
-                                    isRecord(entry[1])
+                                (
+                                    entry
+                                ): entry is [
+                                    string,
+                                    GroupCalendarGroupRecord
+                                ] => isRecord(entry[1])
                             )
                         )
                     };
@@ -611,37 +615,29 @@ export function GroupCalendarDialog({
                                         </Button>
                                         {!collapsedGroups[group.groupId] ? (
                                             <div className="grid gap-3 md:grid-cols-2">
-                                                {group.events.map(
-                                                    (event) => (
-                                                        <GroupEventCard
-                                                            key={getEventId(
-                                                                event
-                                                            )}
-                                                            event={event}
-                                                            mode="grid"
-                                                            groupName={
-                                                                group.groupName
-                                                            }
-                                                            groupProfile={
-                                                                groupProfiles[
-                                                                    getEventGroupId(
-                                                                        event
-                                                                    )
-                                                                ]
-                                                            }
-                                                            isFollowing={followingIds.includes(
-                                                                getEventId(
+                                                {group.events.map((event) => (
+                                                    <GroupEventCard
+                                                        key={getEventId(event)}
+                                                        event={event}
+                                                        mode="grid"
+                                                        groupName={
+                                                            group.groupName
+                                                        }
+                                                        groupProfile={
+                                                            groupProfiles[
+                                                                getEventGroupId(
                                                                     event
                                                                 )
-                                                            )}
-                                                            onToggleFollow={() => {
-                                                                toggleFollow(
-                                                                    event
-                                                                );
-                                                            }}
-                                                        />
-                                                    )
-                                                )}
+                                                            ]
+                                                        }
+                                                        isFollowing={followingIds.includes(
+                                                            getEventId(event)
+                                                        )}
+                                                        onToggleFollow={() => {
+                                                            toggleFollow(event);
+                                                        }}
+                                                    />
+                                                ))}
                                             </div>
                                         ) : null}
                                     </div>

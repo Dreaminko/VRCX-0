@@ -17,8 +17,8 @@ import {
 import { Input } from '@/ui/shadcn/input';
 import { Switch } from '@/ui/shadcn/switch';
 
-import { Field, SettingsGroup } from '../SettingsField';
 import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+import { Field, SettingsGroup } from '../SettingsField';
 
 type InterfaceState = SettingsPageStateSections['interface'];
 type SettingsInterfaceUserColorsCardProps = Pick<

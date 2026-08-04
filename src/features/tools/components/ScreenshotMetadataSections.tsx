@@ -8,8 +8,8 @@ import {
     UploadIcon,
     UsersIcon
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import type { DragEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut';
 import {
@@ -222,16 +222,11 @@ export function ScreenshotMetadataToolbar({
                     </SelectTrigger>
                     <SelectContent>
                         <SelectGroup>
-                            {SCREENSHOT_METADATA_SEARCH_TYPES.map(
-                                (type) => (
-                                    <SelectItem
-                                        key={type.value}
-                                        value={type.value}
-                                    >
-                                        {t(type.labelKey)}
-                                    </SelectItem>
-                                )
-                            )}
+                            {SCREENSHOT_METADATA_SEARCH_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                    {t(type.labelKey)}
+                                </SelectItem>
+                            ))}
                         </SelectGroup>
                     </SelectContent>
                 </Select>

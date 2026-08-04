@@ -1,18 +1,13 @@
-import { PageBody, PageScaffold } from '@/components/layout/PageScaffold';
 import type { ChangeEvent } from 'react';
+
+import { PageBody, PageScaffold } from '@/components/layout/PageScaffold';
 
 import { GalleryDialogs } from './components/GalleryDialogs';
 import { GalleryHeader } from './components/GalleryHeader';
 import { GalleryTabsSection } from './components/GalleryTabsSection';
+import type { FileAssetTab, GalleryTab } from './galleryConstants';
+import type { GalleryProfileField, GalleryUploadOptions } from './galleryTypes';
 import { useGalleryPageController } from './useGalleryPageController';
-import type {
-    GalleryProfileField,
-    GalleryUploadOptions
-} from './galleryTypes';
-import type {
-    FileAssetTab,
-    GalleryTab
-} from './galleryConstants';
 
 export function GalleryPage() {
     const pageState = useGalleryPageController();

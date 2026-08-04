@@ -61,10 +61,7 @@ export function buildInfoChartOption({
     rows: InfoChartRow[];
     hour12: boolean;
     tooltipFormatter?:
-        | ((
-              entry: InfoChartRow,
-              hour12: boolean
-          ) => string | HTMLElement)
+        | ((entry: InfoChartRow, hour12: boolean) => string | HTMLElement)
         | null;
 }) {
     if (!rows.length) {
@@ -116,9 +113,7 @@ export function buildInfoChartOption({
     }
 
     const maxEntryCount = Math.max(
-        ...Array.from(groupedByUser.values()).map(
-            (entries) => entries.length
-        )
+        ...Array.from(groupedByUser.values()).map((entries) => entries.length)
     );
     const series = [];
     for (let entryIndex = 0; entryIndex < maxEntryCount; entryIndex += 1) {

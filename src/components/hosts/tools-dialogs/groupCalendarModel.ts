@@ -10,8 +10,8 @@ import { enUS } from 'react-day-picker/locale/en-US';
 import { ja } from 'react-day-picker/locale/ja';
 import { zhCN } from 'react-day-picker/locale/zh-CN';
 
-import { getTimeZoneDateParts } from '@/shared/utils/dateTimeFormatters';
 import type { GroupCalendarEventRecord } from '@/repositories/vrchatToolsRepository';
+import { getTimeZoneDateParts } from '@/shared/utils/dateTimeFormatters';
 
 import { getEventId } from './toolsDialogUtils';
 
@@ -85,9 +85,7 @@ export function buildFollowedCountByDate(
     followingIds: string[],
     timeZone: string
 ) {
-    const followedSet = new Set(
-        followingIds
-    );
+    const followedSet = new Set(followingIds);
     const result: Record<string, number> = {};
     for (const event of events) {
         const eventId = getEventId(event);

@@ -1,5 +1,6 @@
-import type { AppDataDirState, TtsVoice } from '@/platform/tauri/bindings';
 import type { Dispatch, SetStateAction } from 'react';
+
+import type { AppDataDirState, TtsVoice } from '@/platform/tauri/bindings';
 
 import { buildDialogsSection } from './settings-page-state-sections/dialogsSection';
 import { buildIntegrationsSection } from './settings-page-state-sections/integrationsSection';
@@ -17,6 +18,7 @@ import {
 import { buildSocialSection } from './settings-page-state-sections/socialSection';
 import type { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import type { FavoriteFriendGroupOption } from './settingsFavoriteGroupOptions';
+import type { CustomFontDraft } from './settingsValues';
 import type { AvatarProviderConfig } from './useAvatarProviderConfig';
 import type { useAvatarProviderConfig } from './useAvatarProviderConfig';
 import type { useSettingsActions } from './useSettingsActions';
@@ -25,7 +27,6 @@ import type {
     SettingsIntegrationPrefs,
     useSettingsIntegrations
 } from './useSettingsIntegrations';
-import type { CustomFontDraft } from './settingsValues';
 
 export type SettingsPagePrefs = ReturnType<typeof createDefaultSettingsPrefs> &
     Record<string, unknown>;
@@ -106,114 +107,120 @@ type DialogSectionInput = Pick<
 
 export type BuildSettingsPageStateSectionsInput = Record<string, unknown> &
     DialogSectionInput & {
-    activeSettingsTab: string;
-    appDataDirState?: AppDataDirState | null;
-    avatarProviderConfig: AvatarProviderConfig;
-    configTreeData: Record<string, unknown>;
-    commit: SettingsCallback<
-        [action: SettingsAction, optimistic?: () => unknown]
-    >;
-    cleanupAppDataDir: SettingsCallback;
-    deleteAllScreenshotMetadata: SettingsCallback;
-    desktopNotificationsDialogOpen: boolean;
-    dismissAppDataDirCleanup: SettingsCallback;
-    discordPrefs: SettingsDiscordPrefs;
-    handleCropInstancePrintsChange: SettingsCallback<[boolean]>;
-    handleGameLogDisabledChange: SettingsCallback<[boolean]>;
-    hmdNotificationsDialogOpen: boolean;
-    integrationPrefs: SettingsIntegrationPrefs;
-    locale: string;
-    migrateLegacyVrcxData: SettingsCallback;
-    normalizeRecentActionCooldownMinutes: (value: unknown) => number;
-    notificationTtsTest: string;
-    notificationTtsTestVisible: boolean;
-    onlineVisitCount: number | null;
-    openAppDataDirSelector: SettingsCallback;
-    openCustomFontDialog: SettingsCallback;
-    openTableLimitsDialog: SettingsCallback;
-    openTablePageSizesDialog: SettingsCallback;
-    openTranslationApiDialog: SettingsCallback;
-    openUgcFolderSelector: SettingsCallback;
-    openYoutubeApiDialog: SettingsCallback;
-    promptAutoLoginDelaySeconds: SettingsCallback;
-    promptBackgroundModeDelayMinutes: SettingsCallback;
-    prefs: SettingsPrefs;
-    refreshConfigTreeData: SettingsCallback;
-    refreshOnlineVisits: SettingsCallback;
-    refreshSqliteTableSizes: SettingsCallback;
-    resetAppDataDir: SettingsCallback;
-    resetTrustColors: SettingsCallback;
-    resetUgcFolder: SettingsCallback;
-    saveAvatarProviderEnabled: SettingsCallback<[boolean]>;
-    saveBoolPreference: SettingsCallback<[string, string, boolean]>;
-    saveDiscordBoolPreference: SettingsCallback<[string, boolean]>;
-    saveFontFamilyPreference: SettingsCallback<[string]>;
-    saveIntegrationBoolPreference: SettingsCallback<
-        [string, boolean, SettingsAction]
-    >;
-    saveInterfaceZoomLevel: SettingsCallback<[string | number]>;
-    savePreferenceValue: SettingsCallback<[string, unknown, SettingsAction]>;
-    saveStringPreference: SettingsCallback<[string, string, string]>;
-    saveTrustColor: SettingsCallback<[string, string]>;
-    saveNotificationTtsMode: SettingsCallback<[string]>;
-    saveNotificationTtsVoice: SettingsCallback<[string]>;
-    saveWristOverlayEnabled: SettingsCallback<[boolean]>;
-    selectCjkFontPack: SettingsCallback<[string]>;
-    setAccessibleStatusIndicatorsPreference: SettingsCallback<[boolean]>;
-    setActiveSettingsTab: SettingsCallback<[string]>;
-    setAppLanguagePreference: SettingsCallback<[string | null]>;
-    setAvatarProviderDialogOpen: SettingsCallback<[boolean]>;
-    setCloseToTrayPreference: SettingsCallback<[boolean]>;
-    setConfigTreeData: SettingsCallback<[Record<string, unknown>]>;
-    setDataTableStripedPreference: SettingsCallback<[boolean]>;
-    setDesktopNotificationsDialogOpen: SettingsCallback<[boolean]>;
-    setIntConfigPreference: SettingsCallback<
-        [string, number, { min?: number; max?: number; fallback?: number }]
-    >;
-    setNotificationLayoutPreference: SettingsCallback<[string]>;
-    setNotificationTtsTest: SettingsCallback<[string]>;
-    setNotificationTtsTestVisible: SettingsCallback<[boolean]>;
-    setPrefs: SetSettingsPrefs;
-    setPurgeDialogOpen: SettingsCallback<[boolean]>;
-    setProxyEnabledPreference: SettingsCallback<[boolean]>;
-    setRecentActionCooldownEnabledPreference: SettingsCallback<[boolean]>;
-    setRecentActionCooldownMinutesPreference: SettingsCallback<[number]>;
-    setSaveInstanceEmojiPreference: SettingsCallback<[boolean]>;
-    setSaveInstancePrintsPreference: SettingsCallback<[boolean]>;
-    setSaveInstanceStickersPreference: SettingsCallback<[boolean]>;
-    setScreenshotHelperCopyToClipboardPreference: SettingsCallback<[boolean]>;
-    setScreenshotHelperModifyFilenamePreference: SettingsCallback<[boolean]>;
-    setScreenshotHelperPreference: SettingsCallback<[boolean]>;
-    setShowNewDashboardButtonPreference: SettingsCallback<[boolean]>;
-    setStartAsMinimizedPreference: SettingsCallback<[boolean]>;
-    setStartAtWindowsStartupPreference: SettingsCallback<[boolean]>;
-    setSystemWindowFramePreference: SettingsCallback<[boolean]>;
-    setTableDensityPreference: SettingsCallback<[unknown]>;
-    setHmdNotificationsDialogOpen: SettingsCallback<[boolean]>;
-    setTranslationApiEnabledPreference: SettingsCallback<[boolean]>;
-    setTtsNotificationsDialogOpen: SettingsCallback<[boolean]>;
-    setVrNotificationsDialogOpen: SettingsCallback<[boolean]>;
-    setWebhookNotificationsDialogOpen: SettingsCallback<[boolean]>;
-    setWristFeedNotificationsDialogOpen: SettingsCallback<[boolean]>;
-    setYoutubeApiEnabledPreference: SettingsCallback<[boolean]>;
-    setZoomInput: SettingsCallback<[string]>;
-    speakNotificationTts: SettingsCallback<[string, string?]>;
-    sqliteTableSizes: Record<string, unknown>;
-    toggleLocalFavoriteFriendsGroup: SettingsCallback<[unknown, boolean]>;
-    ttsNotificationsDialogOpen: boolean;
-    ttsVoices: TtsVoice[];
-    vrNotificationsDialogOpen: boolean;
-    webhookNotificationsDialogOpen: boolean;
-    wristFeedNotificationsDialogOpen: boolean;
-    zoomInput: string;
-    addFeedHiddenUser: SettingsCallback<[string]>;
-    favoriteFriendGroupOptions: FavoriteFriendGroupOption[];
-    localFavoriteFriendGroupOptions: FavoriteFriendGroupOption[];
-    localFavoriteFriendsGroups: string[];
-    remoteFavoriteFriendGroupOptions: FavoriteFriendGroupOption[];
-    removeFeedHiddenUser: SettingsCallback<[string]>;
-    selectedFavoriteFriendGroupLabel: string;
-};
+        activeSettingsTab: string;
+        appDataDirState?: AppDataDirState | null;
+        avatarProviderConfig: AvatarProviderConfig;
+        configTreeData: Record<string, unknown>;
+        commit: SettingsCallback<
+            [action: SettingsAction, optimistic?: () => unknown]
+        >;
+        cleanupAppDataDir: SettingsCallback;
+        deleteAllScreenshotMetadata: SettingsCallback;
+        desktopNotificationsDialogOpen: boolean;
+        dismissAppDataDirCleanup: SettingsCallback;
+        discordPrefs: SettingsDiscordPrefs;
+        handleCropInstancePrintsChange: SettingsCallback<[boolean]>;
+        handleGameLogDisabledChange: SettingsCallback<[boolean]>;
+        hmdNotificationsDialogOpen: boolean;
+        integrationPrefs: SettingsIntegrationPrefs;
+        locale: string;
+        migrateLegacyVrcxData: SettingsCallback;
+        normalizeRecentActionCooldownMinutes: (value: unknown) => number;
+        notificationTtsTest: string;
+        notificationTtsTestVisible: boolean;
+        onlineVisitCount: number | null;
+        openAppDataDirSelector: SettingsCallback;
+        openCustomFontDialog: SettingsCallback;
+        openTableLimitsDialog: SettingsCallback;
+        openTablePageSizesDialog: SettingsCallback;
+        openTranslationApiDialog: SettingsCallback;
+        openUgcFolderSelector: SettingsCallback;
+        openYoutubeApiDialog: SettingsCallback;
+        promptAutoLoginDelaySeconds: SettingsCallback;
+        promptBackgroundModeDelayMinutes: SettingsCallback;
+        prefs: SettingsPrefs;
+        refreshConfigTreeData: SettingsCallback;
+        refreshOnlineVisits: SettingsCallback;
+        refreshSqliteTableSizes: SettingsCallback;
+        resetAppDataDir: SettingsCallback;
+        resetTrustColors: SettingsCallback;
+        resetUgcFolder: SettingsCallback;
+        saveAvatarProviderEnabled: SettingsCallback<[boolean]>;
+        saveBoolPreference: SettingsCallback<[string, string, boolean]>;
+        saveDiscordBoolPreference: SettingsCallback<[string, boolean]>;
+        saveFontFamilyPreference: SettingsCallback<[string]>;
+        saveIntegrationBoolPreference: SettingsCallback<
+            [string, boolean, SettingsAction]
+        >;
+        saveInterfaceZoomLevel: SettingsCallback<[string | number]>;
+        savePreferenceValue: SettingsCallback<
+            [string, unknown, SettingsAction]
+        >;
+        saveStringPreference: SettingsCallback<[string, string, string]>;
+        saveTrustColor: SettingsCallback<[string, string]>;
+        saveNotificationTtsMode: SettingsCallback<[string]>;
+        saveNotificationTtsVoice: SettingsCallback<[string]>;
+        saveWristOverlayEnabled: SettingsCallback<[boolean]>;
+        selectCjkFontPack: SettingsCallback<[string]>;
+        setAccessibleStatusIndicatorsPreference: SettingsCallback<[boolean]>;
+        setActiveSettingsTab: SettingsCallback<[string]>;
+        setAppLanguagePreference: SettingsCallback<[string | null]>;
+        setAvatarProviderDialogOpen: SettingsCallback<[boolean]>;
+        setCloseToTrayPreference: SettingsCallback<[boolean]>;
+        setConfigTreeData: SettingsCallback<[Record<string, unknown>]>;
+        setDataTableStripedPreference: SettingsCallback<[boolean]>;
+        setDesktopNotificationsDialogOpen: SettingsCallback<[boolean]>;
+        setIntConfigPreference: SettingsCallback<
+            [string, number, { min?: number; max?: number; fallback?: number }]
+        >;
+        setNotificationLayoutPreference: SettingsCallback<[string]>;
+        setNotificationTtsTest: SettingsCallback<[string]>;
+        setNotificationTtsTestVisible: SettingsCallback<[boolean]>;
+        setPrefs: SetSettingsPrefs;
+        setPurgeDialogOpen: SettingsCallback<[boolean]>;
+        setProxyEnabledPreference: SettingsCallback<[boolean]>;
+        setRecentActionCooldownEnabledPreference: SettingsCallback<[boolean]>;
+        setRecentActionCooldownMinutesPreference: SettingsCallback<[number]>;
+        setSaveInstanceEmojiPreference: SettingsCallback<[boolean]>;
+        setSaveInstancePrintsPreference: SettingsCallback<[boolean]>;
+        setSaveInstanceStickersPreference: SettingsCallback<[boolean]>;
+        setScreenshotHelperCopyToClipboardPreference: SettingsCallback<
+            [boolean]
+        >;
+        setScreenshotHelperModifyFilenamePreference: SettingsCallback<
+            [boolean]
+        >;
+        setScreenshotHelperPreference: SettingsCallback<[boolean]>;
+        setShowNewDashboardButtonPreference: SettingsCallback<[boolean]>;
+        setStartAsMinimizedPreference: SettingsCallback<[boolean]>;
+        setStartAtWindowsStartupPreference: SettingsCallback<[boolean]>;
+        setSystemWindowFramePreference: SettingsCallback<[boolean]>;
+        setTableDensityPreference: SettingsCallback<[unknown]>;
+        setHmdNotificationsDialogOpen: SettingsCallback<[boolean]>;
+        setTranslationApiEnabledPreference: SettingsCallback<[boolean]>;
+        setTtsNotificationsDialogOpen: SettingsCallback<[boolean]>;
+        setVrNotificationsDialogOpen: SettingsCallback<[boolean]>;
+        setWebhookNotificationsDialogOpen: SettingsCallback<[boolean]>;
+        setWristFeedNotificationsDialogOpen: SettingsCallback<[boolean]>;
+        setYoutubeApiEnabledPreference: SettingsCallback<[boolean]>;
+        setZoomInput: SettingsCallback<[string]>;
+        speakNotificationTts: SettingsCallback<[string, string?]>;
+        sqliteTableSizes: Record<string, unknown>;
+        toggleLocalFavoriteFriendsGroup: SettingsCallback<[unknown, boolean]>;
+        ttsNotificationsDialogOpen: boolean;
+        ttsVoices: TtsVoice[];
+        vrNotificationsDialogOpen: boolean;
+        webhookNotificationsDialogOpen: boolean;
+        wristFeedNotificationsDialogOpen: boolean;
+        zoomInput: string;
+        addFeedHiddenUser: SettingsCallback<[string]>;
+        favoriteFriendGroupOptions: FavoriteFriendGroupOption[];
+        localFavoriteFriendGroupOptions: FavoriteFriendGroupOption[];
+        localFavoriteFriendsGroups: string[];
+        remoteFavoriteFriendGroupOptions: FavoriteFriendGroupOption[];
+        removeFeedHiddenUser: SettingsCallback<[string]>;
+        selectedFavoriteFriendGroupLabel: string;
+    };
 
 export function buildSettingsPageStateSections(
     input: BuildSettingsPageStateSectionsInput

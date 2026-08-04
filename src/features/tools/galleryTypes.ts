@@ -46,10 +46,7 @@ type DialogRequest = {
     destructive?: boolean;
 };
 
-type Translation = (
-    key: string,
-    options?: Record<string, unknown>
-) => string;
+type Translation = (key: string, options?: Record<string, unknown>) => string;
 
 type ToastApi = {
     error(message: string): unknown;

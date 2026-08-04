@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TFunction } from 'i18next';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
-import configRepository from '@/repositories/configRepository';
-import type { ScreenshotLibraryStatus } from '@/repositories/mediaFileRepository';
 import type {
     ScreenshotFolderTree,
     ScreenshotLibraryImage
 } from '@/platform/tauri/bindings';
-import type { CapabilityStatus } from '@/state/runtimeStore';
+import configRepository from '@/repositories/configRepository';
+import type { ScreenshotLibraryStatus } from '@/repositories/mediaFileRepository';
 import mediaRepository from '@/repositories/mediaRepository';
 import {
     getCurrentScreenshotLibraryScanStatus,
     startScreenshotLibraryScan,
     subscribeScreenshotLibraryScanStatus
 } from '@/services/screenshotLibraryScanService';
+import type { CapabilityStatus } from '@/state/runtimeStore';
 
 import {
     getGalleryFolderPathSet,
@@ -57,8 +57,9 @@ export function useScreenshotGalleryController({
     const galleryScrollPositionsRef = useRef<Map<string, number>>(new Map());
     const galleryScrollPersistTimerRef = useRef<number | null>(null);
     const galleryScanActiveRef = useRef(false);
-    const [folderTree, setFolderTree] =
-        useState<ScreenshotFolderTree | null>(null);
+    const [folderTree, setFolderTree] = useState<ScreenshotFolderTree | null>(
+        null
+    );
     const [galleryImages, setGalleryImages] = useState<
         ScreenshotLibraryImage[]
     >([]);

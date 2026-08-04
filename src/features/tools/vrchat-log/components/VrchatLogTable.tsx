@@ -13,6 +13,7 @@ import {
 } from '@/ui/shadcn/context-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
+import type { useVrchatLogController } from '../useVrchatLogController';
 import {
     entryMessageText,
     entryToText,
@@ -21,7 +22,6 @@ import {
     LOG_ROW_HEIGHT,
     LOG_TABLE_GRID_CLASS
 } from '../vrchatLogHelpers';
-import type { useVrchatLogController } from '../useVrchatLogController';
 
 type VrchatLogController = ReturnType<typeof useVrchatLogController>;
 type VrchatLogTableProps = Pick<

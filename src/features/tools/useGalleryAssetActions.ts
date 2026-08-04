@@ -1,9 +1,7 @@
-import {
-    buildPrintUploadParams,
-    resolvePrintCropWhiteBorder
-} from './galleryUploadParams';
 import type { ChangeEvent } from 'react';
+
 import type { QueryParams } from '@/repositories/vrchatRequest';
+
 import type {
     GalleryAssets,
     GalleryAssetTab,
@@ -13,6 +11,10 @@ import type {
     GalleryAssetActionDeps,
     GalleryUploadOptions
 } from './galleryTypes';
+import {
+    buildPrintUploadParams,
+    resolvePrintCropWhiteBorder
+} from './galleryUploadParams';
 import type { EmojiUploadSettings } from './inventoryHelpers';
 
 export function useGalleryAssetActions({
@@ -347,11 +349,7 @@ export function useGalleryAssetActions({
                     }));
                 }
             } else {
-                if (
-                    tab === 'gallery' ||
-                    tab === 'icons' ||
-                    tab === 'prints'
-                ) {
+                if (tab === 'gallery' || tab === 'icons' || tab === 'prints') {
                     await refreshTab(tab);
                 }
             }

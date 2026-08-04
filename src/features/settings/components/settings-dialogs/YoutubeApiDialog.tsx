@@ -12,8 +12,8 @@ import {
 } from '@/ui/shadcn/dialog';
 import { Textarea } from '@/ui/shadcn/textarea';
 
-import { Field, FieldGroup } from '../SettingsField';
 import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+import { Field, FieldGroup } from '../SettingsField';
 
 type DialogState = SettingsPageStateSections['dialogs'];
 type YoutubeApiDialogProps = {

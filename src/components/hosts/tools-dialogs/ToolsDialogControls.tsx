@@ -1,5 +1,5 @@
-import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {

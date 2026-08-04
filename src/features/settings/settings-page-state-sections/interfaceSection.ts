@@ -1,5 +1,5 @@
-import { normalizeFeedTimeDisplayMode } from '@/state/preferencesStore';
 import type { TrustColorKey } from '@/shared/utils/trustColors';
+import { normalizeFeedTimeDisplayMode } from '@/state/preferencesStore';
 
 import { notificationLayoutOptions } from '../settingsOptions';
 import type { BuildSettingsPageStateSectionsInput } from '../settingsPageStateSections';

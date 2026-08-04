@@ -27,19 +27,14 @@ import {
     WrenchIcon,
     type LucideIcon
 } from 'lucide-react';
+import type { ComponentProps, CSSProperties, ReactNode, Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import type {
-    ComponentProps,
-    CSSProperties,
-    ReactNode,
-    Ref
-} from 'react';
 
 import { getNavIconComponent } from '@/components/layout/navIconRegistry';
 import { PageScaffold } from '@/components/layout/PageScaffold';
 import { cn } from '@/lib/utils';
-import { Button } from '@/ui/shadcn/button';
 import type { ToolDefinition } from '@/shared/constants/tools';
+import { Button } from '@/ui/shadcn/button';
 import {
     DropdownMenu,
     DropdownMenuContent,

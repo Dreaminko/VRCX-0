@@ -16,16 +16,16 @@ import {
     resolveDashboardPanelKey
 } from '@/components/dashboard/dashboardRegistry';
 import { cn } from '@/lib/utils';
-import { FEED_FILTER_TYPES } from '@/repositories/feedRepository';
-import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
-import { useFavoriteStore } from '@/state/favoriteStore';
-import { useFriendRosterStore } from '@/state/friendRosterStore';
-import { useNotificationStore } from '@/state/notificationStore';
 import type {
     DashboardDirection,
     DashboardPanel,
     DashboardRow
 } from '@/repositories/dashboardRepository';
+import { FEED_FILTER_TYPES } from '@/repositories/feedRepository';
+import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
+import { useFavoriteStore } from '@/state/favoriteStore';
+import { useFriendRosterStore } from '@/state/friendRosterStore';
+import { useNotificationStore } from '@/state/notificationStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -165,31 +165,29 @@ export function DashboardInstanceColumnConfig({
                 {t('view.dashboard.label.visible_columns')}
             </div>
             <div className="flex flex-wrap gap-2">
-                {DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS.map(
-                    (column) => (
-                        <Button
-                            key={column.key}
-                            type="button"
-                            size="sm"
-                            variant={
-                                activeColumns.includes(column.key)
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            disabled={column.required}
-                            onClick={() =>
-                                onConfigChange(
-                                    getNextDashboardInstanceColumnConfig(
-                                        config,
-                                        column.key
-                                    )
+                {DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS.map((column) => (
+                    <Button
+                        key={column.key}
+                        type="button"
+                        size="sm"
+                        variant={
+                            activeColumns.includes(column.key)
+                                ? 'default'
+                                : 'outline'
+                        }
+                        disabled={column.required}
+                        onClick={() =>
+                            onConfigChange(
+                                getNextDashboardInstanceColumnConfig(
+                                    config,
+                                    column.key
                                 )
-                            }
-                        >
-                            {getDashboardInstanceWidgetColumnLabel(column, t)}
-                        </Button>
-                    )
-                )}
+                            )
+                        }
+                    >
+                        {getDashboardInstanceWidgetColumnLabel(column, t)}
+                    </Button>
+                ))}
             </div>
         </div>
     );
@@ -454,10 +452,7 @@ export function DashboardEditorRow({
 }: {
     row: DashboardRow;
     rowIndex: number;
-    onPanelChange: (
-        panelIndex: number,
-        panel: DashboardPanel | null
-    ) => void;
+    onPanelChange: (panelIndex: number, panel: DashboardPanel | null) => void;
     onPanelRemove: (panelIndex: number) => void;
     onRowRemove: () => void;
     onDirectionChange: (direction: DashboardDirection) => void;
@@ -607,10 +602,7 @@ export function DashboardReadRow({
 }: {
     row: DashboardRow;
     dashboardId: string;
-    onPanelChange?: (
-        panelIndex: number,
-        panel: DashboardPanel | null
-    ) => void;
+    onPanelChange?: (panelIndex: number, panel: DashboardPanel | null) => void;
 }) {
     const direction = row?.direction === 'vertical' ? 'vertical' : 'horizontal';
     const panels = Array.isArray(row?.panels) ? row.panels.slice(0, 2) : [];
@@ -670,9 +662,7 @@ export function DashboardReadRow({
         <div className="relative h-full min-h-[180px]">
             <DashboardPanelPreviewForPanel
                 panel={panels[0]}
-                onPanelChange={(nextPanel) =>
-                    onPanelChange?.(0, nextPanel)
-                }
+                onPanelChange={(nextPanel) => onPanelChange?.(0, nextPanel)}
             />
         </div>
     );

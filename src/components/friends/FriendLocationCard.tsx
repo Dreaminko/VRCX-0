@@ -116,10 +116,7 @@ function isLiveBucketState(value: unknown) {
     return state === 'online' || state === 'active';
 }
 
-function isStaleOfflineLocationForLiveState(
-    location: unknown,
-    state: unknown
-) {
+function isStaleOfflineLocationForLiveState(location: unknown, state: unknown) {
     return (
         isLiveBucketState(state) &&
         normalizeLocationStatus(location) === 'offline'

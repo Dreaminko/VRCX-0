@@ -18,10 +18,10 @@ import type { SearchWorldCategory } from './searchTypes';
 function isWorldCategory(value: unknown): value is SearchWorldCategory {
     return Boolean(
         value &&
-            typeof value === 'object' &&
-            'index' in value &&
-            value.index !== null &&
-            value.index !== undefined
+        typeof value === 'object' &&
+        'index' in value &&
+        value.index !== null &&
+        value.index !== undefined
     );
 }
 

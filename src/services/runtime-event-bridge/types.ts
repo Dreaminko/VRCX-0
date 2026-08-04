@@ -1,8 +1,8 @@
+import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
 import type {
     BackendRuntimeEventPayloadMap,
     BackendRuntimeSnapshot
 } from '@/platform/tauri/bindings';
-import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
 
 import type {
     RealtimeCurrentUserProjectionPayload,

@@ -7,6 +7,7 @@ import {
     DEFAULT_FOLDER_ICON,
     DEFAULT_NAV_ICON_KEY
 } from '@/shared/constants/navIcons';
+
 import type { NavMenuItem } from '../navMenuModel';
 
 function NavIcon({

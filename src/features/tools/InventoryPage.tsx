@@ -56,8 +56,13 @@ import { GalleryEmojiImage } from './components/GalleryEmojiImage';
 import { GalleryEmojiUploadSettings } from './components/GalleryEmojiUploadSettings';
 import { InventoryItemTile } from './components/InventoryItemTile';
 import { MediaAssetTile, shortAssetId } from './components/MediaAssetTile';
+import type {
+    MediaAssetBadge,
+    MediaPreviewOptions
+} from './components/MediaAssetTile';
 import { MediaLibraryToolbar } from './components/MediaLibraryToolbar';
 import { GALLERY_GRID_DENSITY_OPTIONS } from './galleryDensity';
+import type { getGalleryGridDensityConfig } from './galleryDensity';
 import {
     CATEGORY_DEFINITIONS,
     CATEGORY_ORDER,
@@ -81,11 +86,6 @@ import {
     useInventoryPageController
 } from './useInventoryPageController';
 import type { InventoryRow } from './useInventoryPageState';
-import type { getGalleryGridDensityConfig } from './galleryDensity';
-import type {
-    MediaAssetBadge,
-    MediaPreviewOptions
-} from './components/MediaAssetTile';
 
 type PreviewHandler = (options: MediaPreviewOptions) => void;
 
@@ -527,8 +527,7 @@ export function InventoryPage() {
                             inventory.rowsByScope[selectedScopeKey] || [];
                         const loading =
                             inventory.loadingByScope[selectedScopeKey];
-                        const selectedUploadTarget =
-                            selectedTab?.uploadTarget;
+                        const selectedUploadTarget = selectedTab?.uploadTarget;
                         const selectedCanUpload = Boolean(selectedUploadTarget);
                         const showEmojiUploadOptions =
                             category === 'emojis' &&
@@ -565,19 +564,17 @@ export function InventoryPage() {
                                                 }}
                                                 className="flex flex-wrap justify-start"
                                             >
-                                                {definition.tabs.map(
-                                                    (tab) => (
-                                                        <ToggleGroupItem
-                                                            key={tab.key}
-                                                            value={tab.key}
-                                                            aria-label={t(
-                                                                tab.labelKey
-                                                            )}
-                                                        >
-                                                            {t(tab.labelKey)}
-                                                        </ToggleGroupItem>
-                                                    )
-                                                )}
+                                                {definition.tabs.map((tab) => (
+                                                    <ToggleGroupItem
+                                                        key={tab.key}
+                                                        value={tab.key}
+                                                        aria-label={t(
+                                                            tab.labelKey
+                                                        )}
+                                                    >
+                                                        {t(tab.labelKey)}
+                                                    </ToggleGroupItem>
+                                                ))}
                                             </ToggleGroup>
                                         }
                                         actions={
@@ -660,7 +657,9 @@ export function InventoryPage() {
                                                             )
                                                         }
                                                         onClick={() => {
-                                                            if (selectedUploadTarget) {
+                                                            if (
+                                                                selectedUploadTarget
+                                                            ) {
                                                                 inventory.beginUpload(
                                                                     selectedUploadTarget
                                                                 );
@@ -724,9 +723,7 @@ export function InventoryPage() {
                                                     archived
                                                 );
                                             }}
-                                            onConsumeBundle={(
-                                                inventoryId
-                                            ) => {
+                                            onConsumeBundle={(inventoryId) => {
                                                 inventory.consumeInventoryBundle(
                                                     inventoryId
                                                 );

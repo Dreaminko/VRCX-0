@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { Location } from '@/components/Location';
-import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { useVirtualSidebarRows } from '@/components/sidebar/useVirtualSidebarRows';
+import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
 import { cn } from '@/lib/utils';
 import { openGroupDialog } from '@/services/dialogService';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
@@ -262,7 +262,10 @@ function GroupInstanceRow({
 }: {
     instance: GroupInstanceRecord;
     currentUserId: string | null;
-    friendsMap: Map<string, ReturnType<typeof useFriendRosterStore.getState>['friendsById'][string]>;
+    friendsMap: Map<
+        string,
+        ReturnType<typeof useFriendRosterStore.getState>['friendsById'][string]
+    >;
 }) {
     const { t } = useTranslation();
     const groupId = normalizeGroupId(instance);

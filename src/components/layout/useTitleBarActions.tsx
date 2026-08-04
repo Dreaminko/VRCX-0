@@ -53,10 +53,7 @@ export function TitleBarButton({
     onClick,
     size = 'icon-sm',
     ...props
-}: Omit<
-    ComponentProps<typeof Button>,
-    'aria-label' | 'type' | 'variant'
-> & {
+}: Omit<ComponentProps<typeof Button>, 'aria-label' | 'type' | 'variant'> & {
     label: string;
 }) {
     return (

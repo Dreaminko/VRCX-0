@@ -317,33 +317,33 @@ type InventoryDisplayRecord = Record<string, unknown> & {
 export function resolveInventoryImageUrl(item: InventoryDisplayRecord) {
     return String(
         item?.imageUrl ||
-        item?.thumbnailUrl ||
-        item?.item?.imageUrl ||
-        item?.item?.thumbnailUrl ||
-        item?.template?.imageUrl ||
-        item?.template?.thumbnailUrl ||
-        item?.metadata?.imageUrl ||
-        ''
+            item?.thumbnailUrl ||
+            item?.item?.imageUrl ||
+            item?.item?.thumbnailUrl ||
+            item?.template?.imageUrl ||
+            item?.template?.thumbnailUrl ||
+            item?.metadata?.imageUrl ||
+            ''
     );
 }
 
 export function resolveInventoryName(item: InventoryDisplayRecord) {
     return String(
         item?.name ||
-        item?.item?.name ||
-        item?.template?.name ||
-        item?.displayName ||
-        item?.id ||
-        ''
+            item?.item?.name ||
+            item?.template?.name ||
+            item?.displayName ||
+            item?.id ||
+            ''
     );
 }
 
 export function resolveInventoryDescription(item: InventoryDisplayRecord) {
     return String(
         item?.description ||
-        item?.item?.description ||
-        item?.template?.description ||
-        ''
+            item?.item?.description ||
+            item?.template?.description ||
+            ''
     );
 }
 
@@ -475,10 +475,7 @@ export function parseEmojiUploadSettings(
     return next;
 }
 
-export function validateImageFile(
-    file: Blob,
-    t: (key: string) => string
-) {
+export function validateImageFile(file: Blob, t: (key: string) => string) {
     const validation = validateImageUploadFile(file, {
         maxSize: MAX_IMAGE_UPLOAD_BYTES
     });

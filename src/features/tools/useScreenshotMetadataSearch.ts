@@ -13,9 +13,7 @@ export function useScreenshotMetadataSearch() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchType, setSearchType] = useState<
         ScreenshotMetadataSearchType['value']
-    >(
-        SCREENSHOT_METADATA_SEARCH_TYPES[0].value
-    );
+    >(SCREENSHOT_METADATA_SEARCH_TYPES[0].value);
     const [searchRows, setSearchRows] = useState<ScreenshotSearchRow[]>([]);
     const [searchViewMode, setSearchViewMode] = useState<'detail' | 'table'>(
         'detail'

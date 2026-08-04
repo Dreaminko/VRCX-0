@@ -246,9 +246,7 @@ export function AvatarContentTagsDialog({
         setSelectedAvatarIds((current) =>
             current.length === ownAvatars.length
                 ? []
-                : ownAvatars.flatMap((entry) =>
-                      entry.id ? [entry.id] : []
-                  )
+                : ownAvatars.flatMap((entry) => (entry.id ? [entry.id] : []))
         );
     }
 
@@ -273,9 +271,7 @@ export function AvatarContentTagsDialog({
                 currentAvatarResult?.entity &&
                 typeof currentAvatarResult.entity === 'object'
             ) {
-                onSavedCurrentAvatar(
-                    currentAvatarResult.entity as OwnAvatar
-                );
+                onSavedCurrentAvatar(currentAvatarResult.entity as OwnAvatar);
             }
             if (result.failed) {
                 const baseMessage =
@@ -414,12 +410,14 @@ export function AvatarContentTagsDialog({
                                     Boolean(entry.id)
                             )
                             .map((entry) => (
-                            <AvatarOwnerRow
-                                key={entry.id}
-                                avatar={entry}
-                                selected={selectedAvatarIds.includes(entry.id)}
-                                onToggle={() => toggleAvatar(entry.id)}
-                            />
+                                <AvatarOwnerRow
+                                    key={entry.id}
+                                    avatar={entry}
+                                    selected={selectedAvatarIds.includes(
+                                        entry.id
+                                    )}
+                                    onToggle={() => toggleAvatar(entry.id)}
+                                />
                             ))}
                     </div>
                 </FieldGroup>

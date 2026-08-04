@@ -25,10 +25,7 @@ function TitleBarWindowButton({
     className,
     onAction,
     ...props
-}: Omit<
-    ComponentProps<typeof TitleBarButton>,
-    'onClick' | 'onPointerDown'
-> & {
+}: Omit<ComponentProps<typeof TitleBarButton>, 'onClick' | 'onPointerDown'> & {
     onAction: () => void;
 }) {
     return (

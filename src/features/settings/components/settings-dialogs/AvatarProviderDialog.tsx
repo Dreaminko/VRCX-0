@@ -18,8 +18,8 @@ import {
     InputGroupInput
 } from '@/ui/shadcn/input-group';
 
-import { Field, FieldGroup } from '../SettingsField';
 import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+import { Field, FieldGroup } from '../SettingsField';
 
 type DialogState = SettingsPageStateSections['dialogs'];
 type AvatarProviderDialogProps = {

@@ -1,5 +1,5 @@
-import { GalleryTabs } from './GalleryTabs';
 import type { GalleryCommands, GalleryModel } from '../galleryTypes';
+import { GalleryTabs } from './GalleryTabs';
 
 export function GalleryTabsSection({
     galleryCommands,

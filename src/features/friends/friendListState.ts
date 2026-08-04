@@ -1,10 +1,11 @@
+import type { SortingState } from '@tanstack/react-table';
+
 import {
     getDataTableStorageKey,
     readPersistedTableState,
     sanitizeTableColumnSizing,
     writePersistedTableState
 } from '@/components/data-table/dataTablePersistence';
-import type { SortingState } from '@tanstack/react-table';
 
 export const FRIEND_LIST_DEFAULT_PAGE_SIZES = [10, 15, 20, 25, 50, 100];
 export const FRIEND_LIST_DEFAULT_SORTING: SortingState = [

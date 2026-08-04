@@ -29,9 +29,7 @@ function isJsonValue(value: unknown): value is FavoriteCacheJsonValue {
     );
 }
 
-function isFavoriteCachePayload(
-    value: unknown
-): value is FavoriteCachePayload {
+function isFavoriteCachePayload(value: unknown): value is FavoriteCachePayload {
     return (
         isJsonValue(value) &&
         typeof value === 'object' &&

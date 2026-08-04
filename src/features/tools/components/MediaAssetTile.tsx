@@ -1,8 +1,4 @@
-import {
-    MoreHorizontalIcon,
-    ImageIcon,
-    type LucideIcon
-} from 'lucide-react';
+import { MoreHorizontalIcon, ImageIcon, type LucideIcon } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
@@ -166,13 +162,11 @@ export function MediaAssetTile({
 }) {
     const safeTitle = String(title || '').trim();
     const safeSubtitle = String(subtitle || '').trim();
-    const safeMeta = (Array.isArray(meta) ? meta : meta ? [meta] : []);
+    const safeMeta = Array.isArray(meta) ? meta : meta ? [meta] : [];
     const safeBadges = (badges || []).filter(
         (badge): badge is MediaAssetBadge => Boolean(badge)
     );
-    const resolvedPrimaryAction = primaryAction?.label
-        ? primaryAction
-        : null;
+    const resolvedPrimaryAction = primaryAction?.label ? primaryAction : null;
     const handleMediaClick = onMediaClick || onPreview;
     const imageClassName = cn(
         'size-full',

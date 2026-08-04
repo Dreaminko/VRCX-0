@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
-import type { CurrentInstanceRosterPlayer } from '@/domain/instances/currentInstanceRoster';
 import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
+import type { CurrentInstanceRosterPlayer } from '@/domain/instances/currentInstanceRoster';
 import type { DatabaseUpgradeStage } from '@/platform/tauri/bindings';
 import { MINUTE_MS } from '@/shared/constants/time';
 

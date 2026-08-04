@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 
+import type { getFriendsLocationsDensityConfig } from '../friendsLocationsDensity';
 import {
     isOnlineFriend,
     normalizeFriendsLocationId as normalizeId,
@@ -24,7 +25,6 @@ import {
     resolveLocationTarget
 } from '../friendsLocationsRows';
 import type { FriendsLocationsSection } from '../useFriendsLocationsPageDerivedState';
-import type { getFriendsLocationsDensityConfig } from '../friendsLocationsDensity';
 
 type BivariantCallback<Args extends unknown[]> = {
     bivarianceHack(...args: Args): void;

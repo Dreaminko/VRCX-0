@@ -30,7 +30,6 @@ import {
 
 import { getPathForNavEntry } from '../navMenuModel';
 import type { NavMenuItem } from '../navMenuModel';
-import type { NavEntryHandler, NavMenuActionHandlers } from './types';
 import {
     DashboardEntryAction,
     NavItemContextMenu
@@ -44,6 +43,7 @@ import {
     isToolEntry,
     labelForEntry
 } from './AppNavMenuUtils';
+import type { NavEntryHandler, NavMenuActionHandlers } from './types';
 
 function CollapsedFolderDropdownEntry({
     entry,
@@ -165,8 +165,7 @@ function NavMenuFolderItem({
     );
     const label = labelForEntry(item, t);
     const isActive = children.some(
-        (entry) =>
-            entry.index === activeIndex || isEntryActive(entry, pathname)
+        (entry) => entry.index === activeIndex || isEntryActive(entry, pathname)
     );
     const isNotified = isNavItemNotified(item, notifiedKeys);
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { useGalleryAssetActions } from './useGalleryAssetActions';
 import type { GalleryUploadTarget } from './galleryConstants';
+import { useGalleryAssetActions } from './useGalleryAssetActions';
 
 function createActions(overrides: Record<string, unknown> = {}) {
     const uploadAssetImage = vi.fn().mockResolvedValue({ json: null });
@@ -74,7 +74,7 @@ function createActions(overrides: Record<string, unknown> = {}) {
             current: null
         },
         validateImageFile: vi.fn(),
-        withUploadTimeout: <T,>(promise: Promise<T>) => promise,
+        withUploadTimeout: <T>(promise: Promise<T>) => promise,
         ...overrides
     });
 

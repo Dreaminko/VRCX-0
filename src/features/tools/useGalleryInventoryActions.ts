@@ -2,8 +2,8 @@ import {
     mergeCurrentUserPresenceFields,
     type CurrentUserPresenceRecord
 } from '@/shared/utils/currentUserPresence';
-import { usePrintFavoriteStore } from '@/state/printFavoriteStore';
 import { normalizeString } from '@/shared/utils/string';
+import { usePrintFavoriteStore } from '@/state/printFavoriteStore';
 
 import type {
     GalleryInventoryActionDeps,

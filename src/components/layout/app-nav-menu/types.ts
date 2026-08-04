@@ -1,8 +1,6 @@
 import type { NavMenuItem } from '../navMenuModel';
 
-export type NavEntryHandler = (
-    entry: NavMenuItem
-) => void | Promise<void>;
+export type NavEntryHandler = (entry: NavMenuItem) => void | Promise<void>;
 
 export type NavMenuActionHandlers = {
     onSelect: NavEntryHandler;

@@ -1,3 +1,4 @@
+import type { useSortable } from '@dnd-kit/sortable';
 import {
     ArrowUpToLineIcon,
     GripVerticalIcon,
@@ -30,7 +31,6 @@ import type {
 } from '../feedTypes';
 import { FeedColumnItem } from './FeedColumnItem';
 import { useFeedColumnRows } from './useFeedColumnRows';
-import type { useSortable } from '@dnd-kit/sortable';
 
 const OVERSCAN = 8;
 const NEW_ROW_FEEDBACK_MS = 180;

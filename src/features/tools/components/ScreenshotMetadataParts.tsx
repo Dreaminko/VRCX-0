@@ -6,14 +6,15 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ComponentProps } from 'react';
-import type { AuthorDetail } from '@/platform/tauri/bindings';
 
 import { EmptyState as AppEmptyState } from '@/components/layout/PageScaffold';
+import type { AuthorDetail } from '@/platform/tauri/bindings';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import { openUserDialog } from '@/services/dialogService';
 import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
+
 import type { ScreenshotSearchSort } from '../screenshotMetadataValues';
 
 export function EmptyState({

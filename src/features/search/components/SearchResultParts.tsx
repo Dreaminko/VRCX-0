@@ -15,8 +15,8 @@ import type {
     UserProfileRecord,
     WorldProfileRecord
 } from '@/domain/entities/profileEntities';
-import type { SearchGroupJson } from '@/repositories/vrchatSearchRepository';
 import { cn } from '@/lib/utils';
+import type { SearchGroupJson } from '@/repositories/vrchatSearchRepository';
 import {
     openAvatarDialog,
     openGroupDialog,

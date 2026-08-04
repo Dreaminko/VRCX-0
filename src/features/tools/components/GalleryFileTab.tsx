@@ -4,14 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/ui/shadcn/button';
 import { TabsContent } from '@/ui/shadcn/tabs';
 
+import type { FileAssetTab, FileTabDefinition } from '../galleryConstants';
+import type { GalleryFileTabState } from '../galleryTypes';
 import { GalleryFileCard } from './GalleryFileCard';
 import { EmptyState, LoadingState } from './GalleryViewParts';
 import { MediaLibraryToolbar } from './MediaLibraryToolbar';
-import type {
-    FileAssetTab,
-    FileTabDefinition
-} from '../galleryConstants';
-import type { GalleryFileTabState } from '../galleryTypes';
 
 export function GalleryFileTab({
     tab,

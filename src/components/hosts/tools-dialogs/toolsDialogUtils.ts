@@ -48,7 +48,9 @@ export function csvEscape(value: unknown) {
 
 export function parseJsonArray(value: unknown): string[] {
     if (Array.isArray(value)) {
-        return value.filter((entry): entry is string => typeof entry === 'string');
+        return value.filter(
+            (entry): entry is string => typeof entry === 'string'
+        );
     }
     if (typeof value !== 'string' || !value.trim()) {
         return [];
@@ -56,7 +58,9 @@ export function parseJsonArray(value: unknown): string[] {
     try {
         const parsed = JSON.parse(value);
         return Array.isArray(parsed)
-            ? parsed.filter((entry): entry is string => typeof entry === 'string')
+            ? parsed.filter(
+                  (entry): entry is string => typeof entry === 'string'
+              )
             : [];
     } catch {
         return [];

@@ -2,6 +2,7 @@ import { SettingsIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { SearchPagination } from '@/components/search/SearchPagination';
+import type { LanguageOption } from '@/shared/utils/userLanguage';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
@@ -15,16 +16,7 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 import { TabsContent } from '@/ui/shadcn/tabs';
-import type { LanguageOption } from '@/shared/utils/userLanguage';
 
-import {
-    AvatarCard,
-    GroupRow,
-    SearchEmptyState,
-    SearchLoadingState,
-    UserRow,
-    WorldCard
-} from './SearchResultParts';
 import type {
     SearchAvatarResult,
     SearchGroupResult,
@@ -33,6 +25,14 @@ import type {
     SearchWorldCategory,
     SearchWorldResult
 } from '../searchTypes';
+import {
+    AvatarCard,
+    GroupRow,
+    SearchEmptyState,
+    SearchLoadingState,
+    UserRow,
+    WorldCard
+} from './SearchResultParts';
 
 export function SearchUserTabPanel({
     searchUserByBio,
@@ -174,12 +174,10 @@ export function SearchWorldTabPanel({
                     </Field>
                     <Select
                         value={selectedWorldCategory}
-                        items={worldCategories.map(
-                            (row) => ({
-                                value: String(row.index),
-                                label: row.name || String(row.index)
-                            })
-                        )}
+                        items={worldCategories.map((row) => ({
+                            value: String(row.index),
+                            label: row.name || String(row.index)
+                        }))}
                         onValueChange={onWorldCategoryChange}
                     >
                         <SelectTrigger size="sm">

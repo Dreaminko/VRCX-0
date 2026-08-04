@@ -147,17 +147,20 @@ export function PreviousInstanceInfoChart({
         [chartRows, hour12]
     );
 
-    const setInfoChartElementRef = useCallback((node: HTMLDivElement | null) => {
-        if (chartElementRef.current && chartElementRef.current !== node) {
-            resizeObserverRef.current?.disconnect();
-            chartInstanceRef.current?.dispose();
-            resizeObserverRef.current = null;
-            chartInstanceRef.current = null;
-            chartThemeRef.current = null;
-        }
-        chartElementRef.current = node;
-        setChartElement(node);
-    }, []);
+    const setInfoChartElementRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            if (chartElementRef.current && chartElementRef.current !== node) {
+                resizeObserverRef.current?.disconnect();
+                chartInstanceRef.current?.dispose();
+                resizeObserverRef.current = null;
+                chartInstanceRef.current = null;
+                chartThemeRef.current = null;
+            }
+            chartElementRef.current = node;
+            setChartElement(node);
+        },
+        []
+    );
 
     useEffect(
         () => () => {
@@ -235,19 +238,23 @@ export function PreviousInstanceInfoChart({
 
             chart.clear();
             chart.setOption(chartPayload.option, { notMerge: true });
-            chart.on('click', (params: { componentType?: string; dataIndex?: number }) => {
-                if (params.componentType !== 'yAxis') {
-                    return;
+            chart.on(
+                'click',
+                (params: { componentType?: string; dataIndex?: number }) => {
+                    if (params.componentType !== 'yAxis') {
+                        return;
+                    }
+                    const entry =
+                        chartPayload.firstEntries[params.dataIndex ?? -1];
+                    if (entry?.userId) {
+                        openUserDialog({
+                            userId: entry.userId,
+                            title: entry.displayName || undefined,
+                            seedData: knownUsersById[entry.userId] || null
+                        });
+                    }
                 }
-                const entry = chartPayload.firstEntries[params.dataIndex ?? -1];
-                if (entry?.userId) {
-                    openUserDialog({
-                        userId: entry.userId,
-                        title: entry.displayName || undefined,
-                        seedData: knownUsersById[entry.userId] || null
-                    });
-                }
-            });
+            );
         }
 
         renderChart().catch((error: unknown) => {

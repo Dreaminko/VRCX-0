@@ -134,9 +134,7 @@ export function normalizeLocationObject(
             tag: tag || parsed.tag,
             isOffline: Boolean(source.isOffline ?? parsed.isOffline),
             isPrivate: Boolean(source.isPrivate ?? parsed.isPrivate),
-            isTraveling: Boolean(
-                source.isTraveling ?? parsed.isTraveling
-            ),
+            isTraveling: Boolean(source.isTraveling ?? parsed.isTraveling),
             isRealInstance: Boolean(
                 source.isRealInstance ?? parsed.isRealInstance
             ),
@@ -153,7 +151,8 @@ export function normalizeLocationObject(
                 normalizeLocationText(source.regionName) ||
                 normalizeLocationText(source.region_name) ||
                 parsed.region,
-            shortName: normalizeLocationText(source.shortName) || parsed.shortName,
+            shortName:
+                normalizeLocationText(source.shortName) || parsed.shortName,
             launchToken:
                 normalizeLocationText(source.launchToken) ||
                 normalizeLocationText(source.secureOrShortName) ||

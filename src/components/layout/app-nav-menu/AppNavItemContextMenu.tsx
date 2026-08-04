@@ -4,10 +4,8 @@ import {
     PinOffIcon,
     Trash2Icon
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import type { ReactElement } from 'react';
-import type { NavMenuItem } from '../navMenuModel';
-import type { NavEntryHandler } from './types';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -28,7 +26,9 @@ import {
 } from '@/ui/shadcn/dropdown-menu';
 import { SidebarMenuAction } from '@/ui/shadcn/sidebar';
 
+import type { NavMenuItem } from '../navMenuModel';
 import { isDashboardEntry, isToolEntry } from './AppNavMenuUtils';
+import type { NavEntryHandler } from './types';
 
 function DashboardEntryAction({
     entry,

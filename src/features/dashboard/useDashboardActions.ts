@@ -79,8 +79,7 @@ export function useDashboardActions({
         try {
             await deleteDashboard(dashboard.id);
             const fallback =
-                dashboards.find((entry) => entry.id !== dashboard.id) ||
-                null;
+                dashboards.find((entry) => entry.id !== dashboard.id) || null;
             if (fallback) {
                 navigate(`/dashboard/${fallback.id}`, { replace: true });
             } else {

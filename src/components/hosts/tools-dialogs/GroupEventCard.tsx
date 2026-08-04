@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import {
     CalendarIcon,
     DownloadIcon,
@@ -7,7 +8,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
-import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -77,10 +77,7 @@ async function openCalendarEvent(
     }
 }
 
-async function downloadEventIcs(
-    event: GroupCalendarEventRecord,
-    t: TFunction
-) {
+async function downloadEventIcs(event: GroupCalendarEventRecord, t: TFunction) {
     const content = await getCalendarIcs(event, t);
     if (!content) {
         return;
@@ -99,10 +96,7 @@ async function downloadEventIcs(
     }
 }
 
-async function copyEventLink(
-    event: GroupCalendarEventRecord,
-    t: TFunction
-) {
+async function copyEventLink(event: GroupCalendarEventRecord, t: TFunction) {
     const groupId = getEventGroupId(event);
     const eventId = getEventId(event);
     if (!groupId || !eventId) {

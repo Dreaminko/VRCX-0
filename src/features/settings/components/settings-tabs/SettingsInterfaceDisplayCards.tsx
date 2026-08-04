@@ -11,8 +11,8 @@ import {
 } from '@/ui/shadcn/select';
 import { Switch } from '@/ui/shadcn/switch';
 
-import { Field, SegmentedPreference, SettingsGroup } from '../SettingsField';
 import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+import { Field, SegmentedPreference, SettingsGroup } from '../SettingsField';
 
 type InterfaceState = SettingsPageStateSections['interface'];
 type SettingsInterfaceDisplayCardsProps = Pick<

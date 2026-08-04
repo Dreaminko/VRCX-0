@@ -1,6 +1,6 @@
+import type { DashboardConfig } from '@/features/dashboard/dashboardConfig';
 import { formatDateFilter } from '@/lib/dateTime';
 import { normalizeString } from '@/shared/utils/string';
-import type { DashboardConfig } from '@/features/dashboard/dashboardConfig';
 
 export const MAX_WIDGET_ROWS = 50;
 

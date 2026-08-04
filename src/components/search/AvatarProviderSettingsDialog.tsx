@@ -2,8 +2,8 @@ import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import type { AvatarSearchProviderConfig } from '@/repositories/avatarSearchProviderRepository';
 
+import type { AvatarSearchProviderConfig } from '@/repositories/avatarSearchProviderRepository';
 import avatarSearchProviderRepository from '@/repositories/avatarSearchProviderRepository';
 import { Button } from '@/ui/shadcn/button';
 import {

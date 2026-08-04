@@ -63,6 +63,7 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
+
 import {
     applyResolution,
     getConfigFieldValue,
@@ -414,18 +415,18 @@ export function VRChatConfigDialog({
                                                         <InputGroupInput
                                                             id={`config-json-${key}`}
                                                             type={type}
-                                                            value={
-                                                                getConfigFieldValue(
-                                                                    config,
-                                                                    key
-                                                                )
-                                                            }
+                                                            value={getConfigFieldValue(
+                                                                config,
+                                                                key
+                                                            )}
                                                             placeholder={
                                                                 placeholder
                                                             }
                                                             onChange={(event) =>
                                                                 setConfig(
-                                                                    (current) => ({
+                                                                    (
+                                                                        current
+                                                                    ) => ({
                                                                         ...current,
                                                                         [key]: event
                                                                             .target
@@ -454,12 +455,10 @@ export function VRChatConfigDialog({
                                                     <Input
                                                         id={`config-json-${key}`}
                                                         type={type}
-                                                        value={
-                                                            getConfigFieldValue(
-                                                                config,
-                                                                key
-                                                            )
-                                                        }
+                                                        value={getConfigFieldValue(
+                                                            config,
+                                                            key
+                                                        )}
                                                         placeholder={
                                                             placeholder
                                                         }

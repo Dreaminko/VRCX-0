@@ -1,4 +1,5 @@
 import { Button } from '@/ui/shadcn/button';
+
 import type { useLoginPageController } from '../useLoginPageController';
 
 type LoginActions = ReturnType<typeof useLoginPageController>['actions'];

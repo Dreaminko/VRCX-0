@@ -1,8 +1,8 @@
+import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2Icon, XIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ColumnDef } from '@tanstack/react-table';
 
 import { formatDateFilter } from '@/lib/dateTime';
 import { Button } from '@/ui/shadcn/button';
@@ -125,8 +125,7 @@ export function useFriendLogColumns({
                 size: 64,
                 maxSize: 64,
                 enableSorting: false,
-                accessorFn: (row) =>
-                    getFriendLogRowKey(row, rowsOwnerUserId),
+                accessorFn: (row) => getFriendLogRowKey(row, rowsOwnerUserId),
                 header: () => t('table.friendLog.action'),
                 cell: ({ row }) => {
                     const rowKey = getFriendLogRowKey(

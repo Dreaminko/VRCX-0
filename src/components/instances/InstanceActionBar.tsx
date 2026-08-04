@@ -7,9 +7,9 @@ import {
     UsersRoundIcon,
     XCircleIcon
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -128,9 +128,7 @@ function instanceCapacity(instance: InstanceActionRecord | null) {
     );
 }
 
-function resolveInstanceSource(
-    instance: unknown
-): InstanceActionRecord | null {
+function resolveInstanceSource(instance: unknown): InstanceActionRecord | null {
     if (!instance || typeof instance !== 'object') {
         return null;
     }

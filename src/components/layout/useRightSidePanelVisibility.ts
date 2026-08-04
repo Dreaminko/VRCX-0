@@ -29,8 +29,9 @@ function readSidePanelRouteOpenState(): SidePanelRouteOpenState {
             return {};
         }
         return Object.fromEntries(
-            Object.entries(value).filter((entry): entry is [string, boolean] =>
-                typeof entry[1] === 'boolean'
+            Object.entries(value).filter(
+                (entry): entry is [string, boolean] =>
+                    typeof entry[1] === 'boolean'
             )
         );
     } catch {

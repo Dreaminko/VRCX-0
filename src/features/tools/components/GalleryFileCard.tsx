@@ -1,22 +1,14 @@
 import { CheckIcon, EyeIcon, ImageIcon, Trash2Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { extractFileId } from '@/shared/utils/fileUtils';
 import type { MediaFileRecord } from '@/repositories/mediaRepository';
+import { extractFileId } from '@/shared/utils/fileUtils';
 
+import type { FileAssetTab, FileTabDefinition } from '../galleryConstants';
+import type { GalleryProfileField } from '../galleryTypes';
+import { getLatestFileUrl, getUsefulDisplayName } from '../inventoryHelpers';
 import { GalleryEmojiImage } from './GalleryEmojiImage';
 import { MediaAssetTile } from './MediaAssetTile';
-import {
-    getLatestFileUrl,
-    getUsefulDisplayName
-} from '../inventoryHelpers';
-import type {
-    FileAssetTab,
-    FileTabDefinition
-} from '../galleryConstants';
-import type {
-    GalleryProfileField
-} from '../galleryTypes';
 import type { MediaPreviewOptions } from './MediaAssetTile';
 
 export function GalleryFileCard({
@@ -39,10 +31,7 @@ export function GalleryFileCard({
     mutatingKey: string;
     currentUserId: string | null;
     onPreview: (options: MediaPreviewOptions) => void;
-    onSetProfileField: (
-        fieldName: GalleryProfileField,
-        fileId: string
-    ) => void;
+    onSetProfileField: (fieldName: GalleryProfileField, fileId: string) => void;
     onDeleteFile: (tab: FileAssetTab, fileId: string) => void;
 }) {
     const { t } = useTranslation();
@@ -55,9 +44,7 @@ export function GalleryFileCard({
             : extractFileId(userIcon);
     // VRChat's web UI calls profilePicOverride the Banner; keep the API field unchanged.
     const profileField: GalleryProfileField =
-        tab === 'gallery'
-            ? 'profilePicOverride'
-            : 'userIcon';
+        tab === 'gallery' ? 'profilePicOverride' : 'userIcon';
     const isCurrent = activeFileId === file.id;
     const isFileMutating = mutatingKey === `${tab}:${file.id}`;
     const isProfileMutating = profileField
