@@ -275,6 +275,10 @@
         background: transparent;
     }
 
+    #root:has(.vrcx-0-custom-window-frame) {
+        padding: 0.375rem;
+    }
+
     .vrcx-0-app-root {
         position: relative;
         isolation: isolate;
@@ -336,6 +340,10 @@
         background-repeat: no-repeat;
         background-position: top;
         background-size: 100% 1px;
+    }
+
+    #root:has(.vrcx-0-custom-window-frame [data-window-docked]) {
+        padding: 0;
     }
 
     .dark .vrcx-0-custom-window-frame:has([data-window-docked]),
