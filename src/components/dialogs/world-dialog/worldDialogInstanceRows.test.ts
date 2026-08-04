@@ -53,6 +53,27 @@ describe('worldDialogInstanceRows', () => {
         ).toEqual(['usr_friend', 'usr_roommate']);
     });
 
+    it('does not mark the opened instance as current without a local location', () => {
+        const result = buildWorldDialogDisplayInstanceRows({
+            creatorGroupsById: {},
+            currentInstanceDetails: {},
+            currentLocation: '',
+            friendsById: {},
+            instanceRows: [
+                {
+                    id: '123',
+                    location: 'wrld_test:123',
+                    users: []
+                }
+            ],
+            isInstanceLocation: true,
+            normalizedWorldId: 'wrld_test:123',
+            world: { id: 'wrld_test', capacity: 40 }
+        });
+
+        expect(result.displayInstanceRows[0]?.isCurrentInstance).toBe(false);
+    });
+
     it('injects live current instance details and merges friends in the same instance', () => {
         const result = buildWorldDialogDisplayInstanceRows({
             creatorGroupsById: {

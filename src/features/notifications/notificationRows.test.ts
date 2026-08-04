@@ -30,6 +30,7 @@ describe('notification row helpers', () => {
         expect(
             resolveCurrentInviteLocation(
                 {
+                    isGameRunning: true,
                     currentLocation: 'traveling',
                     currentDestination: 'wrld_dest:1'
                 },
@@ -37,7 +38,10 @@ describe('notification row helpers', () => {
             )
         ).toBe('wrld_dest:1');
         expect(
-            resolveCurrentInviteLocation({}, { $locationTag: 'wrld_profile:2' })
+            resolveCurrentInviteLocation(
+                { isGameRunning: true },
+                { $locationTag: 'wrld_profile:2' }
+            )
         ).toBe('wrld_profile:2');
     });
 

@@ -6,12 +6,40 @@ import {
     checkCanInvite,
     checkCanInviteSelf,
     evaluateLocalInstanceActionGates,
+    resolveCurrentInviteLocation,
     type CheckCanInviteDeps,
     type CheckCanInviteSelfDeps,
     type LocalInstanceActionGates
 } from './invite';
 
 describe('invite permissions', () => {
+    it('resolves an invite location only while the local game is running', () => {
+        expect(
+            resolveCurrentInviteLocation(
+                {
+                    isGameRunning: true,
+                    currentLocation: 'wrld_local:123'
+                },
+                { location: 'wrld_remote:456' }
+            )
+        ).toBe('wrld_local:123');
+        expect(
+            resolveCurrentInviteLocation(
+                {
+                    isGameRunning: false,
+                    currentLocation: 'wrld_remote:456'
+                },
+                { location: 'wrld_remote:456' }
+            )
+        ).toBe('');
+        expect(
+            resolveCurrentInviteLocation(
+                { isGameRunning: false },
+                { location: 'wrld_remote:456' }
+            )
+        ).toBe('');
+    });
+
     it('allows invite actions for public, group, and owned private instances', () => {
         const deps: CheckCanInviteDeps = {
             currentUserId: 'usr_me',

@@ -24,6 +24,7 @@ describe('favorite item helpers', () => {
         expect(
             resolveCurrentInviteLocation(
                 {
+                    isGameRunning: true,
                     currentLocation: 'wrld_live:123',
                     currentDestination: 'wrld_next:456'
                 },
@@ -34,6 +35,7 @@ describe('favorite item helpers', () => {
         expect(
             resolveCurrentInviteLocation(
                 {
+                    isGameRunning: true,
                     currentLocation: 'traveling',
                     currentDestination: 'wrld_next:456'
                 },
@@ -43,7 +45,7 @@ describe('favorite item helpers', () => {
 
         expect(
             resolveCurrentInviteLocation(
-                {},
+                { isGameRunning: true },
                 { $locationTag: 'wrld_profile:789' }
             )
         ).toBe('wrld_profile:789');

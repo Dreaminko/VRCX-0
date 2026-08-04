@@ -346,12 +346,17 @@ export function buildWorldDialogDisplayInstanceRows({
         const isCurrentInstance = sameInstanceLocation(
             world,
             instance,
-            currentLocation || normalizedWorldId
+            currentLocation
+        );
+        const hasMatchingInstanceDetails = sameInstanceLocation(
+            world,
+            instance,
+            currentInstanceDetailsForLocation.location
         );
         const instanceWithFriends: WorldDialogInstanceRow = {
             ...instance,
             isCurrentInstance,
-            users: isCurrentInstance
+            users: hasMatchingInstanceDetails
                 ? applyInstanceDwellEpochs(
                       mergedUsers,
                       currentInstanceDwellEpochsByUserId

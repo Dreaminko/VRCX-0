@@ -424,7 +424,7 @@ export function WorldDialogTabbedView({
             )
         };
     });
-    const currentResolvedLocation = currentGameLocation;
+    const currentResolvedLocation = isGameRunning ? currentGameLocation : '';
     const visibleInstanceUserIds = useMemo(() => {
         const userIds = new Set(Object.keys(friendsById || {}));
         const normalizedCurrentUserId = firstText(

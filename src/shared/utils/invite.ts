@@ -79,6 +79,9 @@ function resolveCurrentInviteLocation(
     gameState: InviteLocationGameState | null | undefined,
     currentUserSnapshot: InviteLocationCurrentUserSnapshot | null | undefined
 ): string {
+    if (gameState?.isGameRunning !== true) {
+        return '';
+    }
     const currentLocation = normalizeInviteLocationValue(
         gameState?.currentLocation
     );
