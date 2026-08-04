@@ -70,6 +70,19 @@ function textValue(value: unknown) {
           : String(value);
 }
 
+function favoritePlayerCount(
+    kind: FavoriteKind,
+    entityId: string,
+    detail: FavoriteEntityDetail | null | undefined,
+    worldFactsById: FavoriteDetailMap
+): number {
+    const occupants =
+        kind === 'world'
+            ? (worldFactsById[entityId]?.occupants ?? detail?.occupants)
+            : detail?.occupants;
+    return Number(occupants) || 0;
+}
+
 function favoriteSeedData(
     value: Record<string, unknown> | null | undefined
 ): FavoriteSeedData | null {
@@ -510,7 +523,12 @@ export function buildFavoriteRemoteItemsByGroup({
                       availabilityStatus === 'private' ||
                       (usedFallback && !availabilityStatus))
                 : releaseStatusPrivate || usedFallback;
-        const playerCount = Number(displayDetail?.occupants) || 0;
+        const playerCount = favoritePlayerCount(
+            kind,
+            favoriteId,
+            displayDetail,
+            worldFactsById
+        );
         const authorName = textValue(displayDetail?.authorName);
         const subtitle =
             authorName ||
@@ -568,6 +586,7 @@ export function buildFavoriteLocalItemsByGroup({
     localWorldFavorites,
     localAvatarDetailsById,
     localWorldDetailsById,
+    worldFactsById = {},
     friendsById,
     knownUsersById = {},
     sortValue,
@@ -580,6 +599,7 @@ export function buildFavoriteLocalItemsByGroup({
     localWorldFavorites?: FavoriteGroupSourceMap;
     localAvatarDetailsById?: FavoriteDetailMap;
     localWorldDetailsById?: FavoriteDetailMap;
+    worldFactsById?: FavoriteDetailMap;
     friendsById?: FavoriteProfileMap;
     knownUsersById?: FavoriteProfileMap;
     sortValue?: FavoriteSortValue;
@@ -626,7 +646,12 @@ export function buildFavoriteLocalItemsByGroup({
             const detail = localDetailsById?.[normalizedId] || {
                 id: normalizedId
             };
-            const playerCount = Number(detail.occupants) || 0;
+            const playerCount = favoritePlayerCount(
+                kind,
+                normalizedId,
+                detail,
+                worldFactsById
+            );
             const imagePair = favoriteImagePair(detail);
             return {
                 key: `local:${group.key}:${normalizedId}`,

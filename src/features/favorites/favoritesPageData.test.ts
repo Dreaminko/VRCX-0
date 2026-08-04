@@ -386,6 +386,26 @@ describe('favorites page data helpers', () => {
         ]);
     });
 
+    it('uses fresh world fact occupants over stale remote world details', () => {
+        const items = buildWorldItems({
+            remoteWorldDetail: {
+                name: 'Remote World',
+                occupants: 4
+            },
+            worldFactDetail: {
+                name: 'Remote World',
+                occupants: 12
+            }
+        });
+
+        expect(items).toEqual([
+            expect.objectContaining({
+                id: 'wrld_favorite',
+                playerCount: 12
+            })
+        ]);
+    });
+
     it('shows live remote avatar details without a lock', () => {
         const items = buildAvatarItems({
             remoteAvatarDetail: {
@@ -647,6 +667,43 @@ describe('favorites page data helpers', () => {
             expect.objectContaining({
                 imageUrl: 'https://example.test/local-full/256',
                 imageSmallUrl: 'https://example.test/local-thumb/128'
+            })
+        ]);
+    });
+
+    it('uses fresh world fact occupants over stale local world details', () => {
+        const items = buildFavoriteLocalItemsByGroup({
+            kind: 'world',
+            localGroups: [
+                {
+                    key: 'Worlds',
+                    label: 'Worlds'
+                }
+            ],
+            localWorldFavorites: {
+                Worlds: ['wrld_local']
+            },
+            localWorldDetailsById: {
+                wrld_local: {
+                    id: 'wrld_local',
+                    name: 'Local World',
+                    occupants: 3
+                }
+            },
+            worldFactsById: {
+                wrld_local: {
+                    id: 'wrld_local',
+                    occupants: 9
+                }
+            },
+            sortValue: 'date',
+            t: (key: string) => key
+        })['Worlds'];
+
+        expect(items).toEqual([
+            expect.objectContaining({
+                id: 'wrld_local',
+                playerCount: 9
             })
         ]);
     });

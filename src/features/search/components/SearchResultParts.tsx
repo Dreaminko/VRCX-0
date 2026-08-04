@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import { EmptyState, LoadingState } from '@/components/layout/PageScaffold';
 import { FadeInImage } from '@/components/media/FadeInImage';
+import type { WorldProfileRecord } from '@/domain/entities/profileEntities';
 import { cn } from '@/lib/utils';
 import {
     openAvatarDialog,
@@ -24,6 +25,7 @@ import {
     languageOptionLabel,
     normalizeProfileLanguageRows
 } from '@/shared/utils/userLanguage';
+import { useWorldFactsStore } from '@/state/worldFactsStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -235,9 +237,13 @@ export function AvatarCard({ avatar }: any) {
     );
 }
 
-export function WorldCard({ world }: any) {
-    const subtitle = world.occupants
-        ? `${world.authorName || ''} (${world.occupants})`
+export function WorldCard({ world }: { world: WorldProfileRecord }) {
+    const liveOccupants = useWorldFactsStore(
+        (state) => state.worldsById[world.id]?.occupants
+    );
+    const occupants = Number(liveOccupants ?? world.occupants) || 0;
+    const subtitle = occupants
+        ? `${world.authorName || ''} (${occupants})`
         : world.authorName || '';
 
     return (

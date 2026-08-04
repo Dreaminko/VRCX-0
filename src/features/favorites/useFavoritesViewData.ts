@@ -210,6 +210,7 @@ export function useFavoritesViewData({
             localWorldFavorites,
             localAvatarDetailsById: normalizedLocalAvatarDetailsById,
             localWorldDetailsById: normalizedLocalWorldDetailsById,
+            worldFactsById,
             friendsById,
             knownUsersById,
             sortValue,
@@ -226,7 +227,8 @@ export function useFavoritesViewData({
         normalizedLocalWorldDetailsById,
         localWorldFavorites,
         sortValue,
-        t
+        t,
+        worldFactsById
     ]);
 
     const avatarHistoryItems = useMemo(() => {
