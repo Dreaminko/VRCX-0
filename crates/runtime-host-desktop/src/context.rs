@@ -80,7 +80,7 @@ impl DesktopRuntimeServices {
         self.notification_desktop_notifier.set(desktop);
     }
 
-    pub fn set_realtime_user_image_resolver(&self, realtime_runtime: Arc<RealtimeHostRuntime>) {
+    pub fn set_realtime_user_image_resolver(&self, realtime_runtime: &Arc<RealtimeHostRuntime>) {
         self.realtime_user_image_resolver.set(realtime_runtime);
     }
 

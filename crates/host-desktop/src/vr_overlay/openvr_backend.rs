@@ -1,13 +1,11 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use openvr::{
     overlay::OverlayHandle,
     property::{
-        ControllerRoleHint_Int32, DeviceBatteryPercentage_Float, DeviceIsCharging_Bool,
-        DeviceProvidesBatteryStatus_Bool, ModelNumber_String, SerialNumber_String,
-        TrackingSystemName_String,
+        ControllerRoleHint_Int32, ModelNumber_String, SerialNumber_String, TrackingSystemName_String,
     },
     system::event::Event,
     tracked_device_index, ApplicationType, Context, ControllerState, Overlay, System,
@@ -22,15 +20,17 @@ use vrcx_0_vr_overlay::{
 #[cfg(windows)]
 use super::gpu_presenter::GpuPresenter;
 use super::openvr_helpers::{
-    click_up_event_for_release, device_sort_key, device_status, frame_fingerprint,
-    grip_pressed_for_state, is_display_device_class, nearest_interactive_hit, overlay_button_mask,
-    overlay_quad_size, overlay_transform_to_matrix, panel_id_for_surface,
+    click_up_event_for_release, frame_fingerprint, grip_pressed_for_state, nearest_interactive_hit,
+    overlay_button_mask, overlay_quad_size, overlay_transform_to_matrix, panel_id_for_surface,
     pointer_laser_surface_id_for_hand, pointer_laser_transform, pointer_laser_width,
     pointer_miss_uv, pose_transform, scroll_delta_for_state, set_overlay_premultiplied_alpha,
-    short_device_label, should_emit_hover, surface_id_for_panel_id, surface_transform,
-    trigger_drag_scroll_delta, trigger_pressed, FrameFingerprint, InteractiveHit,
-    InteractiveSurfaceCandidate, InteractiveTarget,
+    should_emit_hover, surface_id_for_panel_id, surface_transform, trigger_drag_scroll_delta,
+    trigger_pressed, FrameFingerprint, InteractiveHit, InteractiveSurfaceCandidate,
+    InteractiveTarget,
 };
+use openvr_devices::{snapshot_openvr_devices, string_property, BatteryReadingState};
+#[cfg(test)]
+use openvr_devices::reads_battery_properties;
 use super::{
     actor::{OverlayBackend, TickOutcome},
     policy::WristVisibilityPolicy,
@@ -54,6 +54,8 @@ const FRIENDS_PANEL_INPUT_ENABLED: bool = false;
 const OPENVR_CONTEXT_IN_USE_MESSAGE: &str =
     "OpenVR context is still owned by another overlay actor";
 static OPENVR_CONTEXT_OWNED: AtomicBool = AtomicBool::new(false);
+
+mod openvr_devices;
 
 pub struct OpenVrOverlayBackend {
     context: Option<Context>,
@@ -133,27 +135,6 @@ struct ControllerInputState {
     drag_scroll_remainder_y: f32,
     trigger_drag_scrolled: bool,
     last_scroll_at: Option<Instant>,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct BatteryReadingState {
-    accepted: Option<u8>,
-    pending_zero: bool,
-}
-
-impl BatteryReadingState {
-    fn update(&mut self, observed: Option<u8>) -> Option<u8> {
-        if observed == Some(0)
-            && self.accepted.is_some_and(|accepted| accepted > 0)
-            && !self.pending_zero
-        {
-            self.pending_zero = true;
-            return self.accepted;
-        }
-        self.accepted = observed;
-        self.pending_zero = false;
-        observed
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -1472,123 +1453,6 @@ fn grip_pressed(
 ) -> bool {
     let tracking_system_name = string_property(system, device, TrackingSystemName_String);
     grip_pressed_for_state(state, tracking_system_name.as_deref())
-}
-
-fn snapshot_openvr_devices(
-    system: &openvr::System,
-    hmd_battery_readings: &mut HashMap<String, BatteryReadingState>,
-) -> Vec<VrDeviceSnapshot> {
-    let poses = system.device_to_absolute_tracking_pose(TrackingUniverseOrigin::Standing, 0.0);
-    let mut rows = Vec::new();
-    let mut current_hmd_battery_devices = HashSet::new();
-    let mut tracker_index = 0usize;
-
-    for index in 0..MAX_TRACKED_DEVICE_COUNT {
-        let device = TrackedDeviceIndex(index as u32);
-        if !system.is_tracked_device_connected(device) {
-            continue;
-        }
-        let class = system.tracked_device_class(device);
-        if !is_display_device_class(class) {
-            continue;
-        }
-
-        let role = controller_role(system, device);
-        let serial = string_property(system, device, SerialNumber_String);
-        let model = string_property(system, device, ModelNumber_String);
-        let label = match class {
-            TrackedDeviceClass::HMD => "HMD".to_string(),
-            TrackedDeviceClass::Controller => match role {
-                Some(TrackedControllerRole::LeftHand) => "L".to_string(),
-                Some(TrackedControllerRole::RightHand) => "R".to_string(),
-                _ => short_device_label(model.as_deref(), serial.as_deref(), "C"),
-            },
-            TrackedDeviceClass::GenericTracker => {
-                tracker_index += 1;
-                format!("T{tracker_index}")
-            }
-            _ => short_device_label(model.as_deref(), serial.as_deref(), "VR"),
-        };
-        let battery_properties_available = reads_battery_properties(
-            class,
-            bool_property(system, device, DeviceProvidesBatteryStatus_Bool),
-        );
-        let observed_battery_percent = battery_properties_available
-            .then(|| battery_percent(system, device))
-            .flatten();
-        let battery_percent = if matches!(class, TrackedDeviceClass::HMD) {
-            let battery_key = serial
-                .as_ref()
-                .map(|serial| format!("serial:{serial}"))
-                .unwrap_or_else(|| format!("device:{}:{label}", device.0));
-            current_hmd_battery_devices.insert(battery_key.clone());
-            hmd_battery_readings
-                .entry(battery_key)
-                .or_default()
-                .update(observed_battery_percent)
-        } else {
-            observed_battery_percent
-        };
-        let charging = battery_properties_available
-            && bool_property(system, device, DeviceIsCharging_Bool).unwrap_or(false);
-        let pose_valid = poses
-            .get(index)
-            .is_some_and(|pose| pose.device_is_connected() && pose.pose_is_valid());
-        let status = device_status(battery_percent, charging, pose_valid);
-        rows.push(DeviceRow {
-            sort_key: device_sort_key(class, role, tracker_index),
-            snapshot: VrDeviceSnapshot {
-                label,
-                serial,
-                status,
-                battery_percent,
-            },
-        });
-    }
-
-    hmd_battery_readings.retain(|key, _| current_hmd_battery_devices.contains(key));
-    rows.sort_by_key(|row| row.sort_key);
-    rows.into_iter().map(|row| row.snapshot).collect()
-}
-
-struct DeviceRow {
-    sort_key: (u8, usize),
-    snapshot: VrDeviceSnapshot,
-}
-
-fn string_property(
-    system: &openvr::System,
-    device: TrackedDeviceIndex,
-    property: openvr::TrackedDeviceProperty,
-) -> Option<String> {
-    system
-        .string_tracked_device_property(device, property)
-        .ok()
-        .and_then(|value| value.into_string().ok())
-        .map(|value| value.trim_matches(char::from(0)).trim().to_string())
-        .filter(|value| !value.is_empty())
-}
-
-fn bool_property(
-    system: &openvr::System,
-    device: TrackedDeviceIndex,
-    property: openvr::TrackedDeviceProperty,
-) -> Option<bool> {
-    system.bool_tracked_device_property(device, property).ok()
-}
-
-fn battery_percent(system: &openvr::System, device: TrackedDeviceIndex) -> Option<u8> {
-    system
-        .float_tracked_device_property(device, DeviceBatteryPercentage_Float)
-        .ok()
-        .map(|value| (value.clamp(0.0, 1.0) * 100.0).round() as u8)
-}
-
-fn reads_battery_properties(
-    class: TrackedDeviceClass,
-    provides_battery_status: Option<bool>,
-) -> bool {
-    matches!(class, TrackedDeviceClass::HMD) || provides_battery_status == Some(true)
 }
 
 #[cfg(test)]

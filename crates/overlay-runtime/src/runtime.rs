@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::AtomicU64;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, Condvar, Mutex,
+    Arc, Condvar, Mutex, Weak,
 };
 use std::thread::{self, ThreadId};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -493,23 +493,29 @@ pub struct VrOverlayRuntime {
 
 #[derive(Clone)]
 pub struct VrOverlayActivitySink {
-    runtime: Arc<VrOverlayRuntime>,
+    runtime: Weak<VrOverlayRuntime>,
 }
 
 impl VrOverlayActivitySink {
-    pub fn new(runtime: Arc<VrOverlayRuntime>) -> Self {
-        Self { runtime }
+    pub fn new(runtime: &Arc<VrOverlayRuntime>) -> Self {
+        Self {
+            runtime: Arc::downgrade(runtime),
+        }
     }
 }
 
 impl OverlayActivitySink for VrOverlayActivitySink {
     fn emit_overlay_activity_snapshot(&self, _snapshot: OverlayActivitySnapshot) {
-        self.runtime.mark_friends_panel_model_dirty();
-        self.runtime.reconcile_current();
+        if let Some(runtime) = self.runtime.upgrade() {
+            runtime.mark_friends_panel_model_dirty();
+            runtime.reconcile_current();
+        }
     }
 
     fn emit_overlay_activity_delivery(&self, delivery: OverlayActivityDelivery) {
-        self.runtime.ingest_hmd_delivery(delivery);
+        if let Some(runtime) = self.runtime.upgrade() {
+            runtime.ingest_hmd_delivery(delivery);
+        }
     }
 }
 
@@ -2530,3 +2536,5 @@ fn is_real_instance_location(location: &str) -> bool {
 
 #[cfg(all(test, feature = "friends-panel"))]
 pub(crate) mod tests;
+#[cfg(test)]
+mod activity_sink_tests;

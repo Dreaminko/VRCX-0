@@ -304,13 +304,15 @@ impl DesktopRuntimeHostState {
             favorites_sink: Some(favorites_sink),
             profile_extension: Some(extension.clone()),
         })?;
-        let realtime_runtime = Arc::clone(&runtime.realtime_runtime);
+        let realtime_runtime = Arc::downgrade(&runtime.realtime_runtime);
         desktop
             .vr_overlay_runtime
-            .set_friends_panel_snapshot_provider(move || realtime_runtime.friend_snapshot());
+            .set_friends_panel_snapshot_provider(move || {
+                realtime_runtime.upgrade()?.friend_snapshot()
+            });
         desktop
             .services
-            .set_realtime_user_image_resolver(Arc::clone(&runtime.realtime_runtime));
+            .set_realtime_user_image_resolver(&runtime.realtime_runtime);
 
         Ok(Self {
             runtime,

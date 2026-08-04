@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeSnapshot, BackendRuntimeTelemetry, RealtimeProjectionSync,
@@ -10,7 +10,7 @@ use crate::RuntimeHostProfileExtension;
 
 pub struct RuntimeHostEventSink<S> {
     backend_runtime: BackendRuntime,
-    profile_extension: Option<Arc<dyn RuntimeHostProfileExtension>>,
+    profile_extension: Option<Weak<dyn RuntimeHostProfileExtension>>,
     inner: S,
 }
 
@@ -22,7 +22,7 @@ impl<S> RuntimeHostEventSink<S> {
     ) -> Self {
         Self {
             backend_runtime,
-            profile_extension,
+            profile_extension: profile_extension.as_ref().map(Arc::downgrade),
             inner,
         }
     }
@@ -67,7 +67,11 @@ where
     S: RuntimeEventSink,
 {
     fn emit(&self, event: &str, payload: serde_json::Value, typed_payload: &dyn Any) {
-        if let Some(extension) = &self.profile_extension {
+        if let Some(extension) = self
+            .profile_extension
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
             extension.observe_runtime_event(typed_payload);
         }
 

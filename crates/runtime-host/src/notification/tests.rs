@@ -215,7 +215,7 @@ async fn resolve_delivery_actor_image_prefers_realtime_cache_over_api_fallback()
         }),
     );
     let resolver = RealtimeUserImageResolverSlot::default();
-    resolver.set(Arc::clone(&runtime));
+    resolver.set(&runtime);
     let user_image_cache = UserImageCache::new();
     let mut sample = delivery();
     sample.entry.actor_user_id = "usr_traveler".into();
@@ -259,4 +259,17 @@ async fn resolve_delivery_actor_image_falls_back_to_none_when_uncached_and_endpo
     .await;
 
     assert_eq!(image_url, None);
+}
+
+#[test]
+fn realtime_user_image_resolver_does_not_retain_runtime() {
+    let (_dir, runtime, _db, _web) = test_realtime_runtime("resolver-weak-runtime");
+    let weak_runtime = Arc::downgrade(&runtime);
+    let resolver = RealtimeUserImageResolverSlot::default();
+
+    resolver.set(&runtime);
+    drop(runtime);
+
+    assert!(weak_runtime.upgrade().is_none());
+    assert_eq!(resolver.cached_url("", "usr_missing", true), None);
 }

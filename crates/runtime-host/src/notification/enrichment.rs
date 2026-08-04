@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 
 use vrcx_0_application_activity::OverlayActivityDelivery;
 use vrcx_0_application_core::{WebClient, WorldCache};
@@ -10,14 +10,14 @@ use super::{normalize_avatar_image_url_128, UserImageCache};
 
 #[derive(Clone, Default)]
 pub struct RealtimeUserImageResolverSlot {
-    inner: Arc<Mutex<Option<Arc<RealtimeHostRuntime>>>>,
+    inner: Arc<Mutex<Weak<RealtimeHostRuntime>>>,
 }
 
 impl RealtimeUserImageResolverSlot {
-    pub fn set(&self, runtime: Arc<RealtimeHostRuntime>) {
+    pub fn set(&self, runtime: &Arc<RealtimeHostRuntime>) {
         match self.inner.lock() {
             Ok(mut slot) => {
-                *slot = Some(runtime);
+                *slot = Arc::downgrade(runtime);
             }
             Err(error) => {
                 tracing::warn!("failed to set realtime user image resolver bridge: {error}");
@@ -31,7 +31,7 @@ impl RealtimeUserImageResolverSlot {
         user_id: &str,
         allow_user_icon: bool,
     ) -> Option<String> {
-        let runtime = self.inner.lock().ok()?.clone()?;
+        let runtime = self.inner.lock().ok()?.upgrade()?;
         runtime.cached_user_notification_image_url(endpoint, user_id, allow_user_icon)
     }
 }

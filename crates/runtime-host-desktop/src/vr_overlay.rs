@@ -66,7 +66,7 @@ impl DesktopVrOverlayRuntime {
             runtime.set_enabled(enabled);
             runtime.start_refresh_loop(services.data().tasks.clone());
             services.set_overlay_activity_extra_sink(Arc::new(VrOverlayActivitySink::new(
-                Arc::clone(&runtime),
+                &runtime,
             )));
             Ok(Self { config, runtime })
         }

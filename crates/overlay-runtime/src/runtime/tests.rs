@@ -701,7 +701,7 @@ fn overlay_activity_snapshot_marks_friends_panel_dirty_for_presence_changes() {
         traveling_to_location: "wrld_target:456".to_string(),
         ..FriendRecord::default()
     });
-    let sink = VrOverlayActivitySink::new(Arc::clone(&runtime));
+    let sink = VrOverlayActivitySink::new(&runtime);
     sink.emit_overlay_activity_snapshot(OverlayActivitySnapshot::default());
     {
         let mut manager = runtime.manager.lock().unwrap();

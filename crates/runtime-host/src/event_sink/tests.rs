@@ -181,3 +181,17 @@ fn event_is_observed_by_context_and_forwarded() {
         }]
     );
 }
+
+#[test]
+fn event_sink_does_not_retain_profile_extension() {
+    let context = Arc::new(RecordingProfileExtension::default());
+    let weak_context = Arc::downgrade(&context);
+
+    let _sink = RuntimeHostEventSink::new(
+        BackendRuntime::new(),
+        Some(context),
+        RecordingSink::default(),
+    );
+
+    assert!(weak_context.upgrade().is_none());
+}
