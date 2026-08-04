@@ -134,6 +134,80 @@ describe('UserDialog EntityList', () => {
         expect(screen.queryByText('World hopping')).toBeNull();
     });
 
+    it('shows a creator icon and timer for a friend creator', () => {
+        render(
+            <EntityList
+                kind="user"
+                rows={[
+                    {
+                        id: 'usr_owner',
+                        displayName: 'Friend owner',
+                        isFriend: true,
+                        $isInstanceCreator: true,
+                        statusDescription: 'Friend signature',
+                        $location_at: 1_700_000_000_000
+                    }
+                ]}
+                showInstanceDuration
+            />
+        );
+
+        expect(
+            screen.getByLabelText('dialog.user.info.instance_creator')
+        ).toBeTruthy();
+        expect(screen.getByTestId('instance-timer').dataset.epoch).toBe(
+            '1700000000000'
+        );
+        expect(screen.queryByText('Friend signature')).toBeNull();
+    });
+
+    it('shows a creator icon and signature for a non-friend creator', () => {
+        render(
+            <EntityList
+                kind="user"
+                rows={[
+                    {
+                        id: 'usr_owner',
+                        displayName: 'Remote owner',
+                        isFriend: false,
+                        $isInstanceCreator: true,
+                        statusDescription: 'Owner signature',
+                        $location_at: 1_700_000_000_000
+                    }
+                ]}
+                showInstanceDuration
+            />
+        );
+
+        expect(
+            screen.getByLabelText('dialog.user.info.instance_creator')
+        ).toBeTruthy();
+        expect(screen.getByText('Owner signature')).toBeTruthy();
+        expect(screen.queryByTestId('instance-timer')).toBeNull();
+    });
+
+    it('shows the localized status when a non-friend creator has no signature', () => {
+        render(
+            <EntityList
+                kind="user"
+                rows={[
+                    {
+                        id: 'usr_owner',
+                        displayName: 'Offline owner',
+                        isFriend: false,
+                        $isInstanceCreator: true,
+                        statusDescription: '',
+                        state: 'offline'
+                    }
+                ]}
+                showInstanceDuration
+            />
+        );
+
+        expect(screen.getByText('dialog.user.status.offline')).toBeTruthy();
+        expect(screen.queryByTestId('instance-timer')).toBeNull();
+    });
+
     it('does not treat a profile refresh timestamp as a join time', () => {
         render(
             <EntityList

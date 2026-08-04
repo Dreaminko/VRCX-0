@@ -326,7 +326,6 @@ export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
                                                         userId={rowOwnerUserId(
                                                             row
                                                         )}
-                                                        location={location}
                                                         endpoint={
                                                             currentEndpoint
                                                         }

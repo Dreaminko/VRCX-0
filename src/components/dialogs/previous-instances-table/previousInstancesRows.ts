@@ -113,7 +113,7 @@ export function rowWorldId(row: PreviousInstanceRow | null | undefined) {
 }
 
 export function rowOwnerUserId(row: PreviousInstanceRow | null | undefined) {
-    return textValue(
+    const explicitOwnerUserId = textValue(
         row?.$location?.userId ||
             row?.$location?.user_id ||
             row?.$location?.ownerUserId ||
@@ -125,6 +125,9 @@ export function rowOwnerUserId(row: PreviousInstanceRow | null | undefined) {
             row?.userId ||
             row?.user_id ||
             ''
+    );
+    return (
+        explicitOwnerUserId || textValue(parseLocation(rowLocation(row)).userId)
     );
 }
 

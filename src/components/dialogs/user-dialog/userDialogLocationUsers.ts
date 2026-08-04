@@ -55,12 +55,14 @@ function filterVisibleUserDialogLocationUsers<TUser>({
     friendsById,
     location,
     memberUserIds,
+    ownerId,
     users
 }: {
     currentUserId: unknown;
     friendsById: unknown;
     location?: unknown;
     memberUserIds?: ReadonlySet<string>;
+    ownerId?: unknown;
     users: readonly TUser[];
 }): TUser[] {
     const friendDirectory =
@@ -68,6 +70,7 @@ function filterVisibleUserDialogLocationUsers<TUser>({
             ? Object.fromEntries(Object.entries(friendsById))
             : {};
     const normalizedCurrentUserId = firstText(currentUserId);
+    const normalizedOwnerId = firstText(ownerId);
     return users.filter((user) => {
         const userRecord =
             user && typeof user === 'object'
@@ -83,7 +86,8 @@ function filterVisibleUserDialogLocationUsers<TUser>({
         );
         return Boolean(
             userId &&
-            (userId === normalizedCurrentUserId ||
+            (userId === normalizedOwnerId ||
+                userId === normalizedCurrentUserId ||
                 (friend &&
                     !isExplicitlyOfflineFriend(friend) &&
                     !friendIsElsewhere &&
@@ -172,12 +176,24 @@ export function buildUserDialogLocationUsers({
         profile: source(profile),
         users: rosterUsers
     });
+    const rowsWithCreator = roster.rows.map((user) => {
+        const userId = firstText(user.id, user.userId);
+        if (!userId || userId !== roster.ownerId) {
+            return user;
+        }
+        return {
+            ...user,
+            $isInstanceCreator: true,
+            isFriend: Boolean(friendDirectory[userId] || user.isFriend)
+        };
+    });
     const visibleRows = filterVisibleUserDialogLocationUsers({
         currentUserId,
         friendsById,
         location: parsedLocation.tag,
         memberUserIds,
-        users: applyInstanceDwellEpochs(roster.rows, dwellEpochsByUserId)
+        ownerId: roster.ownerId,
+        users: applyInstanceDwellEpochs(rowsWithCreator, dwellEpochsByUserId)
     });
 
     return {

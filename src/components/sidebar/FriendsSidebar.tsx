@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { CurrentUserSocialStatusDialog } from '@/components/dialogs/user-dialog/UserSelfEditDialogs';
@@ -27,6 +27,7 @@ import {
 import {
     buildFavoriteIdSet,
     buildSameInstanceGroups,
+    getSharedSameInstanceFallbackJoinTimes,
     normalizeLocationStatus,
     readFriendStatusSource,
     readFriendRefLocation,
@@ -147,7 +148,8 @@ export function FriendsSidebar({
     const { openGroups, statusPresets, toggleSection } =
         useFriendsSidebarPreferences();
     const [recentActionVersion, setRecentActionVersion] = useState(0);
-    const sameInstanceFallbackJoinTimesRef = useRef(new Map<string, number>());
+    const sameInstanceFallbackJoinTimes =
+        getSharedSameInstanceFallbackJoinTimes();
     const currentInviteLocation = useMemo(
         () => resolveCurrentInviteLocation(gameState, currentUser),
         [currentUser, gameState]
@@ -364,7 +366,7 @@ export function FriendsSidebar({
             rows,
             prefs,
             currentLocationSnapshot,
-            sameInstanceFallbackJoinTimesRef.current
+            sameInstanceFallbackJoinTimes
         );
     }, [currentLocationSnapshot, favoriteCollectionTab, prefs, rows]);
     const favoriteCollectionSameInstanceGroups = useMemo(() => {
@@ -375,7 +377,7 @@ export function FriendsSidebar({
             rows: favoriteCollectionRows,
             prefs,
             currentLocationSnapshot,
-            fallbackJoinTimes: sameInstanceFallbackJoinTimesRef.current
+            fallbackJoinTimes: sameInstanceFallbackJoinTimes
         });
     }, [
         currentLocationSnapshot,

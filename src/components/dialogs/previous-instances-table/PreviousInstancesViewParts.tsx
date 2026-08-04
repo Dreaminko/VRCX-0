@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -19,6 +20,7 @@ import {
     formatDateFilterOrFallback,
     timeToText
 } from '@/lib/dateTime';
+import { entityQueryPolicies, queryKeys } from '@/lib/entityQueryCache';
 import { useKnownUserFact, useKnownUserFacts } from '@/lib/useKnownUser';
 import { cn } from '@/lib/utils';
 import gameLogRepository from '@/repositories/gameLogRepository';
@@ -45,7 +47,6 @@ import {
     TableRow
 } from '@/ui/shadcn/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { PreviousInstanceInfoChart } from './PreviousInstanceInfoChart';
 import {
@@ -132,65 +133,55 @@ function instanceDetailsSummary(row: PreviousInstanceRow | null, t: TFunction) {
 
 export function InstanceOwnerCell({
     userId,
-    location = '',
     endpoint = ''
 }: {
     userId: string;
-    location?: string;
     endpoint?: string;
 }) {
     const knownUser = useKnownUserFact(userId, { endpoint });
+    const knownDisplayName = String(
+        knownUser?.displayName || knownUser?.username || knownUser?.name || ''
+    );
+    const userProfileQuery = useQuery({
+        queryKey: queryKeys.user(userId, endpoint),
+        queryFn: () => userProfileRepository.getUserProfile({ userId }),
+        enabled: Boolean(
+            userId && (!knownDisplayName || knownDisplayName === userId)
+        ),
+        staleTime: entityQueryPolicies.userAvatarLookup.staleTime,
+        gcTime: entityQueryPolicies.userAvatarLookup.gcTime,
+        retry: entityQueryPolicies.userAvatarLookup.retry,
+        refetchOnWindowFocus:
+            entityQueryPolicies.userAvatarLookup.refetchOnWindowFocus
+    });
+    const queriedUser = userProfileQuery.data;
     const displayName = String(
-        knownUser?.displayName ||
-            knownUser?.username ||
-            knownUser?.name ||
+        queriedUser?.displayName ||
+            queriedUser?.username ||
+            queriedUser?.name ||
+            knownDisplayName ||
             userId
     );
-
-    useEffect(() => {
-        if (!userId || displayName !== userId) {
-            return;
-        }
-        userProfileRepository.getUserProfile({ userId }).catch(() => {});
-    }, [displayName, endpoint, userId]);
 
     if (!userId) {
         return <span className="text-muted-foreground">-</span>;
     }
 
     return (
-        <Tooltip>
-            <TooltipTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        className="hover:text-primary h-auto max-w-full flex-col items-start justify-start gap-0 p-0 text-left text-xs"
-                        onClick={() =>
-                            openUserDialog({
-                                userId,
-                                title: displayName || undefined,
-                                seedData: knownUser || null
-                            })
-                        }
-                    >
-                        <span className="truncate">
-                            {displayName || userId}
-                        </span>
-                        {displayName && displayName !== userId ? (
-                            <span className="text-muted-foreground max-w-full truncate text-xs">
-                                {userId}
-                            </span>
-                        ) : null}
-                    </Button>
-                }
-            />
-            <TooltipContent>
-                {[displayName || userId, userId, location]
-                    .filter(Boolean)
-                    .join('\n')}
-            </TooltipContent>
-        </Tooltip>
+        <Button
+            type="button"
+            variant="ghost"
+            className="hover:text-primary h-auto max-w-full justify-start p-0 text-left text-xs"
+            onClick={() =>
+                openUserDialog({
+                    userId,
+                    title: displayName || undefined,
+                    seedData: queriedUser || knownUser || null
+                })
+            }
+        >
+            <span className="truncate">{displayName || userId}</span>
+        </Button>
     );
 }
 
@@ -541,7 +532,6 @@ export function PreviousInstanceDetailsPanel({
                         <div>
                             <InstanceOwnerCell
                                 userId={rowOwnerUserId(row)}
-                                location={rowLocation(row)}
                                 endpoint={currentEndpoint}
                             />
                         </div>

@@ -1,4 +1,9 @@
-import { LockIcon, PersonStandingIcon, UserIcon } from 'lucide-react';
+import {
+    CrownIcon,
+    LockIcon,
+    PersonStandingIcon,
+    UserIcon
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +15,7 @@ import type { EntityRecord } from '@/domain/entities/profileEntities';
 import { resolveInstanceDwellEpoch } from '@/domain/instances/instanceRoster';
 import { timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
+import { userStatusLabel } from '@/shared/utils/userStatus';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
@@ -124,6 +130,13 @@ export function EntityList({
                     kind === 'world' && row?.releaseStatus === 'private';
                 const userColour =
                     typeof row.$userColour === 'string' ? row.$userColour : '';
+                const isInstanceCreator = row.$isInstanceCreator === true;
+                const creatorIsFriend = row.isFriend === true;
+                const creatorSignature =
+                    typeof row.statusDescription === 'string' &&
+                    row.statusDescription.trim()
+                        ? row.statusDescription
+                        : userStatusLabel(row, t);
                 const rowKey = `${row?.id || row?.userId || label}:${index}`;
 
                 if (kind === 'user') {
@@ -137,11 +150,35 @@ export function EntityList({
                             imageUrl={image}
                             statusDotClassName={dotClassName}
                             displayName={label || '\u2014'}
+                            namePrefix={
+                                isInstanceCreator ? (
+                                    <CrownIcon
+                                        className="text-muted-foreground size-3.5 shrink-0"
+                                        aria-label={t(
+                                            'dialog.user.info.instance_creator'
+                                        )}
+                                    />
+                                ) : undefined
+                            }
                             nameStyle={
                                 userColour ? { color: userColour } : undefined
                             }
                             subline={
-                                showInstanceDuration ? (
+                                isInstanceCreator ? (
+                                    showInstanceDuration && creatorIsFriend ? (
+                                        <FriendInstanceTimer
+                                            epoch={
+                                                travelingTimestamp ||
+                                                resolveInstanceDwellEpoch(row)
+                                            }
+                                            traveling={Boolean(
+                                                travelingTimestamp
+                                            )}
+                                        />
+                                    ) : (
+                                        creatorSignature || undefined
+                                    )
+                                ) : showInstanceDuration ? (
                                     <FriendInstanceTimer
                                         epoch={
                                             travelingTimestamp ||

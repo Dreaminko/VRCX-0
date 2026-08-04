@@ -9,6 +9,7 @@ import {
     playerUserId,
     rowLocationObject,
     rowMatchesSearch,
+    rowOwnerUserId,
     rowSearchText
 } from './previousInstancesRows';
 
@@ -24,6 +25,30 @@ describe('previousInstancesRows', () => {
             'usr_short'
         ]);
         expect(normalizePlayerRows(null)).toEqual([]);
+    });
+
+    it('derives instance creator ids from user-owned location tags', () => {
+        const creatorLocations = [
+            'wrld_test:1~private(usr_invite)',
+            'wrld_test:2~private(usr_invite_plus)~canRequestInvite',
+            'wrld_test:3~friends(usr_friends)',
+            'wrld_test:4~hidden(usr_friends_plus)'
+        ];
+
+        expect(
+            creatorLocations.map((location) => rowOwnerUserId({ location }))
+        ).toEqual([
+            'usr_invite',
+            'usr_invite_plus',
+            'usr_friends',
+            'usr_friends_plus'
+        ]);
+        expect(rowOwnerUserId({ location: 'wrld_test:5' })).toBe('');
+        expect(
+            rowOwnerUserId({
+                location: 'wrld_test:6~group(grp_test)~groupAccessType(members)'
+            })
+        ).toBe('');
     });
 
     it('does not reorder array inputs when sorting player rows for display', () => {

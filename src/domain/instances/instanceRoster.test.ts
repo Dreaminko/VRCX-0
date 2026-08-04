@@ -4,11 +4,20 @@ import {
     buildInstanceRosterRows,
     mergeInstanceUser,
     mergeInstanceUsers,
+    resolveInstanceDwellEpoch,
     type InstanceRosterRow,
     userHasExplicitSameInstance
 } from './instanceRoster';
 
 describe('instanceRoster', () => {
+    it('reads dwell epochs from nested friend presence records', () => {
+        expect(
+            resolveInstanceDwellEpoch({
+                ref: { $location_at: 1_700_000_000_000 }
+            })
+        ).toBe(1_700_000_000_000);
+    });
+
     it('keeps a user owner first and does not duplicate the owner row', () => {
         const roster = buildInstanceRosterRows({
             instanceCreatorLabel: 'Creator',

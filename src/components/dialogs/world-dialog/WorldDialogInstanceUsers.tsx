@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { CrownIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { FriendInstanceTimer } from '@/components/sidebar/friends-sidebar/FriendsSidebarLocation';
 import {
+    getSharedSameInstanceFallbackJoinTimes,
     resolveSidebarStatusDotClassName,
+    sameInstanceFallbackKey,
     type SidebarFriendRecord
 } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { UserDetailTile } from '@/components/UserDetailTile';
@@ -11,6 +14,7 @@ import {
     createInstanceUserRow,
     firstText,
     isGroupId,
+    mergeInstanceUserRows,
     mergeInstanceUsers,
     normalizeInstanceUsers,
     resolveInstanceDwellEpoch,
@@ -127,15 +131,14 @@ export function InstanceUserTiles({
         (state) => state.gameState.isGameRunning === true
     );
     const source = record(instance);
+    const instanceLocation = firstText(source.location, source.tag);
+    const fallbackJoinTimes = getSharedSameInstanceFallbackJoinTimes();
     const creatorUser = record(source.creatorUser);
     const creatorUserId = firstText(source.creatorUserId);
     const knownCreatorUser = useKnownUserFact(creatorUserId, {
         endpoint: currentEndpoint
     });
     const knownCreatorUserRecord = record(knownCreatorUser);
-    const creatorIsVisible =
-        !visibleUserIds ||
-        Boolean(creatorUserId && visibleUserIds.has(creatorUserId));
     const creatorUserSeed = {
         ...knownCreatorUserRecord,
         ...creatorUser,
@@ -163,7 +166,6 @@ export function InstanceUserTiles({
         enabled:
             Boolean(creatorUserId) &&
             !isGroupId(creatorUserId) &&
-            creatorIsVisible &&
             !creatorHasDisplayMedia,
         staleTime: entityQueryPolicies.userAvatarLookup.staleTime,
         gcTime: entityQueryPolicies.userAvatarLookup.gcTime,
@@ -178,17 +180,29 @@ export function InstanceUserTiles({
             return;
         }
         const userId = firstText(row.userId, row.user_id, row.id);
-        if (visibleUserIds && (!userId || !visibleUserIds.has(userId))) {
+        if (
+            visibleUserIds &&
+            userId !== creatorUserId &&
+            (!userId || !visibleUserIds.has(userId))
+        ) {
             return;
         }
         const key = firstText(userId, row.displayName);
-        if (!key || userMap.has(key)) {
+        if (!key) {
             return;
         }
-        userMap.set(key, row);
+        const existing = userMap.get(key);
+        userMap.set(
+            key,
+            existing
+                ? (mergeInstanceUserRows(existing, row, {
+                      incomingPresenceWins: true
+                  }) ?? row)
+                : row
+        );
     };
 
-    if (creatorUserId && !isGroupId(creatorUserId) && creatorIsVisible) {
+    if (creatorUserId && !isGroupId(creatorUserId)) {
         const creatorProfile = record(creatorProfileQuery.data);
         pushUser({
             ...knownCreatorUserRecord,
@@ -283,6 +297,32 @@ export function InstanceUserTiles({
                 );
                 const subtitle = instanceUserSubtitle(user, t);
                 const travelingTimestamp = instanceUserTravelingTimestamp(user);
+                const isInstanceCreator = userId === creatorUserId;
+                const creatorIsFriend = Boolean(
+                    user.isFriend === true ||
+                    (userId !== currentUserSnapshot?.id &&
+                        visibleUserIds?.has(userId))
+                );
+                const creatorSignature = firstText(
+                    user.statusDescription,
+                    userStatusLabel(user, t)
+                );
+                const shouldShowTimer = Boolean(
+                    showInstanceDuration &&
+                    (!isInstanceCreator || creatorIsFriend)
+                );
+                const sharedFallbackEpoch =
+                    shouldShowTimer && instanceLocation
+                        ? fallbackJoinTimes.get(
+                              sameInstanceFallbackKey(
+                                  instanceLocation,
+                                  statusUser
+                              )
+                          )
+                        : 0;
+                const dwellEpoch = resolveInstanceDwellEpoch(user);
+                const timerEpoch =
+                    travelingTimestamp || sharedFallbackEpoch || dwellEpoch;
                 return (
                     <UserDetailTile
                         key={`${userId || displayName || 'user'}:${index}`}
@@ -292,18 +332,34 @@ export function InstanceUserTiles({
                         imageUrl={image}
                         statusDotClassName={dotClassName}
                         displayName={displayName}
+                        namePrefix={
+                            isInstanceCreator ? (
+                                <CrownIcon
+                                    className="text-muted-foreground size-3.5 shrink-0"
+                                    aria-label={t(
+                                        'dialog.world.instances.instance_creator'
+                                    )}
+                                />
+                            ) : undefined
+                        }
                         nameStyle={
                             typeof user.$userColour === 'string'
                                 ? { color: user.$userColour }
                                 : undefined
                         }
                         subline={
-                            showInstanceDuration ? (
+                            isInstanceCreator ? (
+                                showInstanceDuration && creatorIsFriend ? (
+                                    <FriendInstanceTimer
+                                        epoch={timerEpoch}
+                                        traveling={Boolean(travelingTimestamp)}
+                                    />
+                                ) : (
+                                    creatorSignature || undefined
+                                )
+                            ) : showInstanceDuration ? (
                                 <FriendInstanceTimer
-                                    epoch={
-                                        travelingTimestamp ||
-                                        resolveInstanceDwellEpoch(user)
-                                    }
+                                    epoch={timerEpoch}
                                     traveling={Boolean(travelingTimestamp)}
                                 />
                             ) : travelingTimestamp ? (

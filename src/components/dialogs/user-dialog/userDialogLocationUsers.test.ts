@@ -9,11 +9,11 @@ describe('buildUserDialogLocationUsers', () => {
     const t = (key: string) => key;
     const parsedLocation = {
         isRealInstance: true,
-        userId: 'usr_owner',
+        userId: '',
         groupId: ''
     };
 
-    it('shows only the current user and friends in an instance roster', () => {
+    it('shows the instance creator before the current user and friends', () => {
         const result = buildUserDialogLocationUsers({
             currentUserId: 'usr_self',
             friendsById: {
@@ -40,10 +40,38 @@ describe('buildUserDialogLocationUsers', () => {
         });
 
         expect(result.locationInstanceUsers.map((user) => user.id)).toEqual([
+            'usr_owner',
             'usr_self',
             'usr_friend'
         ]);
+        expect(result.locationInstanceUsers[0]?.$subtitle).toBe(
+            'dialog.user.info.instance_creator'
+        );
+        expect(result.locationInstanceUsers[0]?.$isInstanceCreator).toBe(true);
+        expect(result.locationInstanceUsers[0]?.isFriend).toBe(false);
         expect(result.locationOwnerId).toBe('usr_owner');
+    });
+
+    it('marks a friend creator as a friend', () => {
+        const result = buildUserDialogLocationUsers({
+            currentUserId: 'usr_self',
+            friendsById: {
+                usr_owner: { id: 'usr_owner', displayName: 'Friend owner' }
+            },
+            locationInstance: {},
+            locationOwnerGroup: null,
+            locationOwnerUser: {
+                id: 'usr_owner',
+                displayName: 'Friend owner'
+            },
+            profile: null,
+            sameInstanceUsers: [],
+            t,
+            visiblePresenceParsedLocation: parsedLocation
+        });
+
+        expect(result.locationInstanceUsers[0]?.$isInstanceCreator).toBe(true);
+        expect(result.locationInstanceUsers[0]?.isFriend).toBe(true);
     });
 
     it('does not add a non-friend profile as the roster fallback', () => {

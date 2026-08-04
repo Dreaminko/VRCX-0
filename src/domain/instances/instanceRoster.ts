@@ -139,6 +139,7 @@ export function userIdForRosterRow(user: unknown): string {
 }
 
 export function resolveInstanceDwellEpoch(user: unknown): unknown {
+    const ref = field(user, 'ref');
     return (
         field(user, '$location_at') ||
         field(user, 'locationAt') ||
@@ -147,6 +148,13 @@ export function resolveInstanceDwellEpoch(user: unknown): unknown {
         field(user, 'joinTimeMs') ||
         field(user, 'joinedAt') ||
         field(user, 'joined_at') ||
+        field(ref, '$location_at') ||
+        field(ref, 'locationAt') ||
+        field(ref, 'location_at') ||
+        field(ref, 'joinedAtMs') ||
+        field(ref, 'joinTimeMs') ||
+        field(ref, 'joinedAt') ||
+        field(ref, 'joined_at') ||
         ''
     );
 }
@@ -267,9 +275,7 @@ export function createInstanceUserRow(
             field(sourceRecord, 'subtitle')
         ),
         $location_at:
-            field(sourceRecord, '$location_at') ||
-            field(sourceRecord, 'locationAt') ||
-            field(sourceRecord, 'location_at') ||
+            resolveInstanceDwellEpoch(sourceRecord) ||
             field(fallback, 'joinedAt') ||
             field(fallback, 'joined_at') ||
             '',

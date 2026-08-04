@@ -9,6 +9,7 @@ type UserDetailContentProps = {
     imageUrl?: string;
     statusDotClassName?: string;
     displayName: ReactNode;
+    namePrefix?: ReactNode;
     nameStyle?: CSSProperties;
     subline?: ReactNode;
 };
@@ -17,6 +18,7 @@ export function UserDetailContent({
     imageUrl = '',
     statusDotClassName = '',
     displayName,
+    namePrefix,
     nameStyle,
     subline
 }: UserDetailContentProps) {
@@ -31,7 +33,16 @@ export function UserDetailContent({
                     className="block truncate leading-5 font-medium"
                     style={nameStyle}
                 >
-                    {displayName}
+                    {namePrefix ? (
+                        <span className="flex min-w-0 items-center gap-1">
+                            {namePrefix}
+                            <span className="min-w-0 truncate">
+                                {displayName}
+                            </span>
+                        </span>
+                    ) : (
+                        displayName
+                    )}
                 </span>
                 {subline ? (
                     <span className="text-muted-foreground block truncate text-xs">

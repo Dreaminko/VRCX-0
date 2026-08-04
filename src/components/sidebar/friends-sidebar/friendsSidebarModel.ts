@@ -80,6 +80,8 @@ export type SameInstanceGroup = {
     isCurrentInstance: boolean;
 };
 
+const sharedSameInstanceFallbackJoinTimes = new Map<string, number>();
+
 function locationProjection(value: unknown): FriendLocationProjection | null {
     return value && typeof value === 'object'
         ? (value as FriendLocationProjection)
@@ -481,6 +483,25 @@ export function sameInstanceFallbackKey(
     return `${locationTag}:${friendId || normalizeId(readFriendRef(friend)?.id)}`;
 }
 
+export function getSharedSameInstanceFallbackJoinTimes(): Map<string, number> {
+    return sharedSameInstanceFallbackJoinTimes;
+}
+
+export function resolveSameInstanceFallbackJoinTime(
+    locationTag: string,
+    friend: SidebarFriendRecord,
+    fallbackJoinTimes: Map<string, number>
+): number {
+    const fallbackKey = sameInstanceFallbackKey(locationTag, friend);
+    const existingFallback = fallbackJoinTimes.get(fallbackKey);
+    if (existingFallback !== undefined) {
+        return existingFallback;
+    }
+    const fallback = Date.now();
+    fallbackJoinTimes.set(fallbackKey, fallback);
+    return fallback;
+}
+
 function observedSameInstanceJoinTime(
     friend: SidebarFriendRecord,
     locationTag: string,
@@ -523,11 +544,11 @@ export function withSameInstanceJoinTime(
     if (friendJoinTime) {
         return friend;
     }
-    const fallbackKey = sameInstanceFallbackKey(locationTag, friend);
-    if (!fallbackJoinTimes.has(fallbackKey)) {
-        fallbackJoinTimes.set(fallbackKey, Date.now());
-    }
-    const fallbackJoinTime = fallbackJoinTimes.get(fallbackKey);
+    const fallbackJoinTime = resolveSameInstanceFallbackJoinTime(
+        locationTag,
+        friend,
+        fallbackJoinTimes
+    );
     const ref = readFriendRef(friend);
     if (ref && ref !== friend) {
         return {
