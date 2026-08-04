@@ -174,7 +174,7 @@ export function AppSidebar({ children }: any) {
                 variant="sidebar"
                 collapsible="icon"
                 data-vrcx-0-surface="sidebar"
-                style={{ top: '2rem', bottom: 0, height: 'auto' }}
+                className="absolute h-auto"
             >
                 <AppNavMenu isCollapsed={navMenuCollapsed} />
             </Sidebar>
