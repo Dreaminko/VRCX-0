@@ -1,0 +1,431 @@
+// @vitest-environment jsdom
+
+import {
+    cleanup,
+    fireEvent,
+    render,
+    screen,
+    waitFor
+} from '@testing-library/react';
+import type {
+    ButtonHTMLAttributes,
+    ComponentProps,
+    InputHTMLAttributes,
+    PropsWithChildren,
+    ReactNode
+} from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { WorldProfileRecord } from '@/domain/entities/profileEntities';
+
+vi.mock('react-i18next', () => ({
+    useTranslation: () => ({ t: (key: string) => key })
+}));
+
+vi.mock('@/ui/shadcn/button', () => ({
+    Button: ({
+        children,
+        variant: _variant,
+        size: _size,
+        ...props
+    }: PropsWithChildren<
+        ButtonHTMLAttributes<HTMLButtonElement> & {
+            size?: unknown;
+            variant?: unknown;
+        }
+    >) => <button {...props}>{children}</button>
+}));
+
+vi.mock('@/ui/shadcn/checkbox', () => ({
+    Checkbox: ({
+        checked,
+        onCheckedChange,
+        ...props
+    }: InputHTMLAttributes<HTMLInputElement> & {
+        onCheckedChange(value: boolean): void;
+    }) => (
+        <input
+            {...props}
+            type="checkbox"
+            checked={checked}
+            onChange={(event) => onCheckedChange(event.currentTarget.checked)}
+        />
+    )
+}));
+
+vi.mock('@/ui/shadcn/dialog', () => ({
+    Dialog: ({ children, open }: PropsWithChildren<{ open: boolean }>) =>
+        open ? <div>{children}</div> : null,
+    DialogContent: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    DialogDescription: ({ children }: PropsWithChildren) => <p>{children}</p>,
+    DialogFooter: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    DialogHeader: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    DialogTitle: ({ children }: PropsWithChildren) => <h1>{children}</h1>
+}));
+
+vi.mock('@/ui/shadcn/field', () => ({
+    Field: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    FieldGroup: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    FieldLabel: ({
+        children,
+        htmlFor
+    }: PropsWithChildren<{ htmlFor?: string }>) => (
+        <label htmlFor={htmlFor}>{children}</label>
+    )
+}));
+
+vi.mock('@/ui/shadcn/input', () => ({
+    Input: (props: InputHTMLAttributes<HTMLInputElement>) => (
+        <input {...props} />
+    )
+}));
+
+vi.mock('@/ui/shadcn/input-group', async () => {
+    const { forwardRef } = await import('react');
+    return {
+        InputGroup: forwardRef<HTMLDivElement, PropsWithChildren>(
+            ({ children }, ref) => <div ref={ref}>{children}</div>
+        ),
+        InputGroupAddon: ({ children }: PropsWithChildren) => (
+            <div>{children}</div>
+        ),
+        InputGroupButton: ({
+            children,
+            size: _size,
+            ...props
+        }: PropsWithChildren<
+            ButtonHTMLAttributes<HTMLButtonElement> & { size?: unknown }
+        >) => <button {...props}>{children}</button>,
+        InputGroupInput: (props: InputHTMLAttributes<HTMLInputElement>) => (
+            <input {...props} />
+        )
+    };
+});
+
+vi.mock('@/ui/shadcn/popover', () => ({
+    Popover: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    PopoverContent: ({ children }: PropsWithChildren) => <div>{children}</div>,
+    PopoverTrigger: ({ render }: { render: ReactNode }) => render
+}));
+
+vi.mock('@/ui/shadcn/select', () => {
+    return {
+        Select: ({
+            disabled,
+            items = [],
+            onValueChange,
+            value
+        }: {
+            disabled?: boolean;
+            items?: Array<{ label: ReactNode; value: string }>;
+            onValueChange(value: string): void;
+            value: string;
+        }) => (
+            <select
+                disabled={disabled}
+                value={value}
+                onChange={(event) => onValueChange(event.currentTarget.value)}
+            >
+                {items.map((item) => (
+                    <option key={item.value} value={item.value}>
+                        {item.label}
+                    </option>
+                ))}
+            </select>
+        ),
+        SelectContent: () => null,
+        SelectGroup: () => null,
+        SelectItem: () => null,
+        SelectTrigger: () => null,
+        SelectValue: () => null
+    };
+});
+
+vi.mock('@/ui/shadcn/tabs', async () => {
+    const { createContext, useContext } = await import('react');
+    type TabsContextValue = {
+        onValueChange(value: string): void;
+        value: string;
+    };
+    const TabsContext = createContext<TabsContextValue>({
+        onValueChange: () => undefined,
+        value: ''
+    });
+    return {
+        Tabs: ({
+            children,
+            onValueChange,
+            value
+        }: PropsWithChildren<TabsContextValue>) => (
+            <TabsContext.Provider value={{ onValueChange, value }}>
+                {children}
+            </TabsContext.Provider>
+        ),
+        TabsContent: ({
+            children,
+            value
+        }: PropsWithChildren<{ value: string }>) => {
+            const tabs = useContext(TabsContext);
+            return tabs.value === value ? <div>{children}</div> : null;
+        },
+        TabsList: ({ children }: PropsWithChildren) => <div>{children}</div>,
+        TabsTrigger: ({
+            children,
+            value
+        }: PropsWithChildren<{ value: string }>) => {
+            const tabs = useContext(TabsContext);
+            return (
+                <button type="button" onClick={() => tabs.onValueChange(value)}>
+                    {children}
+                </button>
+            );
+        }
+    };
+});
+
+import { WorldNewInstanceDialog } from './WorldNewInstanceDialog';
+import type {
+    CreatedWorldInstance,
+    WorldNewInstanceRequest
+} from './worldNewInstanceTypes';
+
+const world: WorldProfileRecord = {
+    id: 'wrld_test',
+    name: 'Test World',
+    description: '',
+    authorId: 'usr_author',
+    authorName: 'Author',
+    capacity: 32,
+    createdAt: '2026-01-01T00:00:00Z',
+    favorites: 0,
+    heat: 0,
+    imageUrl: '',
+    isLabs: false,
+    occupants: 0,
+    platforms: ['standalonewindows'],
+    popularity: 0,
+    publicationDate: null,
+    recommendedCapacity: 16,
+    releaseStatus: 'public',
+    tags: [],
+    thumbnailImageUrl: '',
+    updatedAt: '2026-01-01T00:00:00Z',
+    visits: 0
+};
+
+function makeCreated(
+    accessType = 'public',
+    ownerId = 'usr_self'
+): CreatedWorldInstance {
+    return {
+        location: 'wrld_test:12345',
+        shortName: '',
+        secureOrShortName: '',
+        accessType,
+        ownerId,
+        groupId: '',
+        group: null,
+        url: 'https://vrchat.com/home/launch?worldId=wrld_test'
+    };
+}
+
+function makeRequest(
+    defaults: WorldNewInstanceRequest['defaults'] = {},
+    created?: CreatedWorldInstance
+): WorldNewInstanceRequest {
+    return {
+        selfInvite: false,
+        afterCreateAction: '',
+        defaults,
+        created
+    };
+}
+
+function createCallbacks() {
+    return {
+        onOpenChange: vi.fn(),
+        onChange: vi.fn(),
+        onCommitDisplayName: vi.fn(),
+        onSubmit: vi.fn(),
+        onCopy: vi.fn(),
+        onSelfInvite: vi.fn(),
+        onInvite: vi.fn(),
+        onLaunch: vi.fn(),
+        onOpenInGame: vi.fn()
+    };
+}
+
+type DialogProps = ComponentProps<typeof WorldNewInstanceDialog>;
+
+function defaultProps(
+    overrides: Partial<DialogProps> = {}
+): DialogProps & ReturnType<typeof createCallbacks> {
+    const callbacks = createCallbacks();
+    return {
+        open: true,
+        request: makeRequest(),
+        world,
+        currentUserId: 'usr_self',
+        submitting: false,
+        ...overrides,
+        ...callbacks
+    };
+}
+
+function inputByLabel(label: string): HTMLInputElement {
+    const element = screen.getByLabelText(label);
+    if (!(element instanceof HTMLInputElement)) {
+        throw new Error(`Expected ${label} to label an input`);
+    }
+    return element;
+}
+
+function buttonByName(name: string): HTMLButtonElement {
+    const element = screen.getByRole('button', { name });
+    if (!(element instanceof HTMLButtonElement)) {
+        throw new Error(`Expected ${name} to identify a button`);
+    }
+    return element;
+}
+
+describe('WorldNewInstanceDialog', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    afterEach(cleanup);
+
+    it('restores request defaults and the current user when reopened', async () => {
+        const request = makeRequest({
+            selectedTab: 'Legacy',
+            accessType: 'friends',
+            instanceName: 'SeededRoom'
+        });
+        const props = defaultProps({ currentUserId: 'usr_first', request });
+        const view = render(<WorldNewInstanceDialog {...props} />);
+
+        await waitFor(() => {
+            expect(inputByLabel('dialog.world.label.user_id').value).toBe(
+                'usr_first'
+            );
+        });
+        fireEvent.change(
+            inputByLabel('table.previous_instances.instance_name'),
+            { target: { value: 'ChangedRoom' } }
+        );
+        fireEvent.change(inputByLabel('dialog.world.label.user_id'), {
+            target: { value: 'usr_custom' }
+        });
+
+        view.rerender(<WorldNewInstanceDialog {...props} open={false} />);
+        view.rerender(
+            <WorldNewInstanceDialog
+                {...props}
+                open
+                currentUserId="usr_second"
+            />
+        );
+
+        await waitFor(() => {
+            expect(
+                inputByLabel('table.previous_instances.instance_name').value
+            ).toBe('SeededRoom');
+            expect(inputByLabel('dialog.world.label.user_id').value).toBe(
+                'usr_second'
+            );
+        });
+    });
+
+    it.each(['friends', 'invite'])(
+        'disables inviting to a non-owned %s instance',
+        (accessType) => {
+            const props = defaultProps({
+                request: makeRequest({}, makeCreated(accessType, 'usr_other'))
+            });
+            render(<WorldNewInstanceDialog {...props} />);
+
+            expect(buttonByName('dialog.world.action.invite').disabled).toBe(
+                true
+            );
+            expect(buttonByName('dialog.world.action.launch').disabled).toBe(
+                false
+            );
+        }
+    );
+
+    it('requests the normalized display-name preset before submitting the normalized form', async () => {
+        const props = defaultProps({
+            request: makeRequest({ displayName: '  Alpha Room  ' })
+        });
+        render(<WorldNewInstanceDialog {...props} />);
+
+        await waitFor(() => {
+            expect(inputByLabel('dialog.world.label.display_name').value).toBe(
+                '  Alpha Room  '
+            );
+        });
+        fireEvent.click(buttonByName('dialog.new_instance.create_instance'));
+
+        expect(props.onCommitDisplayName).toHaveBeenCalledWith('Alpha Room');
+        expect(props.onSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ displayName: 'Alpha Room' })
+        );
+        expect(
+            props.onCommitDisplayName.mock.invocationCallOrder[0]
+        ).toBeLessThan(props.onSubmit.mock.invocationCallOrder[0]);
+    });
+
+    it('requests the display-name preset before invite and launch actions', async () => {
+        const props = defaultProps({
+            request: makeRequest(
+                { displayName: '  Beta Room  ' },
+                makeCreated()
+            )
+        });
+        render(<WorldNewInstanceDialog {...props} />);
+
+        await waitFor(() => {
+            expect(inputByLabel('dialog.world.label.display_name').value).toBe(
+                '  Beta Room  '
+            );
+        });
+        fireEvent.click(buttonByName('dialog.world.action.invite'));
+        expect(props.onCommitDisplayName).toHaveBeenNthCalledWith(
+            1,
+            'Beta Room'
+        );
+        expect(props.onInvite).toHaveBeenCalledOnce();
+        expect(
+            props.onCommitDisplayName.mock.invocationCallOrder[0]
+        ).toBeLessThan(props.onInvite.mock.invocationCallOrder[0]);
+
+        fireEvent.click(buttonByName('dialog.world.action.launch'));
+        expect(props.onCommitDisplayName).toHaveBeenNthCalledWith(
+            2,
+            'Beta Room'
+        );
+        expect(props.onLaunch).toHaveBeenCalledOnce();
+        expect(
+            props.onCommitDisplayName.mock.invocationCallOrder[1]
+        ).toBeLessThan(props.onLaunch.mock.invocationCallOrder[0]);
+    });
+
+    it('disables every created-instance side effect while submitting', () => {
+        const props = defaultProps({
+            isGameRunning: true,
+            request: makeRequest({}, makeCreated()),
+            submitting: true
+        });
+        render(<WorldNewInstanceDialog {...props} />);
+
+        for (const name of [
+            'dialog.world.info.copy_url',
+            'dialog.world.label.self_invite',
+            'dialog.world.action.invite',
+            'dialog.world.action.launch',
+            'dialog.world.action.open_in_game'
+        ]) {
+            expect(buttonByName(name).disabled).toBe(true);
+        }
+    });
+});

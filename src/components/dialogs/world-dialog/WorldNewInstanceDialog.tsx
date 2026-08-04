@@ -248,14 +248,16 @@ export function WorldNewInstanceDialog({
         });
     }
 
-    function commitDisplayNamePreset(value: unknown = form.displayName) {
+    function commitDisplayNamePreset(
+        value: unknown = form.displayName
+    ): string | null {
         if (form.selectedTab !== 'Normal') {
-            return;
+            return null;
         }
 
         const displayName = normalizeInstanceDialogDisplayName(value);
         if (!displayName) {
-            return;
+            return null;
         }
 
         const nextPresets = prependInstanceDialogDisplayNamePreset(
@@ -267,6 +269,7 @@ export function WorldNewInstanceDialog({
             displayNamePresets: nextPresets
         });
         onCommitDisplayName?.(displayName);
+        return displayName;
     }
 
     function selectDisplayNamePreset(value: string) {
@@ -919,8 +922,12 @@ export function WorldNewInstanceDialog({
                                 submitting || form.selectedTab === 'Legacy'
                             }
                             onClick={() => {
-                                commitDisplayNamePreset();
-                                onSubmit(form);
+                                const displayName = commitDisplayNamePreset();
+                                onSubmit(
+                                    displayName
+                                        ? { ...form, displayName }
+                                        : form
+                                );
                             }}
                         >
                             {request?.selfInvite

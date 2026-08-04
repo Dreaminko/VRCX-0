@@ -65,7 +65,7 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
                     : 'Failed to load dashboard configurations.';
             set({
                 dashboards: [],
-                loaded: true,
+                loaded: false,
                 loadStatus: 'error',
                 detail: message
             });
