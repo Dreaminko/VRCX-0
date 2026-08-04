@@ -308,7 +308,7 @@ jobs:
               with:
                   name: rust-coverage-summary
                   path: coverage-artifacts/rust
-            - name: Generate combined coverage badge
+            - name: Generate coverage badge
               run: |
                   node <<'NODE'
                   const fs = require('node:fs');
@@ -318,18 +318,14 @@ jobs:
 
                   const tsLines = ts.total.lines;
                   const rustLines = rust.data[0].totals.lines;
-                  const covered = tsLines.covered + rustLines.covered;
-                  const total = tsLines.total + rustLines.count;
-                  const pct = (covered / total) * 100;
-                  const color = pct >= 80 ? 'brightgreen' : pct >= 50 ? 'yellow' : 'red';
 
                   fs.writeFileSync(
                       'coverage.json',
                       JSON.stringify({
                           schemaVersion: 1,
                           label: 'coverage',
-                          message: pct.toFixed(1) + '%',
-                          color
+                          message: `TS ${tsLines.pct.toFixed(1)}% · Rust ${rustLines.percent.toFixed(1)}%`,
+                          color: 'blue'
                       }) + '\n'
                   );
                   NODE
