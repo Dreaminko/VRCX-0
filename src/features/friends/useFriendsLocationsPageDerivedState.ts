@@ -142,6 +142,7 @@ type FriendsLocationsPageDerivedStateInput = {
     remoteFavoriteFriendIds: string[];
     rosterStatus: string;
     scrollMetrics: FriendsLocationsScrollMetrics;
+    showCurrentUserInSameInstance: boolean;
     showSameInstanceInOnline: boolean;
     sidebarFavoritePrefs: FriendsLocationsFavoritePreferences;
     sidebarSortMethods: string[];
@@ -170,6 +171,7 @@ export function useFriendsLocationsPageDerivedState({
     remoteFavoriteFriendIds,
     rosterStatus,
     scrollMetrics,
+    showCurrentUserInSameInstance,
     showSameInstanceInOnline,
     sidebarFavoritePrefs,
     sidebarSortMethods
@@ -331,8 +333,11 @@ export function useFriendsLocationsPageDerivedState({
         [onlineFavoriteExclusionIds, onlineFriends]
     );
     const sameInstanceGroups = useMemo<FriendsLocationsSameInstanceGroup[]>(
-        () => buildSameInstanceGroups(onlineFriends, currentLocationSnapshot),
-        [currentLocationSnapshot, onlineFriends]
+        () =>
+            buildSameInstanceGroups(onlineFriends, currentLocationSnapshot, {
+                includeCurrentUser: showCurrentUserInSameInstance
+            }),
+        [currentLocationSnapshot, onlineFriends, showCurrentUserInSameInstance]
     );
     const sameInstanceFriends = useMemo<FriendRecord[]>(
         () => sameInstanceGroups.flatMap((group) => group.friends),

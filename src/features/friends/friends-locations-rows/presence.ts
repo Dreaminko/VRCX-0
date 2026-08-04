@@ -18,6 +18,10 @@ import type {
     SameInstanceGroup
 } from './types';
 
+type SameInstanceGroupOptions = {
+    includeCurrentUser?: boolean;
+};
+
 export function resolveFriendWorldName(
     friend: FriendLocationFriend | null | undefined
 ) {
@@ -120,12 +124,15 @@ export function isShareableInstanceLocation(location: unknown) {
 
 export function buildSameInstanceGroups<TFriend extends FriendLocationFriend>(
     friends: TFriend[] | null,
-    lastLocation: FriendsLocationsLastLocation | null = null
+    lastLocation: FriendsLocationsLastLocation | null = null,
+    options: SameInstanceGroupOptions = {}
 ): SameInstanceGroup<TFriend>[] {
-    return buildSameInstanceFriendGroups(friends ?? [], lastLocation).map(
-        ({ location, friends: groupedFriends }) => ({
-            location,
-            friends: groupedFriends
-        })
-    );
+    return buildSameInstanceFriendGroups(
+        friends ?? [],
+        lastLocation,
+        options
+    ).map(({ location, friends: groupedFriends }) => ({
+        location,
+        friends: groupedFriends
+    }));
 }

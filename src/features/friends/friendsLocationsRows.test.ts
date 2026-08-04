@@ -177,7 +177,7 @@ describe('friends locations row helpers', () => {
         ]);
     });
 
-    it('keeps the original two-friend threshold on Friends Locations', () => {
+    it('matches the sidebar threshold for the current instance', () => {
         const currentLocation = 'wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:123';
         const otherLocation = 'wrld_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb:456';
         const friendWithCurrentUser = {
@@ -198,6 +198,18 @@ describe('friends locations row helpers', () => {
                 location: currentLocation
             })
         ).toEqual([]);
+        expect(
+            buildSameInstanceGroups(
+                [friendWithCurrentUser, soloElsewhere],
+                { location: currentLocation },
+                { includeCurrentUser: true }
+            )
+        ).toEqual([
+            {
+                location: currentLocation,
+                friends: [friendWithCurrentUser]
+            }
+        ]);
     });
 
     it('matches search text against friend and location summary fields', () => {

@@ -1,6 +1,7 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 
 import configRepository from '@/repositories/configRepository';
+import { publishPreferenceChanged } from '@/shared/events/preferenceEvents';
 
 import type { FavoriteGroupItem } from './side-panel/sidebarTabLayout';
 import type {
@@ -75,9 +76,11 @@ export function useSidePanelSettingsState({
     ) {
         setPrefs((current) => ({
             ...current,
-            [key]: Boolean(value)
+            [key]: value
         }));
-        configRepository.setBool(key, Boolean(value));
+        void configRepository
+            .setBool(key, value)
+            .then(() => publishPreferenceChanged(key, value));
     }
 
     function updateStringPreference(
