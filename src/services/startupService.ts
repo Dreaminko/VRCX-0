@@ -6,9 +6,7 @@ import { useSessionStore } from '@/state/sessionStore';
 import { useShellStore } from '@/state/shellStore';
 
 import { refreshSavedAuthSnapshot } from './authSnapshotService';
-import { initializeBackgroundImage } from './background-image/backgroundImageService';
 import { runStartupMaintenance } from './backgroundMaintenanceService';
-import { initializeCommunityThemes } from './communityThemeService';
 import { initializeDatabaseUpgradeFlow } from './databaseUpgradeService';
 import { initializeHostCapabilities } from './hostCapabilityService';
 import { loadPreferenceSnapshot } from './preferencesService';
@@ -91,14 +89,6 @@ export async function initializeReactRuntime() {
             applyThemeMode(resolvedThemeMode)
         );
         applyThemeColor(resolveThemeColor(themeColor));
-        await runNonCriticalStartupSync(
-            'communityThemes',
-            initializeCommunityThemes()
-        );
-        await runNonCriticalStartupSync(
-            'backgroundImage',
-            initializeBackgroundImage()
-        );
         applyAppFontPreferences({
             fontFamily,
             customFontFamily,

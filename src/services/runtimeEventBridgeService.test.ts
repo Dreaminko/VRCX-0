@@ -15,10 +15,10 @@ const mocks = vi.hoisted(() => ({
         >(),
     applyRuntimeGameLogProjection: vi.fn(),
     applyBackgroundImageProjectionEvent: vi.fn(),
+    initializeBackgroundImage: vi.fn(),
     applyCommunityThemeProjectionEvent: vi.fn(),
-    refreshCommunityThemeProjection: vi.fn<() => Promise<void>>(),
+    initializeCommunityThemes: vi.fn(),
     applyVrcStatusSnapshot: vi.fn(),
-    appBackgroundImageStateGet: vi.fn(),
     handleFavoriteImportStatusEvent: vi.fn(),
     handleMutualGraphFetchStatusEvent: vi.fn(),
     refreshMutualGraphFetchStatus: vi.fn(),
@@ -49,7 +49,6 @@ const mocks = vi.hoisted(() => ({
             >
         >(),
     runtimeGroupInstancesRefresh: vi.fn<() => Promise<null>>(),
-    appCheckGameRunning: vi.fn<() => Promise<null>>(),
     appGameClientDebugLoggingStatus: vi.fn<() => Promise<null>>(),
     profileBackupCurrentStatus: vi.fn(),
     dataDirMigrationCurrentStatus: vi.fn(),
@@ -63,7 +62,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
-        appCheckGameRunning: mocks.appCheckGameRunning,
         appProfileBackupCurrentStatus: mocks.profileBackupCurrentStatus,
         appDataDirMigrationCurrentStatus: mocks.dataDirMigrationCurrentStatus,
         appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
@@ -73,8 +71,7 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appAppUpdateCheckRun: mocks.getAppUpdateStatus,
         appAppUpdateDownloadStatusGet: mocks.getAppUpdateDownloadStatus,
         appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh,
-        appGameClientDebugLoggingStatus: mocks.appGameClientDebugLoggingStatus,
-        appBackgroundImageStateGet: mocks.appBackgroundImageStateGet
+        appGameClientDebugLoggingStatus: mocks.appGameClientDebugLoggingStatus
     }
 }));
 
@@ -92,13 +89,14 @@ vi.mock('./gameLogIngestService', () => ({
 
 vi.mock('./background-image/backgroundImageService', () => ({
     applyBackgroundImageProjectionEvent:
-        mocks.applyBackgroundImageProjectionEvent
+        mocks.applyBackgroundImageProjectionEvent,
+    initializeBackgroundImage: mocks.initializeBackgroundImage
 }));
 
 vi.mock('./community-theme/installedThemes', () => ({
     applyCommunityThemeProjectionEvent:
         mocks.applyCommunityThemeProjectionEvent,
-    refreshCommunityThemeProjection: mocks.refreshCommunityThemeProjection
+    initializeCommunityThemes: mocks.initializeCommunityThemes
 }));
 
 vi.mock('./favoriteImportService', () => ({
@@ -356,7 +354,6 @@ describe('runtimeEventBridgeService', () => {
             error: null
         });
         mocks.runtimeGroupInstancesRefresh.mockResolvedValue(null);
-        mocks.appCheckGameRunning.mockResolvedValue(null);
         mocks.appGameClientDebugLoggingStatus.mockResolvedValue(null);
         mocks.profileBackupCurrentStatus.mockResolvedValue({
             revision: 0,
@@ -375,7 +372,39 @@ describe('runtimeEventBridgeService', () => {
         mocks.drainPendingDeepLinks.mockResolvedValue(undefined);
         mocks.resumeFrontendSessionFromBackendRuntime.mockResolvedValue(false);
         mocks.refreshMutualGraphFetchStatus.mockResolvedValue(undefined);
-        mocks.refreshCommunityThemeProjection.mockResolvedValue(undefined);
+        mocks.initializeBackgroundImage.mockResolvedValue(undefined);
+        mocks.initializeCommunityThemes.mockResolvedValue(undefined);
+    });
+
+    it('hydrates the backend session before deferred appearance projections', async () => {
+        let finishAppearanceHydration: () => void = () => {
+            throw new Error('Appearance hydration was not initialized.');
+        };
+        const appearanceHydration = new Promise<void>((resolve) => {
+            finishAppearanceHydration = resolve;
+        });
+        mocks.initializeCommunityThemes.mockReturnValue(appearanceHydration);
+        mocks.initializeBackgroundImage.mockReturnValue(appearanceHydration);
+
+        const binding = bindRuntimeEvents();
+        try {
+            await vi.waitFor(() => {
+                expect(mocks.getBackendRuntimeSnapshot).toHaveBeenCalledTimes(1);
+            });
+        } finally {
+            finishAppearanceHydration();
+            await binding;
+        }
+    });
+
+    it('refreshes browser status without a manual process query', async () => {
+        mocks.isHostCapabilityAvailable.mockReturnValue(true);
+        mocks.handleBrowserFocus.mockResolvedValue(undefined);
+        const { handlers } = await bindCapturedRuntimeEvents();
+
+        handlers.get('browserFocus')?.(null);
+
+        expect(mocks.handleBrowserFocus).toHaveBeenCalledTimes(1);
     });
 
     it('routes only current-scope structured VRChat 401 events to auth recovery', async () => {
@@ -593,7 +622,7 @@ describe('runtimeEventBridgeService', () => {
             expect.any(Function)
         );
         expect(mocks.subscribe.mock.invocationCallOrder.at(-1)).toBeLessThan(
-            mocks.refreshCommunityThemeProjection.mock.invocationCallOrder[0]
+            mocks.initializeCommunityThemes.mock.invocationCallOrder[0]
         );
     });
 

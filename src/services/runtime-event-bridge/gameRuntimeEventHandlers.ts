@@ -1,4 +1,3 @@
-import { commands } from '@/platform/tauri/bindings';
 import type {
     DebugLoggingOutcome,
     GameLogProjection,
@@ -56,19 +55,6 @@ function publishNowPlayingSharedFeed(payload: NowPlayingPayload): void {
 }
 
 let lastDebugLoggingCheckId = 0;
-
-function requestGameRunningStateRefresh(source: string): void {
-    if (!isHostCapabilityAvailable('gameProcessMonitor')) {
-        return;
-    }
-
-    commands.appCheckGameRunning().catch((error: unknown) => {
-        console.warn(
-            `Game process state refresh failed during ${source}:`,
-            error
-        );
-    });
-}
 
 export function handleGameLogPersistenceFallback(
     payload: RuntimeEventPayloadMap['gameLogPersistenceFallback']
@@ -185,7 +171,6 @@ export function handleBrowserFocusEvent(): void {
     useRuntimeStore.getState().setGameState({
         lastBrowserFocusAt: new Date().toISOString()
     });
-    requestGameRunningStateRefresh('browser focus');
     handleBrowserFocus().catch((error: unknown) => {
         console.warn('Browser focus status refresh failed:', error);
     });

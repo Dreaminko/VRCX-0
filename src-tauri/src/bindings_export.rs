@@ -129,7 +129,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::asset_bundle::asset_bundle__get_cache_size,
             commands::log_watcher::log_watcher__get_current_location,
             commands::log_watcher::log_watcher__vrc_closed_gracefully,
-            commands::host::game::app__check_game_running,
             commands::host::game::app__is_game_running,
             commands::host::game::app__is_steamvr_running,
             commands::host::game::app__set_game_client_runtime_state,

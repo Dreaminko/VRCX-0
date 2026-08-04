@@ -170,6 +170,13 @@ describe('startupService', () => {
         });
     });
 
+    it('leaves community and background projection hydration to the runtime event bridge', async () => {
+        await initializeReactRuntime();
+
+        expect(mocks.initializeCommunityThemes).not.toHaveBeenCalled();
+        expect(mocks.initializeBackgroundImage).not.toHaveBeenCalled();
+    });
+
     it('canonicalizes and persists a saved locale before applying font preferences', async () => {
         mocks.configGetRawValue.mockResolvedValue(' zh_Hant_TW ');
 
@@ -196,12 +203,6 @@ describe('startupService', () => {
     it('continues startup when non-critical appearance synchronization fails', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         mocks.applyThemeMode.mockRejectedValue(new Error('theme failed'));
-        mocks.initializeCommunityThemes.mockRejectedValue(
-            new Error('community themes failed')
-        );
-        mocks.initializeBackgroundImage.mockRejectedValue(
-            new Error('background failed')
-        );
         mocks.applyZoomLevel.mockRejectedValue(new Error('zoom failed'));
 
         await expect(initializeReactRuntime()).resolves.toBeUndefined();
@@ -214,7 +215,7 @@ describe('startupService', () => {
             transportStatus: 'idle',
             databaseReady: true
         });
-        expect(warn).toHaveBeenCalledTimes(4);
+        expect(warn).toHaveBeenCalledTimes(2);
     });
 
     it('does not wait for background maintenance before exposing partial readiness', async () => {

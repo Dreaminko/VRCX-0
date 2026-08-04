@@ -1,40 +1,14 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_application_core::HostSessionGameProcessStatus;
-
 use crate::adapters::host_file_access::ensure_vrchat_launch_path_allowed;
 use crate::error::AppError;
 use crate::state::AppState;
-use vrcx_0_host_desktop::{game_launch, process_status};
+use vrcx_0_host_desktop::game_launch;
 
 use vrcx_0_host_desktop::host_capabilities::{
     require_host_capability, require_host_capability_supported, HostCapability,
 };
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__check_game_running(state: State<'_, AppState>) -> Result<(), AppError> {
-    require_host_capability(HostCapability::GameProcessMonitor)?;
-    let status = process_status::detect_process_status();
-    let changed_at = chrono::Utc::now()
-        .format("%Y-%m-%dT%H:%M:%S%.3fZ")
-        .to_string();
-    let projection =
-        state
-            .runtime_context
-            .session
-            .apply_game_process_status(HostSessionGameProcessStatus {
-                is_game_running: status.is_game_running,
-                is_steamvr_running: status.is_steamvr_running,
-                changed_at,
-            });
-    state
-        .runtime_context
-        .event_bus
-        .emit_game_process_status(projection);
-    Ok(())
-}
 
 #[tauri::command]
 #[specta::specta]

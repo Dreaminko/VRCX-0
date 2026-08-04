@@ -12,11 +12,14 @@ import {
     resetAuthenticatedRuntimeMirror
 } from './authenticatedRuntimeService';
 import { handleRuntimeAuthFailure } from './authSessionRecoveryService';
-import { applyBackgroundImageProjectionEvent } from './background-image/backgroundImageService';
+import {
+    applyBackgroundImageProjectionEvent,
+    initializeBackgroundImage
+} from './background-image/backgroundImageService';
 import { handleAppUpdateStatusEvent } from './backgroundMaintenanceUpdateService';
 import {
     applyCommunityThemeProjectionEvent,
-    refreshCommunityThemeProjection
+    initializeCommunityThemes
 } from './community-theme/installedThemes';
 import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
@@ -259,6 +262,73 @@ async function hydrateRuntimeState(
     }
 }
 
+async function hydrateAncillaryRuntimeState(): Promise<void> {
+    await Promise.all([
+        hydrateRuntimeState(
+            'Failed to hydrate community theme projection:',
+            initializeCommunityThemes
+        ),
+        hydrateRuntimeState(
+            'Failed to hydrate profile backup status:',
+            async () => {
+                useProfileBackupStore
+                    .getState()
+                    .applyStatus(await getCurrentProfileBackupStatus());
+            }
+        ),
+        hydrateRuntimeState(
+            'Failed to hydrate data directory migration status:',
+            async () => {
+                useDataDirMigrationStore
+                    .getState()
+                    .applyStatus(await getCurrentDataDirMigrationStatus());
+            }
+        ),
+        hydrateRuntimeState(
+            'Failed to hydrate mutual graph fetch status:',
+            refreshMutualGraphFetchStatus
+        ),
+        hydrateRuntimeState(
+            'Failed to hydrate app update status:',
+            async () => {
+                await handleAppUpdateStatusEvent(
+                    await commands.appAppUpdateStatusGet()
+                );
+            }
+        ),
+        hydrateRuntimeState(
+            'Failed to hydrate debug logging status:',
+            async () => {
+                const debugLoggingOutcome =
+                    await commands.appGameClientDebugLoggingStatus();
+                if (debugLoggingOutcome) {
+                    handleDebugLoggingOutcome(debugLoggingOutcome);
+                }
+            }
+        ),
+        hydrateRuntimeState(
+            'Failed to hydrate background image state:',
+            initializeBackgroundImage
+        ),
+        hydrateRuntimeState(
+            'Failed to run registry backup maintenance during hydration:',
+            runForegroundUpdateRegistryBackupMaintenance
+        ),
+        hydrateRuntimeState(
+            'Failed to hydrate app update download status:',
+            async () => {
+                const downloadStatus =
+                    await commands.appAppUpdateDownloadStatusGet();
+                useRuntimeStore.getState().setUpdateLoopState({
+                    autoDownloadState: downloadStatus.phase,
+                    downloadedVersion: downloadStatus.version,
+                    downloadProgress: downloadStatus.percent
+                });
+            }
+        )
+    ]);
+}
+
 export async function bindRuntimeEvents(): Promise<() => void> {
     resetBackendRealtimeProjectionState();
     resetAuthenticatedRuntimeMirror();
@@ -323,74 +393,6 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         if (failure) {
             throw failure.reason;
         }
-        await Promise.all([
-            hydrateRuntimeState(
-                'Failed to hydrate community theme projection:',
-                refreshCommunityThemeProjection
-            ),
-            hydrateRuntimeState(
-                'Failed to hydrate profile backup status:',
-                async () => {
-                    useProfileBackupStore
-                        .getState()
-                        .applyStatus(await getCurrentProfileBackupStatus());
-                }
-            ),
-            hydrateRuntimeState(
-                'Failed to hydrate data directory migration status:',
-                async () => {
-                    useDataDirMigrationStore
-                        .getState()
-                        .applyStatus(await getCurrentDataDirMigrationStatus());
-                }
-            ),
-            hydrateRuntimeState(
-                'Failed to hydrate mutual graph fetch status:',
-                refreshMutualGraphFetchStatus
-            ),
-            hydrateRuntimeState(
-                'Failed to hydrate app update status:',
-                async () => {
-                    await handleAppUpdateStatusEvent(
-                        await commands.appAppUpdateStatusGet()
-                    );
-                }
-            ),
-            hydrateRuntimeState(
-                'Failed to hydrate debug logging status:',
-                async () => {
-                    const debugLoggingOutcome =
-                        await commands.appGameClientDebugLoggingStatus();
-                    if (debugLoggingOutcome) {
-                        handleDebugLoggingOutcome(debugLoggingOutcome);
-                    }
-                }
-            ),
-            hydrateRuntimeState(
-                'Failed to hydrate background image state:',
-                async () => {
-                    applyBackgroundImageProjectionEvent(
-                        await commands.appBackgroundImageStateGet()
-                    );
-                }
-            ),
-            hydrateRuntimeState(
-                'Failed to run registry backup maintenance during hydration:',
-                runForegroundUpdateRegistryBackupMaintenance
-            ),
-            hydrateRuntimeState(
-                'Failed to hydrate app update download status:',
-                async () => {
-                    const downloadStatus =
-                        await commands.appAppUpdateDownloadStatusGet();
-                    useRuntimeStore.getState().setUpdateLoopState({
-                        autoDownloadState: downloadStatus.phase,
-                        downloadedVersion: downloadStatus.version,
-                        downloadProgress: downloadStatus.percent
-                    });
-                }
-            )
-        ]);
     } catch (error) {
         resetBackendRealtimeProjectionState();
         resetAuthenticatedRuntimeMirror();
@@ -424,6 +426,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
     } catch (error) {
         console.warn('Failed to hydrate authenticated runtime phase:', error);
     }
+    await hydrateAncillaryRuntimeState();
     try {
         unsubscribers.push(await bindDeepLinkEvents());
         await drainPendingDeepLinks();

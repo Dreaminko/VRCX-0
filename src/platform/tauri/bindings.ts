@@ -105,9 +105,6 @@ export const commands = {
     async logWatcherVrcClosedGracefully(): Promise<boolean> {
         return await TAURI_INVOKE('log_watcher__vrc_closed_gracefully');
     },
-    async appCheckGameRunning(): Promise<null> {
-        return await TAURI_INVOKE('app__check_game_running');
-    },
     async appIsGameRunning(): Promise<boolean> {
         return await TAURI_INVOKE('app__is_game_running');
     },

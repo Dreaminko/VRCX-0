@@ -4,9 +4,12 @@ import { useInstanceJoinHistoryStore } from '@/state/instanceJoinHistoryStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
-import { ensureCurrentAuthAttempt, type AuthAttempt } from './authAttempt';
+import {
+    ensureCurrentAuthAttempt,
+    isAuthAttemptSupersededError,
+    type AuthAttempt
+} from './authAttempt';
 import { restoreRuntimeGameLogProjectionFromPersistence } from './gameLogIngestService';
-import { isHostCapabilityAvailable } from './hostCapabilityService';
 import { syncStartupServicesTask } from './startupServicesStatus';
 
 type AuthenticatedUser = Record<string, unknown> & {
@@ -21,23 +24,6 @@ function getCurrentUserDisplayName(
     return String(user?.displayName || user?.username || user?.id || '');
 }
 
-async function requestGameRunningStateRefresh(): Promise<boolean> {
-    if (!isHostCapabilityAvailable('gameProcessMonitor')) {
-        return false;
-    }
-
-    try {
-        await commands.appCheckGameRunning();
-        return true;
-    } catch (error) {
-        console.warn(
-            'CheckGameRunning is unavailable during session bootstrap:',
-            error
-        );
-        return false;
-    }
-}
-
 async function refreshGroupInstances(): Promise<void> {
     try {
         await commands.appRuntimeGroupInstancesRefresh();
@@ -49,17 +35,52 @@ async function refreshGroupInstances(): Promise<void> {
     }
 }
 
-async function loadInstanceJoinHistory(userId: string): Promise<void> {
+async function loadInstanceJoinHistory(
+    userId: string,
+    attempt: AuthAttempt
+): Promise<void> {
+    let history: Iterable<[unknown, unknown]>;
     try {
-        const history =
+        history =
             await gameLogPersistenceRepository.getInstanceJoinHistory(userId);
-        useInstanceJoinHistoryStore.getState().setInstanceJoinHistory(history);
     } catch (error) {
         console.warn(
             'Instance join history is unavailable during session bootstrap:',
             error
         );
+        return;
     }
+
+    ensureCurrentAuthAttempt(attempt);
+    useInstanceJoinHistoryStore.getState().setInstanceJoinHistory(history);
+}
+
+async function hydratePostReadySession(
+    userId: string,
+    attempt: AuthAttempt
+): Promise<void> {
+    await refreshGroupInstances();
+    ensureCurrentAuthAttempt(attempt);
+    await loadInstanceJoinHistory(userId, attempt);
+    await restoreRuntimeGameLogProjectionFromPersistence().catch(
+        (error: unknown) => {
+            console.warn(
+                'Current GameLog roster restore failed during session bootstrap:',
+                error
+            );
+        }
+    );
+}
+
+function startPostReadySessionHydration(
+    userId: string,
+    attempt: AuthAttempt
+): void {
+    void hydratePostReadySession(userId, attempt).catch((error: unknown) => {
+        if (!isAuthAttemptSupersededError(error)) {
+            console.warn('Post-ready session hydration failed:', error);
+        }
+    });
 }
 
 export async function bootstrapAuthenticatedSession(
@@ -91,35 +112,14 @@ export async function bootstrapAuthenticatedSession(
         `Preparing the interface for ${displayName}.`
     );
 
-    const gameStateRestored = await requestGameRunningStateRefresh();
-    ensureCurrentAuthAttempt(attempt);
     sessionStore.setSessionState({
         isLoggedIn: true,
         isFriendsLoaded: false,
         isFavoritesLoaded: false,
         sessionPhase: 'ready'
     });
-    await refreshGroupInstances();
-    ensureCurrentAuthAttempt(attempt);
-    await loadInstanceJoinHistory(userId);
-    ensureCurrentAuthAttempt(attempt);
-    if (gameStateRestored) {
-        await requestGameRunningStateRefresh();
-        ensureCurrentAuthAttempt(attempt);
-        await restoreRuntimeGameLogProjectionFromPersistence().catch(
-            (error: unknown) => {
-                console.warn(
-                    'Current GameLog roster restore failed during session bootstrap:',
-                    error
-                );
-            }
-        );
-        ensureCurrentAuthAttempt(attempt);
-    }
     syncStartupServicesTask([
-        `Authenticated session is ready for ${displayName}.`,
-        gameStateRestored
-            ? 'Host game state restore was requested.'
-            : 'Host game state restore is unavailable in the current host.'
+        `Authenticated session is ready for ${displayName}.`
     ]);
+    startPostReadySessionHydration(userId, attempt);
 }
