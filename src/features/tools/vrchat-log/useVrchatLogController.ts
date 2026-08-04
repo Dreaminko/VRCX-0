@@ -91,14 +91,6 @@ export function useVrchatLogController() {
         }
         return nextCategories;
     }, [knownCategories, selectedCategories]);
-    const categoryButtonLabel =
-        selectedCategories.length === 1
-            ? selectedCategories[0]
-            : selectedCategories.length
-              ? t('view.tools.vrchat_log.categories_selected', {
-                    count: selectedCategories.length
-                })
-              : t('view.tools.vrchat_log.all_categories');
     const selectedCount = selectedLineNumbers.size;
     const visibleLoadedCount = entries.length;
     const logTotalHeight = entries.length * LOG_ROW_HEIGHT;
@@ -751,7 +743,6 @@ export function useVrchatLogController() {
         levels,
         toggleLevel,
         categoryOptions,
-        categoryButtonLabel,
         selectedCategories,
         setSelectedCategories,
         toggleCategory,

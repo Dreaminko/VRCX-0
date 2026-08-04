@@ -1,20 +1,6 @@
-import { SettingsIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-
 import { SearchPagination } from '@/components/search/SearchPagination';
 import type { LanguageOption } from '@/shared/utils/userLanguage';
 import { usePreferencesStore } from '@/state/preferencesStore';
-import { Button } from '@/ui/shadcn/button';
-import { Checkbox } from '@/ui/shadcn/checkbox';
-import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 import { TabsContent } from '@/ui/shadcn/tabs';
 
 import type {
@@ -22,7 +8,6 @@ import type {
     SearchGroupResult,
     SearchPaginationState,
     SearchUserResult,
-    SearchWorldCategory,
     SearchWorldResult
 } from '../searchTypes';
 import {
@@ -35,25 +20,16 @@ import {
 } from './SearchResultParts';
 
 export function SearchUserTabPanel({
-    searchUserByBio,
-    onSearchUserByBioChange,
-    searchUserSortByLastLoggedIn,
-    onSearchUserSortByLastLoggedInChange,
     isLoading,
     results,
     languageOptionsMap,
     pagination
 }: {
-    searchUserByBio: boolean;
-    onSearchUserByBioChange: (value: boolean) => void;
-    searchUserSortByLastLoggedIn: boolean;
-    onSearchUserSortByLastLoggedInChange: (value: boolean) => void;
     isLoading: boolean;
     results: SearchUserResult[];
     languageOptionsMap: ReadonlyMap<string, LanguageOption>;
     pagination: SearchPaginationState;
 }) {
-    const { t } = useTranslation();
     const randomUserColours = usePreferencesStore(
         (state) => state.randomUserColours
     );
@@ -68,38 +44,6 @@ export function SearchUserTabPanel({
             className="m-0 flex min-h-0 flex-1 flex-col data-hidden:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
-                <FieldGroup
-                    data-slot="checkbox-group"
-                    className="mb-3 flex shrink-0 flex-row flex-wrap justify-end gap-4"
-                >
-                    <Field orientation="horizontal" className="w-auto">
-                        <Checkbox
-                            id="search-user-by-bio"
-                            checked={searchUserByBio}
-                            onCheckedChange={(checked) =>
-                                onSearchUserByBioChange(checked === true)
-                            }
-                        />
-                        <FieldLabel htmlFor="search-user-by-bio">
-                            {t('view.search.user.search_by_bio')}
-                        </FieldLabel>
-                    </Field>
-                    <Field orientation="horizontal" className="w-auto">
-                        <Checkbox
-                            id="search-user-sort-by-last-logged-in"
-                            checked={searchUserSortByLastLoggedIn}
-                            onCheckedChange={(checked) =>
-                                onSearchUserSortByLastLoggedInChange(
-                                    checked === true
-                                )
-                            }
-                        />
-                        <FieldLabel htmlFor="search-user-sort-by-last-logged-in">
-                            {t('view.search.user.sort_by_last_logged_in')}
-                        </FieldLabel>
-                    </Field>
-                </FieldGroup>
-
                 <div className="min-h-0 flex-1 overflow-y-auto">
                     {isLoading ? (
                         <SearchLoadingState />
@@ -132,26 +76,14 @@ export function SearchUserTabPanel({
 }
 
 export function SearchWorldTabPanel({
-    includeCommunityLabs,
-    onIncludeCommunityLabsChange,
-    selectedWorldCategory,
-    onWorldCategoryChange,
-    worldCategories,
     isLoading,
     results,
     pagination
 }: {
-    includeCommunityLabs: boolean;
-    onIncludeCommunityLabsChange: (value: boolean) => void;
-    selectedWorldCategory: string;
-    onWorldCategoryChange: (value: string | null) => void;
-    worldCategories: SearchWorldCategory[];
     isLoading: boolean;
     results: SearchWorldResult[];
     pagination: SearchPaginationState;
 }) {
-    const { t } = useTranslation();
-
     return (
         <TabsContent
             value="world"
@@ -159,47 +91,6 @@ export function SearchWorldTabPanel({
             className="m-0 flex min-h-0 flex-1 flex-col data-hidden:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
-                <div className="mb-4 flex w-full shrink-0 justify-end gap-2">
-                    <Field orientation="horizontal" className="w-auto">
-                        <Checkbox
-                            id="search-world-community-lab"
-                            checked={includeCommunityLabs}
-                            onCheckedChange={(checked) =>
-                                onIncludeCommunityLabsChange(checked === true)
-                            }
-                        />
-                        <FieldLabel htmlFor="search-world-community-lab">
-                            {t('view.search.world.community_lab')}
-                        </FieldLabel>
-                    </Field>
-                    <Select
-                        value={selectedWorldCategory}
-                        items={worldCategories.map((row) => ({
-                            value: String(row.index),
-                            label: row.name || String(row.index)
-                        }))}
-                        onValueChange={onWorldCategoryChange}
-                    >
-                        <SelectTrigger size="sm">
-                            <SelectValue
-                                placeholder={t('view.search.world.category')}
-                            />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {worldCategories.map((row) => (
-                                    <SelectItem
-                                        key={row.index}
-                                        value={String(row.index)}
-                                    >
-                                        {row.name || String(row.index)}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                </div>
-
                 <div className="min-h-0 flex-1 overflow-y-auto">
                     {isLoading ? (
                         <SearchLoadingState />
@@ -226,24 +117,14 @@ export function SearchWorldTabPanel({
 }
 
 export function SearchAvatarTabPanel({
-    avatarProviderList,
-    selectedAvatarProvider,
-    onAvatarProviderChange,
-    onOpenAvatarProviderSettings,
     isLoading,
     results,
     pagination
 }: {
-    avatarProviderList: string[];
-    selectedAvatarProvider: string;
-    onAvatarProviderChange: (value: string | null) => void;
-    onOpenAvatarProviderSettings: () => void;
     isLoading: boolean;
     results: SearchAvatarResult[];
     pagination: SearchPaginationState;
 }) {
-    const { t } = useTranslation();
-
     return (
         <TabsContent
             value="avatar"
@@ -251,57 +132,7 @@ export function SearchAvatarTabPanel({
             className="m-0 flex min-h-0 flex-1 flex-col data-hidden:hidden"
         >
             <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
-                <div className="mb-3 flex shrink-0 items-center justify-end gap-2">
-                    {avatarProviderList.length > 0 ? (
-                        <Select
-                            value={selectedAvatarProvider}
-                            items={avatarProviderList
-                                .filter(Boolean)
-                                .map((provider: string) => ({
-                                    value: provider,
-                                    label: provider
-                                }))}
-                            onValueChange={onAvatarProviderChange}
-                        >
-                            <SelectTrigger size="sm">
-                                <SelectValue
-                                    placeholder={t(
-                                        'view.search.avatar.search_provider'
-                                    )}
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {avatarProviderList
-                                        .filter(Boolean)
-                                        .map((provider) => (
-                                            <SelectItem
-                                                key={provider}
-                                                value={provider}
-                                            >
-                                                {provider}
-                                            </SelectItem>
-                                        ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    ) : (
-                        <span className="text-muted-foreground text-sm">
-                            {t('view.search.avatar.no_provider')}
-                        </span>
-                    )}
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        aria-label={t('view.search.avatar.search_provider')}
-                        onClick={onOpenAvatarProviderSettings}
-                    >
-                        <SettingsIcon data-icon="inline-start" />
-                    </Button>
-                </div>
-
-                <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
+                <div className="min-h-0 flex-1 overflow-y-auto">
                     {isLoading ? (
                         <SearchLoadingState />
                     ) : results.length > 0 ? (

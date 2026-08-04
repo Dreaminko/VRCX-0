@@ -1,10 +1,9 @@
 import type { RowData, Table } from '@tanstack/react-table';
 import type { TFunction } from 'i18next';
-import { Settings2Icon } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Button } from '@/ui/shadcn/button';
+import { ToolbarViewMenu } from '@/components/layout/ToolbarControls';
 import {
     ContextMenu,
     ContextMenuCheckboxItem,
@@ -15,14 +14,11 @@ import {
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
 import {
-    DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuSeparator
 } from '@/ui/shadcn/dropdown-menu';
 
 import {
@@ -46,17 +42,14 @@ function renderColumnLockLabel(locked: boolean, t: TFunction) {
 
 export function TableColumnVisibilityMenu<TData extends RowData>({
     table,
-    label,
     onResetLayout
 }: {
     table: Table<TData>;
-    label?: string;
     onResetLayout?: ResetTableLayoutHandler<TData>;
 }) {
     const { t } = useTranslation();
 
-    const allLeafColumns = table.getAllLeafColumns();
-    const columns = getToggleableColumns(allLeafColumns);
+    const columns = getToggleableColumns(table.getAllLeafColumns());
     const showColumnOrderLock = hasColumnOrderLock(table);
 
     if (!columns.length && !showColumnOrderLock) {
@@ -64,76 +57,59 @@ export function TableColumnVisibilityMenu<TData extends RowData>({
     }
 
     const columnOrderLocked = getColumnOrderLocked(table);
-    const resolvedLabel = label || t('table.label.columns');
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon-sm"
-                        aria-label={resolvedLabel}
-                    >
-                        <Settings2Icon data-icon="icon" />
-                    </Button>
-                }
-            />
-            <DropdownMenuContent
-                align="end"
-                className="max-h-96 w-72 overflow-y-auto"
-            >
-                <DropdownMenuGroup>
-                    <DropdownMenuLabel>
-                        {t('table.label.table_layout')}
-                    </DropdownMenuLabel>
+        <ToolbarViewMenu>
+            <DropdownMenuGroup>
+                <DropdownMenuLabel>
+                    {t('table.label.table_layout')}
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                    closeOnClick={false}
+                    onClick={(event) => {
+                        event.preventDefault();
+                        resetTableLayout(table, onResetLayout);
+                    }}
+                >
+                    {t('table.action.reset_columns')}
+                </DropdownMenuItem>
+                {showColumnOrderLock ? (
                     <DropdownMenuItem
                         closeOnClick={false}
                         onClick={(event) => {
                             event.preventDefault();
-                            resetTableLayout(table, onResetLayout);
+                            setColumnOrderLocked(table, !columnOrderLocked);
                         }}
                     >
-                        {t('table.action.reset_columns')}
+                        {renderColumnLockLabel(columnOrderLocked, t)}
                     </DropdownMenuItem>
-                    {showColumnOrderLock ? (
-                        <DropdownMenuItem
-                            closeOnClick={false}
-                            onClick={(event) => {
-                                event.preventDefault();
-                                setColumnOrderLocked(table, !columnOrderLocked);
-                            }}
-                        >
-                            {renderColumnLockLabel(columnOrderLocked, t)}
-                        </DropdownMenuItem>
-                    ) : null}
-                </DropdownMenuGroup>
-                {columns.length ? (
-                    <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                            {columns.map((column) => (
-                                <DropdownMenuCheckboxItem
-                                    key={column.id}
-                                    checked={column.getIsVisible()}
-                                    onCheckedChange={(checked) =>
-                                        column.toggleVisibility(
-                                            checked === true
-                                        )
-                                    }
-                                    onClick={(event) => event.preventDefault()}
-                                >
-                                    <span className="min-w-0 flex-1 truncate">
-                                        {resolveColumnLabel(column)}
-                                    </span>
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuGroup>
-                    </>
                 ) : null}
-            </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuGroup>
+            {columns.length ? (
+                <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                        <DropdownMenuLabel>
+                            {t('table.label.columns')}
+                        </DropdownMenuLabel>
+                        {columns.map((column) => (
+                            <DropdownMenuCheckboxItem
+                                key={column.id}
+                                checked={column.getIsVisible()}
+                                onCheckedChange={(checked) =>
+                                    column.toggleVisibility(checked === true)
+                                }
+                                onClick={(event) => event.preventDefault()}
+                            >
+                                <span className="min-w-0 flex-1 truncate">
+                                    {resolveColumnLabel(column)}
+                                </span>
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuGroup>
+                </>
+            ) : null}
+        </ToolbarViewMenu>
     );
 }
 

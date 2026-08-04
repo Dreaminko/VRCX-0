@@ -282,7 +282,8 @@
             "save": "Speichern",
             "search": "Suchen",
             "select": "Auswählen",
-            "cancel": "Abbrechen"
+            "cancel": "Abbrechen",
+            "view_options": "Ansichtsoptionen"
         },
         "sort_by": "Sortieren nach:",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "Freund",
             "favorite": "Favorit"
+        },
+        "filter": {
+            "label": "Filter",
+            "label_count": "Filter ({count})"
         }
     },
     "overlay": {
@@ -797,7 +802,6 @@
                 "add": "Spalte hinzufügen",
                 "manage": "Spalten verwalten",
                 "manage_list": "Spalten hinzufügen / entfernen",
-                "settings": "Spalteneinstellungen",
                 "density": "Dichte",
                 "density_options": {
                     "compact": "Kompakt",
@@ -901,7 +905,6 @@
             "friend_is_not_in_hydrated_favorite_group": "Die Favoritengruppe dieses Freundes wurde noch nicht vollständig geladen."
         },
         "game_log": {
-            "filter_placeholder": "Filtern",
             "filters": {
                 "Location": "Standort",
                 "OnPlayerJoined": "Spieler beigetreten",
@@ -977,7 +980,6 @@
             }
         },
         "instance_history": {
-            "title": "Instanzverlauf",
             "mode": {
                 "search": "Suche",
                 "day": "Tag"
@@ -1001,16 +1003,11 @@
                 "current_user": "Ich",
                 "open_full": "Vollständigen Instanzverlauf öffnen"
             },
-            "description": {
-                "viewing": "Betrachte {name}",
-                "no_current_user": "Melde dich an, bevor du den Instanzverlauf ansiehst."
-            },
             "toast": {
                 "failed_to_load_instance_history": "Instanzverlauf konnte nicht geladen werden"
             }
         },
         "my_avatars": {
-            "filter": "Filter",
             "error": {
                 "selected_avatar_style_is_not_available": "Ausgewählter Avatar-Stil ist nicht verfügbar",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "Stilliste konnte nicht geladen werden. Unbekannte Stilauswahlen werden beibehalten",
@@ -1033,7 +1030,6 @@
                 "tag_name": "Tag-Name",
                 "visibility": "Sichtbarkeit",
                 "platform": "Plattform",
-                "grid_settings": "Rastereinstellungen",
                 "grid_density": "Rasterdichte",
                 "grid_density_standard": "Standard",
                 "grid_density_compact": "Kompakt",
@@ -1290,7 +1286,6 @@
         "friend_log": {
             "filter_placeholder": "Filter",
             "all_types": "Alle Typen",
-            "selected_types": "{count} Typen ausgewählt",
             "groups": {
                 "relationships": "Freundschaftsbeziehungen",
                 "requests": "Freundschaftsanfragen",
@@ -1344,19 +1339,16 @@
                 "of": "von",
                 "moderation_row": "Moderationseintrag",
                 "moderation_rows": "Moderationseinträge",
-                "moderation_filters": "Moderationsfilter",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "Erweitere die Typfilter oder die Suchanfrage, um mehr Ergebnisse zu sehen"
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "Keine Moderationseinträge entsprechen den aktuellen Filtern"
             },
             "dynamic": {
-                "deleted_value_for_value": "{value} für {value2} gelöscht",
-                "selected_moderation_filters": "{count} Moderationsfilter"
+                "deleted_value_for_value": "{value} für {value2} gelöscht"
             }
         },
         "notification": {
-            "filter_placeholder": "Filtern",
             "refresh_tooltip": "Aktualisieren",
             "actions": {
                 "accept": "Annehmen",
@@ -1471,7 +1463,6 @@
             "load_cancel": "Abbrechen",
             "favorites_only_tooltip": "Nur Favoriten filtern",
             "search_placeholder": "Suchen",
-            "filter_placeholder": "Filtern",
             "load_mutual_friends": "Gemeinsame Freunde laden",
             "search_filters": {
                 "display_name": "Anzeigename",
@@ -1526,7 +1517,8 @@
             },
             "dynamic": {
                 "open_value": "{value} öffnen"
-            }
+            },
+            "bulk_selected": "{count} ausgewählt"
         },
         "charts": {
             "instance_activity": {
@@ -1719,8 +1711,6 @@
                 "file_placeholder": "Logdatei auswählen",
                 "search_placeholder": "Nachricht, Kategorie oder Stacktrace durchsuchen",
                 "follow_latest": "Neuesten folgen",
-                "all_categories": "Alle Kategorien",
-                "categories_selected": "{count} Kategorien",
                 "clear_categories": "Kategorien leeren",
                 "copy_selected": "Auswahl kopieren",
                 "copy_entry": "Zeile kopieren",
@@ -4668,8 +4658,7 @@
                 "location": "Standort",
                 "page": "Seite",
                 "sort_by": "Sortieren nach",
-                "sort_descending": "Absteigend sortieren",
-                "sort_ascending": "Aufsteigend sortieren"
+                "sort_descending": "Absteigend sortieren"
             },
             "success": {
                 "instance_record_deleted": "Besuch aus dem Instanzverlauf entfernt"

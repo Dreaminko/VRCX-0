@@ -1,9 +1,4 @@
-import {
-    ChevronsUpDownIcon,
-    ChevronUpIcon,
-    RefreshCwIcon,
-    UserRoundIcon
-} from 'lucide-react';
+import { ChevronsUpDownIcon, ChevronUpIcon, UserRoundIcon } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,13 +18,20 @@ import {
 import { PreviousInstanceDetailsPanel } from '@/components/dialogs/previous-instances-table/PreviousInstancesViewParts';
 import {
     PageBody,
-    PageDescription,
-    PageHeader,
     PageScaffold,
-    PageTitle,
     PageToolbar,
     PageToolbarRow
 } from '@/components/layout/PageScaffold';
+import {
+    toolbarDateRangeTrigger,
+    ToolbarActions,
+    ToolbarRefreshButton,
+    ToolbarSearch,
+    ToolbarSegmented,
+    ToolbarStatus,
+    ToolbarViewMenu,
+    ToolbarViews
+} from '@/components/layout/ToolbarControls';
 import { UserPickerRow } from '@/components/search/UserPickerRow';
 import { normalizeEndpoint, normalizeUserId } from '@/domain/users/userFacts';
 import type { UserFact } from '@/domain/users/userFacts';
@@ -75,6 +77,7 @@ import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useUserFactsStore } from '@/state/userFactsStore';
 import { Button } from '@/ui/shadcn/button';
+import { Field, FieldContent, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import {
@@ -83,8 +86,16 @@ import {
     ResizablePanelGroup
 } from '@/ui/shadcn/resizable';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from '@/ui/shadcn/select';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
+import { Switch } from '@/ui/shadcn/switch';
 
 type KnownUserOption = Partial<UserFact> & {
     id: string;
@@ -611,11 +622,21 @@ export function InstanceHistoryPage({
           ].join(' - ')
         : t('view.instance_history.label.date_range');
 
+    const sortItems: { value: PreviousInstanceSortKey; label: string }[] = [
+        { value: 'date', label: t('table.previous_instances.date') },
+        {
+            value: 'location',
+            label: t('dialog.previous_instances.label.location')
+        },
+        { value: 'duration', label: t('table.previous_instances.time') }
+    ];
+
     const dateRangeControl = (
         <DateTimeRangePicker
             value={dateRange}
             onChange={handleDateRangeChange}
-            triggerClassName="w-full"
+            align="start"
+            renderTrigger={toolbarDateRangeTrigger}
             placeholder={t('view.instance_history.label.date_range')}
             startLabel={t('view.instance_history.label.start')}
             endLabel={t('view.instance_history.label.end')}
@@ -695,11 +716,8 @@ export function InstanceHistoryPage({
         search,
         onSearchChange: handleSearchChange,
         sortKey,
-        sortDesc,
-        onSortSelect: selectSort,
         onOpenDetails: setDetailRow,
         onDeleteRow: deleteRow,
-        dateRangeControl,
         dateActive,
         dateRangeLabel,
         onClearDate: clearDateRange
@@ -708,131 +726,201 @@ export function InstanceHistoryPage({
     return (
         <PageScaffold embedded={embedded}>
             <PageToolbar>
-                <PageHeader className="p-0">
-                    <PageTitle>{t('view.instance_history.title')}</PageTitle>
-                    <PageDescription>
-                        {activeUserId
-                            ? t('view.instance_history.description.viewing', {
-                                  name: activeUserLabel
-                              })
-                            : t(
-                                  'view.instance_history.description.no_current_user'
-                              )}
-                    </PageDescription>
-                </PageHeader>
                 <PageToolbarRow>
-                    <Popover
-                        open={targetPickerOpen}
-                        onOpenChange={setTargetPickerOpen}
-                    >
-                        <PopoverTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="max-w-xl min-w-64 flex-1 justify-between"
-                                >
-                                    <span className="truncate">
-                                        {activeUserLabel}
-                                    </span>
-                                    <ChevronsUpDownIcon className="text-muted-foreground size-4" />
-                                </Button>
-                            }
+                    <ToolbarViews>
+                        <Popover
+                            open={targetPickerOpen}
+                            onOpenChange={setTargetPickerOpen}
+                        >
+                            <PopoverTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="max-w-72 min-w-48 shrink-0 justify-between"
+                                    >
+                                        <UserRoundIcon
+                                            data-icon="inline-start"
+                                            className="text-muted-foreground"
+                                        />
+                                        <span className="min-w-0 flex-1 truncate text-left">
+                                            {activeUserLabel}
+                                        </span>
+                                        <ChevronsUpDownIcon
+                                            data-icon="inline-end"
+                                            className="text-muted-foreground size-4"
+                                        />
+                                    </Button>
+                                }
+                            />
+                            <PopoverContent
+                                align="start"
+                                className="w-96 p-2"
+                                initialFocus={targetSearchInputRef}
+                            >
+                                <div className="flex flex-col gap-2">
+                                    <Input
+                                        ref={targetSearchInputRef}
+                                        value={targetSearch}
+                                        onChange={(
+                                            event: ChangeEvent<HTMLInputElement>
+                                        ) =>
+                                            setTargetSearch(event.target.value)
+                                        }
+                                        placeholder={t(
+                                            'view.instance_history.placeholder.user'
+                                        )}
+                                    />
+                                    <ScrollArea className="h-72 rounded-md border">
+                                        <div className="flex flex-col gap-1 p-1 pr-2">
+                                            {targetOptions.map((option) => (
+                                                <Button
+                                                    key={option.value}
+                                                    type="button"
+                                                    variant="ghost"
+                                                    className="h-auto justify-start p-0"
+                                                    onClick={() => {
+                                                        applyTarget(
+                                                            option.value
+                                                        );
+                                                        setTargetPickerOpen(
+                                                            false
+                                                        );
+                                                    }}
+                                                >
+                                                    <UserPickerRow
+                                                        option={option}
+                                                        selected={
+                                                            option.value ===
+                                                            activeUserId
+                                                        }
+                                                    />
+                                                </Button>
+                                            ))}
+                                            {!targetOptions.length ? (
+                                                <div className="text-muted-foreground p-3 text-xs">
+                                                    {t(
+                                                        'common.search_no_results'
+                                                    )}
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    </ScrollArea>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        {!isSelfScope ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={!currentUserId}
+                                onClick={() => applyTarget(currentUserId)}
+                            >
+                                <UserRoundIcon data-icon="inline-start" />
+                                {t('view.instance_history.action.current_user')}
+                            </Button>
+                        ) : null}
+                        <ToolbarSegmented
+                            value={mode}
+                            onValueChange={changeMode}
+                            options={[
+                                {
+                                    value: 'search',
+                                    label: t(
+                                        'view.instance_history.mode.search'
+                                    )
+                                },
+                                {
+                                    value: 'day',
+                                    label: t('view.instance_history.mode.day')
+                                }
+                            ]}
                         />
-                        <PopoverContent
-                            align="start"
-                            className="w-96 p-2"
-                            initialFocus={targetSearchInputRef}
-                        >
-                            <div className="flex flex-col gap-2">
-                                <Input
-                                    ref={targetSearchInputRef}
-                                    value={targetSearch}
-                                    onChange={(
-                                        event: ChangeEvent<HTMLInputElement>
-                                    ) => setTargetSearch(event.target.value)}
-                                    placeholder={t(
-                                        'view.instance_history.placeholder.user'
-                                    )}
-                                />
-                                <ScrollArea className="h-72 rounded-md border">
-                                    <div className="flex flex-col gap-1 p-1 pr-2">
-                                        {targetOptions.map((option) => (
-                                            <Button
-                                                key={option.value}
-                                                type="button"
-                                                variant="ghost"
-                                                className="h-auto justify-start p-0"
-                                                onClick={() => {
-                                                    applyTarget(option.value);
-                                                    setTargetPickerOpen(false);
-                                                }}
-                                            >
-                                                <UserPickerRow
-                                                    option={option}
-                                                    selected={
-                                                        option.value ===
-                                                        activeUserId
-                                                    }
-                                                />
-                                            </Button>
-                                        ))}
-                                        {!targetOptions.length ? (
-                                            <div className="text-muted-foreground p-3 text-xs">
-                                                {t('common.search_no_results')}
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                </ScrollArea>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                    {!isSelfScope ? (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={!currentUserId}
-                            onClick={() => applyTarget(currentUserId)}
-                        >
-                            <UserRoundIcon data-icon="inline-start" />
-                            {t('view.instance_history.action.current_user')}
-                        </Button>
-                    ) : null}
-                    <ToggleGroup
-                        value={mode ? [mode] : []}
-                        onValueChange={(value) => {
-                            const next = value[0];
-                            if (next) {
-                                changeMode(next);
-                            }
-                        }}
-                        className="shrink-0"
-                    >
-                        <ToggleGroupItem value="search">
-                            {t('view.instance_history.mode.search')}
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="day">
-                            {t('view.instance_history.mode.day')}
-                        </ToggleGroupItem>
-                    </ToggleGroup>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={!activeUserId || visibleStatus === 'running'}
-                        onClick={refresh}
-                    >
-                        {visibleStatus === 'running' ? (
-                            <Spinner className="size-4" />
-                        ) : (
-                            <RefreshCwIcon data-icon="inline-start" />
+                        {isDayMode ? null : dateRangeControl}
+                    </ToolbarViews>
+
+                    {isDayMode ? null : (
+                        <ToolbarSearch
+                            value={search}
+                            onValueChange={setSearch}
+                            placeholder={t(
+                                'dialog.previous_instances.search_placeholder'
+                            )}
+                        />
+                    )}
+
+                    <ToolbarActions>
+                        <ToolbarRefreshButton
+                            onRefresh={refresh}
+                            loading={visibleStatus === 'running'}
+                            disabled={!activeUserId}
+                        />
+                        {isDayMode ? null : (
+                            <ToolbarViewMenu contentClassName="p-3">
+                                <FieldGroup
+                                    onClick={(event) => event.stopPropagation()}
+                                >
+                                    <Field>
+                                        <FieldContent>
+                                            <FieldLabel>
+                                                {t(
+                                                    'dialog.previous_instances.label.sort_by'
+                                                )}
+                                            </FieldLabel>
+                                        </FieldContent>
+                                        <Select
+                                            value={sortKey}
+                                            items={sortItems}
+                                            onValueChange={(value) =>
+                                                selectSort(
+                                                    (value ??
+                                                        'date') as PreviousInstanceSortKey,
+                                                    sortDesc
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {sortItems.map((item) => (
+                                                        <SelectItem
+                                                            key={item.value}
+                                                            value={item.value}
+                                                        >
+                                                            {item.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
+                                    <Field orientation="horizontal">
+                                        <FieldContent>
+                                            <FieldLabel htmlFor="instance-history-sort-desc">
+                                                {t(
+                                                    'dialog.previous_instances.label.sort_descending'
+                                                )}
+                                            </FieldLabel>
+                                        </FieldContent>
+                                        <Switch
+                                            id="instance-history-sort-desc"
+                                            checked={sortDesc}
+                                            onCheckedChange={(checked) =>
+                                                selectSort(sortKey, checked)
+                                            }
+                                        />
+                                    </Field>
+                                </FieldGroup>
+                            </ToolbarViewMenu>
                         )}
-                        {t('common.actions.refresh')}
-                    </Button>
+                    </ToolbarActions>
                 </PageToolbarRow>
                 {visibleStatus === 'error' ? (
-                    <div className="text-destructive text-sm">
+                    <ToolbarStatus className="text-destructive">
                         {visibleError}
-                    </div>
+                    </ToolbarStatus>
                 ) : null}
             </PageToolbar>
             <PageBody>

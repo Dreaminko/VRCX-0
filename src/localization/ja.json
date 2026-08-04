@@ -282,7 +282,8 @@
             "save": "保存",
             "search": "検索",
             "select": "選択",
-            "cancel": "キャンセル"
+            "cancel": "キャンセル",
+            "view_options": "表示オプション"
         },
         "sort_by": "並び替え:",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "フレンド",
             "favorite": "お気に入り"
+        },
+        "filter": {
+            "label": "フィルター",
+            "label_count": "フィルター ({count})"
         }
     },
     "overlay": {
@@ -797,7 +802,6 @@
                 "add": "カラムを追加",
                 "manage": "カラム管理",
                 "manage_list": "カラムを追加/削除",
-                "settings": "カラム設定",
                 "density": "密度",
                 "density_options": {
                     "compact": "コンパクト",
@@ -901,7 +905,6 @@
             "friend_is_not_in_hydrated_favorite_group": "読み込み済みのお気に入りグループに含まれていないフレンドです。"
         },
         "game_log": {
-            "filter_placeholder": "フィルター",
             "filters": {
                 "Location": "場所",
                 "OnPlayerJoined": "プレイヤー参加",
@@ -977,7 +980,6 @@
             }
         },
         "instance_history": {
-            "title": "インスタンス履歴",
             "mode": {
                 "search": "検索",
                 "day": "日別"
@@ -997,16 +999,11 @@
                 "current_user": "自分",
                 "open_full": "完全なインスタンス履歴を開く"
             },
-            "description": {
-                "viewing": "{name} を表示中",
-                "no_current_user": "インスタンス履歴を表示するにはログインしてください。"
-            },
             "toast": {
                 "failed_to_load_instance_history": "インスタンス履歴の読み込みに失敗しました"
             }
         },
         "my_avatars": {
-            "filter": "フィルター",
             "error": {
                 "selected_avatar_style_is_not_available": "選択したアバタースタイルは利用できません",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "スタイル一覧を読み込めませんでした。不明なスタイルの選択はそのまま保持されます",
@@ -1029,7 +1026,6 @@
                 "tag_name": "タグ名",
                 "visibility": "可視性",
                 "platform": "プラットフォーム",
-                "grid_settings": "グリッド設定",
                 "grid_density": "グリッド密度",
                 "grid_density_standard": "標準",
                 "grid_density_compact": "コンパクト",
@@ -1286,7 +1282,6 @@
         "friend_log": {
             "filter_placeholder": "フィルター",
             "all_types": "すべての種類",
-            "selected_types": "{count} 種類を選択",
             "groups": {
                 "relationships": "フレンド関係",
                 "requests": "フレンドリクエスト",
@@ -1340,19 +1335,16 @@
                 "of": "/",
                 "moderation_row": "モデレーション記録",
                 "moderation_rows": "モデレーション記録",
-                "moderation_filters": "モデレーションフィルター",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "種類フィルターまたは検索条件を広げると、さらに結果を表示できます"
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "現在のフィルターに一致するモデレーション記録はありません"
             },
             "dynamic": {
-                "deleted_value_for_value": "{value2} の {value} を削除しました",
-                "selected_moderation_filters": "{count} 件のモデレーションフィルター"
+                "deleted_value_for_value": "{value2} の {value} を削除しました"
             }
         },
         "notification": {
-            "filter_placeholder": "フィルター",
             "refresh_tooltip": "更新",
             "actions": {
                 "accept": "受け入れる",
@@ -1467,7 +1459,6 @@
             "load_cancel": "キャンセル",
             "favorites_only_tooltip": "お気に入りのみ",
             "search_placeholder": "検索...",
-            "filter_placeholder": "フィルター",
             "load_mutual_friends": "共通のフレンドを読み込む",
             "search_filters": {
                 "display_name": "表示名",
@@ -1522,7 +1513,8 @@
             },
             "dynamic": {
                 "open_value": "{value}を開く"
-            }
+            },
+            "bulk_selected": "{count} 件選択中"
         },
         "charts": {
             "instance_activity": {
@@ -1715,8 +1707,6 @@
                 "file_placeholder": "ログファイルを選択",
                 "search_placeholder": "メッセージ、カテゴリ、スタックを検索",
                 "follow_latest": "最新を追跡",
-                "all_categories": "すべてのカテゴリ",
-                "categories_selected": "{count} 件のカテゴリ",
                 "clear_categories": "カテゴリをクリア",
                 "copy_selected": "選択をコピー",
                 "copy_entry": "この行をコピー",

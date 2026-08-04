@@ -1,15 +1,20 @@
 import type { Table } from '@tanstack/react-table';
-import { StarIcon } from 'lucide-react';
+import { DownloadIcon, StarIcon, UserMinusIcon, UsersIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
-import { cn } from '@/lib/utils';
+import {
+    ToolbarActions,
+    ToolbarOverflowMenu,
+    ToolbarSearch,
+    ToolbarStatus,
+    ToolbarToggleButton,
+    ToolbarViews
+} from '@/components/layout/ToolbarControls';
 import { Button } from '@/ui/shadcn/button';
-import { Input } from '@/ui/shadcn/input';
+import { DropdownMenuGroup, DropdownMenuItem } from '@/ui/shadcn/dropdown-menu';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { Switch } from '@/ui/shadcn/switch';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import type { FriendListRow } from '../friendListRows';
 import { FriendListSearchFilterDropdown } from './FriendListViewParts';
@@ -85,78 +90,84 @@ export function FriendListToolbar({
           })
         : rawStatusDetail;
 
+    if (bulkUnfriendMode) {
+        return (
+            <PageToolbar>
+                <PageToolbarRow>
+                    <ToolbarViews>
+                        <span className="text-sm font-medium tabular-nums">
+                            {t('view.friend_list.bulk_selected', {
+                                count: selectedFriendCount
+                            })}
+                        </span>
+                    </ToolbarViews>
+
+                    <ToolbarSearch
+                        value={searchQuery}
+                        onValueChange={onSearchChange}
+                        placeholder={t('view.friend_list.search_placeholder')}
+                    />
+
+                    <ToolbarActions>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={!selectedFriendCount || isBulkDeleting}
+                            onClick={onBulkUnfriend}
+                        >
+                            {isBulkDeleting ? (
+                                <Spinner data-icon="inline-start" />
+                            ) : (
+                                <UserMinusIcon data-icon="inline-start" />
+                            )}
+                            {t('view.friend_list.bulk_unfriend_selection')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={isBulkDeleting}
+                            onClick={() => onBulkUnfriendModeChange(false)}
+                        >
+                            {t('common.actions.cancel')}
+                        </Button>
+                    </ToolbarActions>
+                </PageToolbarRow>
+
+                {statusDetail ? (
+                    <ToolbarStatus>{statusDetail}</ToolbarStatus>
+                ) : null}
+            </PageToolbar>
+        );
+    }
+
     return (
         <PageToolbar>
-            <PageToolbarRow className="justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant={
-                                        favoritesOnly ? 'default' : 'outline'
-                                    }
-                                    size="icon"
-                                    className="size-9"
-                                    disabled={!isFavoritesLoaded}
-                                    aria-label={t(
-                                        'view.friend_list.favorites_only_tooltip'
-                                    )}
-                                    onClick={onToggleFavoritesOnly}
-                                >
-                                    <StarIcon
-                                        data-icon="inline-start"
-                                        className={cn(
-                                            favoritesOnly ? 'fill-current' : ''
-                                        )}
-                                    />
-                                </Button>
-                            }
-                        />
-                        <TooltipContent>
-                            {t('view.friend_list.favorites_only_tooltip')}
-                        </TooltipContent>
-                    </Tooltip>
+            <PageToolbarRow>
+                <ToolbarViews>
+                    <ToolbarToggleButton
+                        icon={StarIcon}
+                        fillWhenActive
+                        active={favoritesOnly}
+                        disabled={!isFavoritesLoaded}
+                        label={t('view.friend_list.favorites_only_tooltip')}
+                        onClick={onToggleFavoritesOnly}
+                    />
                     <FriendListSearchFilterDropdown
                         value={activeSearchFilterIds}
                         onChange={onSearchFilterChange}
                     />
-                    <Input
-                        value={searchQuery}
-                        onChange={(event) => onSearchChange(event.target.value)}
-                        placeholder={t('view.friend_list.search_placeholder')}
-                        aria-label={t('view.friend_list.search_placeholder')}
-                        className="h-9 w-64"
-                    />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    {bulkUnfriendMode ? (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="h-9"
-                            disabled={!selectedFriendCount || isBulkDeleting}
-                            onClick={onBulkUnfriend}
-                        >
-                            {t('view.friend_list.bulk_unfriend_selection')}
-                        </Button>
-                    ) : null}
-                    <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-xs">
-                            {t('view.friend_list.bulk_unfriend')}
-                        </span>
-                        <Switch
-                            aria-label={t('view.friend_list.bulk_unfriend')}
-                            checked={bulkUnfriendMode}
-                            disabled={!currentUserId || isBulkDeleting}
-                            onCheckedChange={onBulkUnfriendModeChange}
-                        />
-                    </div>
+                </ToolbarViews>
+
+                <ToolbarSearch
+                    value={searchQuery}
+                    onValueChange={onSearchChange}
+                    placeholder={t('view.friend_list.search_placeholder')}
+                />
+
+                <ToolbarActions>
                     <Button
                         type="button"
                         variant="outline"
-                        className="h-9 gap-2"
                         disabled={
                             isMutualOptOut || isMutualFetching || !currentUserId
                         }
@@ -164,32 +175,44 @@ export function FriendListToolbar({
                     >
                         {isMutualFetching ? (
                             <Spinner data-icon="inline-start" />
-                        ) : null}
+                        ) : (
+                            <UsersIcon data-icon="inline-start" />
+                        )}
                         {t('view.friend_list.load_mutual_friends')}
                     </Button>
                     <Button
                         type="button"
                         variant="outline"
-                        className="h-9 gap-2"
                         disabled={!currentUserId}
                         onClick={onLoadFriendUserDetails}
                     >
                         {isLoadingUserDetails ? (
                             <Spinner data-icon="inline-start" />
-                        ) : null}
+                        ) : (
+                            <DownloadIcon data-icon="inline-start" />
+                        )}
                         {t('view.friend_list.load')}
                     </Button>
                     <TableColumnVisibilityMenu
                         table={table}
                         onResetLayout={onResetTableLayout}
                     />
-                </div>
+                    <ToolbarOverflowMenu>
+                        <DropdownMenuGroup>
+                            <DropdownMenuItem
+                                disabled={!currentUserId}
+                                onClick={() => onBulkUnfriendModeChange(true)}
+                            >
+                                <UserMinusIcon data-icon="inline-start" />
+                                {t('view.friend_list.bulk_unfriend')}
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                    </ToolbarOverflowMenu>
+                </ToolbarActions>
             </PageToolbarRow>
 
             {statusDetail ? (
-                <div className="text-muted-foreground text-xs">
-                    {statusDetail}
-                </div>
+                <ToolbarStatus>{statusDetail}</ToolbarStatus>
             ) : null}
         </PageToolbar>
     );

@@ -1,31 +1,27 @@
 import {
     ArrowUpDownIcon,
     DownloadIcon,
-    EllipsisIcon,
     ExternalLinkIcon,
-    RefreshCwIcon,
-    SearchIcon,
-    UploadIcon,
-    XIcon
+    UploadIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { Button } from '@/ui/shadcn/button';
+import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
+    ToolbarActions,
+    ToolbarOverflowMenu,
+    ToolbarRefreshButton,
+    ToolbarSearch,
+    ToolbarViewMenu,
+    ToolbarViews
+} from '@/components/layout/ToolbarControls';
+import {
     DropdownMenuGroup,
     DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuSeparator
 } from '@/ui/shadcn/dropdown-menu';
 import { Field, FieldContent, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupButton,
-    InputGroupInput
-} from '@/ui/shadcn/input-group';
+import { InputGroupButton } from '@/ui/shadcn/input-group';
 import {
     Select,
     SelectContent,
@@ -34,7 +30,6 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-import { Spinner } from '@/ui/shadcn/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
 import {
@@ -79,148 +74,97 @@ function FavoritesToolbar({
     onManageShares
 }: FavoritesToolbarProps) {
     const { t } = useTranslation();
+    const sortItems = [
+        { value: 'name', label: t('view.search.avatar.sort_name') },
+        { value: 'date', label: t('view.favorite.label.sort_by_date') },
+        ...(kind === 'world'
+            ? [
+                  {
+                      value: 'players',
+                      label: t('view.favorite.label.sort_by_players')
+                  }
+              ]
+            : [])
+    ];
 
     return (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <Select
-                value={sortValue}
-                items={[
-                    {
-                        value: 'name',
-                        label: t('view.search.avatar.sort_name')
-                    },
-                    {
-                        value: 'date',
-                        label: t('view.favorite.label.sort_by_date')
-                    },
-                    ...(kind === 'world'
-                        ? [
-                              {
-                                  value: 'players',
-                                  label: t(
-                                      'view.favorite.label.sort_by_players'
-                                  )
-                              }
-                          ]
-                        : [])
-                ]}
-                onValueChange={(value) => onSortValueChange(value ?? '')}
-            >
-                <SelectTrigger size="sm" className="min-w-48">
-                    <span className="flex items-center gap-2">
-                        <ArrowUpDownIcon className="size-4" />
-                        <SelectValue
-                            placeholder={t(
-                                'view.favorite.label.sort_favorites'
-                            )}
-                        />
-                    </span>
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup>
-                        <SelectItem value="name">
-                            {t('view.search.avatar.sort_name')}
-                        </SelectItem>
-                        <SelectItem value="date">
-                            {t('view.favorite.label.sort_by_date')}
-                        </SelectItem>
-                        {kind === 'world' ? (
-                            <SelectItem value="players">
-                                {t('view.favorite.label.sort_by_players')}
-                            </SelectItem>
-                        ) : null}
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
-            <div className="flex min-w-72 flex-1 items-center gap-2">
-                <InputGroup className="flex-1">
-                    <InputGroupAddon>
-                        <SearchIcon />
-                    </InputGroupAddon>
-                    <InputGroupInput
-                        value={searchQuery}
-                        onChange={(event) => onSearchChange(event.target.value)}
-                        placeholder={searchPlaceholder}
-                        className="text-sm"
-                    />
-                    {kind === 'world' ? (
-                        <InputGroupAddon align="inline-end">
-                            <InputGroupButton
-                                type="button"
-                                variant={
-                                    searchMode === 'name' ? 'default' : 'ghost'
-                                }
-                                onClick={() => onSearchModeChange('name')}
-                            >
-                                {t('view.favorite.worlds.search_mode_name')}
-                            </InputGroupButton>
-                            <InputGroupButton
-                                type="button"
-                                variant={
-                                    searchMode === 'tag' ? 'default' : 'ghost'
-                                }
-                                onClick={() => onSearchModeChange('tag')}
-                            >
-                                {t('view.favorite.worlds.search_mode_tag')}
-                            </InputGroupButton>
-                        </InputGroupAddon>
-                    ) : searchQuery ? (
-                        <InputGroupAddon align="inline-end">
-                            <InputGroupButton
-                                type="button"
-                                size="icon-xs"
-                                aria-label={t('common.actions.clear')}
-                                onClick={() => onSearchChange('')}
-                            >
-                                <XIcon data-icon="icon" />
-                            </InputGroupButton>
-                        </InputGroupAddon>
-                    ) : null}
-                </InputGroup>
-
-                {kind === 'world' && onManageShares ? (
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={onManageShares}
-                    >
-                        <ExternalLinkIcon data-icon="inline-start" />
-                        {t('view.favorite.share_collection.action.open_manage')}
-                    </Button>
-                ) : null}
-
-                <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="ghost"
-                    aria-label={t('common.actions.refresh')}
-                    disabled={refreshing}
-                    onClick={onRefresh}
-                >
-                    {refreshing ? (
-                        <Spinner data-icon="inline-start" />
-                    ) : (
-                        <RefreshCwIcon data-icon="inline-start" />
-                    )}
-                </Button>
-
-                <DropdownMenu>
-                    <DropdownMenuTrigger
-                        render={
-                            <Button
-                                type="button"
-                                size="icon-sm"
-                                variant="ghost"
-                                aria-label={t('common.actions.configure')}
-                            >
-                                <EllipsisIcon data-icon="inline-start" />
-                            </Button>
+        <PageToolbar>
+            <PageToolbarRow>
+                <ToolbarViews>
+                    <Select
+                        value={sortValue}
+                        items={sortItems}
+                        onValueChange={(value) =>
+                            onSortValueChange(value ?? '')
                         }
+                    >
+                        <SelectTrigger className="max-w-56 min-w-40 shrink-0">
+                            <span className="flex min-w-0 items-center gap-2">
+                                <ArrowUpDownIcon className="text-muted-foreground size-4 shrink-0" />
+                                <SelectValue
+                                    placeholder={t(
+                                        'view.favorite.label.sort_favorites'
+                                    )}
+                                />
+                            </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                {sortItems.map((item) => (
+                                    <SelectItem
+                                        key={item.value}
+                                        value={item.value}
+                                    >
+                                        {item.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </ToolbarViews>
+
+                <ToolbarSearch
+                    value={searchQuery}
+                    onValueChange={onSearchChange}
+                    placeholder={searchPlaceholder}
+                    className={kind === 'world' ? 'sm:w-88' : undefined}
+                    trailing={
+                        kind === 'world' ? (
+                            <>
+                                <InputGroupButton
+                                    type="button"
+                                    variant={
+                                        searchMode === 'name'
+                                            ? 'secondary'
+                                            : 'ghost'
+                                    }
+                                    onClick={() => onSearchModeChange('name')}
+                                >
+                                    {t('view.favorite.worlds.search_mode_name')}
+                                </InputGroupButton>
+                                <InputGroupButton
+                                    type="button"
+                                    variant={
+                                        searchMode === 'tag'
+                                            ? 'secondary'
+                                            : 'ghost'
+                                    }
+                                    onClick={() => onSearchModeChange('tag')}
+                                >
+                                    {t('view.favorite.worlds.search_mode_tag')}
+                                </InputGroupButton>
+                            </>
+                        ) : null
+                    }
+                />
+
+                <ToolbarActions>
+                    <ToolbarRefreshButton
+                        onRefresh={onRefresh}
+                        loading={refreshing}
                     />
-                    <DropdownMenuContent align="end" className="w-56">
+                    <ToolbarViewMenu contentClassName="p-3">
                         <FieldGroup
-                            className="gap-3 px-3 py-2"
                             onClick={(event) => event.stopPropagation()}
                         >
                             <Field>
@@ -258,7 +202,8 @@ function FavoritesToolbar({
                                 </ToggleGroup>
                             </Field>
                         </FieldGroup>
-                        <DropdownMenuSeparator />
+                    </ToolbarViewMenu>
+                    <ToolbarOverflowMenu>
                         <DropdownMenuGroup>
                             <DropdownMenuItem onClick={onImport}>
                                 <UploadIcon data-icon="inline-start" />
@@ -269,10 +214,23 @@ function FavoritesToolbar({
                                 {t('view.favorite.export')}
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-        </div>
+                        {kind === 'world' && onManageShares ? (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <DropdownMenuItem onClick={onManageShares}>
+                                        <ExternalLinkIcon data-icon="inline-start" />
+                                        {t(
+                                            'view.favorite.share_collection.action.open_manage'
+                                        )}
+                                    </DropdownMenuItem>
+                                </DropdownMenuGroup>
+                            </>
+                        ) : null}
+                    </ToolbarOverflowMenu>
+                </ToolbarActions>
+            </PageToolbarRow>
+        </PageToolbar>
     );
 }
 

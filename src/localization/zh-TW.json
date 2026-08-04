@@ -282,7 +282,8 @@
             "save": "儲存",
             "search": "搜尋",
             "select": "選擇",
-            "cancel": "取消"
+            "cancel": "取消",
+            "view_options": "顯示選項"
         },
         "sort_by": "排序方式：",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "好友",
             "favorite": "收藏"
+        },
+        "filter": {
+            "label": "篩選",
+            "label_count": "篩選 ({count})"
         }
     },
     "overlay": {
@@ -797,7 +802,6 @@
                 "add": "新增欄",
                 "manage": "管理分欄",
                 "manage_list": "增減分欄",
-                "settings": "分欄設定",
                 "density": "密度",
                 "density_options": {
                     "compact": "緊湊",
@@ -901,7 +905,6 @@
             "friend_is_not_in_hydrated_favorite_group": "這位好友的收藏群組尚未載入完成。"
         },
         "game_log": {
-            "filter_placeholder": "篩選遊戲紀錄",
             "filters": {
                 "Location": "地點",
                 "OnPlayerJoined": "用戶加入",
@@ -977,7 +980,6 @@
             }
         },
         "instance_history": {
-            "title": "房間歷史",
             "mode": {
                 "search": "搜尋",
                 "day": "日"
@@ -1001,16 +1003,11 @@
                 "current_user": "自己",
                 "open_full": "開啟完整房間歷史"
             },
-            "description": {
-                "viewing": "正在查看：{name}",
-                "no_current_user": "登入後才能查看房間歷史。"
-            },
             "toast": {
                 "failed_to_load_instance_history": "載入房間歷史失敗"
             }
         },
         "my_avatars": {
-            "filter": "篩選",
             "error": {
                 "selected_avatar_style_is_not_available": "所選角色樣式無法使用",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "無法載入樣式列表，未知樣式選擇將被保留",
@@ -1033,7 +1030,6 @@
                 "tag_name": "標籤名稱",
                 "visibility": "可見性",
                 "platform": "支援的平台",
-                "grid_settings": "網格設定",
                 "grid_density": "網格密度",
                 "grid_density_standard": "標準",
                 "grid_density_compact": "緊湊",
@@ -1290,7 +1286,6 @@
         "friend_log": {
             "filter_placeholder": "篩選好友紀錄",
             "all_types": "所有類型",
-            "selected_types": "已選取 {count} 個類型",
             "groups": {
                 "relationships": "好友關係",
                 "requests": "好友請求",
@@ -1344,19 +1339,16 @@
                 "of": "/",
                 "moderation_row": "用戶管理紀錄",
                 "moderation_rows": "用戶管理紀錄",
-                "moderation_filters": "用戶管理篩選",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "放寬類型篩選或搜尋詞以查看更多結果"
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "沒有符合目前篩選的用戶管理紀錄"
             },
             "dynamic": {
-                "deleted_value_for_value": "已刪除 {value2} 的 {value}",
-                "selected_moderation_filters": "已選 {count} 個用戶管理篩選"
+                "deleted_value_for_value": "已刪除 {value2} 的 {value}"
             }
         },
         "notification": {
-            "filter_placeholder": "篩選通知",
             "refresh_tooltip": "重新整理",
             "actions": {
                 "accept": "接受",
@@ -1471,7 +1463,6 @@
             "load_cancel": "取消",
             "favorites_only_tooltip": "僅篩選收藏",
             "search_placeholder": "搜尋好友",
-            "filter_placeholder": "篩選好友",
             "load_mutual_friends": "載入共同好友",
             "search_filters": {
                 "display_name": "顯示名稱",
@@ -1526,7 +1517,8 @@
             },
             "dynamic": {
                 "open_value": "開啟 {value}"
-            }
+            },
+            "bulk_selected": "已選 {count} 項"
         },
         "charts": {
             "instance_activity": {
@@ -1719,8 +1711,6 @@
                 "file_placeholder": "選擇紀錄檔案",
                 "search_placeholder": "搜尋訊息、分類或堆棧",
                 "follow_latest": "跟隨最新",
-                "all_categories": "全部分類",
-                "categories_selected": "已選 {count} 個分類",
                 "clear_categories": "清除分類",
                 "copy_selected": "複製選中",
                 "copy_entry": "複製此行",
@@ -4668,8 +4658,7 @@
                 "location": "位置變動",
                 "page": "頁",
                 "sort_by": "排序依據",
-                "sort_descending": "降序排序",
-                "sort_ascending": "升序排序"
+                "sort_descending": "降序排序"
             },
             "success": {
                 "instance_record_deleted": "造訪紀錄已從房間歷史紀錄中移除"

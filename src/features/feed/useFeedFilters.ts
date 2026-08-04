@@ -115,7 +115,6 @@ export function useFeedFilters() {
     }, []);
 
     return {
-        activeFilterCount: dateFrom || dateTo ? 1 : 0,
         activeFilters,
         dateDraftFrom,
         dateDraftRange,

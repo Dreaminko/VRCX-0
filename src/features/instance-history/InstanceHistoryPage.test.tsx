@@ -83,6 +83,7 @@ vi.mock('@/components/layout/PageScaffold', () => ({
 }));
 
 vi.mock('@/components/layout/ToolbarControls', () => ({
+    toolbarDateRangeTrigger: () => <button type="button" />,
     ToolbarActions: ({ children }: { children?: ReactNode }) => (
         <div>{children}</div>
     ),
@@ -91,6 +92,9 @@ vi.mock('@/components/layout/ToolbarControls', () => ({
     ToolbarSegmented: () => null,
     ToolbarStatus: ({ children }: { children?: ReactNode }) => (
         <div data-testid="query-error">{children}</div>
+    ),
+    ToolbarViewMenu: ({ children }: { children?: ReactNode }) => (
+        <div>{children}</div>
     ),
     ToolbarViews: ({ children }: { children?: ReactNode }) => (
         <div>{children}</div>

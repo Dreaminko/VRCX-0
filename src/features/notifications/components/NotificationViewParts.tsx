@@ -1,15 +1,12 @@
 import { useTranslation } from 'react-i18next';
 
 import { BoopEmojiDialog } from '@/components/dialogs/BoopEmojiDialog';
+import { ToolbarFilterMenu } from '@/components/layout/ToolbarControls';
 import { NOTIFICATION_TYPES } from '@/repositories/notificationPersistenceRepository';
-import { Button } from '@/ui/shadcn/button';
 import {
-    DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
     DropdownMenuGroup,
-    DropdownMenuLabel,
-    DropdownMenuTrigger
+    DropdownMenuLabel
 } from '@/ui/shadcn/dropdown-menu';
 
 import type { NotificationRow } from '../notificationPageTypes';
@@ -105,10 +102,6 @@ export function NotificationTypeFilterDropdown({
     const { t } = useTranslation();
 
     const activeTypes = value;
-    const filterLabel = t('view.notification.filter_placeholder');
-    const label = activeTypes.length
-        ? `${filterLabel} (${activeTypes.length})`
-        : filterLabel;
     const sections = sectionedNotificationTypes();
 
     function toggleType(type: string, checked: boolean) {
@@ -119,43 +112,28 @@ export function NotificationTypeFilterDropdown({
     }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="h-9 min-w-0 flex-1 basis-64 justify-start truncate"
-                    >
-                        {label}
-                    </Button>
-                }
-            />
-            <DropdownMenuContent
-                align="start"
-                className="max-h-96 w-80 overflow-y-auto"
-            >
-                {sections.map((section) => (
-                    <DropdownMenuGroup key={section.key}>
-                        <DropdownMenuLabel>
-                            {t(section.labelKey)}
-                        </DropdownMenuLabel>
-                        {section.types.map((type) => (
-                            <DropdownMenuCheckboxItem
-                                key={type}
-                                checked={activeTypes.includes(type)}
-                                onCheckedChange={(checked) =>
-                                    toggleType(type, checked)
-                                }
-                                onClick={(event) => event.preventDefault()}
-                            >
-                                {getTypeLabel(type)}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuGroup>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <ToolbarFilterMenu
+            activeCount={activeTypes.length}
+            contentClassName="w-80"
+        >
+            {sections.map((section) => (
+                <DropdownMenuGroup key={section.key}>
+                    <DropdownMenuLabel>{t(section.labelKey)}</DropdownMenuLabel>
+                    {section.types.map((type) => (
+                        <DropdownMenuCheckboxItem
+                            key={type}
+                            checked={activeTypes.includes(type)}
+                            onCheckedChange={(checked) =>
+                                toggleType(type, checked)
+                            }
+                            onClick={(event) => event.preventDefault()}
+                        >
+                            {getTypeLabel(type)}
+                        </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuGroup>
+            ))}
+        </ToolbarFilterMenu>
     );
 }
 

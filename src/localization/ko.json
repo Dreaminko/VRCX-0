@@ -282,7 +282,8 @@
             "save": "저장",
             "search": "검색",
             "select": "선택",
-            "cancel": "취소"
+            "cancel": "취소",
+            "view_options": "보기 옵션"
         },
         "sort_by": "정렬 기준:",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "친구",
             "favorite": "즐겨찾기"
+        },
+        "filter": {
+            "label": "필터",
+            "label_count": "필터 ({count})"
         }
     },
     "overlay": {
@@ -792,7 +797,6 @@
                 "add": "열 추가",
                 "manage": "열 관리",
                 "manage_list": "열 추가/제거",
-                "settings": "열 설정",
                 "density": "밀도",
                 "density_options": {
                     "compact": "콤팩트",
@@ -896,7 +900,6 @@
             "local_group": "로컬: {name}"
         },
         "game_log": {
-            "filter_placeholder": "필터",
             "filters": {
                 "Location": "위치",
                 "OnPlayerJoined": "플레이어가 합류했습니다",
@@ -983,7 +986,6 @@
             }
         },
         "my_avatars": {
-            "filter": "필터",
             "error": {
                 "selected_avatar_style_is_not_available": "선택한 아바타 스타일을 사용할 수 없습니다.",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "스타일 목록을 로드할 수 없습니다. 알 수 없는 스타일 선택이 유지됩니다.",
@@ -1006,7 +1008,6 @@
                 "tag_name": "태그 이름",
                 "visibility": "가시성",
                 "platform": "플랫폼",
-                "grid_settings": "그리드 설정",
                 "grid_density": "그리드 밀도",
                 "grid_density_standard": "표준",
                 "grid_density_compact": "콤팩트",
@@ -1263,7 +1264,6 @@
         "friend_log": {
             "filter_placeholder": "필터",
             "all_types": "모든 유형",
-            "selected_types": "{count}개 유형 선택됨",
             "groups": {
                 "relationships": "친구 관계",
                 "requests": "친구 요청",
@@ -1317,19 +1317,16 @@
                 "of": "의",
                 "moderation_row": "검토 행",
                 "moderation_rows": "검토 행",
-                "moderation_filters": "중재 필터",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "더 많은 결과를 보려면 유형 필터 또는 검색어를 확장하세요."
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "현재 필터와 일치하는 검토 행이 없습니다."
             },
             "dynamic": {
-                "deleted_value_for_value": "{value2}에 대해 {value}을(를) 삭제했습니다.",
-                "selected_moderation_filters": "{count} 조정 필터"
+                "deleted_value_for_value": "{value2}에 대해 {value}을(를) 삭제했습니다."
             }
         },
         "notification": {
-            "filter_placeholder": "필터",
             "refresh_tooltip": "새로고침",
             "actions": {
                 "accept": "수락",
@@ -1444,7 +1441,6 @@
             "load_cancel": "취소",
             "favorites_only_tooltip": "친한 친구만 보기",
             "search_placeholder": "검색",
-            "filter_placeholder": "필터",
             "load_mutual_friends": "상호 친구 로드",
             "search_filters": {
                 "display_name": "표시 이름",
@@ -1499,7 +1495,8 @@
             },
             "dynamic": {
                 "open_value": "{value} 열기"
-            }
+            },
+            "bulk_selected": "{count}개 선택됨"
         },
         "charts": {
             "instance_activity": {
@@ -1686,7 +1683,6 @@
                 "file_placeholder": "로그 파일 선택",
                 "search_placeholder": "메시지, 카테고리 또는 스택 추적 검색",
                 "follow_latest": "최신 항목 따라가기",
-                "all_categories": "모든 카테고리",
                 "clear_categories": "카테고리 지우기",
                 "copy_selected": "선택 항목 복사",
                 "copy_entry": "행 복사",
@@ -1705,7 +1701,6 @@
                 "no_category": "카테고리 없음",
                 "error_tail": "새 로그 항목을 읽지 못했습니다.",
                 "title": "VRChat 로그 뷰어",
-                "categories_selected": "{count} 카테고리",
                 "continuation_count": "+{count} 라인",
                 "unavailable": "VRChat 데이터 폴더를 사용할 수 없습니다.",
                 "no_files": "VRChat 출력 로그를 찾을 수 없습니다.",

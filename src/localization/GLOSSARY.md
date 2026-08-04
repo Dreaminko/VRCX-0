@@ -297,6 +297,7 @@ the app and across releases.
 | Time Spent                         | 总停留时长                 | 停留時長              | 過ごした時間                         |
 | Time Together                      | 一起游玩的时长             | 一起遊玩時長          | 一緒に居た時間                       |
 | User ID                            | 玩家 ID                    | 用戶 ID               | ユーザーID                           |
+| View options                       | 显示选项                   | 顯示選項              | 表示オプション                       |
 | VR Overlay Notification Filters    | VR 叠加通知过滤器          | VR 疊加通知過濾器     | VR オーバーレイ通知フィルター        |
 | VRChat Docs                        | VRChat 文档                | VRChat 文件           | VRChat ドキュメント                  |
 | VRChat Favorites                   | VRChat 收藏                | VRChat 收藏           | VRChat のお気に入り                  |

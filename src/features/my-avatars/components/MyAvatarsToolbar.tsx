@@ -1,24 +1,19 @@
 import type { Table as ReactTable } from '@tanstack/react-table';
-import {
-    LayoutGridIcon,
-    ListIcon,
-    RefreshCwIcon,
-    SearchIcon
-} from 'lucide-react';
+import { LayoutGridIcon, ListIcon } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
-import { useRuntimeStore } from '@/state/runtimeStore';
-import { Button } from '@/ui/shadcn/button';
+import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from '@/ui/shadcn/input-group';
-import { Spinner } from '@/ui/shadcn/spinner';
-import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
+    ToolbarActions,
+    ToolbarRefreshButton,
+    ToolbarSearch,
+    ToolbarSegmented,
+    ToolbarViews,
+    type ToolbarSegmentOption
+} from '@/components/layout/ToolbarControls';
+import { useRuntimeStore } from '@/state/runtimeStore';
 
 import type {
     MyAvatarsGridDensity,
@@ -71,126 +66,67 @@ export function MyAvatarsToolbar({
 }: MyAvatarsToolbarProps) {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
+    const viewModeOptions: ToolbarSegmentOption<MyAvatarsViewMode>[] = [
+        {
+            value: 'grid',
+            label: t('view.my_avatars.action.show_avatar_grid'),
+            icon: LayoutGridIcon
+        },
+        {
+            value: 'table',
+            label: t('view.my_avatars.action.show_avatar_table'),
+            icon: ListIcon
+        }
+    ];
 
     return (
-        <div className="flex shrink-0 flex-col gap-2 px-0.5 pt-1.5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <ToggleGroup
-                    variant="outline"
-                    size="sm"
-                    value={viewMode ? [viewMode] : []}
-                    onValueChange={(nextValue) => {
-                        const next = nextValue[0];
-                        if (next) {
-                            onViewModeChange(next as MyAvatarsViewMode);
-                        }
-                    }}
-                    className="shrink-0"
-                >
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <ToggleGroupItem
-                                    value="grid"
-                                    aria-label={t(
-                                        'view.my_avatars.action.show_avatar_grid'
-                                    )}
-                                >
-                                    <LayoutGridIcon data-icon="inline-start" />
-                                </ToggleGroupItem>
-                            }
-                        />
-                        <TooltipContent>
-                            {t('view.my_avatars.action.show_avatar_grid')}
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <ToggleGroupItem
-                                    value="table"
-                                    aria-label={t(
-                                        'view.my_avatars.action.show_avatar_table'
-                                    )}
-                                >
-                                    <ListIcon data-icon="inline-start" />
-                                </ToggleGroupItem>
-                            }
-                        />
-                        <TooltipContent>
-                            {t('view.my_avatars.action.show_avatar_table')}
-                        </TooltipContent>
-                    </Tooltip>
-                </ToggleGroup>
+        <PageToolbar>
+            <PageToolbarRow>
+                <ToolbarViews>
+                    <ToolbarSegmented
+                        iconOnly
+                        value={viewMode}
+                        onValueChange={onViewModeChange}
+                        options={viewModeOptions}
+                    />
+                    <MyAvatarFilterPopover
+                        activeFilterCount={activeFilterCount}
+                        allTags={allTags}
+                        releaseStatusFilter={releaseStatusFilter}
+                        platformFilter={platformFilter}
+                        tagFilters={tagFilters}
+                        onReleaseStatusChange={onReleaseStatusChange}
+                        onPlatformChange={onPlatformChange}
+                        onTagFiltersChange={onTagFiltersChange}
+                        onClearFilters={onClearFilters}
+                    />
+                </ToolbarViews>
 
-                <MyAvatarFilterPopover
-                    activeFilterCount={activeFilterCount}
-                    allTags={allTags}
-                    releaseStatusFilter={releaseStatusFilter}
-                    platformFilter={platformFilter}
-                    tagFilters={tagFilters}
-                    onReleaseStatusChange={onReleaseStatusChange}
-                    onPlatformChange={onPlatformChange}
-                    onTagFiltersChange={onTagFiltersChange}
-                    onClearFilters={onClearFilters}
+                <ToolbarSearch
+                    value={searchQuery}
+                    onValueChange={onSearchChange}
                 />
 
-                {loadStatus === 'running' ? (
-                    <span className="text-muted-foreground text-sm">
-                        {t('common.loading')}
-                    </span>
-                ) : null}
-            </div>
-
-            <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
-                <InputGroup className="min-w-52 flex-1 sm:max-w-md lg:w-80 lg:flex-none">
-                    <InputGroupAddon>
-                        <SearchIcon />
-                    </InputGroupAddon>
-                    <InputGroupInput
-                        value={searchQuery}
-                        onChange={(event) => onSearchChange(event.target.value)}
-                        placeholder={t('common.actions.search')}
-                        aria-label={t('common.actions.search')}
+                <ToolbarActions>
+                    <ToolbarRefreshButton
+                        onRefresh={onRefresh}
+                        loading={loadStatus === 'running'}
+                        disabled={!currentUserId}
+                        label={t(
+                            'view.my_avatars.action.refresh_avatar_inventory'
+                        )}
                     />
-                </InputGroup>
-                {viewMode === 'grid' ? (
-                    <GridSettingsMenu
-                        gridDensity={gridDensity}
-                        onGridDensityChange={onGridDensityChange}
-                    />
-                ) : null}
-                {viewMode === 'table' ? (
-                    <TableColumnVisibilityMenu table={table} />
-                ) : null}
-                <Tooltip>
-                    <TooltipTrigger
-                        render={
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t(
-                                    'view.my_avatars.action.refresh_avatar_inventory'
-                                )}
-                                disabled={
-                                    !currentUserId || loadStatus === 'running'
-                                }
-                                onClick={onRefresh}
-                            >
-                                {loadStatus === 'running' ? (
-                                    <Spinner data-icon="inline-start" />
-                                ) : (
-                                    <RefreshCwIcon data-icon="inline-start" />
-                                )}
-                            </Button>
-                        }
-                    />
-                    <TooltipContent>
-                        {t('view.my_avatars.action.refresh_avatar_inventory')}
-                    </TooltipContent>
-                </Tooltip>
-            </div>
-        </div>
+                    {viewMode === 'grid' ? (
+                        <GridSettingsMenu
+                            gridDensity={gridDensity}
+                            onGridDensityChange={onGridDensityChange}
+                        />
+                    ) : null}
+                    {viewMode === 'table' ? (
+                        <TableColumnVisibilityMenu table={table} />
+                    ) : null}
+                </ToolbarActions>
+            </PageToolbarRow>
+        </PageToolbar>
     );
 }

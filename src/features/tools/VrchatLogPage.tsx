@@ -41,7 +41,6 @@ export function VrchatLogPage() {
         levels,
         toggleLevel,
         categoryOptions,
-        categoryButtonLabel,
         selectedCategories,
         setSelectedCategories,
         toggleCategory,
@@ -108,7 +107,6 @@ export function VrchatLogPage() {
                     setSearchQuery={setSearchQuery}
                     levels={levels}
                     toggleLevel={toggleLevel}
-                    categoryButtonLabel={categoryButtonLabel}
                     categoryOptions={categoryOptions}
                     selectedCategories={selectedCategories}
                     setSelectedCategories={setSelectedCategories}

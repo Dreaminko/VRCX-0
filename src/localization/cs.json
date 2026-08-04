@@ -282,7 +282,8 @@
             "save": "Uložit",
             "search": "Vyhledat",
             "select": "Vybrat",
-            "cancel": "Zrušit"
+            "cancel": "Zrušit",
+            "view_options": "Možnosti zobrazení"
         },
         "sort_by": "Seřadit dle:",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "Přítel",
             "favorite": "Oblíbený"
+        },
+        "filter": {
+            "label": "Filtr",
+            "label_count": "Filtry ({count})"
         }
     },
     "overlay": {
@@ -797,7 +802,6 @@
                 "add": "Přidat sloupec",
                 "manage": "Spravovat sloupce",
                 "manage_list": "Přidat / odebrat sloupce",
-                "settings": "Nastavení sloupce",
                 "density": "Hustota",
                 "density_options": {
                     "compact": "Kompaktní",
@@ -901,7 +905,6 @@
             "friend_is_not_in_hydrated_favorite_group": "Oblíbená skupina tohoto přítele se ještě nenačetla."
         },
         "game_log": {
-            "filter_placeholder": "Filtrovat",
             "filters": {
                 "Location": "Lokace",
                 "OnPlayerJoined": "Hráč se připojil",
@@ -977,7 +980,6 @@
             }
         },
         "instance_history": {
-            "title": "Historie instancí",
             "mode": {
                 "search": "Vyhledávání",
                 "day": "Den"
@@ -1001,16 +1003,11 @@
                 "current_user": "Já",
                 "open_full": "Otevřít celou historii instancí"
             },
-            "description": {
-                "viewing": "Zobrazuje se {name}",
-                "no_current_user": "Před zobrazením historie instancí se přihlaste."
-            },
             "toast": {
                 "failed_to_load_instance_history": "Nepodařilo se načíst historii instancí"
             }
         },
         "my_avatars": {
-            "filter": "Filtr",
             "error": {
                 "selected_avatar_style_is_not_available": "Vybraný styl avataru není dostupný",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "Seznam stylů se nepodařilo načíst. Neznámé výběry stylů budou zachovány",
@@ -1033,7 +1030,6 @@
                 "tag_name": "Název štítku",
                 "visibility": "Viditelnost",
                 "platform": "Platforma",
-                "grid_settings": "Nastavení mřížky",
                 "grid_density": "Hustota mřížky",
                 "grid_density_standard": "Standardní",
                 "grid_density_compact": "Kompaktní",
@@ -1292,7 +1288,6 @@
         "friend_log": {
             "filter_placeholder": "Filtrovat",
             "all_types": "Všechny typy",
-            "selected_types": "Vybráno typů: {count}",
             "groups": {
                 "relationships": "Vztahy přátel",
                 "requests": "Žádosti o přátelství",
@@ -1346,19 +1341,16 @@
                 "of": "z",
                 "moderation_row": "záznam moderace",
                 "moderation_rows": "záznamů moderace",
-                "moderation_filters": "Filtry moderace",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "Pro zobrazení dalších výsledků rozšiřte filtry typu nebo hledaný výraz"
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "Žádné záznamy moderace neodpovídají aktuálním filtrům"
             },
             "dynamic": {
-                "deleted_value_for_value": "Smazáno {value} pro {value2}",
-                "selected_moderation_filters": "{count} filtrů moderace"
+                "deleted_value_for_value": "Smazáno {value} pro {value2}"
             }
         },
         "notification": {
-            "filter_placeholder": "Filtrovat",
             "refresh_tooltip": "Obnovit",
             "actions": {
                 "accept": "Přijmout",
@@ -1473,7 +1465,6 @@
             "load_cancel": "Zrušit",
             "favorites_only_tooltip": "Zobrazit pouze oblíbené",
             "search_placeholder": "Vyhledat",
-            "filter_placeholder": "Filtrovat",
             "load_mutual_friends": "Načíst společné přátele",
             "search_filters": {
                 "display_name": "Zobrazované jméno",
@@ -1528,7 +1519,8 @@
             },
             "dynamic": {
                 "open_value": "Otevřít {value}"
-            }
+            },
+            "bulk_selected": "Vybráno: {count}"
         },
         "charts": {
             "instance_activity": {
@@ -1721,8 +1713,6 @@
                 "file_placeholder": "Vyberte soubor záznamu",
                 "search_placeholder": "Hledat zprávu, kategorii nebo stack trace",
                 "follow_latest": "Sledovat nejnovější",
-                "all_categories": "Všechny kategorie",
-                "categories_selected": "{count} kategorií",
                 "clear_categories": "Vymazat kategorie",
                 "copy_selected": "Kopírovat vybrané",
                 "copy_entry": "Kopírovat řádek",
@@ -4672,8 +4662,7 @@
                 "location": "Lokace",
                 "page": "Stránka",
                 "sort_by": "Seřadit podle",
-                "sort_descending": "Seřadit sestupně",
-                "sort_ascending": "Seřadit vzestupně"
+                "sort_descending": "Seřadit sestupně"
             },
             "success": {
                 "instance_record_deleted": "Návštěva byla odstraněna z historie instancí"

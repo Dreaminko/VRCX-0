@@ -4,8 +4,7 @@ import { PreviousInstancesTableDialog } from '@/components/dialogs/PreviousInsta
 import {
     LoadingState,
     PageBody,
-    PageScaffold,
-    PageToolbar
+    PageScaffold
 } from '@/components/layout/PageScaffold';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 
@@ -37,27 +36,25 @@ export function GameLogPage({ embedded = false }: { embedded?: boolean } = {}) {
     return (
         <PageScaffold embedded={embedded}>
             <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-                <PageToolbar>
-                    <GameLogToolbar
-                        filterModel={filters}
-                        refreshModel={{
-                            canRefresh:
-                                Boolean(rowsState.currentUserId) &&
-                                !rowsState.gameLogDisabled,
-                            loadStatus: rowsState.loadStatus,
-                            onRefresh: filters.refreshGameLog
-                        }}
-                        table={table}
-                    />
-                    {rowsState.detail ? (
-                        <div className="text-muted-foreground text-sm">
-                            {userFacingErrorMessage(
-                                rowsState.detail,
-                                'Failed to load the game log snapshot.'
-                            )}
-                        </div>
-                    ) : null}
-                </PageToolbar>
+                <GameLogToolbar
+                    detail={
+                        rowsState.detail
+                            ? userFacingErrorMessage(
+                                  rowsState.detail,
+                                  'Failed to load the game log snapshot.'
+                              )
+                            : ''
+                    }
+                    filterModel={filters}
+                    refreshModel={{
+                        canRefresh:
+                            Boolean(rowsState.currentUserId) &&
+                            !rowsState.gameLogDisabled,
+                        loadStatus: rowsState.loadStatus,
+                        onRefresh: filters.refreshGameLog
+                    }}
+                    table={table}
+                />
 
                 <PageBody>
                     {isLoading ? (

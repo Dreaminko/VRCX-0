@@ -2,8 +2,6 @@ import type { TFunction } from 'i18next';
 import {
     ArrowRightIcon,
     CheckIcon,
-    ChevronDownIcon,
-    ListFilterIcon,
     PencilIcon,
     SendIcon,
     ShieldCheckIcon,
@@ -16,18 +14,16 @@ import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import { EmptyState } from '@/components/layout/PageScaffold';
+import { ToolbarFilterMenu } from '@/components/layout/ToolbarControls';
 import { cn } from '@/lib/utils';
 import { openUserDialog } from '@/services/dialogService';
 import { Button } from '@/ui/shadcn/button';
 import {
-    DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuSeparator
 } from '@/ui/shadcn/dropdown-menu';
 
 import type { FriendLogRow } from '../friendLogRows';
@@ -134,77 +130,46 @@ export function FriendLogTypeFilterDropdown({
 }) {
     const { t } = useTranslation();
     const valueSet = new Set(value);
-    const label =
-        value.length === 0
-            ? t('view.friend_log.all_types')
-            : value.length === 1
-              ? friendLogTypeLabel(value[0], t)
-              : t('view.friend_log.selected_types', { count: value.length });
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="min-w-56 justify-start"
-                    >
-                        <ListFilterIcon
-                            data-icon="inline-start"
-                            className="text-muted-foreground"
-                        />
-                        <span className="min-w-0 flex-1 truncate text-left">
-                            {label}
-                        </span>
-                        <ChevronDownIcon
-                            data-icon="inline-end"
-                            className="text-muted-foreground"
-                        />
-                    </Button>
-                }
-            />
-            <DropdownMenuContent align="start" className="w-64">
-                <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onChange([])}>
-                        {t('view.friend_log.all_types')}
-                        <CheckIcon
-                            className={cn(
-                                'ml-auto',
-                                value.length > 0 && 'opacity-0'
-                            )}
-                        />
-                    </DropdownMenuItem>
+        <ToolbarFilterMenu activeCount={value.length}>
+            <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => onChange([])}>
+                    {t('view.friend_log.all_types')}
+                    <CheckIcon
+                        className={cn(
+                            'ml-auto',
+                            value.length > 0 && 'opacity-0'
+                        )}
+                    />
+                </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            {FRIEND_LOG_TYPE_GROUPS.map((group) => (
+                <DropdownMenuGroup key={group.labelKey}>
+                    <DropdownMenuLabel>{t(group.labelKey)}</DropdownMenuLabel>
+                    {group.types.map((type) => (
+                        <DropdownMenuCheckboxItem
+                            key={type}
+                            checked={valueSet.has(type)}
+                            onClick={(event) => event.preventDefault()}
+                            onCheckedChange={(checked) => {
+                                onChange(
+                                    checked
+                                        ? [...value, type]
+                                        : value.filter(
+                                              (entry) => entry !== type
+                                          )
+                                );
+                            }}
+                        >
+                            <FriendLogTypeIcon type={type} />
+                            {friendLogTypeLabel(type, t)}
+                        </DropdownMenuCheckboxItem>
+                    ))}
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                {FRIEND_LOG_TYPE_GROUPS.map((group) => (
-                    <DropdownMenuGroup key={group.labelKey}>
-                        <DropdownMenuLabel>
-                            {t(group.labelKey)}
-                        </DropdownMenuLabel>
-                        {group.types.map((type) => (
-                            <DropdownMenuCheckboxItem
-                                key={type}
-                                checked={valueSet.has(type)}
-                                onClick={(event) => event.preventDefault()}
-                                onCheckedChange={(checked) => {
-                                    onChange(
-                                        checked
-                                            ? [...value, type]
-                                            : value.filter(
-                                                  (entry) => entry !== type
-                                              )
-                                    );
-                                }}
-                            >
-                                <FriendLogTypeIcon type={type} />
-                                {friendLogTypeLabel(type, t)}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuGroup>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
+            ))}
+        </ToolbarFilterMenu>
     );
 }
 

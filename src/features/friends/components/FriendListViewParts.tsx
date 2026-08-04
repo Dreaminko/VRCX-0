@@ -1,16 +1,12 @@
-import { ChevronDownIcon } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import { EmptyState } from '@/components/layout/PageScaffold';
-import { Button } from '@/ui/shadcn/button';
+import { ToolbarFilterMenu } from '@/components/layout/ToolbarControls';
 import {
-    DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuTrigger
+    DropdownMenuGroup
 } from '@/ui/shadcn/dropdown-menu';
 
 import { FRIEND_LIST_SEARCH_FILTERS as SEARCH_FILTERS } from '../friendListState';
@@ -33,49 +29,29 @@ export function FriendListSearchFilterDropdown({
 }) {
     const { t } = useTranslation();
     const activeFilters = value;
-    const label = activeFilters.size
-        ? `${activeFilters.size}/${SEARCH_FILTERS.length}`
-        : t('view.friend_list.filter_placeholder');
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="h-9 w-36 justify-between"
+        <ToolbarFilterMenu activeCount={activeFilters.size}>
+            <DropdownMenuGroup>
+                {SEARCH_FILTERS.map((filter) => (
+                    <DropdownMenuCheckboxItem
+                        key={filter.id}
+                        checked={activeFilters.has(filter.id)}
+                        onClick={(event) => event.preventDefault()}
+                        onCheckedChange={(checked) => {
+                            const next = new Set(activeFilters);
+                            if (checked) {
+                                next.add(filter.id);
+                            } else {
+                                next.delete(filter.id);
+                            }
+                            onChange(next);
+                        }}
                     >
-                        <span className="truncate">{label}</span>
-                        <ChevronDownIcon
-                            data-icon="inline-end"
-                            className="text-muted-foreground"
-                        />
-                    </Button>
-                }
-            />
-            <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuGroup>
-                    {SEARCH_FILTERS.map((filter) => (
-                        <DropdownMenuCheckboxItem
-                            key={filter.id}
-                            checked={activeFilters.has(filter.id)}
-                            onClick={(event) => event.preventDefault()}
-                            onCheckedChange={(checked) => {
-                                const next = new Set(activeFilters);
-                                if (checked) {
-                                    next.add(filter.id);
-                                } else {
-                                    next.delete(filter.id);
-                                }
-                                onChange(next);
-                            }}
-                        >
-                            {t(filter.labelKey)}
-                        </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuGroup>
-            </DropdownMenuContent>
-        </DropdownMenu>
+                        {t(filter.labelKey)}
+                    </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuGroup>
+        </ToolbarFilterMenu>
     );
 }

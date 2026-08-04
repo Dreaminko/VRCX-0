@@ -282,7 +282,8 @@
             "save": "保存",
             "search": "搜索",
             "select": "选择",
-            "cancel": "取消"
+            "cancel": "取消",
+            "view_options": "显示选项"
         },
         "sort_by": "排序方式：",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "好友",
             "favorite": "收藏"
+        },
+        "filter": {
+            "label": "筛选",
+            "label_count": "筛选 ({count})"
         }
     },
     "overlay": {
@@ -797,7 +802,6 @@
                 "add": "添加栏",
                 "manage": "管理分栏",
                 "manage_list": "增减分栏",
-                "settings": "分栏设置",
                 "density": "密度",
                 "density_options": {
                     "compact": "紧凑",
@@ -901,7 +905,6 @@
             "friend_is_not_in_hydrated_favorite_group": "好友不在已加载的收藏分组中。"
         },
         "game_log": {
-            "filter_placeholder": "筛选游戏日志",
             "filters": {
                 "Location": "位置变动",
                 "OnPlayerJoined": "玩家加入",
@@ -977,7 +980,6 @@
             }
         },
         "instance_history": {
-            "title": "房间历史",
             "mode": {
                 "search": "查询",
                 "day": "按日"
@@ -1001,16 +1003,11 @@
                 "current_user": "自己",
                 "open_full": "打开完整房间历史"
             },
-            "description": {
-                "viewing": "正在查看：{name}",
-                "no_current_user": "登录后才能查看房间历史。"
-            },
             "toast": {
                 "failed_to_load_instance_history": "加载房间历史失败"
             }
         },
         "my_avatars": {
-            "filter": "筛选",
             "error": {
                 "selected_avatar_style_is_not_available": "所选模型样式不可用",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "无法加载样式列表，未知样式选择将被保留",
@@ -1033,7 +1030,6 @@
                 "tag_name": "标签名称",
                 "visibility": "可见性",
                 "platform": "支持的平台",
-                "grid_settings": "网格设置",
                 "grid_density": "网格密度",
                 "grid_density_standard": "标准",
                 "grid_density_compact": "紧凑",
@@ -1290,7 +1286,6 @@
         "friend_log": {
             "filter_placeholder": "筛选好友日志",
             "all_types": "全部类型",
-            "selected_types": "已选 {count} 类",
             "groups": {
                 "relationships": "好友关系",
                 "requests": "好友申请",
@@ -1344,19 +1339,16 @@
                 "of": "/",
                 "moderation_row": "玩家管理记录",
                 "moderation_rows": "玩家管理记录",
-                "moderation_filters": "管理记录筛选器",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "放宽类型筛选或搜索词以查看更多结果"
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "没有符合当前筛选设置的管理记录"
             },
             "dynamic": {
-                "deleted_value_for_value": "已删除 {value2} 的 {value}",
-                "selected_moderation_filters": "已选 {count} 个筛选器"
+                "deleted_value_for_value": "已删除 {value2} 的 {value}"
             }
         },
         "notification": {
-            "filter_placeholder": "通知筛选器",
             "refresh_tooltip": "刷新",
             "actions": {
                 "accept": "接受",
@@ -1471,7 +1463,6 @@
             "load_cancel": "取消",
             "favorites_only_tooltip": "仅显示具有分组的好友",
             "search_placeholder": "搜索好友",
-            "filter_placeholder": "筛选好友",
             "load_mutual_friends": "查看关系图",
             "search_filters": {
                 "display_name": "显示名称",
@@ -1526,7 +1517,8 @@
             },
             "dynamic": {
                 "open_value": "打开 {value}"
-            }
+            },
+            "bulk_selected": "已选 {count} 项"
         },
         "charts": {
             "instance_activity": {
@@ -1719,8 +1711,6 @@
                 "file_placeholder": "选择日志文件",
                 "search_placeholder": "搜索消息、分类或堆栈",
                 "follow_latest": "跟随最新",
-                "all_categories": "全部分类",
-                "categories_selected": "已选 {count} 个分类",
                 "clear_categories": "清除分类",
                 "copy_selected": "复制选中",
                 "copy_entry": "复制此行",
@@ -4668,8 +4658,7 @@
                 "location": "位置变动",
                 "page": "页",
                 "sort_by": "排序方式",
-                "sort_descending": "降序",
-                "sort_ascending": "升序"
+                "sort_descending": "降序"
             },
             "success": {
                 "instance_record_deleted": "已删除房间记录"

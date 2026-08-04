@@ -1,17 +1,15 @@
 import type { Table } from '@tanstack/react-table';
-import { RefreshCwIcon, SearchIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
-import { PageToolbarRow } from '@/components/layout/PageScaffold';
-import { Button } from '@/ui/shadcn/button';
+import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from '@/ui/shadcn/input-group';
-import { Spinner } from '@/ui/shadcn/spinner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
+    ToolbarActions,
+    ToolbarRefreshButton,
+    ToolbarSearch,
+    ToolbarStatus,
+    ToolbarViews
+} from '@/components/layout/ToolbarControls';
 
 import type { FriendLogRow } from '../friendLogRows';
 import { FriendLogTypeFilterDropdown } from './FriendLogViewParts';
@@ -40,59 +38,32 @@ export function FriendLogPageToolbar({
     const { t } = useTranslation();
 
     return (
-        <>
-            <PageToolbarRow className="xl:justify-between">
-                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <PageToolbar>
+            <PageToolbarRow>
+                <ToolbarViews>
                     <FriendLogTypeFilterDropdown
                         value={selectedTypes}
                         onChange={onSelectedTypesChange}
                     />
-                    <InputGroup className="min-w-56 flex-1">
-                        <InputGroupAddon>
-                            <SearchIcon />
-                        </InputGroupAddon>
-                        <InputGroupInput
-                            value={searchQuery}
-                            onChange={(event) =>
-                                onSearchQueryChange(event.target.value)
-                            }
-                            placeholder={t(
-                                'view.friend_log.search_placeholder'
-                            )}
-                        />
-                    </InputGroup>
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    aria-label={t('common.actions.refresh')}
-                                    disabled={
-                                        !currentUserId ||
-                                        loadStatus === 'running'
-                                    }
-                                    onClick={onRefresh}
-                                >
-                                    {loadStatus === 'running' ? (
-                                        <Spinner data-icon="inline-start" />
-                                    ) : (
-                                        <RefreshCwIcon data-icon="inline-start" />
-                                    )}
-                                </Button>
-                            }
-                        />
-                        <TooltipContent>
-                            {t('common.actions.refresh')}
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
-                <TableColumnVisibilityMenu table={table} />
+                </ToolbarViews>
+
+                <ToolbarSearch
+                    value={searchQuery}
+                    onValueChange={onSearchQueryChange}
+                    placeholder={t('view.friend_log.search_placeholder')}
+                />
+
+                <ToolbarActions>
+                    <ToolbarRefreshButton
+                        onRefresh={onRefresh}
+                        loading={loadStatus === 'running'}
+                        disabled={!currentUserId}
+                    />
+                    <TableColumnVisibilityMenu table={table} />
+                </ToolbarActions>
             </PageToolbarRow>
-            {detail ? (
-                <div className="text-muted-foreground text-sm">{detail}</div>
-            ) : null}
-        </>
+
+            {detail ? <ToolbarStatus>{detail}</ToolbarStatus> : null}
+        </PageToolbar>
     );
 }

@@ -1,12 +1,4 @@
-import {
-    ArrowDownUpIcon,
-    ArrowDownWideNarrowIcon,
-    ArrowUpNarrowWideIcon,
-    ListXIcon,
-    Trash2Icon,
-    XIcon
-} from 'lucide-react';
-import type { ChangeEvent, ReactNode } from 'react';
+import { ListXIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -24,15 +16,6 @@ import type { InstanceHistoryMode } from '@/features/instance-history/instanceHi
 import { formatClock, formatDateFilter } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
-import { Input } from '@/ui/shadcn/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 
 const SORT_FIELDS = ['date', 'location', 'duration'] as const;
 type SortField = (typeof SORT_FIELDS)[number];
@@ -145,11 +128,8 @@ type InstanceHistoryListProps = {
     search: string;
     onSearchChange: (value: string) => void;
     sortKey: string;
-    sortDesc: boolean;
-    onSortSelect: (sortKey: SortField, sortDesc: boolean) => void;
     onOpenDetails: (row: PreviousInstanceRow) => void;
     onDeleteRow: (row: PreviousInstanceRow) => void;
-    dateRangeControl?: ReactNode;
     dateActive?: boolean;
     dateRangeLabel?: string;
     onClearDate?: () => void;
@@ -164,11 +144,8 @@ export function InstanceHistoryList({
     search,
     onSearchChange,
     sortKey,
-    sortDesc,
-    onSortSelect,
     onOpenDetails,
     onDeleteRow,
-    dateRangeControl = null,
     dateActive = false,
     dateRangeLabel = '',
     onClearDate
@@ -182,12 +159,6 @@ export function InstanceHistoryList({
     const searchActive = !isDayMode && Boolean(search && search.trim());
     const dayRangeActive = !isDayMode && dateActive;
     const anyFilterActive = searchActive || dayRangeActive;
-
-    const sortFieldLabel: Record<string, string> = {
-        date: t('table.previous_instances.date'),
-        location: t('dialog.previous_instances.label.location'),
-        duration: t('table.previous_instances.time')
-    };
 
     const entries = useMemo<InstanceHistoryEntry[]>(() => {
         const result: InstanceHistoryEntry[] = [];
@@ -243,82 +214,6 @@ export function InstanceHistoryList({
 
     return (
         <div className="flex h-full min-h-0 flex-col gap-3">
-            {!isDayMode ? (
-                <div className="flex flex-col gap-2">
-                    <Input
-                        value={search}
-                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                            onSearchChange(event.target.value)
-                        }
-                        placeholder={t(
-                            'dialog.previous_instances.search_placeholder'
-                        )}
-                        className="w-full"
-                    />
-                    <div className="flex items-center gap-2">
-                        <div className="min-w-0 flex-1">{dateRangeControl}</div>
-                        <div className="flex shrink-0 items-center">
-                            <Select
-                                value={activeSortKey}
-                                items={SORT_FIELDS.map((field) => ({
-                                    value: field,
-                                    label: sortFieldLabel[field]
-                                }))}
-                                onValueChange={(value) =>
-                                    onSortSelect(
-                                        (value ?? '') as SortField,
-                                        sortDesc
-                                    )
-                                }
-                            >
-                                <SelectTrigger
-                                    size="sm"
-                                    className="w-32 rounded-r-none border-r-0"
-                                    aria-label={t(
-                                        'dialog.previous_instances.label.sort_by'
-                                    )}
-                                >
-                                    <ArrowDownUpIcon className="text-muted-foreground size-3.5" />
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        {SORT_FIELDS.map((field) => (
-                                            <SelectItem
-                                                key={field}
-                                                value={field}
-                                            >
-                                                {sortFieldLabel[field]}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="rounded-l-none px-2"
-                                aria-label={t(
-                                    sortDesc
-                                        ? 'dialog.previous_instances.label.sort_descending'
-                                        : 'dialog.previous_instances.label.sort_ascending'
-                                )}
-                                onClick={() =>
-                                    onSortSelect(activeSortKey, !sortDesc)
-                                }
-                            >
-                                {sortDesc ? (
-                                    <ArrowDownWideNarrowIcon data-icon="icon" />
-                                ) : (
-                                    <ArrowUpNarrowWideIcon data-icon="icon" />
-                                )}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            ) : null}
-
             <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-muted-foreground">
                     {formatPreviousInstanceCount(filteredCount)}/

@@ -282,7 +282,8 @@
             "save": "Salvar",
             "search": "Pesquisar",
             "select": "Selecionar",
-            "cancel": "Cancelar"
+            "cancel": "Cancelar",
+            "view_options": "Opções de exibição"
         },
         "sort_by": "Ordenar por:",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "Amigo",
             "favorite": "Favorito"
+        },
+        "filter": {
+            "label": "Filtro",
+            "label_count": "Filtros ({count})"
         }
     },
     "overlay": {
@@ -797,7 +802,6 @@
                 "add": "Adicionar Coluna",
                 "manage": "Gerenciar Colunas",
                 "manage_list": "Adicionar / Remover Colunas",
-                "settings": "Configurações da coluna",
                 "density": "Densidade",
                 "density_options": {
                     "compact": "Compacto",
@@ -901,7 +905,6 @@
             "friend_is_not_in_hydrated_favorite_group": "O amigo não está em um grupo de favoritos carregado."
         },
         "game_log": {
-            "filter_placeholder": "Filtrar",
             "filters": {
                 "Location": "Localização",
                 "OnPlayerJoined": "Usuário entrou",
@@ -977,7 +980,6 @@
             }
         },
         "instance_history": {
-            "title": "Histórico de Instâncias",
             "mode": {
                 "search": "Buscar",
                 "day": "Dia"
@@ -1001,16 +1003,11 @@
                 "current_user": "Eu",
                 "open_full": "Abrir histórico completo de instâncias"
             },
-            "description": {
-                "viewing": "Visualizando {name}",
-                "no_current_user": "Faça login antes de visualizar o histórico de instâncias."
-            },
             "toast": {
                 "failed_to_load_instance_history": "Falha ao carregar o histórico da instância"
             }
         },
         "my_avatars": {
-            "filter": "Filtrar",
             "error": {
                 "selected_avatar_style_is_not_available": "O estilo de avatar selecionado não está disponível",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "Não foi possível carregar a lista de estilos. Seleções de estilo desconhecidas serão preservadas",
@@ -1033,7 +1030,6 @@
                 "tag_name": "Nome da tag",
                 "visibility": "Visibilidade",
                 "platform": "Plataforma",
-                "grid_settings": "Configurações da grade",
                 "grid_density": "Densidade da grade",
                 "grid_density_standard": "Padrão",
                 "grid_density_compact": "Compacta",
@@ -1290,7 +1286,6 @@
         "friend_log": {
             "filter_placeholder": "Filtrar",
             "all_types": "Todos os tipos",
-            "selected_types": "{count} tipos selecionados",
             "groups": {
                 "relationships": "Relações de amizade",
                 "requests": "Pedidos de amizade",
@@ -1344,19 +1339,16 @@
                 "of": "de",
                 "moderation_row": "registro de moderação",
                 "moderation_rows": "registros de moderação",
-                "moderation_filters": "Filtros de moderação",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "Amplie os filtros de tipo ou a busca para ver mais resultados"
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "Nenhum registro de moderação corresponde aos filtros atuais"
             },
             "dynamic": {
-                "deleted_value_for_value": "Excluído {value} de {value2}",
-                "selected_moderation_filters": "{count} filtros de moderação"
+                "deleted_value_for_value": "Excluído {value} de {value2}"
             }
         },
         "notification": {
-            "filter_placeholder": "Filtrar",
             "refresh_tooltip": "Atualizar",
             "actions": {
                 "accept": "Aceitar",
@@ -1471,7 +1463,6 @@
             "load_cancel": "Cancelar",
             "favorites_only_tooltip": "Filtrar apenas favoritos",
             "search_placeholder": "Pesquisar",
-            "filter_placeholder": "Filtrar",
             "load_mutual_friends": "Carregar Amigos Mútuos",
             "search_filters": {
                 "display_name": "Nome de Exibição",
@@ -1526,7 +1517,8 @@
             },
             "dynamic": {
                 "open_value": "Abrir {value}"
-            }
+            },
+            "bulk_selected": "{count} selecionados"
         },
         "charts": {
             "instance_activity": {
@@ -1719,8 +1711,6 @@
                 "file_placeholder": "Selecione um arquivo de log",
                 "search_placeholder": "Buscar mensagem, categoria ou stack trace",
                 "follow_latest": "Acompanhar mais recentes",
-                "all_categories": "Todas as categorias",
-                "categories_selected": "{count} categorias",
                 "clear_categories": "Limpar categorias",
                 "copy_selected": "Copiar selecionados",
                 "copy_entry": "Copiar linha",
@@ -4668,8 +4658,7 @@
                 "location": "Localização",
                 "page": "Página",
                 "sort_by": "Ordenar por",
-                "sort_descending": "Ordenar decrescente",
-                "sort_ascending": "Ordenar crescente"
+                "sort_descending": "Ordenar decrescente"
             },
             "success": {
                 "instance_record_deleted": "Visita removida do histórico de instâncias"

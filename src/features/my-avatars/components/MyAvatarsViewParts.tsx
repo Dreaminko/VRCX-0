@@ -1,15 +1,17 @@
 import {
-    ListFilterIcon,
     MonitorIcon,
     MoreHorizontalIcon,
-    RectangleGogglesIcon,
-    SettingsIcon
+    RectangleGogglesIcon
 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import { EmptyState } from '@/components/layout/PageScaffold';
+import {
+    toolbarFilterTrigger,
+    ToolbarViewMenu
+} from '@/components/layout/ToolbarControls';
 import { cn } from '@/lib/utils';
 import { openAvatarDialog } from '@/services/dialogService';
 import { getAvailablePlatforms } from '@/shared/utils/avatarPlatform';
@@ -207,17 +209,13 @@ export function MyAvatarFilterPopover({
     return (
         <Popover>
             <PopoverTrigger
-                render={
-                    <Button type="button" variant="outline" size="sm">
-                        <ListFilterIcon data-icon="inline-start" />
-                        {t('view.my_avatars.filter')}
-                        {activeFilterCount ? (
-                            <Badge variant="secondary">
-                                {activeFilterCount}
-                            </Badge>
-                        ) : null}
-                    </Button>
-                }
+                render={toolbarFilterTrigger({
+                    label: activeFilterCount
+                        ? t('common.filter.label_count', {
+                              count: activeFilterCount
+                          })
+                        : t('common.filter.label')
+                })}
             />
             <PopoverContent align="start" className="w-80 p-3">
                 <div className="flex flex-col gap-3">
@@ -356,54 +354,40 @@ export function GridSettingsMenu({
     const { t } = useTranslation();
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        type="button"
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={t('view.my_avatars.label.grid_settings')}
+        <ToolbarViewMenu contentClassName="p-3">
+            <FieldGroup>
+                <Field>
+                    <FieldLabel>
+                        {t('view.my_avatars.label.grid_density')}
+                    </FieldLabel>
+                    <ToggleGroup
+                        variant="outline"
+                        size="sm"
+                        spacing={1}
+                        value={gridDensity ? [gridDensity] : []}
+                        onValueChange={(nextValue) => {
+                            const next = nextValue[0];
+                            if (next) {
+                                onGridDensityChange(next);
+                            }
+                        }}
+                        className="grid w-full grid-cols-3"
                     >
-                        <SettingsIcon data-icon="inline-start" />
-                    </Button>
-                }
-            />
-            <DropdownMenuContent className="w-72 p-3" align="end">
-                <FieldGroup>
-                    <Field>
-                        <FieldLabel>
-                            {t('view.my_avatars.label.grid_density')}
-                        </FieldLabel>
-                        <ToggleGroup
-                            variant="outline"
-                            size="sm"
-                            spacing={1}
-                            value={gridDensity ? [gridDensity] : []}
-                            onValueChange={(nextValue) => {
-                                const next = nextValue[0];
-                                if (next) {
-                                    onGridDensityChange(next);
-                                }
-                            }}
-                            className="grid w-full grid-cols-3"
-                        >
-                            {MY_AVATARS_GRID_DENSITY_OPTIONS.map((option) => (
-                                <ToggleGroupItem
-                                    key={option.value}
-                                    value={option.value}
-                                    aria-label={t(option.labelKey)}
-                                    className="w-full min-w-0 justify-center px-2"
-                                >
-                                    <span className="truncate">
-                                        {t(option.labelKey)}
-                                    </span>
-                                </ToggleGroupItem>
-                            ))}
-                        </ToggleGroup>
-                    </Field>
-                </FieldGroup>
-            </DropdownMenuContent>
-        </DropdownMenu>
+                        {MY_AVATARS_GRID_DENSITY_OPTIONS.map((option) => (
+                            <ToggleGroupItem
+                                key={option.value}
+                                value={option.value}
+                                aria-label={t(option.labelKey)}
+                                className="w-full min-w-0 justify-center px-2"
+                            >
+                                <span className="truncate">
+                                    {t(option.labelKey)}
+                                </span>
+                            </ToggleGroupItem>
+                        ))}
+                    </ToggleGroup>
+                </Field>
+            </FieldGroup>
+        </ToolbarViewMenu>
     );
 }

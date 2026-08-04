@@ -1,27 +1,12 @@
-import { ChevronRightIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import { EmptyState } from '@/components/layout/PageScaffold';
 import { Location } from '@/components/Location';
-import { Button } from '@/ui/shadcn/button';
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
-} from '@/ui/shadcn/dropdown-menu';
-import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { getGameLogLocationTarget } from '../gameLogRows';
 import {
     GAME_LOG_SESSION_FILTER_TYPES,
     type GameLogDetailValue,
-    type GameLogFilterType,
     type GameLogRow
 } from '../gameLogTypes';
 import { GameLogSessionsView } from './GameLogSessionsView';
@@ -111,123 +96,11 @@ function GameLogLocationDetail({
     );
 }
 
-function TypeFilterDropdown({
-    types,
-    selectedTypes,
-    onSelectedTypesChange
-}: {
-    onSelectedTypesChange(types: GameLogFilterType[]): void;
-    selectedTypes: readonly GameLogFilterType[];
-    types: readonly GameLogFilterType[];
-}) {
-    const { t } = useTranslation();
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="min-w-44 justify-between"
-                    >
-                        <span>
-                            {selectedTypes.length
-                                ? `${selectedTypes.length}/${types.length}`
-                                : t('view.game_log.filter_placeholder')}
-                        </span>
-                        <ChevronRightIcon
-                            data-icon="inline-end"
-                            className="text-muted-foreground rotate-90"
-                        />
-                    </Button>
-                }
-            />
-            <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => onSelectedTypesChange([])}>
-                        {t('view.search.avatar.all')}
-                    </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                    {types.map((type) => (
-                        <DropdownMenuCheckboxItem
-                            key={type}
-                            checked={selectedTypes.includes(type)}
-                            onClick={(event) => event.preventDefault()}
-                            onCheckedChange={(checked) => {
-                                onSelectedTypesChange(
-                                    checked
-                                        ? [...selectedTypes, type]
-                                        : selectedTypes.filter(
-                                              (entry) => entry !== type
-                                          )
-                                );
-                            }}
-                        >
-                            {t(`view.game_log.filters.${type}`)}
-                        </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuGroup>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
-
-function TypeFilterToggleGroup({
-    types,
-    selectedTypes,
-    onSelectedTypesChange,
-    className = 'flex min-w-0 flex-wrap items-center gap-1'
-}: {
-    className?: string;
-    onSelectedTypesChange(types: GameLogFilterType[]): void;
-    selectedTypes: readonly GameLogFilterType[];
-    types: readonly GameLogFilterType[];
-}) {
-    const { t } = useTranslation();
-
-    return (
-        <div className={className}>
-            <Button
-                type="button"
-                variant={selectedTypes.length === 0 ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => onSelectedTypesChange([])}
-            >
-                {t('view.search.avatar.all')}
-            </Button>
-            <ToggleGroup
-                multiple
-                variant="default"
-                size="sm"
-                spacing={1}
-                value={[...selectedTypes]}
-                onValueChange={(nextTypes) => {
-                    onSelectedTypesChange(
-                        nextTypes.length === types.length ? [] : nextTypes
-                    );
-                }}
-                className="flex min-w-0 flex-wrap"
-            >
-                {types.map((type) => (
-                    <ToggleGroupItem key={type} value={type}>
-                        {t(`view.game_log.filters.${type}`)}
-                    </ToggleGroupItem>
-                ))}
-            </ToggleGroup>
-        </div>
-    );
-}
-
 export {
     EmptyTableValue,
     GameLogEmptyState,
     GameLogLocationDetail,
     GameLogSessionsView,
     SESSION_FILTER_TYPES,
-    DataTableSortButton as SortButton,
-    TypeFilterDropdown,
-    TypeFilterToggleGroup
+    DataTableSortButton as SortButton
 };

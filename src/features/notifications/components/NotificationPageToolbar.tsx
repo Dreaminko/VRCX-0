@@ -1,11 +1,17 @@
-import { CheckCheckIcon, RefreshCcwIcon } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+import { CheckCheckIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
+import {
+    ToolbarActions,
+    ToolbarIconButton,
+    ToolbarRefreshButton,
+    ToolbarSearch,
+    ToolbarSegmented,
+    ToolbarViews,
+    type ToolbarSegmentOption
+} from '@/components/layout/ToolbarControls';
 import { Button } from '@/ui/shadcn/button';
-import { Input } from '@/ui/shadcn/input';
-import { Spinner } from '@/ui/shadcn/spinner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import type { NotificationLoadStatus } from '../notificationPageTypes';
 import type { NotificationQuickFilter } from '../useNotificationFilters';
@@ -50,87 +56,59 @@ export function NotificationPageToolbar({
     onClearFilters
 }: NotificationPageToolbarProps) {
     const { t } = useTranslation();
-    const refreshLabel = t('view.notification.refresh_tooltip');
-    const markAllSeenLabel = t('side_panel.notification_center.mark_all_read');
+    const quickFilterOptions: ToolbarSegmentOption<NotificationQuickFilter>[] =
+        QUICK_FILTERS.map((entry) => ({
+            value: entry.value,
+            label: t(entry.labelKey)
+        }));
+    const hasActiveFilters = activeTypes.length > 0 || quickFilter !== 'all';
 
     return (
-        <div className="flex flex-wrap items-center gap-2">
-            {QUICK_FILTERS.map((entry) => (
-                <Button
-                    key={entry.value}
-                    type="button"
-                    size="sm"
-                    variant={
-                        quickFilter === entry.value ? 'secondary' : 'ghost'
-                    }
-                    onClick={() => onQuickFilterChange(entry.value)}
-                >
-                    {t(entry.labelKey)}
-                </Button>
-            ))}
-            <NotificationTypeFilterDropdown
-                value={activeTypes}
-                onChange={onActiveTypesChange}
-                getTypeLabel={notificationTypeLabel}
-            />
-            <Input
-                value={searchQuery}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    onSearchQueryChange(event.target.value)
-                }
-                placeholder={t('common.actions.search')}
-                className="h-9 min-w-36 flex-1 sm:max-w-52"
-            />
-            <Tooltip>
-                <TooltipTrigger
-                    render={
+        <PageToolbar>
+            <PageToolbarRow>
+                <ToolbarViews>
+                    <ToolbarSegmented
+                        value={quickFilter}
+                        onValueChange={onQuickFilterChange}
+                        options={quickFilterOptions}
+                    />
+                    <NotificationTypeFilterDropdown
+                        value={activeTypes}
+                        onChange={onActiveTypesChange}
+                        getTypeLabel={notificationTypeLabel}
+                    />
+                    {hasActiveFilters ? (
                         <Button
                             type="button"
                             variant="ghost"
-                            size="icon-sm"
-                            aria-label={markAllSeenLabel}
-                            className="rounded-full"
-                            disabled={unseenCount <= 0}
-                            onClick={onMarkAllSeen}
+                            onClick={onClearFilters}
                         >
-                            <CheckCheckIcon data-icon="inline-start" />
+                            {t('common.actions.clear')}
                         </Button>
-                    }
+                    ) : null}
+                </ToolbarViews>
+
+                <ToolbarSearch
+                    value={searchQuery}
+                    onValueChange={onSearchQueryChange}
                 />
-                <TooltipContent>{markAllSeenLabel}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-                <TooltipTrigger
-                    render={
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={refreshLabel}
-                            className="rounded-full"
-                            disabled={loadStatus === 'running'}
-                            onClick={onRefresh}
-                        >
-                            {loadStatus === 'running' ? (
-                                <Spinner data-icon="inline-start" />
-                            ) : (
-                                <RefreshCcwIcon data-icon="inline-start" />
-                            )}
-                        </Button>
-                    }
-                />
-                <TooltipContent>{refreshLabel}</TooltipContent>
-            </Tooltip>
-            {activeTypes.length || quickFilter !== 'all' ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={onClearFilters}
-                >
-                    {t('common.actions.clear')}
-                </Button>
-            ) : null}
-        </div>
+
+                <ToolbarActions>
+                    <ToolbarIconButton
+                        icon={CheckCheckIcon}
+                        label={t(
+                            'side_panel.notification_center.mark_all_read'
+                        )}
+                        disabled={unseenCount <= 0}
+                        onClick={onMarkAllSeen}
+                    />
+                    <ToolbarRefreshButton
+                        onRefresh={onRefresh}
+                        loading={loadStatus === 'running'}
+                        label={t('view.notification.refresh_tooltip')}
+                    />
+                </ToolbarActions>
+            </PageToolbarRow>
+        </PageToolbar>
     );
 }

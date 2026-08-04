@@ -1,12 +1,15 @@
 import type { Table as ReactTable } from '@tanstack/react-table';
-import { RefreshCwIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
-import { PageToolbarRow } from '@/components/layout/PageScaffold';
-import { Button } from '@/ui/shadcn/button';
-import { Input } from '@/ui/shadcn/input';
-import { Spinner } from '@/ui/shadcn/spinner';
+import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
+import {
+    ToolbarActions,
+    ToolbarRefreshButton,
+    ToolbarSearch,
+    ToolbarStatus,
+    ToolbarViews
+} from '@/components/layout/ToolbarControls';
 
 import {
     normalizeModerationSelectedTypes,
@@ -46,42 +49,33 @@ export function ModerationPageToolbar({
         resolveModerationTypeLabel(type, t);
 
     return (
-        <>
+        <PageToolbar>
             <PageToolbarRow>
-                <ModerationTypeFilterDropdown
-                    value={selectedTypes}
-                    onChange={onSelectedTypesChange}
-                    getTypeLabel={getModerationTypeLabel}
-                    sanitizeTypes={normalizeModerationSelectedTypes}
-                />
-                <Input
+                <ToolbarViews>
+                    <ModerationTypeFilterDropdown
+                        value={selectedTypes}
+                        onChange={onSelectedTypesChange}
+                        getTypeLabel={getModerationTypeLabel}
+                        sanitizeTypes={normalizeModerationSelectedTypes}
+                    />
+                </ToolbarViews>
+
+                <ToolbarSearch
                     value={searchQuery}
-                    onChange={(event) =>
-                        onSearchQueryChange(event.target.value)
-                    }
-                    placeholder={t('common.actions.search')}
-                    className="h-9 min-w-32 flex-1 sm:max-w-40"
+                    onValueChange={onSearchQueryChange}
                 />
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t('common.actions.refresh')}
-                    disabled={!currentUserId || loadStatus === 'running'}
-                    onClick={onRefresh}
-                >
-                    {loadStatus === 'running' ? (
-                        <Spinner data-icon="inline-start" />
-                    ) : (
-                        <RefreshCwIcon data-icon="inline-start" />
-                    )}
-                </Button>
-                <TableColumnVisibilityMenu table={table} />
+
+                <ToolbarActions>
+                    <ToolbarRefreshButton
+                        onRefresh={onRefresh}
+                        loading={loadStatus === 'running'}
+                        disabled={!currentUserId}
+                    />
+                    <TableColumnVisibilityMenu table={table} />
+                </ToolbarActions>
             </PageToolbarRow>
 
-            {detail ? (
-                <div className="text-muted-foreground text-sm">{detail}</div>
-            ) : null}
-        </>
+            {detail ? <ToolbarStatus>{detail}</ToolbarStatus> : null}
+        </PageToolbar>
     );
 }

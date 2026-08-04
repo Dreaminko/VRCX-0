@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import { PreviousInstancesTableDialog } from '@/components/dialogs/PreviousInstancesTableDialog';
 import { PageBody, PageScaffold } from '@/components/layout/PageScaffold';
+import {
+    ToolbarSegmented,
+    type ToolbarSegmentOption
+} from '@/components/layout/ToolbarControls';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { FeedColumnsMode } from './columns/FeedColumnsMode';
 import { FeedTableShell } from './components/FeedTableShell';
@@ -29,44 +31,26 @@ function FeedViewModeToggle({
     value: FeedViewMode;
 }) {
     const { t } = useTranslation();
-    const tableLabel = t('view.feed.modes.table');
-    const columnsLabel = t('view.feed.modes.columns');
+    const options: ToolbarSegmentOption<FeedViewMode>[] = [
+        {
+            value: 'table',
+            label: t('view.feed.modes.table'),
+            icon: TableIcon
+        },
+        {
+            value: 'columns',
+            label: t('view.feed.modes.columns'),
+            icon: Columns3Icon
+        }
+    ];
 
     return (
-        <ToggleGroup
-            variant="outline"
-            size="sm"
-            value={value ? [value] : []}
-            onValueChange={(nextValue) => {
-                if (nextValue[0]) {
-                    onValueChange(nextValue[0] as FeedViewMode);
-                }
-            }}
-        >
-            <Tooltip>
-                <TooltipTrigger
-                    render={
-                        <ToggleGroupItem value="table" aria-label={tableLabel}>
-                            <TableIcon data-icon="icon" />
-                        </ToggleGroupItem>
-                    }
-                />
-                <TooltipContent>{tableLabel}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-                <TooltipTrigger
-                    render={
-                        <ToggleGroupItem
-                            value="columns"
-                            aria-label={columnsLabel}
-                        >
-                            <Columns3Icon data-icon="icon" />
-                        </ToggleGroupItem>
-                    }
-                />
-                <TooltipContent>{columnsLabel}</TooltipContent>
-            </Tooltip>
-        </ToggleGroup>
+        <ToolbarSegmented
+            iconOnly
+            value={value}
+            onValueChange={onValueChange}
+            options={options}
+        />
     );
 }
 
@@ -136,7 +120,6 @@ function FeedTableMode({ modeToggle }: { modeToggle: ReactNode }) {
     );
     const filterModel = useMemo(
         () => ({
-            activeFilterCount: filters.activeFilterCount,
             activeFilters: filters.activeFilters,
             dateDraftFrom: filters.dateDraftFrom,
             dateDraftRange: filters.dateDraftRange,
@@ -150,7 +133,6 @@ function FeedTableMode({ modeToggle }: { modeToggle: ReactNode }) {
             todayDate: filters.todayDate
         }),
         [
-            filters.activeFilterCount,
             filters.activeFilters,
             filters.dateDraftFrom,
             filters.dateDraftRange,
@@ -170,11 +152,10 @@ function FeedTableMode({ modeToggle }: { modeToggle: ReactNode }) {
             onClearDateFilter: filters.clearDateFilter,
             onClearFeedFilters: () => filters.setFeedFilters([]),
             onClearSearch: filters.clearSearch,
+            onCommitSearch: () => filters.commitSearch(),
             onDateFilterOpenChange: filters.setDateFilterOpen,
             onDateRangeSelect: filters.onDateRangeSelect,
-            onSearchBlur: () => filters.commitSearch(),
             onSearchDraftChange: filters.setSearchDraft,
-            onSearchEnter: filters.commitSearch,
             onToggleFavoritesOnly: () =>
                 filters.setFavoritesOnly((current) => !current),
             onToggleFeedFilter: filters.toggleFeedFilter

@@ -106,7 +106,7 @@ function GridSettingsMenu({
                         type="button"
                         size="icon-sm"
                         variant="ghost"
-                        aria-label={t('dialog.gallery_icons.grid_settings')}
+                        aria-label={t('common.actions.view_options')}
                     >
                         <SettingsIcon data-icon="inline-start" />
                     </Button>

@@ -23,44 +23,45 @@ export function SearchPage() {
             >
                 <SearchPageToolbar
                     activeTab={filters.activeTab}
+                    onActiveTabChange={filters.setActiveTab}
                     searchText={filters.searchText}
                     onSearchTextChange={filters.setSearchText}
                     onSearch={results.handleSearch}
                     onClearSearch={results.handleClearSearch}
+                    viewOptions={{
+                        avatarProviderList: config.avatarProviderList,
+                        includeCommunityLabs: filters.includeCommunityLabs,
+                        onAvatarProviderChange:
+                            config.handleAvatarProviderChange,
+                        onIncludeCommunityLabsChange:
+                            filters.setIncludeCommunityLabs,
+                        onOpenAvatarProviderSettings: () =>
+                            config.setIsAvatarProviderDialogOpen(true),
+                        onSearchUserByBioChange: filters.setSearchUserByBio,
+                        onSearchUserSortByLastLoggedInChange:
+                            filters.setSearchUserSortByLastLoggedIn,
+                        onWorldCategoryChange:
+                            results.handleWorldCategoryChange,
+                        searchUserByBio: filters.searchUserByBio,
+                        searchUserSortByLastLoggedIn:
+                            filters.searchUserSortByLastLoggedIn,
+                        selectedAvatarProvider: config.selectedAvatarProvider,
+                        selectedWorldCategory: filters.selectedWorldCategory,
+                        worldCategories: config.worldCategories
+                    }}
                 />
                 <SearchUserTabPanel
-                    searchUserByBio={filters.searchUserByBio}
-                    onSearchUserByBioChange={filters.setSearchUserByBio}
-                    searchUserSortByLastLoggedIn={
-                        filters.searchUserSortByLastLoggedIn
-                    }
-                    onSearchUserSortByLastLoggedInChange={
-                        filters.setSearchUserSortByLastLoggedIn
-                    }
                     isLoading={results.isUserLoading}
                     results={results.userResults}
                     languageOptionsMap={config.languageOptionsMap}
                     pagination={results.pagination}
                 />
                 <SearchWorldTabPanel
-                    includeCommunityLabs={filters.includeCommunityLabs}
-                    onIncludeCommunityLabsChange={
-                        filters.setIncludeCommunityLabs
-                    }
-                    selectedWorldCategory={filters.selectedWorldCategory}
-                    onWorldCategoryChange={results.handleWorldCategoryChange}
-                    worldCategories={config.worldCategories}
                     isLoading={results.isWorldLoading}
                     results={results.worldResults}
                     pagination={results.pagination}
                 />
                 <SearchAvatarTabPanel
-                    avatarProviderList={config.avatarProviderList}
-                    selectedAvatarProvider={config.selectedAvatarProvider}
-                    onAvatarProviderChange={config.handleAvatarProviderChange}
-                    onOpenAvatarProviderSettings={() =>
-                        config.setIsAvatarProviderDialogOpen(true)
-                    }
                     isLoading={results.isAvatarLoading}
                     results={results.avatarPageResults}
                     pagination={results.pagination}

@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
     LoadingState,
     PageBody,
-    PageScaffold,
-    PageToolbar
+    PageScaffold
 } from '@/components/layout/PageScaffold';
 
 import { FriendLogPageTable } from './components/FriendLogPageTable';
@@ -22,19 +21,17 @@ export function FriendLogPage({
 
     return (
         <PageScaffold embedded={embedded}>
-            <PageToolbar>
-                <FriendLogPageToolbar
-                    selectedTypes={filters.selectedTypes}
-                    onSelectedTypesChange={filters.setSelectedTypes}
-                    searchQuery={filters.searchQuery}
-                    onSearchQueryChange={filters.setSearchQuery}
-                    detail={rows.detail}
-                    currentUserId={rows.currentUserId}
-                    loadStatus={rows.loadStatus}
-                    onRefresh={filters.refreshFriendLog}
-                    table={table}
-                />
-            </PageToolbar>
+            <FriendLogPageToolbar
+                selectedTypes={filters.selectedTypes}
+                onSelectedTypesChange={filters.setSelectedTypes}
+                searchQuery={filters.searchQuery}
+                onSearchQueryChange={filters.setSearchQuery}
+                detail={rows.detail}
+                currentUserId={rows.currentUserId}
+                loadStatus={rows.loadStatus}
+                onRefresh={filters.refreshFriendLog}
+                table={table}
+            />
 
             <PageBody>
                 {isLoading ? (

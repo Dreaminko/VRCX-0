@@ -29,11 +29,7 @@ export function VrcNotificationPage({
 
     return (
         <>
-            <PageScaffold
-                embedded={embedded}
-                flushBottom={!embedded}
-                className="gap-3"
-            >
+            <PageScaffold embedded={embedded} flushBottom={!embedded}>
                 <NotificationPageToolbar
                     activeTypes={filters.activeTypes}
                     searchQuery={filters.searchQuery}

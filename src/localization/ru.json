@@ -282,7 +282,8 @@
             "save": "Сохранить",
             "search": "Поиск",
             "select": "Выбрать",
-            "cancel": "Отмена"
+            "cancel": "Отмена",
+            "view_options": "Параметры отображения"
         },
         "sort_by": "Сортировать по:",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "Друг",
             "favorite": "Избранное"
+        },
+        "filter": {
+            "label": "Фильтр",
+            "label_count": "Фильтры ({count})"
         }
     },
     "overlay": {
@@ -797,7 +802,6 @@
                 "add": "Добавить столбец",
                 "manage": "Регулирование колонок",
                 "manage_list": "Добавить/ Удалить столбцы",
-                "settings": "Настройка столбцов",
                 "density": "Плотность",
                 "density_options": {
                     "compact": "Соглашение",
@@ -901,7 +905,6 @@
             "friend_is_not_in_hydrated_favorite_group": "Друг не входит в избранную группу."
         },
         "game_log": {
-            "filter_placeholder": "Фильтр",
             "filters": {
                 "Location": "Местоположение",
                 "OnPlayerJoined": "Игрог подключился",
@@ -977,7 +980,6 @@
             }
         },
         "instance_history": {
-            "title": "История случая",
             "mode": {
                 "search": "Поиск",
                 "day": "День"
@@ -1001,16 +1003,11 @@
                 "current_user": "Я",
                 "open_full": "Открыть полную историю инстансов"
             },
-            "description": {
-                "viewing": "Вид {name}",
-                "no_current_user": "Войдите в систему перед просмотром истории инстансов."
-            },
             "toast": {
                 "failed_to_load_instance_history": "Не удалось загрузить историю инстанса"
             }
         },
         "my_avatars": {
-            "filter": "Фильтр",
             "error": {
                 "selected_avatar_style_is_not_available": "Выбранный стиль аватара недоступен",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "Не удалось загрузить список стилей. Неизвестные выбранные стили будут сохранены",
@@ -1033,7 +1030,6 @@
                 "tag_name": "Название метки",
                 "visibility": "Видимость",
                 "platform": "Платформа",
-                "grid_settings": "Параметры сетки",
                 "grid_density": "Плотность сетки",
                 "grid_density_standard": "Стандартные",
                 "grid_density_compact": "Соглашение",
@@ -1292,7 +1288,6 @@
         "friend_log": {
             "filter_placeholder": "Фильтр",
             "all_types": "Все типы",
-            "selected_types": "Выбрано типов: {count}",
             "groups": {
                 "relationships": "Дружеские связи",
                 "requests": "Заявки в друзья",
@@ -1346,19 +1341,16 @@
                 "of": "В тыс.",
                 "moderation_row": "Строка модерации",
                 "moderation_rows": "Строки модерации",
-                "moderation_filters": "Фильтры модерации",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "Расширить тип фильтров или поисковый запрос, чтобы увидеть больше результатов"
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "Строки модерации не соответствуют текущим фильтрам"
             },
             "dynamic": {
-                "deleted_value_for_value": "Исключен {value} для {value2}",
-                "selected_moderation_filters": "Выбрано фильтров модерации: {count}"
+                "deleted_value_for_value": "Исключен {value} для {value2}"
             }
         },
         "notification": {
-            "filter_placeholder": "Фильтр",
             "refresh_tooltip": "Обновить",
             "actions": {
                 "accept": "Принять",
@@ -1473,7 +1465,6 @@
             "load_cancel": "Отмена",
             "favorites_only_tooltip": "Фильтровать только избранное",
             "search_placeholder": "Поиск",
-            "filter_placeholder": "Фильтр",
             "load_mutual_friends": "Загрузить взаимных друзей",
             "search_filters": {
                 "display_name": "Показать имя",
@@ -1528,7 +1519,8 @@
             },
             "dynamic": {
                 "open_value": "Открыть {value}"
-            }
+            },
+            "bulk_selected": "Выбрано: {count}"
         },
         "charts": {
             "instance_activity": {
@@ -1721,8 +1713,6 @@
                 "file_placeholder": "Выбрать файл журнала",
                 "search_placeholder": "Поисковое сообщение, категория или след стопки",
                 "follow_latest": "Следить за последним",
-                "all_categories": "Все категории",
-                "categories_selected": "{count} категории",
                 "clear_categories": "Четкие категории",
                 "copy_selected": "Копировать выбранное",
                 "copy_entry": "Копировать строки",
@@ -4672,8 +4662,7 @@
                 "location": "Место проведения",
                 "page": "Стр.",
                 "sort_by": "Сортировка по",
-                "sort_descending": "Сортировка",
-                "sort_ascending": "По возрастанию"
+                "sort_descending": "Сортировка"
             },
             "success": {
                 "instance_record_deleted": "Посещение удалено из истории инстансов"

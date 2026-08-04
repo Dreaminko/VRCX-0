@@ -4,8 +4,7 @@ import { useLocation } from 'react-router';
 import {
     LoadingState,
     PageBody,
-    PageScaffold,
-    PageToolbar
+    PageScaffold
 } from '@/components/layout/PageScaffold';
 
 import { ModerationPageTable } from './components/ModerationPageTable';
@@ -30,19 +29,17 @@ export function ModerationPage({
 
     return (
         <PageScaffold embedded={embedded}>
-            <PageToolbar>
-                <ModerationPageToolbar
-                    selectedTypes={filters.selectedTypes}
-                    onSelectedTypesChange={filters.setSelectedTypes}
-                    searchQuery={filters.searchQuery}
-                    onSearchQueryChange={filters.setSearchQuery}
-                    detail={rowsState.detail}
-                    currentUserId={rowsState.currentUserId}
-                    loadStatus={rowsState.loadStatus}
-                    onRefresh={rowsState.refresh}
-                    table={table}
-                />
-            </PageToolbar>
+            <ModerationPageToolbar
+                selectedTypes={filters.selectedTypes}
+                onSelectedTypesChange={filters.setSelectedTypes}
+                searchQuery={filters.searchQuery}
+                onSearchQueryChange={filters.setSearchQuery}
+                detail={rowsState.detail}
+                currentUserId={rowsState.currentUserId}
+                loadStatus={rowsState.loadStatus}
+                onRefresh={rowsState.refresh}
+                table={table}
+            />
 
             <PageBody>
                 {isLoading ? (

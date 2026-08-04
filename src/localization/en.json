@@ -282,7 +282,8 @@
             "save": "Save",
             "search": "Search",
             "select": "Select",
-            "cancel": "Cancel"
+            "cancel": "Cancel",
+            "view_options": "View options"
         },
         "sort_by": "Sort by:",
         "time_units": {
@@ -328,6 +329,10 @@
         "affinity": {
             "friend": "Friend",
             "favorite": "Favorite"
+        },
+        "filter": {
+            "label": "Filter",
+            "label_count": "Filter ({count})"
         }
     },
     "overlay": {
@@ -797,7 +802,6 @@
                 "add": "Add Column",
                 "manage": "Manage Columns",
                 "manage_list": "Add / Remove Columns",
-                "settings": "Column settings",
                 "density": "Density",
                 "density_options": {
                     "compact": "Compact",
@@ -901,7 +905,6 @@
             "friend_is_not_in_hydrated_favorite_group": "This friend's favorite group hasn't finished loading."
         },
         "game_log": {
-            "filter_placeholder": "Filter",
             "filters": {
                 "Location": "Location",
                 "OnPlayerJoined": "Player joined",
@@ -977,7 +980,6 @@
             }
         },
         "instance_history": {
-            "title": "Instance History",
             "mode": {
                 "search": "Search",
                 "day": "Day"
@@ -1001,16 +1003,11 @@
                 "current_user": "Me",
                 "open_full": "Open full instance history"
             },
-            "description": {
-                "viewing": "Viewing {name}",
-                "no_current_user": "Sign in before viewing instance history."
-            },
             "toast": {
                 "failed_to_load_instance_history": "Failed to load instance history"
             }
         },
         "my_avatars": {
-            "filter": "Filter",
             "error": {
                 "selected_avatar_style_is_not_available": "Selected avatar style is not available",
                 "style_list_could_not_be_loaded_unknown_style_selections_will": "Style list could not be loaded. Unknown style selections will be preserved",
@@ -1033,7 +1030,6 @@
                 "tag_name": "Tag name",
                 "visibility": "Visibility",
                 "platform": "Platform",
-                "grid_settings": "Grid settings",
                 "grid_density": "Grid density",
                 "grid_density_standard": "Standard",
                 "grid_density_compact": "Compact",
@@ -1290,7 +1286,6 @@
         "friend_log": {
             "filter_placeholder": "Filter",
             "all_types": "All types",
-            "selected_types": "{count} types selected",
             "groups": {
                 "relationships": "Friend relationships",
                 "requests": "Friend requests",
@@ -1344,19 +1339,16 @@
                 "of": "of",
                 "moderation_row": "moderation row",
                 "moderation_rows": "moderation rows",
-                "moderation_filters": "Moderation filters",
                 "broaden_the_type_filters_or_search_query_to_see_more_results": "Broaden the type filters or search query to see more results"
             },
             "empty": {
                 "no_moderation_rows_match_the_current_filters": "No moderation rows match the current filters"
             },
             "dynamic": {
-                "deleted_value_for_value": "Deleted {value} for {value2}",
-                "selected_moderation_filters": "{count} moderation filters"
+                "deleted_value_for_value": "Deleted {value} for {value2}"
             }
         },
         "notification": {
-            "filter_placeholder": "Filter",
             "refresh_tooltip": "Refresh",
             "actions": {
                 "accept": "Accept",
@@ -1471,7 +1463,6 @@
             "load_cancel": "Cancel",
             "favorites_only_tooltip": "Filter favorites only",
             "search_placeholder": "Search",
-            "filter_placeholder": "Filter",
             "load_mutual_friends": "Load Mutual Friends",
             "search_filters": {
                 "display_name": "Display Name",
@@ -1526,7 +1517,8 @@
             },
             "dynamic": {
                 "open_value": "Open {value}"
-            }
+            },
+            "bulk_selected": "{count} selected"
         },
         "charts": {
             "instance_activity": {
@@ -1719,8 +1711,6 @@
                 "file_placeholder": "Select a log file",
                 "search_placeholder": "Search message, category, or stack trace",
                 "follow_latest": "Follow latest",
-                "all_categories": "All categories",
-                "categories_selected": "{count} categories",
                 "clear_categories": "Clear categories",
                 "copy_selected": "Copy selected",
                 "copy_entry": "Copy row",
@@ -4668,8 +4658,7 @@
                 "location": "Location",
                 "page": "Page",
                 "sort_by": "Sort by",
-                "sort_descending": "Sort descending",
-                "sort_ascending": "Sort ascending"
+                "sort_descending": "Sort descending"
             },
             "success": {
                 "instance_record_deleted": "Visit removed from instance history"
