@@ -182,7 +182,6 @@ const FavoriteCard = memo(function FavoriteCard({
         !item.isPrivate && item.seedData?.releaseStatus === 'public'
             ? vrcxAvatarDeepLink(avatarId)
             : '';
-    const canUseAvatarLinks = Boolean(avatarId);
     const canUseWorldActions = Boolean(
         item.kind === 'world' && !item.isUnavailable && !item.isDeleted
     );
@@ -200,8 +199,7 @@ const FavoriteCard = memo(function FavoriteCard({
     const hasCardActions = Boolean(
         canRemoveLocal ||
         canRemoveRemote ||
-        canSelectAvatar ||
-        canUseAvatarLinks ||
+        item.kind === 'avatar' ||
         item.kind === 'friend' ||
         canUseWorldActions ||
         canCopyWorldId
@@ -307,10 +305,10 @@ const FavoriteCard = memo(function FavoriteCard({
         onClick: isCardInteractive ? handleCardClick : undefined
     } as const;
 
-    const renderSelectionCheckbox = (positionClassName: string) => (
+    const selectionCheckbox = (
         <span
             className={cn(
-                positionClassName,
+                'absolute top-2 left-2 z-20',
                 'opacity-0 transition-opacity',
                 'group-hover/fav-card:opacity-100 group-has-[:focus-visible]/fav-card:opacity-100',
                 selected && 'opacity-100'
@@ -609,7 +607,7 @@ const FavoriteCard = memo(function FavoriteCard({
                             {item.playerCount}
                         </span>
                     ) : null}
-                    {renderSelectionCheckbox('absolute top-1.5 left-1.5 z-10')}
+                    {selectionCheckbox}
                     {actionsMenu ? (
                         <span
                             className="absolute top-1.5 right-1.5 z-10"
@@ -686,13 +684,13 @@ const FavoriteCard = memo(function FavoriteCard({
             )}
             {...cardShellProps}
         >
-            {renderSelectionCheckbox('absolute top-1 left-1 z-20')}
+            {selectionCheckbox}
             <UserHoverCard {...friendHoverCardProps}>
                 <div
                     className={cn(
-                        'relative flex shrink-0 items-center justify-center',
+                        'relative ml-2 flex shrink-0 items-center justify-center',
                         isFriendCard
-                            ? 'ml-2 overflow-visible'
+                            ? 'overflow-visible'
                             : 'bg-muted overflow-hidden rounded-sm'
                     )}
                     style={{

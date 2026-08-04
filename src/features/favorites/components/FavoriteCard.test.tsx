@@ -176,6 +176,7 @@ describe('FavoriteCard website links', () => {
     it('shows VRChat and share links for a public avatar', () => {
         const html = renderAvatarCard('public');
 
+        expect(html).toContain('lucide-ellipsis');
         expect(html).toContain('common.actions.view_on_website');
         expect(html).toContain('dialog.avatar.info.copy_vrcx_url');
         expect(html).toContain('lucide-external-link');
@@ -209,4 +210,35 @@ describe('FavoriteCard website links', () => {
         expect(html).toContain('lucide-external-link');
         expect(html).not.toContain('lucide-share-2');
     });
+});
+
+describe('FavoriteCard compact layout', () => {
+    it.each([
+        ['friend', USER_ID],
+        ['world', WORLD_ID],
+        ['avatar', AVATAR_ID]
+    ] as const)(
+        'keeps the %s selection control inside the ring and aligns media padding',
+        (kind, id) => {
+            const item: FavoriteCardItem = {
+                id,
+                key: `${kind}:compact`,
+                kind,
+                source: 'remote',
+                title: `${kind} card`
+            };
+            const html = renderToStaticMarkup(
+                <FavoriteCard
+                    item={item}
+                    densityConfig={getFavoritesDensityConfig(kind, 'compact')}
+                    selected
+                />
+            );
+
+            expect(html).toContain('absolute top-2 left-2 z-20');
+            expect(html).toContain(
+                'relative ml-2 flex shrink-0 items-center justify-center'
+            );
+        }
+    );
 });

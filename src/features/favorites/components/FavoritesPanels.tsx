@@ -447,62 +447,69 @@ export function FavoritesContentPanel({
                                     className="absolute right-0 left-0 grid min-w-0"
                                     style={{
                                         gap: `${virtualGrid.gridGap}px`,
-                                        height: `${row.cardHeight}px`,
+                                        height: `${row.cellHeight}px`,
                                         gridTemplateColumns: `repeat(${virtualGrid.gridColumnCount}, minmax(${virtualGrid.gridMinWidth}px, 1fr))`,
                                         transform: `translateY(${row.top}px)`
                                     }}
                                 >
                                     {row.items.map((item: FavoriteItem) => (
-                                        <FavoriteCard
+                                        <div
                                             key={item.key}
-                                            item={item}
-                                            instanceActionGate={instanceActionGatesByItemKey?.get(
-                                                item.key
-                                            )}
-                                            selectionActive={
-                                                selection.hasSelection
-                                            }
-                                            selected={selection.selectedKeysSet.has(
-                                                item.key
-                                            )}
-                                            showGroupLabel={
-                                                viewData.isSearchActive
-                                            }
-                                            densityConfig={densityConfig}
-                                            removing={
-                                                favoriteCommands.removingFavoriteKey ===
-                                                item.key
-                                            }
-                                            onToggleSelect={handleToggleSelect}
-                                            onRemoveLocal={
-                                                handleCardRemoveLocalFavorite
-                                            }
-                                            onRemoveRemote={
-                                                handleCardRemoveRemoteFavorite
-                                            }
-                                            onFriendLaunch={
-                                                handleCardFriendLaunch
-                                            }
-                                            onFriendSelfInvite={
-                                                handleCardFriendSelfInvite
-                                            }
-                                            onFriendInvite={
-                                                handleCardFriendInvite
-                                            }
-                                            onFriendRequestInvite={
-                                                handleCardFriendRequestInvite
-                                            }
-                                            onFriendBoop={handleCardFriendBoop}
-                                            onWorldNewInstance={
-                                                handleCardWorldNewInstance
-                                            }
-                                            onWorldSelfInvite={
-                                                handleCardWorldSelfInvite
-                                            }
-                                            onAvatarSelect={
-                                                handleCardAvatarSelect
-                                            }
-                                        />
+                                            className="min-h-0 min-w-0"
+                                            style={{
+                                                padding: `${virtualGrid.gridPadding}px`
+                                            }}
+                                        >
+                                            <FavoriteCard
+                                                item={item}
+                                                instanceActionGate={instanceActionGatesByItemKey?.get(
+                                                    item.key
+                                                )}
+                                                selectionActive={
+                                                    selection.hasSelection
+                                                }
+                                                selected={selection.selectedKeysSet.has(
+                                                    item.key
+                                                )}
+                                                showGroupLabel={
+                                                    viewData.isSearchActive
+                                                }
+                                                densityConfig={densityConfig}
+                                                removing={
+                                                    favoriteCommands.removingFavoriteKey ===
+                                                    item.key
+                                                }
+                                                onToggleSelect={handleToggleSelect}
+                                                onRemoveLocal={
+                                                    handleCardRemoveLocalFavorite
+                                                }
+                                                onRemoveRemote={
+                                                    handleCardRemoveRemoteFavorite
+                                                }
+                                                onFriendLaunch={
+                                                    handleCardFriendLaunch
+                                                }
+                                                onFriendSelfInvite={
+                                                    handleCardFriendSelfInvite
+                                                }
+                                                onFriendInvite={
+                                                    handleCardFriendInvite
+                                                }
+                                                onFriendRequestInvite={
+                                                    handleCardFriendRequestInvite
+                                                }
+                                                onFriendBoop={handleCardFriendBoop}
+                                                onWorldNewInstance={
+                                                    handleCardWorldNewInstance
+                                                }
+                                                onWorldSelfInvite={
+                                                    handleCardWorldSelfInvite
+                                                }
+                                                onAvatarSelect={
+                                                    handleCardAvatarSelect
+                                                }
+                                            />
+                                        </div>
                                     ))}
                                 </div>
                             ))}

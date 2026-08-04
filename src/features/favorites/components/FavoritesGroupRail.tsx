@@ -87,7 +87,6 @@ function GroupCapacityMeter({
     const ratio = capacity > 0 ? count / capacity : 0;
     const percent = Math.min(100, Math.max(0, ratio * 100));
     const isFull = count >= capacity;
-    const isWarning = !isFull && ratio >= 0.9;
 
     return (
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -97,9 +96,7 @@ function GroupCapacityMeter({
                         'h-full rounded-full transition-[width,background-color] ease-out motion-reduce:transition-[background-color]',
                         isFull
                             ? 'bg-destructive'
-                            : isWarning
-                              ? 'bg-amber-600 dark:bg-amber-500'
-                              : 'bg-primary'
+                            : 'bg-primary'
                     )}
                     style={{ width: `${percent}%` }}
                 />
@@ -109,9 +106,7 @@ function GroupCapacityMeter({
                     'shrink-0 text-xs tabular-nums',
                     isFull
                         ? 'text-destructive'
-                        : isWarning
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-muted-foreground'
+                        : 'text-muted-foreground'
                 )}
             >
                 {count}/{capacity}
