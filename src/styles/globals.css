@@ -286,6 +286,12 @@
         corner-shape: superellipse(2);
     }
 
+    .vrcx-0-app-drawer-viewport {
+        inset-inline: var(--vrcx-0-overlay-gutter, 0);
+        top: calc(2rem + var(--vrcx-0-overlay-gutter, 0rem));
+        bottom: var(--vrcx-0-overlay-gutter, 0);
+    }
+
     #root:has(.vrcx-0-custom-window-frame) {
         padding: 0.375rem;
     }

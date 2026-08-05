@@ -140,7 +140,7 @@ export function MutualFriendsSettingsSheet({
             <SheetContent
                 side="right"
                 showCloseButton={false}
-                className="top-8! bottom-0! h-[calc(100vh-2rem)]! w-90 gap-0"
+                className="w-90 gap-0"
             >
                 <SheetHeader className="border-border/60 shrink-0 border-b">
                     <SheetTitle>

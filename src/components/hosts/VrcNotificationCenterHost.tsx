@@ -455,7 +455,7 @@ export function VrcNotificationCenterHost() {
                 <SheetContent
                     side="right"
                     showCloseButton={false}
-                    className="top-8! bottom-0! flex h-[calc(100vh-2rem)]! w-[min(100vw,40rem)]! flex-col gap-0 p-0 sm:max-w-none!"
+                    className="flex w-full! flex-col gap-0 p-0 sm:max-w-[40rem]!"
                 >
                     <SheetHeader className="border-b px-4 pt-4 pb-3">
                         <div className="flex items-center justify-between gap-3 pr-8">

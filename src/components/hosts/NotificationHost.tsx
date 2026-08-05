@@ -40,7 +40,7 @@ export function NotificationHost() {
         >
             <SheetContent
                 showCloseButton={false}
-                className="top-8! bottom-0! h-[calc(100vh-2rem)]! w-full sm:max-w-lg"
+                className="w-full sm:max-w-lg"
             >
                 <SheetHeader className="flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3">
