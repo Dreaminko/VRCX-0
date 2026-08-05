@@ -162,6 +162,31 @@ fn queries_and_clear_are_scoped_to_owner() {
 }
 
 #[test]
+fn own_profile_is_never_recorded() {
+    let test = test_db("self");
+    browse_history_record(
+        &test.db,
+        BrowseHistoryRecordInput {
+            owner_user_id: "usr_owner".into(),
+            entity_kind: BrowseHistoryEntityKind::User,
+            entity_id: "usr_owner".into(),
+            title: "Me".into(),
+            image_url: String::new(),
+            record_visit: true,
+        },
+    )
+    .unwrap();
+    browse_history_record(&test.db, record_input("wrld_other")).unwrap();
+
+    let entity_ids = query(&test.db, None, 10)
+        .items
+        .into_iter()
+        .map(|item| item.entity_id)
+        .collect::<Vec<_>>();
+    assert_eq!(entity_ids, vec!["wrld_other"]);
+}
+
+#[test]
 fn date_range_filters_by_last_viewed_at() {
     let test = test_db("date-range");
     ensure_browse_history_table(&test.db).unwrap();

@@ -182,7 +182,9 @@ pub fn browse_history_record(
 ) -> Result<(), Error> {
     let owner_user_id = normalize_text(input.owner_user_id);
     let entity_id = normalize_text(input.entity_id);
-    if owner_user_id.is_empty() || entity_id.is_empty() {
+    let is_own_profile =
+        input.entity_kind == BrowseHistoryEntityKind::User && entity_id == owner_user_id;
+    if owner_user_id.is_empty() || entity_id.is_empty() || is_own_profile {
         return Ok(());
     }
 
