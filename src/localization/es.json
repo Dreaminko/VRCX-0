@@ -2486,12 +2486,6 @@
                         "translation_api_key": "Clave de la API de traducción",
                         "enable_tooltip": "Traduce las biografías de usuarios y las descripciones de mundos cuando lo necesites."
                     },
-                    "launch_commands": {
-                        "header": "Comandos activados mediante enlaces de VRCX-0",
-                        "default_launch_mode": "Modo de inicio predeterminado",
-                        "default_launch_mode_vr": "Modo VR",
-                        "default_launch_mode_desktop": "Modo escritorio"
-                    },
                     "screenshot_helper": {
                         "header": "Asistente de captura de pantalla",
                         "description": "Incrusta datos del mundo y de la instancia en las capturas de VRChat como metadatos PNG.",
@@ -4137,19 +4131,23 @@
         "launch": {
             "header": "Lanzar",
             "short_url": "URL Corta",
-            "short_url_notice": "Solo está disponible cuando VRChat proporciona un nombre corto para esta instancia.",
             "location": "Ubicación",
             "invite": "Invitar",
-            "launch": "Lanzar (VR)",
             "open_ingame": "Abrir en el juego",
             "self_invite": "Autoinvitación",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "Abrir, copiar, invitar o autoinvitarte a esta instancia de VRChat",
-                "open_in_game": "Abrir en el juego",
-                "start_as_desktop": "Iniciar en modo escritorio"
-            },
             "label": {
                 "self_invite": "Autoinvitación"
+            },
+            "subtitle_fallback": "Instancia de VRChat",
+            "tile": {
+                "vr": "VR",
+                "desktop": "Escritorio",
+                "in_game": "En el juego",
+                "game_not_running": "VRChat no está abierto"
+            },
+            "copy": {
+                "link": "Enlace",
+                "failed": "No se pudo copiar"
             }
         },
         "launch_options": {

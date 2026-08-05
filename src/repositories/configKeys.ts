@@ -122,7 +122,6 @@ export const ConfigKeys = defineConfigKeys({
     screenshotHelperCopyToClipboard: { type: 'bool', default: false },
     gameLogDisabled: { type: 'bool', default: false },
     avatarAutoCleanup: { type: 'string', default: 'Off' },
-    defaultLaunchMode: { type: 'string', default: 'vr' },
     anonymousUsageTelemetry: { type: 'bool', default: true },
     userGeneratedContentPath: { type: 'string', default: '' },
     logResourceLoad: { type: 'bool', default: false },

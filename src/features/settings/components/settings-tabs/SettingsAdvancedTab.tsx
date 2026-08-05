@@ -37,17 +37,6 @@ type DataDirectoryPathProps = {
     value?: string | null;
 };
 
-const launchModeOptions = [
-    [
-        'vr',
-        'view.settings.advanced.advanced.launch_commands.default_launch_mode_vr'
-    ],
-    [
-        'desktop',
-        'view.settings.advanced.advanced.launch_commands.default_launch_mode_desktop'
-    ]
-] as const;
-
 function DataDirectoryPath({ value }: DataDirectoryPathProps) {
     return (
         <div className="bg-muted/40 text-muted-foreground w-full min-w-0 rounded-md border px-2 py-1 font-mono text-xs break-all">
@@ -151,7 +140,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         onAutoSweepVRChatCacheChange,
         onUdonExceptionLoggingChange,
         onLogResourceLoadChange,
-        onDefaultLaunchModeChange,
         onGameLogDisabledChange,
         onAvatarAutoCleanupChange,
         onOpenPurgeDialog,
@@ -209,35 +197,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                     />
                 </Field>
                 <DeepLinkRegistrationField />
-                <Field
-                    label={t(
-                        'view.settings.advanced.advanced.launch_commands.default_launch_mode'
-                    )}
-                >
-                    <Select
-                        value={prefs.defaultLaunchMode}
-                        items={launchModeOptions.map(([value, labelKey]) => ({
-                            value,
-                            label: t(labelKey)
-                        }))}
-                        onValueChange={(value) =>
-                            onDefaultLaunchModeChange(value ?? '')
-                        }
-                    >
-                        <SelectTrigger className="w-44">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {launchModeOptions.map(([value, labelKey]) => (
-                                    <SelectItem key={value} value={value}>
-                                        {t(labelKey)}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                </Field>
             </SettingsGroup>
 
             <SettingsGroup

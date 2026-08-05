@@ -2486,12 +2486,6 @@
                         "translation_api_key": "输入 API 密钥",
                         "enable_tooltip": "用于翻译玩家的个人简介"
                     },
-                    "launch_commands": {
-                        "header": "VRCX-0 启动与分享链接",
-                        "default_launch_mode": "默认启动模式",
-                        "default_launch_mode_vr": "VR 模式",
-                        "default_launch_mode_desktop": "桌面模式"
-                    },
                     "screenshot_helper": {
                         "header": "截图助手",
                         "description": "在拍摄的照片的元数据中添加世界 ID/世界名称",
@@ -4137,19 +4131,23 @@
         "launch": {
             "header": "启动",
             "short_url": "短链接",
-            "short_url_notice": "仅当 VRChat 返回该房间的短名称时可用。",
             "location": "地点",
             "invite": "邀请",
-            "launch": "启动（VR模式）",
             "open_ingame": "在 VRChat 中打开",
             "self_invite": "邀请自己",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "你可以从此房间启动游戏、复制链接、邀请他人或向自己发送邀请",
-                "open_in_game": "在游戏内打开",
-                "start_as_desktop": "以桌面模式启动"
-            },
             "label": {
                 "self_invite": "自我邀请"
+            },
+            "subtitle_fallback": "VRChat 房间",
+            "tile": {
+                "vr": "VR",
+                "desktop": "桌面模式",
+                "in_game": "游戏内",
+                "game_not_running": "VRChat 未运行"
+            },
+            "copy": {
+                "link": "链接",
+                "failed": "复制失败"
             }
         },
         "launch_options": {

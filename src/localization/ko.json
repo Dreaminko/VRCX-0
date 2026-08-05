@@ -2437,12 +2437,6 @@
                         "enable_tooltip": "필요에 따라 사용자 약력과 세계 설명을 번역합니다.",
                         "translation_api_key": "번역 API 키"
                     },
-                    "launch_commands": {
-                        "header": "VRCX-0 실행 및 공유 링크",
-                        "default_launch_mode": "기본 실행 모드",
-                        "default_launch_mode_vr": "VR 모드",
-                        "default_launch_mode_desktop": "데스크탑 모드"
-                    },
                     "screenshot_helper": {
                         "header": "스크린샷 도우미",
                         "description": "VRChat 내에서 찍은 사진의 메타데이터에 월드 ID, 월드 이름 그리고 함께 있던 플레이어를 저장합니다",
@@ -4085,19 +4079,23 @@
         "launch": {
             "header": "VRChat 실행",
             "short_url": "짧은 URL",
-            "short_url_notice": "VRChat에서 이 인스턴스의 짧은 이름을 제공한 경우에만 사용할 수 있습니다.",
             "location": "위치",
             "invite": "초대",
-            "launch": "실행",
             "open_ingame": "게임 내에서 열기",
             "self_invite": "본인 초대",
-            "action": {
-                "open_in_game": "게임 내에서 열기",
-                "start_as_desktop": "데스크탑으로 시작",
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "이 VRChat 인스턴스 열기, 복사, 초대 또는 자체 초대"
-            },
             "label": {
                 "self_invite": "셀프 초대"
+            },
+            "subtitle_fallback": "VRChat 인스턴스",
+            "tile": {
+                "vr": "VR",
+                "desktop": "데스크탑",
+                "in_game": "게임 내",
+                "game_not_running": "VRChat 미실행"
+            },
+            "copy": {
+                "link": "링크",
+                "failed": "복사하지 못했습니다"
             }
         },
         "launch_options": {

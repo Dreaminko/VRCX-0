@@ -2488,12 +2488,6 @@
                         "translation_api_key": "Перевод API Спецификация",
                         "enable_tooltip": "Переведите биоматериалы пользователей и описание мира по запросу."
                     },
-                    "launch_commands": {
-                        "header": "Запуск VRCX-0 по ссылкам",
-                        "default_launch_mode": "Режим запуска по умолчанию",
-                        "default_launch_mode_vr": "Режим VR",
-                        "default_launch_mode_desktop": "Режим рабочего стола"
-                    },
                     "screenshot_helper": {
                         "header": "Справка",
                         "description": "Введем данные о мире и примерах VRChat Скриншоты как метаданные PNG.",
@@ -4141,19 +4135,23 @@
         "launch": {
             "header": "Запустить",
             "short_url": "Короткий URL",
-            "short_url_notice": "Доступно только в том случае, если VRChat предоставил короткое имя для этого инстанса.",
             "location": "Местоположение",
             "invite": "Пригласить",
-            "launch": "Запустить",
             "open_ingame": "Открыть в игре",
             "self_invite": "Самоприглашение",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "Открыть, скопировать, пригласить или отправить self-invite в этот инстанс VRChat",
-                "open_in_game": "Открыть игру",
-                "start_as_desktop": "Начните как рабочий стол"
-            },
             "label": {
                 "self_invite": "Самоприглашение"
+            },
+            "subtitle_fallback": "Инстанс VRChat",
+            "tile": {
+                "vr": "VR",
+                "desktop": "Десктоп",
+                "in_game": "В игре",
+                "game_not_running": "VRChat не запущен"
+            },
+            "copy": {
+                "link": "Ссылка",
+                "failed": "Не удалось скопировать"
             }
         },
         "launch_options": {

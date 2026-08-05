@@ -86,13 +86,6 @@ export function SettingsAdvancedSection({
                 enabled
             );
         },
-        onDefaultLaunchModeChange: (value: string) => {
-            saveStringPreference(
-                'defaultLaunchMode',
-                'defaultLaunchMode',
-                value
-            );
-        },
         onGameLogDisabledChange: (checked: unknown) => {
             handleGameLogDisabledChange(normalizeCheckedState(checked));
         },

@@ -2486,12 +2486,6 @@
                         "translation_api_key": "Übersetzungs-API-Schlüssel",
                         "enable_tooltip": "Übersetzt Nutzer-Bios und Weltbeschreibungen auf Anfrage."
                     },
-                    "launch_commands": {
-                        "header": "Über VRCX-0-Links ausgelöste Befehle",
-                        "default_launch_mode": "Standard-Startmodus",
-                        "default_launch_mode_vr": "VR-Modus",
-                        "default_launch_mode_desktop": "Desktop-Modus"
-                    },
                     "screenshot_helper": {
                         "header": "Screenshot-Helfer",
                         "description": "Bettet Welt- und Instanzdaten als PNG-Metadaten in VRChat-Screenshots ein.",
@@ -4137,19 +4131,23 @@
         "launch": {
             "header": "Starten",
             "short_url": "Kurz-URL",
-            "short_url_notice": "Nur verfügbar, wenn VRChat einen Kurznamen für diese Instanz zurückgegeben hat.",
             "location": "Standort",
             "invite": "Einladen",
-            "launch": "Starten (VR)",
             "open_ingame": "Im Spiel öffnen",
             "self_invite": "Selbsteinladung",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "Diese VRChat-Instanz öffnen, kopieren, einladen oder selbst beitreten",
-                "open_in_game": "Im Spiel öffnen",
-                "start_as_desktop": "Als Desktop starten"
-            },
             "label": {
                 "self_invite": "Selbsteinladung"
+            },
+            "subtitle_fallback": "VRChat-Instanz",
+            "tile": {
+                "vr": "VR",
+                "desktop": "Desktop",
+                "in_game": "Im Spiel",
+                "game_not_running": "VRChat läuft nicht"
+            },
+            "copy": {
+                "link": "Link",
+                "failed": "Kopieren fehlgeschlagen"
             }
         },
         "launch_options": {

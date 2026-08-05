@@ -43,7 +43,6 @@ export type NotificationLayoutPreference = 'notification-center' | 'table';
 export type TableDensityPreference = 'standard' | 'compact';
 export type FeedTimeDisplayModePreference = 'exact' | 'relative';
 export type TranslationApiType = 'google' | 'openai' | 'deepl';
-export type DefaultLaunchModePreference = 'vr' | 'desktop';
 export type WeekStartsOnPreference = 0 | 1 | 6;
 export type WristOverlayHandPreference = 'left' | 'right' | 'both';
 export type WristOverlaySizePreference = 'compact' | 'normal' | 'large';
@@ -158,12 +157,6 @@ function normalizeBoundedInt(
 export function normalizeWeekStartsOn(value: unknown): WeekStartsOnPreference {
     const numeric = Number(value);
     return numeric === 0 || numeric === 6 ? numeric : 1;
-}
-
-export function normalizeDefaultLaunchMode(
-    value: unknown
-): DefaultLaunchModePreference {
-    return value === 'desktop' ? 'desktop' : 'vr';
 }
 
 export function normalizeFeedTimeDisplayMode(
@@ -377,7 +370,6 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     autoSweepVRChatCache: false,
     gameLogDisabled: false,
     avatarAutoCleanup: 'Off',
-    defaultLaunchMode: 'vr',
     anonymousUsageTelemetry: true,
     udonExceptionLogging: false,
     logResourceLoad: false,
@@ -579,7 +571,6 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
         autoSweepVRChatCache: normalizeBool(next.autoSweepVRChatCache),
         gameLogDisabled: normalizeBool(next.gameLogDisabled),
         avatarAutoCleanup: next.avatarAutoCleanup || 'Off',
-        defaultLaunchMode: normalizeDefaultLaunchMode(next.defaultLaunchMode),
         anonymousUsageTelemetry: normalizeBool(next.anonymousUsageTelemetry),
         udonExceptionLogging: normalizeBool(next.udonExceptionLogging),
         logResourceLoad: normalizeBool(next.logResourceLoad),

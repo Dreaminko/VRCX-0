@@ -2486,12 +2486,6 @@
                         "translation_api_key": "Google 翻譯 API 金鑰",
                         "enable_tooltip": "翻譯用戶個人簡介"
                     },
-                    "launch_commands": {
-                        "header": "從連結中開啟 VRCX-0",
-                        "default_launch_mode": "預設啟動模式",
-                        "default_launch_mode_vr": "VR 模式",
-                        "default_launch_mode_desktop": "桌面模式"
-                    },
                     "screenshot_helper": {
                         "header": "螢幕截圖助理",
                         "description": "當你在遊戲中拍照時，VRCX-0 會將一些額外的資訊自動保存到照片檔案中，包括你所在的遊戲世界 ID、世界名稱以及當時遊戲中的用戶數量",
@@ -4137,19 +4131,23 @@
         "launch": {
             "header": "啟動",
             "short_url": "短連結",
-            "short_url_notice": "僅在 VRChat 傳回此房間的簡短名稱時可用。",
             "location": "地點",
             "invite": "邀請",
-            "launch": "啟動（VR模式）",
             "open_ingame": "於遊戲中開啟",
             "self_invite": "自我邀請",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "開啟、複製、邀請或向自己傳送此 VRChat 房間邀請",
-                "open_in_game": "遊戲內開啟",
-                "start_as_desktop": "以桌面模式啟動"
-            },
             "label": {
                 "self_invite": "自我邀請"
+            },
+            "subtitle_fallback": "VRChat 房間",
+            "tile": {
+                "vr": "VR",
+                "desktop": "桌面模式",
+                "in_game": "遊戲內",
+                "game_not_running": "VRChat 未執行"
+            },
+            "copy": {
+                "link": "連結",
+                "failed": "複製失敗"
             }
         },
         "launch_options": {

@@ -2488,12 +2488,6 @@
                         "translation_api_key": "API klíč pro překlad",
                         "enable_tooltip": "Na vyžádání přeloží uživatelská bio a popisy světů."
                     },
-                    "launch_commands": {
-                        "header": "Příkazy spouštěné odkazy VRCX-0",
-                        "default_launch_mode": "Výchozí režim spuštění",
-                        "default_launch_mode_vr": "Režim VR",
-                        "default_launch_mode_desktop": "Desktopový režim"
-                    },
                     "screenshot_helper": {
                         "header": "Pomocník pro snímky obrazovky",
                         "description": "Store world ID, world name and players inside the instance inside the file metadata of any pictures you take in-game.",
@@ -4141,19 +4135,23 @@
         "launch": {
             "header": "Spustit",
             "short_url": "Krátká URL",
-            "short_url_notice": "K dispozici pouze tehdy, když VRChat pro tuto instanci vrátil krátký název.",
             "location": "Lokace",
             "invite": "Pozvat",
-            "launch": "Launch",
             "open_ingame": "Otevřít ve hře",
             "self_invite": "Pozvat sám sebe",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "Otevřít, zkopírovat, pozvat nebo pozvat sám sebe do této instance VRChat",
-                "open_in_game": "Otevřít ve hře",
-                "start_as_desktop": "Spustit jako Desktop"
-            },
             "label": {
                 "self_invite": "Pozvat sám sebe"
+            },
+            "subtitle_fallback": "Instance VRChatu",
+            "tile": {
+                "vr": "VR",
+                "desktop": "Desktop",
+                "in_game": "Ve hře",
+                "game_not_running": "VRChat neběží"
+            },
+            "copy": {
+                "link": "Odkaz",
+                "failed": "Kopírování se nezdařilo"
             }
         },
         "launch_options": {

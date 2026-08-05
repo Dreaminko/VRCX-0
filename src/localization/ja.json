@@ -2482,12 +2482,6 @@
                         "translation_api_key": "翻訳 API キー",
                         "enable_tooltip": "ユーザーの自己紹介を翻訳します"
                     },
-                    "launch_commands": {
-                        "header": "VRCX-0 の起動と共有リンク",
-                        "default_launch_mode": "デフォルト起動モード",
-                        "default_launch_mode_vr": "VR モード",
-                        "default_launch_mode_desktop": "デスクトップモード"
-                    },
                     "screenshot_helper": {
                         "header": "スクリーンショット ヘルパー",
                         "description": "VRChat 内で撮影した写真のメタデータにワールドとインスタンスの情報を保存します。",
@@ -4132,19 +4126,23 @@
         "launch": {
             "header": "起動",
             "short_url": "短縮 URL",
-            "short_url_notice": "VRChat からこのインスタンスの短縮名が取得できた場合のみ利用できます。",
             "location": "場所",
             "invite": "招待",
-            "launch": "起動 (VRモード)",
             "open_ingame": "ゲーム内で開く",
             "self_invite": "自分を招待",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "この VRChat インスタンスを開く、コピー、招待、または自分へ招待します",
-                "open_in_game": "ゲーム内で開く",
-                "start_as_desktop": "デスクトップモードで起動"
-            },
             "label": {
                 "self_invite": "自分への招待"
+            },
+            "subtitle_fallback": "VRChat のインスタンス",
+            "tile": {
+                "vr": "VR",
+                "desktop": "デスクトップ",
+                "in_game": "ゲーム内",
+                "game_not_running": "VRChat 未起動"
+            },
+            "copy": {
+                "link": "リンク",
+                "failed": "コピーできませんでした"
             }
         },
         "launch_options": {

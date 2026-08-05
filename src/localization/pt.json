@@ -2486,12 +2486,6 @@
                         "translation_api_key": "Chave de API de Tradução",
                         "enable_tooltip": "Traduzir bios de usuários"
                     },
-                    "launch_commands": {
-                        "header": "Comandos acionados por links do VRCX-0",
-                        "default_launch_mode": "Modo de Inicialização Padrão",
-                        "default_launch_mode_vr": "Modo VR",
-                        "default_launch_mode_desktop": "Modo Área de Trabalho"
-                    },
                     "screenshot_helper": {
                         "header": "Assistente de Captura de Tela",
                         "description": "Armazenar ID do mundo, nome do mundo e usuários dentro da instância nos metadados de arquivo de qualquer foto tirada no jogo.",
@@ -4137,19 +4131,23 @@
         "launch": {
             "header": "Iniciar",
             "short_url": "URL Curta",
-            "short_url_notice": "Disponível apenas quando o VRChat fornece um nome curto para esta instância.",
             "location": "Localização",
             "invite": "Convidar",
-            "launch": "Iniciar (VR)",
             "open_ingame": "Abrir no jogo",
             "self_invite": "Auto-convite",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "Abra, copie, convide ou auto-convide para esta instância do VRChat",
-                "open_in_game": "Abrir no Jogo",
-                "start_as_desktop": "Iniciar no Modo Desktop"
-            },
             "label": {
                 "self_invite": "Auto-convite"
+            },
+            "subtitle_fallback": "Instância do VRChat",
+            "tile": {
+                "vr": "VR",
+                "desktop": "Desktop",
+                "in_game": "No jogo",
+                "game_not_running": "VRChat não está aberto"
+            },
+            "copy": {
+                "link": "Link",
+                "failed": "Não foi possível copiar"
             }
         },
         "launch_options": {

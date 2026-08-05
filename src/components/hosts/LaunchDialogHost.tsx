@@ -1,6 +1,16 @@
-import { CopyIcon, InfoIcon, MoreHorizontalIcon } from 'lucide-react';
+import {
+    CheckIcon,
+    Gamepad2Icon,
+    Link2Icon,
+    LinkIcon,
+    MailIcon,
+    MapPinIcon,
+    MonitorIcon,
+    RectangleGogglesIcon,
+    UserPlusIcon
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -14,12 +24,12 @@ import {
     type LaunchDialogDetails,
     selfInviteToInstance
 } from '@/services/launchService';
+import { accessTypeLocaleKeyMap } from '@/shared/constants/accessType';
 import { checkCanInvite } from '@/shared/utils/invite';
-import { parseLocation } from '@/shared/utils/location';
+import { parseLocation, translateAccessType } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
 import { useLaunchStore } from '@/state/launchStore';
 import { useModalStore } from '@/state/modalStore';
-import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -30,15 +40,8 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from '@/ui/shadcn/dropdown-menu';
-import { Field, FieldLabel } from '@/ui/shadcn/field';
-import { Input } from '@/ui/shadcn/input';
+import { Spinner } from '@/ui/shadcn/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 const emptyDetails: LaunchDialogDetails = {
     tag: '',
@@ -54,15 +57,11 @@ const emptyDetails: LaunchDialogDetails = {
 };
 type LaunchActionKey =
     | 'attach'
-    | 'launch'
     | 'launch-vr'
     | 'launch-desktop'
-    | 'open'
-    | 'invite'
     | 'self-invite';
 const closeAfterAction = new Set<LaunchActionKey>([
     'attach',
-    'launch',
     'launch-vr',
     'launch-desktop'
 ]);
@@ -158,51 +157,107 @@ function buildCachedInstanceMap(instances: unknown[]) {
     return map;
 }
 
-function LaunchField({
+function LaunchTile({
+    icon: Icon,
+    label,
+    hint,
+    pending,
+    disabled,
+    onClick
+}: {
+    icon: LucideIcon;
+    label: string;
+    hint?: string;
+    pending: boolean;
+    disabled: boolean;
+    onClick(): void;
+}) {
+    return (
+        <Button
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            onClick={onClick}
+            className="h-auto flex-col gap-1.5 px-2 py-3 whitespace-normal"
+        >
+            {pending ? (
+                <Spinner className="size-5" />
+            ) : (
+                <Icon className="size-5" />
+            )}
+            <span className="text-sm leading-none font-medium">{label}</span>
+            {hint ? (
+                <span className="text-muted-foreground text-[10px] leading-tight">
+                    {hint}
+                </span>
+            ) : null}
+        </Button>
+    );
+}
+
+const copyIconClass =
+    'absolute size-4 transition-[opacity,filter,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]';
+const copyIconHiddenClass = 'scale-90 opacity-0 blur-[2px]';
+
+function CopyButton({
+    icon: Icon,
     label,
     value,
-    notice = '',
     onCopy
 }: {
-    label: ReactNode;
+    icon: LucideIcon;
+    label: string;
     value: string;
-    notice?: string;
-    onCopy(): void;
+    onCopy(): Promise<boolean>;
 }) {
-    const { t } = useTranslation();
+    const [copyCount, setCopyCount] = useState(0);
+    const copied = copyCount > 0;
+
+    useEffect(() => {
+        if (!copyCount) {
+            return;
+        }
+        const timer = window.setTimeout(() => setCopyCount(0), 1600);
+        return () => window.clearTimeout(timer);
+    }, [copyCount]);
+
     return (
-        <Field>
-            <div className="flex items-center gap-1.5 text-sm font-medium">
-                <FieldLabel>{label}</FieldLabel>
-                {notice ? (
-                    <InfoIcon
-                        className="text-muted-foreground"
-                        title={notice}
-                    />
-                ) : null}
-            </div>
-            <div className="flex items-center gap-2">
-                <Input
-                    readOnly
-                    value={value || ''}
-                    className="h-8 font-mono text-xs"
-                    onClick={(event) => event.currentTarget.select()}
-                />
-                <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="ghost"
-                    className="shrink-0 rounded-full"
-                    aria-label={t('accessibility.copy_value', {
-                        value: label
-                    })}
-                    disabled={!value}
-                    onClick={onCopy}
-                >
-                    <CopyIcon data-icon="inline-start" />
-                </Button>
-            </div>
-        </Field>
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={label}
+                        disabled={!value}
+                        onClick={() => {
+                            onCopy().then((ok) => {
+                                if (ok) {
+                                    setCopyCount((count) => count + 1);
+                                }
+                            });
+                        }}
+                    >
+                        <span className="relative inline-flex size-4 items-center justify-center">
+                            <Icon
+                                className={cn(
+                                    copyIconClass,
+                                    copied && copyIconHiddenClass
+                                )}
+                            />
+                            <CheckIcon
+                                className={cn(
+                                    copyIconClass,
+                                    !copied && copyIconHiddenClass
+                                )}
+                            />
+                        </span>
+                    </Button>
+                }
+            />
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
     );
 }
 
@@ -226,9 +281,6 @@ export function LaunchDialogHost() {
     );
     const isGameRunning = useRuntimeStore((state) =>
         Boolean(state.gameState.isGameRunning)
-    );
-    const defaultLaunchMode = usePreferencesStore(
-        (state) => state.defaultLaunchMode
     );
     const groupInstancesState = useRuntimeStore(
         (state) => state.groupInstances
@@ -304,12 +356,13 @@ export function LaunchDialogHost() {
 
     async function copyField(value: string, label: string) {
         if (!value) {
-            return;
+            return false;
         }
-        await copyTextToClipboard(value, {
+        return copyTextToClipboard(value, {
             successMessage: t('host.launch_dialog.dynamic.value_copied', {
                 value: label
-            })
+            }),
+            errorMessage: t('dialog.launch.copy.failed')
         });
     }
 
@@ -379,19 +432,22 @@ export function LaunchDialogHost() {
                 launchDialog.createdInstance,
                 currentUserId
             ));
-    const canUseResolvedInstance = Boolean(actionTag);
-    const canOpenInstanceInGame = Boolean(isGameRunning);
-    const defaultDesktopMode = defaultLaunchMode === 'desktop';
-    const alternateDesktopMode = !defaultDesktopMode;
-    const primaryLabel = defaultDesktopMode
-        ? t('dialog.launch.action.start_as_desktop')
-        : t('dialog.launch.launch');
-    const alternateLaunchKey = alternateDesktopMode
-        ? 'launch-desktop'
-        : 'launch-vr';
-    const alternateLabel = alternateDesktopMode
-        ? t('dialog.launch.action.start_as_desktop')
-        : t('dialog.launch.launch');
+    const actionDisabled = !actionTag || Boolean(busy);
+    const inviteDisabled = !canInviteResolvedInstance || Boolean(busy);
+    const inGameHint = isGameRunning
+        ? ''
+        : t('dialog.launch.tile.game_not_running');
+    const worldName = details.worldName || launchDialog.worldName || '';
+    const accessTypeLabel = details.parsed.accessTypeName
+        ? translateAccessType(
+              details.parsed.accessTypeName,
+              t,
+              accessTypeLocaleKeyMap
+          )
+        : '';
+    const subtitle =
+        [worldName, accessTypeLabel].filter(Boolean).join(' · ') ||
+        t('dialog.launch.subtitle_fallback');
 
     return (
         <>
@@ -399,94 +455,76 @@ export function LaunchDialogHost() {
                 open={Boolean(launchDialog.open)}
                 onOpenChange={setLaunchDialogOpen}
             >
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>{t('dialog.launch.header')}</DialogTitle>
-                        <DialogDescription>
-                            {t(
-                                'dialog.launch.action.open_copy_invite_or_self_invite_to_this_vrchat_instance'
-                            )}
+                        <DialogDescription className="truncate">
+                            {subtitle}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div
                         className={cn(
-                            'flex flex-col gap-4',
-                            loading ? 'opacity-60' : ''
+                            'grid grid-cols-3 gap-2',
+                            loading && 'opacity-60'
                         )}
                     >
-                        <LaunchField
-                            label={t('dialog.new_instance.url')}
-                            value={details.url}
-                            onCopy={() => {
-                                copyField(
-                                    details.url,
-                                    t('dialog.new_instance.url')
+                        <LaunchTile
+                            icon={RectangleGogglesIcon}
+                            label={t('dialog.launch.tile.vr')}
+                            pending={busy === 'launch-vr'}
+                            disabled={actionDisabled}
+                            onClick={() => {
+                                runAction('launch-vr', () =>
+                                    launchWithMode(false)
                                 );
                             }}
                         />
-                        {details.shortUrl ? (
-                            <LaunchField
-                                label={t('dialog.launch.short_url')}
-                                value={details.shortUrl}
-                                notice={t('dialog.launch.short_url_notice')}
-                                onCopy={() => {
-                                    copyField(
-                                        details.shortUrl,
-                                        t('dialog.launch.short_url')
-                                    );
-                                }}
-                            />
-                        ) : null}
-                        <LaunchField
-                            label={t('dialog.launch.location')}
-                            value={details.location}
-                            onCopy={() => {
-                                copyField(
-                                    details.location,
-                                    t('dialog.launch.location')
+                        <LaunchTile
+                            icon={MonitorIcon}
+                            label={t('dialog.launch.tile.desktop')}
+                            pending={busy === 'launch-desktop'}
+                            disabled={actionDisabled}
+                            onClick={() => {
+                                runAction('launch-desktop', () =>
+                                    launchWithMode(true)
+                                );
+                            }}
+                        />
+                        <LaunchTile
+                            icon={Gamepad2Icon}
+                            label={t('dialog.launch.tile.in_game')}
+                            hint={inGameHint}
+                            pending={busy === 'attach'}
+                            disabled={actionDisabled}
+                            onClick={() => {
+                                runAction('attach', () =>
+                                    attachRunningVrchat(
+                                        actionTag,
+                                        actionLaunchToken
+                                    )
                                 );
                             }}
                         />
                     </div>
 
-                    <DialogFooter className="items-center sm:justify-between">
-                        <div className="flex flex-wrap gap-2">
+                    <DialogFooter className="flex-row items-center justify-between gap-2 sm:justify-between">
+                        <div className="flex gap-1">
                             <Button
                                 type="button"
-                                variant="outline"
-                                disabled={
-                                    !canInviteResolvedInstance || Boolean(busy)
-                                }
+                                variant="ghost"
+                                size="sm"
+                                disabled={inviteDisabled}
                                 onClick={() => setInviteOpen(true)}
                             >
+                                <UserPlusIcon data-icon="inline-start" />
                                 {t('dialog.launch.invite')}
                             </Button>
-                            {canOpenInstanceInGame ? (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={
-                                        !canUseResolvedInstance || Boolean(busy)
-                                    }
-                                    onClick={() => {
-                                        runAction('attach', () =>
-                                            attachRunningVrchat(
-                                                actionTag,
-                                                actionLaunchToken
-                                            )
-                                        );
-                                    }}
-                                >
-                                    {t('dialog.launch.action.open_in_game')}
-                                </Button>
-                            ) : null}
                             <Button
                                 type="button"
-                                variant="outline"
-                                disabled={
-                                    !canUseResolvedInstance || Boolean(busy)
-                                }
+                                variant="ghost"
+                                size="sm"
+                                disabled={actionDisabled}
                                 onClick={() => {
                                     runAction('self-invite', () =>
                                         selfInviteToInstance(
@@ -496,64 +534,59 @@ export function LaunchDialogHost() {
                                     );
                                 }}
                             >
+                                {busy === 'self-invite' ? (
+                                    <Spinner
+                                        data-icon="inline-start"
+                                        className="size-3.5"
+                                    />
+                                ) : (
+                                    <MailIcon data-icon="inline-start" />
+                                )}
                                 {t('dialog.launch.label.self_invite')}
                             </Button>
                         </div>
-                        <div className="flex">
-                            <Button
-                                type="button"
-                                disabled={
-                                    !canUseResolvedInstance || Boolean(busy)
+                        <div className="flex gap-0.5">
+                            <CopyButton
+                                icon={LinkIcon}
+                                label={t('accessibility.copy_value', {
+                                    value: t('dialog.launch.copy.link')
+                                })}
+                                value={details.url}
+                                onCopy={() =>
+                                    copyField(
+                                        details.url,
+                                        t('dialog.launch.copy.link')
+                                    )
                                 }
-                                className="rounded-r-none"
-                                onClick={() => {
-                                    runAction('launch', () =>
-                                        launchWithMode(defaultDesktopMode)
-                                    );
-                                }}
-                            >
-                                {busy === 'launch'
-                                    ? t('common.loading')
-                                    : primaryLabel}
-                            </Button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger
-                                    render={
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            disabled={
-                                                !canUseResolvedInstance ||
-                                                Boolean(busy)
-                                            }
-                                            className="border-primary-foreground/25 rounded-l-none border-l"
-                                            aria-label={'More launch options'}
-                                        >
-                                            <MoreHorizontalIcon data-icon="inline-start" />
-                                        </Button>
+                            />
+                            <CopyButton
+                                icon={MapPinIcon}
+                                label={t('accessibility.copy_value', {
+                                    value: t('dialog.launch.location')
+                                })}
+                                value={details.location}
+                                onCopy={() =>
+                                    copyField(
+                                        details.location,
+                                        t('dialog.launch.location')
+                                    )
+                                }
+                            />
+                            {details.shortUrl ? (
+                                <CopyButton
+                                    icon={Link2Icon}
+                                    label={t('accessibility.copy_value', {
+                                        value: t('dialog.launch.short_url')
+                                    })}
+                                    value={details.shortUrl}
+                                    onCopy={() =>
+                                        copyField(
+                                            details.shortUrl,
+                                            t('dialog.launch.short_url')
+                                        )
                                     }
                                 />
-                                <DropdownMenuContent
-                                    align="end"
-                                    className="w-48"
-                                >
-                                    <DropdownMenuGroup>
-                                        <DropdownMenuItem
-                                            onClick={() => {
-                                                runAction(
-                                                    alternateLaunchKey,
-                                                    () =>
-                                                        launchWithMode(
-                                                            alternateDesktopMode
-                                                        )
-                                                );
-                                            }}
-                                        >
-                                            {alternateLabel}
-                                        </DropdownMenuItem>
-                                    </DropdownMenuGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            ) : null}
                         </div>
                     </DialogFooter>
                 </DialogContent>
@@ -562,7 +595,7 @@ export function LaunchDialogHost() {
                 open={inviteOpen}
                 location={actionTag}
                 launchToken={actionLaunchToken}
-                worldName={details.worldName || launchDialog.worldName || ''}
+                worldName={worldName}
                 endpoint={currentEndpoint}
                 onOpenChange={setInviteOpen}
             />

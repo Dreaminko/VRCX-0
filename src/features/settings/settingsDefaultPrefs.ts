@@ -97,7 +97,6 @@ export function createDefaultSettingsPrefs() {
         autoSweepVRChatCache: false,
         gameLogDisabled: false,
         avatarAutoCleanup: 'Off',
-        defaultLaunchMode: 'vr',
         anonymousUsageTelemetry: true,
         udonExceptionLogging: false,
         logResourceLoad: false,

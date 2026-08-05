@@ -2486,12 +2486,6 @@
                         "translation_api_key": "Clé d'API de traduction",
                         "enable_tooltip": "Traduire les bios des utilisateurs et les descriptions des mondes à la demande."
                     },
-                    "launch_commands": {
-                        "header": "Commandes déclenchées par les liens VRCX-0",
-                        "default_launch_mode": "Mode de lancement par défaut",
-                        "default_launch_mode_vr": "Mode VR",
-                        "default_launch_mode_desktop": "Mode Bureau"
-                    },
                     "screenshot_helper": {
                         "header": "Aide pour les captures d'écran",
                         "description": "Stocke l'ID du monde, le nom du monde et les joueurs dans l'instance, dans les métadonnées du fichier de toutes les photos que vous prenez dans le jeu.",
@@ -4137,19 +4131,23 @@
         "launch": {
             "header": "Lancement",
             "short_url": "URL courte",
-            "short_url_notice": "Disponible uniquement si VRChat fournit un nom court pour cette instance.",
             "location": "Emplacement",
             "invite": "Inviter",
-            "launch": "Lancer",
             "open_ingame": "Ouvrir dans le jeu",
             "self_invite": "S'auto-inviter",
-            "action": {
-                "open_copy_invite_or_self_invite_to_this_vrchat_instance": "Ouvrir, copier, inviter ou s'auto-inviter dans cette instance VRChat",
-                "open_in_game": "Ouvrir dans le jeu",
-                "start_as_desktop": "Démarrer en mode Bureau"
-            },
             "label": {
                 "self_invite": "Auto-invitation"
+            },
+            "subtitle_fallback": "Instance VRChat",
+            "tile": {
+                "vr": "VR",
+                "desktop": "Bureau",
+                "in_game": "Dans le jeu",
+                "game_not_running": "VRChat non lancé"
+            },
+            "copy": {
+                "link": "Lien",
+                "failed": "Échec de la copie"
             }
         },
         "launch_options": {

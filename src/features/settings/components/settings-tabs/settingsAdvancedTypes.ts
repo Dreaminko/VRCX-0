@@ -4,7 +4,6 @@ export type SettingsAdvancedPrefs = {
     anonymousUsageTelemetry?: boolean;
     autoSweepVRChatCache?: boolean;
     avatarAutoCleanup?: string;
-    defaultLaunchMode?: string;
     gameLogDisabled?: boolean;
     logResourceLoad?: boolean;
     relaunchVRChatAfterCrash?: boolean;
@@ -23,7 +22,6 @@ export type SettingsAdvancedModel = {
     onAvatarAutoCleanupChange: (value: string) => unknown;
     onClearConfigTreeData: () => void;
     onCleanupAppDataDir: SettingsAdvancedAction;
-    onDefaultLaunchModeChange: (value: string) => unknown;
     onDismissAppDataDirCleanup: SettingsAdvancedAction;
     onGameLogDisabledChange: (disabled: boolean) => unknown;
     onLogResourceLoadChange: (checked: boolean) => unknown;
