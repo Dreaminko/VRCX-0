@@ -160,14 +160,6 @@ const FavoriteCard = memo(function FavoriteCard({
     const isCurrentUser = Boolean(
         item.id && item.id === normalizedCurrentUserId
     );
-    const isFriendOnline = Boolean(
-        item.seedData?.state === 'online' ||
-        item.seedData?.stateBucket === 'online' ||
-        item.seedData?.status === 'active'
-    );
-    const canRequestInvite = Boolean(
-        instanceActionGate?.canRequestInvite || isFriendOnline
-    );
     const canSelectAvatar = Boolean(
         item.kind === 'avatar' &&
         item.id &&
@@ -455,9 +447,7 @@ const FavoriteCard = memo(function FavoriteCard({
                             <DropdownMenuGroup>
                                 <DropdownMenuItem
                                     disabled={
-                                        isCurrentUser ||
-                                        !canRequestInvite ||
-                                        !onFriendRequestInvite
+                                        isCurrentUser || !onFriendRequestInvite
                                     }
                                     onClick={() =>
                                         onFriendRequestInvite?.(item)

@@ -212,6 +212,30 @@ describe('FavoriteCard website links', () => {
     });
 });
 
+describe('FavoriteCard friend actions', () => {
+    it('allows requesting an invite from an offline friend', () => {
+        const item: FavoriteCardItem = {
+            id: USER_ID,
+            key: 'friend:offline',
+            kind: 'friend',
+            source: 'remote',
+            title: 'Offline friend',
+            seedData: { state: 'offline' }
+        };
+        const html = renderToStaticMarkup(
+            <FavoriteCard
+                item={item}
+                densityConfig={getFavoritesDensityConfig('friend', 'standard')}
+                onFriendRequestInvite={vi.fn()}
+            />
+        );
+
+        expect(html).toContain(
+            '<button>dialog.user.actions.request_invite</button>'
+        );
+    });
+});
+
 describe('FavoriteCard compact layout', () => {
     it.each([
         ['friend', USER_ID],
