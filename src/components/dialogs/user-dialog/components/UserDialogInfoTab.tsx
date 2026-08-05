@@ -121,7 +121,6 @@ export type UserDialogActivitySummarySectionProps = {
     profile: UserDialogInfoProfile;
     userTimeSpent: number | null | undefined;
     userJoinCount: number | null | undefined;
-    previousInstances: unknown[];
 };
 
 export type UserDialogInfoTabProps = {
@@ -647,7 +646,7 @@ function UserDialogBioPanel({ profile, bioLinks }: UserDialogBioSectionProps) {
     );
 }
 
-function UserDialogActivitySummaryPanel({
+export function UserDialogActivitySummaryPanel({
     friendedAt,
     isCurrentUser,
     lastSeen,
@@ -655,14 +654,10 @@ function UserDialogActivitySummaryPanel({
     presenceActivityAt,
     profile,
     userTimeSpent,
-    userJoinCount,
-    previousInstances
+    userJoinCount
 }: UserDialogActivitySummarySectionProps) {
     const { i18n, t } = useTranslation();
     const dateLocale = i18n.resolvedLanguage || i18n.language;
-    const openHistory = previousInstances.length
-        ? onOpenInstanceHistory
-        : undefined;
 
     return (
         <InfoPanel
@@ -706,7 +701,7 @@ function UserDialogActivitySummaryPanel({
                     <InfoStat
                         label={t('dialog.user.info.play_time')}
                         value={formatStatsDuration(userTimeSpent)}
-                        onClick={openHistory}
+                        onClick={onOpenInstanceHistory}
                         subtle
                     />
                 ) : (
@@ -716,13 +711,13 @@ function UserDialogActivitySummaryPanel({
                             value={
                                 userJoinCount ? String(userJoinCount) : '\u2014'
                             }
-                            onClick={openHistory}
+                            onClick={onOpenInstanceHistory}
                             subtle
                         />
                         <InfoStat
                             label={t('dialog.user.info.time_together')}
                             value={formatStatsDuration(userTimeSpent)}
-                            onClick={openHistory}
+                            onClick={onOpenInstanceHistory}
                             subtle
                         />
                     </>
@@ -795,9 +790,6 @@ export function UserDialogInfoTab({
                         profile={activitySummarySection.profile}
                         userTimeSpent={activitySummarySection.userTimeSpent}
                         userJoinCount={activitySummarySection.userJoinCount}
-                        previousInstances={
-                            activitySummarySection.previousInstances
-                        }
                     />
                 </div>
             </div>

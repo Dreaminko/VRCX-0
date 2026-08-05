@@ -303,8 +303,7 @@ export function UserDialogTabsSection({
         presenceActivityAt,
         profile,
         userTimeSpent,
-        userJoinCount,
-        previousInstances: presence?.previousInstances || []
+        userJoinCount
     };
 
     return (
