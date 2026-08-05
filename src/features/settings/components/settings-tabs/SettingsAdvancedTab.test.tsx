@@ -29,6 +29,7 @@ const labels: Record<string, string> = {
 };
 
 const commandMocks = vi.hoisted(() => ({
+    appBrowseHistoryRetentionDaysGet: vi.fn(),
     appDeepLinkRegistrationStatus: vi.fn(),
     appDeepLinkRegistrationRepair: vi.fn()
 }));
@@ -121,6 +122,9 @@ describe('SettingsAdvancedTab data directory states', () => {
     afterEach(cleanup);
 
     beforeEach(() => {
+        commandMocks.appBrowseHistoryRetentionDaysGet
+            .mockReset()
+            .mockResolvedValue(30);
         commandMocks.appDeepLinkRegistrationStatus
             .mockReset()
             .mockResolvedValue(null);
