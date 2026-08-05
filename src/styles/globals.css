@@ -364,7 +364,7 @@
     }
 
     body:has(.vrcx-0-custom-window-frame [data-window-docked]) {
-        --vrcx-0-overlay-gutter: 0;
+        --vrcx-0-overlay-gutter: 0rem;
         --vrcx-0-overlay-bottom-radius: 0;
     }
 
