@@ -42,10 +42,7 @@ type UserDialogTabsSectionProps = {
             tabCounts: Record<string, unknown>;
             tabs: Array<EntityDialogTab & { hidden?: boolean }>;
         };
-        info: Omit<
-            UserDialogProfileLinksSectionProps,
-            'openGroupDialog'
-        > &
+        info: Omit<UserDialogProfileLinksSectionProps, 'openGroupDialog'> &
             Omit<UserDialogNotesSectionProps, 'onEditMemo'> &
             UserDialogBioSectionProps &
             Omit<

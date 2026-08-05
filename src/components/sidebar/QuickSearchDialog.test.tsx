@@ -143,9 +143,7 @@ describe('QuickSearchDialog', () => {
 
         fireEvent.change(input, { target: { value: 'world' } });
 
-        expect(commandList?.className).toContain(
-            'max-h-[min(400px,50vh)]'
-        );
+        expect(commandList?.className).toContain('max-h-[min(400px,50vh)]');
         expect(commandList?.className).not.toContain('max-h-none');
     });
 });

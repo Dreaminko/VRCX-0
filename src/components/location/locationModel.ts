@@ -233,9 +233,7 @@ export function buildInstanceActionTarget(
     target: LocationObjectRecord | null = null
 ) {
     const source = target || {};
-    const baseLocation = normalizeLocationText(
-        source.location || source.tag
-    );
+    const baseLocation = normalizeLocationText(source.location || source.tag);
     const resolvedLaunchLocation =
         normalizeLocationText(source.launchLocation) || baseLocation;
     const resolvedInviteLocation =

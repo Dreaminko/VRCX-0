@@ -39,9 +39,8 @@ vi.mock('@/state/favoriteStore', () => ({
 }));
 
 vi.mock('@/state/runtimeStore', () => ({
-    useRuntimeStore: <T,>(
-        selector: (state: typeof mocks.runtimeState) => T
-    ) => selector(mocks.runtimeState)
+    useRuntimeStore: <T,>(selector: (state: typeof mocks.runtimeState) => T) =>
+        selector(mocks.runtimeState)
 }));
 
 import { DashboardGameLogWidget } from './DashboardGameLogWidget';

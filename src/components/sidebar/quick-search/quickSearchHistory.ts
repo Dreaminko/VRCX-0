@@ -137,25 +137,27 @@ export function recordQuickSearchHistory(
     scope: QuickSearchHistoryScope,
     result: QuickSearchResult
 ): Promise<void> {
-    recordQueue = recordQueue.catch(() => undefined).then(async () => {
-        const file = await readHistoryFile();
-        const key = accountKey(scope);
-        file.accounts[key] = promoteQuickSearchHistoryEntry(
-            file.accounts[key] ?? [],
-            {
-                id: result.id,
-                type: result.type,
-                name: result.name,
-                imageUrl: result.imageUrl
-            }
-        );
-        await mkdir('', {
-            baseDir: BaseDirectory.AppCache,
-            recursive: true
+    recordQueue = recordQueue
+        .catch(() => undefined)
+        .then(async () => {
+            const file = await readHistoryFile();
+            const key = accountKey(scope);
+            file.accounts[key] = promoteQuickSearchHistoryEntry(
+                file.accounts[key] ?? [],
+                {
+                    id: result.id,
+                    type: result.type,
+                    name: result.name,
+                    imageUrl: result.imageUrl
+                }
+            );
+            await mkdir('', {
+                baseDir: BaseDirectory.AppCache,
+                recursive: true
+            });
+            await writeTextFile(HISTORY_FILE_NAME, JSON.stringify(file), {
+                baseDir: BaseDirectory.AppCache
+            });
         });
-        await writeTextFile(HISTORY_FILE_NAME, JSON.stringify(file), {
-            baseDir: BaseDirectory.AppCache
-        });
-    });
     return recordQueue;
 }

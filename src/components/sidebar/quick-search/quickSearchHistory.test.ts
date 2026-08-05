@@ -117,10 +117,7 @@ describe('quickSearchHistory', () => {
 
         const history = await loadQuickSearchHistory(firstAccount);
 
-        expect(history.map((entry) => entry.id)).toEqual([
-            'wrld_2',
-            'wrld_1'
-        ]);
+        expect(history.map((entry) => entry.id)).toEqual(['wrld_2', 'wrld_1']);
     });
 
     it.each(['invalid json', '{"version":2,"accounts":{}}'])(
@@ -129,9 +126,9 @@ describe('quickSearchHistory', () => {
             mocks.contents = contents;
             mocks.missing = false;
 
-            await expect(
-                loadQuickSearchHistory(firstAccount)
-            ).resolves.toEqual([]);
+            await expect(loadQuickSearchHistory(firstAccount)).resolves.toEqual(
+                []
+            );
         }
     );
 });

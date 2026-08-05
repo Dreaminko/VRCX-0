@@ -58,8 +58,7 @@ export function QuickSearchDialog({
     const navigate = useNavigate();
     const [query, setQuery] = useState('');
     const normalizedQuery = normalizeSearchQuery(query);
-    const showSearchOverview =
-        normalizedQuery.length < USER_QUERY_MIN_LENGTH;
+    const showSearchOverview = normalizedQuery.length < USER_QUERY_MIN_LENGTH;
     const navCommands = useNavCommands(normalizedQuery);
     const catalog = useQuickSearchCatalogState({
         currentEndpoint,

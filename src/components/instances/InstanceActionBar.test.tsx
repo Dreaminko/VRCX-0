@@ -423,7 +423,9 @@ describe('InstanceActionBar', () => {
             />
         );
 
-        fireEvent.click(screen.getByRole('button', { name: 'Launch instance' }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Launch instance' })
+        );
         expect(mocks.showLaunchDialog).toHaveBeenCalledWith(
             'wrld_launch:12345~region(us)',
             '',
@@ -438,9 +440,9 @@ describe('InstanceActionBar', () => {
                 'fallback-token'
             );
             expect(
-                screen.getByRole('button', { name: 'Self invite' }).hasAttribute(
-                    'disabled'
-                )
+                screen
+                    .getByRole('button', { name: 'Self invite' })
+                    .hasAttribute('disabled')
             ).toBe(false);
         });
 
