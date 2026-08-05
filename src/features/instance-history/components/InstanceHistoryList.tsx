@@ -1,5 +1,5 @@
 import { ListXIcon, Trash2Icon, XIcon } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -198,8 +198,20 @@ export function InstanceHistoryList({
         grouped && firstVisibleEntry && firstVisibleEntry.kind !== 'header'
             ? firstVisibleEntry.label
             : '';
+    const selectionScrollRequestRef = useRef<{
+        entries: InstanceHistoryEntry[];
+        selectedRow: PreviousInstanceRow | null;
+    } | null>(null);
 
     useEffect(() => {
+        const previousRequest = selectionScrollRequestRef.current;
+        if (
+            previousRequest?.entries === entries &&
+            previousRequest.selectedRow === selectedRow
+        ) {
+            return;
+        }
+        selectionScrollRequestRef.current = { entries, selectedRow };
         if (!selectedRow) {
             return;
         }
