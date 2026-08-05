@@ -125,6 +125,20 @@ impl HostSessionRuntime {
         }
     }
 
+    pub fn projection_snapshot(&self) -> HostSessionProjection {
+        let state = self.lock_state();
+        HostSessionProjection {
+            is_game_running: state.is_game_running,
+            is_steamvr_running: state.is_steamvr_running,
+            last_game_started_at: state.last_game_started_at.clone(),
+            last_game_state_changed_at: state.last_game_state_changed_at.clone(),
+            generation: state.generation,
+            game_changed: false,
+            steamvr_changed: false,
+            changed_at: state.last_game_state_changed_at.clone().unwrap_or_default(),
+        }
+    }
+
     pub fn set_realtime_context(&self, context: HostRealtimeSessionContext) -> u64 {
         let mut state = self.lock_state();
         state.realtime_generation = state.realtime_generation.saturating_add(1);

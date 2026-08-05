@@ -1,20 +1,30 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use crate::adapters::host_file_access::ensure_vrchat_launch_path_allowed;
-use crate::error::AppError;
-use crate::state::AppState;
+use vrcx_0_application_core::HostSessionProjection;
 use vrcx_0_host_desktop::game_launch;
-
 use vrcx_0_host_desktop::host_capabilities::{
     require_host_capability, require_host_capability_supported, HostCapability,
 };
+
+use crate::adapters::host_file_access::ensure_vrchat_launch_path_allowed;
+use crate::error::AppError;
+use crate::state::AppState;
 
 #[tauri::command]
 #[specta::specta]
 pub fn app__is_game_running(state: State<'_, AppState>) -> Result<bool, AppError> {
     require_host_capability(HostCapability::GameProcessMonitor)?;
     Ok(state.game.process_monitor.is_game_running())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__game_process_snapshot_get(
+    state: State<'_, AppState>,
+) -> Result<HostSessionProjection, AppError> {
+    require_host_capability(HostCapability::GameProcessMonitor)?;
+    Ok(state.runtime_context.session.projection_snapshot())
 }
 
 #[tauri::command]

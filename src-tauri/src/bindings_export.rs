@@ -130,6 +130,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::log_watcher::log_watcher__get_current_location,
             commands::log_watcher::log_watcher__vrc_closed_gracefully,
             commands::host::game::app__is_game_running,
+            commands::host::game::app__game_process_snapshot_get,
             commands::host::game::app__is_steamvr_running,
             commands::host::game::app__set_game_client_runtime_state,
             commands::host::game::app__quit_game,

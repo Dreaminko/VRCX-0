@@ -26,6 +26,7 @@ import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import { handleFavoriteImportStatusEvent } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
 import { handleGroupBanImportStatusEvent } from './groupBanImportService';
+import { isHostCapabilityAvailable } from './hostCapabilityService';
 import {
     handleMutualGraphFetchStatusEvent,
     refreshMutualGraphFetchStatus
@@ -303,6 +304,27 @@ async function hydrateAncillaryRuntimeState(): Promise<void> {
                     await commands.appGameClientDebugLoggingStatus();
                 if (debugLoggingOutcome) {
                     handleDebugLoggingOutcome(debugLoggingOutcome);
+                }
+            }
+        ),
+        hydrateRuntimeState(
+            'Failed to hydrate game process state:',
+            async () => {
+                if (!isHostCapabilityAvailable('gameProcessMonitor')) {
+                    return;
+                }
+                const processEventCountBeforeSnapshot =
+                    useRuntimeStore.getState().runtimeEvents.updateIsGameRunning
+                        ?.count ?? 0;
+                const projection = await commands.appGameProcessSnapshotGet();
+                const processEventCountAfterSnapshot =
+                    useRuntimeStore.getState().runtimeEvents.updateIsGameRunning
+                        ?.count ?? 0;
+                if (
+                    processEventCountAfterSnapshot ===
+                    processEventCountBeforeSnapshot
+                ) {
+                    handleUpdateIsGameRunning(projection);
                 }
             }
         ),

@@ -108,6 +108,9 @@ export const commands = {
     async appIsGameRunning(): Promise<boolean> {
         return await TAURI_INVOKE('app__is_game_running');
     },
+    async appGameProcessSnapshotGet(): Promise<HostSessionProjection> {
+        return await TAURI_INVOKE('app__game_process_snapshot_get');
+    },
     async appIsSteamvrRunning(): Promise<boolean> {
         return await TAURI_INVOKE('app__is_steamvr_running');
     },

@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
     AuthenticatedRuntimePhaseSnapshot,
-    BackendRuntimeSnapshot
+    BackendRuntimeSnapshot,
+    HostSessionProjection
 } from '@/platform/tauri/bindings';
 
 const mocks = vi.hoisted(() => ({
@@ -50,6 +51,7 @@ const mocks = vi.hoisted(() => ({
         >(),
     runtimeGroupInstancesRefresh: vi.fn<() => Promise<null>>(),
     appGameClientDebugLoggingStatus: vi.fn<() => Promise<null>>(),
+    appGameProcessSnapshotGet: vi.fn(),
     profileBackupCurrentStatus: vi.fn(),
     dataDirMigrationCurrentStatus: vi.fn(),
     bindDeepLinkEvents: vi.fn<() => Promise<() => void>>(),
@@ -71,7 +73,8 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appAppUpdateCheckRun: mocks.getAppUpdateStatus,
         appAppUpdateDownloadStatusGet: mocks.getAppUpdateDownloadStatus,
         appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh,
-        appGameClientDebugLoggingStatus: mocks.appGameClientDebugLoggingStatus
+        appGameClientDebugLoggingStatus: mocks.appGameClientDebugLoggingStatus,
+        appGameProcessSnapshotGet: mocks.appGameProcessSnapshotGet
     }
 }));
 
@@ -183,6 +186,22 @@ function createBackendRuntimeSnapshot(): BackendRuntimeSnapshot {
             startedAt: '',
             finishedAt: null
         }
+    };
+}
+
+function createGameProcessProjection(
+    patch: Partial<HostSessionProjection> = {}
+): HostSessionProjection {
+    return {
+        isGameRunning: false,
+        isSteamVRRunning: false,
+        lastGameStartedAt: null,
+        lastGameStateChangedAt: null,
+        generation: 0,
+        gameChanged: false,
+        steamvrChanged: false,
+        changedAt: '',
+        ...patch
     };
 }
 
@@ -355,6 +374,10 @@ describe('runtimeEventBridgeService', () => {
         });
         mocks.runtimeGroupInstancesRefresh.mockResolvedValue(null);
         mocks.appGameClientDebugLoggingStatus.mockResolvedValue(null);
+        mocks.handleGameRunningUpdate.mockResolvedValue(undefined);
+        mocks.appGameProcessSnapshotGet.mockResolvedValue(
+            createGameProcessProjection()
+        );
         mocks.profileBackupCurrentStatus.mockResolvedValue({
             revision: 0,
             state: 'idle',
@@ -625,6 +648,87 @@ describe('runtimeEventBridgeService', () => {
         );
         expect(mocks.subscribe.mock.invocationCallOrder.at(-1)).toBeLessThan(
             mocks.initializeCommunityThemes.mock.invocationCallOrder[0]
+        );
+    });
+
+    it('hydrates an already-running game over a stale mirror after subscribing', async () => {
+        mocks.isHostCapabilityAvailable.mockReturnValue(true);
+        useRuntimeStore.getState().setGameState({
+            isGameRunning: false,
+            isSteamVRRunning: false
+        });
+        mocks.appGameProcessSnapshotGet.mockResolvedValue(
+            createGameProcessProjection({
+                isGameRunning: true,
+                isSteamVRRunning: true,
+                lastGameStartedAt: '2026-08-05T00:00:00.000Z',
+                lastGameStateChangedAt: '2026-08-05T00:00:00.000Z',
+                generation: 1,
+                changedAt: '2026-08-05T00:00:00.000Z'
+            })
+        );
+
+        await bindRuntimeEvents();
+
+        expect(mocks.subscribe).toHaveBeenCalledWith(
+            'updateIsGameRunning',
+            expect.any(Function)
+        );
+        expect(mocks.subscribe.mock.invocationCallOrder.at(-1)).toBeLessThan(
+            mocks.appGameProcessSnapshotGet.mock.invocationCallOrder[0]
+        );
+        expect(mocks.handleGameRunningUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                isGameRunning: true,
+                isSteamVRRunning: true
+            })
+        );
+    });
+
+    it('does not overwrite a game process event received during hydration', async () => {
+        mocks.isHostCapabilityAvailable.mockReturnValue(true);
+        let updateGameProcess: (payload: unknown) => void = () => {
+            throw new Error('Game process event was not subscribed.');
+        };
+        mocks.subscribe.mockImplementation(async (name, handler) => {
+            if (name === 'updateIsGameRunning') {
+                updateGameProcess = handler;
+            }
+            return () => {};
+        });
+        let finishSnapshot: (
+            projection: HostSessionProjection
+        ) => void = () => {
+            throw new Error('Game process snapshot was not requested.');
+        };
+        mocks.appGameProcessSnapshotGet.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finishSnapshot = resolve;
+                })
+        );
+        const binding = bindRuntimeEvents();
+        await vi.waitFor(() => {
+            expect(mocks.appGameProcessSnapshotGet).toHaveBeenCalledTimes(1);
+        });
+        const liveProjection = createGameProcessProjection({
+            isGameRunning: true,
+            isSteamVRRunning: true,
+            lastGameStartedAt: '2026-08-05T00:01:00.000Z',
+            lastGameStateChangedAt: '2026-08-05T00:01:00.000Z',
+            generation: 1,
+            gameChanged: true,
+            steamvrChanged: true,
+            changedAt: '2026-08-05T00:01:00.000Z'
+        });
+        updateGameProcess(liveProjection);
+
+        finishSnapshot(createGameProcessProjection());
+        await binding;
+
+        expect(mocks.handleGameRunningUpdate).toHaveBeenCalledTimes(1);
+        expect(mocks.handleGameRunningUpdate).toHaveBeenCalledWith(
+            liveProjection
         );
     });
 

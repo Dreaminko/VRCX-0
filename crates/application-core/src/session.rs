@@ -35,6 +35,18 @@ mod tests {
             started.last_game_state_changed_at.as_deref(),
             Some("2026-05-15T00:01:00Z")
         );
+        let snapshot = runtime.projection_snapshot();
+        assert_eq!(snapshot.is_game_running, started.is_game_running);
+        assert_eq!(snapshot.is_steamvr_running, started.is_steamvr_running);
+        assert_eq!(snapshot.generation, started.generation);
+        assert_eq!(snapshot.last_game_started_at, started.last_game_started_at);
+        assert_eq!(
+            snapshot.last_game_state_changed_at,
+            started.last_game_state_changed_at
+        );
+        assert!(!snapshot.game_changed);
+        assert!(!snapshot.steamvr_changed);
+        assert_eq!(snapshot.changed_at, "2026-05-15T00:01:00Z");
         let payload = serde_json::to_value(&started).expect("projection serializes");
         assert_eq!(payload["isSteamVRRunning"], serde_json::json!(true));
         assert!(payload.get("isSteamvrRunning").is_none());
