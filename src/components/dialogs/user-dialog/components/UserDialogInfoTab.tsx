@@ -33,8 +33,6 @@ import { EntityDialogTabContent } from '../../EntityDialogScaffold';
 import { formatStatsDuration } from '../userDialogRows';
 import { EntityList } from '../UserDialogViewParts';
 
-type OpenAvatarDialog =
-    (typeof import('@/services/dialogService'))['openAvatarDialog'];
 type OpenGroupDialog =
     (typeof import('@/services/dialogService'))['openGroupDialog'];
 type UserDialogInfoProfile = UserProfileEntity & {
@@ -100,11 +98,8 @@ export type UserDialogBioSectionProps = {
 };
 
 export type UserDialogProfileLinksSectionProps = {
-    currentAvatarTarget: string;
-    currentAvatarDialogArgs: Parameters<OpenAvatarDialog>[0];
     currentAvatarDisplayName: string;
     isCurrentUser: boolean;
-    openAvatarDialog: OpenAvatarDialog;
     representedGroupStatus: string;
     representedGroup: RepresentedGroup | null;
     openGroupDialog: OpenGroupDialog;
@@ -756,17 +751,10 @@ export function UserDialogInfoTab({
                 </div>
                 <div className="flex min-w-0 flex-col gap-4">
                     <UserDialogProfileLinksPanel
-                        currentAvatarTarget={
-                            profileLinksSection.currentAvatarTarget
-                        }
-                        currentAvatarDialogArgs={
-                            profileLinksSection.currentAvatarDialogArgs
-                        }
                         currentAvatarDisplayName={
                             profileLinksSection.currentAvatarDisplayName
                         }
                         isCurrentUser={profileLinksSection.isCurrentUser}
-                        openAvatarDialog={profileLinksSection.openAvatarDialog}
                         representedGroupStatus={
                             profileLinksSection.representedGroupStatus
                         }

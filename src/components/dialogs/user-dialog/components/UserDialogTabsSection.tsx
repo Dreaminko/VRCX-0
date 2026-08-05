@@ -44,7 +44,7 @@ type UserDialogTabsSectionProps = {
         };
         info: Omit<
             UserDialogProfileLinksSectionProps,
-            'openAvatarDialog' | 'openGroupDialog'
+            'openGroupDialog'
         > &
             Omit<UserDialogNotesSectionProps, 'onEditMemo'> &
             UserDialogBioSectionProps &
@@ -120,7 +120,6 @@ type UserDialogTabsSectionProps = {
             onOpenInstanceHistory: () => void;
             onPreviousInstancesChange: HistoryTabProps['onPreviousInstancesChange'];
             onRefreshLocation: UserDialogPresenceSectionProps['actions']['onRefreshLocation'];
-            openAvatarDialog: UserDialogProfileLinksSectionProps['openAvatarDialog'];
             openGroupDialog: UserDialogProfileLinksSectionProps['openGroupDialog'];
         };
 };
@@ -146,9 +145,7 @@ export function UserDialogTabsSection({
     const { activeTab, tabCounts = {}, tabs = [] } = root;
     const {
         bioLinks,
-        currentAvatarDialogArgs,
         currentAvatarDisplayName,
-        currentAvatarTarget,
         hideUserMemos,
         hideUserNotes,
         isCurrentUser,
@@ -206,7 +203,6 @@ export function UserDialogTabsSection({
         onOpenInstanceHistory,
         onPreviousInstancesChange,
         onRefreshLocation,
-        openAvatarDialog,
         openGroupDialog,
         setGroupSort,
         setMutualSort,
@@ -284,11 +280,8 @@ export function UserDialogTabsSection({
         bioLinks
     };
     const profileLinksSection: UserDialogProfileLinksSectionProps = {
-        currentAvatarTarget,
-        currentAvatarDialogArgs,
         currentAvatarDisplayName,
         isCurrentUser,
-        openAvatarDialog,
         representedGroupStatus,
         representedGroup,
         openGroupDialog,

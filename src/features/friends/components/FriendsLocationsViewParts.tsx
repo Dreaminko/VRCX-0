@@ -76,7 +76,6 @@ type FriendsLocationCardItemProps = {
     canBoop: boolean;
     onOpenUser: (friend: FriendRecord) => void;
     onOpenWorld: BivariantCallback<[target: unknown, location: unknown]>;
-    onOpenGroup: BivariantCallback<[target: unknown]>;
     onLaunchLocation: (location: string) => void;
     onSelfInviteLocation: (location: string) => void;
     onSendInvite: (friend: FriendRecord) => void;

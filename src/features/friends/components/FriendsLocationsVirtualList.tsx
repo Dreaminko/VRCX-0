@@ -130,9 +130,6 @@ export function FriendsLocationsVirtualList({
                                             onOpenWorld={
                                                 locationCommands.openFriendWorld
                                             }
-                                            onOpenGroup={
-                                                locationCommands.openFriendGroup
-                                            }
                                             onLaunchLocation={
                                                 locationCommands.launchFriendLocation
                                             }

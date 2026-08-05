@@ -279,17 +279,9 @@ export function useFriendsLocationsActions({
         });
     }
 
-    function openFriendGroup(target: FriendsLocationsSectionActionTarget) {
-        openGroupDialog({
-            groupId: target.groupId,
-            title: undefined
-        });
-    }
-
     return {
         canUseFriendLocation,
         launchFriendLocation,
-        openFriendGroup,
         openFriendUser,
         openFriendWorld,
         openSectionGroup,

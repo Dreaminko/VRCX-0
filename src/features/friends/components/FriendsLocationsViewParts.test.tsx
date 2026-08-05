@@ -64,7 +64,6 @@ describe('FriendsLocationCardItem', () => {
                 canBoop
                 onOpenUser={vi.fn()}
                 onOpenWorld={vi.fn()}
-                onOpenGroup={vi.fn()}
                 onLaunchLocation={vi.fn()}
                 onSelfInviteLocation={vi.fn()}
                 onSendInvite={vi.fn()}

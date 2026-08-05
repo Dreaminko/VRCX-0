@@ -401,21 +401,6 @@ export function UserDialogTabbedView({
     const currentAvatarDisplayName = String(
         profile.currentAvatarName || profile.avatarName || ''
     ).trim();
-    const currentAvatarDialogArgs = {
-        avatarId: currentAvatarTarget,
-        ...(currentAvatarDisplayName
-            ? {
-                  title: currentAvatarDisplayName,
-                  seedData: {
-                      id: currentAvatarTarget,
-                      name: currentAvatarDisplayName,
-                      imageUrl: profile.currentAvatarImageUrl || '',
-                      thumbnailImageUrl:
-                          profile.currentAvatarThumbnailImageUrl || ''
-                  }
-              }
-            : {})
-    };
     const fallbackAvatarTarget =
         typeof profile.fallbackAvatar === 'string'
             ? profile.fallbackAvatar.trim()
@@ -646,9 +631,7 @@ export function UserDialogTabbedView({
         },
         info: {
             bioLinks,
-            currentAvatarDialogArgs,
             currentAvatarDisplayName,
-            currentAvatarTarget,
             hideUserMemos,
             hideUserNotes,
             isCurrentUser,
@@ -735,7 +718,6 @@ export function UserDialogTabbedView({
         onOpenInstanceHistory: openInstanceHistory,
         onPreviousInstancesChange,
         onRefreshLocation,
-        openAvatarDialog,
         openGroupDialog,
         setGroupSort,
         setMutualSort,
