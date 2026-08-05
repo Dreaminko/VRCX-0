@@ -8,6 +8,7 @@ import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
+import { cn } from '@/lib/utils';
 import { setRgb } from '@/services/vrcx0CssLayerService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import {
@@ -57,6 +58,8 @@ export function QuickSearchDialog({
     const navigate = useNavigate();
     const [query, setQuery] = useState('');
     const normalizedQuery = normalizeSearchQuery(query);
+    const showSearchOverview =
+        normalizedQuery.length < USER_QUERY_MIN_LENGTH;
     const navCommands = useNavCommands(normalizedQuery);
     const catalog = useQuickSearchCatalogState({
         currentEndpoint,
@@ -135,15 +138,20 @@ export function QuickSearchDialog({
                         onKeyDownCapture={handleSearchCommand}
                         onValueChange={setQuery}
                     />
-                    <CommandList className="max-h-[min(400px,50vh)]">
-                        {normalizedQuery.length < USER_QUERY_MIN_LENGTH ? (
+                    <CommandList
+                        className={cn(
+                            'max-h-[min(400px,50vh)]',
+                            showSearchOverview && 'max-h-none'
+                        )}
+                    >
+                        {showSearchOverview ? (
                             <ResultGroup
                                 title={t('side_panel.search_recent')}
                                 items={history.items}
                                 onSelect={selectResult}
                             />
                         ) : null}
-                        {normalizedQuery.length < USER_QUERY_MIN_LENGTH ? (
+                        {showSearchOverview ? (
                             <CommandGroup
                                 heading={t('side_panel.search_categories')}
                             >
