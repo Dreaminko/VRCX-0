@@ -84,7 +84,7 @@ export function parseChangelog(body: unknown): ParsedLocalizedChangelog {
     const note = sanitizeChangelogMarkdown(
         NOTE_MARKER_PATTERN.exec(source)?.[1] || ''
     );
-    const entries: LocalizedChangelogEntry[] = [];
+    const entriesByLanguage = new Map<string, LocalizedChangelogEntry>();
     MARKER_BLOCK_PATTERN.lastIndex = 0;
 
     let match = MARKER_BLOCK_PATTERN.exec(source);
@@ -94,17 +94,27 @@ export function parseChangelog(body: unknown): ParsedLocalizedChangelog {
         const sanitizedMarkdown = sanitizeChangelogMarkdown(markdown);
 
         if (sanitizedMarkdown) {
-            entries.push({
+            const existingEntry = entriesByLanguage.get(lang);
+            entriesByLanguage.set(
                 lang,
-                label,
-                tag,
-                markdown: sanitizedMarkdown
-            });
+                existingEntry
+                    ? {
+                          ...existingEntry,
+                          markdown: `${existingEntry.markdown}\n\n${sanitizedMarkdown}`
+                      }
+                    : {
+                          lang,
+                          label,
+                          tag,
+                          markdown: sanitizedMarkdown
+                      }
+            );
         }
 
         match = MARKER_BLOCK_PATTERN.exec(source);
     }
 
+    const entries = Array.from(entriesByLanguage.values());
     if (entries.length) {
         return {
             note,

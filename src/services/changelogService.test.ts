@@ -57,6 +57,26 @@ This release focuses on the changelog page.
         ]);
     });
 
+    test('merges duplicate language blocks into one tab entry', () => {
+        const body = `
+<!-- vrcx-0-changelog:start tag=vrcx-0-v240-en -->
+First English section.
+<!-- vrcx-0-changelog:end -->
+<!-- vrcx-0-changelog:start tag=vrcx-0-v241-EN -->
+Second English section.
+<!-- vrcx-0-changelog:end -->
+`;
+
+        expect(parseLocalizedChangelog(body)).toEqual([
+            {
+                lang: 'en',
+                label: 'English',
+                tag: 'vrcx-0-v240-en',
+                markdown: 'First English section.\n\nSecond English section.'
+            }
+        ]);
+    });
+
     test('prefers exact locale, then base language, then English', () => {
         const entries = parseLocalizedChangelog(`
 <!-- vrcx-0-changelog:start tag=vrcx-0-v240-en -->
