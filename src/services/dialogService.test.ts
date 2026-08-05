@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { recordBrowseHistory } = vi.hoisted(() => ({
+    recordBrowseHistory: vi.fn().mockResolvedValue(null)
+}));
+
 vi.mock('sonner', () => ({
     toast: {
         info: vi.fn()
@@ -16,10 +20,17 @@ vi.mock('@/services/userFactAccessService', () => ({
     recordUserProfile: vi.fn()
 }));
 
+vi.mock('@/repositories/browseHistoryRepository', () => ({
+    browseHistoryRepository: {
+        record: recordBrowseHistory
+    }
+}));
+
 vi.mock('@/state/runtimeStore', () => ({
     useRuntimeStore: {
         getState: () => ({
             auth: {
+                currentUserId: 'usr_owner',
                 currentUserEndpoint: 'https://api.vrchat.cloud/api/1'
             }
         })
@@ -37,6 +48,30 @@ import {
 describe('dialogService entity trail', () => {
     beforeEach(() => {
         useDialogStore.getState().clearDialogState();
+        recordBrowseHistory.mockClear();
+    });
+
+    it('records a visit from the shared four-entity open path', () => {
+        openWorldDialog({
+            worldId: 'wrld_w',
+            title: 'World W',
+            description: 'Author W',
+            seedData: {
+                id: 'wrld_w',
+                name: 'World W',
+                thumbnailImageUrl: 'https://example.com/world.png'
+            }
+        });
+
+        expect(recordBrowseHistory).toHaveBeenCalledWith({
+            ownerUserId: 'usr_owner',
+            entityKind: 'world',
+            entityId: 'wrld_w',
+            title: 'World W',
+            subtitle: 'Author W',
+            imageUrl: 'https://example.com/world.png',
+            recordVisit: true
+        });
     });
 
     it('truncates a dialog cycle when reopening an entity already in the trail', () => {

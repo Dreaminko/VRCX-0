@@ -44,6 +44,13 @@ const navDefinitions = [
         routeName: 'search'
     },
     {
+        key: 'browse-history',
+        icon: 'lucide:Clock3',
+        tooltip: 'browse_history.title',
+        labelKey: 'browse_history.title',
+        routeName: 'browse-history'
+    },
+    {
         key: 'favorite-friends',
         icon: 'lucide:UserStar',
         tooltip: 'nav_tooltip.favorite_friends',

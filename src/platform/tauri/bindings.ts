@@ -707,6 +707,46 @@ export const commands = {
     async appConfigRemoveValue(key: string): Promise<number> {
         return await TAURI_INVOKE('app__config_remove_value', { key });
     },
+    async appBrowseHistoryRecord(
+        input: BrowseHistoryRecordInput
+    ): Promise<null> {
+        return await TAURI_INVOKE('app__browse_history_record', { input });
+    },
+    async appBrowseHistoryQuery(
+        input: BrowseHistoryQueryInput
+    ): Promise<BrowseHistoryPageOutput> {
+        return await TAURI_INVOKE('app__browse_history_query', { input });
+    },
+    async appBrowseHistoryDelete(
+        ownerUserId: string,
+        entityKind: BrowseHistoryEntityKind,
+        entityId: string
+    ): Promise<number> {
+        return await TAURI_INVOKE('app__browse_history_delete', {
+            ownerUserId,
+            entityKind,
+            entityId
+        });
+    },
+    async appBrowseHistoryClear(
+        ownerUserId: string,
+        entityKind: BrowseHistoryEntityKind | null
+    ): Promise<number> {
+        return await TAURI_INVOKE('app__browse_history_clear', {
+            ownerUserId,
+            entityKind
+        });
+    },
+    async appBrowseHistoryRetentionDaysGet(): Promise<number> {
+        return await TAURI_INVOKE('app__browse_history_retention_days_get');
+    },
+    async appBrowseHistoryRetentionDaysSet(
+        retentionDays: number
+    ): Promise<number> {
+        return await TAURI_INVOKE('app__browse_history_retention_days_set', {
+            retentionDays
+        });
+    },
     async appUserTablesEnsure(userId: string): Promise<UserTableContextOutput> {
         return await TAURI_INVOKE('app__user_tables_ensure', { userId });
     },
@@ -3554,6 +3594,42 @@ export type BatchMutationResult = {
 export type BrokenGameLogDisplayNameOutput = {
     id: JsonValue;
     displayName: JsonValue;
+};
+export type BrowseHistoryCursor = {
+    lastViewedAt: string;
+    entityKind: BrowseHistoryEntityKind;
+    entityId: string;
+};
+export type BrowseHistoryEntityKind = 'user' | 'world' | 'avatar' | 'group';
+export type BrowseHistoryItemOutput = {
+    entityKind: BrowseHistoryEntityKind;
+    entityId: string;
+    title: string;
+    subtitle: string;
+    imageUrl: string;
+    firstViewedAt: string;
+    lastViewedAt: string;
+    viewCount: number;
+};
+export type BrowseHistoryPageOutput = {
+    items: BrowseHistoryItemOutput[];
+    nextCursor: BrowseHistoryCursor | null;
+};
+export type BrowseHistoryQueryInput = {
+    ownerUserId: string;
+    entityKind: BrowseHistoryEntityKind | null;
+    search?: string;
+    cursor: BrowseHistoryCursor | null;
+    limit?: number;
+};
+export type BrowseHistoryRecordInput = {
+    ownerUserId: string;
+    entityKind: BrowseHistoryEntityKind;
+    entityId: string;
+    title?: string;
+    subtitle?: string;
+    imageUrl?: string;
+    recordVisit?: boolean;
 };
 export type CacheCheckResult = { Item1: number; Item2: boolean; Item3: string };
 export type CacheEntityInput = {

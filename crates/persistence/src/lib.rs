@@ -1,6 +1,7 @@
 pub mod activity;
 pub mod assistant;
 pub mod avatars;
+pub mod browse_history;
 pub mod cache_entities;
 pub(crate) mod common;
 pub mod config;

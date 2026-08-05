@@ -1,5 +1,6 @@
 pub mod activity;
 pub mod avatars;
+pub mod browse_history;
 pub mod config;
 pub mod database_maintenance;
 pub mod favorites;

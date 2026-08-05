@@ -1,4 +1,29 @@
 {
+    "browse_history": {
+        "title": "Histórico de navegação",
+        "description": "Utilizadores, mundos, avatares e grupos vistos recentemente.",
+        "search_placeholder": "Pesquisar no histórico",
+        "loading": "A carregar histórico…",
+        "load_error": "Não foi possível carregar o histórico.",
+        "empty_title": "Sem histórico",
+        "empty_description": "Os utilizadores, mundos, avatares e grupos abertos aparecerão aqui.",
+        "view_count": "Visto {count} vezes",
+        "filter": { "all": "Tudo", "user": "Utilizadores", "world": "Mundos", "avatar": "Avatares", "group": "Grupos" },
+        "date": { "today": "Hoje", "yesterday": "Ontem" },
+        "retention": {
+            "label": "Período de retenção",
+            "days": "{count} dias",
+            "forever": "Manter para sempre",
+            "update_failed": "Não foi possível alterar o período de retenção."
+        },
+        "actions": { "clear_all": "Limpar tudo", "clear_kind": "Limpar filtrados", "remove": "Remover do histórico" },
+        "confirmation": {
+            "title": "Limpar o histórico?",
+            "description": "O histórico atualmente filtrado será removido deste dispositivo."
+        },
+        "clear_failed": "Não foi possível limpar o histórico.",
+        "remove_failed": "Não foi possível remover o item do histórico."
+    },
     "assistant": {
         "title": "IA Social",
         "new_chat": "Nova conversa",

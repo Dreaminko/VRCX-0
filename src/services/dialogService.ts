@@ -1,5 +1,9 @@
 import { toast } from 'sonner';
 
+import {
+    browseHistoryRepository,
+    type BrowseHistoryEntityKind
+} from '@/repositories/browseHistoryRepository';
 import i18n from '@/services/i18nService';
 import { recordUserProfile } from '@/services/userFactAccessService';
 import {
@@ -76,6 +80,44 @@ type OpenGroupDialogOptions = {
     seedData?: DialogRecord | null;
 };
 
+type EntityHistorySnapshot = {
+    kind: BrowseHistoryEntityKind;
+    entityId: string;
+    title?: string;
+    subtitle?: string;
+    imageUrl?: string;
+};
+
+const browseHistoryKinds = new Set<EntityDialogKind>([
+    'user',
+    'world',
+    'avatar',
+    'group'
+]);
+const historySubtitleKeys: Record<
+    BrowseHistoryEntityKind,
+    readonly string[]
+> = {
+    user: ['username'],
+    world: ['authorName'],
+    avatar: ['authorName'],
+    group: ['shortCode']
+};
+const historyImageKeys: Record<
+    BrowseHistoryEntityKind,
+    readonly string[]
+> = {
+    user: [
+        'profilePicOverrideThumbnail',
+        'profilePicOverride',
+        'currentAvatarThumbnailImageUrl',
+        'currentAvatarImageUrl'
+    ],
+    world: ['thumbnailImageUrl', 'imageUrl'],
+    avatar: ['thumbnailImageUrl', 'imageUrl'],
+    group: ['iconUrl', 'bannerUrl']
+};
+
 function isRecord(value: unknown): value is DialogRecord {
     return Boolean(value && typeof value === 'object');
 }
@@ -90,6 +132,71 @@ function normalizeTitle(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
+}
+
+function readString(record: DialogRecord | null, keys: readonly string[]) {
+    if (!record) {
+        return '';
+    }
+    for (const key of keys) {
+        const value = record[key];
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+    return '';
+}
+
+function isBrowseHistoryEntityKind(
+    kind: EntityDialogKind
+): kind is BrowseHistoryEntityKind {
+    return browseHistoryKinds.has(kind);
+}
+
+function recordEntityHistory(
+    snapshot: EntityHistorySnapshot,
+    recordVisit: boolean
+) {
+    const ownerUserId = useRuntimeStore.getState().auth.currentUserId?.trim();
+    const entityId = normalizeEntityId(snapshot.entityId);
+    if (!ownerUserId || !entityId) {
+        return;
+    }
+
+    void browseHistoryRepository
+        .record({
+            ownerUserId,
+            entityKind: snapshot.kind,
+            entityId,
+            title: normalizeTitle(snapshot.title),
+            subtitle: normalizeTitle(snapshot.subtitle),
+            imageUrl: normalizeTitle(snapshot.imageUrl),
+            recordVisit
+        })
+        .catch((error: unknown) => {
+            console.warn('Failed to record browse history', error);
+        });
+}
+
+function readOpeningSnapshot(
+    kind: BrowseHistoryEntityKind,
+    entityId: string,
+    label: string,
+    description: string,
+    payload: EntityDialogPayload
+): EntityHistorySnapshot {
+    const seed = isRecord(payload?.seedData) ? payload.seedData : null;
+    return {
+        kind,
+        entityId,
+        title: label,
+        subtitle: readString(seed, historySubtitleKeys[kind]) || description,
+        imageUrl: readString(seed, historyImageKeys[kind])
+    };
+}
+
+export function enrichEntityDialogHistory(snapshot: EntityHistorySnapshot) {
+    recordEntityHistory(snapshot, false);
 }
 
 function defaultEntityTitle(kind: EntityDialogKind) {
@@ -274,6 +381,18 @@ function openEntityDialog({
               : [crumb];
 
     store.setDialogTrail(dialog, breadcrumbs);
+    if (isBrowseHistoryEntityKind(kind)) {
+        recordEntityHistory(
+            readOpeningSnapshot(
+                kind,
+                normalizedEntityId,
+                label,
+                normalizeTitle(description),
+                payload
+            ),
+            true
+        );
+    }
 }
 
 export function openUserDialog({

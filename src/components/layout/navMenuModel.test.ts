@@ -9,6 +9,19 @@ import {
 } from './navMenuModel';
 
 describe('navMenuModel charts retirement', () => {
+    it('places browse history directly after search', () => {
+        const layout = createBaseDefaultNavLayout((key: string) => key);
+        const searchIndex = layout.findIndex(
+            (entry) => entry.type === 'item' && entry.key === 'search'
+        );
+
+        expect(routePathByName['browse-history']).toBe('/browse-history');
+        expect(layout[searchIndex + 1]).toEqual({
+            type: 'item',
+            key: 'browse-history'
+        });
+    });
+
     it('removes charts-instance from route paths and nav definitions', () => {
         expect('charts-instance' in routePathByName).toBe(false);
         expect(

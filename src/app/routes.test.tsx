@@ -12,6 +12,14 @@ type RouteLike = {
 };
 
 describe('protectedRoutes', () => {
+    it('registers the browse history page', () => {
+        expect(
+            protectedRoutes.some(
+                (route: RouteLike) => route.path === '/browse-history'
+            )
+        ).toBe(true);
+    });
+
     it('retires the instance activity route without redirecting to it', () => {
         expect(
             protectedRoutes.some(

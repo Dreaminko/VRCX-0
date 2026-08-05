@@ -89,6 +89,7 @@ export const routePathByName = Object.freeze({
     'instance-history': '/instance-history',
     'player-list': '/player-list',
     search: '/search',
+    'browse-history': '/browse-history',
     'favorite-friends': '/favorites/friends',
     'favorite-worlds': '/favorites/worlds',
     'favorite-avatars': '/favorites/avatars',
@@ -134,6 +135,7 @@ export function createBaseDefaultNavLayout(t: TranslateKey): NavLayoutEntry[] {
         { type: 'item', key: 'instance-history' },
         { type: 'item', key: 'player-list' },
         { type: 'item', key: 'search' },
+        { type: 'item', key: 'browse-history' },
         {
             type: 'folder',
             id: 'default-folder-favorites',

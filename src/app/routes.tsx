@@ -106,6 +106,15 @@ export const protectedRoutes: AppRouteDefinition[] = [
         )
     },
     {
+        path: '/browse-history',
+        titleKey: 'browse_history.title',
+        descriptionKey: 'browse_history.description',
+        element: lazyRouteElement(
+            () => import('@/features/browse-history/BrowseHistoryPage'),
+            'BrowseHistoryPage'
+        )
+    },
+    {
         path: '/dashboard/:id',
         titleKey: 'app.routes.dashboard',
         descriptionKey:

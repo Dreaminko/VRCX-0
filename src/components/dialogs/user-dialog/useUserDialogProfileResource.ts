@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import userProfileRepository from '@/repositories/userProfileRepository';
+import { enrichEntityDialogHistory } from '@/services/dialogService';
 import {
     buildCurrentUserPresenceView,
     mergeCurrentUserPresenceFields,
@@ -161,9 +162,24 @@ export function useUserDialogProfileResource({
             entityId: profile.id,
             title
         });
+        enrichEntityDialogHistory({
+            kind: 'user',
+            entityId: profile.id,
+            title,
+            subtitle: profile.username,
+            imageUrl:
+                profile.profilePicOverrideThumbnail ||
+                profile.profilePicOverride ||
+                profile.currentAvatarThumbnailImageUrl ||
+                profile.currentAvatarImageUrl
+        });
     }, [
+        profile?.currentAvatarImageUrl,
+        profile?.currentAvatarThumbnailImageUrl,
         profile?.displayName,
         profile?.id,
+        profile?.profilePicOverride,
+        profile?.profilePicOverrideThumbnail,
         profile?.username,
         updateEntityDialogMetadata
     ]);

@@ -1,4 +1,29 @@
 {
+    "browse_history": {
+        "title": "Historique de consultation",
+        "description": "Utilisateurs, mondes, avatars et groupes consultés récemment.",
+        "search_placeholder": "Rechercher dans l’historique",
+        "loading": "Chargement de l’historique…",
+        "load_error": "Impossible de charger l’historique.",
+        "empty_title": "Aucun historique",
+        "empty_description": "Les utilisateurs, mondes, avatars et groupes ouverts apparaîtront ici.",
+        "view_count": "Consulté {count} fois",
+        "filter": { "all": "Tout", "user": "Utilisateurs", "world": "Mondes", "avatar": "Avatars", "group": "Groupes" },
+        "date": { "today": "Aujourd’hui", "yesterday": "Hier" },
+        "retention": {
+            "label": "Durée de conservation",
+            "days": "{count} jours",
+            "forever": "Conserver indéfiniment",
+            "update_failed": "Impossible de modifier la durée de conservation."
+        },
+        "actions": { "clear_all": "Tout effacer", "clear_kind": "Effacer le filtre", "remove": "Retirer de l’historique" },
+        "confirmation": {
+            "title": "Effacer l’historique ?",
+            "description": "L’historique actuellement filtré sera supprimé de cet appareil."
+        },
+        "clear_failed": "Impossible d’effacer l’historique.",
+        "remove_failed": "Impossible de retirer cet élément de l’historique."
+    },
     "assistant": {
         "title": "IA sociale",
         "new_chat": "Nouvelle discussion",

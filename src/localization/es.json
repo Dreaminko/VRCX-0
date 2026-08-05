@@ -1,4 +1,29 @@
 {
+    "browse_history": {
+        "title": "Historial de navegación",
+        "description": "Usuarios, mundos, avatares y grupos vistos recientemente.",
+        "search_placeholder": "Buscar en el historial",
+        "loading": "Cargando historial…",
+        "load_error": "No se pudo cargar el historial.",
+        "empty_title": "No hay historial",
+        "empty_description": "Los usuarios, mundos, avatares y grupos que abras aparecerán aquí.",
+        "view_count": "Visto {count} veces",
+        "filter": { "all": "Todo", "user": "Usuarios", "world": "Mundos", "avatar": "Avatares", "group": "Grupos" },
+        "date": { "today": "Hoy", "yesterday": "Ayer" },
+        "retention": {
+            "label": "Conservación del historial",
+            "days": "{count} días",
+            "forever": "Conservar siempre",
+            "update_failed": "No se pudo cambiar el periodo de conservación."
+        },
+        "actions": { "clear_all": "Borrar todo", "clear_kind": "Borrar filtrados", "remove": "Quitar del historial" },
+        "confirmation": {
+            "title": "¿Borrar el historial?",
+            "description": "Se eliminará de este dispositivo el historial filtrado actualmente."
+        },
+        "clear_failed": "No se pudo borrar el historial.",
+        "remove_failed": "No se pudo quitar el elemento del historial."
+    },
     "assistant": {
         "title": "IA social",
         "new_chat": "Nuevo chat",

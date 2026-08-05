@@ -1,4 +1,29 @@
 {
+    "browse_history": {
+        "title": "열람 기록",
+        "description": "최근에 본 사용자, 월드, 아바타 및 그룹입니다.",
+        "search_placeholder": "열람 기록 검색",
+        "loading": "열람 기록 불러오는 중…",
+        "load_error": "열람 기록을 불러오지 못했습니다.",
+        "empty_title": "열람 기록 없음",
+        "empty_description": "열어 본 사용자, 월드, 아바타 및 그룹이 여기에 표시됩니다.",
+        "view_count": "{count}회 열람",
+        "filter": { "all": "전체", "user": "사용자", "world": "월드", "avatar": "아바타", "group": "그룹" },
+        "date": { "today": "오늘", "yesterday": "어제" },
+        "retention": {
+            "label": "기록 보관 기간",
+            "days": "{count}일",
+            "forever": "계속 보관",
+            "update_failed": "기록 보관 기간을 변경하지 못했습니다."
+        },
+        "actions": { "clear_all": "모두 지우기", "clear_kind": "필터 결과 지우기", "remove": "기록에서 삭제" },
+        "confirmation": {
+            "title": "열람 기록을 지울까요?",
+            "description": "현재 필터링된 기록을 이 기기에서 삭제합니다."
+        },
+        "clear_failed": "열람 기록을 지우지 못했습니다.",
+        "remove_failed": "기록에서 항목을 삭제하지 못했습니다."
+    },
     "assistant": {
         "title": "소셜 AI",
         "new_chat": "새 대화",
