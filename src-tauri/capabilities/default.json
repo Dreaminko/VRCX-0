@@ -11,6 +11,18 @@
         "core:window:allow-toggle-maximize",
         "core:window:allow-close",
         "dialog:default",
+        {
+            "identifier": "fs:allow-mkdir",
+            "allow": [{ "path": "$APPCACHE" }]
+        },
+        {
+            "identifier": "fs:allow-read-text-file",
+            "allow": [{ "path": "$APPCACHE/quick-search-history.json" }]
+        },
+        {
+            "identifier": "fs:allow-write-text-file",
+            "allow": [{ "path": "$APPCACHE/quick-search-history.json" }]
+        },
         "notification:default"
     ]
 }

@@ -32,6 +32,7 @@ import {
     USER_QUERY_MIN_LENGTH
 } from './quick-search/quickSearchResultModel';
 import { useQuickSearchCatalogState } from './quick-search/useQuickSearchCatalogState';
+import { useQuickSearchHistory } from './quick-search/useQuickSearchHistory';
 import { useQuickSearchResults } from './quick-search/useQuickSearchResults';
 import { useQuickSearchSelectResult } from './quick-search/useQuickSearchSelectResult';
 import {
@@ -66,6 +67,11 @@ export function QuickSearchDialog({
         catalog,
         normalizedQuery
     });
+    const history = useQuickSearchHistory({
+        currentEndpoint,
+        currentUserId,
+        open
+    });
 
     const hasResults =
         navCommands.length ||
@@ -77,7 +83,11 @@ export function QuickSearchDialog({
         results.ownGroups.length ||
         results.joinedGroups.length;
 
-    const selectResult = useQuickSearchSelectResult({ onOpenChange, setQuery });
+    const selectResult = useQuickSearchSelectResult({
+        onOpenChange,
+        setQuery,
+        onResultOpened: history.remember
+    });
     function handleSearchCommand(event: KeyboardEvent<HTMLInputElement>) {
         const value = event.currentTarget.value;
         if (
@@ -126,6 +136,13 @@ export function QuickSearchDialog({
                         onValueChange={setQuery}
                     />
                     <CommandList className="max-h-[min(400px,50vh)]">
+                        {normalizedQuery.length < USER_QUERY_MIN_LENGTH ? (
+                            <ResultGroup
+                                title={t('side_panel.search_recent')}
+                                items={history.items}
+                                onSelect={selectResult}
+                            />
+                        ) : null}
                         {normalizedQuery.length < USER_QUERY_MIN_LENGTH ? (
                             <CommandGroup
                                 heading={t('side_panel.search_categories')}

@@ -9,10 +9,12 @@ import type { QuickSearchResult } from '../quickSearchCatalog';
 
 export function useQuickSearchSelectResult({
     onOpenChange,
-    setQuery
+    setQuery,
+    onResultOpened
 }: {
     onOpenChange: (open: boolean) => void;
     setQuery: (query: string) => void;
+    onResultOpened: (item: QuickSearchResult) => void;
 }) {
     return function selectResult(item: QuickSearchResult) {
         onOpenChange(false);
@@ -42,5 +44,6 @@ export function useQuickSearchSelectResult({
                 seedData: item.seedData || null
             });
         }
+        onResultOpened(item);
     };
 }

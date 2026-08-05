@@ -16,6 +16,10 @@ class ResizeObserverMock {
 }
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn()
+});
 
 vi.mock('react-i18next', async (importOriginal) => {
     const actual = await importOriginal<typeof import('react-i18next')>();
@@ -31,6 +35,20 @@ vi.mock('@/lib/useKnownUser', () => ({
 
 vi.mock('@/services/vrcx0CssLayerService', () => ({
     setRgb: mocks.setRgb
+}));
+
+vi.mock('./quick-search/useQuickSearchHistory', () => ({
+    useQuickSearchHistory: () => ({
+        items: [
+            {
+                id: 'wrld_recent',
+                type: 'world',
+                source: 'history',
+                name: 'Recent World'
+            }
+        ],
+        remember: vi.fn()
+    })
 }));
 
 vi.mock('@/ui/shadcn/dialog', () => ({
@@ -59,7 +77,7 @@ function renderQuickSearch(
     return screen.getByRole('combobox') as HTMLInputElement;
 }
 
-describe('QuickSearchDialog RGB command', () => {
+describe('QuickSearchDialog', () => {
     beforeEach(() => {
         mocks.setRgb.mockReset();
     });
@@ -111,5 +129,12 @@ describe('QuickSearchDialog RGB command', () => {
         fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
 
         expect(mocks.setRgb).not.toHaveBeenCalled();
+    });
+
+    it('renders recently opened entities in the empty search slot', () => {
+        renderQuickSearch(vi.fn());
+
+        expect(screen.getByText('side_panel.search_recent')).toBeTruthy();
+        expect(screen.getByText('Recent World')).toBeTruthy();
     });
 });

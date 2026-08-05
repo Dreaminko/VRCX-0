@@ -34,6 +34,7 @@ describe('useQuickSearchSelectResult', () => {
         (type, openDialog, idField) => {
             const onOpenChange = vi.fn();
             const setQuery = vi.fn();
+            const onResultOpened = vi.fn();
             const item: QuickSearchResult = {
                 id: `${type}_1`,
                 type: type satisfies QuickSearchEntityType,
@@ -42,7 +43,11 @@ describe('useQuickSearchSelectResult', () => {
                 seedData: { id: `${type}_1` }
             };
             const { result } = renderHook(() =>
-                useQuickSearchSelectResult({ onOpenChange, setQuery })
+                useQuickSearchSelectResult({
+                    onOpenChange,
+                    setQuery,
+                    onResultOpened
+                })
             );
 
             act(() => result.current(item));
@@ -54,11 +59,15 @@ describe('useQuickSearchSelectResult', () => {
                 title: item.name,
                 seedData: item.seedData
             });
+            expect(onResultOpened).toHaveBeenCalledWith(item);
             expect(onOpenChange.mock.invocationCallOrder[0]).toBeLessThan(
                 openDialog.mock.invocationCallOrder[0]
             );
             expect(setQuery.mock.invocationCallOrder[0]).toBeLessThan(
                 openDialog.mock.invocationCallOrder[0]
+            );
+            expect(openDialog.mock.invocationCallOrder[0]).toBeLessThan(
+                onResultOpened.mock.invocationCallOrder[0]
             );
         }
     );
