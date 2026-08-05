@@ -1,13 +1,13 @@
 {
     "browse_history": {
-        "title": "Historie prohlížení",
+        "title": "Historie zobrazení",
         "description": "Nedávno zobrazení uživatelé, světy, avataři a skupiny.",
         "search_placeholder": "Hledat v historii",
         "date_range": "Období",
         "date_range_start": "Začátek",
         "date_range_end": "Konec",
         "loading": "Načítání historie…",
-        "load_error": "Historii prohlížení se nepodařilo načíst.",
+        "load_error": "Historii se nepodařilo načíst.",
         "empty_title": "Historie je prázdná",
         "empty_description": "Otevření uživatelé, světy, avataři a skupiny se zobrazí zde.",
         "no_results_title": "Žádné shody",

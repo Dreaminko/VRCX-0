@@ -1,14 +1,14 @@
 {
     "browse_history": {
-        "title": "Browserverlauf",
+        "title": "Verlauf",
         "description": "Zuletzt angesehene Benutzer, Welten, Avatare und Gruppen.",
         "search_placeholder": "Verlauf durchsuchen",
         "date_range": "Zeitraum",
         "date_range_start": "Beginn",
         "date_range_end": "Ende",
         "loading": "Verlauf wird geladen…",
-        "load_error": "Der Browserverlauf konnte nicht geladen werden.",
-        "empty_title": "Kein Browserverlauf",
+        "load_error": "Der Verlauf konnte nicht geladen werden.",
+        "empty_title": "Kein Verlauf",
         "empty_description": "Geöffnete Benutzer, Welten, Avatare und Gruppen erscheinen hier.",
         "no_results_title": "Keine Treffer",
         "no_results_description": "Versuche einen anderen Suchbegriff oder einen größeren Zeitraum.",
@@ -39,10 +39,10 @@
             "remove": "Aus Verlauf entfernen"
         },
         "confirmation": {
-            "title": "Browserverlauf löschen?",
+            "title": "Verlauf löschen?",
             "description": "Der aktuell gefilterte Verlauf wird von diesem Gerät entfernt."
         },
-        "clear_failed": "Der Browserverlauf konnte nicht gelöscht werden.",
+        "clear_failed": "Der Verlauf konnte nicht gelöscht werden.",
         "remove_failed": "Der Eintrag konnte nicht aus dem Verlauf entfernt werden."
     },
     "assistant": {

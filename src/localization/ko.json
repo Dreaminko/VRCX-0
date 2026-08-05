@@ -1,14 +1,14 @@
 {
     "browse_history": {
-        "title": "열람 기록",
+        "title": "조회 기록",
         "description": "최근에 본 사용자, 월드, 아바타 및 그룹입니다.",
-        "search_placeholder": "열람 기록 검색",
+        "search_placeholder": "조회 기록 검색",
         "date_range": "기간",
         "date_range_start": "시작",
         "date_range_end": "종료",
-        "loading": "열람 기록 불러오는 중…",
-        "load_error": "열람 기록을 불러오지 못했습니다.",
-        "empty_title": "열람 기록 없음",
+        "loading": "조회 기록 불러오는 중…",
+        "load_error": "조회 기록을 불러오지 못했습니다.",
+        "empty_title": "조회 기록 없음",
         "empty_description": "열어 본 사용자, 월드, 아바타 및 그룹이 여기에 표시됩니다.",
         "no_results_title": "일치하는 기록 없음",
         "no_results_description": "다른 검색어를 쓰거나 기간을 넓혀 보세요.",
@@ -27,7 +27,7 @@
         },
         "date": { "today": "오늘", "yesterday": "어제" },
         "retention": {
-            "label": "열람 기록 보관 기간",
+            "label": "조회 기록 보관 기간",
             "description": "이 기간이 지난 기록은 자동으로 삭제됩니다.",
             "days": "{count}일",
             "forever": "계속 보관",
@@ -39,10 +39,10 @@
             "remove": "기록에서 삭제"
         },
         "confirmation": {
-            "title": "열람 기록을 지울까요?",
+            "title": "조회 기록을 지울까요?",
             "description": "현재 필터링된 기록을 이 기기에서 삭제합니다."
         },
-        "clear_failed": "열람 기록을 지우지 못했습니다.",
+        "clear_failed": "조회 기록을 지우지 못했습니다.",
         "remove_failed": "기록에서 항목을 삭제하지 못했습니다."
     },
     "assistant": {

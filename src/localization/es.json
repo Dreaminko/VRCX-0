@@ -1,6 +1,6 @@
 {
     "browse_history": {
-        "title": "Historial de navegación",
+        "title": "Historial",
         "description": "Usuarios, mundos, avatares y grupos vistos recientemente.",
         "search_placeholder": "Buscar en el historial",
         "date_range": "Periodo",

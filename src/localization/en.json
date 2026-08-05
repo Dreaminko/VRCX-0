@@ -1,14 +1,14 @@
 {
     "browse_history": {
-        "title": "Browse history",
+        "title": "View history",
         "description": "Recently viewed users, worlds, avatars, and groups.",
         "search_placeholder": "Search history",
         "date_range": "Date range",
         "date_range_start": "Start",
         "date_range_end": "End",
         "loading": "Loading history…",
-        "load_error": "Browse history could not be loaded.",
-        "empty_title": "No browse history",
+        "load_error": "View history could not be loaded.",
+        "empty_title": "No view history",
         "empty_description": "Users, worlds, avatars, and groups you open will appear here.",
         "no_results_title": "Nothing matches",
         "no_results_description": "Try another search term or a wider date range.",
@@ -27,7 +27,7 @@
         },
         "date": { "today": "Today", "yesterday": "Yesterday" },
         "retention": {
-            "label": "Browse history retention",
+            "label": "View history retention",
             "description": "Entries older than this are deleted automatically.",
             "days": "{count} days",
             "forever": "Keep forever",
@@ -39,10 +39,10 @@
             "remove": "Remove from history"
         },
         "confirmation": {
-            "title": "Clear browse history?",
+            "title": "Clear view history?",
             "description": "This removes the currently filtered history from this device."
         },
-        "clear_failed": "Browse history could not be cleared.",
+        "clear_failed": "View history could not be cleared.",
         "remove_failed": "The item could not be removed from history."
     },
     "assistant": {
@@ -676,7 +676,7 @@
         "search_scope_pages": "Jump to a page",
         "search_no_results": "No results found",
         "search_categories": "Search for...",
-        "search_recent": "Recently Opened",
+        "search_recent": "Recently opened",
         "search_scope_all": "Name, local note & note",
         "search_scope_avatars": "Own & favorites",
         "search_scope_worlds": "Own & favorites",
