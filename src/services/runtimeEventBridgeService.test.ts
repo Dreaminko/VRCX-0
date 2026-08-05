@@ -389,7 +389,9 @@ describe('runtimeEventBridgeService', () => {
         const binding = bindRuntimeEvents();
         try {
             await vi.waitFor(() => {
-                expect(mocks.getBackendRuntimeSnapshot).toHaveBeenCalledTimes(1);
+                expect(mocks.getBackendRuntimeSnapshot).toHaveBeenCalledTimes(
+                    1
+                );
             });
         } finally {
             finishAppearanceHydration();
