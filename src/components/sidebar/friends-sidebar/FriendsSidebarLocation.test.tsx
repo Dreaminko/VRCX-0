@@ -11,10 +11,12 @@ vi.mock('@/state/shellStore', () => ({
 
 import { FriendInstanceTimer } from './FriendsSidebarLocation';
 
+const NOW_MS = 1_700_000_000_000;
+
 describe('FriendInstanceTimer', () => {
     beforeEach(() => {
         vi.useFakeTimers();
-        vi.setSystemTime(1_700_000_000_000);
+        vi.setSystemTime(NOW_MS);
     });
 
     afterEach(() => {
@@ -22,8 +24,8 @@ describe('FriendInstanceTimer', () => {
         vi.useRealTimers();
     });
 
-    it('shows elapsed time in 30-second buckets', async () => {
-        render(<FriendInstanceTimer epoch={1_700_000_000_000} />);
+    it('shows the first 30-second bucket, then advances by whole minutes', async () => {
+        render(<FriendInstanceTimer epoch={NOW_MS} />);
 
         expect(screen.getByText('<30s')).toBeDefined();
         await act(() => vi.advanceTimersByTimeAsync(29_999));
@@ -33,8 +35,24 @@ describe('FriendInstanceTimer', () => {
         await act(() => vi.advanceTimersByTimeAsync(29_999));
         expect(screen.getByText('1m')).toBeDefined();
         await act(() => vi.advanceTimersByTimeAsync(1));
-        expect(screen.getByText('1m 30s')).toBeDefined();
-        await act(() => vi.advanceTimersByTimeAsync(30_000));
+        expect(screen.getByText('1m')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(29_999));
+        expect(screen.getByText('1m')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(1));
         expect(screen.getByText('2m')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(60_000));
+        expect(screen.getByText('3m')).toBeDefined();
+    });
+
+    it('continues with whole minutes across the hour boundary', async () => {
+        render(<FriendInstanceTimer epoch={NOW_MS - 59 * 60_000 - 29_999} />);
+
+        expect(screen.getByText('59m')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(1));
+        expect(screen.getByText('1h')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(59_999));
+        expect(screen.getByText('1h')).toBeDefined();
+        await act(() => vi.advanceTimersByTimeAsync(1));
+        expect(screen.getByText('1h 1m')).toBeDefined();
     });
 });

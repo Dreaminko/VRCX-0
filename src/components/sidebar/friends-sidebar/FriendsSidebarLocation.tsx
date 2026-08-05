@@ -48,7 +48,8 @@ type SidebarLocationMetadata = Record<string, unknown> & {
     worldNameHint?: unknown;
 };
 
-const FRIEND_INSTANCE_TIMER_STEP_MS = 30_000;
+const FRIEND_INSTANCE_TIMER_FIRST_STEP_MS = 30_000;
+const FRIEND_INSTANCE_TIMER_STEP_MS = 60_000;
 
 function recordValue(value: unknown): Record<string, unknown> | null {
     return value && typeof value === 'object'
@@ -67,19 +68,25 @@ export function FriendInstanceTimer({
     const [now, setNow] = useState(() => Date.now());
     const normalizedEpoch = timestampMsFromValue(epoch);
     const elapsedMs = normalizedEpoch ? Math.max(0, now - normalizedEpoch) : 0;
-    const nextStepMs =
-        (Math.floor(elapsedMs / FRIEND_INSTANCE_TIMER_STEP_MS) + 1) *
-        FRIEND_INSTANCE_TIMER_STEP_MS;
+    const isFirstStep = elapsedMs < FRIEND_INSTANCE_TIMER_FIRST_STEP_MS;
+    const displayedMinutes =
+        Math.floor(
+            Math.max(0, elapsedMs - FRIEND_INSTANCE_TIMER_FIRST_STEP_MS) /
+                FRIEND_INSTANCE_TIMER_STEP_MS
+        ) + 1;
+    const nextStepMs = isFirstStep
+        ? FRIEND_INSTANCE_TIMER_FIRST_STEP_MS
+        : FRIEND_INSTANCE_TIMER_FIRST_STEP_MS +
+          displayedMinutes * FRIEND_INSTANCE_TIMER_STEP_MS;
     let text = '-';
     if (normalizedEpoch) {
-        text =
-            elapsedMs < FRIEND_INSTANCE_TIMER_STEP_MS
-                ? `<${timeToText(FRIEND_INSTANCE_TIMER_STEP_MS, true, timeUnitLabels)}`
-                : timeToText(
-                      nextStepMs,
-                      nextStepMs % 60_000 !== 0,
-                      timeUnitLabels
-                  );
+        text = isFirstStep
+            ? `<${timeToText(FRIEND_INSTANCE_TIMER_FIRST_STEP_MS, true, timeUnitLabels)}`
+            : timeToText(
+                  displayedMinutes * FRIEND_INSTANCE_TIMER_STEP_MS,
+                  false,
+                  timeUnitLabels
+              );
     }
 
     useEffect(() => {
