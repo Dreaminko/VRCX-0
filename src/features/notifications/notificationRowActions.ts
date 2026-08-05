@@ -30,6 +30,7 @@ import type {
     NotificationRow
 } from '@/repositories/notificationPersistenceRepository';
 import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
+import { isUnseenNotification } from '@/shared/utils/notificationSeen';
 
 import { getNotificationLinkScheme } from './notificationViewModel';
 
@@ -55,6 +56,7 @@ export type NotificationRowActionHandlers = {
     onAcceptFriendRequest(notification: NotificationRow): void | Promise<void>;
     onAcceptRequestInvite(notification: NotificationRow): void | Promise<void>;
     onHideNotification(notification: NotificationRow): void | Promise<void>;
+    onMarkSeen(notification: NotificationRow): void | Promise<void>;
     onSendInviteResponseWithMessage(
         notification: NotificationRow,
         messageType: string
@@ -132,15 +134,6 @@ export function getNotificationLinkIcon(link: unknown): LucideIcon {
         default:
             return ExternalLinkIcon;
     }
-}
-
-export function canMarkNotificationSeen(
-    notification: NotificationRow | null | undefined
-) {
-    return !(
-        Number(notification?.version ?? 1) !== 2 &&
-        notification?.type === 'friendRequest'
-    );
 }
 
 export const PRIMARY_ACTION_KEYS = new Set<string>(['accept', 'invite']);
@@ -244,6 +237,14 @@ export function buildOrderedActions({
             label: t('view.notification.actions.decline'),
             Icon: XIcon,
             onClick: () => handlers.onHideNotification(notification)
+        });
+    }
+    if (type === 'friendRequest' && isUnseenNotification(notification)) {
+        actions.push({
+            key: 'mark-seen',
+            label: t('view.notification.action.mark_seen'),
+            Icon: CheckIcon,
+            onClick: () => handlers.onMarkSeen(notification)
         });
     }
     return actions;

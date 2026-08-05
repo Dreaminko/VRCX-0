@@ -3,7 +3,7 @@ use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use vrcx_0_persistence::{
-    notifications::{notification_mark_seen_local_bulk, notification_v2_mark_seen},
+    notifications::{notification_mark_seen, notification_mark_seen_local_bulk},
     DatabaseService,
 };
 use vrcx_0_vrchat_client::{http_api::ApiScope, notifications::notification_mark_seen_input};
@@ -146,10 +146,13 @@ impl NotificationMarkSeenActions for VrchatNotificationMarkSeenActions<'_> {
             }
             ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope)
                 .map_err(NotificationRemoteActionError::terminal)?;
-            if item.version >= 2 {
-                notification_v2_mark_seen(self.db, self.expected_scope.current_user_id.clone(), id)
-                    .map_err(NotificationRemoteActionError::terminal)?;
-            }
+            notification_mark_seen(
+                self.db,
+                self.expected_scope.current_user_id.clone(),
+                id,
+                item.version,
+            )
+            .map_err(NotificationRemoteActionError::terminal)?;
             Ok(())
         })
     }

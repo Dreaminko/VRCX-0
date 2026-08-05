@@ -10,7 +10,7 @@ pub use types::{
 };
 pub use write::{
     notification_add_v1, notification_add_v2, notification_delete, notification_expire,
-    notification_friend_requests_sync, notification_mark_seen_local_bulk,
+    notification_friend_requests_sync, notification_mark_seen, notification_mark_seen_local_bulk,
     notification_update_expired, notification_v2_expire, notification_v2_mark_seen,
 };
 

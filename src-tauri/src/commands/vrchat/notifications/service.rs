@@ -8,6 +8,7 @@ use vrcx_0_application_core::vrchat_api::notifications::{
     request_invite_send_input,
 };
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
+use vrcx_0_persistence::notifications::notification_mark_seen;
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -73,8 +74,8 @@ pub async fn app__vrchat_notification_mark_seen(
     )
     .await?;
 
-    if version == 2 && !response_has_error(&response) {
-        crate::commands::local::notifications::app__notification_v2_mark_seen(state, user_id, id)?;
+    if !response_has_error(&response) {
+        notification_mark_seen(state.db.as_ref(), user_id, id, version)?;
     }
 
     Ok(response)

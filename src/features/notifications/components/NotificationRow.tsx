@@ -25,7 +25,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     buildOrderedActions,
-    canMarkNotificationSeen,
     getNotificationLinkIcon,
     PRIMARY_ACTION_KEYS,
     type NotificationRowActionHandlers
@@ -47,7 +46,6 @@ export type NotificationFeedHandlers = NotificationRowActionHandlers & {
         notification: NotificationRecord,
         options?: { skipConfirm?: boolean }
     ): void | Promise<void>;
-    onMarkSeen(notification: NotificationRecord): void | Promise<void>;
     onOpenImagePreview(notification: NotificationRecord): void;
     onOpenLink(link: unknown): void;
 };
@@ -89,11 +87,14 @@ export function NotificationRow({
         handlers,
         t
     });
-    const inlineActions = orderedActions.slice(0, 2);
-    const overflowActions = orderedActions.slice(2);
-    const showMarkRead = view.unseen && canMarkNotificationSeen(notification);
+    const inlineActionCount = notification.type === 'friendRequest' ? 3 : 2;
+    const inlineActions = orderedActions.slice(0, inlineActionCount);
+    const overflowActions = orderedActions.slice(inlineActionCount);
+    const showMenuMarkRead =
+        view.unseen && notification.type !== 'friendRequest';
     const showDelete = Boolean(shouldShowDeleteLog(notification));
-    const hasMenu = showMarkRead || overflowActions.length > 0 || showDelete;
+    const hasMenu =
+        showMenuMarkRead || overflowActions.length > 0 || showDelete;
 
     const actorButton = (
         <button
@@ -268,7 +269,7 @@ export function NotificationRow({
                                 />
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuGroup>
-                                        {showMarkRead ? (
+                                        {showMenuMarkRead ? (
                                             <DropdownMenuItem
                                                 onClick={() =>
                                                     handlers.onMarkSeen(
@@ -294,7 +295,7 @@ export function NotificationRow({
                                     </DropdownMenuGroup>
                                     {showDelete ? (
                                         <>
-                                            {showMarkRead ||
+                                            {showMenuMarkRead ||
                                             overflowActions.length > 0 ? (
                                                 <DropdownMenuSeparator />
                                             ) : null}

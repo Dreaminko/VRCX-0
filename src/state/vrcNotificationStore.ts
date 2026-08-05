@@ -14,7 +14,6 @@ import {
     isNotificationExpired,
     isUnseenNotification,
     RECENT_WINDOW_MS,
-    shouldBulkMarkSeen,
     shouldMarkSeenRemotely
 } from '@/shared/utils/notificationSeen';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -413,8 +412,7 @@ export const useVrcNotificationStore = create<VrcNotificationStore>(
                 return;
             }
 
-            const markableRows = unseenRows.filter(shouldBulkMarkSeen);
-            const items = markableRows.flatMap<NotificationMarkSeenBatchItem>(
+            const items = unseenRows.flatMap<NotificationMarkSeenBatchItem>(
                 (notification) => {
                     const id = normalizeNotificationId(notification.id);
                     const version = Number(notification.version) || 1;

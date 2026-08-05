@@ -16,6 +16,7 @@ function createHandlers(): NotificationRowActionHandlers {
         onAcceptFriendRequest: vi.fn(),
         onAcceptRequestInvite: vi.fn(),
         onHideNotification: vi.fn(),
+        onMarkSeen: vi.fn(),
         onSendInviteResponseWithMessage: vi.fn(),
         onSendNotificationResponse: vi.fn()
     };
@@ -35,6 +36,27 @@ function buildActions(
 }
 
 describe('buildOrderedActions', () => {
+    it('adds mark seen as the third action for an unseen friend request', () => {
+        const handlers = createHandlers();
+        const notification: NotificationRow = {
+            id: 'notif_friend_request',
+            type: 'friendRequest',
+            version: 1,
+            senderUserId: 'usr_sender',
+            seen: false
+        };
+
+        const actions = buildActions(notification, handlers);
+
+        expect(actions.map((action) => action.key)).toEqual([
+            'accept',
+            'decline',
+            'mark-seen'
+        ]);
+        actions[2]?.onClick();
+        expect(handlers.onMarkSeen).toHaveBeenCalledWith(notification);
+    });
+
     it('adds a manual reply response for a received boop', () => {
         const handlers = createHandlers();
         const notification: NotificationRow = {

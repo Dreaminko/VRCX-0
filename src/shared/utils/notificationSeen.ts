@@ -49,19 +49,8 @@ export function isUnseenNotification(
     );
 }
 
-export function shouldBulkMarkSeen(
-    notification?: NotificationSeenLike | null
-): boolean {
-    const version = Number(notification?.version ?? 1);
-    const type = String(notification?.type || '');
-    return !(version !== 2 && ACTION_REQUIRED_V1_TYPES.has(type));
-}
-
 export function shouldMarkSeenRemotely(
     notification?: NotificationSeenLike | null
 ): boolean {
-    return (
-        shouldBulkMarkSeen(notification) &&
-        getNotificationLifecycleBucket(notification?.type) !== 'system'
-    );
+    return getNotificationLifecycleBucket(notification?.type) !== 'system';
 }

@@ -437,6 +437,46 @@ fn notification_mutations_update_only_the_requested_rows() -> Result<(), Error> 
 }
 
 #[test]
+fn remote_seen_commit_expires_v1_and_marks_v2_seen() -> Result<(), Error> {
+    let (_dir, db) = test_db("remote-seen-commit")?;
+    notification_add_v1(
+        &db,
+        "usr_self".into(),
+        json!({
+            "id": "legacy",
+            "created_at": "2026-05-15T00:00:00Z",
+            "type": "friendRequest"
+        }),
+    )?;
+    notification_add_v2(
+        &db,
+        "usr_self".into(),
+        json!({
+            "id": "modern",
+            "createdAt": "2026-05-15T00:01:00Z",
+            "seen": false
+        }),
+    )?;
+
+    notification_mark_seen(&db, "usr_self".into(), "legacy".into(), 1)?;
+    notification_mark_seen(&db, "usr_self".into(), "modern".into(), 2)?;
+
+    let legacy = rows_by_id(
+        &db,
+        "SELECT expired FROM usrself_notifications WHERE id = @id",
+        "legacy",
+    )?;
+    let modern = rows_by_id(
+        &db,
+        "SELECT seen FROM usrself_notifications_v2 WHERE id = @id",
+        "modern",
+    )?;
+    assert_eq!(legacy[0][0], json!(1));
+    assert_eq!(modern[0][0], json!(1));
+    Ok(())
+}
+
+#[test]
 fn combined_expire_and_delete_cover_both_versions_without_crossing_accounts() -> Result<(), Error> {
     let (_dir, db) = test_db("combined-actions")?;
     add_version_pair(&db, "usr_self", "shared")?;

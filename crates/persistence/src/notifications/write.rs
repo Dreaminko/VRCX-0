@@ -305,6 +305,19 @@ pub fn notification_v2_mark_seen(
     Ok(())
 }
 
+pub fn notification_mark_seen(
+    db: &DatabaseService,
+    user_id: String,
+    id: String,
+    version: i64,
+) -> Result<(), Error> {
+    if version >= 2 {
+        notification_v2_mark_seen(db, user_id, id)
+    } else {
+        notification_update_expired(db, user_id, id, true)
+    }
+}
+
 pub fn notification_update_expired(
     db: &DatabaseService,
     user_id: String,

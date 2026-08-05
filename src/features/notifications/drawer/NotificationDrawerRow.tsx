@@ -31,11 +31,7 @@ import {
     NotificationIconDisc,
     NotificationPersonAvatar
 } from '../components/NotificationRowParts';
-import {
-    buildOrderedActions,
-    canMarkNotificationSeen,
-    usesAvatar
-} from '../notificationRowActions';
+import { buildOrderedActions, usesAvatar } from '../notificationRowActions';
 import {
     type NotificationActor,
     toNotificationViewModel
@@ -127,11 +123,13 @@ export function NotificationDrawerRow({
         handlers,
         t
     });
-    const inlineActions = orderedActions.slice(0, 2);
-    const overflowActions = orderedActions.slice(2);
-    const showMarkRead = isUnseen && canMarkNotificationSeen(notification);
+    const inlineActionCount = notification.type === 'friendRequest' ? 3 : 2;
+    const inlineActions = orderedActions.slice(0, inlineActionCount);
+    const overflowActions = orderedActions.slice(inlineActionCount);
+    const showMenuMarkRead = isUnseen && notification.type !== 'friendRequest';
     const showDelete = Boolean(shouldShowDeleteLog(notification));
-    const hasMenu = showMarkRead || overflowActions.length > 0 || showDelete;
+    const hasMenu =
+        showMenuMarkRead || overflowActions.length > 0 || showDelete;
 
     const countdownMs = useExpiryCountdown(
         notification?.expiresAt,
@@ -289,7 +287,7 @@ export function NotificationDrawerRow({
                                             />
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuGroup>
-                                                    {showMarkRead ? (
+                                                    {showMenuMarkRead ? (
                                                         <DropdownMenuItem
                                                             onClick={() =>
                                                                 handlers.onMarkSeen(
@@ -319,7 +317,7 @@ export function NotificationDrawerRow({
                                                 </DropdownMenuGroup>
                                                 {showDelete ? (
                                                     <>
-                                                        {showMarkRead ||
+                                                        {showMenuMarkRead ||
                                                         overflowActions.length >
                                                             0 ? (
                                                             <DropdownMenuSeparator />

@@ -20,7 +20,6 @@ import { NotificationDrawerRow } from './NotificationDrawerRow';
 export type NotificationDrawerHandlers = NotificationRowActionHandlers & {
     onDeleteNotification(notification: NotificationRow): void | Promise<void>;
     onJoinQueueReady(notification: NotificationRow): void | Promise<void>;
-    onMarkSeen(notification: NotificationRow): void | Promise<void>;
 };
 
 type NotificationDrawerListProps = {
