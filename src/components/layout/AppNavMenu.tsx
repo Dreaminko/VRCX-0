@@ -4,17 +4,9 @@ import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
 import type { Dashboard } from '@/repositories/dashboardRepository';
-import {
-    setNavbarCollapsedPreference,
-    setThemeModePreference
-} from '@/services/preferencesService';
+import { setNavbarCollapsedPreference } from '@/services/preferencesService';
 import { triggerToolByKey } from '@/services/toolActionService';
 import { DASHBOARD_NAV_KEY_PREFIX } from '@/shared/constants/dashboard';
-import { useBackgroundImageStore } from '@/state/backgroundImageStore';
-import {
-    communityThemeControlsAppearance,
-    useCommunityThemeStore
-} from '@/state/communityThemeStore';
 import { useDashboardStore } from '@/state/dashboardStore';
 import { useModalStore } from '@/state/modalStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
@@ -377,19 +369,6 @@ export function AppNavMenu({ isCollapsed }: { isCollapsed: boolean }) {
     const location = useLocation();
     const { t } = useTranslation();
     const sidebarOpen = useShellStore((state) => state.sidebarOpen);
-    const themeMode = useShellStore((state) => state.themeMode);
-    const communityThemeEnabled = useCommunityThemeStore(
-        (state) => state.enabled
-    );
-    const installedCommunityTheme = useCommunityThemeStore(
-        (state) => state.installedTheme
-    );
-    const localCommunityThemePreview = useCommunityThemeStore(
-        (state) => state.localPreview
-    );
-    const backgroundImageEnabled = useBackgroundImageStore(
-        (state) => state.enabled
-    );
     const dashboards = useDashboardStore((state) => state.dashboards);
     const ensureDashboardsLoaded = useDashboardStore(
         (state) => state.ensureLoaded
@@ -462,13 +441,6 @@ export function AppNavMenu({ isCollapsed }: { isCollapsed: boolean }) {
     }, []);
 
     const shouldShowCreateDashboard = showNewDashboardButton;
-    const communityThemeAppearanceControlled = communityThemeControlsAppearance(
-        communityThemeEnabled,
-        installedCommunityTheme,
-        localCommunityThemePreview
-    );
-    const customThemeAppearanceControlled =
-        communityThemeAppearanceControlled || backgroundImageEnabled;
 
     async function handleSelectEntry(entry: NavMenuItem) {
         if (!entry) {
@@ -550,20 +522,10 @@ export function AppNavMenu({ isCollapsed }: { isCollapsed: boolean }) {
 
             <AppNavFooter
                 sidebarOpen={sidebarOpen}
-                themeMode={themeMode}
-                showThemeToggle={!customThemeAppearanceControlled}
                 onNavigateSettings={() => navigate(routePathByName.settings)}
                 onToggleSidebar={() =>
                     setNavbarCollapsedPreference(sidebarOpen)
                 }
-                onToggleTheme={() => {
-                    if (customThemeAppearanceControlled) {
-                        return;
-                    }
-                    setThemeModePreference(
-                        themeMode === 'light' ? 'dark' : 'light'
-                    );
-                }}
             />
             <CustomNavDialog
                 open={customNavDialogOpen}

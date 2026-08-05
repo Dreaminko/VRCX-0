@@ -1,12 +1,14 @@
 import {
     BellIcon,
     CompassIcon,
+    MoonIcon,
     PanelLeftIcon,
     PanelLeftOpenIcon,
     PanelRightIcon,
     PanelRightOpenIcon,
     SearchIcon,
-    SparklesIcon
+    SparklesIcon,
+    SunIcon
 } from 'lucide-react';
 import {
     type ComponentProps,
@@ -22,10 +24,18 @@ import { toast } from 'sonner';
 import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut';
 import { QuickSearchDialog } from '@/components/sidebar/QuickSearchDialog';
 import { cn } from '@/lib/utils';
-import { setNavbarCollapsedPreference } from '@/services/preferencesService';
+import {
+    setNavbarCollapsedPreference,
+    setThemeModePreference
+} from '@/services/preferencesService';
 import { openOrInstallLatestAvailableUpdate } from '@/services/updateInstallService';
 import { getBuildBadgeLabel } from '@/shared/buildLabel';
 import { useAssistantChatStore } from '@/state/assistantChatStore';
+import { useBackgroundImageStore } from '@/state/backgroundImageStore';
+import {
+    communityThemeControlsAppearance,
+    useCommunityThemeStore
+} from '@/state/communityThemeStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -159,6 +169,19 @@ export function useTitleBarActions(
         Boolean(state.updateLoop.hasAvailableUpdate)
     );
     const navbarOpen = useShellStore((state) => state.sidebarOpen);
+    const themeMode = useShellStore((state) => state.themeMode);
+    const communityThemeEnabled = useCommunityThemeStore(
+        (state) => state.enabled
+    );
+    const installedCommunityTheme = useCommunityThemeStore(
+        (state) => state.installedTheme
+    );
+    const localCommunityThemePreview = useCommunityThemeStore(
+        (state) => state.localPreview
+    );
+    const backgroundImageEnabled = useBackgroundImageStore(
+        (state) => state.enabled
+    );
     const {
         sidePanelOpen: rightSidebarOpen,
         toggleSidePanelOpen: toggleRightSidebar
@@ -167,6 +190,14 @@ export function useTitleBarActions(
     const isMacHost = hostPlatform === 'macos';
     const notificationActionVisible =
         isSessionReady && notificationLayout !== 'table';
+    const themeToggleVisible =
+        !backgroundImageEnabled &&
+        !communityThemeControlsAppearance(
+            communityThemeEnabled,
+            installedCommunityTheme,
+            localCommunityThemePreview
+        );
+    const themeToggleLabel = t('nav_tooltip.toggle_theme');
     const leftSidebarLabel = navbarOpen
         ? t('nav_tooltip.collapse_nav')
         : t('nav_tooltip.expand_nav');
@@ -351,6 +382,23 @@ export function useTitleBarActions(
             >
                 <SparklesIcon data-icon="icon" />
             </TitleBarButton>
+            {themeToggleVisible ? (
+                <TitleBarButton
+                    label={themeToggleLabel}
+                    className="size-7 min-w-7 rounded-md px-0"
+                    onClick={() => {
+                        setThemeModePreference(
+                            themeMode === 'light' ? 'dark' : 'light'
+                        );
+                    }}
+                >
+                    {themeMode === 'light' ? (
+                        <MoonIcon data-icon="icon" />
+                    ) : (
+                        <SunIcon data-icon="icon" />
+                    )}
+                </TitleBarButton>
+            ) : null}
             <TitleBarButton
                 label={leftSidebarLabel}
                 className="size-7 min-w-7 rounded-md px-0"

@@ -1,10 +1,4 @@
-import {
-    MoonIcon,
-    PanelLeftIcon,
-    SettingsIcon,
-    PlusIcon,
-    SunIcon
-} from 'lucide-react';
+import { PanelLeftIcon, SettingsIcon, PlusIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -144,38 +138,18 @@ function AppNavMenuContent({
 
 function AppNavFooter({
     sidebarOpen,
-    themeMode,
-    showThemeToggle = true,
     onNavigateSettings,
-    onToggleSidebar,
-    onToggleTheme
+    onToggleSidebar
 }: {
     sidebarOpen: boolean;
-    themeMode: string;
-    showThemeToggle?: boolean;
     onNavigateSettings: () => void;
     onToggleSidebar: () => void;
-    onToggleTheme: () => void;
 }) {
     const { t } = useTranslation();
 
     return (
         <SidebarFooter className="text-sidebar-foreground/65 px-2 py-3">
             <SidebarMenu>
-                {showThemeToggle ? (
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            tooltip={t('nav_tooltip.toggle_theme')}
-                            onClick={() => {
-                                onToggleTheme();
-                            }}
-                        >
-                            {themeMode === 'light' ? <MoonIcon /> : <SunIcon />}
-                            <span>{t('nav_tooltip.toggle_theme')}</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                ) : null}
-
                 <SidebarMenuItem>
                     <SidebarMenuButton
                         type="button"
