@@ -281,12 +281,6 @@ function InstanceInfoTooltip({
 export function InstanceActionBar({
     className,
     target = null,
-    location = '',
-    launchLocation = '',
-    inviteLocation = '',
-    instanceLocation = '',
-    shortName = '',
-    worldName = '',
     instance = null,
     friendCount,
     playerCount,
@@ -308,12 +302,6 @@ export function InstanceActionBar({
 }: {
     className?: string;
     target?: LocationObjectRecord | null;
-    location?: unknown;
-    launchLocation?: unknown;
-    inviteLocation?: unknown;
-    instanceLocation?: unknown;
-    shortName?: unknown;
-    worldName?: unknown;
     instance?: unknown;
     friendCount?: number;
     playerCount?: unknown;
@@ -347,25 +335,8 @@ export function InstanceActionBar({
         resolveInstanceSource(instance)
     );
     const actionTarget = useMemo(
-        () =>
-            buildInstanceActionTarget({
-                target,
-                location,
-                launchLocation,
-                inviteLocation,
-                instanceLocation,
-                shortName,
-                worldName
-            }),
-        [
-            target,
-            location,
-            launchLocation,
-            inviteLocation,
-            instanceLocation,
-            shortName,
-            worldName
-        ]
+        () => buildInstanceActionTarget(target),
+        [target]
     );
     const joinHistoryKey = useMemo(
         () => instanceLocationKey(actionTarget.instanceLocation),

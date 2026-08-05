@@ -5,6 +5,7 @@ import {
     fireEvent,
     render,
     screen,
+    waitFor,
     within
 } from '@testing-library/react';
 import React from 'react';
@@ -147,23 +148,9 @@ vi.mock('@/ui/shadcn/tooltip', async () => {
 
 import { InstanceActionBar } from './InstanceActionBar';
 
-type ActionBarTestProps = {
-    location?: string;
-    target?: { location: string; shortName?: string; worldName?: string };
-    instance?: Record<string, unknown>;
-    friendCount?: number;
-    playerCount?: number;
-    capacity?: number;
-    showLaunch?: boolean;
-    showInvite?: boolean;
-    showRefresh?: boolean;
-    showHistory?: boolean;
-    disableTooltip?: boolean;
-    disableInstanceInfoTooltip?: boolean;
-    historyTooltip?: string;
-};
-
-function renderActionBar(props: ActionBarTestProps = {}) {
+function renderActionBar(
+    props: React.ComponentProps<typeof InstanceActionBar> = {}
+) {
     return renderToStaticMarkup(React.createElement(InstanceActionBar, props));
 }
 
@@ -194,7 +181,7 @@ describe('InstanceActionBar', () => {
 
     it('renders instance actions and summary for a real instance location', () => {
         const html = renderActionBar({
-            location: 'wrld_test:12345~region(us)',
+            target: { location: 'wrld_test:12345~region(us)' },
             instance: {
                 userCount: 12,
                 capacity: 40,
@@ -226,7 +213,7 @@ describe('InstanceActionBar', () => {
 
     it('renders the close-instance marker as a neutral icon button', () => {
         const html = renderActionBar({
-            location: 'wrld_test:12345',
+            target: { location: 'wrld_test:12345' },
             instance: {
                 ownerId: 'usr_self',
                 userCount: 2,
@@ -249,7 +236,7 @@ describe('InstanceActionBar', () => {
     it('keeps the close action outside the instance-info tooltip', () => {
         render(
             <InstanceActionBar
-                location="wrld_test:12345"
+                target={{ location: 'wrld_test:12345' }}
                 instance={{
                     ownerId: 'usr_self',
                     userCount: 2,
@@ -284,7 +271,7 @@ describe('InstanceActionBar', () => {
 
         render(
             <InstanceActionBar
-                location="wrld_test:12345"
+                target={{ location: 'wrld_test:12345' }}
                 instance={{
                     ownerId: 'usr_self',
                     userCount: 2,
@@ -309,7 +296,7 @@ describe('InstanceActionBar', () => {
     it('can show instance info while keeping action tooltips disabled', () => {
         render(
             <InstanceActionBar
-                location="wrld_test:12345"
+                target={{ location: 'wrld_test:12345' }}
                 instance={{
                     ownerId: 'usr_self',
                     userCount: 2,
@@ -338,7 +325,7 @@ describe('InstanceActionBar', () => {
 
     it('uses fallback player count and provided capacity without instance info', () => {
         const html = renderActionBar({
-            location: 'wrld_test:12345',
+            target: { location: 'wrld_test:12345' },
             playerCount: 5,
             capacity: 16,
             showLaunch: false,
@@ -354,7 +341,7 @@ describe('InstanceActionBar', () => {
 
     it('does not display a negative instance player-count sentinel', () => {
         const apiFallbackHtml = renderActionBar({
-            location: 'wrld_test:12345',
+            target: { location: 'wrld_test:12345' },
             instance: {
                 userCount: -1,
                 n_users: 4,
@@ -362,7 +349,7 @@ describe('InstanceActionBar', () => {
             }
         });
         const fallbackHtml = renderActionBar({
-            location: 'wrld_test:12345',
+            target: { location: 'wrld_test:12345' },
             instance: {
                 userCount: -1,
                 capacity: 32
@@ -370,7 +357,7 @@ describe('InstanceActionBar', () => {
             playerCount: 3
         });
         const unknownHtml = renderActionBar({
-            location: 'wrld_test:12345',
+            target: { location: 'wrld_test:12345' },
             instance: {
                 userCount: -1,
                 capacity: 32
@@ -386,7 +373,7 @@ describe('InstanceActionBar', () => {
 
     it('falls back to users length and world capacity from instance details', () => {
         const html = renderActionBar({
-            location: 'wrld_test:12345',
+            target: { location: 'wrld_test:12345' },
             instance: {
                 users: [{ id: 'usr_a' }, { id: 'usr_b' }, { id: 'usr_c' }],
                 world: {
@@ -418,11 +405,60 @@ describe('InstanceActionBar', () => {
         expect(html).toContain('4/12');
     });
 
+    it('routes independent target locations to their matching actions', async () => {
+        const onRefresh = vi.fn().mockResolvedValue({});
+        mocks.selfInviteToInstance.mockResolvedValue(undefined);
+
+        render(
+            <InstanceActionBar
+                target={{
+                    launchLocation: 'wrld_launch:12345~region(us)',
+                    inviteLocation: 'wrld_invite:23456~region(jp)',
+                    instanceLocation: 'wrld_refresh:34567~region(eu)',
+                    shortName: 'fallback-token',
+                    worldName: 'Action World'
+                }}
+                onRefresh={onRefresh}
+                disableTooltip
+            />
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Launch instance' }));
+        expect(mocks.showLaunchDialog).toHaveBeenCalledWith(
+            'wrld_launch:12345~region(us)',
+            '',
+            'fallback-token',
+            { worldName: 'Action World' }
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Self invite' }));
+        await waitFor(() => {
+            expect(mocks.selfInviteToInstance).toHaveBeenCalledWith(
+                'wrld_invite:23456~region(jp)',
+                'fallback-token'
+            );
+            expect(
+                screen.getByRole('button', { name: 'Self invite' }).hasAttribute(
+                    'disabled'
+                )
+            ).toBe(false);
+        });
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Refresh instance info' })
+        );
+        await waitFor(() => {
+            expect(onRefresh).toHaveBeenCalledWith(
+                'wrld_refresh:34567~region(eu)'
+            );
+        });
+    });
+
     it('hides the open in-game action while VRChat is not running', () => {
         mocks.runtimeState.gameState.isGameRunning = false;
 
         const html = renderActionBar({
-            location: 'wrld_test:12345'
+            target: { location: 'wrld_test:12345' }
         });
 
         expect(html).toContain('aria-label="Launch instance"');
@@ -432,7 +468,7 @@ describe('InstanceActionBar', () => {
 
     it('does not render instance actions for private or non-instance locations', () => {
         const html = renderActionBar({
-            location: 'private',
+            target: { location: 'private' },
             playerCount: 1,
             capacity: 4
         });

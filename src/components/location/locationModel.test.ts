@@ -37,11 +37,9 @@ describe('locationModel', () => {
 
     it('builds one action target for launch, invite, and refresh', () => {
         const target = buildInstanceActionTarget({
-            target: {
-                location: 'wrld_test:12345~hidden(usr_owner)',
-                shortName: 'abc12345',
-                worldName: 'Test World'
-            }
+            location: 'wrld_test:12345~hidden(usr_owner)',
+            shortName: 'abc12345',
+            worldName: 'Test World'
         });
 
         expect(target.launchLocation).toBe('wrld_test:12345~hidden(usr_owner)');
@@ -54,5 +52,24 @@ describe('locationModel', () => {
         expect(target.isRealInstanceLocation).toBe(true);
         expect(target.shortName).toBe('abc12345');
         expect(target.worldName).toBe('Test World');
+    });
+
+    it('preserves independent launch, invite, and refresh locations', () => {
+        const target = buildInstanceActionTarget({
+            location: 'private',
+            launchLocation: 'wrld_launch:12345~region(us)',
+            inviteLocation: 'wrld_invite:23456~region(jp)',
+            instanceLocation: 'wrld_refresh:34567~region(eu)'
+        });
+
+        expect(target.launchLocation).toBe('wrld_launch:12345~region(us)');
+        expect(target.inviteLocation).toBe('wrld_invite:23456~region(jp)');
+        expect(target.instanceLocation).toBe('wrld_refresh:34567~region(eu)');
+        expect(target.parsedLaunchLocation.worldId).toBe('wrld_launch');
+        expect(target.parsedInviteLocation.worldId).toBe('wrld_invite');
+        expect(target.parsedInstanceLocation.worldId).toBe('wrld_refresh');
+        expect(target.isRealLaunchLocation).toBe(true);
+        expect(target.isRealInviteLocation).toBe(true);
+        expect(target.isRealInstanceLocation).toBe(true);
     });
 });

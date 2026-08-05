@@ -18,6 +18,9 @@ export type LocationObjectRecord = Record<string, unknown> & {
     regionName?: unknown;
     region_name?: unknown;
     shortName?: unknown;
+    launchLocation?: unknown;
+    inviteLocation?: unknown;
+    instanceLocation?: unknown;
     launchToken?: unknown;
     secureOrShortName?: unknown;
     secureName?: unknown;
@@ -226,42 +229,33 @@ export function isUsableInstanceLocation(
     );
 }
 
-export function buildInstanceActionTarget({
-    target = null,
-    location = '',
-    launchLocation = '',
-    inviteLocation = '',
-    instanceLocation = '',
-    shortName = '',
-    worldName = ''
-}: {
-    target?: LocationObjectRecord | null;
-    location?: unknown;
-    launchLocation?: unknown;
-    inviteLocation?: unknown;
-    instanceLocation?: unknown;
-    shortName?: unknown;
-    worldName?: unknown;
-} = {}) {
+export function buildInstanceActionTarget(
+    target: LocationObjectRecord | null = null
+) {
     const source = target || {};
     const baseLocation = normalizeLocationText(
-        source.location || source.tag || location
+        source.location || source.tag
     );
     const resolvedLaunchLocation =
-        normalizeLocationText(source.launchLocation || launchLocation) ||
-        baseLocation;
+        normalizeLocationText(source.launchLocation) || baseLocation;
     const resolvedInviteLocation =
-        normalizeLocationText(source.inviteLocation || inviteLocation) ||
-        baseLocation;
+        normalizeLocationText(source.inviteLocation) || baseLocation;
     const resolvedInstanceLocation =
-        normalizeLocationText(source.instanceLocation || instanceLocation) ||
-        baseLocation;
+        normalizeLocationText(source.instanceLocation) || baseLocation;
     const parsedLaunchLocation = parseLocation(resolvedLaunchLocation);
-    const parsedInviteLocation = parseLocation(resolvedInviteLocation);
-    const parsedInstanceLocation = parseLocation(resolvedInstanceLocation);
+    const parsedInviteLocation =
+        resolvedInviteLocation === resolvedLaunchLocation
+            ? parsedLaunchLocation
+            : parseLocation(resolvedInviteLocation);
+    let parsedInstanceLocation = parsedLaunchLocation;
+    if (resolvedInstanceLocation !== resolvedLaunchLocation) {
+        parsedInstanceLocation =
+            resolvedInstanceLocation === resolvedInviteLocation
+                ? parsedInviteLocation
+                : parseLocation(resolvedInstanceLocation);
+    }
     const resolvedShortName =
         normalizeLocationText(source.shortName) ||
-        normalizeLocationText(shortName) ||
         parsedLaunchLocation.shortName ||
         parsedInviteLocation.shortName ||
         parsedInstanceLocation.shortName ||
@@ -283,8 +277,6 @@ export function buildInstanceActionTarget({
         shortName: resolvedShortName,
         launchToken:
             normalizeLocationText(source.launchToken) || resolvedShortName,
-        worldName:
-            normalizeLocationText(source.worldName) ||
-            normalizeLocationText(worldName)
+        worldName: normalizeLocationText(source.worldName)
     };
 }
