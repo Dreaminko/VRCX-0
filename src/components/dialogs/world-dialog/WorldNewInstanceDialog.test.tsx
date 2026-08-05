@@ -184,10 +184,7 @@ vi.mock('@/ui/shadcn/tabs', async () => {
 });
 
 import { WorldNewInstanceDialog } from './WorldNewInstanceDialog';
-import type {
-    CreatedWorldInstance,
-    WorldNewInstanceRequest
-} from './worldNewInstanceTypes';
+import type { WorldNewInstanceRequest } from './worldNewInstanceTypes';
 
 const world: WorldProfileRecord = {
     id: 'wrld_test',
@@ -213,31 +210,13 @@ const world: WorldProfileRecord = {
     visits: 0
 };
 
-function makeCreated(
-    accessType = 'public',
-    ownerId = 'usr_self'
-): CreatedWorldInstance {
-    return {
-        location: 'wrld_test:12345',
-        shortName: '',
-        secureOrShortName: '',
-        accessType,
-        ownerId,
-        groupId: '',
-        group: null,
-        url: 'https://vrchat.com/home/launch?worldId=wrld_test'
-    };
-}
-
 function makeRequest(
-    defaults: WorldNewInstanceRequest['defaults'] = {},
-    created?: CreatedWorldInstance
+    defaults: WorldNewInstanceRequest['defaults'] = {}
 ): WorldNewInstanceRequest {
     return {
         selfInvite: false,
         afterCreateAction: '',
-        defaults,
-        created
+        defaults
     };
 }
 
@@ -337,10 +316,14 @@ describe('WorldNewInstanceDialog', () => {
     });
 
     it.each(['friends', 'invite'])(
-        'disables inviting to a non-owned %s instance',
+        'disables inviting to a non-owned legacy %s instance',
         (accessType) => {
             const props = defaultProps({
-                request: makeRequest({}, makeCreated(accessType, 'usr_other'))
+                request: makeRequest({
+                    selectedTab: 'Legacy',
+                    accessType,
+                    legacyUserId: 'usr_other'
+                })
             });
             render(<WorldNewInstanceDialog {...props} />);
 
@@ -375,45 +358,29 @@ describe('WorldNewInstanceDialog', () => {
         ).toBeLessThan(props.onSubmit.mock.invocationCallOrder[0]);
     });
 
-    it('requests the display-name preset before invite and launch actions', async () => {
-        const props = defaultProps({
-            request: makeRequest(
-                { displayName: '  Beta Room  ' },
-                makeCreated()
-            )
-        });
+    it('keeps the normal tab on create-only actions', async () => {
+        const props = defaultProps({ request: makeRequest() });
         render(<WorldNewInstanceDialog {...props} />);
 
         await waitFor(() => {
-            expect(inputByLabel('dialog.world.label.display_name').value).toBe(
-                '  Beta Room  '
-            );
+            expect(
+                buttonByName('dialog.new_instance.create_instance')
+            ).toBeTruthy();
         });
-        fireEvent.click(buttonByName('dialog.world.action.invite'));
-        expect(props.onCommitDisplayName).toHaveBeenNthCalledWith(
-            1,
-            'Beta Room'
-        );
-        expect(props.onInvite).toHaveBeenCalledOnce();
         expect(
-            props.onCommitDisplayName.mock.invocationCallOrder[0]
-        ).toBeLessThan(props.onInvite.mock.invocationCallOrder[0]);
-
-        fireEvent.click(buttonByName('dialog.world.action.launch'));
-        expect(props.onCommitDisplayName).toHaveBeenNthCalledWith(
-            2,
-            'Beta Room'
-        );
-        expect(props.onLaunch).toHaveBeenCalledOnce();
+            screen.queryByRole('button', {
+                name: 'dialog.world.action.launch'
+            })
+        ).toBeNull();
         expect(
-            props.onCommitDisplayName.mock.invocationCallOrder[1]
-        ).toBeLessThan(props.onLaunch.mock.invocationCallOrder[0]);
+            screen.queryByLabelText('dialog.world.label.location')
+        ).toBeNull();
     });
 
-    it('disables every created-instance side effect while submitting', () => {
+    it('disables every legacy instance side effect while submitting', () => {
         const props = defaultProps({
             isGameRunning: true,
-            request: makeRequest({}, makeCreated()),
+            request: makeRequest({ selectedTab: 'Legacy' }),
             submitting: true
         });
         render(<WorldNewInstanceDialog {...props} />);

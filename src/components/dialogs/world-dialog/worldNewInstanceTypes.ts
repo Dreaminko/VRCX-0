@@ -27,7 +27,6 @@ export interface WorldNewInstanceRequest {
     selfInvite: boolean;
     afterCreateAction: NewInstanceAfterCreateAction;
     defaults: Partial<WorldNewInstanceForm>;
-    created?: CreatedWorldInstance;
 }
 
 export interface WorldInstanceInviteRequest {

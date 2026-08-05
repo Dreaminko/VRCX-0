@@ -359,13 +359,7 @@ export function useWorldInstanceActions({
                 toast.success(t('dialog.world.success.instance_created'));
                 return;
             }
-            setNewInstanceRequest((current) => ({
-                ...(current || {}),
-                selfInvite: isNewInstanceSelfInviteRequest(current),
-                afterCreateAction: current?.afterCreateAction || '',
-                defaults: form,
-                created
-            }));
+            setNewInstanceRequest(null);
 
             if (shouldSelfInvite) {
                 const parsedLocation = parseLocation(location);
@@ -375,6 +369,7 @@ export function useWorldInstanceActions({
                             'dialog.world.label.instance_created_but_the_new_instance_location_is_not_inviteable'
                         )
                     );
+                    launchCreatedInstance(created);
                 } else {
                     try {
                         await selfInviteToInstance(
@@ -397,12 +392,25 @@ export function useWorldInstanceActions({
                                       'dialog.world.toast.instance_created_but_self_invite_failed'
                                   )
                         );
+                        launchCreatedInstance(created);
                     }
                 }
             } else if (shouldOpenInGame) {
-                await openCreatedInstanceInGameRequest(created);
+                try {
+                    await openCreatedInstanceInGameRequest(created);
+                } catch (error) {
+                    toast.error(
+                        error instanceof Error
+                            ? error.message
+                            : t(
+                                  'dialog.world.toast.failed_to_open_instance_in_vrchat'
+                              )
+                    );
+                    launchCreatedInstance(created);
+                }
             } else {
                 toast.success(t('dialog.world.success.instance_created'));
+                launchCreatedInstance(created);
             }
         } catch (error) {
             toast.error(

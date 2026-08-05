@@ -201,9 +201,6 @@ export function WorldNewInstanceDialog({
                   legacySeed
               })
             : null;
-    const activeCreated = request?.created || legacyCreated;
-    const activeAccessType = activeCreated?.accessType || form.accessType;
-    const activeOwnerId = activeCreated?.ownerId || currentUserId;
     const selectedGroup =
         groupOptions.find(
             (group) => groupIdForOption(group) === form.groupId
@@ -220,10 +217,12 @@ export function WorldNewInstanceDialog({
         ? [missingSelectedGroup, ...groupOptions]
         : groupOptions;
     const inviteDisabled = Boolean(
-        (activeAccessType === 'friends' || activeAccessType === 'invite') &&
-        activeOwnerId &&
+        legacyCreated &&
+        (legacyCreated.accessType === 'friends' ||
+            legacyCreated.accessType === 'invite') &&
+        legacyCreated.ownerId &&
         currentUserId &&
-        activeOwnerId !== currentUserId
+        legacyCreated.ownerId !== currentUserId
     );
 
     function patchGroupId(groupId: string | null) {
@@ -251,10 +250,6 @@ export function WorldNewInstanceDialog({
     function commitDisplayNamePreset(
         value: unknown = form.displayName
     ): string | null {
-        if (form.selectedTab !== 'Normal') {
-            return null;
-        }
-
         const displayName = normalizeInstanceDialogDisplayName(value);
         if (!displayName) {
             return null;
@@ -277,13 +272,12 @@ export function WorldNewInstanceDialog({
         setDisplayNamePresetsOpen(false);
     }
 
-    function renderGroupPicker(inputId: string, disabled = false) {
+    function renderGroupPicker(inputId: string) {
         if (!visibleGroupOptions.length) {
             return (
                 <Input
                     id={inputId}
                     value={form.groupId}
-                    disabled={disabled}
                     onChange={(event) =>
                         patchForm({
                             groupId: event.target.value,
@@ -304,7 +298,6 @@ export function WorldNewInstanceDialog({
                         label: groupLabel(group)
                     };
                 })}
-                disabled={disabled}
                 onValueChange={patchGroupId}
             >
                 <SelectTrigger id={inputId}>
@@ -365,7 +358,6 @@ export function WorldNewInstanceDialog({
                                         value: option.value,
                                         label: t(option.labelKey)
                                     }))}
-                                    disabled={Boolean(request?.created)}
                                     onValueChange={(value) =>
                                         patchForm({ accessType: value || '' })
                                     }
@@ -397,7 +389,6 @@ export function WorldNewInstanceDialog({
                                         value: region.value,
                                         label: t(region.labelKey)
                                     }))}
-                                    disabled={Boolean(request?.created)}
                                     onValueChange={(value) =>
                                         patchForm({ region: value || '' })
                                     }
@@ -426,8 +417,7 @@ export function WorldNewInstanceDialog({
                                             {t('dialog.new_instance.group_id')}
                                         </FieldLabel>
                                         {renderGroupPicker(
-                                            'world-instance-group-id',
-                                            Boolean(request?.created)
+                                            'world-instance-group-id'
                                         )}
                                     </Field>
                                     <Field>
@@ -444,7 +434,6 @@ export function WorldNewInstanceDialog({
                                                     label: t(option.labelKey)
                                                 })
                                             )}
-                                            disabled={Boolean(request?.created)}
                                             onValueChange={(value) =>
                                                 patchForm({
                                                     groupAccessType: value || ''
@@ -486,9 +475,6 @@ export function WorldNewInstanceDialog({
                                             <Input
                                                 id="world-instance-role-ids"
                                                 value={form.roleIds}
-                                                disabled={Boolean(
-                                                    request?.created
-                                                )}
                                                 onChange={(event) =>
                                                     patchForm({
                                                         roleIds:
@@ -499,18 +485,10 @@ export function WorldNewInstanceDialog({
                                         </Field>
                                     ) : null}
                                     <FieldGroup data-slot="checkbox-group">
-                                        <Field
-                                            orientation="horizontal"
-                                            data-disabled={Boolean(
-                                                request?.created
-                                            )}
-                                        >
+                                        <Field orientation="horizontal">
                                             <Checkbox
                                                 id="world-instance-queue-enabled"
                                                 checked={form.queueEnabled}
-                                                disabled={Boolean(
-                                                    request?.created
-                                                )}
                                                 onCheckedChange={(value) =>
                                                     patchForm({
                                                         queueEnabled:
@@ -524,18 +502,10 @@ export function WorldNewInstanceDialog({
                                                 )}
                                             </FieldLabel>
                                         </Field>
-                                        <Field
-                                            orientation="horizontal"
-                                            data-disabled={Boolean(
-                                                request?.created
-                                            )}
-                                        >
+                                        <Field orientation="horizontal">
                                             <Checkbox
                                                 id="world-instance-age-gate"
                                                 checked={form.ageGate}
-                                                disabled={Boolean(
-                                                    request?.created
-                                                )}
                                                 onCheckedChange={(value) =>
                                                     patchForm({
                                                         ageGate: Boolean(value)
@@ -563,7 +533,6 @@ export function WorldNewInstanceDialog({
                                         <InputGroupInput
                                             id="world-instance-display-name"
                                             value={form.displayName}
-                                            disabled={Boolean(request?.created)}
                                             onChange={(event) =>
                                                 patchDisplayName(
                                                     event.target.value
@@ -578,9 +547,6 @@ export function WorldNewInstanceDialog({
                                                             size="icon-xs"
                                                             aria-label={t(
                                                                 'dialog.world.label.display_name'
-                                                            )}
-                                                            disabled={Boolean(
-                                                                request?.created
                                                             )}
                                                         >
                                                             <ChevronDownIcon data-icon="inline-start" />
@@ -817,7 +783,7 @@ export function WorldNewInstanceDialog({
                         </FieldGroup>
                     </TabsContent>
                 </Tabs>
-                {activeCreated ? (
+                {legacyCreated ? (
                     <FieldGroup className="gap-4">
                         <Field>
                             <FieldLabel htmlFor="world-created-location">
@@ -826,7 +792,7 @@ export function WorldNewInstanceDialog({
                             <Input
                                 id="world-created-location"
                                 readOnly
-                                value={activeCreated.location || ''}
+                                value={legacyCreated.location || ''}
                                 onClick={(event) =>
                                     event.currentTarget.select()
                                 }
@@ -839,7 +805,7 @@ export function WorldNewInstanceDialog({
                             <Input
                                 id="world-created-url"
                                 readOnly
-                                value={activeCreated.url || ''}
+                                value={legacyCreated.url || ''}
                                 onClick={(event) =>
                                     event.currentTarget.select()
                                 }
@@ -847,16 +813,13 @@ export function WorldNewInstanceDialog({
                         </Field>
                     </FieldGroup>
                 ) : null}
-                {activeCreated ? (
+                {legacyCreated ? (
                     <DialogFooter className="gap-2 sm:justify-end">
                         <Button
                             type="button"
                             variant="outline"
                             disabled={submitting}
-                            onClick={() => {
-                                commitDisplayNamePreset();
-                                onCopy?.(activeCreated);
-                            }}
+                            onClick={() => onCopy(legacyCreated)}
                         >
                             {t('dialog.world.info.copy_url')}
                         </Button>
@@ -864,10 +827,7 @@ export function WorldNewInstanceDialog({
                             type="button"
                             variant="outline"
                             disabled={submitting}
-                            onClick={() => {
-                                commitDisplayNamePreset();
-                                onSelfInvite?.(activeCreated);
-                            }}
+                            onClick={() => onSelfInvite(legacyCreated)}
                         >
                             {t('dialog.world.label.self_invite')}
                         </Button>
@@ -875,10 +835,7 @@ export function WorldNewInstanceDialog({
                             type="button"
                             variant="outline"
                             disabled={submitting || inviteDisabled}
-                            onClick={() => {
-                                commitDisplayNamePreset();
-                                onInvite?.(activeCreated);
-                            }}
+                            onClick={() => onInvite(legacyCreated)}
                         >
                             {t('dialog.world.action.invite')}
                         </Button>
@@ -886,10 +843,7 @@ export function WorldNewInstanceDialog({
                             type="button"
                             variant={isGameRunning ? 'secondary' : 'default'}
                             disabled={submitting}
-                            onClick={() => {
-                                commitDisplayNamePreset();
-                                onLaunch?.(activeCreated);
-                            }}
+                            onClick={() => onLaunch(legacyCreated)}
                         >
                             {t('dialog.world.action.launch')}
                         </Button>
@@ -897,10 +851,7 @@ export function WorldNewInstanceDialog({
                             <Button
                                 type="button"
                                 disabled={submitting}
-                                onClick={() => {
-                                    commitDisplayNamePreset();
-                                    onOpenInGame?.(activeCreated);
-                                }}
+                                onClick={() => onOpenInGame(legacyCreated)}
                             >
                                 {t('dialog.world.action.open_in_game')}
                             </Button>
