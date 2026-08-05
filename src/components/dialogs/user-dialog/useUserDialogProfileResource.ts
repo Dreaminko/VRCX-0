@@ -166,7 +166,6 @@ export function useUserDialogProfileResource({
             kind: 'user',
             entityId: profile.id,
             title,
-            subtitle: profile.username,
             imageUrl:
                 profile.profilePicOverrideThumbnail ||
                 profile.profilePicOverride ||

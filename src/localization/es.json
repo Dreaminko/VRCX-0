@@ -3,20 +3,41 @@
         "title": "Historial de navegación",
         "description": "Usuarios, mundos, avatares y grupos vistos recientemente.",
         "search_placeholder": "Buscar en el historial",
+        "date_range": "Periodo",
+        "date_range_start": "Inicio",
+        "date_range_end": "Fin",
         "loading": "Cargando historial…",
         "load_error": "No se pudo cargar el historial.",
         "empty_title": "No hay historial",
         "empty_description": "Los usuarios, mundos, avatares y grupos que abras aparecerán aquí.",
-        "view_count": "Visto {count} veces",
-        "filter": { "all": "Todo", "user": "Usuarios", "world": "Mundos", "avatar": "Avatares", "group": "Grupos" },
+        "no_results_title": "Sin coincidencias",
+        "no_results_description": "Prueba con otra búsqueda o amplía el periodo.",
+        "unknown": {
+            "user": "Usuario desconocido",
+            "world": "Mundo desconocido",
+            "avatar": "Avatar desconocido",
+            "group": "Grupo desconocido"
+        },
+        "filter": {
+            "all": "Todo",
+            "user": "Usuarios",
+            "world": "Mundos",
+            "avatar": "Avatares",
+            "group": "Grupos"
+        },
         "date": { "today": "Hoy", "yesterday": "Ayer" },
         "retention": {
             "label": "Conservación del historial",
+            "description": "Las entradas más antiguas se eliminan automáticamente.",
             "days": "{count} días",
             "forever": "Conservar siempre",
             "update_failed": "No se pudo cambiar el periodo de conservación."
         },
-        "actions": { "clear_all": "Borrar todo", "clear_kind": "Borrar filtrados", "remove": "Quitar del historial" },
+        "actions": {
+            "clear_all": "Borrar todo",
+            "clear_kind": "Borrar filtrados",
+            "remove": "Quitar del historial"
+        },
         "confirmation": {
             "title": "¿Borrar el historial?",
             "description": "Se eliminará de este dispositivo el historial filtrado actualmente."

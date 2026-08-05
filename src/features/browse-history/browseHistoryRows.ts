@@ -1,9 +1,9 @@
 import { positionKnownSizeRows } from '@/lib/knownSizeVirtualRows';
 import type { BrowseHistoryItemOutput } from '@/repositories/browseHistoryRepository';
 
-export const BROWSE_HISTORY_CARD_HEIGHT = 104;
-export const BROWSE_HISTORY_GRID_GAP = 10;
-export const BROWSE_HISTORY_HEADING_HEIGHT = 38;
+export const BROWSE_HISTORY_CARD_HEIGHT = 64;
+export const BROWSE_HISTORY_GRID_GAP = 8;
+export const BROWSE_HISTORY_HEADING_HEIGHT = 32;
 
 export type BrowseHistoryVirtualRow =
     | {

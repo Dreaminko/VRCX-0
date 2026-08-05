@@ -3,20 +3,41 @@
         "title": "浏览记录",
         "description": "最近查看过的用户、世界、模型和群组。",
         "search_placeholder": "搜索浏览记录",
+        "date_range": "时间范围",
+        "date_range_start": "开始",
+        "date_range_end": "结束",
         "loading": "正在加载浏览记录…",
         "load_error": "无法加载浏览记录。",
         "empty_title": "暂无浏览记录",
         "empty_description": "打开过的用户、世界、模型和群组会显示在这里。",
-        "view_count": "查看 {count} 次",
-        "filter": { "all": "全部", "user": "用户", "world": "世界", "avatar": "模型", "group": "群组" },
+        "no_results_title": "没有匹配的记录",
+        "no_results_description": "换个关键词，或放宽时间范围试试。",
+        "unknown": {
+            "user": "未知用户",
+            "world": "未知世界",
+            "avatar": "未知模型",
+            "group": "未知群组"
+        },
+        "filter": {
+            "all": "全部",
+            "user": "用户",
+            "world": "世界",
+            "avatar": "模型",
+            "group": "群组"
+        },
         "date": { "today": "今天", "yesterday": "昨天" },
         "retention": {
-            "label": "记录保留时间",
+            "label": "浏览记录保留时间",
+            "description": "超过该时间的记录会自动删除。",
             "days": "{count} 天",
             "forever": "永久保留",
             "update_failed": "无法更新记录保留时间。"
         },
-        "actions": { "clear_all": "清空全部", "clear_kind": "清空当前筛选", "remove": "从记录中移除" },
+        "actions": {
+            "clear_all": "清空全部",
+            "clear_kind": "清空当前筛选",
+            "remove": "从记录中移除"
+        },
         "confirmation": {
             "title": "清空浏览记录？",
             "description": "这会从此设备删除当前筛选范围内的浏览记录。"

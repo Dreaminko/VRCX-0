@@ -3,20 +3,41 @@
         "title": "Historie prohlížení",
         "description": "Nedávno zobrazení uživatelé, světy, avataři a skupiny.",
         "search_placeholder": "Hledat v historii",
+        "date_range": "Období",
+        "date_range_start": "Začátek",
+        "date_range_end": "Konec",
         "loading": "Načítání historie…",
         "load_error": "Historii prohlížení se nepodařilo načíst.",
         "empty_title": "Historie je prázdná",
         "empty_description": "Otevření uživatelé, světy, avataři a skupiny se zobrazí zde.",
-        "view_count": "Zobrazeno {count}krát",
-        "filter": { "all": "Vše", "user": "Uživatelé", "world": "Světy", "avatar": "Avataři", "group": "Skupiny" },
+        "no_results_title": "Žádné shody",
+        "no_results_description": "Zkuste jiný výraz nebo širší období.",
+        "unknown": {
+            "user": "Neznámý uživatel",
+            "world": "Neznámý svět",
+            "avatar": "Neznámý avatar",
+            "group": "Neznámá skupina"
+        },
+        "filter": {
+            "all": "Vše",
+            "user": "Uživatelé",
+            "world": "Světy",
+            "avatar": "Avataři",
+            "group": "Skupiny"
+        },
         "date": { "today": "Dnes", "yesterday": "Včera" },
         "retention": {
-            "label": "Doba uchování",
+            "label": "Doba uchování historie",
+            "description": "Starší položky se automaticky mažou.",
             "days": "{count} dní",
             "forever": "Uchovat navždy",
             "update_failed": "Dobu uchování historie se nepodařilo změnit."
         },
-        "actions": { "clear_all": "Vymazat vše", "clear_kind": "Vymazat filtrované", "remove": "Odebrat z historie" },
+        "actions": {
+            "clear_all": "Vymazat vše",
+            "clear_kind": "Vymazat filtrované",
+            "remove": "Odebrat z historie"
+        },
         "confirmation": {
             "title": "Vymazat historii?",
             "description": "Aktuálně filtrovaná historie bude z tohoto zařízení odstraněna."

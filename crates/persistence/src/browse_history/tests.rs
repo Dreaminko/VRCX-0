@@ -39,13 +39,16 @@ fn record_input(entity_id: &str) -> BrowseHistoryRecordInput {
         entity_kind: BrowseHistoryEntityKind::World,
         entity_id: entity_id.into(),
         title: "World".into(),
-        subtitle: "Author".into(),
         image_url: "https://example.com/world.png".into(),
         record_visit: true,
     }
 }
 
-fn query(db: &DatabaseService, cursor: Option<BrowseHistoryCursor>, limit: i64) -> BrowseHistoryPageOutput {
+fn query(
+    db: &DatabaseService,
+    cursor: Option<BrowseHistoryCursor>,
+    limit: i64,
+) -> BrowseHistoryPageOutput {
     browse_history_query(
         db,
         BrowseHistoryQueryInput {
@@ -54,6 +57,8 @@ fn query(db: &DatabaseService, cursor: Option<BrowseHistoryCursor>, limit: i64) 
             search: String::new(),
             cursor,
             limit,
+            date_from: String::new(),
+            date_to: String::new(),
         },
     )
     .unwrap()
@@ -76,7 +81,6 @@ fn enrichment_updates_snapshot_without_counting_a_visit() {
     let test = test_db("enrich");
     let mut input = record_input("wrld_enrich");
     input.title.clear();
-    input.subtitle.clear();
     input.image_url.clear();
     browse_history_record(&test.db, input).unwrap();
     browse_history_record(
@@ -86,7 +90,6 @@ fn enrichment_updates_snapshot_without_counting_a_visit() {
             entity_kind: BrowseHistoryEntityKind::World,
             entity_id: "wrld_enrich".into(),
             title: "Resolved World".into(),
-            subtitle: "Resolved Author".into(),
             image_url: "https://example.com/resolved.png".into(),
             record_visit: false,
         },
@@ -96,7 +99,6 @@ fn enrichment_updates_snapshot_without_counting_a_visit() {
     let page = query(&test.db, None, 10);
     assert_eq!(page.items[0].view_count, 1);
     assert_eq!(page.items[0].title, "Resolved World");
-    assert_eq!(page.items[0].subtitle, "Resolved Author");
 }
 
 #[test]
@@ -107,15 +109,13 @@ fn cursor_pagination_is_stable_for_equal_timestamps() {
         test.db
             .execute_non_query(
                 "INSERT INTO browse_history (
-                    owner_user_id, entity_kind, entity_id, title, subtitle, image_url,
+                    owner_user_id, entity_kind, entity_id, title, image_url,
                     first_viewed_at, last_viewed_at, view_count
                  ) VALUES (
-                    'usr_owner', 'world', @entity_id, @entity_id, '', '',
+                    'usr_owner', 'world', @entity_id, @entity_id, '',
                     '2099-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z', 1
                  )",
-                &ParamsBuilder::new()
-                    .set("entity_id", entity_id)
-                    .build(),
+                &ParamsBuilder::new().set("entity_id", entity_id).build(),
             )
             .unwrap();
     }
@@ -153,6 +153,8 @@ fn queries_and_clear_are_scoped_to_owner() {
             search: String::new(),
             cursor: None,
             limit: 10,
+            date_from: String::new(),
+            date_to: String::new(),
         },
     )
     .unwrap();
@@ -160,13 +162,53 @@ fn queries_and_clear_are_scoped_to_owner() {
 }
 
 #[test]
+fn date_range_filters_by_last_viewed_at() {
+    let test = test_db("date-range");
+    ensure_browse_history_table(&test.db).unwrap();
+    for (entity_id, last_viewed_at) in [
+        ("wrld_old", "2099-01-01T10:00:00.000Z"),
+        ("wrld_new", "2099-01-03T10:00:00.000Z"),
+    ] {
+        test.db
+            .execute_non_query(
+                "INSERT INTO browse_history (
+                    owner_user_id, entity_kind, entity_id, title, image_url,
+                    first_viewed_at, last_viewed_at, view_count
+                 ) VALUES (
+                    'usr_owner', 'world', @entity_id, @entity_id, '',
+                    @last_viewed_at, @last_viewed_at, 1
+                 )",
+                &ParamsBuilder::new()
+                    .set("entity_id", entity_id)
+                    .set("last_viewed_at", last_viewed_at)
+                    .build(),
+            )
+            .unwrap();
+    }
+
+    let page = browse_history_query(
+        &test.db,
+        BrowseHistoryQueryInput {
+            owner_user_id: "usr_owner".into(),
+            entity_kind: None,
+            search: String::new(),
+            cursor: None,
+            limit: 10,
+            date_from: "2099-01-02T00:00:00.000Z".into(),
+            date_to: "2099-01-04T00:00:00.000Z".into(),
+        },
+    )
+    .unwrap();
+
+    assert_eq!(page.items.len(), 1);
+    assert_eq!(page.items[0].entity_id, "wrld_new");
+}
+
+#[test]
 fn retention_setting_rejects_unsupported_values() {
     let test = test_db("retention");
     assert!(browse_history_retention_days_set(&test.db, 14).is_err());
-    assert_eq!(
-        browse_history_retention_days_set(&test.db, 90).unwrap(),
-        90
-    );
+    assert_eq!(browse_history_retention_days_set(&test.db, 90).unwrap(), 90);
     assert_eq!(browse_history_retention_days_get(&test.db).unwrap(), 90);
 }
 
@@ -178,10 +220,10 @@ fn shorter_retention_prunes_expired_rows_for_every_account() {
         test.db
             .execute_non_query(
                 "INSERT INTO browse_history (
-                    owner_user_id, entity_kind, entity_id, title, subtitle, image_url,
+                    owner_user_id, entity_kind, entity_id, title, image_url,
                     first_viewed_at, last_viewed_at, view_count
                  ) VALUES (
-                    @owner_user_id, 'world', @owner_user_id, '', '', '',
+                    @owner_user_id, 'world', @owner_user_id, '', '',
                     '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z', 1
                  )",
                 &ParamsBuilder::new()
@@ -195,10 +237,7 @@ fn shorter_retention_prunes_expired_rows_for_every_account() {
 
     assert!(test
         .db
-        .execute(
-            "SELECT entity_id FROM browse_history",
-            &Default::default()
-        )
+        .execute("SELECT entity_id FROM browse_history", &Default::default())
         .unwrap()
         .is_empty());
 }

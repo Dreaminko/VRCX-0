@@ -3,20 +3,41 @@
         "title": "Histórico de navegação",
         "description": "Utilizadores, mundos, avatares e grupos vistos recentemente.",
         "search_placeholder": "Pesquisar no histórico",
+        "date_range": "Período",
+        "date_range_start": "Início",
+        "date_range_end": "Fim",
         "loading": "A carregar histórico…",
         "load_error": "Não foi possível carregar o histórico.",
         "empty_title": "Sem histórico",
         "empty_description": "Os utilizadores, mundos, avatares e grupos abertos aparecerão aqui.",
-        "view_count": "Visto {count} vezes",
-        "filter": { "all": "Tudo", "user": "Utilizadores", "world": "Mundos", "avatar": "Avatares", "group": "Grupos" },
+        "no_results_title": "Sem correspondências",
+        "no_results_description": "Tente outro termo ou alargue o período.",
+        "unknown": {
+            "user": "Utilizador desconhecido",
+            "world": "Mundo desconhecido",
+            "avatar": "Avatar desconhecido",
+            "group": "Grupo desconhecido"
+        },
+        "filter": {
+            "all": "Tudo",
+            "user": "Utilizadores",
+            "world": "Mundos",
+            "avatar": "Avatares",
+            "group": "Grupos"
+        },
         "date": { "today": "Hoje", "yesterday": "Ontem" },
         "retention": {
-            "label": "Período de retenção",
+            "label": "Retenção do histórico",
+            "description": "As entradas mais antigas são eliminadas automaticamente.",
             "days": "{count} dias",
             "forever": "Manter para sempre",
             "update_failed": "Não foi possível alterar o período de retenção."
         },
-        "actions": { "clear_all": "Limpar tudo", "clear_kind": "Limpar filtrados", "remove": "Remover do histórico" },
+        "actions": {
+            "clear_all": "Limpar tudo",
+            "clear_kind": "Limpar filtrados",
+            "remove": "Remover do histórico"
+        },
         "confirmation": {
             "title": "Limpar o histórico?",
             "description": "O histórico atualmente filtrado será removido deste dispositivo."

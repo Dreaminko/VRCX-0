@@ -3,20 +3,41 @@
         "title": "Historique de consultation",
         "description": "Utilisateurs, mondes, avatars et groupes consultés récemment.",
         "search_placeholder": "Rechercher dans l’historique",
+        "date_range": "Période",
+        "date_range_start": "Début",
+        "date_range_end": "Fin",
         "loading": "Chargement de l’historique…",
         "load_error": "Impossible de charger l’historique.",
         "empty_title": "Aucun historique",
         "empty_description": "Les utilisateurs, mondes, avatars et groupes ouverts apparaîtront ici.",
-        "view_count": "Consulté {count} fois",
-        "filter": { "all": "Tout", "user": "Utilisateurs", "world": "Mondes", "avatar": "Avatars", "group": "Groupes" },
+        "no_results_title": "Aucun résultat",
+        "no_results_description": "Essayez un autre terme ou une période plus large.",
+        "unknown": {
+            "user": "Utilisateur inconnu",
+            "world": "Monde inconnu",
+            "avatar": "Avatar inconnu",
+            "group": "Groupe inconnu"
+        },
+        "filter": {
+            "all": "Tout",
+            "user": "Utilisateurs",
+            "world": "Mondes",
+            "avatar": "Avatars",
+            "group": "Groupes"
+        },
         "date": { "today": "Aujourd’hui", "yesterday": "Hier" },
         "retention": {
-            "label": "Durée de conservation",
+            "label": "Conservation de l’historique",
+            "description": "Les entrées plus anciennes sont supprimées automatiquement.",
             "days": "{count} jours",
             "forever": "Conserver indéfiniment",
             "update_failed": "Impossible de modifier la durée de conservation."
         },
-        "actions": { "clear_all": "Tout effacer", "clear_kind": "Effacer le filtre", "remove": "Retirer de l’historique" },
+        "actions": {
+            "clear_all": "Tout effacer",
+            "clear_kind": "Effacer le filtre",
+            "remove": "Retirer de l’historique"
+        },
         "confirmation": {
             "title": "Effacer l’historique ?",
             "description": "L’historique actuellement filtré sera supprimé de cet appareil."

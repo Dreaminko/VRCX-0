@@ -54,8 +54,6 @@ pub struct BrowseHistoryRecordInput {
     #[serde(default)]
     pub title: String,
     #[serde(default)]
-    pub subtitle: String,
-    #[serde(default)]
     pub image_url: String,
     #[serde(default = "default_record_visit")]
     pub record_visit: bool,
@@ -83,6 +81,10 @@ pub struct BrowseHistoryQueryInput {
     pub cursor: Option<BrowseHistoryCursor>,
     #[serde(default)]
     pub limit: i64,
+    #[serde(default)]
+    pub date_from: String,
+    #[serde(default)]
+    pub date_to: String,
 }
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
@@ -91,7 +93,6 @@ pub struct BrowseHistoryItemOutput {
     pub entity_kind: BrowseHistoryEntityKind,
     pub entity_id: String,
     pub title: String,
-    pub subtitle: String,
     pub image_url: String,
     pub first_viewed_at: String,
     pub last_viewed_at: String,
@@ -113,7 +114,6 @@ fn ensure_browse_history_table(db: &DatabaseService) -> Result<(), Error> {
                 entity_kind TEXT NOT NULL CHECK(entity_kind IN ('user', 'world', 'avatar', 'group')),
                 entity_id TEXT NOT NULL,
                 title TEXT NOT NULL DEFAULT '',
-                subtitle TEXT NOT NULL DEFAULT '',
                 image_url TEXT NOT NULL DEFAULT '',
                 first_viewed_at TEXT NOT NULL,
                 last_viewed_at TEXT NOT NULL,
@@ -152,8 +152,7 @@ pub fn browse_history_retention_days_get(db: &DatabaseService) -> Result<i64, Er
 
 fn retention_cutoff(retention_days: i64) -> Option<String> {
     (retention_days > 0).then(|| {
-        (Utc::now() - Duration::days(retention_days))
-            .to_rfc3339_opts(SecondsFormat::Millis, true)
+        (Utc::now() - Duration::days(retention_days)).to_rfc3339_opts(SecondsFormat::Millis, true)
     })
 }
 
@@ -191,7 +190,6 @@ pub fn browse_history_record(
     let retention_days = browse_history_retention_days_get(db)?;
     let viewed_at = now_iso();
     let title = normalize_text(input.title);
-    let subtitle = normalize_text(input.subtitle);
     let image_url = normalize_text(input.image_url);
     let record_visit = i64::from(input.record_visit);
 
@@ -208,15 +206,14 @@ pub fn browse_history_record(
         }
         tx.execute_non_query(
             "INSERT INTO browse_history (
-                owner_user_id, entity_kind, entity_id, title, subtitle, image_url,
+                owner_user_id, entity_kind, entity_id, title, image_url,
                 first_viewed_at, last_viewed_at, view_count
              ) VALUES (
-                @owner_user_id, @entity_kind, @entity_id, @title, @subtitle, @image_url,
+                @owner_user_id, @entity_kind, @entity_id, @title, @image_url,
                 @viewed_at, @viewed_at, @record_visit
              )
              ON CONFLICT(owner_user_id, entity_kind, entity_id) DO UPDATE SET
                 title = CASE WHEN excluded.title = '' THEN browse_history.title ELSE excluded.title END,
-                subtitle = CASE WHEN excluded.subtitle = '' THEN browse_history.subtitle ELSE excluded.subtitle END,
                 image_url = CASE WHEN excluded.image_url = '' THEN browse_history.image_url ELSE excluded.image_url END,
                 last_viewed_at = CASE WHEN @record_visit = 1 THEN excluded.last_viewed_at ELSE browse_history.last_viewed_at END,
                 view_count = browse_history.view_count + @record_visit",
@@ -225,7 +222,6 @@ pub fn browse_history_record(
                 .set("entity_kind", input.entity_kind.as_str())
                 .set("entity_id", entity_id.clone())
                 .set("title", title.clone())
-                .set("subtitle", subtitle.clone())
                 .set("image_url", image_url.clone())
                 .set("viewed_at", viewed_at.clone())
                 .set("record_visit", record_visit)
@@ -240,11 +236,10 @@ fn item_from_row(row: &[Value]) -> Result<BrowseHistoryItemOutput, Error> {
         entity_kind: BrowseHistoryEntityKind::parse(&strict_row_string(row, 0)?)?,
         entity_id: strict_row_string(row, 1)?,
         title: strict_row_string(row, 2)?,
-        subtitle: strict_row_string(row, 3)?,
-        image_url: strict_row_string(row, 4)?,
-        first_viewed_at: strict_row_string(row, 5)?,
-        last_viewed_at: strict_row_string(row, 6)?,
-        view_count: strict_row_i64(row, 7)?,
+        image_url: strict_row_string(row, 3)?,
+        first_viewed_at: strict_row_string(row, 4)?,
+        last_viewed_at: strict_row_string(row, 5)?,
+        view_count: strict_row_i64(row, 6)?,
     })
 }
 
@@ -282,10 +277,18 @@ pub fn browse_history_query(
         params = params.set("entity_kind", entity_kind.as_str());
     }
     if !search.is_empty() {
-        clauses.push(
-            "(LOWER(title) LIKE @search OR LOWER(subtitle) LIKE @search OR LOWER(entity_id) LIKE @search)",
-        );
+        clauses.push("(LOWER(title) LIKE @search OR LOWER(entity_id) LIKE @search)");
         params = params.set("search", format!("%{search}%"));
+    }
+    let date_from = normalize_text(input.date_from);
+    if !date_from.is_empty() {
+        clauses.push("last_viewed_at >= @date_from");
+        params = params.set("date_from", date_from);
+    }
+    let date_to = normalize_text(input.date_to);
+    if !date_to.is_empty() {
+        clauses.push("last_viewed_at <= @date_to");
+        params = params.set("date_to", date_to);
     }
     if let Some(cursor) = input.cursor {
         clauses.push(
@@ -300,7 +303,7 @@ pub fn browse_history_query(
     }
 
     let sql = format!(
-        "SELECT entity_kind, entity_id, title, subtitle, image_url,
+        "SELECT entity_kind, entity_id, title, image_url,
                 first_viewed_at, last_viewed_at, view_count
          FROM browse_history
          WHERE {}

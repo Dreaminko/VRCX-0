@@ -1,5 +1,5 @@
 import {
-    Clock3Icon,
+    FootprintsIcon,
     Globe2Icon,
     PersonStandingIcon,
     Trash2Icon,
@@ -18,27 +18,31 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
+    DateTimeRangePicker,
+    type DateTimeRangeValue
+} from '@/components/date-time-range-picker/DateTimeRangePicker';
+import {
     EmptyState,
     LoadingState,
     PageBody,
-    PageDescription,
-    PageHeader,
     PageScaffold,
-    PageTitle,
     PageToolbar,
     PageToolbarRow
 } from '@/components/layout/PageScaffold';
 import {
+    toolbarDateRangeTrigger,
     ToolbarActions,
+    ToolbarRefreshButton,
     ToolbarSearch,
     ToolbarSegmented,
     ToolbarViews,
     type ToolbarSegmentOption
 } from '@/components/layout/ToolbarControls';
+import { formatCompactDateTime, formatDateFilter } from '@/lib/dateTime';
 import { getVisibleKnownSizeRows } from '@/lib/knownSizeVirtualRows';
-import { formatDateTime } from '@/lib/dateTime';
-import { cn } from '@/lib/utils';
 import { useScrollViewportMetrics } from '@/lib/useScrollViewportMetrics';
+import { useTodayDate } from '@/lib/useTodayDate';
+import { cn } from '@/lib/utils';
 import {
     browseHistoryRepository,
     type BrowseHistoryCursor,
@@ -48,55 +52,48 @@ import {
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
+import { Separator } from '@/ui/shadcn/separator';
 
 import { BrowseHistoryCard } from './BrowseHistoryCard';
 import {
     BROWSE_HISTORY_GRID_GAP,
+    browseHistoryDayKey,
     buildBrowseHistoryRows
 } from './browseHistoryRows';
 
 const PAGE_LIMIT = 120;
-const CARD_MIN_WIDTH = 292;
-const RETENTION_OPTIONS = [7, 30, 90, 365, 0] as const;
+const CARD_MIN_WIDTH = 232;
 type HistoryFilter = 'all' | BrowseHistoryEntityKind;
-
-function isRetentionOption(value: number) {
-    return (
-        value === 0 ||
-        value === 7 ||
-        value === 30 ||
-        value === 90 ||
-        value === 365
-    );
-}
 
 export function BrowseHistoryPage() {
     const { t } = useTranslation();
+    const todayDate = useTodayDate();
     const ownerUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const confirm = useModalStore((state) => state.confirm);
     const [filter, setFilter] = useState<HistoryFilter>('all');
     const [search, setSearch] = useState('');
     const deferredSearch = useDeferredValue(search.trim());
+    const [dateRange, setDateRange] = useState<DateTimeRangeValue>({
+        from: null,
+        to: null
+    });
     const [items, setItems] = useState<BrowseHistoryItemOutput[]>([]);
     const [cursor, setCursor] = useState<BrowseHistoryCursor | null>(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [loadError, setLoadError] = useState(false);
     const [reloadNonce, setReloadNonce] = useState(0);
-    const [retentionDays, setRetentionDays] = useState(30);
     const loadMoreLockedRef = useRef(false);
     const requestVersionRef = useRef(0);
+    const loadedOwnerRef = useRef('');
     const { resetScrollTop, viewportMetrics, viewportRef } =
         useScrollViewportMetrics();
 
     const entityKind = filter === 'all' ? null : filter;
+    const dateFrom = dateRange.from?.toISOString() || '';
+    const dateTo = dateRange.to?.toISOString() || '';
+
     useEffect(() => {
         if (!ownerUserId) {
             setItems([]);
@@ -105,17 +102,22 @@ export function BrowseHistoryPage() {
             return;
         }
         const requestVersion = ++requestVersionRef.current;
-        setLoading(true);
+        if (loadedOwnerRef.current === ownerUserId) {
+            setRefreshing(true);
+        } else {
+            setItems([]);
+            setLoading(true);
+        }
         setLoadError(false);
-        setItems([]);
         setCursor(null);
-        resetScrollTop();
 
         void browseHistoryRepository
             .query({
                 ownerUserId,
                 entityKind,
                 search: deferredSearch,
+                dateFrom,
+                dateTo,
                 cursor: null,
                 limit: PAGE_LIMIT
             })
@@ -123,32 +125,31 @@ export function BrowseHistoryPage() {
                 if (requestVersion === requestVersionRef.current) {
                     setItems(page.items);
                     setCursor(page.nextCursor);
+                    resetScrollTop();
                 }
             })
             .catch(() => {
                 if (requestVersion === requestVersionRef.current) {
+                    setItems([]);
                     setLoadError(true);
                 }
             })
             .finally(() => {
                 if (requestVersion === requestVersionRef.current) {
+                    loadedOwnerRef.current = ownerUserId;
                     setLoading(false);
+                    setRefreshing(false);
                 }
             });
     }, [
+        dateFrom,
+        dateTo,
         deferredSearch,
         entityKind,
         ownerUserId,
         reloadNonce,
         resetScrollTop
     ]);
-
-    useEffect(() => {
-        void browseHistoryRepository
-            .getRetentionDays()
-            .then(setRetentionDays)
-            .catch(() => undefined);
-    }, []);
 
     const safeWidth = Math.max(0, viewportMetrics.width - 8);
     const columnCount = Math.max(
@@ -194,6 +195,8 @@ export function BrowseHistoryPage() {
                 ownerUserId,
                 entityKind,
                 search: deferredSearch,
+                dateFrom,
+                dateTo,
                 cursor,
                 limit: PAGE_LIMIT
             })
@@ -213,7 +216,16 @@ export function BrowseHistoryPage() {
                 loadMoreLockedRef.current = false;
                 setLoadingMore(false);
             });
-    }, [cursor, deferredSearch, entityKind, loadingMore, ownerUserId, t]);
+    }, [
+        cursor,
+        dateFrom,
+        dateTo,
+        deferredSearch,
+        entityKind,
+        loadingMore,
+        ownerUserId,
+        t
+    ]);
 
     useEffect(() => {
         const remaining =
@@ -261,20 +273,24 @@ export function BrowseHistoryPage() {
     const removeItem = useCallback(
         (item: BrowseHistoryItemOutput) => {
             if (!ownerUserId) {
-                return;
+                return Promise.resolve(false);
             }
-            void browseHistoryRepository
+            return browseHistoryRepository
                 .delete(ownerUserId, item.entityKind, item.entityId)
-                .then(() =>
+                .then(() => {
                     setItems((current) =>
                         current.filter(
                             (candidate) =>
                                 candidate.entityKind !== item.entityKind ||
                                 candidate.entityId !== item.entityId
                         )
-                    )
-                )
-                .catch(() => toast.error(t('browse_history.remove_failed')));
+                    );
+                    return true;
+                })
+                .catch(() => {
+                    toast.error(t('browse_history.remove_failed'));
+                    return false;
+                });
         },
         [ownerUserId, t]
     );
@@ -302,73 +318,50 @@ export function BrowseHistoryPage() {
         }
     }, [confirm, entityKind, items.length, ownerUserId, t]);
 
-    const changeRetention = useCallback(
-        (value: unknown) => {
-            const next = Number(value);
-            if (!ownerUserId || !isRetentionOption(next)) {
-                return;
-            }
-            const previous = retentionDays;
-            setRetentionDays(next);
-            void browseHistoryRepository
-                .setRetentionDays(next)
-                .then(() => {
-                    setItems((current) =>
-                        next === 0
-                            ? current
-                            : current.filter(
-                                  (item) =>
-                                      Date.now() -
-                                          new Date(item.lastViewedAt).getTime() <=
-                                      next * 86_400_000
-                              )
-                    );
-                })
-                .catch(() => {
-                    setRetentionDays(previous);
-                    toast.error(t('browse_history.retention.update_failed'));
-                });
-        },
-        [ownerUserId, retentionDays, t]
-    );
-
+    const todayKey = browseHistoryDayKey(todayDate.toISOString());
+    const yesterdayKey = useMemo(() => {
+        const yesterday = new Date(todayDate);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return browseHistoryDayKey(yesterday.toISOString());
+    }, [todayDate]);
     const dayLabel = useCallback(
         (dayKey: string) => {
-            const today = new Date();
-            const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
             if (dayKey === todayKey) {
                 return t('browse_history.date.today');
             }
             if (dayKey === yesterdayKey) {
                 return t('browse_history.date.yesterday');
             }
-            return formatDateTime(`${dayKey}T12:00:00`, {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+            return formatDateFilter(`${dayKey}T12:00:00`, 'date');
         },
-        [t]
+        [t, todayKey, yesterdayKey]
     );
+
+    const isFiltered = Boolean(deferredSearch || dateFrom || dateTo);
 
     return (
         <PageScaffold>
             <PageToolbar>
-                <PageHeader>
-                    <PageTitle>{t('browse_history.title')}</PageTitle>
-                    <PageDescription>
-                        {t('browse_history.description')}
-                    </PageDescription>
-                </PageHeader>
                 <PageToolbarRow>
                     <ToolbarViews className="flex-wrap">
                         <ToolbarSegmented
                             value={filter}
                             onValueChange={setFilter}
                             options={filterOptions}
+                        />
+                        <DateTimeRangePicker
+                            value={dateRange}
+                            onChange={setDateRange}
+                            align="start"
+                            renderTrigger={toolbarDateRangeTrigger}
+                            placeholder={t('browse_history.date_range')}
+                            startLabel={t('browse_history.date_range_start')}
+                            endLabel={t('browse_history.date_range_end')}
+                            clearLabel={t('common.actions.clear')}
+                            confirmLabel={t('common.actions.confirm')}
+                            formatValue={formatCompactDateTime}
+                            minuteStep={15}
+                            disabled={{ after: todayDate }}
                         />
                     </ToolbarViews>
                     <ToolbarSearch
@@ -377,26 +370,13 @@ export function BrowseHistoryPage() {
                         placeholder={t('browse_history.search_placeholder')}
                     />
                     <ToolbarActions>
-                        <Select
-                            value={String(retentionDays)}
-                            onValueChange={changeRetention}
-                        >
-                            <SelectTrigger size="sm" aria-label={t('browse_history.retention.label')}>
-                                <Clock3Icon className="size-3.5" />
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent align="end">
-                                {RETENTION_OPTIONS.map((days) => (
-                                    <SelectItem key={days} value={String(days)}>
-                                        {days === 0
-                                            ? t('browse_history.retention.forever')
-                                            : t('browse_history.retention.days', {
-                                                  count: days
-                                              })}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <ToolbarRefreshButton
+                            onRefresh={() =>
+                                setReloadNonce((value) => value + 1)
+                            }
+                            loading={loading || refreshing}
+                            disabled={!ownerUserId}
+                        />
                         <Button
                             type="button"
                             variant="outline"
@@ -419,7 +399,7 @@ export function BrowseHistoryPage() {
                     <LoadingState label={t('browse_history.loading')} />
                 ) : loadError ? (
                     <EmptyState
-                        icon={Clock3Icon}
+                        icon={FootprintsIcon}
                         title={t('browse_history.load_error')}
                     >
                         <Button
@@ -433,14 +413,25 @@ export function BrowseHistoryPage() {
                     </EmptyState>
                 ) : !items.length ? (
                     <EmptyState
-                        icon={Clock3Icon}
-                        title={t('browse_history.empty_title')}
-                        description={t('browse_history.empty_description')}
+                        icon={FootprintsIcon}
+                        title={t(
+                            isFiltered
+                                ? 'browse_history.no_results_title'
+                                : 'browse_history.empty_title'
+                        )}
+                        description={t(
+                            isFiltered
+                                ? 'browse_history.no_results_description'
+                                : 'browse_history.empty_description'
+                        )}
                     />
                 ) : (
                     <div
                         ref={viewportRef}
-                        className="min-h-0 flex-1 overflow-y-auto pr-1"
+                        className={cn(
+                            'min-h-0 flex-1 overflow-y-auto pr-1 transition-opacity duration-150 ease-out',
+                            refreshing && 'pointer-events-none opacity-60'
+                        )}
                     >
                         <div
                             className="relative"
@@ -465,9 +456,12 @@ export function BrowseHistoryPage() {
                                     }}
                                 >
                                     {row.kind === 'heading' ? (
-                                        <h2 className="text-muted-foreground flex h-full items-center px-1 text-xs font-medium">
-                                            {dayLabel(row.dayKey)}
-                                        </h2>
+                                        <div className="flex h-full items-center gap-3 px-1">
+                                            <h2 className="text-muted-foreground shrink-0 text-xs font-medium tracking-wide tabular-nums">
+                                                {dayLabel(row.dayKey)}
+                                            </h2>
+                                            <Separator className="flex-1 opacity-60" />
+                                        </div>
                                     ) : (
                                         row.items.map(
                                             (item: BrowseHistoryItemOutput) => (

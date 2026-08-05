@@ -3,20 +3,41 @@
         "title": "閲覧履歴",
         "description": "最近開いたユーザー、ワールド、アバター、グループです。",
         "search_placeholder": "閲覧履歴を検索",
+        "date_range": "期間",
+        "date_range_start": "開始",
+        "date_range_end": "終了",
         "loading": "閲覧履歴を読み込み中…",
         "load_error": "閲覧履歴を読み込めませんでした。",
         "empty_title": "閲覧履歴はありません",
         "empty_description": "開いたユーザー、ワールド、アバター、グループがここに表示されます。",
-        "view_count": "{count} 回閲覧",
-        "filter": { "all": "すべて", "user": "ユーザー", "world": "ワールド", "avatar": "アバター", "group": "グループ" },
+        "no_results_title": "該当する履歴がありません",
+        "no_results_description": "キーワードを変えるか、期間を広げてみてください。",
+        "unknown": {
+            "user": "不明なユーザー",
+            "world": "不明なワールド",
+            "avatar": "不明なアバター",
+            "group": "不明なグループ"
+        },
+        "filter": {
+            "all": "すべて",
+            "user": "ユーザー",
+            "world": "ワールド",
+            "avatar": "アバター",
+            "group": "グループ"
+        },
         "date": { "today": "今日", "yesterday": "昨日" },
         "retention": {
-            "label": "履歴の保存期間",
+            "label": "閲覧履歴の保存期間",
+            "description": "この期間を過ぎた履歴は自動的に削除されます。",
             "days": "{count} 日間",
             "forever": "無期限",
             "update_failed": "履歴の保存期間を更新できませんでした。"
         },
-        "actions": { "clear_all": "すべて削除", "clear_kind": "絞り込み結果を削除", "remove": "履歴から削除" },
+        "actions": {
+            "clear_all": "すべて削除",
+            "clear_kind": "絞り込み結果を削除",
+            "remove": "履歴から削除"
+        },
         "confirmation": {
             "title": "閲覧履歴を削除しますか？",
             "description": "現在絞り込まれている履歴をこのデバイスから削除します。"

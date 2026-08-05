@@ -45,7 +45,7 @@ const navDefinitions = [
     },
     {
         key: 'browse-history',
-        icon: 'lucide:Clock3',
+        icon: 'lucide:Footprints',
         tooltip: 'browse_history.title',
         labelKey: 'browse_history.title',
         routeName: 'browse-history'

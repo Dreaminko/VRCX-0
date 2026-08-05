@@ -3605,7 +3605,6 @@ export type BrowseHistoryItemOutput = {
     entityKind: BrowseHistoryEntityKind;
     entityId: string;
     title: string;
-    subtitle: string;
     imageUrl: string;
     firstViewedAt: string;
     lastViewedAt: string;
@@ -3621,13 +3620,14 @@ export type BrowseHistoryQueryInput = {
     search?: string;
     cursor: BrowseHistoryCursor | null;
     limit?: number;
+    dateFrom?: string;
+    dateTo?: string;
 };
 export type BrowseHistoryRecordInput = {
     ownerUserId: string;
     entityKind: BrowseHistoryEntityKind;
     entityId: string;
     title?: string;
-    subtitle?: string;
     imageUrl?: string;
     recordVisit?: boolean;
 };

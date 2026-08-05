@@ -3,20 +3,41 @@
         "title": "Browse history",
         "description": "Recently viewed users, worlds, avatars, and groups.",
         "search_placeholder": "Search history",
+        "date_range": "Date range",
+        "date_range_start": "Start",
+        "date_range_end": "End",
         "loading": "Loading history…",
         "load_error": "Browse history could not be loaded.",
         "empty_title": "No browse history",
         "empty_description": "Users, worlds, avatars, and groups you open will appear here.",
-        "view_count": "Viewed {count} times",
-        "filter": { "all": "All", "user": "Users", "world": "Worlds", "avatar": "Avatars", "group": "Groups" },
+        "no_results_title": "Nothing matches",
+        "no_results_description": "Try another search term or a wider date range.",
+        "unknown": {
+            "user": "Unknown user",
+            "world": "Unknown world",
+            "avatar": "Unknown avatar",
+            "group": "Unknown group"
+        },
+        "filter": {
+            "all": "All",
+            "user": "Users",
+            "world": "Worlds",
+            "avatar": "Avatars",
+            "group": "Groups"
+        },
         "date": { "today": "Today", "yesterday": "Yesterday" },
         "retention": {
-            "label": "History retention",
+            "label": "Browse history retention",
+            "description": "Entries older than this are deleted automatically.",
             "days": "{count} days",
             "forever": "Keep forever",
             "update_failed": "History retention could not be updated."
         },
-        "actions": { "clear_all": "Clear all", "clear_kind": "Clear filtered", "remove": "Remove from history" },
+        "actions": {
+            "clear_all": "Clear all",
+            "clear_kind": "Clear filtered",
+            "remove": "Remove from history"
+        },
         "confirmation": {
             "title": "Clear browse history?",
             "description": "This removes the currently filtered history from this device."

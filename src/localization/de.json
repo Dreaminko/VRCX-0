@@ -3,20 +3,41 @@
         "title": "Browserverlauf",
         "description": "Zuletzt angesehene Benutzer, Welten, Avatare und Gruppen.",
         "search_placeholder": "Verlauf durchsuchen",
+        "date_range": "Zeitraum",
+        "date_range_start": "Beginn",
+        "date_range_end": "Ende",
         "loading": "Verlauf wird geladen…",
         "load_error": "Der Browserverlauf konnte nicht geladen werden.",
         "empty_title": "Kein Browserverlauf",
         "empty_description": "Geöffnete Benutzer, Welten, Avatare und Gruppen erscheinen hier.",
-        "view_count": "{count}-mal angesehen",
-        "filter": { "all": "Alle", "user": "Benutzer", "world": "Welten", "avatar": "Avatare", "group": "Gruppen" },
+        "no_results_title": "Keine Treffer",
+        "no_results_description": "Versuche einen anderen Suchbegriff oder einen größeren Zeitraum.",
+        "unknown": {
+            "user": "Unbekannter Benutzer",
+            "world": "Unbekannte Welt",
+            "avatar": "Unbekannter Avatar",
+            "group": "Unbekannte Gruppe"
+        },
+        "filter": {
+            "all": "Alle",
+            "user": "Benutzer",
+            "world": "Welten",
+            "avatar": "Avatare",
+            "group": "Gruppen"
+        },
         "date": { "today": "Heute", "yesterday": "Gestern" },
         "retention": {
-            "label": "Aufbewahrungsdauer",
+            "label": "Aufbewahrungsdauer des Verlaufs",
+            "description": "Ältere Einträge werden automatisch gelöscht.",
             "days": "{count} Tage",
             "forever": "Dauerhaft behalten",
             "update_failed": "Die Aufbewahrungsdauer konnte nicht geändert werden."
         },
-        "actions": { "clear_all": "Alles löschen", "clear_kind": "Gefilterte löschen", "remove": "Aus Verlauf entfernen" },
+        "actions": {
+            "clear_all": "Alles löschen",
+            "clear_kind": "Gefilterte löschen",
+            "remove": "Aus Verlauf entfernen"
+        },
         "confirmation": {
             "title": "Browserverlauf löschen?",
             "description": "Der aktuell gefilterte Verlauf wird von diesem Gerät entfernt."

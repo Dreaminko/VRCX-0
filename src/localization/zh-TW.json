@@ -3,20 +3,41 @@
         "title": "瀏覽記錄",
         "description": "最近查看過的使用者、世界、模型與群組。",
         "search_placeholder": "搜尋瀏覽記錄",
+        "date_range": "時間範圍",
+        "date_range_start": "開始",
+        "date_range_end": "結束",
         "loading": "正在載入瀏覽記錄…",
         "load_error": "無法載入瀏覽記錄。",
         "empty_title": "尚無瀏覽記錄",
         "empty_description": "開啟過的使用者、世界、模型與群組會顯示在這裡。",
-        "view_count": "查看 {count} 次",
-        "filter": { "all": "全部", "user": "使用者", "world": "世界", "avatar": "模型", "group": "群組" },
+        "no_results_title": "沒有符合的記錄",
+        "no_results_description": "換個關鍵字，或放寬時間範圍試試。",
+        "unknown": {
+            "user": "未知使用者",
+            "world": "未知世界",
+            "avatar": "未知模型",
+            "group": "未知群組"
+        },
+        "filter": {
+            "all": "全部",
+            "user": "使用者",
+            "world": "世界",
+            "avatar": "模型",
+            "group": "群組"
+        },
         "date": { "today": "今天", "yesterday": "昨天" },
         "retention": {
-            "label": "記錄保留時間",
+            "label": "瀏覽記錄保留時間",
+            "description": "超過此時間的記錄會自動刪除。",
             "days": "{count} 天",
             "forever": "永久保留",
             "update_failed": "無法更新記錄保留時間。"
         },
-        "actions": { "clear_all": "全部清除", "clear_kind": "清除目前篩選", "remove": "從記錄中移除" },
+        "actions": {
+            "clear_all": "全部清除",
+            "clear_kind": "清除目前篩選",
+            "remove": "從記錄中移除"
+        },
         "confirmation": {
             "title": "清除瀏覽記錄？",
             "description": "這會從此裝置刪除目前篩選範圍內的瀏覽記錄。"

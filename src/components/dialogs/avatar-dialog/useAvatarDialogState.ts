@@ -6,9 +6,9 @@ import { getFileAnalysisForUnityPackages } from '@/lib/fileAnalysis';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { getCurrentAvatarLiveWearTime } from '@/services/avatarWearTimeService';
+import { enrichEntityDialogHistory } from '@/services/dialogService';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { persistFavoriteAvatarDetails } from '@/services/favoriteAvatarCacheService';
-import { enrichEntityDialogHistory } from '@/services/dialogService';
 import { getAvailablePlatforms } from '@/shared/utils/avatarPlatform';
 import { useDialogStore } from '@/state/dialogStore';
 import { useModalStore } from '@/state/modalStore';
@@ -112,11 +112,9 @@ export function useAvatarDialogState({
             kind: 'avatar',
             entityId: avatar.id,
             title: avatar.name,
-            subtitle: avatar.authorName,
             imageUrl: avatar.thumbnailImageUrl || avatar.imageUrl
         });
     }, [
-        avatar?.authorName,
         avatar?.id,
         avatar?.imageUrl,
         avatar?.name,

@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router';
 import { EmptyState as AppEmptyState } from '@/components/layout/PageScaffold';
 import { ImageCropDialog } from '@/components/media/ImageCropDialog';
 import type { EntityRecord } from '@/domain/entities/profileEntities';
-import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { enrichEntityDialogHistory } from '@/services/dialogService';
+import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { IMAGE_UPLOAD_ACCEPT } from '@/shared/utils/imageUpload';
 import { parseLocation } from '@/shared/utils/location';
 import { Button } from '@/ui/shadcn/button';
@@ -248,13 +248,11 @@ export function WorldDialogContentWorkflow({
             kind: 'world',
             entityId: normalizedWorldId,
             title: world.name,
-            subtitle: world.authorName,
             imageUrl: world.thumbnailImageUrl || world.imageUrl
         });
     }, [
         normalizedWorldId,
         updateEntityDialogMetadata,
-        world?.authorName,
         world?.id,
         world?.imageUrl,
         world?.name,

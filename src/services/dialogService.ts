@@ -84,7 +84,6 @@ type EntityHistorySnapshot = {
     kind: BrowseHistoryEntityKind;
     entityId: string;
     title?: string;
-    subtitle?: string;
     imageUrl?: string;
 };
 
@@ -94,19 +93,7 @@ const browseHistoryKinds = new Set<EntityDialogKind>([
     'avatar',
     'group'
 ]);
-const historySubtitleKeys: Record<
-    BrowseHistoryEntityKind,
-    readonly string[]
-> = {
-    user: ['username'],
-    world: ['authorName'],
-    avatar: ['authorName'],
-    group: ['shortCode']
-};
-const historyImageKeys: Record<
-    BrowseHistoryEntityKind,
-    readonly string[]
-> = {
+const historyImageKeys: Record<BrowseHistoryEntityKind, readonly string[]> = {
     user: [
         'profilePicOverrideThumbnail',
         'profilePicOverride',
@@ -169,7 +156,6 @@ function recordEntityHistory(
             entityKind: snapshot.kind,
             entityId,
             title: normalizeTitle(snapshot.title),
-            subtitle: normalizeTitle(snapshot.subtitle),
             imageUrl: normalizeTitle(snapshot.imageUrl),
             recordVisit
         })
@@ -182,7 +168,6 @@ function readOpeningSnapshot(
     kind: BrowseHistoryEntityKind,
     entityId: string,
     label: string,
-    description: string,
     payload: EntityDialogPayload
 ): EntityHistorySnapshot {
     const seed = isRecord(payload?.seedData) ? payload.seedData : null;
@@ -190,7 +175,6 @@ function readOpeningSnapshot(
         kind,
         entityId,
         title: label,
-        subtitle: readString(seed, historySubtitleKeys[kind]) || description,
         imageUrl: readString(seed, historyImageKeys[kind])
     };
 }
@@ -383,13 +367,7 @@ function openEntityDialog({
     store.setDialogTrail(dialog, breadcrumbs);
     if (isBrowseHistoryEntityKind(kind)) {
         recordEntityHistory(
-            readOpeningSnapshot(
-                kind,
-                normalizedEntityId,
-                label,
-                normalizeTitle(description),
-                payload
-            ),
+            readOpeningSnapshot(kind, normalizedEntityId, label, payload),
             true
         );
     }

@@ -6,8 +6,8 @@ import type { EntityRecord } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import gameLogRepository from '@/repositories/gameLogRepository';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
-import { recordLocationHintsFromInstances } from '@/services/domainIngestionService';
 import { enrichEntityDialogHistory } from '@/services/dialogService';
+import { recordLocationHintsFromInstances } from '@/services/domainIngestionService';
 import { useDialogStore } from '@/state/dialogStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useModalStore } from '@/state/modalStore';
@@ -124,7 +124,6 @@ export function useGroupDialogState({
             kind: 'group',
             entityId: group.id,
             title: group.name,
-            subtitle: group.shortCode,
             imageUrl: group.iconUrl || group.bannerUrl
         });
     }, [
@@ -132,7 +131,6 @@ export function useGroupDialogState({
         group?.iconUrl,
         group?.id,
         group?.name,
-        group?.shortCode,
         updateEntityDialogMetadata
     ]);
 

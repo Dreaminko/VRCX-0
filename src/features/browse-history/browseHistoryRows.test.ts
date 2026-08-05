@@ -14,7 +14,6 @@ function item(entityId: string, lastViewedAt: string): BrowseHistoryItemOutput {
         entityKind: 'world',
         entityId,
         title: entityId,
-        subtitle: '',
         imageUrl: '',
         firstViewedAt: lastViewedAt,
         lastViewedAt,

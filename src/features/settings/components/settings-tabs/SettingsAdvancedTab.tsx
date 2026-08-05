@@ -24,6 +24,7 @@ import {
 import { Switch } from '@/ui/shadcn/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
+import { BrowseHistoryRetentionField } from '../BrowseHistoryRetentionField';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 import { AdvancedTroubleshootingGroup } from './AdvancedTroubleshootingGroup';
@@ -402,6 +403,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                         </SelectContent>
                     </Select>
                 </Field>
+                <BrowseHistoryRetentionField />
             </SettingsGroup>
 
             <AdvancedTroubleshootingGroup

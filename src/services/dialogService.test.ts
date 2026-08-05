@@ -68,7 +68,6 @@ describe('dialogService entity trail', () => {
             entityKind: 'world',
             entityId: 'wrld_w',
             title: 'World W',
-            subtitle: 'Author W',
             imageUrl: 'https://example.com/world.png',
             recordVisit: true
         });
