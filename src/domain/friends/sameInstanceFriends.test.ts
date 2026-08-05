@@ -217,8 +217,60 @@ describe('sameInstanceFriends', () => {
                         id: 'usr_friend',
                         displayName: 'Exact Friend'
                     }
-                }
+                },
+                currentLocation
             )
         ).toEqual(new Map([['usr_friend', 1_700_000_000_000]]));
+    });
+
+    it('keeps the friend presence dwell time after the local user rejoins the instance', () => {
+        const presenceJoinTime = 1_700_000_000_000;
+        const observedJoinTime = 1_700_000_060_000;
+
+        expect(
+            resolveObservedPlayerDwellEpochs(
+                [
+                    {
+                        userId: 'usr_friend',
+                        displayName: 'Friend',
+                        joinedAtMs: observedJoinTime
+                    }
+                ],
+                {
+                    usr_friend: {
+                        id: 'usr_friend',
+                        state: 'online',
+                        location: currentLocation,
+                        $location_at: presenceJoinTime
+                    }
+                },
+                currentLocation
+            )
+        ).toEqual(new Map([['usr_friend', presenceJoinTime]]));
+    });
+
+    it('uses the local observation when the friend presence points elsewhere', () => {
+        const observedJoinTime = 1_700_000_060_000;
+
+        expect(
+            resolveObservedPlayerDwellEpochs(
+                [
+                    {
+                        userId: 'usr_friend',
+                        displayName: 'Friend',
+                        joinedAtMs: observedJoinTime
+                    }
+                ],
+                {
+                    usr_friend: {
+                        id: 'usr_friend',
+                        state: 'online',
+                        location: otherLocation,
+                        $location_at: 1_700_000_000_000
+                    }
+                },
+                currentLocation
+            )
+        ).toEqual(new Map([['usr_friend', observedJoinTime]]));
     });
 });

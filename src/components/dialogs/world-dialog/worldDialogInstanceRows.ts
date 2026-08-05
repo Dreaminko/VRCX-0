@@ -149,7 +149,8 @@ export function buildWorldDialogDisplayInstanceRows({
         );
     const currentInstanceDwellEpochsByUserId = resolveObservedPlayerDwellEpochs(
         snapshotPlayers,
-        friendsById
+        friendsById,
+        firstText(currentInstanceDetailsForLocation.location, normalizedWorldId)
     );
     const currentInstanceRow: WorldDialogInstanceRow | null =
         parsedCurrentInstanceLocation?.worldId &&

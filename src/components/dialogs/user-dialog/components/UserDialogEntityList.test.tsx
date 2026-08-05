@@ -134,7 +134,7 @@ describe('UserDialog EntityList', () => {
         expect(screen.queryByText('World hopping')).toBeNull();
     });
 
-    it('shows a creator icon and timer for a friend creator', () => {
+    it('shows a creator icon and label without a timer for a friend creator', () => {
         render(
             <EntityList
                 kind="user"
@@ -144,6 +144,7 @@ describe('UserDialog EntityList', () => {
                         displayName: 'Friend owner',
                         isFriend: true,
                         $isInstanceCreator: true,
+                        $subtitle: 'dialog.user.info.instance_creator',
                         statusDescription: 'Friend signature',
                         $location_at: 1_700_000_000_000
                     }
@@ -155,9 +156,10 @@ describe('UserDialog EntityList', () => {
         expect(
             screen.getByLabelText('dialog.user.info.instance_creator')
         ).toBeTruthy();
-        expect(screen.getByTestId('instance-timer').dataset.epoch).toBe(
-            '1700000000000'
-        );
+        expect(
+            screen.getByText('dialog.user.info.instance_creator')
+        ).toBeTruthy();
+        expect(screen.queryByTestId('instance-timer')).toBeNull();
         expect(screen.queryByText('Friend signature')).toBeNull();
     });
 

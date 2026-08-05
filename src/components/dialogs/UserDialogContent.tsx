@@ -219,7 +219,8 @@ export function UserDialogContent({
             isSameLocationTag(presenceLocation, gameState?.currentLocation)
                 ? resolveObservedPlayerDwellEpochs(
                       gameState?.currentLocationPlayers,
-                      friendsById
+                      friendsById,
+                      presenceLocation
                   )
                 : new Map<string, unknown>(),
         [

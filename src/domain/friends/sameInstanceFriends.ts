@@ -1,4 +1,7 @@
-import { resolveInstanceDwellEpoch } from '@/domain/instances/instanceRoster';
+import {
+    isSameInstanceLocation,
+    resolveInstanceDwellEpoch
+} from '@/domain/instances/instanceRoster';
 import { hasUserIdPrefix } from '@/shared/constants/vrchatIds';
 import { isRealInstance } from '@/shared/utils/instance';
 import {
@@ -138,12 +141,20 @@ function resolveObservedPlayerUserIds(
 
 function resolveObservedPlayerDwellEpochs(
     players: unknown,
-    friendsById: Record<string, unknown>
+    friendsById: Record<string, unknown>,
+    currentLocation: unknown
 ): Map<string, unknown> {
     const dwellEpochsByUserId = new Map<string, unknown>();
     for (const player of Array.isArray(players) ? players : []) {
         const userId = resolveObservedPlayerUserId(player, friendsById);
-        const epoch = resolveInstanceDwellEpoch(player);
+        const friend = userId ? friendsById[userId] : null;
+        const friendPresenceEpoch = isSameInstanceLocation(
+            resolveSameInstanceFriendLocation(friend, null),
+            currentLocation
+        )
+            ? resolveInstanceDwellEpoch(friend)
+            : '';
+        const epoch = friendPresenceEpoch || resolveInstanceDwellEpoch(player);
         if (userId && epoch) {
             dwellEpochsByUserId.set(userId, epoch);
         }

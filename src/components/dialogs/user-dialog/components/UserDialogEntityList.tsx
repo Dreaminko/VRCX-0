@@ -131,12 +131,15 @@ export function EntityList({
                 const userColour =
                     typeof row.$userColour === 'string' ? row.$userColour : '';
                 const isInstanceCreator = row.$isInstanceCreator === true;
-                const creatorIsFriend = row.isFriend === true;
                 const creatorSignature =
                     typeof row.statusDescription === 'string' &&
                     row.statusDescription.trim()
                         ? row.statusDescription
                         : userStatusLabel(row, t);
+                const creatorSubtitle =
+                    typeof row.$subtitle === 'string' && row.$subtitle.trim()
+                        ? row.$subtitle
+                        : creatorSignature;
                 const rowKey = `${row?.id || row?.userId || label}:${index}`;
 
                 if (kind === 'user') {
@@ -165,19 +168,7 @@ export function EntityList({
                             }
                             subline={
                                 isInstanceCreator ? (
-                                    showInstanceDuration && creatorIsFriend ? (
-                                        <FriendInstanceTimer
-                                            epoch={
-                                                travelingTimestamp ||
-                                                resolveInstanceDwellEpoch(row)
-                                            }
-                                            traveling={Boolean(
-                                                travelingTimestamp
-                                            )}
-                                        />
-                                    ) : (
-                                        creatorSignature || undefined
-                                    )
+                                    creatorSubtitle || undefined
                                 ) : showInstanceDuration ? (
                                     <FriendInstanceTimer
                                         epoch={

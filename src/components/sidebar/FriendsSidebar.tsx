@@ -159,7 +159,8 @@ export function FriendsSidebar({
             location: currentInviteLocation,
             dwellEpochsByUserId: resolveObservedPlayerDwellEpochs(
                 currentLocationPlayers,
-                friendsById
+                friendsById,
+                currentInviteLocation
             ),
             friendList: new Set(
                 resolveObservedPlayerUserIds(

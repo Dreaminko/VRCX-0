@@ -211,7 +211,8 @@ export function useFriendsLocationsPageDerivedState({
             ),
             dwellEpochsByUserId: resolveObservedPlayerDwellEpochs(
                 currentLocationPlayers,
-                friendsById
+                friendsById,
+                currentInviteLocation
             )
         }),
         [
