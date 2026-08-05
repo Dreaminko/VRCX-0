@@ -302,7 +302,8 @@ export function DashboardGameLogWidget({
         gameLogRepository
             .queryGameLog({
                 currentUserId,
-                filters: Array.isArray(config.filters) ? config.filters : []
+                filters: Array.isArray(config.filters) ? config.filters : [],
+                limit: GAME_LOG_WIDGET_MAX_ROWS
             })
             .then((nextRows: unknown) => {
                 if (!active) {

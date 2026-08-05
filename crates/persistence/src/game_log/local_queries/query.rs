@@ -75,7 +75,9 @@ pub fn game_log_query(
             let vip_list = query_param_string_array(&params, "vipList");
             let mut db_params = scoped_param_map(owner_id);
             let max_entries = non_negative_query_param_i64(&params, "maxEntries", 500);
-            db_params.insert("@limit".into(), Value::from(max_entries));
+            let max_rows =
+                non_negative_query_param_i64(&params, "maxRows", max_entries).min(max_entries);
+            db_params.insert("@limit".into(), Value::from(max_rows));
             db_params.insert("@per_table".into(), Value::from(max_entries));
             let vip_placeholders = add_list_params(&mut db_params, &vip_list, "vip");
             let vip_query = if vip_placeholders.is_empty() {

@@ -86,6 +86,46 @@ fn lookup_rows_respects_filters_vip_and_limit() -> Result<(), crate::Error> {
 }
 
 #[test]
+fn lookup_rows_limits_results_after_preserving_per_table_candidates() -> Result<(), crate::Error> {
+    let test_db = test_db("local-query-result-limit")?;
+    write_game_log_batch(
+        &test_db.db,
+        "usr_test",
+        &GameLogWriteBatch {
+            events: vec![
+                GameLogEventEntry {
+                    created_at: "2030-01-01T00:00:00Z".into(),
+                    data: "newest-created-at".into(),
+                },
+                GameLogEventEntry {
+                    created_at: "2020-01-01T00:00:00Z".into(),
+                    data: "older-created-at".into(),
+                },
+                GameLogEventEntry {
+                    created_at: "2021-01-01T00:00:00Z".into(),
+                    data: "latest-id".into(),
+                },
+            ],
+            ..Default::default()
+        },
+    )?;
+
+    let result = rows(query(
+        &test_db.db,
+        "lookupRows",
+        json!({
+            "filters": ["Event"],
+            "maxEntries": 3,
+            "maxRows": 1
+        }),
+    )?);
+
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0]["data"], "newest-created-at");
+    Ok(())
+}
+
+#[test]
 fn rows_by_location_filters_current_user_resource_kind_and_empty_filters(
 ) -> Result<(), crate::Error> {
     let test_db = test_db("local-query-location")?;

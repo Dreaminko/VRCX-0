@@ -23,6 +23,7 @@ interface QueryGameLogInput {
     search?: unknown;
     filters?: unknown;
     favoriteUserIds?: unknown;
+    limit?: unknown;
 }
 
 interface QueryLatestSessionsInput extends QueryGameLogInput {
@@ -75,6 +76,11 @@ function normalizeConfigInt(value: unknown, fallback: number) {
     return parsed;
 }
 
+function normalizeQueryLimit(value: unknown) {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 function normalizeDateBoundary(value: unknown, boundary: 'start' | 'end') {
     const normalized = normalizeString(value);
     if (!normalized) {
@@ -115,14 +121,24 @@ async function queryGameLog({
     currentUserId = '',
     search = '',
     filters = [],
-    favoriteUserIds = []
+    favoriteUserIds = [],
+    limit
 }: QueryGameLogInput) {
     const [maxTableSizeValue, searchLimitValue] = await Promise.all([
         configRepository.getInt('maxTableSize_v2', 500),
         configRepository.getInt('searchLimit', 50000)
     ]);
-    const maxTableSize = normalizeConfigInt(maxTableSizeValue, 500);
-    const searchLimit = normalizeConfigInt(searchLimitValue, 50000);
+    const requestedLimit = normalizeQueryLimit(limit);
+    const configuredMaxTableSize = normalizeConfigInt(maxTableSizeValue, 500);
+    const configuredSearchLimit = normalizeConfigInt(searchLimitValue, 50000);
+    const maxTableRows =
+        requestedLimit === null
+            ? configuredMaxTableSize
+            : Math.min(configuredMaxTableSize, requestedLimit);
+    const searchRows =
+        requestedLimit === null
+            ? configuredSearchLimit
+            : Math.min(configuredSearchLimit, requestedLimit);
 
     const normalizedFilters = normalizeFilterList(filters);
     const normalizedFavorites = Array.from(
@@ -139,15 +155,17 @@ async function queryGameLog({
             normalizedSearch,
             normalizedFilters,
             normalizedFavorites,
-            searchLimit,
-            normalizeString(currentUserId)
+            configuredSearchLimit,
+            normalizeString(currentUserId),
+            searchRows
         );
     }
 
     return gameLogPersistenceRepository.lookupGameLogDatabase(
         normalizedFilters,
         normalizedFavorites,
-        maxTableSize
+        configuredMaxTableSize,
+        maxTableRows
     );
 }
 

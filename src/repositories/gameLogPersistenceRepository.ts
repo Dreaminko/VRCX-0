@@ -326,15 +326,21 @@ const gameLog = {
         vipList: string[] = [],
         {
             currentUserId = '',
-            maxEntries = DEFAULT_SEARCH_LIMIT
-        }: { currentUserId?: unknown; maxEntries?: number } = {}
+            maxEntries = DEFAULT_SEARCH_LIMIT,
+            maxRows = maxEntries
+        }: {
+            currentUserId?: unknown;
+            maxEntries?: number;
+            maxRows?: number;
+        } = {}
     ) {
         const rows = await queryGameLog('rowsByLocation', {
             instanceId,
             filters,
             vipList,
             currentUserId: normalizeCurrentUserId(currentUserId),
-            maxEntries
+            maxEntries,
+            maxRows
         });
         return Array.isArray(rows) ? rows : [];
     },
@@ -342,12 +348,14 @@ const gameLog = {
     async lookupGameLogDatabase(
         filters: string[],
         vipList: string[],
-        maxEntries: number = DEFAULT_MAX_TABLE_SIZE
+        maxEntries: number = DEFAULT_MAX_TABLE_SIZE,
+        maxRows: number = maxEntries
     ) {
         const rows = await queryGameLog('lookupRows', {
             filters,
             vipList,
-            maxEntries
+            maxEntries,
+            maxRows
         });
         return Array.isArray(rows) ? rows : [];
     },
@@ -357,13 +365,15 @@ const gameLog = {
         filters: string[],
         vipList: string[],
         maxEntries: number = DEFAULT_SEARCH_LIMIT,
-        currentUserId: unknown = ''
+        currentUserId: unknown = '',
+        maxRows: number = maxEntries
     ) {
         const normalizedCurrentUserId = normalizeCurrentUserId(currentUserId);
         if (hasWorldIdPrefix(search) || hasGroupIdPrefix(search)) {
             return this.getGameLogByLocation(search, filters, vipList, {
                 currentUserId: normalizedCurrentUserId,
-                maxEntries
+                maxEntries,
+                maxRows
             });
         }
         const rows = await queryGameLog('searchRows', {
@@ -371,7 +381,8 @@ const gameLog = {
             filters,
             vipList,
             currentUserId: normalizedCurrentUserId,
-            maxEntries
+            maxEntries,
+            maxRows
         });
         return Array.isArray(rows) ? rows : [];
     },

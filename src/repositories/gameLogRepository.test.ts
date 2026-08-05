@@ -3,6 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const commandMocks = vi.hoisted(() => ({
     sessionsQuery: vi.fn()
 }));
+const persistenceMocks = vi.hoisted(() => ({
+    lookupGameLogDatabase: vi.fn(),
+    searchGameLogDatabase: vi.fn()
+}));
 const configMocks = vi.hoisted(() => ({
     getInt: vi.fn()
 }));
@@ -18,10 +22,10 @@ vi.mock('./configRepository', () => ({
 }));
 
 vi.mock('./gameLogPersistenceRepository', () => ({
-    default: {}
+    default: persistenceMocks
 }));
 
-import { queryLatestSessions } from './gameLogRepository';
+import { queryGameLog, queryLatestSessions } from './gameLogRepository';
 
 describe('gameLogRepository', () => {
     beforeEach(() => {
@@ -30,6 +34,10 @@ describe('gameLogRepository', () => {
         commandMocks.sessionsQuery.mockResolvedValue({ sessions: [] });
         configMocks.getInt.mockReset();
         configMocks.getInt.mockResolvedValue(0);
+        persistenceMocks.lookupGameLogDatabase.mockReset();
+        persistenceMocks.lookupGameLogDatabase.mockResolvedValue([]);
+        persistenceMocks.searchGameLogDatabase.mockReset();
+        persistenceMocks.searchGameLogDatabase.mockResolvedValue([]);
     });
 
     afterEach(() => {
@@ -47,6 +55,79 @@ describe('gameLogRepository', () => {
                 dateFrom: '2026-07-04T07:00:00.000Z',
                 dateTo: '2026-07-05T06:59:59.999Z'
             })
+        );
+    });
+
+    it('caps lookup rows without exceeding the configured table size', async () => {
+        configMocks.getInt.mockImplementation(async (key: string) =>
+            key === 'maxTableSize_v2' ? 500 : 50000
+        );
+
+        await queryGameLog({ filters: ['Location'] });
+
+        expect(persistenceMocks.lookupGameLogDatabase).toHaveBeenLastCalledWith(
+            ['Location'],
+            [],
+            500,
+            500
+        );
+
+        await queryGameLog({ filters: ['Location'], limit: 200 });
+
+        expect(persistenceMocks.lookupGameLogDatabase).toHaveBeenCalledWith(
+            ['Location'],
+            [],
+            500,
+            200
+        );
+
+        configMocks.getInt.mockImplementation(async (key: string) =>
+            key === 'maxTableSize_v2' ? 75 : 50000
+        );
+
+        await queryGameLog({ filters: ['Location'], limit: 200 });
+
+        expect(persistenceMocks.lookupGameLogDatabase).toHaveBeenLastCalledWith(
+            ['Location'],
+            [],
+            75,
+            75
+        );
+    });
+
+    it('applies the same row cap to search results', async () => {
+        configMocks.getInt.mockImplementation(async (key: string) =>
+            key === 'maxTableSize_v2' ? 500 : 50000
+        );
+
+        await queryGameLog({
+            currentUserId: 'usr_self',
+            search: 'Friend',
+            limit: 200
+        });
+
+        expect(persistenceMocks.searchGameLogDatabase).toHaveBeenCalledWith(
+            'Friend',
+            [],
+            [],
+            50000,
+            'usr_self',
+            200
+        );
+
+        configMocks.getInt.mockImplementation(async (key: string) =>
+            key === 'searchLimit' ? 75 : 500
+        );
+
+        await queryGameLog({ search: 'Friend', limit: 200 });
+
+        expect(persistenceMocks.searchGameLogDatabase).toHaveBeenLastCalledWith(
+            'Friend',
+            [],
+            [],
+            75,
+            '',
+            75
         );
     });
 });
