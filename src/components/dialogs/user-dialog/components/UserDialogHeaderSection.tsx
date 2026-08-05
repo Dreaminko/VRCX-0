@@ -21,6 +21,7 @@ import type { UserBadgeRecord } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { userImage } from '@/services/entityMediaService';
+import { useResolvedThemeMode } from '@/services/themeService';
 import { OWNER_USER_ID } from '@/shared/constants/user';
 import { Button } from '@/ui/shadcn/button';
 import { CardTitle } from '@/ui/shadcn/card';
@@ -40,6 +41,7 @@ import type {
 } from '../userDialogContentHelpers';
 import {
     normalizeProfileAppearanceColor,
+    resolveProfileGradientScrimAlpha,
     resolveUserDialogBackgroundTextureUrl,
     resolveProfileDecorationAssetUrls,
     type UserDialogProfileAppearance
@@ -85,14 +87,30 @@ function linearGradientStyle(
 }
 
 function resolveProfileBackgroundStyle(
-    profile: UserDialogProfileRecord
+    profile: UserDialogProfileRecord,
+    isDarkTheme: boolean
 ): CSSProperties | undefined {
     if (profile.backgroundType === 'gradient') {
-        return linearGradientStyle(
-            180,
-            normalizeProfileAppearanceColor(profile.backgroundGradientTop),
-            normalizeProfileAppearanceColor(profile.backgroundGradientBottom)
+        const start = normalizeProfileAppearanceColor(
+            profile.backgroundGradientTop
         );
+        const end = normalizeProfileAppearanceColor(
+            profile.backgroundGradientBottom
+        );
+        if (!start || !end) {
+            return undefined;
+        }
+        const gradient = `linear-gradient(180deg, ${start}, ${end})`;
+        const scrimPercent = Math.round(
+            resolveProfileGradientScrimAlpha(start, end, isDarkTheme) * 100
+        );
+        if (!scrimPercent) {
+            return { backgroundImage: gradient };
+        }
+        const overlay = `color-mix(in oklch, var(--card) ${scrimPercent}%, transparent)`;
+        return {
+            backgroundImage: `linear-gradient(${overlay}, ${overlay}), ${gradient}`
+        };
     }
     if (profile.backgroundType === 'texture') {
         const url = resolveUserDialogBackgroundTextureUrl(profile);
@@ -433,6 +451,7 @@ export function UserDialogHeaderSection({
     headerCommands: UserHeaderCommands;
 }) {
     const { t } = useTranslation();
+    const resolvedThemeMode = useResolvedThemeMode();
     const {
         actionStatus = 'idle',
         avatarOverrideState,
@@ -575,7 +594,10 @@ export function UserDialogHeaderSection({
         : '';
     const hasProfileBadges = hasRenderableUserProfileBadges(profile);
     const isOwner = profile.id === OWNER_USER_ID;
-    const profileBackgroundStyle = resolveProfileBackgroundStyle(profile);
+    const profileBackgroundStyle = resolveProfileBackgroundStyle(
+        profile,
+        resolvedThemeMode === 'dark'
+    );
     const nameplateGradientStart = normalizeProfileAppearanceColor(
         profileAppearance.nameplateEffect?.metadata?.gradientStart
     );

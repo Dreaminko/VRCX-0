@@ -112,6 +112,46 @@ export function normalizeProfileAppearanceColor(value: unknown): string {
     return /^[\da-f]{6}$/i.test(color) ? `#${color.toLowerCase()}` : '';
 }
 
+const PROFILE_GRADIENT_MAX_SCRIM = 0.55;
+const PROFILE_GRADIENT_DARK_THEME_RANGE = { safe: 0.3, unsafe: 0.75 };
+const PROFILE_GRADIENT_LIGHT_THEME_RANGE = { safe: 0.55, unsafe: 0.12 };
+
+function linearizeChannel(value: number): number {
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+}
+
+function relativeLuminance(color: string): number {
+    const [red, green, blue] = [1, 3, 5].map((offset) =>
+        linearizeChannel(
+            Number.parseInt(color.slice(offset, offset + 2), 16) / 255
+        )
+    );
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function scrimForColor(value: string, isDarkTheme: boolean): number {
+    const color = normalizeProfileAppearanceColor(value);
+    if (!color) {
+        return 0;
+    }
+    const { safe, unsafe } = isDarkTheme
+        ? PROFILE_GRADIENT_DARK_THEME_RANGE
+        : PROFILE_GRADIENT_LIGHT_THEME_RANGE;
+    const progress = (relativeLuminance(color) - safe) / (unsafe - safe);
+    return Math.min(Math.max(progress, 0), 1) * PROFILE_GRADIENT_MAX_SCRIM;
+}
+
+export function resolveProfileGradientScrimAlpha(
+    topColor: string,
+    bottomColor: string,
+    isDarkTheme: boolean
+): number {
+    return Math.max(
+        scrimForColor(topColor, isDarkTheme),
+        scrimForColor(bottomColor, isDarkTheme)
+    );
+}
+
 export function resolveUserDialogBackgroundTextureUrl(
     profile: UserDialogProfileRecord
 ): string {

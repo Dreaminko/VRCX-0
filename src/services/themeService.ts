@@ -1,3 +1,5 @@
+import { useCallback, useSyncExternalStore } from 'react';
+
 import { normalizeLanguageCode } from '@/localization/locales';
 import { commands } from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
@@ -214,6 +216,29 @@ export function getResolvedThemeMode(themeMode: unknown): ResolvedThemeMode {
     }
 
     return normalized;
+}
+
+function subscribeSystemColorScheme(onChange: () => void): () => void {
+    const query = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!query) {
+        return () => undefined;
+    }
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+}
+
+export function useResolvedThemeMode(): ResolvedThemeMode {
+    const themeMode = useShellStore((state) => state.themeMode);
+    const readResolvedThemeMode = useCallback(
+        () => getResolvedThemeMode(themeMode),
+        [themeMode]
+    );
+
+    return useSyncExternalStore(
+        subscribeSystemColorScheme,
+        readResolvedThemeMode,
+        readResolvedThemeMode
+    );
 }
 
 export function normalizeZoomLevel(

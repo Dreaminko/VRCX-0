@@ -5,6 +5,7 @@ import {
     normalizeProfileAppearanceColor,
     preserveUserDialogProfileAppearance,
     resolveProfileDecorationAssetUrls,
+    resolveProfileGradientScrimAlpha,
     resolveUserDialogBannerUrl
 } from './userDialogProfileAppearance';
 
@@ -214,5 +215,47 @@ describe('profile appearance assets', () => {
                 bannerCustomUrl: ''
             })
         ).toBe('');
+    });
+});
+
+describe('profile gradient contrast', () => {
+    it('weights channels by sRGB luminance instead of averaging them', () => {
+        expect(
+            resolveProfileGradientScrimAlpha('#00ff00', '#0000ff', true)
+        ).toBeCloseTo(0.5075, 3);
+    });
+
+    it('leaves dark gradients untouched on a dark theme', () => {
+        expect(
+            resolveProfileGradientScrimAlpha('#101020', '#2b1b4d', true)
+        ).toBe(0);
+    });
+
+    it('scrims bright gradients on a dark theme', () => {
+        expect(
+            resolveProfileGradientScrimAlpha('#ffffff', '#fffbe6', true)
+        ).toBeCloseTo(0.55, 5);
+    });
+
+    it('scrims a mixed gradient using its worst stop', () => {
+        expect(
+            resolveProfileGradientScrimAlpha('#0b0b12', '#ffffff', true)
+        ).toBeCloseTo(0.55, 5);
+    });
+
+    it('flips which end is risky when the theme is light', () => {
+        expect(
+            resolveProfileGradientScrimAlpha('#ffffff', '#fffbe6', false)
+        ).toBe(0);
+        expect(
+            resolveProfileGradientScrimAlpha('#000000', '#101020', false)
+        ).toBeCloseTo(0.55, 5);
+    });
+
+    it('ignores stops that failed colour normalization', () => {
+        expect(
+            resolveProfileGradientScrimAlpha('', '#ffffff', true)
+        ).toBeCloseTo(0.55, 5);
+        expect(resolveProfileGradientScrimAlpha('', '', true)).toBe(0);
     });
 });
