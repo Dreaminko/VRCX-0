@@ -895,8 +895,10 @@ export const commands = {
             patch
         });
     },
-    async appFeedAddEntry(userId: string, entry: RawJson): Promise<null> {
-        return await TAURI_INVOKE('app__feed_add_entry', { userId, entry });
+    async appFeedPersistenceSetDisabled(disabled: boolean): Promise<null> {
+        return await TAURI_INVOKE('app__feed_persistence_set_disabled', {
+            disabled
+        });
     },
     async appAvatarFeedHistoryCleanup(
         cutoffDate: string | null

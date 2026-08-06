@@ -839,13 +839,12 @@ mod tests {
     use serde_json::json;
     use vrcx_0_core::json::RawJson;
 
-    use crate::database::DatabaseService;
-
-    use super::super::write::feed_add_entry;
     use super::{
         feed_live_rows_merge, feed_rows_query, FeedCursorInput, FeedFilter, FeedLiveEntryInput,
         FeedLiveRowsMergeInput, FeedQueryMode, FeedRowsQueryInput,
     };
+    use crate::database::DatabaseService;
+    use crate::realtime::{write_realtime_batch, RealtimePersistenceBatch};
 
     struct TestDir {
         path: PathBuf,
@@ -1000,35 +999,36 @@ mod tests {
         let dir = TestDir::new("feed-lookup-rowid");
         let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
 
-        feed_add_entry(
+        write_realtime_batch(
             &db,
-            "usr_self".into(),
-            RawJson::from(json!({
-                "created_at": "2026-05-15T00:10:00Z",
-                "type": "GPS",
-                "userId": "usr_newer_created",
-                "displayName": "newer-created",
-                "location": "wrld_1:newer",
-                "worldName": "Newer Created",
-                "previousLocation": "",
-                "time": 0,
-                "groupName": ""
-            })),
-        )?;
-        feed_add_entry(
-            &db,
-            "usr_self".into(),
-            RawJson::from(json!({
-                "created_at": "2026-05-15T00:00:00Z",
-                "type": "GPS",
-                "userId": "usr_later_inserted",
-                "displayName": "later-inserted",
-                "location": "wrld_1:later",
-                "worldName": "Later Inserted",
-                "previousLocation": "",
-                "time": 0,
-                "groupName": ""
-            })),
+            "usr_self",
+            &RealtimePersistenceBatch {
+                feed_entries: vec![
+                    json!({
+                        "created_at": "2026-05-15T00:10:00Z",
+                        "type": "GPS",
+                        "userId": "usr_newer_created",
+                        "displayName": "newer-created",
+                        "location": "wrld_1:newer",
+                        "worldName": "Newer Created",
+                        "previousLocation": "",
+                        "time": 0,
+                        "groupName": ""
+                    }),
+                    json!({
+                        "created_at": "2026-05-15T00:00:00Z",
+                        "type": "GPS",
+                        "userId": "usr_later_inserted",
+                        "displayName": "later-inserted",
+                        "location": "wrld_1:later",
+                        "worldName": "Later Inserted",
+                        "previousLocation": "",
+                        "time": 0,
+                        "groupName": ""
+                    }),
+                ],
+                ..RealtimePersistenceBatch::default()
+            },
         )?;
 
         let first_page = feed_rows_query(

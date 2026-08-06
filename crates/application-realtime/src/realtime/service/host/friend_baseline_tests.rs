@@ -648,8 +648,14 @@ fn reconcile_keeps_roster_dropout_until_friend_status_confirms_it() -> Result<()
     let dir = TestDir::new("reconcile-unconfirmed-removal");
     let db = seeded_friend_log(&dir, "usr_friend")?;
 
-    let outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &HashMap::new(), None, &no_verdicts());
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &HashMap::new(),
+        None,
+        false,
+        &no_verdicts(),
+    );
 
     assert!(!outcome.changed);
     assert_eq!(
@@ -670,6 +676,7 @@ fn reconcile_removes_roster_dropout_confirmed_as_unfriended() -> Result<()> {
         "usr_self",
         &HashMap::new(),
         None,
+        false,
         &verdict("usr_friend", false),
     );
 
@@ -688,8 +695,14 @@ fn reconcile_holds_back_roster_arrival_until_friend_status_confirms_it() -> Resu
     let mut friends_by_id = roster("usr_friend");
     friends_by_id.extend(roster("usr_new"));
 
-    let outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id,
+        None,
+        false,
+        &no_verdicts(),
+    );
 
     assert!(!outcome.changed);
     assert_eq!(
@@ -712,6 +725,7 @@ fn reconcile_adds_roster_arrival_confirmed_as_friend() -> Result<()> {
         "usr_self",
         &friends_by_id,
         None,
+        false,
         &verdict("usr_new", true),
     );
 
@@ -757,12 +771,26 @@ fn reconcile_records_display_name_change_for_existing_friend() -> Result<()> {
     .collect();
 
     assert!(
-        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts())
-            .changed
+        reconcile_friend_roster_records(
+            &db,
+            "usr_self",
+            &friends_by_id,
+            None,
+            false,
+            &no_verdicts(),
+        )
+        .changed
     );
     assert!(
-        !reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts())
-            .changed
+        !reconcile_friend_roster_records(
+            &db,
+            "usr_self",
+            &friends_by_id,
+            None,
+            false,
+            &no_verdicts(),
+        )
+        .changed
     );
 
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
@@ -819,8 +847,14 @@ fn reconcile_records_and_projects_trust_only_change_once() -> Result<()> {
     .into_iter()
     .collect();
 
-    let outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id,
+        None,
+        false,
+        &no_verdicts(),
+    );
     assert!(outcome.changed);
     assert_eq!(outcome.feed_entries.len(), 1);
     assert_eq!(outcome.feed_entries[0]["type"], "TrustLevel");
@@ -828,8 +862,15 @@ fn reconcile_records_and_projects_trust_only_change_once() -> Result<()> {
     assert_eq!(outcome.feed_entries[0]["previousTrustLevel"], "Known User");
     assert_eq!(outcome.feed_entries[0]["friendNumber"], 7);
     assert!(
-        !reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts())
-            .changed
+        !reconcile_friend_roster_records(
+            &db,
+            "usr_self",
+            &friends_by_id,
+            None,
+            false,
+            &no_verdicts(),
+        )
+        .changed
     );
 
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
@@ -885,8 +926,14 @@ fn reconcile_skips_placeholder_records() -> Result<()> {
     .into_iter()
     .collect();
 
-    let outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id,
+        None,
+        false,
+        &no_verdicts(),
+    );
 
     assert!(!outcome.changed);
     assert!(outcome.feed_entries.is_empty());
@@ -926,8 +973,15 @@ fn init_seeds_placeholder_without_trust_and_reconcile_fills_it_silently() -> Res
     .collect();
 
     assert!(
-        reconcile_friend_roster_records(&db, "usr_self", &placeholder_roster, None, &no_verdicts())
-            .changed
+        reconcile_friend_roster_records(
+            &db,
+            "usr_self",
+            &placeholder_roster,
+            None,
+            false,
+            &no_verdicts(),
+        )
+        .changed
     );
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
     assert_eq!(current[0].trust_level, "");
@@ -946,8 +1000,14 @@ fn init_seeds_placeholder_without_trust_and_reconcile_fills_it_silently() -> Res
     .into_iter()
     .collect();
 
-    let outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &fetched_roster, None, &no_verdicts());
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &fetched_roster,
+        None,
+        false,
+        &no_verdicts(),
+    );
     assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
     let current = vrcx_0_persistence::friends::friend_log_current_list(&db, "usr_self".into())?;
@@ -998,8 +1058,14 @@ fn reconcile_updates_legacy_equivalent_trust_without_history_or_feed() -> Result
     .into_iter()
     .collect();
 
-    let outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id,
+        None,
+        false,
+        &no_verdicts(),
+    );
 
     assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
@@ -1057,6 +1123,7 @@ fn first_time_baseline_init_fills_current_roster_without_history_or_feed() -> Re
         "usr_self",
         &friends_by_id,
         Some(&roster_order),
+        false,
         &no_verdicts(),
     );
 
@@ -1102,8 +1169,14 @@ fn first_time_baseline_init_failure_leaves_flag_unset_for_retry() -> Result<()> 
     .into_iter()
     .collect();
 
-    let failed_outcome =
-        reconcile_friend_roster_records(&db, "usr!self", &friends_by_id, None, &no_verdicts());
+    let failed_outcome = reconcile_friend_roster_records(
+        &db,
+        "usr!self",
+        &friends_by_id,
+        None,
+        false,
+        &no_verdicts(),
+    );
     assert!(!failed_outcome.changed);
     assert!(!config_store::get_bool(
         &db,
@@ -1111,8 +1184,14 @@ fn first_time_baseline_init_failure_leaves_flag_unset_for_retry() -> Result<()> 
         false
     )?);
 
-    let retried_outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
+    let retried_outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id,
+        None,
+        false,
+        &no_verdicts(),
+    );
     assert!(retried_outcome.changed);
     assert!(config_store::get_bool(
         &db,
@@ -1149,8 +1228,14 @@ fn first_time_init_treats_friend_accepted_during_init_window_as_preexisting() ->
     .into_iter()
     .collect();
 
-    let outcome =
-        reconcile_friend_roster_records(&db, "usr_self", &friends_by_id, None, &no_verdicts());
+    let outcome = reconcile_friend_roster_records(
+        &db,
+        "usr_self",
+        &friends_by_id,
+        None,
+        false,
+        &no_verdicts(),
+    );
 
     assert!(outcome.changed);
     assert!(outcome.feed_entries.is_empty());
@@ -1224,6 +1309,79 @@ fn active_baseline_trust_change_fans_out_after_atomic_persistence() -> Result<()
     assert_eq!(trust_entries.len(), 1);
     assert_eq!(trust_entries[0]["trustLevel"], "Trusted User");
     assert_eq!(trust_entries[0]["previousTrustLevel"], "Known User");
+    Ok(())
+}
+
+#[test]
+fn active_baseline_uses_runtime_feed_persistence_state() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("active-baseline-feed-disabled")?;
+    config_store::set_bool(
+        runtime.runtime().deps.db.as_ref(),
+        "friendLogInit_usr_self",
+        true,
+    )?;
+    write_realtime_batch(
+        runtime.runtime().deps.db.as_ref(),
+        "usr_self",
+        &RealtimePersistenceBatch {
+            friend_log_upserts: vec![vrcx_0_persistence::realtime::FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: "Friend".into(),
+                trust_level: "Known User".into(),
+                friend_number: 7,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        },
+    )?;
+    runtime.runtime().set_feed_persistence_disabled(true)?;
+    config_store::set_bool(
+        runtime.runtime().deps.db.as_ref(),
+        "feedPersistenceDisabled",
+        false,
+    )?;
+    let watermark = runtime.runtime().capture_friend_baseline_watermark()?;
+    let friend = FriendRecord {
+        id: "usr_friend".into(),
+        display_name: "Friend".into(),
+        extra: [("$trustLevel".into(), json!("Trusted User"))]
+            .into_iter()
+            .collect(),
+        ..FriendRecord::default()
+    };
+
+    let outcome = runtime.runtime().sync_friend_snapshot_with_watermark(
+        active_session.clone(),
+        watermark,
+        [("usr_friend".to_string(), friend)].into_iter().collect(),
+        FriendStatusVerdicts::default(),
+    )?;
+
+    assert!(outcome.friend_log_changed);
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
+    assert!(events
+        .iter()
+        .filter(|event| event.name == "realtimeFriendProjection")
+        .flat_map(|event| event.payload["feedEntries"]
+            .as_array()
+            .into_iter()
+            .flatten())
+        .any(|entry| entry["type"] == "TrustLevel"));
+    assert!(vrcx_0_persistence::feed::feed_rows_query(
+        runtime.database(),
+        feed_lookup_input(active_session.user_id),
+    )?
+    .is_empty());
+    assert_eq!(
+        vrcx_0_persistence::friends::friend_log_current_list(
+            runtime.database(),
+            "usr_self".into(),
+        )?[0]
+            .trust_level,
+        "Trusted User"
+    );
     Ok(())
 }
 
@@ -1488,6 +1646,117 @@ fn friend_projection_clears_feed_entries_when_persistence_fails() -> Result<()> 
         event.name != "backendRuntimeTelemetry" || event.payload["kind"] != "wsPersisted"
     }));
     Ok(())
+}
+
+#[test]
+fn disabled_feed_persistence_keeps_projection_and_other_batch_writes() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("friend-feed-persistence-disabled")?;
+    runtime.runtime().set_feed_persistence_disabled(true)?;
+    let feed_entries = ["GPS", "Online", "Status", "Bio", "Avatar"]
+        .into_iter()
+        .enumerate()
+        .map(|(index, entry_type)| {
+            json!({
+                "created_at": format!("2026-06-21T00:00:0{index}.000Z"),
+                "type": entry_type,
+                "userId": "usr_friend",
+                "displayName": "Friend"
+            })
+        })
+        .collect::<Vec<_>>();
+    let mut output = RealtimeFriendOutput::from_projection(
+        active_session.user_id.clone(),
+        FriendProjection {
+            generation: 7,
+            feed_entries: feed_entries.clone(),
+            ..FriendProjection::new(7, 0)
+        },
+    );
+    output.persistence.feed_entries = feed_entries;
+    output
+        .persistence
+        .friend_log_upserts
+        .push(vrcx_0_persistence::realtime::FriendLogUpsert {
+            target_user_id: "usr_friend".into(),
+            display_name: "Friend".into(),
+            trust_level: "Known User".into(),
+            friend_number: 1,
+            created_at: "2026-06-21T00:00:00.000Z".into(),
+            force_history: false,
+        });
+    runtime.runtime().apply_friend_output(output);
+
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
+    let projection = events
+        .iter()
+        .find(|event| event.name == "realtimeFriendProjection")
+        .expect("disabled persistence should still emit the live projection");
+    assert_eq!(
+        projection.payload["feedEntries"].as_array().unwrap().len(),
+        5
+    );
+    assert_eq!(
+        runtime
+            .activity_sink_for_test()
+            .take_friend_projections()
+            .len(),
+        1
+    );
+    assert_eq!(
+        vrcx_0_persistence::friends::friend_log_current_list(
+            runtime.database(),
+            active_session.user_id.clone(),
+        )?
+        .len(),
+        1
+    );
+    assert!(vrcx_0_persistence::feed::feed_rows_query(
+        runtime.database(),
+        feed_lookup_input(active_session.user_id.clone()),
+    )?
+    .is_empty());
+
+    runtime.runtime().set_feed_persistence_disabled(false)?;
+    let enabled_entry = json!({
+        "created_at": "2026-06-21T00:00:10.000Z",
+        "type": "Online",
+        "userId": "usr_friend",
+        "displayName": "Friend"
+    });
+    let mut enabled_output = RealtimeFriendOutput::from_projection(
+        active_session.user_id.clone(),
+        FriendProjection {
+            generation: 7,
+            feed_entries: vec![enabled_entry.clone()],
+            ..FriendProjection::new(7, 0)
+        },
+    );
+    enabled_output.persistence.feed_entries.push(enabled_entry);
+    runtime.runtime().apply_friend_output(enabled_output);
+
+    let persisted = vrcx_0_persistence::feed::feed_rows_query(
+        runtime.database(),
+        feed_lookup_input(active_session.user_id),
+    )?;
+    assert_eq!(persisted.len(), 1);
+    assert_eq!(persisted[0].r#type.as_deref(), Some("Online"));
+    Ok(())
+}
+
+fn feed_lookup_input(user_id: String) -> vrcx_0_persistence::feed::FeedRowsQueryInput {
+    vrcx_0_persistence::feed::FeedRowsQueryInput {
+        user_id,
+        mode: vrcx_0_persistence::feed::FeedQueryMode::Lookup,
+        search: String::new(),
+        filters: Vec::new(),
+        vip_list: Vec::new(),
+        excluded_user_ids: Vec::new(),
+        max_entries: 20,
+        date_from: String::new(),
+        date_to: String::new(),
+        cursor: None,
+    }
 }
 
 #[test]

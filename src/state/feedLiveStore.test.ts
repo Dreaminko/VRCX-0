@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { feedEntryCorrectionId, useFeedLiveStore } from './feedLiveStore';
+import { usePreferencesStore } from './preferencesStore';
 
 const goldenFeedEntryCorrectionIds = [
     {
@@ -54,6 +55,11 @@ describe('feedEntryCorrectionId', () => {
 describe('feedLiveStore pushEntries', () => {
     beforeEach(() => {
         useFeedLiveStore.getState().resetFeedLive();
+        usePreferencesStore.setState((state) => ({
+            ...state,
+            feedPersistenceDisabled: false,
+            tableLimits: { ...state.tableLimits, maxTableSize: 500 }
+        }));
     });
 
     it('assigns consecutive sequences matching pushEntry', () => {
@@ -82,7 +88,7 @@ describe('feedLiveStore pushEntries', () => {
         expect(useFeedLiveStore.getState().version).toBe(1);
     });
 
-    it('keeps at most the last 100 entries', () => {
+    it('keeps the existing 100-entry buffer while persistence is enabled', () => {
         const entries = Array.from({ length: 120 }, (_, index) => ({
             id: `entry-${index}`
         }));
@@ -93,6 +99,38 @@ describe('feedLiveStore pushEntries', () => {
         expect(state.entries[0].sequence).toBe(21);
         expect(state.entries[0].entry.id).toBe('entry-20');
         expect(state.entries[99].sequence).toBe(120);
+    });
+
+    it('uses the configured row limit only while persistence is disabled', () => {
+        usePreferencesStore.setState({ feedPersistenceDisabled: true });
+        const entries = Array.from({ length: 520 }, (_, index) => ({
+            id: `entry-${index}`
+        }));
+        useFeedLiveStore.getState().pushEntries(entries);
+        const state = useFeedLiveStore.getState();
+        expect(state.entries).toHaveLength(500);
+        expect(state.version).toBe(520);
+        expect(state.entries[0].sequence).toBe(21);
+        expect(state.entries[499].sequence).toBe(520);
+    });
+
+    it('trims old entries without changing the sequence or version', () => {
+        usePreferencesStore.setState({ feedPersistenceDisabled: true });
+        useFeedLiveStore.getState().pushEntries(
+            Array.from({ length: 120 }, (_, index) => ({
+                id: `entry-${index}`
+            }))
+        );
+
+        usePreferencesStore.setState((state) => ({
+            tableLimits: { ...state.tableLimits, maxTableSize: 100 }
+        }));
+        useFeedLiveStore.getState().trimEntries();
+
+        const state = useFeedLiveStore.getState();
+        expect(state.entries).toHaveLength(100);
+        expect(state.entries[0].sequence).toBe(21);
+        expect(state.version).toBe(120);
     });
 
     it('notifies subscribers once per batch', () => {

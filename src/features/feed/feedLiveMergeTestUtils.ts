@@ -2,6 +2,7 @@ import { act } from '@testing-library/react';
 import type { Mock } from 'vitest';
 
 import { useFeedLiveStore } from '@/state/feedLiveStore';
+import type { FeedLiveEntry } from '@/state/feedLiveStore';
 
 import type { FeedRow } from './feedTypes';
 
@@ -9,6 +10,7 @@ export type MergeArgs = {
     rows: FeedRow[];
     minLiveSequence: number;
     maxRows?: number;
+    liveEntries: FeedLiveEntry[];
 };
 
 export type Deferred<T> = {

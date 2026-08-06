@@ -8,6 +8,7 @@ import {
     normalizeTrustColors,
     TRUST_COLOR_DEFAULTS
 } from '@/shared/utils/trustColors';
+import { useFeedLiveStore } from '@/state/feedLiveStore';
 import { normalizeFeedHiddenUsers } from '@/state/preferencesStore';
 import type { TrustColorKey } from '@/state/preferencesStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
@@ -359,6 +360,13 @@ export async function setGameLogPersistenceDisabledPreference(
     publishPreferenceChanged('gameLogDisabled', disabled);
 }
 
+export async function setFeedPersistenceDisabledPreference(disabled: boolean) {
+    await commands.appFeedPersistenceSetDisabled(disabled);
+    useFeedLiveStore.getState().resetFeedLive();
+    patchPreferenceValue('feedPersistenceDisabled', disabled);
+    publishPreferenceChanged('feedPersistenceDisabled', disabled);
+}
+
 function isHiddenVrPanelBoolConfigKey(
     key: BoolConfigPreferenceInputKey
 ): key is HiddenVrPanelBoolConfigKey {
@@ -494,6 +502,7 @@ export async function setTableLimitsPreference(value: unknown) {
     patchPreferences({ tableLimits });
     publishPreferenceChanged('maxTableSize_v2', tableLimits.maxTableSize);
     publishPreferenceChanged('searchLimit', tableLimits.searchLimit);
+    useFeedLiveStore.getState().trimEntries();
     return tableLimits;
 }
 

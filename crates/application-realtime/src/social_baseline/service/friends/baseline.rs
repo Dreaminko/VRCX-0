@@ -319,11 +319,14 @@ async fn reconcile_friend_roster_baseline(
 ) -> bool {
     let verdicts =
         verify_friend_log_relationship_changes(deps, endpoint, user_id, friends_by_id).await;
+    let feed_persistence_disabled =
+        config_get_bool(deps.db.as_ref(), "feedPersistenceDisabled", false).unwrap_or(false);
     reconcile_friend_roster_records(
         deps.db.as_ref(),
         user_id,
         friends_by_id,
         roster_order,
+        feed_persistence_disabled,
         &verdicts,
     )
     .changed
@@ -445,6 +448,7 @@ pub(crate) fn reconcile_friend_roster_records(
     user_id: &str,
     friends_by_id: &HashMap<String, FriendRecord>,
     roster_order: Option<&[String]>,
+    feed_persistence_disabled: bool,
     verdicts: &FriendStatusVerdicts,
 ) -> FriendRosterReconcileOutcome {
     let initialized =
@@ -546,6 +550,22 @@ pub(crate) fn reconcile_friend_roster_records(
         return FriendRosterReconcileOutcome::default();
     }
 
+    if feed_persistence_disabled {
+        let feed_entries = std::mem::take(&mut batch.feed_entries);
+        return match write_realtime_batch(db, user_id, &batch) {
+            Ok(counts) => FriendRosterReconcileOutcome {
+                changed: counts.affected_count > 0,
+                feed_entries,
+            },
+            Err(error) => {
+                tracing::warn!("friend-log reconciliation write failed: {error}");
+                FriendRosterReconcileOutcome {
+                    feed_entries,
+                    ..FriendRosterReconcileOutcome::default()
+                }
+            }
+        };
+    }
     match write_realtime_batch(db, user_id, &batch) {
         Ok(counts) => FriendRosterReconcileOutcome {
             changed: counts.affected_count > 0,

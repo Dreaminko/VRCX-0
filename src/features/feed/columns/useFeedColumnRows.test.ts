@@ -15,7 +15,11 @@ const mocks = vi.hoisted(() => ({
         remoteFavoritesById: {} as Record<string, unknown>,
         localFriendFavorites: {} as Record<string, unknown>
     },
-    preferences: { feedHiddenUsers: [] as string[] }
+    preferences: {
+        feedHiddenUsers: [] as string[],
+        feedPersistenceDisabled: false,
+        tableLimits: { maxTableSize: 100 }
+    }
 }));
 
 vi.mock('@/repositories/feedRepository', () => ({
@@ -42,9 +46,11 @@ vi.mock('@/state/favoriteStore', () => ({
 }));
 
 vi.mock('@/state/preferencesStore', () => ({
-    usePreferencesStore: <T>(
-        selector: (state: typeof mocks.preferences) => T
-    ): T => selector(mocks.preferences)
+    usePreferencesStore: Object.assign(
+        <T>(selector: (state: typeof mocks.preferences) => T): T =>
+            selector(mocks.preferences),
+        { getState: () => mocks.preferences }
+    )
 }));
 
 import { useFeedLiveStore } from '@/state/feedLiveStore';
@@ -95,6 +101,7 @@ describe('useFeedColumnRows', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         vi.clearAllMocks();
+        mocks.preferences.feedPersistenceDisabled = false;
         useFeedLiveStore.getState().resetFeedLive();
         mocks.queryFeedReadModel.mockResolvedValue({
             rows: [],
@@ -107,6 +114,29 @@ describe('useFeedColumnRows', () => {
                 maxSequence: minLiveSequence
             })
         );
+    });
+
+    it('uses only session live entries and disables pagination when persistence is disabled', async () => {
+        mocks.preferences.feedPersistenceDisabled = true;
+        pushLiveEntry('live-only');
+        mocks.mergeLiveRows.mockImplementation(
+            async ({ liveEntries }: MergeArgs) => ({
+                rows: liveEntries.map(({ entry }) => entry),
+                maxSequence: 1
+            })
+        );
+
+        const { result } = renderColumnRows(createColumn('live'));
+        await flush();
+
+        expect(mocks.queryFeedReadModel).not.toHaveBeenCalled();
+        expect(mergeCallArgs()[0]).toEqual(
+            expect.objectContaining({ rows: [], minLiveSequence: 0 })
+        );
+        expect(result.current.rows).toEqual([
+            expect.objectContaining({ id: 'live-only' })
+        ]);
+        expect(result.current.hasMore).toBe(false);
     });
 
     afterEach(() => {

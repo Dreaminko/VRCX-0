@@ -7,6 +7,7 @@ import type {
     FeedLiveEntryPayload
 } from '@/domain/feed/feedLiveTypes';
 import { normalizeString } from '@/shared/utils/string';
+import { usePreferencesStore } from '@/state/preferencesStore';
 
 type FeedLivePushOptions = {
     ownerUserId?: string;
@@ -31,12 +32,22 @@ interface FeedLiveStoreState {
         fields: FeedEntryPatchInput | null | undefined
     ) => void;
     resetFeedLive: () => void;
+    trimEntries: () => void;
 }
 
 const initialState: Pick<FeedLiveStoreState, 'version' | 'entries'> = {
     version: 0,
     entries: []
 };
+
+const PERSISTED_FEED_LIVE_MAX_ENTRIES = 100;
+
+function feedLiveMaxEntries() {
+    const preferences = usePreferencesStore.getState();
+    return preferences.feedPersistenceDisabled
+        ? preferences.tableLimits.maxTableSize
+        : PERSISTED_FEED_LIVE_MAX_ENTRIES;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -92,6 +103,7 @@ export const useFeedLiveStore = create<FeedLiveStoreState>((set, get) => ({
         if (!validEntries.length) {
             return;
         }
+        const maxEntries = feedLiveMaxEntries();
         set((state) => {
             const appended = validEntries.map((entry, index) => ({
                 sequence: state.version + index + 1,
@@ -100,7 +112,7 @@ export const useFeedLiveStore = create<FeedLiveStoreState>((set, get) => ({
             }));
             return {
                 version: state.version + validEntries.length,
-                entries: [...state.entries, ...appended].slice(-100)
+                entries: [...state.entries, ...appended].slice(-maxEntries)
             };
         });
     },
@@ -138,6 +150,14 @@ export const useFeedLiveStore = create<FeedLiveStoreState>((set, get) => ({
     },
     resetFeedLive() {
         set(initialState);
+    },
+    trimEntries() {
+        const maxEntries = feedLiveMaxEntries();
+        set((state) =>
+            state.entries.length > maxEntries
+                ? { entries: state.entries.slice(-maxEntries) }
+                : state
+        );
     }
 }));
 export type { FeedLiveEntry, FeedLiveStoreState };

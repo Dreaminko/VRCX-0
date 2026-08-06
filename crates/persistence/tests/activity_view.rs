@@ -3,7 +3,6 @@ use std::sync::{Arc, Barrier};
 
 use chrono::DateTime;
 use serde_json::json;
-use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::activity::{
     activity_bucket_cache_get, activity_bucket_cache_upsert,
     activity_friend_presence_last_created_at, activity_overlap_view_build,
@@ -12,8 +11,8 @@ use vrcx_0_persistence::activity::{
     ActivityBucketCacheQueryInput, ActivityOverlapViewBuildInput, ActivitySessionInput,
     ActivitySyncStateInput, ActivityViewBuildInput, ActivityViewKind, ActivityViewOutput,
 };
-use vrcx_0_persistence::feed::feed_add_entry;
 use vrcx_0_persistence::game_log::{write_batch, GameLogLocationEntry, GameLogWriteBatch};
+use vrcx_0_persistence::realtime::{write_realtime_batch, RealtimePersistenceBatch};
 use vrcx_0_persistence::DatabaseService;
 
 struct TestDir {
@@ -93,19 +92,22 @@ fn add_presence(
     created_at: &str,
     kind: &str,
 ) {
-    feed_add_entry(
+    write_realtime_batch(
         db,
-        owner_user_id.to_string(),
-        RawJson::from(json!({
-            "created_at": created_at,
-            "userId": target_user_id,
-            "displayName": "Friend",
-            "type": kind,
-            "location": "",
-            "worldName": "",
-            "time": 0,
-            "groupName": ""
-        })),
+        owner_user_id,
+        &RealtimePersistenceBatch {
+            feed_entries: vec![json!({
+                "created_at": created_at,
+                "userId": target_user_id,
+                "displayName": "Friend",
+                "type": kind,
+                "location": "",
+                "worldName": "",
+                "time": 0,
+                "groupName": ""
+            })],
+            ..RealtimePersistenceBatch::default()
+        },
     )
     .unwrap();
 }

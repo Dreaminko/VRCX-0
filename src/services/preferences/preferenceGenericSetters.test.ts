@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
     appRestartApplication: vi.fn(),
     appSetStartup: vi.fn(),
     appVrOverlayConfigReload: vi.fn(),
+    appFeedPersistenceSetDisabled: vi.fn(),
     getBool: vi.fn(),
     getString: vi.fn(),
     getInt: vi.fn(),
@@ -34,7 +35,8 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appLanguageChanged: mocks.appLanguageChanged,
         appRestartApplication: mocks.appRestartApplication,
         appSetStartup: mocks.appSetStartup,
-        appVrOverlayConfigReload: mocks.appVrOverlayConfigReload
+        appVrOverlayConfigReload: mocks.appVrOverlayConfigReload,
+        appFeedPersistenceSetDisabled: mocks.appFeedPersistenceSetDisabled
     }
 }));
 
@@ -102,6 +104,7 @@ vi.mock('../trustColorService', () => ({
     applyTrustColorClasses: mocks.applyTrustColorClasses
 }));
 
+import { useFeedLiveStore } from '@/state/feedLiveStore';
 import {
     DEFAULT_PREFERENCES,
     usePreferencesStore
@@ -112,6 +115,7 @@ import {
     addFeedHiddenUserPreference,
     removeFeedHiddenUserPreference,
     setBoolConfigPreference,
+    setFeedPersistenceDisabledPreference,
     setIntConfigPreference,
     setStartAtWindowsStartupPreference,
     setTableLimitsPreference,
@@ -148,6 +152,8 @@ describe('preferenceGenericSetters', () => {
         mocks.appSetStartup.mockResolvedValue(false);
         mocks.appRestartApplication.mockResolvedValue(undefined);
         mocks.appVrOverlayConfigReload.mockResolvedValue(undefined);
+        mocks.appFeedPersistenceSetDisabled.mockResolvedValue(undefined);
+        useFeedLiveStore.getState().resetFeedLive();
         mocks.readRecentActionCooldown.mockReturnValue({
             enabled: false,
             minutes: 60
@@ -242,6 +248,34 @@ describe('preferenceGenericSetters', () => {
             maxTableSize: 750,
             searchLimit: 25000
         });
+    });
+
+    it('clears live Feed only after the backend persistence switch succeeds', async () => {
+        useFeedLiveStore.getState().pushEntry({ id: 'before-switch' });
+
+        await setFeedPersistenceDisabledPreference(true);
+
+        expect(mocks.appFeedPersistenceSetDisabled).toHaveBeenCalledWith(true);
+        expect(useFeedLiveStore.getState().entries).toEqual([]);
+        expect(usePreferencesStore.getState().feedPersistenceDisabled).toBe(
+            true
+        );
+    });
+
+    it('keeps the Feed preference and live entries when the backend switch fails', async () => {
+        useFeedLiveStore.getState().pushEntry({ id: 'kept' });
+        mocks.appFeedPersistenceSetDisabled.mockRejectedValueOnce(
+            new Error('switch failed')
+        );
+
+        await expect(
+            setFeedPersistenceDisabledPreference(true)
+        ).rejects.toThrow('switch failed');
+
+        expect(useFeedLiveStore.getState().entries).toHaveLength(1);
+        expect(usePreferencesStore.getState().feedPersistenceDisabled).toBe(
+            false
+        );
     });
 
     it('keeps compound table preferences unchanged when the transaction fails', async () => {

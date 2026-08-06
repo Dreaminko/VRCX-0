@@ -1,10 +1,12 @@
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use vrcx_0_application_core::RuntimeOperationStatus;
+use vrcx_0_application_core::{Result, RuntimeOperationStatus};
 
 use super::state::FriendOwnerGuard;
 use serde_json::Value;
 use vrcx_0_application_core::LocalGameContextSnapshot;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
+use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::realtime::{write_realtime_batch, RealtimeWriteCounts};
 
 use crate::realtime::{
@@ -20,6 +22,14 @@ pub(super) enum FriendOutputApplyOutcome {
 }
 
 impl RealtimeHostRuntime {
+    pub fn set_feed_persistence_disabled(&self, disabled: bool) -> Result<()> {
+        let _owner = self.lock_friend_owner();
+        config_store::set_bool(self.deps.db.as_ref(), "feedPersistenceDisabled", disabled)?;
+        self.feed_persistence_disabled
+            .store(disabled, Ordering::Relaxed);
+        Ok(())
+    }
+
     pub(super) fn set_activity_friend_user_ids(&self, user_ids: Vec<String>) {
         if let Some(activity_sink) = &self.deps.activity_sink {
             activity_sink.set_friend_user_ids(user_ids);
@@ -41,7 +51,7 @@ impl RealtimeHostRuntime {
         self.apply_friend_output_owned(&owner, output);
     }
 
-    pub(super) fn apply_persisted_friend_feed_entries_owned(
+    pub(super) fn apply_reconciled_friend_feed_entries_owned(
         self: &Arc<Self>,
         _owner: &FriendOwnerGuard<'_>,
         generation: u64,
@@ -81,6 +91,10 @@ impl RealtimeHostRuntime {
             return FriendOutputApplyOutcome::Stale;
         }
         self.retain_current_instance_joining_entries(&mut projection, &output.owner_user_id);
+        let feed_persistence_disabled = self.feed_persistence_disabled.load(Ordering::Relaxed);
+        if feed_persistence_disabled {
+            output.persistence.feed_entries.clear();
+        }
         let friend_note_changed = output.friend_note_changed;
         let mut world_name_fetch_ids =
             self.enrich_projection_world_names(&mut projection.feed_entries);
@@ -103,7 +117,9 @@ impl RealtimeHostRuntime {
                     self.deps
                         .sync
                         .record_failure("realtimeFriends", error.to_string());
-                    projection.feed_entries.clear();
+                    if !feed_persistence_disabled {
+                        projection.feed_entries.clear();
+                    }
                     false
                 }
             };

@@ -146,6 +146,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         onUdonExceptionLoggingChange,
         onLogResourceLoadChange,
         onGameLogDisabledChange,
+        onFeedPersistenceDisabledChange,
         onAvatarAutoCleanupChange,
         onOpenPurgeDialog,
         onMigrateLegacyVrcxData,
@@ -422,6 +423,9 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                 onRefreshConfigTreeData={onRefreshConfigTreeData}
                 onClearConfigTreeData={onClearConfigTreeData}
                 onGameLogDisabledChange={onGameLogDisabledChange}
+                onFeedPersistenceDisabledChange={
+                    onFeedPersistenceDisabledChange
+                }
                 onLogResourceLoadChange={onLogResourceLoadChange}
                 onUdonExceptionLoggingChange={onUdonExceptionLoggingChange}
             />

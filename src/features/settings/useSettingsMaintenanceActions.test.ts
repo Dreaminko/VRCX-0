@@ -18,6 +18,7 @@ function createMaintenanceActions({
     confirm,
     isGameRunning = false,
     setGameLogPersistenceDisabledPreference = async () => undefined,
+    setFeedPersistenceDisabledPreference = async () => undefined,
     setPurgeDialogOpen = () => undefined,
     toastWarning = () => undefined
 }: {
@@ -34,6 +35,7 @@ function createMaintenanceActions({
     setGameLogPersistenceDisabledPreference?: (
         disabled: boolean
     ) => Promise<void>;
+    setFeedPersistenceDisabledPreference?: (disabled: boolean) => Promise<void>;
     setPurgeDialogOpen?: (open: boolean) => void;
     toastWarning?: (message: string) => void;
 }) {
@@ -86,6 +88,7 @@ function createMaintenanceActions({
         setAppDataDirState: () => undefined,
         setCropInstancePrintsPreference: async () => undefined,
         setGameLogPersistenceDisabledPreference,
+        setFeedPersistenceDisabledPreference,
         setIntConfigPreference: async () => undefined,
         setPrefs: () => undefined,
         setPurgeDialogOpen,
@@ -152,6 +155,37 @@ describe('handleGameLogDisabledChange', () => {
 
         expect(confirm).not.toHaveBeenCalled();
         expect(setGameLogPersistenceDisabledPreference).not.toHaveBeenCalled();
+    });
+});
+
+describe('handleFeedPersistenceDisabledChange', () => {
+    it('keeps Feed history enabled when disabling is not confirmed', async () => {
+        const setFeedPersistenceDisabledPreference = vi.fn(
+            async () => undefined
+        );
+        const actions = createMaintenanceActions({
+            confirm: async () => ({ ok: false }),
+            setFeedPersistenceDisabledPreference
+        });
+
+        await actions.handleFeedPersistenceDisabledChange(true);
+
+        expect(setFeedPersistenceDisabledPreference).not.toHaveBeenCalled();
+    });
+
+    it('can switch Feed persistence while VRChat is running', async () => {
+        const setFeedPersistenceDisabledPreference = vi.fn(
+            async () => undefined
+        );
+        const actions = createMaintenanceActions({
+            confirm: async () => ({ ok: true }),
+            isGameRunning: true,
+            setFeedPersistenceDisabledPreference
+        });
+
+        await actions.handleFeedPersistenceDisabledChange(true);
+
+        expect(setFeedPersistenceDisabledPreference).toHaveBeenCalledWith(true);
     });
 });
 

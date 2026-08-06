@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { FeedLiveEntry } from '@/domain/feed/feedLiveTypes';
 import type { FeedReadModelResult } from '@/domain/feed/feedReadModelTypes';
 import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
+import { FeedPersistenceDisabledIndicator } from '@/features/feed/components/FeedPersistenceDisabledIndicator';
 import type { FeedRow } from '@/features/feed/feedTypes';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { FEED_FILTER_TYPES } from '@/repositories/feedRepository';
@@ -14,6 +15,7 @@ import { normalizeString } from '@/shared/utils/string';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFeedLiveStore } from '@/state/feedLiveStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -55,6 +57,7 @@ type DashboardFeedWidgetViewProps = {
     remoteFavoriteFriendIds: unknown[];
     localFriendFavorites: unknown;
     friendsById: FriendRosterById;
+    feedPersistenceDisabled: boolean;
 };
 
 type DashboardFeedWidgetProps = Pick<
@@ -71,7 +74,8 @@ export function DashboardFeedWidgetView({
     liveFeedVersion,
     remoteFavoriteFriendIds,
     localFriendFavorites,
-    friendsById
+    friendsById,
+    feedPersistenceDisabled
 }: DashboardFeedWidgetViewProps) {
     const { t } = useTranslation();
     const lastLiveFeedSequenceRef = useRef(0);
@@ -109,6 +113,11 @@ export function DashboardFeedWidgetView({
     useEffect(() => {
         rowsRef.current = rows;
     }, [rows]);
+
+    useEffect(() => {
+        rowsRef.current = [];
+        setRows([]);
+    }, [feedPersistenceDisabled]);
 
     async function mergeWidgetRowsWithLatestLive({
         rows,
@@ -193,6 +202,44 @@ export function DashboardFeedWidgetView({
 
         const liveFeedSequenceAtRequestStart =
             liveFeedSnapshotRef.current.version;
+        if (feedPersistenceDisabled) {
+            mergeWidgetRowsWithLatestLive({
+                rows: [],
+                minLiveSequence: 0,
+                requestIsCurrent: () => active
+            })
+                .then(async (result) => {
+                    if (!active || !result) {
+                        return;
+                    }
+                    const commitResult = await prepareWidgetRowsForCommit({
+                        result,
+                        requestIsCurrent: () => active
+                    });
+                    if (!active || !commitResult) {
+                        return;
+                    }
+                    lastLiveFeedSequenceRef.current = commitResult.maxSequence;
+                    rowsRef.current = commitResult.rows;
+                    setRows(commitResult.rows);
+                    setLoadStatus('ready');
+                })
+                .catch((error: unknown) => {
+                    if (active) {
+                        setRows([]);
+                        setLoadStatus('error');
+                        setDetail(
+                            userFacingErrorMessage(
+                                error,
+                                'Failed to load feed widget.'
+                            )
+                        );
+                    }
+                });
+            return () => {
+                active = false;
+            };
+        }
         feedRepository
             .queryFeedReadModel({
                 userId: currentUserId,
@@ -249,7 +296,12 @@ export function DashboardFeedWidgetView({
         return () => {
             active = false;
         };
-    }, [activeFilters, addGameLogEventCount, currentUserId]);
+    }, [
+        activeFilters,
+        addGameLogEventCount,
+        currentUserId,
+        feedPersistenceDisabled
+    ]);
 
     useEffect(() => {
         liveMergeRequestIdRef.current += 1;
@@ -366,6 +418,9 @@ export function DashboardFeedWidgetView({
                 icon="ri-rss-line"
                 path="/feed"
             >
+                {feedPersistenceDisabled ? (
+                    <FeedPersistenceDisabledIndicator />
+                ) : null}
                 {settingsMenu}
             </DashboardWidgetHeader>
             {children}
@@ -515,6 +570,9 @@ export function DashboardFeedWidget({
         }))
     );
     const friendsById = useFriendRosterStore((state) => state.friendsById);
+    const feedPersistenceDisabled = usePreferencesStore(
+        (state) => state.feedPersistenceDisabled
+    );
 
     return (
         <DashboardFeedWidgetView
@@ -527,6 +585,7 @@ export function DashboardFeedWidget({
             remoteFavoriteFriendIds={remoteFavoriteFriendIds}
             localFriendFavorites={localFriendFavorites}
             friendsById={friendsById}
+            feedPersistenceDisabled={feedPersistenceDisabled}
         />
     );
 }

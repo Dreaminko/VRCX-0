@@ -839,6 +839,7 @@
         },
         "feed": {
             "filter": "Filtrar",
+            "feed_persistence_disabled_tooltip": "O histórico do Feed não está sendo salvo",
             "favorites_only_tooltip": "Filtrar apenas favoritos",
             "search_placeholder": "Pesquisar",
             "date_range": "Intervalo de datas",
@@ -2456,6 +2457,8 @@
                         "hide": "Ocultar ferramentas",
                         "gamelog": "Salvar histórico do GameLog",
                         "gamelog_description": "Quando desativado, nenhum novo histórico do GameLog é salvo. Player List, Now Playing, metadados de capturas, Instance Media e outros recursos em tempo real continuam disponíveis.",
+                        "feed_history": "Salvar histórico do Feed",
+                        "feed_history_description": "Quando desativado, o histórico do Feed não é salvo nem carregado. O Feed começa vazio e mostra apenas a atividade em tempo real desta sessão. Friends Sidebar e outros recursos em tempo real continuam disponíveis.",
                         "tools": "Diagnóstico",
                         "database_usage": "Uso do banco de dados",
                         "refresh_database_usage": "Atualizar uso do banco de dados",
@@ -5015,6 +5018,7 @@
         "logout": "Continuar? Sair",
         "delete_log": "Continue? Excluir Registro",
         "disable_gamelog": "Parar de salvar o novo histórico do GameLog? Player List, Now Playing, metadados de capturas, Instance Media e outros recursos em tempo real continuarão disponíveis.",
+        "disable_feed_persistence": "Parar de salvar o histórico do Feed? O Feed começará com uma visualização em tempo real vazia e as análises baseadas no histórico terão uma lacuna permanente. Friends Sidebar e outros recursos em tempo real continuarão disponíveis.",
         "delete_vrc_registry": "Continuar? Excluir Configurações de Registro do VRC",
         "clear_cache": "Continuar? Limpar todo o cache do VRChat"
     },

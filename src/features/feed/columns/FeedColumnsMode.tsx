@@ -40,6 +40,7 @@ import { Button } from '@/ui/shadcn/button';
 import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
+import { FeedPersistenceDisabledIndicator } from '../components/FeedPersistenceDisabledIndicator';
 import {
     FEED_COLUMN_DENSITY_OPTIONS,
     type FeedColumnDensity,
@@ -61,6 +62,7 @@ type FeedColumnsModeProps = {
     modeToggle: ReactNode;
     onColumnsChange(columns: FeedColumnConfig[]): void;
     onDensityChange(value: FeedColumnDensity): void;
+    feedPersistenceDisabled: boolean;
 };
 
 type SortableFeedColumnProps = {
@@ -172,7 +174,8 @@ export function FeedColumnsMode({
     density,
     modeToggle,
     onColumnsChange,
-    onDensityChange
+    onDensityChange,
+    feedPersistenceDisabled
 }: FeedColumnsModeProps) {
     const { t } = useTranslation();
     const friendActions = useFeedFriendActions();
@@ -248,6 +251,9 @@ export function FeedColumnsMode({
                 <PageToolbarRow>
                     <ToolbarViews>{modeToggle}</ToolbarViews>
                     <ToolbarActions>
+                        {feedPersistenceDisabled ? (
+                            <FeedPersistenceDisabledIndicator />
+                        ) : null}
                         <Button
                             type="button"
                             variant="outline"

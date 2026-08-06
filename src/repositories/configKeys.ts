@@ -121,6 +121,7 @@ export const ConfigKeys = defineConfigKeys({
     screenshotHelperModifyFilename: { type: 'bool', default: false },
     screenshotHelperCopyToClipboard: { type: 'bool', default: false },
     gameLogDisabled: { type: 'bool', default: false },
+    feedPersistenceDisabled: { type: 'bool', default: false },
     avatarAutoCleanup: { type: 'string', default: 'Off' },
     anonymousUsageTelemetry: { type: 'bool', default: true },
     userGeneratedContentPath: { type: 'string', default: '' },

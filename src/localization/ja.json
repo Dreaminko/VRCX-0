@@ -839,6 +839,7 @@
         },
         "feed": {
             "filter": "フィルター",
+            "feed_persistence_disabled_tooltip": "フィード履歴を保存しないモードです",
             "favorites_only_tooltip": "お気に入りのみ",
             "search_placeholder": "検索...",
             "date_range": "期間",
@@ -2452,6 +2453,8 @@
                         "hide": "ツールを隠す",
                         "gamelog": "GameLog 履歴を保存",
                         "gamelog_description": "オフにすると新しい GameLog 履歴は保存されません。Player List、Now Playing、スクリーンショットのメタデータ、Instance Media などのリアルタイムログ機能は引き続き利用できます。",
+                        "feed_history": "フィード履歴を保存",
+                        "feed_history_description": "オフにするとフィード履歴の保存と読み込みを行いません。フィードは空の状態から始まり、このセッションで受信したリアルタイムの動きだけを表示します。Friends Sidebar などのリアルタイム機能は引き続き利用できます。",
                         "tools": "診断",
                         "database_usage": "データベース使用量",
                         "refresh_database_usage": "データベース使用量を更新",
@@ -5008,6 +5011,7 @@
         "logout": "ログアウトしますか？",
         "delete_log": "ログを削除しますか？",
         "disable_gamelog": "新しい GameLog 履歴の保存を停止しますか？Player List、Now Playing、スクリーンショットのメタデータ、Instance Media などのリアルタイムログ機能は引き続き利用できます。",
+        "disable_feed_persistence": "フィード履歴の保存を停止しますか？フィードは空のリアルタイム表示から始まり、履歴を使う分析には埋められない空白期間が生じます。Friends Sidebar などのリアルタイム機能は引き続き利用できます。",
         "delete_vrc_registry": "VRChat のレジストリ設定を削除しますか？",
         "clear_cache": "すべての VRChat キャッシュをクリアしますか？"
     },

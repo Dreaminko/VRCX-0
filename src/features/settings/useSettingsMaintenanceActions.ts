@@ -89,6 +89,9 @@ type SettingsMaintenanceActionsDeps = {
     setGameLogPersistenceDisabledPreference: (
         disabled: boolean
     ) => Promise<unknown>;
+    setFeedPersistenceDisabledPreference: (
+        disabled: boolean
+    ) => Promise<unknown>;
     setIntConfigPreference: (
         key: IntConfigPreferenceKey,
         value: string | number,
@@ -119,6 +122,7 @@ export function useSettingsMaintenanceActions({
     setAppDataDirState,
     setCropInstancePrintsPreference,
     setGameLogPersistenceDisabledPreference,
+    setFeedPersistenceDisabledPreference,
     setIntConfigPreference,
     setPrefs,
     setPurgeDialogOpen,
@@ -480,6 +484,21 @@ export function useSettingsMaintenanceActions({
             setGameLogPersistenceDisabledPreference(disabled)
         );
     }
+    async function handleFeedPersistenceDisabledChange(checked: unknown) {
+        const disabled = normalizeCheckedState(checked);
+        if (disabled) {
+            const result = await confirm({
+                title: t('confirm.title'),
+                description: t('confirm.disable_feed_persistence')
+            });
+            if (!result.ok) {
+                return;
+            }
+        }
+        await savePreferenceValue('feedPersistenceDisabled', disabled, () =>
+            setFeedPersistenceDisabledPreference(disabled)
+        );
+    }
     return {
         saveNotificationTtsMode,
         saveNotificationTtsVoice,
@@ -495,6 +514,7 @@ export function useSettingsMaintenanceActions({
         openUgcFolderSelector,
         handleCropInstancePrintsChange,
         handleGameLogDisabledChange,
+        handleFeedPersistenceDisabledChange,
         migrateLegacyVrcxData
     };
 }

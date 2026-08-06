@@ -96,6 +96,7 @@ export function createDefaultSettingsPrefs() {
         vrcQuitFix: true,
         autoSweepVRChatCache: false,
         gameLogDisabled: false,
+        feedPersistenceDisabled: false,
         avatarAutoCleanup: 'Off',
         anonymousUsageTelemetry: true,
         udonExceptionLogging: false,

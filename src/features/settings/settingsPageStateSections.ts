@@ -121,6 +121,7 @@ export type BuildSettingsPageStateSectionsInput = Record<string, unknown> &
         discordPrefs: SettingsDiscordPrefs;
         handleCropInstancePrintsChange: SettingsCallback<[boolean]>;
         handleGameLogDisabledChange: SettingsCallback<[boolean]>;
+        handleFeedPersistenceDisabledChange: SettingsCallback<[boolean]>;
         hmdNotificationsDialogOpen: boolean;
         integrationPrefs: SettingsIntegrationPrefs;
         locale: string;

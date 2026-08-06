@@ -267,35 +267,6 @@ class FeedRepository {
             maxRows
         });
     }
-
-    async addGpsEntryForUser(userId: unknown, entry: FeedEntry) {
-        return feedPersistenceRepository.addGPSToDatabaseForUser(userId, entry);
-    }
-
-    async addStatusEntryForUser(userId: unknown, entry: FeedEntry) {
-        return feedPersistenceRepository.addStatusToDatabaseForUser(
-            userId,
-            entry
-        );
-    }
-
-    async addBioEntryForUser(userId: unknown, entry: FeedEntry) {
-        return feedPersistenceRepository.addBioToDatabaseForUser(userId, entry);
-    }
-
-    async addAvatarEntryForUser(userId: unknown, entry: FeedEntry) {
-        return feedPersistenceRepository.addAvatarToDatabaseForUser(
-            userId,
-            entry
-        );
-    }
-
-    async addOnlineOfflineEntryForUser(userId: unknown, entry: FeedEntry) {
-        return feedPersistenceRepository.addOnlineOfflineToDatabaseForUser(
-            userId,
-            entry
-        );
-    }
 }
 
 const feedRepository = new FeedRepository();

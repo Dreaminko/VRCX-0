@@ -35,6 +35,7 @@ type AdvancedTroubleshootingGroupProps = {
     gameLogPersistenceSupported: boolean;
     onClearConfigTreeData: () => void;
     onGameLogDisabledChange: (disabled: boolean) => unknown;
+    onFeedPersistenceDisabledChange: (disabled: boolean) => unknown;
     onLogResourceLoadChange: (checked: boolean) => unknown;
     onRefreshConfigTreeData: SettingsAdvancedAction;
     onRefreshOnlineVisits: SettingsAdvancedAction;
@@ -51,6 +52,7 @@ export function AdvancedTroubleshootingGroup({
     gameLogPersistenceSupported,
     onClearConfigTreeData,
     onGameLogDisabledChange,
+    onFeedPersistenceDisabledChange,
     onLogResourceLoadChange,
     onRefreshConfigTreeData,
     onRefreshOnlineVisits,
@@ -198,6 +200,21 @@ export function AdvancedTroubleshootingGroup({
                                 />
                             </Field>
                         ) : null}
+                        <Field
+                            label={t(
+                                'view.settings.advanced.advanced_ui.troubleshooting.feed_history'
+                            )}
+                            description={t(
+                                'view.settings.advanced.advanced_ui.troubleshooting.feed_history_description'
+                            )}
+                        >
+                            <Switch
+                                checked={!prefs.feedPersistenceDisabled}
+                                onCheckedChange={(checked) =>
+                                    onFeedPersistenceDisabledChange(!checked)
+                                }
+                            />
+                        </Field>
 
                         <SettingsSectionHeading
                             title={t(

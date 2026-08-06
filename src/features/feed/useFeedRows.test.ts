@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     preferences: {
         localFavoriteFriendsGroups: [] as string[],
         feedHiddenUsers: [] as string[],
+        feedPersistenceDisabled: false,
         tableLimits: { maxTableSize: 100 }
     },
     friendRoster: { lastLoadedAt: 0 }
@@ -55,9 +56,11 @@ vi.mock('@/state/favoriteStore', () => ({
 }));
 
 vi.mock('@/state/preferencesStore', () => ({
-    usePreferencesStore: <T>(
-        selector: (state: typeof mocks.preferences) => T
-    ): T => selector(mocks.preferences)
+    usePreferencesStore: Object.assign(
+        <T>(selector: (state: typeof mocks.preferences) => T): T =>
+            selector(mocks.preferences),
+        { getState: () => mocks.preferences }
+    )
 }));
 
 vi.mock('@/state/friendRosterStore', () => ({
@@ -110,6 +113,7 @@ describe('useFeedRows', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         vi.clearAllMocks();
+        mocks.preferences.feedPersistenceDisabled = false;
         useFeedLiveStore.getState().resetFeedLive();
         mocks.getFriendLogCurrent.mockResolvedValue([]);
         mocks.getAllUserStats.mockResolvedValue([]);
@@ -123,6 +127,55 @@ describe('useFeedRows', () => {
                 maxSequence: minLiveSequence
             })
         );
+    });
+
+    it('starts from session live entries without querying history when persistence is disabled', async () => {
+        mocks.preferences.feedPersistenceDisabled = true;
+        pushLiveEntry('live-only');
+        mocks.mergeLiveRows.mockImplementation(
+            async ({ liveEntries }: MergeArgs) => ({
+                rows: liveEntries.map(({ entry }) => entry),
+                maxSequence: 1
+            })
+        );
+
+        const { result } = renderFeedRows();
+        await flush();
+
+        expect(mocks.queryFeedReadModel).not.toHaveBeenCalled();
+        expect(mergeCallArgs()[0]).toEqual(
+            expect.objectContaining({ rows: [], minLiveSequence: 0 })
+        );
+        expect(result.current.rows).toEqual([
+            expect.objectContaining({ id: 'live-only' })
+        ]);
+        expect(result.current.loadStatus).toBe('ready');
+    });
+
+    it('clears disabled-session rows immediately when history loading resumes', async () => {
+        mocks.preferences.feedPersistenceDisabled = true;
+        pushLiveEntry('paused-entry');
+        mocks.mergeLiveRows.mockImplementation(
+            async ({ liveEntries }: MergeArgs) => ({
+                rows: liveEntries.map(({ entry }) => entry),
+                maxSequence: 1
+            })
+        );
+        const { result, rerender } = renderFeedRows();
+        await flush();
+        expect(result.current.rows).toHaveLength(1);
+
+        const historyQuery = createDeferred<FeedReadModelResult<FeedRow>>();
+        mocks.queryFeedReadModel.mockReturnValueOnce(historyQuery.promise);
+        useFeedLiveStore.getState().resetFeedLive();
+        mocks.preferences.feedPersistenceDisabled = false;
+        rerender(BASE_PROPS);
+
+        expect(result.current.rows).toEqual([]);
+
+        await act(async () => {
+            historyQuery.resolve({ rows: [], maxSequence: 0 });
+        });
     });
 
     afterEach(() => {

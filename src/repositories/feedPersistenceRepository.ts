@@ -115,17 +115,6 @@ function markFeedTablesEnsured(userPrefix: unknown) {
     ensuredFeedTablePrefixes.set(String(userPrefix), Promise.resolve());
 }
 
-function addFeedEntry(
-    userId: unknown,
-    type: unknown,
-    entry: Record<string, unknown> = {}
-) {
-    return commands.appFeedAddEntry(normalizeString(userId), {
-        ...entry,
-        type
-    });
-}
-
 async function queryFeedRows({
     userId,
     mode,
@@ -156,64 +145,6 @@ async function queryFeedRows({
 
 const feed = {
     markFeedTablesEnsured,
-
-    addGPSToDatabase(userId: unknown, entry: Record<string, unknown>) {
-        return this.addGPSToDatabaseForUser(userId, entry);
-    },
-
-    async addGPSToDatabaseForUser(
-        userId: unknown,
-        entry: Record<string, unknown>
-    ) {
-        return addFeedEntry(userId, 'GPS', entry);
-    },
-
-    addStatusToDatabase(userId: unknown, entry: Record<string, unknown>) {
-        return this.addStatusToDatabaseForUser(userId, entry);
-    },
-
-    async addStatusToDatabaseForUser(
-        userId: unknown,
-        entry: Record<string, unknown>
-    ) {
-        return addFeedEntry(userId, 'Status', entry);
-    },
-
-    addBioToDatabase(userId: unknown, entry: Record<string, unknown>) {
-        return this.addBioToDatabaseForUser(userId, entry);
-    },
-
-    async addBioToDatabaseForUser(
-        userId: unknown,
-        entry: Record<string, unknown>
-    ) {
-        return addFeedEntry(userId, 'Bio', entry);
-    },
-
-    addAvatarToDatabase(userId: unknown, entry: Record<string, unknown>) {
-        return this.addAvatarToDatabaseForUser(userId, entry);
-    },
-
-    async addAvatarToDatabaseForUser(
-        userId: unknown,
-        entry: Record<string, unknown>
-    ) {
-        return addFeedEntry(userId, 'Avatar', entry);
-    },
-
-    addOnlineOfflineToDatabase(
-        userId: unknown,
-        entry: Record<string, unknown>
-    ) {
-        return this.addOnlineOfflineToDatabaseForUser(userId, entry);
-    },
-
-    async addOnlineOfflineToDatabaseForUser(
-        userId: unknown,
-        entry: Record<string, unknown>
-    ) {
-        return addFeedEntry(userId, entry?.type, entry);
-    },
 
     async searchFeedDatabase(
         search: string,

@@ -839,6 +839,7 @@
         },
         "feed": {
             "filter": "Filtrer",
+            "feed_persistence_disabled_tooltip": "L’historique du Feed n’est pas enregistré",
             "favorites_only_tooltip": "Filtrer uniquement les favoris",
             "search_placeholder": "Rechercher",
             "date_range": "Plage de dates",
@@ -2456,6 +2457,8 @@
                         "hide": "Masquer les outils",
                         "gamelog": "Enregistrer l’historique GameLog",
                         "gamelog_description": "Lorsque cette option est désactivée, aucun nouvel historique GameLog n’est enregistré. Player List, Now Playing, les métadonnées des captures, Instance Media et les autres fonctions en temps réel restent disponibles.",
+                        "feed_history": "Enregistrer l’historique du Feed",
+                        "feed_history_description": "Lorsque cette option est désactivée, l’historique du Feed n’est ni enregistré ni chargé. Le Feed démarre vide et n’affiche que l’activité en temps réel de cette session. Friends Sidebar et les autres fonctions en temps réel restent disponibles.",
                         "tools": "Diagnostic",
                         "database_usage": "Utilisation de la base de données",
                         "refresh_database_usage": "Actualiser l’utilisation de la base de données",
@@ -5015,6 +5018,7 @@
         "logout": "Se déconnecter ?",
         "delete_log": "Supprimer le journal ?",
         "disable_gamelog": "Arrêter d’enregistrer le nouvel historique GameLog ? Player List, Now Playing, les métadonnées des captures, Instance Media et les autres fonctions en temps réel restent disponibles.",
+        "disable_feed_persistence": "Arrêter d’enregistrer l’historique du Feed ? Le Feed repartira d’une vue en temps réel vide et les analyses historiques comporteront une lacune définitive. Friends Sidebar et les autres fonctions en temps réel resteront disponibles.",
         "delete_vrc_registry": "Supprimer les paramètres de registre VRChat existants ?",
         "clear_cache": "Effacer tout le cache VRChat ?"
     },

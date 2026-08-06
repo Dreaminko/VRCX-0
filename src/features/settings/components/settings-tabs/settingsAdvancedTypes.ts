@@ -5,6 +5,7 @@ export type SettingsAdvancedPrefs = {
     autoSweepVRChatCache?: boolean;
     avatarAutoCleanup?: string;
     gameLogDisabled?: boolean;
+    feedPersistenceDisabled?: boolean;
     logResourceLoad?: boolean;
     relaunchVRChatAfterCrash?: boolean;
     udonExceptionLogging?: boolean;
@@ -24,6 +25,7 @@ export type SettingsAdvancedModel = {
     onCleanupAppDataDir: SettingsAdvancedAction;
     onDismissAppDataDirCleanup: SettingsAdvancedAction;
     onGameLogDisabledChange: (disabled: boolean) => unknown;
+    onFeedPersistenceDisabledChange: (disabled: boolean) => unknown;
     onLogResourceLoadChange: (checked: boolean) => unknown;
     onMigrateLegacyVrcxData: SettingsAdvancedAction;
     onOpenAppDataDirSelector: SettingsAdvancedAction;

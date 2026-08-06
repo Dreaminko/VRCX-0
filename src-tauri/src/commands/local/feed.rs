@@ -1,10 +1,8 @@
 #![allow(non_snake_case)]
 
-use tauri::State;
-use vrcx_0_core::json::RawJson;
-
 use crate::error::AppError;
 use crate::state::AppState;
+use tauri::State;
 
 use vrcx_0_persistence::feed::{
     FeedLiveRowsMergeInput, FeedReadModelOutput, FeedReadModelQueryInput, FeedRowOutput,
@@ -13,12 +11,13 @@ use vrcx_0_persistence::feed::{
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__feed_add_entry(
+pub fn app__feed_persistence_set_disabled(
     state: State<'_, AppState>,
-    user_id: String,
-    entry: RawJson,
+    disabled: bool,
 ) -> Result<(), AppError> {
-    vrcx_0_persistence::feed::feed_add_entry(state.db.as_ref(), user_id, entry)
+    state
+        .realtime_runtime
+        .set_feed_persistence_disabled(disabled)
         .map_err(AppError::from)
 }
 

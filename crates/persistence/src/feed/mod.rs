@@ -7,4 +7,4 @@ pub use types::{
     FeedCursorInput, FeedFilter, FeedLiveEntryInput, FeedLiveRowsMergeInput, FeedQueryMode,
     FeedReadModelOutput, FeedReadModelQueryInput, FeedRowOutput, FeedRowsQueryInput,
 };
-pub use write::{feed_add_entry, feed_avatar_purge};
+pub use write::feed_avatar_purge;

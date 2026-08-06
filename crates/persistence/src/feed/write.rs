@@ -1,26 +1,7 @@
-#![allow(non_snake_case)]
-
-use vrcx_0_core::json::RawJson;
-
 use crate::common::{delete_all_sql, delete_where_lt_sql, ParamsBuilder};
 use crate::database::DatabaseService;
-use crate::realtime::{
-    ensure_realtime_tables, normalize_user_table_prefix, write_realtime_batch,
-    RealtimePersistenceBatch,
-};
+use crate::realtime::{ensure_realtime_tables, normalize_user_table_prefix};
 use crate::Error;
-
-pub fn feed_add_entry(db: &DatabaseService, user_id: String, entry: RawJson) -> Result<(), Error> {
-    write_realtime_batch(
-        db,
-        &user_id,
-        &RealtimePersistenceBatch {
-            feed_entries: vec![entry.into_value()],
-            ..RealtimePersistenceBatch::default()
-        },
-    )?;
-    Ok(())
-}
 
 pub fn feed_avatar_purge(
     db: &DatabaseService,

@@ -839,6 +839,7 @@
         },
         "feed": {
             "filter": "筛选",
+            "feed_persistence_disabled_tooltip": "Feed 历史未保存",
             "favorites_only_tooltip": "仅显示被分组的好友",
             "search_placeholder": "搜索",
             "date_range": "日期范围",
@@ -2456,6 +2457,8 @@
                         "hide": "隐藏工具",
                         "gamelog": "保存 GameLog 历史",
                         "gamelog_description": "关闭后不会保存新的 GameLog 历史；Player List、Now Playing、截图元数据、Instance Media 和其他实时日志功能仍可使用。",
+                        "feed_history": "保存 Feed 历史",
+                        "feed_history_description": "关闭后不会保存或加载 Feed 历史。Feed 将从空白状态开始，仅显示本次会话收到的实时动态；Friends Sidebar 和其他实时功能仍可使用。",
                         "tools": "诊断",
                         "database_usage": "数据库占用",
                         "refresh_database_usage": "刷新数据库占用",
@@ -5015,6 +5018,7 @@
         "logout": "确定要登出吗？",
         "delete_log": "确定要删除日志吗？",
         "disable_gamelog": "确定停止保存新的 GameLog 历史吗？Player List、Now Playing、截图元数据、Instance Media 和其他实时日志功能仍可使用。",
+        "disable_feed_persistence": "确定停止保存 Feed 历史吗？Feed 将从空白实时状态开始，依赖历史的分析会出现永久空档；Friends Sidebar 和其他实时功能仍可使用。",
         "delete_vrc_registry": "确定要删除 VRC 的设置数据吗？",
         "clear_cache": "确定要清除所有 VRChat 缓存吗？"
     },

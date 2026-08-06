@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use vrcx_0_application_core::RuntimeOperationStatus;
 
 use tokio::sync::{broadcast, watch};
 use vrcx_0_application_core::{Error, FavoriteChangeScope, FavoritesChangedPayload, Result};
 use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
+use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::realtime::{
     write_realtime_batch, NotificationExpiration, RealtimePersistenceBatch,
 };
@@ -35,6 +37,12 @@ impl RealtimeHostRuntime {
         let (transport_lifecycle_tx, _) = broadcast::channel(32);
         let (friend_profile_bulk_cancel_tx, _) = watch::channel(0);
         let world_cache = Arc::clone(&deps.world_cache);
+        let feed_persistence_disabled =
+            config_store::get_bool(deps.db.as_ref(), "feedPersistenceDisabled", false)
+                .unwrap_or_else(|error| {
+                    tracing::warn!("Feed persistence preference read failed: {error}");
+                    false
+                });
         Self {
             deps,
             state: Mutex::new(RealtimeHostRuntimeState::default()),
@@ -46,6 +54,7 @@ impl RealtimeHostRuntime {
             user_query_cache: UserQueryCache::new(),
             world_cache,
             friend_owner_lock: Mutex::new(()),
+            feed_persistence_disabled: AtomicBool::new(feed_persistence_disabled),
             notification_apply_lock: Arc::new(tokio::sync::Mutex::new(())),
             friend_profile_bulk_load: Mutex::new(
                 super::friend_profile_bulk_load::FriendProfileBulkLoadState::default(),
@@ -191,7 +200,7 @@ impl RealtimeHostRuntime {
                 RealtimeFriendOutput::from_projection(session.user_id.clone(), pending_projection),
             );
         }
-        self.apply_persisted_friend_feed_entries_owned(
+        self.apply_reconciled_friend_feed_entries_owned(
             &friend_owner,
             generation,
             baseline_revision,

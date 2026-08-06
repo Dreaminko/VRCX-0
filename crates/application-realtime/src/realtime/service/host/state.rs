@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
@@ -225,6 +226,7 @@ pub struct RealtimeHostRuntime {
     pub(super) user_query_cache: UserQueryCache,
     pub(super) world_cache: Arc<WorldCache>,
     pub(super) friend_owner_lock: Mutex<()>,
+    pub(super) feed_persistence_disabled: AtomicBool,
     pub(super) notification_apply_lock: Arc<tokio::sync::Mutex<()>>,
     pub(super) friend_profile_bulk_load:
         Mutex<super::friend_profile_bulk_load::FriendProfileBulkLoadState>,

@@ -839,6 +839,7 @@
         },
         "feed": {
             "filter": "篩選",
+            "feed_persistence_disabled_tooltip": "Feed 歷史未儲存",
             "favorites_only_tooltip": "僅篩選收藏",
             "search_placeholder": "搜尋動態",
             "date_range": "日期範圍",
@@ -2456,6 +2457,8 @@
                         "hide": "隱藏工具",
                         "gamelog": "儲存 GameLog 歷史",
                         "gamelog_description": "關閉後不會儲存新的 GameLog 歷史；Player List、Now Playing、截圖後設資料、Instance Media 與其他即時日誌功能仍可使用。",
+                        "feed_history": "儲存 Feed 歷史",
+                        "feed_history_description": "關閉後不會儲存或載入 Feed 歷史。Feed 會從空白狀態開始，只顯示本次工作階段收到的即時動態；Friends Sidebar 與其他即時功能仍可使用。",
                         "tools": "診斷",
                         "database_usage": "資料庫使用量",
                         "refresh_database_usage": "更新資料庫使用情況",
@@ -5015,6 +5018,7 @@
         "logout": "要登出嗎？",
         "delete_log": "要刪除記錄檔嗎？",
         "disable_gamelog": "確定停止儲存新的 GameLog 歷史嗎？Player List、Now Playing、截圖後設資料、Instance Media 與其他即時日誌功能仍可使用。",
+        "disable_feed_persistence": "確定停止儲存 Feed 歷史嗎？Feed 會從空白即時狀態開始，依賴歷史的分析將留下永久空缺；Friends Sidebar 與其他即時功能仍可使用。",
         "delete_vrc_registry": "要刪除現有的 VRChat 登錄檔設定嗎？",
         "clear_cache": "要清除所有 VRChat 快取嗎？"
     },

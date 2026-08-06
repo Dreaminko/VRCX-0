@@ -839,6 +839,7 @@
         },
         "feed": {
             "filter": "Filter",
+            "feed_persistence_disabled_tooltip": "Feed-Verlauf wird nicht gespeichert",
             "favorites_only_tooltip": "Nur Favoriten filtern",
             "search_placeholder": "Suchen",
             "date_range": "Zeitraum",
@@ -2456,6 +2457,8 @@
                         "hide": "Werkzeuge ausblenden",
                         "gamelog": "GameLog-Verlauf speichern",
                         "gamelog_description": "Wenn deaktiviert, wird kein neuer GameLog-Verlauf gespeichert. Player List, Now Playing, Screenshot-Metadaten, Instance Media und andere Echtzeit-Logfunktionen bleiben verfügbar.",
+                        "feed_history": "Feed-Verlauf speichern",
+                        "feed_history_description": "Wenn deaktiviert, wird der Feed-Verlauf weder gespeichert noch geladen. Der Feed startet leer und zeigt nur Live-Aktivitäten dieser Sitzung. Friends Sidebar und andere Echtzeitfunktionen bleiben verfügbar.",
                         "tools": "Diagnose",
                         "database_usage": "Datenbankbelegung",
                         "refresh_database_usage": "Datenbankbelegung aktualisieren",
@@ -5015,6 +5018,7 @@
         "logout": "Abmelden?",
         "delete_log": "Protokoll löschen?",
         "disable_gamelog": "Speichern neuer GameLog-Einträge beenden? Player List, Now Playing, Screenshot-Metadaten, Instance Media und andere Echtzeit-Logfunktionen bleiben verfügbar.",
+        "disable_feed_persistence": "Speichern des Feed-Verlaufs beenden? Der Feed startet mit einer leeren Live-Ansicht und verlaufsbasierte Analysen erhalten eine dauerhafte Lücke. Friends Sidebar und andere Echtzeitfunktionen bleiben verfügbar.",
         "delete_vrc_registry": "Bestehende VRChat-Registrierungseinstellungen löschen?",
         "clear_cache": "Gesamten VRChat-Cache leeren?"
     },

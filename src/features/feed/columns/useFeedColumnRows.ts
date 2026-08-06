@@ -81,6 +81,9 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
     const feedHiddenUsers = usePreferencesStore(
         (state) => state.feedHiddenUsers
     );
+    const feedPersistenceDisabled = usePreferencesStore(
+        (state) => state.feedPersistenceDisabled
+    );
     const localFriendFavorites = useFavoriteStore(
         (state) => state.localFriendFavorites
     );
@@ -203,6 +206,42 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
         liveSequenceRef.current = liveFeedSequenceAtRequestStart;
         const requestIsCurrent = () => requestIdRef.current === requestId;
 
+        if (feedPersistenceDisabled) {
+            setHasMore(false);
+            mergeFeedRowsWithLiveEntries({
+                buildMergeOptions,
+                minLiveSequence: 0,
+                requestIsCurrent,
+                rows: []
+            })
+                .then(async (result) => {
+                    if (!result) {
+                        return;
+                    }
+                    const commitResult = await prepareFeedRowsForCommit({
+                        buildMergeOptions,
+                        onMergeRound: () => {
+                            liveMergeRequestIdRef.current += 1;
+                        },
+                        requestIsCurrent,
+                        result
+                    });
+                    if (!commitResult) {
+                        return;
+                    }
+                    liveSequenceRef.current = commitResult.maxSequence;
+                    rowsRef.current = commitResult.rows;
+                    setRows(commitResult.rows);
+                    setLoadStatus('ready');
+                })
+                .catch(() => {
+                    if (requestIsCurrent()) {
+                        setLoadStatus('error');
+                    }
+                });
+            return;
+        }
+
         feedRepository
             .queryFeedReadModel({
                 userId: currentUserId,
@@ -263,6 +302,7 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
         excludedFavoriteUserIds,
         favoriteUserIds,
         favoritesReady,
+        feedPersistenceDisabled,
         queryKey,
         scopeHasRows
     ]);
@@ -313,6 +353,7 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
             loadingOlder ||
             loadStatus !== 'ready' ||
             !hasMore ||
+            feedPersistenceDisabled ||
             !cursor ||
             !normalizeId(currentUserId)
         ) {
@@ -356,6 +397,7 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
         currentUserId,
         excludedFavoriteUserIds,
         favoriteUserIds,
+        feedPersistenceDisabled,
         hasMore,
         loadingOlder,
         loadStatus

@@ -9,6 +9,7 @@ import {
     ToolbarSegmented,
     type ToolbarSegmentOption
 } from '@/components/layout/ToolbarControls';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { Spinner } from '@/ui/shadcn/spinner';
 
 import { FeedColumnsMode } from './columns/FeedColumnsMode';
@@ -67,6 +68,9 @@ export function FeedPage({ embedded = false }: FeedPageProps = {}) {
     const modeToggle = (
         <FeedViewModeToggle value={viewMode} onValueChange={setViewMode} />
     );
+    const feedPersistenceDisabled = usePreferencesStore(
+        (state) => state.feedPersistenceDisabled
+    );
 
     if (!ready) {
         return (
@@ -91,16 +95,26 @@ export function FeedPage({ embedded = false }: FeedPageProps = {}) {
                         modeToggle={modeToggle}
                         onColumnsChange={setColumns}
                         onDensityChange={setDensity}
+                        feedPersistenceDisabled={feedPersistenceDisabled}
                     />
                 </PageBody>
             ) : (
-                <FeedTableMode modeToggle={modeToggle} />
+                <FeedTableMode
+                    modeToggle={modeToggle}
+                    feedPersistenceDisabled={feedPersistenceDisabled}
+                />
             )}
         </PageScaffold>
     );
 }
 
-function FeedTableMode({ modeToggle }: { modeToggle: ReactNode }) {
+function FeedTableMode({
+    modeToggle,
+    feedPersistenceDisabled
+}: {
+    modeToggle: ReactNode;
+    feedPersistenceDisabled: boolean;
+}) {
     const {
         columns,
         filters,
@@ -181,6 +195,7 @@ function FeedTableMode({ modeToggle }: { modeToggle: ReactNode }) {
                 filterModel={filterModel}
                 filterCommands={filterCommands}
                 modeToggle={modeToggle}
+                feedPersistenceDisabled={feedPersistenceDisabled}
             />
             <PageBody>
                 <FeedTableShell

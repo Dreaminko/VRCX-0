@@ -17,6 +17,7 @@ import { Calendar } from '@/ui/shadcn/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 
 import type { FeedDateRange } from '../feedTypes';
+import { FeedPersistenceDisabledIndicator } from './FeedPersistenceDisabledIndicator';
 
 type FeedToolbarProps = {
     columnsMenu: ReactNode;
@@ -46,6 +47,7 @@ type FeedToolbarProps = {
         todayDate: Date;
     };
     modeToggle: ReactNode;
+    feedPersistenceDisabled: boolean;
 };
 
 function FeedTypeFilterChips({
@@ -163,7 +165,8 @@ export const FeedToolbar = memo(function FeedToolbar({
     columnsMenu,
     filterCommands,
     filterModel,
-    modeToggle
+    modeToggle,
+    feedPersistenceDisabled
 }: FeedToolbarProps) {
     const { t } = useTranslation();
     const {
@@ -233,7 +236,12 @@ export const FeedToolbar = memo(function FeedToolbar({
                     placeholder={t('view.feed.search_placeholder')}
                 />
 
-                <ToolbarActions>{columnsMenu}</ToolbarActions>
+                <ToolbarActions>
+                    {feedPersistenceDisabled ? (
+                        <FeedPersistenceDisabledIndicator />
+                    ) : null}
+                    {columnsMenu}
+                </ToolbarActions>
             </PageToolbarRow>
         </PageToolbar>
     );

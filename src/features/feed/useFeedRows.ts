@@ -62,6 +62,9 @@ export function useFeedRows({
     const maxFeedRows = usePreferencesStore(
         (state) => state.tableLimits.maxTableSize
     );
+    const feedPersistenceDisabled = usePreferencesStore(
+        (state) => state.feedPersistenceDisabled
+    );
     const friendRosterLastLoadedAt = useFriendRosterStore(
         (state) => state.lastLoadedAt
     );
@@ -90,6 +93,11 @@ export function useFeedRows({
     useEffect(() => {
         rowsRef.current = rows;
     }, [rows]);
+
+    useEffect(() => {
+        rowsRef.current = [];
+        setRows([]);
+    }, [feedPersistenceDisabled]);
 
     function createMergeOptionsBuilder({
         excludedUserIds,
@@ -251,6 +259,47 @@ export function useFeedRows({
         const liveFeedSequenceAtRequestStart =
             useFeedLiveStore.getState().version;
         setLoadStatus('running');
+        if (feedPersistenceDisabled) {
+            const buildMergeOptions = createMergeOptionsBuilder({
+                excludedUserIds: hiddenUserIds,
+                favoriteUserIds
+            });
+            mergeFeedRowsWithLiveEntries({
+                buildMergeOptions,
+                minLiveSequence: 0,
+                requestIsCurrent: () => requestIdRef.current === requestId,
+                rows: []
+            })
+                .then(async (result) => {
+                    if (!result || requestIdRef.current !== requestId) {
+                        return;
+                    }
+                    const commitResult = await prepareFeedRowsForCommit({
+                        buildMergeOptions,
+                        onMergeRound: () => {
+                            liveMergeRequestIdRef.current += 1;
+                        },
+                        requestIsCurrent: () =>
+                            requestIdRef.current === requestId,
+                        result
+                    });
+                    if (!commitResult || requestIdRef.current !== requestId) {
+                        return;
+                    }
+                    lastLiveFeedSequenceRef.current = commitResult.maxSequence;
+                    rowsRef.current = commitResult.rows;
+                    setRows(commitResult.rows);
+                    setLoadStatus('ready');
+                })
+                .catch((error: unknown) => {
+                    if (requestIdRef.current === requestId) {
+                        setRows([]);
+                        setLoadStatus('error');
+                        console.error(error);
+                    }
+                });
+            return;
+        }
         feedRepository
             .queryFeedReadModel({
                 userId: currentUserId,
@@ -320,6 +369,7 @@ export function useFeedRows({
         deferredSearchQuery,
         favoriteIdSet,
         favoritesOnly,
+        feedPersistenceDisabled,
         hiddenUserIds,
         isFavoritesLoaded,
         maxFeedRows,

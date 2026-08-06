@@ -26,6 +26,10 @@ const labels: Record<string, string> = {
         'Save GameLog history',
     'view.settings.advanced.advanced_ui.troubleshooting.gamelog_description':
         'Required by log features',
+    'view.settings.advanced.advanced_ui.troubleshooting.feed_history':
+        'Save Feed history',
+    'view.settings.advanced.advanced_ui.troubleshooting.feed_history_description':
+        'Controls Feed history',
     'view.settings.advanced.advanced_ui.troubleshooting.tools': 'Diagnostics',
     'view.settings.advanced.advanced_ui.troubleshooting.database_usage':
         'Database usage',
@@ -65,6 +69,7 @@ function createProps(
         gameLogPersistenceSupported: true,
         onClearConfigTreeData: vi.fn(),
         onGameLogDisabledChange: vi.fn(),
+        onFeedPersistenceDisabledChange: vi.fn(),
         onLogResourceLoadChange: vi.fn(),
         onRefreshConfigTreeData: vi.fn(),
         onRefreshOnlineVisits: vi.fn(),
@@ -73,6 +78,7 @@ function createProps(
         onlineVisitCount: null,
         prefs: {
             gameLogDisabled: false,
+            feedPersistenceDisabled: false,
             logResourceLoad: false,
             udonExceptionLogging: false
         },
@@ -144,12 +150,26 @@ describe('AdvancedTroubleshootingGroup', () => {
         expect(gameLogSwitch.getAttribute('aria-checked')).toBe('true');
     });
 
+    it('maps the positive Feed switch back to feedPersistenceDisabled', async () => {
+        const user = userEvent.setup();
+        const onFeedPersistenceDisabledChange = vi.fn();
+        renderGroup(createProps({ onFeedPersistenceDisabledChange }));
+        await openTools(user);
+
+        await user.click(
+            screen.getByRole('switch', { name: 'Save Feed history' })
+        );
+
+        expect(onFeedPersistenceDisabledChange).toHaveBeenCalledWith(true);
+    });
+
     it('hides GameLog persistence when the host does not support game ingest', async () => {
         const user = userEvent.setup();
         renderGroup(createProps({ gameLogPersistenceSupported: false }));
         await openTools(user);
 
         expect(screen.queryByText('Save GameLog history')).toBeNull();
+        expect(screen.getByText('Save Feed history')).toBeTruthy();
         expect(screen.getByText('Resource load logging')).toBeTruthy();
     });
 

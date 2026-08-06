@@ -19,6 +19,7 @@ export function SettingsAdvancedSection({
         appDataDirState,
         saveBoolPreference,
         handleGameLogDisabledChange,
+        handleFeedPersistenceDisabledChange,
         saveStringPreference,
         setPurgeDialogOpen,
         refreshSqliteTableSizes,
@@ -88,6 +89,9 @@ export function SettingsAdvancedSection({
         },
         onGameLogDisabledChange: (checked: unknown) => {
             handleGameLogDisabledChange(normalizeCheckedState(checked));
+        },
+        onFeedPersistenceDisabledChange: (checked: unknown) => {
+            handleFeedPersistenceDisabledChange(normalizeCheckedState(checked));
         },
         onAvatarAutoCleanupChange: (value: string) => {
             saveStringPreference(

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use vrcx_0_application_core::RuntimeOperationStatus;
 
@@ -129,6 +130,7 @@ impl RealtimeHostRuntime {
             } => (watermark.generation, Some(watermark), Some(verdicts)),
         };
         let owner = self.lock_friend_owner();
+        let feed_persistence_disabled = self.feed_persistence_disabled.load(Ordering::Relaxed);
         let friend_count = friends_by_id.len();
         let FriendBaselineApplyPlan {
             result,
@@ -212,6 +214,7 @@ impl RealtimeHostRuntime {
                         &pending_snapshot.current_user_id,
                         &pending_snapshot.friends_by_id,
                         roster_order.as_deref(),
+                        feed_persistence_disabled,
                         verdicts,
                     )
                 } else {
@@ -350,6 +353,7 @@ impl RealtimeHostRuntime {
                         &snapshot.current_user_id,
                         &snapshot.friends_by_id,
                         roster_order.as_deref(),
+                        feed_persistence_disabled,
                         verdicts,
                     )
                 })
@@ -373,7 +377,7 @@ impl RealtimeHostRuntime {
             changed: friend_log_changed,
             feed_entries,
         } = reconcile_outcome;
-        self.apply_persisted_friend_feed_entries_owned(
+        self.apply_reconciled_friend_feed_entries_owned(
             &owner,
             result.generation,
             result.baseline_revision,

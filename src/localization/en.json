@@ -839,6 +839,7 @@
         },
         "feed": {
             "filter": "Filter",
+            "feed_persistence_disabled_tooltip": "Feed history is not being saved",
             "favorites_only_tooltip": "Filter favorites only",
             "search_placeholder": "Search",
             "date_range": "Date range",
@@ -2456,6 +2457,8 @@
                         "hide": "Hide tools",
                         "gamelog": "Save GameLog history",
                         "gamelog_description": "When off, new GameLog history is not saved. Player List, Now Playing, screenshot metadata, Instance Media, and other live log features remain available.",
+                        "feed_history": "Save Feed history",
+                        "feed_history_description": "When off, Feed history is not saved or loaded. Feed starts empty and shows only live activity from this session. Friends Sidebar and other realtime features remain available.",
                         "tools": "Diagnostics",
                         "database_usage": "Database usage",
                         "refresh_database_usage": "Refresh database usage",
@@ -5015,6 +5018,7 @@
         "logout": "Log out?",
         "delete_log": "Delete log?",
         "disable_gamelog": "Stop saving new GameLog history? Player List, Now Playing, screenshot metadata, Instance Media, and other live log features will remain available.",
+        "disable_feed_persistence": "Stop saving Feed history? Feed will start from an empty live view, and history-based analysis will have a permanent gap. Friends Sidebar and other realtime features will remain available.",
         "delete_vrc_registry": "Delete existing VRChat registry settings?",
         "clear_cache": "Clear all VRChat cache?"
     },
