@@ -4,6 +4,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+    getFriendStatus: vi.fn(),
     getUserAppearanceProfile: vi.fn(),
     getUserProfile: vi.fn()
 }));
@@ -17,6 +18,7 @@ vi.mock('@/repositories/userProfileRepository', async (importOriginal) => {
         ...actual,
         default: {
             ...actual.default,
+            getFriendStatus: mocks.getFriendStatus,
             getUserAppearanceProfile: mocks.getUserAppearanceProfile,
             getUserProfile: mocks.getUserProfile
         }
@@ -32,6 +34,12 @@ import {
 
 describe('useUserDialogProfileResource', () => {
     beforeEach(() => {
+        mocks.getFriendStatus.mockReset();
+        mocks.getFriendStatus.mockResolvedValue({
+            incomingRequest: false,
+            isFriend: false,
+            outgoingRequest: false
+        });
         mocks.getUserAppearanceProfile.mockReset();
         mocks.getUserAppearanceProfile.mockResolvedValue({
             id: 'usr_target'
@@ -62,6 +70,7 @@ describe('useUserDialogProfileResource', () => {
         );
 
         await waitFor(() => {
+            expect(mocks.getFriendStatus).not.toHaveBeenCalled();
             expect(mocks.getUserAppearanceProfile).toHaveBeenCalledWith({
                 userId: 'usr_target',
                 asSelf: true
@@ -91,6 +100,9 @@ describe('useUserDialogProfileResource', () => {
         );
 
         await waitFor(() => {
+            expect(mocks.getFriendStatus).toHaveBeenCalledWith({
+                userId: 'usr_target'
+            });
             expect(mocks.getUserAppearanceProfile).toHaveBeenCalledWith({
                 userId: 'usr_target',
                 asSelf: false
@@ -100,6 +112,38 @@ describe('useUserDialogProfileResource', () => {
                     userId: 'usr_target',
                     force: false,
                     dialog: true
+                })
+            );
+        });
+    });
+
+    it('hydrates an outgoing friend request for the action menu', async () => {
+        mocks.getFriendStatus.mockResolvedValue({
+            incomingRequest: false,
+            isFriend: false,
+            outgoingRequest: true
+        });
+
+        const { result } = renderHook(() =>
+            useUserDialogProfileResource({
+                currentEndpoint: 'https://api.vrchat.cloud/api/1',
+                isTargetCurrentUser: false,
+                localSnapshot: {
+                    id: 'usr_target',
+                    displayName: 'Target'
+                },
+                normalizedUserId: 'usr_target',
+                updateEntityDialogMetadata: vi.fn()
+            })
+        );
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+            expect(result.current.profile).toEqual(
+                expect.objectContaining({
+                    incomingRequest: false,
+                    isFriend: false,
+                    outgoingRequest: true
                 })
             );
         });

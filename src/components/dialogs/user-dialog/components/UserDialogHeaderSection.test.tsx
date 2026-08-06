@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { InventoryItemRecord } from '@/repositories/vrchatMediaRepository';
@@ -219,6 +219,59 @@ describe('UserDialogHeaderSection friend number', () => {
         );
 
         expect(screen.queryByText('#42')).toBeNull();
+    });
+});
+
+describe('UserDialogHeaderSection friend actions', () => {
+    it('offers cancellation for an outgoing friend request', async () => {
+        const headerModel = createHeaderModel();
+        headerModel.isCurrentUser = false;
+        headerModel.friendRequestState.outgoing = true;
+
+        render(
+            <UserDialogHeaderSection
+                headerModel={headerModel}
+                headerCommands={createHeaderCommands()}
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Open entity actions' })
+        );
+
+        expect(
+            await screen.findByText('dialog.user.actions.cancel_friend_request')
+        ).toBeTruthy();
+        expect(
+            screen.queryByText('dialog.user.actions.send_friend_request')
+        ).toBeNull();
+    });
+
+    it('marks unfriend as destructive', async () => {
+        const headerModel = createHeaderModel();
+        headerModel.isCurrentUser = false;
+        headerModel.isFriend = true;
+
+        render(
+            <UserDialogHeaderSection
+                headerModel={headerModel}
+                headerCommands={createHeaderCommands()}
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Open entity actions' })
+        );
+
+        const label = await screen.findByText('dialog.user.actions.unfriend');
+        expect(
+            label
+                .closest('[data-slot="dropdown-menu-item"]')
+                ?.getAttribute('data-variant')
+        ).toBe('destructive');
+        expect(
+            label.closest('[data-slot="dropdown-menu-content"]')?.className
+        ).toContain('**:data-[variant=destructive]:text-destructive!');
     });
 });
 

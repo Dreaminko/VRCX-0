@@ -34,6 +34,12 @@ type UserMutualCounts = {
     groups: number;
 };
 
+type UserFriendStatus = {
+    incomingRequest: boolean;
+    isFriend: boolean;
+    outgoingRequest: boolean;
+};
+
 type UserRepresentedGroup = Record<string, unknown> & {
     bannerId?: string;
     bannerUrl?: string;
@@ -253,6 +259,35 @@ async function getUserProfile({
         `users/${encodeURIComponent(normalizedUserId)}`
     ).json;
     return normalize(json);
+}
+
+async function getFriendStatus({
+    userId
+}: UserEndpointInput): Promise<UserFriendStatus> {
+    const normalizedUserId =
+        typeof userId === 'string'
+            ? userId.trim()
+            : String(userId ?? '').trim();
+    if (!normalizedUserId) {
+        throw new Error(
+            'UserProfileRepository.getFriendStatus requires a user id.'
+        );
+    }
+
+    const response = await commands.appVrchatFriendStatusGet({
+        userId: normalizedUserId
+    });
+    const json = unwrapVrchatUserResponse<Record<string, unknown>>(
+        response,
+        `user/${encodeURIComponent(normalizedUserId)}/friendStatus`
+    ).json;
+    const status = isRecord(json) ? json : {};
+
+    return {
+        incomingRequest: status.incomingRequest === true,
+        isFriend: status.isFriend === true,
+        outgoingRequest: status.outgoingRequest === true
+    };
 }
 
 async function getUserAppearanceProfile({
@@ -580,6 +615,7 @@ async function removeCurrentUserTags({
 const userProfileRepository = Object.freeze({
     normalize,
     getUserProfile,
+    getFriendStatus,
     getUserAppearanceProfile,
     getUserGroups,
     getRepresentedGroup,
@@ -596,6 +632,7 @@ const userProfileRepository = Object.freeze({
 export {
     normalize,
     getUserProfile,
+    getFriendStatus,
     getUserAppearanceProfile,
     getUserGroups,
     getRepresentedGroup,

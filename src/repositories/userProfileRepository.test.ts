@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 const tauriMock = vi.hoisted(() => ({
     commands: {
         appVrchatCurrentUserProfileUpdate: vi.fn(),
+        appVrchatFriendStatusGet: vi.fn(),
         appVrchatUserProfileGet: vi.fn(),
         appVrchatUserMutualFriendsGet: vi.fn()
     }
@@ -17,8 +18,33 @@ describe('UserProfileRepository', () => {
         vi.mocked(
             tauriMock.commands.appVrchatCurrentUserProfileUpdate
         ).mockReset();
+        vi.mocked(tauriMock.commands.appVrchatFriendStatusGet).mockReset();
         vi.mocked(tauriMock.commands.appVrchatUserProfileGet).mockReset();
         vi.mocked(tauriMock.commands.appVrchatUserMutualFriendsGet).mockReset();
+    });
+
+    it('reads and normalizes the friend relationship status', async () => {
+        vi.mocked(
+            tauriMock.commands.appVrchatFriendStatusGet
+        ).mockResolvedValue({
+            status: 200,
+            data: {
+                incomingRequest: false,
+                isFriend: false,
+                outgoingRequest: true
+            }
+        });
+
+        await expect(
+            userProfileRepository.getFriendStatus({ userId: ' usr_target ' })
+        ).resolves.toEqual({
+            incomingRequest: false,
+            isFriend: false,
+            outgoingRequest: true
+        });
+        expect(
+            tauriMock.commands.appVrchatFriendStatusGet
+        ).toHaveBeenCalledWith({ userId: 'usr_target' });
     });
 
     it('normalizes user profile defaults, trust metadata, moderator flags, and platform fallback', () => {

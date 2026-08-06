@@ -457,7 +457,10 @@ function EntityActionDropdown({
                     </Button>
                 }
             />
-            <DropdownMenuContent align="end" className="min-w-56">
+            <DropdownMenuContent
+                align="end"
+                className="**:data-[variant=destructive]:text-destructive! **:data-[variant=destructive]:**:text-destructive! min-w-56"
+            >
                 <DropdownMenuGroup>{children}</DropdownMenuGroup>
             </DropdownMenuContent>
         </DropdownMenu>
