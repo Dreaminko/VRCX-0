@@ -141,9 +141,7 @@ function FriendVirtualRow({
                 isCurrentUser,
                 isGroupByInstance,
                 canSendInvite: Boolean(instanceActionGates?.canInvite),
-                canRequestInvite: Boolean(
-                    instanceActionGates?.canRequestInvite ?? isOnlineFriend
-                ),
+                canRequestInvite: !isCurrentUser,
                 canBoop: Boolean(runtime.currentUser?.isBoopingEnabled),
                 canUseFriendInstance: Boolean(
                     isOnlineFriend && instanceActionGates?.canJoin
