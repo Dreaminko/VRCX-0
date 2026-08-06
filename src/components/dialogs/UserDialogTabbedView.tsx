@@ -456,7 +456,9 @@ export function UserDialogTabbedView({
     );
     const tabCounts = useMemo(
         () => ({
-            'instance-history': previousInstances.length,
+            'instance-history': isCurrentUser
+                ? undefined
+                : previousInstances.length,
             mutual: resolveTabCount(
                 loadedTabCount(remoteStatus.mutual, mutualFriends),
                 mutualFriendCount
@@ -480,6 +482,7 @@ export function UserDialogTabbedView({
         }),
         [
             favoriteWorlds.length,
+            isCurrentUser,
             mutualFriendCount,
             mutualFriends.length,
             previousInstances.length,
