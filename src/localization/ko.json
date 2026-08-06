@@ -4619,6 +4619,10 @@
             }
         },
         "previous_instances": {
+            "action": {
+                "copy_instance_id": "인스턴스 ID 복사",
+                "more_actions": "추가 작업"
+            },
             "header": "인스턴스 기록",
             "info": "인스턴스 세부정보",
             "search_placeholder": "인스턴스 기록 검색",
@@ -4641,10 +4645,13 @@
                 "loading_instance_details": "인스턴스 세부정보 로드 중..."
             },
             "error": {
+                "failed_to_copy_instance_id": "인스턴스 ID를 복사하지 못했습니다",
                 "failed_to_load_instance_details": "인스턴스 세부정보를 로드하지 못했습니다.",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "이 방문 기록은 삭제할 수 없습니다."
             },
             "label": {
+                "showing_recent_only": "최근 {count}건만 표시 중 — 전체 기록 열기",
+                "search_limited_to_recent": "최근 {count}건에서 검색 중 — 전체 기록에서 검색",
                 "recorded_instance_visits": "기록된 인스턴스 방문",
                 "rows": "행",
                 "location": "위치",
@@ -4653,6 +4660,7 @@
                 "recorded_instance_visits_count": "{count} 기록된 인스턴스 방문."
             },
             "success": {
+                "instance_id_copied": "인스턴스 ID를 복사했습니다",
                 "instance_record_deleted": "인스턴스 방문 기록을 삭제했습니다."
             }
         },

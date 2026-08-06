@@ -21,7 +21,7 @@ type PreviousInstanceLocation = Record<string, unknown> & {
     worldName?: unknown;
 };
 
-export type PreviousInstanceVariant = 'group' | 'user' | 'world';
+export type PreviousInstanceVariant = 'group' | 'world';
 
 export type PreviousInstanceSortKey =
     | ''

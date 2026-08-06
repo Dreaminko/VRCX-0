@@ -4671,6 +4671,10 @@
             }
         },
         "previous_instances": {
+            "action": {
+                "copy_instance_id": "Copier l'ID d'instance",
+                "more_actions": "Plus d'actions"
+            },
             "header": "Historique des instances",
             "info": "Détails de l'instance",
             "search_placeholder": "Rechercher dans l'historique des instances",
@@ -4693,10 +4697,13 @@
                 "loading_instance_details": "Chargement des détails de l'instance..."
             },
             "error": {
+                "failed_to_copy_instance_id": "Impossible de copier l'ID d'instance",
                 "failed_to_load_instance_details": "Échec du chargement des détails de l'instance.",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "Cette visite ne peut pas être supprimée"
             },
             "label": {
+                "showing_recent_only": "Affichage des {count} visites les plus récentes — ouvrir l’historique complet",
+                "search_limited_to_recent": "Recherche dans les {count} visites les plus récentes — rechercher dans l’historique complet",
                 "players_count": "{count} utilisateurs",
                 "recorded_instance_visits": "visites d'instance enregistrées",
                 "recorded_instance_visits_count": "{count} visites d'instance enregistrées.",
@@ -4707,6 +4714,7 @@
                 "sort_descending": "Tri décroissant"
             },
             "success": {
+                "instance_id_copied": "ID d'instance copié",
                 "instance_record_deleted": "Visite supprimée de l'historique des instances"
             }
         },

@@ -4675,6 +4675,10 @@
             }
         },
         "previous_instances": {
+            "action": {
+                "copy_instance_id": "Копировать ID инстанса",
+                "more_actions": "Ещё действия"
+            },
             "header": "История случая",
             "info": "Подробности случая",
             "search_placeholder": "Поиск по истории инстансов",
@@ -4697,10 +4701,13 @@
                 "loading_instance_details": "Загрузка..."
             },
             "error": {
+                "failed_to_copy_instance_id": "Не удалось скопировать ID инстанса",
                 "failed_to_load_instance_details": "Не удалось загрузить сведения об инстансе.",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "Это посещение нельзя удалить"
             },
             "label": {
+                "showing_recent_only": "Показаны последние {count} посещений — открыть полную историю",
+                "search_limited_to_recent": "Поиск по последним {count} посещениям — искать во всей истории",
                 "players_count": "{count} игроки",
                 "recorded_instance_visits": "зарегистрированных посещений инстансов",
                 "recorded_instance_visits_count": "Зарегистрировано посещений инстансов: {count}.",
@@ -4711,6 +4718,7 @@
                 "sort_descending": "Сортировка"
             },
             "success": {
+                "instance_id_copied": "ID инстанса скопирован",
                 "instance_record_deleted": "Посещение удалено из истории инстансов"
             }
         },

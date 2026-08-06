@@ -589,7 +589,6 @@ export function GroupDialogTabPanels({
                     title={t('dialog.previous_instances.header')}
                     instances={previousInstances}
                     variant="group"
-                    targetRef={group}
                     onRowsChange={onPreviousInstancesChange}
                     className="flex-1"
                 />

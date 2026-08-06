@@ -355,7 +355,6 @@ export function WorldDialogTabPanels({
                     title={t('dialog.world.actions.show_previous_instances')}
                     instances={previousInstances}
                     variant="world"
-                    targetRef={world}
                     onRowsChange={onPreviousInstancesChange}
                     className="flex-1"
                 />

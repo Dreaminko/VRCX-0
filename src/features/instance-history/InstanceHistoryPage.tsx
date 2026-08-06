@@ -178,6 +178,7 @@ export function InstanceHistoryPage({
     const targetSearchInputRef = useRef<HTMLInputElement>(null);
     const endpoint = normalizeEndpoint(currentEndpoint);
     const paramUserId = normalizeUserId(searchParams.get('id'));
+    const paramSearch = searchParams.get('q') || '';
     const activeUserId = paramUserId || normalizeUserId(currentUserId);
     const isSelfScope = activeUserId === normalizeUserId(currentUserId);
     const historyScopeKey = `${endpoint}\u0000${activeUserId}\u0000${mode}\u0000${reloadToken}`;
@@ -395,6 +396,16 @@ export function InstanceHistoryPage({
             ),
         [rawChartRows]
     );
+    useEffect(() => {
+        if (!paramSearch) {
+            return;
+        }
+        setSearch(paramSearch);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('q');
+        setSearchParams(nextParams, { replace: true });
+    }, [paramSearch, searchParams, setSearchParams]);
+
     const [displayedOnlineTime, setDisplayedOnlineTime] = useState(0);
     useEffect(() => {
         if (activityData.dataStatus !== 'running') {

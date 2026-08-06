@@ -4671,6 +4671,10 @@
             }
         },
         "previous_instances": {
+            "action": {
+                "copy_instance_id": "Copiar ID da instância",
+                "more_actions": "Mais ações"
+            },
             "header": "Histórico de Instâncias",
             "info": "Detalhes da Instância",
             "search_placeholder": "Pesquisar histórico de instâncias",
@@ -4693,10 +4697,13 @@
                 "loading_instance_details": "Carregando detalhes da instância..."
             },
             "error": {
+                "failed_to_copy_instance_id": "Não foi possível copiar o ID da instância",
                 "failed_to_load_instance_details": "Falha ao carregar os detalhes da instância.",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "Não é possível excluir esta visita"
             },
             "label": {
+                "showing_recent_only": "Mostrando as {count} visitas mais recentes — abrir histórico completo",
+                "search_limited_to_recent": "Pesquisando nas {count} visitas mais recentes — pesquisar no histórico completo",
                 "players_count": "{count} jogadores",
                 "recorded_instance_visits": "visitas de instância registradas",
                 "recorded_instance_visits_count": "{count} visitas de instância registradas.",
@@ -4707,6 +4714,7 @@
                 "sort_descending": "Ordenar decrescente"
             },
             "success": {
+                "instance_id_copied": "ID da instância copiado",
                 "instance_record_deleted": "Visita removida do histórico de instâncias"
             }
         },

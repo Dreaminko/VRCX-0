@@ -30,7 +30,7 @@ import type { UserDialogProfileRecord } from './useUserDialogProfileResource';
 type DialogRecord = Record<string, unknown>;
 type SupplementalStats = UserDialogStats & { mutualFriendCount?: number };
 
-const USER_DIALOG_INSTANCE_HISTORY_LIMIT = 50;
+export const USER_DIALOG_INSTANCE_HISTORY_LIMIT = 50;
 
 function record(value: unknown): DialogRecord {
     return value && typeof value === 'object'

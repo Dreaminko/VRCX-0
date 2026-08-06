@@ -1,5 +1,4 @@
 import type { TFunction } from 'i18next';
-import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -27,20 +26,14 @@ import {
 } from './previous-instances-table/previousInstancesRows';
 import { PreviousInstanceDetailsPanel } from './previous-instances-table/PreviousInstancesViewParts';
 
-type PreviousInstanceTargetRef = {
-    id?: unknown;
-};
-
 type PreviousInstancesPanelProps<TRow extends PreviousInstanceRow> = {
     className?: string;
     detailsOnly?: boolean;
-    headerActions?: ReactNode;
     initialDetailRow?: TRow | null;
     instances?: TRow[];
     onClose?: (() => void) | null;
     onRowsChange?: ((rows: TRow[]) => void) | null;
     showHeader?: boolean;
-    targetRef?: PreviousInstanceTargetRef | null;
     title?: string;
     variant?: PreviousInstanceVariant;
 };
@@ -51,7 +44,6 @@ type PreviousInstancesTableDialogProps<TRow extends PreviousInstanceRow> = {
     onOpenChange: (open: boolean) => void;
     onRowsChange?: ((rows: TRow[]) => void) | null;
     open: boolean;
-    targetRef?: PreviousInstanceTargetRef | null;
     title?: string;
     variant?: PreviousInstanceVariant;
 };
@@ -70,13 +62,11 @@ function PreviousInstancesPanel<TRow extends PreviousInstanceRow>({
     title = 'Instance History',
     instances = [],
     variant = 'world',
-    targetRef = null,
     onRowsChange = null,
     onClose = null,
     initialDetailRow = null,
     detailsOnly = false,
     showHeader = true,
-    headerActions = null,
     className = ''
 }: PreviousInstancesPanelProps<TRow>) {
     const { t } = useTranslation();
@@ -148,25 +138,9 @@ function PreviousInstancesPanel<TRow extends PreviousInstanceRow>({
         }
 
         try {
-            if (variant === 'user') {
-                if (!Array.isArray(row.events) || row.events.length === 0) {
-                    toast.error(
-                        t(
-                            'dialog.previous_instances.error.this_user_instance_row_cannot_be_deleted_without_event_ids'
-                        )
-                    );
-                    return;
-                }
-                await gameLogRepository.deleteGameLogInstance({
-                    id: targetRef?.id || '',
-                    location,
-                    events: row.events
-                });
-            } else {
-                await gameLogRepository.deleteGameLogInstanceByInstanceId({
-                    location
-                });
-            }
+            await gameLogRepository.deleteGameLogInstanceByInstanceId({
+                location
+            });
             setRows((current) => {
                 const nextRows = current.filter((item) => item !== row);
                 onRowsChange?.(nextRows);
@@ -233,7 +207,6 @@ function PreviousInstancesPanel<TRow extends PreviousInstanceRow>({
             currentEndpoint={currentEndpoint}
             onOpenDetails={setDetailRow}
             onDeleteRow={deleteRow}
-            headerActions={headerActions}
         />
     );
 }
@@ -244,7 +217,6 @@ function PreviousInstancesTableDialog<TRow extends PreviousInstanceRow>({
     title = 'Instance History',
     instances = [],
     variant = 'world',
-    targetRef = null,
     onRowsChange = null,
     detailsOnly = false
 }: PreviousInstancesTableDialogProps<TRow>) {
@@ -271,7 +243,6 @@ function PreviousInstancesTableDialog<TRow extends PreviousInstanceRow>({
                     title={title}
                     instances={instances}
                     variant={variant}
-                    targetRef={targetRef}
                     onRowsChange={onRowsChange}
                     onClose={() => onOpenChange(false)}
                     initialDetailRow={initialDetailRow}

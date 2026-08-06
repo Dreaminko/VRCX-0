@@ -1,4 +1,3 @@
-import { Maximize2Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
@@ -15,7 +14,6 @@ import {
     userDialogWorldSortingOptions
 } from '@/shared/constants/user';
 import { useDialogStore } from '@/state/dialogStore';
-import { Button } from '@/ui/shadcn/button';
 import {
     Select,
     SelectContent,
@@ -25,18 +23,17 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     EntityDialogTabContent,
     EntityRawJson
 } from '../../EntityDialogScaffold';
-import { PreviousInstancesPanel } from '../../PreviousInstancesTableDialog';
 import { EntityList, FavoriteWorldGroups } from '../UserDialogViewParts';
 import type { UserDialogProfileRecord } from '../useUserDialogProfileResource';
 import type { useUserDialogSupplementalData } from '../useUserDialogSupplementalData';
 import type { useUserDialogTabData } from '../useUserDialogTabData';
 import { UserDialogSearchHeader } from './UserDialogSearchHeader';
+import { UserInstanceHistoryPanel } from './UserInstanceHistoryPanel';
 
 type UserTabData = ReturnType<typeof useUserDialogTabData>;
 type SupplementalData = ReturnType<typeof useUserDialogSupplementalData>;
@@ -425,14 +422,12 @@ export function UserDialogAvatarsTab({
 }
 
 export function UserDialogInstanceHistoryTab({
-    title,
     previousInstances,
     previousInstancesError,
     previousInstancesStatus,
     profile,
     onPreviousInstancesChange
 }: {
-    title: string;
     previousInstances: SupplementalData['previousInstances'];
     previousInstancesError: SupplementalData['previousInstancesError'];
     previousInstancesStatus: SupplementalData['previousInstancesStatus'];
@@ -443,16 +438,14 @@ export function UserDialogInstanceHistoryTab({
     const navigate = useNavigate();
     const closeDialog = useDialogStore((state) => state.closeDialog);
     const userId = profile?.id || profile?.userId || '';
-    const openFullLabel = t('view.instance_history.action.open_full');
 
-    function openFullHistory() {
-        if (!userId) {
-            return;
+    function openFullHistory(search: string) {
+        const params = new URLSearchParams({ scope: 'user', id: userId });
+        if (search) {
+            params.set('q', search);
         }
         closeDialog();
-        navigate(
-            `/instance-history?scope=user&id=${encodeURIComponent(userId)}`
-        );
+        navigate(`/instance-history?${params.toString()}`);
     }
 
     return (
@@ -473,32 +466,11 @@ export function UserDialogInstanceHistoryTab({
                         )}
                 </DialogErrorState>
             ) : (
-                <PreviousInstancesPanel
-                    title={title}
+                <UserInstanceHistoryPanel
                     instances={previousInstances}
-                    variant="user"
-                    targetRef={profile}
                     onRowsChange={onPreviousInstancesChange}
+                    onOpenFullHistory={userId ? openFullHistory : null}
                     className="flex-1"
-                    headerActions={
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon-sm"
-                                        disabled={!userId}
-                                        aria-label={openFullLabel}
-                                        onClick={openFullHistory}
-                                    >
-                                        <Maximize2Icon className="size-4" />
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>{openFullLabel}</TooltipContent>
-                        </Tooltip>
-                    }
                 />
             )}
         </EntityDialogTabContent>

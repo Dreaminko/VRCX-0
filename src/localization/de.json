@@ -4671,6 +4671,10 @@
             }
         },
         "previous_instances": {
+            "action": {
+                "copy_instance_id": "Instanz-ID kopieren",
+                "more_actions": "Weitere Aktionen"
+            },
             "header": "Instanzverlauf",
             "info": "Instanzdetails",
             "search_placeholder": "Instanzverlauf durchsuchen",
@@ -4693,10 +4697,13 @@
                 "loading_instance_details": "Instanzdetails werden geladen..."
             },
             "error": {
+                "failed_to_copy_instance_id": "Instanz-ID konnte nicht kopiert werden",
                 "failed_to_load_instance_details": "Instanzdetails konnten nicht geladen werden.",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "Dieser Besuch kann nicht gelöscht werden"
             },
             "label": {
+                "showing_recent_only": "Es werden die letzten {count} Besuche angezeigt — vollständigen Verlauf öffnen",
+                "search_limited_to_recent": "Es werden die letzten {count} Besuche durchsucht — vollständigen Verlauf durchsuchen",
                 "players_count": "{count} Spieler",
                 "recorded_instance_visits": "aufgezeichnete Instanzbesuche",
                 "recorded_instance_visits_count": "{count} aufgezeichnete Instanzbesuche.",
@@ -4707,6 +4714,7 @@
                 "sort_descending": "Absteigend sortieren"
             },
             "success": {
+                "instance_id_copied": "Instanz-ID kopiert",
                 "instance_record_deleted": "Besuch aus dem Instanzverlauf entfernt"
             }
         },

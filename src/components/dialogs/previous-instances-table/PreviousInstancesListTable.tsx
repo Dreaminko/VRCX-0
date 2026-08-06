@@ -47,7 +47,6 @@ type PreviousInstancesListTableProps<TRow extends PreviousInstanceRow> = {
     currentPageIndex: number;
     currentUserId?: string | null;
     filteredRows: readonly TRow[];
-    headerActions?: ReactNode;
     onClose?: (() => void) | null;
     onDeleteRow: (row: TRow) => Promise<void> | void;
     onNextPage: () => void;
@@ -59,7 +58,6 @@ type PreviousInstancesListTableProps<TRow extends PreviousInstanceRow> = {
     pageSize: number;
     rows: readonly TRow[];
     search: string;
-    searchActions?: ReactNode;
     showHeader: boolean;
     sortDesc: boolean;
     sortKey?: PreviousInstanceSortKey;
@@ -135,15 +133,11 @@ export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
     currentUserId,
     currentEndpoint,
     onOpenDetails,
-    onDeleteRow,
-    headerActions = null,
-    searchActions = null
+    onDeleteRow
 }: PreviousInstancesListTableProps<TRow>) {
     const { t } = useTranslation();
     const filteredCountText = formatPreviousInstanceCount(filteredRows.length);
     const totalCountText = formatPreviousInstanceCount(rows.length);
-    const showWorldGroupColumn = variant !== 'user';
-    const showCreatorColumn = variant !== 'user';
 
     function changeSort(nextKey: PreviousInstanceSortKey) {
         onSortChange?.(nextKey);
@@ -169,21 +163,14 @@ export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
                 .join(' ')}
         >
             {showHeader ? (
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                        <h3 className="text-base font-semibold">{title}</h3>
-                        <p className="text-muted-foreground text-sm">
-                            {filteredCountText}/{totalCountText}{' '}
-                            {t(
-                                'dialog.previous_instances.label.recorded_instance_visits'
-                            )}
-                        </p>
-                    </div>
-                    {headerActions ? (
-                        <div className="flex shrink-0 items-center gap-2">
-                            {headerActions}
-                        </div>
-                    ) : null}
+                <div className="min-w-0">
+                    <h3 className="text-base font-semibold">{title}</h3>
+                    <p className="text-muted-foreground text-sm">
+                        {filteredCountText}/{totalCountText}{' '}
+                        {t(
+                            'dialog.previous_instances.label.recorded_instance_visits'
+                        )}
+                    </p>
                 </div>
             ) : null}
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -196,7 +183,6 @@ export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
                         )}
                         className="max-w-sm"
                     />
-                    {searchActions}
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-muted-foreground text-sm">
@@ -244,22 +230,18 @@ export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
                                         'location'
                                     )}
                                 </TableHead>
-                                {showWorldGroupColumn ? (
-                                    <TableHead className="w-48">
-                                        {t('table.previous_instances.world')} /{' '}
-                                        {t('dialog.new_instance.group')}
-                                    </TableHead>
-                                ) : null}
-                                {showCreatorColumn ? (
-                                    <TableHead className="w-44">
-                                        {sortableHeader(
-                                            t(
-                                                'table.previous_instances.instance_creator'
-                                            ),
-                                            'creator'
-                                        )}
-                                    </TableHead>
-                                ) : null}
+                                <TableHead className="w-48">
+                                    {t('table.previous_instances.world')} /{' '}
+                                    {t('dialog.new_instance.group')}
+                                </TableHead>
+                                <TableHead className="w-44">
+                                    {sortableHeader(
+                                        t(
+                                            'table.previous_instances.instance_creator'
+                                        ),
+                                        'creator'
+                                    )}
+                                </TableHead>
                                 <TableHead className="w-24">
                                     {sortableHeader(
                                         t('table.previous_instances.time'),
@@ -309,30 +291,19 @@ export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
                                                     : '-'}
                                             </div>
                                         </TableCell>
-                                        {showWorldGroupColumn ? (
-                                            <TableCell className="text-muted-foreground align-middle text-xs leading-5">
-                                                {[
-                                                    row?.worldName,
-                                                    row?.groupName
-                                                ]
-                                                    .filter(Boolean)
-                                                    .join(' / ') || '-'}
-                                            </TableCell>
-                                        ) : null}
-                                        {showCreatorColumn ? (
-                                            <TableCell className="align-middle text-xs">
-                                                <div className="flex min-h-9 items-center">
-                                                    <InstanceOwnerCell
-                                                        userId={rowOwnerUserId(
-                                                            row
-                                                        )}
-                                                        endpoint={
-                                                            currentEndpoint
-                                                        }
-                                                    />
-                                                </div>
-                                            </TableCell>
-                                        ) : null}
+                                        <TableCell className="text-muted-foreground align-middle text-xs leading-5">
+                                            {[row?.worldName, row?.groupName]
+                                                .filter(Boolean)
+                                                .join(' / ') || '-'}
+                                        </TableCell>
+                                        <TableCell className="align-middle text-xs">
+                                            <div className="flex min-h-9 items-center">
+                                                <InstanceOwnerCell
+                                                    userId={rowOwnerUserId(row)}
+                                                    endpoint={currentEndpoint}
+                                                />
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="align-middle text-xs tabular-nums">
                                             {rowDuration(row)}
                                         </TableCell>
@@ -361,11 +332,7 @@ export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
                                                 </Button>
                                                 <Button
                                                     type="button"
-                                                    size={
-                                                        variant === 'user'
-                                                            ? 'icon-sm'
-                                                            : 'sm'
-                                                    }
+                                                    size="sm"
                                                     variant="outline"
                                                     disabled={!location}
                                                     aria-label={t(
@@ -375,18 +342,8 @@ export function PreviousInstancesListTable<TRow extends PreviousInstanceRow>({
                                                         onDeleteRow(row);
                                                     }}
                                                 >
-                                                    <Trash2Icon
-                                                        data-icon={
-                                                            variant === 'user'
-                                                                ? 'icon'
-                                                                : 'inline-start'
-                                                        }
-                                                    />
-                                                    {variant === 'user'
-                                                        ? null
-                                                        : t(
-                                                              'common.actions.delete'
-                                                          )}
+                                                    <Trash2Icon data-icon="inline-start" />
+                                                    {t('common.actions.delete')}
                                                 </Button>
                                             </div>
                                         </TableCell>

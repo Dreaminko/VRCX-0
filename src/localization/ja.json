@@ -4666,6 +4666,10 @@
             }
         },
         "previous_instances": {
+            "action": {
+                "copy_instance_id": "インスタンスIDをコピー",
+                "more_actions": "その他の操作"
+            },
             "header": "インスタンス履歴",
             "info": "インスタンス詳細",
             "search_placeholder": "インスタンス履歴を検索",
@@ -4688,10 +4692,13 @@
                 "loading_instance_details": "インスタンス詳細を読み込み中"
             },
             "error": {
+                "failed_to_copy_instance_id": "インスタンスIDをコピーできませんでした",
                 "failed_to_load_instance_details": "インスタンス詳細の読み込みに失敗しました",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "この訪問記録は削除できません"
             },
             "label": {
+                "showing_recent_only": "直近{count}件のみ表示中 — 全履歴を開く",
+                "search_limited_to_recent": "直近{count}件から検索中 — 全履歴から検索",
                 "players_count": "{count} 人",
                 "recorded_instance_visits": "件のインスタンス訪問記録",
                 "recorded_instance_visits_count": "{count} 件のインスタンス訪問記録",
@@ -4700,6 +4707,7 @@
                 "page": "ページ"
             },
             "success": {
+                "instance_id_copied": "インスタンスIDをコピーしました",
                 "instance_record_deleted": "インスタンス履歴から訪問記録を削除しました"
             }
         },

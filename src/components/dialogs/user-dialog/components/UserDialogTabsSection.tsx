@@ -1,5 +1,4 @@
 import { type ComponentProps } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import {
     EntityDialogTabs,
@@ -125,7 +124,6 @@ export function UserDialogTabsSection({
     tabsModel: model,
     tabsCommands: commands
 }: UserDialogTabsSectionProps) {
-    const { t } = useTranslation();
     const {
         root,
         info,
@@ -376,7 +374,6 @@ export function UserDialogTabsSection({
                 changeAvatarReleaseStatus={changeAvatarReleaseStatus}
             />
             <UserDialogInstanceHistoryTab
-                title={t('dialog.previous_instances.header')}
                 previousInstances={previousInstances}
                 previousInstancesError={previousInstancesError}
                 previousInstancesStatus={previousInstancesStatus}
