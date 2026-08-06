@@ -322,14 +322,14 @@ describe('vrcNotificationStore', () => {
             type: 'group.announcement',
             version: 2,
             seen: false,
-            created_at: new Date().toISOString()
+            created_at: '2020-01-01T00:00:00.000Z'
         };
         const activityNotification = {
             id: 'notif_activity',
             type: 'inviteResponse',
             version: 2,
             seen: false,
-            created_at: new Date().toISOString()
+            created_at: '2020-01-01T00:00:00.000Z'
         };
         notificationRepositoryMock.queryNotifications.mockResolvedValue([
             { ...systemNotification, seen: true },
