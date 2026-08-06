@@ -725,7 +725,7 @@
             "favorites_section": "Favoritos",
             "group_by_instance": "Agrupar por Instância",
             "split_favorite_friends": "Mostrar Grupos de Favoritos",
-            "hide_friends_in_same_instance": "Ocultar Amigos Agrupados",
+            "show_grouped_friends": "Mostrar Amigos Agrupados",
             "show_current_user_in_same_instance": "Mostrar você na mesma instância",
             "same_instance_above_favorites": "Priorizar Mesma Instância",
             "sort_secondary": "Depois por",

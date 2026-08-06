@@ -725,7 +725,7 @@
             "favorites_section": "Oblíbené",
             "group_by_instance": "Seskupit podle instance",
             "split_favorite_friends": "Zobrazit oblíbené skupiny",
-            "hide_friends_in_same_instance": "Skrýt seskupené přátele",
+            "show_grouped_friends": "Zobrazit seskupené přátele",
             "show_current_user_in_same_instance": "Zobrazit sebe ve stejné instanci",
             "same_instance_above_favorites": "Upřednostnit stejnou instanci",
             "sort_secondary": "Poté podle",

@@ -22,14 +22,6 @@ const labels: Record<string, string> = {
         'Diagnostic tools',
     'view.settings.advanced.advanced_ui.troubleshooting.show': 'Show tools',
     'view.settings.advanced.advanced_ui.troubleshooting.hide': 'Hide tools',
-    'view.settings.advanced.advanced_ui.troubleshooting.gamelog':
-        'Save GameLog history',
-    'view.settings.advanced.advanced_ui.troubleshooting.gamelog_description':
-        'Required by log features',
-    'view.settings.advanced.advanced_ui.troubleshooting.feed_history':
-        'Save Feed history',
-    'view.settings.advanced.advanced_ui.troubleshooting.feed_history_description':
-        'Controls Feed history',
     'view.settings.advanced.advanced_ui.troubleshooting.tools': 'Diagnostics',
     'view.settings.advanced.advanced_ui.troubleshooting.database_usage':
         'Database usage',
@@ -66,10 +58,7 @@ function createProps(
 ): TroubleshootingProps {
     return {
         configTreeData: {},
-        gameLogPersistenceSupported: true,
         onClearConfigTreeData: vi.fn(),
-        onGameLogDisabledChange: vi.fn(),
-        onFeedPersistenceDisabledChange: vi.fn(),
         onLogResourceLoadChange: vi.fn(),
         onRefreshConfigTreeData: vi.fn(),
         onRefreshOnlineVisits: vi.fn(),
@@ -122,55 +111,14 @@ describe('AdvancedTroubleshootingGroup', () => {
         const user = userEvent.setup();
         renderGroup(createProps());
 
-        expect(screen.queryByText('Save GameLog history')).toBeNull();
+        expect(screen.queryByText('Resource load logging')).toBeNull();
         const trigger = await openTools(user);
 
         expect(trigger.getAttribute('aria-expanded')).toBe('true');
-        expect(screen.getByText('Save GameLog history')).toBeTruthy();
+        expect(screen.getByText('Resource load logging')).toBeTruthy();
 
         await user.keyboard('{Enter}');
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
-    });
-
-    it('maps the positive GameLog switch back to gameLogDisabled', async () => {
-        const user = userEvent.setup();
-        const onGameLogDisabledChange = vi.fn();
-        renderGroup(createProps({ onGameLogDisabledChange }));
-        await openTools(user);
-
-        const gameLogSwitch = screen.getByRole('switch', {
-            name: 'Save GameLog history'
-        });
-        expect(gameLogSwitch.getAttribute('aria-checked')).toBe('true');
-
-        await user.click(gameLogSwitch);
-
-        expect(onGameLogDisabledChange).toHaveBeenCalledOnce();
-        expect(onGameLogDisabledChange).toHaveBeenCalledWith(true);
-        expect(gameLogSwitch.getAttribute('aria-checked')).toBe('true');
-    });
-
-    it('maps the positive Feed switch back to feedPersistenceDisabled', async () => {
-        const user = userEvent.setup();
-        const onFeedPersistenceDisabledChange = vi.fn();
-        renderGroup(createProps({ onFeedPersistenceDisabledChange }));
-        await openTools(user);
-
-        await user.click(
-            screen.getByRole('switch', { name: 'Save Feed history' })
-        );
-
-        expect(onFeedPersistenceDisabledChange).toHaveBeenCalledWith(true);
-    });
-
-    it('hides GameLog persistence when the host does not support game ingest', async () => {
-        const user = userEvent.setup();
-        renderGroup(createProps({ gameLogPersistenceSupported: false }));
-        await openTools(user);
-
-        expect(screen.queryByText('Save GameLog history')).toBeNull();
-        expect(screen.getByText('Save Feed history')).toBeTruthy();
-        expect(screen.getByText('Resource load logging')).toBeTruthy();
     });
 
     it.each([

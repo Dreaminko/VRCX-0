@@ -409,10 +409,41 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                     </Select>
                 </Field>
                 <BrowseHistoryRetentionField />
+                {gameLogPersistenceSupported ? (
+                    <Field
+                        label={t(
+                            'view.settings.advanced.advanced_ui.troubleshooting.gamelog'
+                        )}
+                        description={t(
+                            'view.settings.advanced.advanced_ui.troubleshooting.gamelog_description'
+                        )}
+                    >
+                        <Switch
+                            checked={!prefs.gameLogDisabled}
+                            onCheckedChange={(checked) =>
+                                onGameLogDisabledChange(!checked)
+                            }
+                        />
+                    </Field>
+                ) : null}
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced_ui.troubleshooting.feed_history'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced_ui.troubleshooting.feed_history_description'
+                    )}
+                >
+                    <Switch
+                        checked={!prefs.feedPersistenceDisabled}
+                        onCheckedChange={(checked) =>
+                            onFeedPersistenceDisabledChange(!checked)
+                        }
+                    />
+                </Field>
             </SettingsGroup>
 
             <AdvancedTroubleshootingGroup
-                gameLogPersistenceSupported={gameLogPersistenceSupported}
                 prefs={prefs}
                 sqliteTableSizes={sqliteTableSizes}
                 sqliteTableSizeRows={sqliteTableSizeRows}
@@ -422,10 +453,6 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                 onRefreshOnlineVisits={onRefreshOnlineVisits}
                 onRefreshConfigTreeData={onRefreshConfigTreeData}
                 onClearConfigTreeData={onClearConfigTreeData}
-                onGameLogDisabledChange={onGameLogDisabledChange}
-                onFeedPersistenceDisabledChange={
-                    onFeedPersistenceDisabledChange
-                }
                 onLogResourceLoadChange={onLogResourceLoadChange}
                 onUdonExceptionLoggingChange={onUdonExceptionLoggingChange}
             />

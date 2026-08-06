@@ -256,15 +256,15 @@ export function SidePanelSettingsPopover({
                             <SettingRow
                                 id="side-panel-hide-friends-in-same-instance"
                                 label={t(
-                                    'side_panel.settings.hide_friends_in_same_instance'
+                                    'side_panel.settings.show_grouped_friends'
                                 )}
                             >
                                 <Switch
-                                    checked={prefs.isHideFriendsInSameInstance}
+                                    checked={!prefs.isHideFriendsInSameInstance}
                                     onCheckedChange={(value) =>
                                         onUpdateBoolPreference(
                                             'isHideFriendsInSameInstance',
-                                            value
+                                            !value
                                         )
                                     }
                                 />

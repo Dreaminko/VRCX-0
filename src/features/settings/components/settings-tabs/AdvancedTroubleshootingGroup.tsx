@@ -32,10 +32,7 @@ type DiagnosticAction = 'config' | 'online' | 'tables';
 
 type AdvancedTroubleshootingGroupProps = {
     configTreeData: Record<string, unknown>;
-    gameLogPersistenceSupported: boolean;
     onClearConfigTreeData: () => void;
-    onGameLogDisabledChange: (disabled: boolean) => unknown;
-    onFeedPersistenceDisabledChange: (disabled: boolean) => unknown;
     onLogResourceLoadChange: (checked: boolean) => unknown;
     onRefreshConfigTreeData: SettingsAdvancedAction;
     onRefreshOnlineVisits: SettingsAdvancedAction;
@@ -49,10 +46,7 @@ type AdvancedTroubleshootingGroupProps = {
 
 export function AdvancedTroubleshootingGroup({
     configTreeData,
-    gameLogPersistenceSupported,
     onClearConfigTreeData,
-    onGameLogDisabledChange,
-    onFeedPersistenceDisabledChange,
     onLogResourceLoadChange,
     onRefreshConfigTreeData,
     onRefreshOnlineVisits,
@@ -183,39 +177,6 @@ export function AdvancedTroubleshootingGroup({
                                 onCheckedChange={onLogResourceLoadChange}
                             />
                         </Field>
-                        {gameLogPersistenceSupported ? (
-                            <Field
-                                label={t(
-                                    'view.settings.advanced.advanced_ui.troubleshooting.gamelog'
-                                )}
-                                description={t(
-                                    'view.settings.advanced.advanced_ui.troubleshooting.gamelog_description'
-                                )}
-                            >
-                                <Switch
-                                    checked={!prefs.gameLogDisabled}
-                                    onCheckedChange={(checked) =>
-                                        onGameLogDisabledChange(!checked)
-                                    }
-                                />
-                            </Field>
-                        ) : null}
-                        <Field
-                            label={t(
-                                'view.settings.advanced.advanced_ui.troubleshooting.feed_history'
-                            )}
-                            description={t(
-                                'view.settings.advanced.advanced_ui.troubleshooting.feed_history_description'
-                            )}
-                        >
-                            <Switch
-                                checked={!prefs.feedPersistenceDisabled}
-                                onCheckedChange={(checked) =>
-                                    onFeedPersistenceDisabledChange(!checked)
-                                }
-                            />
-                        </Field>
-
                         <SettingsSectionHeading
                             title={t(
                                 'view.settings.advanced.advanced_ui.troubleshooting.tools'
