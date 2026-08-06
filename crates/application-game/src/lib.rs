@@ -47,8 +47,8 @@ pub use game_log::{
     PlayerListSnapshotSource, PlayerState, RuntimeSnapshot, ScreenshotInput,
 };
 pub use log_watcher::{
-    GameLogEvent, GameLogEventSink, LogLocationSnapshot, LogLocationSnapshotScanner, LogWatcher,
-    NoopLogLocationSnapshotScanner,
+    GameLogEvent, GameLogEventOrigin, GameLogEventSink, LogLocationSnapshot,
+    LogLocationSnapshotScanner, LogWatcher, NoopLogLocationSnapshotScanner,
 };
 pub use overlay_activity::OverlayActivityGameIngestExt;
 pub use process_monitor::{GameProcessMonitorActions, GameProcessStatus, ProcessMonitor};

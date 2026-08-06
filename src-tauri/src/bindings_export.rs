@@ -295,6 +295,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::feed::app__feed_read_model_query,
             commands::local::feed::app__feed_rows_query,
             commands::local::game_log::app__game_log_entries_add,
+            commands::local::game_log::app__game_log_persistence_set_disabled,
             commands::local::game_log::app__game_log_instance_delete_by_location,
             commands::local::game_log::app__game_log_instance_delete,
             commands::local::game_log::app__game_log_entry_delete,

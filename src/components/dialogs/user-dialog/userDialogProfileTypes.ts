@@ -54,7 +54,6 @@ export type UseUserDialogProfileResourceInput = {
     activitySnapshot?: unknown;
     currentEndpoint?: string;
     currentUserSnapshot?: unknown;
-    gameLogDisabled?: boolean;
     gameState?: UserDialogGameStateInput | null;
     isFriend?: boolean;
     isTargetCurrentUser: boolean;

@@ -38,13 +38,11 @@ export function usePlayerListLogLocation({
     addGameLogEventCount,
     currentUserId,
     currentUserLocation,
-    gameLogDisabled,
     isGameRunning
 }: {
     addGameLogEventCount?: unknown;
     currentUserId?: unknown;
     currentUserLocation?: unknown;
-    gameLogDisabled: boolean;
     isGameRunning: boolean;
 }) {
     const [logLocationSnapshot, setLogLocationSnapshot] =
@@ -53,7 +51,7 @@ export function usePlayerListLogLocation({
     useEffect(() => {
         let active = true;
 
-        if (currentUserLocation || !isGameRunning || gameLogDisabled) {
+        if (currentUserLocation || !isGameRunning) {
             setLogLocationSnapshot(null);
             return () => {
                 active = false;
@@ -95,7 +93,6 @@ export function usePlayerListLogLocation({
         addGameLogEventCount,
         currentUserId,
         currentUserLocation,
-        gameLogDisabled,
         isGameRunning,
         logLocationSnapshot
     ]);

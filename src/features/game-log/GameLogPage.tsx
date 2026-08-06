@@ -7,6 +7,7 @@ import {
     PageScaffold
 } from '@/components/layout/PageScaffold';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
+import { Alert, AlertDescription, AlertTitle } from '@/ui/shadcn/alert';
 
 import { GameLogSessionsView } from './components/GameLogSessionsView';
 import { GameLogEmptyState } from './components/GameLogTableParts';
@@ -47,14 +48,25 @@ export function GameLogPage({ embedded = false }: { embedded?: boolean } = {}) {
                     }
                     filterModel={filters}
                     refreshModel={{
-                        canRefresh:
-                            Boolean(rowsState.currentUserId) &&
-                            !rowsState.gameLogDisabled,
+                        canRefresh: Boolean(rowsState.currentUserId),
                         loadStatus: rowsState.loadStatus,
                         onRefresh: filters.refreshGameLog
                     }}
                     table={table}
                 />
+
+                {rowsState.gameLogDisabled ? (
+                    <Alert>
+                        <AlertTitle>
+                            {t('view.game_log.label.game_log_is_disabled')}
+                        </AlertTitle>
+                        <AlertDescription>
+                            {t(
+                                'view.game_log.action.enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity'
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
 
                 <PageBody>
                     {isLoading ? (
@@ -72,15 +84,6 @@ export function GameLogPage({ embedded = false }: { embedded?: boolean } = {}) {
                                 rowsState.detail ||
                                 'The game log query did not complete.'
                             }
-                        />
-                    ) : rowsState.gameLogDisabled ? (
-                        <GameLogEmptyState
-                            title={t(
-                                'view.game_log.label.game_log_is_disabled'
-                            )}
-                            description={t(
-                                'view.game_log.action.enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity'
-                            )}
                         />
                     ) : filters.viewMode === 'sessions' ? (
                         hasSessions ? (

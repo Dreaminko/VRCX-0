@@ -30,5 +30,6 @@ vrcx-0-vrchat-client = { path = "../vrchat-client" }
 
 [dev-dependencies]
 image = { workspace = true }
+rusqlite = { workspace = true }
 vrcx-0-application-core = { path = "../application-core", features = ["test-utils"] }
 vrcx-0-i18n = { path = "../i18n" }

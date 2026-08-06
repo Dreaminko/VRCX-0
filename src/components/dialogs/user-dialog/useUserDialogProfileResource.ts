@@ -46,7 +46,6 @@ export function useUserDialogProfileResource({
     activitySnapshot = null,
     currentEndpoint,
     currentUserSnapshot,
-    gameLogDisabled,
     gameState,
     isFriend = false,
     isTargetCurrentUser,
@@ -103,15 +102,13 @@ export function useUserDialogProfileResource({
         const base = isTargetCurrentUser
             ? buildCurrentUserPresenceView(activeBaseProfile, {
                   currentUserSnapshot: currentUserPresenceSnapshot,
-                  gameState: normalizedGameState,
-                  gameLogDisabled
+                  gameState: normalizedGameState
               })
             : activeBaseProfile;
         return overlayFriendPresence(base, friendPresenceSource);
     }, [
         activeBaseProfile,
         currentUserPresenceSnapshot,
-        gameLogDisabled,
         isTargetCurrentUser,
         friendPresenceSource,
         normalizedGameState

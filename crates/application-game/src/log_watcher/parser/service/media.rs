@@ -366,6 +366,7 @@ mod tests {
             started: AtomicBool::new(false),
             stop_requested: AtomicBool::new(false),
             generation: AtomicU64::new(0),
+            initial_scan_latest_file_only: AtomicBool::new(false),
             handle: Mutex::new(None),
         }
     }

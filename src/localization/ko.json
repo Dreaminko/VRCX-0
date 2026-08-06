@@ -986,7 +986,7 @@
                 "session_date_range": "세션 기간",
                 "start": "시작",
                 "end": "종료",
-                "game_log_is_disabled": "게임 로그가 비활성화되었습니다.",
+                "game_log_is_disabled": "GameLog 쓰기가 꺼져 있습니다",
                 "showing": "표시",
                 "of": "의",
                 "game_log_row": "게임 로그 항목",
@@ -1000,7 +1000,7 @@
                 "open_link": "링크 열기",
                 "copy_detail": "세부정보 복사",
                 "show_instance_history": "인스턴스 기록 표시",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "로컬 VRChat 활동을 보려면 설정에서 게임 로그를 활성화하세요."
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "새 GameLog 기록은 저장되지 않으며, 기존 기록과 실시간 로그 기능은 계속 사용할 수 있습니다."
             },
             "loading": {
                 "loading_the_game_log_snapshot": "게임 로그 불러오는 중"
@@ -2406,8 +2406,8 @@
                         "description": "문제를 조사하기 위한 로그 및 진단 도구입니다.",
                         "show": "도구 표시",
                         "hide": "도구 숨기기",
-                        "gamelog": "GameLog 처리",
-                        "gamelog_description": "VRChat 로그를 사용하는 기능에 필요합니다.",
+                        "gamelog": "GameLog 기록 저장",
+                        "gamelog_description": "끄면 새 GameLog 기록이 저장되지 않습니다. Player List, Now Playing, 스크린샷 메타데이터, Instance Media 및 기타 실시간 로그 기능은 계속 사용할 수 있습니다.",
                         "tools": "진단",
                         "database_usage": "데이터베이스 사용량",
                         "refresh_database_usage": "데이터베이스 사용량 새로 고침",
@@ -4949,7 +4949,7 @@
         "close_instance": "이 인스턴스를 닫으시겠어요? 닫으면 아무도 참가할 수 없습니다.",
         "logout": "계속하시겠습니까? 로그아웃",
         "delete_log": "계속하시겠습니까? 로그 삭제",
-        "disable_gamelog": "계속하시겠습니까? 게임로그 비활성화",
+        "disable_gamelog": "새 GameLog 기록 저장을 중지할까요? Player List, Now Playing, 스크린샷 메타데이터, Instance Media 및 기타 실시간 로그 기능은 계속 사용할 수 있습니다.",
         "delete_vrc_registry": "계속하시겠습니까? 기존 VRChat 레지스트리 설정 삭제",
         "clear_cache": "계속하시겠습니까? 모든 VRChat 캐시 지우기"
     },

@@ -991,7 +991,7 @@
                 "session_date_range": "会话日期范围",
                 "start": "开始",
                 "end": "结束",
-                "game_log_is_disabled": "游戏日志已禁用",
+                "game_log_is_disabled": "你已关闭 GameLog 写入",
                 "showing": "显示",
                 "of": "/",
                 "game_log_row": "游戏日志行",
@@ -1005,7 +1005,7 @@
                 "open_link": "在浏览器打开",
                 "copy_detail": "复制详情",
                 "show_instance_history": "显示房间历史",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "请先在设置中启用游戏日志采集，才能在此页面加载本地 VRChat 活动"
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "新的 GameLog 记录不会保存；已有历史和实时日志功能仍可使用。"
             },
             "loading": {
                 "loading_the_game_log_snapshot": "正在加载游戏日志"
@@ -2454,8 +2454,8 @@
                         "description": "用于排查问题的日志与诊断工具。",
                         "show": "显示工具",
                         "hide": "隐藏工具",
-                        "gamelog": "GameLog 处理",
-                        "gamelog_description": "依赖 VRChat 日志的功能需要启用此项。",
+                        "gamelog": "保存 GameLog 历史",
+                        "gamelog_description": "关闭后不会保存新的 GameLog 历史；Player List、Now Playing、截图元数据、Instance Media 和其他实时日志功能仍可使用。",
                         "tools": "诊断",
                         "database_usage": "数据库占用",
                         "refresh_database_usage": "刷新数据库占用",
@@ -5014,7 +5014,7 @@
         "close_instance": "确定要关闭这个房间吗？关闭后任何人都将无法进入",
         "logout": "确定要登出吗？",
         "delete_log": "确定要删除日志吗？",
-        "disable_gamelog": "确定要禁用游戏日志吗？",
+        "disable_gamelog": "确定停止保存新的 GameLog 历史吗？Player List、Now Playing、截图元数据、Instance Media 和其他实时日志功能仍可使用。",
         "delete_vrc_registry": "确定要删除 VRC 的设置数据吗？",
         "clear_cache": "确定要清除所有 VRChat 缓存吗？"
     },

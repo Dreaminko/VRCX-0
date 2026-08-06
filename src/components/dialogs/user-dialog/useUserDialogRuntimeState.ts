@@ -84,9 +84,6 @@ export function useUserDialogRuntimeState(normalizedUserId: string) {
     const updateEntityDialogMetadata = useDialogStore(
         (state) => state.updateEntityDialogMetadata
     );
-    const gameLogDisabled = usePreferencesStore(
-        (state) => state.gameLogDisabled
-    );
     const hideUserNotes = usePreferencesStore((state) => state.hideUserNotes);
     const hideUserMemos = usePreferencesStore((state) => state.hideUserMemos);
     const knownTargetUser = useKnownUserFact(normalizedUserId, {
@@ -139,7 +136,6 @@ export function useUserDialogRuntimeState(normalizedUserId: string) {
         currentEndpoint,
         currentUserId,
         currentUserSnapshot,
-        gameLogDisabled,
         gameState,
         groupInstancesState,
         friendsById,

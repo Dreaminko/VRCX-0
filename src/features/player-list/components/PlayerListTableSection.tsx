@@ -31,27 +31,16 @@ type PlayerListParsedLocation = {
 };
 
 function resolvePlayerListEmptyCopy({
-    gameLogDisabled,
     isGameRunning,
     isPlayerListSourceUnavailable,
     parsedLocation,
     t
 }: {
-    gameLogDisabled: boolean;
     isGameRunning: boolean;
     isPlayerListSourceUnavailable: boolean;
     parsedLocation: PlayerListParsedLocation;
     t: TFunction;
 }) {
-    if (gameLogDisabled) {
-        return {
-            title: t('view.game_log.label.game_log_is_disabled'),
-            description: t(
-                'view.player_list.empty.enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed'
-            )
-        };
-    }
-
     if (!isGameRunning) {
         return {
             title: t('status_bar.game_stopped'),
@@ -106,7 +95,6 @@ export function PlayerListTableSection({
     detail,
     filterContextKey,
     filteredRows,
-    gameLogDisabled,
     isGameRunning,
     isPlayerListSourceUnavailable,
     loadStatus,
@@ -117,7 +105,6 @@ export function PlayerListTableSection({
     detail?: string;
     filterContextKey: string;
     filteredRows: PlayerListRow[];
-    gameLogDisabled: boolean;
     isGameRunning: boolean;
     isPlayerListSourceUnavailable: boolean;
     loadStatus: string;
@@ -175,7 +162,6 @@ export function PlayerListTableSection({
     const isLoading = loadStatus === 'running' && playerSourceRows.length === 0;
     const isError = loadStatus === 'error' && playerSourceRows.length === 0;
     const emptyCopy = resolvePlayerListEmptyCopy({
-        gameLogDisabled,
         isGameRunning,
         isPlayerListSourceUnavailable,
         parsedLocation,

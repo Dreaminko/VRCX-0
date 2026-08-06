@@ -991,7 +991,7 @@
                 "session_date_range": "Session date range",
                 "start": "Start",
                 "end": "End",
-                "game_log_is_disabled": "Game log is disabled",
+                "game_log_is_disabled": "You have turned off GameLog writing",
                 "showing": "Showing",
                 "of": "of",
                 "game_log_row": "game log entry",
@@ -1005,7 +1005,7 @@
                 "open_link": "Open link",
                 "copy_detail": "Copy detail",
                 "show_instance_history": "Show instance history",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Enable game log in Settings to view your local VRChat activity"
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "New GameLog records will not be saved; existing history and live log features remain available."
             },
             "loading": {
                 "loading_the_game_log_snapshot": "Loading game log"
@@ -2454,8 +2454,8 @@
                         "description": "Logging and diagnostic tools for investigating problems.",
                         "show": "Show tools",
                         "hide": "Hide tools",
-                        "gamelog": "GameLog processing",
-                        "gamelog_description": "Required by features that depend on VRChat logs.",
+                        "gamelog": "Save GameLog history",
+                        "gamelog_description": "When off, new GameLog history is not saved. Player List, Now Playing, screenshot metadata, Instance Media, and other live log features remain available.",
                         "tools": "Diagnostics",
                         "database_usage": "Database usage",
                         "refresh_database_usage": "Refresh database usage",
@@ -5014,7 +5014,7 @@
         "close_instance": "Continue? Close Instance, nobody will be able to join",
         "logout": "Log out?",
         "delete_log": "Delete log?",
-        "disable_gamelog": "Disable GameLog?",
+        "disable_gamelog": "Stop saving new GameLog history? Player List, Now Playing, screenshot metadata, Instance Media, and other live log features will remain available.",
         "delete_vrc_registry": "Delete existing VRChat registry settings?",
         "clear_cache": "Clear all VRChat cache?"
     },

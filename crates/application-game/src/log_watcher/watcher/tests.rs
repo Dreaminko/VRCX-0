@@ -1,7 +1,31 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+
+use crate::log_watcher::{GameLogEvent, GameLogEventOrigin, GameLogEventSink};
+use vrcx_0_core::log_watcher::GameLogEventKind;
 
 use super::{update, LogWatcher};
+
+#[derive(Default)]
+struct RecordingSink {
+    origins: Mutex<Vec<GameLogEventOrigin>>,
+}
+
+impl GameLogEventSink for RecordingSink {
+    fn ingest_game_log_event(&self, _event: &GameLogEvent) -> crate::Result<()> {
+        Ok(())
+    }
+
+    fn ingest_game_log_events_with_origin(
+        &self,
+        _events: &[GameLogEvent],
+        origin: GameLogEventOrigin,
+    ) -> crate::Result<()> {
+        self.origins.lock().unwrap().push(origin);
+        Ok(())
+    }
+}
 
 struct TestDir {
     path: PathBuf,
@@ -97,4 +121,47 @@ fn update_handles_a_missing_directory_as_an_empty_completed_scan() {
     ));
     assert!(contexts.is_empty());
     assert!(!first_run);
+}
+
+#[test]
+fn initial_scan_can_limit_replay_to_latest_output_log() {
+    let dir = TestDir::new("latest-only");
+    std::fs::write(dir.path().join("output_log_first.txt"), []).unwrap();
+    std::fs::write(dir.path().join("output_log_second.txt"), []).unwrap();
+    let watcher = LogWatcher::new(None);
+    watcher.set_initial_scan_latest_file_only(true);
+    let mut contexts = HashMap::new();
+    let mut first_run = true;
+
+    update(&watcher.inner, dir.path(), &mut contexts, &mut first_run);
+
+    assert_eq!(contexts.len(), 1);
+    assert!(contexts.contains_key("output_log_second.txt"));
+    assert!(!first_run);
+}
+
+#[test]
+fn flush_labels_initial_and_live_batches() {
+    let sink = Arc::new(RecordingSink::default());
+    let watcher = LogWatcher::new(Some(sink.clone()));
+    let event = GameLogEvent {
+        file_name: "output_log_test.txt".into(),
+        created_at: "2026-08-06T00:00:00.000Z".into(),
+        kind: GameLogEventKind::DesktopMode,
+    };
+
+    watcher
+        .inner
+        .event_buffer
+        .lock()
+        .unwrap()
+        .push(event.clone());
+    crate::log_watcher::queue::flush_game_log_events(&watcher.inner, true);
+    watcher.inner.event_buffer.lock().unwrap().push(event);
+    crate::log_watcher::queue::flush_game_log_events(&watcher.inner, false);
+
+    assert_eq!(
+        *sink.origins.lock().unwrap(),
+        vec![GameLogEventOrigin::InitialScan, GameLogEventOrigin::Live]
+    );
 }

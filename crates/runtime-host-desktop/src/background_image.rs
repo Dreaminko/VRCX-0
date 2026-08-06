@@ -65,10 +65,7 @@ impl HostBackgroundImageFileResolver {
 }
 
 impl BackgroundImageFileResolver for HostBackgroundImageFileResolver {
-    fn resolve_files(
-        &self,
-        source: &BackgroundImageCustomSource,
-    ) -> Result<Vec<String>, Error> {
+    fn resolve_files(&self, source: &BackgroundImageCustomSource) -> Result<Vec<String>, Error> {
         let files = match source.kind {
             BackgroundImageCustomSourceKind::Folder => {
                 let folder = PathBuf::from(&source.folder_path);

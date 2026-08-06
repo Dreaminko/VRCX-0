@@ -7,7 +7,7 @@ use crate::worker::{RuntimeWorker, RuntimeWorkerOptions};
 use crate::Result;
 use crate::RuntimeAuthScope;
 use crate::WorldCache;
-use crate::{HostSessionRuntime, RuntimeSyncEngine, TaskSupervisor, WebClient};
+use crate::{GameLogEventOrigin, HostSessionRuntime, RuntimeSyncEngine, TaskSupervisor, WebClient};
 use crate::{ImageCache, RuntimeEventBus};
 use vrcx_0_application_activity::OverlayActivityRuntime;
 use vrcx_0_application_core::GameProcessEvent;
@@ -35,6 +35,7 @@ pub struct GameLogRuntimeDeps {
 
 pub struct GameLogRuntime {
     session: HostSessionRuntime,
+    processor: GameLogProcessor,
     worker: RuntimeWorker<GameLogWorkerJob>,
 }
 
@@ -62,11 +63,19 @@ impl GameLogRuntime {
             move |jobs| worker_processor.handle_jobs(jobs),
         );
 
-        Self { session, worker }
+        Self {
+            session,
+            processor,
+            worker,
+        }
     }
 
     pub fn stop(&self) {
         self.worker.stop();
+    }
+
+    pub fn set_persistence_resume_after(&self, resume_after: &str) {
+        self.processor.set_persistence_resume_after(resume_after);
     }
 
     pub fn ingest_game_log_event(&self, event: &GameLogEvent) -> Result<()> {
@@ -76,11 +85,22 @@ impl GameLogRuntime {
     }
 
     pub fn ingest_game_log_events(&self, events: &[GameLogEvent]) -> Result<()> {
+        self.ingest_game_log_events_with_origin(events, GameLogEventOrigin::Live)
+    }
+
+    pub fn ingest_game_log_events_with_origin(
+        &self,
+        events: &[GameLogEvent],
+        origin: GameLogEventOrigin,
+    ) -> Result<()> {
         if events.is_empty() {
             return Ok(());
         }
-        self.worker
-            .push_batch(events.iter().cloned().map(GameLogWorkerJob::Event))?;
+        let jobs = events.iter().cloned().map(|event| match origin {
+            GameLogEventOrigin::Live => GameLogWorkerJob::Event(event),
+            GameLogEventOrigin::InitialScan => GameLogWorkerJob::InitialEvent(event),
+        });
+        self.worker.push_batch(jobs)?;
         Ok(())
     }
 

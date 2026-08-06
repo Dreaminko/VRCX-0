@@ -8886,6 +8886,7 @@ dependencies = [
  "chrono",
  "image",
  "percent-encoding",
+ "rusqlite",
  "serde",
  "serde_json",
  "specta",

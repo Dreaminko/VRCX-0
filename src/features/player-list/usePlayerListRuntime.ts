@@ -1,5 +1,4 @@
 import { parseLocation } from '@/shared/utils/location';
-import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 export function usePlayerListRuntime() {
@@ -41,9 +40,6 @@ export function usePlayerListRuntime() {
     const runtimePlayerRows = useRuntimeStore(
         (state) => state.gameState.currentLocationPlayers
     );
-    const gameLogDisabled = usePreferencesStore(
-        (state) => state.gameLogDisabled
-    );
 
     return {
         addGameLogEventCount,
@@ -54,7 +50,6 @@ export function usePlayerListRuntime() {
         currentUserSnapshot,
         currentUserWorldId,
         gameLogLocation,
-        gameLogDisabled,
         gameLogTailSyncedAt,
         isGameRunning,
         runtimePlayerRows

@@ -991,7 +991,7 @@
                 "session_date_range": "Časové rozmezí relace",
                 "start": "Začátek",
                 "end": "Konec",
-                "game_log_is_disabled": "Záznam hry je vypnutý",
+                "game_log_is_disabled": "Zápis do GameLogu je vypnutý",
                 "showing": "Zobrazeno",
                 "of": "z",
                 "game_log_row": "položka záznamu hry",
@@ -1005,7 +1005,7 @@
                 "open_link": "Otevřít odkaz",
                 "copy_detail": "Kopírovat detail",
                 "show_instance_history": "Zobrazit historii instancí",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Chcete-li zobrazit místní aktivitu ve VRChatu, povolte v nastavení záznam hry"
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Nové záznamy GameLogu se nebudou ukládat; stávající historie a funkce živého protokolu zůstanou dostupné."
             },
             "loading": {
                 "loading_the_game_log_snapshot": "Načítání záznamu hry"
@@ -2456,8 +2456,8 @@
                         "description": "Nástroje protokolování a diagnostiky pro hledání problémů.",
                         "show": "Zobrazit nástroje",
                         "hide": "Skrýt nástroje",
-                        "gamelog": "Zpracování GameLogu",
-                        "gamelog_description": "Vyžadují jej funkce závislé na protokolech VRChatu.",
+                        "gamelog": "Ukládat historii GameLogu",
+                        "gamelog_description": "Při vypnutí se nová historie GameLogu neukládá. Player List, Now Playing, metadata snímků, Instance Media a další živé funkce zůstanou dostupné.",
                         "tools": "Diagnostika",
                         "database_usage": "Využití databáze",
                         "refresh_database_usage": "Obnovit využití databáze",
@@ -5018,7 +5018,7 @@
         "close_instance": "Opravdu chcete tuto instanci zavřít? Po zavření se už nikdo nebude moci připojit.",
         "logout": "Odhlásit se?",
         "delete_log": "Smazat záznam?",
-        "disable_gamelog": "Vypnout GameLog?",
+        "disable_gamelog": "Přestat ukládat novou historii GameLogu? Player List, Now Playing, metadata snímků, Instance Media a další živé funkce zůstanou dostupné.",
         "delete_vrc_registry": "Smazat stávající nastavení registru VRChat?",
         "clear_cache": "Vymazat celou mezipaměť VRChat?"
     },

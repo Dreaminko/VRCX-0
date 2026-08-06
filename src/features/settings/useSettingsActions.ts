@@ -9,6 +9,7 @@ import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import {
     addFeedHiddenUserPreference,
     setBoolConfigPreference,
+    setGameLogPersistenceDisabledPreference,
     setCropInstancePrintsPreference,
     setIntConfigPreference,
     setLocalFavoriteFriendsGroupsPreference,
@@ -167,6 +168,7 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
         prompt,
         resetTrustColorsPreference,
         setBoolConfigPreference,
+        setGameLogPersistenceDisabledPreference,
         setCropInstancePrintsPreference,
         setIntConfigPreference,
         setLocalFavoriteFriendsGroupsPreference,

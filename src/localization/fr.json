@@ -991,7 +991,7 @@
                 "session_date_range": "Plage de dates des sessions",
                 "start": "Début",
                 "end": "Fin",
-                "game_log_is_disabled": "Le journal de jeu est désactivé",
+                "game_log_is_disabled": "L’écriture du GameLog est désactivée",
                 "showing": "Affichage",
                 "of": "sur",
                 "game_log_row": "entrée du journal de jeu",
@@ -1005,7 +1005,7 @@
                 "open_link": "Ouvrir le lien",
                 "copy_detail": "Copier le détail",
                 "show_instance_history": "Afficher l'historique de l'instance",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Activez le journal de jeu dans les paramètres pour afficher votre activité VRChat locale"
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Les nouvelles entrées GameLog ne seront pas enregistrées ; l’historique existant et les fonctions de journal en temps réel restent disponibles."
             },
             "loading": {
                 "loading_the_game_log_snapshot": "Chargement du journal de jeu"
@@ -2454,8 +2454,8 @@
                         "description": "Outils de journalisation et de diagnostic pour rechercher les problèmes.",
                         "show": "Afficher les outils",
                         "hide": "Masquer les outils",
-                        "gamelog": "Traitement de GameLog",
-                        "gamelog_description": "Nécessaire aux fonctions qui utilisent les journaux de VRChat.",
+                        "gamelog": "Enregistrer l’historique GameLog",
+                        "gamelog_description": "Lorsque cette option est désactivée, aucun nouvel historique GameLog n’est enregistré. Player List, Now Playing, les métadonnées des captures, Instance Media et les autres fonctions en temps réel restent disponibles.",
                         "tools": "Diagnostic",
                         "database_usage": "Utilisation de la base de données",
                         "refresh_database_usage": "Actualiser l’utilisation de la base de données",
@@ -5014,7 +5014,7 @@
         "close_instance": "Voulez-vous vraiment fermer cette instance ? Une fois fermée, personne ne pourra la rejoindre.",
         "logout": "Se déconnecter ?",
         "delete_log": "Supprimer le journal ?",
-        "disable_gamelog": "Désactiver le GameLog ?",
+        "disable_gamelog": "Arrêter d’enregistrer le nouvel historique GameLog ? Player List, Now Playing, les métadonnées des captures, Instance Media et les autres fonctions en temps réel restent disponibles.",
         "delete_vrc_registry": "Supprimer les paramètres de registre VRChat existants ?",
         "clear_cache": "Effacer tout le cache VRChat ?"
     },

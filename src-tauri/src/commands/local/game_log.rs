@@ -10,10 +10,25 @@ use vrcx_0_application_game::{
     GameLogSessionDto, GameLogSessionsQueryInput, InstanceHistoryEntryOutput,
     InstanceHistoryQueryInput,
 };
+use vrcx_0_host_desktop::host_capabilities::{require_host_capability_supported, HostCapability};
 use vrcx_0_persistence::game_log::{
     GameLogEntryDeleteKind, GameLogPreviousInstanceGroupOutput, GameLogPreviousInstanceWorldOutput,
     GameLogQueryInput, GameLogWriteKind,
 };
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__game_log_persistence_set_disabled(
+    state: State<'_, AppState>,
+    disabled: bool,
+) -> Result<(), AppError> {
+    require_host_capability_supported(HostCapability::GameLogWatcher)?;
+    state
+        .game
+        .game_log_runtime
+        .set_persistence_disabled(&state.game.log_watcher, disabled)
+        .map_err(AppError::from)
+}
 
 #[tauri::command]
 #[specta::specta]

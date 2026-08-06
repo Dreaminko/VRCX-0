@@ -23,7 +23,7 @@ const labels: Record<string, string> = {
     'view.settings.advanced.advanced_ui.troubleshooting.show': 'Show tools',
     'view.settings.advanced.advanced_ui.troubleshooting.hide': 'Hide tools',
     'view.settings.advanced.advanced_ui.troubleshooting.gamelog':
-        'GameLog processing',
+        'Save GameLog history',
     'view.settings.advanced.advanced_ui.troubleshooting.gamelog_description':
         'Required by log features',
     'view.settings.advanced.advanced_ui.troubleshooting.tools': 'Diagnostics',
@@ -62,6 +62,7 @@ function createProps(
 ): TroubleshootingProps {
     return {
         configTreeData: {},
+        gameLogPersistenceSupported: true,
         onClearConfigTreeData: vi.fn(),
         onGameLogDisabledChange: vi.fn(),
         onLogResourceLoadChange: vi.fn(),
@@ -115,11 +116,11 @@ describe('AdvancedTroubleshootingGroup', () => {
         const user = userEvent.setup();
         renderGroup(createProps());
 
-        expect(screen.queryByText('GameLog processing')).toBeNull();
+        expect(screen.queryByText('Save GameLog history')).toBeNull();
         const trigger = await openTools(user);
 
         expect(trigger.getAttribute('aria-expanded')).toBe('true');
-        expect(screen.getByText('GameLog processing')).toBeTruthy();
+        expect(screen.getByText('Save GameLog history')).toBeTruthy();
 
         await user.keyboard('{Enter}');
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
@@ -132,7 +133,7 @@ describe('AdvancedTroubleshootingGroup', () => {
         await openTools(user);
 
         const gameLogSwitch = screen.getByRole('switch', {
-            name: 'GameLog processing'
+            name: 'Save GameLog history'
         });
         expect(gameLogSwitch.getAttribute('aria-checked')).toBe('true');
 
@@ -141,6 +142,15 @@ describe('AdvancedTroubleshootingGroup', () => {
         expect(onGameLogDisabledChange).toHaveBeenCalledOnce();
         expect(onGameLogDisabledChange).toHaveBeenCalledWith(true);
         expect(gameLogSwitch.getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('hides GameLog persistence when the host does not support game ingest', async () => {
+        const user = userEvent.setup();
+        renderGroup(createProps({ gameLogPersistenceSupported: false }));
+        await openTools(user);
+
+        expect(screen.queryByText('Save GameLog history')).toBeNull();
+        expect(screen.getByText('Resource load logging')).toBeTruthy();
     });
 
     it.each([

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { commands } from '@/platform/tauri/bindings';
+import { useRuntimeStore } from '@/state/runtimeStore';
 import { Alert, AlertDescription, AlertTitle } from '@/ui/shadcn/alert';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -128,6 +129,9 @@ function DeepLinkRegistrationField() {
 }
 
 export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
+    const gameLogPersistenceSupported = useRuntimeStore(
+        (state) => state.hostCapabilities.runtimeGameLogIngest.supported
+    );
     const {
         prefs,
         avatarAutoCleanupOptions,
@@ -407,6 +411,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
             </SettingsGroup>
 
             <AdvancedTroubleshootingGroup
+                gameLogPersistenceSupported={gameLogPersistenceSupported}
                 prefs={prefs}
                 sqliteTableSizes={sqliteTableSizes}
                 sqliteTableSizeRows={sqliteTableSizeRows}

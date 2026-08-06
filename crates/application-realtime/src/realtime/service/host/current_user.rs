@@ -3,7 +3,6 @@ use std::sync::Arc;
 use serde_json::Value;
 use tokio::sync::watch;
 use vrcx_0_application_core::{Error, LocalGameContextSnapshot, Result};
-use vrcx_0_persistence::config as config_store;
 use vrcx_0_vrchat_client::auth::current_user_get_input;
 use vrcx_0_vrchat_client::http_api::ApiScope;
 
@@ -303,8 +302,6 @@ impl RealtimeHostRuntime {
 
     pub(super) fn current_user_authority(&self) -> RealtimeCurrentUserAuthority {
         let local_game_context = self.deps.local_game_context.snapshot();
-        let game_log_disabled =
-            config_store::get_bool(&self.deps.db, "gameLogDisabled", false).unwrap_or(false);
         match local_game_context {
             LocalGameContextSnapshot::Unavailable => RealtimeCurrentUserAuthority::Unavailable,
             LocalGameContextSnapshot::Available {
@@ -315,7 +312,7 @@ impl RealtimeHostRuntime {
                 ..
             } => RealtimeCurrentUserAuthority::Available {
                 is_game_running,
-                game_log: (!game_log_disabled).then_some(RealtimeCurrentUserGameLogContext {
+                game_log: Some(RealtimeCurrentUserGameLogContext {
                     location,
                     destination,
                     world_name,

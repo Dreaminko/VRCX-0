@@ -13,7 +13,6 @@ export function PlayerListPage({
         actions,
         clockNow,
         detail,
-        gameLogDisabled,
         instanceSnapshot,
         isGameRunning,
         loadStatus,
@@ -41,7 +40,6 @@ export function PlayerListPage({
                 detail={detail}
                 filterContextKey={playerListLocation}
                 filteredRows={viewData.filteredRows}
-                gameLogDisabled={gameLogDisabled}
                 isGameRunning={isGameRunning}
                 isPlayerListSourceUnavailable={
                     viewData.isPlayerListSourceUnavailable

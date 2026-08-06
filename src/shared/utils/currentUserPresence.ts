@@ -18,7 +18,6 @@ export interface CurrentUserPresenceGameState {
 export interface CurrentUserPresenceOptions {
     currentUserSnapshot?: CurrentUserPresenceRecord | null;
     gameState?: CurrentUserPresenceGameState | null;
-    gameLogDisabled?: boolean;
 }
 
 export interface CurrentUserPresencePatch extends CurrentUserPresenceRecord {
@@ -322,8 +321,7 @@ export function buildCurrentUserPresenceView<
     currentUser: TUser,
     {
         currentUserSnapshot = null,
-        gameState = null,
-        gameLogDisabled = false
+        gameState = null
     }: CurrentUserPresenceOptions = {}
 ) {
     if (!currentUser) {
@@ -337,14 +335,12 @@ export function buildCurrentUserPresenceView<
         normalizedCurrentUserSnapshot
     );
 
-    if (!gameLogDisabled) {
-        const gameStatePatch = buildCurrentUserGameStatePresencePatch(
-            gameState,
-            mergedUser
-        );
-        if (gameStatePatch) {
-            return { ...mergedUser, ...gameStatePatch };
-        }
+    const gameStatePatch = buildCurrentUserGameStatePresencePatch(
+        gameState,
+        mergedUser
+    );
+    if (gameStatePatch) {
+        return { ...mergedUser, ...gameStatePatch };
     }
 
     if (currentUserSnapshot || hasVisibleCurrentUserPresence(mergedUser)) {

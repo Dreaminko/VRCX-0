@@ -677,7 +677,6 @@ export function FriendsSidebar({
         offlineRows,
         onlineRows,
         openGroups,
-        prefs.gameLogDisabled,
         prefs.isShowCurrentUserInSameInstance,
         prefs.isSameInstanceAboveFavorites,
         prefs.isSidebarDivideByFriendGroup,

@@ -1,5 +1,11 @@
 pub use vrcx_0_core::log_watcher::{GameLogEvent, GameLogEventKind, ParsedLogEntry};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GameLogEventOrigin {
+    Live,
+    InitialScan,
+}
+
 pub trait GameLogEventSink: Send + Sync {
     fn ingest_game_log_event(&self, event: &GameLogEvent) -> crate::Result<()>;
 
@@ -8,5 +14,13 @@ pub trait GameLogEventSink: Send + Sync {
             self.ingest_game_log_event(event)?;
         }
         Ok(())
+    }
+
+    fn ingest_game_log_events_with_origin(
+        &self,
+        events: &[GameLogEvent],
+        _origin: GameLogEventOrigin,
+    ) -> crate::Result<()> {
+        self.ingest_game_log_events(events)
     }
 }

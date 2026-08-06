@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use vrcx_0_application_game::LogLocationSnapshotScanner;
 pub use vrcx_0_application_game::{
-    GameLogEvent, GameLogEventSink, LogLocationSnapshot, LogWatcher,
+    GameLogEvent, GameLogEventOrigin, GameLogEventSink, LogLocationSnapshot, LogWatcher,
 };
 
 #[derive(Default)]
@@ -43,6 +43,17 @@ impl GameLogEventSink for HostGameLogEventFanout {
     ) -> vrcx_0_application_core::Result<()> {
         for sink in &self.sinks {
             sink.ingest_game_log_events(events)?;
+        }
+        Ok(())
+    }
+
+    fn ingest_game_log_events_with_origin(
+        &self,
+        events: &[GameLogEvent],
+        origin: GameLogEventOrigin,
+    ) -> vrcx_0_application_core::Result<()> {
+        for sink in &self.sinks {
+            sink.ingest_game_log_events_with_origin(events, origin)?;
         }
         Ok(())
     }

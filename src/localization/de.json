@@ -991,7 +991,7 @@
                 "session_date_range": "Sitzungszeitraum",
                 "start": "Start",
                 "end": "Ende",
-                "game_log_is_disabled": "Spielprotokoll ist deaktiviert",
+                "game_log_is_disabled": "Das Schreiben des GameLogs ist deaktiviert",
                 "showing": "Zeige",
                 "of": "von",
                 "game_log_row": "Spielprotokoll-Eintrag",
@@ -1005,7 +1005,7 @@
                 "open_link": "Link öffnen",
                 "copy_detail": "Detail kopieren",
                 "show_instance_history": "Instanzverlauf anzeigen",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Aktiviere das Spielprotokoll in den Einstellungen, um deine lokale VRChat-Aktivität anzuzeigen"
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Neue GameLog-Einträge werden nicht gespeichert; vorhandener Verlauf und Echtzeit-Logfunktionen bleiben verfügbar."
             },
             "loading": {
                 "loading_the_game_log_snapshot": "Spielprotokoll wird geladen"
@@ -2454,8 +2454,8 @@
                         "description": "Protokollierungs- und Diagnosewerkzeuge zur Fehlersuche.",
                         "show": "Werkzeuge anzeigen",
                         "hide": "Werkzeuge ausblenden",
-                        "gamelog": "GameLog-Verarbeitung",
-                        "gamelog_description": "Erforderlich für Funktionen, die VRChat-Protokolle verwenden.",
+                        "gamelog": "GameLog-Verlauf speichern",
+                        "gamelog_description": "Wenn deaktiviert, wird kein neuer GameLog-Verlauf gespeichert. Player List, Now Playing, Screenshot-Metadaten, Instance Media und andere Echtzeit-Logfunktionen bleiben verfügbar.",
                         "tools": "Diagnose",
                         "database_usage": "Datenbankbelegung",
                         "refresh_database_usage": "Datenbankbelegung aktualisieren",
@@ -5014,7 +5014,7 @@
         "close_instance": "Möchtest du diese Instanz wirklich schließen? Danach kann ihr niemand mehr beitreten.",
         "logout": "Abmelden?",
         "delete_log": "Protokoll löschen?",
-        "disable_gamelog": "GameLog deaktivieren?",
+        "disable_gamelog": "Speichern neuer GameLog-Einträge beenden? Player List, Now Playing, Screenshot-Metadaten, Instance Media und andere Echtzeit-Logfunktionen bleiben verfügbar.",
         "delete_vrc_registry": "Bestehende VRChat-Registrierungseinstellungen löschen?",
         "clear_cache": "Gesamten VRChat-Cache leeren?"
     },

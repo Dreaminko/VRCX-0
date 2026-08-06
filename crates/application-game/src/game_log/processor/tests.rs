@@ -18,8 +18,9 @@ use vrcx_0_application_activity::{
     OverlayActivitySnapshot, OverlayFavoriteGroups,
 };
 use vrcx_0_application_core::FriendProjection;
+use vrcx_0_core::game_process::GameProcessEvent;
 
-use super::{GameLogProcessor, GameLogProcessorDeps, GameLogWorkerJob};
+use super::{GameLogProcessEvent, GameLogProcessor, GameLogProcessorDeps, GameLogWorkerJob};
 
 #[derive(Clone, Default)]
 struct RecordingOverlaySink {
@@ -164,19 +165,258 @@ fn tracks_location_players_and_session_duration() -> Result<()> {
 }
 
 #[test]
-fn respects_game_log_disabled_before_core_writes_and_side_effects() -> Result<()> {
+fn enabled_initial_scan_keeps_persistence_and_side_effects() -> Result<()> {
+    let (_dir, db, processor) = test_processor("runtime-gamelog-enabled-initial")?;
+
+    processor.handle_jobs(vec![
+        GameLogWorkerJob::InitialEvent(event(
+            "2026-05-14T04:30:00.000Z",
+            GameLogEventKind::Location {
+                location: "wrld_initial:1".into(),
+                world_name: "Initial".into(),
+            },
+        )),
+        GameLogWorkerJob::InitialEvent(event(
+            "2026-05-14T04:30:01.000Z",
+            GameLogEventKind::DesktopMode,
+        )),
+    ])?;
+
+    assert_eq!(
+        vrcx_0_persistence::game_log::get_game_log_locations(&db, "")?.len(),
+        1
+    );
+    assert!(config_store::get_bool(&db, "isGameNoVR", false)?);
+    let events = processor.deps.event_bus.take_events_for_test();
+    assert!(events.iter().any(|event| {
+        event.name == "backendRuntimeTelemetry"
+            && event.payload.get("kind").and_then(|kind| kind.as_str()) == Some("gameLogPersisted")
+    }));
+    assert!(events.iter().any(|event| event.name == "gameLogProjection"));
+    Ok(())
+}
+
+#[test]
+fn enabled_process_stop_keeps_session_closure_and_side_effect_order() -> Result<()> {
+    let (_dir, db, processor) = test_processor("runtime-gamelog-enabled-stop")?;
+
+    processor.handle_jobs(vec![
+        GameLogWorkerJob::Event(event(
+            "2026-05-14T04:40:00.000Z",
+            GameLogEventKind::Location {
+                location: "wrld_enabled_stop:1".into(),
+                world_name: "Enabled Stop".into(),
+            },
+        )),
+        GameLogWorkerJob::Process(GameLogProcessEvent {
+            process: GameProcessEvent {
+                is_game_running: false,
+                is_steamvr_running: false,
+                game_changed: true,
+            },
+            changed_at: "2026-05-14T04:45:00.000Z".into(),
+        }),
+    ])?;
+
+    let locations = vrcx_0_persistence::game_log::get_game_log_locations(&db, "")?;
+    assert_eq!(locations[0].time, 300_000);
+    assert!(processor.deps.snapshot.lock().unwrap().location.is_empty());
+    let events = processor.deps.event_bus.take_events_for_test();
+    let persisted_index = events
+        .iter()
+        .rposition(|event| {
+            event.name == "backendRuntimeTelemetry"
+                && event.payload.get("kind").and_then(|kind| kind.as_str())
+                    == Some("gameLogPersisted")
+        })
+        .unwrap();
+    let reset_index = events
+        .iter()
+        .position(|event| {
+            event.name == "gameLogSideEffect"
+                && event.payload.get("kind").and_then(|kind| kind.as_str())
+                    == Some("nowPlayingReset")
+        })
+        .unwrap();
+    assert!(persisted_index < reset_index);
+    Ok(())
+}
+
+#[test]
+fn disabled_persistence_keeps_live_state_projection_overlay_and_side_effects() -> Result<()> {
     let (_dir, db, processor) = test_processor("runtime-gamelog-disabled")?;
     config_store::set_bool(&db, "gameLogDisabled", true)?;
 
-    processor.handle_jobs(vec![GameLogWorkerJob::Event(event(
-        "2026-05-14T05:00:00.000Z",
-        GameLogEventKind::Location {
-            location: "wrld_disabled:1".into(),
-            world_name: "Disabled".into(),
-        },
-    ))])?;
+    processor.handle_jobs(vec![
+        GameLogWorkerJob::Event(event(
+            "2026-05-14T05:00:00.000Z",
+            GameLogEventKind::Location {
+                location: "wrld_disabled:1".into(),
+                world_name: "Disabled".into(),
+            },
+        )),
+        GameLogWorkerJob::Event(event(
+            "2026-05-14T05:00:31.000Z",
+            GameLogEventKind::PlayerJoined {
+                display_name: "Live Player".into(),
+                user_id: "usr_live".into(),
+            },
+        )),
+        GameLogWorkerJob::Event(event(
+            "2026-05-14T05:00:32.000Z",
+            GameLogEventKind::DesktopMode,
+        )),
+    ])?;
+
+    assert!(vrcx_0_persistence::game_log::get_game_log_locations(&db, "")?.is_empty());
+    let snapshot = processor.deps.snapshot.lock().unwrap().clone();
+    assert_eq!(snapshot.location, "wrld_disabled:1");
+    assert_eq!(snapshot.players[0].user_id, "usr_live");
+    assert!(config_store::get_bool(&db, "isGameNoVR", false)?);
+    assert_eq!(
+        processor.deps.overlay_activity.snapshot().entries[0].actor_user_id,
+        "usr_live"
+    );
+    let events = processor.deps.event_bus.take_events_for_test();
+    assert!(events.iter().any(|event| event.name == "gameLogProjection"));
+    assert!(!events.iter().any(|event| {
+        (event.name == "backendRuntimeTelemetry"
+            && event.payload.get("kind").and_then(|kind| kind.as_str()) == Some("gameLogPersisted"))
+            || event.name == "runtimeGameLogEvent"
+            || event.name == "gameLogPersistenceFallback"
+    }));
+    Ok(())
+}
+
+#[test]
+fn disabled_initial_scan_rebuilds_memory_without_replaying_side_effects() -> Result<()> {
+    let (_dir, db, processor) = test_processor("runtime-gamelog-disabled-replay")?;
+    config_store::set_bool(&db, "gameLogDisabled", true)?;
+
+    processor.handle_jobs(vec![
+        GameLogWorkerJob::InitialEvent(event(
+            "2026-05-14T05:10:00.000Z",
+            GameLogEventKind::Location {
+                location: "wrld_replay:1".into(),
+                world_name: "Replay".into(),
+            },
+        )),
+        GameLogWorkerJob::InitialEvent(event(
+            "2026-05-14T05:10:31.000Z",
+            GameLogEventKind::PlayerJoined {
+                display_name: "Replay Player".into(),
+                user_id: "usr_replay".into(),
+            },
+        )),
+        GameLogWorkerJob::InitialEvent(event(
+            "2026-05-14T05:10:32.000Z",
+            GameLogEventKind::DesktopMode,
+        )),
+    ])?;
 
     assert!(!vrcx_0_persistence::game_log::game_log_location_table_exists(&db)?);
+    let snapshot = processor.deps.snapshot.lock().unwrap().clone();
+    assert_eq!(snapshot.location, "wrld_replay:1");
+    assert_eq!(snapshot.players[0].user_id, "usr_replay");
+    assert!(!config_store::get_bool(&db, "isGameNoVR", false)?);
+    assert!(processor
+        .deps
+        .overlay_activity
+        .snapshot()
+        .entries
+        .is_empty());
+    Ok(())
+}
+
+#[test]
+fn resume_cutoff_splits_queued_live_events_without_backfilling() -> Result<()> {
+    let (_dir, db, processor) = test_processor("runtime-gamelog-resume-cutoff")?;
+    processor.set_persistence_resume_after("2026-05-14T05:20:30.000Z");
+
+    processor.handle_jobs(vec![
+        GameLogWorkerJob::Event(event(
+            "2026-05-14T05:20:00.000Z",
+            GameLogEventKind::Location {
+                location: "wrld_cutoff:1".into(),
+                world_name: "Cutoff".into(),
+            },
+        )),
+        GameLogWorkerJob::Event(event(
+            "2026-05-14T05:20:40.000Z",
+            GameLogEventKind::PlayerJoined {
+                display_name: "After Resume".into(),
+                user_id: "usr_after_resume".into(),
+            },
+        )),
+    ])?;
+    let join_leave = vrcx_0_persistence::game_log::get_game_log_join_leave(&db, "")?;
+    assert_eq!(join_leave.len(), 1);
+    assert_eq!(join_leave[0].user_id, "usr_after_resume");
+    assert!(vrcx_0_persistence::game_log::get_game_log_locations(&db, "")?.is_empty());
+    Ok(())
+}
+
+#[test]
+fn disabled_process_stop_clears_memory_without_persisting_session_closure() -> Result<()> {
+    let (_dir, db, processor) = test_processor("runtime-gamelog-disabled-stop")?;
+    config_store::set_bool(&db, "gameLogDisabled", true)?;
+    processor.handle_jobs(vec![GameLogWorkerJob::Event(event(
+        "2026-05-14T05:30:00.000Z",
+        GameLogEventKind::Location {
+            location: "wrld_stop:1".into(),
+            world_name: "Stop".into(),
+        },
+    ))])?;
+    processor.deps.event_bus.take_events_for_test();
+
+    processor.handle_jobs(vec![GameLogWorkerJob::Process(GameLogProcessEvent {
+        process: GameProcessEvent {
+            is_game_running: false,
+            is_steamvr_running: false,
+            game_changed: true,
+        },
+        changed_at: "2026-05-14T05:35:00.000Z".into(),
+    })])?;
+
+    assert!(processor.deps.snapshot.lock().unwrap().location.is_empty());
+    assert!(!vrcx_0_persistence::game_log::game_log_location_table_exists(&db)?);
+    let events = processor.deps.event_bus.take_events_for_test();
+    assert!(events.iter().any(|event| {
+        event.name == "gameLogSideEffect"
+            && event.payload.get("kind").and_then(|kind| kind.as_str()) == Some("nowPlayingReset")
+    }));
+    Ok(())
+}
+
+#[test]
+fn resume_cutoff_skips_a_queued_process_stop_closure() -> Result<()> {
+    let (_dir, db, processor) = test_processor("runtime-gamelog-resume-stop")?;
+    processor.set_persistence_resume_after("2026-05-14T05:45:00.000Z");
+    processor.handle_jobs(vec![GameLogWorkerJob::Event(event(
+        "2026-05-14T05:40:00.000Z",
+        GameLogEventKind::Location {
+            location: "wrld_resume_stop:1".into(),
+            world_name: "Resume Stop".into(),
+        },
+    ))])?;
+    processor.deps.event_bus.take_events_for_test();
+
+    processor.handle_jobs(vec![GameLogWorkerJob::Process(GameLogProcessEvent {
+        process: GameProcessEvent {
+            is_game_running: false,
+            is_steamvr_running: false,
+            game_changed: true,
+        },
+        changed_at: "2026-05-14T05:44:00.000Z".into(),
+    })])?;
+
+    assert!(!vrcx_0_persistence::game_log::game_log_location_table_exists(&db)?);
+    assert!(processor.deps.snapshot.lock().unwrap().location.is_empty());
+    let events = processor.deps.event_bus.take_events_for_test();
+    assert!(events.iter().any(|event| {
+        event.name == "gameLogSideEffect"
+            && event.payload.get("kind").and_then(|kind| kind.as_str()) == Some("nowPlayingReset")
+    }));
     Ok(())
 }
 
@@ -200,6 +440,51 @@ fn emits_runtime_persisted_mirror_after_worker_write() -> Result<()> {
                 .get("runtimePersisted")
                 .and_then(|value| value.as_bool())
                 == Some(true)
+    }));
+    Ok(())
+}
+
+#[test]
+fn enabled_write_failure_emits_fallback_and_skips_persisted_outputs() -> Result<()> {
+    let (_dir, db, processor) = test_processor("runtime-gamelog-write-failure")?;
+    let connection = rusqlite::Connection::open(db.db_path()).unwrap();
+    connection
+        .execute(
+            "CREATE TABLE gamelog_location (id INTEGER PRIMARY KEY, broken TEXT)",
+            [],
+        )
+        .unwrap();
+
+    processor.handle_jobs(vec![
+        GameLogWorkerJob::Event(event(
+            "2026-05-14T06:10:00.000Z",
+            GameLogEventKind::Location {
+                location: "wrld_failure:1".into(),
+                world_name: "Failure".into(),
+            },
+        )),
+        GameLogWorkerJob::Event(event(
+            "2026-05-14T06:10:01.000Z",
+            GameLogEventKind::DesktopMode,
+        )),
+    ])?;
+
+    assert!(config_store::get_bool(&db, "isGameNoVR", false)?);
+    assert!(processor
+        .deps
+        .overlay_activity
+        .snapshot()
+        .entries
+        .is_empty());
+    let events = processor.deps.event_bus.take_events_for_test();
+    assert!(events
+        .iter()
+        .any(|event| event.name == "gameLogPersistenceFallback"));
+    assert!(!events.iter().any(|event| {
+        (event.name == "backendRuntimeTelemetry"
+            && event.payload.get("kind").and_then(|kind| kind.as_str()) == Some("gameLogPersisted"))
+            || event.name == "runtimeGameLogEvent"
+            || event.name == "gameLogProjection"
     }));
     Ok(())
 }

@@ -65,9 +65,8 @@ impl DesktopVrOverlayRuntime {
             let enabled = config.get_bool(VR_OVERLAY_ENABLED_CONFIG_KEY, false)?;
             runtime.set_enabled(enabled);
             runtime.start_refresh_loop(services.data().tasks.clone());
-            services.set_overlay_activity_extra_sink(Arc::new(VrOverlayActivitySink::new(
-                &runtime,
-            )));
+            services
+                .set_overlay_activity_extra_sink(Arc::new(VrOverlayActivitySink::new(&runtime)));
             Ok(Self { config, runtime })
         }
 

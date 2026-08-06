@@ -69,8 +69,7 @@ describe('friendsSidebarVirtualRowBuilder', () => {
             },
             prefs: {
                 isSameInstanceAboveFavorites: true,
-                isSidebarDivideByFriendGroup: true,
-                gameLogDisabled: false
+                isSidebarDivideByFriendGroup: true
             },
             rowsLength: 5,
             sameInstanceGroups: [

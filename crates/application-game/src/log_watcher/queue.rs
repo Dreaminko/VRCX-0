@@ -1,6 +1,6 @@
 use vrcx_0_core::log_watcher::convert_log_time_to_iso8601;
 
-use super::event::{GameLogEventKind, ParsedLogEntry};
+use super::event::{GameLogEventKind, GameLogEventOrigin, ParsedLogEntry};
 use super::watcher::Inner;
 
 const MAX_COMPAT_LOG_ROWS: usize = 5000;
@@ -36,7 +36,7 @@ fn append_entry(inner: &Inner, entry: ParsedLogEntry, first_run: bool) {
     }
 }
 
-pub(super) fn flush_game_log_events(inner: &Inner) {
+pub(super) fn flush_game_log_events(inner: &Inner, first_run: bool) {
     let Some(event_sink) = &inner.event_sink else {
         return;
     };
@@ -49,7 +49,12 @@ pub(super) fn flush_game_log_events(inner: &Inner) {
         std::mem::take(&mut *buffer)
     };
 
-    if let Err(error) = event_sink.ingest_game_log_events(&events) {
+    let origin = if first_run {
+        GameLogEventOrigin::InitialScan
+    } else {
+        GameLogEventOrigin::Live
+    };
+    if let Err(error) = event_sink.ingest_game_log_events_with_origin(&events, origin) {
         tracing::warn!("failed to ingest GameLog event batch in runtime: {error}");
     }
 }

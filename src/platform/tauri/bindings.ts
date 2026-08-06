@@ -929,6 +929,11 @@ export const commands = {
             entries
         });
     },
+    async appGameLogPersistenceSetDisabled(disabled: boolean): Promise<null> {
+        return await TAURI_INVOKE('app__game_log_persistence_set_disabled', {
+            disabled
+        });
+    },
     async appGameLogInstanceDeleteByLocation(
         location: string
     ): Promise<number> {
@@ -3880,7 +3885,6 @@ export type DebugLoggingOutcome = {
     error: string | null;
 };
 export type DebugLoggingOutcomeKind =
-    | 'disabled'
     | 'unavailable'
     | 'enabled'
     | 'repaired'

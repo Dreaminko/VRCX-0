@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use vrcx_0_application_core::RuntimeOperationStatus;
@@ -19,6 +20,7 @@ use crate::game_log::ingest::{
 use crate::game_log::instance_media::InstanceMediaQueue;
 use crate::game_log::runtime_state::RuntimeSnapshot;
 use crate::overlay_activity::OverlayActivityGameIngestExt;
+use crate::GameLogEventOrigin;
 use crate::ImageCache;
 use crate::RuntimeAuthScope;
 use crate::RuntimeEventBus;
@@ -45,6 +47,7 @@ enum GameLogWriteOutcome {
 #[derive(Clone)]
 pub enum GameLogWorkerJob {
     Event(GameLogEvent),
+    InitialEvent(GameLogEvent),
     Process(GameLogProcessEvent),
 }
 
@@ -89,6 +92,7 @@ pub struct GameLogProcessor {
     deps: GameLogProcessorDeps,
     engine: Arc<Mutex<GameLogIngestEngine>>,
     media_queue: InstanceMediaQueue,
+    persistence_resume_after_ms: Arc<AtomicI64>,
 }
 
 impl GameLogProcessor {
@@ -120,27 +124,60 @@ impl GameLogProcessor {
             deps,
             engine: Arc::new(Mutex::new(engine)),
             media_queue: InstanceMediaQueue::new(),
+            persistence_resume_after_ms: Arc::new(AtomicI64::new(i64::MIN)),
         }
+    }
+
+    pub fn set_persistence_resume_after(&self, resume_after: &str) {
+        self.persistence_resume_after_ms.store(
+            crate::game_log::parse_event_time_ms(resume_after).unwrap_or(i64::MIN),
+            Ordering::Release,
+        );
     }
 
     pub fn handle_jobs(&self, jobs: Vec<GameLogWorkerJob>) -> Result<()> {
         let mut pending_events = Vec::new();
+        let mut pending_origin = GameLogEventOrigin::Live;
         let mut first_error = None;
         for job in jobs {
             match job {
-                GameLogWorkerJob::Event(event) => pending_events.push(event),
+                GameLogWorkerJob::Event(event) => {
+                    if pending_origin != GameLogEventOrigin::Live {
+                        if let Err(error) = self.ingest_events_now(&pending_events, pending_origin)
+                        {
+                            remember_error(&mut first_error, error);
+                        }
+                        pending_events.clear();
+                        pending_origin = GameLogEventOrigin::Live;
+                    }
+                    pending_events.push(event);
+                }
+                GameLogWorkerJob::InitialEvent(event) => {
+                    if pending_origin != GameLogEventOrigin::InitialScan
+                        && !pending_events.is_empty()
+                    {
+                        if let Err(error) = self.ingest_events_now(&pending_events, pending_origin)
+                        {
+                            remember_error(&mut first_error, error);
+                        }
+                        pending_events.clear();
+                    }
+                    pending_origin = GameLogEventOrigin::InitialScan;
+                    pending_events.push(event);
+                }
                 GameLogWorkerJob::Process(event) => {
-                    if let Err(error) = self.ingest_events_now(&pending_events) {
+                    if let Err(error) = self.ingest_events_now(&pending_events, pending_origin) {
                         remember_error(&mut first_error, error);
                     }
                     pending_events.clear();
+                    pending_origin = GameLogEventOrigin::Live;
                     if let Err(error) = self.handle_game_process_event_now(event) {
                         remember_error(&mut first_error, error);
                     }
                 }
             }
         }
-        if let Err(error) = self.ingest_events_now(&pending_events) {
+        if let Err(error) = self.ingest_events_now(&pending_events, pending_origin) {
             remember_error(&mut first_error, error);
         }
         first_error.map_or(Ok(()), Err)
@@ -150,31 +187,85 @@ impl GameLogProcessor {
         GameLogSideEffectDeps::new(&self.deps, self.media_queue.clone())
     }
 
-    fn ingest_events_now(&self, events: &[GameLogEvent]) -> Result<()> {
+    fn ingest_events_now(&self, events: &[GameLogEvent], origin: GameLogEventOrigin) -> Result<()> {
         if events.is_empty() {
             return Ok(());
         }
 
-        if config_store::get_bool(&self.deps.db, "gameLogDisabled", false)? {
-            return Ok(());
-        }
-
+        let persistence_disabled = config_store::get_bool(&self.deps.db, "gameLogDisabled", false)?;
         let log_resource_load = config_store::get_bool(&self.deps.db, "logResourceLoad", false)?;
+        let resume_prefix_len = if persistence_disabled {
+            0
+        } else {
+            self.resume_cutoff_prefix_len(events)
+        };
+        let events = if resume_prefix_len > 0 {
+            let (output, snapshot) = self.with_engine(|engine| {
+                let output = engine.ingest_events(
+                    &events[..resume_prefix_len],
+                    GameLogIngestOptions { log_resource_load },
+                );
+                (output, engine.runtime_snapshot())
+            })?;
+            self.deps.set_game_log_snapshot(snapshot);
+            self.apply_without_core_persistence(output, origin)?;
+            if resume_prefix_len == events.len() {
+                return Ok(());
+            }
+            &events[resume_prefix_len..]
+        } else {
+            events
+        };
         let (output, snapshot) = self.with_engine(|engine| {
             let output = engine.ingest_events(events, GameLogIngestOptions { log_resource_load });
             (output, engine.runtime_snapshot())
         })?;
         self.deps.set_game_log_snapshot(snapshot);
+        if persistence_disabled {
+            return self.apply_without_core_persistence(output, origin);
+        }
         self.apply_ingest_output(self.side_effect_deps(), output)
     }
 
     fn handle_game_process_event_now(&self, event: GameLogProcessEvent) -> Result<()> {
+        let before_resume_cutoff = self.is_before_resume_cutoff(&event.changed_at);
         let (output, snapshot) = self.with_engine(|engine| {
             let output = engine.handle_process_event(event);
             (output, engine.runtime_snapshot())
         })?;
         self.deps.set_game_log_snapshot(snapshot);
+        if config_store::get_bool(&self.deps.db, "gameLogDisabled", false)? || before_resume_cutoff
+        {
+            return self.apply_without_core_persistence(output, GameLogEventOrigin::Live);
+        }
         self.apply_ingest_output(self.side_effect_deps(), output)
+    }
+
+    fn apply_without_core_persistence(
+        &self,
+        mut output: GameLogIngestOutput,
+        origin: GameLogEventOrigin,
+    ) -> Result<()> {
+        if origin == GameLogEventOrigin::InitialScan {
+            if let Some(projection) = output.projection {
+                self.deps.event_bus.emit_game_log_projection(projection);
+            }
+            return Ok(());
+        }
+
+        self.enrich_ingest_output_world_names(&mut output);
+        let overlay_output = self.overlay_activity_output(&output);
+        self.deps
+            .overlay_activity
+            .ingest_game_log_output(&overlay_output);
+        if let Some(projection) = output.projection {
+            self.deps.event_bus.emit_game_log_projection(projection);
+        }
+        let deps = self.side_effect_deps();
+        for side_effect in output.side_effects {
+            dispatch_side_effect(deps.clone(), side_effect);
+        }
+        Ok(())
     }
 
     fn apply_ingest_output(
@@ -309,6 +400,27 @@ impl GameLogProcessor {
             .lock()
             .map_err(|error| Error::Custom(format!("GameLog runtime state lock: {error}")))?;
         Ok(f(&mut engine))
+    }
+
+    fn resume_cutoff_prefix_len(&self, events: &[GameLogEvent]) -> usize {
+        let resume_after_ms = self.persistence_resume_after_ms.load(Ordering::Acquire);
+        if resume_after_ms == i64::MIN {
+            return 0;
+        }
+        events
+            .iter()
+            .take_while(|event| {
+                crate::game_log::parse_event_time_ms(&event.created_at)
+                    .is_some_and(|created_at_ms| created_at_ms <= resume_after_ms)
+            })
+            .count()
+    }
+
+    fn is_before_resume_cutoff(&self, created_at: &str) -> bool {
+        let resume_after_ms = self.persistence_resume_after_ms.load(Ordering::Acquire);
+        resume_after_ms != i64::MIN
+            && crate::game_log::parse_event_time_ms(created_at)
+                .is_some_and(|created_at_ms| created_at_ms <= resume_after_ms)
     }
 }
 

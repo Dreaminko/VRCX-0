@@ -97,7 +97,6 @@ export function UserDialogContent({
         currentUserId,
         currentUserSnapshot,
         friendsById,
-        gameLogDisabled,
         gameState,
         groupInstancesState,
         hideUserMemos,
@@ -154,7 +153,6 @@ export function UserDialogContent({
     } = useUserDialogProfileResource({
         currentEndpoint,
         currentUserSnapshot,
-        gameLogDisabled,
         gameState,
         isFriend: isKnownFriend,
         isTargetCurrentUser,

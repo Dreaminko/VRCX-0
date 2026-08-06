@@ -99,7 +99,6 @@ describe('useCurrentInstanceRoster', () => {
         const { result } = renderHook(() =>
             useCurrentInstanceRoster({
                 ...props('wrld_test:1'),
-                disabled: false,
                 refreshRevision: 0,
                 tailSyncRevision: 0
             })
@@ -139,7 +138,6 @@ describe('useCurrentInstanceRoster', () => {
             ({ eventCount }) =>
                 useCurrentInstanceRoster({
                     ...props('wrld_test:1'),
-                    disabled: false,
                     refreshRevision: eventCount,
                     tailSyncRevision: 0
                 }),
@@ -171,7 +169,6 @@ describe('useCurrentInstanceRoster', () => {
             ({ location }) =>
                 useCurrentInstanceRoster({
                     ...props(location),
-                    disabled: false,
                     refreshRevision: 0,
                     tailSyncRevision: 0
                 }),
@@ -221,7 +218,6 @@ describe('useCurrentInstanceRoster', () => {
         const { result } = renderHook(() =>
             useCurrentInstanceRoster({
                 ...props('private'),
-                disabled: false,
                 refreshRevision: 0,
                 tailSyncRevision: 0
             })

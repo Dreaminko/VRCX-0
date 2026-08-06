@@ -524,7 +524,6 @@ export function DashboardInstanceWidget({
         currentUserEndpoint,
         currentUserId,
         currentUserSnapshot,
-        disabled: false,
         isGameRunning,
         playerListLocation: currentUserLocation,
         playerListStartedAt: currentLocationStartedAt,

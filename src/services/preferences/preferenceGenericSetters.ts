@@ -351,6 +351,14 @@ export async function setBoolConfigPreference(
     await reloadWristOverlayRuntimeConfigIfNeeded(key);
 }
 
+export async function setGameLogPersistenceDisabledPreference(
+    disabled: boolean
+) {
+    await commands.appGameLogPersistenceSetDisabled(disabled);
+    patchPreferenceValue('gameLogDisabled', disabled);
+    publishPreferenceChanged('gameLogDisabled', disabled);
+}
+
 function isHiddenVrPanelBoolConfigKey(
     key: BoolConfigPreferenceInputKey
 ): key is HiddenVrPanelBoolConfigKey {

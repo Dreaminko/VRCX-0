@@ -88,13 +88,6 @@ export function useGameLogRows({
             }
             return;
         }
-        if (gameLogDisabled) {
-            setRows([]);
-            setSessions([]);
-            setLoadStatus('idle');
-            setDetail(t('view.game_log.label.game_log_is_disabled'));
-            return;
-        }
         if (favoritesOnly && !isFavoritesLoaded) {
             setRows([]);
             setSessions([]);
@@ -161,7 +154,6 @@ export function useGameLogRows({
         favoriteIdSet,
         favoritesOnly,
         filters,
-        gameLogDisabled,
         isFavoritesLoaded,
         paginationPageSize,
         preferencesReady,

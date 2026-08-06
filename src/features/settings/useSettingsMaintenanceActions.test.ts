@@ -16,7 +16,8 @@ function createMaintenanceActions({
         optimizationError: null
     }),
     confirm,
-    saveBoolPreference,
+    isGameRunning = false,
+    setGameLogPersistenceDisabledPreference = async () => undefined,
     setPurgeDialogOpen = () => undefined,
     toastWarning = () => undefined
 }: {
@@ -29,10 +30,9 @@ function createMaintenanceActions({
         title: string;
         description: string;
     }) => Promise<{ ok: boolean }>;
-    saveBoolPreference: (
-        preferenceKey: string,
-        configKey: string,
-        enabled: boolean
+    isGameRunning?: boolean;
+    setGameLogPersistenceDisabledPreference?: (
+        disabled: boolean
     ) => Promise<void>;
     setPurgeDialogOpen?: (open: boolean) => void;
     toastWarning?: (message: string) => void;
@@ -45,7 +45,7 @@ function createMaintenanceActions({
         commit: async () => true,
         confirm,
         gameState: {
-            isGameRunning: false
+            isGameRunning
         },
         mediaRepository: {
             cropAllPrints: async () => undefined,
@@ -78,11 +78,14 @@ function createMaintenanceActions({
         },
         prompt: async () => ({ ok: false }),
         purgePeriod: '180',
-        saveBoolPreference,
-        savePreferenceValue: async () => true,
+        savePreferenceValue: async (_key, _value, action) => {
+            await action();
+            return true;
+        },
         saveStringPreference: async () => undefined,
         setAppDataDirState: () => undefined,
         setCropInstancePrintsPreference: async () => undefined,
+        setGameLogPersistenceDisabledPreference,
         setIntConfigPreference: async () => undefined,
         setPrefs: () => undefined,
         setPurgeDialogOpen,
@@ -102,34 +105,53 @@ function createMaintenanceActions({
 describe('handleGameLogDisabledChange', () => {
     it('keeps GameLog enabled when disabling is not confirmed', async () => {
         const confirm = vi.fn(async () => ({ ok: false }));
-        const saveBoolPreference = vi.fn(async () => undefined);
+        const setGameLogPersistenceDisabledPreference = vi.fn(
+            async () => undefined
+        );
         const actions = createMaintenanceActions({
             confirm,
-            saveBoolPreference
+            setGameLogPersistenceDisabledPreference
         });
 
         await actions.handleGameLogDisabledChange(true);
 
         expect(confirm).toHaveBeenCalledOnce();
-        expect(saveBoolPreference).not.toHaveBeenCalled();
+        expect(setGameLogPersistenceDisabledPreference).not.toHaveBeenCalled();
     });
 
     it('enables GameLog without showing the disable confirmation', async () => {
         const confirm = vi.fn(async () => ({ ok: false }));
-        const saveBoolPreference = vi.fn(async () => undefined);
+        const setGameLogPersistenceDisabledPreference = vi.fn(
+            async () => undefined
+        );
         const actions = createMaintenanceActions({
             confirm,
-            saveBoolPreference
+            setGameLogPersistenceDisabledPreference
         });
 
         await actions.handleGameLogDisabledChange(false);
 
         expect(confirm).not.toHaveBeenCalled();
-        expect(saveBoolPreference).toHaveBeenCalledWith(
-            'gameLogDisabled',
-            'VRCX_gameLogDisabled',
+        expect(setGameLogPersistenceDisabledPreference).toHaveBeenCalledWith(
             false
         );
+    });
+
+    it('rejects changes while VRChat is running', async () => {
+        const confirm = vi.fn(async () => ({ ok: true }));
+        const setGameLogPersistenceDisabledPreference = vi.fn(
+            async () => undefined
+        );
+        const actions = createMaintenanceActions({
+            confirm,
+            isGameRunning: true,
+            setGameLogPersistenceDisabledPreference
+        });
+
+        await actions.handleGameLogDisabledChange(true);
+
+        expect(confirm).not.toHaveBeenCalled();
+        expect(setGameLogPersistenceDisabledPreference).not.toHaveBeenCalled();
     });
 });
 
@@ -144,7 +166,6 @@ describe('purgeAvatarFeedData', () => {
                 optimizationError: 'vacuum failed'
             }),
             confirm: async () => ({ ok: false }),
-            saveBoolPreference: async () => undefined,
             setPurgeDialogOpen,
             toastWarning
         });

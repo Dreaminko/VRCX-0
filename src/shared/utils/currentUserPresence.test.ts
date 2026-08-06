@@ -221,22 +221,6 @@ describe('buildCurrentUserPresenceView', () => {
         });
     });
 
-    it('skips game state when gameLogDisabled is true', () => {
-        const user = { location: 'private' };
-        const gameState = {
-            isGameRunning: true,
-            currentLocation: 'wrld_game:99999',
-            currentWorldId: 'wrld_game'
-        };
-
-        const result = buildCurrentUserPresenceView(user, {
-            gameState,
-            gameLogDisabled: true
-        }) as Record<string, unknown>;
-
-        expect(result['location']).toBe('private');
-    });
-
     it('falls back to snapshot location when currentUser has no visible location', () => {
         const user = { location: 'private', displayName: 'Test' };
         const snapshot = {

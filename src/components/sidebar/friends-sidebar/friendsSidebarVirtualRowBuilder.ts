@@ -189,7 +189,6 @@ function buildCurrentUserRows({
     currentUser,
     currentUserId,
     gameState,
-    prefs,
     sectionKey = 'me',
     isGroupByInstance = false,
     showSkeleton = true
@@ -197,7 +196,6 @@ function buildCurrentUserRows({
     currentUser: CurrentUserPresenceRecord | null | undefined;
     currentUserId?: string | null;
     gameState: SidebarGameState | null | undefined;
-    prefs: SidebarPreferences;
     sectionKey?: string;
     isGroupByInstance?: boolean;
     showSkeleton?: boolean;
@@ -216,8 +214,7 @@ function buildCurrentUserRows({
     }
 
     const currentUserRow = buildCurrentUserPresenceView(currentUser, {
-        gameState: gameState as CurrentUserPresenceGameState,
-        gameLogDisabled: Boolean(prefs.gameLogDisabled)
+        gameState: gameState as CurrentUserPresenceGameState
     });
     const currentUserDisplayRow = stripStoppedGameCurrentUserPresence(
         currentUserRow,
@@ -287,8 +284,7 @@ export function buildFriendsSidebarVirtualRows({
             ...buildCurrentUserRows({
                 currentUser,
                 currentUserId,
-                gameState,
-                prefs
+                gameState
             })
         );
     }
@@ -306,7 +302,6 @@ export function buildFriendsSidebarVirtualRows({
                           currentUser,
                           currentUserId,
                           gameState,
-                          prefs,
                           sectionKey: `${sectionKey}:currentUser`,
                           isGroupByInstance: true,
                           showSkeleton: false

@@ -19,7 +19,6 @@ type PlayerListViewDataInput = {
     currentUserId?: unknown;
     currentUserLocation?: unknown;
     currentUserSnapshot?: PlayerListProfileRecord | null;
-    gameLogDisabled: boolean;
     isGameRunning: boolean;
     knownUsersById: Record<string, PlayerListProfileRecord | null | undefined>;
     languageOptionsMap?: Parameters<
@@ -43,7 +42,6 @@ export function usePlayerListViewData({
     currentUserId,
     currentUserLocation,
     currentUserSnapshot,
-    gameLogDisabled,
     isGameRunning,
     knownUsersById,
     languageOptionsMap,
@@ -105,7 +103,6 @@ export function usePlayerListViewData({
         [context.location, currentUserLocation]
     );
     const isPlayerListSourceUnavailable = Boolean(
-        !gameLogDisabled &&
         isGameRunning &&
         loadStatus === 'ready' &&
         context.source !== 'database' &&

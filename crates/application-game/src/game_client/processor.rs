@@ -36,7 +36,6 @@ pub trait GameClientCacheActions: Send + Sync {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub enum DebugLoggingOutcomeKind {
-    Disabled,
     Unavailable,
     Enabled,
     Repaired,
@@ -154,10 +153,7 @@ impl GameClientProcessor {
     }
 
     fn check_debug_logging(&self) {
-        let (kind, error) = resolve_debug_logging_outcome(
-            config_store::get_bool(&self.deps.db, "gameLogDisabled", false).map_err(Into::into),
-            self.deps.debug_logging_actions.as_ref(),
-        );
+        let (kind, error) = resolve_debug_logging_outcome(self.deps.debug_logging_actions.as_ref());
         let mut outcome = DebugLoggingOutcome {
             check_id: 0,
             kind,
@@ -384,31 +380,23 @@ impl GameClientProcessor {
 }
 
 fn resolve_debug_logging_outcome(
-    game_log_disabled: Result<bool>,
     actions: &dyn GameClientDebugLoggingActions,
 ) -> (DebugLoggingOutcomeKind, Option<String>) {
-    match game_log_disabled {
-        Ok(true) => (DebugLoggingOutcomeKind::Disabled, None),
+    match actions.read_debug_logging_enabled() {
+        Ok(None) => (DebugLoggingOutcomeKind::Unavailable, None),
+        Ok(Some(true)) => (DebugLoggingOutcomeKind::Enabled, None),
+        Ok(Some(false)) => match actions.enable_debug_logging() {
+            Ok(true) => (DebugLoggingOutcomeKind::Repaired, None),
+            Ok(false) => (DebugLoggingOutcomeKind::NeedsUserAction, None),
+            Err(error) => (
+                DebugLoggingOutcomeKind::NeedsUserAction,
+                Some(error.to_string()),
+            ),
+        },
         Err(error) => (
             DebugLoggingOutcomeKind::Unavailable,
             Some(error.to_string()),
         ),
-        Ok(false) => match actions.read_debug_logging_enabled() {
-            Ok(None) => (DebugLoggingOutcomeKind::Unavailable, None),
-            Ok(Some(true)) => (DebugLoggingOutcomeKind::Enabled, None),
-            Ok(Some(false)) => match actions.enable_debug_logging() {
-                Ok(true) => (DebugLoggingOutcomeKind::Repaired, None),
-                Ok(false) => (DebugLoggingOutcomeKind::NeedsUserAction, None),
-                Err(error) => (
-                    DebugLoggingOutcomeKind::NeedsUserAction,
-                    Some(error.to_string()),
-                ),
-            },
-            Err(error) => (
-                DebugLoggingOutcomeKind::Unavailable,
-                Some(error.to_string()),
-            ),
-        },
     }
 }
 
@@ -444,21 +432,6 @@ mod tests {
     }
 
     #[test]
-    fn debug_logging_disabled_game_log_skips_registry_repair() {
-        let actions = FakeDebugLoggingActions {
-            enabled: Some(false),
-            repair_succeeds: true,
-            repair_attempts: AtomicUsize::new(0),
-        };
-
-        let (kind, error) = resolve_debug_logging_outcome(Ok(true), &actions);
-
-        assert_eq!(kind, DebugLoggingOutcomeKind::Disabled);
-        assert_eq!(error, None);
-        assert_eq!(actions.repair_attempts.load(Ordering::Acquire), 0);
-    }
-
-    #[test]
     fn debug_logging_disabled_registry_value_is_repaired_once() {
         let actions = FakeDebugLoggingActions {
             enabled: Some(false),
@@ -466,7 +439,7 @@ mod tests {
             repair_attempts: AtomicUsize::new(0),
         };
 
-        let (kind, error) = resolve_debug_logging_outcome(Ok(false), &actions);
+        let (kind, error) = resolve_debug_logging_outcome(&actions);
 
         assert_eq!(kind, DebugLoggingOutcomeKind::Repaired);
         assert_eq!(error, None);

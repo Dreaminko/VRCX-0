@@ -991,7 +991,7 @@
                 "session_date_range": "Диапазон дат сессии",
                 "start": "Запуск",
                 "end": "Конец",
-                "game_log_is_disabled": "Журнал игры отключен",
+                "game_log_is_disabled": "Запись GameLog отключена",
                 "showing": "Показать",
                 "of": "В тыс.",
                 "game_log_row": "запись игрового журнала",
@@ -1005,7 +1005,7 @@
                 "open_link": "Открыть ссылку",
                 "copy_detail": "Копировать",
                 "show_instance_history": "Показать историю случая",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Включите игровой журнал в настройках, чтобы видеть локальную активность VRChat"
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Новые записи GameLog не сохраняются; существующая история и функции журнала в реальном времени остаются доступными."
             },
             "loading": {
                 "loading_the_game_log_snapshot": "Загрузка игрового журнала"
@@ -2456,8 +2456,8 @@
                         "description": "Средства журналирования и диагностики для поиска проблем.",
                         "show": "Показать инструменты",
                         "hide": "Скрыть инструменты",
-                        "gamelog": "Обработка GameLog",
-                        "gamelog_description": "Требуется функциям, использующим журналы VRChat.",
+                        "gamelog": "Сохранять историю GameLog",
+                        "gamelog_description": "Если отключено, новая история GameLog не сохраняется. Player List, Now Playing, метаданные снимков, Instance Media и другие функции реального времени остаются доступными.",
                         "tools": "Диагностика",
                         "database_usage": "Использование базы данных",
                         "refresh_database_usage": "Обновить сведения об использовании базы данных",
@@ -5018,7 +5018,7 @@
         "close_instance": "Закрыть этот инстанс? После закрытия никто не сможет к нему присоединиться.",
         "logout": "Продолжить?",
         "delete_log": "Удалить журнал?",
-        "disable_gamelog": "Отключить GameLog",
+        "disable_gamelog": "Прекратить сохранять новую историю GameLog? Player List, Now Playing, метаданные снимков, Instance Media и другие функции реального времени останутся доступными.",
         "delete_vrc_registry": "Удалить существующие настройки реестра VRChat?",
         "clear_cache": "Продолжить? VRChat Кэш"
     },

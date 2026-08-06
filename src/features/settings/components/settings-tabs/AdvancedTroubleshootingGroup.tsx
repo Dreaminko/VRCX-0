@@ -32,6 +32,7 @@ type DiagnosticAction = 'config' | 'online' | 'tables';
 
 type AdvancedTroubleshootingGroupProps = {
     configTreeData: Record<string, unknown>;
+    gameLogPersistenceSupported: boolean;
     onClearConfigTreeData: () => void;
     onGameLogDisabledChange: (disabled: boolean) => unknown;
     onLogResourceLoadChange: (checked: boolean) => unknown;
@@ -47,6 +48,7 @@ type AdvancedTroubleshootingGroupProps = {
 
 export function AdvancedTroubleshootingGroup({
     configTreeData,
+    gameLogPersistenceSupported,
     onClearConfigTreeData,
     onGameLogDisabledChange,
     onLogResourceLoadChange,
@@ -179,21 +181,23 @@ export function AdvancedTroubleshootingGroup({
                                 onCheckedChange={onLogResourceLoadChange}
                             />
                         </Field>
-                        <Field
-                            label={t(
-                                'view.settings.advanced.advanced_ui.troubleshooting.gamelog'
-                            )}
-                            description={t(
-                                'view.settings.advanced.advanced_ui.troubleshooting.gamelog_description'
-                            )}
-                        >
-                            <Switch
-                                checked={!prefs.gameLogDisabled}
-                                onCheckedChange={(checked) =>
-                                    onGameLogDisabledChange(!checked)
-                                }
-                            />
-                        </Field>
+                        {gameLogPersistenceSupported ? (
+                            <Field
+                                label={t(
+                                    'view.settings.advanced.advanced_ui.troubleshooting.gamelog'
+                                )}
+                                description={t(
+                                    'view.settings.advanced.advanced_ui.troubleshooting.gamelog_description'
+                                )}
+                            >
+                                <Switch
+                                    checked={!prefs.gameLogDisabled}
+                                    onCheckedChange={(checked) =>
+                                        onGameLogDisabledChange(!checked)
+                                    }
+                                />
+                            </Field>
+                        ) : null}
 
                         <SettingsSectionHeading
                             title={t(

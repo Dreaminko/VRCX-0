@@ -82,11 +82,13 @@ type SettingsMaintenanceActionsDeps = {
     prefs: SettingsPrefs;
     prompt: (options: SettingsPromptOptions) => Promise<SettingsDialogResult>;
     purgePeriod: string;
-    saveBoolPreference: PreferenceActions['saveBoolPreference'];
     savePreferenceValue: PreferenceActions['savePreferenceValue'];
     saveStringPreference: PreferenceActions['saveStringPreference'];
     setAppDataDirState: (value: AppDataDirState | null) => void;
     setCropInstancePrintsPreference: (value: boolean) => Promise<unknown>;
+    setGameLogPersistenceDisabledPreference: (
+        disabled: boolean
+    ) => Promise<unknown>;
     setIntConfigPreference: (
         key: IntConfigPreferenceKey,
         value: string | number,
@@ -112,11 +114,11 @@ export function useSettingsMaintenanceActions({
     prefs,
     prompt,
     purgePeriod,
-    saveBoolPreference,
     savePreferenceValue,
     saveStringPreference,
     setAppDataDirState,
     setCropInstancePrintsPreference,
+    setGameLogPersistenceDisabledPreference,
     setIntConfigPreference,
     setPrefs,
     setPurgeDialogOpen,
@@ -460,12 +462,12 @@ export function useSettingsMaintenanceActions({
         }
     }
     async function handleGameLogDisabledChange(checked: unknown) {
-        const enabled = normalizeCheckedState(checked);
+        const disabled = normalizeCheckedState(checked);
         if (gameState.isGameRunning) {
             toast.error(t('message.gamelog.vrchat_must_be_closed'));
             return;
         }
-        if (enabled) {
+        if (disabled) {
             const result = await confirm({
                 title: t('confirm.title'),
                 description: t('confirm.disable_gamelog')
@@ -474,10 +476,8 @@ export function useSettingsMaintenanceActions({
                 return;
             }
         }
-        await saveBoolPreference(
-            'gameLogDisabled',
-            'VRCX_gameLogDisabled',
-            enabled
+        await savePreferenceValue('gameLogDisabled', disabled, () =>
+            setGameLogPersistenceDisabledPreference(disabled)
         );
     }
     return {

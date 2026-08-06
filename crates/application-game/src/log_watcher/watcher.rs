@@ -54,6 +54,7 @@ pub(super) struct Inner {
     pub(super) started: AtomicBool,
     pub(super) stop_requested: AtomicBool,
     pub(super) generation: AtomicU64,
+    pub(super) initial_scan_latest_file_only: AtomicBool,
     pub(super) handle: Mutex<Option<JoinHandle<()>>>,
 }
 
@@ -87,6 +88,7 @@ impl LogWatcher {
                 started: AtomicBool::new(false),
                 stop_requested: AtomicBool::new(false),
                 generation: AtomicU64::new(0),
+                initial_scan_latest_file_only: AtomicBool::new(false),
                 handle: Mutex::new(None),
             }),
         }
@@ -151,6 +153,12 @@ impl LogWatcher {
         *self.inner.active.lock().unwrap() = true;
         *self.inner.keep_polling_until.lock().unwrap() =
             Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
+    }
+
+    pub fn set_initial_scan_latest_file_only(&self, enabled: bool) {
+        self.inner
+            .initial_scan_latest_file_only
+            .store(enabled, Ordering::Release);
     }
 
     pub fn reset(&self) {
@@ -285,7 +293,18 @@ fn update(
         })
         .collect();
 
-    entries.sort_by_key(|e| e.metadata().and_then(|m| m.created()).ok());
+    if *first_run
+        && inner.initial_scan_latest_file_only.load(Ordering::Acquire)
+        && entries.len() > 1
+    {
+        let latest = entries
+            .into_iter()
+            .max_by_key(|entry| entry.file_name())
+            .expect("multiple GameLog entries");
+        entries = vec![latest];
+    } else {
+        entries.sort_by_key(|entry| entry.metadata().and_then(|meta| meta.created()).ok());
+    }
 
     let mut saw_new_data = false;
     for entry in entries {
@@ -313,7 +332,7 @@ fn update(
         contexts.remove(&name);
     }
 
-    queue::flush_game_log_events(inner);
+    queue::flush_game_log_events(inner, *first_run);
     *first_run = false;
     saw_new_data
 }

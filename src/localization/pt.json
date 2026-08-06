@@ -991,7 +991,7 @@
                 "session_date_range": "Intervalo de datas das sessões",
                 "start": "Início",
                 "end": "Fim",
-                "game_log_is_disabled": "O registro do jogo está desativado",
+                "game_log_is_disabled": "A gravação do GameLog está desativada",
                 "showing": "Mostrando",
                 "of": "de",
                 "game_log_row": "entrada do registro do jogo",
@@ -1005,7 +1005,7 @@
                 "open_link": "Abrir link",
                 "copy_detail": "Copiar detalhe",
                 "show_instance_history": "Mostrar histórico da instância",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Ative o registro do jogo nas Configurações para ver sua atividade local no VRChat"
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Novos registros do GameLog não serão salvos; o histórico existente e os recursos de log em tempo real continuam disponíveis."
             },
             "loading": {
                 "loading_the_game_log_snapshot": "Carregando o registro do jogo"
@@ -2454,8 +2454,8 @@
                         "description": "Ferramentas de registro e diagnóstico para investigar problemas.",
                         "show": "Mostrar ferramentas",
                         "hide": "Ocultar ferramentas",
-                        "gamelog": "Processamento do GameLog",
-                        "gamelog_description": "Necessário para recursos que dependem dos registros do VRChat.",
+                        "gamelog": "Salvar histórico do GameLog",
+                        "gamelog_description": "Quando desativado, nenhum novo histórico do GameLog é salvo. Player List, Now Playing, metadados de capturas, Instance Media e outros recursos em tempo real continuam disponíveis.",
                         "tools": "Diagnóstico",
                         "database_usage": "Uso do banco de dados",
                         "refresh_database_usage": "Atualizar uso do banco de dados",
@@ -5014,7 +5014,7 @@
         "close_instance": "Continuar? Encerrar Instância, ninguém poderá entrar",
         "logout": "Continuar? Sair",
         "delete_log": "Continue? Excluir Registro",
-        "disable_gamelog": "Continuar? Desativar Registro do Jogo",
+        "disable_gamelog": "Parar de salvar o novo histórico do GameLog? Player List, Now Playing, metadados de capturas, Instance Media e outros recursos em tempo real continuarão disponíveis.",
         "delete_vrc_registry": "Continuar? Excluir Configurações de Registro do VRC",
         "clear_cache": "Continuar? Limpar todo o cache do VRChat"
     },

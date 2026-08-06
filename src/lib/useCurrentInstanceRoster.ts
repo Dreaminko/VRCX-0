@@ -39,7 +39,6 @@ export function useCurrentInstanceRoster({
     currentUserEndpoint,
     currentUserId,
     currentUserSnapshot,
-    disabled,
     isGameRunning,
     logLocationSnapshot,
     playerListLocation,
@@ -51,7 +50,6 @@ export function useCurrentInstanceRoster({
     currentUserEndpoint?: string;
     currentUserId?: unknown;
     currentUserSnapshot?: CurrentUserSnapshot | null;
-    disabled: boolean;
     isGameRunning: boolean;
     logLocationSnapshot?: {
         createdAt?: unknown;
@@ -76,21 +74,6 @@ export function useCurrentInstanceRoster({
 
     useEffect(() => {
         let active = true;
-
-        if (disabled) {
-            setLoadStatus('idle');
-            setDetail('Game log ingestion is disabled.');
-            setContext(
-                createRuntimeContext({
-                    playerListLocation,
-                    playerListWorldId
-                })
-            );
-            setPlayerRows([]);
-            return () => {
-                active = false;
-            };
-        }
 
         if (!isGameRunning) {
             setLoadStatus('idle');
@@ -225,7 +208,6 @@ export function useCurrentInstanceRoster({
         currentUserEndpoint,
         currentUserId,
         currentUserSnapshot,
-        disabled,
         isGameRunning,
         logLocationSnapshot?.createdAt,
         logLocationSnapshot?.location,
